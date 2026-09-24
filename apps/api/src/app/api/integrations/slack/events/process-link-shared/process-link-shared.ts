@@ -1,11 +1,18 @@
 import type { EntityMetadata, LinkSharedEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
+import { type SelectConnection, tasks } from "@superset/db/schema";
 import {
 	accountConnection,
 	connectionBotToken,
 } from "@superset/trpc/connectors";
+import { pagePreview } from "@superset/trpc/page-preview";
 import { and, eq } from "drizzle-orm";
+import { findSlackUserLink } from "../../lib/find-slack-user-link";
+import { generateConnectUrl } from "../utils/generate-connect-url";
+import {
+	createPageWorkObject,
+	parsePageSlugFromUrl,
+} from "../utils/page-work-object";
 import { createSlackClient } from "../utils/slack-client";
 import {
 	createTaskWorkObject,
@@ -39,48 +46,120 @@ export async function processLinkShared({
 		return;
 	}
 
-	const slack = createSlackClient(await connectionBotToken(connection));
+	await unfurlLinks({
+		connection,
+		teamId,
+		slackUserId: event.user,
+		channel: event.channel,
+		ts: event.message_ts,
+		urls: event.links.map((link) => link.url),
+	});
+}
 
+export interface UnfurlLinksParams {
+	connection: SelectConnection;
+	teamId: string;
+	slackUserId: string;
+	channel: string;
+	ts: string;
+	urls: string[];
+}
+
+/**
+ * Tasks unfurl for the whole connected workspace. Pages unfurl as the poster:
+ * a public page for anyone, anything narrower only once the poster has linked
+ * a Superset account that can read it — and until then Slack asks them to.
+ */
+export async function unfurlLinks({
+	connection,
+	teamId,
+	slackUserId,
+	channel,
+	ts,
+	urls,
+}: UnfurlLinksParams): Promise<void> {
+	const organizationId = connection.organizationId;
 	const entities: EntityMetadata[] = [];
+	let pageAwaitingUser: string | undefined;
 
-	for (const link of event.links) {
-		const taskSlug = parseTaskSlugFromUrl(link.url);
-		if (!taskSlug) {
+	const pageSlugs = new Map(
+		urls.flatMap((url) => {
+			const slug = parsePageSlugFromUrl(url);
+			return slug ? [[url, slug] as const] : [];
+		}),
+	);
+	const reader =
+		pageSlugs.size > 0
+			? await findSlackUserLink({ organizationId, slackUserId, teamId })
+			: undefined;
+
+	for (const url of urls) {
+		const taskSlug = parseTaskSlugFromUrl(url);
+		if (taskSlug) {
+			const task = await db.query.tasks.findFirst({
+				where: and(
+					eq(tasks.organizationId, organizationId),
+					eq(tasks.slug, taskSlug),
+				),
+				with: { status: true, assignee: true, creator: true },
+			});
+			// Must match the exact URL from the message for Slack to unfurl
+			if (task)
+				entities.push({ ...createTaskWorkObject(task), app_unfurl_url: url });
 			continue;
 		}
 
-		const task = await db.query.tasks.findFirst({
-			where: and(
-				eq(tasks.organizationId, connection.organizationId),
-				eq(tasks.slug, taskSlug),
-			),
-			with: {
-				status: true,
-				assignee: true,
-				creator: true,
-			},
-		});
+		const pageSlug = pageSlugs.get(url);
+		if (!pageSlug) continue;
 
-		if (task) {
-			const entity = createTaskWorkObject(task);
-			// Must match the exact URL from the message for Slack to unfurl
-			entity.app_unfurl_url = link.url;
-			entities.push(entity);
+		const result = await pagePreview({
+			slug: pageSlug,
+			organizationId,
+			userId: reader?.userId,
+		});
+		if (result.status === "readable") {
+			entities.push({
+				...createPageWorkObject(result.preview),
+				app_unfurl_url: url,
+			});
+		} else if (result.status === "needs_user") {
+			pageAwaitingUser ??= url;
 		}
 	}
+
+	if (entities.length === 0 && !pageAwaitingUser) return;
+
+	const slack = createSlackClient(await connectionBotToken(connection));
 
 	if (entities.length > 0) {
 		try {
 			// Work Objects use `metadata` instead of the legacy `unfurls` field
-			await slack.chat.unfurl({
-				channel: event.channel,
-				ts: event.message_ts,
-				metadata: {
-					entities,
-				},
-			});
+			await slack.chat.unfurl({ channel, ts, metadata: { entities } });
 		} catch (err) {
 			console.error("[slack/process-link-shared] Failed to send unfurls:", err);
+		}
+	}
+
+	if (pageAwaitingUser) {
+		try {
+			await slack.chat.unfurl({
+				channel,
+				ts,
+				unfurls: {},
+				user_auth_required: true,
+				user_auth_message:
+					"Connect your Superset account to preview the pages you share.",
+				user_auth_url: generateConnectUrl({
+					slackUserId,
+					teamId,
+					unfurl: { channel, ts, url: pageAwaitingUser },
+				}),
+			});
+		} catch (err) {
+			console.error(
+				"[slack/process-link-shared] Failed to request account link:",
+				err,
+			);
 		}
 	}
 }

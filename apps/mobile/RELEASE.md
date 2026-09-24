@@ -11,6 +11,14 @@ getting unstuck when App Review rejects or stalls it.
   Keep it on the `1.x` line; bump the **patch** number for routine releases and
   the minor for visible feature drops. Large version jumps (1.x to 2.0) and long
   gaps between submissions both draw extra scrutiny from App Review.
+- Bump the patch version in both files as soon as a version is submitted for
+  review. App Store Connect refuses uploads to a version once it is approved,
+  and every native merge to `main` uploads a build, so a stale version fails
+  the upload job in `deploy.yml` from the first merge after approval (build 41
+  on 2026-09-18). Expo's guidance is the same: bump when the production build
+  is submitted. `fingerprint.config.js` keeps versions out of the runtime
+  fingerprint, so a bump neither forces a native build nor cuts installed
+  builds off from updates.
 - Build numbers auto-increment on EAS (`appVersionSource: "remote"` plus
   `autoIncrement: true` in the `production` profile). Never set them by hand.
 - Submit often. A small diff against the last approved build is the cheapest
@@ -45,6 +53,8 @@ eas metadata:push   # from the main checkout; APP_REVIEW_EMAIL / APP_REVIEW_PASS
 
 # 4. In App Store Connect, attach the processed build to the version and
 #    press "Submit for Review".
+
+# 5. Bump the patch version on main (see Versioning).
 ```
 
 Before pressing submit, run the pre-flight below. Most first-submission

@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#个工作区} other {#个工作区}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。} other {#个运行中的智能体仍在使用之前的账户。切换只对新启动生效。}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {评论将发送给此智能体} other {评论将发送给这些智能体}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1个cookie——忘记此站点"
 
-msgid "1 hour"
-msgstr "1小时"
-
 msgid "1 user"
 msgstr "1个用户"
-
-msgid "10 minutes"
-msgstr "10分钟"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10条以上并行工作流且不丢状态"
@@ -1144,17 +1142,11 @@ msgstr "10条以上并行工作流且不丢状态"
 msgid "100% (retain everything)"
 msgstr "100%（全部留存）"
 
-msgid "15 minutes"
-msgstr "15分钟"
-
 msgid "1d ago"
 msgstr "1天前"
 
 msgid "2 agents · 14 files changed"
 msgstr "2个智能体 · 14个文件已更改"
-
-msgid "2 hours"
-msgstr "2小时"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1180,9 +1172,6 @@ msgstr "3个文件已更改，2个测试通过"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "每位工程师3条以上并行工作流"
 
-msgid "30 minutes"
-msgstr "30分钟"
-
 msgid "30D"
 msgstr "30天"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 files · +82 −172"
-
-msgid "5 minutes"
-msgstr "5分钟"
 
 msgid "55 call sites pass {code}"
 msgstr "55处调用传入{code}"
@@ -1387,10 +1373,6 @@ msgstr "激活情况、进来之后的使用量，以及他们是否会回来。
 
 msgid "Active"
 msgstr "启用中"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "活跃{0}"
 
 msgid "Active agent sessions."
 msgstr "活跃的智能体会话。"
@@ -1661,6 +1643,9 @@ msgstr "智能体自己加载预览、操作界面，并在标记为待审查之
 msgid "Agents running at once"
 msgstr "同时运行的智能体数"
 
+msgid "Agents watching this page for comments"
+msgstr "正在关注此页面评论的智能体"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有开发者的智能体使用汇总 —— token、成本、缓存表现，以及大家实际常用的模型。"
 
@@ -1910,6 +1895,10 @@ msgstr "另有：@superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "随时知道哪个智能体需要你，通知可直接跳转到被阻塞的智能体。"
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "智能体"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "智能体能端到端完成跨文件改动。"
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic拒绝了此API密钥。"
 msgid "Anthropic rejected this token."
 msgstr "Anthropic拒绝了此令牌。"
 
-msgid "Any calendar"
-msgstr "任意日历"
-
 msgid "Any channel"
 msgstr "任意频道"
 
@@ -2023,9 +2009,6 @@ msgstr "任意团队"
 
 msgid "Any thread event"
 msgstr "任意讨论事件"
-
-msgid "anyone"
-msgstr "任何人"
 
 msgid "Anyone"
 msgstr "任何人"
@@ -2606,9 +2589,6 @@ msgstr "带边框的chip是默认样式（预设栏/HotkeyTooltip的样式）；
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "借用自动驾驶汽车的分级方式，用来衡量软件的构建方式。有意思的跃迁是F3到F4：从你委派的智能体，变成你指挥的工厂。"
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "日历和Gmail的访问权限都是必需的。请在询问时全部允许。"
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "底部抽屉，在触屏设备上便于滑动操作。"
 
@@ -3157,9 +3137,6 @@ msgstr "选择要从应用内浏览器清除的内容。"
 msgid "Choose when Superset pings you."
 msgstr "选择Superset在什么时候通知你。"
 
-msgid "Choose which agent watches this page for comments"
-msgstr "选择由哪个智能体关注此页面的评论"
-
 msgid "Churn"
 msgstr "流失"
 
@@ -3629,9 +3606,6 @@ msgstr "评论"
 msgid "Comments could not be loaded"
 msgstr "无法加载评论"
 
-msgid "Comments go to this agent"
-msgstr "评论将发送给此智能体"
-
 msgid "Commit"
 msgstr "提交"
 
@@ -3756,8 +3730,8 @@ msgstr "连接 {name}"
 msgid "Connect a device"
 msgstr "连接设备"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "连接一个Google账户。它的日历和邮箱均为只读，触发器以连接者的身份运行。"
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "连接一个 Google 账号。其邮箱为只读，触发器以连接者的身份运行。"
 
 msgid "Connect a microphone to use dictation"
 msgstr "请连接麦克风以使用语音输入"
@@ -4374,9 +4348,6 @@ msgstr "无法启动会话"
 msgid "Could not stop it"
 msgstr "无法停止"
 
-msgid "Could not stop watching"
-msgstr "无法停止关注"
-
 msgid "Could not submit prompt. Try again."
 msgstr "无法提交提示词。请重试。"
 
@@ -4395,9 +4366,6 @@ msgstr "无法更新分支"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "无法验证凭据：{reason}"
-
-msgid "Could not watch this page"
-msgstr "无法关注此页面"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "无法确认加星状态，请检查是否已安装并登录GitHub CLI（`gh`），以及网络是否连通"
@@ -5844,23 +5812,8 @@ msgstr "按esc关闭"
 msgid "esc to exit"
 msgstr "esc退出"
 
-msgid "Event cancelled"
-msgstr "日程已取消"
-
-msgid "Event created"
-msgstr "日程已创建"
-
-msgid "Event ended"
-msgstr "日程已结束"
-
-msgid "Event starting soon"
-msgstr "日程即将开始"
-
 msgid "Event triggered"
 msgstr "事件触发"
-
-msgid "Event updated"
-msgstr "日程已更新"
 
 msgid "Every {day}"
 msgstr "每{day}"
@@ -5868,8 +5821,8 @@ msgstr "每{day}"
 msgid "Every {day} at {time}"
 msgstr "每{day} {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "每个智能体都跑在自己的Git worktree里，十个智能体可以在同一个仓库的十个分支上互不冲突地工作。你在一个窗口里观察、审查并合并它们。"
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "每个智能体都在各自的 Git worktree 和分支中运行，使工作文件保持独立。合并更改时仍可能发生冲突。你可以在同一个窗口中监控、审查并合并所有更改。"
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每个维度都在为下一等级出力。保持住，等级自然会来。"
@@ -7099,6 +7052,9 @@ msgstr "给密钥起一个描述性的名称，方便记住它用在哪里。"
 msgid "Globe"
 msgstr "地球"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "需要 Gmail 访问权限。请在系统询问时允许。"
+
 msgid "Go back"
 msgstr "返回"
 
@@ -7169,6 +7125,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 与 AI 自动化架构师，Mistral AI"
 
 msgid "Guide"
+msgstr "指南"
+
+msgid "Guides"
 msgstr "指南"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "这台机器上没有配置智能体"
 msgid "No agents match \"{q}\"."
 msgstr "没有匹配“{q}”的智能体。"
 
-msgid "No agents running here"
-msgstr "这里没有运行中的智能体"
-
 msgid "No agents yet"
 msgstr "暂无智能体"
 
@@ -10014,9 +9970,6 @@ msgstr "还没有安装任何插件。"
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "没有任何东西在运行。移除它，再建一个。"
 
-msgid "Nothing is watching this page"
-msgstr "没有智能体在关注此页面"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下没有任何内容。"
 
@@ -10110,6 +10063,9 @@ msgstr "更早"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "在{offScopeHostName}上，不会在这里运行"
+
+msgid "On a host you can't reach"
+msgstr "在你无法连接的主机上"
 
 msgid "On click"
 msgstr "点击时"
@@ -13165,9 +13121,6 @@ msgstr "选择分支"
 msgid "Select branch..."
 msgstr "选择分支..."
 
-msgid "Select calendars"
-msgstr "选择日历"
-
 msgid "Select channels"
 msgstr "选择频道"
 
@@ -13469,8 +13422,8 @@ msgstr "分享设计和报告，让你的智能体处理反馈。"
 msgid "Share page"
 msgstr "分享页面"
 
-msgid "Share settings"
-msgstr "共享设置"
+msgid "Share page (public)"
+msgstr "分享页面（公开）"
 
 msgid "Share this page"
 msgstr "分享此页面"
@@ -13939,9 +13892,6 @@ msgstr "部分触发器需要额外配置"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "其他人已发布该工作区中的 {entryPath}。使用明确的页面 id 发布以向其页面添加版本，或移动该文件。"
 
-msgid "someone external"
-msgstr "外部人员"
-
 msgid "Something went wrong"
 msgstr "出了点问题"
 
@@ -14285,9 +14235,6 @@ msgstr "停止回复"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "在此停止Superset，然后从其他设备删除。"
-
-msgid "Stop watching"
-msgstr "停止关注"
 
 msgid "Stop workspace run command"
 msgstr "停止工作区运行命令"
@@ -15321,6 +15268,9 @@ msgstr "这将关闭所选工作区及其终端。项目的文件和分支保持
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "这将关闭该工作区及其终端。项目的文件、分支和其他工作区保持不变。"
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "正在唤醒此云工作区。如果它已闲置一段时间，可能需要最多 30 秒。"
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "这将删除用于重启/崩溃恢复的已保存回滚缓冲。"
 
@@ -15428,10 +15378,6 @@ msgstr "此页面正在别处发布，请重试"
 
 msgid "This page is in another organization"
 msgstr "这个页面属于另一个组织"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "此页面已发布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到这个页面"
@@ -15607,9 +15553,6 @@ msgstr "时间范围"
 
 msgid "Title"
 msgstr "标题"
-
-msgid "Title contains..."
-msgstr "标题包含..."
 
 msgid "To"
 msgstr "到"
@@ -15800,11 +15743,11 @@ msgstr "正在分类12个新议题…"
 msgid "Trigger alert()"
 msgstr "触发alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "用Google日历和Gmail触发自动化：日程被创建、更新、取消、即将开始或已结束，以及所连接的收件箱收到邮件。"
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "从 Gmail 触发自动化：到达已连接收件箱的邮件。"
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "用Google日历和Gmail触发自动化。"
+msgid "Trigger automations from Gmail."
+msgstr "从 Gmail 触发自动化。"
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "用Teams频道消息触发自动化。"
@@ -15878,9 +15821,6 @@ msgstr "输入消息..."
 
 msgid "Type a task for Claude…"
 msgstr "给Claude写个任务…"
-
-msgid "Type an email, press Enter"
-msgstr "输入邮箱后按回车"
 
 msgid "Type here to send to the terminal"
 msgstr "在此输入以发送到终端"

@@ -32,6 +32,7 @@ import {
 	SandboxNotReadyError,
 	SandboxUnavailableError,
 	wakeSandbox,
+	workspaceBranchName,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
@@ -294,13 +295,15 @@ export const cloudWorkspaceRouter = {
 			// rejects whenever two creates overlap.
 			const id = crypto.randomUUID();
 			const providerSandboxId = sandboxNameFor(id);
+			const name = input.name ?? FALLBACK_NAME;
 			const [row] = await db
 				.insert(cloudWorkspaces)
 				.values({
 					id,
 					organizationId: input.organizationId,
-					name: input.name ?? FALLBACK_NAME,
-					branch,
+					name,
+					branch: workspaceBranchName({ id, name }),
+					baseBranch: branch,
 					provider: "vercel",
 					providerSandboxId,
 					status: "provisioning",

@@ -11,7 +11,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "packages/sandbox/bundle/**"
+      - "packages/sandbox/**"
       - "packages/shared/src/sandbox-contract.ts"
   workflow_dispatch:
     inputs:
@@ -138,7 +138,17 @@ jobs:
 
   production-release:
     name: Production release
-    if: github.event_name == 'workflow_dispatch' && inputs.run == 'production-release' && github.ref == 'refs/heads/main'
+    # A merge that touches the image or the bundle releases it. Without this the
+    # bundle moved on every merge while the image and the goldens only moved when
+    # someone remembered, so every new box booted an image older than the bundle
+    # it then fetched. host-service is deliberately not here: a box picks one up
+    # by hash from `bundle/assets.json`, so what reaches a box is the version
+    # bump in that file, which is already a `packages/sandbox/**` change.
+    if: |
+      github.ref == 'refs/heads/main' && (
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.run == 'production-release')
+      )
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 120

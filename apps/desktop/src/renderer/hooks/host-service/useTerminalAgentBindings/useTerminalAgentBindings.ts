@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useWorkspaceConnectionRefresh } from "../useWorkspaceConnectionRefresh";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
@@ -30,7 +31,6 @@ export function useTerminalAgentBindings(
 	options?: { enabled?: boolean },
 ): Map<string, TerminalAgentBinding> {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
-	const queryClient = useQueryClient();
 	const queryKey = useMemo(
 		() => getTerminalAgentBindingsQueryKey(workspaceId),
 		[workspaceId],
@@ -42,21 +42,20 @@ export function useTerminalAgentBindings(
 	const { data } = useQuery({
 		queryKey,
 		enabled,
-		queryFn: () => {
+		queryFn: ({ signal }) => {
 			if (!hostUrl) return [] as TerminalAgentBindings;
 			return getHostServiceClientByUrl(
 				hostUrl,
-			).terminalAgents.listByWorkspace.query({ workspaceId });
+			).terminalAgents.listByWorkspace.query({ workspaceId }, { signal });
 		},
-		// Lifecycle events invalidate for instant updates; the finite
-		// staleTime lets focus/remount refetches self-heal any staleness
-		// from events missed while the WS was down (host restart, sleep).
 		staleTime: 30_000,
 	});
 
-	const invalidate = useCallback(() => {
-		void queryClient.invalidateQueries({ queryKey });
-	}, [queryClient, queryKey]);
+	const invalidate = useWorkspaceConnectionRefresh(
+		workspaceId,
+		queryKey,
+		enabled,
+	);
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, invalidate, enabled);
 	useWorkspaceEvent("agent:bindings-changed", workspaceId, invalidate, enabled);

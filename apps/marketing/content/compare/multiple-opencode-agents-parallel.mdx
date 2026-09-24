@@ -1,8 +1,8 @@
 ---
 title: "How to Run Multiple OpenCode Agents in Parallel"
-description: "Learn the ways to run multiple OpenCode agents at once, from built-in multi-session and community orchestrator plugins to Git worktrees and Superset's workspace."
+description: "Run OpenCode tasks in separate Git worktrees with concrete setup commands, bounded prompts, and checks for independent edits and safe integration."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-23
 type: "tutorial"
 competitors:
   - opencode
@@ -16,91 +16,70 @@ keywords:
   - opencode multi session
 ---
 
-OpenCode is an open-source, terminal-first AI coding agent that is genuinely good at single-task work. The moment you want several OpenCode agents working at once, such as one writing tests, one refactoring, one updating docs, the bottleneck stops being the model and becomes workflow: how do you keep parallel work isolated and reviewable? This guide covers the real options, from OpenCode's built-in features to community orchestrators and worktree-based workspaces.
+Run multiple OpenCode tasks in parallel by giving each task a separate Git worktree and branch, then launching OpenCode from that directory. Review each diff and test the combined changes before merging. Subagents and extra sessions help divide work, but you should verify their working directories rather than assume they isolate edits.
 
----
+## Sessions, subagents, and worktrees
 
-## The Real Problem
+OpenCode's [agent documentation](https://opencode.ai/docs/agents/) distinguishes primary agents from subagents. Those roles describe how work is delegated. A Git worktree addresses a separate question: which checkout the process edits.
 
-Running one OpenCode agent is easy. Running several on the same repository is where things break down. Two agents editing the same working directory overwrite each other and tangle branches. So the question is not "can OpenCode do parallel work?" but "how do I isolate each agent so parallel work stays clean?"
+| Approach | Working files | What to check |
+|---|---|---|
+| Several sessions in one directory | Shared checkout | Overlapping edits and shared Git index |
+| Delegation to subagents | Depends on execution setup | Actual working directory and tool permissions |
+| One OpenCode process per Git worktree | Separate checkout per task | Branch, dependencies, preview ports, and integration tests |
+| Superset workspaces with OpenCode | Worktree and terminal per independent task | Same checks, with workspace management and diff review in the app |
 
-There are four practical approaches, in rough order of isolation.
+Community plugins may add coordination. Evaluate the specific plugin's current documentation, permissions, and maintenance before relying on its isolation guarantees.
 
-![How parallel agents stay isolated: one repository fans out into a Git worktree per task, each agent on its own branch with an independent diff](/images/guides/worktree-isolation.svg)
+## Start two independent tasks
 
-## The Approaches
+From your repository, create two worktrees with unused branch names and paths:
 
-### 1. OpenCode's built-in multi-session
+```bash
+git worktree add -b ai/opencode-tests ../repo-opencode-tests
+git worktree add -b ai/opencode-docs ../repo-opencode-docs
+```
 
-OpenCode supports starting multiple agents in parallel on the same project, and ships with built-in agents (build and plan) plus a general subagent for multi-step tasks. This is the simplest way to parallelize and needs no extra tools. The limitation is isolation: multi-session parallelism runs within the client and does not, by itself, give each task its own Git worktree, so you still need discipline to avoid collisions on shared files.
+Open a terminal in each directory, follow your project's dependency setup, and launch your installed OpenCode CLI. Authenticate with your chosen provider. Record `opencode --version`, the selected model, and the repository's starting commit so another developer can reproduce the setup.
 
-### 2. Community orchestrator plugins
+Use narrow prompts, adjusted to files that exist in your repository:
 
-Because demand for heavier orchestration is high, the community has built plugins that add "orchestrator" or "agent teams" roles on top of OpenCode (for example, planner, worker, and reviewer roles). These are useful, but it is worth being clear: they are third-party community projects, not an official OpenCode product. If you adopt one, evaluate its maintenance and how it handles isolation.
+```text
+Task A: Add regression tests for the input parser. Change only its test
+files. Run the existing focused test command and report the result.
+Do not commit or merge. Stop if the fix requires production code changes.
 
-### 3. Manual Git worktrees
+Task B: Update the setup guide to match the existing package scripts.
+Change only documentation. List the commands you checked and anything
+you could not verify. Do not commit or merge.
+```
 
-The reliable way to isolate parallel agents is a Git worktree per task. A worktree gives each agent its own directory and branch that share the repository history, so agents cannot step on each other. You can set this up by hand: create a worktree per task, launch an OpenCode agent in each, and review the diffs separately. It works well but is manual to create, track, and clean up.
+Check both sessions with `git rev-parse --show-toplevel` and `git branch --show-current`. Independent tasks should have different worktree paths and branches. If you use Superset, create a separate workspace for each task and select OpenCode as its agent.
 
-### 4. Superset + OpenCode
+![Separate tasks and branches in Superset's workspace board.](/changelog/2026-08-16-workspaces-board.png)
 
-Superset automates the worktree approach. It runs OpenCode as a first-class agent, giving every task its own Git worktree, branch, and persistent terminal, so many OpenCode agents work the same repository in parallel without collisions. Review happens in a built-in diff editor, with an in-app browser and MCP alongside, and you can hand off to your editor. It removes the manual worktree bookkeeping while keeping full isolation.
+## What worktrees do not isolate
 
-## Quick Comparison
+Worktrees share repository history and run with the host user's permissions. They do not separate network ports, databases, API quotas, or credentials. Two agents can still modify the same external service, and their changes can conflict when merged.
 
-| Approach | Isolation | Setup | Review |
-|---|---|---|---|
-| **Built-in multi-session** | Shared working copy | None | In the terminal |
-| **Community plugins** | Varies by plugin | Moderate | Varies |
-| **Manual worktrees** | Full (per task) | Manual per task | You track each diff |
-| **Superset + OpenCode** | Full (automatic) | Automatic | Built-in diff review |
+Our [Git 2.52.0 isolation check](/parallel-coding-agents#a-reproducible-isolation-check) demonstrates separate edits followed by a merge conflict. It measures Git behavior, not OpenCode performance. See the [Git worktree reference](https://git-scm.com/docs/git-worktree) for the underlying mechanism.
 
-## Recommended Workflow
+## Review before scaling
 
-### 1. Break work into independent tasks
+Inspect each task's diff and command output. Resolve dependencies between tasks before integrating them, then rerun the relevant checks on the combined branch. Record failures and manual corrections as well as successful runs.
 
-Parallel agents work best on tasks that do not overlap: tests, a refactor, a bug fix, docs. If two tasks touch the same files heavily, keep them sequential.
-
-### 2. Give every agent its own worktree
-
-Whether manual or automatic, isolate each OpenCode agent in its own Git worktree so parallel changes never share a working directory.
-
-### 3. Keep prompts narrow
-
-A focused prompt per agent produces a reviewable diff. Broad prompts across many files are harder to isolate and review.
-
-### 4. Review each diff before merging
-
-Review each worktree's changes independently and merge the ones you want. Isolation is what makes this safe at more than one agent.
-
-## Why Superset Fits This Workflow
-
-Superset is built around exactly this: a Git worktree per task, persistent sessions, built-in diff review, and an in-app browser, all agent-agnostic. You can run OpenCode alongside Claude Code, Codex, Cursor, and Gemini in the same workspace, compare them on the same task, and extend across remote and cloud hosts. It turns the manual worktree workflow into the default. See [Superset vs OpenCode](/compare/superset-vs-opencode).
-
-## When Built-In Multi-Session Is Enough
-
-If you run two or three OpenCode agents occasionally and are careful about which files they touch, the built-in multi-session may be all you need. The case for worktrees grows with the number of agents and how much they overlap. Past a couple of concurrent agents on one repo, isolation stops being optional.
-
-## Verdict
-
-OpenCode can run multiple agents in parallel through its built-in multi-session, and the community has added orchestrator plugins on top. But the clean way to scale is a Git worktree per task, and the least manual way to get there is a workspace like Superset that creates and manages those worktrees for you, across OpenCode and any other agent.
-
-For the broader category, see [Best Agentic IDE in 2026](/compare/best-agentic-ide) and the guide to running [multiple Claude Code agents in parallel](/compare/multiple-claude-code-agents-parallel).
+Manual worktrees can be enough for occasional parallel tasks. Superset adds persistent terminals, workspace organization, and built-in diff review when tracking those tasks becomes repetitive. See [Superset vs OpenCode](/compare/superset-vs-opencode) and the [three-task walkthrough](/blog/parallel-coding-agents-guide).
 
 ## Frequently Asked Questions
 
-### Does OpenCode have an official orchestrator?
-
-OpenCode has built-in multi-session parallelism and built-in build, plan, and general subagents, but the heavier "orchestrator" and "agent teams" features widely searched for are community plugins, not an official OpenCode product. For managed worktree orchestration across agents, a workspace like Superset is an option.
-
-### How do I isolate parallel OpenCode agents?
-
-Give each agent its own Git worktree so they do not share a working directory. You can do this manually or automatically with a workspace like Superset that creates a worktree per task.
-
 ### Can I run OpenCode alongside Claude Code and Codex?
 
-Yes. Superset is agent-agnostic and runs OpenCode, Claude Code, Codex, Cursor, Gemini, and custom agents in parallel, each in its own worktree.
+Yes. Give each independent task a separate workspace and use the agent you prefer in its terminal. Keep the task boundaries, review process, and integration checks explicit.
 
-### Is OpenCode's desktop app good for parallel work?
+### Do OpenCode subagents guarantee isolated Git worktrees?
 
-OpenCode offers a desktop app in beta alongside the terminal client, with multi-session support. For worktree-per-task isolation across many agents, developers often add a dedicated workspace on top.
+Do not infer filesystem isolation from the agent role. Check the working directory and execution setup. For independent edits, use separate worktrees or another explicitly isolated environment.
+
+### Do worktrees eliminate conflicts?
+
+No. They separate working files while tasks run. Merge conflicts and behavioral incompatibilities can still occur when changes are combined; shared services need separate handling too.

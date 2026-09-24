@@ -60,6 +60,10 @@ export function PullRequestScreen() {
 		repo,
 		pullNumber,
 		onMerged: () => {
+			posthog.capture("pull_request_merged", {
+				workspace_id: workspaceId,
+				pr_number: pullNumber,
+			});
 			void refetch();
 		},
 	});

@@ -88,10 +88,10 @@ export function CompareLayout({ page, children }: CompareLayoutProps) {
 						<Trans>Ready to try Superset?</Trans>
 					</p>
 					<Link
-						href="/"
+						href="/download"
 						className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors border border-border rounded-md px-4 py-2"
 					>
-						<Trans>Get started</Trans>
+						<Trans>Download Superset</Trans>
 					</Link>
 				</div>
 			</footer>

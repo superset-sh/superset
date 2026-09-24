@@ -25,7 +25,7 @@ export {
 	type PageHeaderOwner,
 	type PageHeaderPage,
 	type PageHeaderVersion,
-	PageSharePopover,
+	PageShareButton,
 	PageTitleMenu,
 	PageVersionBanner,
 	type PageVisibility,

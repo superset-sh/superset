@@ -59,8 +59,8 @@ export async function dispatchMatchingTriggers(params: {
 	/**
 	 * Restrict candidates to one member's automations. This is the per-user
 	 * isolation for providers whose connection is per member: a Google
-	 * connection is one person's calendar and mailbox, and without this
-	 * narrowing their events would match every org member's triggers.
+	 * connection is one person's mailbox, and without this narrowing their
+	 * events would match every org member's triggers.
 	 */
 	ownerUserId?: string;
 }): Promise<{ matched: number; considered: number }> {

@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.} other {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Bình luận sẽ được gửi tới agent này} other {Bình luận sẽ được gửi tới các agent này}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — quên trang này"
 
-msgid "1 hour"
-msgstr "1 giờ"
-
 msgid "1 user"
 msgstr "1 người dùng"
-
-msgid "10 minutes"
-msgstr "10 phút"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
@@ -1144,17 +1142,11 @@ msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
 msgid "100% (retain everything)"
 msgstr "100% (giữ toàn bộ)"
 
-msgid "15 minutes"
-msgstr "15 phút"
-
 msgid "1d ago"
 msgstr "1 ngày trước"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agent · 14 tệp thay đổi"
-
-msgid "2 hours"
-msgstr "2 giờ"
 
 msgid "2021 to 2023"
 msgstr "2021 đến 2023"
@@ -1180,9 +1172,6 @@ msgstr "3 tệp thay đổi, 2 test đã qua"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ luồng công việc đồng thời trên mỗi kỹ sư"
 
-msgid "30 minutes"
-msgstr "30 phút"
-
 msgid "30D"
 msgstr "30N"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 tệp · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 phút"
 
 msgid "55 call sites pass {code}"
 msgstr "55 vị trí gọi truyền {code}"
@@ -1387,10 +1373,6 @@ msgstr "Kích hoạt, mức độ sử dụng sau khi bắt đầu dùng, và li
 
 msgid "Active"
 msgstr "Đang hoạt động"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "hoạt động {0}"
 
 msgid "Active agent sessions."
 msgstr "Các phiên agent đang hoạt động."
@@ -1661,6 +1643,9 @@ msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kè
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
 
+msgid "Agents watching this page for comments"
+msgstr "Các agent đang theo dõi bình luận trên trang này"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Tổng hợp mức sử dụng agent của mọi lập trình viên trên bảng xếp hạng Superset — token, chi phí, hành vi cache và những mô hình mọi người thực sự dùng."
 
@@ -1910,6 +1895,10 @@ msgstr "Ngoài ra: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Luôn biết agent nào cần bạn, với thông báo dẫn thẳng tới agent đang bị chặn."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Agent"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Agent hoàn thành trọn vẹn các thay đổi trên nhiều tệp."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic đã từ chối khóa API này."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic đã từ chối token này."
 
-msgid "Any calendar"
-msgstr "Lịch bất kỳ"
-
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
 
@@ -2023,9 +2009,6 @@ msgstr "Nhóm bất kỳ"
 
 msgid "Any thread event"
 msgstr "Sự kiện luồng bất kỳ"
-
-msgid "anyone"
-msgstr "bất kỳ ai"
 
 msgid "Anyone"
 msgstr "Bất kỳ ai"
@@ -2606,9 +2589,6 @@ msgstr "Chip có viền là mặc định (kiểu của preset/HotkeyTooltip); m
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Mượn từ cách chấm mức tự lái của ô tô, áp vào cách phần mềm được xây. Bước nhảy đáng chú ý là F3 sang F4: từ những agent bạn giao việc, sang một nhà máy bạn chỉ đạo."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Cần cả quyền Calendar và Gmail. Vui lòng cho phép cả hai khi được hỏi."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Ngăn kéo dưới đáy, vuốt tiện trên thiết bị cảm ứng."
 
@@ -3157,9 +3137,6 @@ msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
 msgid "Choose when Superset pings you."
 msgstr "Chọn khi nào Superset báo cho bạn."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Chọn agent theo dõi bình luận của trang này"
-
 msgid "Churn"
 msgstr "Rời bỏ"
 
@@ -3629,9 +3606,6 @@ msgstr "Bình luận"
 msgid "Comments could not be loaded"
 msgstr "Không thể tải bình luận"
 
-msgid "Comments go to this agent"
-msgstr "Bình luận sẽ được gửi tới agent này"
-
 msgid "Commit"
 msgstr "Commit"
 
@@ -3756,8 +3730,8 @@ msgstr "Kết nối {name}"
 msgid "Connect a device"
 msgstr "Kết nối một thiết bị"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Kết nối một tài khoản Google. Lịch và hộp thư của tài khoản chỉ được đọc, và các trigger chạy dưới danh nghĩa người đã kết nối."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Kết nối tài khoản Google. Hộp thư chỉ ở chế độ đọc và các trình kích hoạt chạy cho người đã kết nối."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Kết nối micro để dùng đọc chính tả"
@@ -4374,9 +4348,6 @@ msgstr "Không thể bắt đầu phiên"
 msgid "Could not stop it"
 msgstr "Không thể dừng"
 
-msgid "Could not stop watching"
-msgstr "Không thể ngừng theo dõi"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Không thể gửi prompt. Hãy thử lại."
 
@@ -4395,9 +4366,6 @@ msgstr "Không thể cập nhật nhánh"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Không thể theo dõi trang này"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
@@ -5844,23 +5812,8 @@ msgstr "esc để đóng"
 msgid "esc to exit"
 msgstr "esc để thoát"
 
-msgid "Event cancelled"
-msgstr "Sự kiện bị hủy"
-
-msgid "Event created"
-msgstr "Sự kiện được tạo"
-
-msgid "Event ended"
-msgstr "Sự kiện kết thúc"
-
-msgid "Event starting soon"
-msgstr "Sự kiện sắp bắt đầu"
-
 msgid "Event triggered"
 msgstr "Sự kiện kích hoạt"
-
-msgid "Event updated"
-msgstr "Sự kiện được cập nhật"
 
 msgid "Every {day}"
 msgstr "{day} hằng tuần"
@@ -5868,8 +5821,8 @@ msgstr "{day} hằng tuần"
 msgid "Every {day} at {time}"
 msgstr "{day} hằng tuần, lúc {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Mỗi agent chạy trong git worktree riêng, nên mười agent có thể làm trên mười nhánh của cùng một repo mà không xung đột. Bạn theo dõi, review và merge tất cả từ một cửa sổ."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Mỗi tác tử chạy trong worktree và nhánh Git riêng, giữ các tệp làm việc tách biệt. Xung đột vẫn có thể xảy ra khi hợp nhất thay đổi. Bạn theo dõi, xem xét và hợp nhất tất cả từ một cửa sổ."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Mọi trục đều đang góp sức cho hạng tiếp theo. Giữ được như vậy thì hạng sẽ tới."
@@ -7099,6 +7052,9 @@ msgstr "Đặt tên gợi nhớ để biết khóa này dùng ở đâu."
 msgid "Globe"
 msgstr "Quả địa cầu"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Cần quyền truy cập Gmail. Vui lòng cho phép khi được hỏi."
+
 msgid "Go back"
 msgstr "Quay lại"
 
@@ -7169,6 +7125,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
 
 msgid "Guide"
+msgstr "Hướng dẫn"
+
+msgid "Guides"
 msgstr "Hướng dẫn"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "Chưa cấu hình agent nào trên máy này"
 msgid "No agents match \"{q}\"."
 msgstr "Không có agent nào khớp \"{q}\"."
 
-msgid "No agents running here"
-msgstr "Không có agent nào đang chạy ở đây"
-
 msgid "No agents yet"
 msgstr "Chưa có agent nào"
 
@@ -10014,9 +9970,6 @@ msgstr "Chưa cài gì cả."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Không có gì đang chạy. Hãy gỡ nó và tạo cái mới."
 
-msgid "Nothing is watching this page"
-msgstr "Chưa có gì theo dõi trang này"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Không có gì ở {pathname}."
 
@@ -10110,6 +10063,9 @@ msgstr "Cũ hơn"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
+
+msgid "On a host you can't reach"
+msgstr "Trên một host bạn không kết nối được"
 
 msgid "On click"
 msgstr "Khi nhấp"
@@ -13165,9 +13121,6 @@ msgstr "Chọn nhánh"
 msgid "Select branch..."
 msgstr "Chọn nhánh..."
 
-msgid "Select calendars"
-msgstr "Chọn lịch"
-
 msgid "Select channels"
 msgstr "Chọn kênh"
 
@@ -13469,8 +13422,8 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
-msgid "Share settings"
-msgstr "Cài đặt chia sẻ"
+msgid "Share page (public)"
+msgstr "Chia sẻ trang (công khai)"
 
 msgid "Share this page"
 msgstr "Chia sẻ trang này"
@@ -13939,9 +13892,6 @@ msgstr "Một số trigger cần cấu hình thêm"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Người khác đã xuất bản {entryPath} từ workspace này. Hãy xuất bản kèm id trang cụ thể để thêm phiên bản vào trang của họ, hoặc di chuyển tệp."
 
-msgid "someone external"
-msgstr "người bên ngoài"
-
 msgid "Something went wrong"
 msgstr "Đã xảy ra lỗi"
 
@@ -14285,9 +14235,6 @@ msgstr "Dừng phản hồi"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Hãy dừng Superset ở đây để xóa từ thiết bị khác."
-
-msgid "Stop watching"
-msgstr "Ngừng theo dõi"
 
 msgid "Stop workspace run command"
 msgstr "Dừng lệnh chạy của workspace"
@@ -15321,6 +15268,9 @@ msgstr "Thao tác này đóng các workspace đã chọn và terminal của chú
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Thao tác này đóng workspace và các terminal của nó. Tệp, nhánh và các workspace khác của dự án vẫn giữ nguyên."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Không gian làm việc đám mây này đang được đánh thức, có thể mất tới 30 giây sau một thời gian không hoạt động."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Thao tác này xóa phần scrollback đã lưu dùng để khôi phục sau khi khởi động lại hoặc crash."
 
@@ -15428,10 +15378,6 @@ msgstr "Trang này đang được xuất bản từ nơi khác — hãy thử l�
 
 msgid "This page is in another organization"
 msgstr "Trang này thuộc một tổ chức khác"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Trang này đang hoạt động tại <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Trang này không có ở đây"
@@ -15607,9 +15553,6 @@ msgstr "Khoảng thời gian"
 
 msgid "Title"
 msgstr "Tiêu đề"
-
-msgid "Title contains..."
-msgstr "Tiêu đề chứa..."
 
 msgid "To"
 msgstr "Đến"
@@ -15800,11 +15743,11 @@ msgstr "đang phân loại 12 issue mới…"
 msgid "Trigger alert()"
 msgstr "Kích hoạt alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail: sự kiện được tạo, cập nhật, hủy, sắp bắt đầu hoặc đã kết thúc, và email đến hộp thư đã kết nối."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Kích hoạt tự động hóa từ Gmail: email đến hộp thư đã kết nối."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Kích hoạt tự động hóa từ Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Kích hoạt tự động hóa từ tin nhắn kênh Teams."
@@ -15878,9 +15821,6 @@ msgstr "Nhập tin nhắn..."
 
 msgid "Type a task for Claude…"
 msgstr "Nhập một tác vụ cho Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Nhập email, nhấn Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Nhập ở đây để gửi tới terminal"

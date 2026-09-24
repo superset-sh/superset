@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# pracovní prostor} few {# pracovní prostory} many {#
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# běžící agent stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} few {# běžící agenti stále používají předchozí účet — přepnutí platí jen pro nová spuštění.} many {# běžícího agenta stále používá předchozí účet — přepnutí platí jen pro nová spuštění.} other {# běžících agentů stále používá předchozí účet — přepnutí platí jen pro nová spuštění.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Komentáře jdou tomuto agentovi} few {Komentáře jdou těmto agentům} many {Komentáře jdou těmto agentům} other {Komentáře jdou těmto agentům}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — zapomenout tento web"
 
-msgid "1 hour"
-msgstr "1 hodina"
-
 msgid "1 user"
 msgstr "1 uživatel"
-
-msgid "10 minutes"
-msgstr "10 minut"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ souběžných proudů práce bez ztráty přehledu"
@@ -1144,17 +1142,11 @@ msgstr "10+ souběžných proudů práce bez ztráty přehledu"
 msgid "100% (retain everything)"
 msgstr "100 % (udržet vše)"
 
-msgid "15 minutes"
-msgstr "15 minut"
-
 msgid "1d ago"
 msgstr "před 1 d"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agenti · 14 změněných souborů"
-
-msgid "2 hours"
-msgstr "2 hodiny"
 
 msgid "2021 to 2023"
 msgstr "2021 až 2023"
@@ -1180,9 +1172,6 @@ msgstr "3 změněné soubory, 2 testy prošly"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ souběžné proudy práce na inženýra"
 
-msgid "30 minutes"
-msgstr "30 minut"
-
 msgid "30D"
 msgstr "30 d"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 souborů · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 minut"
 
 msgid "55 call sites pass {code}"
 msgstr "55 míst volání předává {code}"
@@ -1387,10 +1373,6 @@ msgstr "Aktivace, kolik toho lidé používají, když už jsou uvnitř, a jestl
 
 msgid "Active"
 msgstr "Aktivní"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "aktivní {0}"
 
 msgid "Active agent sessions."
 msgstr "Aktivní relace agentů."
@@ -1661,6 +1643,9 @@ msgstr "Agenti si sami načtou náhled, proklikají UI a přiloží snímky jako
 msgid "Agents running at once"
 msgstr "Agentů běžících najednou"
 
+msgid "Agents watching this page for comments"
+msgstr "Agenti sledující tuto stránku kvůli komentářům"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Souhrnné využití agentů napříč všemi vývojáři v žebříčku Superset — tokeny, náklady, chování cache a modely, po kterých lidé skutečně sahají."
 
@@ -1910,6 +1895,10 @@ msgstr "Také: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Vždy víte, který agent vás potřebuje — oznámení vedou přímo na zablokovaného agenta."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Agent"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Agent dokončí změnu napříč více soubory od začátku do konce."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic tento API klíč odmítl."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic tento token odmítl."
 
-msgid "Any calendar"
-msgstr "Jakýkoli kalendář"
-
 msgid "Any channel"
 msgstr "Jakýkoli kanál"
 
@@ -2023,9 +2009,6 @@ msgstr "Jakýkoli tým"
 
 msgid "Any thread event"
 msgstr "Jakákoli událost vlákna"
-
-msgid "anyone"
-msgstr "kdokoli"
 
 msgid "Anyone"
 msgstr "Kdokoli"
@@ -2606,9 +2589,6 @@ msgstr "Výchozí je čip s okrajem (styl preset/HotkeyTooltip); šipka se zapí
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Vypůjčeno z toho, jak se známkují samořídící auta, a použito na to, jak vzniká software. Zajímavý skok je z F3 na F4: od agentů, kterým delegujete, k továrně, kterou řídíte."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Je potřeba přístup ke Kalendáři i Gmailu. Až se objeví dotaz, povolte prosím obojí."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Spodní drawer, na dotykových zařízeních ovladatelný přejetím prstem."
 
@@ -3157,9 +3137,6 @@ msgstr "Vyberte, co se má z vestavěného prohlížeče vymazat."
 msgid "Choose when Superset pings you."
 msgstr "Zvolte, kdy vás Superset upozorní."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Vyberte, který agent sleduje komentáře na této stránce"
-
 msgid "Churn"
 msgstr "Odchody"
 
@@ -3629,9 +3606,6 @@ msgstr "Komentáře"
 msgid "Comments could not be loaded"
 msgstr "Komentáře se nepodařilo načíst"
 
-msgid "Comments go to this agent"
-msgstr "Komentáře jdou tomuto agentovi"
-
 msgid "Commit"
 msgstr "Commitnout"
 
@@ -3756,8 +3730,8 @@ msgstr "Připojit {name}"
 msgid "Connect a device"
 msgstr "Připojit zařízení"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Připojte účet Google. Jeho kalendáře a schránka jsou jen ke čtení a spouštěče běží pod tím, kdo účet připojil."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Připojte účet Google. Jeho schránka je pouze pro čtení a spouštěče se spouštějí za osobu, která ho připojila."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Pro diktování připojte mikrofon"
@@ -4374,9 +4348,6 @@ msgstr "Relaci se nepodařilo spustit"
 msgid "Could not stop it"
 msgstr "Nepodařilo se ho zastavit"
 
-msgid "Could not stop watching"
-msgstr "Nepodařilo se přestat sledovat"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
 
@@ -4395,9 +4366,6 @@ msgstr "Nepodařilo se aktualizovat větev"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Přihlašovací údaje se nepodařilo ověřit: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Tuto stránku se nepodařilo sledovat"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nepodařilo se ověřit stav hvězdy — zkontrolujte, že je nainstalované GitHub CLI (`gh`), že jste přihlášeni a že máte připojení k síti"
@@ -5844,23 +5812,8 @@ msgstr "esc zavře"
 msgid "esc to exit"
 msgstr "esc pro ukončení"
 
-msgid "Event cancelled"
-msgstr "Událost zrušena"
-
-msgid "Event created"
-msgstr "Událost vytvořena"
-
-msgid "Event ended"
-msgstr "Událost skončila"
-
-msgid "Event starting soon"
-msgstr "Událost brzy začne"
-
 msgid "Event triggered"
 msgstr "Spuštěno událostí"
-
-msgid "Event updated"
-msgstr "Událost upravena"
 
 msgid "Every {day}"
 msgstr "Každý týden: {day}"
@@ -5868,8 +5821,8 @@ msgstr "Každý týden: {day}"
 msgid "Every {day} at {time}"
 msgstr "Každý týden: {day} v {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Každý agent běží ve vlastním git worktree, takže deset agentů může pracovat na deseti větvích jednoho repozitáře bez konfliktů. Sledujete, revidujete a slučujete je z jednoho okna."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Každý agent běží ve vlastním Git worktree a větvi, takže pracovní soubory zůstávají oddělené. Při slučování změn může stále dojít ke konfliktům. Vše sledujete, kontrolujete a slučujete z jednoho okna."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Každá osa táhne na další úroveň. Udržte to a úroveň přijde sama."
@@ -7099,6 +7052,9 @@ msgstr "Pojmenujte klíč popisně, ať víte, kde se používá."
 msgid "Globe"
 msgstr "Zeměkoule"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Je vyžadován přístup ke Gmailu. Povolte ho prosím, až budete vyzváni."
+
 msgid "Go back"
 msgstr "Zpět"
 
@@ -7170,6 +7126,9 @@ msgstr "Architekt GTM a automatizace AI, Mistral AI"
 
 msgid "Guide"
 msgstr "Průvodce"
+
+msgid "Guides"
+msgstr "Průvodci"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Řídí názvy pracovních prostorů a větví generované AI pro tento projekt. Prázdné znamená výchozí pojmenování."
@@ -9403,9 +9362,6 @@ msgstr "Na tomto počítači nejsou nastavení žádní agenti"
 msgid "No agents match \"{q}\"."
 msgstr "Žádný agent neodpovídá „{q}“."
 
-msgid "No agents running here"
-msgstr "Žádní agenti tu neběží"
-
 msgid "No agents yet"
 msgstr "Zatím žádní agenti"
 
@@ -10014,9 +9970,6 @@ msgstr "Zatím není nic nainstalováno."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Nic neběží. Odeberte ho a vytvořte nový."
 
-msgid "Nothing is watching this page"
-msgstr "Tuto stránku nic nesleduje"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Na {pathname} nic není."
 
@@ -10110,6 +10063,9 @@ msgstr "Starší"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "na {offScopeHostName} — tady nepoběží"
+
+msgid "On a host you can't reach"
+msgstr "Na hostiteli, ke kterému nemáte přístup"
 
 msgid "On click"
 msgstr "Po kliknutí"
@@ -13165,9 +13121,6 @@ msgstr "Vyberte větev"
 msgid "Select branch..."
 msgstr "Vyberte větev..."
 
-msgid "Select calendars"
-msgstr "Vyberte kalendáře"
-
 msgid "Select channels"
 msgstr "Vyberte kanály"
 
@@ -13469,8 +13422,8 @@ msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
 msgid "Share page"
 msgstr "Sdílet stránku"
 
-msgid "Share settings"
-msgstr "Nastavení sdílení"
+msgid "Share page (public)"
+msgstr "Sdílet stránku (veřejná)"
 
 msgid "Share this page"
 msgstr "Sdílet tuto stránku"
@@ -13939,9 +13892,6 @@ msgstr "Některé spouštěče potřebují další nastavení"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Někdo jiný už {entryPath} z tohoto workspace publikoval. Publikuj s výslovným ID stránky a přidej verzi k jeho stránce, nebo soubor přesuň."
 
-msgid "someone external"
-msgstr "někdo externí"
-
 msgid "Something went wrong"
 msgstr "Něco se pokazilo"
 
@@ -14285,9 +14235,6 @@ msgstr "Zastavit odpověď"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Ukončete tady Superset, ať ho smažete z jiného zařízení."
-
-msgid "Stop watching"
-msgstr "Přestat sledovat"
 
 msgid "Stop workspace run command"
 msgstr "Zastavit spouštěcí příkaz pracovního prostoru"
@@ -15321,6 +15268,9 @@ msgstr "Tím se zavřou vybrané pracovní prostory a jejich terminály. Soubory
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Tím se zavře pracovní prostor a jeho terminály. Soubory, větve a ostatní pracovní prostory projektu zůstanou beze změny."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Tento cloudový workspace se probouzí, což může po nečinnosti trvat až 30 sekund."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Tímto se smaže uložený scrollback používaný k obnovení po restartu nebo pádu."
 
@@ -15428,10 +15378,6 @@ msgstr "Tato stránka se právě zveřejňuje odjinud — zkuste to znovu"
 
 msgid "This page is in another organization"
 msgstr "Tato stránka patří do jiné organizace"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Tato stránka je živá na <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Tahle stránka tu není"
@@ -15607,9 +15553,6 @@ msgstr "Časové období"
 
 msgid "Title"
 msgstr "Název"
-
-msgid "Title contains..."
-msgstr "Název obsahuje..."
 
 msgid "To"
 msgstr "Do"
@@ -15800,11 +15743,11 @@ msgstr "třídí 12 nových issues…"
 msgid "Trigger alert()"
 msgstr "Spustit alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Spouštějte automatizace z Google Kalendáře a Gmailu: vytvoření, úprava, zrušení, blížící se začátek nebo konec události a příchod e-mailu do připojené schránky."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Spouštějte automatizace z Gmailu: e-maily doručené do připojené schránky."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Spouštějte automatizace z Google Kalendáře a Gmailu."
+msgid "Trigger automations from Gmail."
+msgstr "Spouštějte automatizace z Gmailu."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Spouštějte automatizace ze zpráv v kanálech Teams."
@@ -15878,9 +15821,6 @@ msgstr "Napište zprávu..."
 
 msgid "Type a task for Claude…"
 msgstr "Zadejte úkol pro Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Zadejte e-mail a stiskněte Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Sem pište, co se má odeslat do terminálu"

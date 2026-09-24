@@ -216,8 +216,8 @@ their baked host-service.
 and `/etc/profile.d/superset.sh` exports `DISPLAY`, so `xdg-open` spawns
 cleanly and exits 0 — on a display no one is looking at. Nothing in the spawn
 result distinguishes that from a browser opening on the user's laptop, so a
-CLI that opens a URL as a side effect (`pages publish` opening the page it
-created, `auth login` opening the consent screen) has to rule the sandbox out
+CLI that opens a URL as a side effect (`auth login` opening the consent
+screen) has to rule the sandbox out
 before spawning rather than react to a failure. `canReachDesktop()` in
 `packages/cli/src/lib/open-url.ts` is that check: `IS_SANDBOX` (set by
 host-service in sandbox-mode PTY env), `SSH_CONNECTION` or `SSH_TTY`. It is

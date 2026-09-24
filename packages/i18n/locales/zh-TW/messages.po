@@ -226,6 +226,10 @@ msgstr "{0, plural, one {#個工作區} other {#個工作區}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {評論將傳送給此代理程式} other {評論將傳送給這些代理程式}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1個cookie——忘記此站點"
 
-msgid "1 hour"
-msgstr "1小時"
-
 msgid "1 user"
 msgstr "1個使用者"
-
-msgid "10 minutes"
-msgstr "10分鐘"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10條以上並行工作流且不丟狀態"
@@ -1144,17 +1142,11 @@ msgstr "10條以上並行工作流且不丟狀態"
 msgid "100% (retain everything)"
 msgstr "100%（全部留存）"
 
-msgid "15 minutes"
-msgstr "15分鐘"
-
 msgid "1d ago"
 msgstr "1天前"
 
 msgid "2 agents · 14 files changed"
 msgstr "2個代理程式 · 14個檔案已更改"
-
-msgid "2 hours"
-msgstr "2小時"
 
 msgid "2021 to 2023"
 msgstr "2021至2023"
@@ -1180,9 +1172,6 @@ msgstr "3個檔案已更改，2個測試通過"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "每位工程師3條以上並行工作流"
 
-msgid "30 minutes"
-msgstr "30分鐘"
-
 msgid "30D"
 msgstr "30天"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 files · +82 −172"
-
-msgid "5 minutes"
-msgstr "5分鐘"
 
 msgid "55 call sites pass {code}"
 msgstr "55 個呼叫位置傳入 {code}"
@@ -1387,10 +1373,6 @@ msgstr "啟用情況、進來之後的使用量，以及他們是否會回來。
 
 msgid "Active"
 msgstr "啟用中"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "活躍{0}"
 
 msgid "Active agent sessions."
 msgstr "活躍的代理程式會話。"
@@ -1661,6 +1643,9 @@ msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
 
+msgid "Agents watching this page for comments"
+msgstr "正在關注此頁面評論的代理程式"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 排行榜上所有開發者的彙總代理使用量 — tokens、成本、快取行為，以及大家實際選用的模型。"
 
@@ -1910,6 +1895,10 @@ msgstr "另有：@superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "隨時知道哪個代理程式需要你，通知可直接跳轉到被阻塞的代理程式。"
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "代理程式"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "代理程式能端到端完成跨檔案改動。"
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic拒絕了此API金鑰。"
 msgid "Anthropic rejected this token."
 msgstr "Anthropic拒絕了此權杖。"
 
-msgid "Any calendar"
-msgstr "任意日曆"
-
 msgid "Any channel"
 msgstr "任意頻道"
 
@@ -2023,9 +2009,6 @@ msgstr "任意團隊"
 
 msgid "Any thread event"
 msgstr "任意討論事件"
-
-msgid "anyone"
-msgstr "任何人"
 
 msgid "Anyone"
 msgstr "任何人"
@@ -2606,9 +2589,6 @@ msgstr "帶邊框的chip是預設樣式（預設欄/HotkeyTooltip的樣式）；
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "借用自動駕駛汽車的分級方式，用來衡量軟體的構建方式。有意思的躍遷是F3到F4：從你委派的代理程式，變成你指揮的工廠。"
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "日曆和Gmail的存取權限都是必需的。請在詢問時全部允許。"
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "底部抽屜，在觸控螢幕裝置上便於滑動操作。"
 
@@ -3157,9 +3137,6 @@ msgstr "選擇要從應用程式內瀏覽器清除的內容。"
 msgid "Choose when Superset pings you."
 msgstr "選擇Superset在什麼時候通知你。"
 
-msgid "Choose which agent watches this page for comments"
-msgstr "選擇由哪個代理程式關注此頁面的評論"
-
 msgid "Churn"
 msgstr "流失"
 
@@ -3170,7 +3147,7 @@ msgid "Clarify this"
 msgstr "闡明這裡"
 
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
-msgstr "Claude Code、Codex和OpenCode是代理程式；Superset是你同時執行它們的地方。每個任務都有自己隔離的Git worktree，十個代理程式可以同時在十個分支上工作，而你在一處監控、審查併合併。"
+msgstr "Claude Code、Codex和OpenCode是代理程式；Superset是你同時執行它們的地方。每個任務都有自己隔離的Git worktree，十個代理程式可以同時在十個分支上工作，而你在一處監控、審查並合併。"
 
 msgid "Claude Code, Codex, Cursor, OpenCode, and more."
 msgstr "Claude Code、Codex、Cursor、OpenCode等。"
@@ -3629,9 +3606,6 @@ msgstr "評論"
 msgid "Comments could not be loaded"
 msgstr "無法載入留言"
 
-msgid "Comments go to this agent"
-msgstr "評論將傳送給此代理程式"
-
 msgid "Commit"
 msgstr "提交"
 
@@ -3756,8 +3730,8 @@ msgstr "連線 {name}"
 msgid "Connect a device"
 msgstr "連線裝置"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "連線一個Google帳戶。它的日曆和電子郵件均為唯讀，觸發器以連線者的身份執行。"
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "連結一個 Google 帳號。其信箱為唯讀，觸發器以連結者的身分執行。"
 
 msgid "Connect a microphone to use dictation"
 msgstr "請連線麥克風以使用語音輸入"
@@ -4374,9 +4348,6 @@ msgstr "無法啟動會話"
 msgid "Could not stop it"
 msgstr "無法停止"
 
-msgid "Could not stop watching"
-msgstr "無法停止關注"
-
 msgid "Could not submit prompt. Try again."
 msgstr "無法提交提示詞。請重試。"
 
@@ -4395,9 +4366,6 @@ msgstr "無法更新分支"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "無法驗證憑證：{reason}"
-
-msgid "Could not watch this page"
-msgstr "無法關注此頁面"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
@@ -5844,23 +5812,8 @@ msgstr "按esc關閉"
 msgid "esc to exit"
 msgstr "esc退出"
 
-msgid "Event cancelled"
-msgstr "日程已取消"
-
-msgid "Event created"
-msgstr "日程已建立"
-
-msgid "Event ended"
-msgstr "日程已結束"
-
-msgid "Event starting soon"
-msgstr "日程即將開始"
-
 msgid "Event triggered"
 msgstr "事件觸發"
-
-msgid "Event updated"
-msgstr "日程已更新"
 
 msgid "Every {day}"
 msgstr "每{day}"
@@ -5868,8 +5821,8 @@ msgstr "每{day}"
 msgid "Every {day} at {time}"
 msgstr "每{day} {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "每個代理程式都跑在自己的Git worktree裡，十個代理程式可以在同一個儲存庫的十個分支上互不衝突地工作。你在一個視窗裡觀察、審查併合併它們。"
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "每個代理都在各自的 Git worktree 和分支中執行，讓工作檔案保持獨立。合併變更時仍可能發生衝突。你可以在同一個視窗中監控、審查並合併所有變更。"
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "每個維度都在為下一等級出力。保持住，等級自然會來。"
@@ -7099,6 +7052,9 @@ msgstr "給金鑰起一個描述性的名稱，方便記住它用在哪裡。"
 msgid "Globe"
 msgstr "地球"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "需要 Gmail 存取權限。請在系統詢問時允許。"
+
 msgid "Go back"
 msgstr "返回"
 
@@ -7169,6 +7125,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 與 AI 自動化架構師，Mistral AI"
 
 msgid "Guide"
+msgstr "指南"
+
+msgid "Guides"
 msgstr "指南"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "這臺機器上沒有配置代理程式"
 msgid "No agents match \"{q}\"."
 msgstr "沒有匹配「{q}」的代理程式。"
 
-msgid "No agents running here"
-msgstr "這裡沒有執行中的代理程式"
-
 msgid "No agents yet"
 msgstr "暫無代理程式"
 
@@ -10014,9 +9970,6 @@ msgstr "還沒有安裝任何外掛。"
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "沒有任何東西在執行。移除它，再建一個。"
 
-msgid "Nothing is watching this page"
-msgstr "沒有代理程式在關注此頁面"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下沒有任何內容。"
 
@@ -10110,6 +10063,9 @@ msgstr "更早"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "在{offScopeHostName}上，不會在這裡執行"
+
+msgid "On a host you can't reach"
+msgstr "在你無法連線的主機上"
 
 msgid "On click"
 msgstr "點選時"
@@ -13165,9 +13121,6 @@ msgstr "選擇分支"
 msgid "Select branch..."
 msgstr "選擇分支..."
 
-msgid "Select calendars"
-msgstr "選擇日曆"
-
 msgid "Select channels"
 msgstr "選擇頻道"
 
@@ -13469,8 +13422,8 @@ msgstr "分享設計和報告，讓你的代理程式處理回饋。"
 msgid "Share page"
 msgstr "分享頁面"
 
-msgid "Share settings"
-msgstr "分享設定"
+msgid "Share page (public)"
+msgstr "分享頁面（公開）"
 
 msgid "Share this page"
 msgstr "分享此頁面"
@@ -13939,9 +13892,6 @@ msgstr "部分觸發器需要額外配置"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "其他人已發佈此工作區中的 {entryPath}。使用明確的頁面 id 發佈以為其頁面新增版本，或移動該檔案。"
 
-msgid "someone external"
-msgstr "外部人員"
-
 msgid "Something went wrong"
 msgstr "出了點問題"
 
@@ -14285,9 +14235,6 @@ msgstr "停止回覆"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "在此停止Superset，然後從其他裝置刪除。"
-
-msgid "Stop watching"
-msgstr "停止關注"
 
 msgid "Stop workspace run command"
 msgstr "停止工作區執行命令"
@@ -15321,6 +15268,9 @@ msgstr "這將關閉所選工作區及其終端機。專案的檔案和分支保
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "這將關閉該工作區及其終端機。專案的檔案、分支和其他工作區保持不變。"
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "正在喚醒此雲端工作區。如果它已閒置一段時間，可能需要最多 30 秒。"
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
 
@@ -15428,10 +15378,6 @@ msgstr "此頁面正在別處釋出，請重試"
 
 msgid "This page is in another organization"
 msgstr "這個頁面屬於另一個組織"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "此頁面已發布在 <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "找不到這個頁面"
@@ -15607,9 +15553,6 @@ msgstr "時間範圍"
 
 msgid "Title"
 msgstr "標題"
-
-msgid "Title contains..."
-msgstr "標題包含..."
 
 msgid "To"
 msgstr "到"
@@ -15800,11 +15743,11 @@ msgstr "正在分類12個新議題…"
 msgid "Trigger alert()"
 msgstr "觸發alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "用Google日曆和Gmail觸發自動化：日程被建立、更新、取消、即將開始或已結束，以及所連線的收件匣收到郵件。"
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "從 Gmail 觸發自動化：送達已連結收件匣的郵件。"
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "用Google日曆和Gmail觸發自動化。"
+msgid "Trigger automations from Gmail."
+msgstr "從 Gmail 觸發自動化。"
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "用Teams頻道訊息觸發自動化。"
@@ -15878,9 +15821,6 @@ msgstr "輸入訊息..."
 
 msgid "Type a task for Claude…"
 msgstr "給Claude寫個任務…"
-
-msgid "Type an email, press Enter"
-msgstr "輸入電子郵件後按 Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "在此輸入以傳送到終端"

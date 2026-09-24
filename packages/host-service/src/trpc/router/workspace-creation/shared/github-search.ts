@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git/types";
+import { isGitHubUnreachableError } from "../../../../runtime/pull-requests/utils/github-availability";
 import {
 	isGithubAuthError,
 	isGithubRateLimitError,
@@ -198,6 +199,13 @@ export function githubRequestError(
 		return new TRPCError({
 			code: "UNAUTHORIZED",
 			message: credentials.credentialRemedy("github.com", "rejected"),
+			cause: error,
+		});
+	}
+	if (isGitHubUnreachableError(error)) {
+		return new TRPCError({
+			code: "SERVICE_UNAVAILABLE",
+			message: "Could not reach GitHub from this machine.",
 			cause: error,
 		});
 	}

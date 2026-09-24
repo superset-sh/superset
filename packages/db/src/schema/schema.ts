@@ -752,7 +752,9 @@ export const cloudWorkspaces = pgTable(
 		// never to display one — a rename lands on the sandbox and leaves these
 		// behind.
 		name: text().notNull(),
+		/** The branch the sandbox works on, cut from `baseBranch` at create. */
 		branch: text().notNull(),
+		baseBranch: text("base_branch").notNull(),
 		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
@@ -1242,12 +1244,9 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
-		// The pruner scans oldest-first for rows that still have a body. Without
-		// this the planner walks automation_events_org_received_idx end to end and
-		// sorts, per batch. Partial, so it shrinks as the backlog drains.
-		index("automation_events_prunable_idx")
-			.on(t.receivedAt)
-			.where(sql`${t.payload} IS NOT NULL`),
+		// Retention deletes oldest-first. Without this the planner walks
+		// automation_events_org_received_idx end to end and sorts, per batch.
+		index("automation_events_received_at_idx").on(t.receivedAt),
 	],
 );
 
@@ -1317,6 +1316,9 @@ export const automationRuns = pgTable(
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
+		// ON DELETE SET NULL on event_id resolves through this; without it every
+		// automation_events row deleted by retention scans this table.
+		index("automation_runs_event_idx").on(t.eventId),
 	],
 );
 
@@ -1438,6 +1440,19 @@ export const desktopNotices = pgTable(
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
 
+export interface PageWatchOwnership {
+	token: string;
+	seenCommentIds: string[];
+	pings: Record<string, number>;
+	reservation: {
+		id: string;
+		expiresAt: number;
+		commentIds: string[];
+		pings: Record<string, number>;
+	} | null;
+	lastFinishedReservationId: string | null;
+}
+
 export const pages = pgTable(
 	"pages",
 	{
@@ -1454,6 +1469,7 @@ export const pages = pgTable(
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
 		watchedByAgent: text("watched_by_agent"),
+		watchState: jsonb("watch_state").$type<PageWatchOwnership>(),
 		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()

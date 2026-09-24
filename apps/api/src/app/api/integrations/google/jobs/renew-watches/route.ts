@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({ connectionId: z.string().uuid().optional() });
 
 /**
- * Daily: renew every connection's Calendar channels and Gmail watch before
- * they expire. Also run once for a single connection right after it connects.
+ * Daily: renew every connection's Gmail watch before it expires. Also run
+ * once for a single connection right after it connects.
  */
 export async function POST(request: Request) {
 	const body = await request.text();

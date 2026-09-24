@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import { errorMessage } from "@superset/i18n/errors";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -10,85 +9,61 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useFramePointerDown } from "@superset/ui/page-comments";
-import { toast } from "@superset/ui/sonner";
-import { workspaceTrpc } from "@superset/workspace-client";
-import { formatDistanceToNowStrict } from "date-fns";
-import { Bot, Check, EyeOff } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ArrowUpRight, Bot } from "lucide-react";
 import { useCallback, useState } from "react";
-import { usePageWatchers } from "renderer/hooks/host-service/usePageWatchers";
-import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import {
+	type PageWatcherRow,
+	usePageWatchersForPage,
+} from "renderer/hooks/host-service/usePageWatchersForPage";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon";
+
+const WATCHING_REFRESH_MS = 30_000;
+const IDLE_REFRESH_MS = 5 * 60_000;
 
 interface PageWatcherMenuProps {
 	workspaceId: string;
 	pageId: string | undefined;
-	pageTitle: string;
-	pageSlug: string;
 }
 
-export function PageWatcherMenu({
-	workspaceId,
-	pageId,
-	pageTitle,
-	pageSlug,
-}: PageWatcherMenuProps) {
+export function PageWatcherMenu({ workspaceId, pageId }: PageWatcherMenuProps) {
 	const { t } = useLingui();
-	const bindings = useTerminalAgentBindings(workspaceId);
-	const watchers = usePageWatchers(workspaceId);
-	const assign = workspaceTrpc.pageWatch.assign.useMutation();
-	const unwatch = workspaceTrpc.pageWatch.unwatch.useMutation();
+	const navigate = useNavigate();
+	const watchers = usePageWatchersForPage({ pageId, workspaceId });
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	useFramePointerDown(useCallback(() => setMenuOpen(false), []));
 
-	const watcher = pageId ? watchers.get(pageId) : undefined;
+	// The page row's own flag is the org-wide answer, and the only thing that
+	// knows about a watcher on a host this machine cannot reach.
+	const cloudWatch = cloudTrpc.page.get.useQuery(
+		{ id: pageId ?? "" },
+		{
+			enabled: Boolean(pageId),
+			refetchInterval: (query) =>
+				query.state.data?.watch.watching
+					? WATCHING_REFRESH_MS
+					: IDLE_REFRESH_MS,
+		},
+	);
 
-	const running = [...bindings.values()]
-		.filter((binding) => !binding.endedAt)
-		.sort((a, b) => b.lastEventAt - a.lastEventAt);
+	const watchedElsewhere =
+		watchers.length === 0 && cloudWatch.data?.watch.watching === true;
 
 	if (!pageId) return null;
+	// Nothing is watching: the header says nothing rather than saying so.
+	if (watchers.length === 0 && !watchedElsewhere) return null;
 
-	const label = (terminalId: string) => {
-		const binding = bindings.get(terminalId);
-		return binding?.definitionId ?? binding?.agentId ?? terminalId.slice(0, 8);
-	};
-
-	const watch = (terminalId: string, agentId: string | null) => {
-		assign.mutate(
-			{
-				pageId,
-				slug: pageSlug,
-				title: pageTitle,
-				workspaceId,
-				terminalId,
-				agentId,
+	const open = (watcher: PageWatcherRow) => {
+		void navigateToV2Workspace(watcher.workspaceId, navigate, {
+			search: {
+				terminalId: watcher.terminalId,
+				focusRequestId: crypto.randomUUID(),
 			},
-			{
-				onError: (error) =>
-					toast.error(
-						t({
-							message: "Could not watch this page",
-						}),
-						{ description: errorMessage(error) },
-					),
-			},
-		);
-	};
-
-	const stop = () => {
-		unwatch.mutate(
-			{ pageId },
-			{
-				onError: (error) =>
-					toast.error(
-						t({
-							message: "Could not stop watching",
-						}),
-						{ description: errorMessage(error) },
-					),
-			},
-		);
+		});
+		setMenuOpen(false);
 	};
 
 	return (
@@ -97,79 +72,71 @@ export function PageWatcherMenu({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-6 gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
+					className="relative h-6 gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
 					aria-label={t({
-						message: "Choose which agent watches this page for comments",
+						message: "Agents watching this page for comments",
 					})}
-					disabled={assign.isPending || unwatch.isPending}
 				>
-					{watcher ? (
-						<>
-							<StatusIndicator status="working" />
-							<span className="max-w-24 truncate">
-								{watcher.agentId ?? label(watcher.terminalId)}
-							</span>
-						</>
-					) : (
-						<Bot className="size-4" />
-					)}
+					<Bot className="size-4" />
+					<span className="absolute top-0.5 left-3.5 size-1.5 rounded-full bg-amber-500 ring-2 ring-background" />
+					{watchers.length > 1 ? <span>{watchers.length}</span> : null}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-64">
+			<DropdownMenuContent align="end" className="w-80">
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-					{watcher ? (
-						<Trans>Comments go to this agent</Trans>
-					) : (
-						<Trans>Nothing is watching this page</Trans>
-					)}
+					<Plural
+						value={Math.max(watchers.length, 1)}
+						one="Comments go to this agent"
+						other="Comments go to these agents"
+					/>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				{running.length === 0 ? (
-					<DropdownMenuItem disabled>
-						<Trans>No agents running here</Trans>
+				{watchedElsewhere ? (
+					<DropdownMenuItem disabled className="gap-2">
+						<AgentIcon
+							presetId={cloudWatch.data?.watch.agentId ?? ""}
+							className="size-4"
+						/>
+						<span className="truncate text-sm">
+							{cloudWatch.data?.watch.agentId ??
+								t({
+									message: "An agent",
+									context: "page watcher with no known name",
+								})}
+						</span>
+						<span className="ml-auto shrink-0 text-muted-foreground text-xs">
+							<Trans>On a host you can't reach</Trans>
+						</span>
 					</DropdownMenuItem>
 				) : (
-					running.map((binding) => {
-						const current = watcher?.terminalId === binding.terminalId;
+					watchers.map((watcher) => {
+						const navigable = watcher.workspaceName !== null;
 						return (
 							<DropdownMenuItem
-								key={binding.terminalId}
-								onSelect={() =>
-									watch(binding.terminalId, binding.definitionId ?? null)
-								}
+								key={`${watcher.hostId}:${watcher.terminalId}`}
+								onSelect={navigable ? () => open(watcher) : undefined}
+								disabled={!navigable}
 								className="gap-2"
 							>
-								{current ? (
-									<Check className="size-4 text-muted-foreground" />
-								) : (
-									<Bot className="size-4 text-muted-foreground" />
-								)}
-								<div className="flex min-w-0 flex-col">
-									<span className="truncate text-sm">
-										{binding.definitionId ?? binding.agentId}
-									</span>
-									<span className="text-muted-foreground text-xs">
-										<Trans>
-											active{" "}
-											{formatDistanceToNowStrict(binding.lastEventAt, {
-												addSuffix: true,
-											})}
-										</Trans>
-									</span>
-								</div>
+								<AgentIcon
+									presetId={watcher.agentId ?? ""}
+									className="size-4"
+								/>
+								<span className="min-w-0 flex-1 truncate text-sm">
+									{watcher.sessionTitle ??
+										watcher.agentId ??
+										watcher.terminalId.slice(0, 8)}
+								</span>
+								<span className="max-w-[50%] shrink-0 truncate text-muted-foreground text-xs">
+									{watcher.workspaceName}
+								</span>
+								{navigable ? (
+									<ArrowUpRight className="size-3 shrink-0 text-muted-foreground" />
+								) : null}
 							</DropdownMenuItem>
 						);
 					})
 				)}
-				{watcher ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem onSelect={stop} className="gap-2">
-							<EyeOff className="size-4 text-muted-foreground" />
-							<Trans>Stop watching</Trans>
-						</DropdownMenuItem>
-					</>
-				) : null}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

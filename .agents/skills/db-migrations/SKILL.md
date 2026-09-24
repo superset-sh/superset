@@ -96,7 +96,7 @@ because regenerating restores the bad order. See
 | Table | Why it is hot |
 | --- | --- |
 | `auth.users`, `auth.organizations` | Read by every authenticated request. ACCESS EXCLUSIVE for more than a moment is an outage. |
-| `automation_events` | Read-locked about 70% of the time by the dispatch sweep (`redispatchUndispatched`) and the `prune-payloads` job, each holding for 30 to 60 seconds. A 5 second lock wait succeeded from about 44% of start times. |
+| `automation_events`, `ingest.webhook_events` | Held in a transaction almost continuously by the dispatch sweep (`redispatchUndispatched`) and the retention job (`enforce-retention`). A 5 second lock wait succeeded from about 44% of start times. A migration that needs their table lock should first wait on the job's own advisory lock (the `singleFlight` key), which lets the running batch finish without queueing inserts; `0122_webhook_events_swap_to_short_retention.sql` is the pattern. |
 
 Because of rule 1, a statement queued behind a lock on `automation_events` keeps every lock the
 transaction already holds, including any on the auth tables.

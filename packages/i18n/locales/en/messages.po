@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspaces}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — forget this site"
 
-msgid "1 hour"
-msgstr "1 hour"
-
 msgid "1 user"
 msgstr "1 user"
-
-msgid "10 minutes"
-msgstr "10 minutes"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ concurrent workstreams without dropped state"
@@ -1144,17 +1142,11 @@ msgstr "10+ concurrent workstreams without dropped state"
 msgid "100% (retain everything)"
 msgstr "100% (retain everything)"
 
-msgid "15 minutes"
-msgstr "15 minutes"
-
 msgid "1d ago"
 msgstr "1d ago"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agents · 14 files changed"
-
-msgid "2 hours"
-msgstr "2 hours"
 
 msgid "2021 to 2023"
 msgstr "2021 to 2023"
@@ -1180,9 +1172,6 @@ msgstr "3 files changed, 2 tests passing"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ concurrent workstreams per engineer"
 
-msgid "30 minutes"
-msgstr "30 minutes"
-
 msgid "30D"
 msgstr "30D"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 files · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 minutes"
 
 msgid "55 call sites pass {code}"
 msgstr "55 call sites pass {code}"
@@ -1387,10 +1373,6 @@ msgstr "Activation, how much people use it once they are in, and whether they co
 
 msgid "Active"
 msgstr "Active"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "active {0}"
 
 msgid "Active agent sessions."
 msgstr "Active agent sessions."
@@ -1661,6 +1643,9 @@ msgstr "Agents load their own preview, drive the UI, and attach screenshot proof
 msgid "Agents running at once"
 msgstr "Agents running at once"
 
+msgid "Agents watching this page for comments"
+msgstr "Agents watching this page for comments"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 
@@ -1910,6 +1895,10 @@ msgstr "Also: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "An agent"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "An agent completes multi-file changes end to end."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic rejected this API key."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic rejected this token."
 
-msgid "Any calendar"
-msgstr "Any calendar"
-
 msgid "Any channel"
 msgstr "Any channel"
 
@@ -2023,9 +2009,6 @@ msgstr "Any team"
 
 msgid "Any thread event"
 msgstr "Any thread event"
-
-msgid "anyone"
-msgstr "anyone"
 
 msgid "Anyone"
 msgstr "Anyone"
@@ -2606,9 +2589,6 @@ msgstr "Bordered chip is the default (the preset/HotkeyTooltip style); arrow is 
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Both Calendar and Gmail access are required. Please allow both when asked."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Bottom drawer, swipe-friendly on touch devices."
 
@@ -3157,9 +3137,6 @@ msgstr "Choose what to clear from the in-app browser."
 msgid "Choose when Superset pings you."
 msgstr "Choose when Superset pings you."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Choose which agent watches this page for comments"
-
 msgid "Churn"
 msgstr "Churn"
 
@@ -3629,9 +3606,6 @@ msgstr "Comments"
 msgid "Comments could not be loaded"
 msgstr "Comments could not be loaded"
 
-msgid "Comments go to this agent"
-msgstr "Comments go to this agent"
-
 msgid "Commit"
 msgstr "Commit"
 
@@ -3756,8 +3730,8 @@ msgstr "Connect {name}"
 msgid "Connect a device"
 msgstr "Connect a device"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Connect a microphone to use dictation"
@@ -4374,9 +4348,6 @@ msgstr "Could not start session"
 msgid "Could not stop it"
 msgstr "Could not stop it"
 
-msgid "Could not stop watching"
-msgstr "Could not stop watching"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Could not submit prompt. Try again."
 
@@ -4395,9 +4366,6 @@ msgstr "Could not update the branch"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Could not verify the credential: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Could not watch this page"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
@@ -5844,23 +5812,8 @@ msgstr "esc to dismiss"
 msgid "esc to exit"
 msgstr "esc to exit"
 
-msgid "Event cancelled"
-msgstr "Event cancelled"
-
-msgid "Event created"
-msgstr "Event created"
-
-msgid "Event ended"
-msgstr "Event ended"
-
-msgid "Event starting soon"
-msgstr "Event starting soon"
-
 msgid "Event triggered"
 msgstr "Event triggered"
-
-msgid "Event updated"
-msgstr "Event updated"
 
 msgid "Every {day}"
 msgstr "Every {day}"
@@ -5868,8 +5821,8 @@ msgstr "Every {day}"
 msgid "Every {day} at {time}"
 msgstr "Every {day} at {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
@@ -7099,6 +7052,9 @@ msgstr "Give your key a descriptive name to remember where it's used."
 msgid "Globe"
 msgstr "Globe"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail access is required. Please allow it when asked."
+
 msgid "Go back"
 msgstr "Go back"
 
@@ -7170,6 +7126,9 @@ msgstr "GTM & AI Automation Architect, Mistral AI"
 
 msgid "Guide"
 msgstr "Guide"
+
+msgid "Guides"
+msgstr "Guides"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "No agents configured on this machine"
 msgid "No agents match \"{q}\"."
 msgstr "No agents match \"{q}\"."
 
-msgid "No agents running here"
-msgstr "No agents running here"
-
 msgid "No agents yet"
 msgstr "No agents yet"
 
@@ -10014,9 +9970,6 @@ msgstr "Nothing installed yet."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Nothing is running. Remove it and create a new one."
 
-msgid "Nothing is watching this page"
-msgstr "Nothing is watching this page"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Nothing lives at {pathname}."
 
@@ -10110,6 +10063,9 @@ msgstr "Older"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "on {offScopeHostName} — won't run here"
+
+msgid "On a host you can't reach"
+msgstr "On a host you can't reach"
 
 msgid "On click"
 msgstr "On click"
@@ -13165,9 +13121,6 @@ msgstr "Select branch"
 msgid "Select branch..."
 msgstr "Select branch..."
 
-msgid "Select calendars"
-msgstr "Select calendars"
-
 msgid "Select channels"
 msgstr "Select channels"
 
@@ -13469,8 +13422,8 @@ msgstr "Share designs and reports. Let your agent handle the feedback."
 msgid "Share page"
 msgstr "Share page"
 
-msgid "Share settings"
-msgstr "Share settings"
+msgid "Share page (public)"
+msgstr "Share page (public)"
 
 msgid "Share this page"
 msgstr "Share this page"
@@ -13939,9 +13892,6 @@ msgstr "Some triggers need additional configuration"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Someone else has already published {entryPath} from this workspace. Publish with an explicit page id to add a version to their page, or move the file."
 
-msgid "someone external"
-msgstr "someone external"
-
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
@@ -14285,9 +14235,6 @@ msgstr "Stop response"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Stop Superset here to delete from another device."
-
-msgid "Stop watching"
-msgstr "Stop watching"
 
 msgid "Stop workspace run command"
 msgstr "Stop workspace run command"
@@ -15321,6 +15268,9 @@ msgstr "This closes the selected workspaces and their terminals. The project's f
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."
 
@@ -15428,10 +15378,6 @@ msgstr "This page is being published from somewhere else — retry"
 
 msgid "This page is in another organization"
 msgstr "This page is in another organization"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "This page is live at <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "This page isn't here"
@@ -15607,9 +15553,6 @@ msgstr "Time range"
 
 msgid "Title"
 msgstr "Title"
-
-msgid "Title contains..."
-msgstr "Title contains..."
 
 msgid "To"
 msgstr "To"
@@ -15800,11 +15743,11 @@ msgstr "triaging 12 new issues…"
 msgid "Trigger alert()"
 msgstr "Trigger alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Trigger automations from Gmail: email arriving in the connected inbox."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Trigger automations from Google Calendar and Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Trigger automations from Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Trigger automations from Teams channel messages."
@@ -15878,9 +15821,6 @@ msgstr "Type a message..."
 
 msgid "Type a task for Claude…"
 msgstr "Type a task for Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Type an email, press Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Type here to send to the terminal"

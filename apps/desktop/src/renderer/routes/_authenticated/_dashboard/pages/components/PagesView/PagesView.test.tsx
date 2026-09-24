@@ -141,14 +141,6 @@ mock.module(
 	}),
 );
 
-mock.module(
-	"renderer/routes/_authenticated/_dashboard/hooks/useOpenPage",
-	() => ({
-		useOpenPage: () => mock(),
-		isPaneModifier: () => false,
-	}),
-);
-
 mock.module("../../hooks/usePageWorkspaceNames", () => ({
 	usePageWorkspaceNames: () => new Map([["ws-1", "Workspace One"]]),
 }));
@@ -174,6 +166,7 @@ function renderView({
 			onScopeChange={onScopeChange}
 			onAuthorChange={mock()}
 			onWorkspaceChange={mock()}
+			onOpenPage={mock()}
 		/>,
 	);
 }

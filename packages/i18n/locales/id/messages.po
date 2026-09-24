@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.} other {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Komentar masuk ke agen ini} other {Komentar masuk ke agen-agen ini}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — lupakan situs ini"
 
-msgid "1 hour"
-msgstr "1 jam"
-
 msgid "1 user"
 msgstr "1 pengguna"
-
-msgid "10 minutes"
-msgstr "10 menit"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
@@ -1144,17 +1142,11 @@ msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
 msgid "100% (retain everything)"
 msgstr "100% (mempertahankan semua)"
 
-msgid "15 minutes"
-msgstr "15 menit"
-
 msgid "1d ago"
 msgstr "1h lalu"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agen · 14 file berubah"
-
-msgid "2 hours"
-msgstr "2 jam"
 
 msgid "2021 to 2023"
 msgstr "2021 sampai 2023"
@@ -1180,9 +1172,6 @@ msgstr "3 file berubah, 2 tes lulus"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ alur kerja bersamaan per engineer"
 
-msgid "30 minutes"
-msgstr "30 menit"
-
 msgid "30D"
 msgstr "30H"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 file · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 menit"
 
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
@@ -1387,10 +1373,6 @@ msgstr "Aktivasi, seberapa banyak dipakai setelah masuk, dan apakah mereka kemba
 
 msgid "Active"
 msgstr "Aktif"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "aktif {0}"
 
 msgid "Active agent sessions."
 msgstr "Sesi agen yang aktif."
@@ -1661,6 +1643,9 @@ msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukt
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 
+msgid "Agents watching this page for comments"
+msgstr "Agen yang memantau halaman ini untuk komentar"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Agregat penggunaan agen dari seluruh developer di papan peringkat Superset — token, biaya, perilaku cache, dan model yang benar-benar dipakai orang."
 
@@ -1910,6 +1895,10 @@ msgstr "Juga: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Selalu tahu agen mana yang membutuhkan Anda, dengan notifikasi yang langsung menuju agen yang terhambat."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Agen"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Agen menyelesaikan perubahan lintas file dari awal sampai akhir."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic menolak kunci API ini."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic menolak token ini."
 
-msgid "Any calendar"
-msgstr "Kalender mana pun"
-
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -2023,9 +2009,6 @@ msgstr "Tim mana pun"
 
 msgid "Any thread event"
 msgstr "Event thread apa pun"
-
-msgid "anyone"
-msgstr "siapa pun"
 
 msgid "Anyone"
 msgstr "Siapa pun"
@@ -2606,9 +2589,6 @@ msgstr "Chip bergaris adalah bawaannya (gaya preset/HotkeyTooltip); panah bersif
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Dipinjam dari cara mobil swakemudi dinilai, diterapkan pada cara perangkat lunak dibangun. Lompatan yang menarik adalah F3 ke F4: dari agen yang Anda beri delegasi, menjadi pabrik yang Anda arahkan."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Akses Calendar dan Gmail keduanya diperlukan. Izinkan keduanya saat diminta."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Laci bawah, ramah geser di perangkat sentuh."
 
@@ -3157,9 +3137,6 @@ msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
 msgid "Choose when Superset pings you."
 msgstr "Pilih kapan Superset memberi tahu Anda."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Pilih agen yang memantau komentar di halaman ini"
-
 msgid "Churn"
 msgstr "Churn"
 
@@ -3629,9 +3606,6 @@ msgstr "Komentar"
 msgid "Comments could not be loaded"
 msgstr "Komentar tidak bisa dimuat"
 
-msgid "Comments go to this agent"
-msgstr "Komentar masuk ke agen ini"
-
 msgid "Commit"
 msgstr "Commit"
 
@@ -3756,8 +3730,8 @@ msgstr "Hubungkan {name}"
 msgid "Connect a device"
 msgstr "Hubungkan perangkat"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Hubungkan sebuah akun Google. Kalender dan kotak suratnya bersifat baca-saja, dan pemicunya berjalan atas nama orang yang menghubungkannya."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Hubungkan akun Google. Kotak suratnya hanya-baca, dan pemicu berjalan untuk orang yang menghubungkannya."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Hubungkan mikrofon untuk memakai dikte"
@@ -4374,9 +4348,6 @@ msgstr "Tidak bisa memulai sesi"
 msgid "Could not stop it"
 msgstr "Tidak bisa dihentikan"
 
-msgid "Could not stop watching"
-msgstr "Tidak bisa berhenti memantau"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Tidak bisa mengirim prompt. Coba lagi."
 
@@ -4395,9 +4366,6 @@ msgstr "Tidak bisa memperbarui branch"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Tidak dapat memverifikasi kredensial: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Tidak bisa memantau halaman ini"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
@@ -5844,23 +5812,8 @@ msgstr "esc untuk menutup"
 msgid "esc to exit"
 msgstr "esc untuk keluar"
 
-msgid "Event cancelled"
-msgstr "Acara dibatalkan"
-
-msgid "Event created"
-msgstr "Acara dibuat"
-
-msgid "Event ended"
-msgstr "Acara berakhir"
-
-msgid "Event starting soon"
-msgstr "Acara segera dimulai"
-
 msgid "Event triggered"
 msgstr "Dipicu event"
-
-msgid "Event updated"
-msgstr "Acara diperbarui"
 
 msgid "Every {day}"
 msgstr "Setiap {day}"
@@ -5868,8 +5821,8 @@ msgstr "Setiap {day}"
 msgid "Every {day} at {time}"
 msgstr "Setiap {day} pukul {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Tiap agen berjalan di worktree Git-nya sendiri, jadi sepuluh agen bisa bekerja di sepuluh branch dari satu repo tanpa konflik. Anda mengawasi, mereview, dan me-merge semuanya dari satu jendela."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Setiap agen berjalan di worktree dan cabang Git masing-masing, sehingga file kerja tetap terpisah. Konflik masih dapat terjadi saat perubahan digabungkan. Anda memantau, meninjau, dan menggabungkan semuanya dari satu jendela."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Setiap sumbu sudah menopang untuk tingkat berikutnya. Pertahankan, tingkatnya akan menyusul."
@@ -7099,6 +7052,9 @@ msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
 msgid "Globe"
 msgstr "Globe"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Akses Gmail diperlukan. Izinkan saat diminta."
+
 msgid "Go back"
 msgstr "Kembali"
 
@@ -7169,6 +7125,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Arsitek GTM & Otomatisasi AI, Mistral AI"
 
 msgid "Guide"
+msgstr "Panduan"
+
+msgid "Guides"
 msgstr "Panduan"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "Tidak ada agen yang dikonfigurasi di mesin ini"
 msgid "No agents match \"{q}\"."
 msgstr "Tidak ada agen yang cocok dengan \"{q}\"."
 
-msgid "No agents running here"
-msgstr "Tidak ada agen yang berjalan di sini"
-
 msgid "No agents yet"
 msgstr "Belum ada agen"
 
@@ -10014,9 +9970,6 @@ msgstr "Belum ada yang terpasang."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Tidak ada yang berjalan. Hapus dan buat yang baru."
 
-msgid "Nothing is watching this page"
-msgstr "Tidak ada yang memantau halaman ini"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Tidak ada apa pun di {pathname}."
 
@@ -10110,6 +10063,9 @@ msgstr "Lebih lama"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "di {offScopeHostName} — tidak akan berjalan di sini"
+
+msgid "On a host you can't reach"
+msgstr "Di host yang tidak bisa kamu jangkau"
 
 msgid "On click"
 msgstr "Saat diklik"
@@ -13165,9 +13121,6 @@ msgstr "Pilih branch"
 msgid "Select branch..."
 msgstr "Pilih branch..."
 
-msgid "Select calendars"
-msgstr "Pilih kalender"
-
 msgid "Select channels"
 msgstr "Pilih channel"
 
@@ -13469,8 +13422,8 @@ msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 msgid "Share page"
 msgstr "Bagikan halaman"
 
-msgid "Share settings"
-msgstr "Pengaturan berbagi"
+msgid "Share page (public)"
+msgstr "Bagikan halaman (publik)"
 
 msgid "Share this page"
 msgstr "Bagikan halaman ini"
@@ -13939,9 +13892,6 @@ msgstr "Sebagian pemicu perlu konfigurasi tambahan"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Orang lain sudah menerbitkan {entryPath} dari workspace ini. Terbitkan dengan id halaman yang eksplisit untuk menambahkan versi ke halaman mereka, atau pindahkan berkasnya."
 
-msgid "someone external"
-msgstr "seseorang dari luar"
-
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
 
@@ -14285,9 +14235,6 @@ msgstr "Hentikan respons"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Hentikan Superset di sini untuk menghapus dari perangkat lain."
-
-msgid "Stop watching"
-msgstr "Berhenti memantau"
 
 msgid "Stop workspace run command"
 msgstr "Hentikan perintah run workspace"
@@ -15321,6 +15268,9 @@ msgstr "Ini menutup workspace yang dipilih beserta terminalnya. File dan branch 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Ini menutup workspace beserta terminalnya. File, branch, dan workspace lain dari proyek tetap seperti semula."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Workspace cloud ini sedang dibangunkan, yang bisa memakan waktu hingga 30 detik setelah tidak aktif."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Ini menghapus scrollback tersimpan yang dipakai untuk pemulihan setelah reboot/crash."
 
@@ -15428,10 +15378,6 @@ msgstr "Halaman ini sedang dipublikasikan dari tempat lain — coba lagi"
 
 msgid "This page is in another organization"
 msgstr "Halaman ini ada di organisasi lain"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Halaman ini aktif di <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Halaman ini tidak ada di sini"
@@ -15607,9 +15553,6 @@ msgstr "Rentang waktu"
 
 msgid "Title"
 msgstr "Judul"
-
-msgid "Title contains..."
-msgstr "Judul mengandung..."
 
 msgid "To"
 msgstr "Ke"
@@ -15800,11 +15743,11 @@ msgstr "mentriase 12 issue baru…"
 msgid "Trigger alert()"
 msgstr "Picu alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail: acara dibuat, diperbarui, dibatalkan, segera dimulai atau berakhir, dan email yang masuk ke kotak masuk yang terhubung."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Picu otomatisasi dari Gmail: email yang masuk ke kotak masuk yang terhubung."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Picu otomatisasi dari Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Picu otomatisasi dari pesan channel Teams."
@@ -15878,9 +15821,6 @@ msgstr "Ketik pesan..."
 
 msgid "Type a task for Claude…"
 msgstr "Ketik tugas untuk Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Ketik email, tekan Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Ketik di sini untuk mengirim ke terminal"

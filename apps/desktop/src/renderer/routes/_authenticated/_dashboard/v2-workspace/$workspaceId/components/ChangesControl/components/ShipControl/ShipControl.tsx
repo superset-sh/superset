@@ -45,7 +45,7 @@ interface ShipControlProps {
  * first when the branch is unpublished or ahead), then Push. Compact mode
  * (diff stats own the face) folds the same actions into the chevron menu.
  *
- * Session workspaces (null projectId) can't create PRs — the PR route and
+ * Session workspaces can't create PRs — the PR route and
  * repo resolution are project-scoped — so they only ever see Commit/Push.
  */
 export function ShipControl({
@@ -58,8 +58,7 @@ export function ShipControl({
 	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const status = useWorkspaceGitStatus();
-	const projectId = workspace.projectId;
-	const canCreatePr = projectId != null;
+	const canCreatePr = workspace.type !== "session";
 
 	const needsCommit = sync.hasUncommitted;
 	const needsPush = !sync.hasUpstream || sync.pushCount > 0;

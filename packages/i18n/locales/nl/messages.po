@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# werkruimte} other {# werkruimtes}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Reacties gaan naar deze agent} other {Reacties gaan naar deze agents}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — deze site vergeten"
 
-msgid "1 hour"
-msgstr "1 uur"
-
 msgid "1 user"
 msgstr "1 gebruiker"
-
-msgid "10 minutes"
-msgstr "10 minuten"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ gelijktijdige werkstromen zonder verlies van context"
@@ -1144,17 +1142,11 @@ msgstr "10+ gelijktijdige werkstromen zonder verlies van context"
 msgid "100% (retain everything)"
 msgstr "100% (alles behouden)"
 
-msgid "15 minutes"
-msgstr "15 minuten"
-
 msgid "1d ago"
 msgstr "1d geleden"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agents · 14 bestanden gewijzigd"
-
-msgid "2 hours"
-msgstr "2 uur"
 
 msgid "2021 to 2023"
 msgstr "2021 tot 2023"
@@ -1180,9 +1172,6 @@ msgstr "3 bestanden gewijzigd, 2 tests geslaagd"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ gelijktijdige werkstromen per engineer"
 
-msgid "30 minutes"
-msgstr "30 minuten"
-
 msgid "30D"
 msgstr "30D"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 bestanden · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 minuten"
 
 msgid "55 call sites pass {code}"
 msgstr "55 aanroepplekken geven {code} door"
@@ -1387,10 +1373,6 @@ msgstr "Activatie, hoeveel mensen het gebruiken zodra ze binnen zijn, en of ze t
 
 msgid "Active"
 msgstr "Actief"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "actief {0}"
 
 msgid "Active agent sessions."
 msgstr "Actieve agentsessies."
@@ -1661,6 +1643,9 @@ msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewij
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
 
+msgid "Agents watching this page for comments"
+msgstr "Agents die deze pagina volgen voor reacties"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Totaal agentgebruik van alle developers op het Superset-leaderboard — tokens, kosten, cachegedrag en welke modellen mensen echt gebruiken."
 
@@ -1910,6 +1895,10 @@ msgstr "Ook: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Weet altijd welke agent jou nodig heeft, met meldingen die rechtstreeks naar de vastgelopen agent linken."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Een agent"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Een agent voltooit wijzigingen over meerdere bestanden van begin tot eind."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic heeft deze API-sleutel geweigerd."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic heeft dit token geweigerd."
 
-msgid "Any calendar"
-msgstr "Elke agenda"
-
 msgid "Any channel"
 msgstr "Elk kanaal"
 
@@ -2023,9 +2009,6 @@ msgstr "Elk team"
 
 msgid "Any thread event"
 msgstr "Elke thread-gebeurtenis"
-
-msgid "anyone"
-msgstr "iedereen"
 
 msgid "Anyone"
 msgstr "Iedereen"
@@ -2606,9 +2589,6 @@ msgstr "De omkaderde chip is de standaard (de preset-/HotkeyTooltip-stijl); de p
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Geleend van hoe zelfrijdende auto's worden beoordeeld, toegepast op hoe software wordt gebouwd. De interessante sprong is F3 naar F4: van agents waaraan je delegeert naar een fabriek die je aanstuurt."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Toegang tot zowel Calendar als Gmail is vereist. Sta beide toe wanneer daarom wordt gevraagd."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Lade onderaan, swipevriendelijk op touchapparaten."
 
@@ -3157,9 +3137,6 @@ msgstr "Kies wat je uit de ingebouwde browser wilt wissen."
 msgid "Choose when Superset pings you."
 msgstr "Kies wanneer Superset je een seintje geeft."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Kies welke agent deze pagina volgt voor reacties"
-
 msgid "Churn"
 msgstr "Opzeggingen"
 
@@ -3629,9 +3606,6 @@ msgstr "Reacties"
 msgid "Comments could not be loaded"
 msgstr "Reacties konden niet worden geladen"
 
-msgid "Comments go to this agent"
-msgstr "Reacties gaan naar deze agent"
-
 msgid "Commit"
 msgstr "Committen"
 
@@ -3756,8 +3730,8 @@ msgstr "{name} verbinden"
 msgid "Connect a device"
 msgstr "Apparaat koppelen"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Verbind een Google-account. De agenda's en mailbox worden alleen gelezen, en triggers draaien voor de persoon die de koppeling maakte."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Koppel een Google-account. De mailbox is alleen-lezen en triggers worden uitgevoerd voor de persoon die het account heeft gekoppeld."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Sluit een microfoon aan om te dicteren"
@@ -4374,9 +4348,6 @@ msgstr "Kan sessie niet starten"
 msgid "Could not stop it"
 msgstr "Kon niet worden gestopt"
 
-msgid "Could not stop watching"
-msgstr "Kon niet stoppen met volgen"
-
 msgid "Could not submit prompt. Try again."
 msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 
@@ -4395,9 +4366,6 @@ msgstr "Kan de branch niet bijwerken"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kon de inloggegevens niet verifiëren: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Kon deze pagina niet volgen"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Kan de sterstatus niet bevestigen — controleer of de GitHub-CLI (`gh`) is geïnstalleerd, of je bent ingelogd en of je een netwerkverbinding hebt"
@@ -5844,23 +5812,8 @@ msgstr "esc om te sluiten"
 msgid "esc to exit"
 msgstr "esc om te verlaten"
 
-msgid "Event cancelled"
-msgstr "Afspraak geannuleerd"
-
-msgid "Event created"
-msgstr "Afspraak aangemaakt"
-
-msgid "Event ended"
-msgstr "Afspraak afgelopen"
-
-msgid "Event starting soon"
-msgstr "Afspraak begint bijna"
-
 msgid "Event triggered"
 msgstr "Gebeurtenis getriggerd"
-
-msgid "Event updated"
-msgstr "Afspraak bijgewerkt"
 
 msgid "Every {day}"
 msgstr "Elke {day}"
@@ -5868,8 +5821,8 @@ msgstr "Elke {day}"
 msgid "Every {day} at {time}"
 msgstr "Elke {day} om {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Elke agent draait in zijn eigen Git-worktree, dus tien agents kunnen aan tien branches van één repo werken zonder conflicten. Je volgt, reviewt en merget ze allemaal vanuit één venster."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Elke agent draait in een eigen Git-worktree en branch, zodat werkbestanden gescheiden blijven. Bij het samenvoegen van wijzigingen kunnen nog steeds conflicten ontstaan. Je volgt, beoordeelt en voegt alles samen vanuit één venster."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Elke as draagt zijn deel bij voor het volgende niveau. Houd dit vast en het niveau volgt."
@@ -7099,6 +7052,9 @@ msgstr "Geef je sleutel een duidelijke naam zodat je weet waar hij wordt gebruik
 msgid "Globe"
 msgstr "Wereldbol"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail-toegang is vereist. Sta dit toe wanneer erom wordt gevraagd."
+
 msgid "Go back"
 msgstr "Terug"
 
@@ -7170,6 +7126,9 @@ msgstr "Architect GTM en AI-automatisering, Mistral AI"
 
 msgid "Guide"
 msgstr "Gids"
+
+msgid "Guides"
+msgstr "Gidsen"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Stuurt de door AI gegenereerde namen van werkruimtes en branches voor dit project. Leeg gebruikt de standaardnaamgeving."
@@ -9403,9 +9362,6 @@ msgstr "Geen agents geconfigureerd op deze machine"
 msgid "No agents match \"{q}\"."
 msgstr "Geen agents komen overeen met \"{q}\"."
 
-msgid "No agents running here"
-msgstr "Geen agents actief hier"
-
 msgid "No agents yet"
 msgstr "Nog geen agents"
 
@@ -10014,9 +9970,6 @@ msgstr "Nog niets geïnstalleerd."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Er draait niets. Verwijder deze en maak een nieuwe aan."
 
-msgid "Nothing is watching this page"
-msgstr "Niets volgt deze pagina"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Er staat niets op {pathname}."
 
@@ -10110,6 +10063,9 @@ msgstr "Ouder"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "op {offScopeHostName} — draait hier niet"
+
+msgid "On a host you can't reach"
+msgstr "Op een host die je niet kunt bereiken"
 
 msgid "On click"
 msgstr "Bij klikken"
@@ -13165,9 +13121,6 @@ msgstr "Kies branch"
 msgid "Select branch..."
 msgstr "Kies branch..."
 
-msgid "Select calendars"
-msgstr "Agenda's kiezen"
-
 msgid "Select channels"
 msgstr "Kanalen kiezen"
 
@@ -13469,8 +13422,8 @@ msgstr "Deel ontwerpen en rapporten. Laat je agent de feedback verwerken."
 msgid "Share page"
 msgstr "Pagina delen"
 
-msgid "Share settings"
-msgstr "Deelinstellingen"
+msgid "Share page (public)"
+msgstr "Pagina delen (openbaar)"
 
 msgid "Share this page"
 msgstr "Deze pagina delen"
@@ -13939,9 +13892,6 @@ msgstr "Sommige triggers hebben extra configuratie nodig"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Iemand anders heeft {entryPath} vanuit deze workspace al gepubliceerd. Publiceer met een expliciet pagina-id om een versie aan hun pagina toe te voegen, of verplaats het bestand."
 
-msgid "someone external"
-msgstr "iemand extern"
-
 msgid "Something went wrong"
 msgstr "Er is iets misgegaan"
 
@@ -14285,9 +14235,6 @@ msgstr "Antwoord stoppen"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "Stop Superset hier om vanaf een ander apparaat te verwijderen."
-
-msgid "Stop watching"
-msgstr "Stoppen met volgen"
 
 msgid "Stop workspace run command"
 msgstr "Run-commando van werkruimte stoppen"
@@ -15321,6 +15268,9 @@ msgstr "Hiermee sluit je de geselecteerde werkruimtes en hun terminals. De besta
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Hiermee sluit je de werkruimte en de bijbehorende terminals. De bestanden, branches en andere werkruimtes van het project blijven ongewijzigd."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Deze cloudwerkruimte wordt gewekt. Na inactiviteit kan dat tot 30 seconden duren."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Hiermee wordt de opgeslagen scrollback voor herstel na herstart of crash verwijderd."
 
@@ -15428,10 +15378,6 @@ msgstr "Deze pagina wordt ergens anders gepubliceerd — probeer opnieuw"
 
 msgid "This page is in another organization"
 msgstr "Deze pagina hoort bij een andere organisatie"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Deze pagina staat live op <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Deze pagina staat hier niet"
@@ -15607,9 +15553,6 @@ msgstr "Periode"
 
 msgid "Title"
 msgstr "Titel"
-
-msgid "Title contains..."
-msgstr "Titel bevat..."
 
 msgid "To"
 msgstr "Naar"
@@ -15800,11 +15743,11 @@ msgstr "12 nieuwe issues triageren…"
 msgid "Trigger alert()"
 msgstr "alert() aanroepen"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Trigger automatiseringen vanuit Google Calendar en Gmail: afspraken die worden aangemaakt, bijgewerkt, geannuleerd, bijna beginnen of afgelopen zijn, en e-mail die binnenkomt in de gekoppelde mailbox."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Automatiseringen starten vanuit Gmail: e-mail die binnenkomt in de gekoppelde inbox."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Trigger automatiseringen vanuit Google Calendar en Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Automatiseringen starten vanuit Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Trigger automatiseringen vanuit berichten in Teams-kanalen."
@@ -15878,9 +15821,6 @@ msgstr "Typ een bericht..."
 
 msgid "Type a task for Claude…"
 msgstr "Typ een taak voor Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Typ een e-mailadres, druk op Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Typ hier om naar de terminal te sturen"

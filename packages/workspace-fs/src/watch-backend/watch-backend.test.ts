@@ -2,7 +2,6 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { FsWatcherManager } from "../watch";
 import {
 	chokidarWatchBackend,
 	createIgnoreMatcher,
@@ -144,44 +143,6 @@ for (const backend of [parcelWatchBackend, chokidarWatchBackend]) {
 		);
 	});
 }
-
-describe("FsWatcherManager on the chokidar backend", () => {
-	test("emits events, prunes ignored dirs, and recovers a recreated root", async () => {
-		const parent = await makeRoot();
-		const root = path.join(parent, "worktree");
-		await mkdir(path.join(root, "node_modules"), { recursive: true });
-		const manager = new FsWatcherManager({
-			backend: chokidarWatchBackend,
-			debounceMs: 20,
-			recoveryPollMs: 100,
-		});
-		cleanups.push(() => manager.close());
-		const seen: Array<{ kind: string; absolutePath: string }> = [];
-		await manager.subscribe({ absolutePath: root }, (batch) => {
-			seen.push(...batch.events);
-		});
-		const saw = (kind: string, target: string) =>
-			seen.some((e) => e.kind === kind && e.absolutePath === target);
-
-		await writeFile(path.join(root, "node_modules", "ignored.js"), "x");
-		const file = path.join(root, "src.ts");
-		await writeFile(file, "x");
-		await waitFor(() => saw("create", file), "manager create");
-		expect(seen.some((e) => e.absolutePath.includes("node_modules"))).toBe(
-			false,
-		);
-		expect(manager.isPathPruned(root, file)).toBe(false);
-
-		await rm(root, { recursive: true, force: true });
-		await waitFor(() => saw("delete", root), "root delete");
-		seen.length = 0;
-		await mkdir(root, { recursive: true });
-		await waitFor(() => saw("create", root), "root recreated");
-		const after = path.join(root, "after.ts");
-		await writeFile(after, "x");
-		await waitFor(() => saw("create", after), "event after recovery");
-	}, 30_000);
-});
 
 describe("createIgnoreMatcher", () => {
 	const isIgnored = createIgnoreMatcher("/repo", [

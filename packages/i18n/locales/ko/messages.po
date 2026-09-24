@@ -226,6 +226,10 @@ msgstr "{0, plural, one {워크스페이스 #개} other {워크스페이스 #개
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {댓글은 이 에이전트에게 전달됩니다} other {댓글은 이 에이전트들에게 전달됩니다}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -1129,14 +1133,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "쿠키 1개 — 이 사이트 잊기"
 
-msgid "1 hour"
-msgstr "1시간"
-
 msgid "1 user"
 msgstr "사용자 1명"
-
-msgid "10 minutes"
-msgstr "10분"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "상태 유실 없이 동시 작업 흐름 10개 이상"
@@ -1144,17 +1142,11 @@ msgstr "상태 유실 없이 동시 작업 흐름 10개 이상"
 msgid "100% (retain everything)"
 msgstr "100% (전부 유지)"
 
-msgid "15 minutes"
-msgstr "15분"
-
 msgid "1d ago"
 msgstr "1일 전"
 
 msgid "2 agents · 14 files changed"
 msgstr "에이전트 2개 · 파일 14개 변경"
-
-msgid "2 hours"
-msgstr "2시간"
 
 msgid "2021 to 2023"
 msgstr "2021년~2023년"
@@ -1180,9 +1172,6 @@ msgstr "파일 3개 변경, 테스트 2개 통과"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "엔지니어당 동시 작업 흐름 3개 이상"
 
-msgid "30 minutes"
-msgstr "30분"
-
 msgid "30D"
 msgstr "30일"
 
@@ -1197,9 +1186,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "파일 45개 · +82 −172"
-
-msgid "5 minutes"
-msgstr "5분"
 
 msgid "55 call sites pass {code}"
 msgstr "55개 호출 지점이 {code}를 전달합니다"
@@ -1387,10 +1373,6 @@ msgstr "활성화, 들어온 뒤 얼마나 쓰는지, 그리고 다시 돌아오
 
 msgid "Active"
 msgstr "활성"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "활성 {0}"
 
 msgid "Active agent sessions."
 msgstr "활성 에이전트 세션입니다."
@@ -1661,6 +1643,9 @@ msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, �
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
 
+msgid "Agents watching this page for comments"
+msgstr "이 페이지의 댓글을 감시 중인 에이전트"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Superset 리더보드에 참여한 모든 개발자의 에이전트 사용량 집계 — 토큰, 비용, 캐시 동작, 그리고 실제로 많이 쓰이는 모델입니다."
 
@@ -1910,6 +1895,10 @@ msgstr "참고: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "어떤 에이전트가 나를 필요로 하는지 항상 알 수 있습니다. 알림을 누르면 막힌 에이전트로 바로 이동합니다."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "에이전트"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "에이전트가 여러 파일에 걸친 변경을 처음부터 끝까지 완료합니다."
 
@@ -1976,9 +1965,6 @@ msgstr "Anthropic이 이 API 키를 거부했습니다."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic이 이 토큰을 거부했습니다."
 
-msgid "Any calendar"
-msgstr "모든 캘린더"
-
 msgid "Any channel"
 msgstr "모든 채널"
 
@@ -2023,9 +2009,6 @@ msgstr "모든 팀"
 
 msgid "Any thread event"
 msgstr "모든 스레드 이벤트"
-
-msgid "anyone"
-msgstr "모든 사람"
 
 msgid "Anyone"
 msgstr "모든 사람"
@@ -2606,9 +2589,6 @@ msgstr "테두리 칩이 기본값이며(preset/HotkeyTooltip 스타일), 화살
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "자율 주행차를 등급으로 나누는 방식을 빌려 소프트웨어를 만드는 방식에 적용했습니다. 흥미로운 도약은 F3에서 F4로, 즉 일을 맡기는 에이전트에서 방향을 지시하는 공장으로 넘어가는 지점입니다."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Calendar와 Gmail 접근 권한이 모두 필요합니다. 요청 시 둘 다 허용해 주세요."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "하단 드로어로, 터치 기기에서 스와이프하기 좋습니다."
 
@@ -3157,9 +3137,6 @@ msgstr "인앱 브라우저에서 삭제할 항목을 선택하세요."
 msgid "Choose when Superset pings you."
 msgstr "Superset이 언제 알릴지 선택하세요."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "이 페이지의 댓글을 감시할 에이전트 선택"
-
 msgid "Churn"
 msgstr "이탈"
 
@@ -3629,9 +3606,6 @@ msgstr "댓글"
 msgid "Comments could not be loaded"
 msgstr "댓글을 불러올 수 없습니다"
 
-msgid "Comments go to this agent"
-msgstr "댓글은 이 에이전트에게 전달됩니다"
-
 msgid "Commit"
 msgstr "커밋"
 
@@ -3756,8 +3730,8 @@ msgstr "{name} 연결"
 msgid "Connect a device"
 msgstr "기기 연결"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Google 계정을 연결하세요. 캘린더와 메일함은 읽기 전용이며, 트리거는 계정을 연결한 사람의 권한으로 실행됩니다."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Google 계정을 연결하세요. 메일함은 읽기 전용이며 트리거는 연결한 사람을 대상으로 실행됩니다."
 
 msgid "Connect a microphone to use dictation"
 msgstr "받아쓰기를 사용하려면 마이크를 연결하세요"
@@ -4374,9 +4348,6 @@ msgstr "세션을 시작할 수 없습니다"
 msgid "Could not stop it"
 msgstr "중지할 수 없습니다"
 
-msgid "Could not stop watching"
-msgstr "감시를 중지할 수 없습니다"
-
 msgid "Could not submit prompt. Try again."
 msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 
@@ -4395,9 +4366,6 @@ msgstr "브랜치를 업데이트할 수 없습니다"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "자격 증명을 확인하지 못했습니다: {reason}"
-
-msgid "Could not watch this page"
-msgstr "이 페이지를 감시할 수 없습니다"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "스타 상태를 확인하지 못했습니다 — GitHub CLI(`gh`)가 설치되어 로그인되어 있는지, 네트워크에 연결되어 있는지 확인하세요"
@@ -5844,23 +5812,8 @@ msgstr "esc로 닫기"
 msgid "esc to exit"
 msgstr "esc로 종료"
 
-msgid "Event cancelled"
-msgstr "일정 취소됨"
-
-msgid "Event created"
-msgstr "일정 생성됨"
-
-msgid "Event ended"
-msgstr "일정 종료됨"
-
-msgid "Event starting soon"
-msgstr "일정 시작 임박"
-
 msgid "Event triggered"
 msgstr "이벤트로 트리거됨"
-
-msgid "Event updated"
-msgstr "일정 변경됨"
 
 msgid "Every {day}"
 msgstr "매주 {day}"
@@ -5868,8 +5821,8 @@ msgstr "매주 {day}"
 msgid "Every {day} at {time}"
 msgstr "매주 {day} {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "모든 에이전트가 각자의 Git worktree에서 실행되므로, 에이전트 열 개가 한 리포지토리의 브랜치 열 개에서 충돌 없이 작업할 수 있습니다. 창 하나에서 전부 지켜보고, 리뷰하고, 머지합니다."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "각 에이전트는 자체 Git worktree와 브랜치에서 실행되어 작업 파일이 분리됩니다. 변경 사항을 병합할 때는 여전히 충돌이 발생할 수 있습니다. 하나의 창에서 모든 작업을 모니터링하고 검토하고 병합할 수 있습니다."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "모든 축이 다음 등급을 향해 제 몫을 하고 있습니다. 이대로 유지하면 등급은 따라옵니다."
@@ -7099,6 +7052,9 @@ msgstr "어디에 사용하는 키인지 알 수 있도록 설명이 담긴 이�
 msgid "Globe"
 msgstr "지구본"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Gmail 액세스가 필요합니다. 요청 시 허용해 주세요."
+
 msgid "Go back"
 msgstr "뒤로 가기"
 
@@ -7169,6 +7125,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM 및 AI 자동화 아키텍트, Mistral AI"
 
 msgid "Guide"
+msgstr "가이드"
+
+msgid "Guides"
 msgstr "가이드"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -9403,9 +9362,6 @@ msgstr "이 컴퓨터에 구성된 에이전트가 없습니다"
 msgid "No agents match \"{q}\"."
 msgstr "\"{q}\"과(와) 일치하는 에이전트가 없습니다."
 
-msgid "No agents running here"
-msgstr "여기에서 실행 중인 에이전트가 없습니다"
-
 msgid "No agents yet"
 msgstr "아직 에이전트가 없습니다"
 
@@ -10014,9 +9970,6 @@ msgstr "아직 설치된 항목이 없습니다."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "실행 중인 것이 없습니다. 제거하고 새로 만드세요."
 
-msgid "Nothing is watching this page"
-msgstr "이 페이지를 감시하는 에이전트가 없습니다"
-
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}에는 아무것도 없습니다."
 
@@ -10110,6 +10063,9 @@ msgstr "이전"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName}에 있음 — 여기서는 실행되지 않습니다"
+
+msgid "On a host you can't reach"
+msgstr "접근할 수 없는 호스트에 있음"
 
 msgid "On click"
 msgstr "클릭 시"
@@ -13165,9 +13121,6 @@ msgstr "브랜치 선택"
 msgid "Select branch..."
 msgstr "브랜치 선택..."
 
-msgid "Select calendars"
-msgstr "캘린더 선택"
-
 msgid "Select channels"
 msgstr "채널 선택"
 
@@ -13469,8 +13422,8 @@ msgstr "디자인과 보고서를 공유하세요. 피드백 처리는 에이전
 msgid "Share page"
 msgstr "페이지 공유"
 
-msgid "Share settings"
-msgstr "공유 설정"
+msgid "Share page (public)"
+msgstr "페이지 공유(공개)"
 
 msgid "Share this page"
 msgstr "이 페이지 공유"
@@ -13939,9 +13892,6 @@ msgstr "일부 트리거에는 추가 설정이 필요합니다"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "다른 사람이 이 워크스페이스의 {entryPath}를 이미 게시했습니다. 페이지 ID를 명시해 그 페이지에 버전을 추가하거나 파일을 옮기세요."
 
-msgid "someone external"
-msgstr "외부 참석자"
-
 msgid "Something went wrong"
 msgstr "문제가 발생했습니다"
 
@@ -14285,9 +14235,6 @@ msgstr "응답 중지"
 
 msgid "Stop Superset here to delete from another device."
 msgstr "다른 기기에서 삭제하려면 여기에서 Superset을 종료하세요."
-
-msgid "Stop watching"
-msgstr "감시 중지"
 
 msgid "Stop workspace run command"
 msgstr "워크스페이스 실행 명령 중지"
@@ -15321,6 +15268,9 @@ msgstr "선택한 워크스페이스와 해당 터미널을 닫습니다. 프로
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "워크스페이스와 해당 터미널을 닫습니다. 프로젝트의 파일, 브랜치, 다른 워크스페이스는 그대로 유지됩니다."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "이 클라우드 워크스페이스를 깨우는 중입니다. 한동안 사용하지 않았다면 최대 30초가 걸릴 수 있습니다."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "재부팅/충돌 복구에 사용하는 저장된 스크롤백을 삭제합니다."
 
@@ -15428,10 +15378,6 @@ msgstr "다른 곳에서 이 페이지를 게시하는 중입니다 — 다시 �
 
 msgid "This page is in another organization"
 msgstr "이 페이지는 다른 조직에 있습니다"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "이 페이지는 <0>{0}</0>에서 공개 중입니다"
 
 msgid "This page isn't here"
 msgstr "이 페이지는 여기에 없습니다"
@@ -15607,9 +15553,6 @@ msgstr "기간"
 
 msgid "Title"
 msgstr "제목"
-
-msgid "Title contains..."
-msgstr "제목에 포함..."
 
 msgid "To"
 msgstr "새 위치"
@@ -15800,11 +15743,11 @@ msgstr "새 이슈 12건 분류 중…"
 msgid "Trigger alert()"
 msgstr "alert() 실행"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Google Calendar와 Gmail에서 자동화를 실행하세요. 일정 생성, 수정, 취소, 시작 임박, 종료와 연결된 받은편지함에 도착한 메일이 트리거가 됩니다."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Gmail에서 자동화 트리거: 연결된 받은편지함에 도착한 이메일."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Google Calendar와 Gmail에서 자동화를 트리거합니다."
+msgid "Trigger automations from Gmail."
+msgstr "Gmail에서 자동화를 트리거합니다."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Teams 채널 메시지에서 자동화를 트리거합니다."
@@ -15878,9 +15821,6 @@ msgstr "메시지를 입력하세요..."
 
 msgid "Type a task for Claude…"
 msgstr "Claude에게 맡길 작업을 입력하세요…"
-
-msgid "Type an email, press Enter"
-msgstr "이메일을 입력하고 Enter를 누르세요"
 
 msgid "Type here to send to the terminal"
 msgstr "여기에 입력하면 터미널로 전송됩니다"

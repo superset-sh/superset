@@ -16,7 +16,7 @@ import { PageHeaderBar } from "./components/PageHeaderBar";
 import { PageUnavailable } from "./components/PageUnavailable";
 import { PublicPageView } from "./components/PublicPageView";
 import { WrongOrganization } from "./components/WrongOrganization";
-import { getPagesAccess } from "./utils/getPagesAccess";
+import { getSession } from "./utils/getSession";
 import { allowPublicRead } from "./utils/publicReadLimit";
 import { isForbidden, isNotFound } from "./utils/trpcErrors";
 
@@ -90,8 +90,7 @@ export async function generateMetadata({
 		};
 	}
 
-	const { hasPagesAccess } = await getPagesAccess();
-	if (hasPagesAccess) {
+	if (await getSession()) {
 		const page = await pullPage(slug, requestedVersion).catch(() => null);
 		if (page) {
 			return {
@@ -118,7 +117,7 @@ export default async function PublishedPage({
 	const { slug } = await params;
 	const requestedVersion = previewVersionOf((await searchParams).v);
 
-	const { hasPagesAccess, session } = await getPagesAccess();
+	const session = await getSession();
 
 	const publicView = async () => {
 		const shared = await pullPublicPage(slug);
@@ -132,11 +131,8 @@ export default async function PublishedPage({
 		) : null;
 	};
 
-	if (!hasPagesAccess) {
-		const view = await publicView();
-		if (view) return view;
-		if (session) notFound();
-		return <PageUnavailable slug={slug} />;
+	if (!session) {
+		return (await publicView()) ?? <PageUnavailable slug={slug} />;
 	}
 
 	let page: Awaited<ReturnType<typeof pullPage>>;
@@ -183,7 +179,7 @@ export default async function PublishedPage({
 						servedVersion: page.servedVersion,
 					}}
 					versions={versions}
-					currentUserId={session?.user.id}
+					currentUserId={session.user.id}
 					slug={slug}
 					watching={page.watch.watching}
 					watchAgentId={page.watch.agentId}
