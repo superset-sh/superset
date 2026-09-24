@@ -1,0 +1,70 @@
+bun test v1.3.14 (0d9b296a)
+
+src/tunnel/tunnel-client.upstream.test.ts:
+88 | ])("never sends the secret off-origin for a %s path", async (_name, path) => {
+89 | 	const { relay, done } = forward(path);
+90 | 	await done;
+91 | 
+92 | 	for (const call of calls) {
+93 | 		expect(new URL(call.url).origin).toBe(LOCAL_ORIGIN);
+                                        ^
+error: expect(received).toBe(expected)
+
+Expected: "http://127.0.0.1:38017"
+Received: "http://evil.example"
+
+      at <anonymous> (/workspace/packages/host-service/src/tunnel/tunnel-client.upstream.test.ts:93:36)
+(fail) never sends the secret off-origin for a userinfo path [0.57ms]
+88 | ])("never sends the secret off-origin for a %s path", async (_name, path) => {
+89 | 	const { relay, done } = forward(path);
+90 | 	await done;
+91 | 
+92 | 	for (const call of calls) {
+93 | 		expect(new URL(call.url).origin).toBe(LOCAL_ORIGIN);
+                                        ^
+error: expect(received).toBe(expected)
+
+Expected: "http://127.0.0.1:38017"
+Received: "http://evil.example"
+
+      at <anonymous> (/workspace/packages/host-service/src/tunnel/tunnel-client.upstream.test.ts:93:36)
+(fail) never sends the secret off-origin for a userinfo after a colon path [0.12ms]
+88 | ])("never sends the secret off-origin for a %s path", async (_name, path) => {
+89 | 	const { relay, done } = forward(path);
+90 | 	await done;
+91 | 
+92 | 	for (const call of calls) {
+93 | 		expect(new URL(call.url).origin).toBe(LOCAL_ORIGIN);
+              ^
+TypeError: "http://127.0.0.1:38017http://evil.example/x" cannot be parsed as a URL.
+ code: "ERR_INVALID_URL"
+
+      at <anonymous> (/workspace/packages/host-service/src/tunnel/tunnel-client.upstream.test.ts:93:10)
+(fail) never sends the secret off-origin for a absolute URL path [0.11ms]
+ 97 | 
+ 98 | test("refuses an origin-moving path outright rather than rewriting it", async () => {
+ 99 | 	const { relay, done } = forward("@evil.example/x");
+100 | 	await done;
+101 | 
+102 | 	expect(calls).toEqual([]);
+                     ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   {
++     "authorization": "Bearer host-service-secret",
++     "url": "http://127.0.0.1:38017@evil.example/x",
++   },
++ ]
+
+- Expected  - 1
++ Received  + 6
+
+      at <anonymous> (/workspace/packages/host-service/src/tunnel/tunnel-client.upstream.test.ts:102:16)
+(fail) refuses an origin-moving path outright rather than rewriting it [0.24ms]
+
+ 4 pass
+ 4 fail
+ 11 expect() calls
+Ran 8 tests across 1 file. [326.00ms]
