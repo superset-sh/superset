@@ -2,7 +2,7 @@
 title: "Best Buzz Alternatives in 2026"
 description: "The best alternatives to Buzz by Block for working with AI coding agents, including Superset, Orca, Emdash, and OpenHands, from agent workspaces to self-hosted platforms."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "roundup"
 competitors:
   - buzz
@@ -27,7 +27,7 @@ Buzz is Block's open-source workspace where humans and AI agents collaborate as 
 
 | Alternative | Best for | Platform | License |
 |---|---|---|---|
-| **Superset** | Running coding agents in parallel with worktrees, review, and automations | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Superset** | Running coding agents in parallel with worktrees, review, and automations | macOS; experimental Linux AppImage; Windows unavailable | Source-available (ELv2) |
 | **Orca** | Free cross-platform desktop ADE with mobile companions | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
 | **Emdash** | Open-source ADE with issue-tracker intake | macOS, Windows, Linux | Open source (Apache-2.0) |
 | **OpenHands** | Self-hostable autonomous agents in the cloud | Self-hosted / cloud | Open source (MIT) |
@@ -41,7 +41,7 @@ Buzz is a collaboration layer: agents and humans share rooms, patches land as si
 
 ### Superset
 
-Superset is the execution-layer counterpart to Buzz's team layer: it runs Claude Code, Codex, OpenCode, and any CLI agent in parallel, each task in its own Git worktree with persistent terminals, a diff/file editor, an in-app browser, and scheduled automations driven by a TypeScript SDK and a Slack bot. If Buzz drew you in with "agents as team members" but your team already lives in Slack and your work lives in GitHub, Superset delivers the agent workflow on the tools you have.
+Superset is the execution-layer counterpart to Buzz's team layer: it runs Claude Code, Codex, OpenCode, and any CLI agent in parallel. New local branch-based workspaces have separate Git worktrees with persistent terminals, a diff/file editor, an in-app browser, and scheduled automations driven by a TypeScript SDK and a Slack bot. If Buzz drew you in with "agents as team members" but your team already lives in Slack and your work lives in GitHub, Superset delivers the agent workflow on the tools you have.
 
 For the direct comparison, see [Superset vs Buzz](/compare/superset-vs-buzz).
 
@@ -97,4 +97,4 @@ Conceptually yes -- Buzz as the coordination layer, a workspace like Superset as
 
 ### Does Buzz run coding agents in Git worktrees?
 
-No. Buzz projects work against a single local clone, and its Git integration is early by Block's own description. Superset, Orca, Emdash, and Conductor all isolate each task in its own worktree.
+No. Buzz projects work against a single local clone, and its Git integration is early by Block's own description. Superset creates Git worktrees for new local branch-based workspaces; Orca, Emdash, and Conductor also support worktree workflows.

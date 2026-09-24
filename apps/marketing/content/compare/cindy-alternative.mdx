@@ -2,7 +2,7 @@
 title: "Best Cindy Alternatives in 2026"
 description: "The best alternatives to Cindy for running AI coding agents in parallel, including Superset, Orca, Emdash, and Conductor, purpose-built developer workspaces."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "roundup"
 competitors:
   - cindy
@@ -27,7 +27,7 @@ Cindy is an open-source, general-purpose AI agent app that wraps Claude Code and
 
 | Alternative | Best for | Platform | License |
 |---|---|---|---|
-| **Superset** | Git-native parallel agents with review and automations | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Superset** | Git-native parallel agents with review and automations | macOS; experimental Linux AppImage; Windows unavailable | Source-available (ELv2) |
 | **Orca** | Free desktop ADE with shipped mobile apps | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
 | **Emdash** | Open-source ADE with tracker intake | macOS, Windows, Linux | Open source (Apache-2.0) |
 | **Conductor** | Focused, stable Mac app | macOS | Proprietary |
@@ -41,7 +41,7 @@ Cindy's coding runs happen in its own workspace model with change capture and un
 
 ### Superset
 
-Superset is the engineering-grade version of what Cindy sketches: every task gets its own Git worktree and branch with persistent terminals, a diff/file editor, an in-app browser, and port management, and the whole thing is programmable -- scheduled automations, a TypeScript SDK, an MCP server, and a Slack bot. It runs Claude Code and Codex like Cindy does, plus OpenCode, Cursor, Copilot, Gemini, and any CLI agent. If your agents ship code, this is the alternative.
+Superset is the engineering-grade version of what Cindy sketches: each new local branch-based workspace gets its own Git worktree and branch with persistent terminals, a diff/file editor, an in-app browser, and port management, and the whole thing is programmable -- scheduled automations, a TypeScript SDK, an MCP server, and a Slack bot. It runs Claude Code and Codex like Cindy does, plus OpenCode, Cursor, Copilot, Gemini, and any CLI agent. If your agents ship code, this is the alternative.
 
 For the direct comparison, see [Superset vs Cindy](/compare/superset-vs-cindy).
 
@@ -86,7 +86,7 @@ Cindy is worth watching -- its planner/workers/reviewer model and mobile-first r
 
 ### What is the best Cindy alternative for coding?
 
-Superset: worktree-per-task isolation, diff review, an in-app browser, scheduled automations, and CLI/MCP/SDK surfaces, running Claude Code, Codex, and any other CLI agent.
+Superset: local branch-based worktree isolation, diff review, an in-app browser, scheduled automations, and CLI/MCP/SDK surfaces, running Claude Code, Codex, and any other CLI agent.
 
 ### Is there an open-source Cindy alternative?
 
@@ -94,8 +94,8 @@ Cindy itself is Apache-2.0. On the developer-workspace side, Orca (MIT), Emdash 
 
 ### Which alternatives have mobile apps like Cindy?
 
-Orca ships iOS and Android companions today. Superset's mobile app is on its roadmap; its remote story today is cloud workspaces plus a Slack bot.
+Orca ships iOS and Android companions. Superset has an [iPhone app](/mobile) for workspace terminals and diff review. It requires iOS 26 or later, Pro, and a host that stays awake and online. Android is on the [waitlist](/mobile#android).
 
 ### Does Cindy use Git worktrees?
 
-No. Cindy tracks workspace changes per turn with undo/reapply, which is capture rather than isolation. Superset, Orca, Emdash, and Conductor isolate each task in its own Git worktree and branch.
+No. Cindy tracks workspace changes per turn with undo/reapply, which is capture rather than isolation. Superset, Orca, Emdash, and Conductor isolate local branch-based workspaces in separate worktrees and branches.

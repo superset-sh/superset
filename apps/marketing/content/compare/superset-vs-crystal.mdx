@@ -2,7 +2,7 @@
 title: "Superset vs Crystal (2026): Comparing Parallel Claude Code Workspaces"
 description: "Compare Superset and Crystal (now Nimbalyst) for running Claude Code and Codex in parallel Git worktrees. See how agent breadth, remote workflows, and scope differ."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - crystal
@@ -25,13 +25,13 @@ Note: Crystal has been renamed and is being succeeded by [Nimbalyst](https://nim
 
 | | **Superset** | **Crystal (now Nimbalyst)** |
 |---|---|---|
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, browser, and automation | Runs Claude Code and Codex sessions in parallel Git worktrees with review and Git ops |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, review, browser, and automation | Runs Claude Code and Codex sessions in parallel Git worktrees with review and Git ops |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, Mistral Vibe, and more) | Claude Code and Codex |
-| **Isolation** | Automatic Git worktree per task | Git worktree per session |
+| **Isolation** | Git worktrees for local branch-based workspaces | Git worktree per session |
 | **Review tooling** | Built-in diff/file editor, staging, commit | In-app diff review, per-iteration commits, rebase/squash/merge |
 | **Remote / cloud** | Remote and cloud workspaces across your network devices | Local desktop |
 | **Automation** | Automations: scheduled sessions, TypeScript SDK, Slack bot | Focused on interactive sessions |
-| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Windows, Linux) |
+| **Platform** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | Desktop (macOS, Windows, Linux) |
 | **License** | Source-available (ELv2) | Open source (MIT) |
 
 ---
