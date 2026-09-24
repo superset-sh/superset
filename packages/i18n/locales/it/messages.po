@@ -8575,6 +8575,9 @@ msgstr "Retention clienti — mensile"
 msgid "Logo updated"
 msgstr "Logo aggiornato"
 
+msgid "Logo, light"
+msgstr "Logo, chiaro"
+
 msgid "Logos"
 msgstr "Loghi"
 
@@ -14436,6 +14439,9 @@ msgstr "CPU di Superset · ultimi 5 min"
 msgid "Superset Design System"
 msgstr "Superset Design System"
 
+msgid "Superset desktop app"
+msgstr "App desktop di Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise è Superset per i team. Contattaci per sapere cosa include e come può funzionare per la tua organizzazione."
 
@@ -14658,6 +14664,9 @@ msgstr "Passa al workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Passa al workspace 9"
+
+msgid "Symbol, light"
+msgstr "Simbolo, chiaro"
 
 msgid "Sync"
 msgstr "Sincronizza"

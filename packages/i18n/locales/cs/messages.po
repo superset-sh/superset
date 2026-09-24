@@ -8575,6 +8575,9 @@ msgstr "Retence zákazníků — měsíční"
 msgid "Logo updated"
 msgstr "Logo aktualizováno"
 
+msgid "Logo, light"
+msgstr "Logo, světlé"
+
 msgid "Logos"
 msgstr "Loga"
 
@@ -14436,6 +14439,9 @@ msgstr "CPU Superset · posledních 5 min"
 msgid "Superset Design System"
 msgstr "Design systém Superset"
 
+msgid "Superset desktop app"
+msgstr "Desktopová aplikace Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise je Superset pro týmy. Ozvěte se a řekneme vám, co obsahuje a jak může fungovat ve vaší organizaci."
 
@@ -14658,6 +14664,9 @@ msgstr "Přepnout na pracovní prostor 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Přepnout na pracovní prostor 9"
+
+msgid "Symbol, light"
+msgstr "Symbol, světlý"
 
 msgid "Sync"
 msgstr "Synchronizovat"

@@ -8575,6 +8575,9 @@ msgstr "Müşteri elde tutma — aylık"
 msgid "Logo updated"
 msgstr "Logo güncellendi"
 
+msgid "Logo, light"
+msgstr "Logo, açık"
+
 msgid "Logos"
 msgstr "Logolar"
 
@@ -14436,6 +14439,9 @@ msgstr "Superset CPU · son 5 dk"
 msgid "Superset Design System"
 msgstr "Superset Tasarım Sistemi"
 
+msgid "Superset desktop app"
+msgstr "Superset masaüstü uygulaması"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise, takımlar için Superset'tir. Nelerin dahil olduğunu ve kuruluşunuzda nasıl işleyebileceğini öğrenmek için bize ulaşın."
 
@@ -14658,6 +14664,9 @@ msgstr "8. çalışma alanına geç"
 
 msgid "Switch to Workspace 9"
 msgstr "9. çalışma alanına geç"
+
+msgid "Symbol, light"
+msgstr "Sembol, açık"
 
 msgid "Sync"
 msgstr "Eşitle"

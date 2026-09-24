@@ -8575,6 +8575,9 @@ msgstr "Retensi logo — bulanan"
 msgid "Logo updated"
 msgstr "Logo diperbarui"
 
+msgid "Logo, light"
+msgstr "Logo, terang"
+
 msgid "Logos"
 msgstr "Logo"
 
@@ -14436,6 +14439,9 @@ msgstr "CPU Superset · 5 menit terakhir"
 msgid "Superset Design System"
 msgstr "Design System Superset"
 
+msgid "Superset desktop app"
+msgstr "Aplikasi desktop Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise adalah Superset untuk tim. Hubungi kami untuk tahu lebih banyak soal apa saja yang termasuk dan bagaimana cocoknya untuk organisasi Anda."
 
@@ -14658,6 +14664,9 @@ msgstr "Beralih ke Workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Beralih ke Workspace 9"
+
+msgid "Symbol, light"
+msgstr "Simbol, terang"
 
 msgid "Sync"
 msgstr "Sinkronkan"

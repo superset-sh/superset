@@ -8575,6 +8575,9 @@ msgstr "客戶留存 — 按月"
 msgid "Logo updated"
 msgstr "Logo已更新"
 
+msgid "Logo, light"
+msgstr "標誌，淺色"
+
 msgid "Logos"
 msgstr "標誌"
 
@@ -14436,6 +14439,9 @@ msgstr "Superset CPU · 最近5分鐘"
 msgid "Superset Design System"
 msgstr "Superset設計系統"
 
+msgid "Superset desktop app"
+msgstr "Superset 桌面 App"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise是面向團隊的Superset。聯絡我們，瞭解它包含什麼，以及如何適配你的組織。"
 
@@ -14658,6 +14664,9 @@ msgstr "切換到工作區8"
 
 msgid "Switch to Workspace 9"
 msgstr "切換到工作區9"
+
+msgid "Symbol, light"
+msgstr "圖形標誌，淺色"
 
 msgid "Sync"
 msgstr "同步"

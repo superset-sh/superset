@@ -8575,6 +8575,9 @@ msgstr "ロゴリテンション — 月次"
 msgid "Logo updated"
 msgstr "ロゴを更新しました"
 
+msgid "Logo, light"
+msgstr "ロゴ（明色）"
+
 msgid "Logos"
 msgstr "ロゴ"
 
@@ -14436,6 +14439,9 @@ msgstr "Superset CPU · 直近5分"
 msgid "Superset Design System"
 msgstr "Supersetデザインシステム"
 
+msgid "Superset desktop app"
+msgstr "Superset デスクトップアプリ"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterpriseは、チーム向けのSupersetです。含まれる内容や組織での活用方法については、お問い合わせください。"
 
@@ -14658,6 +14664,9 @@ msgstr "ワークスペース8に切り替え"
 
 msgid "Switch to Workspace 9"
 msgstr "ワークスペース9に切り替え"
+
+msgid "Symbol, light"
+msgstr "シンボル（明色）"
 
 msgid "Sync"
 msgstr "同期"

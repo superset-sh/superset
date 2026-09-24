@@ -21,6 +21,7 @@ export function AssetCard({ asset }: AssetCardProps) {
 						src={asset.src}
 						alt={label}
 						fill
+						unoptimized={asset.format === "SVG"}
 						sizes="(min-width: 640px) 50vw, 100vw"
 						className="object-contain"
 					/>
@@ -30,7 +31,9 @@ export function AssetCard({ asset }: AssetCardProps) {
 				<div className="min-w-0 flex-1">
 					<p className="text-foreground text-sm">{label}</p>
 					<p className="font-mono text-muted-foreground text-xs">
-						PNG · {asset.dimensions}
+						{asset.dimensions
+							? `${asset.format} · ${asset.dimensions}`
+							: asset.format}
 					</p>
 				</div>
 				<a

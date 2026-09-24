@@ -8575,6 +8575,9 @@ msgstr "Giữ chân khách hàng — theo tháng"
 msgid "Logo updated"
 msgstr "Đã cập nhật logo"
 
+msgid "Logo, light"
+msgstr "Logo, sáng"
+
 msgid "Logos"
 msgstr "Logo"
 
@@ -14436,6 +14439,9 @@ msgstr "CPU của Superset · 5 phút gần nhất"
 msgid "Superset Design System"
 msgstr "Hệ thống thiết kế Superset"
 
+msgid "Superset desktop app"
+msgstr "Ứng dụng Superset cho máy tính"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise là Superset dành cho đội nhóm. Hãy liên hệ để biết thêm về những gì được bao gồm và cách nó phù hợp với tổ chức của bạn."
 
@@ -14658,6 +14664,9 @@ msgstr "Chuyển tới workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Chuyển tới workspace 9"
+
+msgid "Symbol, light"
+msgstr "Biểu tượng, sáng"
 
 msgid "Sync"
 msgstr "Đồng bộ"

@@ -25,7 +25,7 @@ export function BrandAssetsSection() {
 			<h3 className="mt-10 font-medium text-foreground">
 				<Trans>Product images</Trans>
 			</h3>
-			<ul className="mt-4 grid gap-4 sm:grid-cols-2">
+			<ul className="mt-4 grid gap-4 sm:grid-cols-2 sm:[&>li:first-child]:col-span-2">
 				{PRODUCT_IMAGE_ASSETS.map((asset) => (
 					<AssetCard key={asset.src} asset={asset} />
 				))}

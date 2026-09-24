@@ -8575,6 +8575,9 @@ msgstr "고객사 리텐션 — 월별"
 msgid "Logo updated"
 msgstr "로고를 업데이트했습니다"
 
+msgid "Logo, light"
+msgstr "로고, 밝은 색"
+
 msgid "Logos"
 msgstr "로고"
 
@@ -14436,6 +14439,9 @@ msgstr "Superset CPU · 최근 5분"
 msgid "Superset Design System"
 msgstr "Superset 디자인 시스템"
 
+msgid "Superset desktop app"
+msgstr "Superset 데스크톱 앱"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise는 팀을 위한 Superset입니다. 어떤 기능이 포함되고 조직에 어떻게 적용할 수 있는지 문의해 주세요."
 
@@ -14658,6 +14664,9 @@ msgstr "워크스페이스 8로 전환"
 
 msgid "Switch to Workspace 9"
 msgstr "워크스페이스 9로 전환"
+
+msgid "Symbol, light"
+msgstr "심볼, 밝은 색"
 
 msgid "Sync"
 msgstr "동기화"

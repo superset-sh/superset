@@ -8575,6 +8575,9 @@ msgstr "Удержание клиентов — по месяцам"
 msgid "Logo updated"
 msgstr "Логотип обновлён"
 
+msgid "Logo, light"
+msgstr "Логотип, светлый"
+
 msgid "Logos"
 msgstr "Логотипы"
 
@@ -14436,6 +14439,9 @@ msgstr "CPU Superset · последние 5 мин"
 msgid "Superset Design System"
 msgstr "Дизайн-система Superset"
 
+msgid "Superset desktop app"
+msgstr "Десктопное приложение Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise — это Superset для команд. Напишите нам, чтобы узнать, что входит и как это подойдёт вашей организации."
 
@@ -14658,6 +14664,9 @@ msgstr "Перейти в рабочую область 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Перейти в рабочую область 9"
+
+msgid "Symbol, light"
+msgstr "Символ, светлый"
 
 msgid "Sync"
 msgstr "Синхронизировать"
