@@ -35,8 +35,6 @@ export function CommentSheet() {
 	});
 	const inFlight = useRef(false);
 
-	// A restored route or a deep link arrives with no pick, so there is nothing
-	// to anchor a comment to and the composer would be a no-op.
 	useEffect(() => {
 		if (!pick.anchor) router.back();
 	}, [pick.anchor, router]);

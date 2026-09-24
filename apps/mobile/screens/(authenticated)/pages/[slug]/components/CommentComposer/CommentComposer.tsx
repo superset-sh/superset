@@ -22,7 +22,6 @@ interface CommentComposerProps {
 	placeholder: string;
 	autoFocus?: boolean;
 	pending?: boolean;
-	/** Sits to the left of the send button, on the row under the field. */
 	actions?: ReactNode;
 	onSubmit: (body: string) => Promise<void>;
 }

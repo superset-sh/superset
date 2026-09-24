@@ -11,10 +11,8 @@ config({
 	quiet: true,
 });
 
-// A side-by-side build for a device that already carries the released app.
-// `superset` stays in the scheme list because the API's trustedOrigins only
-// allows that one, so OAuth has to come back to it; `superset-dev` is what
-// addresses this app unambiguously, which is what the dev client launches on.
+// `superset` stays in the dev variant's scheme list because the API's
+// trustedOrigins allows only that one, so OAuth has to come back to it.
 const devVariant = process.env.APP_VARIANT === "development";
 const bundleIdentifier = devVariant
 	? "sh.superset.mobile.dev"
@@ -57,10 +55,8 @@ export default ({ config }: ConfigContext) => ({
 	},
 	ios: {
 		supportsTablet: false,
-		// The dev variant signs under whichever team the developer belongs to,
-		// which cannot claim an app group or an Apple client id owned by the
-		// Superset team — so it carries its own group, and drops Sign in with
-		// Apple, which the API rejects from this bundle id regardless.
+		// Sign in with Apple is dropped for the dev variant: the API pins one
+		// audience, so it rejects a token from any other bundle id.
 		appleTeamId:
 			devVariant && process.env.APPLE_DEV_TEAM_ID
 				? process.env.APPLE_DEV_TEAM_ID
