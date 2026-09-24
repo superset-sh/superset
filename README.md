@@ -15,7 +15,9 @@ Review its changes and preview your app in the same workspace.
 
 Keep your existing agent subscriptions. Open the workspace in your preferred editor when you need it.
 
-<img width="800" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
+<p align="center">
+  <img width="800" alt="Claude and OpenCode working in parallel Superset workspaces with live diffs" src="apps/marketing/public/images/readme-hero.gif" />
+</p>
 
 [First task](#start-with-one-task) · [Review and revise](#review-and-revise) · [Parallel tasks](#run-independent-tasks) · [Remote and scheduled work](#work-across-devices-and-on-a-schedule) · [Agents](#supported-agents) · [Install](#install) · [Contributing](#contributing)
 
