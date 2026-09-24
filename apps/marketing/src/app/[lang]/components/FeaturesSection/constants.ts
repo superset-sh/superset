@@ -28,7 +28,7 @@ export const FEATURES: Feature[] = [
 			message: "Parallel Execution",
 		}),
 		title: msg({
-			message: "Keep track of parallel tasks",
+			message: "Scale to 100+ agents",
 		}),
 		description: msg({
 			message:
@@ -54,11 +54,11 @@ export const FEATURES: Feature[] = [
 			message: "Isolation",
 		}),
 		title: msg({
-			message: "Review changes in separate workspaces",
+			message: "Changes are isolated",
 		}),
 		description: msg({
 			message:
-				"New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together.",
+				"Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.",
 		}),
 	},
 	{

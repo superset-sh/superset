@@ -2981,6 +2981,9 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "Modifications"
 
+msgid "Changes are isolated"
+msgstr "Les changements sont isolés"
+
 msgid "Changes open target"
 msgstr "Cible d'ouverture des changements"
 
@@ -3256,9 +3259,6 @@ msgstr "Cliquez sur <0>Importer un thème</0> et sélectionnez le fichier télé
 
 msgid "Click a terminal script to edit its details."
 msgstr "Cliquez sur un script de terminal pour modifier ses détails."
-
-msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
-msgstr "Cliquez sur un élément dans l’aperçu et décrivez la modification. Votre agent reçoit le contexte de l’élément et une capture d’écran lorsqu’elle est disponible."
 
 msgid "Click here if not redirected"
 msgstr "Cliquez ici si la redirection n'a pas lieu"
@@ -5583,6 +5583,9 @@ msgstr "par ex. ingenierie"
 msgid "e.g. Engineering"
 msgstr "par ex. Ingénierie"
 
+msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+msgstr "Chaque agent s'exécute dans son propre worktree Git isolé. Aucun conflit de fusion, personne ne marche sur les changements des autres. Passez en revue et fusionnez quand vous êtes prêt."
+
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Chaque pièce jointe fait au maximum {0} Mo."
@@ -7052,9 +7055,6 @@ msgstr "Nom d'utilisateur GitHub…"
 msgid "Give me an example"
 msgstr "Donne-moi un exemple"
 
-msgid "Give your coding agent feedback where you work"
-msgstr "Donnez votre avis à votre agent de programmation là où vous travaillez"
-
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Donnez à votre clé un nom explicite pour vous rappeler où elle est utilisée."
 
@@ -7991,9 +7991,6 @@ msgstr "Garder la documentation à jour"
 msgid "Keep editing"
 msgstr "Continuer à modifier"
 
-msgid "Keep track of parallel tasks"
-msgstr "Gardez le fil des tâches en parallèle"
-
 msgid "Keep waiting"
 msgstr "Continuer à attendre"
 
@@ -8192,9 +8189,6 @@ msgstr "Quitter et supprimer"
 
 msgid "Leave comment mode"
 msgstr "Quitter le mode commentaire"
-
-msgid "Leave feedback on the work itself"
-msgstr "Laissez vos retours directement sur le travail"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Laissez vide pour revenir au nom indiqué par le terminal."
@@ -9205,9 +9199,6 @@ msgstr "Nouveau groupe à partir de l'espace de travail"
 
 msgid "New issue"
 msgstr "Nouvelle issue"
-
-msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
-msgstr "Les nouveaux espaces de travail locaux basés sur une branche utilisent des arbres de travail Git distincts. Examinez les modifications de chaque tâche avant de les tester et de les fusionner."
 
 msgid "New page"
 msgstr "Nouvelle page"
@@ -12502,9 +12493,6 @@ msgstr "Les files d'attente de revue et de CI absorbent les gains créés par le
 msgid "Review becomes the bottleneck"
 msgstr "La revue devient le goulot d'étranglement"
 
-msgid "Review changes in separate workspaces"
-msgstr "Examinez les modifications dans des espaces de travail distincts"
-
 msgid "Review Dismissed"
 msgstr "Revue rejetée"
 
@@ -12806,6 +12794,9 @@ msgstr "Enregistrement…"
 
 msgid "Saw the paywall"
 msgstr "A vu le paywall"
+
+msgid "Scale to 100+ agents"
+msgstr "Passez à plus de 100 agents"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Scannez le code QR, puis connectez-vous avec le même compte Superset et sélectionnez cette organisation."
@@ -13166,9 +13157,6 @@ msgstr "Sélectionner un IDE"
 msgid "Select issue"
 msgstr "Sélectionner l'issue"
 
-msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
-msgstr "Sélectionnez des lignes dans le diff d’une PR et rédigez vos retours. Envoyez-les à un agent en cours d’exécution ou démarrez une session dans un espace de travail pour cette PR."
-
 msgid "Select method"
 msgstr "Sélectionner une méthode"
 
@@ -13247,14 +13235,8 @@ msgstr "Envoyer"
 msgid "Send a message to start a {harness} session"
 msgstr "Envoyez un message pour démarrer une session {harness}"
 
-msgid "Send a UI change to your agent"
-msgstr "Envoyez une modification d’interface à votre agent"
-
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Envoyez une invitation à rejoindre {organizationName}. Elle expire dans 48 heures."
-
-msgid "Send code review feedback to your agent"
-msgstr "Envoyez vos retours de revue de code à votre agent"
 
 msgid "Send Invitation"
 msgstr "Envoyer l'invitation"
@@ -13442,9 +13424,6 @@ msgstr "L'intensité est relative au jour le plus chargé de ce développeur"
 
 msgid "Share"
 msgstr "Partager"
-
-msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
-msgstr "Partagez un rapport ou une maquette créés par un agent sous forme de page. Épinglez un commentaire à l’endroit à modifier ; l’agent qui surveille la page peut alors publier une version mise à jour."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Partagez des maquettes et des rapports. Laissez votre agent traiter les retours."
@@ -15806,20 +15785,11 @@ msgstr "Réessayez ou redémarrez le service hôte depuis le menu Superset dans 
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Réessayez. Si le problème persiste, rechargez Superset."
 
-msgid "Try Design Mode"
-msgstr "Essayer le mode conception"
-
 msgid "Try early access features and previews."
 msgstr "Essayez les fonctionnalités en accès anticipé et les aperçus."
 
 msgid "Try it"
 msgstr "Essayez"
-
-msgid "Try Pages"
-msgstr "Essayer les pages"
-
-msgid "Try PR review"
-msgstr "Essayer la revue de PR"
 
 msgid "Try Superset v2"
 msgstr "Essayer Superset v2"

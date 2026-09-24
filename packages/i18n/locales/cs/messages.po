@@ -2981,6 +2981,9 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "Změny"
 
+msgid "Changes are isolated"
+msgstr "Změny jsou izolované"
+
 msgid "Changes open target"
 msgstr "Cíl otevření změn"
 
@@ -3256,9 +3259,6 @@ msgstr "Klikněte na <0>Importovat motiv</0> a vyberte stažený soubor."
 
 msgid "Click a terminal script to edit its details."
 msgstr "Kliknutím na terminálový skript upravíte jeho podrobnosti."
-
-msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
-msgstr "Klikněte na prvek v náhledu a popište změnu. Agent obdrží kontext prvku a snímek obrazovky, pokud je k dispozici."
 
 msgid "Click here if not redirected"
 msgstr "Pokud nedojde k přesměrování, klikněte sem"
@@ -5583,6 +5583,9 @@ msgstr "např. engineering"
 msgid "e.g. Engineering"
 msgstr "např. Engineering"
 
+msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+msgstr "Každý agent běží ve vlastním izolovaném git worktree. Žádné konflikty při slučování, nikdo si nešlape po změnách. Zrevidujte a slučte práci, až budete chtít."
+
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Každá příloha může mít nejvýše {0} MB."
@@ -7052,9 +7055,6 @@ msgstr "GitHub uživatelské jméno…"
 msgid "Give me an example"
 msgstr "Uveď příklad"
 
-msgid "Give your coding agent feedback where you work"
-msgstr "Dávejte svému programovacímu agentovi zpětnou vazbu přímo tam, kde pracujete"
-
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Pojmenujte klíč popisně, ať víte, kde se používá."
 
@@ -7991,9 +7991,6 @@ msgstr "Udržovat dokumentaci aktuální"
 msgid "Keep editing"
 msgstr "Pokračovat v úpravách"
 
-msgid "Keep track of parallel tasks"
-msgstr "Mějte přehled o souběžných úkolech"
-
 msgid "Keep waiting"
 msgstr "Počkat dál"
 
@@ -8192,9 +8189,6 @@ msgstr "Odejít a smazat"
 
 msgid "Leave comment mode"
 msgstr "Opustit režim komentářů"
-
-msgid "Leave feedback on the work itself"
-msgstr "Zanechte zpětnou vazbu přímo u výsledku práce"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Nechte prázdné pro návrat k názvu, který hlásí terminál."
@@ -9205,9 +9199,6 @@ msgstr "Nová skupina z pracovního prostoru"
 
 msgid "New issue"
 msgstr "Nová issue"
-
-msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
-msgstr "Nové místní pracovní prostory založené na větvích používají samostatné pracovní stromy Gitu. Před testováním a sloučením zkontrolujte změny každého úkolu."
 
 msgid "New page"
 msgstr "Nová stránka"
@@ -12502,9 +12493,6 @@ msgstr "Fronty revizí a CI spolykají zisky, které agenti vytvoří."
 msgid "Review becomes the bottleneck"
 msgstr "Úzkým hrdlem se stává revize"
 
-msgid "Review changes in separate workspaces"
-msgstr "Kontrolujte změny v samostatných pracovních prostorech"
-
 msgid "Review Dismissed"
 msgstr "Revize zamítnuta"
 
@@ -12806,6 +12794,9 @@ msgstr "Ukládám…"
 
 msgid "Saw the paywall"
 msgstr "Zobrazení paywallu"
+
+msgid "Scale to 100+ agents"
+msgstr "Škálujte na více než 100 agentů"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Naskenujte QR kód, přihlaste se stejným účtem Superset a vyberte tuto organizaci."
@@ -13166,9 +13157,6 @@ msgstr "Vyberte IDE"
 msgid "Select issue"
 msgstr "Vybrat issue"
 
-msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
-msgstr "Vyberte řádky v diffu PR a napište zpětnou vazbu. Odešlete ji spuštěnému agentovi nebo zahajte relaci v pracovním prostoru pro daný PR."
-
 msgid "Select method"
 msgstr "Vyberte metodu"
 
@@ -13247,14 +13235,8 @@ msgstr "Odeslat"
 msgid "Send a message to start a {harness} session"
 msgstr "Odešlete zprávu a spusťte relaci {harness}"
 
-msgid "Send a UI change to your agent"
-msgstr "Pošlete agentovi požadavek na změnu rozhraní"
-
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Pošlete pozvánku do {organizationName}. Platnost vyprší za 48 hodin."
-
-msgid "Send code review feedback to your agent"
-msgstr "Pošlete agentovi zpětnou vazbu z kontroly kódu"
 
 msgid "Send Invitation"
 msgstr "Odeslat pozvánku"
@@ -13442,9 +13424,6 @@ msgstr "Sytost barvy se vztahuje k nejrušnějšímu dni tohoto vývojáře"
 
 msgid "Share"
 msgstr "Sdílet"
-
-msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
-msgstr "Sdílejte zprávu nebo návrh vytvořený agentem jako stránku. Připněte komentář tam, kde chcete změnu, a agent sledující stránku může publikovat aktualizovanou verzi."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Sdílejte návrhy a zprávy. Zpětnou vazbu nechte na svém agentovi."
@@ -15806,20 +15785,11 @@ msgstr "Zkuste to znovu nebo restartujte službu hostitele z nabídky Superset v
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Zkuste to znovu. Pokud potíže přetrvávají, načtěte Superset znovu."
 
-msgid "Try Design Mode"
-msgstr "Vyzkoušet režim návrhu"
-
 msgid "Try early access features and previews."
 msgstr "Vyzkoušejte funkce a náhledy v předstihu."
 
 msgid "Try it"
 msgstr "Vyzkoušejte to"
-
-msgid "Try Pages"
-msgstr "Vyzkoušet stránky"
-
-msgid "Try PR review"
-msgstr "Vyzkoušet kontrolu PR"
 
 msgid "Try Superset v2"
 msgstr "Vyzkoušet Superset v2"

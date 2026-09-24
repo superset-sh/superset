@@ -2981,6 +2981,9 @@ msgstr "更新日誌"
 msgid "Changes"
 msgstr "更改"
 
+msgid "Changes are isolated"
+msgstr "改動彼此隔離"
+
 msgid "Changes open target"
 msgstr "變更檢視開啟位置"
 
@@ -3256,9 +3259,6 @@ msgstr "點選<0>匯入主題</0>，選擇下載好的檔案。"
 
 msgid "Click a terminal script to edit its details."
 msgstr "點選終端指令碼以編輯其詳情。"
-
-msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
-msgstr "在預覽中點選元素並描述需要的修改。代理程式會收到元素的情境資訊，以及可取得的螢幕擷取畫面。"
 
 msgid "Click here if not redirected"
 msgstr "如果沒有自動跳轉，請點選這裡"
@@ -5583,6 +5583,9 @@ msgstr "例如：engineering"
 msgid "e.g. Engineering"
 msgstr "例如：工程"
 
+msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+msgstr "每個代理程式都跑在自己隔離的Git worktree裡。沒有合併衝突，也不會互相覆蓋改動。等你準備好了再審查和合併。"
+
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "每個附件最大為{0} MB。"
@@ -7052,9 +7055,6 @@ msgstr "GitHub使用者名稱…"
 msgid "Give me an example"
 msgstr "給我一個範例"
 
-msgid "Give your coding agent feedback where you work"
-msgstr "在工作介面中向程式開發代理程式提供回饋"
-
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "給金鑰起一個描述性的名稱，方便記住它用在哪裡。"
 
@@ -7991,9 +7991,6 @@ msgstr "讓文件保持最新"
 msgid "Keep editing"
 msgstr "繼續編輯"
 
-msgid "Keep track of parallel tasks"
-msgstr "追蹤平行任務"
-
 msgid "Keep waiting"
 msgstr "繼續等待"
 
@@ -8192,9 +8189,6 @@ msgstr "退出並刪除"
 
 msgid "Leave comment mode"
 msgstr "退出評論模式"
-
-msgid "Leave feedback on the work itself"
-msgstr "直接在工作成果上留下回饋"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "留空即可恢復終端回報的名稱。"
@@ -9205,9 +9199,6 @@ msgstr "以此工作區新建群組"
 
 msgid "New issue"
 msgstr "新建議題"
-
-msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
-msgstr "新建的本機分支工作區使用獨立的 Git 工作樹。先檢查每個任務的修改，再測試並合併。"
 
 msgid "New page"
 msgstr "新增頁面"
@@ -12502,9 +12493,6 @@ msgstr "審查和CI排隊把代理程式帶來的收益吃掉了。"
 msgid "Review becomes the bottleneck"
 msgstr "審查成為瓶頸"
 
-msgid "Review changes in separate workspaces"
-msgstr "在獨立工作區中檢閱修改"
-
 msgid "Review Dismissed"
 msgstr "審查已忽略"
 
@@ -12806,6 +12794,9 @@ msgstr "正在儲存…"
 
 msgid "Saw the paywall"
 msgstr "看到付費牆"
+
+msgid "Scale to 100+ agents"
+msgstr "擴展至 100 多個代理"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "掃描 QR 碼，然後使用同一個 Superset 帳號登入並選取此組織。"
@@ -13166,9 +13157,6 @@ msgstr "選擇IDE"
 msgid "Select issue"
 msgstr "選擇議題"
 
-msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
-msgstr "在 PR 差異檢視中選取程式碼行並寫下回饋。將回饋傳送給正在執行的代理程式，或在該 PR 的工作區中啟動工作階段。"
-
 msgid "Select method"
 msgstr "選擇方式"
 
@@ -13247,14 +13235,8 @@ msgstr "傳送"
 msgid "Send a message to start a {harness} session"
 msgstr "傳送訊息以開始{harness}會話"
 
-msgid "Send a UI change to your agent"
-msgstr "向代理程式傳送介面修改請求"
-
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "傳送加入{organizationName}的邀請。48小時後過期。"
-
-msgid "Send code review feedback to your agent"
-msgstr "向代理程式傳送程式碼審查回饋"
 
 msgid "Send Invitation"
 msgstr "傳送邀請"
@@ -13442,9 +13424,6 @@ msgstr "深淺以該開發者最忙的一天為基準"
 
 msgid "Share"
 msgstr "分享"
-
-msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
-msgstr "將代理程式建立的報告或設計以頁面分享。在需要修改的位置釘選留言，正在關注該頁面的代理程式就能發布更新版本。"
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "分享設計和報告，讓你的代理程式處理回饋。"
@@ -15806,20 +15785,11 @@ msgstr "請重試，或從 Superset 系統匣選單重新啟動主機服務。"
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "請重試。如果問題持續，請重新載入Superset。"
 
-msgid "Try Design Mode"
-msgstr "試用設計模式"
-
 msgid "Try early access features and previews."
 msgstr "試用搶先體驗功能和預覽版。"
 
 msgid "Try it"
 msgstr "試試看"
-
-msgid "Try Pages"
-msgstr "試用頁面"
-
-msgid "Try PR review"
-msgstr "試用 PR 審查"
 
 msgid "Try Superset v2"
 msgstr "試用Superset v2"

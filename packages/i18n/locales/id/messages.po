@@ -2981,6 +2981,9 @@ msgstr "Changelog"
 msgid "Changes"
 msgstr "Perubahan"
 
+msgid "Changes are isolated"
+msgstr "Perubahan terisolasi"
+
 msgid "Changes open target"
 msgstr "Tempat membuka perubahan"
 
@@ -3256,9 +3259,6 @@ msgstr "Klik <0>Import Theme</0> dan pilih file yang sudah diunduh."
 
 msgid "Click a terminal script to edit its details."
 msgstr "Klik sebuah skrip terminal untuk mengedit detailnya."
-
-msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
-msgstr "Klik elemen di pratinjau dan jelaskan perubahannya. Agen Anda menerima konteks elemen dan tangkapan layar jika tersedia."
 
 msgid "Click here if not redirected"
 msgstr "Klik di sini kalau tidak dialihkan"
@@ -5583,6 +5583,9 @@ msgstr "mis. engineering"
 msgid "e.g. Engineering"
 msgstr "mis. Engineering"
 
+msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+msgstr "Tiap agen berjalan di worktree Git terisolasi sendiri. Tanpa konflik merge, tanpa saling menimpa perubahan. Review dan merge saat Anda siap."
+
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Setiap lampiran maksimal {0} MB."
@@ -7052,9 +7055,6 @@ msgstr "Username GitHub…"
 msgid "Give me an example"
 msgstr "Beri contoh"
 
-msgid "Give your coding agent feedback where you work"
-msgstr "Beri masukan kepada agen pemrograman di tempat Anda bekerja"
-
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
 
@@ -7991,9 +7991,6 @@ msgstr "Jaga dokumentasi tetap segar"
 msgid "Keep editing"
 msgstr "Lanjutkan mengedit"
 
-msgid "Keep track of parallel tasks"
-msgstr "Pantau tugas paralel"
-
 msgid "Keep waiting"
 msgstr "Tunggu saja"
 
@@ -8192,9 +8189,6 @@ msgstr "Keluar dan hapus"
 
 msgid "Leave comment mode"
 msgstr "Keluar dari mode komentar"
-
-msgid "Leave feedback on the work itself"
-msgstr "Beri masukan langsung pada hasil kerja"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Kosongkan untuk kembali ke nama yang dilaporkan terminal."
@@ -9205,9 +9199,6 @@ msgstr "Grup baru dari workspace"
 
 msgid "New issue"
 msgstr "Issue baru"
-
-msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
-msgstr "Ruang kerja lokal baru berbasis cabang menggunakan pohon kerja Git yang terpisah. Periksa perubahan tiap tugas sebelum menguji dan menggabungkannya."
 
 msgid "New page"
 msgstr "Halaman baru"
@@ -12502,9 +12493,6 @@ msgstr "Antrean review dan CI memakan keuntungan yang dihasilkan agen."
 msgid "Review becomes the bottleneck"
 msgstr "Review menjadi hambatan utama"
 
-msgid "Review changes in separate workspaces"
-msgstr "Tinjau perubahan di ruang kerja terpisah"
-
 msgid "Review Dismissed"
 msgstr "Review Diabaikan"
 
@@ -12806,6 +12794,9 @@ msgstr "Menyimpan…"
 
 msgid "Saw the paywall"
 msgstr "Melihat paywall"
+
+msgid "Scale to 100+ agents"
+msgstr "Tingkatkan hingga lebih dari 100 agen"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Pindai kode QR, lalu masuk dengan akun Superset yang sama dan pilih organisasi ini."
@@ -13166,9 +13157,6 @@ msgstr "Pilih IDE"
 msgid "Select issue"
 msgstr "Pilih issue"
 
-msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
-msgstr "Pilih baris dalam perbandingan perubahan PR dan tulis masukan Anda. Kirim ke agen yang sedang berjalan atau mulai sesi di ruang kerja untuk PR tersebut."
-
 msgid "Select method"
 msgstr "Pilih metode"
 
@@ -13247,14 +13235,8 @@ msgstr "Kirim"
 msgid "Send a message to start a {harness} session"
 msgstr "Kirim pesan untuk memulai sesi {harness}"
 
-msgid "Send a UI change to your agent"
-msgstr "Kirim perubahan antarmuka ke agen Anda"
-
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Kirim undangan untuk bergabung ke {organizationName}. Kedaluwarsa dalam 48 jam."
-
-msgid "Send code review feedback to your agent"
-msgstr "Kirim masukan tinjauan kode ke agen Anda"
 
 msgid "Send Invitation"
 msgstr "Kirim Undangan"
@@ -13442,9 +13424,6 @@ msgstr "Kepekatan warna relatif terhadap hari tersibuk pengembang ini"
 
 msgid "Share"
 msgstr "Bagikan"
-
-msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
-msgstr "Bagikan laporan atau desain buatan agen sebagai halaman. Sematkan komentar di bagian yang ingin diubah, lalu agen yang memantau halaman dapat menerbitkan versi terbaru."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
@@ -15806,20 +15785,11 @@ msgstr "Coba lagi, atau mulai ulang layanan host dari menu Superset di baki sist
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Coba lagi. Kalau masih bermasalah, muat ulang Superset."
 
-msgid "Try Design Mode"
-msgstr "Coba mode desain"
-
 msgid "Try early access features and previews."
 msgstr "Coba fitur akses awal dan pratinjau."
 
 msgid "Try it"
 msgstr "Coba"
-
-msgid "Try Pages"
-msgstr "Coba halaman"
-
-msgid "Try PR review"
-msgstr "Coba tinjauan PR"
 
 msgid "Try Superset v2"
 msgstr "Coba Superset v2"

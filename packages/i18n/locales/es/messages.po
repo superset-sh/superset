@@ -2981,6 +2981,9 @@ msgstr "Registro de cambios"
 msgid "Changes"
 msgstr "Cambios"
 
+msgid "Changes are isolated"
+msgstr "Los cambios están aislados"
+
 msgid "Changes open target"
 msgstr "Destino al abrir cambios"
 
@@ -3256,9 +3259,6 @@ msgstr "Haz clic en <0>Importar tema</0> y selecciona el archivo descargado."
 
 msgid "Click a terminal script to edit its details."
 msgstr "Haz clic en un script de terminal para editar sus detalles."
-
-msgid "Click an element in your preview and describe the change. Your agent receives the element context and a screenshot when available."
-msgstr "Haz clic en un elemento de la vista previa y describe el cambio. Tu agente recibe el contexto del elemento y una captura de pantalla cuando está disponible."
 
 msgid "Click here if not redirected"
 msgstr "Haz clic aquí si no se te redirige"
@@ -5583,6 +5583,9 @@ msgstr "p. ej. ingenieria"
 msgid "e.g. Engineering"
 msgstr "p. ej. Ingeniería"
 
+msgid "Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready."
+msgstr "Cada agente se ejecuta en su propio worktree de Git aislado. Sin conflictos de fusión, sin pisarse los cambios entre ellos. Revisa y fusiona el trabajo cuando quieras."
+
 #. placeholder {0}: formatNumber(MAX_ATTACHMENT_BYTES / 1024 / 1024)
 msgid "Each attachment is at most {0} MB."
 msgstr "Cada archivo adjunto es de {0} MB como máximo."
@@ -7052,9 +7055,6 @@ msgstr "Nombre de usuario de GitHub…"
 msgid "Give me an example"
 msgstr "Dame un ejemplo"
 
-msgid "Give your coding agent feedback where you work"
-msgstr "Da comentarios a tu agente de programación donde trabajas"
-
 msgid "Give your key a descriptive name to remember where it's used."
 msgstr "Ponle un nombre descriptivo a tu clave para recordar dónde se usa."
 
@@ -7991,9 +7991,6 @@ msgstr "Mantener la documentación al día"
 msgid "Keep editing"
 msgstr "Seguir editando"
 
-msgid "Keep track of parallel tasks"
-msgstr "Sigue el progreso de las tareas en paralelo"
-
 msgid "Keep waiting"
 msgstr "Seguir esperando"
 
@@ -8192,9 +8189,6 @@ msgstr "Salir y eliminar"
 
 msgid "Leave comment mode"
 msgstr "Salir del modo comentario"
-
-msgid "Leave feedback on the work itself"
-msgstr "Deja comentarios directamente sobre el trabajo"
 
 msgid "Leave it empty to go back to the name the terminal reports."
 msgstr "Déjalo vacío para volver al nombre que indica la terminal."
@@ -9205,9 +9199,6 @@ msgstr "Nuevo grupo desde el espacio de trabajo"
 
 msgid "New issue"
 msgstr "Nuevo issue"
-
-msgid "New local branch-based workspaces use separate Git worktrees. Inspect each task's changes before testing and merging them together."
-msgstr "Los nuevos espacios de trabajo locales basados en ramas usan árboles de trabajo de Git separados. Revisa los cambios de cada tarea antes de probarlos y fusionarlos."
 
 msgid "New page"
 msgstr "Nueva página"
@@ -12502,9 +12493,6 @@ msgstr "Las colas de revisión y de CI se comen las ganancias que crean los agen
 msgid "Review becomes the bottleneck"
 msgstr "La revisión se convierte en el cuello de botella"
 
-msgid "Review changes in separate workspaces"
-msgstr "Revisa los cambios en espacios de trabajo separados"
-
 msgid "Review Dismissed"
 msgstr "Revisión descartada"
 
@@ -12806,6 +12794,9 @@ msgstr "Guardando…"
 
 msgid "Saw the paywall"
 msgstr "Vio el muro de pago"
+
+msgid "Scale to 100+ agents"
+msgstr "Escala a más de 100 agentes"
 
 msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
 msgstr "Escanea el código QR, inicia sesión con la misma cuenta de Superset y selecciona esta organización."
@@ -13166,9 +13157,6 @@ msgstr "Seleccionar IDE"
 msgid "Select issue"
 msgstr "Seleccionar issue"
 
-msgid "Select lines in a PR diff and write your feedback. Send it to a running agent or start a session in a workspace for that PR."
-msgstr "Selecciona líneas en el diff de una PR y escribe tus comentarios. Envíalos a un agente en ejecución o inicia una sesión en un espacio de trabajo para esa PR."
-
 msgid "Select method"
 msgstr "Seleccionar método"
 
@@ -13247,14 +13235,8 @@ msgstr "Enviar"
 msgid "Send a message to start a {harness} session"
 msgstr "Envía un mensaje para iniciar una sesión de {harness}"
 
-msgid "Send a UI change to your agent"
-msgstr "Envía un cambio de interfaz a tu agente"
-
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "Envía una invitación para unirse a {organizationName}. Caduca en 48 horas."
-
-msgid "Send code review feedback to your agent"
-msgstr "Envía comentarios de revisión de código a tu agente"
 
 msgid "Send Invitation"
 msgstr "Enviar invitación"
@@ -13442,9 +13424,6 @@ msgstr "La intensidad es relativa al día más intenso de esta persona"
 
 msgid "Share"
 msgstr "Compartir"
-
-msgid "Share an agent-created report or design as a Page. Pin a comment where you want a change, and the watching agent can publish an updated version."
-msgstr "Comparte un informe o diseño creado por un agente como una página. Fija un comentario donde quieras un cambio y el agente que supervisa la página podrá publicar una versión actualizada."
 
 msgid "Share designs and reports. Let your agent handle the feedback."
 msgstr "Comparte diseños e informes. Deja que tu agente se encargue de los comentarios."
@@ -15806,20 +15785,11 @@ msgstr "Inténtalo de nuevo o reinicia el servicio del host desde el menú de Su
 msgid "Try again. If the problem continues, reload Superset."
 msgstr "Inténtalo de nuevo. Si el problema continúa, recarga Superset."
 
-msgid "Try Design Mode"
-msgstr "Probar el modo de diseño"
-
 msgid "Try early access features and previews."
 msgstr "Prueba funciones y adelantos en acceso anticipado."
 
 msgid "Try it"
 msgstr "Pruébalo"
-
-msgid "Try Pages"
-msgstr "Probar las páginas"
-
-msgid "Try PR review"
-msgstr "Probar la revisión de PR"
 
 msgid "Try Superset v2"
 msgstr "Probar Superset v2"
