@@ -41,7 +41,7 @@ export function WorkspaceRowMenu({
 				{/* Each action is its own direct child: Link.Menu drops anything
 				    wrapped in a Fragment. */}
 				<Link.MenuAction
-					icon={isUnread ? "envelope.open" : "envelope.badge"}
+					icon={isUnread ? "bell" : "bell.badge"}
 					onPress={onToggleUnread}
 				>
 					{isUnread
