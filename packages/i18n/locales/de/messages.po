@@ -8581,6 +8581,9 @@ msgstr "Logo, hell"
 msgid "Logos"
 msgstr "Logos"
 
+msgid "Logos, product images, and press contact."
+msgstr "Logos, Produktbilder und Pressekontakt."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Die Zuverlässigkeit über lange Zeiträume überschreitet eine Schwelle. Arbeit, die um 18 Uhr vergeben wird, ist um 9 Uhr so oft mergebar, dass es sich wie eine stillstehende Fabrik anfühlt, die Nachtschicht nicht einzuplanen."
 

@@ -8581,6 +8581,9 @@ msgstr "標誌，淺色"
 msgid "Logos"
 msgstr "標誌"
 
+msgid "Logos, product images, and press contact."
+msgstr "標誌、產品圖片與媒體聯絡方式。"
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長週期可靠性越過了一個門檻。傍晚6點派出去的活兒，早上9點常常已經可以合併，以至於不排夜班就像讓工廠空轉。"
 

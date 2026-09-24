@@ -8581,6 +8581,9 @@ msgstr "ロゴ（明色）"
 msgid "Logos"
 msgstr "ロゴ"
 
+msgid "Logos, product images, and press contact."
+msgstr "ロゴ、製品画像、報道関係のお問い合わせ先。"
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長時間にわたる信頼性がしきい値を超えます。18時に割り当てた作業が9時にはマージできる。それが十分な頻度で起きるようになり、夜間シフトを組まないことが工場を遊ばせているように感じられます。"
 

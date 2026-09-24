@@ -8581,6 +8581,9 @@ msgstr "Logo, açık"
 msgid "Logos"
 msgstr "Logolar"
 
+msgid "Logos, product images, and press contact."
+msgstr "Logolar, ürün görselleri ve basın iletişimi."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Uzun vadeli güvenilirlik bir eşiği aşar. Akşam 18.00'de verilen iş, sabah 09.00'da yeterince sık birleştirilebilir hâle gelir; gece vardiyasını planlamamak, fabrikayı boş bırakmak gibi hissettirir."
 
