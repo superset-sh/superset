@@ -39,10 +39,14 @@ export function popoverPlacement({
 	// The pin's box hangs up and to the right of its point: it spans
 	// [point.y - pinSize, point.y] vertically and starts at point.x.
 	const belowTop = point.y + GAP;
-	const top =
+	const desiredTop =
 		belowTop + height + EDGE <= container.height
 			? belowTop
-			: Math.max(EDGE, point.y - pinSize - GAP - height);
+			: point.y - pinSize - GAP - height;
+	const top = Math.max(
+		EDGE,
+		Math.min(desiredTop, container.height - height - EDGE),
+	);
 	const left = Math.min(
 		Math.max(EDGE, point.x),
 		Math.max(EDGE, container.width - width - EDGE),

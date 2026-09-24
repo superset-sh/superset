@@ -1,7 +1,8 @@
 import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { X } from "lucide-react-native";
 import { forwardRef } from "react";
-import { Pressable, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 import Animated, {
 	useAnimatedKeyboard,
 	useAnimatedStyle,
@@ -9,10 +10,12 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { errorCopy } from "@/lib/errors";
 import {
 	CommentComposer,
 	type CommentComposerHandle,
 } from "../../../components/CommentComposer";
+import { QuickReplies } from "../../../components/QuickReplies";
 
 interface ReplyBarProps {
 	replyingTo: string | null;
@@ -31,15 +34,22 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 		const insets = useSafeAreaInsets();
 		const keyboard = useAnimatedKeyboard();
 
+		// The composer owns this for typed replies; a quick reply skips it, and
+		// the caller's submit rethrows, so without this the failure is silent.
+		const submitQuick = async (body: string) => {
+			try {
+				await onSubmit(body);
+			} catch (error) {
+				Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
+			}
+		};
+
 		const lift = useAnimatedStyle(() => ({
 			paddingBottom: Math.max(keyboard.height.value, insets.bottom),
 		}));
 
 		return (
-			<Animated.View
-				style={lift}
-				className="border-border bg-background border-t px-4 pt-2"
-			>
+			<Animated.View style={lift} className="bg-background px-3 pt-2">
 				{replyingTo ? (
 					<View className="mb-2 flex-row items-center justify-between gap-2">
 						<View className="shrink flex-row items-baseline gap-1.5">
@@ -67,13 +77,22 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 					</View>
 				) : null}
 
-				<CommentComposer
-					ref={ref}
-					autoFocus
-					placeholder={t({ message: "Add a comment…" })}
-					pending={pending}
-					onSubmit={onSubmit}
-				/>
+				<View className="bg-foreground/10 rounded-[26px] px-4 pt-3 pb-2.5">
+					<CommentComposer
+						ref={ref}
+						autoFocus
+						placeholder={t({ message: "Add a comment…" })}
+						pending={pending}
+						onSubmit={onSubmit}
+						actions={
+							<QuickReplies
+								disabled={pending}
+								onQuick={(body) => void submitQuick(i18n._(body))}
+								onPreset={(body) => void submitQuick(body)}
+							/>
+						}
+					/>
+				</View>
 			</Animated.View>
 		);
 	},

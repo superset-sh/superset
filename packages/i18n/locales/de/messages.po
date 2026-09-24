@@ -5060,6 +5060,10 @@ msgstr "Team löschen"
 msgid "Delete this"
 msgstr "Das löschen"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Das löschen"
+
 msgid "Delete this workspace?"
 msgstr "Diesen Arbeitsbereich löschen?"
 
@@ -8603,6 +8607,10 @@ msgstr "Installierte Browser werden gesucht…"
 msgid "Looks good"
 msgstr "Sieht gut aus"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "Sieht gut aus"
+
 msgid "Low"
 msgstr "Niedrig"
 
@@ -11695,6 +11703,10 @@ msgstr "Arbeitsbereich schnell erstellen"
 msgid "Quick Create Workspace"
 msgstr "Arbeitsbereich schnell erstellen"
 
+msgid "Quick feedback"
+msgstr "Schnelles Feedback"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Schnelles Feedback"
 

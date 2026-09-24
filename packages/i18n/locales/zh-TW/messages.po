@@ -5060,6 +5060,10 @@ msgstr "刪除團隊"
 msgid "Delete this"
 msgstr "刪除這裡"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "刪除這裡"
+
 msgid "Delete this workspace?"
 msgstr "刪除這個工作區？"
 
@@ -8603,6 +8607,10 @@ msgstr "正在查詢已安裝的瀏覽器…"
 msgid "Looks good"
 msgstr "看起來不錯"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "看起來不錯"
+
 msgid "Low"
 msgstr "低"
 
@@ -11695,6 +11703,10 @@ msgstr "快速建立工作區"
 msgid "Quick Create Workspace"
 msgstr "快速建立工作區"
 
+msgid "Quick feedback"
+msgstr "快速回饋"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "快速回饋"
 

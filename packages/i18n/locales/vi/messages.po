@@ -5060,6 +5060,10 @@ msgstr "Xóa nhóm"
 msgid "Delete this"
 msgstr "Xóa phần này"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Xóa phần này"
+
 msgid "Delete this workspace?"
 msgstr "Xóa workspace này?"
 
@@ -8603,6 +8607,10 @@ msgstr "Đang tìm các trình duyệt đã cài…"
 msgid "Looks good"
 msgstr "Trông ổn"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "Trông ổn"
+
 msgid "Low"
 msgstr "Thấp"
 
@@ -11695,6 +11703,10 @@ msgstr "Tạo nhanh workspace"
 msgid "Quick Create Workspace"
 msgstr "Tạo nhanh workspace"
 
+msgid "Quick feedback"
+msgstr "Phản hồi nhanh"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Phản hồi nhanh"
 

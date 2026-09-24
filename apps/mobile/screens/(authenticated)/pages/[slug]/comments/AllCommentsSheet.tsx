@@ -214,9 +214,9 @@ export function AllCommentsSheet() {
 								threadLayout.current[thread.id] = { y, height };
 							}}
 							className={cn(
-								"-mx-2 rounded-xl px-2",
+								"bg-foreground/5 -mx-2 mb-2 rounded-2xl px-3 py-1",
 								thread.resolved && "opacity-50",
-								replyingTo?.threadId === thread.id && "bg-muted/50",
+								replyingTo?.threadId === thread.id && "bg-foreground/10",
 							)}
 						>
 							<CommentRow

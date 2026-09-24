@@ -11,6 +11,19 @@ config({
 	quiet: true,
 });
 
+// A side-by-side build for a device that already carries the released app.
+// `superset` stays in the scheme list because the API's trustedOrigins only
+// allows that one, so OAuth has to come back to it; `superset-dev` is what
+// addresses this app unambiguously, which is what the dev client launches on.
+const devVariant = process.env.APP_VARIANT === "development";
+const bundleIdentifier = devVariant
+	? "sh.superset.mobile.dev"
+	: "sh.superset.mobile";
+// An app group belongs to the team that registered it, so a build signed by
+// someone else's team needs its own. `AgentActivityAttributes.appGroup`
+// derives it from the bundle id by this same rule, so the two cannot drift.
+const appGroup = `group.${bundleIdentifier}`;
+
 const SIGNED_BUILD_PROFILES = ["preview", "production"];
 const signedUpdates = process.env.MOBILE_SIGNED_UPDATES === "1";
 if (
@@ -24,7 +37,7 @@ if (
 
 export default ({ config }: ConfigContext) => ({
 	...config,
-	name: "Superset",
+	name: devVariant ? "Superset Dev" : "Superset",
 	slug: "superset",
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
@@ -33,7 +46,7 @@ export default ({ config }: ConfigContext) => ({
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
-	scheme: "superset",
+	scheme: devVariant ? ["superset", "superset-dev"] : "superset",
 	runtimeVersion: { policy: "fingerprint" as const },
 	updates: {
 		url: "https://u.expo.dev/fa9332a8-896a-4d2a-be5b-d82469b46e5d",
@@ -44,15 +57,22 @@ export default ({ config }: ConfigContext) => ({
 	},
 	ios: {
 		supportsTablet: false,
-		appleTeamId: "NV9657CS5A",
+		// The dev variant signs under whichever team the developer belongs to,
+		// which cannot claim an app group or an Apple client id owned by the
+		// Superset team — so it carries its own group, and drops Sign in with
+		// Apple, which the API rejects from this bundle id regardless.
+		appleTeamId:
+			devVariant && process.env.APPLE_DEV_TEAM_ID
+				? process.env.APPLE_DEV_TEAM_ID
+				: "NV9657CS5A",
 		// Shared with the AgentActivity widget extension: the Live Activity
 		// sandbox has no network, so project icons are cached here by the app
 		// and read back by the extension from disk.
 		entitlements: {
-			"com.apple.security.application-groups": ["group.sh.superset.mobile"],
+			"com.apple.security.application-groups": [appGroup],
 		},
-		bundleIdentifier: "sh.superset.mobile",
-		usesAppleSignIn: true,
+		bundleIdentifier,
+		usesAppleSignIn: !devVariant,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			NSSupportsLiveActivities: true,

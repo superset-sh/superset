@@ -5060,6 +5060,10 @@ msgstr "Smazat tým"
 msgid "Delete this"
 msgstr "Smazat toto"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Smazat toto"
+
 msgid "Delete this workspace?"
 msgstr "Smazat tento pracovní prostor?"
 
@@ -8603,6 +8607,10 @@ msgstr "Hledám nainstalované prohlížeče…"
 msgid "Looks good"
 msgstr "Vypadá dobře"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "Vypadá dobře"
+
 msgid "Low"
 msgstr "Nízká"
 
@@ -11695,6 +11703,10 @@ msgstr "Rychle vytvořit pracovní prostor"
 msgid "Quick Create Workspace"
 msgstr "Rychle vytvořit pracovní prostor"
 
+msgid "Quick feedback"
+msgstr "Rychlá zpětná vazba"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Rychlá zpětná vazba"
 
