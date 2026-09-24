@@ -15330,6 +15330,9 @@ msgstr "這將關閉所選工作區及其終端機。專案的檔案和分支保
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "這將關閉該工作區及其終端機。專案的檔案、分支和其他工作區保持不變。"
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "正在喚醒此雲端工作區。如果它已閒置一段時間，可能需要最多 30 秒。"
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "這將刪除用於重啟/崩潰恢復的已儲存回滾緩衝。"
 

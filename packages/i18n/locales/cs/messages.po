@@ -15330,6 +15330,9 @@ msgstr "Tím se zavřou vybrané pracovní prostory a jejich terminály. Soubory
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Tím se zavře pracovní prostor a jeho terminály. Soubory, větve a ostatní pracovní prostory projektu zůstanou beze změny."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Tento cloudový workspace se probouzí, což může po nečinnosti trvat až 30 sekund."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Tímto se smaže uložený scrollback používaný k obnovení po restartu nebo pádu."
 

@@ -67,7 +67,12 @@ export function WorkspaceHostGate({
 					detail={
 						isLocalRestartInFlight
 							? i18n._(LOCAL_HOST_SERVICE_DETAIL.starting)
-							: detail
+							: isSandbox && !isAccessDenied
+								? t({
+										message:
+											"This cloud workspace is waking up, which can take up to 30 seconds after it has been idle.",
+									})
+								: detail
 					}
 					isReconnecting={isReconnecting}
 					hasConnected={hasConnected}

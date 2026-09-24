@@ -15330,6 +15330,9 @@ msgstr "This closes the selected workspaces and their terminals. The project's f
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "This deletes the saved scrollback used for reboot/crash recovery."
 
