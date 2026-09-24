@@ -41,7 +41,6 @@ import {
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
-import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUris";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
@@ -810,7 +809,7 @@ export function WorkspaceScreen() {
 			<Stack.Screen
 				options={{
 					...headerOptions,
-					title: t({ message: "Workspace" }),
+					title: workspace?.name ?? cloud?.name ?? "",
 					headerTitle: notice
 						? () => (
 								<HeaderNotice
@@ -822,23 +821,7 @@ export function WorkspaceScreen() {
 							)
 						: undefined,
 				}}
-			>
-				{notice ? null : (
-					<Stack.Title asChild>
-						<PressableScale onPress={openActions} disabled={!workspace}>
-							{/* Width budget: the back capsule and the ⋯ button leave ~160pt of
-							    bar on a 390pt screen — wider and the title collides with them
-							    under iOS 26's floating bar items. Anything that lands in the
-							    bar later comes out of this. */}
-							<View className="max-w-40">
-								<Text className="font-semibold text-[17px]" numberOfLines={1}>
-									{workspace?.name ?? cloud?.name ?? ""}
-								</Text>
-							</View>
-						</PressableScale>
-					</Stack.Title>
-				)}
-			</Stack.Screen>
+			/>
 
 			{workspace ? (
 				<Stack.Toolbar placement="right">
