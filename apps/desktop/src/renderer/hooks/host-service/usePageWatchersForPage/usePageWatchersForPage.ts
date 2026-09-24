@@ -1,5 +1,6 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
@@ -42,6 +43,7 @@ export function usePageWatchersForPage({
 }): PageWatcherRow[] {
 	const { workspaces, cache } = useHostWorkspaces();
 	const queryClient = useQueryClient();
+	const cloudUtils = cloudTrpc.useUtils();
 
 	const currentHostId = useMemo(
 		() => workspaces.find((workspace) => workspace.id === workspaceId)?.hostId,
@@ -84,7 +86,8 @@ export function usePageWatchersForPage({
 			void queryClient.invalidateQueries({
 				queryKey: ["page-watchers-by-host"],
 			});
-		}, [queryClient]),
+			if (pageId) void cloudUtils.page.get.invalidate({ id: pageId });
+		}, [queryClient, cloudUtils, pageId]),
 	);
 
 	const names = useMemo(

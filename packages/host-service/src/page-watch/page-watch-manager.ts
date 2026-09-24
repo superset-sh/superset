@@ -104,8 +104,8 @@ export class PageWatchManager {
 		if (!entry) return;
 		this.entries.delete(pageId);
 		this.stopTickingIfEmpty();
-		this.notifyChanged(entry.workspaceId);
 		await this.clearWatch(entry);
+		this.notifyChanged(entry.workspaceId);
 	}
 
 	private async clearWatch(entry: PageWatchEntry): Promise<void> {
@@ -157,8 +157,8 @@ export class PageWatchManager {
 
 		this.stopTickingIfEmpty();
 		for (const entry of dropped) {
-			this.notifyChanged(entry.workspaceId);
 			await this.clearWatch(entry);
+			this.notifyChanged(entry.workspaceId);
 		}
 	}
 
