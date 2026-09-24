@@ -65,6 +65,12 @@ describe("SUPERSET_CHAT_MODELS", () => {
 		expect(ids).toContain("openai/gpt-5.6-terra");
 		expect(ids).toContain("openai/gpt-5.6-luna");
 	});
+
+	it("no longer offers the models Codex retired 2026-08-31", () => {
+		const ids = SUPERSET_CHAT_MODELS.map((model) => model.id);
+		expect(ids).not.toContain("openai/gpt-5.4");
+		expect(ids).not.toContain("openai/gpt-5.3-codex");
+	});
 });
 
 describe("getAgentModelSupport", () => {

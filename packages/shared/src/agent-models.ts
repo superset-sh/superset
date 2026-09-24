@@ -103,9 +103,6 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	},
 	{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.5", label: "GPT-5.5", provider: "OpenAI" },
-	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
-	{ id: "openai/gpt-5.4", label: "GPT-5.4", provider: "OpenAI" },
-	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
 
 const LATEST_GROUP = "Latest";
