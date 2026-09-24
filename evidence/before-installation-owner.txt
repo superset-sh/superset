@@ -1,0 +1,24 @@
+GHSA-2cp5-f6gg-w5fp — BEFORE the fix
+run at 2026-09-24T22:03:50.274Z  (commit 2131a71)
+
+browser session A  user=8c82cb64-a2fc-4d0b-8278-3142d3c49dc9  attacker+1790287409832@synthetic.test
+                   org =613effc2-b9bf-4adf-88ba-459bfd437fee  "Synthetic Attacker A's Team"   <- ATTACKER's org
+browser session B  user=5764f48c-d21d-4380-b2d2-4c009fa4d603  victim+1790287409832@synthetic.test
+                   org =6b8a8aeb-3fac-47cc-a682-e543d3b7bae4  "Synthetic Victim B's Team"   <- VICTIM's org
+
+1. session A  GET http://localhost:3001/api/integrations/notion/connect?organizationId=613effc2-b9bf-4adf-88ba-459bfd437fee
+   -> 302 https://api.notion.com/v1/oauth/authorize?client_id=synthetic-notion-client-id&redirect_uri=http%3A%2F%2Flocal...
+   signed state minted for A: eyJvcmdhbml6YXRpb25JZCI6IjYxM2VmZmMyLWI5YmYtNGFk...
+   state cookie set on A: []
+
+2. session B  GET http://localhost:3001/api/integrations/notion/callback?code=synthetic-authorization-code&state=e...
+   B's cookies for the API before: ["better-auth.session_data","better-auth.session_token","ph_superset"]
+   landed on: http://localhost:3000/integrations/notion
+
+3. connections rows for connector 'notion' after B approved:
+   id=7691891b-5ebd-457e-8a11-67713efc8819
+     organization_id      = 613effc2-b9bf-4adf-88ba-459bfd437fee  <- ATTACKER org A
+     connected_by_user_id = 8c82cb64-a2fc-4d0b-8278-3142d3c49dc9
+     external_account     = synthetic-workspace-id "Synthetic Notion Workspace"
+
+RESULT: VULNERABLE. B's approval was recorded against A's organization.

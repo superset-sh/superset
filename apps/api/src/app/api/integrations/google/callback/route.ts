@@ -11,6 +11,7 @@ import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
@@ -26,19 +27,16 @@ const userInfoSchema = z.object({
 
 const REQUIRED_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 
-function fail(reason: string): Response {
-	return Response.redirect(
-		`${env.NEXT_PUBLIC_WEB_URL}/integrations/google?error=${reason}`,
-	);
-}
+const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/google`;
 
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
 		params: ["code"],
-		redirect: fail,
+		redirect: (error) => `${settingsUrl}?error=${error}`,
+		cookie: STATE_COOKIES.google,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, exit, fail } = callback;
 
 	const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
 		method: "POST",
@@ -146,7 +144,7 @@ export async function GET(request: Request) {
 
 	await enqueueWatchSetup(result.connectionId);
 
-	return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/google`);
+	return exit(settingsUrl);
 }
 
 /**

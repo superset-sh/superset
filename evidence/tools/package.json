@@ -1,0 +1,9 @@
+{
+	"name": "@superset/p0-2-evidence",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@neondatabase/serverless": "1.0.2",
+		"ws": "8.21.3"
+	}
+}

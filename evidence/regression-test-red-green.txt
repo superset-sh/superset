@@ -1,0 +1,23 @@
+GHSA-2cp5-f6gg-w5fp — regression test: red on the old behaviour, green on the fix
+run at 2026-09-24T22:10:37Z
+
+Tests: apps/api/src/lib/integrations/resolveCallback.test.ts
+       apps/api/src/lib/integrations/oauthFlow.test.ts
+Command: bun test src/lib/integrations   (from apps/api)
+
+## RED — pre-fix state handling
+The two lines that compare the query state against the request's state cookie
+were removed from resolveCallback, which is exactly what main does today.
+
+(fail) resolveCallback state binding > refuses a state the answering browser does not carry [5.03ms]
+(fail) resolveCallback state binding > refuses a state that is not the one this browser was given [0.63ms]
+(fail) resolveCallback state binding > refuses a state bound under another flow's cookie [0.44ms]
+
+  7 pass
+  3 fail
+
+## GREEN — with the fix in place
+
+18 pass
+ 0 fail
+Ran 18 tests across 2 files. [112.00ms]
