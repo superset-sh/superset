@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="apps/desktop/src/resources/build/icons/icon.png" alt="Superset app icon" width="96" height="96" />
+
 # Superset
 
 Run Claude Code, Codex, or another CLI agent with terminals, code review, and browser previews in one workspace.
