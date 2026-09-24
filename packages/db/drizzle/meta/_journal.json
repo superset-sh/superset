@@ -855,6 +855,13 @@
       "when": 1790179236474,
       "tag": "0121_page_watch_ownership",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1790229159510,
+      "tag": "0122_webhook_events_swap_to_short_retention",
+      "breakpoints": true
     }
   ]
 }

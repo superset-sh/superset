@@ -15,13 +15,20 @@ export const maxDuration = 300;
 /**
  * How long an event record itself is worth keeping, separate from its body.
  *
- * The constraint is idempotency, not storage: the unique indexes on these
- * tables are what stop a redelivered event being processed twice, and a row
- * that no longer exists cannot dedupe. Providers redeliver within hours to a
- * few days, so thirty is well past any real replay window while still bounding
- * the tables.
+ * The constraint is idempotency, not storage: the unique index on
+ * (provider, event_id) is what stops a redelivered event being processed
+ * twice, and a row that no longer exists cannot dedupe. Two days covers every
+ * automatic redelivery any provider here attempts — Slack's five minutes,
+ * Linear's one minute, one hour and six hours, and Notion's eight tries over
+ * roughly a day — with a day to spare. Slack is the one that needs it most:
+ * agent delivery dedupes on this row alone, where the others are caught a
+ * second time by the unique index on automation_events.
+ *
+ * Two days of intake is ~9M rows, small enough for the indexes to stay in
+ * cache. Past that each delete costs more than the insert it undoes and
+ * retention falls behind faster the further behind it gets.
  */
-const RETAIN_DAYS = 30;
+const RETAIN_HOURS = 48;
 
 /** Small enough that one statement stays a short transaction. */
 const BATCH_SIZE = 5_000;
@@ -30,21 +37,17 @@ const BATCH_SIZE = 5_000;
  * Ceiling per table per run. Deleting leaves dead tuples, so this is what stops
  * a backlog drain outrunning autovacuum.
  *
- * It has never been the binding constraint. TIME_BUDGET_MS is, because a batch
- * costs far more than this file originally assumed — see there.
+ * Intake is ~190k rows an hour on a weekday, so this keeps up only while the
+ * QStash schedule fires at least four times an hour. That schedule lives in the
+ * Upstash console, not in this repo.
  */
 const MAX_ROWS_PER_TABLE = 50_000;
 
 /**
- * Has to exceed the cost of a batch, or the loop can only ever run one.
- *
- * A batch is `ORDER BY received_at LIMIT 5000` off the left edge of
- * webhook_events_received_at_idx, and every prior delete leaves dead index
- * entries in exactly that prefix for the next batch to walk. Measured against
- * production over 1226 batches: 35s mean, 582s worst. At the previous 20s the
- * deadline check after batch one always failed, so a run deleted 5k rows rather
- * than the 50k intended — an order of magnitude under what the ceiling implies,
- * and roughly break-even against intake once the backlog is drained.
+ * Backstop for the run, not the pacing mechanism — MAX_ROWS_PER_TABLE is that.
+ * It only matters when the table is behind enough for batches to go cold again,
+ * and it stays well inside maxDuration so a run ends by choice rather than by
+ * kill, losing whatever the loop had not committed.
  */
 const TIME_BUDGET_MS = 240_000;
 
@@ -56,13 +59,16 @@ interface RetentionTarget {
 }
 
 /**
- * automation_events is deliberately absent. Bounding it needs two index builds
- * that take write locks on live ingest tables — one on automation_events
- * itself, and one on automation_runs.event_id, which its ON DELETE SET NULL
- * foreign key would otherwise resolve by scanning. Neither is worth doing now:
- * the table was created on 2026-08-15, so no row reaches thirty days until
- * mid-September, and the us-east-1 restore rebuilds both tables before then
- * with those indexes created on the way in, for free. It joins this list there.
+ * automation_events is still absent, and is now the unbounded one: 55M rows and
+ * 245 GB as of 2026-09-19, growing ~2.3M rows a day with nothing removing them.
+ * The us-east-1 restore this entry once deferred to never happened.
+ *
+ * Adding it here is not a one-line change. It needs two index builds that take
+ * write locks on live ingest tables — one on automation_events itself, and one
+ * on automation_runs.event_id, which its ON DELETE SET NULL foreign key would
+ * otherwise resolve by scanning — and at this size those have to be built
+ * CONCURRENTLY, which drizzle's transactional migrator cannot do. It wants the
+ * same swap this table just had, not a deletion loop bolted onto a 245 GB heap.
  */
 const TARGETS: RetentionTarget[] = [
 	{
@@ -84,7 +90,7 @@ async function deleteAgedRows(
 				tx.execute(sql`
 			WITH batch AS (
 				SELECT ctid FROM ${target.relation}
-				WHERE ${target.receivedAt} < now() - ${`${RETAIN_DAYS} days`}::interval
+				WHERE ${target.receivedAt} < now() - ${`${RETAIN_HOURS} hours`}::interval
 				ORDER BY ${target.receivedAt}
 				LIMIT ${BATCH_SIZE}
 				FOR UPDATE SKIP LOCKED
@@ -104,23 +110,19 @@ async function deleteAgedRows(
 }
 
 /**
- * Bounds the two event logs by age.
+ * Bounds the event log by age.
  *
- * Their bodies are already bounded — webhook bodies by dropping day partitions,
- * automation payloads by the pruner — but nothing removed the rows, so both
- * grew without limit at a combined ~1.9M/day. Deleting rather than partitioning
- * because the dedup indexes have to stay on (provider, event_id) and
- * (integration_connection_id, provider, external_event_id): a unique index on a
- * partitioned table must contain the partition key, and adding received_at to
- * it would mean a redelivery no longer conflicts.
- *
- * Deletion is cheap here in a way it would not have been a week ago. These rows
- * are ~350 bytes with nothing in TOAST now that the bodies live elsewhere, so a
- * batch leaves little for autovacuum to chase.
+ * Deleting rather than partitioning because the dedup index has to stay on
+ * (provider, event_id): a unique index on a partitioned table must contain the
+ * partition key, and adding received_at to it would mean a redelivery no longer
+ * conflicts. What makes deletion viable is the window, not the method — at two
+ * days the table and its indexes stay in cache, so a batch is index
+ * maintenance against warm pages. At thirty days it was not, and each delete
+ * cost more than the insert it undid.
  *
  * webhook_payloads needs no equivalent: its rows are keyed by received_at and
- * their partitions are dropped at seven days, so a body is always gone long
- * before the event record that pointed at it.
+ * whole day partitions are dropped, which returns the space outright instead of
+ * leaving dead tuples behind.
  */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
@@ -158,5 +160,5 @@ export async function POST(request: Request): Promise<Response> {
 		}
 	}
 
-	return Response.json({ retainDays: RETAIN_DAYS, results });
+	return Response.json({ retainHours: RETAIN_HOURS, results });
 }

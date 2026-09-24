@@ -12,10 +12,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Matches ingest.webhook_events. These are the same provider bodies, kept a
- * second time because the dispatcher needs them at dispatch and ingest is
- * prunable underneath it — so once dispatch has happened this copy is as
- * disposable as the first.
+ * These are the same provider bodies ingest keeps, stored a second time because
+ * the dispatcher needs them at dispatch and ingest is prunable underneath it —
+ * so once dispatch has happened this copy is as disposable as the first.
  */
 const RETAIN_DAYS = 7;
 
