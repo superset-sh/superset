@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "\"{0}\" akan ditandai ditutup di GitHub. Anda bisa membukanya lagi dari sini kapan saja."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "\"{0}\" akan di-merge ke {1} lewat {2}. Check-nya belum lulus — ini menimpanya. Ini tidak bisa dibatalkan dari sini."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "\"{0}\" akan di-merge ke {1} lewat {2}. Ini tidak bisa dibatalkan dari sini."
@@ -370,6 +370,10 @@ msgstr "{0} terpasang"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} sudah ditetapkan untuk \"{1}\"."
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0} bukan repositori tempat GitHub App terpasang"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -2064,6 +2068,9 @@ msgstr "Bahasa tampilan aplikasi"
 msgid "App display language. Auto follows your system language."
 msgstr "Bahasa tampilan aplikasi. Otomatis mengikuti bahasa sistem Anda."
 
+msgid "App icon"
+msgstr "Ikon aplikasi"
+
 msgid "Appearance"
 msgstr "Tampilan"
 
@@ -2646,6 +2653,9 @@ msgstr "Branch..."
 
 msgid "brand"
 msgstr "merek"
+
+msgid "Brand assets"
+msgstr "Aset merek"
 
 msgid "breadcrumb"
 msgstr "breadcrumb"
@@ -3640,6 +3650,9 @@ msgstr "Ukuran komunitas dari undangan publik, diperbarui setiap setengah jam."
 msgid "Company"
 msgstr "Perusahaan"
 
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Profil perusahaan, berita terbaru, aset merek, dan kontak pers Superset."
+
 msgid "Company email"
 msgstr "Email perusahaan"
 
@@ -3934,6 +3947,9 @@ msgstr "Lanjutkan"
 
 msgid "Continue or fork session"
 msgstr "Lanjutkan atau fork sesi"
+
+msgid "Continue the same workspace from your iPhone"
+msgstr "Lanjutkan workspace yang sama dari iPhone Anda"
 
 msgid "Continue the session the last run left"
 msgstr "Lanjutkan sesi yang ditinggalkan proses terakhir"
@@ -5449,6 +5465,9 @@ msgstr "Unduh gambar"
 msgid "Download Manually"
 msgstr "Unduh Manual"
 
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "Unduh logo dan gambar produk kami untuk digunakan dalam liputan tentang Superset."
+
 msgid "Download starter"
 msgstr "Unduh starter"
 
@@ -5877,6 +5896,9 @@ msgstr "Semuanya bisa diskrip. Buat workspace dan agen dari CLI, sambungkan Supe
 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Semua yang kami bangun di atas primitif — orisinal Superset, suite"
+
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "Semua yang Anda perlukan untuk menulis tentang Superset: profil perusahaan, berita terbaru, logo, gambar produk, dan kontak."
 
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "Semua yang Anda publikasikan dihapus, bukan disembunyikan. Anda bisa bergabung lagi nanti dan datanya akan dibangun ulang dari transkrip yang masih ada di mesin ini."
@@ -6743,6 +6765,9 @@ msgstr "Folder yang di-checkout ke worktree baru, satu per baris, relatif terhad
 msgid "FOLLOW ON X"
 msgstr "IKUTI DI X"
 
+msgid "Follow terminal sessions live"
+msgstr "Ikuti sesi terminal secara langsung"
+
 msgid "FOLLOW US"
 msgstr "IKUTI KAMI"
 
@@ -6772,6 +6797,9 @@ msgstr "Untuk perorangan yang baru memulai"
 
 msgid "For organizations with advanced needs"
 msgstr "Untuk organisasi dengan kebutuhan tingkat lanjut"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "Untuk pertanyaan pers dan permintaan wawancara, kirimi kami email."
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "Untuk pertanyaan soal penagihan, <0>hubungi kami</0>."
@@ -8136,6 +8164,9 @@ msgstr "Terbaru"
 msgid "Latest (v{latestVersion})"
 msgstr "Terbaru (v{latestVersion})"
 
+msgid "Latest news"
+msgstr "Berita terbaru"
+
 msgid "Launch"
 msgstr "Peluncuran"
 
@@ -8544,6 +8575,15 @@ msgstr "Retensi logo — bulanan"
 msgid "Logo updated"
 msgstr "Logo diperbarui"
 
+msgid "Logo, light"
+msgstr "Logo, terang"
+
+msgid "Logos"
+msgstr "Logo"
+
+msgid "Logos, product images, and press contact."
+msgstr "Logo, gambar produk, dan kontak pers."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Keandalan jangka panjang melewati ambang batas. Pekerjaan yang diberikan jam 6 sore cukup sering bisa di-merge jam 9 pagi sehingga tidak menjadwalkan shift malam terasa seperti membiarkan pabrik menganggur."
 
@@ -8725,6 +8765,9 @@ msgstr "Mengukur penggunaan sumber daya…"
 #. placeholder {0}: selectedConfig.label
 msgid "Measuring the context to send to {0}…"
 msgstr "Mengukur konteks yang akan dikirim ke {0}…"
+
+msgid "Media kit"
+msgstr "Media kit"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Waktu median dari tiket ke produksi di bawah satu hari untuk pekerjaan rutin."
@@ -11279,6 +11322,9 @@ msgstr "Tekan ⌘I di terminal mana pun dan tulis di editor sungguhan, dengan pr
 msgid "Press a key…"
 msgstr "Tekan sebuah tombol…"
 
+msgid "Press contact"
+msgstr "Kontak pers"
+
 msgid "Preview"
 msgstr "Pratinjau"
 
@@ -11396,6 +11442,9 @@ msgstr "Memproses..."
 msgid "Product"
 msgstr "Produk"
 
+msgid "Product images"
+msgstr "Gambar produk"
+
 msgid "Production run"
 msgstr "Proses produksi"
 
@@ -11487,6 +11536,9 @@ msgstr "Prompt"
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "Beri prompt ke agen coding untuk membangun apa yang ingin Anda lihat di Superset. Kalau kami suka prompt Anda, kami akan menjalankannya dan me-merge hasilnya."
 
+msgid "Prompt agents and answer their questions"
+msgstr "Kirim prompt ke agen dan jawab pertanyaan mereka"
+
 msgid "Prompt command is only available for terminal agents."
 msgstr "Perintah prompt hanya tersedia untuk agen terminal."
 
@@ -11564,7 +11616,7 @@ msgstr "Dipublikasikan sebagai <0>{handle}</0>. Hanya jumlah token dan nama mode
 msgid "Pull request"
 msgstr "Pull request"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
@@ -12513,6 +12565,9 @@ msgstr "Review diminta"
 
 msgid "Review required"
 msgstr "Review diperlukan"
+
+msgid "Review syntax-highlighted diffs"
+msgstr "Tinjau diff dengan penyorotan sintaks"
 
 msgid "Review the result."
 msgstr "Review hasilnya."
@@ -14348,6 +14403,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset (YC S26) adalah IDE sumber terbuka untuk era agen AI, tempat para engineer menjalankan ratusan agen coding seperti Claude Code dan Codex secara paralel. Dalam waktu kurang dari setahun, lebih dari 130.000 developer di 176 negara telah menjalankan Superset dan membuat lebih dari 1,5 juta workspace agen. Jepang adalah pasar terbesar kedua setelah AS, dengan lebih dari 12.000 developer yang mengadopsinya bahkan sebelum tersedia dalam bahasa Jepang, dan Asia secara keseluruhan kini memiliki lebih banyak pengguna daripada AS. Superset digunakan oleh engineer di Netflix, Microsoft, NVIDIA, DoorDash, Wix, dan Mistral AI secara global, serta di Asia oleh ByteDance, Toss, Kakao, Grab, LINE, dan Rakuten. Superset memiliki lebih dari 14k bintang GitHub, meraih peringkat #1 di Product Hunt, dan baru saja meluncurkan dukungan penuh bahasa Jepang."
+
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Dasbor perusahaan"
 
@@ -14384,11 +14442,20 @@ msgstr "CPU Superset · 5 menit terakhir"
 msgid "Superset Design System"
 msgstr "Design System Superset"
 
+msgid "Superset desktop app"
+msgstr "Aplikasi desktop Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise adalah Superset untuk tim. Hubungi kami untuk tahu lebih banyak soal apa saja yang termasuk dan bagaimana cocoknya untuk organisasi Anda."
 
 msgid "Superset for iPhone"
 msgstr "Superset untuk iPhone"
+
+msgid "Superset for iPhone page"
+msgstr "Halaman Superset untuk iPhone"
+
+msgid "Superset for press"
+msgstr "Superset untuk pers"
 
 msgid "Superset for your team"
 msgstr "Superset untuk tim Anda"
@@ -14444,6 +14511,9 @@ msgstr "Memori Superset"
 msgid "Superset memory · last 5 min"
 msgstr "Memori Superset · 5 menit terakhir"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "Diff kode Superset Mobile di iPhone"
+
 msgid "Superset mobile gives me the power of my desktop anywhere I go."
 msgstr "Superset mobile memberi saya kekuatan desktop ke mana pun saya pergi."
 
@@ -14453,8 +14523,17 @@ msgstr "Superset Mobile telah hadir"
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile termasuk dalam Pro"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile hadir di iPhone"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "Superset Mobile memungkinkan developer melanjutkan workspace Superset yang sudah mereka gunakan di komputer dari iPhone."
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile menjalankan agen di komputer yang Anda hubungkan."
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "Terminal Superset Mobile di iPhone"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, workspace cloud, otomatisasi, dan dukungan prioritas."
@@ -14588,6 +14667,9 @@ msgstr "Beralih ke Workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Beralih ke Workspace 9"
+
+msgid "Symbol, light"
+msgstr "Simbol, terang"
 
 msgid "Sync"
 msgstr "Sinkronkan"
@@ -14909,6 +14991,9 @@ msgstr "Agen memegang tugas dari tiket sampai diff. Manusia mereview hasilnya, b
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agen yang disetel untuk menjalankan otomatisasi ini sudah tidak ada di host-nya — agen host itu mungkin telah direset atau dihapus. Pilih ulang agen di pengaturan otomatisasi."
+
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "Aplikasi ini gratis untuk diunduh. Memerlukan iOS 26 atau lebih baru dan Superset Pro. Android menyusul berikutnya."
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "Aplikasi berada di {appVersion} tetapi terhubung ke layanan host yang dimulai oleh hal lain, kemungkinan CLI lama atau build Superset lain. Memulai ulang akan menggantinya dengan salinan dari aplikasi ini."
@@ -16401,6 +16486,9 @@ msgstr "Lihat di GitHub"
 msgid "VIEW ON GITHUB"
 msgstr "LIHAT DI GITHUB"
 
+msgid "View on the App Store"
+msgstr "Lihat di App Store"
+
 msgid "View open roles"
 msgstr "Lihat lowongan"
 
@@ -16778,6 +16866,12 @@ msgstr "dengan atau tanpa lampiran"
 
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Dengan aplikasi seluler Superset, saya bisa menangani masalah produksi dari mana saja."
+
+msgid "Wordmark, black"
+msgstr "Wordmark, hitam"
+
+msgid "Wordmark, white"
+msgstr "Wordmark, putih"
 
 msgid "Work email"
 msgstr "Email kerja"

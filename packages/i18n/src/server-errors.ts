@@ -387,6 +387,12 @@ export const serverErrorMessages: Record<
 				message: "Only owners can delete projects",
 			}),
 		),
+	"serverError.integration.repositoryNotInstalled": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.repoFullName} is not a repository the GitHub App is installed on`,
+			}),
+		),
 	"serverError.integration.sentryRejectedTheToken": () =>
 		i18n._(
 			msg({

@@ -21,6 +21,7 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
@@ -257,9 +258,14 @@ export function ShipControl({
 						// workspaces by the time they click. A workspace-scoped intent
 						// plus navigation lands the pane in the right store either way.
 						onClick: () => {
+							const ref = pullRequestRefFromUrl(created.url);
+							if (!ref) {
+								window.open(created.url, "_blank");
+								return;
+							}
 							usePullRequestPaneIntent.getState().request({
 								workspaceId,
-								prNumber: created.number,
+								...ref,
 							});
 							void navigateToV2Workspace(workspaceId, navigate);
 						},

@@ -5,8 +5,16 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
+import { installationOctokit } from "../../../lib/sandbox/clone-token";
 import { protectedProcedure, userError } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import {
+	type PullRequestDetail,
+	toChecks,
+	toChecksStatus,
+	toPullRequestState,
+	toReviewDecision,
+} from "./pull-request-shape";
 import { listGithubRepositories } from "./trigger-options";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
@@ -283,14 +291,96 @@ export const githubRouter = {
 					number: row.number,
 					url: row.url,
 					title: row.title,
-					state: row.state,
+					state: toPullRequestState(row.state, row.mergedAt),
 					isDraft: row.isDraft,
-					reviewDecision: row.reviewDecision,
-					checksStatus: row.checksStatus,
-					checks: row.checks ?? [],
-					mergedAt: row.mergedAt,
+					reviewDecision: toReviewDecision(row.reviewDecision),
+					checksStatus: toChecksStatus(row.checksStatus),
+					checks: toChecks(row.checks),
 					updatedAt: row.updatedAt,
 				})),
+			};
+		}),
+
+	/**
+	 * One pull request by its own identity, repository and number, for a
+	 * detail pane that has no host in the loop: the webhook row supplies
+	 * everything but the description, which comes from GitHub with the
+	 * installation's token.
+	 */
+	getPullRequest: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				repoFullName: z.string().min(1),
+				number: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }): Promise<PullRequestDetail> => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const installation = await db.query.githubInstallations.findFirst({
+				where: eq(githubInstallations.organizationId, input.organizationId),
+			});
+			if (!installation) {
+				throw userError({
+					code: "PRECONDITION_FAILED",
+					message: "GitHub installation not found",
+					i18nKey: "serverError.integration.githubInstallationNotFound",
+				});
+			}
+			// Resolved through the gated listing rather than the table: this
+			// answers with the installation's token, so a repository the caller
+			// cannot read would otherwise hand them its title, body and author.
+			// Unreachable reads as "not installed" — the refusal must not confirm
+			// that a private repository exists.
+			const repos = await listGithubRepositories(
+				input.organizationId,
+				ctx.session.user.id,
+			);
+			const wanted = input.repoFullName.toLowerCase();
+			const repo = repos.find((row) => row.fullName.toLowerCase() === wanted);
+			if (!repo) {
+				throw userError({
+					code: "NOT_FOUND",
+					message: `${input.repoFullName} is not a repository the GitHub App is installed on`,
+					i18nKey: "serverError.integration.repositoryNotInstalled",
+					params: { repoFullName: input.repoFullName },
+				});
+			}
+			const [owner, name] = repo.fullName.split("/");
+			const [row, octokit] = await Promise.all([
+				db.query.githubPullRequests.findFirst({
+					where: and(
+						eq(githubPullRequests.repositoryId, repo.id),
+						eq(githubPullRequests.prNumber, input.number),
+					),
+				}),
+				installationOctokit(installation.installationId),
+			]);
+			const { data: pr } = await octokit.request(
+				"GET /repos/{owner}/{repo}/pulls/{pull_number}",
+				{ owner: owner ?? "", repo: name ?? "", pull_number: input.number },
+			);
+			return {
+				repoFullName: repo.fullName,
+				number: pr.number,
+				url: pr.html_url,
+				title: pr.title,
+				body: pr.body ?? "",
+				state: toPullRequestState(pr.state, pr.merged_at),
+				isDraft: pr.draft ?? false,
+				author: pr.user
+					? { login: pr.user.login, avatarUrl: pr.user.avatar_url ?? null }
+					: null,
+				head: {
+					ref: pr.head.ref,
+					repoFullName: pr.head.repo?.full_name ?? null,
+				},
+				base: { ref: pr.base.ref },
+				reviewDecision: toReviewDecision(row?.reviewDecision ?? null),
+				checksStatus: toChecksStatus(row?.checksStatus ?? "none"),
+				checks: toChecks(row?.checks ?? null),
+				createdAt: pr.created_at,
+				updatedAt: pr.updated_at,
 			};
 		}),
 

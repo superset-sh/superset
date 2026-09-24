@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "\"{0}\" se marcará como cerrada en GitHub. Puedes reabrirla desde aquí en cualquier momento."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "\"{0}\" se fusionará en {1} mediante {2}. Las comprobaciones aún no se han superado y esto las ignora. No se puede deshacer desde aquí."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "\"{0}\" se fusionará en {1} mediante {2}. No se puede deshacer desde aquí."
@@ -370,6 +370,10 @@ msgstr "{0} instalado"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} ya está asignado a \"{1}\"."
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0} no es un repositorio en el que esté instalada la GitHub App"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -2064,6 +2068,9 @@ msgstr "Idioma de la app"
 msgid "App display language. Auto follows your system language."
 msgstr "Idioma de la app. Automático sigue el idioma del sistema."
 
+msgid "App icon"
+msgstr "Icono de la app"
+
 msgid "Appearance"
 msgstr "Apariencia"
 
@@ -2646,6 +2653,9 @@ msgstr "Ramas..."
 
 msgid "brand"
 msgstr "marca"
+
+msgid "Brand assets"
+msgstr "Recursos de marca"
 
 msgid "breadcrumb"
 msgstr "ruta de navegación"
@@ -3640,6 +3650,9 @@ msgstr "Tamaño de la comunidad según la invitación pública, actualizado cada
 msgid "Company"
 msgstr "Empresa"
 
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Descripción de la empresa, últimas noticias, recursos de marca y contacto de prensa de Superset."
+
 msgid "Company email"
 msgstr "Correo de empresa"
 
@@ -3934,6 +3947,9 @@ msgstr "Continuar"
 
 msgid "Continue or fork session"
 msgstr "Continuar o bifurcar la sesión"
+
+msgid "Continue the same workspace from your iPhone"
+msgstr "Continúa el mismo espacio de trabajo desde tu iPhone"
 
 msgid "Continue the session the last run left"
 msgstr "Continuar la sesión que dejó la última ejecución"
@@ -5449,6 +5465,9 @@ msgstr "Descargar la imagen"
 msgid "Download Manually"
 msgstr "Descargar manualmente"
 
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "Descarga nuestros logotipos e imágenes del producto para usarlos en tu cobertura de Superset."
+
 msgid "Download starter"
 msgstr "Descargar plantilla inicial"
 
@@ -5877,6 +5896,9 @@ msgstr "Todo se puede automatizar con scripts. Crea espacios de trabajo y agente
 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Todo lo que construimos sobre los primitivos: los originales de Superset, la suite"
+
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "Todo lo que necesitas para escribir sobre Superset: descripción de la empresa, últimas noticias, logotipos, imágenes del producto y a quién contactar."
 
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "Todo lo que has publicado se elimina, no se oculta. Puedes volver a unirte más adelante y se reconstruirá a partir de las transcripciones que sigan en esta máquina."
@@ -6743,6 +6765,9 @@ msgstr "Carpetas que se extraen en los worktrees nuevos, una por línea, relativ
 msgid "FOLLOW ON X"
 msgstr "SEGUIR EN X"
 
+msgid "Follow terminal sessions live"
+msgstr "Sigue las sesiones de terminal en directo"
+
 msgid "FOLLOW US"
 msgstr "SÍGUENOS"
 
@@ -6772,6 +6797,9 @@ msgstr "Para quienes empiezan"
 
 msgid "For organizations with advanced needs"
 msgstr "Para organizaciones con necesidades avanzadas"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "Para consultas de prensa y solicitudes de entrevista, escríbenos."
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "Si tienes dudas sobre la facturación, <0>contáctanos</0>."
@@ -8136,6 +8164,9 @@ msgstr "Última"
 msgid "Latest (v{latestVersion})"
 msgstr "La más reciente (v{latestVersion})"
 
+msgid "Latest news"
+msgstr "Últimas noticias"
+
 msgid "Launch"
 msgstr "Lanzamiento"
 
@@ -8544,6 +8575,15 @@ msgstr "Retención de clientes — mensual"
 msgid "Logo updated"
 msgstr "Logotipo actualizado"
 
+msgid "Logo, light"
+msgstr "Logotipo, claro"
+
+msgid "Logos"
+msgstr "Logotipos"
+
+msgid "Logos, product images, and press contact."
+msgstr "Logotipos, imágenes del producto y contacto de prensa."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "La fiabilidad a largo plazo cruza un umbral. El trabajo asignado a las 18:00 se puede fusionar a las 9:00 con la frecuencia suficiente como para que no programar el turno de noche se sienta como dejar una fábrica parada."
 
@@ -8725,6 +8765,9 @@ msgstr "Midiendo el uso de recursos…"
 #. placeholder {0}: selectedConfig.label
 msgid "Measuring the context to send to {0}…"
 msgstr "Midiendo el contexto que se enviará a {0}…"
+
+msgid "Media kit"
+msgstr "Kit de prensa"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Tiempo mediano del ticket a producción por debajo de un día para el trabajo rutinario."
@@ -11279,6 +11322,9 @@ msgstr "Pulsa ⌘I sobre cualquier terminal y escribe en un editor de verdad, co
 msgid "Press a key…"
 msgstr "Pulsa una tecla…"
 
+msgid "Press contact"
+msgstr "Contacto de prensa"
+
 msgid "Preview"
 msgstr "Vista previa"
 
@@ -11396,6 +11442,9 @@ msgstr "Procesando..."
 msgid "Product"
 msgstr "Producto"
 
+msgid "Product images"
+msgstr "Imágenes del producto"
+
 msgid "Production run"
 msgstr "Ciclo de producción"
 
@@ -11487,6 +11536,9 @@ msgstr "Prompt"
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "Pide a un agente de programación que construya lo que quieres ver en Superset. Si nos gusta tu prompt, lo ejecutaremos y fusionaremos el resultado."
 
+msgid "Prompt agents and answer their questions"
+msgstr "Envía prompts a los agentes y responde a sus preguntas"
+
 msgid "Prompt command is only available for terminal agents."
 msgstr "El comando de prompt solo está disponible para los agentes de terminal."
 
@@ -11564,7 +11616,7 @@ msgstr "Publicando como <0>{handle}</0>. Solo recuentos de tokens y nombres de m
 msgid "Pull request"
 msgstr "Pull request"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
@@ -12513,6 +12565,9 @@ msgstr "Revisión solicitada"
 
 msgid "Review required"
 msgstr "Revisión obligatoria"
+
+msgid "Review syntax-highlighted diffs"
+msgstr "Revisa diffs con resaltado de sintaxis"
 
 msgid "Review the result."
 msgstr "Revisa el resultado."
@@ -14348,6 +14403,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset (YC S26) es el IDE de código abierto para la era de los agentes de IA, donde los ingenieros ejecutan en paralelo cientos de agentes de programación como Claude Code y Codex. En menos de un año, más de 130.000 desarrolladores de 176 países han usado Superset y han creado más de 1,5 millones de espacios de trabajo de agentes. Japón es su segundo mercado después de EE. UU., con más de 12.000 desarrolladores que lo adoptaron incluso antes de que estuviera disponible en japonés, y Asia en conjunto ya suma más usuarios que EE. UU. Superset lo usan ingenieros de Netflix, Microsoft, NVIDIA, DoorDash, Wix y Mistral AI en todo el mundo, y en Asia de ByteDance, Toss, Kakao, Grab, LINE y Rakuten. Tiene más de 14k estrellas en GitHub, llegó al n.º 1 en Product Hunt y acaba de lanzar compatibilidad completa con el japonés."
+
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Panel de la empresa"
 
@@ -14384,11 +14442,20 @@ msgstr "CPU de Superset · últimos 5 min"
 msgid "Superset Design System"
 msgstr "Sistema de diseño de Superset"
 
+msgid "Superset desktop app"
+msgstr "App de escritorio de Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise es Superset para equipos. Escríbenos para saber más sobre lo que incluye y cómo puede funcionar en tu organización."
 
 msgid "Superset for iPhone"
 msgstr "Superset para iPhone"
+
+msgid "Superset for iPhone page"
+msgstr "Página de Superset para iPhone"
+
+msgid "Superset for press"
+msgstr "Superset para prensa"
 
 msgid "Superset for your team"
 msgstr "Superset para tu equipo"
@@ -14444,6 +14511,9 @@ msgstr "Memoria de Superset"
 msgid "Superset memory · last 5 min"
 msgstr "Memoria de Superset · últimos 5 min"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "Diff de código de Superset Mobile en iPhone"
+
 msgid "Superset mobile gives me the power of my desktop anywhere I go."
 msgstr "Superset móvil me da la potencia de mi ordenador vaya donde vaya."
 
@@ -14453,8 +14523,17 @@ msgstr "Superset Mobile ya está aquí"
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile forma parte de Pro"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile llega al iPhone"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "Superset Mobile permite a los desarrolladores continuar desde un iPhone los espacios de trabajo de Superset que ya usan en su ordenador."
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile ejecuta agentes en los equipos que conectes."
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "Terminal de Superset Mobile en iPhone"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, workspaces en la nube, automatizaciones y soporte prioritario."
@@ -14588,6 +14667,9 @@ msgstr "Ir al espacio de trabajo 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Ir al espacio de trabajo 9"
+
+msgid "Symbol, light"
+msgstr "Símbolo, claro"
 
 msgid "Sync"
 msgstr "Sincronizar"
@@ -14909,6 +14991,9 @@ msgstr "El agente se encarga de una tarea desde el ticket hasta el diff. La pers
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "El agente con el que se configuró esta automatización ya no existe en su host: puede que los agentes del host se hayan restablecido o eliminado. Vuelve a seleccionar un agente en la configuración de la automatización."
+
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "La app se descarga gratis. Requiere iOS 26 o posterior y Superset Pro. Android llegará después."
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "La app está en {appVersion} pero conectada a un servicio de host iniciado por otra cosa, probablemente una CLI antigua u otra compilación de Superset. Reiniciar lo sustituye por la copia de esta app."
@@ -16401,6 +16486,9 @@ msgstr "Ver en GitHub"
 msgid "VIEW ON GITHUB"
 msgstr "VER EN GITHUB"
 
+msgid "View on the App Store"
+msgstr "Ver en la App Store"
+
 msgid "View open roles"
 msgstr "Ver vacantes"
 
@@ -16778,6 +16866,12 @@ msgstr "con o sin archivos adjuntos"
 
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Con la aplicación móvil de Superset, puedo resolver problemas de producción desde cualquier lugar."
+
+msgid "Wordmark, black"
+msgstr "Logotipo, negro"
+
+msgid "Wordmark, white"
+msgstr "Logotipo, blanco"
 
 msgid "Work email"
 msgstr "Correo electrónico de trabajo"

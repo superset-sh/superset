@@ -266,6 +266,40 @@ async function assertRealpathWithinRoot(
 	}
 }
 
+/**
+ * "follow-final" is for operations that read or write *through* the last path
+ * component (open, readdir, cp of a regular file); "link-itself" is for the
+ * ones that act on the component without dereferencing it (lstat, rename),
+ * where only the ancestor chain has to stay inside the root — rejecting those
+ * would make an in-root symlink impossible to inspect, rename or delete.
+ */
+type PathConfinement = "follow-final" | "link-itself";
+
+/**
+ * The single confinement gate for every workspace-scoped filesystem operation:
+ * reject what is lexically outside the root, then reject what physically
+ * leaves the root through a symlink. New operations must route their paths
+ * through this rather than calling the asserts directly.
+ */
+async function resolveConfinedPath(
+	rootPath: string,
+	absolutePath: string,
+	confinement: PathConfinement,
+): Promise<string> {
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+
+	// The root's own parent is by definition outside the root, so the root can
+	// only ever be validated against itself.
+	const isRoot = targetPath === normalizeAbsolutePath(rootPath);
+	if (confinement === "follow-final" || isRoot) {
+		await assertRealpathWithinRoot(rootPath, targetPath);
+	} else {
+		await assertParentWithinRoot(rootPath, targetPath);
+	}
+
+	return targetPath;
+}
+
 function getPathLockDirectory(absolutePath: string): string {
 	return path.join(
 		os.tmpdir(),
@@ -388,19 +422,20 @@ async function writeAtomically({
 // per-entry stat calls bounds how much zombie work continues after an abort.
 const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
 
-// Read-only operations (listDirectory, readFile, getMetadata) are not
-// confined to the workspace root: terminals and agents routinely reference
-// files anywhere on the host, and viewing them is within the caller's trust
-// model (statPath/browseHost already expose arbitrary host paths). Mutations
-// remain strictly confined to the root.
 export async function listDirectory({
+	rootPath,
 	absolutePath,
 	signal,
 }: {
+	rootPath: string;
 	absolutePath: string;
 	signal?: AbortSignal;
 }): Promise<FsEntry[]> {
-	const targetPath = normalizeAbsolutePath(absolutePath);
+	const targetPath = await resolveConfinedPath(
+		rootPath,
+		absolutePath,
+		"follow-final",
+	);
 	signal?.throwIfAborted();
 	const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
@@ -455,14 +490,11 @@ export async function readFile({
 	maxBytes?: number;
 	encoding?: string;
 }): Promise<FsReadResult> {
-	const targetPath = normalizeAbsolutePath(absolutePath);
-	// Explicit outside-root paths are readable, but a path that lexically sits
-	// inside the workspace must also physically resolve there — otherwise a
-	// malicious repo symlink (docs/config.yml -> ~/.ssh/id_rsa) could disguise
-	// a sensitive host file as a workspace file.
-	if (isPathWithinRoot(rootPath, targetPath)) {
-		await assertRealpathWithinRoot(rootPath, targetPath);
-	}
+	const targetPath = await resolveConfinedPath(
+		rootPath,
+		absolutePath,
+		"follow-final",
+	);
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {
@@ -507,11 +539,17 @@ export async function readFile({
 }
 
 export async function getMetadata({
+	rootPath,
 	absolutePath,
 }: {
+	rootPath: string;
 	absolutePath: string;
 }): Promise<FsMetadata | null> {
-	const targetPath = normalizeAbsolutePath(absolutePath);
+	const targetPath = await resolveConfinedPath(
+		rootPath,
+		absolutePath,
+		"link-itself",
+	);
 
 	try {
 		const stats = await fs.lstat(targetPath);
@@ -558,8 +596,11 @@ export async function writeFile({
 	options?: { create: boolean; overwrite: boolean };
 	precondition?: { ifMatch: string };
 }): Promise<FsWriteResult> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = await resolveConfinedPath(
+		rootPath,
+		absolutePath,
+		"follow-final",
+	);
 
 	const create = options?.create ?? true;
 	const overwrite = options?.overwrite ?? true;
@@ -637,11 +678,11 @@ export async function createDirectory({
 	absolutePath: string;
 	recursive?: boolean;
 }): Promise<{ absolutePath: string; kind: "directory" }> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	// Lexical containment isn't enough: a symlinked ancestor (e.g. `link ->
-	// /outside`) would let `mkdir` create directories outside the workspace.
-	// Resolve the real path / ancestry the same way writes do before creating.
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = await resolveConfinedPath(
+		rootPath,
+		absolutePath,
+		"follow-final",
+	);
 	try {
 		await fs.mkdir(targetPath, { recursive });
 	} catch (error) {
@@ -715,11 +756,11 @@ export async function createUniqueEntry({
 		return { ok: false, reason: "invalid-name" };
 	}
 
-	const parentPath = ensureWithinRoot({
+	const parentPath = await resolveConfinedPath(
 		rootPath,
-		absolutePath: parentAbsolutePath,
-	});
-	await assertRealpathWithinRoot(rootPath, parentPath);
+		parentAbsolutePath,
+		"follow-final",
+	);
 
 	for (let attempt = 0; attempt < CREATE_UNIQUE_MAX_ATTEMPTS; attempt++) {
 		const name = attempt === 0 ? baseName : `${baseName}-${attempt + 1}`;
@@ -914,14 +955,16 @@ export async function movePath({
 	sourceAbsolutePath: string;
 	destinationAbsolutePath: string;
 }): Promise<{ fromAbsolutePath: string; toAbsolutePath: string }> {
-	const sourcePath = ensureWithinRoot({
+	const sourcePath = await resolveConfinedPath(
 		rootPath,
-		absolutePath: sourceAbsolutePath,
-	});
-	const destinationPath = ensureWithinRoot({
+		sourceAbsolutePath,
+		"link-itself",
+	);
+	const destinationPath = await resolveConfinedPath(
 		rootPath,
-		absolutePath: destinationAbsolutePath,
-	});
+		destinationAbsolutePath,
+		"link-itself",
+	);
 
 	await fs.access(destinationPath).then(
 		() => {
@@ -947,14 +990,16 @@ export async function copyPath({
 	sourceAbsolutePath: string;
 	destinationAbsolutePath: string;
 }): Promise<{ fromAbsolutePath: string; toAbsolutePath: string }> {
-	const sourcePath = ensureWithinRoot({
+	const sourcePath = await resolveConfinedPath(
 		rootPath,
-		absolutePath: sourceAbsolutePath,
-	});
-	const destinationPath = ensureWithinRoot({
+		sourceAbsolutePath,
+		"link-itself",
+	);
+	const destinationPath = await resolveConfinedPath(
 		rootPath,
-		absolutePath: destinationAbsolutePath,
-	});
+		destinationAbsolutePath,
+		"link-itself",
+	);
 
 	await fs.cp(sourcePath, destinationPath, { recursive: true });
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };

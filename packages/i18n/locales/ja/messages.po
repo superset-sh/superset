@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "「{0}」はGitHub上でクローズ済みになります。ここからいつでも再オープンできます。"
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "「{0}」は{2}で{1}にマージされます。チェックはまだ通っていません — この操作はそれを無視します。ここからは元に戻せません。"
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "「{0}」は{2}で{1}にマージされます。ここからは元に戻せません。"
@@ -370,6 +370,10 @@ msgstr "{0}をインストールしました"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}はすでに「{1}」に割り当てられています。"
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0} は GitHub App がインストールされているリポジトリではありません"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -2064,6 +2068,9 @@ msgstr "アプリの表示言語"
 msgid "App display language. Auto follows your system language."
 msgstr "アプリの表示言語。自動ではシステムの言語に従います。"
 
+msgid "App icon"
+msgstr "アプリアイコン"
+
 msgid "Appearance"
 msgstr "外観"
 
@@ -2646,6 +2653,9 @@ msgstr "ブランチ..."
 
 msgid "brand"
 msgstr "ブランド"
+
+msgid "Brand assets"
+msgstr "ブランドアセット"
 
 msgid "breadcrumb"
 msgstr "パンくずリスト"
@@ -3640,6 +3650,9 @@ msgstr "公開招待リンクから取得したコミュニティ規模。30分�
 msgid "Company"
 msgstr "会社"
 
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Superset の会社概要、最新ニュース、ブランドアセット、報道関係のお問い合わせ先。"
+
 msgid "Company email"
 msgstr "会社のメールアドレス"
 
@@ -3934,6 +3947,9 @@ msgstr "続行"
 
 msgid "Continue or fork session"
 msgstr "セッションを続行またはフォーク"
+
+msgid "Continue the same workspace from your iPhone"
+msgstr "同じワークスペースを iPhone から続ける"
 
 msgid "Continue the session the last run left"
 msgstr "前回の実行が残したセッションを継続"
@@ -5449,6 +5465,9 @@ msgstr "画像をダウンロード"
 msgid "Download Manually"
 msgstr "手動でダウンロード"
 
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "Superset に関する報道でご利用いただけるロゴと製品画像をダウンロードできます。"
+
 msgid "Download starter"
 msgstr "スターターをダウンロード"
 
@@ -5877,6 +5896,9 @@ msgstr "すべてスクリプトから操作できます。CLIでワークスペ
 
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "プリミティブの上に作ったもの一式 — Superset独自のコンポーネント、エージェントUI向けの"
+
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "Superset について記事を書くために必要な情報をまとめています。会社概要、最新ニュース、ロゴ、製品画像、お問い合わせ先をご覧ください。"
 
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます。"
@@ -6743,6 +6765,9 @@ msgstr "新しいワークツリーにチェックアウトするフォルダを
 msgid "FOLLOW ON X"
 msgstr "Xでフォロー"
 
+msgid "Follow terminal sessions live"
+msgstr "ターミナルセッションをリアルタイムで確認"
+
 msgid "FOLLOW US"
 msgstr "フォローする"
 
@@ -6772,6 +6797,9 @@ msgstr "これから始める個人向け"
 
 msgid "For organizations with advanced needs"
 msgstr "高度な要件がある組織向け"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "取材やインタビューのご依頼は、メールでお問い合わせください。"
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "請求に関するご質問は<0>お問い合わせ</0>ください。"
@@ -8136,6 +8164,9 @@ msgstr "最新"
 msgid "Latest (v{latestVersion})"
 msgstr "最新(v{latestVersion})"
 
+msgid "Latest news"
+msgstr "最新ニュース"
+
 msgid "Launch"
 msgstr "起動"
 
@@ -8544,6 +8575,15 @@ msgstr "ロゴリテンション — 月次"
 msgid "Logo updated"
 msgstr "ロゴを更新しました"
 
+msgid "Logo, light"
+msgstr "ロゴ（明色）"
+
+msgid "Logos"
+msgstr "ロゴ"
+
+msgid "Logos, product images, and press contact."
+msgstr "ロゴ、製品画像、報道関係のお問い合わせ先。"
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長時間にわたる信頼性がしきい値を超えます。18時に割り当てた作業が9時にはマージできる。それが十分な頻度で起きるようになり、夜間シフトを組まないことが工場を遊ばせているように感じられます。"
 
@@ -8725,6 +8765,9 @@ msgstr "リソース使用量を計測中…"
 #. placeholder {0}: selectedConfig.label
 msgid "Measuring the context to send to {0}…"
 msgstr "{0} に送るコンテキストを計測しています…"
+
+msgid "Media kit"
+msgstr "メディアキット"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "定型作業のチケットから本番までの時間が中央値で1日未満。"
@@ -11279,6 +11322,9 @@ msgstr "任意のターミナルで⌘Iを押すと、本格的なエディタ�
 msgid "Press a key…"
 msgstr "キーを押してください…"
 
+msgid "Press contact"
+msgstr "報道関係のお問い合わせ"
+
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -11396,6 +11442,9 @@ msgstr "処理中..."
 msgid "Product"
 msgstr "プロダクト"
 
+msgid "Product images"
+msgstr "製品画像"
+
 msgid "Production run"
 msgstr "生産稼働"
 
@@ -11487,6 +11536,9 @@ msgstr "プロンプト"
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "Supersetで見たいものをコーディングエージェントへのプロンプトとして投稿してください。良いプロンプトは実際に実行し、結果をマージします。"
 
+msgid "Prompt agents and answer their questions"
+msgstr "エージェントに指示を送り、質問に答える"
+
 msgid "Prompt command is only available for terminal agents."
 msgstr "プロンプトコマンドはターミナルエージェントでのみ利用できます。"
 
@@ -11564,7 +11616,7 @@ msgstr "<0>{handle}</0>として公開中。トークン数とモデル名のみ
 msgid "Pull request"
 msgstr "プルリクエスト"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "プルリクエスト #{0}"
@@ -12513,6 +12565,9 @@ msgstr "レビューリクエスト"
 
 msgid "Review required"
 msgstr "レビュー必須"
+
+msgid "Review syntax-highlighted diffs"
+msgstr "シンタックスハイライト付きの差分をレビュー"
 
 msgid "Review the result."
 msgstr "結果をレビューする。"
@@ -14348,6 +14403,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset（YC S26）は、AI エージェント時代のためのオープンソース IDE です。エンジニアは Claude Code や Codex などのコーディングエージェントを数百単位で並行して実行できます。公開から 1 年足らずで、176 か国の 13 万人以上の開発者が Superset を使い、150 万以上のエージェントワークスペースが作成されました。日本は米国に次ぐ第 2 の市場で、日本語に対応する前から 1 万 2,000 人以上の開発者が導入しています。また、アジア全体のユーザー数は米国を上回っています。Superset は、グローバルでは Netflix、Microsoft、NVIDIA、DoorDash、Wix、Mistral AI、アジアでは ByteDance、Toss、Kakao、Grab、LINE、楽天のエンジニアに利用されています。GitHub スターは 1.4 万以上、Product Hunt で 1 位を獲得し、先日には日本語へのフル対応を開始しました。"
+
 msgid "Superset | Company Dashboard"
 msgstr "Superset | 企業ダッシュボード"
 
@@ -14384,11 +14442,20 @@ msgstr "Superset CPU · 直近5分"
 msgid "Superset Design System"
 msgstr "Supersetデザインシステム"
 
+msgid "Superset desktop app"
+msgstr "Superset デスクトップアプリ"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterpriseは、チーム向けのSupersetです。含まれる内容や組織での活用方法については、お問い合わせください。"
 
 msgid "Superset for iPhone"
 msgstr "iPhone 用 Superset"
+
+msgid "Superset for iPhone page"
+msgstr "iPhone 用 Superset のページ"
+
+msgid "Superset for press"
+msgstr "報道関係者の皆さまへ"
 
 msgid "Superset for your team"
 msgstr "チームのためのSuperset"
@@ -14444,6 +14511,9 @@ msgstr "Supersetメモリ"
 msgid "Superset memory · last 5 min"
 msgstr "Supersetメモリ · 直近5分"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "iPhone 上の Superset Mobile のコード差分"
+
 msgid "Superset mobile gives me the power of my desktop anywhere I go."
 msgstr "Supersetモバイルは、どこにいてもデスクトップの力を使えるようにしてくれます。"
 
@@ -14453,8 +14523,17 @@ msgstr "Superset Mobile が登場"
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset MobileはProの一部です"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile が iPhone で登場"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "Superset Mobile を使えば、開発者はパソコンで使っている Superset のワークスペースを iPhone から続けられます。"
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobileは、接続したコンピュータ上でエージェントを実行します。"
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "iPhone 上の Superset Mobile のターミナル"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile、クラウドワークスペース、オートメーション、優先サポート。"
@@ -14588,6 +14667,9 @@ msgstr "ワークスペース8に切り替え"
 
 msgid "Switch to Workspace 9"
 msgstr "ワークスペース9に切り替え"
+
+msgid "Symbol, light"
+msgstr "シンボル（明色）"
 
 msgid "Sync"
 msgstr "同期"
@@ -14909,6 +14991,9 @@ msgstr "エージェントがチケットから差分までタスクを引き受
 
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "このオートメーションに設定されていたエージェントは、ホスト上に存在しなくなりました — ホストのエージェントがリセットまたは削除された可能性があります。オートメーションの設定でエージェントを選び直してください。"
+
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "アプリは無料でダウンロードできます。iOS 26 以降と Superset Pro が必要です。次は Android に対応予定です。"
 
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "アプリは{appVersion}ですが、別のもの（古いCLIや別のSupersetビルドの可能性）が起動したホストサービスに接続しています。再起動するとこのアプリのコピーに置き換わります。"
@@ -16401,6 +16486,9 @@ msgstr "GitHubで表示"
 msgid "VIEW ON GITHUB"
 msgstr "GITHUBで見る"
 
+msgid "View on the App Store"
+msgstr "App Store で見る"
+
 msgid "View open roles"
 msgstr "募集中の職種を見る"
 
@@ -16778,6 +16866,12 @@ msgstr "添付の有無を問わず"
 
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Supersetのモバイルアプリがあれば、どこからでも本番環境の問題に対応できます。"
+
+msgid "Wordmark, black"
+msgstr "ワードマーク（黒）"
+
+msgid "Wordmark, white"
+msgstr "ワードマーク（白）"
 
 msgid "Work email"
 msgstr "勤務先のメールアドレス"

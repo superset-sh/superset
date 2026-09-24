@@ -52,6 +52,10 @@
 			"types": "./src/agent-credentials.ts",
 			"default": "./src/agent-credentials.ts"
 		},
+		"./agent-status": {
+			"types": "./src/agent-status.ts",
+			"default": "./src/agent-status.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
@@ -83,6 +87,10 @@
 		"./sandbox-contract": {
 			"types": "./src/sandbox-contract.ts",
 			"default": "./src/sandbox-contract.ts"
+		},
+		"./pull-request": {
+			"types": "./src/pull-request.ts",
+			"default": "./src/pull-request.ts"
 		},
 		"./sandbox-gate": {
 			"types": "./src/sandbox-gate.ts",
@@ -247,6 +255,10 @@
 		"./vercel-preview-origins": {
 			"types": "./src/vercel-preview-origins.ts",
 			"default": "./src/vercel-preview-origins.ts"
+		},
+		"./upstream-url": {
+			"types": "./src/upstream-url.ts",
+			"default": "./src/upstream-url.ts"
 		},
 		"./tunnel-protocol": {
 			"types": "./src/tunnel-protocol.ts",

@@ -58,6 +58,22 @@ describe("listGithubRepositories", () => {
 		]);
 	});
 
+	// `getPullRequest` (added on main in #7823) resolves a repository by full
+	// name and answers with the installation's token. It reads through this
+	// function, so it inherits the gate — a member naming the owner's private
+	// repository finds nothing to resolve against.
+	test("a private repository is unresolvable by name for an unshared member", async () => {
+		token = null;
+		const byName = new Map(
+			(await listGithubRepositories(ORG_ID, MEMBER_ID)).map((row) => [
+				row.fullName.toLowerCase(),
+				row,
+			]),
+		);
+		expect(byName.get("hugo/private-notes")).toBeUndefined();
+		expect(byName.get("acme/website")).toBeDefined();
+	});
+
 	test("a member GitHub grants access to keeps that repository", async () => {
 		token = "ghu_collaborator";
 		globalThis.fetch = fakeGithub([

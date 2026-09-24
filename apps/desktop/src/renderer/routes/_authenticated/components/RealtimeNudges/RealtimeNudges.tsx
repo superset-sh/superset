@@ -2,6 +2,7 @@ import {
 	parseRealtimeNudgeMessage,
 	REALTIME_NUDGE_KINDS,
 	type RealtimeNudgeKind,
+	type RealtimeUpdate,
 	realtimeNudgesPath,
 } from "@superset/shared/realtime";
 import { createRelaySocket } from "@superset/workspace-client";
@@ -13,11 +14,11 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 /**
  * One socket per window to the realtime Worker. The API sends a nudge after
- * it writes hosts or cloud workspaces, and this refetches the matching
- * queries, which is why neither polls. A reopen refetches
- * everything once, since nudges sent while the socket was down are gone.
- * Rendered inside the providers: the subscription needs the active
- * organization.
+ * it writes hosts or cloud workspaces: a kind refetches the matching query,
+ * a patch is applied to the cache without one, which is why neither polls.
+ * A reopen refetches everything once, since nudges sent while the socket
+ * was down are gone. Rendered inside the providers: the subscription needs
+ * the active organization.
  */
 export function RealtimeNudges() {
 	const organizationId = useActiveOrganizationId();
@@ -25,6 +26,7 @@ export function RealtimeNudges() {
 
 	useEffect(() => {
 		if (!organizationId) return;
+
 		// A hidden window marks the query stale and refetches on focus, the way
 		// its polls used to pause in the background.
 		const invalidate = (kinds: readonly RealtimeNudgeKind[]) => {
@@ -42,6 +44,23 @@ export function RealtimeNudges() {
 				}
 			}
 		};
+
+		const patch = (updates: readonly RealtimeUpdate[]) => {
+			if (updates.length === 0) return;
+			utils.cloudWorkspace.list.setData({ organizationId }, (rows) =>
+				rows?.map((row) => {
+					const update = updates.find((u) => u.workspaceId === row.id);
+					return update
+						? {
+								...row,
+								agentStatus: update.agentStatus,
+								agentStatusAt: new Date(update.agentStatusAt),
+							}
+						: row;
+				}),
+			);
+		};
+
 		const socket = createRelaySocket({
 			buildUrl: () =>
 				`${env.REALTIME_URL}${realtimeNudgesPath(organizationId)}`,
@@ -58,7 +77,9 @@ export function RealtimeNudges() {
 		});
 		socket.addEventListener("message", (event) => {
 			const message = parseRealtimeNudgeMessage(event.data);
-			if (message) invalidate(message.kinds);
+			if (!message) return;
+			patch(message.updates);
+			invalidate(message.kinds);
 		});
 		return () => socket.close(1000, "unsubscribed");
 	}, [organizationId, utils]);

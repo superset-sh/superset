@@ -9,8 +9,9 @@ import {
 	upsertConnection,
 } from "@superset/trpc/connectors";
 import { decryptSecret } from "@superset/trpc/integrations/plugins";
-import { STATE_COOKIE } from "@/app/api/connectors/[connector]/connect/route";
+
 import { env } from "@/env";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { connectorStateSchema, verifySignedState } from "@/lib/oauth-state";
 
@@ -19,12 +20,6 @@ function callbackParams(method: ConnectorMethod): string[] {
 	if (method.type === "app_install" || method.type === "admin_consent")
 		return [...method.callback_params];
 	return [];
-}
-
-function stateCookie(request: Request): string | null {
-	const cookie = request.headers.get("cookie") ?? "";
-	const match = cookie.match(new RegExp(`(?:^|;\\s*)${STATE_COOKIE}=([^;]+)`));
-	return match?.[1] ?? null;
 }
 
 export async function GET(
@@ -36,7 +31,6 @@ export async function GET(
 	// only exists for the seven that predate the registry, so a new connector
 	// would 404 the moment someone finished authorizing it.
 	const connectUrl = `${env.NEXT_PUBLIC_WEB_URL}/connect/${slug}`;
-	const web = (query: string) => Response.redirect(`${connectUrl}${query}`);
 
 	let connector: ReturnType<typeof requireConnector>;
 	let method: ConnectorMethod;
@@ -51,28 +45,16 @@ export async function GET(
 
 	const callback = await resolveCallback(request, {
 		params: callbackParams(method),
-		redirect: (error) => web(`?error=${error}`),
-		stateFrom: method.type === "app_install" ? stateCookie : undefined,
+		redirect: (error) => `${connectUrl}?error=${error}`,
+		cookie: STATE_COOKIES.connectors,
+		// An app install comes back with no state of ours at all.
+		stateInCookieOnly: method.type === "app_install",
 	});
 	if (callback instanceof Response) return callback;
-
-	// The signed state proves who asked, not who is answering. Without this the
-	// authorization code a victim approves can be paired with a state minted by
-	// an attacker, binding the victim's account to the attacker's connection.
-	if (method.type !== "app_install") {
-		const query = new URL(request.url).searchParams.get("state");
-		if (!query || query !== stateCookie(request))
-			return web("?error=invalid_state");
-	}
+	const web = (query: string) => callback.exit(`${connectUrl}${query}`);
 
 	try {
-		const rawState =
-			method.type === "app_install"
-				? stateCookie(request)
-				: new URL(request.url).searchParams.get("state");
-		const carried = rawState
-			? verifySignedState(rawState, connectorStateSchema)
-			: null;
+		const carried = verifySignedState(callback.state, connectorStateSchema);
 		const codeVerifier = carried?.codeVerifier
 			? await decryptSecret(carried.codeVerifier)
 			: null;
@@ -82,7 +64,7 @@ export async function GET(
 			redirectUri: redirectUriFor(slug),
 			codeVerifier,
 			params: callback.params,
-			issuer: new URL(request.url).searchParams.get("iss"),
+			issuer: callback.url.searchParams.get("iss"),
 		});
 
 		const identity = await probeIdentity(

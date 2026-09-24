@@ -66,8 +66,8 @@ export interface CommentPaneData {
 }
 
 export interface PullRequestPaneData {
-	prNumber: number;
-	projectId?: string;
+	repoFullName: string;
+	number: number;
 }
 
 export interface PagePaneData {

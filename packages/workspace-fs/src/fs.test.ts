@@ -134,22 +134,18 @@ describe("readFile", () => {
 		expect(atEnd.exceededLimit).toEqual(false);
 	});
 
-	it("reads files outside the workspace root", async () => {
+	// GHSA-6223-9p9j-gwf2: this used to be allowed on purpose ("reads are
+	// host-wide"). The advisory overruled that: a workspace-scoped read must
+	// not reach outside the worktree.
+	it("rejects files outside the workspace root", async () => {
 		const rootPath = await createTempRoot();
 		const outsideRoot = await createTempRoot();
 		const absolutePath = path.join(outsideRoot, "outside.txt");
 		await fs.writeFile(absolutePath, "outside");
 
-		const result = await readFile({
-			rootPath,
-			absolutePath,
-			encoding: "utf-8",
-		});
-
-		expect(result.kind).toEqual("text");
-		if (result.kind === "text") {
-			expect(result.content).toEqual("outside");
-		}
+		await expect(
+			readFile({ rootPath, absolutePath, encoding: "utf-8" }),
+		).rejects.toThrow("outside workspace root");
 	});
 
 	it("rejects in-root symlinks that resolve outside the workspace root", async () => {
