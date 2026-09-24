@@ -47,23 +47,13 @@ For a walkthrough of workspace creation and review, see [Your First Parallel Ses
 <details>
 <summary>See the diff viewer and browser previews</summary>
 
-<table>
-<tr>
-<td width="50%" valign="middle">
-
 ### Built-in Diff Viewer
 
 Inspect, comment on, and edit agent changes without leaving the app, then commit and push when it's ready.
 
 [Docs →](https://docs.superset.sh/diff-viewer)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/diff-viewer"><img src="apps/marketing/public/images/readme/diff-viewer.png" alt="Reviewing an agent's changes in the diff viewer" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/diff-viewer"><img src="apps/marketing/public/images/readme/diff-viewer.png" alt="Reviewing an agent's changes in the diff viewer" width="100%" /></a>
 
 ### In-App Browser & Ports
 
@@ -71,12 +61,7 @@ Preview running dev servers in a browser pane. Ports are detected per workspace,
 
 [Docs →](https://docs.superset.sh/browser)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/browser"><img src="apps/marketing/public/images/readme/browser-ports.png" alt="In-app browser previewing a dev server with detected ports" width="100%" /></a>
-</td>
-</tr>
-</table>
+<a href="https://docs.superset.sh/browser"><img src="apps/marketing/public/images/readme/browser-ports.png" alt="In-app browser previewing a dev server with detected ports" width="100%" /></a>
 
 </details>
 
@@ -89,23 +74,13 @@ Give each task a Git worktree with its own branch and terminals. Monitor agent s
 <details>
 <summary>See workspaces, monitoring, terminals, and the command palette</summary>
 
-<table>
-<tr>
-<td width="50%" valign="middle">
-
 ### Parallel Workspaces
 
 Run independent tasks in separate Git worktrees, each with its own branch and terminal. Review each result before merging, or try two approaches to the same problem and keep the one you prefer.
 
 [Docs →](https://docs.superset.sh/workspaces)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/workspaces"><img src="apps/marketing/public/images/readme/agents-working.gif" alt="Claude streaming a billing migration while other agents run in parallel workspaces" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/workspaces"><img src="apps/marketing/public/images/readme/agents-working.gif" alt="Claude streaming a billing migration while other agents run in parallel workspaces" width="100%" /></a>
 
 ### Agent Monitoring
 
@@ -113,13 +88,7 @@ Track every agent from the sidebar, with working indicators, completion chimes, 
 
 [Docs →](https://docs.superset.sh/agent-integration)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/agent-integration"><img src="apps/marketing/public/images/readme/agent-monitoring.gif" alt="An agent finishing its task and the sidebar status flipping from working to done" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/agent-integration"><img src="apps/marketing/public/images/readme/agent-monitoring.gif" alt="An agent finishing its task and the sidebar status flipping from working to done" width="100%" /></a>
 
 ### Built-in Terminal
 
@@ -127,13 +96,7 @@ Tabs, infinite splits, presets, and persistent sessions that survive restarts. P
 
 [Docs →](https://docs.superset.sh/terminal-integration)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/terminal-integration"><img src="apps/marketing/public/images/readme/terminal.gif" alt="Typing a follow-up with an @-file mention in the rich prompt editor next to a split terminal" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/terminal-integration"><img src="apps/marketing/public/images/readme/terminal.gif" alt="Typing a follow-up with an @-file mention in the rich prompt editor next to a split terminal" width="100%" /></a>
 
 ### Command Palette
 
@@ -141,12 +104,7 @@ Jump to any workspace, action, or setting from one search box.
 
 [Docs →](https://docs.superset.sh/keyboard-shortcuts)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.gif" alt="Typing in the command palette and filtering workspace actions live" width="100%" /></a>
-</td>
-</tr>
-</table>
+<a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.gif" alt="Typing in the command palette and filtering workspace actions live" width="100%" /></a>
 
 </details>
 
@@ -161,10 +119,6 @@ On iPhone, continue terminal sessions and review changes on a connected computer
 <details>
 <summary>See mobile, automations, remote access, and the CLI</summary>
 
-<table>
-<tr>
-<td width="50%" valign="middle">
-
 ### Superset for iPhone
 
 Remotely control Claude Code, Codex, and other terminal agents running on your connected computer. Pick up the same workspaces and terminal sessions, send follow-up prompts, review diffs, and merge PRs from your iPhone.
@@ -173,13 +127,7 @@ Requires **Superset Pro**, **iOS 26 or later**, and a connected computer with **
 
 [**Download on the App Store**](https://apps.apple.com/us/app/id6788926383) &nbsp;&bull;&nbsp; [Learn more →](https://superset.sh/mobile)
 
-</td>
-<td width="50%" align="center">
-  <a href="https://superset.sh/mobile"><img src="apps/marketing/public/images/readme/mobile-desktop.png" alt="Superset desktop with an iPhone terminal session overlaid on the right" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://superset.sh/mobile"><img src="apps/marketing/public/images/readme/mobile-desktop.png" alt="Superset desktop with an iPhone terminal session overlaid on the right" width="100%" /></a>
 
 ### Automations
 
@@ -187,13 +135,7 @@ Run agent sessions on a schedule: triage issues overnight, draft the weekly chan
 
 [Docs →](https://docs.superset.sh/automations)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/automations"><img src="apps/marketing/public/images/readme/automations.png" alt="Scheduled agent automations" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/automations"><img src="apps/marketing/public/images/readme/automations.png" alt="Scheduled agent automations" width="100%" /></a>
 
 ### Remote Access
 
@@ -201,13 +143,7 @@ Connect another machine and reach its workspaces from anywhere: the desktop app,
 
 [Docs →](https://docs.superset.sh/remote-access)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/remote-access"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="middle">
+<a href="https://docs.superset.sh/remote-access"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
 
 ### Superset CLI
 
@@ -215,12 +151,7 @@ Script it from any shell: create workspaces, launch agents, read their terminals
 
 [Docs →](https://docs.superset.sh/cli/getting-started)
 
-</td>
-<td width="50%">
-  <a href="https://docs.superset.sh/cli/getting-started"><img src="apps/marketing/public/images/readme/cli-demo.gif" alt="Creating a workspace and launching an agent from the Superset CLI" width="100%" /></a>
-</td>
-</tr>
-</table>
+<a href="https://docs.superset.sh/cli/getting-started"><img src="apps/marketing/public/images/readme/cli-demo.gif" alt="Creating a workspace and launching an agent from the Superset CLI" width="100%" /></a>
 
 </details>
 
