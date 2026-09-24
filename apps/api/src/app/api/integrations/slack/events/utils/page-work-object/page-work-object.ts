@@ -23,7 +23,11 @@ export function createPageWorkObject(page: PagePreview): EntityMetadata {
 	const updatedAt = Math.floor(page.updatedAt.getTime() / 1000);
 
 	if (page.thumbnailUrl) {
-		fields.preview = { alt_text: page.title, image_url: page.thumbnailUrl };
+		fields.preview = {
+			type: "slack#/types/image",
+			alt_text: page.title,
+			image_url: page.thumbnailUrl,
+		};
 		displayOrder.push("preview");
 	}
 

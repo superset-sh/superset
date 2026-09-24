@@ -27,7 +27,7 @@
 		},
 		"rich_previews": {
 			"is_active": true,
-			"entity_types": ["slack#/entities/task"]
+			"entity_types": ["slack#/entities/task", "slack#/entities/content_item"]
 		}
 	},
 	"oauth_config": {
