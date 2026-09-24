@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P1-A · Host-service filesystem path confinement</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#141a22; --panel-2:#1a212b; --line:#252d38;
+    --ink:#e4e9f0; --ink-dim:#9aa6b6; --ink-faint:#6b7889;
+    --red:#ff6b6b; --red-bg:#2a1417; --green:#5ddba0; --green-bg:#0f2620;
+    --amber:#f0b849; --amber-bg:#2a2013; --blue:#6cb6ff;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:48px 24px 96px}
+  header{border-bottom:1px solid var(--line); padding-bottom:28px; margin-bottom:36px}
+  .eyebrow{font:600 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:14px}
+  h1{font-size:30px; line-height:1.25; margin:0 0 16px; letter-spacing:-.02em; font-weight:650}
+  .sub{color:var(--ink-dim); font-size:16px; margin:0 0 22px; max-width:66ch}
+  h2{font-size:19px; margin:44px 0 14px; letter-spacing:-.01em; font-weight:640}
+  h3{font-size:14px; margin:26px 0 10px; color:var(--ink-dim); font-weight:620;
+     font-family:var(--mono); letter-spacing:.02em}
+  p{margin:0 0 14px; max-width:74ch}
+  a{color:var(--blue)}
+  code{font-family:var(--mono); font-size:.88em; background:var(--panel-2);
+       border:1px solid var(--line); border-radius:4px; padding:1px 5px; color:#cdd7e4}
+  pre{margin:0; padding:16px 18px; background:#0a0e14; border:1px solid var(--line);
+      border-radius:8px; overflow-x:auto; font-family:var(--mono);
+      font-size:12.5px; line-height:1.6; color:#c8d3e0}
+  pre code{background:none; border:0; padding:0; font-size:inherit; color:inherit}
+  .meta{display:flex; flex-wrap:wrap; gap:10px 28px; font:12.5px/1.5 var(--mono); color:var(--ink-faint)}
+  .meta b{color:var(--ink-dim); font-weight:500}
+
+  table{width:100%; border-collapse:collapse; margin:6px 0 4px; font-size:14px}
+  th{text-align:left; font:600 11px/1 var(--mono); letter-spacing:.1em;
+     text-transform:uppercase; color:var(--ink-faint); padding:0 12px 10px 0;
+     border-bottom:1px solid var(--line)}
+  td{padding:12px 12px 12px 0; border-bottom:1px solid var(--line); vertical-align:top}
+  td:last-child,th:last-child{padding-right:0}
+  .adv{font-family:var(--mono); font-size:12.5px; white-space:nowrap}
+
+  .pill{display:inline-block; font:600 10.5px/1 var(--mono); letter-spacing:.08em;
+        text-transform:uppercase; padding:5px 8px; border-radius:4px; white-space:nowrap}
+  .p-conf{background:var(--red-bg); color:var(--red); border:1px solid #4a2228}
+  .p-dup{background:var(--amber-bg); color:var(--amber); border:1px solid #4a3a1a}
+  .p-high{background:#2a1417; color:#ff8787; border:1px solid #4a2228}
+  .p-med{background:var(--amber-bg); color:var(--amber); border:1px solid #4a3a1a}
+
+  .proof{border:1px solid var(--line); border-radius:10px; overflow:hidden; margin:14px 0 22px}
+  .proof-head{display:flex; align-items:center; gap:10px; padding:11px 16px;
+              font:600 12px/1 var(--mono); letter-spacing:.04em; border-bottom:1px solid var(--line)}
+  .proof.bad .proof-head{background:var(--red-bg); color:var(--red)}
+  .proof.good .proof-head{background:var(--green-bg); color:var(--green)}
+  .proof pre{border:0; border-radius:0; background:#0a0e14}
+  .dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto}
+  .proof.bad .dot{background:var(--red)} .proof.good .dot{background:var(--green)}
+  .cap{font-size:13px; color:var(--ink-faint); margin:-12px 0 24px; max-width:74ch}
+
+  .k-fail{color:var(--red)} .k-pass{color:var(--green)} .k-dim{color:var(--ink-faint)}
+
+  .note{border-left:2px solid var(--line); padding:2px 0 2px 18px; margin:18px 0; color:var(--ink-dim)}
+  .note.warn{border-left-color:var(--amber)}
+  .note strong{color:var(--ink)}
+
+  ul{margin:0 0 14px; padding-left:20px; max-width:74ch} li{margin-bottom:9px}
+  .files li{font-family:var(--mono); font-size:12.5px; margin-bottom:7px}
+  .files .why{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+              font-size:13px; color:var(--ink-faint)}
+  footer{margin-top:60px; padding-top:22px; border-top:1px solid var(--line);
+         font:12.5px/1.7 var(--mono); color:var(--ink-faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">P1-A · Security fix · Verified</div>
+  <h1>Host-service filesystem: confining every workspace-scoped path to the workspace root</h1>
+  <p class="sub">Three advisories, all confirmed and fixed at the source with one shared
+  guard. Six working exploits before; six blocked after.</p>
+  <div class="meta">
+    <span><b>branch</b> superset/p1-a-host-service-fs-confinement-4b124699</span>
+    <span><b>commit</b> 94fa84e</span>
+    <span><b>base</b> 65da26d</span>
+    <span><b>date</b> 2026-09-24</span>
+  </div>
+</header>
+
+<h2>Advisories &amp; verdicts</h2>
+<table>
+  <thead><tr><th>Advisory</th><th>Severity</th><th>Claim</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="adv">GHSA-6223-9p9j-gwf2</td>
+      <td><span class="pill p-high">High</span></td>
+      <td><code>readFile</code> / <code>listDirectory</code> / <code>getMetadata</code> read arbitrary absolute paths outside the workspace</td>
+      <td><span class="pill p-conf">Confirmed</span></td>
+    </tr>
+    <tr>
+      <td class="adv">GHSA-9v86-rjhr-mqw6</td>
+      <td><span class="pill p-high">High</span></td>
+      <td><code>movePath</code> / <code>copyPath</code> escape the root through symlink ancestors</td>
+      <td><span class="pill p-conf">Confirmed</span></td>
+    </tr>
+    <tr>
+      <td class="adv">GHSA-rg8v-v9gh-vwpq</td>
+      <td><span class="pill p-med">Medium</span></td>
+      <td>Same defect as 9v86</td>
+      <td><span class="pill p-dup">Duplicate of 9v86</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="cap">The duplicate call is a code-level judgement: there is exactly one defect
+class in move/copy — the missing physical check beside the lexical one — shared by both
+functions through identical code. See <em>Caveats</em> for why the advisory bodies
+themselves could not be read.</p>
+
+<h2>The attack</h2>
+<p>
+Every filesystem RPC resolves through
+<code>getServiceForWorkspace</code> → <code>createFsHostService({ rootPath })</code>, where
+<code>rootPath</code> is the workspace's worktree path — so the workspace root is known at
+every call, and the only question is whether an op checks against it. Two families did not.
+The read ops simply never received it: <code>listDirectory</code> and <code>getMetadata</code>
+took no <code>rootPath</code> parameter at all, and <code>readFile</code> gated its only guard
+behind <code>if (isPathWithinRoot(...))</code> — so a path that was <em>obviously</em> outside
+the root skipped validation, while one that merely looked inside got checked. An authenticated
+caller could therefore pass <code>/home/user/.ssh/id_rsa</code> and read it. The mutation ops
+failed differently: <code>movePath</code> and <code>copyPath</code> validated paths
+<em>lexically</em> via <code>ensureWithinRoot</code> but never <em>physically</em>, so a
+symlink committed into the repo (<code>escape -&gt; /outside</code>) made
+<code>&lt;root&gt;/escape/x</code> pass the string check while landing outside the worktree.
+That escape runs both ways, and the inbound direction is the worse one: <code>copyPath</code>
+could pull a file from outside the workspace <em>into</em> it through the symlinked ancestor,
+depositing it somewhere the agent then reads over the ordinary, fully-confined read path.
+</p>
+
+<h2>Before — six exploits, six successes</h2>
+<p>The proof drives the real <code>createFsHostService</code>, the same object the RPC handler
+calls. Each test asserts the <strong>secure</strong> outcome, so every failure below is an
+exploit that worked.</p>
+
+<div class="proof bad">
+  <div class="proof-head"><span class="dot"></span>bun test evidence/exploit-poc.test.ts &nbsp;·&nbsp; pre-fix</div>
+<pre><code>[readFile]         threw= <span class="k-fail">false</span>  leaked= <span class="k-fail">PRIVATE KEY MATERIAL</span>
+[listDirectory]    threw= <span class="k-fail">false</span>  entries= <span class="k-fail">[ "secret.txt" ]</span>
+[getMetadata]      threw= <span class="k-fail">false</span>  meta= <span class="k-fail">{"absolutePath":"/tmp/ghsa-outside-CkuCt0/id_rsa",
+                                 "kind":"file","size":20,"mode":33188,...}</span>
+[movePath]         threw= <span class="k-fail">false</span>  escapedFileContent= <span class="k-fail">MOVED OUT OF WORKSPACE</span>
+[copyPath]         threw= <span class="k-fail">false</span>  escapedFileContent= <span class="k-fail">COPIED OUT OF WORKSPACE</span>
+[copyPath source]  threw= <span class="k-fail">false</span>  stolen= <span class="k-fail">PRIVATE KEY MATERIAL</span>
+
+ <span class="k-dim">0 pass</span>
+ <span class="k-fail">6 fail</span>
+Ran 6 tests across 1 file. [296.00ms]</code></pre>
+</div>
+
+<h2>After — all six blocked</h2>
+<div class="proof good">
+  <div class="proof-head"><span class="dot"></span>bun test evidence/exploit-poc.test.ts &nbsp;·&nbsp; post-fix</div>
+<pre><code>[readFile]         threw= <span class="k-pass">true</span>  leaked= undefined
+[listDirectory]    threw= <span class="k-pass">true</span>  entries= undefined
+[getMetadata]      threw= <span class="k-pass">true</span>  meta= undefined
+[movePath]         threw= <span class="k-pass">true</span>  escapedFileContent= null
+[copyPath]         threw= <span class="k-pass">true</span>  escapedFileContent= null
+[copyPath source]  threw= <span class="k-pass">true</span>  stolen= null
+
+ <span class="k-pass">6 pass</span>
+ <span class="k-dim">0 fail</span>
+Ran 6 tests across 1 file. [303.00ms]</code></pre>
+</div>
+
+<h2>The fix</h2>
+<p>
+Rather than patch five call sites, all paths route through <strong>one gate</strong> in
+<code>packages/workspace-fs/src/fs.ts</code>: lexical containment, then physical
+containment — the second half being exactly what move and copy were missing.
+</p>
+
+<pre><code>async function resolveConfinedPath(
+	rootPath: string,
+	absolutePath: string,
+	confinement: PathConfinement,
+): Promise&lt;string&gt; {
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+
+	// The root's own parent is by definition outside the root, so the root can
+	// only ever be validated against itself.
+	const isRoot = targetPath === normalizeAbsolutePath(rootPath);
+	if (confinement === "follow-final" || isRoot) {
+		await assertRealpathWithinRoot(rootPath, targetPath);
+	} else {
+		await assertParentWithinRoot(rootPath, targetPath);
+	}
+
+	return targetPath;
+}</code></pre>
+
+<div class="note">
+<strong>The mode is not a security knob — both modes confine.</strong> It separates ops that
+act <em>through</em> the final path component (<code>open</code>, <code>readdir</code>) from
+ops that act <em>on</em> the component itself (<code>lstat</code>, <code>rename</code>), where
+only the ancestor chain can escape. Resolving the final component for those would break
+legitimate handling of an in-root symlink — you could no longer inspect or rename one.
+</div>
+
+<h3>Files changed</h3>
+<ul class="files">
+  <li>packages/workspace-fs/src/fs.ts
+    <div class="why">The shared gate. <code>readFile</code> + <code>listDirectory</code> (follow-final);
+    <code>getMetadata</code>, <code>movePath</code>, <code>copyPath</code> — source and destination
+    — (link-itself). <code>writeFile</code>, <code>createDirectory</code> and
+    <code>createUniqueEntry</code> moved onto it too, behaviour unchanged, so the gate is the single
+    entry point and a newly added op is confined by default.</div></li>
+  <li>packages/workspace-fs/src/host/service.ts
+    <div class="why">Passes <code>rootPath</code> to <code>listDirectory</code> and
+    <code>getMetadata</code>, which previously never received it. Because
+    <code>createFsHostService</code> is shared, this fixes the desktop-local RPC router by the
+    same change.</div></li>
+  <li>packages/workspace-fs/src/path-confinement.test.ts <span class="why">— new regression suite</span></li>
+  <li>packages/workspace-fs/src/fs.test.ts
+    <div class="why">One test inverted (see below).</div></li>
+  <li>packages/host-service/test/integration/bug-hunt.integration.test.ts
+    <div class="why">Two tests inverted, one added.</div></li>
+</ul>
+
+<p><code>browseHost</code> and <code>statPath</code> are deliberately untouched: separate,
+explicitly host-wide procedures with their own documented rationale, named by none of these
+advisories. Narrowing them is a product decision outside this scope.</p>
+
+<h2>Regression tests</h2>
+<p>
+Twelve co-located tests in <code>packages/workspace-fs/src/path-confinement.test.ts</code>,
+driven through <code>createFsHostService</code> so that a regression in the <em>plumbing</em>
+(an op that stops passing <code>rootPath</code>) fails too, not just a regression in the guard.
+Verified against the pre-fix tree by stashing the fix and keeping the tests:
+</p>
+
+<div class="proof bad">
+  <div class="proof-head"><span class="dot"></span>src/path-confinement.test.ts &nbsp;·&nbsp; fix stashed</div>
+<pre><code><span class="k-fail">(fail)</span> read operations … &gt; readFile rejects an absolute path outside the root
+<span class="k-fail">(fail)</span> read operations … &gt; listDirectory rejects an absolute path outside the root
+<span class="k-fail">(fail)</span> read operations … &gt; getMetadata rejects an absolute path outside the root
+<span class="k-fail">(fail)</span> movePath is confined … &gt; rejects a destination under a symlinked ancestor
+<span class="k-fail">(fail)</span> movePath is confined … &gt; rejects a source under a symlinked ancestor
+<span class="k-fail">(fail)</span> copyPath is confined … &gt; rejects a destination under a symlinked ancestor
+<span class="k-fail">(fail)</span> copyPath is confined … &gt; rejects a source under a symlinked ancestor
+
+ <span class="k-pass">5 pass</span>
+ <span class="k-fail">7 fail</span>
+Ran 12 tests across 1 file. [159.00ms]</code></pre>
+</div>
+
+<div class="proof good">
+  <div class="proof-head"><span class="dot"></span>src/path-confinement.test.ts &nbsp;·&nbsp; post-fix</div>
+<pre><code> <span class="k-pass">12 pass</span>
+ <span class="k-dim">0 fail</span>
+Ran 12 tests across 1 file. [197.00ms]</code></pre>
+</div>
+
+<p class="cap">The 7 pre-fix failures are exactly the 7 security assertions. The 5 that pass in
+<em>both</em> states are the legitimate-flow tests — in-root read/list/metadata, in-root rename,
+in-root copy, root-directory metadata, in-root symlink metadata — which is the point: they prove
+the fix does not break first-party flows.</p>
+
+<h3>Other checks</h3>
+<ul>
+  <li><code>workspace-fs</code>: typecheck clean · <code>bun test</code> 158 pass / 2 skip / 0 fail</li>
+  <li><code>host-service</code>: typecheck clean · targeted integration 32 pass / 0 fail</li>
+  <li><code>apps/desktop</code>: typecheck clean (exit 0) — covers the shared desktop consumer</li>
+  <li><code>bunx biome check</code> clean on every changed file</li>
+</ul>
+
+<h2>Residual risk &amp; caveats</h2>
+
+<div class="note warn">
+<strong>A deliberate policy was reversed, not a missed guard.</strong> The read behaviour was
+documented as intentional in-code (<em>"reads are host-wide"</em>) and pinned by passing tests
+named <code>"readFile allows viewing paths outside the workspace root"</code>. The advisory
+overrules that, so three tests were inverted and a non-vacuous in-root counterpart added so the
+inverted pair cannot pass trivially. Flagged loudly because inverting tests is exactly how a real
+regression hides. <strong>User-visible cost:</strong> clicking a terminal link that points outside
+the worktree (<code>/usr/local/bin/node</code>, a system stack frame) no longer opens it in the
+file viewer.
+</div>
+
+<div class="note warn">
+<strong>The advisory bodies could not be read.</strong>
+<code>gh api …/security-advisories/&lt;id&gt;</code> returned <code>403 Resource not accessible by
+integration</code> for all three IDs, and the list endpoint returned <code>[]</code> — the session
+token is the <code>superset-app[bot]</code> installation, which lacks the scope. Verification ran
+against the claims <em>as stated in the task</em>, not the reporters' own PoCs, so affected-version
+ranges and the rg8v duplicate determination were never read first-hand. <strong>Re-verify scope
+against the real advisory text before publishing fixes.</strong>
+</div>
+
+<div class="note warn">
+<strong>Same defect class left unfixed in <code>deletePath</code>.</strong> It runs
+<code>ensureWithinRoot</code> and then, when a <code>trashItem</code> handler is supplied, calls it
+<em>before</em> any physical check — so the trash path shares the move/copy weakness. host-service
+supplies no <code>trashItem</code>, so its RPC surface is unaffected today. Recorded rather than
+silently widening this change; worth a follow-up if a trash handler is ever wired up.
+</div>
+
+<div class="note">
+<strong>One unrelated pre-existing failure.</strong> The full host-service suite reports 2093 pass /
+8 todo / 1 fail. The failure —
+<code>health.check &gt; serialises the current boot's stamps and the runtime in sandbox mode</code> —
+was confirmed pre-existing by stashing the fix and re-running that file: identical result. It
+touches boot stamps in sandbox mode, not the filesystem path.
+</div>
+
+<footer>
+  Evidence: evidence/verify.md · exploit-poc.test.ts · before-exploit.txt · after-exploit.txt ·
+  before-regression.txt · after-regression.txt<br>
+  Branch pushed, no PR opened.
+</footer>
+
+</div>
+</body>
+</html>
