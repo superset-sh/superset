@@ -39,6 +39,9 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			description: data.description,
 			author,
 			date: dateValue,
+			lastUpdated: normalizeContentDate(data.lastUpdated, {
+				fallbackToNow: false,
+			}),
 			category: data.category ?? "News",
 			image: data.image,
 			relatedSlugs: data.relatedSlugs,

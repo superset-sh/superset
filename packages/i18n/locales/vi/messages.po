@@ -5877,8 +5877,8 @@ msgstr "{day} hằng tuần"
 msgid "Every {day} at {time}"
 msgstr "{day} hằng tuần, lúc {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Mỗi agent chạy trong git worktree riêng, nên mười agent có thể làm trên mười nhánh của cùng một repo mà không xung đột. Bạn theo dõi, review và merge tất cả từ một cửa sổ."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Mỗi tác tử chạy trong worktree và nhánh Git riêng, giữ các tệp làm việc tách biệt. Xung đột vẫn có thể xảy ra khi hợp nhất thay đổi. Bạn theo dõi, xem xét và hợp nhất tất cả từ một cửa sổ."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Mọi trục đều đang góp sức cho hạng tiếp theo. Giữ được như vậy thì hạng sẽ tới."
@@ -7178,6 +7178,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
 
 msgid "Guide"
+msgstr "Hướng dẫn"
+
+msgid "Guides"
 msgstr "Hướng dẫn"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."

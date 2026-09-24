@@ -5877,8 +5877,8 @@ msgstr "Каждую неделю: {day}"
 msgid "Every {day} at {time}"
 msgstr "Каждую неделю: {day}, в {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Каждый агент работает в собственном Git worktree, поэтому десять агентов могут работать над десятью ветками одного репозитория без конфликтов. Вы наблюдаете, проверяете и объединяете их все из одного окна."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Каждый агент работает в собственном Git worktree и ветке, поэтому рабочие файлы остаются раздельными. При слиянии изменений всё ещё возможны конфликты. Вы отслеживаете, проверяете и объединяете всё в одном окне."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Каждая ось работает на следующий уровень. Удержите это — уровень придёт сам."
@@ -7179,6 +7179,9 @@ msgstr "Архитектор GTM и ИИ-автоматизации, Mistral AI"
 
 msgid "Guide"
 msgstr "Руководство"
+
+msgid "Guides"
+msgstr "Руководства"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Задаёт правила для AI-генерации имён рабочих областей и веток в этом проекте. Пусто — используется именование по умолчанию."

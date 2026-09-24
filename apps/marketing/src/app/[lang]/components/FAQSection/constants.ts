@@ -63,7 +63,7 @@ export const FAQ_ITEMS: FAQItem[] = [
 		}),
 		answer: msg({
 			message:
-				"Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window.",
+				"Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window.",
 		}),
 		link: {
 			href: "/parallel-coding-agents",

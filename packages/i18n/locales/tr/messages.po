@@ -5877,8 +5877,8 @@ msgstr "Her {day}"
 msgid "Every {day} at {time}"
 msgstr "Her {day} saat {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Her ajan kendi Git worktree'sinde çalışır, böylece on ajan tek bir deponun on dalında çakışma olmadan çalışabilir. Hepsini tek bir pencereden izler, inceler ve birleştirirsiniz."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Her ajan kendi Git worktree ve dalında çalışır, böylece çalışma dosyaları ayrı kalır. Değişiklikler birleştirilirken yine de çakışmalar oluşabilir. Hepsini tek bir pencereden izler, inceler ve birleştirirsiniz."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Her eksen bir sonraki katman için üzerine düşeni yapıyor. Bunu sürdür, katman kendiliğinden gelir."
@@ -7179,6 +7179,9 @@ msgstr "GTM ve Yapay Zekâ Otomasyon Mimarı, Mistral AI"
 
 msgid "Guide"
 msgstr "Rehber"
+
+msgid "Guides"
+msgstr "Kılavuzlar"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
 msgstr "Bu proje için AI tarafından üretilen çalışma alanı ve dal adlarını yönlendirir. Boş bırakılırsa varsayılan adlandırma kullanılır."

@@ -2,7 +2,7 @@
 title: "Superset vs Conductor: local agents, cloud workspaces, and review"
 description: "Compare Superset and Conductor for parallel coding agents, cloud workspaces, team collaboration, and iPhone access."
 date: 2026-02-02
-lastUpdated: 2026-09-22
+lastUpdated: 2026-09-23
 type: "1v1"
 competitors:
   - conductor
@@ -36,7 +36,19 @@ To use [Superset on iPhone](/mobile), you need iOS 26 or later, Pro, and a host 
 
 ## Try it in your repository
 
-Run one of your usual tasks in each app with the same agent and model. Open the diff, ask for a correction, and run your project's checks. Compare how much setup and review each app takes. The [parallel-task guide](/blog/parallel-coding-agents-guide) has prompts you can use.
+This comparison is published by Superset. The linked Conductor documentation supports the feature descriptions; the trial below is an evaluation method, not a measured performance ranking.
+
+Use the same repository commit, agent, model, and two independent task prompts in each app. Record the app and agent versions, the date, and any setup differences. The [parallel-task guide](/blog/parallel-coding-agents-guide) includes scoped prompts.
+
+| Trial step | Evidence to record |
+|---|---|
+| Create two independent tasks | Workspace paths and branch names; setup steps needed before tests run |
+| Let each agent finish a small change | Prompt, model, changed files, and check output |
+| Ask for one correction | Whether you can find and resume the correct session |
+| Review and integrate both changes | Review steps, conflicts, and combined test result |
+| Try remote access if you need it | Host availability, required plan, and what happens when disconnected |
+
+Measure setup and review time separately from agent execution time. Repeat before drawing a speed conclusion: agent output varies, and a faster run can still produce a worse diff. Git worktrees separate working files; they do not guarantee conflict-free integration or sandbox agent permissions.
 
 ![Reviewing a change in Superset.](/images/readme/diff-viewer.png)
 

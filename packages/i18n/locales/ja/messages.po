@@ -5877,8 +5877,8 @@ msgstr "毎週{day}"
 msgid "Every {day} at {time}"
 msgstr "毎週{day} {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "各エージェントは専用のGitワークツリーで動くため、10体のエージェントが1つのリポジトリの10本のブランチで衝突なく作業できます。監視もレビューもマージも、すべて1つのウィンドウから行えます。"
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "各エージェントは専用の Git worktree とブランチで動作し、作業ファイルを分離します。変更のマージ時には競合が発生することがあります。すべての作業の監視、レビュー、マージを1つのウィンドウで行えます。"
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "すべての軸が次のティアのために働いています。これを維持すればティアは付いてきます。"
@@ -7178,6 +7178,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "GTM・AI自動化アーキテクト、Mistral AI"
 
 msgid "Guide"
+msgstr "ガイド"
+
+msgid "Guides"
 msgstr "ガイド"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
