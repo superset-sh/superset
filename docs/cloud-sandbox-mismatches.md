@@ -63,6 +63,21 @@ the filesystem snapshot with no processes, so host-service is started again)
 and extends a running one so it never hits the idle stop while someone is in
 it. `resolveSandboxAddress` is the one place that knows the difference.
 
+**A box's agent status doesn't come from the box.** A host row's dot is a
+live subscription to that host's terminal bindings; the sidebar deliberately
+opens no such socket to a sandbox, since holding one keeps the VM awake all
+day. Instead the box reports its own status — the most urgent of its
+terminals, from the same lifecycle events — to
+`POST /api/cloud-workspaces/:id/agent-status` with its host secret, coalesced
+and capped at one report per five seconds (`sandbox-agent-status` in
+host-service). The row keeps the last value (`agent_status`,
+`agent_status_at`) so a cold client sees it at once, and the realtime nudge
+carries it so open clients patch their cache rather than refetch the list.
+A closed box's dot is therefore at most a few seconds behind; the open box's
+own subscribers stay live as before. Reaches a box only through a
+host-service release. **Open:** mobile receives the field and renders nothing
+for it yet.
+
 **A woken sandbox answers seconds after the wake, and every pane reconnects
 at once.** A resumed session has no processes; `wake` starts host-service
 and returns before it listens. The open workspace's hook therefore holds the

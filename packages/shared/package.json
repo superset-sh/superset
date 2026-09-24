@@ -52,6 +52,10 @@
 			"types": "./src/agent-credentials.ts",
 			"default": "./src/agent-credentials.ts"
 		},
+		"./agent-status": {
+			"types": "./src/agent-status.ts",
+			"default": "./src/agent-status.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
