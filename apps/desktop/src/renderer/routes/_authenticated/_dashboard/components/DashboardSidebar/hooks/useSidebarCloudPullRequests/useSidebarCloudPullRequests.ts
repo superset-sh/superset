@@ -53,7 +53,7 @@ export function useSidebarCloudPullRequests(
 	const query = cloudTrpc.integration.github.getByBranches.useQuery(
 		{ organizationId: organizationId ?? "", refs: stableRefs },
 		{
-			enabled: organizationId !== null,
+			enabled: organizationId !== null && stableRefs.length > 0,
 			refetchInterval: CLOUD_PULL_REQUESTS_REFETCH_INTERVAL_MS,
 			staleTime: 10_000,
 			// Keep chips up while the row set changes, but never carry another

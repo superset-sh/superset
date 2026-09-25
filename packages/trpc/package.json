@@ -28,6 +28,10 @@
 			"types": "./src/router/page/thumbnail.ts",
 			"default": "./src/router/page/thumbnail.ts"
 		},
+		"./page-preview": {
+			"types": "./src/router/page/preview.ts",
+			"default": "./src/router/page/preview.ts"
+		},
 		"./file-sweep": {
 			"types": "./src/lib/files/sweep.ts",
 			"default": "./src/lib/files/sweep.ts"
@@ -95,6 +99,10 @@
 		"./business-metrics": {
 			"types": "./src/router/analytics/business.ts",
 			"default": "./src/router/analytics/business.ts"
+		},
+		"./account-purge": {
+			"types": "./src/lib/account-purge/index.ts",
+			"default": "./src/lib/account-purge/index.ts"
 		},
 		"./plugins-proxy": {
 			"types": "./src/router/plugins/proxy/index.ts",

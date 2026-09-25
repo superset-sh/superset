@@ -1,12 +1,7 @@
 import type { TriggerConfigInput } from "../automation-triggers";
 import type { BaseMatchableEvent, MatchResult } from "./core";
 import { type GithubMatchableEvent, githubTriggerMatches } from "./github";
-import {
-	type GmailMatchableEvent,
-	type GoogleCalendarMatchableEvent,
-	gmailTriggerMatches,
-	googleCalendarTriggerMatches,
-} from "./google";
+import { type GmailMatchableEvent, gmailTriggerMatches } from "./google";
 import { type LinearMatchableEvent, linearTriggerMatches } from "./linear";
 import {
 	type MicrosoftTeamsMatchableEvent,
@@ -43,7 +38,6 @@ export type MatchableEvent =
 	| SlackMatchableEvent
 	| MicrosoftTeamsMatchableEvent
 	| SentryMatchableEvent
-	| GoogleCalendarMatchableEvent
 	| GmailMatchableEvent;
 
 /**
@@ -99,11 +93,6 @@ export function triggerMatches(
 		case "microsoft_teams":
 			return microsoftTeamsTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "microsoft_teams" }>,
-				event,
-			);
-		case "google_calendar":
-			return googleCalendarTriggerMatches(
-				config as Extract<TriggerConfigInput, { kind: "google_calendar" }>,
 				event,
 			);
 		case "gmail":

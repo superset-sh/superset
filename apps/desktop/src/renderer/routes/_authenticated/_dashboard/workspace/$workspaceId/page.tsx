@@ -48,13 +48,11 @@ import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSe
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
-import { useConsumePageOpenLink } from "./hooks/useConsumePageOpenLink";
 import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDiffPaneTarget } from "./hooks/useDiffPaneTarget";
-import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { usePresetExecution } from "./hooks/usePresetExecution";
@@ -86,8 +84,6 @@ interface WorkspaceSearch {
 	openUrl?: string;
 	openUrlTarget?: WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
-	pageId?: string;
-	pageSlug?: string;
 }
 
 function parseOpenUrlTarget(
@@ -112,8 +108,6 @@ export const Route = createFileRoute(
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
-		pageId: parseNonEmptyString(raw.pageId),
-		pageSlug: parseNonEmptyString(raw.pageSlug),
 	}),
 });
 
@@ -157,8 +151,6 @@ function WorkspaceContent() {
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
-		pageId,
-		pageSlug,
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -291,15 +283,6 @@ function WorkspaceContent() {
 		(state) => findVisibleChangesPane(state) != null,
 	);
 
-	useConsumePageOpenLink({
-		isLayoutReady,
-		pageId,
-		pageSlug,
-		focusRequestId,
-		openPagePane,
-		consumeSearch,
-	});
-	usePagePaneIntentOpener({ workspaceId, isLayoutReady, openPagePane });
 	usePullRequestPaneIntentOpener({
 		workspaceId,
 		isLayoutReady,
@@ -407,6 +390,7 @@ function WorkspaceContent() {
 	const pagesMenu = (
 		<WorkspacePagesMenu
 			workspaceId={workspaceId}
+			onOpenPage={openPagePane}
 			onCreateNewAgentSession={createNewAgentSession}
 			onFocusAgentTerminal={focusAgentTerminal}
 		/>

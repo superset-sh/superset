@@ -21,6 +21,8 @@ export interface CliConfig {
 	help?: HelpBranding;
 	/** Audiences whose commands exist for this run. Defaults to `["public"]`. */
 	audiences?: () => Audience[];
+	/** Whether this run is inside a cloud workspace; commands tagged `sandbox: false` are hidden there. */
+	sandbox?: () => boolean;
 }
 
 export function defineConfig(config: CliConfig): CliConfig {

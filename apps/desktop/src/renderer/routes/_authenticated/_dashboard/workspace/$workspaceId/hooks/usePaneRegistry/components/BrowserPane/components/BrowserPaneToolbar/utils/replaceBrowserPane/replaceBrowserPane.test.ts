@@ -36,7 +36,7 @@ describe("replaceBrowserPane", () => {
 					data:
 						kind === "page"
 							? { slug: "report" }
-							: { prNumber: 1, projectId: "project" },
+							: { repoFullName: "superset-sh/superset", number: 1 },
 				});
 				const after = store.getState().tabs[0];
 				expect(store.getState().tabs).toHaveLength(1);

@@ -1,8 +1,8 @@
 ---
 title: "Git Worktrees for AI Coding Agents: The Parallel Workflow"
-description: "How Git worktrees let you run multiple AI coding agents in parallel without collisions. Learn the workflow, the tradeoffs, and the tools that automate it."
+description: "How Git worktrees let you run multiple AI coding agents in parallel in separate working directories. Learn the workflow, the tradeoffs, and the tools that automate it."
 date: 2026-07-13
-lastUpdated: 2026-09-22
+lastUpdated: 2026-09-24
 type: "tutorial"
 competitors:
   - git-worktrees
@@ -80,7 +80,7 @@ That is the gap workspace tools fill. Instead of managing worktrees by hand, the
 
 ## Where Superset Fits
 
-Superset is built around this exact workflow. Every task gets its own Git worktree, branch, and persistent terminal, automatically. It runs any CLI agent, such as Claude Code, Codex, OpenCode, Cursor, or Gemini, adds a built-in diff editor, an in-app browser for docs and dev servers, port management, and MCP, and extends across remote and cloud hosts. It turns the manual worktree workflow into the default, so you can run many agents in parallel and review each one without the bookkeeping.
+Superset is built around this exact workflow. Each new local branch-based workspace gets a Git worktree, branch, and terminals. It runs any CLI agent, such as Claude Code, Codex, OpenCode, Cursor, or Gemini, adds a built-in diff editor, an in-app browser for docs and dev servers, port management, and MCP, and extends across remote and cloud hosts. It turns the manual worktree workflow into the default, so you can run many agents in parallel and review each one without the bookkeeping.
 
 ## Worktrees in Your Editor
 
@@ -88,7 +88,7 @@ You do not have to give up your editor. Most editors open a worktree directory l
 
 ## Verdict
 
-Git worktrees are the foundation of safe parallel AI coding. They give each agent its own isolated directory and branch so many agents can work one repository at once, each producing a reviewable diff. You can manage them by hand, or use a workspace like Superset that makes a worktree per task the automatic default across any agent.
+Git worktrees are the foundation of safe parallel AI coding. They give each agent its own isolated directory and branch so many agents can work one repository at once, each producing a reviewable diff. You can manage them by hand, or use a workspace like Superset that creates worktrees for new local branch-based workspaces around your CLI agents.
 
 To go deeper, see [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel), [How to Run Multiple OpenCode Agents in Parallel](/compare/multiple-opencode-agents-parallel), and [Best Agentic IDE in 2026](/compare/best-agentic-ide).
 
@@ -100,7 +100,7 @@ A Git worktree lets you check out multiple branches at once, each in its own dir
 
 ### How do I run multiple AI agents without conflicts?
 
-Give each independent writer its own Git worktree and branch. This prevents shared-checkout edits, but merging can still introduce conflicts or incompatible behavior. Do it manually with `git worktree add`, or automatically with a workspace like Superset that creates a worktree per task.
+Give each independent writer its own Git worktree and branch. This prevents shared-checkout edits, but merging can still introduce conflicts or incompatible behavior. Do it manually with `git worktree add`, or automatically with a workspace like Superset that creates worktrees for new local branch-based workspaces.
 
 ### Do AI coding tools use Git worktrees?
 

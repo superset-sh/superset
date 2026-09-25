@@ -30,16 +30,20 @@ export default command({
 				const result = await ctx.api.cloudWorkspace.delete.mutate({ id });
 				(result.deleted ? deleted : missing).push(id);
 			}
-			const summary =
-				deleted.length === 1
-					? `Deleted cloud workspace ${deleted[0]}`
-					: `Deleted ${deleted.length} cloud workspaces`;
+			if (missing.length > 0) {
+				const alsoDeleted =
+					deleted.length > 0 ? ` (deleted: ${deleted.join(", ")})` : "";
+				throw new CLIError(
+					`No cloud workspace in this organization: ${missing.join(", ")}${alsoDeleted}`,
+					"Pass --local or --host <id> if it lives on a machine",
+				);
+			}
 			return {
-				data: { deleted, missing },
+				data: { deleted },
 				message:
-					missing.length > 0
-						? `${summary}\nNot found: ${missing.join(", ")}`
-						: summary,
+					deleted.length === 1
+						? `Deleted cloud workspace ${deleted[0]}`
+						: `Deleted ${deleted.length} cloud workspaces`,
 			};
 		}
 

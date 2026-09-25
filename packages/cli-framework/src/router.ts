@@ -7,6 +7,7 @@ export type CliGroup = {
 	description: string;
 	aliases?: string[];
 	audience?: Audience;
+	sandbox?: false;
 };
 
 export type CliCommand = {
@@ -22,12 +23,25 @@ export function filterByAudience(
 	groups: CliGroup[],
 	commands: CliCommand[],
 	audiences: Audience[],
+	sandbox = false,
 ): { groups: CliGroup[]; commands: CliCommand[] } {
 	const hiddenPaths = [
-		...groups.map((g) => ({ path: g.path, audience: g.audience })),
-		...commands.map((c) => ({ path: c.path, audience: c.command.audience })),
+		...groups.map((g) => ({
+			path: g.path,
+			audience: g.audience,
+			sandbox: g.sandbox,
+		})),
+		...commands.map((c) => ({
+			path: c.path,
+			audience: c.command.audience,
+			sandbox: c.command.sandbox,
+		})),
 	]
-		.filter((node) => !audiences.includes(node.audience ?? "public"))
+		.filter(
+			(node) =>
+				!audiences.includes(node.audience ?? "public") ||
+				(sandbox && node.sandbox === false),
+		)
 		.map((node) => node.path);
 	const visibleCommands = commands.filter(
 		(c) => !hiddenPaths.some((hidden) => isPrefix(hidden, c.path)),

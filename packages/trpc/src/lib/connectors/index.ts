@@ -391,33 +391,43 @@ export async function probeIdentity(
 	method: ConnectorMethod,
 	accessToken: string,
 	params?: Record<string, string | undefined>,
+	tokenPayload?: Record<string, unknown>,
 ): Promise<ConnectorIdentity> {
 	const env = connectorEnv(slug, method);
 	const scope = { env, params, config: { access_token: accessToken } };
 	const probe = method.identity;
 
-	const url = resolveConnectorTemplate(probe.url, scope);
-	const headers = Object.fromEntries(
-		Object.entries(probe.headers ?? {}).map(([key, value]) => [
-			key,
-			resolveConnectorTemplate(value, scope),
-		]),
-	);
-
-	const response = await credentialFetch(
-		url,
-		{
-			method: probe.method,
-			headers,
-			body: probe.body ? JSON.stringify(probe.body) : undefined,
-		},
-		`Connector "${slug}" identity`,
-	);
-	const payload = (await response.json()) as Record<string, unknown>;
-	if (!response.ok)
-		throw new Error(
-			`Connector "${slug}" identity probe failed: ${response.status}`,
+	let payload: Record<string, unknown>;
+	if ("url" in probe) {
+		const url = resolveConnectorTemplate(probe.url, scope);
+		const headers = Object.fromEntries(
+			Object.entries(probe.headers ?? {}).map(([key, value]) => [
+				key,
+				resolveConnectorTemplate(value, scope),
+			]),
 		);
+
+		const response = await credentialFetch(
+			url,
+			{
+				method: probe.method,
+				headers,
+				body: probe.body ? JSON.stringify(probe.body) : undefined,
+			},
+			`Connector "${slug}" identity`,
+		);
+		payload = (await response.json()) as Record<string, unknown>;
+		if (!response.ok)
+			throw new Error(
+				`Connector "${slug}" identity probe failed: ${response.status}`,
+			);
+	} else {
+		if (!tokenPayload)
+			throw new Error(
+				`Connector "${slug}" reads its identity from the token response, which this flow does not have.`,
+			);
+		payload = tokenPayload;
+	}
 
 	const read = (path: string): string | null => {
 		const value = readPath(payload, path);

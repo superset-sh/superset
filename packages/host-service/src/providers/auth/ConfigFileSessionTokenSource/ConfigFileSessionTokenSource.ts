@@ -95,6 +95,7 @@ export class ConfigFileSessionTokenSource {
 	private readonly apiUrl: string;
 	private refreshPromise: Promise<string> | null = null;
 	private refreshNeeded = false;
+	private rejectedRefreshToken: string | null = null;
 
 	constructor(options: ConfigFileSessionTokenSourceOptions) {
 		this.configPath = options.configPath;
@@ -117,7 +118,9 @@ export class ConfigFileSessionTokenSource {
 
 		if (this.refreshPromise) return this.refreshPromise;
 
-		if (!auth.refreshToken) throw loginAgainError();
+		if (!auth.refreshToken || auth.refreshToken === this.rejectedRefreshToken) {
+			throw loginAgainError();
+		}
 		this.refreshPromise = this.refreshAccessToken(auth).finally(() => {
 			this.refreshPromise = null;
 		});
@@ -146,6 +149,9 @@ export class ConfigFileSessionTokenSource {
 			throw loginAgainError();
 		}
 
+		if (response.status === 400 || response.status === 401) {
+			this.rejectedRefreshToken = auth.refreshToken;
+		}
 		if (!response.ok) throw loginAgainError();
 
 		let data: OAuthRefreshResponse;

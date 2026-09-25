@@ -21,6 +21,7 @@ import {
 import { pluginConnector } from "../../../lib/plugins/marketplace";
 
 export default command({
+	sandbox: false,
 	description:
 		"Install a plugin: materialize its skills locally and record it on your account",
 	args: [

@@ -1,6 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { pageCommentUser } from "@superset/shared/page-comments";
 import {
+	PAGE_THUMBNAIL_HEIGHT,
+	PAGE_THUMBNAIL_WIDTH,
+} from "@superset/shared/usercontent";
+import {
 	AllCommentsButton,
 	CommentsPanel,
 	PageCommentsView,
@@ -67,7 +71,14 @@ export async function generateMetadata({
 	if (shared) {
 		const description = shared.description ?? undefined;
 		const images = shared.thumbnailUrl
-			? [{ url: shared.thumbnailUrl, width: 1280, height: 880 }]
+			? [
+					{
+						url: shared.thumbnailUrl,
+						width: PAGE_THUMBNAIL_WIDTH,
+						height: PAGE_THUMBNAIL_HEIGHT,
+						alt: shared.title,
+					},
+				]
 			: undefined;
 		return {
 			title: shared.title,

@@ -2,12 +2,17 @@ import { describe, expect, it } from "bun:test";
 import type { CommandConfig } from "./command";
 import { type CliCommand, type CliGroup, filterByAudience } from "./router";
 
-function cmd(path: string[], audience?: CommandConfig["audience"]): CliCommand {
+function cmd(
+	path: string[],
+	audience?: CommandConfig["audience"],
+	sandbox?: CommandConfig["sandbox"],
+): CliCommand {
 	return {
 		path,
 		command: {
 			description: path.join(" "),
 			audience,
+			sandbox,
 			run: async () => undefined,
 		},
 	};
@@ -56,5 +61,29 @@ describe("filterByAudience", () => {
 		const result = filterByAudience(groups, commands, ["internal", "public"]);
 		expect(paths(result.commands)).toEqual(paths(commands));
 		expect(result.groups).toEqual(groups);
+	});
+});
+
+describe("filterByAudience inside a cloud workspace", () => {
+	const groups: CliGroup[] = [
+		{ path: ["plugins"], description: "Plugins" },
+		{ path: ["hosts"], description: "Hosts", sandbox: false },
+	];
+	const commands = [
+		cmd(["plugins", "list"]),
+		cmd(["plugins", "install"], undefined, false),
+		cmd(["hosts", "list"]),
+		cmd(["auth", "login"], "public", false),
+	];
+
+	it("shows everything outside a cloud workspace", () => {
+		const outside = filterByAudience(groups, commands, ["public"]);
+		expect(paths(outside.commands)).toEqual(paths(commands));
+	});
+
+	it("hides sandbox: false commands and groups inside one", () => {
+		const inside = filterByAudience(groups, commands, ["public"], true);
+		expect(paths(inside.commands)).toEqual(["plugins list"]);
+		expect(paths(inside.groups)).toEqual(["plugins"]);
 	});
 });

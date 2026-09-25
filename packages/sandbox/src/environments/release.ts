@@ -342,10 +342,13 @@ if (ENV_FILE) {
 const probe = `ws-release-probe-${Date.now().toString(36)}`;
 const probeWorkspaceId = randomUUID();
 const probeSecret = await sandboxHostSecretFor(probeWorkspaceId);
+// Our server key stands in for a person's sign-in, so the probe exercises
+// the swap the way a signed-in box does.
+const probeSignInKey = probeEnv.SERVER_ANTHROPIC_API_KEY;
 const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 	workspaceId: probeWorkspaceId,
 	environmentEnv: probeEnv,
-	userAgentEnv: {},
+	userAgentEnv: probeSignInKey ? { ANTHROPIC_API_KEY: probeSignInKey } : {},
 	githubToken: null,
 	gitAuthor: { name: "Superset release", email: "noreply@superset.sh" },
 });
@@ -370,7 +373,7 @@ let probeFailed = await probeBox({
 	branch: BRANCH,
 	primaryPath: REPO_PATH,
 	expectDependencies: true,
-	expectAnthropicRule: Boolean(probeEnv.ANTHROPIC_API_KEY),
+	expectAnthropicRule: Boolean(probeSignInKey),
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId: probeWorkspaceId, userId: randomUUID() }
 		: null,

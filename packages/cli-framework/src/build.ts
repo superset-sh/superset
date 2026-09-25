@@ -33,6 +33,7 @@ await run({
 	globals: config.globals,
 	help: config.help,
 	audiences: config.audiences?.(),
+	sandbox: config.sandbox?.(),
 });
 `,
 	);

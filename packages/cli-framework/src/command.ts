@@ -22,6 +22,8 @@ export type CommandConfig<
 	description: string;
 	aliases?: string[];
 	audience?: Audience;
+	/** false hides the command inside a cloud workspace, where it cannot work. */
+	sandbox?: false;
 	skipMiddleware?: TSkip;
 	options?: TOpts;
 	args?: TArgs;

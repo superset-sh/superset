@@ -196,7 +196,6 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"sentry",
 	"notion",
 	"microsoft_teams",
-	"google_calendar",
 	"gmail",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 

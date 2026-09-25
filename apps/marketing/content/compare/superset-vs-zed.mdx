@@ -2,7 +2,7 @@
 title: "Superset vs Zed Parallel Agents (2026): Editor Threads or a Dedicated Workspace?"
 description: "Compare Superset and Zed's Parallel Agents for running multiple coding agents. Isolation defaults, review flow, automations, and when each one fits."
 date: 2026-08-17
-lastUpdated: 2026-08-17
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - zed
@@ -23,8 +23,8 @@ Zed added Parallel Agents in April 2026, and it is the strongest answer yet to r
 
 | | **Superset** | **Zed Parallel Agents** |
 |---|---|---|
-| **What it is** | Dedicated workspace for orchestrating 100+ agents in parallel | Fast editor with agent threads managed in a sidebar |
-| **Isolation** | Git worktree per task, always | Optional Git worktree per thread; shared working copy by default |
+| **What it is** | Dedicated workspace for orchestrating multiple agents in parallel | Fast editor with agent threads managed in a sidebar |
+| **Isolation** | Git worktrees for local branch-based workspaces | Optional Git worktree per thread; shared working copy by default |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Gemini, Copilot, more) | Zed's built-in agent, ACP external agents (Claude, Codex, Gemini, OpenCode, more), any CLI agent as a Terminal Thread |
 | **Review and merge** | Central diff review per workspace, merge or discard each task | Hunk-level accept/reject in the Agent Panel; worktree threads merge via your normal Git workflow |
 | **Automations** | Scheduled recurring agent runs built in | Not documented |
@@ -51,7 +51,7 @@ Zed is a fast, open-source, Rust-based editor, and Parallel Agents (launched Apr
 
 ### Isolation by Default vs Isolation on Request
 
-This is the biggest practical difference. In Superset, every task gets its own worktree and branch automatically; collisions between agents are structurally impossible. In Zed, threads share your working copy unless you deliberately start one in a new worktree, and Zed's own docs advise isolating threads that might touch the same files. Opt-in isolation is flexible for quick edits, but at fleet scale the discipline burden shifts to you: forget once, and two agents are editing the same checkout.
+This is the biggest practical difference. New local branch-based Superset workspaces get separate worktrees and branches. That separates working files but does not prevent merge conflicts or shared-service interference. In Zed, threads share your working copy unless you deliberately start one in a new worktree, and Zed's own docs advise isolating threads that might touch the same files. Opt-in isolation is flexible for quick edits, but at fleet scale the discipline burden shifts to you: forget once, and two agents are editing the same checkout.
 
 ### Editor-Centered vs Fleet-Centered
 
@@ -101,7 +101,7 @@ Both are free to start. Zed's Personal plan is free forever, with paid tiers ($1
 
 ### Does Zed isolate parallel agents in Git worktrees?
 
-Optionally. Zed threads share your working copy by default, and you can start a thread in a new worktree when it might conflict with others. Superset creates a worktree per task automatically, so isolation never depends on remembering to opt in.
+Optionally. Zed threads share your working copy by default, and you can start a thread in a new worktree when it might conflict with others. Superset creates a worktree for each new local branch-based workspace; cloud workspaces use clones and projectless sessions use scratch folders.
 
 ### Can Zed and Superset run the same agents?
 

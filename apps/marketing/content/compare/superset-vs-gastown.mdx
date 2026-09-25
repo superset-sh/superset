@@ -2,7 +2,7 @@
 title: "Superset vs Gas Town (2026): Agent Workspace vs Autonomous Agent Fleet"
 description: "Compare Superset and Gas Town (Steve Yegge's multi-agent orchestrator) for running AI coding agents: a desktop workspace vs an autonomous 20-30 agent fleet."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - gastown
@@ -23,12 +23,12 @@ Superset and Gas Town both orchestrate many coding agents, but they sit at diffe
 
 | | **Superset** | **Gas Town** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Coordinates fleets of 20-30 agents with an AI coordinator, work ledger, and merge queue |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Coordinates fleets of 20-30 agents with an AI coordinator, work ledger, and merge queue |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Autonomous multi-agent orchestration system |
 | **Interface** | Desktop GUI, CLI, MCP server | CLI (`gt`) + tmux + TUI feed + local web dashboard |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code (deepest), plus Codex, Gemini, Copilot, Cursor, Amp, OpenCode, Pi, and more |
 | **Work model** | Task → worktree workspace → agent → review | Beads (git-backed work ledger) → Mayor dispatches → polecats execute → Refinery merges |
-| **Isolation** | Automatic Git worktree per task | Git worktree-backed "hooks" persisting agent work |
+| **Isolation** | Git worktrees for local branch-based workspaces | Git worktree-backed "hooks" persisting agent work |
 | **Merging** | You review and merge (diff editor, PR flow) | Bors-style bisecting merge queue; workers never push to main |
 | **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Autonomous dispatch loop + watchdog recovery; no time-based scheduler |
 | **License** | Source-available (ELv2) | Open source (MIT) |
@@ -97,7 +97,7 @@ No. Claude Code is the default and deepest integration, but Gas Town ships prese
 
 ### Do Superset and Gas Town both use Git worktrees?
 
-Yes. Superset creates an isolated worktree per task. Gas Town's "hooks" persist each agent's work in git worktree-backed storage so it survives crashes and restarts.
+Yes. Superset creates a worktree for each new local branch-based workspace. Gas Town's "hooks" persist each agent's work in git worktree-backed storage so it survives crashes and restarts.
 
 ### Does Gas Town have a GUI?
 

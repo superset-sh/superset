@@ -385,6 +385,9 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
+						onPromoteToEnvironment={
+							hostType === "cloud" ? handlePromoteToEnvironment : undefined
+						}
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}

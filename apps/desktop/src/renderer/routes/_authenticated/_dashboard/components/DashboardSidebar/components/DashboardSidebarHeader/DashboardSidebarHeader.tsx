@@ -40,13 +40,13 @@ import {
 } from "renderer/hooks/useOpenNewWorkspace";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
-import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	pullRequestsSearchFromFilters,
 	usePullRequestsFilterStore,
@@ -140,7 +140,7 @@ export function DashboardSidebarHeader({
 	const isMac = platform === undefined || platform === "darwin";
 	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
-	const { gateFeature } = usePaywall();
+	const { gateFeature, hasAccess } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
 	const workspaceMatch = matchRoute({
 		to: "/workspace/$workspaceId",
@@ -169,8 +169,7 @@ export function DashboardSidebarHeader({
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
 		env.NODE_ENV === "development";
-	const { myFailedCount, hasAutomations, automationsPending } =
-		useFailedAutomations();
+	const cloudUtils = cloudTrpc.useUtils();
 
 	const {
 		tab: lastTab,
@@ -197,11 +196,18 @@ export function DashboardSidebarHeader({
 	// Automations are Pro, but an org that already has some (a downgrade) can
 	// still reach the list to pause, edit, or delete them; the page gates the
 	// actions that need the plan. A Free org with none meets the paywall here.
-	// While the list is still loading the answer is unknown, so let the click
+	// If the list can't be read the answer is unknown, so let the click
 	// through: an empty list page gates every action itself, and a wrong
 	// paywall on a downgraded org would be the worse mistake.
-	const handleAutomationsClick = () => {
-		if (hasAutomations || automationsPending) {
+	const handleAutomationsClick = async () => {
+		if (hasAccess(GATED_FEATURES.AUTOMATIONS)) {
+			navigate({ to: "/automations" });
+			return;
+		}
+		const automations = await cloudUtils.automation.list
+			.fetch()
+			.catch(() => null);
+		if (automations === null || automations.length > 0) {
 			navigate({ to: "/automations" });
 			return;
 		}
@@ -341,37 +347,21 @@ export function DashboardSidebarHeader({
 							<button
 								type="button"
 								onClick={handleAutomationsClick}
-								aria-label={
-									myFailedCount > 0
-										? t({
-												message: `Automations, ${myFailedCount} failing`,
-											})
-										: t({
-												message: "Automations",
-											})
-								}
+								aria-label={t({
+									message: "Automations",
+								})}
 								className={cn(
-									"relative flex size-7 items-center justify-center rounded-md transition-colors",
+									"flex size-7 items-center justify-center rounded-md transition-colors",
 									isAutomationsOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
 								)}
 							>
 								<LuClock className="size-3.5" strokeWidth={1.5} />
-								{myFailedCount > 0 && (
-									<span
-										aria-hidden="true"
-										className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
-									/>
-								)}
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">
-							{myFailedCount > 0 ? (
-								<Trans>Automations ({myFailedCount} failing)</Trans>
-							) : (
-								<Trans>Automations</Trans>
-							)}
+							<Trans>Automations</Trans>
 						</TooltipContent>
 					</Tooltip>
 
@@ -645,16 +635,6 @@ export function DashboardSidebarHeader({
 				<span className="flex-1 text-left">
 					<Trans>Automations</Trans>
 				</span>
-				{myFailedCount > 0 && (
-					<span
-						title={t({
-							message: `${myFailedCount} of your automations failed their last run`,
-						})}
-						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
-					>
-						{myFailedCount > 9 ? "9+" : myFailedCount}
-					</span>
-				)}
 			</button>
 
 			<button

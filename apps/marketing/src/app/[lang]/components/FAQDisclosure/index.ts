@@ -1,0 +1,1 @@
+export { FAQDisclosure } from "./FAQDisclosure";

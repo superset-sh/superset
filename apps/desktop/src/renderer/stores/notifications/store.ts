@@ -31,10 +31,18 @@ interface NotificationState {
 	 * and, with the monotonic guard, poison the comparison.
 	 */
 	terminalSeenAt: Record<string, number>;
+	/**
+	 * workspaceId → the reported status timestamp the user has seen, for
+	 * hosts that report a status instead of exposing bindings. Same clock
+	 * rule as terminalSeenAt: the reporting host's, never the renderer's.
+	 */
+	workspaceSeenAt: Record<string, number>;
 	setManualUnread: (workspaceId: string) => void;
 	clearManualUnread: (workspaceId: string) => void;
 	markTerminalSeen: (terminalId: string, at: number) => void;
 	pruneTerminalSeen: (terminalId: string) => void;
+	markWorkspaceSeen: (workspaceId: string, at: number) => void;
+	pruneWorkspaceSeen: (workspaceId: string) => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
@@ -43,6 +51,7 @@ export const useNotificationStore = create<NotificationState>()(
 			(set) => ({
 				manualUnread: {},
 				terminalSeenAt: {},
+				workspaceSeenAt: {},
 				setManualUnread: (workspaceId) => {
 					set((state) => ({
 						manualUnread: { ...state.manualUnread, [workspaceId]: true },
@@ -74,6 +83,23 @@ export const useNotificationStore = create<NotificationState>()(
 						return { terminalSeenAt };
 					});
 				},
+				markWorkspaceSeen: (workspaceId, at) => {
+					set((state) => {
+						const prev = state.workspaceSeenAt[workspaceId];
+						if (prev !== undefined && prev >= at) return state;
+						return {
+							workspaceSeenAt: { ...state.workspaceSeenAt, [workspaceId]: at },
+						};
+					});
+				},
+				pruneWorkspaceSeen: (workspaceId) => {
+					set((state) => {
+						if (!(workspaceId in state.workspaceSeenAt)) return state;
+						const { [workspaceId]: _removed, ...workspaceSeenAt } =
+							state.workspaceSeenAt;
+						return { workspaceSeenAt };
+					});
+				},
 			}),
 			{
 				name: "v2-notifications-v1",
@@ -81,6 +107,7 @@ export const useNotificationStore = create<NotificationState>()(
 				partialize: (state) => ({
 					manualUnread: state.manualUnread,
 					terminalSeenAt: state.terminalSeenAt,
+					workspaceSeenAt: state.workspaceSeenAt,
 				}),
 				migrate: migrateNotificationState,
 			},
@@ -89,9 +116,9 @@ export const useNotificationStore = create<NotificationState>()(
 	),
 );
 
-type PersistedV2NotificationState = Pick<
+type PersistedNotificationState = Pick<
 	NotificationState,
-	"manualUnread" | "terminalSeenAt"
+	"manualUnread" | "terminalSeenAt" | "workspaceSeenAt"
 >;
 
 /**
@@ -102,14 +129,13 @@ type PersistedV2NotificationState = Pick<
 export function migrateNotificationState(
 	persisted: unknown,
 	version: number,
-): PersistedV2NotificationState {
+): PersistedNotificationState {
 	if (version >= 2) {
-		const state = persisted as
-			| Partial<PersistedV2NotificationState>
-			| undefined;
+		const state = persisted as Partial<PersistedNotificationState> | undefined;
 		return {
 			manualUnread: state?.manualUnread ?? {},
 			terminalSeenAt: state?.terminalSeenAt ?? {},
+			workspaceSeenAt: state?.workspaceSeenAt ?? {},
 		};
 	}
 	const legacy = persisted as
@@ -127,7 +153,7 @@ export function migrateNotificationState(
 			manualUnread[entry.workspaceId] = true;
 		}
 	}
-	return { manualUnread, terminalSeenAt: {} };
+	return { manualUnread, terminalSeenAt: {}, workspaceSeenAt: {} };
 }
 
 export function getNotificationSourceKey(

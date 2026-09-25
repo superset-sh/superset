@@ -53,6 +53,10 @@ export const DEAD_KEYS: DeadKey[] = [
 	// One-shot v1→v2 flip handoffs; no flip remains
 	{ key: "v1-migration-continuity-pending-", match: "prefix" },
 	{ key: "v1-migration-welcome-pending-", match: "prefix" },
+	// Opening a page no longer routes to the last-visited workspace
+	{ key: "last-active-v2-workspace", match: "exact" },
+	// Sidebar automations failure badge removed; it polled for every window
+	{ key: "automation-failures-v1", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

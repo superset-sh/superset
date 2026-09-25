@@ -108,6 +108,7 @@ export interface CreateAppResult {
 	 */
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
+	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;
 }
 
@@ -537,6 +538,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		terminalAgentStore,
 		dispose,
 	};
 }

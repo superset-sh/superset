@@ -2,7 +2,7 @@
 title: "Superset vs Mux (2026): Agent-Agnostic Workspace vs Coder's Agent Multiplexer"
 description: "Compare Superset and Mux by Coder for parallel agentic development: running any CLI agent in worktrees vs Mux's built-in agent loop with container and Coder runtimes."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - mux
@@ -23,11 +23,11 @@ Superset and Mux (by Coder, the company behind the self-hosted dev-environment p
 
 | | **Superset** | **Mux** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Plans and executes tasks with parallel sessions of its own agent loop |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Plans and executes tasks with parallel sessions of its own agent loop |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Open-source "coding agent multiplexer" (desktop + self-hosted server) |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Its own agent loop only (BYO API keys: Anthropic, OpenAI, xAI, Ollama, OpenRouter) |
 | **Subscriptions** | Reuses your Claude Max / ChatGPT plans via vendor CLIs | API-key billing (plus subsidized Mux Gateway credits) |
-| **Isolation** | Automatic Git worktree per task | Six runtimes: local, worktree, SSH, Docker, devcontainer, Coder |
+| **Isolation** | Git worktrees for local branch-based workspaces | Six runtimes: local, worktree, SSH, Docker, devcontainer, Coder |
 | **Remote / cloud** | Remote and cloud workspaces across your network devices | Self-hosted `mux server` (browser/mobile web), SSH, Coder workspaces |
 | **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Headless `mux run` with goals/budgets, JS workflow files, GitHub Actions |
 | **Editor reach** | Open in VS Code, Cursor, Windsurf, JetBrains, Zed | ACP bridge into Zed, Neovim, JetBrains; VS Code extension |
@@ -97,7 +97,7 @@ No. Mux uses its own agent loop against model APIs (Anthropic, OpenAI, xAI, Olla
 
 ### Do both use Git worktrees?
 
-Both offer them. Worktree is one of Mux's six runtimes alongside local, SSH, Docker, devcontainer, and Coder workspaces. Superset makes a worktree per task the default across local, remote, and cloud workspaces.
+Both offer them. Worktree is one of Mux's six runtimes alongside local, SSH, Docker, devcontainer, and Coder workspaces. Superset creates worktrees for new local branch-based workspaces; cloud workspaces use clones and projectless sessions use scratch folders.
 
 ### Is Mux open source?
 

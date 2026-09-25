@@ -8,6 +8,9 @@ export function pageOrigin(baseUrl: string, pageId: string): string {
 }
 
 export const THUMBNAIL_FILENAME = "thumbnail.jpg";
+/** The 1.91:1 card that Open Graph, Slack and the pages grid all show. */
+export const PAGE_THUMBNAIL_WIDTH = 1200;
+export const PAGE_THUMBNAIL_HEIGHT = 630;
 export const TICKET_QUERY_PARAM = "ticket";
 export const TICKET_PATH_PREFIX = "~";
 

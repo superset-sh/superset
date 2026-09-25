@@ -4,7 +4,7 @@ import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
-import { getListedBlogPosts } from "@/lib/blog";
+import { getBlogPost, getListedBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./components/BlogCard";
 import { GridCross } from "./components/GridCross";
 
@@ -51,6 +51,16 @@ export default async function BlogPage() {
 	await initServerI18n();
 
 	const posts = getListedBlogPosts();
+	const guides = [
+		"change-ui-with-your-coding-agent",
+		"send-pr-feedback-to-your-agent",
+		"review-agent-work-with-pages",
+		"parallel-coding-agents-guide",
+		"scheduled-agent-maintenance",
+	].flatMap((slug) => {
+		const post = getBlogPost(slug);
+		return post ? [post] : [];
+	});
 
 	return (
 		<main className="relative min-h-screen">
@@ -87,6 +97,23 @@ export default async function BlogPage() {
 					<GridCross className="bottom-0 right-0" />
 				</div>
 			</header>
+
+			<section
+				aria-labelledby="guides-heading"
+				className="relative max-w-3xl mx-auto px-6 pt-12"
+			>
+				<h2
+					id="guides-heading"
+					className="text-2xl font-medium tracking-tight text-foreground mb-6"
+				>
+					<Trans>Guides</Trans>
+				</h2>
+				<div className="flex flex-col gap-4">
+					{guides.map((post) => (
+						<BlogCard key={post.url} post={post} headingLevel="h3" />
+					))}
+				</div>
+			</section>
 
 			{/* Posts section */}
 			<div className="relative max-w-3xl mx-auto px-6 py-12">

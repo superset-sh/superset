@@ -1,3 +1,4 @@
+import type { ActiveAgentStatus } from "@superset/shared/agent-status";
 import { desc, sql } from "drizzle-orm";
 import {
 	bigint,
@@ -752,7 +753,9 @@ export const cloudWorkspaces = pgTable(
 		// never to display one — a rename lands on the sandbox and leaves these
 		// behind.
 		name: text().notNull(),
+		/** The branch the sandbox works on, cut from `baseBranch` at create. */
 		branch: text().notNull(),
+		baseBranch: text("base_branch").notNull(),
 		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
@@ -761,6 +764,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
+		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
@@ -1242,12 +1247,9 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
-		// The pruner scans oldest-first for rows that still have a body. Without
-		// this the planner walks automation_events_org_received_idx end to end and
-		// sorts, per batch. Partial, so it shrinks as the backlog drains.
-		index("automation_events_prunable_idx")
-			.on(t.receivedAt)
-			.where(sql`${t.payload} IS NOT NULL`),
+		// Retention deletes oldest-first. Without this the planner walks
+		// automation_events_org_received_idx end to end and sorts, per batch.
+		index("automation_events_received_at_idx").on(t.receivedAt),
 	],
 );
 
@@ -1317,6 +1319,9 @@ export const automationRuns = pgTable(
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
+		// ON DELETE SET NULL on event_id resolves through this; without it every
+		// automation_events row deleted by retention scans this table.
+		index("automation_runs_event_idx").on(t.eventId),
 	],
 );
 

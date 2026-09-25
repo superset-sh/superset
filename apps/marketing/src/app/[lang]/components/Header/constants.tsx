@@ -66,6 +66,11 @@ export const RESOURCE_LINKS: NavLink[] = [
 		label: <Trans>About</Trans>,
 		description: <Trans>The people behind Superset.</Trans>,
 	},
+	{
+		href: "/media",
+		label: <Trans>Media kit</Trans>,
+		description: <Trans>Logos, product images, and press contact.</Trans>,
+	},
 ];
 
 export const TOP_LEVEL_LINKS: NavLink[] = [

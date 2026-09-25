@@ -1,6 +1,7 @@
 import "../../../../styles/hljs-github.css";
 
 import { cn } from "@superset/ui/utils";
+import type { Fragment } from "@tiptap/pm/model";
 import { EditorState } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -73,6 +74,15 @@ function createSourceTracking(editor: Editor, value: string): SourceTracking {
 		lastEmitted: value,
 		merge: createMarkdownMerger(value, baseline),
 	};
+}
+
+function getSelectedEditorMarkdown(editor: Editor): string {
+	const storage = editor.storage as unknown as Record<
+		string,
+		{ serializer?: { serialize: (content: Fragment) => string } }
+	>;
+	const serializer = storage.markdown?.serializer;
+	return serializer?.serialize(editor.state.selection.content().content) ?? "";
 }
 
 function getEditorMarkdown(editor: Editor): string {
@@ -295,12 +305,21 @@ export function TipTapMarkdownRenderer({
 		</div>
 	);
 
+	// Radix's trigger calls preventDefault on the contextmenu event, which stops
+	// Chromium emitting the webContents event that attachEditContextMenu uses to
+	// build the native edit menu. Wrapping an editable view would trade its
+	// Paste/Cut/Undo and spellcheck for this menu's copy actions.
 	if (editable) {
 		return content;
 	}
 
 	return (
-		<SelectionContextMenu selectAllContainerRef={articleRef}>
+		<SelectionContextMenu
+			getMarkdownSelection={() =>
+				editor ? getSelectedEditorMarkdown(editor) : ""
+			}
+			selectAllContainerRef={articleRef}
+		>
 			{content}
 		</SelectionContextMenu>
 	);

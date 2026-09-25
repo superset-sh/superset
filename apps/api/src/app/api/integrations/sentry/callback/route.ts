@@ -11,40 +11,31 @@ import {
 } from "@superset/trpc/integrations/sentry";
 
 import { env } from "@/env";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { SENTRY_STATE_COOKIE } from "../connect/route";
 
-/**
- * Redirect back to the web integration page, clearing the one-shot state
- * cookie on every exit so a failed callback does not leave it live for its TTL.
- */
-const web = (params = "") =>
-	new Response(null, {
-		status: 302,
-		headers: {
-			Location: `${env.NEXT_PUBLIC_WEB_URL}/integrations/sentry${params}`,
-			"Set-Cookie": `${SENTRY_STATE_COOKIE}=; HttpOnly; SameSite=Lax; Path=/api/integrations/sentry; Max-Age=0`,
-		},
-	});
+const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/sentry`;
 
 /**
  * Finishes a Sentry install: exchanges the grant code for a token pair and
  * writes the connection.
  *
  * This is the authoritative path — it is the only one that knows the Superset
- * org (from the signed cookie the connect route set). The `installation.created`
+ * org (from the signed state cookie the connect route set). The `installation.created`
  * webhook that Sentry fires in parallel names no Superset org, so it can only
  * ever update a row this route already wrote; the two never both create.
  */
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
 		params: ["code", "installationId", "orgSlug"],
-		redirect: (error) => web(`?error=${error}`),
-		stateFrom: (req) =>
-			readCookie(req.headers.get("cookie"), SENTRY_STATE_COOKIE),
+		redirect: (error) => `${settingsUrl}?error=${error}`,
+		cookie: STATE_COOKIES.sentry,
+		// Sentry answers with no state of ours, so the cookie is the only copy.
+		stateInCookieOnly: true,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, fail } = callback;
+	const web = (query = "") => callback.exit(`${settingsUrl}${query}`);
 	const installationId = params.installationId;
 
 	let token: Awaited<ReturnType<typeof exchangeSentryCode>>;
@@ -55,14 +46,14 @@ export async function GET(request: Request) {
 		});
 	} catch (e) {
 		console.error("[sentry/callback] Token exchange failed:", e);
-		return web("?error=token_exchange_failed");
+		return fail("token_exchange_failed");
 	}
 
 	const organization = await fetchSentryOrganization(
 		token.token,
 		params.orgSlug,
 	);
-	if (!organization) return web("?error=organization_lookup_failed");
+	if (!organization) return fail("organization_lookup_failed");
 
 	const config: SentryConfig = {
 		provider: "sentry",
@@ -104,14 +95,4 @@ export async function GET(request: Request) {
 	await verifySentryInstall(installationId, token.token);
 
 	return web();
-}
-
-/** One cookie value from a request's Cookie header. */
-function readCookie(header: string | null, name: string): string | null {
-	if (!header) return null;
-	for (const part of header.split(";")) {
-		const [key, ...rest] = part.trim().split("=");
-		if (key === name) return rest.join("=");
-	}
-	return null;
 }

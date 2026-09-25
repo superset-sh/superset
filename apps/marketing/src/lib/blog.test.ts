@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import matter from "gray-matter";
 import {
 	getAllSlugs,
 	getBlogPost,
@@ -13,6 +15,19 @@ const unlistedSlugs = [
 	"parallel-coding-agents-guide",
 	"superset-mobile",
 ];
+
+test("preserves recorded blog updates without generating missing dates", () => {
+	for (const post of getBlogPosts()) {
+		const { data } = matter(
+			readFileSync(`content/blog/${post.slug}.mdx`, "utf8"),
+		);
+		expect(post.lastUpdated).toBe(
+			data.lastUpdated
+				? new Date(data.lastUpdated).toISOString().slice(0, 10)
+				: undefined,
+		);
+	}
+});
 
 describe("unlisted blog posts", () => {
 	test("remain published for direct routes, sitemaps, and LLM discovery", () => {

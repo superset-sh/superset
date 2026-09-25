@@ -3,6 +3,10 @@
  * Renderer extends these with MosaicNode layout specifics.
  */
 
+import {
+	ACTIVE_AGENT_STATUSES,
+	type ActiveAgentStatus,
+} from "@superset/shared/agent-status";
 import type { ChangeCategory } from "./changes-types";
 
 /**
@@ -24,30 +28,17 @@ type PaneType =
  * - review: Agent completed, ready for review (green)
  * - failed: Agent turn/process ended in failure, needs attention (red)
  */
-export type PaneStatus =
-	| "idle"
-	| "working"
-	| "permission"
-	| "review"
-	| "failed";
+export type PaneStatus = "idle" | ActivePaneStatus;
 
 /** Non-idle status for UI indicators */
-export type ActivePaneStatus = Exclude<PaneStatus, "idle">;
+export type ActivePaneStatus = ActiveAgentStatus;
 
-/**
- * Status priority order (higher = more urgent).
- * Single source of truth for aggregation logic.
- *
- * `failed` sits just below `permission`: both demand attention, but a live
- * permission prompt is actionable right now, whereas a failure is terminal.
- */
-export const STATUS_PRIORITY = {
+export const STATUS_PRIORITY: Record<PaneStatus, number> = {
 	idle: 0,
-	review: 1,
-	working: 2,
-	failed: 3,
-	permission: 4,
-} as const satisfies Record<PaneStatus, number>;
+	...(Object.fromEntries(
+		ACTIVE_AGENT_STATUSES.map((status, index) => [status, index + 1]),
+	) as Record<ActiveAgentStatus, number>),
+};
 
 /**
  * Compare two statuses and return the higher priority one.

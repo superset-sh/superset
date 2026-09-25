@@ -20,7 +20,7 @@ export const env = createEnv({
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
-		ANTHROPIC_API_KEY: z.string(),
+		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
 		// Read-only PAT (no scopes needed) used to fetch stargazer timestamps for
 		// /starchart. GitHub's stargazers endpoint requires authentication even for
 		// public repos; without this the page falls back to a live total only.

@@ -784,7 +784,7 @@ export function usePaneRegistry({
 				getIcon: () => <GitPullRequest className="size-3.5" />,
 				getTitle: (pane) => {
 					const data = pane.data as PullRequestPaneData;
-					return t({ message: `Pull request #${data.prNumber}` });
+					return t({ message: `Pull request #${data.number}` });
 				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<PullRequestPane

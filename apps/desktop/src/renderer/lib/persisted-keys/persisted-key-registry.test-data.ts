@@ -78,10 +78,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["sidebar-workspaces-collapse"],
 	],
 	[
-		"src/renderer/stores/last-active-workspace.ts",
-		["last-active-v2-workspace"],
-	],
-	[
 		"src/renderer/stores/workspace-create-defaults.ts",
 		["v2-workspace-create-defaults"],
 	],
@@ -93,10 +89,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	[
 		"src/renderer/stores/terminal-close-confirm/store.ts",
 		["terminal-close-confirm-v1"],
-	],
-	[
-		"src/renderer/stores/automation-failures/store.ts",
-		["automation-failures-v1"],
 	],
 	[
 		"src/renderer/stores/app-version-history/store.ts",

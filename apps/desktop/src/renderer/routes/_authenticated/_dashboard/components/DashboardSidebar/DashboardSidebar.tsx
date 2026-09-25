@@ -18,11 +18,13 @@ import {
 	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useNotificationStore } from "renderer/stores/notifications";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkActions";
 import { DashboardSidebarBulkDeleteMount } from "./components/DashboardSidebarBulkDeleteMount";
@@ -273,6 +275,20 @@ export function DashboardSidebar({
 	// the status provider fans out bindings queries and event subscriptions for
 	// these once, instead of per row. Deliberately unfiltered so subscriptions
 	// don't churn per keystroke.
+	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const pruneWorkspaceSeen = useNotificationStore(
+		(state) => state.pruneWorkspaceSeen,
+	);
+	useEffect(() => {
+		if (!cloudWorkspaces) return;
+		const live = new Set(cloudWorkspaces.map((cloud) => cloud.id));
+		for (const id of Object.keys(
+			useNotificationStore.getState().workspaceSeenAt,
+		)) {
+			if (!live.has(id)) pruneWorkspaceSeen(id);
+		}
+	}, [cloudWorkspaces, pruneWorkspaceSeen]);
+
 	const statusWorkspaces = useMemo<SidebarStatusWorkspaceRef[]>(() => {
 		const byId = new Map<string, SidebarStatusWorkspaceRef>();
 		for (const workspace of pinnedWorkspaces) {
@@ -286,8 +302,16 @@ export function DashboardSidebar({
 				byId.set(workspace.id, { id: workspace.id, hostId: workspace.hostId });
 			}
 		}
+		for (const cloud of cloudWorkspaces ?? []) {
+			byId.set(cloud.id, {
+				id: cloud.id,
+				hostId: cloud.id,
+				reportedStatus: cloud.agentStatus ?? null,
+				reportedAt: cloud.agentStatusAt?.getTime() ?? null,
+			});
+		}
 		return [...byId.values()];
-	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups]);
+	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups, cloudWorkspaces]);
 
 	const activeProject = useMemo(() => {
 		if (!activeWorkspaceId) return null;

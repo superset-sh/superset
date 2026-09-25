@@ -29,6 +29,17 @@ quota and cost visibility in the product — and a decision on unattended agent
 runs, which die with the session (Blaxel froze processes; Vercel snapshots the
 filesystem and boots fresh).
 
+**A golden lives exactly as long as its environment. Fixed (2026-09-25).** A
+golden is a stopped persistent sandbox whose snapshot never expires, about
+4 GB at $0.08/GB-month, and the only per-team storage nothing bounded: the
+release has deleted the golden it replaces since 2026-09-14, but archiving an
+environment left its golden behind forever. Archive now deletes it. Measured
+before the fix: 10 goldens (9 dead) and 6 orphan snapshots from before the
+orphan-cleanup flag, 54 GB, swept by hand. Still owed (SUPER-2461): a storage
+line per environment in Settings, and if goldens ever get an expiry it must
+come with an automatic rebuild, because a golden's last use only resets when a
+new box is created from it.
+
 **Delete deletes.** `useDestroyWorkspace` decides by the cloud row, not by the
 host it happens to reach: a cloud workspace goes to `cloudWorkspace.delete`,
 which removes the sandbox (and its snapshots) at the provider and marks the row
@@ -40,14 +51,27 @@ closed.
 
 ## Credentials and blast radius
 
-**Model credentials are ours by default. gated** A sandbox without a personal
-sign-in (Settings › Cloud › Agents, per user, `agent_credentials`) runs on the
-org's Anthropic and OpenAI keys, brokered at the firewall, so agent usage lands
-on our bill with no per-org attribution or cap. Fine while only we can create
-sandboxes; unshippable after. Rotation no longer needs a recreate: the
+**Model credentials are the person's sign-in, never ours and never the
+environment's. Fixed (2026-09-25).** A sandbox's Anthropic or OpenAI credential
+comes from the creator's sign-in (Settings › Agents, per user,
+`agent_credentials`), brokered at the firewall by a rule that fires only on the
+placeholder the agent presents. An environment variable by one of those names
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`) is ignored:
+it never reaches the box, so nothing that runs there, a launched agent, a
+hand-typed `claude`, a headless `claude -p`, `codex`, the app itself, can bill
+it; the environment sheet and `secrets set` say so. Measured on Claude Code
+2.1.282: with a key beside an OAuth token it takes the key, so leaving the key
+out is the only way a terminal stays on the person's subscription. What this
+costs: an app that needs a provider key cannot get it from the environment in
+a cloud workspace; with an API-key sign-in the app's requests carry the
+placeholder and run on the person's key, with a subscription they fail. Our
+own API reads `SERVER_ANTHROPIC_API_KEY` instead, which passes into a box
+like any other variable. **Open:** nothing at workspace creation checks that the chosen
+agent has a sign-in, so a person without one gets a box whose agent sits on a
+login prompt, and an automation-created box does the same silently. Rotation
+of a person's credential reaches a running box within one keepalive: the
 firewall policy is live-updatable and every wake and `access` keepalive
-re-derives and re-applies it, so a rotated key reaches a running box within
-one keepalive.
+re-derives and re-applies it.
 
 **The GitHub token outlives the clone. Fixed (v2 layout, 2026-09-13).**
 `git clone` with the token in the URL wrote it into `.git/config`, so a
