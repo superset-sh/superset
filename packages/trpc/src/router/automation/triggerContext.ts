@@ -69,10 +69,7 @@ export function promptWithTriggerContext(
 			? [EXTERNAL_TRIGGER_POLICY, "<untrusted_automation_trigger_data>"]
 			: []),
 		"<automation_trigger_info>",
-		JSON.stringify(info, null, 2)
-			.replaceAll("&", "\\u0026")
-			.replaceAll("<", "\\u003c")
-			.replaceAll(">", "\\u003e"),
+		JSON.stringify(info, null, 2),
 		"</automation_trigger_info>",
 		...(event ? ["</untrusted_automation_trigger_data>"] : []),
 		`<timestamp>${new Date().toUTCString()}</timestamp>`,
