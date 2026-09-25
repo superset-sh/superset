@@ -6459,6 +6459,9 @@ msgstr "Failed to update automation"
 msgid "Failed to update avatar"
 msgstr "Failed to update avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "Failed to update base ref fetch"
+
 msgid "Failed to update branch prefix"
 msgstr "Failed to update branch prefix"
 
@@ -6509,6 +6512,9 @@ msgstr "Feedback"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Feedback rate limiting is not configured"
+
+msgid "Fetch base branch in background"
+msgstr "Fetch base branch in background"
 
 msgid "Fetching latest changes"
 msgstr "Fetching latest changes"
@@ -11923,6 +11929,9 @@ msgstr "Refresh pull requests"
 msgid "Refresh repositories"
 msgstr "Refresh repositories"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Refreshes when Claude Code next runs."
 
@@ -16201,6 +16210,9 @@ msgstr "Update Superset on that device. In-app updates require a supported stand
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Update Superset on this machine to attach files"
+
+msgid "update the base ref fetch setting"
+msgstr "update the base ref fetch setting"
 
 msgid "update the branch prefix"
 msgstr "update the branch prefix"

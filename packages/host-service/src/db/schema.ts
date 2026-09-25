@@ -134,6 +134,11 @@ export const hostSettings = sqliteTable("host_settings", {
 	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
 	defaultClaudeConfigDir: text("default_claude_config_dir"),
 	defaultCodexHome: text("default_codex_home"),
+	// Background base-branch refetch for the Changes panel. Null (never
+	// configured) means enabled — each unsolicited `git fetch` can surface an
+	// SSH approval prompt, so users with approving agents can turn it off.
+	// The diff itself never depends on the fetch (see base-ref-freshness.ts).
+	baseRefFetchEnabled: integer("base_ref_fetch_enabled"),
 });
 
 export const pullRequests = sqliteTable(

@@ -6459,6 +6459,9 @@ msgstr "Nepodařilo se aktualizovat automatizaci"
 msgid "Failed to update avatar"
 msgstr "Nepodařilo se aktualizovat avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "Nepodařilo se aktualizovat načítání základní větve"
+
 msgid "Failed to update branch prefix"
 msgstr "Nepodařilo se změnit prefix větve"
 
@@ -6509,6 +6512,9 @@ msgstr "Zpětná vazba"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Omezení počtu zpětných vazeb není nastavené"
+
+msgid "Fetch base branch in background"
+msgstr "Načítat základní větev na pozadí"
 
 msgid "Fetching latest changes"
 msgstr "Stahuji nejnovější změny"
@@ -11923,6 +11929,9 @@ msgstr "Obnovit pull requesty"
 msgid "Refresh repositories"
 msgstr "Obnovit repozitáře"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Obnovuje základní větev ze vzdáleného repozitáře, aby panel Změny zůstal přesný. Každé načtení může vyžadovat schválení SSH. Vypnutí diff nikdy nerozbije — po rebase na novější upstream se commity upstreamu mohou zobrazovat jako změny, dokud ručně nenačtete."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Obnoví se při příštím spuštění Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Aktualizujte Superset na daném zařízení. Aktualizace z aplikace vyž
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Aktualizujte na tomto počítači Superset, abyste mohli přikládat soubory"
+
+msgid "update the base ref fetch setting"
+msgstr "aktualizovat načítání základní větve"
 
 msgid "update the branch prefix"
 msgstr "aktualizovat prefix větve"

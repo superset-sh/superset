@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 import type { SimpleGit } from "simple-git";
+import type { HostDb } from "../../../../db/db";
+import { hostSettings } from "../../../../db/schema";
 
 // The Changes panel diffs `<remote>/<base>...HEAD` but never fetches the base,
 // so after a rebase onto a newer upstream the stale merge-base counts every
@@ -10,6 +12,17 @@ const BASE_REF_FETCH_TTL_MS = 5 * 60_000;
 export interface BaseRefFetchTarget {
 	remote: string;
 	branch: string;
+}
+
+/**
+ * Host-wide kill switch for the background fetch. Null (never configured)
+ * means enabled. Synchronous single-row read — cheap enough for the status
+ * path, same as the other host_settings lookups. Fail-open: only an explicit
+ * 0 disables; anything else (including corrupt values) keeps current behavior.
+ */
+export function isBaseRefFetchEnabled(db: HostDb): boolean {
+	const row = db.select().from(hostSettings).get();
+	return (row?.baseRefFetchEnabled ?? 1) !== 0;
 }
 
 // Keyed by common git dir so N worktrees of one repo share one TTL window.

@@ -1,0 +1,1 @@
+ALTER TABLE `host_settings` ADD `base_ref_fetch_enabled` integer;

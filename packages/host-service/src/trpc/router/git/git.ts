@@ -35,7 +35,10 @@ import type {
 	PullRequestReviewThread,
 	PullRequestState,
 } from "./types";
-import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
+import {
+	isBaseRefFetchEnabled,
+	scheduleBaseRefFetch,
+} from "./utils/base-ref-freshness";
 import { rethrowEnvironmentalGitError } from "./utils/classify-git-error";
 import { gitConfigWrite } from "./utils/config-write";
 import {
@@ -159,17 +162,21 @@ function runStatusSnapshot(
 					// The coordinator maps live in this process, not in individual
 					// workers, so worktrees sharing one common Git dir share one TTL
 					// and in-flight fetch. The network fetch itself remains off-loop.
-					scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
-						workerPool.run(
-							gitFetchBaseRefTask,
-							{ worktreePath, target, gitEnv },
-							{
-								timeoutMs: 30_000,
-								strategy: "coalesce",
-								dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
-							},
-						),
-					);
+					// Disabled host-wide means zero background fetches — the diff
+					// itself is computed from the existing remote-tracking ref.
+					if (isBaseRefFetchEnabled(ctx.db)) {
+						scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
+							workerPool.run(
+								gitFetchBaseRefTask,
+								{ worktreePath, target, gitEnv },
+								{
+									timeoutMs: 30_000,
+									strategy: "coalesce",
+									dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+								},
+							),
+						);
+					}
 				}
 				return result.snapshot;
 			};

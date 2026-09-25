@@ -6459,6 +6459,9 @@ msgstr "Gagal memperbarui otomatisasi"
 msgid "Failed to update avatar"
 msgstr "Gagal memperbarui avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "Gagal memperbarui pengaturan pengambilan branch dasar"
+
 msgid "Failed to update branch prefix"
 msgstr "Gagal memperbarui prefix branch"
 
@@ -6509,6 +6512,9 @@ msgstr "Masukan"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Pembatasan laju masukan belum dikonfigurasi"
+
+msgid "Fetch base branch in background"
+msgstr "Ambil branch dasar di latar belakang"
 
 msgid "Fetching latest changes"
 msgstr "Mengambil perubahan terbaru"
@@ -11923,6 +11929,9 @@ msgstr "Segarkan pull request"
 msgid "Refresh repositories"
 msgstr "Segarkan repositori"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Menyegarkan branch dasar dari remote agar panel Changes tetap akurat. Setiap pengambilan dapat meminta persetujuan SSH. Mematikannya tidak merusak diff — setelah rebase ke upstream yang lebih baru, commit upstream dapat tampil sebagai perubahan sampai Anda mengambil manual."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
 
@@ -16201,6 +16210,9 @@ msgstr "Perbarui Superset di perangkat tersebut. Pembaruan dari aplikasi memerlu
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Perbarui Superset di mesin ini untuk melampirkan file"
+
+msgid "update the base ref fetch setting"
+msgstr "memperbarui pengaturan pengambilan branch dasar"
 
 msgid "update the branch prefix"
 msgstr "memperbarui prefix branch"

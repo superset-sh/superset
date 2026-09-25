@@ -6459,6 +6459,9 @@ msgstr "Otomasyon güncellenemedi"
 msgid "Failed to update avatar"
 msgstr "Avatar güncellenemedi"
 
+msgid "Failed to update base ref fetch"
+msgstr "Temel dal getirme ayarı güncellenemedi"
+
 msgid "Failed to update branch prefix"
 msgstr "Dal ön eki güncellenemedi"
 
@@ -6509,6 +6512,9 @@ msgstr "Geri bildirim"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Geri bildirim hız sınırlaması yapılandırılmamış"
+
+msgid "Fetch base branch in background"
+msgstr "Temel dalı arka planda getir"
 
 msgid "Fetching latest changes"
 msgstr "Son değişiklikler alınıyor"
@@ -11923,6 +11929,9 @@ msgstr "Pull request'leri yenile"
 msgid "Refresh repositories"
 msgstr "Depoları yenile"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Değişiklikler panelini doğru tutmak için temel dalı uzaktan yeniler. Her getirme SSH onayı isteyebilir. Kapatmak diff'i bozmaz — daha yeni bir upstream üzerine rebase sonrası, manuel getirene kadar upstream commit'leri çalışma alanı değişikliği gibi görünebilir."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Claude Code bir sonraki çalıştığında yenilenir."
 
@@ -16201,6 +16210,9 @@ msgstr "Superset’i o cihazda güncelleyin. Uygulama içinden güncelleme için
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
+
+msgid "update the base ref fetch setting"
+msgstr "temel dal getirme ayarını güncelle"
 
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"

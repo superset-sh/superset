@@ -6459,6 +6459,9 @@ msgstr "更新自動化失敗"
 msgid "Failed to update avatar"
 msgstr "更新頭像失敗"
 
+msgid "Failed to update base ref fetch"
+msgstr "更新基準分支取得設定失敗"
+
 msgid "Failed to update branch prefix"
 msgstr "更新分支字首失敗"
 
@@ -6509,6 +6512,9 @@ msgstr "回饋"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "未配置回饋速率限制"
+
+msgid "Fetch base branch in background"
+msgstr "在背景取得基準分支"
 
 msgid "Fetching latest changes"
 msgstr "正在獲取最新更改"
@@ -11923,6 +11929,9 @@ msgstr "重新整理拉取請求"
 msgid "Refresh repositories"
 msgstr "重新整理儲存庫"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "從遠端重新整理基準分支，以保持 Changes 面板準確。每次擷取都可能觸發 SSH 審批。關閉此選項不會破壞 diff——在變基到較新的上游後，上游提交可能會顯示為工作區變更，直到您手動擷取。"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "下次執行 Claude Code 時重新整理。"
 
@@ -16201,6 +16210,9 @@ msgstr "請在該裝置上更新 Superset。應用程式內更新需要受支援
 
 msgid "Update Superset on this machine to attach files"
 msgstr "請在這臺機器上更新Superset以附加檔案"
+
+msgid "update the base ref fetch setting"
+msgstr "更新基準分支取得設定"
 
 msgid "update the branch prefix"
 msgstr "更新分支字首"

@@ -6459,6 +6459,9 @@ msgstr "Nie udało się zaktualizować automatyzacji"
 msgid "Failed to update avatar"
 msgstr "Nie udało się zaktualizować awatara"
 
+msgid "Failed to update base ref fetch"
+msgstr "Nie można zaktualizować pobierania gałęzi bazowej"
+
 msgid "Failed to update branch prefix"
 msgstr "Nie udało się zaktualizować prefiksu gałęzi"
 
@@ -6509,6 +6512,9 @@ msgstr "Informacja zwrotna"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Limitowanie opinii nie jest skonfigurowane"
+
+msgid "Fetch base branch in background"
+msgstr "Pobieraj gałąź bazową w tle"
 
 msgid "Fetching latest changes"
 msgstr "Pobieranie najnowszych zmian"
@@ -11923,6 +11929,9 @@ msgstr "Odśwież pull requesty"
 msgid "Refresh repositories"
 msgstr "Odśwież repozytoria"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Odświeża gałąź bazową ze zdalnego repozytorium, aby panel Changes był dokładny. Każde pobranie może wymagać zatwierdzenia SSH. Wyłączenie nigdy nie psuje diffa — po rebase na nowszy upstream, commity upstream mogą widnieć jako zmiany do czasu ręcznego pobrania."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Odświeży się przy następnym uruchomieniu Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Zaktualizuj Superset na tym urządzeniu. Aktualizacje z poziomu aplikacj
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Zaktualizuj Superset na tej maszynie, aby dołączać pliki"
+
+msgid "update the base ref fetch setting"
+msgstr "zaktualizować pobieranie gałęzi bazowej"
 
 msgid "update the branch prefix"
 msgstr "zaktualizować prefiksu gałęzi"

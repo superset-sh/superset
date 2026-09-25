@@ -6459,6 +6459,9 @@ msgstr "Не удалось обновить автоматизацию"
 msgid "Failed to update avatar"
 msgstr "Не удалось обновить аватар"
 
+msgid "Failed to update base ref fetch"
+msgstr "Не удалось обновить настройку получения базовой ветки"
+
 msgid "Failed to update branch prefix"
 msgstr "Не удалось обновить префикс ветки"
 
@@ -6509,6 +6512,9 @@ msgstr "Обратная связь"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Ограничение частоты отзывов не настроено"
+
+msgid "Fetch base branch in background"
+msgstr "Получать базовую ветку в фоне"
 
 msgid "Fetching latest changes"
 msgstr "Получение последних изменений"
@@ -11923,6 +11929,9 @@ msgstr "Обновить пул-реквесты"
 msgid "Refresh repositories"
 msgstr "Обновить репозитории"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Обновляет базовую ветку из удалённого репозитория, чтобы панель Changes оставалась точной. Каждое получение может запросить SSH-подтверждение. Отключение не ломает diff — после ребейза на новый апстрим его коммиты могут отображаться как изменения до ручного получения."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Обновится при следующем запуске Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Обновите Superset на этом устройстве. Для о�
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Обновите Superset на этой машине, чтобы прикреплять файлы"
+
+msgid "update the base ref fetch setting"
+msgstr "обновить настройку получения базовой ветки"
 
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"

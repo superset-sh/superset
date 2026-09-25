@@ -6459,6 +6459,9 @@ msgstr "Bijwerken van automatisering mislukt"
 msgid "Failed to update avatar"
 msgstr "Bijwerken van avatar mislukt"
 
+msgid "Failed to update base ref fetch"
+msgstr "Kon basisbranch-fetch niet bijwerken"
+
 msgid "Failed to update branch prefix"
 msgstr "Bijwerken van branchprefix mislukt"
 
@@ -6509,6 +6512,9 @@ msgstr "Feedback"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Rate limiting voor feedback is niet geconfigureerd"
+
+msgid "Fetch base branch in background"
+msgstr "Basisbranch op de achtergrond ophalen"
 
 msgid "Fetching latest changes"
 msgstr "Laatste wijzigingen ophalen"
@@ -11923,6 +11929,9 @@ msgstr "Pull requests vernieuwen"
 msgid "Refresh repositories"
 msgstr "Repositories vernieuwen"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Vernieuwt de basisbranch vanaf de remote zodat het paneel Changes accuraat blijft. Elke fetch kan om SSH-goedkeuring vragen. Uitschakelen breekt de diff nooit — na een rebase op nieuwere upstream kunnen upstream-commits als wijzigingen verschijnen tot je handmatig fetcht."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Wordt vernieuwd zodra Claude Code opnieuw draait."
 
@@ -16201,6 +16210,9 @@ msgstr "Werk Superset bij op dat apparaat. Updates vanuit de app vereisen een on
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Werk Superset op deze machine bij om bestanden toe te voegen"
+
+msgid "update the base ref fetch setting"
+msgstr "de basisbranch-fetch-instelling bijwerken"
 
 msgid "update the branch prefix"
 msgstr "de branchprefix bijwerken"

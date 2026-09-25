@@ -6459,6 +6459,9 @@ msgstr "Falha ao atualizar a automação"
 msgid "Failed to update avatar"
 msgstr "Falha ao atualizar o avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "Falha ao atualizar a busca da branch base"
+
 msgid "Failed to update branch prefix"
 msgstr "Falha ao atualizar o prefixo de branch"
 
@@ -6509,6 +6512,9 @@ msgstr "Feedback"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "O limite de envio de feedback não está configurado"
+
+msgid "Fetch base branch in background"
+msgstr "Buscar a branch base em segundo plano"
 
 msgid "Fetching latest changes"
 msgstr "Buscando as últimas alterações"
@@ -11923,6 +11929,9 @@ msgstr "Atualizar os pull requests"
 msgid "Refresh repositories"
 msgstr "Atualizar repositórios"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Atualiza a branch base do remoto para manter o painel Changes preciso. Cada busca pode solicitar aprovação SSH. Desativar nunca quebra o diff — após um rebase sobre um upstream mais novo, os commits do upstream podem aparecer como alterações da área de trabalho até uma busca manual."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Atualiza na próxima execução do Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Atualize o Superset nesse dispositivo. As atualizações pelo aplicativo
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Atualize o Superset nesta máquina para anexar arquivos"
+
+msgid "update the base ref fetch setting"
+msgstr "atualizar a configuração de busca da branch base"
 
 msgid "update the branch prefix"
 msgstr "atualizar o prefixo da branch"

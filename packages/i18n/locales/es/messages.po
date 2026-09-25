@@ -6459,6 +6459,9 @@ msgstr "No se pudo actualizar la automatización"
 msgid "Failed to update avatar"
 msgstr "No se pudo actualizar el avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "No se pudo actualizar el ajuste de obtención de la rama base"
+
 msgid "Failed to update branch prefix"
 msgstr "No se pudo actualizar el prefijo de rama"
 
@@ -6509,6 +6512,9 @@ msgstr "Feedback"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "El límite de peticiones de comentarios no está configurado"
+
+msgid "Fetch base branch in background"
+msgstr "Obtener la rama base en segundo plano"
 
 msgid "Fetching latest changes"
 msgstr "Obteniendo los últimos cambios"
@@ -11923,6 +11929,9 @@ msgstr "Actualizar las pull requests"
 msgid "Refresh repositories"
 msgstr "Actualizar repositorios"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Actualiza la rama base desde el remoto para que el panel Changes sea preciso. Cada obtención puede pedir aprobación SSH. Desactivarlo nunca rompe el diff: tras un rebase sobre un upstream más nuevo, los commits upstream pueden mostrarse como cambios hasta que obtengas manualmente."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Se actualiza la próxima vez que se ejecute Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Actualiza Superset en ese dispositivo. Las actualizaciones desde la apli
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Actualiza Superset en esta máquina para adjuntar archivos"
+
+msgid "update the base ref fetch setting"
+msgstr "actualizar el ajuste de obtención de la rama base"
 
 msgid "update the branch prefix"
 msgstr "actualizar el prefijo de rama"

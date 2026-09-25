@@ -41,6 +41,7 @@ export type HostServiceAction =
 	| "runTasksInWorkspaces"
 	| "saveAgent"
 	| "saveAgentCommand"
+	| "updateBaseRefFetch"
 	| "updateBranchPrefix";
 
 const ACTION_MESSAGES: Record<HostServiceAction, MessageDescriptor> = {
@@ -100,6 +101,9 @@ const ACTION_MESSAGES: Record<HostServiceAction, MessageDescriptor> = {
 	}),
 	saveAgentCommand: msg({
 		message: "save the agent command",
+	}),
+	updateBaseRefFetch: msg({
+		message: "update the base ref fetch setting",
 	}),
 	updateBranchPrefix: msg({
 		message: "update the branch prefix",

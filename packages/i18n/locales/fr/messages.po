@@ -6459,6 +6459,9 @@ msgstr "Échec de la mise à jour de l'automatisation"
 msgid "Failed to update avatar"
 msgstr "Échec de la mise à jour de l'avatar"
 
+msgid "Failed to update base ref fetch"
+msgstr "Échec de la mise à jour du paramètre de récupération de la branche de base"
+
 msgid "Failed to update branch prefix"
 msgstr "Échec de la mise à jour du préfixe de branche"
 
@@ -6509,6 +6512,9 @@ msgstr "Retours"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "La limitation de débit des retours n'est pas configurée"
+
+msgid "Fetch base branch in background"
+msgstr "Récupérer la branche de base en arrière-plan"
 
 msgid "Fetching latest changes"
 msgstr "Récupération des dernières modifications"
@@ -11923,6 +11929,9 @@ msgstr "Actualiser les pull requests"
 msgid "Refresh repositories"
 msgstr "Actualiser les dépôts"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Actualise la branche de base depuis le dépôt distant pour que le panneau Changes reste exact. Chaque récupération peut demander une approbation SSH. Désactiver cette option ne casse jamais le diff — après un rebase sur un upstream plus récent, les commits upstream peuvent apparaître comme des changements du workspace jusqu'à une récupération manuelle."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Actualisé au prochain lancement de Claude Code."
 
@@ -16201,6 +16210,9 @@ msgstr "Mettez à jour Superset sur cet appareil. Les mises à jour depuis l’a
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Mettez à jour Superset sur cette machine pour joindre des fichiers"
+
+msgid "update the base ref fetch setting"
+msgstr "mettre à jour le paramètre de récupération de la branche de base"
 
 msgid "update the branch prefix"
 msgstr "mettre à jour le préfixe de branche"

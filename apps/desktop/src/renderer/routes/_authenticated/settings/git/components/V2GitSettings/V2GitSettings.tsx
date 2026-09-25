@@ -5,6 +5,7 @@ import {
 	resolveBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -124,6 +125,46 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 	const mode: BranchPrefixMode = branchPrefixQuery.data?.mode ?? "none";
 	const customPrefix = branchPrefixQuery.data?.customPrefix ?? null;
 
+	const baseRefFetchQuery = useQuery({
+		queryKey: ["host-base-ref-fetch", targetHostUrl] as const,
+		enabled: !!targetHostUrl && isHostOnline,
+		queryFn: () => {
+			if (!targetHostUrl) throw new Error("Host service unavailable");
+			return getHostServiceClientByUrl(
+				targetHostUrl,
+			).settings.baseRefFetch.get.query();
+		},
+	});
+
+	const setBaseRefFetchMutation = useMutation({
+		mutationFn: (vars: { enabled: boolean }) => {
+			if (!targetHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "updateBaseRefFetch",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				targetHostUrl,
+			).settings.baseRefFetch.set.mutate(vars);
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({
+				queryKey: ["host-base-ref-fetch", targetHostUrl],
+			});
+		},
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to update base ref fetch",
+					}),
+				),
+			),
+	});
+
 	const setMutation = useMutation({
 		mutationFn: (vars: {
 			mode: BranchPrefixMode;
@@ -170,6 +211,13 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		!isHostOnline ||
 		branchPrefixQuery.isLoading ||
 		setMutation.isPending;
+
+	const baseRefFetchEnabled = baseRefFetchQuery.data?.enabled ?? true;
+	const baseRefFetchDisabled =
+		!targetHostUrl ||
+		!isHostOnline ||
+		baseRefFetchQuery.isLoading ||
+		setBaseRefFetchMutation.isPending;
 
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
@@ -253,6 +301,30 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 						})}
 						onSelect={(path) => setWorktreeBaseDir.mutate(path)}
 						onReset={() => setWorktreeBaseDir.mutate(null)}
+					/>
+				</SettingsRow>
+				<SettingsRow
+					htmlFor="base-ref-fetch-enabled"
+					label={t({
+						message: "Fetch base branch in background",
+					})}
+					hint={
+						<Trans>
+							Refresh the base branch from the remote so the Changes panel stays
+							accurate. Each fetch can prompt for SSH approval. Turning this off
+							never breaks the diff - after rebasing onto newer upstream,
+							upstream commits may show as workspace changes until you fetch
+							manually.
+						</Trans>
+					}
+				>
+					<Switch
+						id="base-ref-fetch-enabled"
+						checked={baseRefFetchEnabled}
+						disabled={baseRefFetchDisabled}
+						onCheckedChange={(enabled) =>
+							setBaseRefFetchMutation.mutate({ enabled })
+						}
 					/>
 				</SettingsRow>
 			</section>

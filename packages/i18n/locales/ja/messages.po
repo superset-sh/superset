@@ -6459,6 +6459,9 @@ msgstr "オートメーションを更新できませんでした"
 msgid "Failed to update avatar"
 msgstr "アバターの更新に失敗しました"
 
+msgid "Failed to update base ref fetch"
+msgstr "ベースブランチ取得の更新に失敗しました"
+
 msgid "Failed to update branch prefix"
 msgstr "ブランチプレフィックスの更新に失敗しました"
 
@@ -6509,6 +6512,9 @@ msgstr "フィードバック"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "フィードバックのレート制限が設定されていません"
+
+msgid "Fetch base branch in background"
+msgstr "ベースブランチをバックグラウンドで取得"
 
 msgid "Fetching latest changes"
 msgstr "最新の変更を取得中"
@@ -11923,6 +11929,9 @@ msgstr "プルリクエストを更新"
 msgid "Refresh repositories"
 msgstr "リポジトリを更新"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "リモートからベースブランチを更新し、Changesパネルの表示を正確に保ちます。取得のたびにSSH承認が求められることがあります。オフにしても差分表示は壊れませんが、新しいupstreamにリベースした後は、手動で取得するまでupstreamのコミットがワークスペースの変更として表示されることがあります。"
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "次に Claude Code を実行すると更新されます。"
 
@@ -16201,6 +16210,9 @@ msgstr "そのデバイスで Superset を更新してください。アプリ�
 
 msgid "Update Superset on this machine to attach files"
 msgstr "ファイルを添付するには、このマシンでSupersetを更新してください"
+
+msgid "update the base ref fetch setting"
+msgstr "ベースブランチ取得設定を更新する"
 
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"

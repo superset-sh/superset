@@ -6459,6 +6459,9 @@ msgstr "Không thể cập nhật tự động hóa"
 msgid "Failed to update avatar"
 msgstr "Không thể cập nhật ảnh đại diện"
 
+msgid "Failed to update base ref fetch"
+msgstr "Không thể cập nhật tìm nạp nhánh cơ sở"
+
 msgid "Failed to update branch prefix"
 msgstr "Không thể cập nhật tiền tố nhánh"
 
@@ -6509,6 +6512,9 @@ msgstr "Phản hồi"
 
 msgid "Feedback rate limiting is not configured"
 msgstr "Chưa cấu hình giới hạn tần suất góp ý"
+
+msgid "Fetch base branch in background"
+msgstr "Tìm nạp nhánh cơ sở trong nền"
 
 msgid "Fetching latest changes"
 msgstr "Đang lấy thay đổi mới nhất"
@@ -11923,6 +11929,9 @@ msgstr "Làm mới pull request"
 msgid "Refresh repositories"
 msgstr "Làm mới repository"
 
+msgid "Refresh the base branch from the remote so the Changes panel stays accurate. Each fetch can prompt for SSH approval. Turning this off never breaks the diff - after rebasing onto newer upstream, upstream commits may show as workspace changes until you fetch manually."
+msgstr "Làm mới nhánh cơ sở từ remote để bảng Changes luôn chính xác. Mỗi lần tìm nạp có thể yêu cầu phê duyệt SSH. Tắt tùy chọn này không bao giờ làm hỏng diff — sau khi rebase lên upstream mới hơn, các commit upstream có thể hiển thị dưới dạng thay đổi cho đến khi bạn tìm nạp thủ công."
+
 msgid "Refreshes when Claude Code next runs."
 msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
 
@@ -16201,6 +16210,9 @@ msgstr "Cập nhật Superset trên thiết bị đó. Cập nhật từ ứng d
 
 msgid "Update Superset on this machine to attach files"
 msgstr "Hãy cập nhật Superset trên máy này để đính kèm tệp"
+
+msgid "update the base ref fetch setting"
+msgstr "cập nhật tìm nạp nhánh cơ sở"
 
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
