@@ -372,7 +372,7 @@ and the release poll until `currentSnapshotId` has changed and the status is
 **Snapshots exist only in the region they were taken.** Forking a golden into
 another region is refused (`snapshot_region_mismatch`), and failover regions
 don't replicate it. Forks therefore inherit the golden's region and only
-image-created sandboxes get `VERCEL_SANDBOX_REGION` — passing the setting on
+image-created sandboxes take the environment's `region` — passing a region on
 a fork was what failed every workspace once the goldens moved to sfo1.
 
 **The firewall policy is live-updatable and forks carry it.** Credential

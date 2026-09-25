@@ -1,6 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { ENVIRONMENT_ONBOARDING_PROMPT } from "@superset/shared/cloud-agent-launch";
+import {
+	DEFAULT_SANDBOX_REGION,
+	SANDBOX_REGIONS,
+	type SandboxRegionId,
+} from "@superset/shared/sandbox-regions";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -45,6 +50,7 @@ export interface EnvironmentEditorSeed {
 	hooksRepositoryId: string | null;
 	/** A promoted environment's golden was built for its repositories. */
 	repositoriesFrozen: boolean;
+	region: string;
 }
 
 interface EnvironmentEditorDialogProps {
@@ -81,6 +87,13 @@ export function EnvironmentEditorDialog({
 	const [scope, setScope] = useState<EnvironmentScope>(
 		environment?.scope ?? "organization",
 	);
+	const [region, setRegion] = useState<SandboxRegionId | null>(null);
+	const suggestedRegion = cloudTrpc.environment.suggestRegion.useQuery(
+		undefined,
+		{ enabled: open && !environment },
+	);
+	const chosenRegion =
+		region ?? suggestedRegion.data?.region ?? DEFAULT_SANDBOX_REGION;
 	const [repositoriesOpen, setRepositoriesOpen] = useState(false);
 	const repositoriesFrozen = environment?.repositoriesFrozen ?? false;
 
@@ -125,7 +138,11 @@ export function EnvironmentEditorDialog({
 			await update.mutateAsync({ id: environment.id, ...body() });
 			return environment.id;
 		}
-		const row = await create.mutateAsync({ organizationId, ...body() });
+		const row = await create.mutateAsync({
+			organizationId,
+			...body(),
+			region: chosenRegion,
+		});
 		return row.id;
 	};
 
@@ -338,6 +355,37 @@ export function EnvironmentEditorDialog({
 						</Select>
 					</div>
 
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="environment-region">
+							<Trans>Region</Trans>
+						</Label>
+						<Select
+							disabled={Boolean(environment)}
+							onValueChange={(value) => setRegion(value as SandboxRegionId)}
+							value={environment?.region ?? chosenRegion}
+						>
+							<SelectTrigger id="environment-region">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{SANDBOX_REGIONS.map((option) => (
+									<SelectItem key={option.id} value={option.id}>
+										{option.city} · {option.id}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-xs text-muted-foreground">
+							{environment ? (
+								<Trans>
+									Boxes run where the environment was made; a snapshot only
+									exists in its region.
+								</Trans>
+							) : (
+								<Trans>Nearest to you.</Trans>
+							)}
+						</p>
+					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="environment-scope">
 							<Trans>Scope</Trans>

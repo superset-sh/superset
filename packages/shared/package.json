@@ -88,6 +88,10 @@
 			"types": "./src/plugins/index.ts",
 			"default": "./src/plugins/index.ts"
 		},
+		"./sandbox-regions": {
+			"types": "./src/sandbox-regions.ts",
+			"default": "./src/sandbox-regions.ts"
+		},
 		"./sandbox-contract": {
 			"types": "./src/sandbox-contract.ts",
 			"default": "./src/sandbox-contract.ts"

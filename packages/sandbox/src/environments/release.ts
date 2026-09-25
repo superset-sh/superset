@@ -26,6 +26,7 @@
  * Fails loudly and leaves the golden and probe up for inspection when any
  * check fails; the previous rows stay live.
  */
+
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +42,7 @@ import {
 	type SandboxIdentity,
 	sandboxCheckoutDir,
 } from "@superset/shared/sandbox-contract";
+import { DEFAULT_SANDBOX_REGION } from "@superset/shared/sandbox-regions";
 import { Sandbox } from "@vercel/sandbox";
 
 // The provisioning code imports the API env schema; an operator running this
@@ -61,7 +63,7 @@ const REPO_DIR = sandboxCheckoutDir(SANDBOX_PATHS.workspace, REPO_PATH);
 const REPO_FULL_NAME = "superset-sh/superset";
 /** The monorepo branch the golden is built from; its `.superset/config.json` supplies `start`. */
 const BRANCH = process.env.SUPERSET_INTERNAL_BRANCH ?? "main";
-const REGION = process.env.VERCEL_SANDBOX_REGION ?? "sfo1";
+const REGION = DEFAULT_SANDBOX_REGION;
 
 const started = Date.now();
 const at = () => `${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s`;

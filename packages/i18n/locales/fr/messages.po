@@ -2605,6 +2605,9 @@ msgstr "Rebond"
 msgid "Box"
 msgstr "Box"
 
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "Les boxes s'exécutent là où l'environnement a été créé ; un instantané n'existe que dans sa région."
+
 msgid "Branch"
 msgstr "Branche"
 
@@ -9146,6 +9149,9 @@ msgstr "Navigation"
 msgid "Navigation Menu"
 msgstr "Navigation Menu"
 
+msgid "Nearest to you."
+msgstr "La plus proche de vous."
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Nécessitent un câblage au niveau de l'application (état du formulaire, données de graphique, coque applicative)"
 
@@ -11947,6 +11953,9 @@ msgstr "Actualisé au prochain lancement de Claude Code."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Actualisé au prochain lancement de OpenCode."
+
+msgid "Region"
+msgstr "Région"
 
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Enregistrez n'importe quel agent en ligne de commande aux côtés de ceux fournis, chacun avec son nom, son icône et sa commande de lancement."

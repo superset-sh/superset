@@ -9,12 +9,14 @@
  * Publishes the bundle first so the box can fetch it if the image is older.
  * Leaves the sandbox up for inspection on failure; deletes it on success.
  */
+
 import { randomUUID } from "node:crypto";
 import { SANDBOX_IMAGE_NAME } from "@superset/shared/constants";
 import {
 	SANDBOX_CONTRACT_VERSION,
 	type SandboxIdentity,
 } from "@superset/shared/sandbox-contract";
+import { DEFAULT_SANDBOX_REGION } from "@superset/shared/sandbox-regions";
 import { Sandbox } from "@vercel/sandbox";
 
 process.env.SKIP_ENV_VALIDATION ??= "1";
@@ -92,7 +94,7 @@ for (;;) {
 			environment: {
 				sourceKind: "image",
 				sourceRef: SANDBOX_IMAGE_NAME,
-				region: process.env.VERCEL_SANDBOX_REGION ?? "sfo1",
+				region: DEFAULT_SANDBOX_REGION,
 			},
 			claim,
 		});
