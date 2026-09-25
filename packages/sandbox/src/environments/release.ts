@@ -280,6 +280,9 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 		/ok/,
 	],
 	["neonctl", "neonctl --version", /^\d+\.\d+/m],
+	["vercel", "vercel --version", /\d+\.\d+\.\d+/],
+	["wrangler", "wrangler --version", /\d+\.\d+\.\d+/],
+	["eas-cli", "eas --version", /\d+\.\d+\.\d+/],
 ];
 let failed = 0;
 for (const [label, command, expect] of checks) {

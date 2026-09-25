@@ -244,10 +244,10 @@ app identity and ports so the development desktop app can run alongside the
 installed Superset app and other development worktrees.
 
 No Neon account or third-party credentials are needed. `setup.local.sh` brings
-up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in
-with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
+up a local Postgres + neon-proxy + Redis stack via Docker and seeds a dev account.
+Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, `jq`, and `caddy`, which `bun dev` runs as the local HTTPS proxy (`brew install jq caddy && caddy trust`).
+Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, `jq`, and [`gh`](https://cli.github.com/) (`brew install jq gh`).
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
