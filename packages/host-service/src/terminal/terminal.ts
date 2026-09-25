@@ -39,7 +39,7 @@ import { portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { terminalHarnessSession } from "../terminal-agents/harness-session-ref.ts";
-import { readHarnessTranscript } from "../terminal-agents/harness-sessions/index.ts";
+import { readHarnessTranscriptOffLoop } from "../terminal-agents/harness-sessions/read-off-loop.ts";
 import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import type { TerminalAgentStore } from "../terminal-agents/store.ts";
@@ -1376,7 +1376,9 @@ export async function transcriptSession({
 	// describe work the terminal is no longer doing.
 	const bound = terminalHarnessSession(db, terminalId);
 	const harness =
-		bound && !bound.endedAt ? readHarnessTranscript(bound.ref, budget) : null;
+		bound && !bound.endedAt
+			? await readHarnessTranscriptOffLoop(bound.ref, budget)
+			: null;
 	if (harness) {
 		return {
 			success: true,

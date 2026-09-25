@@ -19,10 +19,8 @@ import type {
 } from "../../../terminal-agents";
 import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
 import { terminalHarnessSession } from "../../../terminal-agents/harness-session-ref";
-import {
-	hasHarnessSession,
-	readHarnessTranscript,
-} from "../../../terminal-agents/harness-sessions";
+import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
+import { readHarnessTranscriptOffLoop } from "../../../terminal-agents/harness-sessions/read-off-loop";
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
@@ -472,12 +470,15 @@ export const terminalAgentsRouter = router({
 	 */
 	transcript: protectedProcedure
 		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
-		.query(({ ctx, input }) => {
+		.query(async ({ ctx, input }) => {
 			const binding = getTerminalAgentBinding(ctx.db, input.terminalId);
 			if (!binding || binding.workspaceId !== input.workspaceId) return null;
 			const bound = terminalHarnessSession(ctx.db, input.terminalId);
 			const transcript = bound
-				? readHarnessTranscript(bound.ref, MAX_AGENT_TRANSCRIPT_CHARS)
+				? await readHarnessTranscriptOffLoop(
+						bound.ref,
+						MAX_AGENT_TRANSCRIPT_CHARS,
+					)
 				: null;
 			return transcript
 				? {

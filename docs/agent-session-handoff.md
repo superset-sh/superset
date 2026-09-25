@@ -25,8 +25,10 @@ the stream fallback answered.
 
 | File (under `packages/host-service/src/terminal-agents/`) | Owns |
 |---|---|
-| `harness-sessions/index.ts` | The store registry, the lookup order, the reported-path check, `readHarnessTranscript`, `hasHarnessSession` |
-| `harness-sessions/<harness>.ts` | One `HarnessSessionStore` per harness: where it keeps sessions and how to parse them |
+| `harness-sessions/transcript.ts` | `HARNESS_SESSION_FILES`, the lookup order, the reported-path check, `readHarnessTranscript`. Runs on a host worker (`workers/tasks/harness.ts`), so it and everything it imports stay free of native modules; a test walks its import graph |
+| `harness-sessions/read-off-loop.ts` | `readHarnessTranscriptOffLoop`: what callers use. A failure answers null, so the handoff falls back to the terminal stream |
+| `harness-sessions/index.ts` | `HARNESS_SESSION_STORES` and `hasHarnessSession`, for resume and fork, on the event loop (OpenCode's is SQLite) |
+| `harness-sessions/<harness>.ts` | Per harness: `HarnessSessionFiles` (where its files are, how to parse them) and `HarnessSessionStore` (does it still keep a session) |
 | `harness-sessions/tail.ts` | The bounded, widening read of a session file |
 | `harness-session-ref.ts` | `terminalHarnessSession`: a terminal's binding, worktree, reported path and launch env as one `HarnessSessionRef` |
 | `agent-config.ts` | `resolveHostAgentConfig` and `agentLaunchEnv`, the account env an agent launches under. The launch and every session lookup use it |
@@ -96,15 +98,16 @@ has changed its store.
 
 ## Adding a harness
 
-Write `harness-sessions/<harness>.ts` exporting a `HarnessSessionStore` and register it in
+Write `harness-sessions/<harness>.ts` and register what it exports: its `HarnessSessionFiles` in
+`HARNESS_SESSION_FILES` (worker-safe imports only) and its `HarnessSessionStore` in
 `HARNESS_SESSION_STORES`:
 
 - `files.locate`, for a store that keeps one file per session: find it under `env`. The
   reported path and the lookup order then come for free.
 - `files.parseTurns`, to make handoffs read the conversation instead of the terminal stream. It
   gets a chunk that may start mid-line and must skip what it cannot parse.
-- `hasSession`, only when absence can be proven. Without it a located file is `true` and
-  anything else `null`. Return `false` only when certain, because `false` refuses a fork.
+- `hasSession`, for resume and fork. Return `null` unless absence is certain, because `false`
+  refuses a fork.
 
 If the harness's hook payload carries `transcript_path`, the notify hook already forwards it.
 

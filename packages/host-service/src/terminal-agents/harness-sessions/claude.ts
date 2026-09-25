@@ -147,7 +147,7 @@ function parseTurns(raw: string): string[] {
 	return turns;
 }
 
-const claudeSessionFiles: HarnessSessionFiles = {
+export const claudeSessionFiles: HarnessSessionFiles = {
 	/**
 	 * The launch env's store first, then the default one: a session started
 	 * before the account switched keeps writing where it began.
@@ -167,8 +167,6 @@ const claudeSessionFiles: HarnessSessionFiles = {
 };
 
 export const claudeSessionStore: HarnessSessionStore = {
-	files: claudeSessionFiles,
-
 	/** Only the launch env's store: that is where a relaunch will look. */
 	hasSession(query) {
 		const root = configDir(query.env);

@@ -10,7 +10,8 @@ import {
 import * as os from "node:os";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { hasHarnessSession, readHarnessTranscript } from ".";
+import { hasHarnessSession } from ".";
+import { readHarnessTranscript } from "./transcript";
 
 const sessionId = "019f5cac-9077-73d2-83a3-f17e383fc705";
 const created: string[] = [];

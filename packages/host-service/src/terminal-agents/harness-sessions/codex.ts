@@ -116,7 +116,7 @@ function parseTurns(raw: string): string[] {
 	return turns;
 }
 
-const codexSessionFiles: HarnessSessionFiles = {
+export const codexSessionFiles: HarnessSessionFiles = {
 	/**
 	 * The launch env's `CODEX_HOME` first, then the default one: a session
 	 * started before the account switched keeps writing where it began.
@@ -133,8 +133,6 @@ const codexSessionFiles: HarnessSessionFiles = {
 };
 
 export const codexSessionStore: HarnessSessionStore = {
-	files: codexSessionFiles,
-
 	/** Only the launch env's home: that is where a relaunch will look. */
 	hasSession({ sessionId, env }) {
 		const home = codexHome(env);
