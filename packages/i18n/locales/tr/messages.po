@@ -4183,9 +4183,6 @@ msgstr "Tarama geçmişinizi ve oturum bilgilerinizi başka bir tarayıcıdan Su
 msgid "Copy your key now — you won't be able to see it again."
 msgstr "Anahtarınızı şimdi kopyalayın — bir daha göremezsiniz."
 
-msgid "Copying configuration"
-msgstr "Yapılandırma kopyalanıyor"
-
 msgid "Cost"
 msgstr "Maliyet"
 
@@ -4712,9 +4709,6 @@ msgstr "oluşturuluyor"
 
 msgid "Creating"
 msgstr "Oluşturuluyor"
-
-msgid "Creating git worktree"
-msgstr "Git worktree'si oluşturuluyor"
 
 msgid "Creating PR..."
 msgstr "PR oluşturuluyor…"
@@ -6652,9 +6646,6 @@ msgstr "Filtreler"
 msgid "Filters, {activeFilterCount} active"
 msgstr "Filtreler, {activeFilterCount} etkin"
 
-msgid "Finalizing setup"
-msgstr "Kurulum tamamlanıyor"
-
 msgid "Find"
 msgstr "Bul"
 
@@ -7687,9 +7678,6 @@ msgstr "Git'i başlat"
 
 msgid "Initialize Git Repository?"
 msgstr "Git deposu başlatılsın mı?"
-
-msgid "Initializing session"
-msgstr "Oturum başlatılıyor"
 
 msgid "Initializing..."
 msgstr "Başlatılıyor..."
@@ -14717,9 +14705,6 @@ msgstr "Depoları eşitle"
 msgid "Sync started"
 msgstr "Eşitleme başladı"
 
-msgid "Syncing with remote"
-msgstr "Uzak depo ile eşitleniyor"
-
 msgid "Syncing..."
 msgstr "Eşitleniyor..."
 
@@ -16441,9 +16426,6 @@ msgstr "Bunu doğrula"
 
 msgid "Verify your identity"
 msgstr "Kimliğinizi doğrulama"
-
-msgid "Verifying base branch"
-msgstr "Temel dal doğrulanıyor"
 
 msgid "Version"
 msgstr "Sürüm"

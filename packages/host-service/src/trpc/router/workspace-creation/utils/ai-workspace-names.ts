@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import {
 	getBuiltinAgentDefinition,
@@ -20,7 +20,16 @@ import {
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
-import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
+import {
+	getLocalWorkspace,
+	type HostWorkspaceRow,
+	updateLocalWorkspace,
+	type WorkspaceStoreContext,
+} from "../../../../workspaces/local-workspace-store";
+import {
+	commitWorkspaceTitleJob,
+	queueWorkspaceTitleJob,
+} from "../../../../workspaces/workspace-title-jobs";
 import { resolveHostAgentConfig } from "../../agents/agents";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
@@ -130,10 +139,9 @@ function buildInstructions(namingInstructions?: string | null): string {
 	return lines.join("\n");
 }
 
-// Agent CLIs cold-start (~2-4s) before the model call. Workspace creation
-// blocks on naming, so this is also the worst-case added create latency;
-// past it we fall back to names derived from the prompt itself.
 const AGENT_GENERATE_TIMEOUT_MS = 20_000;
+const AGENT_CLEANUP_TIMEOUT_MS = 750;
+const TASKKILL_TIMEOUT_MS = 500;
 
 function buildAgentJsonInstructions(
 	namingInstructions?: string | null,
@@ -221,7 +229,9 @@ async function generateNamesViaAgentCli(
 	command: string,
 	prompt: string,
 	namingInstructions?: string | null,
+	signal?: AbortSignal,
 ): Promise<GeneratedWorkspaceNames | null> {
+	if (signal?.aborted) return null;
 	const shell =
 		process.env.SHELL ||
 		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
@@ -244,24 +254,65 @@ async function generateNamesViaAgentCli(
 		const child = spawn(shell, ["-lc", shellCommand], {
 			cwd: tmpdir(),
 			env,
+			detached: process.platform !== "win32",
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let stdout = "";
 		let stderr = "";
 		let settled = false;
+		let stopping = false;
+		let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
 		const settle = (value: string | null) => {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
+			clearTimeout(cleanupTimer);
+			signal?.removeEventListener("abort", stop);
 			resolve(value);
 		};
+		const stop = () => {
+			if (settled || stopping) return;
+			stopping = true;
+			cleanupTimer = setTimeout(() => {
+				child.stdout.destroy();
+				child.stderr.destroy();
+				child.unref();
+				settle(null);
+			}, AGENT_CLEANUP_TIMEOUT_MS);
+			if (!child.pid) {
+				settle(null);
+				return;
+			}
+			if (process.platform === "win32") {
+				execFile(
+					"taskkill",
+					["/pid", String(child.pid), "/T", "/F"],
+					{ timeout: TASKKILL_TIMEOUT_MS },
+					(error) => {
+						if (error) child.kill("SIGKILL");
+					},
+				);
+			} else {
+				try {
+					process.kill(-child.pid, "SIGKILL");
+				} catch (error) {
+					if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+						console.warn(
+							"[generateNamesViaAgentCli] process group cleanup failed:",
+							error,
+						);
+						child.kill("SIGKILL");
+					}
+				}
+			}
+		};
 		const timer = setTimeout(() => {
-			child.kill("SIGKILL");
 			console.warn(
 				`[generateNamesViaAgentCli] timed out after ${AGENT_GENERATE_TIMEOUT_MS}ms`,
 			);
-			settle(null);
+			stop();
 		}, AGENT_GENERATE_TIMEOUT_MS);
+		signal?.addEventListener("abort", stop, { once: true });
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
 		});
@@ -273,12 +324,12 @@ async function generateNamesViaAgentCli(
 			settle(null);
 		});
 		child.on("close", (code) => {
-			if (code !== 0) {
+			if (code !== 0 && !stopping) {
 				console.warn(
 					`[generateNamesViaAgentCli] exit ${code}; stderr tail: ${stderr.slice(-500)}; stdout tail: ${stdout.slice(-200)}`,
 				);
 			}
-			settle(code === 0 ? stdout : null);
+			settle(code === 0 && !stopping ? stdout : null);
 		});
 	});
 	if (output === null) return null;
@@ -319,9 +370,11 @@ export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
 	agentContext?: WorkspaceNamingAgentContext,
 	namingInstructions?: string | null,
+	signal?: AbortSignal,
+	allowPromptFallback = true,
 ): Promise<GeneratedWorkspaceNames | null> {
 	const cleaned = prompt.trim();
-	if (!cleaned) return null;
+	if (!cleaned || signal?.aborted) return null;
 
 	if (agentContext) {
 		const command = resolveNonInteractiveCommand(
@@ -334,6 +387,7 @@ export async function generateWorkspaceNamesFromPrompt(
 					command,
 					cleaned,
 					namingInstructions,
+					signal,
 				);
 				if (names) {
 					console.log(
@@ -350,6 +404,7 @@ export async function generateWorkspaceNamesFromPrompt(
 		}
 	}
 
+	if (signal?.aborted || !allowPromptFallback) return null;
 	const derived = deriveNamesFromPrompt(cleaned);
 	if (derived) {
 		console.log("[generateWorkspaceNamesFromPrompt] named from the prompt");
@@ -489,4 +544,149 @@ export async function applyGeneratedWorkspaceNames(
 		return null;
 	}
 	return { name: updated.name, branch: updated.branch };
+}
+
+interface AutomaticBranchRename {
+	ctx: HostServiceContext;
+	repoPath: string;
+	worktreePath: string;
+	oldBranchName: string;
+	branchPrefix?: string;
+	suffix: string;
+}
+
+async function canRenameAutomaticBranch({
+	ctx,
+	worktreePath,
+	oldBranchName,
+}: AutomaticBranchRename): Promise<boolean> {
+	const git = await ctx.git(worktreePath, { timeout: { block: 750 } });
+	const [head, upstream, remoteBranches] = await Promise.all([
+		git.raw(["branch", "--show-current"]),
+		git.raw([
+			"for-each-ref",
+			"--format=%(upstream)",
+			`refs/heads/${oldBranchName}`,
+		]),
+		git.raw(["for-each-ref", "--format=%(refname)", "refs/remotes"]),
+	]);
+	return (
+		head.trim() === oldBranchName &&
+		!upstream.trim() &&
+		!remoteBranches
+			.split("\n")
+			.some(
+				(ref) => ref.replace(/^refs\/remotes\/[^/]+\//, "") === oldBranchName,
+			)
+	);
+}
+
+export function generateWorkspaceTitleInBackground({
+	ctx,
+	workspace,
+	prompt,
+	agent,
+	namingInstructions,
+	branchRename,
+	waitForStart,
+}: {
+	ctx: WorkspaceStoreContext;
+	workspace: Pick<HostWorkspaceRow, "id" | "name">;
+	prompt: string;
+	agent?: string;
+	namingInstructions?: string | null;
+	waitForStart?: (start: () => void) => () => void;
+	branchRename?: AutomaticBranchRename;
+}): void {
+	queueWorkspaceTitleJob(
+		ctx.db,
+		workspace.id,
+		async (isCurrent, signal) => {
+			const existing = getLocalWorkspace(ctx.db, workspace.id);
+			if (
+				!existing ||
+				existing.archivedAt != null ||
+				existing.name !== workspace.name
+			)
+				return;
+			if (branchRename) {
+				if (
+					existing.branch !== branchRename.oldBranchName ||
+					!(await canRenameAutomaticBranch(branchRename))
+				)
+					return;
+				if (!isCurrent()) return;
+			}
+			const names = await generateWorkspaceNamesFromPrompt(
+				prompt,
+				agent ? { db: ctx.db, agent } : undefined,
+				namingInstructions,
+				signal,
+				false,
+			);
+			if (!names?.title || !isCurrent()) return;
+			const current = getLocalWorkspace(ctx.db, workspace.id);
+			if (
+				!current ||
+				current.archivedAt != null ||
+				current.name !== workspace.name
+			)
+				return;
+			if (branchRename && names.branchName) {
+				const {
+					ctx: host,
+					worktreePath,
+					oldBranchName,
+					branchPrefix,
+					suffix,
+				} = branchRename;
+				try {
+					const git = await host.git(worktreePath, { timeout: { block: 750 } });
+					const canRename = await canRenameAutomaticBranch(branchRename);
+					if (!isCurrent()) return;
+					const current = getLocalWorkspace(ctx.db, workspace.id);
+					if (!current || current.archivedAt != null) return;
+					if (current.branch === oldBranchName && canRename) {
+						const candidate = `${names.branchName}-${suffix}`;
+						const { prefixedCandidate } = resolveGeneratedBranchName({
+							candidate,
+							branchPrefix,
+							oldBranchName,
+						});
+						const branches = await listBranchNames(host, branchRename.repoPath);
+						if (!isCurrent()) return;
+						const target = deduplicateBranchName(
+							prefixedCandidate,
+							branches.filter((branch) => branch !== oldBranchName),
+						);
+						await commitWorkspaceTitleJob(ctx.db, workspace.id, async () => {
+							if (!isCurrent()) return;
+							await git.raw(["branch", "-m", oldBranchName, target]);
+							const row = getLocalWorkspace(ctx.db, workspace.id);
+							if (
+								!row ||
+								row.archivedAt != null ||
+								row.branch !== oldBranchName
+							)
+								return;
+							updateLocalWorkspace(ctx, workspace.id, {
+								branch: target,
+								...(isCurrent() && row.name === workspace.name
+									? { name: names.title }
+									: {}),
+							});
+						});
+						return;
+					}
+				} catch (error) {
+					console.warn("[workspace-title] branch rename failed", error);
+				}
+			}
+			if (!isCurrent()) return;
+			updateLocalWorkspace(ctx, workspace.id, {
+				name: names.title,
+			});
+		},
+		waitForStart,
+	);
 }
