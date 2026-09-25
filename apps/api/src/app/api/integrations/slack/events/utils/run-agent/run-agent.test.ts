@@ -667,6 +667,12 @@ describe("plugin tools", () => {
 		);
 	});
 
+	test("an unconnected Linear still answers from the task mirror", async () => {
+		await runSlackAgent({ ...params, prompt: "what linear tickets are open?" });
+		expect(contextualSystemText()).toContain("Superset tasks mirror");
+		expect(contextualSystemText()).toContain("Linear is not connected");
+	});
+
 	test("says nothing about a plugin that is neither connected nor asked for", async () => {
 		const result = await runSlackAgent(params);
 		expect(contextualSystemText()).not.toContain("connected");
