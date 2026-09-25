@@ -19,9 +19,9 @@ import {
 } from "@superset/shared/workspace-launch";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
+import { resolveHostAgentConfig } from "../../../../terminal-agents/agent-config";
 import type { HostServiceContext } from "../../../../types";
 import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
-import { resolveHostAgentConfig } from "../../agents/agents";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 

@@ -33,25 +33,18 @@ import type { Hono } from "hono";
 import { getSupervisor } from "../daemon/index.ts";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
-import {
-	hostAgentConfigs,
-	projects,
-	terminalAgentBindings,
-	terminalSessions,
-	workspaces,
-} from "../db/schema.ts";
+import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
+import { terminalHarnessSession } from "../terminal-agents/harness-session-ref.ts";
+import { readHarnessTranscript } from "../terminal-agents/harness-sessions/index.ts";
 import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import type { TerminalAgentStore } from "../terminal-agents/store.ts";
 import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
-import {
-	resolveDefaultAccountEnv,
-	resolveDefaultAccountTerminalEnv,
-} from "../trpc/router/usage/default-account.ts";
+import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -69,7 +62,6 @@ import {
 	shellLaunchExpectsReadyMarker,
 	waitForTerminalBaseEnv,
 } from "./env.ts";
-import { readHarnessTranscript } from "./harness-transcript.ts";
 import {
 	TerminalLifecycleOperations,
 	terminalLifecycleState,
@@ -1337,39 +1329,6 @@ export async function snapshotSession({
 	return { success: true, ...session.modeTracker.snapshot(maxLines) };
 }
 
-/**
- * The env a bound agent was launched with, so its session store is read from
- * the provider account it is pinned to rather than the default directory.
- * Best effort: an unknown binding just means the default.
- */
-function agentLaunchEnv(
-	db: HostDb,
-	definitionId: string | null | undefined,
-): Record<string, string> | undefined {
-	if (!definitionId) return undefined;
-	const row = db
-		.select({
-			envJson: hostAgentConfigs.envJson,
-			presetId: hostAgentConfigs.presetId,
-		})
-		.from(hostAgentConfigs)
-		.where(eq(hostAgentConfigs.id, definitionId))
-		.get();
-	if (!row) return undefined;
-	// Overlaid the same way the launch does it: the Usage tab's default
-	// account injects CLAUDE_CONFIG_DIR without touching per-agent env, and
-	// reading only the latter would look in the wrong account's directory.
-	const accountEnv = resolveDefaultAccountEnv(db, row.presetId);
-	try {
-		const parsed = JSON.parse(row.envJson) as Record<string, string>;
-		const agentEnv =
-			typeof parsed === "object" && parsed !== null ? parsed : {};
-		return { ...accountEnv, ...agentEnv };
-	} catch {
-		return { ...accountEnv };
-	}
-}
-
 export interface TerminalTranscript {
 	text: string;
 	/**
@@ -1415,32 +1374,9 @@ export async function transcriptSession({
 	// Only while the agent still owns the terminal, though — once its session
 	// ends the terminal is a shell again, and its old conversation would
 	// describe work the terminal is no longer doing.
-	const binding = db
-		.select({
-			agentId: terminalAgentBindings.agentId,
-			agentSessionId: terminalAgentBindings.agentSessionId,
-			definitionId: terminalAgentBindings.definitionId,
-			endedAt: terminalAgentBindings.endedAt,
-			transcriptPath: terminalAgentBindings.transcriptPath,
-		})
-		.from(terminalAgentBindings)
-		.where(eq(terminalAgentBindings.terminalId, terminalId))
-		.get();
-	const worktreePath = db
-		.select({ path: workspaces.worktreePath })
-		.from(workspaces)
-		.where(eq(workspaces.id, workspaceId))
-		.get()?.path;
-	const harness = binding?.endedAt
-		? null
-		: readHarnessTranscript({
-				agentId: binding?.agentId,
-				agentSessionId: binding?.agentSessionId,
-				worktreePath,
-				transcriptPath: binding?.transcriptPath,
-				env: agentLaunchEnv(db, binding?.definitionId),
-				maxChars: budget,
-			});
+	const bound = terminalHarnessSession(db, terminalId);
+	const harness =
+		bound && !bound.endedAt ? readHarnessTranscript(bound.ref, budget) : null;
 	if (harness) {
 		return {
 			success: true,

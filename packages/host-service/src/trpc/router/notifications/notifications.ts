@@ -5,7 +5,7 @@ import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
 import { recordTerminalAgentTranscriptPath } from "../../../terminal-agents/persistence";
-import { isTrustedTranscriptPath } from "../../../terminal-agents/subagent-harnesses";
+import { isTrustedTranscriptPath } from "../../../terminal-agents/transcript-path";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";

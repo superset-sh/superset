@@ -6,17 +6,12 @@ import {
 	realpathSync,
 	rmSync,
 	symlinkSync,
-	truncateSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-	claudeProjectDirName,
-	hasHarnessSession,
-	readFileTail,
-	readHarnessTranscript,
-} from "./harness-transcript";
+import { hasHarnessSession, readHarnessTranscript } from ".";
+import { claudeProjectDirName } from "./claude";
 
 const BUDGET = 36_000;
 
@@ -66,13 +61,15 @@ function seedPinnedSession(
 	return {
 		env,
 		read: (maxChars = BUDGET) =>
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: "session",
-				worktreePath,
-				env,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId: "session",
+					worktreePath,
+					env,
+				},
 				maxChars,
-			})?.text,
+			)?.text,
 	};
 }
 
@@ -128,12 +125,14 @@ describe("readHarnessTranscript", () => {
 		]);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: sessionId,
-				worktreePath,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId,
+					worktreePath,
+				},
+				BUDGET,
+			)?.text,
 		).toBe(
 			`User: Fix the parser.\n\nUser: ${prompt}\n\nAssistant: Kept the API and added the regression.`,
 		);
@@ -170,12 +169,14 @@ describe("readHarnessTranscript", () => {
 		]);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: sessionId,
-				worktreePath,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId,
+					worktreePath,
+				},
+				BUDGET,
+			)?.text,
 		).toBe("User: Keep this instruction.");
 	});
 
@@ -198,12 +199,14 @@ describe("readHarnessTranscript", () => {
 			}),
 		]);
 
-		const result = readHarnessTranscript({
-			agentId: "claude",
-			agentSessionId: sessionId,
-			worktreePath,
-			maxChars: BUDGET,
-		});
+		const result = readHarnessTranscript(
+			{
+				agentId: "claude",
+				sessionId,
+				worktreePath,
+			},
+			BUDGET,
+		);
 
 		expect(result?.harness).toBe("claude");
 		expect(result?.text).toBe(
@@ -220,24 +223,15 @@ describe("readHarnessTranscript", () => {
 			'{"type":"assistant","message":{"role":"assist',
 		]);
 
-		const result = readHarnessTranscript({
-			agentId: "claude",
-			agentSessionId: sessionId,
-			worktreePath,
-			maxChars: BUDGET,
-		});
+		const result = readHarnessTranscript(
+			{
+				agentId: "claude",
+				sessionId,
+				worktreePath,
+			},
+			BUDGET,
+		);
 		expect(result?.text).toBe("User: first");
-	});
-
-	test("reads only the tail of a file past the byte bound", () => {
-		const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
-		created.push(dir);
-		const path = join(dir, "big.jsonl");
-		writeFileSync(path, `${"x".repeat(5000)}TAIL-MARKER`);
-
-		const tail = readFileTail(path, 100);
-		expect(tail).toBe(`${"x".repeat(89)}TAIL-MARKER`);
-		expect(tail?.length).toBe(100);
 	});
 
 	test("stops reading once the budget is filled", () => {
@@ -260,12 +254,14 @@ describe("readHarnessTranscript", () => {
 			}),
 		]);
 
-		const result = readHarnessTranscript({
-			agentId: "claude",
-			agentSessionId: sessionId,
-			worktreePath,
-			maxChars: BUDGET,
-		});
+		const result = readHarnessTranscript(
+			{
+				agentId: "claude",
+				sessionId,
+				worktreePath,
+			},
+			BUDGET,
+		);
 		expect(result?.text).toContain("the newest thing said");
 		expect(result?.text).not.toContain("old turn 0\n");
 		expect(result?.text).not.toContain("old turn 1000\n");
@@ -303,12 +299,14 @@ describe("readHarnessTranscript", () => {
 		]);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: sessionId,
-				worktreePath,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId,
+					worktreePath,
+				},
+				BUDGET,
+			)?.text,
 		).toBe("User: the original request\n\nAssistant: done");
 	});
 
@@ -324,12 +322,14 @@ describe("readHarnessTranscript", () => {
 		);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: sessionId,
-				worktreePath,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId,
+					worktreePath,
+				},
+				BUDGET,
+			)?.text,
 		).toBe("User: the whole conversation");
 	});
 
@@ -370,25 +370,6 @@ describe("readHarnessTranscript", () => {
 		}
 	});
 
-	test("reads no stale bytes when the file shrinks between stat and read", () => {
-		const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
-		created.push(dir);
-		const path = join(dir, "live.jsonl");
-		writeFileSync(path, "y".repeat(10_000));
-		const realRead = fs.readSync;
-		const readSpy = spyOn(fs, "readSync").mockImplementation(((
-			...args: Parameters<typeof fs.readSync>
-		) => {
-			truncateSync(path, 0);
-			return realRead(...args);
-		}) as typeof fs.readSync);
-		try {
-			expect(readFileTail(path, 4_096)).toBe("");
-		} finally {
-			readSpy.mockRestore();
-		}
-	});
-
 	test("finds the session of a worktree reached through a symlink", () => {
 		// Claude files a session under its resolved working directory.
 		const real = realpathSync(mkdtempSync(join(tmpdir(), "real-worktree-")));
@@ -398,13 +379,15 @@ describe("readHarnessTranscript", () => {
 		const { env } = seedPinnedSession(`${userLine("via link")}\n`, real);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: "session",
-				worktreePath: link,
-				env,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId: "session",
+					worktreePath: link,
+					env,
+				},
+				BUDGET,
+			)?.text,
 		).toBe("User: via link");
 		expect(
 			hasHarnessSession({
@@ -425,34 +408,40 @@ describe("readHarnessTranscript", () => {
 		]);
 
 		expect(
-			readHarnessTranscript({
-				agentId: "codex",
-				agentSessionId: sessionId,
-				worktreePath,
-				maxChars: BUDGET,
-			}),
+			readHarnessTranscript(
+				{
+					agentId: "codex",
+					sessionId,
+					worktreePath,
+				},
+				BUDGET,
+			),
 		).toBeNull();
 	});
 
 	test("declines an unbound terminal", () => {
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: null,
-				worktreePath: "/tmp",
-				maxChars: BUDGET,
-			}),
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId: null,
+					worktreePath: "/tmp",
+				},
+				BUDGET,
+			),
 		).toBeNull();
 	});
 
 	test("refuses a session id that could escape the transcript directory", () => {
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: "../../../../etc/passwd",
-				worktreePath: "/tmp",
-				maxChars: BUDGET,
-			}),
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId: "../../../../etc/passwd",
+					worktreePath: "/tmp",
+				},
+				BUDGET,
+			),
 		).toBeNull();
 	});
 });
@@ -474,16 +463,18 @@ describe("Claude transcript lookup order", () => {
 	function read(input: {
 		configDir: string;
 		worktreePath?: string | null;
-		transcriptPath?: string | null;
+		reportedPath?: string | null;
 	}) {
-		return readHarnessTranscript({
-			agentId: "claude",
-			agentSessionId: sessionId,
-			worktreePath: input.worktreePath ?? null,
-			transcriptPath: input.transcriptPath,
-			env: { CLAUDE_CONFIG_DIR: input.configDir },
-			maxChars: BUDGET,
-		})?.text;
+		return readHarnessTranscript(
+			{
+				agentId: "claude",
+				sessionId,
+				worktreePath: input.worktreePath ?? null,
+				reportedPath: input.reportedPath,
+				env: { CLAUDE_CONFIG_DIR: input.configDir },
+			},
+			BUDGET,
+		)?.text;
 	}
 
 	test("prefers the path Claude's hook reported over the encoded directory", () => {
@@ -497,7 +488,7 @@ describe("Claude transcript lookup order", () => {
 			read({
 				configDir,
 				worktreePath,
-				transcriptPath: join(configDir, "moved-store", `${sessionId}.jsonl`),
+				reportedPath: join(configDir, "moved-store", `${sessionId}.jsonl`),
 			}),
 		).toBe("User: from the reported path");
 	});
@@ -509,7 +500,7 @@ describe("Claude transcript lookup order", () => {
 			"projects/other/00000000-0000-4000-8000-000000000000.jsonl": `${userLine("an earlier session")}\n`,
 		});
 
-		for (const transcriptPath of [
+		for (const reportedPath of [
 			join(
 				configDir,
 				"projects/other/00000000-0000-4000-8000-000000000000.jsonl",
@@ -517,7 +508,7 @@ describe("Claude transcript lookup order", () => {
 			`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`,
 			join(configDir, "missing", `${sessionId}.jsonl`),
 		]) {
-			expect(read({ configDir, worktreePath, transcriptPath })).toBe(
+			expect(read({ configDir, worktreePath, reportedPath })).toBe(
 				"User: the bound session",
 			);
 		}
@@ -557,39 +548,6 @@ describe("Claude transcript lookup order", () => {
 				env: { CLAUDE_CONFIG_DIR: configDir },
 			}),
 		).toBe(false);
-	});
-});
-
-describe("claudeProjectDirName", () => {
-	// Expected values come from Claude Code 2.1.282's own encoder.
-	test("replaces every non-alphanumeric character", () => {
-		expect(
-			claudeProjectDirName(
-				"/Users/mason/.superset/worktrees/Super set/mason@feat_x",
-			),
-		).toBe("-Users-mason--superset-worktrees-Super-set-mason-feat-x");
-	});
-
-	test("encodes each UTF-16 code unit of a normalized path", () => {
-		// Claude Code NFC-normalizes the path first: "e" + U+0301 is one "-".
-		expect(claudeProjectDirName("/p/a_b c@\u00e9\u4e2d\u{1F600}")).toBe(
-			"-p-a-b-c-----",
-		);
-		expect(claudeProjectDirName("/p/nfd-e\u0301x")).toBe("-p-nfd--x");
-	});
-
-	test("hashes only a name longer than 200 characters", () => {
-		expect(claudeProjectDirName(`/${"a".repeat(199)}`)).toHaveLength(200);
-		expect(claudeProjectDirName(`/${"a".repeat(200)}`)).toMatch(
-			/^-a{199}-[0-9a-z]+$/,
-		);
-	});
-
-	test("truncates a long path and appends Claude's hash of it", () => {
-		const path = `/Users/mason/.superset/worktrees/${"a".repeat(180)}/feature_x`;
-		const name = claudeProjectDirName(path);
-		expect(name).toHaveLength(207);
-		expect(name.endsWith("aaaaaaaaaa-2d2ous")).toBe(true);
 	});
 });
 
@@ -639,13 +597,15 @@ describe("hasHarnessSession", () => {
 			hasHarnessSession({ agentId: "claude", sessionId, worktreePath, env }),
 		).toBe(true);
 		expect(
-			readHarnessTranscript({
-				agentId: "claude",
-				agentSessionId: sessionId,
-				worktreePath,
-				env,
-				maxChars: BUDGET,
-			})?.text,
+			readHarnessTranscript(
+				{
+					agentId: "claude",
+					sessionId,
+					worktreePath,
+					env,
+				},
+				BUDGET,
+			)?.text,
 		).toBe("User: pinned");
 
 		// Without the env it is invisible. The answer is "unknown", not

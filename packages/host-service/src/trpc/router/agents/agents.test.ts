@@ -9,8 +9,8 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
-import { claudeProjectDirName } from "../../../terminal/harness-transcript";
 import { TerminalAgentStore } from "../../../terminal-agents";
+import { claudeProjectDirName } from "../../../terminal-agents/harness-sessions/claude";
 import { setDefaultAccountSelection } from "../usage/default-account";
 import {
 	bindResumedSession,

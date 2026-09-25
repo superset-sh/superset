@@ -3,15 +3,9 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { terminalAgentBindings, workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
-import {
-	hasHarnessSession,
-	readHarnessTranscript,
-} from "../../../terminal/harness-transcript";
 import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
 	createTerminalSessionInternal,
@@ -22,6 +16,12 @@ import type {
 	TerminalAgentId,
 	TerminalAgentStore,
 } from "../../../terminal-agents";
+import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
+import { terminalHarnessSession } from "../../../terminal-agents/harness-session-ref";
+import {
+	hasHarnessSession,
+	readHarnessTranscript,
+} from "../../../terminal-agents/harness-sessions";
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
@@ -34,13 +34,8 @@ import {
 } from "../../../terminal-agents/persistence";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
-import {
-	type AgentRunResult,
-	resolveHostAgentConfig,
-	runAgentInWorkspace,
-} from "../agents/agents";
+import { type AgentRunResult, runAgentInWorkspace } from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
-import { resolveDefaultAccountEnv } from "../usage/default-account";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -100,22 +95,8 @@ function bindingHasHarnessSession(
 	db: HostDb,
 	binding: TerminalAgentBinding,
 ): boolean | null {
-	const config = resolveHostAgentConfig(
-		db,
-		binding.definitionId ?? binding.agentId,
-	);
-	if (!config) return null;
-	const worktreePath = db
-		.select({ path: workspaces.worktreePath })
-		.from(workspaces)
-		.where(eq(workspaces.id, binding.workspaceId))
-		.get()?.path;
-	return hasHarnessSession({
-		agentId: config.presetId,
-		sessionId: binding.agentSessionId,
-		worktreePath,
-		env: { ...resolveDefaultAccountEnv(db, config.presetId), ...config.env },
-	});
+	const bound = terminalHarnessSession(db, binding.terminalId);
+	return bound ? hasHarnessSession(bound.ref) : null;
 }
 
 /**
@@ -493,32 +474,10 @@ export const terminalAgentsRouter = router({
 		.query(({ ctx, input }) => {
 			const binding = getTerminalAgentBinding(ctx.db, input.terminalId);
 			if (!binding || binding.workspaceId !== input.workspaceId) return null;
-			const worktreePath = ctx.db
-				.select({ path: workspaces.worktreePath })
-				.from(workspaces)
-				.where(eq(workspaces.id, input.workspaceId))
-				.get()?.path;
-			const transcriptPath = ctx.db
-				.select({ path: terminalAgentBindings.transcriptPath })
-				.from(terminalAgentBindings)
-				.where(eq(terminalAgentBindings.terminalId, input.terminalId))
-				.get()?.path;
-			const config = resolveHostAgentConfig(
-				ctx.db,
-				binding.definitionId ?? binding.agentId,
-			);
-			const transcript = readHarnessTranscript({
-				agentId: binding.agentId,
-				agentSessionId: binding.agentSessionId,
-				worktreePath,
-				transcriptPath,
-				// A pinned provider account keeps its transcript under its own
-				// config directory.
-				env: config
-					? resolveDefaultAccountEnv(ctx.db, config.presetId)
-					: undefined,
-				maxChars: MAX_AGENT_TRANSCRIPT_CHARS,
-			});
+			const bound = terminalHarnessSession(ctx.db, input.terminalId);
+			const transcript = bound
+				? readHarnessTranscript(bound.ref, MAX_AGENT_TRANSCRIPT_CHARS)
+				: null;
 			return transcript
 				? {
 						...transcript,
