@@ -1644,6 +1644,10 @@ msgstr "에이전트가 작업 중간 개입 없이 일상적인 티켓을 완�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, 리뷰 준비 표시를 하기 전에 스크린샷 증거를 첨부합니다."
 
+#. placeholder {0}: warnedKeys.join(", ")
+msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
+msgstr "에이전트는 여기의 {0}을(를) 읽지 않습니다. 로그인은 설정 › 에이전트에서 합니다. 워크스페이스에서 claude -p 또는 codex를 헤드리스로 실행하면 이 키로 청구됩니다."
+
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
 
@@ -12794,6 +12798,9 @@ msgstr "25% 절약"
 
 msgid "Save All"
 msgstr "모두 저장"
+
+msgid "Save anyway"
+msgstr "그래도 저장"
 
 msgid "Save as environment"
 msgstr "환경으로 저장"

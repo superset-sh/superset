@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { isAgentCredentialEnvName } from "@superset/shared/agent-credentials";
 import { parseEnvContent } from "@superset/shared/env-file";
 import { command } from "../../../../lib/command";
 import { resolveEnvironment } from "../../../../lib/environments";
@@ -77,12 +78,22 @@ export default command({
 			});
 		}
 		const keys = entries.map((entry) => entry.key);
+		const agentKeys = keys.filter(isAgentCredentialEnvName);
+		const warnings =
+			agentKeys.length === 0
+				? []
+				: [
+						`Agents never read ${agentKeys.join(", ")} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key.`,
+					];
+		const set =
+			keys.length === 1
+				? `Set ${keys[0]} on ${environment.name}`
+				: `Set ${keys.length} variables on ${environment.name}: ${keys.join(", ")}`;
 		return {
-			data: { environment: environment.name, keys },
-			message:
-				keys.length === 1
-					? `Set ${keys[0]} on ${environment.name}`
-					: `Set ${keys.length} variables on ${environment.name}: ${keys.join(", ")}`,
+			data: { environment: environment.name, keys, warnings },
+			message: [set, ...warnings.map((warning) => `Warning: ${warning}`)].join(
+				"\n",
+			),
 		};
 	},
 });

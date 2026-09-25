@@ -1644,6 +1644,10 @@ msgstr "Agents complete routine tickets with no mid-task intervention."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 
+#. placeholder {0}: warnedKeys.join(", ")
+msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
+msgstr "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
+
 msgid "Agents running at once"
 msgstr "Agents running at once"
 
@@ -12794,6 +12798,9 @@ msgstr "Save 25%"
 
 msgid "Save All"
 msgstr "Save All"
+
+msgid "Save anyway"
+msgstr "Save anyway"
 
 msgid "Save as environment"
 msgstr "Save as environment"
