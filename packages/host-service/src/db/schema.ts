@@ -74,9 +74,8 @@ export const terminalAgentBindings = sqliteTable(
 		// pane that missed the relaunch can follow it there.
 		resumedIntoTerminalId: text("resumed_into_terminal_id"),
 		// Where the harness itself reported writing the session's transcript
-		// (Claude's hook `transcript_path`). Only trusted for the session whose
-		// id names the file, so a path left over from an earlier session in the
-		// same terminal is ignored rather than cleared.
+		// (Claude's hook `transcript_path`). Cleared when the binding moves to
+		// another session.
 		transcriptPath: text("transcript_path"),
 	},
 	(table) => [

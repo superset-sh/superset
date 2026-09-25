@@ -49,15 +49,20 @@ it goes:
 
 1. **The path Claude reported.** Every Claude hook payload carries `transcript_path`. The notify
    hook (v20+) forwards it, and the host stores it on `terminal_agent_bindings.transcript_path`.
-   This depends on nothing about Claude's layout.
+   This depends on nothing about Claude's layout, not even on the file being named after the
+   session id (Orca has seen Claude versions where it is not).
 2. **The path the harness's layout gives** (`files.locate`). For Claude: Claude Code 2.1.282 names the directory after the
-   working directory, resolved through symlinks and NFC-normalized, with every non-alphanumeric
+   working directory, resolved through symlinks, NFC-normalized and without trailing separators, with every non-alphanumeric
    UTF-16 unit replaced by `-`. Past 200 characters it truncates and appends
    `Math.abs(javaHash(path)).toString(36)`. `claudeProjectDirName` copies this. It is not a
    documented contract.
 3. **A search by session id**, also in `files.locate`. Claude's session ids are UUIDs, so `projects/*/<id>.jsonl` is the session
    wherever it was filed. This catches agents started in a subdirectory,
-   `CLAUDE_CODE_PROJECT_DIR_NAME`, and future naming changes.
+   `CLAUDE_CODE_PROJECT_DIR_NAME`, and future naming changes. The scan stops at 5,000 project
+   directories.
+
+Steps 2 and 3 look in the launch env's `CLAUDE_CONFIG_DIR` first, then in the default
+`~/.claude`: a session started before the default account switched keeps writing where it began.
 
 A miss on all three logs `[harness-sessions] no transcript for claude session …`, and a hit on
 2 or 3 logs `found without a reported path`. If the first of those starts appearing in host logs, Claude
@@ -68,9 +73,9 @@ has changed its store.
 - The hook endpoint is unauthenticated, so a reported path is stored only if
   `isTrustedTranscriptPath` accepts it: absolute, `.jsonl`, and under the user's home. A
   `CLAUDE_CONFIG_DIR` outside home is never stored, and falls through to steps 2 and 3.
-- It is stored only while the binding still names the reporting session. It is used only when
-  the store's `files.isSessionFile` says it names the bound session (for Claude, `<id>.jsonl`), so a path left behind by an earlier session in the
-  same terminal is ignored rather than cleared.
+- It is stored only while the binding still names the reporting session, and cleared when the
+  binding moves to another session, so a later session never reads an earlier one's file. It is
+  checked again with `isTrustedTranscriptPath` when read.
 - Reading widens from the last 4 MB until the conversation fills the budget or the file ends,
   stopping at 128 MB. Most of a session file is tool output and screenshots, so a fixed tail
   dropped early turns that would have fit.
@@ -82,16 +87,15 @@ has changed its store.
 | Old hook (≤ v19), new host | No `transcriptPath` arrives. Lookup starts at step 2 |
 | New hook, old host | zod strips the unknown `transcriptPath` field. Nothing changes |
 | Bindings created before migration `0036` | `transcript_path` is null until the next hook event from that session |
-| Resume and fork preflight (`hasHarnessSession`) | Steps 2 and 3 only, under the env the relaunch will use. A path reported by an earlier launch on another account does not count. Found is `true`. `false` needs the encoded project directory to exist and lack the file. Otherwise `null` (unknown, allowed) |
+| Resume and fork preflight (`hasHarnessSession`) | Steps 2 and 3 only, and only under the env the relaunch will use: no reported path and no default-store fallback, since the relaunch would not look there either. Found is `true`. `false` needs a complete scan and the encoded project directory to exist without the file. Otherwise `null` (unknown, allowed) |
 
 ## Adding a harness
 
 Write `harness-sessions/<harness>.ts` exporting a `HarnessSessionStore` and register it in
 `HARNESS_SESSION_STORES`:
 
-- `files`, for a store that keeps one file per session: `isSessionFile` (does a path name this
-  session) and `locate` (find it under `env`). The reported-path check and the lookup order then
-  come for free.
+- `files.locate`, for a store that keeps one file per session: find it under `env`. The
+  reported path and the lookup order then come for free.
 - `files.parseTurns`, to make handoffs read the conversation instead of the terminal stream. It
   gets a chunk that may start mid-line and must skip what it cannot parse.
 - `hasSession`, only when absence can be proven. Without it a located file is `true` and

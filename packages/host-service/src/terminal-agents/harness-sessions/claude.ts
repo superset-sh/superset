@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { isFile } from "./is-file";
 import type {
 	HarnessEnv,
@@ -28,26 +28,40 @@ function projectPathHash(path: string): string {
 }
 
 export function claudeProjectDirName(worktreePath: string): string {
-	const path = worktreePath.normalize("NFC");
+	const path = worktreePath.normalize("NFC").replace(/(?<=.)[\\/]+$/, "");
 	const encoded = path.replaceAll(/[^a-zA-Z0-9]/g, "-");
 	if (encoded.length <= PROJECT_DIR_MAX_LENGTH) return encoded;
 	return `${encoded.slice(0, PROJECT_DIR_MAX_LENGTH)}-${projectPathHash(path)}`;
 }
 
-function configDir(env: HarnessEnv): string {
-	return env?.CLAUDE_CONFIG_DIR?.trim() || join(homedir(), ".claude");
+function defaultConfigDir(): string {
+	return join(homedir(), ".claude");
 }
 
-function projectDir(env: HarnessEnv, worktreePath: string): string {
+/** Where the launch env tells Claude to keep its sessions. */
+function configDir(env: HarnessEnv): string {
+	return env?.CLAUDE_CONFIG_DIR?.trim() || defaultConfigDir();
+}
+
+function projectDir(root: string, worktreePath: string): string {
 	let resolved = worktreePath;
 	try {
 		resolved = realpathSync(worktreePath);
 	} catch {}
-	return join(configDir(env), "projects", claudeProjectDirName(resolved));
+	return join(root, "projects", claudeProjectDirName(resolved));
 }
 
 function sessionFileName(sessionId: string): string {
 	return `${sessionId}.jsonl`;
+}
+
+function layoutPath(root: string, query: HarnessSessionQuery): string | null {
+	if (!query.worktreePath) return null;
+	const path = join(
+		projectDir(root, query.worktreePath),
+		sessionFileName(query.sessionId),
+	);
+	return isFile(path) ? path : null;
 }
 
 /**
@@ -57,10 +71,10 @@ function sessionFileName(sessionId: string): string {
  * proves nothing.
  */
 function searchProjects(
-	env: HarnessEnv,
+	root: string,
 	fileName: string,
 ): { path: string | null; complete: boolean } {
-	const projectsDir = join(configDir(env), "projects");
+	const projectsDir = join(root, "projects");
 	let entries: string[];
 	try {
 		entries = readdirSync(projectsDir);
@@ -75,15 +89,6 @@ function searchProjects(
 		path: null,
 		complete: entries.length <= MAX_PROJECT_DIRS_SCANNED,
 	};
-}
-
-function layoutPath(query: HarnessSessionQuery): string | null {
-	if (!query.worktreePath) return null;
-	const path = join(
-		projectDir(query.env, query.worktreePath),
-		sessionFileName(query.sessionId),
-	);
-	return isFile(path) ? path : null;
 }
 
 interface ClaudeEvent {
@@ -143,12 +148,20 @@ function parseTurns(raw: string): string[] {
 }
 
 const claudeSessionFiles: HarnessSessionFiles = {
-	isSessionFile: (path, sessionId) =>
-		basename(path) === sessionFileName(sessionId),
-
-	locate: (query) =>
-		layoutPath(query) ??
-		searchProjects(query.env, sessionFileName(query.sessionId)).path,
+	/**
+	 * The launch env's store first, then the default one: a session started
+	 * before the account switched keeps writing where it began.
+	 */
+	locate(query) {
+		const roots = [...new Set([configDir(query.env), defaultConfigDir()])];
+		for (const root of roots) {
+			const found =
+				layoutPath(root, query) ??
+				searchProjects(root, sessionFileName(query.sessionId)).path;
+			if (found) return found;
+		}
+		return null;
+	},
 
 	parseTurns,
 };
@@ -156,14 +169,16 @@ const claudeSessionFiles: HarnessSessionFiles = {
 export const claudeSessionStore: HarnessSessionStore = {
 	files: claudeSessionFiles,
 
+	/** Only the launch env's store: that is where a relaunch will look. */
 	hasSession(query) {
-		if (!existsSync(configDir(query.env))) return null;
-		if (layoutPath(query)) return true;
-		const search = searchProjects(query.env, sessionFileName(query.sessionId));
+		const root = configDir(query.env);
+		if (!existsSync(root)) return null;
+		if (layoutPath(root, query)) return true;
+		const search = searchProjects(root, sessionFileName(query.sessionId));
 		if (search.path) return true;
 		// Absence is evidence only when the whole store was searched and the
 		// worktree's own project directory is there to have held the file.
 		if (!search.complete || !query.worktreePath) return null;
-		return existsSync(projectDir(query.env, query.worktreePath)) ? false : null;
+		return existsSync(projectDir(root, query.worktreePath)) ? false : null;
 	},
 };

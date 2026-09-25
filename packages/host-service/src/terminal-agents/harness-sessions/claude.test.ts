@@ -30,6 +30,12 @@ describe("claudeProjectDirName", () => {
 		expect(claudeProjectDirName("/p/nfd-e\u0301x")).toBe("-p-nfd--x");
 	});
 
+	test("drops trailing separators but keeps a bare root", () => {
+		expect(claudeProjectDirName("/work/tree/")).toBe("-work-tree");
+		expect(claudeProjectDirName("/work/tree//")).toBe("-work-tree");
+		expect(claudeProjectDirName("/")).toBe("-");
+	});
+
 	test("hashes only a name longer than 200 characters", () => {
 		expect(claudeProjectDirName(`/${"a".repeat(199)}`)).toHaveLength(200);
 		expect(claudeProjectDirName(`/${"a".repeat(200)}`)).toMatch(

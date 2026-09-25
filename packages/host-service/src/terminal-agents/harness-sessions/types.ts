@@ -20,8 +20,6 @@ export interface HarnessSessionQuery {
 
 /** A store that keeps one file per session. */
 export interface HarnessSessionFiles {
-	/** Whether `path` names this session's file, judged by its name. */
-	isSessionFile(path: string, sessionId: string): boolean;
 	/** The session's file, found from the harness's layout under `env`. */
 	locate(query: HarnessSessionQuery): string | null;
 	/**

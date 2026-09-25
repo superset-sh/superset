@@ -1,5 +1,5 @@
-import { isAbsolute } from "node:path";
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+import { isTrustedTranscriptPath } from "../transcript-path";
 import { claudeSessionStore } from "./claude";
 import { codexSessionStore } from "./codex";
 import { isFile } from "./is-file";
@@ -7,7 +7,6 @@ import { opencodeSessionStore } from "./opencode";
 import { piSessionStore } from "./pi";
 import { readTurnsFromTail } from "./tail";
 import type {
-	HarnessSessionFiles,
 	HarnessSessionQuery,
 	HarnessSessionRef,
 	HarnessSessionStore,
@@ -58,18 +57,15 @@ function storeFor(
 }
 
 /**
- * The path the harness's own hook reported, when it still names this
- * session's file. A path left behind by an earlier session in the same
- * terminal names a different id and is ignored.
+ * The path the harness's own hook reported, when it is still a transcript
+ * file. It is exact however the harness lays out its store; a binding clears
+ * it when it moves to another session.
  */
 function reportedSessionFile(
-	files: HarnessSessionFiles,
-	query: HarnessSessionQuery,
 	reportedPath: string | null | undefined,
 ): string | null {
 	return reportedPath &&
-		isAbsolute(reportedPath) &&
-		files.isSessionFile(reportedPath, query.sessionId) &&
+		isTrustedTranscriptPath(reportedPath) &&
 		isFile(reportedPath)
 		? reportedPath
 		: null;
@@ -96,7 +92,7 @@ export function readHarnessTranscript(
 	if (!resolved || !files || !parseTurns) return null;
 	const { query } = resolved;
 
-	const reported = reportedSessionFile(files, query, ref.reportedPath);
+	const reported = reportedSessionFile(ref.reportedPath);
 	const path = reported ?? files.locate(query);
 	if (!path) {
 		// A bound session with no file anywhere means the harness moved its

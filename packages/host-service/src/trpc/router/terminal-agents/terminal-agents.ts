@@ -2,6 +2,7 @@ import {
 	type AgentDefinitionId,
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
+import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
@@ -481,7 +482,10 @@ export const terminalAgentsRouter = router({
 			return transcript
 				? {
 						...transcript,
-						text: transcript.text.slice(-MAX_AGENT_TRANSCRIPT_CHARS),
+						text: boundTranscriptText(
+							transcript.text,
+							MAX_AGENT_TRANSCRIPT_CHARS,
+						),
 					}
 				: null;
 		}),

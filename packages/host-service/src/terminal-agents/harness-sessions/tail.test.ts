@@ -40,7 +40,7 @@ describe("readTurnsFromTail", () => {
 	});
 
 	test("reads each byte of the file once however far it widens", () => {
-		const path = seedFile(`${"x\n".repeat(10 * MB)}`);
+		const path = seedFile(`${"x".repeat(1023)}\n`.repeat(10 * 1024));
 		const realRead = fs.readSync;
 		let bytesRead = 0;
 		const read = spyOn(fs, "readSync").mockImplementation(((
@@ -55,7 +55,7 @@ describe("readTurnsFromTail", () => {
 		} finally {
 			read.mockRestore();
 		}
-		expect(bytesRead).toBe(20 * MB);
+		expect(bytesRead).toBe(10 * MB);
 	});
 
 	test("stops once the budget is filled", () => {

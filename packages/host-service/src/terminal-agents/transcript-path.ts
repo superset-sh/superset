@@ -1,4 +1,4 @@
-import os from "node:os";
+import { homedir } from "node:os";
 import path from "node:path";
 
 /**
@@ -8,7 +8,7 @@ import path from "node:path";
  */
 export function isTrustedTranscriptPath(
 	transcriptPath: string,
-	home: string = os.homedir(),
+	home: string = homedir(),
 ): boolean {
 	const normalized = path.normalize(transcriptPath);
 	return (

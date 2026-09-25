@@ -1,5 +1,15 @@
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
-import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	isNull,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 import type { HostDb } from "../db";
 import { terminalAgentBindings, terminalSessions } from "../db/schema.ts";
 import type {
@@ -600,6 +610,9 @@ export class SqliteTerminalAgentBindingPersistence
 					lastEventType: binding.lastEventType,
 					endedAt: null,
 					endReason: null,
+					// A reported transcript belongs to the session that reported
+					// it; the next session in this terminal reports its own.
+					transcriptPath: sql`CASE WHEN ${terminalAgentBindings.agentSessionId} IS excluded.agent_session_id THEN ${terminalAgentBindings.transcriptPath} ELSE NULL END`,
 				},
 			})
 			.run();

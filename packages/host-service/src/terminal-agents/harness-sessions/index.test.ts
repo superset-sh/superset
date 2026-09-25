@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as fs from "node:fs";
 import {
 	mkdirSync,
@@ -8,6 +8,7 @@ import {
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
+import * as os from "node:os";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { hasHarnessSession, readHarnessTranscript } from ".";
@@ -448,106 +449,133 @@ describe("readHarnessTranscript", () => {
 
 describe("Claude transcript lookup order", () => {
 	const sessionId = "33333333-4444-4555-8666-777788889999";
+	const worktreePath = "/work/tree";
+	const encodedDir = claudeProjectDirName(worktreePath);
+	let home: string;
+	let homedirSpy: ReturnType<typeof spyOn>;
 
-	function seedConfig(files: Record<string, string>): string {
-		const configDir = mkdtempSync(join(tmpdir(), "claude-lookup-"));
-		created.push(configDir);
+	beforeEach(() => {
+		home = realpathSync(mkdtempSync(join(tmpdir(), "claude-home-")));
+		created.push(home);
+		homedirSpy = spyOn(os, "homedir").mockReturnValue(home);
+	});
+
+	afterEach(() => {
+		homedirSpy.mockRestore();
+	});
+
+	function seed(files: Record<string, string>): void {
 		for (const [relative, body] of Object.entries(files)) {
-			const path = join(configDir, relative);
+			const path = join(home, relative);
 			mkdirSync(join(path, ".."), { recursive: true });
 			writeFileSync(path, body);
 		}
-		return configDir;
 	}
 
-	function read(input: {
-		configDir: string;
-		worktreePath?: string | null;
-		reportedPath?: string | null;
-	}) {
-		return readHarnessTranscript(
-			{
-				agentId: "claude",
-				sessionId,
-				worktreePath: input.worktreePath ?? null,
-				reportedPath: input.reportedPath,
-				env: { CLAUDE_CONFIG_DIR: input.configDir },
-			},
-			BUDGET,
-		)?.text;
-	}
+	const ref = (
+		overrides: Partial<Parameters<typeof hasHarnessSession>[0]>,
+	) => ({
+		agentId: "claude",
+		sessionId,
+		worktreePath,
+		env: { CLAUDE_CONFIG_DIR: join(home, ".claude-work") },
+		...overrides,
+	});
+	const read = (
+		overrides: Partial<Parameters<typeof hasHarnessSession>[0]> = {},
+	) => readHarnessTranscript(ref(overrides), BUDGET)?.text;
 
-	test("prefers the path Claude's hook reported over the encoded directory", () => {
-		const worktreePath = "/work/tree";
-		const configDir = seedConfig({
-			[`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`]: `${userLine("from the encoded dir")}\n`,
-			[`moved-store/${sessionId}.jsonl`]: `${userLine("from the reported path")}\n`,
+	test("reads the file Claude's hook reported, even under another name", () => {
+		// Orca: some Claude Code versions name the file by a different UUID
+		// than the hook's session_id. The reported path is exact either way.
+		seed({
+			[`.claude-work/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("from the encoded dir")}\n`,
+			".claude-work/projects/moved/another-uuid.jsonl": `${userLine("from the reported path")}\n`,
 		});
 
 		expect(
 			read({
-				configDir,
-				worktreePath,
-				reportedPath: join(configDir, "moved-store", `${sessionId}.jsonl`),
+				reportedPath: join(
+					home,
+					".claude-work/projects/moved/another-uuid.jsonl",
+				),
 			}),
 		).toBe("User: from the reported path");
 	});
 
-	test("ignores a reported path that does not name this session", () => {
-		const worktreePath = "/work/tree";
-		const configDir = seedConfig({
-			[`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`]: `${userLine("the bound session")}\n`,
-			"projects/other/00000000-0000-4000-8000-000000000000.jsonl": `${userLine("an earlier session")}\n`,
+	test("falls back when the reported path is missing, relative, or outside home", () => {
+		seed({
+			[`.claude-work/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("the bound session")}\n`,
 		});
+		const outside = mkdtempSync(join(tmpdir(), "outside-home-"));
+		created.push(outside);
+		writeFileSync(
+			join(outside, `${sessionId}.jsonl`),
+			`${userLine("outside")}\n`,
+		);
 
 		for (const reportedPath of [
-			join(
-				configDir,
-				"projects/other/00000000-0000-4000-8000-000000000000.jsonl",
-			),
-			`projects/${claudeProjectDirName(worktreePath)}/${sessionId}.jsonl`,
-			join(configDir, "missing", `${sessionId}.jsonl`),
+			join(home, ".claude-work/projects/gone", `${sessionId}.jsonl`),
+			`projects/${encodedDir}/${sessionId}.jsonl`,
+			join(outside, `${sessionId}.jsonl`),
+			join(home, ".claude-work/notes.txt"),
 		]) {
-			expect(read({ configDir, worktreePath, reportedPath })).toBe(
-				"User: the bound session",
-			);
+			expect(read({ reportedPath })).toBe("User: the bound session");
 		}
 	});
 
 	test("finds the session by id when neither the report nor the encoding does", () => {
 		// An agent started in a subdirectory, a CLAUDE_CODE_PROJECT_DIR_NAME
 		// override, or a future naming scheme all file it somewhere else.
-		const configDir = seedConfig({
-			[`projects/-work-tree-packages-api/${sessionId}.jsonl`]: `${userLine("started in a subdirectory")}\n`,
+		seed({
+			[`.claude-work/projects/-work-tree-packages-api/${sessionId}.jsonl`]: `${userLine("started in a subdirectory")}\n`,
 		});
 
-		expect(read({ configDir, worktreePath: "/work/tree" })).toBe(
+		expect(read()).toBe("User: started in a subdirectory");
+		expect(read({ worktreePath: null })).toBe(
 			"User: started in a subdirectory",
 		);
-		expect(read({ configDir })).toBe("User: started in a subdirectory");
-		expect(
-			hasHarnessSession({
-				agentId: "claude",
-				sessionId,
-				worktreePath: null,
-				env: { CLAUDE_CONFIG_DIR: configDir },
-			}),
-		).toBe(true);
+		expect(hasHarnessSession(ref({ worktreePath: null }))).toBe(true);
+	});
+
+	test("reads history written to the default store before the account switched", () => {
+		seed({
+			[`.claude/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("before the switch")}\n`,
+			[`.claude-work/projects/${encodedDir}/.keep`]: "",
+		});
+
+		expect(read()).toBe("User: before the switch");
+		// A relaunch runs under the new account and would not find it there.
+		expect(hasHarnessSession(ref({}))).toBe(false);
+	});
+
+	test("prefers the launch env's store when both hold the session", () => {
+		seed({
+			[`.claude/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("default store")}\n`,
+			[`.claude-work/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("account store")}\n`,
+		});
+		expect(read()).toBe("User: account store");
+	});
+
+	test("treats a blank CLAUDE_CONFIG_DIR as unset", () => {
+		seed({
+			[`.claude/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("default store")}\n`,
+		});
+		expect(read({ env: { CLAUDE_CONFIG_DIR: "  " } })).toBe(
+			"User: default store",
+		);
+		expect(hasHarnessSession(ref({ env: { CLAUDE_CONFIG_DIR: "" } }))).toBe(
+			true,
+		);
 	});
 
 	test("declines when no lookup finds the session", () => {
-		const configDir = seedConfig({
-			"projects/-work-tree/00000000-0000-4000-8000-000000000000.jsonl": "{}\n",
+		seed({
+			[`.claude-work/projects/${encodedDir}/00000000-0000-4000-8000-000000000000.jsonl`]:
+				"{}\n",
 		});
-		expect(read({ configDir, worktreePath: "/work/tree" })).toBeUndefined();
-		expect(
-			hasHarnessSession({
-				agentId: "claude",
-				sessionId,
-				worktreePath: "/work/tree",
-				env: { CLAUDE_CONFIG_DIR: configDir },
-			}),
-		).toBe(false);
+		expect(read()).toBeUndefined();
+		expect(hasHarnessSession(ref({}))).toBe(false);
 	});
 });
 

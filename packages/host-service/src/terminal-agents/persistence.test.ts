@@ -582,6 +582,38 @@ describe("recordTerminalAgentTranscriptPath", () => {
 		);
 	});
 
+	it("clears the path when the terminal moves to another session", () => {
+		const db = createTestDb();
+		const store = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		);
+		db.insert(terminalSessions)
+			.values({
+				id: "t-1",
+				status: "active",
+				originWorkspaceId: "ws-1",
+				createdAt: 1,
+			})
+			.run();
+		const event = (agentSessionId: string, occurredAt: number) =>
+			store.recordEvent({
+				terminalId: "t-1",
+				workspaceId: "ws-1",
+				eventType: "Start",
+				agentId: "claude",
+				agentSessionId,
+				occurredAt,
+			});
+		event("s-1", 1);
+		recordTerminalAgentTranscriptPath(db, {
+			terminalId: "t-1",
+			agentSessionId: "s-1",
+			transcriptPath: "/home/a/.claude/projects/x/s-1.jsonl",
+		});
+		event("s-2", 2);
+		expect(transcriptPathOf(db, "t-1")).toBeNull();
+	});
+
 	it("survives the upsert every later hook event performs", () => {
 		const db = createTestDb();
 		const store = new TerminalAgentStore(
