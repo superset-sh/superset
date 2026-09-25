@@ -3486,6 +3486,9 @@ msgstr "Workspace cloud"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Gli spazi di lavoro cloud ignorano questa variabile. Gli agenti accedono invece da Impostazioni › Agenti."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "I workspace cloud smetteranno di eseguire {agentLabel} con questa credenziale."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Cofondatore e CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Impossibile eliminare il file"
 
 msgid "Could not delete this page"
 msgstr "Impossibile eliminare questa pagina"
+
+msgid "Could not disconnect."
+msgstr "Impossibile disconnettere."
 
 msgid "Could not forget {domain}"
 msgstr "Impossibile dimenticare {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Scartate — non te lo chiederò più"
 
 msgid "Disconnect"
 msgstr "Disconnetti"
+
+msgid "Disconnect {credential}?"
+msgstr "Disconnettere {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "Scollegare GitHub?"
@@ -9031,6 +9040,9 @@ msgstr "Altri temi {kindLower}"
 msgid "More actions"
 msgstr "Altre azioni"
 
+msgid "More options"
+msgstr "Altre opzioni"
+
 msgid "More pages"
 msgstr "Altre pagine"
 
@@ -12089,6 +12101,9 @@ msgstr "Rimuovi il workspace"
 msgid "Remove…"
 msgstr "Rimuovi…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} rimosso per {agentLabel}."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} rimosso."
 
@@ -12407,6 +12422,9 @@ msgstr "Riavvia i terminali"
 msgid "Restart to use the latest version of Superset."
 msgstr "Riavvia per usare l'ultima versione di Superset."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Riavvia i workspace per applicare le nuove credenziali dell'agente."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Riavviati {restartedOrgCount} servizi host"
 
@@ -12662,6 +12680,9 @@ msgstr "Esegui {0} ora"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Esegui <0>{tokenCommand}</0><1><2/></1> in un terminale e incolla qui il token."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Accedi con GitHub"
 msgid "Sign in with Google"
 msgstr "Accedi con Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Accedi con il tuo account Claude, oppure esegui <0>claude setup-token</0><1><2/></1> in un terminale e incolla qui il token."
-
 msgid "Sign out"
 msgstr "Esci"
 
@@ -13777,14 +13795,8 @@ msgstr "Accesso non riuscito"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Accesso non riuscito ({reason}). Riprova."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Hai effettuato l'accesso come {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Hai effettuato l'accesso come <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Accesso effettuato. Il token è salvato cifrato e non viene più mostrato."
 
 msgid "Signed out"
 msgstr "Disconnesso"
@@ -13794,9 +13806,6 @@ msgstr "Siti con accesso effettuato"
 
 msgid "Signing in..."
 msgstr "Accesso in corso..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Accede nello stesso modo della CLI di Codex. Oppure esegui <0>codex login</0> in un terminale e incolla qui il suo token."
 
 msgid "signup → paid ≤30d"
 msgstr "iscrizione → pagante ≤30g"
@@ -14366,6 +14375,9 @@ msgstr "ISCRIVITI"
 
 msgid "Subscribe on YouTube"
 msgstr "Iscriviti su YouTube"
+
+msgid "subscription"
+msgstr "abbonamento"
 
 msgid "Subscription"
 msgstr "Abbonamento"
@@ -15713,6 +15725,9 @@ msgstr "Mostra/nascondi il valore"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Mostra/nascondi la barra dei workspace"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Ripartizione dei token"

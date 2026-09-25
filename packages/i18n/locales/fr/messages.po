@@ -3486,6 +3486,9 @@ msgstr "Espace de travail cloud"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Les espaces de travail cloud ignorent cette variable. Les agents se connectent plutôt dans Paramètres › Agents."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Les espaces de travail cloud cesseront d'exécuter {agentLabel} avec."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Cofondateur et CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Impossible de supprimer le fichier"
 
 msgid "Could not delete this page"
 msgstr "Impossible de supprimer cette page"
+
+msgid "Could not disconnect."
+msgstr "Impossible de déconnecter."
 
 msgid "Could not forget {domain}"
 msgstr "Impossible d'oublier {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Abandonnées — ne sera plus demandé"
 
 msgid "Disconnect"
 msgstr "Déconnecter"
+
+msgid "Disconnect {credential}?"
+msgstr "Déconnecter {credential} ?"
 
 msgid "Disconnect GitHub?"
 msgstr "Déconnecter GitHub ?"
@@ -9031,6 +9040,9 @@ msgstr "Plus de thèmes {kindLower}"
 msgid "More actions"
 msgstr "Plus d'actions"
 
+msgid "More options"
+msgstr "Plus d'options"
+
 msgid "More pages"
 msgstr "Plus de pages"
 
@@ -12089,6 +12101,9 @@ msgstr "Supprimer l'espace de travail"
 msgid "Remove…"
 msgstr "Retirer…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} supprimé pour {agentLabel}."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} retiré."
 
@@ -12407,6 +12422,9 @@ msgstr "Redémarrer les terminaux"
 msgid "Restart to use the latest version of Superset."
 msgstr "Redémarrez pour utiliser la dernière version de Superset."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Redémarrez les espaces de travail pour prendre en compte les nouveaux identifiants de l'agent."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} services d'hôte redémarrés"
 
@@ -12662,6 +12680,9 @@ msgstr "Exécuter {0} maintenant"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Exécutez <0>{tokenCommand}</0><1><2/></1> dans un terminal et collez le jeton ici."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Se connecter avec GitHub"
 msgid "Sign in with Google"
 msgstr "Se connecter avec Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Connectez-vous avec votre compte Claude, ou exécutez <0>claude setup-token</0><1><2/></1> dans un terminal et collez le jeton ici."
-
 msgid "Sign out"
 msgstr "Se déconnecter"
 
@@ -13777,14 +13795,8 @@ msgstr "Échec de la connexion"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Échec de la connexion ({reason}). Veuillez réessayer."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Connecté en tant que {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Connecté en tant que <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Connecté. Le jeton est stocké chiffré et n'est plus jamais affiché."
 
 msgid "Signed out"
 msgstr "Déconnecté"
@@ -13794,9 +13806,6 @@ msgstr "Sites connectés"
 
 msgid "Signing in..."
 msgstr "Connexion..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Se connecte comme le fait la CLI Codex. Ou exécutez <0>codex login</0> dans un terminal et collez son jeton ici."
 
 msgid "signup → paid ≤30d"
 msgstr "inscription → payant ≤30 j"
@@ -14366,6 +14375,9 @@ msgstr "S'ABONNER"
 
 msgid "Subscribe on YouTube"
 msgstr "Abonnez-vous sur YouTube"
+
+msgid "subscription"
+msgstr "abonnement"
 
 msgid "Subscription"
 msgstr "Abonnement"
@@ -15713,6 +15725,9 @@ msgstr "Afficher ou masquer la valeur"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Afficher/masquer la barre des espaces de travail"
+
+msgid "Token"
+msgstr "Jeton"
 
 msgid "Token breakdown"
 msgstr "Répartition des tokens"

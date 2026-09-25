@@ -3486,6 +3486,9 @@ msgstr "Espacio de trabajo en la nube"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Los espacios de trabajo en la nube ignoran esta variable. Los agentes inician sesión en Configuración › Agentes en su lugar."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Los espacios de trabajo en la nube dejarán de ejecutar {agentLabel} con ella."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Cofundador y CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "No se pudo eliminar el archivo"
 
 msgid "Could not delete this page"
 msgstr "No se pudo eliminar esta página"
+
+msgid "Could not disconnect."
+msgstr "No se pudo desconectar."
 
 msgid "Could not forget {domain}"
 msgstr "No se pudo olvidar {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Descartado: no se volverá a preguntar"
 
 msgid "Disconnect"
 msgstr "Desconectar"
+
+msgid "Disconnect {credential}?"
+msgstr "¿Desconectar {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "¿Desconectar GitHub?"
@@ -9031,6 +9040,9 @@ msgstr "Más temas {kindLower}"
 msgid "More actions"
 msgstr "Más acciones"
 
+msgid "More options"
+msgstr "Más opciones"
+
 msgid "More pages"
 msgstr "Más páginas"
 
@@ -12089,6 +12101,9 @@ msgstr "Quitar el espacio de trabajo"
 msgid "Remove…"
 msgstr "Quitar…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "Se eliminó {credential} de {agentLabel}."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} eliminada."
 
@@ -12407,6 +12422,9 @@ msgstr "Reiniciar las terminales"
 msgid "Restart to use the latest version of Superset."
 msgstr "Reinicia para usar la última versión de Superset."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Reinicia los espacios de trabajo para aplicar las nuevas credenciales del agente."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Se reiniciaron {restartedOrgCount} servicios de host"
 
@@ -12662,6 +12680,9 @@ msgstr "Ejecutar {0} ahora"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Ejecuta <0>{tokenCommand}</0><1><2/></1> en un terminal y pega el token aquí."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Iniciar sesión con GitHub"
 msgid "Sign in with Google"
 msgstr "Iniciar sesión con Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Inicia sesión con tu cuenta de Claude, o ejecuta <0>claude setup-token</0><1><2/></1> en un terminal y pega el token aquí."
-
 msgid "Sign out"
 msgstr "Cerrar sesión"
 
@@ -13777,14 +13795,8 @@ msgstr "Error al iniciar sesión"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Error al iniciar sesión ({reason}). Inténtalo de nuevo."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Sesión iniciada como {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Sesión iniciada como <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Sesión iniciada. El token se guarda cifrado y no se vuelve a mostrar."
 
 msgid "Signed out"
 msgstr "Sesión cerrada"
@@ -13794,9 +13806,6 @@ msgstr "Sitios con sesión iniciada"
 
 msgid "Signing in..."
 msgstr "Iniciando sesión..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Inicia sesión igual que la CLI de Codex. O ejecuta <0>codex login</0> en un terminal y pega su token aquí."
 
 msgid "signup → paid ≤30d"
 msgstr "registro → pago ≤30 d"
@@ -14366,6 +14375,9 @@ msgstr "SUSCRIBIRSE"
 
 msgid "Subscribe on YouTube"
 msgstr "Suscríbete en YouTube"
+
+msgid "subscription"
+msgstr "suscripción"
 
 msgid "Subscription"
 msgstr "Suscripción"
@@ -15713,6 +15725,9 @@ msgstr "Alternar visibilidad del valor"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Alternar la barra lateral de espacios de trabajo"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Desglose de tokens"

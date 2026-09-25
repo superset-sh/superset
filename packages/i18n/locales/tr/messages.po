@@ -3486,6 +3486,9 @@ msgstr "Bulut çalışma alanı"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Bulut çalışma alanları bu değişkeni yok sayar. Ajanlar bunun yerine Ayarlar › Ajanlar bölümünden oturum açar."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Bulut çalışma alanları {agentLabel} için bunu kullanmayı bırakacak."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Kurucu ortak ve CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Dosya silinemedi"
 
 msgid "Could not delete this page"
 msgstr "Bu sayfa silinemedi"
+
+msgid "Could not disconnect."
+msgstr "Bağlantı kesilemedi."
 
 msgid "Could not forget {domain}"
 msgstr "{domain} unutulamadı"
@@ -5324,6 +5330,9 @@ msgstr "Atıldı — bir daha sorulmayacak"
 
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
+
+msgid "Disconnect {credential}?"
+msgstr "{credential} bağlantısı kesilsin mi?"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub bağlantısı kesilsin mi?"
@@ -9031,6 +9040,9 @@ msgstr "Daha fazla {kindLower} tema"
 msgid "More actions"
 msgstr "Diğer eylemler"
 
+msgid "More options"
+msgstr "Diğer seçenekler"
+
 msgid "More pages"
 msgstr "Daha fazla sayfa"
 
@@ -12089,6 +12101,9 @@ msgstr "Çalışma alanını kaldır"
 msgid "Remove…"
 msgstr "Kaldır…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{agentLabel} için {credential} kaldırıldı."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} kaldırıldı."
 
@@ -12407,6 +12422,9 @@ msgstr "Terminalleri yeniden başlat"
 msgid "Restart to use the latest version of Superset."
 msgstr "Superset'in en son sürümünü kullanmak için yeniden başlatın."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Yeni ajan kimlik bilgilerinin geçerli olması için çalışma alanlarını yeniden başlatın."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} host hizmeti yeniden başlatıldı"
 
@@ -12662,6 +12680,9 @@ msgstr "{0} otomasyonunu şimdi çalıştır"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Bir terminalde <0>{tokenCommand}</0><1><2/></1> çalıştırıp token'ı buraya yapıştırın."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "GitHub ile oturum aç"
 msgid "Sign in with Google"
 msgstr "Google ile oturum aç"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Claude hesabınızla oturum açın ya da bir terminalde <0>claude setup-token</0><1><2/></1> çalıştırıp token'ı buraya yapıştırın."
-
 msgid "Sign out"
 msgstr "Oturumu kapat"
 
@@ -13777,14 +13795,8 @@ msgstr "Oturum açılamadı"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Oturum açılamadı ({reason}). Lütfen tekrar deneyin."
 
-msgid "Signed in as {accountLabel}"
-msgstr "{accountLabel} olarak oturum açıldı"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0> olarak oturum açıldı"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Oturum açıldı. Token şifrelenmiş olarak saklanır ve bir daha gösterilmez."
 
 msgid "Signed out"
 msgstr "Oturum kapatıldı"
@@ -13794,9 +13806,6 @@ msgstr "Oturum açılmış siteler"
 
 msgid "Signing in..."
 msgstr "Oturum açılıyor..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Codex CLI ile aynı şekilde oturum açar. Ya da bir terminalde <0>codex login</0> çalıştırıp token'ını buraya yapıştırın."
 
 msgid "signup → paid ≤30d"
 msgstr "kayıt → ücretli ≤30g"
@@ -14366,6 +14375,9 @@ msgstr "ABONE OL"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTube'da abone olun"
+
+msgid "subscription"
+msgstr "abonelik"
 
 msgid "Subscription"
 msgstr "Abonelik"
@@ -15713,6 +15725,9 @@ msgstr "Değer görünürlüğünü aç/kapat"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Çalışma alanları kenar çubuğunu aç/kapat"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Token dağılımı"

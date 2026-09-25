@@ -3486,6 +3486,9 @@ msgstr "클라우드 워크스페이스"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "클라우드 워크스페이스는 이 변수를 무시합니다. 에이전트는 대신 설정 › 에이전트에서 로그인합니다."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "클라우드 워크스페이스에서 더 이상 이것으로 {agentLabel}을(를) 실행하지 않습니다."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "공동 창업자 겸 CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "파일을 삭제할 수 없습니다"
 
 msgid "Could not delete this page"
 msgstr "이 페이지를 삭제할 수 없습니다"
+
+msgid "Could not disconnect."
+msgstr "연결을 해제하지 못했습니다."
 
 msgid "Could not forget {domain}"
 msgstr "{domain}을(를) 잊지 못했습니다"
@@ -5324,6 +5330,9 @@ msgstr "버렸습니다 — 다시 묻지 않습니다"
 
 msgid "Disconnect"
 msgstr "연결 해제"
+
+msgid "Disconnect {credential}?"
+msgstr "{credential} 연결을 해제할까요?"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub 연결을 해제할까요?"
@@ -9031,6 +9040,9 @@ msgstr "{kindLower} 테마 더 보기"
 msgid "More actions"
 msgstr "추가 작업"
 
+msgid "More options"
+msgstr "추가 옵션"
+
 msgid "More pages"
 msgstr "더 많은 페이지"
 
@@ -12089,6 +12101,9 @@ msgstr "워크스페이스 제거"
 msgid "Remove…"
 msgstr "제거…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{agentLabel}의 {credential}을(를) 제거했습니다."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}을(를) 제거했습니다."
 
@@ -12407,6 +12422,9 @@ msgstr "터미널 다시 시작"
 msgid "Restart to use the latest version of Superset."
 msgstr "다시 시작하면 최신 버전의 Superset을 사용할 수 있습니다."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "새 에이전트 자격 증명을 적용하려면 워크스페이스를 다시 시작하세요."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "호스트 서비스 {restartedOrgCount}개를 재시작했습니다"
 
@@ -12662,6 +12680,9 @@ msgstr "{0} 지금 실행"
 
 msgid "Run {runNumber}"
 msgstr "런 {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "터미널에서 <0>{tokenCommand}</0><1><2/></1>을 실행해 토큰을 여기에 붙여넣으세요."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "GitHub로 로그인"
 msgid "Sign in with Google"
 msgstr "Google로 로그인"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Claude 계정으로 로그인하거나, 터미널에서 <0>claude setup-token</0><1><2/></1>을 실행해 토큰을 여기에 붙여넣으세요."
-
 msgid "Sign out"
 msgstr "로그아웃"
 
@@ -13777,14 +13795,8 @@ msgstr "로그인 실패"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "로그인에 실패했습니다({reason}). 다시 시도해 주세요."
 
-msgid "Signed in as {accountLabel}"
-msgstr "{accountLabel}(으)로 로그인됨"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0>(으)로 로그인됨"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "로그인했습니다. 토큰은 암호화되어 저장되며 다시 표시되지 않습니다."
 
 msgid "Signed out"
 msgstr "로그아웃됨"
@@ -13794,9 +13806,6 @@ msgstr "로그인한 사이트"
 
 msgid "Signing in..."
 msgstr "로그인하는 중..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Codex CLI와 같은 방식으로 로그인합니다. 또는 터미널에서 <0>codex login</0>을 실행해 토큰을 여기에 붙여넣으세요."
 
 msgid "signup → paid ≤30d"
 msgstr "가입 → 유료 30일 이내"
@@ -14366,6 +14375,9 @@ msgstr "구독하기"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTube에서 구독하기"
+
+msgid "subscription"
+msgstr "구독"
 
 msgid "Subscription"
 msgstr "구독"
@@ -15713,6 +15725,9 @@ msgstr "값 표시 전환"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "워크스페이스 사이드바 전환"
+
+msgid "Token"
+msgstr "토큰"
 
 msgid "Token breakdown"
 msgstr "토큰 구성"

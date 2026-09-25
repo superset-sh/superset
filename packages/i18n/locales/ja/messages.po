@@ -3486,6 +3486,9 @@ msgstr "クラウドワークスペース"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "クラウドワークスペースはこの変数を無視します。エージェントは代わりに「設定 › エージェント」でサインインします。"
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "クラウドワークスペースはこれを使って{agentLabel}を実行しなくなります。"
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "共同創業者兼CTO、TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "ファイルを削除できませんでした"
 
 msgid "Could not delete this page"
 msgstr "このページを削除できませんでした"
+
+msgid "Could not disconnect."
+msgstr "接続を解除できませんでした。"
 
 msgid "Could not forget {domain}"
 msgstr "{domain}を削除できませんでした"
@@ -5324,6 +5330,9 @@ msgstr "破棄しました — 今後は確認しません"
 
 msgid "Disconnect"
 msgstr "切断"
+
+msgid "Disconnect {credential}?"
+msgstr "{credential}の接続を解除しますか？"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHubの接続を解除しますか?"
@@ -9031,6 +9040,9 @@ msgstr "他の{kindLower}テーマ"
 msgid "More actions"
 msgstr "その他の操作"
 
+msgid "More options"
+msgstr "その他のオプション"
+
 msgid "More pages"
 msgstr "その他のページ"
 
@@ -12089,6 +12101,9 @@ msgstr "ワークスペースを削除"
 msgid "Remove…"
 msgstr "削除…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{agentLabel}の{credential}を削除しました。"
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}を削除しました。"
 
@@ -12407,6 +12422,9 @@ msgstr "ターミナルを再起動"
 msgid "Restart to use the latest version of Superset."
 msgstr "再起動すると最新バージョンの Superset を使用できます。"
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "新しいエージェント認証情報を反映するにはワークスペースを再起動してください。"
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount}件のホストサービスを再起動しました"
 
@@ -12662,6 +12680,9 @@ msgstr "{0}を今すぐ実行"
 
 msgid "Run {runNumber}"
 msgstr "ラン {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "ターミナルで<0>{tokenCommand}</0><1><2/></1>を実行してトークンをここに貼り付けてください。"
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "GitHubでサインイン"
 msgid "Sign in with Google"
 msgstr "Googleでサインイン"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Claudeアカウントでサインインするか、ターミナルで<0>claude setup-token</0><1><2/></1>を実行してトークンをここに貼り付けてください。"
-
 msgid "Sign out"
 msgstr "サインアウト"
 
@@ -13777,14 +13795,8 @@ msgstr "サインインに失敗しました"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "サインインに失敗しました（{reason}）。もう一度お試しください。"
 
-msgid "Signed in as {accountLabel}"
-msgstr "{accountLabel}としてサインイン中"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "<0>{userName}</0>としてサインイン中"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "サインインしました。トークンは暗号化して保存され、二度と表示されません。"
 
 msgid "Signed out"
 msgstr "サインアウトしました"
@@ -13794,9 +13806,6 @@ msgstr "サインイン中のサイト"
 
 msgid "Signing in..."
 msgstr "サインイン中..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Codex CLIと同じ方法でサインインします。またはターミナルで<0>codex login</0>を実行し、そのトークンをここに貼り付けてください。"
 
 msgid "signup → paid ≤30d"
 msgstr "サインアップ → 30日以内に有料化"
@@ -14366,6 +14375,9 @@ msgstr "登録する"
 
 msgid "Subscribe on YouTube"
 msgstr "YouTubeで登録"
+
+msgid "subscription"
+msgstr "サブスクリプション"
 
 msgid "Subscription"
 msgstr "サブスクリプション"
@@ -15713,6 +15725,9 @@ msgstr "値の表示を切り替え"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "ワークスペースサイドバーを切り替え"
+
+msgid "Token"
+msgstr "トークン"
 
 msgid "Token breakdown"
 msgstr "トークンの内訳"

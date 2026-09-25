@@ -3486,6 +3486,9 @@ msgstr "雲端工作區"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "雲端工作區會忽略此變數。代理程式改為在「設定 › 代理程式」中登入。"
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "雲端工作區將不再用它執行{agentLabel}。"
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "共同創辦人暨 CTO，TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "無法刪除檔案"
 
 msgid "Could not delete this page"
 msgstr "無法刪除這個頁面"
+
+msgid "Could not disconnect."
+msgstr "無法中斷連線。"
 
 msgid "Could not forget {domain}"
 msgstr "無法忘記{domain}"
@@ -5324,6 +5330,9 @@ msgstr "已放棄——不再詢問"
 
 msgid "Disconnect"
 msgstr "斷開連線"
+
+msgid "Disconnect {credential}?"
+msgstr "中斷{credential}連線？"
 
 msgid "Disconnect GitHub?"
 msgstr "斷開GitHub連線？"
@@ -9031,6 +9040,9 @@ msgstr "更多{kindLower}主題"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More options"
+msgstr "更多選項"
+
 msgid "More pages"
 msgstr "更多頁面"
 
@@ -12089,6 +12101,9 @@ msgstr "移除工作區"
 msgid "Remove…"
 msgstr "移除…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "已移除{agentLabel}的{credential}。"
+
 msgid "Removed {removedLabel}."
 msgstr "已移除{removedLabel}。"
 
@@ -12407,6 +12422,9 @@ msgstr "重啟終端"
 msgid "Restart to use the latest version of Superset."
 msgstr "重新啟動以使用最新版本的 Superset。"
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "重新啟動工作區以套用新的代理憑證。"
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "已重啟{restartedOrgCount}個主機服務"
 
@@ -12662,6 +12680,9 @@ msgstr "立即執行{0}"
 
 msgid "Run {runNumber}"
 msgstr "第 {runNumber} 期"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "在終端中執行<0>{tokenCommand}</0><1><2/></1>，然後把權杖貼到這裡。"
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "使用GitHub登入"
 msgid "Sign in with Google"
 msgstr "使用Google登入"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "使用你的Claude帳戶登入，或在終端中執行<0>claude setup-token</0><1><2/></1>，然後把權杖貼到這裡。"
-
 msgid "Sign out"
 msgstr "登出"
 
@@ -13777,14 +13795,8 @@ msgstr "登入失敗"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "登入失敗（{reason}）。請再試一次。"
 
-msgid "Signed in as {accountLabel}"
-msgstr "已登入為{accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "已登入為<0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "已登入。權杖以加密方式儲存，且不會再次顯示。"
 
 msgid "Signed out"
 msgstr "已登出"
@@ -13794,9 +13806,6 @@ msgstr "已登入的站點"
 
 msgid "Signing in..."
 msgstr "正在登入..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "以Codex CLI的方式登入。或在終端中執行<0>codex login</0>，然後把它的權杖貼到這裡。"
 
 msgid "signup → paid ≤30d"
 msgstr "註冊 → 30天內付費"
@@ -14366,6 +14375,9 @@ msgstr "訂閱"
 
 msgid "Subscribe on YouTube"
 msgstr "在YouTube上訂閱"
+
+msgid "subscription"
+msgstr "訂閱"
 
 msgid "Subscription"
 msgstr "訂閱"
@@ -15713,6 +15725,9 @@ msgstr "切換值的可見性"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "切換工作區側邊欄"
+
+msgid "Token"
+msgstr "權杖"
 
 msgid "Token breakdown"
 msgstr "Token構成"

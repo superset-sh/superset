@@ -3486,6 +3486,9 @@ msgstr "Cloudový pracovní prostor"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Cloudové pracovní prostory tuto proměnnou ignorují. Agenti se místo toho přihlašují v Nastavení › Agenti."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Cloudové workspacy s tím přestanou spouštět {agentLabel}."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Spoluzakladatel a CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Soubor se nepodařilo smazat"
 
 msgid "Could not delete this page"
 msgstr "Tuto stránku se nepodařilo smazat"
+
+msgid "Could not disconnect."
+msgstr "Odpojení se nezdařilo."
 
 msgid "Could not forget {domain}"
 msgstr "Nepodařilo se zapomenout {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Zahozeno — příště se nezeptáme"
 
 msgid "Disconnect"
 msgstr "Odpojit"
+
+msgid "Disconnect {credential}?"
+msgstr "Odpojit {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "Odpojit GitHub?"
@@ -9031,6 +9040,9 @@ msgstr "Další {kindLower} motivy"
 msgid "More actions"
 msgstr "Další akce"
 
+msgid "More options"
+msgstr "Další možnosti"
+
 msgid "More pages"
 msgstr "Další stránky"
 
@@ -12089,6 +12101,9 @@ msgstr "Odebrat pracovní prostor"
 msgid "Remove…"
 msgstr "Odebrat…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} pro {agentLabel} odstraněno."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} odebrán."
 
@@ -12407,6 +12422,9 @@ msgstr "Restartovat terminály"
 msgid "Restart to use the latest version of Superset."
 msgstr "Restartujte aplikaci, abyste používali nejnovější verzi Supersetu."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Restartujte workspacy, aby převzaly nové přihlašovací údaje agenta."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Restartováno {restartedOrgCount} host services"
 
@@ -12662,6 +12680,9 @@ msgstr "Spustit {0} teď"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "V terminálu spusťte <0>{tokenCommand}</0><1><2/></1> a vložte sem token."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Přihlásit se přes GitHub"
 msgid "Sign in with Google"
 msgstr "Přihlásit se přes Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Přihlaste se účtem Claude, nebo v terminálu spusťte <0>claude setup-token</0><1><2/></1> a vložte sem token."
-
 msgid "Sign out"
 msgstr "Odhlásit se"
 
@@ -13777,14 +13795,8 @@ msgstr "Přihlášení selhalo"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Přihlášení se nezdařilo ({reason}). Zkuste to prosím znovu."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Přihlášeni jako {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Přihlášeni jako <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Přihlášeno. Token je uložen šifrovaně a už se znovu nezobrazí."
 
 msgid "Signed out"
 msgstr "Odhlášeno"
@@ -13794,9 +13806,6 @@ msgstr "Weby, kde jste přihlášeni"
 
 msgid "Signing in..."
 msgstr "Přihlašuji..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Přihlašuje se stejně jako Codex CLI. Nebo v terminálu spusťte <0>codex login</0> a vložte sem jeho token."
 
 msgid "signup → paid ≤30d"
 msgstr "registrace → platba ≤30 d"
@@ -14366,6 +14375,9 @@ msgstr "ODEBÍRAT"
 
 msgid "Subscribe on YouTube"
 msgstr "Odebírejte na YouTube"
+
+msgid "subscription"
+msgstr "předplatné"
 
 msgid "Subscription"
 msgstr "Předplatné"
@@ -15713,6 +15725,9 @@ msgstr "Přepnout zobrazení hodnoty"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Přepnout panel pracovních prostorů"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Rozpad tokenů"

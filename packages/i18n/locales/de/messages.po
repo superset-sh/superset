@@ -3486,6 +3486,9 @@ msgstr "Cloud-Arbeitsbereich"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Cloud-Workspaces ignorieren diese Variable. Agenten melden sich stattdessen unter Einstellungen › Agenten an."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Cloud-Workspaces führen {agentLabel} damit nicht mehr aus."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Mitgründer und CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Datei konnte nicht gelöscht werden"
 
 msgid "Could not delete this page"
 msgstr "Diese Seite konnte nicht gelöscht werden"
+
+msgid "Could not disconnect."
+msgstr "Trennen fehlgeschlagen."
 
 msgid "Could not forget {domain}"
 msgstr "{domain} konnte nicht vergessen werden"
@@ -5324,6 +5330,9 @@ msgstr "Verworfen — wird nicht mehr gefragt"
 
 msgid "Disconnect"
 msgstr "Trennen"
+
+msgid "Disconnect {credential}?"
+msgstr "{credential} trennen?"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub trennen?"
@@ -9031,6 +9040,9 @@ msgstr "Weitere {kindLower}e Themes"
 msgid "More actions"
 msgstr "Weitere Aktionen"
 
+msgid "More options"
+msgstr "Weitere Optionen"
+
 msgid "More pages"
 msgstr "Weitere Seiten"
 
@@ -12089,6 +12101,9 @@ msgstr "Arbeitsbereich entfernen"
 msgid "Remove…"
 msgstr "Entfernen…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} für {agentLabel} entfernt."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} entfernt."
 
@@ -12407,6 +12422,9 @@ msgstr "Terminals neu starten"
 msgid "Restart to use the latest version of Superset."
 msgstr "Neu starten, um die neueste Version von Superset zu verwenden."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Starte Workspaces neu, damit sie die neuen Agent-Zugangsdaten übernehmen."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} Host-Dienste neu gestartet"
 
@@ -12662,6 +12680,9 @@ msgstr "{0} jetzt ausführen"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Führe <0>{tokenCommand}</0><1><2/></1> in einem Terminal aus und füge den Token hier ein."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Mit GitHub anmelden"
 msgid "Sign in with Google"
 msgstr "Mit Google anmelden"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Melde dich mit deinem Claude-Konto an oder führe <0>claude setup-token</0><1><2/></1> in einem Terminal aus und füge den Token hier ein."
-
 msgid "Sign out"
 msgstr "Abmelden"
 
@@ -13777,14 +13795,8 @@ msgstr "Anmeldung fehlgeschlagen"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Anmeldung fehlgeschlagen ({reason}). Bitte versuche es erneut."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Angemeldet als {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Angemeldet als <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Angemeldet. Der Token wird verschlüsselt gespeichert und nie wieder angezeigt."
 
 msgid "Signed out"
 msgstr "Abgemeldet"
@@ -13794,9 +13806,6 @@ msgstr "Angemeldete Websites"
 
 msgid "Signing in..."
 msgstr "Anmeldung läuft..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Meldet sich wie die Codex CLI an. Oder führe <0>codex login</0> in einem Terminal aus und füge den Token hier ein."
 
 msgid "signup → paid ≤30d"
 msgstr "Registrierung → zahlend ≤30 T."
@@ -14366,6 +14375,9 @@ msgstr "ABONNIEREN"
 
 msgid "Subscribe on YouTube"
 msgstr "Auf YouTube abonnieren"
+
+msgid "subscription"
+msgstr "Abonnement"
 
 msgid "Subscription"
 msgstr "Abo"
@@ -15713,6 +15725,9 @@ msgstr "Sichtbarkeit des Werts umschalten"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Arbeitsbereich-Seitenleiste umschalten"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Token-Aufschlüsselung"

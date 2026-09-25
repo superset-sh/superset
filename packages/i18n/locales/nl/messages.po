@@ -3486,6 +3486,9 @@ msgstr "Cloudwerkruimte"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Cloudworkspaces negeren deze variabele. Agents melden zich in plaats daarvan aan via Instellingen › Agents."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Cloudworkspaces stoppen met het uitvoeren van {agentLabel} hiermee."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Medeoprichter en CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Kan bestand niet verwijderen"
 
 msgid "Could not delete this page"
 msgstr "Kan deze pagina niet verwijderen"
+
+msgid "Could not disconnect."
+msgstr "Loskoppelen is mislukt."
 
 msgid "Could not forget {domain}"
 msgstr "Kan {domain} niet vergeten"
@@ -5324,6 +5330,9 @@ msgstr "Verworpen — we vragen het niet meer"
 
 msgid "Disconnect"
 msgstr "Verbinding verbreken"
+
+msgid "Disconnect {credential}?"
+msgstr "{credential} loskoppelen?"
 
 msgid "Disconnect GitHub?"
 msgstr "GitHub loskoppelen?"
@@ -9031,6 +9040,9 @@ msgstr "Meer {kindLower} thema's"
 msgid "More actions"
 msgstr "Meer acties"
 
+msgid "More options"
+msgstr "Meer opties"
+
 msgid "More pages"
 msgstr "Meer pagina's"
 
@@ -12089,6 +12101,9 @@ msgstr "Werkruimte verwijderen"
 msgid "Remove…"
 msgstr "Verwijderen…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} voor {agentLabel} verwijderd."
+
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} verwijderd."
 
@@ -12407,6 +12422,9 @@ msgstr "Terminals herstarten"
 msgid "Restart to use the latest version of Superset."
 msgstr "Start opnieuw om de nieuwste versie van Superset te gebruiken."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Herstart workspaces om de nieuwe agentgegevens op te pakken."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "{restartedOrgCount} hostservices herstart"
 
@@ -12662,6 +12680,9 @@ msgstr "{0} nu uitvoeren"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Voer <0>{tokenCommand}</0><1><2/></1> uit in een terminal en plak het token hier."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Inloggen met GitHub"
 msgid "Sign in with Google"
 msgstr "Inloggen met Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Log in met je Claude-account, of voer <0>claude setup-token</0><1><2/></1> uit in een terminal en plak het token hier."
-
 msgid "Sign out"
 msgstr "Uitloggen"
 
@@ -13777,14 +13795,8 @@ msgstr "Inloggen mislukt"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Inloggen mislukt ({reason}). Probeer het opnieuw."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Ingelogd als {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Ingelogd als <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Ingelogd. Het token wordt versleuteld opgeslagen en wordt nooit meer getoond."
 
 msgid "Signed out"
 msgstr "Uitgelogd"
@@ -13794,9 +13806,6 @@ msgstr "Sites waarop je bent ingelogd"
 
 msgid "Signing in..."
 msgstr "Inloggen..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Logt in zoals de Codex CLI dat doet. Of voer <0>codex login</0> uit in een terminal en plak het token hier."
 
 msgid "signup → paid ≤30d"
 msgstr "aanmelding → betaald ≤30d"
@@ -14366,6 +14375,9 @@ msgstr "ABONNEER"
 
 msgid "Subscribe on YouTube"
 msgstr "Abonneer op YouTube"
+
+msgid "subscription"
+msgstr "abonnement"
 
 msgid "Subscription"
 msgstr "Abonnement"
@@ -15713,6 +15725,9 @@ msgstr "Waarde tonen/verbergen"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Werkruimtezijbalk tonen/verbergen"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Tokenverdeling"

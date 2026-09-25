@@ -3486,6 +3486,9 @@ msgstr "Workspace cloud"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Workspace đám mây bỏ qua biến này. Thay vào đó, các agent đăng nhập trong Cài đặt › Agent."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Workspace đám mây sẽ ngừng chạy {agentLabel} với thông tin này."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Đồng sáng lập & CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Không thể xóa tệp"
 
 msgid "Could not delete this page"
 msgstr "Không thể xóa trang này"
+
+msgid "Could not disconnect."
+msgstr "Không thể ngắt kết nối."
 
 msgid "Could not forget {domain}"
 msgstr "Không thể quên {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Đã bỏ — sẽ không hỏi lại"
 
 msgid "Disconnect"
 msgstr "Ngắt kết nối"
+
+msgid "Disconnect {credential}?"
+msgstr "Ngắt kết nối {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "Ngắt kết nối GitHub?"
@@ -9031,6 +9040,9 @@ msgstr "Thêm chủ đề {kindLower}"
 msgid "More actions"
 msgstr "Thêm hành động"
 
+msgid "More options"
+msgstr "Tùy chọn khác"
+
 msgid "More pages"
 msgstr "Thêm trang"
 
@@ -12089,6 +12101,9 @@ msgstr "Gỡ workspace"
 msgid "Remove…"
 msgstr "Gỡ…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "Đã xóa {credential} của {agentLabel}."
+
 msgid "Removed {removedLabel}."
 msgstr "Đã gỡ {removedLabel}."
 
@@ -12407,6 +12422,9 @@ msgstr "Khởi động lại terminal"
 msgid "Restart to use the latest version of Superset."
 msgstr "Khởi động lại để dùng phiên bản Superset mới nhất."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Khởi động lại workspace để áp dụng thông tin xác thực mới của agent."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Đã khởi động lại {restartedOrgCount} dịch vụ host"
 
@@ -12662,6 +12680,9 @@ msgstr "Chạy {0} ngay"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Chạy <0>{tokenCommand}</0><1><2/></1> trong terminal rồi dán token vào đây."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Đăng nhập bằng GitHub"
 msgid "Sign in with Google"
 msgstr "Đăng nhập bằng Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Đăng nhập bằng tài khoản Claude của bạn, hoặc chạy <0>claude setup-token</0><1><2/></1> trong terminal rồi dán token vào đây."
-
 msgid "Sign out"
 msgstr "Đăng xuất"
 
@@ -13777,14 +13795,8 @@ msgstr "Đăng nhập thất bại"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Đăng nhập thất bại ({reason}). Vui lòng thử lại."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Đã đăng nhập với {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Đang đăng nhập với <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Đã đăng nhập. Token được lưu ở dạng mã hóa và không bao giờ hiển thị lại."
 
 msgid "Signed out"
 msgstr "Đã đăng xuất"
@@ -13794,9 +13806,6 @@ msgstr "Trang đang đăng nhập"
 
 msgid "Signing in..."
 msgstr "Đang đăng nhập..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Đăng nhập giống cách Codex CLI làm. Hoặc chạy <0>codex login</0> trong terminal rồi dán token của nó vào đây."
 
 msgid "signup → paid ≤30d"
 msgstr "đăng ký → trả phí ≤30 ngày"
@@ -14366,6 +14375,9 @@ msgstr "ĐĂNG KÝ"
 
 msgid "Subscribe on YouTube"
 msgstr "Đăng ký trên YouTube"
+
+msgid "subscription"
+msgstr "gói đăng ký"
 
 msgid "Subscription"
 msgstr "Gói đăng ký"
@@ -15713,6 +15725,9 @@ msgstr "Ẩn/hiện giá trị"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Bật/tắt thanh bên workspace"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Phân tích token"

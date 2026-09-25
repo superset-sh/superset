@@ -3486,6 +3486,9 @@ msgstr "Workspace cloud"
 msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 msgstr "Workspace cloud mengabaikan variabel ini. Agen masuk melalui Pengaturan › Agen sebagai gantinya."
 
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Workspace cloud tidak lagi menjalankan {agentLabel} dengannya."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Pendiri bersama & CTO, TrainLoop (YC W25)"
 
@@ -4236,6 +4239,9 @@ msgstr "Tidak bisa menghapus file"
 
 msgid "Could not delete this page"
 msgstr "Tidak bisa menghapus halaman ini"
+
+msgid "Could not disconnect."
+msgstr "Tidak dapat memutuskan."
 
 msgid "Could not forget {domain}"
 msgstr "Tidak bisa melupakan {domain}"
@@ -5324,6 +5330,9 @@ msgstr "Dibuang — tidak akan ditanya lagi"
 
 msgid "Disconnect"
 msgstr "Putuskan"
+
+msgid "Disconnect {credential}?"
+msgstr "Putuskan {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "Putuskan GitHub?"
@@ -9031,6 +9040,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More options"
+msgstr "Opsi lainnya"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -12089,6 +12101,9 @@ msgstr "Hapus workspace"
 msgid "Remove…"
 msgstr "Hapus…"
 
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} untuk {agentLabel} dihapus."
+
 msgid "Removed {removedLabel}."
 msgstr "Menghapus {removedLabel}."
 
@@ -12407,6 +12422,9 @@ msgstr "Mulai ulang terminal"
 msgid "Restart to use the latest version of Superset."
 msgstr "Mulai ulang untuk menggunakan versi terbaru Superset."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Mulai ulang workspace untuk memakai kredensial agen yang baru."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Memulai ulang {restartedOrgCount} layanan host"
 
@@ -12662,6 +12680,9 @@ msgstr "Jalankan {0} sekarang"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Jalankan <0>{tokenCommand}</0><1><2/></1> di terminal lalu tempel tokennya di sini."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13736,9 +13757,6 @@ msgstr "Masuk dengan GitHub"
 msgid "Sign in with Google"
 msgstr "Masuk dengan Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Masuk dengan akun Claude Anda, atau jalankan <0>claude setup-token</0><1><2/></1> di terminal lalu tempel tokennya di sini."
-
 msgid "Sign out"
 msgstr "Keluar"
 
@@ -13777,14 +13795,8 @@ msgstr "Gagal masuk"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Gagal masuk ({reason}). Silakan coba lagi."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Masuk sebagai {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Masuk sebagai <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Sudah masuk. Token disimpan terenkripsi dan tidak pernah ditampilkan lagi."
 
 msgid "Signed out"
 msgstr "Sudah keluar"
@@ -13794,9 +13806,6 @@ msgstr "Situs yang sedang masuk"
 
 msgid "Signing in..."
 msgstr "Sedang masuk..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Masuk dengan cara yang sama seperti Codex CLI. Atau jalankan <0>codex login</0> di terminal lalu tempel tokennya di sini."
 
 msgid "signup → paid ≤30d"
 msgstr "daftar → berbayar ≤30h"
@@ -14366,6 +14375,9 @@ msgstr "BERLANGGANAN"
 
 msgid "Subscribe on YouTube"
 msgstr "Berlangganan di YouTube"
+
+msgid "subscription"
+msgstr "langganan"
 
 msgid "Subscription"
 msgstr "Langganan"
@@ -15713,6 +15725,9 @@ msgstr "Alihkan visibilitas nilai"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Alihkan Sidebar Workspace"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Rincian token"
