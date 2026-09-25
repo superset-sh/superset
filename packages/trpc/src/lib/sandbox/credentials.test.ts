@@ -56,6 +56,52 @@ describe("deriveSandboxCredentials", () => {
 		expect(JSON.stringify(managedEnv)).not.toContain("oat-mine");
 	});
 
+	test("a gateway key is a bearer swap on the gateway host, and no Anthropic key reaches the box", async () => {
+		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
+			workspaceId: WORKSPACE_ID,
+			environmentEnv: { ANTHROPIC_API_KEY: "sk-app" },
+			userAgentEnv: {
+				ANTHROPIC_AUTH_TOKEN: "vck_mine",
+				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/claude-code",
+			},
+			githubToken: null,
+			gitAuthor: author,
+		});
+		expect(
+			rules(networkPolicy)["ai-gateway.vercel.sh"]?.[0]?.transform[0]?.headers,
+		).toEqual({ authorization: "Bearer vck_mine" });
+		expect(rules(networkPolicy)["api.anthropic.com"]).toBeUndefined();
+		expect(managedEnv.ANTHROPIC_AUTH_TOKEN).toBe(
+			SANDBOX_CREDENTIAL_PLACEHOLDER,
+		);
+		expect(managedEnv.ANTHROPIC_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/claude-code",
+		);
+		expect(managedEnv.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(JSON.stringify(managedEnv)).not.toContain("vck_mine");
+	});
+
+	test("a custom base URL moves the OpenAI swap to its host", async () => {
+		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
+			workspaceId: WORKSPACE_ID,
+			environmentEnv: {},
+			userAgentEnv: {
+				OPENAI_API_KEY: "sk-mine",
+				OPENAI_BASE_URL: "https://ai-gateway.vercel.sh/codex/v1",
+			},
+			githubToken: null,
+			gitAuthor: author,
+		});
+		expect(
+			rules(networkPolicy)["ai-gateway.vercel.sh"]?.[0]?.transform[0]?.headers,
+		).toEqual({ authorization: "Bearer sk-mine" });
+		expect(rules(networkPolicy)["api.openai.com"]).toBeUndefined();
+		expect(managedEnv.OPENAI_API_KEY).toBe(SANDBOX_CREDENTIAL_PLACEHOLDER);
+		expect(managedEnv.OPENAI_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/codex/v1",
+		);
+	});
+
 	test("the GitHub installation token is a rule for git and the API, never a value on the box", async () => {
 		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,

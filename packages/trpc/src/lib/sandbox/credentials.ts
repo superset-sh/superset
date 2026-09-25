@@ -128,19 +128,34 @@ export async function deriveSandboxCredentials(
 	managedEnv.GIT_COMMITTER_EMAIL = inputs.gitAuthor.email;
 
 	const signIn = inputs.userAgentEnv;
+	const hostOf = (baseUrl: string | undefined, fallback: string): string => {
+		try {
+			return baseUrl ? new URL(baseUrl).hostname : fallback;
+		} catch {
+			return fallback;
+		}
+	};
 
-	// Anthropic: an OAuth token (a subscription) authenticates with a bearer,
-	// an API key with x-api-key. The CLI decides which header it sends from
-	// which placeholder variable is set, so exactly one is set.
-	if (signIn.CLAUDE_CODE_OAUTH_TOKEN) {
-		allow["api.anthropic.com"] = swap(
+	// Anthropic: an OAuth token (a subscription) and a gateway key both
+	// authenticate with a bearer, an API key with x-api-key. The CLI decides
+	// which header it sends from which placeholder variable is set, so exactly
+	// one is set.
+	const anthropicHost = hostOf(signIn.ANTHROPIC_BASE_URL, "api.anthropic.com");
+	const anthropicBearer =
+		signIn.CLAUDE_CODE_OAUTH_TOKEN || signIn.ANTHROPIC_AUTH_TOKEN;
+	if (anthropicBearer) {
+		allow[anthropicHost] = swap(
 			"authorization",
 			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
-			`Bearer ${signIn.CLAUDE_CODE_OAUTH_TOKEN}`,
+			`Bearer ${anthropicBearer}`,
 		);
-		managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		if (signIn.CLAUDE_CODE_OAUTH_TOKEN) {
+			managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		} else {
+			managedEnv.ANTHROPIC_AUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		}
 	} else if (signIn.ANTHROPIC_API_KEY) {
-		allow["api.anthropic.com"] = swap(
+		allow[anthropicHost] = swap(
 			"x-api-key",
 			SANDBOX_CREDENTIAL_PLACEHOLDER,
 			signIn.ANTHROPIC_API_KEY,
@@ -152,7 +167,7 @@ export async function deriveSandboxCredentials(
 	}
 
 	if (signIn.OPENAI_API_KEY) {
-		allow["api.openai.com"] = swap(
+		allow[hostOf(signIn.OPENAI_BASE_URL, "api.openai.com")] = swap(
 			"authorization",
 			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
 			`Bearer ${signIn.OPENAI_API_KEY}`,
