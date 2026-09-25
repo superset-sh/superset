@@ -264,6 +264,10 @@
 			"types": "./src/vercel-preview-origins.ts",
 			"default": "./src/vercel-preview-origins.ts"
 		},
+		"./upstream-url": {
+			"types": "./src/upstream-url.ts",
+			"default": "./src/upstream-url.ts"
+		},
 		"./tunnel-protocol": {
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
