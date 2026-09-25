@@ -1,22 +1,21 @@
 /**
  * What a cloud workspace sandbox is allowed to reach and what it presents.
  *
- * No credential of ours enters the box. Every outbound credential is a header
- * rule on the sandbox firewall: the agent sends a placeholder, the firewall
- * swaps the header on the way out, and the value lives only here. A rule
- * fires only on the placeholder, so the app's own request with its own key
- * passes untouched. The rules are re-derived and re-applied on every wake and
- * keepalive, so a token that expires (the GitHub installation token lasts an
- * hour) is never stale for longer than one keepalive.
+ * No credential enters the box. Every outbound credential is a header rule
+ * on the sandbox firewall: the agent sends a placeholder, the firewall swaps
+ * the header on the way out, and the value lives only here. The rules are
+ * re-derived and re-applied on every wake and keepalive, so a token that
+ * expires (the GitHub installation token lasts an hour) is never stale for
+ * longer than one keepalive.
  *
  * What does reach the box is the managed environment: the environment's own
- * variables as the person set them, and the placeholders the CLIs need to be
- * willing to make a request at all, pushed into host-service after boot and
- * held in memory.
+ * variables minus any provider credential, which a cloud workspace ignores,
+ * and the placeholders the CLIs need to be willing to make a request at all,
+ * pushed into host-service after boot and held in memory.
  */
 import {
-	AGENT_ENV_OVERLAY_PREFIX,
 	agentCredentialToEnv,
+	CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
 } from "@superset/shared/agent-credentials";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import {
@@ -105,24 +104,22 @@ function swap(
 	];
 }
 
-/**
- * A model credential is the person's sign-in and nothing else; an
- * environment variable of the same name is the app's and passes through as
- * itself. The placeholder takes the plain name when the environment left it
- * free, and always travels under the agent overlay prefix so the launched
- * agent gets it even when the app's key holds the plain name.
- */
+/** A model credential is the person's sign-in and nothing else. */
 export async function deriveSandboxCredentials(
 	inputs: SandboxCredentialInputs,
 ): Promise<SandboxCredentials> {
 	const allow: Record<string, NetworkPolicyRule[]> = {};
 	const managedEnv: Record<string, string> = {};
 
-	// The environment's variables reach the box as they are, minus GitHub
-	// tokens: git and gh on the box speak through the installation rule.
-	const githubKeys = new Set(["GH_TOKEN", "GITHUB_TOKEN"]);
+	// GitHub tokens are dropped too: git and gh on the box speak through the
+	// installation rule.
+	const ignored = new Set<string>([
+		...CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
+		"GH_TOKEN",
+		"GITHUB_TOKEN",
+	]);
 	for (const [key, value] of Object.entries(inputs.environmentEnv)) {
-		if (!githubKeys.has(key)) managedEnv[key] = value;
+		if (!ignored.has(key)) managedEnv[key] = value;
 	}
 	// git reads these over any user.name in a config file, so a commit on the
 	// box is the person's without writing one; set after the environment's
@@ -133,10 +130,6 @@ export async function deriveSandboxCredentials(
 	managedEnv.GIT_COMMITTER_EMAIL = inputs.gitAuthor.email;
 
 	const signIn = inputs.userAgentEnv;
-	const agentEnv = (key: string, value: string) => {
-		if (!(key in inputs.environmentEnv)) managedEnv[key] = value;
-		managedEnv[`${AGENT_ENV_OVERLAY_PREFIX}${key}`] = value;
-	};
 
 	// Anthropic: an OAuth token (a subscription) authenticates with a bearer,
 	// an API key with x-api-key. The CLI decides which header it sends from
@@ -147,17 +140,17 @@ export async function deriveSandboxCredentials(
 			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
 			`Bearer ${signIn.CLAUDE_CODE_OAUTH_TOKEN}`,
 		);
-		agentEnv("CLAUDE_CODE_OAUTH_TOKEN", SANDBOX_CREDENTIAL_PLACEHOLDER);
+		managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
 	} else if (signIn.ANTHROPIC_API_KEY) {
 		allow["api.anthropic.com"] = swap(
 			"x-api-key",
 			SANDBOX_CREDENTIAL_PLACEHOLDER,
 			signIn.ANTHROPIC_API_KEY,
 		);
-		agentEnv("ANTHROPIC_API_KEY", SANDBOX_CREDENTIAL_PLACEHOLDER);
+		managedEnv.ANTHROPIC_API_KEY = SANDBOX_CREDENTIAL_PLACEHOLDER;
 	}
 	if (signIn.ANTHROPIC_BASE_URL) {
-		agentEnv("ANTHROPIC_BASE_URL", signIn.ANTHROPIC_BASE_URL);
+		managedEnv.ANTHROPIC_BASE_URL = signIn.ANTHROPIC_BASE_URL;
 	}
 
 	if (signIn.OPENAI_API_KEY) {
@@ -166,10 +159,10 @@ export async function deriveSandboxCredentials(
 			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
 			`Bearer ${signIn.OPENAI_API_KEY}`,
 		);
-		agentEnv("OPENAI_API_KEY", SANDBOX_CREDENTIAL_PLACEHOLDER);
+		managedEnv.OPENAI_API_KEY = SANDBOX_CREDENTIAL_PLACEHOLDER;
 	}
 	if (signIn.OPENAI_BASE_URL) {
-		agentEnv("OPENAI_BASE_URL", signIn.OPENAI_BASE_URL);
+		managedEnv.OPENAI_BASE_URL = signIn.OPENAI_BASE_URL;
 	}
 
 	// GitHub: git speaks Basic with the token as the password, gh and the

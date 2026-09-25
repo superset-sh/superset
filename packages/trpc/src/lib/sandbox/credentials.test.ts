@@ -17,7 +17,7 @@ const WORKSPACE_ID = "11111111-2222-4333-8444-555555555555";
 const author = { name: "Ada", email: "ada@example.com" };
 
 describe("deriveSandboxCredentials", () => {
-	test("an environment's key is the app's: it passes through as itself and creates no rule", async () => {
+	test("an environment's provider key is ignored: no rule, and it never reaches the box", async () => {
 		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,
 			environmentEnv: { FOO: "bar", ANTHROPIC_API_KEY: "sk-app" },
@@ -26,7 +26,7 @@ describe("deriveSandboxCredentials", () => {
 			gitAuthor: author,
 		});
 		expect(networkPolicy).toBe("allow-all");
-		expect(managedEnv.ANTHROPIC_API_KEY).toBe("sk-app");
+		expect(managedEnv.ANTHROPIC_API_KEY).toBeUndefined();
 		expect(managedEnv.FOO).toBe("bar");
 	});
 
@@ -53,28 +53,7 @@ describe("deriveSandboxCredentials", () => {
 		expect(managedEnv.CLAUDE_CODE_OAUTH_TOKEN).toBe(
 			SANDBOX_CREDENTIAL_PLACEHOLDER,
 		);
-		expect(managedEnv.SUPERSET_AGENT_ENV_CLAUDE_CODE_OAUTH_TOKEN).toBe(
-			SANDBOX_CREDENTIAL_PLACEHOLDER,
-		);
 		expect(JSON.stringify(managedEnv)).not.toContain("oat-mine");
-	});
-
-	test("the app keeps the plain name when its key and the sign-in's placeholder collide", async () => {
-		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
-			workspaceId: WORKSPACE_ID,
-			environmentEnv: { ANTHROPIC_API_KEY: "sk-app" },
-			userAgentEnv: { ANTHROPIC_API_KEY: "sk-mine" },
-			githubToken: null,
-			gitAuthor: author,
-		});
-		expect(
-			rules(networkPolicy)["api.anthropic.com"]?.[0]?.transform?.[0]?.headers,
-		).toEqual({ "x-api-key": "sk-mine" });
-		expect(managedEnv.ANTHROPIC_API_KEY).toBe("sk-app");
-		expect(managedEnv.SUPERSET_AGENT_ENV_ANTHROPIC_API_KEY).toBe(
-			SANDBOX_CREDENTIAL_PLACEHOLDER,
-		);
-		expect(JSON.stringify(managedEnv)).not.toContain("sk-mine");
 	});
 
 	test("the GitHub installation token is a rule for git and the API, never a value on the box", async () => {
@@ -99,7 +78,7 @@ describe("deriveSandboxCredentials", () => {
 		expect(JSON.stringify(managedEnv)).not.toContain("ghs_token");
 	});
 
-	test("a GitHub token in the environment's variables never reaches the box; model keys do", async () => {
+	test("brokered names in the environment's variables never reach the box", async () => {
 		const { managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,
 			environmentEnv: {
@@ -112,7 +91,7 @@ describe("deriveSandboxCredentials", () => {
 			gitAuthor: author,
 		});
 		expect(managedEnv.GH_TOKEN).toBeUndefined();
-		expect(managedEnv.OPENAI_API_KEY).toBe("sk-openai");
+		expect(managedEnv.OPENAI_API_KEY).toBeUndefined();
 		expect(managedEnv.OPENAI_BASE_URL).toBe("https://proxy.example");
 	});
 

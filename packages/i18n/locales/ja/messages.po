@@ -1644,10 +1644,6 @@ msgstr "エージェントが定型チケットを途中の介入なしに完了
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "エージェントが自らプレビューを開き、UIを操作し、レビュー待ちにする前にスクリーンショットの証拠を添付します。"
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "エージェントはここの {0} を読み取りません。サインインは「設定 › エージェント」で行います。ワークスペースで claude -p や codex をヘッドレス実行した場合は、このキーに課金されます。"
-
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
 
@@ -3486,6 +3482,9 @@ msgstr "クラウドサンドボックスは {account} では有効になって�
 
 msgid "Cloud workspace"
 msgstr "クラウドワークスペース"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "クラウドワークスペースはこの変数を無視します。エージェントは代わりに「設定 › エージェント」でサインインします。"
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "共同創業者兼CTO、TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "25%お得"
 
 msgid "Save All"
 msgstr "すべて保存"
-
-msgid "Save anyway"
-msgstr "それでも保存"
 
 msgid "Save as environment"
 msgstr "環境として保存"

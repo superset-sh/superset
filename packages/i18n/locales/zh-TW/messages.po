@@ -1644,10 +1644,6 @@ msgstr "代理程式無需中途干預即可完成常規工單。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查之前附上截圖證據。"
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "代理程式不會讀取此處的 {0}；它們在「設定 › 代理程式」中登入。在工作區中無介面執行 claude -p 或 codex 仍會計入此金鑰的費用。"
-
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
 
@@ -3486,6 +3482,9 @@ msgstr "{account} 尚未啟用雲端沙箱。請向 Superset 團隊申請存取�
 
 msgid "Cloud workspace"
 msgstr "雲端工作區"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "雲端工作區會忽略此變數。代理程式改為在「設定 › 代理程式」中登入。"
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "共同創辦人暨 CTO，TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "省25%"
 
 msgid "Save All"
 msgstr "全部儲存"
-
-msgid "Save anyway"
-msgstr "仍然儲存"
 
 msgid "Save as environment"
 msgstr "儲存為環境"

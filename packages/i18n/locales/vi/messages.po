@@ -1644,10 +1644,6 @@ msgstr "Agent hoàn thành các ticket thường ngày mà không cần can thi�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kèm ảnh chụp làm bằng chứng trước khi đánh dấu sẵn sàng review."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Các agent không bao giờ đọc {0} ở đây; chúng đăng nhập trong Cài đặt › Agent. Chạy claude -p hoặc codex không giao diện trong workspace vẫn tính phí vào khóa này."
-
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
 
@@ -3486,6 +3482,9 @@ msgstr "Sandbox trên cloud chưa được bật cho {account}. Hãy yêu cầu 
 
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Workspace đám mây bỏ qua biến này. Thay vào đó, các agent đăng nhập trong Cài đặt › Agent."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Đồng sáng lập & CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Tiết kiệm 25%"
 
 msgid "Save All"
 msgstr "Lưu tất cả"
-
-msgid "Save anyway"
-msgstr "Vẫn lưu"
 
 msgid "Save as environment"
 msgstr "Lưu thành environment"

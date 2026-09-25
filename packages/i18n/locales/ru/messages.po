@@ -1644,10 +1644,6 @@ msgstr "Агенты закрывают рутинные тикеты без в�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Агенты сами открывают свой предпросмотр, управляют интерфейсом и прикладывают скриншоты как доказательство, прежде чем отметить работу готовой к ревью."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Агенты никогда не читают {0} здесь; они входят в систему в разделе «Настройки › Агенты». Запуск claude -p или codex без интерфейса в рабочем пространстве всё равно оплачивается этим ключом."
-
 msgid "Agents running at once"
 msgstr "Агентов запущено одновременно"
 
@@ -3486,6 +3482,9 @@ msgstr "Облачные песочницы не включены для {accoun
 
 msgid "Cloud workspace"
 msgstr "Облачная рабочая область"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Облачные рабочие пространства игнорируют эту переменную. Вместо этого агенты входят в систему в разделе «Настройки › Агенты»."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Сооснователь и технический директор, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Экономия 25%"
 
 msgid "Save All"
 msgstr "Сохранить всё"
-
-msgid "Save anyway"
-msgstr "Всё равно сохранить"
 
 msgid "Save as environment"
 msgstr "Сохранить как окружение"

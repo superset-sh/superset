@@ -1644,10 +1644,6 @@ msgstr "Agents complete routine tickets with no mid-task intervention."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-
 msgid "Agents running at once"
 msgstr "Agents running at once"
 
@@ -3486,6 +3482,9 @@ msgstr "Cloud sandboxes are not enabled for {account}. Ask the Superset team for
 
 msgid "Cloud workspace"
 msgstr "Cloud workspace"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Co-founder & CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Save 25%"
 
 msgid "Save All"
 msgstr "Save All"
-
-msgid "Save anyway"
-msgstr "Save anyway"
 
 msgid "Save as environment"
 msgstr "Save as environment"

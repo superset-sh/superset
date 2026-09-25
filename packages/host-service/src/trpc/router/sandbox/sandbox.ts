@@ -10,7 +10,6 @@ import {
 	setManagedEnv,
 } from "../../../runtime/sandbox-managed-env/sandbox-managed-env.ts";
 import {
-	answerClaudeApiKeyPrompt,
 	getStartHookState,
 	readSandboxIdentity,
 	runSandboxStartHook,
@@ -72,7 +71,6 @@ export const sandboxRouter = router({
 		.mutation(async ({ input }) => {
 			sandboxOnly();
 			await setManagedEnv(input.variables);
-			answerClaudeApiKeyPrompt();
 			return { count: Object.keys(input.variables).length };
 		}),
 

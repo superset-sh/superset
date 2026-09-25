@@ -23,7 +23,6 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
-import { getAgentEnvOverlay } from "../../../runtime/sandbox-managed-env/sandbox-managed-env.ts";
 import { hasHarnessSession } from "../../../terminal/harness-transcript";
 import {
 	createTerminalSessionInternal,
@@ -411,7 +410,6 @@ function validateForkSessionIsResolvable(
 	const launchEnv = {
 		...resolveDefaultAccountEnv(db, config.presetId),
 		...config.env,
-		...getAgentEnvOverlay(),
 	};
 	const resolvable = hasHarnessSession({
 		agentId: config.presetId,
@@ -540,7 +538,7 @@ export function buildTerminalAgentLaunch(
 	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
 	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...getAgentEnvOverlay(), ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }

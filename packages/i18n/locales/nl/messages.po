@@ -1644,10 +1644,6 @@ msgstr "Agents voltooien routinetickets zonder tussentijds ingrijpen."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewijs toe voordat ze werk klaarzetten voor review."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Agents lezen {0} hier nooit; ze melden zich aan via Instellingen › Agents. Een headless run van claude -p of codex in een workspace wordt wel op deze sleutel gefactureerd."
-
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
 
@@ -3486,6 +3482,9 @@ msgstr "Cloudsandboxen zijn niet ingeschakeld voor {account}. Vraag het Superset
 
 msgid "Cloud workspace"
 msgstr "Cloudwerkruimte"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Cloudworkspaces negeren deze variabele. Agents melden zich in plaats daarvan aan via Instellingen › Agents."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Medeoprichter en CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Bespaar 25%"
 
 msgid "Save All"
 msgstr "Alles opslaan"
-
-msgid "Save anyway"
-msgstr "Toch opslaan"
 
 msgid "Save as environment"
 msgstr "Opslaan als omgeving"

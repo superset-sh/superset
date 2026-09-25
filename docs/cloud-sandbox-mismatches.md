@@ -121,15 +121,14 @@ host-service verified Ed25519 tokens itself. `health.check` stays public on
 purpose — it is how the API tells a booting sandbox from a dead one — so
 probe the gate on a guarded route (`/events`), not on health.
 
-**The person's model credential never enters a sandbox.** It is injected into
-egress by the sandbox firewall: a rule on `api.anthropic.com` /
+**Model credentials never enter a sandbox.** The person's sign-in is injected
+into egress by the sandbox firewall: a rule on `api.anthropic.com` /
 `api.openai.com` that matches the auth header carrying
 `SANDBOX_CREDENTIAL_PLACEHOLDER` and replaces it. The placeholder must still be
 *set* — an unset key reads as "not logged in" and produces no request to
-rewrite. An environment variable of the same name is the app's, enters the box
-as itself, and its requests pass the rule untouched because they don't carry
-the placeholder; when it holds the plain name, the agent gets the placeholder
-through the `SUPERSET_AGENT_ENV_` overlay at launch instead.
+rewrite. An environment variable by a credential's name is ignored and never
+reaches the box; a cloud workspace has no way to carry an app's own provider
+key.
 
 **The firewall terminates TLS for the domains it rewrites, and the terminal
 must trust its CA.** The CA is in the image's system bundle, which curl, git,
