@@ -1644,9 +1644,6 @@ msgstr "Agenti dokončí rutinní tickety bez zásahu uprostřed úkolu."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agenti si sami načtou náhled, proklikají UI a přiloží snímky jako důkaz, než práci označí za připravenou k revizi."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Agenti tuto proměnnou nikdy nečtou; přihlašují se v Nastavení › Agenti."
-
 msgid "Agents running at once"
 msgstr "Agentů běžících najednou"
 

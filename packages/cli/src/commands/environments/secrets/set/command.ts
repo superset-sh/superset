@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
-import { isAgentCredentialEnvName } from "@superset/shared/agent-credentials";
 import { parseEnvContent } from "@superset/shared/env-file";
 import { command } from "../../../../lib/command";
 import { resolveEnvironment } from "../../../../lib/environments";
@@ -78,17 +77,12 @@ export default command({
 			});
 		}
 		const keys = entries.map((entry) => entry.key);
-		const agentNames = keys.filter(isAgentCredentialEnvName);
-		const set =
-			keys.length === 1
-				? `Set ${keys[0]} on ${environment.name}`
-				: `Set ${keys.length} variables on ${environment.name}: ${keys.join(", ")}`;
 		return {
 			data: { environment: environment.name, keys },
 			message:
-				agentNames.length === 0
-					? set
-					: `${set}. Agents never read ${agentNames.join(", ")} here; they sign in under Settings › Agents.`,
+				keys.length === 1
+					? `Set ${keys[0]} on ${environment.name}`
+					: `Set ${keys.length} variables on ${environment.name}: ${keys.join(", ")}`,
 		};
 	},
 });

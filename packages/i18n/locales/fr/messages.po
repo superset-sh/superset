@@ -1644,9 +1644,6 @@ msgstr "Les agents terminent les tickets courants sans intervention en cours de 
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Les agents chargent leur propre aperçu, pilotent l'interface et joignent des captures d'écran comme preuve avant de marquer le travail comme prêt pour la revue."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Les agents ne lisent jamais cette variable ici ; ils se connectent dans Paramètres › Agents."
-
 msgid "Agents running at once"
 msgstr "Agents lancés en parallèle"
 

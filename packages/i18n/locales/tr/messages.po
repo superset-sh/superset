@@ -1644,9 +1644,6 @@ msgstr "Ajanlar rutin biletleri görev ortasında müdahale olmadan tamamlar."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incelemeye hazır işaretlemeden önce ekran görüntüsü kanıtı ekler."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Ajanlar bu değişkeni burada asla okumaz; Ayarlar › Ajanlar bölümünden oturum açarlar."
-
 msgid "Agents running at once"
 msgstr "Aynı anda çalışan ajanlar"
 

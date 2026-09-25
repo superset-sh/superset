@@ -16,12 +16,6 @@ export const AGENT_CREDENTIAL_ENV_NAMES = [
 export type AgentCredentialEnvName =
 	(typeof AGENT_CREDENTIAL_ENV_NAMES)[number];
 
-export function isAgentCredentialEnvName(
-	name: string,
-): name is AgentCredentialEnvName {
-	return (AGENT_CREDENTIAL_ENV_NAMES as readonly string[]).includes(name);
-}
-
 export interface AgentCredentialShape {
 	agent: string;
 	kind: "subscription" | "api_key";

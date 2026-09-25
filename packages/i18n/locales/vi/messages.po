@@ -1644,9 +1644,6 @@ msgstr "Agent hoàn thành các ticket thường ngày mà không cần can thi�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kèm ảnh chụp làm bằng chứng trước khi đánh dấu sẵn sàng review."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Các agent không bao giờ đọc biến này ở đây; chúng đăng nhập trong Cài đặt › Agent."
-
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
 
