@@ -17,10 +17,10 @@ export async function generateCloudWorkspaceName(
 	prompt: string,
 ): Promise<string | null> {
 	const cleaned = prompt.replace(/\s+/g, " ").trim();
-	if (!cleaned || !env.ANTHROPIC_API_KEY) return null;
+	if (!cleaned) return null;
 
 	try {
-		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const anthropic = new Anthropic({ apiKey: env.SERVER_ANTHROPIC_API_KEY });
 		const response = await anthropic.messages.create({
 			model: "claude-haiku-4-5",
 			max_tokens: 64,

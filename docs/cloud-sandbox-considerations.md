@@ -54,8 +54,8 @@ out is the only way a terminal stays on the person's subscription. What this
 costs: an app that needs a provider key cannot get it from the environment in
 a cloud workspace; with an API-key sign-in the app's requests carry the
 placeholder and run on the person's key, with a subscription they fail. Our
-own API tolerates the missing key (workspace naming falls back, the Slack
-agent is off). **Open:** nothing at workspace creation checks that the chosen
+own API reads `SERVER_ANTHROPIC_API_KEY` instead, which passes into a box
+like any other variable. **Open:** nothing at workspace creation checks that the chosen
 agent has a sign-in, so a person without one gets a box whose agent sits on a
 login prompt, and an automation-created box does the same silently. Rotation
 of a person's credential reaches a running box within one keepalive: the

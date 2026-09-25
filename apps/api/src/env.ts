@@ -48,8 +48,7 @@ export const env = createEnv({
 		// every other environment keeps booting.
 		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
-		// Absent inside a cloud workspace, where the key is the person's.
-		ANTHROPIC_API_KEY: z.string().optional(),
+		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_URL: z.string().url(),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
