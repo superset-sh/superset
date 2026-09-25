@@ -84,6 +84,7 @@ import { useBranchPickerController } from "../DashboardNewWorkspaceForm/PromptGr
 import { useLinkedContext } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useLinkedContext";
 import { useSubmitWorkspace } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace";
 import {
+	CLOUD_UPLOAD_TARGET,
 	useFileIdsForHost,
 	useUploadAttachments,
 } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useUploadAttachments";
@@ -525,11 +526,17 @@ export function NewWorkspaceScreen({
 	});
 
 	// ── Submit ───────────────────────────────────────────────────────
+	// A cloud workspace has no host to upload to, so its attachments go to
+	// cloud storage and the sandbox pulls them once it is up.
+	const uploadTarget =
+		(draft.hostId ?? machineId) === CLOUD_HOST_ID
+			? CLOUD_UPLOAD_TARGET
+			: launchHostUrl;
 	const uploadAttachments = useUploadAttachments({
 		files: attachments.files,
-		hostUrl: launchHostUrl,
+		hostUrl: uploadTarget,
 	});
-	const fileIdsForCurrentHost = useFileIdsForHost(launchHostUrl);
+	const fileIdsForCurrentHost = useFileIdsForHost(uploadTarget);
 	const visibleFiles = useMemo(() => {
 		const idSet = new Set(fileIdsForCurrentHost);
 		return attachments.files.filter((file) => idSet.has(file.id));

@@ -18,6 +18,7 @@ import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, workspaces } from "../../db/schema";
 import { runAgentInWorkspace } from "../../trpc/router/agents/agents";
+import { importCloudAttachments } from "../../trpc/router/attachments/attachments";
 import { seedDefaultsIfEmpty } from "../../trpc/router/settings/agent-configs";
 import type { HostServiceContext } from "../../types";
 import {
@@ -291,7 +292,8 @@ export async function launchSandboxAgentOnce(
 ): Promise<void> {
 	if (!identity.launch) return;
 	if (existsSync(identity.launchMarkerPath)) return;
-	const { agent, prompt, model, effort, mode } = identity.launch;
+	const { agent, prompt, model, effort, mode, attachmentFileIds } =
+		identity.launch;
 	// The agent needs the environment the control plane pushes after boot and
 	// the branch the boot runner is checking out beside us; both are seconds.
 	const [pushed, checkedOut] = await Promise.all([
@@ -314,6 +316,18 @@ export async function launchSandboxAgentOnce(
 		// not in its table; the launch resolves the agent through that table.
 		seedDefaultsIfEmpty(ctx.db);
 		if (agent === "claude") approveClaudeApiKey();
+		// Images the composer sent with the prompt: the bytes live in cloud
+		// storage because this box did not exist when they were uploaded.
+		// A download that fails must not cost the launch its prompt.
+		let attachmentIds: string[] | undefined;
+		if (attachmentFileIds?.length) {
+			try {
+				const imported = await importCloudAttachments(ctx, attachmentFileIds);
+				attachmentIds = imported.map((item) => item.attachmentId);
+			} catch (error) {
+				console.error("[sandbox] could not import prompt attachments", error);
+			}
+		}
 		await runAgentInWorkspace(ctx, {
 			workspaceId: identity.workspaceId,
 			agent,
@@ -321,6 +335,7 @@ export async function launchSandboxAgentOnce(
 			model,
 			effort,
 			mode,
+			...(attachmentIds?.length ? { attachmentIds } : {}),
 		});
 		console.log(
 			`[sandbox] launched ${agent} for workspace ${identity.workspaceId}`,

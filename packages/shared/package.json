@@ -4,6 +4,10 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./connectors": {
+			"types": "./src/connectors/index.ts",
+			"default": "./src/connectors/index.ts"
+		},
 		"./page-zoom": {
 			"types": "./src/page-zoom.ts",
 			"default": "./src/page-zoom.ts"
@@ -23,6 +27,10 @@
 		"./automation-matching": {
 			"types": "./src/automation-matching/index.ts",
 			"default": "./src/automation-matching/index.ts"
+		},
+		"./env-file": {
+			"types": "./src/env-file.ts",
+			"default": "./src/env-file.ts"
 		},
 		"./environment-secrets": {
 			"types": "./src/environment-secrets.ts",
@@ -47,6 +55,10 @@
 		"./agent-credentials": {
 			"types": "./src/agent-credentials.ts",
 			"default": "./src/agent-credentials.ts"
+		},
+		"./agent-status": {
+			"types": "./src/agent-status.ts",
+			"default": "./src/agent-status.ts"
 		},
 		"./constants": {
 			"types": "./src/constants.ts",
@@ -76,9 +88,17 @@
 			"types": "./src/plugins/index.ts",
 			"default": "./src/plugins/index.ts"
 		},
+		"./sandbox-regions": {
+			"types": "./src/sandbox-regions.ts",
+			"default": "./src/sandbox-regions.ts"
+		},
 		"./sandbox-contract": {
 			"types": "./src/sandbox-contract.ts",
 			"default": "./src/sandbox-contract.ts"
+		},
+		"./pull-request": {
+			"types": "./src/pull-request.ts",
+			"default": "./src/pull-request.ts"
 		},
 		"./sandbox-gate": {
 			"types": "./src/sandbox-gate.ts",
@@ -311,6 +331,10 @@
 		"./theme-colors": {
 			"types": "./src/themes/types.ts",
 			"default": "./src/themes/types.ts"
+		},
+		"./plugins/manifest-schema": {
+			"types": "./src/plugins/manifest-schema.ts",
+			"default": "./src/plugins/manifest-schema.ts"
 		}
 	},
 	"scripts": {

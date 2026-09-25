@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, tasks } from "@superset/db/schema";
+import { connections, tasks } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import { env } from "../../../env";
@@ -20,18 +20,18 @@ export async function syncTask(taskId: string) {
 		throw new Error("Task not found");
 	}
 
-	const connections = await db.query.integrationConnections.findMany({
-		where: eq(integrationConnections.organizationId, task.organizationId),
-		columns: { provider: true },
-	});
+	const connected = await db
+		.selectDistinct({ connector: connections.connector })
+		.from(connections)
+		.where(eq(connections.organizationId, task.organizationId));
 
 	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
 
 	const results = await Promise.allSettled(
-		connections.map(async (conn) => {
-			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
+		connected.map(async (conn) => {
+			const endpoint = PROVIDER_ENDPOINTS[conn.connector];
 			if (!endpoint) {
-				return { provider: conn.provider, skipped: true };
+				return { provider: conn.connector, skipped: true };
 			}
 
 			const syncUrl = `${qstashBaseUrl}${endpoint}`;
@@ -42,7 +42,7 @@ export async function syncTask(taskId: string) {
 				retries: 3,
 			});
 
-			return { provider: conn.provider, queued: true };
+			return { provider: conn.connector, queued: true };
 		}),
 	);
 

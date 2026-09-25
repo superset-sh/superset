@@ -10,6 +10,7 @@ import {
 	parseAttachedTerminalIdsKey,
 } from "../../components/BackgroundTerminalsButton/BackgroundTerminalsButton.utils";
 import type { PaneViewerData } from "../../types";
+import { isTerminalReplacementCancelled } from "../../utils/cancelledTerminalReplacements";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseAutoAdoptBackgroundSessionsArgs {
@@ -60,7 +61,11 @@ export function useAutoAdoptBackgroundSessions({
 		const toAdopt = getBackgroundTerminalSessions(
 			sessions,
 			parseAttachedTerminalIdsKey(getAttachedTerminalIdsKey(state.tabs)),
-		).filter((session) => !marked.has(session.terminalId));
+		).filter(
+			(session) =>
+				!marked.has(session.terminalId) &&
+				!isTerminalReplacementCancelled(session.terminalId),
+		);
 		if (toAdopt.length === 0) return;
 
 		// Oldest→newest so tabs read chronologically; restore the active tab so

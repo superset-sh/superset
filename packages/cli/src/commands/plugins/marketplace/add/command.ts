@@ -6,6 +6,7 @@ import {
 } from "../../../../lib/plugins/install";
 
 export default command({
+	sandbox: false,
 	description: "Add a marketplace from a GitHub repo or local path",
 	args: [
 		positional("source")

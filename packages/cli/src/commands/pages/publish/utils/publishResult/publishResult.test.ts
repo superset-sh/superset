@@ -51,6 +51,21 @@ describe("publishResult", () => {
 		expect(data.assets).toEqual({ uploaded: 1, reused: 1 });
 	});
 
+	test("watch failures land in data, not just the message", () => {
+		const { data } = publishResult({
+			page: PAGE,
+			path: "report.html",
+			assets: { uploaded: 0, reused: 0, warnings: [] },
+			externalPath: null,
+			unanchored: false,
+			watching: false,
+			watchNote: "Not watching for comments: could not reach the host",
+		});
+		expect(data.watchNote).toBe(
+			"Not watching for comments: could not reach the host",
+		);
+	});
+
 	test("unanchored publish: says how to reach this page again", () => {
 		const { data, message } = publishResult({
 			page: PAGE,

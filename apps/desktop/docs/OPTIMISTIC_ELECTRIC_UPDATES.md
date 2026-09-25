@@ -56,7 +56,6 @@ These are Electric-backed in the renderer but have no collection mutation handle
 - `members`
 - `users`
 - `invitations`
-- `integrationConnections`
 - `subscriptions`
 - `apiKeys`
 - `sessionHosts`

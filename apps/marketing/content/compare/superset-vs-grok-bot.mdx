@@ -2,7 +2,7 @@
 title: "Superset vs Grok Bot (2026): Agent Workspace vs Always-On Cloud Teammates"
 description: "Compare Superset and xAI's Grok Bot. A local-first workspace for running any coding agent in parallel Git worktrees vs always-on computer-use teammates on Cursor-hosted cloud computers."
 date: 2026-09-11
-lastUpdated: 2026-09-11
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - grok-bot
@@ -26,13 +26,13 @@ If you were looking for xAI's coding agent, that is Grok Build, a separate open-
 
 | | **Superset** | **Grok Bot** |
 |---|---|---|
-| **What it does** | Runs 100+ AI coding agents in parallel with Git worktree isolation, chat, review, and browser | Always-on AI teammates on a shared cloud computer that work inside tools and apps 24/7 |
+| **What it does** | Runs multiple AI coding agents in parallel with Git worktree isolation, chat, review, and browser | Always-on AI teammates on a shared cloud computer that work inside tools and apps 24/7 |
 | **Category** | Local-first agent workspace with remote hosts | Cloud computer-use agents (beta) |
 | **Where agents run** | Your machine, or any machine you add as a host | Cursor-hosted cloud computers only, one Firecracker microVM per user, US-only |
 | **Agent and model choice** | Any CLI agent on your own subscription or keys (Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI, Copilot, Grok Build, Kimi Code, Mistral Vibe, Amp, and more) | Cursor manages model selection; no customer-facing model picker |
 | **Focus** | Software engineering: worktrees, diffs, PRs, CI, dev servers | General work: sales, recruiting, ops, and some engineering triage |
-| **Isolation** | Git worktree per workspace on your own repos | Persistent cloud VM per user |
-| **Clients** | macOS desktop (experimental Linux; Windows planned), CLI, MCP server | macOS, Windows, and Linux desktop app; iOS and Android apps |
+| **Isolation** | Git worktrees for local branch-based workspaces on your own repos | Persistent cloud VM per user |
+| **Clients** | macOS desktop (experimental Linux AppImage; Windows unavailable), CLI, MCP server | macOS, Windows, and Linux desktop app; iOS and Android apps |
 | **Automation** | Scheduled automations, CLI, TypeScript SDK, MCP server, Slack bot | Agents run continuously on the account's cloud computer |
 | **Pricing** | Free tier; Pro $20 per user per month; Enterprise custom | Bundled with eligible SuperGrok and Cursor plans with weekly usage included; on-demand usage add-on; no standalone price published |
 
@@ -54,7 +54,7 @@ Superset's agents run on your laptop, your desktop, or any machine you add as a 
 
 ### Engineering Loop vs General Work
 
-Superset is built around the software loop: a worktree per task, diffs, commit, push, and PR from the Changes pane, CI checks, line comments back to the agent, dev servers in an in-app browser. Grok Bot is a general-purpose computer-use teammate whose documented use cases lean toward sales, recruiting, and operations, with engineering triage as one case among many. If the work is code, Superset gives the agent the surface it needs; if the work is a browser and a dozen SaaS tabs, Grok Bot is aimed at it.
+Superset is built around the software loop: local branch-based worktrees, diffs, commit, push, and PR from the Changes pane, CI checks, line comments back to the agent, dev servers in an in-app browser. Grok Bot is a general-purpose computer-use teammate whose documented use cases lean toward sales, recruiting, and operations, with engineering triage as one case among many. If the work is code, Superset gives the agent the surface it needs; if the work is a browser and a dozen SaaS tabs, Grok Bot is aimed at it.
 
 ### Any Agent vs One Vendor's Stack
 

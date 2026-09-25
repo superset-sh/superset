@@ -7,6 +7,15 @@ const CWD_GONE_PATTERN =
 	/unable to read current working directory: no such file or directory/i;
 const CWD_UNREADABLE_PATTERN = /unable to read current working directory/i;
 const NOT_GIT_REPO_PATTERN = /not a git repository/i;
+// Git's text (do_read_index, read-cache.c) when mmap(2) of the index fails,
+// with the errno macOS returns when the file's storage cannot deliver it: a
+// cloud-synced folder whose sync client evicted the index and cannot fetch it
+// back in time or cancels the fetch, or a network volume that stops
+// answering. Every command that reads the index fails until the storage
+// recovers or the repository is moved off it. Other errnos on the same line,
+// such as running out of memory, stay unclassified.
+const INDEX_STORAGE_UNAVAILABLE_PATTERN =
+	/unable to map index file: Operation (?:timed out|canceled)$/m;
 // Git's text when the directory resolves to a repository but has no work tree
 // attached: the repo is bare, or the linked worktree's admin data was removed
 // or pruned. Distinct from CWD_GONE_PATTERN, where the directory itself is
@@ -132,7 +141,10 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 			cause: { kind: "WORKTREE_MISSING" },
 		});
 	}
-	if (CWD_UNREADABLE_PATTERN.test(error.message)) {
+	if (
+		CWD_UNREADABLE_PATTERN.test(error.message) ||
+		INDEX_STORAGE_UNAVAILABLE_PATTERN.test(error.message)
+	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: error.message,

@@ -64,6 +64,7 @@ export function publishResult({
 			unanchored,
 			...(unanchored ? { republish } : {}),
 			watching,
+			...(watchNote ? { watchNote } : {}),
 			assets: { uploaded: assets.uploaded, reused: assets.reused },
 		},
 		message: lines.join("\n"),

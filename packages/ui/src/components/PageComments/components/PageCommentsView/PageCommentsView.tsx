@@ -8,6 +8,7 @@ import {
 	type FrameRect,
 	HOST_CHANNEL,
 	type HostMessageBody,
+	type PageLinkClick,
 	PENDING_ANCHOR_ID,
 } from "@superset/shared/page-comments-runtime";
 import {
@@ -38,6 +39,7 @@ interface PageCommentsViewProps {
 	 * host that focuses on click (a pane) hears about it here instead.
 	 */
 	onFramePointerDown?: () => void;
+	onLinkClick?: (click: PageLinkClick) => void;
 }
 
 export function PageCommentsView({
@@ -47,7 +49,10 @@ export function PageCommentsView({
 	pinchZoomEnabled = false,
 	onScrollYChange,
 	onFramePointerDown,
+	onLinkClick,
 }: PageCommentsViewProps) {
+	const onLinkClickRef = useRef(onLinkClick);
+	onLinkClickRef.current = onLinkClick;
 	const scrollYRef = useRef(initialScrollY ?? 0);
 	const onScrollYChangeRef = useRef(onScrollYChange);
 	onScrollYChangeRef.current = onScrollYChange;
@@ -196,7 +201,18 @@ export function PageCommentsView({
 					height: rect.height * v.scale,
 				};
 			};
+			if (
+				data.type === "link-click" &&
+				typeof data.url === "string" &&
+				/^(https?:|mailto:|tel:)/i.test(data.url)
+			) {
+				onLinkClickRef.current?.(data);
+			}
 			if (data.type === "ready") {
+				send({
+					type: "set-link-handling",
+					enabled: Boolean(onLinkClickRef.current),
+				});
 				if (pinchZoomEnabled) send({ type: "enable-pinch-zoom" });
 				setReadySrc(src);
 				setFrameEpoch((epoch) => epoch + 1);
@@ -270,10 +286,9 @@ export function PageCommentsView({
 		send({
 			type: "track",
 			anchors: [
-				...unresolvedThreads.map((thread) => ({
-					id: thread.id,
-					anchor: thread.anchor,
-				})),
+				...unresolvedThreads.flatMap((thread) =>
+					thread.anchor ? [{ id: thread.id, anchor: thread.anchor }] : [],
+				),
 				...(draft ? [{ id: PENDING_ANCHOR_ID, anchor: draft.anchor }] : []),
 			],
 		});
@@ -283,7 +298,7 @@ export function PageCommentsView({
 		const out: { id: string; point: PinPoint }[] = [];
 		for (const thread of unresolvedThreads) {
 			const rect = rects[thread.id];
-			if (rect)
+			if (rect && thread.anchor)
 				out.push({ id: thread.id, point: pinPointOf(rect, thread.anchor) });
 		}
 		return out;

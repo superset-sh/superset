@@ -1,13 +1,13 @@
 import { db } from "@superset/db/client";
 import {
-	integrationConnections,
 	type SelectSlackThreadSession,
 	type SlackQueuedEvent,
 	type SlackThreadEntity,
 	slackThreadSessions,
 } from "@superset/db/schema";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { accountConnection } from "@superset/trpc/connectors";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
 import type { AgentAction } from "../slack-blocks";
 
@@ -162,18 +162,7 @@ export async function threadFollowUpTarget(key: {
 	threadTs: string;
 }): Promise<SelectSlackThreadSession | null> {
 	if (!(await threadFollowUpsEnabled(key.teamId))) return null;
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, key.teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-		columns: { organizationId: true },
-	});
+	const connection = await accountConnection("slack", key.teamId);
 	if (!connection) return null;
 	const session = await db.query.slackThreadSessions.findFirst({
 		where: whereThread({ ...key, organizationId: connection.organizationId }),

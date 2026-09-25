@@ -381,6 +381,12 @@ export const serverErrorMessages: Record<
 				message: "Only owners can delete projects",
 			}),
 		),
+	"serverError.integration.repositoryNotInstalled": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.repoFullName} is not a repository the GitHub App is installed on`,
+			}),
+		),
 	"serverError.integration.sentryRejectedTheToken": () =>
 		i18n._(
 			msg({
@@ -637,6 +643,13 @@ export const serverErrorMessages: Record<
 				message: "Thread not found",
 			}),
 		),
+	"serverError.plugins.ambiguousConnection": (params) =>
+		i18n._({
+			id: "serverError.plugins.ambiguousConnection",
+			message:
+				"More than one {connector} connection matches; disconnect the one you do not want.",
+			values: params,
+		}),
 	"serverError.plugins.ambiguousPlugin": (params) =>
 		i18n._({
 			id: "serverError.plugins.ambiguousPlugin",

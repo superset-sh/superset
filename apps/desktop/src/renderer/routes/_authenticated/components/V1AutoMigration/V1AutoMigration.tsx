@@ -10,7 +10,6 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { runV1Migration } from "renderer/lib/v1-migration";
 import {
 	isV1FollowUpPending,
-	isV1ForcedFlipActive,
 	isV1MigrationComplete,
 	markV1MigrationComplete,
 	setV1FollowUpPending,
@@ -20,6 +19,7 @@ import {
 	type V1GroupTarget,
 } from "renderer/lib/v1-migration/groups";
 import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
+import { planV2SurfacePass } from "renderer/lib/v1-migration/pass";
 import {
 	isTransientV1MigrationFailure,
 	nextV1MigrationRetryDelayMs,
@@ -40,7 +40,7 @@ import { appendPendingMigratedTerminals } from "renderer/stores/workspace-create
  * already in place. On the v2 surface the full pass runs while there is
  * outstanding work: best-effort kinds (settings/presets/terminals) that
  * were still failing when the gate completed (D4), or everything on
- * machines the forced-flip backstop moved before their gate completed.
+ * machines that reached v2 with unmigrated v1 data (see planV2SurfacePass).
  * Completed v2 migrations still run the ledger-guarded group backfill, since
  * older passes omitted groups entirely.
  * Cross-instance single-flight via a main-process lock file. A pass that
@@ -108,15 +108,7 @@ export function V1AutoMigration() {
 		if (!organizationId || !onboarded || !activeHostUrl || !agentsSettled) {
 			return;
 		}
-		let groupsOnly = false;
-		if (isV2CloudEnabled) {
-			const followUp =
-				isV1FollowUpPending(organizationId) ||
-				(isV1ForcedFlipActive() && !isV1MigrationComplete(organizationId));
-			groupsOnly = !followUp;
-		} else if (migrationFlagEnabled !== true) {
-			return;
-		}
+		if (!isV2CloudEnabled && migrationFlagEnabled !== true) return;
 		if (startedOrgsRef.current.has(organizationId)) return;
 		startedOrgsRef.current.add(organizationId);
 
@@ -149,6 +141,26 @@ export function V1AutoMigration() {
 				const lock = await electronTrpcClient.migration.acquireRunLock.mutate();
 				if (!lock.acquired) return;
 				locked = true;
+
+				let groupsOnly = false;
+				if (isV2CloudEnabled) {
+					const followUpPending = isV1FollowUpPending(organizationId);
+					const migrationComplete = isV1MigrationComplete(organizationId);
+					let hasV1Data = false;
+					if (!followUpPending && !migrationComplete) {
+						const [v1Projects, v1Workspaces] = await Promise.all([
+							electronV1MigrationIpc.readV1Projects(),
+							electronV1MigrationIpc.readV1Workspaces(),
+						]);
+						hasV1Data = v1Projects.length + v1Workspaces.length > 0;
+					}
+					groupsOnly =
+						planV2SurfacePass({
+							followUpPending,
+							migrationComplete,
+							hasV1Data,
+						}) === "groups-only";
+				}
 
 				const groupTarget: V1GroupTarget = (group, projectId, tag) => {
 					const sectionId = buildSidebarFolderKey(projectId, tag);
@@ -221,7 +233,11 @@ export function V1AutoMigration() {
 				let firstCompletion = false;
 				if (summary.gateComplete) {
 					firstCompletion = !isV1MigrationComplete(organizationId);
-					markV1MigrationComplete(organizationId);
+					// Already on v2: no flip happens, so no welcome card or
+					// continuity restore to hand off to the next launch.
+					markV1MigrationComplete(organizationId, {
+						armFlipHandoff: !isV2CloudEnabled,
+					});
 					const bestEffortClean =
 						summary.settings.failed +
 							summary.settings.deferred +
@@ -236,7 +252,7 @@ export function V1AutoMigration() {
 					// flag can clear.
 					setV1FollowUpPending(
 						organizationId,
-						firstCompletion || !bestEffortClean,
+						(firstCompletion && !isV2CloudEnabled) || !bestEffortClean,
 					);
 				}
 

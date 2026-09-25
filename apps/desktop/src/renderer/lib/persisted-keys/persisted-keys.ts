@@ -9,6 +9,7 @@ interface DeadKey {
  * the writer.
  */
 export const DEAD_KEYS: DeadKey[] = [
+	{ key: "getting-started-v1", match: "exact" },
 	// Pending-create records; superseded by canonical workspaces.create (#3893)
 	{ key: "pending-workspaces-", match: "prefix" },
 	// v1→v2 preset migration marker; superseded by pull-based importer (#4122)
@@ -41,6 +42,10 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "leaderboard-auto-publish-v1", match: "exact" },
 	// Launch-time "join the leaderboard" prompt removed; joining lives in settings
 	{ key: "leaderboard-asked-v1", match: "exact" },
+	// Opening a page no longer routes to the last-visited workspace
+	{ key: "last-active-v2-workspace", match: "exact" },
+	// Sidebar automations failure badge removed; it polled for every window
+	{ key: "automation-failures-v1", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

@@ -27,19 +27,20 @@
 		},
 		"rich_previews": {
 			"is_active": true,
-			"entity_types": ["slack#/entities/task"]
+			"entity_types": ["slack#/entities/task", "slack#/entities/content_item"]
 		}
 	},
 	"oauth_config": {
 		"redirect_urls": [
-			"https://api.superset.sh/api/integrations/slack/callback"
+			"https://api.superset.sh/api/integrations/slack/callback",
+			"https://api.superset.sh/api/connectors/callback/slack"
 		],
 		"scopes": {
 			"bot": [
+				"channels:join",
 				"app_mentions:read",
 				"assistant:write",
 				"channels:history",
-				"channels:join",
 				"channels:read",
 				"chat:write",
 				"files:read",
@@ -83,6 +84,7 @@
 		"org_deploy_enabled": false,
 		"socket_mode_enabled": false,
 		"token_rotation_enabled": false,
+		"app_level_token_rotation_enabled": false,
 		"is_mcp_enabled": false
 	}
 }

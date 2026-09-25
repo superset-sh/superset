@@ -9,10 +9,17 @@ export interface CommentAuthor {
 }
 
 export function commentAuthor(
-	comment: Pick<PageComment, "authorKind" | "authorName" | "authorImage">,
+	comment: Pick<
+		PageComment,
+		"authorKind" | "authorName" | "authorImage" | "agentLabel"
+	>,
 ): CommentAuthor {
 	if (comment.authorKind === "agent") {
-		return { name: AGENT_DISPLAY_NAME, image: null, isAgent: true };
+		return {
+			name: comment.agentLabel || AGENT_DISPLAY_NAME,
+			image: null,
+			isAgent: true,
+		};
 	}
 	return {
 		name: comment.authorName,

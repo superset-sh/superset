@@ -8,9 +8,10 @@ import {
 } from "@superset/db/schema";
 import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, count, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { findOrganizationSolelyOwnedBy } from "../../lib/account-purge";
 import { emitAppFirstOpened } from "../../lib/activation-events";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, userError } from "../../trpc";
@@ -62,44 +63,19 @@ export const userRouter = {
 
 	/** Grace-period deletion: marks the account and revokes every live
 	 * credential (sessions + issued OAuth tokens). Orgs and billing are left
-	 * untouched so reactivation within the window restores everything; purge
-	 * happens later via admin.deleteUser. */
+	 * untouched so reactivation within the window restores everything; the
+	 * daily purge-expired-deletions job in apps/api purges once the window
+	 * has passed. */
 	deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
 		const userId = ctx.session.user.id;
 
-		const ownerships = await db.query.members.findMany({
-			where: and(eq(members.userId, userId), eq(members.role, "owner")),
-		});
-		for (const ownership of ownerships) {
-			const [otherMembers] = await db
-				.select({ value: count() })
-				.from(members)
-				.where(
-					and(
-						eq(members.organizationId, ownership.organizationId),
-						ne(members.userId, userId),
-					),
-				);
-			if ((otherMembers?.value ?? 0) === 0) continue;
-
-			const [otherOwners] = await db
-				.select({ value: count() })
-				.from(members)
-				.where(
-					and(
-						eq(members.organizationId, ownership.organizationId),
-						eq(members.role, "owner"),
-						ne(members.userId, userId),
-					),
-				);
-			if ((otherOwners?.value ?? 0) === 0) {
-				throw userError({
-					code: "PRECONDITION_FAILED",
-					message:
-						"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
-					i18nKey: "serverError.user.youAreTheOnlyOwner",
-				});
-			}
+		if (await findOrganizationSolelyOwnedBy(userId)) {
+			throw userError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
+				i18nKey: "serverError.user.youAreTheOnlyOwner",
+			});
 		}
 
 		await db

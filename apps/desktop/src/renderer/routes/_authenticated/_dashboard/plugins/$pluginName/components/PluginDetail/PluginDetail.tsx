@@ -2,21 +2,42 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
-import { LuArrowLeft, LuArrowUp, LuExternalLink } from "react-icons/lu";
+import { useEffect, useRef, useState } from "react";
+import {
+	LuArrowLeft,
+	LuArrowUp,
+	LuExternalLink,
+	LuPlus,
+	LuTrash2,
+} from "react-icons/lu";
+import {
+	ConnectConnectorDialog,
+	ConnectorRow,
+} from "renderer/components/ConnectorSection";
 import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
 import { SkillIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/SkillIcon";
 import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
 import { InfoRow } from "./components/InfoRow";
-import { PluginConnections } from "./components/PluginConnections";
 import { SectionHeader } from "./components/SectionHeader";
-import { useAuthMethodLabel } from "./hooks/useAuthMethodLabel";
 
 export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 	const { t } = useLingui();
-	const authMethodLabel = useAuthMethodLabel();
 	const navigate = useNavigate();
-	const { add, uninstall, setEnabled, update, isBusy } = usePluginMutations();
+	const { install, uninstall, setEnabled, update, isBusy } =
+		usePluginMutations();
+
+	const [isConnectOpen, setIsConnectOpen] = useState(false);
+	const wasInstalled = useRef(plugin.installed);
+	const needsConnection = Boolean(
+		plugin.connector && plugin.connections.length === 0,
+	);
+
+	useEffect(() => {
+		if (plugin.installed && !wasInstalled.current && needsConnection)
+			setIsConnectOpen(true);
+		wasInstalled.current = plugin.installed;
+	}, [plugin.installed, needsConnection]);
 
 	const skills = plugin.pluginSkills ?? [];
 
@@ -48,6 +69,16 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 					</div>
 
 					<div className="flex shrink-0 items-center gap-3">
+						{!plugin.installed && (
+							<Button
+								size="sm"
+								disabled={isBusy}
+								onClick={() => void install(plugin.name)}
+							>
+								<LuPlus className="size-4" />
+								<Trans>Install plugin</Trans>
+							</Button>
+						)}
 						{plugin.updateAvailable && (
 							<Button
 								size="sm"
@@ -57,6 +88,18 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 							>
 								<LuArrowUp className="size-4" />
 								<Trans>Update</Trans>
+							</Button>
+						)}
+						{plugin.installed && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="text-destructive"
+								disabled={isBusy}
+								onClick={() => uninstall(plugin.name)}
+							>
+								<LuTrash2 className="size-4" />
+								<Trans>Remove</Trans>
 							</Button>
 						)}
 						{plugin.installed && (
@@ -73,15 +116,20 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 				</div>
 			</div>
 
-			<PluginConnections
-				pluginName={plugin.name}
-				displayName={plugin.interface.displayName}
-				auth={plugin.auth}
-				installed={plugin.installed}
-				onAdd={() => add(plugin.name)}
-				onRemove={() => uninstall(plugin.name)}
-				isBusy={isBusy}
-			/>
+			{plugin.connector && (
+				<section className="mt-10">
+					<SectionHeader label={<Trans>Connector</Trans>} />
+					<div className="divide-y divide-border/40">
+						<ConnectorRow
+							slug={plugin.connector}
+							description={plugin.description}
+							icon={<PluginIcon pluginName={plugin.name} className="size-7" />}
+							canConnect={plugin.installed}
+							onConnect={() => setIsConnectOpen(true)}
+						/>
+					</div>
+				</section>
+			)}
 
 			{skills.length > 0 && (
 				<section className="mt-10">
@@ -113,11 +161,9 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 					<InfoRow label={<Trans>Category</Trans>}>
 						{plugin.interface.category}
 					</InfoRow>
-					{plugin.auth?.length ? (
-						<InfoRow label={<Trans>Authentication</Trans>}>
-							{plugin.auth
-								.map((method) => authMethodLabel(method.type))
-								.join(", ")}
+					{plugin.connector ? (
+						<InfoRow label={<Trans>Connector</Trans>}>
+							{plugin.connector}
 						</InfoRow>
 					) : null}
 					<InfoRow label={<Trans>Version</Trans>}>
@@ -149,6 +195,13 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 					)}
 				</div>
 			</section>
+
+			<ConnectConnectorDialog
+				slug={isConnectOpen ? plugin.connector : null}
+				icon={<PluginIcon pluginName={plugin.name} className="size-12" />}
+				author={plugin.author}
+				onOpenChange={(open) => !open && setIsConnectOpen(false)}
+			/>
 		</div>
 	);
 }

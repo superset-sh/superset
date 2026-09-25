@@ -18,6 +18,7 @@ import {
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { NavigationControls } from "../_dashboard/components/NavigationControls";
+import { ContentBoundary } from "../components/ContentBoundary";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import {
 	FULL_WIDTH_SECTION_PATHS,
@@ -36,6 +37,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"appearance",
 	"ringtones",
 	"usage",
+	"mobile",
 	"keyboard",
 	"behavior",
 	"git",
@@ -63,6 +65,7 @@ const SECTION_ORDER: SettingsSection[] = [
  * hand-maintained lookups that can drift out of sync with each other.
  */
 const SECTION_PATHS: Partial<Record<SettingsSection, string>> = {
+	mobile: "/settings/mobile",
 	account: "/settings/account",
 	connections: "/settings/connections",
 	organization: "/settings/organization",
@@ -111,6 +114,8 @@ const NON_ROUTABLE_ESCAPE_PARENTS = new Set([
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const mobileEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const isMac = platform === undefined || platform === "darwin";
@@ -132,6 +137,7 @@ function SettingsLayout() {
 						normalizedSearchQuery,
 						isV2CloudEnabled,
 						cloudWorkspacesEnabled,
+						mobileEnabled,
 					)
 				: {},
 		[
@@ -139,6 +145,7 @@ function SettingsLayout() {
 			normalizedSearchQuery,
 			isV2CloudEnabled,
 			cloudWorkspacesEnabled,
+			mobileEnabled,
 		],
 	);
 	const totalMatches = Object.values(matchCounts).reduce(
@@ -219,13 +226,15 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					{usesFullWidthContent ? (
-						<Outlet />
-					) : (
-						<div className="mx-auto max-w-4xl">
+					<ContentBoundary>
+						{usesFullWidthContent ? (
 							<Outlet />
-						</div>
-					)}
+						) : (
+							<div className="mx-auto max-w-4xl">
+								<Outlet />
+							</div>
+						)}
+					</ContentBoundary>
 				</div>
 			</div>
 		</div>

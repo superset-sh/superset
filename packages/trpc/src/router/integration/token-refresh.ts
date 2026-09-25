@@ -1,7 +1,13 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { connections, type IntegrationConfig } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
 import { eq } from "drizzle-orm";
+import {
+	decryptOptional,
+	decryptSecret,
+	encryptOptional,
+	encryptSecret,
+} from "../../lib/connectors";
 
 /** Refresh a token this many ms before it actually expires. */
 export const REFRESH_BUFFER_MS = 5 * 60 * 1000;
@@ -14,7 +20,7 @@ export type RefreshableConnection = {
 	accessToken: string;
 	refreshToken: string | null;
 	tokenExpiresAt: Date | null;
-	config: unknown;
+	state: IntegrationConfig | null;
 };
 
 /** A token endpoint's non-ok answer, kept for `revokedWhen` to classify. */
@@ -47,6 +53,8 @@ type TokenExchange = (
  * `{revoked: reason}` when the grant is known gone. A thrown error goes
  * through `revokedWhen`: a reason marks the connection disconnected, null
  * rethrows (transient). Success clears any disconnected marker.
+ *
+ * Tokens are stored encrypted; `exchange` is handed and returns plaintext.
  */
 export async function withRefreshedToken(
 	connectionId: string,
@@ -56,31 +64,40 @@ export async function withRefreshedToken(
 	},
 ): Promise<RefreshedToken> {
 	return withConnectionLock(connectionId, async (tx) => {
-		const [connection] = await tx
+		const [row] = await tx
 			.select({
-				accessToken: integrationConnections.accessToken,
-				refreshToken: integrationConnections.refreshToken,
-				tokenExpiresAt: integrationConnections.tokenExpiresAt,
-				disconnectedAt: integrationConnections.disconnectedAt,
-				config: integrationConnections.config,
+				accessToken: connections.accessToken,
+				refreshToken: connections.refreshToken,
+				tokenExpiresAt: connections.tokenExpiresAt,
+				disconnectedAt: connections.disconnectedAt,
+				state: connections.state,
 			})
-			.from(integrationConnections)
-			.where(eq(integrationConnections.id, connectionId))
+			.from(connections)
+			.where(eq(connections.id, connectionId))
 			.limit(1);
 
-		if (!connection || connection.disconnectedAt) return { disconnected: true };
+		if (!row || row.disconnectedAt) return { disconnected: true };
+
+		const accessToken = await decryptSecret(row.accessToken);
 		if (
-			connection.tokenExpiresAt &&
-			connection.tokenExpiresAt.getTime() > Date.now() + REFRESH_BUFFER_MS
+			row.tokenExpiresAt &&
+			row.tokenExpiresAt.getTime() > Date.now() + REFRESH_BUFFER_MS
 		) {
-			return { disconnected: false, accessToken: connection.accessToken };
+			return { disconnected: false, accessToken };
 		}
+
+		const connection: RefreshableConnection = {
+			accessToken,
+			refreshToken: await decryptOptional(row.refreshToken),
+			tokenExpiresAt: row.tokenExpiresAt,
+			state: row.state ?? null,
+		};
 
 		const disconnect = async (reason: string): Promise<RefreshedToken> => {
 			await tx
-				.update(integrationConnections)
+				.update(connections)
 				.set({ disconnectedAt: new Date(), disconnectReason: reason })
-				.where(eq(integrationConnections.id, connectionId));
+				.where(eq(connections.id, connectionId));
 			return { disconnected: true };
 		};
 
@@ -92,21 +109,19 @@ export async function withRefreshedToken(
 			if (reason) return disconnect(reason);
 			throw error;
 		}
-		if ("keep" in result) {
-			return { disconnected: false, accessToken: connection.accessToken };
-		}
+		if ("keep" in result) return { disconnected: false, accessToken };
 		if ("revoked" in result) return disconnect(result.revoked);
 
 		await tx
-			.update(integrationConnections)
+			.update(connections)
 			.set({
-				accessToken: result.accessToken,
-				refreshToken: result.refreshToken,
+				accessToken: await encryptSecret(result.accessToken),
+				refreshToken: await encryptOptional(result.refreshToken),
 				tokenExpiresAt: result.tokenExpiresAt,
 				disconnectedAt: null,
 				disconnectReason: null,
 			})
-			.where(eq(integrationConnections.id, connectionId));
+			.where(eq(connections.id, connectionId));
 		return { disconnected: false, accessToken: result.accessToken };
 	});
 }
@@ -118,11 +133,13 @@ export async function markDisconnected(
 	opts: { clearTokens?: boolean } = {},
 ): Promise<void> {
 	await db
-		.update(integrationConnections)
+		.update(connections)
 		.set({
 			disconnectedAt: new Date(),
 			disconnectReason: reason,
-			...(opts.clearTokens ? { accessToken: "", refreshToken: null } : {}),
+			...(opts.clearTokens
+				? { accessToken: await encryptSecret(""), refreshToken: null }
+				: {}),
 		})
-		.where(eq(integrationConnections.id, connectionId));
+		.where(eq(connections.id, connectionId));
 }

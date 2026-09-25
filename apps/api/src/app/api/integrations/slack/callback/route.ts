@@ -1,20 +1,25 @@
 import { WebClient } from "@slack/web-api";
-import type { SlackConfig } from "@superset/db/schema";
+import {
+	connectorMethod,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
-import { upsertConnection } from "@/lib/integrations/upsertConnection";
 
 const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`;
 
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
 		params: ["code"],
-		redirect: (error) => Response.redirect(`${settingsUrl}?error=${error}`),
+		redirect: (error) => `${settingsUrl}?error=${error}`,
+		cookie: STATE_COOKIES.slack,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, exit, fail } = callback;
 
 	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 	const client = new WebClient();
@@ -29,29 +34,47 @@ export async function GET(request: Request) {
 
 		if (!tokenData.ok || !tokenData.access_token || !tokenData.team?.id) {
 			console.error("[slack/callback] Slack API error:", tokenData.error);
-			return Response.redirect(`${settingsUrl}?error=slack_api_error`);
+			return fail("slack_api_error");
 		}
 
-		const config: SlackConfig = {
-			provider: "slack",
-		};
-
+		// This flow asks for bot scopes only, so `access_token` is the workspace
+		// bot token. It is stored in both places: `config.bot_token` is where
+		// everything that posts as the app reads it, and the access token is
+		// what a connector-shaped caller binds.
+		const botToken = tokenData.access_token;
+		const connector = requireConnector("slack");
 		const result = await upsertConnection({
+			connector,
+			slug: "slack",
+			authMethod: connectorMethod(connector, "oauth2").type,
 			organizationId,
 			userId,
-			provider: "slack",
-			accessToken: tokenData.access_token,
-			externalOrgId: tokenData.team.id,
-			externalOrgName: tokenData.team.name,
-			config,
+			tokens: {
+				accessToken: botToken,
+				refreshToken: null,
+				expiresAt: null,
+				scopes: tokenData.scope ? tokenData.scope.split(",") : null,
+				stored: {
+					bot_token: botToken,
+					bot_user_id: tokenData.bot_user_id ?? null,
+					slack_user_id: tokenData.authed_user?.id ?? null,
+				},
+				raw: tokenData as unknown as Record<string, unknown>,
+			},
+			identity: {
+				account: { id: tokenData.team.id, label: tokenData.team.name ?? null },
+				user: {
+					id: tokenData.authed_user?.id ?? tokenData.bot_user_id ?? userId,
+					label: null,
+				},
+			},
+			state: { provider: "slack" },
 		});
 		if (result.conflict) {
 			const owner = result.conflict.ownerEmail
 				? `&owner=${encodeURIComponent(result.conflict.ownerEmail)}`
 				: "";
-			return Response.redirect(
-				`${settingsUrl}?error=workspace_already_linked${owner}`,
-			);
+			return exit(`${settingsUrl}?error=workspace_already_linked${owner}`);
 		}
 
 		console.log("[slack/callback] Connected workspace:", {
@@ -66,9 +89,9 @@ export async function GET(request: Request) {
 			properties: { team_id: tokenData.team.id },
 		});
 
-		return Response.redirect(settingsUrl);
+		return exit(settingsUrl);
 	} catch (error) {
 		console.error("[slack/callback] Token exchange failed:", error);
-		return Response.redirect(`${settingsUrl}?error=token_exchange_failed`);
+		return fail("token_exchange_failed");
 	}
 }

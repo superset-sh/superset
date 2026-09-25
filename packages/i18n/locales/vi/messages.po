@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "\"{0}\" sẽ được đánh dấu là đã đóng trên GitHub. Bạn có thể mở lại từ đây bất cứ lúc nào."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "\"{0}\" sẽ được merge vào {1} bằng {2}. Các check chưa qua — thao tác này bỏ qua chúng. Không thể hoàn tác từ đây."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "\"{0}\" sẽ được merge vào {1} bằng {2}. Không thể hoàn tác từ đây."
@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.} other {# agent đang chạy vẫn dùng tài khoản trước — việc chuyển chỉ áp dụng cho lần khởi chạy mới.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Bình luận sẽ được gửi tới agent này} other {Bình luận sẽ được gửi tới các agent này}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -273,6 +277,10 @@ msgstr "{0, plural, one {Hiện thêm # dòng} other {Hiện thêm # dòng}}"
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Thao tác này sẽ nhập # worktree có sẵn vào Superset thành workspace. Mỗi worktree trên đĩa sẽ được theo dõi và xuất hiện trong thanh bên. Không tệp nào bị thay đổi.} other {Thao tác này sẽ nhập # worktree có sẵn vào Superset thành workspace. Mỗi worktree trên đĩa sẽ được theo dõi và xuất hiện trong thanh bên. Không tệp nào bị thay đổi.}}"
+
+#. placeholder {0}: resolved.length
+msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
+msgstr "{0, plural, other {Xem # bình luận đã giải quyết}}"
 
 #. placeholder {0}: mine.length
 msgid "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
@@ -362,6 +370,10 @@ msgstr "Đã cài {0}"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} đã được gán cho \"{1}\"."
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0} không phải là kho lưu trữ đã cài đặt GitHub App"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -563,6 +575,9 @@ msgstr "{closedCount} đã đóng"
 #. placeholder {0}: relevant.length
 msgid "{completed} of {0} checks complete"
 msgstr "{completed} trong {0} check đã xong"
+
+msgid "{completed} of {total} completed"
+msgstr "Đã hoàn thành {completed}/{total}"
 
 msgid "{configTitle} font size"
 msgstr "Cỡ chữ {configTitle}"
@@ -772,9 +787,6 @@ msgstr "{months} tháng"
 msgid "{months}mo ago"
 msgstr "{months} tháng trước"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "{myFailedCount} tự động hóa của bạn thất bại ở lần chạy gần nhất"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} là tích hợp sẵn nên không thể gỡ"
@@ -829,6 +841,12 @@ msgstr "{planLabel} · Tham gia {joined}"
 
 msgid "{planLabel} plan"
 msgstr "Gói {planLabel}"
+
+msgid "{plugin} has no OAuth client configured on this deployment yet."
+msgstr "{plugin} chưa được cấu hình ứng dụng khách OAuth trên bản triển khai này."
+
+msgid "{plugin} is no longer installed."
+msgstr "{plugin} không còn được cài đặt."
 
 msgid "{presetLabel} reset to defaults"
 msgstr "Đã đặt lại {presetLabel} về mặc định"
@@ -1037,6 +1055,12 @@ msgstr "<0>{primaryFont}</0> chưa được cài trên hệ thống này. Đang 
 msgid "<0>#{0}</0> <1>of {1} on the leaderboard</1>"
 msgstr "<0>#{0}</0> <1>trên {1} trong bảng xếp hạng</1>"
 
+msgid "<0>Coming soon to</0><1>Google Play</1>"
+msgstr "<0>Sắp có trên</0><1>Google Play</1>"
+
+msgid "<0>Download on the</0><1>App Store</1>"
+msgstr "<0>Tải về trên</0><1>App Store</1>"
+
 msgid "<0>F3</0> · you are here"
 msgstr "<0>F3</0> · bạn đang ở đây"
 
@@ -1113,14 +1137,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — quên trang này"
 
-msgid "1 hour"
-msgstr "1 giờ"
-
 msgid "1 user"
 msgstr "1 người dùng"
-
-msgid "10 minutes"
-msgstr "10 phút"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
@@ -1128,17 +1146,11 @@ msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
 msgid "100% (retain everything)"
 msgstr "100% (giữ toàn bộ)"
 
-msgid "15 minutes"
-msgstr "15 phút"
-
 msgid "1d ago"
 msgstr "1 ngày trước"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agent · 14 tệp thay đổi"
-
-msgid "2 hours"
-msgstr "2 giờ"
 
 msgid "2021 to 2023"
 msgstr "2021 đến 2023"
@@ -1164,9 +1176,6 @@ msgstr "3 tệp thay đổi, 2 test đã qua"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ luồng công việc đồng thời trên mỗi kỹ sư"
 
-msgid "30 minutes"
-msgstr "30 phút"
-
 msgid "30D"
 msgstr "30N"
 
@@ -1181,9 +1190,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 tệp · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 phút"
 
 msgid "55 call sites pass {code}"
 msgstr "55 vị trí gọi truyền {code}"
@@ -1230,6 +1236,9 @@ msgstr "Thiết kế lại toàn bộ: hàng dày hơn, chip cổng và agent d�
 
 msgid "A gateway is signed in with an API key."
 msgstr "Gateway đăng nhập bằng khóa API."
+
+msgid "A guilty habit I have is waking up with an idea in the middle of the night and opening the app. By morning it's ready for review."
+msgstr "Tôi có thói quen khó bỏ là tỉnh giấc giữa đêm với một ý tưởng rồi mở ứng dụng. Đến sáng là đã sẵn sàng để xem xét."
 
 msgid "A host must have at least one owner."
 msgstr "Mỗi host phải có ít nhất một chủ sở hữu."
@@ -1369,10 +1378,6 @@ msgstr "Kích hoạt, mức độ sử dụng sau khi bắt đầu dùng, và li
 msgid "Active"
 msgstr "Đang hoạt động"
 
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "hoạt động {0}"
-
 msgid "Active agent sessions."
 msgstr "Các phiên agent đang hoạt động."
 
@@ -1400,6 +1405,9 @@ msgstr "Thêm"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "Thêm tài khoản {0}"
+
+msgid "Add a comment…"
+msgstr "Thêm bình luận…"
 
 msgid "Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run."
 msgstr "Hãy thêm một script chạy vòng đời trong Cài đặt dự án hoặc đánh dấu một script terminal làm lệnh chạy của workspace."
@@ -1476,9 +1484,6 @@ msgstr "Thêm một agent từ menu ở thanh bên để bắt đầu."
 
 msgid "Add photos or files"
 msgstr "Thêm ảnh hoặc tệp"
-
-msgid "Add plugin"
-msgstr "Thêm plugin"
 
 msgid "Add project"
 msgstr "Thêm dự án"
@@ -1642,6 +1647,9 @@ msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kè
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
 
+msgid "Agents watching this page for comments"
+msgstr "Các agent đang theo dõi bình luận trên trang này"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Tổng hợp mức sử dụng agent của mọi lập trình viên trên bảng xếp hạng Superset — token, chi phí, hành vi cache và những mô hình mọi người thực sự dùng."
 
@@ -1777,6 +1785,9 @@ msgstr "Toàn bộ dữ liệu của bạn sẽ bị xóa vĩnh viễn sau {ACCO
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Mọi phiên terminal đang mở sẽ bị kết thúc và các host-service đang chạy sẽ bị dừng. Hãy dùng “Đóng Superset” nếu bạn muốn các dịch vụ tiếp tục chạy cho lần khởi động sau."
 
+msgid "All pages"
+msgstr "Tất cả trang"
+
 msgid "All plans"
 msgstr "Tất cả các gói"
 
@@ -1888,6 +1899,10 @@ msgstr "Ngoài ra: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Luôn biết agent nào cần bạn, với thông báo dẫn thẳng tới agent đang bị chặn."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Agent"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Agent hoàn thành trọn vẹn các thay đổi trên nhiều tệp."
 
@@ -1908,6 +1923,9 @@ msgstr "Đã có bản cập nhật sẵn sàng để cài đặt."
 
 msgid "Analytics, Ops, and more"
 msgstr "Phân tích, vận hành và hơn thế nữa"
+
+msgid "Android is on the way. Be first to know when it ships."
+msgstr "Bản Android đang đến. Hãy là người đầu tiên biết khi nó ra mắt."
 
 msgid "Animate the active terminal cursor."
 msgstr "Cho con trỏ terminal đang hoạt động nhấp nháy."
@@ -1950,9 +1968,6 @@ msgstr "Anthropic đã từ chối khóa API này."
 
 msgid "Anthropic rejected this token."
 msgstr "Anthropic đã từ chối token này."
-
-msgid "Any calendar"
-msgstr "Lịch bất kỳ"
 
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
@@ -1998,9 +2013,6 @@ msgstr "Nhóm bất kỳ"
 
 msgid "Any thread event"
 msgstr "Sự kiện luồng bất kỳ"
-
-msgid "anyone"
-msgstr "bất kỳ ai"
 
 msgid "Anyone"
 msgstr "Bất kỳ ai"
@@ -2055,6 +2067,9 @@ msgstr "Ngôn ngữ hiển thị của ứng dụng"
 
 msgid "App display language. Auto follows your system language."
 msgstr "Ngôn ngữ hiển thị của ứng dụng. Tự động sẽ theo ngôn ngữ hệ thống."
+
+msgid "App icon"
+msgstr "Biểu tượng ứng dụng"
 
 msgid "Appearance"
 msgstr "Giao diện"
@@ -2249,9 +2264,6 @@ msgstr "Nhật ký kiểm toán"
 msgid "Aug 2026"
 msgstr "Th8 2026"
 
-msgid "Authenticate your {displayName} account"
-msgstr "Xác thực tài khoản {displayName} của bạn"
-
 msgid "Authentication"
 msgstr "Xác thực"
 
@@ -2278,6 +2290,12 @@ msgstr "Cấp quyền"
 
 msgid "Authorize {displayName}"
 msgstr "Cấp quyền cho {displayName}"
+
+msgid "Authorize Superset so your plugins, automations and triggers can act on your behalf."
+msgstr "Ủy quyền cho Superset để các plugin, tự động hóa và trình kích hoạt có thể hành động thay bạn."
+
+msgid "Authorize Superset to act on your behalf."
+msgstr "Cho phép Superset thay mặt bạn thực hiện thao tác."
 
 msgid "Authorizing..."
 msgstr "Đang cấp quyền..."
@@ -2345,17 +2363,11 @@ msgstr "Tiêu đề tự động hóa"
 msgid "Automations"
 msgstr "Tự động hóa"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "Tự động hóa ({myFailedCount} đang lỗi)"
-
 msgid "Automations & event triggers"
 msgstr "Tự động hóa & trigger sự kiện"
 
 msgid "Automations require the Pro plan."
 msgstr "Tự động hóa yêu cầu gói Pro."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "Tự động hóa, {myFailedCount} đang lỗi"
 
 msgid "Autonomous"
 msgstr "Tự chủ"
@@ -2584,9 +2596,6 @@ msgstr "Chip có viền là mặc định (kiểu của preset/HotkeyTooltip); m
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Mượn từ cách chấm mức tự lái của ô tô, áp vào cách phần mềm được xây. Bước nhảy đáng chú ý là F3 sang F4: từ những agent bạn giao việc, sang một nhà máy bạn chỉ đạo."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Cần cả quyền Calendar và Gmail. Vui lòng cho phép cả hai khi được hỏi."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Ngăn kéo dưới đáy, vuốt tiện trên thiết bị cảm ứng."
 
@@ -2595,6 +2604,9 @@ msgstr "Thoát"
 
 msgid "Box"
 msgstr "Box"
+
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "Box chạy ở nơi environment được tạo; snapshot chỉ tồn tại trong region của nó."
 
 msgid "Branch"
 msgstr "Nhánh"
@@ -2644,6 +2656,9 @@ msgstr "Nhánh..."
 
 msgid "brand"
 msgstr "thương hiệu"
+
+msgid "Brand assets"
+msgstr "Tài nguyên thương hiệu"
 
 msgid "breadcrumb"
 msgstr "đường dẫn phân cấp"
@@ -2835,6 +2850,9 @@ msgstr "Tôi có thể dùng khóa API của mình không?"
 msgid "Can you standardize the tooltips across the app?"
 msgstr "Bạn chuẩn hóa tooltip trên toàn ứng dụng được không?"
 
+msgid "Can’t check {hostName}"
+msgstr "Không thể kiểm tra {hostName}"
+
 msgid "Can't connect right now"
 msgstr "Chưa thể kết nối lúc này"
 
@@ -2855,6 +2873,9 @@ msgstr "Hủy chỉnh sửa"
 
 msgid "Cancel plan"
 msgstr "Hủy gói"
+
+msgid "Cancel reply"
+msgstr "Hủy trả lời"
 
 msgid "Canceled"
 msgstr "Đã hủy"
@@ -3129,9 +3150,6 @@ msgstr "Chọn thứ cần xóa khỏi trình duyệt trong ứng dụng."
 msgid "Choose when Superset pings you."
 msgstr "Chọn khi nào Superset báo cho bạn."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Chọn agent theo dõi bình luận của trang này"
-
 msgid "Churn"
 msgstr "Rời bỏ"
 
@@ -3203,6 +3221,9 @@ msgstr "Xóa lịch sử terminal"
 
 msgid "Clear terminal history?"
 msgstr "Xóa lịch sử terminal?"
+
+msgid "Clear the filter to rearrange the sidebar"
+msgstr "Xóa bộ lọc để sắp xếp lại thanh bên"
 
 msgid "Clear workspace selection"
 msgstr "Bỏ chọn workspace"
@@ -3465,6 +3486,15 @@ msgstr "Sandbox trên cloud chưa được bật cho {account}. Hãy yêu cầu 
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
 
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Workspace đám mây bỏ qua biến này. Thay vào đó, các agent đăng nhập trong Cài đặt › Agent."
+
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Workspace đám mây sẽ ngừng chạy {agentLabel} với thông tin này."
+
+msgid "Co-founder & CTO, TrainLoop (YC W25)"
+msgstr "Đồng sáng lập & CTO, TrainLoop (YC W25)"
+
 msgid "Code"
 msgstr "Code"
 
@@ -3592,8 +3622,8 @@ msgstr "Đã bình luận"
 msgid "Comments"
 msgstr "Bình luận"
 
-msgid "Comments go to this agent"
-msgstr "Bình luận sẽ được gửi tới agent này"
+msgid "Comments could not be loaded"
+msgstr "Không thể tải bình luận"
 
 msgid "Commit"
 msgstr "Commit"
@@ -3628,6 +3658,9 @@ msgstr "Quy mô cộng đồng theo lời mời công khai, làm mới mỗi n�
 
 msgid "Company"
 msgstr "Công ty"
+
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Giới thiệu công ty, tin tức mới nhất, tài nguyên thương hiệu và liên hệ báo chí của Superset."
 
 msgid "Company email"
 msgstr "Email công ty"
@@ -3710,11 +3743,17 @@ msgstr "Xác nhận trước khi thoát"
 msgid "Connect"
 msgstr "Kết nối"
 
+msgid "Connect {displayName}"
+msgstr "Kết nối {displayName}"
+
+msgid "Connect {name}"
+msgstr "Kết nối {name}"
+
 msgid "Connect a device"
 msgstr "Kết nối một thiết bị"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Kết nối một tài khoản Google. Lịch và hộp thư của tài khoản chỉ được đọc, và các trigger chạy dưới danh nghĩa người đã kết nối."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Kết nối tài khoản Google. Hộp thư chỉ ở chế độ đọc và các trình kích hoạt chạy cho người đã kết nối."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Kết nối micro để dùng đọc chính tả"
@@ -3761,6 +3800,9 @@ msgstr "Kết nối Slack"
 msgid "Connect Slack to manage tasks from conversations. Mention the bot in any channel or send it a direct message to create and update tasks."
 msgstr "Kết nối Slack để quản lý tác vụ ngay trong hội thoại. Nhắc bot ở bất kỳ kênh nào hoặc nhắn tin trực tiếp cho nó để tạo và cập nhật tác vụ."
 
+msgid "Connect this computer"
+msgstr "Kết nối máy tính này"
+
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Kết nối các repository GitHub của bạn và đồng bộ pull request. Theo dõi trạng thái CI và review trong cả nhóm."
 
@@ -3782,9 +3824,8 @@ msgstr "Kết nối workspace Slack của bạn để quản lý tác vụ ngay 
 msgid "Connected"
 msgstr "Đã kết nối"
 
-#. placeholder {0}: formatDate(new Date(connection.createdAt))
-msgid "connected {0}"
-msgstr "đã kết nối {0}"
+msgid "Connected {label}"
+msgstr "Đã kết nối {label}"
 
 msgid "Connected as"
 msgstr "Đã kết nối với tư cách"
@@ -3816,6 +3857,9 @@ msgstr "Đang kết nối"
 msgid "Connecting GitHub is not configured on this server"
 msgstr "Máy chủ này chưa cấu hình kết nối GitHub"
 
+msgid "Connecting lets your agents read and act in {name} on your behalf. Review what you are granting before you continue."
+msgstr "Kết nối cho phép các tác nhân của bạn đọc và thao tác trong {name} thay mặt bạn. Hãy xem lại những gì bạn đang cấp trước khi tiếp tục."
+
 msgid "Connecting to the desktop…"
 msgstr "Đang kết nối tới màn hình nền…"
 
@@ -3846,6 +3890,18 @@ msgstr "Kết nối quá thời gian"
 
 msgid "Connections"
 msgstr "Kết nối"
+
+msgid "Connector"
+msgstr "Trình kết nối"
+
+msgid "Connectors carry risk"
+msgstr "Trình kết nối có rủi ro"
+
+msgid "Connects for your whole team."
+msgstr "Kết nối cho toàn bộ nhóm của bạn."
+
+msgid "Connects your account. Teammates connect their own."
+msgstr "Kết nối tài khoản của bạn. Đồng nghiệp kết nối tài khoản riêng của họ."
 
 msgid "consecutive active days"
 msgstr "ngày hoạt động liên tiếp"
@@ -3901,8 +3957,15 @@ msgstr "Tiếp tục"
 msgid "Continue or fork session"
 msgstr "Tiếp tục hoặc fork phiên"
 
+msgid "Continue the same workspace from your iPhone"
+msgstr "Tiếp tục cùng một workspace từ iPhone của bạn"
+
 msgid "Continue the session the last run left"
 msgstr "Tiếp tục phiên mà lần chạy trước để lại"
+
+#. placeholder {0}: connector.displayName
+msgid "Continue to {0}"
+msgstr "Tiếp tục đến {0}"
 
 msgid "Continue update"
 msgstr "Tiếp tục cập nhật"
@@ -3995,6 +4058,9 @@ msgstr "Sao chép ID phiên agent"
 
 msgid "Copy all"
 msgstr "Sao chép tất cả"
+
+msgid "Copy as Markdown"
+msgstr "Sao chép dưới dạng Markdown"
 
 msgid "Copy Branch Name"
 msgstr "Sao chép tên nhánh"
@@ -4153,6 +4219,9 @@ msgstr "Không thể đóng phiên"
 msgid "Could not close the session"
 msgstr "Không thể đóng phiên"
 
+msgid "Could not connect {plugin}. Try again."
+msgstr "Không thể kết nối {plugin}. Vui lòng thử lại."
+
 msgid "Could not copy the link"
 msgstr "Không thể sao chép liên kết"
 
@@ -4173,6 +4242,9 @@ msgstr "Không thể xóa tệp"
 
 msgid "Could not delete this page"
 msgstr "Không thể xóa trang này"
+
+msgid "Could not disconnect."
+msgstr "Không thể ngắt kết nối."
 
 msgid "Could not forget {domain}"
 msgstr "Không thể quên {domain}"
@@ -4328,9 +4400,6 @@ msgstr "Không thể cập nhật nhánh"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Không thể theo dõi trang này"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
@@ -4678,6 +4747,12 @@ msgstr "Đang tạo worktree"
 msgid "Creating..."
 msgstr "Đang tạo..."
 
+msgid "Creative Manager, Valid"
+msgstr "Quản lý sáng tạo, Valid"
+
+msgid "Credentials stay on the server"
+msgstr "Thông tin xác thực được giữ trên máy chủ"
+
 msgid "Cross-feature components living outside packages/ui — check here before building a new one"
 msgstr "Các component dùng chung nhiều tính năng, nằm ngoài packages/ui — hãy xem ở đây trước khi dựng cái mới"
 
@@ -4899,6 +4974,7 @@ msgid "Delete “{title}”?"
 msgstr "Xóa “{title}”?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "Xóa {0}?"
 
@@ -5135,6 +5211,9 @@ msgstr "Đăng nhập dev"
 msgid "Dev sign-in failed"
 msgstr "Đăng nhập dev thất bại"
 
+msgid "Developed by {author}"
+msgstr "Phát triển bởi {author}"
+
 msgid "Developer"
 msgstr "Lập trình viên"
 
@@ -5179,6 +5258,9 @@ msgstr "diff ở tab mới"
 
 msgid "Diff size"
 msgstr "Kích thước diff"
+
+msgid "Digital Product Designer"
+msgstr "Nhà thiết kế sản phẩm số"
 
 msgid "Direct"
 msgstr "Trực tiếp"
@@ -5253,9 +5335,8 @@ msgstr "Đã bỏ — sẽ không hỏi lại"
 msgid "Disconnect"
 msgstr "Ngắt kết nối"
 
-#. placeholder {0}: connection.account ?? displayName
-msgid "Disconnect {0}"
-msgstr "Ngắt kết nối {0}"
+msgid "Disconnect {credential}?"
+msgstr "Ngắt kết nối {credential}?"
 
 msgid "Disconnect GitHub?"
 msgstr "Ngắt kết nối GitHub?"
@@ -5292,6 +5373,9 @@ msgstr "Discord, GitHub và giờ trao đổi."
 
 msgid "Discover and connect to development servers on your network."
 msgstr "Phát hiện và kết nối tới các server phát triển trong mạng của bạn."
+
+msgid "Disk version"
+msgstr "Phiên bản trên đĩa"
 
 msgid "Dismiss"
 msgstr "Bỏ qua"
@@ -5399,6 +5483,9 @@ msgstr "Tải ảnh xuống"
 
 msgid "Download Manually"
 msgstr "Tải xuống thủ công"
+
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "Tải logo và hình ảnh sản phẩm của chúng tôi để dùng trong các bài viết về Superset."
 
 msgid "Download starter"
 msgstr "Tải bản mẫu"
@@ -5682,6 +5769,12 @@ msgstr "Bật tự động merge"
 msgid "Enable relay access…"
 msgstr "Bật truy cập relay…"
 
+msgid "Enable remote access"
+msgstr "Bật truy cập từ xa"
+
+msgid "Enable Remote Access and keep this computer awake with Superset running."
+msgstr "Bật truy cập từ xa và giữ máy tính này hoạt động với Superset đang chạy."
+
 msgid "Enable skill"
 msgstr "Bật skill"
 
@@ -5760,23 +5853,8 @@ msgstr "esc để đóng"
 msgid "esc to exit"
 msgstr "esc để thoát"
 
-msgid "Event cancelled"
-msgstr "Sự kiện bị hủy"
-
-msgid "Event created"
-msgstr "Sự kiện được tạo"
-
-msgid "Event ended"
-msgstr "Sự kiện kết thúc"
-
-msgid "Event starting soon"
-msgstr "Sự kiện sắp bắt đầu"
-
 msgid "Event triggered"
 msgstr "Sự kiện kích hoạt"
-
-msgid "Event updated"
-msgstr "Sự kiện được cập nhật"
 
 msgid "Every {day}"
 msgstr "{day} hằng tuần"
@@ -5784,8 +5862,8 @@ msgstr "{day} hằng tuần"
 msgid "Every {day} at {time}"
 msgstr "{day} hằng tuần, lúc {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Mỗi agent chạy trong git worktree riêng, nên mười agent có thể làm trên mười nhánh của cùng một repo mà không xung đột. Bạn theo dõi, review và merge tất cả từ một cửa sổ."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Mỗi tác tử chạy trong worktree và nhánh Git riêng, giữ các tệp làm việc tách biệt. Xung đột vẫn có thể xảy ra khi hợp nhất thay đổi. Bạn theo dõi, xem xét và hợp nhất tất cả từ một cửa sổ."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Mọi trục đều đang góp sức cho hạng tiếp theo. Giữ được như vậy thì hạng sẽ tới."
@@ -5838,8 +5916,11 @@ msgstr "Mọi thứ đều viết script được. Tạo workspace và agent t�
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Mọi thứ chúng tôi dựng trên nền các primitive — thành phần riêng của Superset, bộ"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này — chỉ mất thứ hạng cũ."
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "Mọi thứ bạn cần để viết về Superset: giới thiệu công ty, tin tức mới nhất, logo, hình ảnh sản phẩm và thông tin liên hệ."
+
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Mọi thứ bạn đã đăng sẽ bị xóa, không phải ẩn đi. Bạn có thể tham gia lại sau và dữ liệu sẽ được dựng lại từ các transcript còn trên máy này."
 
 msgid "Existing repo path"
 msgstr "Đường dẫn repo có sẵn"
@@ -6078,6 +6159,9 @@ msgstr "Không thể tạo tác vụ"
 
 msgid "Failed to create team"
 msgstr "Không thể tạo nhóm"
+
+msgid "Failed to create terminal"
+msgstr "Không thể tạo terminal"
 
 msgid "Failed to create thread"
 msgstr "Không thể tạo luồng"
@@ -6469,6 +6553,9 @@ msgstr "Tạo một ticket, nhận lại một PR đã kiểm chứng và sẵn 
 msgid "File actions"
 msgstr "Hành động tệp"
 
+msgid "File changed on disk"
+msgstr "Tệp trên đĩa đã thay đổi"
+
 msgid "File is too large to preview"
 msgstr "Tệp quá lớn để xem trước"
 
@@ -6531,6 +6618,9 @@ msgstr "Lọc theo review"
 
 msgid "Filter by state"
 msgstr "Lọc theo trạng thái"
+
+msgid "Filter by workspace: {label}"
+msgstr "Lọc theo workspace: {label}"
 
 msgid "Filter hosts"
 msgstr "Lọc host"
@@ -6694,6 +6784,9 @@ msgstr "Các thư mục sẽ được checkout vào worktree mới, mỗi dòng 
 msgid "FOLLOW ON X"
 msgstr "THEO DÕI TRÊN X"
 
+msgid "Follow terminal sessions live"
+msgstr "Theo dõi trực tiếp các phiên terminal"
+
 msgid "FOLLOW US"
 msgstr "THEO DÕI CHÚNG TÔI"
 
@@ -6723,6 +6816,9 @@ msgstr "Dành cho cá nhân mới bắt đầu"
 
 msgid "For organizations with advanced needs"
 msgstr "Dành cho tổ chức có nhu cầu nâng cao"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "Với các yêu cầu báo chí và phỏng vấn, hãy gửi email cho chúng tôi."
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "Nếu có thắc mắc về thanh toán, hãy <0>liên hệ với chúng tôi</0>."
@@ -6802,14 +6898,20 @@ msgstr "Tiến"
 msgid "Found 12 tooltip call sites"
 msgstr "Tìm thấy 12 chỗ gọi tooltip"
 
+msgid "Founder & CEO, WowMakers"
+msgstr "Nhà sáng lập & CEO, WowMakers"
+
+msgid "Founding Engineer"
+msgstr "Kỹ sư sáng lập"
+
 msgid "Free"
 msgstr "Free"
 
 msgid "Free for everyone"
 msgstr "Miễn phí cho tất cả"
 
-msgid "Free plan available · No credit card required"
-msgstr "Có gói miễn phí · Không cần thẻ tín dụng"
+msgid "Free to start · No credit card required"
+msgstr "Bắt đầu miễn phí · Không cần thẻ tín dụng"
 
 msgid "Frequently<0/>asked questions"
 msgstr "Câu hỏi<0/>thường gặp"
@@ -6913,6 +7015,12 @@ msgstr "Cài Superset trên máy Mac"
 msgid "Get Superset Pro"
 msgstr "Mua Superset Pro"
 
+msgid "Get the best out of Pro"
+msgstr "Tận dụng tối đa Pro"
+
+msgid "Get the iPhone app"
+msgstr "Tải ứng dụng iPhone"
+
 msgid "Ghost"
 msgstr "Ghost"
 
@@ -6994,6 +7102,9 @@ msgstr "Đặt tên gợi nhớ để biết khóa này dùng ở đâu."
 msgid "Globe"
 msgstr "Quả địa cầu"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Cần quyền truy cập Gmail. Vui lòng cho phép khi được hỏi."
+
 msgid "Go back"
 msgstr "Quay lại"
 
@@ -7017,6 +7128,9 @@ msgstr "Tới trang sau"
 
 msgid "Go to previous page"
 msgstr "Tới trang trước"
+
+msgid "Go to Settings, then Remote Access"
+msgstr "Vào Cài đặt, rồi Truy cập từ xa"
 
 msgid "Go to Slack integration settings"
 msgstr "Tới cài đặt tích hợp Slack"
@@ -7057,7 +7171,13 @@ msgstr "Gom các nhánh mới vào một thư mục."
 msgid "Growth"
 msgstr "Tăng trưởng"
 
+msgid "GTM & AI Automation Architect, Mistral AI"
+msgstr "Kiến trúc sư GTM & tự động hóa AI, Mistral AI"
+
 msgid "Guide"
+msgstr "Hướng dẫn"
+
+msgid "Guides"
 msgstr "Hướng dẫn"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -7174,6 +7294,9 @@ msgstr "Ẩn xem trước pull request"
 
 msgid "Hide resolved ({resolvedCount})"
 msgstr "Ẩn các mục đã xử lý ({resolvedCount})"
+
+msgid "Hide resolved comments"
+msgstr "Ẩn bình luận đã giải quyết"
 
 msgid "Hide review comments"
 msgstr "Ẩn bình luận review"
@@ -7359,6 +7482,15 @@ msgstr "Con người viết từng dòng. Công cụ biên dịch, lint và phà
 
 msgid "I already use an IDE like Cursor, is this for me?"
 msgstr "Tôi đã dùng IDE như Cursor, Superset có hợp với tôi không?"
+
+msgid "I also love being able to spin up a local worktree environment on my Mac directly from my phone."
+msgstr "Tôi cũng rất thích việc có thể khởi tạo môi trường cây làm việc cục bộ trên máy Mac ngay từ điện thoại."
+
+msgid "I can be in a café with my coffee while the work keeps moving forward."
+msgstr "Tôi có thể ngồi trong quán cà phê thưởng thức cà phê trong khi công việc vẫn tiếp tục tiến triển."
+
+msgid "I start my morning walks with an idea, and end with a pull request."
+msgstr "Tôi bắt đầu buổi đi bộ sáng với một ý tưởng và kết thúc với một pull request."
 
 msgid "I'm #{rank} on the {company} leaderboard with {tokens} tokens of agent usage."
 msgstr "Tôi đang xếp hạng #{rank} trên bảng xếp hạng {company} với {tokens} token dùng agent."
@@ -7596,6 +7728,9 @@ msgstr "Góc nhìn từ đội ngũ Superset về coding agent chạy song song 
 msgid "Inspecting {0}"
 msgstr "Đang kiểm tra {0}"
 
+msgid "Install"
+msgstr "Cài đặt"
+
 msgid "Install & restart"
 msgstr "Cài đặt & khởi động lại"
 
@@ -7608,11 +7743,20 @@ msgstr "Cài đặt thất bại"
 msgid "Install GitHub App"
 msgstr "Cài GitHub App"
 
+msgid "Install on your iPhone"
+msgstr "Cài đặt trên iPhone"
+
+msgid "Install plugin"
+msgstr "Cài đặt plugin"
+
 msgid "Install Superset MCP in your client"
 msgstr "Cài Superset MCP vào client của bạn"
 
 msgid "Install the desktop app"
 msgstr "Cài ứng dụng máy tính"
+
+msgid "Install the plugin to connect"
+msgstr "Cài đặt plugin để kết nối"
 
 msgid "Install the Superset GitHub App to connect your repositories."
 msgstr "Hãy cài Superset GitHub App để kết nối các repository của bạn."
@@ -7789,6 +7933,9 @@ msgstr "URL của issue phải khớp với {repoMismatch}."
 msgid "Issue…"
 msgstr "Issue…"
 
+msgid "It may be asleep"
+msgstr "Máy có thể đang ngủ"
+
 msgid "It may have been deleted, or it belongs to another organization."
 msgstr "Có thể nó đã bị xóa, hoặc thuộc về một tổ chức khác."
 
@@ -7809,9 +7956,6 @@ msgstr "Nhánh riêng và bản sao tệp riêng"
 
 msgid "Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart."
 msgstr "Các workspace và terminal của nó không khả dụng cho đến khi khởi động lại — dùng menu khay Superset > Host Service > Restart."
-
-msgid "Its workspaces will appear when it reconnects."
-msgstr "Các workspace của nó sẽ xuất hiện khi kết nối lại."
 
 msgid "Jane Doe"
 msgstr "Nguyễn Văn A"
@@ -7884,6 +8028,9 @@ msgstr "Kbd"
 
 msgid "Keep docs fresh"
 msgstr "Giữ tài liệu luôn mới"
+
+msgid "Keep editing"
+msgstr "Tiếp tục chỉnh sửa"
 
 msgid "Keep waiting"
 msgstr "Tiếp tục chờ"
@@ -8006,6 +8153,9 @@ msgstr "Chạy lần cuối"
 msgid "Last seen"
 msgstr "Lần cuối trực tuyến"
 
+msgid "Last seen {lastSeen}"
+msgstr "Lần cuối trực tuyến: {lastSeen}"
+
 msgid "Last updated"
 msgstr "Cập nhật lần cuối"
 
@@ -8032,6 +8182,9 @@ msgstr "Mới nhất"
 
 msgid "Latest (v{latestVersion})"
 msgstr "Mới nhất (v{latestVersion})"
+
+msgid "Latest news"
+msgstr "Tin tức mới nhất"
 
 msgid "Launch"
 msgstr "Khởi chạy"
@@ -8098,6 +8251,9 @@ msgstr "Rời nhóm"
 
 msgid "Leave the leaderboard?"
 msgstr "Rời bảng xếp hạng?"
+
+msgid "Leave your desk.<0/>Keep building."
+msgstr "Rời bàn làm việc.<0/>Vẫn tiếp tục xây dựng."
 
 msgid "Leaving organization..."
 msgstr "Đang rời tổ chức..."
@@ -8438,6 +8594,15 @@ msgstr "Giữ chân khách hàng — theo tháng"
 msgid "Logo updated"
 msgstr "Đã cập nhật logo"
 
+msgid "Logo, light"
+msgstr "Logo, sáng"
+
+msgid "Logos"
+msgstr "Logo"
+
+msgid "Logos, product images, and press contact."
+msgstr "Logo, hình ảnh sản phẩm và liên hệ báo chí."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Độ tin cậy dài hạn vượt một ngưỡng. Việc giao lúc 6 giờ tối đủ thường xuyên là có thể merge lúc 9 giờ sáng, đến mức không xếp ca đêm giống như để nhà máy nằm không."
 
@@ -8620,6 +8785,9 @@ msgstr "Đang đo mức dùng tài nguyên…"
 msgid "Measuring the context to send to {0}…"
 msgstr "Đang đo ngữ cảnh sẽ gửi tới {0}…"
 
+msgid "Media kit"
+msgstr "Bộ tài liệu báo chí"
+
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Thời gian trung vị từ ticket đến production dưới một ngày cho việc thường ngày."
 
@@ -8777,9 +8945,6 @@ msgstr "Thiếu dữ liệu bắt buộc {input}"
 msgid "Mobile"
 msgstr "Di động"
 
-msgid "Mobile (coming soon)"
-msgstr "Di động (sắp có)"
-
 msgid "Mobile app"
 msgstr "Ứng dụng di động"
 
@@ -8879,11 +9044,18 @@ msgstr "Thêm chủ đề {kindLower}"
 msgid "More actions"
 msgstr "Thêm hành động"
 
+msgid "More options"
+msgstr "Tùy chọn khác"
+
 msgid "More pages"
 msgstr "Thêm trang"
 
 msgid "More than half of merged changes are written by agents with zero human edits."
 msgstr "Hơn một nửa thay đổi được merge do agent viết mà không có chỉnh sửa của con người."
+
+#. js-lingui-explicit-id
+msgid "serverError.plugins.ambiguousConnection"
+msgstr "Có nhiều hơn một kết nối {connector} khớp; hãy ngắt kết nối cái bạn không muốn."
 
 msgid "most developers"
 msgstr "phần lớn lập trình viên"
@@ -8977,6 +9149,9 @@ msgstr "Điều hướng"
 msgid "Navigation Menu"
 msgstr "Navigation Menu"
 
+msgid "Nearest to you."
+msgstr "Gần bạn nhất."
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Cần đấu nối ở tầng ứng dụng (trạng thái form, dữ liệu biểu đồ, app shell)"
 
@@ -9028,6 +9203,10 @@ msgstr "Mạng đã thay đổi"
 
 msgid "Never"
 msgstr "Chưa bao giờ"
+
+msgctxt "badge on a page published since the menu was last opened"
+msgid "New"
+msgstr "Mới"
 
 msgid "New {providerLabel} agents will use {accountLabel}."
 msgstr "Các agent {providerLabel} mới sẽ dùng {accountLabel}."
@@ -9083,6 +9262,9 @@ msgstr "Nhóm mới từ workspace"
 msgid "New issue"
 msgstr "Issue mới"
 
+msgid "New page"
+msgstr "Trang mới"
+
 msgid "New password (min 8 characters)"
 msgstr "Mật khẩu mới (tối thiểu 8 ký tự)"
 
@@ -9097,6 +9279,9 @@ msgstr "Các bản phát hành mới và cập nhật sản phẩm."
 
 msgid "New session"
 msgstr "Phiên mới"
+
+msgid "New shell"
+msgstr "Shell mới"
 
 msgid "New stars"
 msgstr "Star mới"
@@ -9247,9 +9432,6 @@ msgstr "Chưa cấu hình agent nào trên máy này"
 
 msgid "No agents match \"{q}\"."
 msgstr "Không có agent nào khớp \"{q}\"."
-
-msgid "No agents running here"
-msgstr "Không có agent nào đang chạy ở đây"
 
 msgid "No agents yet"
 msgstr "Chưa có agent nào"
@@ -9859,9 +10041,6 @@ msgstr "Chưa cài gì cả."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Không có gì đang chạy. Hãy gỡ nó và tạo cái mới."
 
-msgid "Nothing is watching this page"
-msgstr "Chưa có gì theo dõi trang này"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Không có gì ở {pathname}."
 
@@ -9888,6 +10067,9 @@ msgstr "vừa xong"
 
 msgid "Now"
 msgstr "Hiện tại"
+
+msgid "Now I open the workspace on my phone, type the one line it's waiting for, and it carries on."
+msgstr "Giờ tôi mở không gian làm việc trên điện thoại, gõ đúng dòng mà nó đang chờ, rồi nó tiếp tục làm việc."
 
 #. placeholder {0}: versions.expected
 #. placeholder {1}: versions.running
@@ -9953,6 +10135,9 @@ msgstr "Cũ hơn"
 msgid "on {offScopeHostName} — won't run here"
 msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
 
+msgid "On a host you can't reach"
+msgstr "Trên một host bạn không kết nối được"
+
 msgid "On click"
 msgstr "Khi nhấp"
 
@@ -9997,6 +10182,9 @@ msgstr "Một trong một trăm người đầu tiên trên bảng"
 
 msgid "one of the selected repositories"
 msgstr "một trong các repository đã chọn"
+
+msgid "One step left"
+msgstr "Còn một bước nữa"
 
 msgid "One workspace for Claude Code, Codex, and any coding agent."
 msgstr "Một workspace cho Claude Code, Codex và mọi coding agent."
@@ -10073,6 +10261,9 @@ msgstr "Chỉ tác giả của luồng hoặc chủ sở hữu trang mới xóa 
 msgid "Only you"
 msgstr "Chỉ mình bạn"
 
+msgid "Only you can see this page"
+msgstr "Chỉ bạn mới xem được trang này"
+
 msgid "open"
 msgstr "mở"
 
@@ -10120,6 +10311,9 @@ msgstr "Vẫn mở"
 
 msgid "Open Anywhere"
 msgstr "Mở ở bất cứ đâu"
+
+msgid "Open App Store"
+msgstr "Mở App Store"
 
 msgid "Open as comment pane"
 msgstr "Mở dạng khung bình luận"
@@ -10406,6 +10600,9 @@ msgstr "Mở tùy chọn gửi"
 msgid "Open Superset"
 msgstr "Mở Superset"
 
+msgid "Open Superset on that computer"
+msgstr "Mở Superset trên máy tính đó"
+
 msgid "Open System Settings"
 msgstr "Mở System Settings"
 
@@ -10483,9 +10680,6 @@ msgstr "Đã mở workspace có sẵn"
 
 msgid "opened PR #841 for review"
 msgstr "đã mở PR #841 để review"
-
-msgid "Opening TestFlight…"
-msgstr "Đang mở TestFlight…"
 
 msgid "Opening worktree..."
 msgstr "Đang mở worktree..."
@@ -10659,6 +10853,9 @@ msgstr "Các lần chạy qua đêm và cuối tuần hoàn tất không cần g
 msgid "Overview"
 msgstr "Tổng quan"
 
+msgid "Overwrite file"
+msgstr "Ghi đè tệp"
+
 #. placeholder {0}: ownerName ?? t({ message: "a teammate", })
 msgid "Owned by {0} — only they can edit this automation."
 msgstr "Thuộc sở hữu của {0} — chỉ họ mới sửa được tự động hóa này."
@@ -10779,6 +10976,9 @@ msgstr "Một phần là ghi nhận, một phần là đặt cược. Hai mục 
 
 msgid "Partial"
 msgstr "Một phần"
+
+msgid "Partner, Transpose Platform"
+msgstr "Đối tác, Transpose Platform"
 
 msgid "Passed"
 msgstr "Đã qua"
@@ -11147,6 +11347,9 @@ msgstr "Nhấn ⌘I trên bất kỳ terminal nào để soạn trong một edit
 msgid "Press a key…"
 msgstr "Nhấn một phím…"
 
+msgid "Press contact"
+msgstr "Liên hệ báo chí"
+
 msgid "Preview"
 msgstr "Xem trước"
 
@@ -11264,6 +11467,9 @@ msgstr "Đang xử lý..."
 msgid "Product"
 msgstr "Sản phẩm"
 
+msgid "Product images"
+msgstr "Hình ảnh sản phẩm"
+
 msgid "Production run"
 msgstr "Đợt sản xuất"
 
@@ -11355,6 +11561,9 @@ msgstr "Prompt"
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "Ra prompt cho một coding agent để xây điều bạn muốn thấy trong Superset. Nếu chúng tôi thích prompt của bạn, chúng tôi sẽ chạy nó và merge kết quả."
 
+msgid "Prompt agents and answer their questions"
+msgstr "Gửi prompt cho agent và trả lời câu hỏi của chúng"
+
 msgid "Prompt command is only available for terminal agents."
 msgstr "Lệnh prompt chỉ dùng được cho agent terminal."
 
@@ -11432,7 +11641,7 @@ msgstr "Đang đăng với tên <0>{handle}</0>. Chỉ số token và tên mô h
 msgid "Pull request"
 msgstr "Pull request"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
@@ -11745,6 +11954,9 @@ msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
 msgid "Refreshes when OpenCode next runs."
 msgstr "Làm mới khi OpenCode chạy lần tiếp theo."
 
+msgid "Region"
+msgstr "Region"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Đăng ký bất kỳ agent CLI nào bên cạnh các agent có sẵn, mỗi agent có tên, biểu tượng và lệnh khởi chạy riêng."
 
@@ -11778,11 +11990,17 @@ msgstr "Tải lại"
 msgid "Reload app"
 msgstr "Tải lại ứng dụng"
 
+msgid "Reload from disk"
+msgstr "Tải lại từ đĩa"
+
 msgid "Reload Superset to refresh the workspace list."
 msgstr "Tải lại Superset để làm mới danh sách workspace."
 
 msgid "Reload window"
 msgstr "Tải lại cửa sổ"
+
+msgid "Reloading discards your edits. Overwriting replaces the file on disk."
+msgstr "Tải lại sẽ loại bỏ các chỉnh sửa của bạn. Ghi đè sẽ thay thế tệp trên đĩa."
 
 msgid "Relocate"
 msgstr "Chuyển vị trí"
@@ -11807,6 +12025,9 @@ msgstr "Truy cập từ xa"
 
 msgid "Remote Access"
 msgstr "Truy cập từ xa"
+
+msgid "Remote Access may be off"
+msgstr "Truy cập từ xa có thể đang tắt"
 
 msgid "Remote MCP server — connects over HTTP"
 msgstr "Server MCP từ xa — kết nối qua HTTP"
@@ -11889,6 +12110,9 @@ msgstr "Gỡ workspace"
 
 msgid "Remove…"
 msgstr "Gỡ…"
+
+msgid "Removed {credential} for {agentLabel}."
+msgstr "Đã xóa {credential} của {agentLabel}."
 
 msgid "Removed {removedLabel}."
 msgstr "Đã gỡ {removedLabel}."
@@ -12007,6 +12231,9 @@ msgstr "Trả lời"
 msgid "Reply to thread…"
 msgstr "Trả lời luồng…"
 
+msgid "Replying to {replyingTo}"
+msgstr "Đang trả lời {replyingTo}"
+
 msgid "repo"
 msgstr "repo"
 
@@ -12060,6 +12287,9 @@ msgstr "Bắt buộc"
 
 msgid "Required version: {minimumVersion}+"
 msgstr "Phiên bản yêu cầu: {minimumVersion}+"
+
+msgid "Requires iOS 26 or later. Included with Superset Pro."
+msgstr "Yêu cầu iOS 26 trở lên. Đi kèm với Superset Pro."
 
 msgid "Reserved by OS"
 msgstr "Hệ điều hành đã dùng"
@@ -12201,6 +12431,9 @@ msgstr "Khởi động lại terminal"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Khởi động lại để dùng phiên bản Superset mới nhất."
+
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Khởi động lại workspace để áp dụng thông tin xác thực mới của agent."
 
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Đã khởi động lại {restartedOrgCount} dịch vụ host"
@@ -12367,6 +12600,9 @@ msgstr "Yêu cầu review"
 msgid "Review required"
 msgstr "Cần review"
 
+msgid "Review syntax-highlighted diffs"
+msgstr "Xem xét diff có tô sáng cú pháp"
+
 msgid "Review the result."
 msgstr "Review kết quả."
 
@@ -12455,6 +12691,9 @@ msgstr "Chạy {0} ngay"
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
 
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Chạy <0>{tokenCommand}</0><1><2/></1> trong terminal rồi dán token vào đây."
+
 msgid "Run 01"
 msgstr "Run 01"
 
@@ -12523,6 +12762,9 @@ msgstr "Chạy workspace ở bất cứ đâu"
 
 msgid "Run your agents from the desktop, any terminal, or your phone."
 msgstr "Chạy agent của bạn từ desktop, bất kỳ terminal nào, hoặc điện thoại."
+
+msgid "Run your agents from your phone."
+msgstr "Chạy agent của bạn từ điện thoại."
 
 msgid "running"
 msgstr "đang chạy"
@@ -12639,8 +12881,14 @@ msgstr "Đang lưu…"
 msgid "Saw the paywall"
 msgstr "Đã thấy paywall"
 
-msgid "Scale from two agents to 100+"
-msgstr "Mở rộng từ hai agent lên hơn 100"
+msgid "Scale to 100+ agents"
+msgstr "Mở rộng lên hơn 100 tác nhân"
+
+msgid "Scan the QR code, then sign in with the same Superset account and select this organization."
+msgstr "Quét mã QR, sau đó đăng nhập bằng cùng tài khoản Superset và chọn tổ chức này."
+
+msgid "Scan to download Superset for iPhone"
+msgstr "Quét để tải Superset cho iPhone"
 
 msgid "Scanning transcript logs…"
 msgstr "Đang quét log transcript…"
@@ -12968,9 +13216,6 @@ msgstr "Chọn nhánh"
 msgid "Select branch..."
 msgstr "Chọn nhánh..."
 
-msgid "Select calendars"
-msgstr "Chọn lịch"
-
 msgid "Select channels"
 msgstr "Chọn kênh"
 
@@ -13156,6 +13401,9 @@ msgstr "Tạo phiên trên web sẽ sớm có"
 msgid "Session details"
 msgstr "Chi tiết phiên"
 
+msgid "Session ended"
+msgstr "Phiên đã kết thúc"
+
 msgid "Session name"
 msgstr "Tên phiên"
 
@@ -13207,6 +13455,9 @@ msgstr "Thiết lập"
 #. placeholder {0}: name.trim()
 msgid "Set up {0}"
 msgstr "Thiết lập {0}"
+
+msgid "Set up an automation"
+msgstr "Thiết lập tự động hóa"
 
 msgid "Set up project on {hostName}"
 msgstr "Thiết lập dự án trên {hostName}"
@@ -13266,8 +13517,8 @@ msgstr "Chia sẻ thiết kế và báo cáo. Hãy để agent của bạn xử 
 msgid "Share page"
 msgstr "Chia sẻ trang"
 
-msgid "Share settings"
-msgstr "Cài đặt chia sẻ"
+msgid "Share page (public)"
+msgstr "Chia sẻ trang (công khai)"
 
 msgid "Share this page"
 msgstr "Chia sẻ trang này"
@@ -13516,9 +13767,6 @@ msgstr "Đăng nhập bằng GitHub"
 msgid "Sign in with Google"
 msgstr "Đăng nhập bằng Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Đăng nhập bằng tài khoản Claude của bạn, hoặc chạy <0>claude setup-token</0><1><2/></1> trong terminal rồi dán token vào đây."
-
 msgid "Sign out"
 msgstr "Đăng xuất"
 
@@ -13557,14 +13805,8 @@ msgstr "Đăng nhập thất bại"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Đăng nhập thất bại ({reason}). Vui lòng thử lại."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Đã đăng nhập với {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Đang đăng nhập với <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Đã đăng nhập. Token được lưu ở dạng mã hóa và không bao giờ hiển thị lại."
 
 msgid "Signed out"
 msgstr "Đã đăng xuất"
@@ -13574,9 +13816,6 @@ msgstr "Trang đang đăng nhập"
 
 msgid "Signing in..."
 msgstr "Đang đăng nhập..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Đăng nhập giống cách Codex CLI làm. Hoặc chạy <0>codex login</0> trong terminal rồi dán token của nó vào đây."
 
 msgid "signup → paid ≤30d"
 msgstr "đăng ký → trả phí ≤30 ngày"
@@ -13736,9 +13975,6 @@ msgstr "Một số trigger cần cấu hình thêm"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Người khác đã xuất bản {entryPath} từ workspace này. Hãy xuất bản kèm id trang cụ thể để thêm phiên bản vào trang của họ, hoặc di chuyển tệp."
 
-msgid "someone external"
-msgstr "người bên ngoài"
-
 msgid "Something went wrong"
 msgstr "Đã xảy ra lỗi"
 
@@ -13871,6 +14107,9 @@ msgstr "Cải thiện độ ổn định"
 msgid "Stacked"
 msgstr "Xếp chồng"
 
+msgid "Staff Software Engineer, Vori"
+msgstr "Kỹ sư phần mềm cấp Staff, Vori"
+
 msgid "Stage all"
 msgstr "Stage tất cả"
 
@@ -13949,11 +14188,17 @@ msgstr "Tạo workspace ngay từ một ticket Linear. Agent nhận việc và b
 msgid "Start agent"
 msgstr "Bắt đầu agent"
 
+msgid "Start agents, follow them live, and review the diff from your phone. Your code stays on your machines."
+msgstr "Khởi chạy agent, theo dõi trực tiếp và xem xét diff từ điện thoại. Mã của bạn vẫn nằm trên máy của bạn."
+
 msgid "Start an agent or a terminal to begin working in this workspace."
 msgstr "Hãy khởi động một agent hoặc terminal để bắt đầu làm việc trong workspace này."
 
 msgid "Start browsing"
 msgstr "Bắt đầu duyệt web"
+
+msgid "Start coding agents, follow them live, and review the diff from your phone. Available on the App Store; Android is coming soon."
+msgstr "Khởi chạy agent lập trình, theo dõi trực tiếp và xem xét diff từ điện thoại. Đã có trên App Store; Android sắp ra mắt."
 
 msgid "Start free. Upgrade when your team outgrows it. Enterprise plans for organizations with advanced security and compliance needs."
 msgstr "Bắt đầu miễn phí. Nâng cấp khi đội của bạn lớn hơn. Gói Enterprise dành cho tổ chức có nhu cầu bảo mật và tuân thủ nâng cao."
@@ -13976,6 +14221,9 @@ msgstr "Bắt đầu hoặc dừng lệnh chạy của workspace"
 
 msgid "Start with the work."
 msgstr "Bắt đầu từ công việc."
+
+msgid "Start work from anywhere"
+msgstr "Bắt đầu công việc từ bất cứ đâu"
 
 msgid "Start Workspace"
 msgstr "Bắt đầu workspace"
@@ -14138,6 +14386,9 @@ msgstr "ĐĂNG KÝ"
 msgid "Subscribe on YouTube"
 msgstr "Đăng ký trên YouTube"
 
+msgid "subscription"
+msgstr "gói đăng ký"
+
 msgid "Subscription"
 msgstr "Gói đăng ký"
 
@@ -14159,6 +14410,9 @@ msgstr "cho giao diện agent, và các component dùng chung của ứng dụng
 msgid "Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 msgstr "Tổng CPU mà Superset và các cây tiến trình terminal được theo dõi sử dụng. Trên 100% nghĩa là nhiều nhân CPU đang bận. Giá trị cao kéo dài thường làm giao diện chậm và hao pin hơn."
 
+msgid "Summarize the changes in this workspace"
+msgstr "Tóm tắt các thay đổi trong workspace này"
+
 msgid "Summary"
 msgstr "Tóm tắt"
 
@@ -14176,6 +14430,9 @@ msgstr "superset"
 
 msgid "Superset"
 msgstr "Superset"
+
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset (YC S26) là IDE mã nguồn mở cho kỷ nguyên agent AI, nơi các kỹ sư chạy song song hàng trăm agent lập trình như Claude Code và Codex. Chưa đầy một năm, hơn 130.000 nhà phát triển tại 176 quốc gia đã chạy Superset và tạo hơn 1,5 triệu workspace agent. Nhật Bản là thị trường lớn thứ hai sau Mỹ, với hơn 12.000 nhà phát triển sử dụng Superset ngay cả trước khi có tiếng Nhật, và châu Á nói chung hiện có nhiều người dùng hơn Mỹ. Superset được các kỹ sư tại Netflix, Microsoft, NVIDIA, DoorDash, Wix và Mistral AI sử dụng trên toàn cầu, và tại châu Á là ByteDance, Toss, Kakao, Grab, LINE và Rakuten. Superset có hơn 14k sao trên GitHub, từng đứng #1 trên Product Hunt và vừa ra mắt hỗ trợ đầy đủ tiếng Nhật."
 
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Bảng điều khiển công ty"
@@ -14213,11 +14470,20 @@ msgstr "CPU của Superset · 5 phút gần nhất"
 msgid "Superset Design System"
 msgstr "Hệ thống thiết kế Superset"
 
+msgid "Superset desktop app"
+msgstr "Ứng dụng Superset cho máy tính"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise là Superset dành cho đội nhóm. Hãy liên hệ để biết thêm về những gì được bao gồm và cách nó phù hợp với tổ chức của bạn."
 
-msgid "Superset failed to start"
-msgstr "Superset không khởi động được"
+msgid "Superset for iPhone"
+msgstr "Superset cho iPhone"
+
+msgid "Superset for iPhone page"
+msgstr "Trang Superset cho iPhone"
+
+msgid "Superset for press"
+msgstr "Superset dành cho báo chí"
 
 msgid "Superset for your team"
 msgstr "Superset cho đội ngũ của bạn"
@@ -14261,6 +14527,9 @@ msgstr "Superset là bàn làm việc cho bước chuyển F3 sang F4: agent ch�
 msgid "Superset isn't on Windows yet"
 msgstr "Hiện Superset chỉ có trên Mac"
 
+msgid "Superset may be closed"
+msgstr "Superset có thể đã đóng"
+
 msgid "Superset may sign you back in after restart. Please try signing out again."
 msgstr "Superset có thể đăng nhập lại cho bạn sau khi khởi động lại. Vui lòng thử đăng xuất lần nữa."
 
@@ -14270,17 +14539,38 @@ msgstr "Bộ nhớ của Superset"
 msgid "Superset memory · last 5 min"
 msgstr "Bộ nhớ của Superset · 5 phút gần nhất"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "Diff mã của Superset Mobile trên iPhone"
+
+msgid "Superset mobile gives me the power of my desktop anywhere I go."
+msgstr "Superset mobile mang sức mạnh của máy tính để bàn đến bất cứ đâu tôi đi."
+
+msgid "Superset Mobile is here"
+msgstr "Superset Mobile đã ra mắt"
+
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile thuộc gói Pro"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile ra mắt trên iPhone"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "Superset Mobile giúp nhà phát triển tiếp tục từ iPhone các workspace Superset mà họ đang dùng trên máy tính."
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile chạy agent trên những máy tính bạn kết nối."
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "Terminal của Superset Mobile trên iPhone"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, workspace đám mây, tự động hóa và hỗ trợ ưu tiên."
 
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset cần quyền Full Disk Access để đọc dữ liệu của trình duyệt khác. Cấp quyền trong System Settings rồi kiểm tra lại."
+
+msgid "Superset only receives the permissions this connector asks for. Disconnect at any time to revoke them."
+msgstr "Superset chỉ nhận các quyền mà trình kết nối này yêu cầu. Ngắt kết nối bất cứ lúc nào để thu hồi."
 
 msgid "Superset originals"
 msgstr "Thành phần riêng của Superset"
@@ -14306,6 +14596,9 @@ msgstr "Superset làm việc với mọi coding agent dạng CLI, gồm Claude C
 
 msgid "superset.sh"
 msgstr "superset.sh"
+
+msgid "Superset's mobile app lets me keep my agents moving and unblock them from anywhere, even when I'm nowhere near my computer."
+msgstr "Ứng dụng di động Superset giúp tôi duy trì công việc của các agent và gỡ vướng cho chúng từ bất cứ đâu, ngay cả khi tôi ở xa máy tính."
 
 msgid "Supervised"
 msgstr "Có giám sát"
@@ -14345,6 +14638,9 @@ msgstr "Đổi đăng nhập"
 
 msgid "Switch sign-in…"
 msgstr "Đổi đăng nhập…"
+
+msgid "Switch to manual order to rearrange the sidebar"
+msgstr "Chuyển sang thứ tự thủ công để sắp xếp lại thanh bên"
 
 msgid "Switch to Tab 1"
 msgstr "Chuyển tới tab 1"
@@ -14399,6 +14695,9 @@ msgstr "Chuyển tới workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Chuyển tới workspace 9"
+
+msgid "Symbol, light"
+msgstr "Biểu tượng, sáng"
 
 msgid "Sync"
 msgstr "Đồng bộ"
@@ -14483,9 +14782,6 @@ msgstr "Trò chuyện với Superset"
 
 msgid "Tap anything on the page to comment on it"
 msgstr "Chạm vào bất kỳ đâu trên trang để bình luận"
-
-msgid "Tap the focus button to comment on a block."
-msgstr "Chạm nút lấy nét để bình luận về một khối."
 
 msgid "Target agent"
 msgstr "Agent đích"
@@ -14688,6 +14984,9 @@ msgstr "Textarea"
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
 
+msgid "That {plugin} sign-in link expired. Try connecting again."
+msgstr "Liên kết đăng nhập {plugin} đó đã hết hạn. Hãy thử kết nối lại."
+
 msgid "That endpoint could not be resolved."
 msgstr "Không thể phân giải endpoint đó."
 
@@ -14721,6 +15020,9 @@ msgstr "Agent làm chủ một tác vụ từ ticket đến diff. Con người r
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agent mà tự động hóa này được đặt để chạy không còn tồn tại trên host của nó — agent của host có thể đã bị đặt lại hoặc gỡ bỏ. Hãy chọn lại agent trong cài đặt của tự động hóa."
 
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "Ứng dụng được tải miễn phí. Yêu cầu iOS 26 trở lên và Superset Pro. Tiếp theo sẽ là Android."
+
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "Ứng dụng đang ở {appVersion} nhưng kết nối với dịch vụ máy chủ do thứ khác khởi động, có thể là CLI cũ hoặc bản dựng Superset khác. Khởi động lại sẽ thay thế nó bằng bản của ứng dụng này."
 
@@ -14729,9 +15031,6 @@ msgstr "Hiện không kết nối được tới thiết bị liên quan"
 
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agent tốt nhất sẽ thay đổi.<0/>Quy trình của bạn thì không."
-
-msgid "The Codex sign-in"
-msgstr "Lần đăng nhập Codex"
 
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repository cấu hình phải là một trong các repository của environment"
@@ -14924,9 +15223,6 @@ msgstr "Thời hạn khôi phục đã kết thúc. Hãy liên hệ support@supe
 msgid "The remote branch has diverged. Pull before continuing."
 msgstr "Nhánh remote đã rẽ nhánh khác. Hãy pull trước khi tiếp tục."
 
-msgid "The renderer crashed during startup. Please check logs for details."
-msgstr "Renderer đã crash khi khởi động. Vui lòng xem log để biết chi tiết."
-
 msgid "The repositories a cloud workspace checks out, and which one's .superset/config.json it acts on. The workspace opens on the config location, or on the first repository by name."
 msgstr "Các repository mà workspace cloud checkout, và .superset/config.json của repository nào được áp dụng. Workspace mở tại vị trí cấu hình, hoặc tại repository đầu tiên theo tên."
 
@@ -15048,6 +15344,12 @@ msgstr "Đang suy nghĩ..."
 msgid "Thirty"
 msgstr "Ba mươi"
 
+msgid "This {plugin} account is already connected by {owner}. Ask them to disconnect first."
+msgstr "Tài khoản {plugin} này đã được {owner} kết nối. Hãy đề nghị họ ngắt kết nối trước."
+
+msgid "This {plugin} account is already connected by another Superset organization."
+msgstr "Tài khoản {plugin} này đã được một tổ chức Superset khác kết nối."
+
 msgid "This action is irreversible."
 msgstr "Không thể hoàn tác thao tác này."
 
@@ -15085,8 +15387,8 @@ msgstr "Thao tác này đóng các workspace đã chọn và terminal của chú
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Thao tác này đóng workspace và các terminal của nó. Tệp, nhánh và các workspace khác của dự án vẫn giữ nguyên."
 
-msgid "This comment is no longer here"
-msgstr "Bình luận này không còn ở đây"
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Không gian làm việc đám mây này đang được đánh thức, có thể mất tới 30 giây sau một thời gian không hoạt động."
 
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Thao tác này xóa phần scrollback đã lưu dùng để khôi phục sau khi khởi động lại hoặc crash."
@@ -15196,10 +15498,6 @@ msgstr "Trang này đang được xuất bản từ nơi khác — hãy thử l�
 msgid "This page is in another organization"
 msgstr "Trang này thuộc một tổ chức khác"
 
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Trang này đang hoạt động tại <0>{0}</0>"
-
 msgid "This page isn't here"
 msgstr "Trang này không có ở đây"
 
@@ -15211,9 +15509,6 @@ msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 
 msgid "This path is a directory"
 msgstr "Đường dẫn này là một thư mục"
-
-msgid "This plugin needs no account — its skills are ready to use."
-msgstr "Plugin này không cần tài khoản — các Skill của nó đã sẵn sàng dùng."
 
 msgid "This port is still in use"
 msgstr "Cổng này vẫn đang được dùng"
@@ -15339,6 +15634,9 @@ msgstr "Thao tác này sẽ bỏ staging và hoàn tác mọi thay đổi đã �
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Thao tác này sẽ bỏ stage và hoàn nguyên toàn bộ thay đổi đã stage. Các tệp mới đã stage sẽ bị xóa. Không thể hoàn tác."
 
+msgid "This workspace"
+msgstr "Workspace này"
+
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Workspace này có thể đã bị gỡ, hoặc bạn không còn quyền truy cập."
 
@@ -15374,9 +15672,6 @@ msgstr "Khoảng thời gian"
 
 msgid "Title"
 msgstr "Tiêu đề"
-
-msgid "Title contains..."
-msgstr "Tiêu đề chứa..."
 
 msgid "To"
 msgstr "Đến"
@@ -15441,6 +15736,9 @@ msgstr "Ẩn/hiện giá trị"
 msgid "Toggle Workspaces Sidebar"
 msgstr "Bật/tắt thanh bên workspace"
 
+msgid "Token"
+msgstr "Token"
+
 msgid "Token breakdown"
 msgstr "Phân tích token"
 
@@ -15452,6 +15750,9 @@ msgstr "Mức dùng token"
 
 msgid "Tokens"
 msgstr "Token"
+
+msgid "Tokens are held by Superset and attached to requests there. They are never written into your local agent config."
+msgstr "Superset giữ các token và đính kèm chúng vào yêu cầu tại máy chủ. Chúng không bao giờ được ghi vào cấu hình tác nhân cục bộ của bạn."
 
 msgid "Tokens per session"
 msgstr "Token mỗi phiên"
@@ -15564,11 +15865,11 @@ msgstr "đang phân loại 12 issue mới…"
 msgid "Trigger alert()"
 msgstr "Kích hoạt alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail: sự kiện được tạo, cập nhật, hủy, sắp bắt đầu hoặc đã kết thúc, và email đến hộp thư đã kết nối."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Kích hoạt tự động hóa từ Gmail: email đến hộp thư đã kết nối."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Kích hoạt tự động hóa từ Google Calendar và Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Kích hoạt tự động hóa từ Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Kích hoạt tự động hóa từ tin nhắn kênh Teams."
@@ -15619,6 +15920,9 @@ msgstr "Biến việc lặt vặt thành agent chạy theo lịch: phân loại 
 msgid "Turn failed{0}"
 msgstr "Lượt xử lý thất bại{0}"
 
+msgid "Turn on “Allow remote access to this device via relay”"
+msgstr "Bật “Cho phép truy cập từ xa vào thiết bị này qua relay”"
+
 msgid "Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts."
 msgstr "Biến hội thoại Slack thành tác vụ, chạy agent từ workspace của bạn và giữ đồng đội nắm thông tin ngay nơi công việc bắt đầu."
 
@@ -15639,9 +15943,6 @@ msgstr "Nhập tin nhắn..."
 
 msgid "Type a task for Claude…"
 msgstr "Nhập một tác vụ cho Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Nhập email, nhấn Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Nhập ở đây để gửi tới terminal"
@@ -15804,6 +16105,9 @@ msgstr "Biến không xác định: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Thợ hàn vô danh"
+
+msgid "Unknown workspace"
+msgstr "Workspace không xác định"
 
 msgid "Unlimited"
 msgstr "Không giới hạn"
@@ -16039,6 +16343,12 @@ msgstr "Dùng cho agent mới"
 msgid "Use global default"
 msgstr "Dùng mặc định toàn cục"
 
+msgid "Use Superset on mobile"
+msgstr "Dùng Superset trên điện thoại"
+
+msgid "Use Superset on your phone with Pro."
+msgstr "Dùng Superset trên điện thoại với Pro."
+
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Dùng ứng dụng máy tính để chạy song song nhiều agent lập trình."
 
@@ -16207,6 +16517,9 @@ msgstr "Xem trên GitHub"
 msgid "VIEW ON GITHUB"
 msgstr "XEM TRÊN GITHUB"
 
+msgid "View on the App Store"
+msgstr "Xem trên App Store"
+
 msgid "View open roles"
 msgstr "Xem vị trí đang tuyển"
 
@@ -16257,6 +16570,9 @@ msgstr "đang chờ {0} và {1}…"
 msgid "Waiting for Checks"
 msgstr "Đang chờ check"
 
+msgid "Waiting for it to connect…"
+msgstr "Đang chờ kết nối…"
+
 msgid "Waiting for Review"
 msgstr "Đang chờ review"
 
@@ -16299,11 +16615,17 @@ msgstr "Chúng tôi không thể trừ tiền từ phương thức thanh toán c
 msgid "We couldn't detect a package manager or environment config."
 msgstr "Chúng tôi không phát hiện được trình quản lý gói hay cấu hình môi trường."
 
+msgid "We couldn’t reach Superset to see if it’s online. Check your connection and try again."
+msgstr "Chúng tôi không thể kết nối tới Superset để xem máy có trực tuyến không. Hãy kiểm tra kết nối và thử lại."
+
 msgid "We couldn't reach the device. Please try again in a moment."
 msgstr "Không thể kết nối với thiết bị. Vui lòng thử lại sau giây lát."
 
 msgid "We do not forecast full self-driving in 2026 or 2027. The honest unknowns: whether agent review holds up against adversarial complexity, whether specification can replace code reading as the trust anchor at scale, and whether compute economics keep the overnight shift cheaper than the humans it augments. F5 is a rubric entry so we recognize it when we see it, not a promise."
 msgstr "Chúng tôi không dự báo tự vận hành hoàn toàn vào năm 2026 hay 2027. Những ẩn số thành thật: liệu agent review có trụ được trước độ phức tạp đối kháng hay không, liệu đặc tả có thay được việc đọc code làm chỗ dựa niềm tin ở quy mô lớn hay không, và liệu kinh tế điện toán có giữ cho ca đêm rẻ hơn những con người mà nó hỗ trợ hay không. F5 là một mục trong thang chấm để ta nhận ra khi nó xảy ra, không phải một lời hứa."
+
+msgid "We found {hostName}. Turn on Remote Access there to finish."
+msgstr "Đã tìm thấy {hostName}. Bật Truy cập từ xa trên máy đó để hoàn tất."
 
 msgid "We only collect analytics cookies so we can improve your experience."
 msgstr "Chúng tôi chỉ thu thập cookie phân tích để cải thiện trải nghiệm của bạn."
@@ -16316,6 +16638,9 @@ msgstr "Chúng tôi sẽ liên hệ sớm."
 
 msgid "We'll bring you back as soon as we reconnect."
 msgstr "Bạn sẽ quay lại ngay khi kết nối được khôi phục."
+
+msgid "We'll email you when Superset for Android is ready."
+msgstr "Chúng tôi sẽ gửi email cho bạn khi Superset cho Android sẵn sàng."
 
 msgid "We'll get back to you shortly."
 msgstr "Chúng tôi sẽ phản hồi sớm."
@@ -16429,6 +16754,9 @@ msgstr "Các nhà phát triển nói gì về Superset"
 msgid "What do you want to do?"
 msgstr "Bạn muốn làm gì?"
 
+msgid "What early users say"
+msgstr "Người dùng đầu tiên nói gì"
+
 msgid "What Google shows us for and how much of it is not our own name."
 msgstr "Google hiển thị chúng tôi cho những tìm kiếm nào và bao nhiêu trong đó không phải tên của chúng tôi."
 
@@ -16449,6 +16777,9 @@ msgstr "Bạn đang muốn giải quyết vấn đề gì?"
 
 msgid "What should run on a schedule?"
 msgstr "Bạn muốn chạy gì theo lịch?"
+
+msgid "What should the page show?"
+msgstr "Trang nên hiển thị gì?"
 
 msgid "What should we build next?"
 msgstr "Chúng ta xây dựng gì tiếp theo?"
@@ -16564,6 +16895,15 @@ msgstr "Có nhãn"
 msgid "with or without attachments"
 msgstr "có hoặc không có tệp đính kèm"
 
+msgid "With the Superset mobile app, I can address production issues from anywhere."
+msgstr "Với ứng dụng di động Superset, tôi có thể xử lý sự cố trên môi trường production từ bất cứ đâu."
+
+msgid "Wordmark, black"
+msgstr "Wordmark, đen"
+
+msgid "Wordmark, white"
+msgstr "Wordmark, trắng"
+
 msgid "Work email"
 msgstr "Email công việc"
 
@@ -16612,6 +16952,9 @@ msgstr "Đã tạo workspace"
 
 msgid "Workspace created from PR"
 msgstr "Đã tạo workspace từ PR"
+
+msgid "Workspace details"
+msgstr "Chi tiết workspace"
 
 msgid "Workspace ID copied"
 msgstr "Đã sao chép ID workspace"
@@ -16675,6 +17018,9 @@ msgstr "Số workspace được tạo trên mỗi người dùng trong 7 ngày q
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace trên thiết bị này sẽ xuất hiện ở đây."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Các workspace khởi động từ môi trường này sẽ không còn nhận được nó."
 
 msgid "worktree"
 msgstr "worktree"
@@ -16816,6 +17162,12 @@ msgstr "Bạn không thể thay đổi gói đăng ký này trong ứng dụng. 
 msgid "You can't undo this action. Terminal panes will show \"Process exited\" and can be restarted."
 msgstr "Không thể hoàn tác thao tác này. Các khung terminal sẽ hiện \"Process exited\" và có thể khởi động lại."
 
+msgid "You control the access"
+msgstr "Bạn kiểm soát quyền truy cập"
+
+msgid "You declined the {plugin} authorization request."
+msgstr "Bạn đã từ chối yêu cầu ủy quyền của {plugin}."
+
 msgid "You don't have access to this host"
 msgstr "Bạn không có quyền truy cập host này"
 
@@ -16824,6 +17176,9 @@ msgstr "Bạn không có quyền truy cập terminal này."
 
 msgid "You don't have permission to remove this member"
 msgstr "Bạn không có quyền gỡ thành viên này"
+
+msgid "You need to be part of an organization to connect accounts."
+msgstr "Bạn cần thuộc về một tổ chức để kết nối tài khoản."
 
 msgid "You need to be part of an organization to use integrations."
 msgstr "Bạn cần thuộc một tổ chức để dùng tích hợp."
@@ -16877,6 +17232,9 @@ msgstr "Agent của bạn, tài khoản của bạn"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Trình duyệt của bạn không cho biết bạn đang dùng chip nào, nên đây là bản build Apple Silicon. Nếu dùng máy Mac Intel, hãy <0>tải bản build Intel</0> thay thế."
+
+msgid "Your changes"
+msgstr "Các thay đổi của bạn"
 
 msgid "Your changes will be lost if you don't save them."
 msgstr "Thay đổi của bạn sẽ mất nếu không lưu."

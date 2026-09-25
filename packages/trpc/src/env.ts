@@ -56,7 +56,6 @@ export const env = createEnv({
 		VERCEL_SANDBOX_TOKEN: z.string().min(1),
 		VERCEL_SANDBOX_TEAM_ID: z.string().min(1),
 		VERCEL_SANDBOX_PROJECT_ID: z.string().min(1),
-		VERCEL_SANDBOX_REGION: z.string().min(1).default("iad1"),
 		// Shared with the gate Worker: signs the tickets clients present
 		// there and derives the secret each sandbox's host-service is booted with.
 		SANDBOX_GATE_SECRET: z.string().min(32),
@@ -79,8 +78,7 @@ export const env = createEnv({
 		// without them nobody can connect and workspaces use the App's token.
 		GH_APP_CLIENT_ID: z.string().min(1).optional(),
 		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
-		ANTHROPIC_API_KEY: z.string(),
-		OPENAI_API_KEY: z.string().min(1),
+		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
 		RELAY_URL: z.string().url().default("https://relay.superset.sh"),
 		REALTIME_URL: z.string().url().default("https://realtime.superset.sh"),
 		REALTIME_NUDGE_SECRET: z.string().min(1),
@@ -109,6 +107,11 @@ export const env = createEnv({
 			.string()
 			.min(1)
 			.default("sc-domain:superset.sh"),
+		// Optional, falls back to NEXT_PUBLIC_API_URL: the origin an
+		// authorization server fetches a plugin's client id metadata document
+		// from. Only needs setting where NEXT_PUBLIC_API_URL is unreachable from
+		// the public internet, which in practice means local dev behind a tunnel.
+		PLUGIN_CLIENT_METADATA_BASE_URL: z.string().url().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

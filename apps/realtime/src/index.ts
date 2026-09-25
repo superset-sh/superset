@@ -1,5 +1,8 @@
 import * as Sentry from "@sentry/cloudflare";
-import { isRealtimeNudgeKind } from "@superset/shared/realtime";
+import {
+	isRealtimeNudgeKind,
+	isRealtimeUpdate,
+} from "@superset/shared/realtime";
 import { verifyJWT } from "@superset/shared/verify-jwt";
 import type { Context } from "hono";
 import { Hono } from "hono";
@@ -62,6 +65,7 @@ app.post("/v2/nudge", async (c) => {
 	const body = (await c.req.json().catch(() => null)) as {
 		organizationId?: unknown;
 		kind?: unknown;
+		update?: unknown;
 	} | null;
 	const organizationId = body?.organizationId;
 	if (typeof organizationId !== "string" || organizationId.length === 0) {
@@ -70,8 +74,11 @@ app.post("/v2/nudge", async (c) => {
 	if (!isRealtimeNudgeKind(body?.kind)) {
 		return c.json({ error: "unknown kind" }, 400);
 	}
+	if (body?.update !== undefined && !isRealtimeUpdate(body.update)) {
+		return c.json({ error: "invalid update" }, 400);
+	}
 	const stub = await getServerByName(c.env.OrgHub, organizationId);
-	await stub.nudge(body.kind);
+	await stub.nudge(body.kind, body?.update);
 	return c.json({ ok: true });
 });
 

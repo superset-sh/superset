@@ -1,7 +1,7 @@
-import { Cloud } from "lucide-react-native";
 import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import type { WorkspaceScope } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
+import { CloudIcon } from "@/screens/(authenticated)/components/CloudIcon";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { Chip } from "./components/Chip";
 
@@ -42,7 +42,7 @@ export function ScopeBar({
 					leading={
 						cloud ? (
 							<Icon
-								as={Cloud}
+								as={CloudIcon}
 								className="text-muted-foreground size-3.5"
 								strokeWidth={2}
 							/>

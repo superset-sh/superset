@@ -1,1 +1,1 @@
-export { processLinkShared } from "./process-link-shared";
+export { processLinkShared, unfurlLinks } from "./process-link-shared";

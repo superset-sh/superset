@@ -1,3 +1,4 @@
+import type { ActiveAgentStatus } from "@superset/shared/agent-status";
 import { desc, sql } from "drizzle-orm";
 import {
 	bigint,
@@ -297,6 +298,80 @@ export type InsertIntegrationConnection =
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
 
+export const connections = pgTable(
+	"connections",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		connectedByUserId: uuid("connected_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+
+		connector: text().notNull(),
+		ownerKind: text("owner_kind").notNull(),
+		authMethod: text("auth_method").notNull(),
+
+		accessToken: text("access_token").notNull(),
+		refreshToken: text("refresh_token"),
+		tokenExpiresAt: timestamp("token_expires_at"),
+		scopes: text().array(),
+
+		issuer: text(),
+		resource: text(),
+
+		externalAccountId: text("external_account_id").notNull(),
+		externalAccountLabel: text("external_account_label"),
+		externalUserId: text("external_user_id"),
+		externalUserLabel: text("external_user_label"),
+
+		config: jsonb().$type<Record<string, string | null>>(),
+		state: jsonb().$type<IntegrationConfig>(),
+
+		disconnectedAt: timestamp("disconnected_at"),
+		disconnectReason: text("disconnect_reason"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("connections_org_connector_unique")
+			.on(table.organizationId, table.connector)
+			.where(sql`${table.ownerKind} = 'org'`),
+		uniqueIndex("connections_user_connector_unique")
+			.on(
+				table.organizationId,
+				table.connector,
+				table.connectedByUserId,
+				table.externalAccountId,
+			)
+			.where(sql`${table.ownerKind} = 'user'`),
+		index("connections_org_idx").on(table.organizationId),
+		// Every plugin surface asks "what has this person connected" — the
+		// plugins list, the connections list, and the uninstall sweep — and the
+		// two unique indexes above lead with organization_id, so none of them
+		// can serve it. The table this replaced had plugin_connections_user_plugin_idx.
+		index("connections_user_connector_idx")
+			.on(table.connectedByUserId, table.connector)
+			.where(sql`${table.disconnectedAt} IS NULL`),
+		index("connections_external_account_idx").on(
+			table.connector,
+			table.externalAccountId,
+		),
+		check(
+			"connections_user_identity_present",
+			sql`owner_kind <> 'user' OR external_user_id IS NOT NULL`,
+		),
+	],
+);
+
+export type InsertConnection = typeof connections.$inferInsert;
+export type SelectConnection = typeof connections.$inferSelect;
+
 // Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(
 	"subscriptions",
@@ -571,6 +646,8 @@ export const environments = pgTable(
 		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
+		/** Where its golden lives and every box forked from it runs; a snapshot only exists in its region. */
+		region: text().notNull().default("sfo1"),
 		/** The sandbox bundle every workspace of this environment boots on; null keeps the image's own. */
 		bundleSha: text("bundle_sha"),
 		/**
@@ -678,7 +755,9 @@ export const cloudWorkspaces = pgTable(
 		// never to display one — a rename lands on the sandbox and leaves these
 		// behind.
 		name: text().notNull(),
+		/** The branch the sandbox works on, cut from `baseBranch` at create. */
 		branch: text().notNull(),
+		baseBranch: text("base_branch").notNull(),
 		provider: text().notNull().default("vercel"),
 		providerSandboxId: text("provider_sandbox_id").notNull(),
 		sandboxUrl: text("sandbox_url"),
@@ -687,6 +766,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
+		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
@@ -1113,12 +1194,7 @@ export const automationEvents = pgTable(
 
 		// Text, not integration_provider: this must hold "webhook" and
 		// "superset", which have no connection behind them.
-		// Which connection produced this. Null for webhook and superset events.
-		// Not backfillable later: provider payloads do not always name it.
-		integrationConnectionId: uuid("integration_connection_id").references(
-			() => integrationConnections.id,
-			{ onDelete: "set null" },
-		),
+		integrationConnectionId: uuid("integration_connection_id"),
 
 		provider: text().notNull(),
 		eventType: text("event_type").notNull(),
@@ -1173,12 +1249,9 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
-		// The pruner scans oldest-first for rows that still have a body. Without
-		// this the planner walks automation_events_org_received_idx end to end and
-		// sorts, per batch. Partial, so it shrinks as the backlog drains.
-		index("automation_events_prunable_idx")
-			.on(t.receivedAt)
-			.where(sql`${t.payload} IS NOT NULL`),
+		// Retention deletes oldest-first. Without this the planner walks
+		// automation_events_org_received_idx end to end and sorts, per batch.
+		index("automation_events_received_at_idx").on(t.receivedAt),
 	],
 );
 
@@ -1248,6 +1321,9 @@ export const automationRuns = pgTable(
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
+		// ON DELETE SET NULL on event_id resolves through this; without it every
+		// automation_events row deleted by retention scans this table.
+		index("automation_runs_event_idx").on(t.eventId),
 	],
 );
 
@@ -1369,6 +1445,19 @@ export const desktopNotices = pgTable(
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
 
+export interface PageWatchOwnership {
+	token: string;
+	seenCommentIds: string[];
+	pings: Record<string, number>;
+	reservation: {
+		id: string;
+		expiresAt: number;
+		commentIds: string[];
+		pings: Record<string, number>;
+	} | null;
+	lastFinishedReservationId: string | null;
+}
+
 export const pages = pgTable(
 	"pages",
 	{
@@ -1385,6 +1474,7 @@ export const pages = pgTable(
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
 		watchedByAgent: text("watched_by_agent"),
+		watchState: jsonb("watch_state").$type<PageWatchOwnership>(),
 		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -1396,9 +1486,10 @@ export const pages = pgTable(
 	},
 	(table) => [
 		uniqueIndex("pages_slug_unique").on(table.slug),
-		index("pages_organization_id_updated_at_idx").on(
+		index("pages_organization_id_created_at_id_idx").on(
 			table.organizationId,
-			desc(table.updatedAt),
+			desc(table.createdAt),
+			desc(table.id),
 		),
 		index("pages_created_by_user_id_idx").on(table.createdByUserId),
 	],

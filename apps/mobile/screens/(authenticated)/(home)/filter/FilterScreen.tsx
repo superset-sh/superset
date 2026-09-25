@@ -2,7 +2,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Stack, useRouter } from "expo-router";
-import { Cloud } from "lucide-react-native";
 import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { useTheme } from "@/hooks/useTheme";
@@ -12,6 +11,7 @@ import {
 } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
+import { CloudIcon } from "@/screens/(authenticated)/components/CloudIcon";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
@@ -47,7 +47,7 @@ export function FilterScreen() {
 						accessory={
 							cloud ? (
 								<Icon
-									as={Cloud}
+									as={CloudIcon}
 									className="text-muted-foreground size-4"
 									strokeWidth={2}
 								/>

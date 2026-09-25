@@ -83,16 +83,6 @@ export default function AuthenticatedLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="pages/[slug]/compose"
-				options={{
-					presentation: "formSheet",
-					title: t({ message: "Write a comment" }),
-					sheetAllowedDetents: [0.5],
-					sheetGrabberVisible: true,
-					...glassHeaderOptions,
-				}}
-			/>
-			<Stack.Screen
 				name="pages/[slug]/quick"
 				options={{
 					presentation: "formSheet",
@@ -103,23 +93,12 @@ export default function AuthenticatedLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="pages/[slug]/thread"
-				options={{
-					presentation: "formSheet",
-					title: t({ message: "Comment" }),
-					sheetAllowedDetents: [0.7],
-					sheetGrabberVisible: true,
-					...glassHeaderOptions,
-				}}
-			/>
-			<Stack.Screen
 				name="pages/[slug]/comments"
 				options={{
 					presentation: "formSheet",
-					title: t({ message: "All comments" }),
+					headerShown: false,
 					sheetAllowedDetents: [1.0],
 					sheetGrabberVisible: true,
-					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
@@ -213,7 +192,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/actions"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.65],
+					sheetAllowedDetents: [1.0],
 					sheetGrabberVisible: true,
 					// The workspace name is the sheet's own centred headline, so
 					// the bar carries no title — only the native close button.

@@ -186,14 +186,18 @@ export function usePageComments({
 				await createThread({
 					pageId,
 					version,
-					anchorKind: "element",
-					anchor: {
-						path: anchor.path,
-						tag: anchor.tag,
-						offsetX: anchor.offsetX,
-						offsetY: anchor.offsetY,
-					},
-					anchorText: anchorText.slice(0, 500) || null,
+					...(anchor
+						? {
+								anchorKind: "element" as const,
+								anchor: {
+									path: anchor.path,
+									tag: anchor.tag,
+									offsetX: anchor.offsetX,
+									offsetY: anchor.offsetY,
+								},
+								anchorText: anchorText?.slice(0, 500) || null,
+							}
+						: { anchorKind: "page" as const, anchor: null, anchorText: null }),
 					body,
 					intent,
 				});

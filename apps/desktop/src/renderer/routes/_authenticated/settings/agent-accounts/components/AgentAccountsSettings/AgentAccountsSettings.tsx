@@ -1,5 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
@@ -52,12 +51,11 @@ function AgentAccountRow({
 	const [open, setOpen] = useState(false);
 	const { state } = credential;
 	const configured = isConfigured(state);
-	const statusLabel =
-		state.method === "subscription" && state.subscriptionConnected
-			? t({ message: "Connected via subscription" })
-			: state.method === "api_key" && state.apiKeySaved
-				? t({ message: "Connected with API key" })
-				: t({ message: "Custom provider" });
+	const statusLabel = state.subscriptionConnected
+		? t({ message: "Connected via subscription" })
+		: state.apiKeySaved
+			? t({ message: "Connected with API key" })
+			: t({ message: "Custom provider" });
 
 	return (
 		<div className="flex items-center gap-4 py-4">
@@ -72,7 +70,7 @@ function AgentAccountRow({
 					size="sm"
 					variant="outline"
 				>
-					<Badge variant="secondary">{statusLabel}</Badge>
+					{statusLabel}
 					<Check className="size-4 text-emerald-500" />
 				</Button>
 			) : (
@@ -87,7 +85,6 @@ function AgentAccountRow({
 				</Button>
 			)}
 			<CloudAuthDialog
-				accountLabel={credential.accountLabel}
 				chooseMethod={credential.chooseMethod}
 				disconnect={credential.disconnect}
 				label={label}

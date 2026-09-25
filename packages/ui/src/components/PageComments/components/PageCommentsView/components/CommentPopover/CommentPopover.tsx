@@ -1,7 +1,10 @@
 "use client";
 
 import type { MessageDescriptor } from "@lingui/core";
-import { isOptimisticId } from "@superset/shared/page-comments";
+import {
+	isOptimisticId,
+	popoverPlacement,
+} from "@superset/shared/page-comments";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../lib/utils";
 import {
@@ -11,9 +14,8 @@ import {
 } from "../../../../providers/CommentProvider";
 import { CommentComposer } from "../../../CommentComposer";
 import { CommentList } from "../../../CommentList";
-import type { PinPoint } from "../../utils/pinLayout";
+import { PIN_SIZE, type PinPoint } from "../../utils/pinLayout";
 import { ComposerActions } from "./components/ComposerActions";
-import { popoverPlacement } from "./utils/popoverLayout";
 
 /** Stand-in until the card has rendered and can be measured. */
 const ESTIMATED_HEIGHT = 200;
@@ -77,7 +79,12 @@ export function CommentPopover({
 		};
 	}, [onDismiss, submitting]);
 
-	const { left, top, width } = popoverPlacement({ point, container, height });
+	const { left, top, width } = popoverPlacement({
+		point,
+		container,
+		height,
+		pinSize: PIN_SIZE,
+	});
 
 	return (
 		<div

@@ -200,28 +200,20 @@ private struct ComposerSessionTabPill: View {
       // over its tail; a title that truncated already stops short of the glyph,
       // so the gradient falls on padding and shows nothing.
       .mask(contentMask)
+      // Inside the label, and after the mask. Inside because a long press lifts
+      // exactly what the button draws: with the fill hung outside, the menu
+      // raised a bare title off a pill that stayed put, which reads as the text
+      // swelling rather than as the tab lifting. After the mask because the
+      // gradient is there to fade the title under the close disc, and a masked
+      // fill would take the pill's tail with it.
+      .background(
+        tab.selected ? AnyShapeStyle(.white.opacity(0.14)) : AnyShapeStyle(.white.opacity(0.06)),
+        in: shape
+      )
       .contentShape(.rect)
     }
     .buttonStyle(.plain)
     .foregroundStyle(tab.selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-    // On the button, not on the pill around it. A `Button` swallows the long
-    // press before a `.contextMenu` on its ancestor ever sees it, so the menu
-    // never opened when this hung off the enclosing stack.
-    //
-    // Close is here as well as on the disc: the disc only exists on the
-    // selected tab, and closing one you are not looking at is the more common
-    // want.
-    .contextMenu {
-      Button(action: onRename) {
-        Label(labels.rename, systemImage: "pencil")
-      }
-      Button(action: onCopyId) {
-        Label(labels.copyId, systemImage: "doc.on.doc")
-      }
-      Button(role: .destructive, action: onClose) {
-        Label(labels.close, systemImage: "xmark")
-      }
-    }
     // Overlaid, so it takes no layout: a tab is exactly as wide selected as it
     // is unselected. Giving the disc a slot of its own is the obvious thing and
     // it is wrong twice over — reserve it on every tab and every tab that never
@@ -249,10 +241,30 @@ private struct ComposerSessionTabPill: View {
         .padding(.trailing, ComposerMetrics.sessionTabPaddingV)
       }
     }
-    .background(
-      tab.selected ? AnyShapeStyle(.white.opacity(0.14)) : AnyShapeStyle(.white.opacity(0.06)),
-      in: shape
-    )
+    // The shape the lift raises the tab in. Without it the preview takes the
+    // system's own menu radius — measured at roughly twice the pill's, relative
+    // to its size — so the tab visibly rounds off as it grows instead of simply
+    // growing.
+    .contentShape(.contextMenuPreview, shape)
+    // Last, so the lift raises the finished tab — fill, disc and all. A
+    // `Button` still swallows the long press before a `.contextMenu` on the
+    // enclosing stack ever sees it, so this has to stay on the pill's own
+    // chain; it is only the drawing above it that the preview picks up.
+    //
+    // Close is here as well as on the disc: the disc only exists on the
+    // selected tab, and closing one you are not looking at is the more common
+    // want.
+    .contextMenu {
+      Button(action: onRename) {
+        Label(labels.rename, systemImage: "pencil")
+      }
+      Button(action: onCopyId) {
+        Label(labels.copyId, systemImage: "doc.on.doc")
+      }
+      Button(role: .destructive, action: onClose) {
+        Label(labels.close, systemImage: "xmark")
+      }
+    }
   }
 
   @ViewBuilder

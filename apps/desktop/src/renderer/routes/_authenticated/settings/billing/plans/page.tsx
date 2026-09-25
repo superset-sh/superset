@@ -3,6 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { rawErrorMessage } from "@superset/i18n/errors";
+import { COMPANY } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -60,6 +61,7 @@ type ComparisonValue = MessageDescriptor | boolean | null;
 
 type ComparisonRow = {
 	label: MessageDescriptor;
+	href?: string;
 	values: ComparisonValue[];
 	badge?: { label: MessageDescriptor; variant: "default" | "secondary" };
 };
@@ -217,12 +219,7 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 					message: "Mobile app",
 				}),
 				values: [null, true, true],
-				badge: {
-					label: msg({
-						message: "Coming soon",
-					}),
-					variant: "secondary",
-				},
+				href: COMPANY.APP_STORE_URL,
 			},
 			{
 				label: msg({
@@ -788,7 +785,18 @@ function PlansPage() {
 									return (
 										<Fragment key={row.label.id}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
-												{i18n._(row.label)}
+												{row.href ? (
+													<a
+														href={row.href}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="underline underline-offset-4 hover:text-foreground"
+													>
+														{i18n._(row.label)}
+													</a>
+												) : (
+													i18n._(row.label)
+												)}
 												{row.badge && (
 													<Badge
 														variant={row.badge.variant}

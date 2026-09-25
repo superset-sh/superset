@@ -1,6 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
-import { Cloud } from "lucide-react-native";
 import { useMemo } from "react";
 import { ScrollView } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -13,6 +12,7 @@ import {
 	useCloudScopeEnabled,
 	useWorkspaceScope,
 } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
+import { CloudIcon } from "@/screens/(authenticated)/components/CloudIcon";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
@@ -36,14 +36,14 @@ export function ScopeFilterScreen() {
 		(store) => store.setScopeCloud,
 	);
 
-	const presence = useHostsPresence(hosts);
+	const { presence } = useHostsPresence(hosts);
 
 	const sortedHosts = useMemo(
 		() =>
 			hosts
 				.map((host) => ({
 					...host,
-					isOnline: presence?.get(host.machineId) ?? host.isOnline,
+					isOnline: presence?.get(host.machineId)?.online ?? host.isOnline,
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
 		[hosts, presence],
@@ -70,7 +70,7 @@ export function ScopeFilterScreen() {
 				<ListRow
 					icon={
 						<Icon
-							as={Cloud}
+							as={CloudIcon}
 							className="text-muted-foreground size-4"
 							strokeWidth={2}
 						/>

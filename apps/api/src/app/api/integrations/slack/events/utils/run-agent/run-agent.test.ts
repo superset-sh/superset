@@ -28,7 +28,13 @@ const listTools = mock(async () => ({
 		}),
 	),
 }));
-const toolConnections = mock(async (_userId: string): Promise<unknown[]> => []);
+const resolveTarget = mock(
+	async (_request: {
+		plugin: string;
+		userId: string;
+		organizationId: string | null;
+	}): Promise<Record<string, unknown> | null> => null,
+);
 const pluginListTools = mock(
 	async (
 		..._args: unknown[]
@@ -44,13 +50,47 @@ class FakeAPIError extends Error {
 }
 class FakeConnectionError extends FakeAPIError {}
 class FakeTimeoutError extends FakeConnectionError {}
-mock.module("@superset/trpc/integrations/plugins", () => ({
-	toolConnections,
-	listTools: pluginListTools,
-	callTool: pluginCallTool,
-	templateScope: async (connection: { pluginName: string }) => ({
-		config: { access_token: `${connection.pluginName}-token` },
-	}),
+class FakePluginTargetError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+	) {
+		super(message);
+	}
+}
+class FakeAmbiguousPluginError extends Error {}
+// The real in-memory client/server pair runs; only target resolution and the
+// two request handlers behind it are faked.
+mock.module("@superset/trpc/plugins-proxy", () => ({
+	AmbiguousPluginError: FakeAmbiguousPluginError,
+	PluginTargetError: FakePluginTargetError,
+	resolveTarget,
+	buildPluginServer: async (target: { plugin: string }) => {
+		const { Server } = await import(
+			"@modelcontextprotocol/sdk/server/index.js"
+		);
+		const { CallToolRequestSchema, ListToolsRequestSchema } = await import(
+			"@modelcontextprotocol/sdk/types.js"
+		);
+		const server = new Server(
+			{ name: target.plugin, version: "1.0.0" },
+			{ capabilities: { tools: {} } },
+		);
+		server.setRequestHandler(
+			ListToolsRequestSchema,
+			async (_request, extra) => ({
+				tools: await pluginListTools(target.plugin, extra?.signal),
+			}),
+		);
+		server.setRequestHandler(CallToolRequestSchema, async (request) => ({
+			...(await pluginCallTool(
+				target.plugin,
+				request.params.name,
+				request.params.arguments ?? {},
+			)),
+		}));
+		return server;
+	},
 }));
 mock.module("@anthropic-ai/sdk", () => ({
 	default: class {
@@ -108,19 +148,25 @@ const toolResponse = (
 	stop_reason: "tool_use",
 	content: [{ type: "tool_use", id: "tool-1", name, input }],
 });
-const pluginContext = (pluginName: string, version = "1.0.0") => ({
-	connection: {
-		id: `${pluginName}-connection`,
-		pluginName,
-		authMethod: "oauth2",
-	},
-	install: {
-		id: `${pluginName}-install`,
-		manifest: { name: pluginName, version },
-		marketplace: "superset",
-	},
-	source: null,
+const pluginContext = (
+	pluginName: string,
+	version = "1.0.0",
+	connectionId = `${pluginName}-install`,
+) => ({
+	kind: "first-party" as const,
+	plugin: pluginName,
+	version,
+	connectionId,
 });
+/** Resolve only the named plugins; everything else reads as not connected. */
+const connectPlugins = (
+	...targets: Array<ReturnType<typeof pluginContext>>
+) => {
+	resolveTarget.mockImplementation(async ({ plugin }) => {
+		const match = targets.find((target) => target.plugin === plugin);
+		return match ?? { kind: "needs-auth", plugin, version: "0.0.0" };
+	});
+};
 const textResult = (value: unknown) => ({
 	content: [{ type: "text", text: JSON.stringify(value) }],
 });
@@ -146,8 +192,8 @@ beforeEach(() => {
 	callTool.mockReset();
 	callTool.mockImplementation(async () => ({}));
 	cleanup.mockClear();
-	toolConnections.mockReset();
-	toolConnections.mockImplementation(async () => []);
+	resolveTarget.mockReset();
+	connectPlugins();
 	pluginListTools.mockReset();
 	pluginListTools.mockImplementation(async () => []);
 	pluginCallTool.mockReset();
@@ -595,15 +641,13 @@ describe("plugin tools", () => {
 	];
 	const githubListing = [
 		{ name: "create_pull_request", inputSchema: { type: "object" } },
-		{ name: "merge_pull_request" },
+		{ name: "merge_pull_request", inputSchema: { type: "object" } },
 	];
-	const listingFor = async (manifest: unknown) =>
-		(manifest as { name: string }).name === "linear"
-			? linearListing
-			: githubListing;
+	const listingFor = async (plugin: unknown) =>
+		plugin === "linear" ? linearListing : githubListing;
 
 	test("registers curated tools for connected plugins only and briefs the model", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(listingFor);
 		const result = await runSlackAgent({
 			...params,
@@ -618,10 +662,9 @@ describe("plugin tools", () => {
 		expect(contextualSystemText()).toContain("Linear is connected");
 		expect(contextualSystemText()).toContain("GitHub is not connected");
 		expect(result.unconnectedPlugins.map((p) => p.name)).toEqual(["github"]);
-		expect(toolConnections).toHaveBeenCalledWith("user");
-		expect(pluginListTools.mock.calls[0]?.[4]).toMatchObject({
-			signal: expect.any(AbortSignal),
-		});
+		expect(resolveTarget).toHaveBeenCalledWith(
+			expect.objectContaining({ userId: "user", organizationId: "org" }),
+		);
 	});
 
 	test("an unconnected Linear still answers from the task mirror", async () => {
@@ -643,7 +686,7 @@ describe("plugin tools", () => {
 	});
 
 	test("refuses a plugin tool outside the curated subset at execution", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(listingFor);
 		create.mockImplementationOnce(async () =>
 			toolResponse("linear_delete_comment", { id: "c1" }),
@@ -657,7 +700,7 @@ describe("plugin tools", () => {
 	});
 
 	test("refuses a curated tool for a plugin the user has not connected", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(listingFor);
 		create.mockImplementationOnce(async () =>
 			toolResponse("github_create_pull_request", { title: "Fix" }),
@@ -667,10 +710,7 @@ describe("plugin tools", () => {
 	});
 
 	test("routes linear_* calls to that connection with the remaining budget and records the issue", async () => {
-		toolConnections.mockImplementation(async () => [
-			pluginContext("linear"),
-			pluginContext("github"),
-		]);
+		connectPlugins(pluginContext("linear"), pluginContext("github"));
 		pluginListTools.mockImplementation(listingFor);
 		create.mockImplementationOnce(async () =>
 			toolResponse("linear_save_issue", { team: "SUP", title: "Bug" }),
@@ -688,15 +728,10 @@ describe("plugin tools", () => {
 			deadline: Date.now() + 30_000,
 		});
 		expect(pluginCallTool).toHaveBeenCalledTimes(1);
-		const [manifest, scope, tool, args, method, source, options] =
-			pluginCallTool.mock.calls[0] ?? [];
-		expect(manifest).toMatchObject({ name: "linear" });
-		expect(scope).toEqual({ config: { access_token: "linear-token" } });
+		const [plugin, tool, args] = pluginCallTool.mock.calls[0] ?? [];
+		expect(plugin).toBe("linear");
 		expect(tool).toBe("save_issue");
 		expect(args).toEqual({ team: "SUP", title: "Bug" });
-		expect(method).toBe("oauth2");
-		expect(source).toBeNull();
-		expect(options).toMatchObject({ signal: expect.any(AbortSignal) });
 		expect(result.actions).toEqual([
 			{
 				type: "issue_created",
@@ -712,7 +747,7 @@ describe("plugin tools", () => {
 	});
 
 	test("an issue update through save_issue is not reported as a creation", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(listingFor);
 		create.mockImplementationOnce(async () =>
 			toolResponse("linear_save_issue", { id: "SUP-12", title: "Renamed" }),
@@ -726,7 +761,7 @@ describe("plugin tools", () => {
 	});
 
 	test("records an opened pull request from GitHub's minimal response", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("github")]);
+		connectPlugins(pluginContext("github"));
 		pluginListTools.mockImplementation(listingFor);
 		create.mockImplementationOnce(async () =>
 			toolResponse("github_create_pull_request", {
@@ -757,8 +792,9 @@ describe("plugin tools", () => {
 	});
 
 	test("a failure resolving plugin connections leaves the run with Superset tools only", async () => {
-		toolConnections.mockImplementationOnce(async () => {
-			throw new Error("ambiguous install");
+		resolveTarget.mockImplementation(async ({ plugin }) => {
+			if (plugin === "linear") throw new Error("ambiguous install");
+			return { kind: "needs-auth", plugin, version: "0.0.0" };
 		});
 		const result = await runSlackAgent({
 			...params,
@@ -784,12 +820,9 @@ describe("plugin tools", () => {
 		expect(mentionsPlugin("linearize the model", linear)).toBe(false);
 	});
 	test("a failing plugin listing skips that plugin without failing the run or calling it unconnected", async () => {
-		toolConnections.mockImplementation(async () => [
-			pluginContext("linear"),
-			pluginContext("github"),
-		]);
-		pluginListTools.mockImplementation(async (manifest) => {
-			if ((manifest as { name: string }).name === "github") {
+		connectPlugins(pluginContext("linear"), pluginContext("github"));
+		pluginListTools.mockImplementation(async (plugin) => {
+			if (plugin === "github") {
 				throw new Error("Upstream returned 502 Bad Gateway");
 			}
 			return linearListing;
@@ -806,17 +839,11 @@ describe("plugin tools", () => {
 	});
 
 	test("a plugin whose listing hangs costs that plugin, not the turn", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(
-			(
-				_m: unknown,
-				_s: unknown,
-				_a: unknown,
-				_src: unknown,
-				opts?: { signal?: AbortSignal },
-			) =>
+			(_plugin: unknown, signal?: unknown) =>
 				new Promise((_resolve, reject) => {
-					opts?.signal?.addEventListener("abort", () =>
+					(signal as AbortSignal | undefined)?.addEventListener("abort", () =>
 						reject(new Error("aborted")),
 					);
 				}),
@@ -833,30 +860,23 @@ describe("plugin tools", () => {
 	});
 
 	test("the tool cache is per installation, not per plugin name", async () => {
-		const first = pluginContext("linear");
-		const other = {
-			...first,
-			install: { ...first.install, id: "install-2", marketplace: "acme" },
-		};
 		pluginListTools.mockImplementation(listingFor);
-		toolConnections.mockImplementation(async () => [first]);
+		connectPlugins(pluginContext("linear"));
 		await runSlackAgent(params);
-		toolConnections.mockImplementation(async () => [other]);
+		connectPlugins(pluginContext("linear", "1.0.0", "install-2"));
 		await runSlackAgent(params);
 		expect(pluginListTools).toHaveBeenCalledTimes(2);
 	});
 
 	test("caches a plugin's tool listing across runs for the same plugin version and auth method", async () => {
-		toolConnections.mockImplementation(async () => [pluginContext("linear")]);
+		connectPlugins(pluginContext("linear"));
 		pluginListTools.mockImplementation(listingFor);
 		await runSlackAgent(params);
 		await runSlackAgent(params);
 		expect(pluginListTools).toHaveBeenCalledTimes(1);
 		expect(requestToolNames(1)).toContain("linear_list_issues");
 
-		toolConnections.mockImplementation(async () => [
-			pluginContext("linear", "1.1.0"),
-		]);
+		connectPlugins(pluginContext("linear", "1.1.0"));
 		await runSlackAgent(params);
 		expect(pluginListTools).toHaveBeenCalledTimes(2);
 	});

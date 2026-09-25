@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 		name: "pages_comments_list",
 		annotations: { readOnlyHint: true },
 		description:
-			"List the comment threads left on a published page, oldest first, with every reply and whether the thread is resolved. Each thread is anchored to one element: `anchor.path` is a CSS selector path from <body> in the published HTML, and `anchorText` is what that element contained when the comment was written. Use the returned thread ids with pages_comments_reply and pages_comments_resolve. Only threads a person has handed to an agent are returned, and those are the only ones you can reply to or resolve — a page whose comments nobody handed off comes back empty, which means there is nothing for you to do, not that something went wrong.",
+			'List the comment threads left on a published page, oldest first, with every reply and whether the thread is resolved. A thread is anchored either to one element or to the page as a whole. When `anchorKind` is "element", `anchor.path` is a CSS selector path from <body> in the published HTML and `anchorText` is what that element contained when the comment was written; when it is "page", both are null and the comment is about the page rather than any one part of it. Use the returned thread ids with pages_comments_reply and pages_comments_resolve. Only threads a person has handed to an agent are returned, and those are the only ones you can reply to or resolve — a page whose comments nobody handed off comes back empty, which means there is nothing for you to do, not that something went wrong.',
 		inputSchema: {
 			pageId: z
 				.string()

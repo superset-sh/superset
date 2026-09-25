@@ -21,6 +21,7 @@ function createScheduleConfig(rrule: string): ScheduleConfig {
 
 export const scheduleProvider: TriggerProvider<ScheduleConfig> = {
 	kind: "schedule",
+	connectionProvider: null,
 	label: "Scheduled",
 	icon: LuClock,
 	menu: [

@@ -154,31 +154,7 @@ export const attachmentsRouter = router({
 	 */
 	importFromCloud: protectedProcedure
 		.input(z.object({ fileIds: z.array(z.string().uuid()).min(1).max(10) }))
-		.mutation(async ({ ctx, input }) => {
-			const resolved = await ctx.api.attachment.resolve.mutate({
-				fileIds: input.fileIds,
-			});
-
-			const results: AttachmentUploadResult[] = [];
-			for (const attachment of resolved) {
-				const metadata: AttachmentMetadata = {
-					attachmentId: randomUUID(),
-					mediaType: mediaTypeOf(attachment.contentType),
-					originalFilename: attachment.name,
-					sizeBytes: attachment.sizeBytes,
-					createdAt: Date.now(),
-				};
-				await downloadAttachment(attachment, prepareAttachmentTarget(metadata));
-				writeAttachmentMetadata(metadata);
-				results.push({
-					attachmentId: metadata.attachmentId,
-					originalFilename: metadata.originalFilename,
-					mediaType: metadata.mediaType,
-					sizeBytes: metadata.sizeBytes,
-				});
-			}
-			return results;
-		}),
+		.mutation(({ ctx, input }) => importCloudAttachments(ctx, input.fileIds)),
 
 	/**
 	 * Writes cloud uploads into a workspace's worktree and returns the
@@ -235,3 +211,42 @@ export type AttachmentUploadResult = {
 	mediaType: string;
 	sizeBytes: number;
 };
+
+/**
+ * Pulls cloud uploads into this host's attachment store. Shared by the
+ * procedure above and a sandbox's own first-boot launch, which has the file
+ * ids in its environment and no client to call it.
+ */
+export async function importCloudAttachments(
+	ctx: {
+		api: {
+			attachment: {
+				resolve: {
+					mutate: (input: { fileIds: string[] }) => Promise<CloudAttachment[]>;
+				};
+			};
+		};
+	},
+	fileIds: string[],
+): Promise<AttachmentUploadResult[]> {
+	const resolved = await ctx.api.attachment.resolve.mutate({ fileIds });
+	const results: AttachmentUploadResult[] = [];
+	for (const attachment of resolved) {
+		const metadata: AttachmentMetadata = {
+			attachmentId: randomUUID(),
+			mediaType: mediaTypeOf(attachment.contentType),
+			originalFilename: attachment.name,
+			sizeBytes: attachment.sizeBytes,
+			createdAt: Date.now(),
+		};
+		await downloadAttachment(attachment, prepareAttachmentTarget(metadata));
+		writeAttachmentMetadata(metadata);
+		results.push({
+			attachmentId: metadata.attachmentId,
+			originalFilename: metadata.originalFilename,
+			mediaType: metadata.mediaType,
+			sizeBytes: metadata.sizeBytes,
+		});
+	}
+	return results;
+}

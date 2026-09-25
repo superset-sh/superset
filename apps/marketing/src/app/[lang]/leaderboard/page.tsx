@@ -88,7 +88,7 @@ export default async function LeaderboardPage() {
 
 	return (
 		<main className="relative min-h-screen">
-			<FactoryBackdrop />
+			<FactoryBackdrop guides={false} />
 
 			<div className="relative max-w-4xl mx-auto px-6 py-10 md:py-14">
 				<div>

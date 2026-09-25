@@ -14,7 +14,9 @@ bucket name — one mechanism means one place to look when a value goes missing.
 Add `--env Production` / `--env Preview` only when the two need different
 values. Without it, both environments get the same one. Scoping works because
 every deploy job declares `environment: production` / `preview`; a job that
-does not will read an environment secret as empty.
+does not will read an environment secret as empty. It is also why a one-off
+script that needs a production secret has to run as a workflow; see
+`docs/deploy-workflows.md`.
 
 Give both environments the **same name** and different values. A separate
 `MY_VAR_DEV` variable is easy to reference in a workflow and forget to create,

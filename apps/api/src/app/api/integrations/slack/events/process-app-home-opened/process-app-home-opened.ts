@@ -1,6 +1,7 @@
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import {
+	accountConnection,
+	connectionBotToken,
+} from "@superset/trpc/connectors";
 import { findSlackUserLink } from "../../lib/find-slack-user-link";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import { createSlackClient } from "../utils/slack-client";
@@ -16,17 +17,7 @@ export async function processAppHomeOpened({
 	event,
 	teamId,
 }: ProcessAppHomeOpenedParams): Promise<void> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
+	const connection = await accountConnection("slack", teamId);
 
 	if (!connection) {
 		console.error(
@@ -49,13 +40,13 @@ export async function processAppHomeOpened({
 		? undefined
 		: generateConnectUrl({ slackUserId: event.user, teamId });
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(await connectionBotToken(connection));
 
 	await slack.views.publish({
 		user_id: event.user,
 		view: buildHomeView({
 			modelPreference: slackUserLink?.modelPreference ?? undefined,
-			externalOrgName: connection.externalOrgName ?? undefined,
+			externalOrgName: connection.externalAccountLabel ?? undefined,
 			isUserLinked,
 			userName: userName ?? undefined,
 			connectUrl,

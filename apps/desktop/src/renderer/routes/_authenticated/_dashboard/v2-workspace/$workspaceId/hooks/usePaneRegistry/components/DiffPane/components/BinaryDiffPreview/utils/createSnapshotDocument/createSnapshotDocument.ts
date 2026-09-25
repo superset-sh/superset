@@ -33,6 +33,7 @@ export function createSnapshotDocument({
 		byteSize: content.kind === "bytes" ? content.value.byteLength : null,
 		setContent: () => {},
 		save: unsupported,
+		compareWithDisk: unsupported,
 		reload: () => Promise.resolve(),
 		loadUnlimited: () => Promise.resolve(),
 		resolveConflict: () => Promise.resolve(),

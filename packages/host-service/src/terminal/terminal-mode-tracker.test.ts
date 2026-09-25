@@ -17,8 +17,8 @@ function preambleString(tracker: ReturnType<typeof createModeTracker>): string {
  * (`?2026h` would suspend rendering), which are asymmetric by design.
  */
 const DEFAULT_SYNC =
-	"\x1b[?1l\x1b[?66l\x1b[?2004l\x1b[4l\x1b[?45l\x1b[?1004l" +
-	"\x1b[?25h\x1b[?7h\x1b[?2026l\x1b[?1003l\x1b[?1006l\x1b[=0;1u";
+	"\x1b[?1l\x1b[?7h\x1b[?25h\x1b[?45l\x1b[?66l\x1b[?1004l" +
+	"\x1b[?2004l\x1b[?2026l\x1b[?2031l\x1b[4l\x1b[?1003l\x1b[?1006l\x1b[=0;1u";
 
 describe("createModeTracker", () => {
 	test("default state emits the full both-directions sync", () => {

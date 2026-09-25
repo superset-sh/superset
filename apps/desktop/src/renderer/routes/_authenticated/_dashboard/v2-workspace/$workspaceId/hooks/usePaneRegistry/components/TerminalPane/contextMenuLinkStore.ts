@@ -1,5 +1,5 @@
 import type { LinkHoverInfo } from "renderer/lib/terminal/terminal-runtime-registry";
-import type { TerminalLinkActionDeps } from "./utils/runTerminalLinkAction";
+import type { TerminalLinkActionDeps } from "../../utils/runTerminalLinkAction";
 
 /**
  * What the last right-click in a terminal pane landed on, and the deps needed

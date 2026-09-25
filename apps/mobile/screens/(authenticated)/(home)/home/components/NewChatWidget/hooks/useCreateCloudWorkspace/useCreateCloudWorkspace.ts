@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth/client";
 import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
+import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 
 interface CreateCloudWorkspaceArgs {
 	/** Null means the repo's default branch, resolved by the branch query. */
@@ -22,6 +23,8 @@ interface CreateCloudWorkspaceArgs {
 	model: string | null;
 	effort: string | null;
 	message: PromptInputMessage;
+	/** Already-uploaded cloud ids; the sandbox pulls the bytes once it is up. */
+	attachmentFileIds: string[];
 }
 
 /**
@@ -44,18 +47,12 @@ export function useCreateCloudWorkspace() {
 			model,
 			effort,
 			message,
+			attachmentFileIds,
 		}: CreateCloudWorkspaceArgs) => {
 			if (!organizationId) throw new Error("No active organization");
 			if (!environmentId) {
 				throw new Error(
 					"Add an environment in Settings before creating a cloud workspace",
-				);
-			}
-			if (message.attachments.length > 0) {
-				// Attachments today are written to a host, and this workspace's
-				// host doesn't exist yet — blob-backed attachments are the fix.
-				throw new Error(
-					"Attachments are not supported for cloud workspaces yet",
 				);
 			}
 			// Only with something to say: an empty prompt leaves it idle.
@@ -70,6 +67,10 @@ export function useCreateCloudWorkspace() {
 				agent: launchAgent,
 				model: launchAgent ? (model ?? undefined) : undefined,
 				effort: launchAgent ? (effort ?? undefined) : undefined,
+				// Only with an agent to hand them to.
+				...(launchAgent && attachmentFileIds.length > 0
+					? { attachmentFileIds }
+					: {}),
 			});
 		},
 		onSuccess: (
@@ -87,6 +88,7 @@ export function useCreateCloudWorkspace() {
 				model,
 				effort,
 			});
+			useAppReviewStore.getState().recordWorkspaceCreated();
 			// Seed the list before navigating: the workspace screen decides
 			// between "provisioning" and "not found" off this cache, and even
 			// one refetch round trip is long enough to flash the wrong one.

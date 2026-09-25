@@ -70,6 +70,14 @@ export function BlogPostLayout({
 									<span className="text-muted-foreground/50"> · </span>
 									<time dateTime={post.date}>{formattedDate}</time>
 								</span>
+								{post.lastUpdated && post.lastUpdated !== post.date && (
+									<span className="text-xs text-muted-foreground">
+										<Trans>Last updated</Trans>{" "}
+										<time dateTime={post.lastUpdated}>
+											{formatBlogDate(post.lastUpdated)}
+										</time>
+									</span>
+								)}
 							</div>
 						</div>
 						<div className="inline-flex items-center gap-3 mt-3 mx-auto pl-11">

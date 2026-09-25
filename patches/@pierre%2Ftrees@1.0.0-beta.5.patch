@@ -1,0 +1,12 @@
+diff --git a/dist/path-store/src/canonical.js b/dist/path-store/src/canonical.js
+index 2130d3dd85c23a707b99c947747b9990f638767d..d94d7854a25d0af6cf2686720206939037013cd5 100644
+--- a/dist/path-store/src/canonical.js
++++ b/dist/path-store/src/canonical.js
+@@ -174,6 +174,7 @@ function findNodeIdBySegments(state, segments, requireDirectory) {
+ 	for (const segment of segments) {
+ 		const segmentId = state.snapshot.segmentTable.idByValue.get(segment);
+ 		if (segmentId === void 0) return null;
++		if (!isDirectoryNode(requireNode(state, currentNodeId))) return null;
+ 		const currentIndex = getDirectoryIndex(state, currentNodeId);
+ 		const nextNodeId = ensureChildIdByNameId(state.snapshot.nodes, currentIndex).get(segmentId);
+ 		if (nextNodeId === void 0) return null;

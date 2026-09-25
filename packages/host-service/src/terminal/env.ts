@@ -263,6 +263,15 @@ export function buildV2TerminalEnv(
 		env.SUPERSET_ORGANIZATION_ID = organizationId;
 	}
 	env.SUPERSET_WORKSPACE_ID = workspaceId;
+	// In a cloud workspace, say so and say which: `superset` here authenticates
+	// as the workspace rather than a person, and an agent asked to reach its
+	// own box needs the id it was provisioned for.
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		const sandboxWorkspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
+		if (sandboxWorkspaceId) {
+			env.SUPERSET_SANDBOX_WORKSPACE_ID = sandboxWorkspaceId;
+		}
+	}
 	env.SUPERSET_WORKSPACE_PATH = workspacePath;
 	env.SUPERSET_ROOT_PATH = rootPath;
 	env.SUPERSET_ENV = supersetEnv;

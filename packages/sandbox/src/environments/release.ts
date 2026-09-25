@@ -26,6 +26,7 @@
  * Fails loudly and leaves the golden and probe up for inspection when any
  * check fails; the previous rows stay live.
  */
+
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +42,7 @@ import {
 	type SandboxIdentity,
 	sandboxCheckoutDir,
 } from "@superset/shared/sandbox-contract";
+import { DEFAULT_SANDBOX_REGION } from "@superset/shared/sandbox-regions";
 import { Sandbox } from "@vercel/sandbox";
 
 // The provisioning code imports the API env schema; an operator running this
@@ -61,6 +63,7 @@ const REPO_DIR = sandboxCheckoutDir(SANDBOX_PATHS.workspace, REPO_PATH);
 const REPO_FULL_NAME = "superset-sh/superset";
 /** The monorepo branch the golden is built from; its `.superset/config.json` supplies `start`. */
 const BRANCH = process.env.SUPERSET_INTERNAL_BRANCH ?? "main";
+const REGION = DEFAULT_SANDBOX_REGION;
 
 const started = Date.now();
 const at = () => `${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s`;
@@ -176,7 +179,11 @@ for (;;) {
 		await provisionSandbox({
 			name: golden,
 			kind: "environment",
-			environment: { sourceKind: "image", sourceRef: SANDBOX_IMAGE_NAME },
+			environment: {
+				sourceKind: "image",
+				sourceRef: SANDBOX_IMAGE_NAME,
+				region: REGION,
+			},
 			claim: {
 				identity: identityFor(goldenWorkspaceId, SANDBOX_IMAGE_NAME),
 				hostSecret: goldenSecret,
@@ -280,6 +287,9 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 		/ok/,
 	],
 	["neonctl", "neonctl --version", /^\d+\.\d+/m],
+	["vercel", "vercel --version", /\d+\.\d+\.\d+/],
+	["wrangler", "wrangler --version", /\d+\.\d+\.\d+/],
+	["eas-cli", "eas --version", /\d+\.\d+\.\d+/],
 ];
 let failed = 0;
 for (const [label, command, expect] of checks) {
@@ -342,10 +352,13 @@ if (ENV_FILE) {
 const probe = `ws-release-probe-${Date.now().toString(36)}`;
 const probeWorkspaceId = randomUUID();
 const probeSecret = await sandboxHostSecretFor(probeWorkspaceId);
+// Our server key stands in for a person's sign-in, so the probe exercises
+// the swap the way a signed-in box does.
+const probeSignInKey = probeEnv.SERVER_ANTHROPIC_API_KEY;
 const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 	workspaceId: probeWorkspaceId,
 	environmentEnv: probeEnv,
-	userAgentEnv: {},
+	userAgentEnv: probeSignInKey ? { ANTHROPIC_API_KEY: probeSignInKey } : {},
 	githubToken: null,
 	gitAuthor: { name: "Superset release", email: "noreply@superset.sh" },
 });
@@ -358,7 +371,7 @@ const probeClaim = {
 log(`probe: provisioning ${probe} as a fork of ${golden}`);
 await provisionSandbox({
 	name: probe,
-	environment: { sourceKind: "fork", sourceRef: golden },
+	environment: { sourceKind: "fork", sourceRef: golden, region: REGION },
 	claim: probeClaim,
 });
 await wakeSandbox({ providerSandboxId: probe, claim: probeClaim });
@@ -370,7 +383,7 @@ let probeFailed = await probeBox({
 	branch: BRANCH,
 	primaryPath: REPO_PATH,
 	expectDependencies: true,
-	expectAnthropicRule: Boolean(probeEnv.ANTHROPIC_API_KEY),
+	expectAnthropicRule: Boolean(probeSignInKey),
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId: probeWorkspaceId, userId: randomUUID() }
 		: null,
@@ -461,6 +474,7 @@ await dbWs.transaction(async (tx) => {
 			provider: "vercel",
 			sourceKind: "fork",
 			sourceRef: golden,
+			region: REGION,
 			bundleSha: bundle.sha256,
 			hooksRepositoryId: monorepo.id,
 		})
@@ -470,6 +484,7 @@ await dbWs.transaction(async (tx) => {
 				provider: "vercel",
 				sourceKind: "fork",
 				sourceRef: golden,
+				region: REGION,
 				bundleSha: bundle.sha256,
 				hooksRepositoryId: monorepo.id,
 				archivedAt: null,

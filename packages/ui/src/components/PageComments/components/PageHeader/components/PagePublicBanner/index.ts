@@ -1,1 +1,0 @@
-export { PagePublicBanner } from "./PagePublicBanner";

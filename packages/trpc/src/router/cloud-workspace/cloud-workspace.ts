@@ -32,6 +32,7 @@ import {
 	SandboxNotReadyError,
 	SandboxUnavailableError,
 	wakeSandbox,
+	workspaceBranchName,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import {
@@ -216,6 +217,12 @@ export const cloudWorkspaceRouter = {
 				model: z.string().min(1).optional(),
 				effort: z.string().min(1).optional(),
 				mode: z.string().min(1).optional(),
+				/**
+				 * Cloud uploads to hand the agent with `prompt`. The box pulls the
+				 * bytes once it is up; the same cap `attachments.importFromCloud`
+				 * takes, since that is what runs in there.
+				 */
+				attachmentFileIds: z.array(z.string().uuid()).max(10).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -288,13 +295,15 @@ export const cloudWorkspaceRouter = {
 			// rejects whenever two creates overlap.
 			const id = crypto.randomUUID();
 			const providerSandboxId = sandboxNameFor(id);
+			const name = input.name ?? FALLBACK_NAME;
 			const [row] = await db
 				.insert(cloudWorkspaces)
 				.values({
 					id,
 					organizationId: input.organizationId,
-					name: input.name ?? FALLBACK_NAME,
-					branch,
+					name,
+					branch: workspaceBranchName({ id, name }),
+					baseBranch: branch,
 					provider: "vercel",
 					providerSandboxId,
 					status: "provisioning",
@@ -326,6 +335,7 @@ export const cloudWorkspaceRouter = {
 								model: input.model,
 								effort: input.effort,
 								mode: input.mode,
+								attachmentFileIds: input.attachmentFileIds,
 							},
 						}
 					: {}),

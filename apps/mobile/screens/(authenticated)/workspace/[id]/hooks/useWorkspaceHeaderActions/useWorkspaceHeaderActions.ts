@@ -93,8 +93,15 @@ export function useWorkspaceHeaderActions(
 		);
 	};
 
-	const copyId = () => {
-		if (workspace) void Clipboard.setStringAsync(workspace.id);
+	const copyId = (onCopied?: () => void) => {
+		if (workspace) void Clipboard.setStringAsync(workspace.id).then(onCopied);
+	};
+
+	const copyLink = (onCopied?: () => void) => {
+		if (!workspace) return;
+		void Clipboard.setStringAsync(workspaceShareUrl(workspace.id)).then(
+			onCopied,
+		);
 	};
 
 	const shareWorkspace = () => {
@@ -108,6 +115,7 @@ export function useWorkspaceHeaderActions(
 		renameWorkspace,
 		deleteWorkspace,
 		copyId,
+		copyLink,
 		shareWorkspace,
 	};
 }

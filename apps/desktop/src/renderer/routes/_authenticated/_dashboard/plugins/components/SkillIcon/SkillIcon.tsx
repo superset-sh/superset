@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import type { IconType } from "react-icons";
 import {
+	LuBookOpen,
 	LuGitPullRequest,
 	LuGlobe,
 	LuListChecks,
@@ -9,7 +10,6 @@ import {
 	LuNetwork,
 	LuRepeat,
 	LuRocket,
-	LuSparkles,
 	LuStethoscope,
 	LuWrench,
 } from "react-icons/lu";
@@ -41,7 +41,7 @@ interface SkillIconProps {
 export function SkillIcon({ skillName, className }: SkillIconProps) {
 	const { data: icons } = electronTrpc.plugins.listSkillIcons.useQuery();
 	const iconUri = icons?.[skillName];
-	const Icon = DEFAULT_SKILL_ICONS[skillName] ?? LuSparkles;
+	const Icon = DEFAULT_SKILL_ICONS[skillName] ?? LuBookOpen;
 
 	if (iconUri !== undefined) {
 		return (

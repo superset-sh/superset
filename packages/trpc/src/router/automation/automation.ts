@@ -7,6 +7,7 @@ import {
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
+import { escapeLikePattern } from "@superset/db/utils";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
 	AUTOMATIONS_REQUIRED_PLAN,
@@ -72,10 +73,6 @@ async function requireAutomationsPlan(
 		});
 	}
 	return organizationId;
-}
-
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
 async function verifyHostAccess(
@@ -457,7 +454,11 @@ export const automationRouter = {
 			// trigger set may describe a different schedule, or none at all.
 			// After the commit: joining can only make a saved trigger start working.
 			if (input.triggers) {
-				await joinSlackTriggerChannels(organizationId, input.triggers);
+				await joinSlackTriggerChannels(
+					organizationId,
+					ctx.session.user.id,
+					input.triggers,
+				);
 			}
 
 			return withSchedule(created, input.triggers ?? null, legacySchedule);
@@ -652,7 +653,11 @@ export const automationRouter = {
 			});
 
 			if (input.triggers) {
-				await joinSlackTriggerChannels(organizationId, input.triggers);
+				await joinSlackTriggerChannels(
+					organizationId,
+					ctx.session.user.id,
+					input.triggers,
+				);
 			}
 
 			// Same as create: a trigger set may have replaced or removed the

@@ -2,7 +2,7 @@
 title: "Superset vs Paseo (2026): Agent Workspace vs Self-Hosted Agent Control Plane"
 description: "Compare Superset and Paseo for running Claude Code, Codex, and other coding agents in parallel. Desktop-first workspace with Remote Access vs an Apache-2.0 daemon with native mobile clients."
 date: 2026-09-11
-lastUpdated: 2026-09-11
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - paseo
@@ -24,12 +24,12 @@ Superset and Paseo both run many coding agents at once on hardware you own, each
 
 | | **Superset** | **Paseo** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs and orchestrates coding-agent CLIs on your hardware, driven from desktop, mobile, web, CLI, or API |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs and orchestrates coding-agent CLIs on your hardware, driven from desktop, mobile, web, CLI, or API |
 | **Category** | Local-first agent workspace with remote hosts | Self-hosted control plane: daemon plus native clients |
 | **Agent support** | Any CLI agent (Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI, Copilot, Grok, Kimi Code, Mistral Vibe, Amp, and more), plus built-in chat | Native harnesses for Claude Code, Codex, OpenCode, and Pi; 30+ more via the Agent Client Protocol; custom providers by config |
-| **Isolation** | Automatic Git worktree per workspace | Worktree per workspace, with `paseo.json` setup, teardown, and per-worktree service URLs |
-| **Platforms** | macOS (Apple Silicon and Intel); experimental Linux; Windows planned | macOS, Windows, Linux desktop; iOS and Android apps; web app; Docker and Nix |
-| **Mobile** | Coming soon | Native iOS and Android apps with feature parity |
+| **Isolation** | Git worktrees for local branch-based workspaces | Worktree per workspace, with `paseo.json` setup, teardown, and per-worktree service URLs |
+| **Platforms** | macOS; experimental Linux AppImage; Windows unavailable; iPhone (iOS 26+, Pro, online host) | macOS, Windows, Linux desktop; iOS and Android apps; web app; Docker and Nix |
+| **Mobile** | [iPhone app](https://apps.apple.com/app/id6788926383); Android [waitlist](/mobile#android) | Native iOS and Android apps with feature parity |
 | **Remote** | Remote Access: add any machine as a host through the Superset Relay (beta, Pro) | SSH tunnel, opt-in end-to-end encrypted relay, or direct/Tailscale |
 | **Automation** | Automations on a cron-style schedule, CLI, TypeScript SDK, MCP server, Slack bot | Cron schedules and heartbeats, CLI, TypeScript client SDK, MCP server, Hub triggers from GitHub, Slack, and Discord |
 | **Team** | Pro: unlimited users, Linear and Slack integrations. Enterprise: SAML SSO, SCIM, audit logs, SOC 2 Type II | Hub (beta): self-hosted free, hosted at €15 per seat per month; team provisioning and shared settings not built yet |
@@ -49,7 +49,7 @@ Paseo calls itself "the control plane for coding agents." It is a self-hostable 
 
 ### Workspace vs Control Plane
 
-Superset is the place you work: one desktop app where agents, diffs, PRs, browser, and chat live together, with your other machines reachable from it. Paseo inverts that: the daemon is the product, and every client, including the phone in your pocket, is a window onto it with the same features. If you want to start a task at your desk and steer it from a train, Paseo's native mobile parity is the strongest in this category today. If you mostly work at a desk and want the deepest desktop surface, Superset's Changes pane, Pull Requests view, Design Mode, and Tasks give you more to work with in one window.
+Superset is the place you work: one desktop app where agents, diffs, PRs, browser, and chat live together, with your other machines reachable from it. Paseo inverts that: the daemon is the product, and every client, including the phone in your pocket, is a window onto it with the same features. Superset has an [iPhone app](/mobile) for workspace terminals and diff review. It requires iOS 26 or later, Pro, and a host that stays awake and online. Android is on the [waitlist](/mobile#android). If you mostly work at a desk and want the deepest desktop surface, Superset's Changes pane, Pull Requests view, Design Mode, and Tasks give you more to work with in one window.
 
 ### Any CLI Agent vs Harnesses and ACP
 
@@ -99,11 +99,11 @@ Superset offers a free tier for individuals and Pro at $20 per user per month, o
 
 ### Is Paseo a Superset alternative?
 
-Yes. Paseo publishes its own comparison with Superset and covers the same core: parallel agents in Git worktrees with terminals, diff review, a browser, schedules, and remote hosts. Paseo leads on native mobile apps and self-hosting; Superset leads on desktop review surfaces, any-CLI-agent support, and team and enterprise features.
+Yes. Paseo publishes its own comparison with Superset and covers the same core: parallel agents in Git worktrees with terminals, diff review, a browser, schedules, and remote hosts. Both offer mobile access. Superset’s iPhone app connects to an awake, online host and requires iOS 26 or later and Pro; compare the supported devices and review workflow you need.
 
 ### Does Paseo run on Windows and Linux?
 
-Yes. Paseo treats macOS, Windows, and Linux as primary targets, with installers for each plus Docker and Nix for headless hosts. Superset supports macOS on Apple Silicon and Intel, ships an experimental Linux build, and has Windows planned.
+Yes. Paseo treats macOS, Windows, and Linux as primary targets, with installers for each plus Docker and Nix for headless hosts. Superset supports macOS on Apple Silicon and Intel, ships an experimental Linux build, and does not yet support Windows.
 
 ### Which agents does Paseo support?
 

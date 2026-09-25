@@ -7,6 +7,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import {
+	HiOutlineAdjustmentsHorizontal,
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
@@ -16,6 +17,7 @@ import {
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
 	HiOutlineCube,
+	HiOutlineDevicePhoneMobile,
 	HiOutlineFolder,
 	HiOutlineGlobeAlt,
 	HiOutlineKey,
@@ -24,7 +26,6 @@ import {
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
-	HiOutlineSparkles,
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
@@ -41,6 +42,7 @@ interface GeneralSettingsProps {
 }
 
 type SettingsRoute =
+	| "/settings/mobile"
 	| "/settings/account"
 	| "/settings/connections"
 	| "/settings/organization"
@@ -128,6 +130,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				icon: <HiOutlineChartBar className="h-4 w-4" />,
 				fullWidth: true,
 			},
+			{
+				id: "/settings/mobile",
+				section: "mobile",
+				label: msg({ message: "Mobile" }),
+				icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
+			},
 		],
 	},
 	{
@@ -141,7 +149,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: msg({
 					message: "General",
 				}),
-				icon: <HiOutlineSparkles className="h-4 w-4" />,
+				icon: <HiOutlineAdjustmentsHorizontal className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/keyboard",
@@ -328,6 +336,7 @@ export const FULL_WIDTH_SECTION_PATHS: readonly string[] =
 	);
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
+	const mobileEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH);
 	const matchRoute = useMatchRoute();
 	const hostsNeedingUpdate = useHostsNeedingUpdateCount();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
@@ -346,7 +355,9 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 			{SECTION_GROUPS.map((group, groupIndex) => {
 				const platformItems = group.items.filter(
 					(item) =>
-						(!item.macOnly || isMac) && allowedSections.has(item.section),
+						(!item.macOnly || isMac) &&
+						(item.section !== "mobile" || mobileEnabled === true) &&
+						allowedSections.has(item.section),
 				);
 				const filteredItems = matchCounts
 					? platformItems.filter((item) => (matchCounts[item.section] ?? 0) > 0)

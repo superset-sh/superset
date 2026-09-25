@@ -9,9 +9,15 @@ export const linguiMacroPlugin: BunPlugin = {
 	name: "lingui-macro",
 	setup(build) {
 		build.onLoad({ filter: /\.tsx?$/ }, async ({ path }) => {
-			if (path.includes("/node_modules/")) return undefined;
+			// Returning undefined is a pass-through for Bun.build but an error
+			// under Bun.plugin, so every branch hands back contents.
+			const loader = path.endsWith(".tsx") ? "tsx" : "ts";
 			const code = await Bun.file(path).text();
-			if (!code.includes("@lingui/core/macro")) return undefined;
+			if (
+				path.includes("/node_modules/") ||
+				!code.includes("@lingui/core/macro")
+			)
+				return { contents: code, loader };
 			const result = await transformAsync(code, {
 				filename: path,
 				babelrc: false,
@@ -19,11 +25,7 @@ export const linguiMacroPlugin: BunPlugin = {
 				parserOpts: { plugins: ["typescript"] },
 				plugins: [linguiMacro],
 			});
-			if (!result?.code) return undefined;
-			return {
-				contents: result.code,
-				loader: path.endsWith(".tsx") ? "tsx" : "ts",
-			};
+			return { contents: result?.code ?? code, loader };
 		});
 	},
 };

@@ -1,7 +1,6 @@
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { githubProvider } from "./github/github";
 import { gmailProvider } from "./google/gmail";
-import { googleCalendarProvider } from "./google/googleCalendar";
 import { linearProvider } from "./linear/linear";
 import { microsoftTeamsProvider } from "./microsoftTeams/microsoftTeams";
 import { notionProvider } from "./notion/notion";
@@ -35,7 +34,6 @@ export const TRIGGER_PROVIDERS: TriggerProvider[] = [
 	linearProvider as TriggerProvider,
 	webhookProvider as TriggerProvider,
 	notionProvider as TriggerProvider,
-	googleCalendarProvider as TriggerProvider,
 	gmailProvider as TriggerProvider,
 ];
 
@@ -52,4 +50,10 @@ export function providerFor(config: TriggerConfigInput): TriggerProvider {
 		throw new Error(`No trigger provider registered for kind "${config.kind}"`);
 	}
 	return provider;
+}
+
+export function connectorFor(provider: TriggerProvider): string | null {
+	return provider.connectionProvider === undefined
+		? provider.kind
+		: provider.connectionProvider;
 }

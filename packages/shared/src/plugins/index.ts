@@ -1,8 +1,17 @@
 export * from "./manifests.generated";
 
+import { firstPartyManifest } from "./manifests.generated";
+
 export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
+
+export const SUPERSET_HOSTED_PLUGINS = ["gmail", "slack"] as const;
+export type SupersetHostedPlugin = (typeof SUPERSET_HOSTED_PLUGINS)[number];
+
+export function isSupersetHosted(name: string): boolean {
+	return (SUPERSET_HOSTED_PLUGINS as readonly string[]).includes(name);
+}
 /**
  * The curated plugin catalog the desktop Plugins page renders and installs
  * from. Static for the MVP — each entry is shaped as a pre-resolved plugin
@@ -258,7 +267,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "linear",
-		version: "1.0.0",
+		version: "1.5.2",
 		description: "Plan and build products",
 		interface: { displayName: "Linear", category: "Productivity" },
 		auth: [{ type: "oauth2" }],
@@ -269,7 +278,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "github",
-		version: "1.0.0",
+		version: "1.0.1",
 		description: "Work with issues, pull requests, and repos",
 		interface: { displayName: "GitHub", category: "Developer tools" },
 		auth: [{ type: "oauth2" }],
@@ -280,7 +289,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "notion",
-		version: "1.0.0",
+		version: "1.0.2",
 		description: "Notion workflows for specs, research, and docs",
 		interface: { displayName: "Notion", category: "Productivity" },
 		mcpServers: {
@@ -346,12 +355,19 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 	{
 		name: "slack",
-		version: "1.0.0",
+		version: "1.2.3",
 		description: "Read and send messages in your workspace",
 		interface: { displayName: "Slack", category: "Communication" },
-		mcpServers: {
-			slack: { type: "http", url: "https://mcp.slack.com/mcp" },
-		},
+		auth: [{ type: "oauth2" }],
+		mcpServers: {},
+	},
+	{
+		name: "gmail",
+		version: "1.1.5",
+		description: "Read, search, send, and organize mail in your Gmail account",
+		interface: { displayName: "Gmail", category: "Communication" },
+		auth: [{ type: "oauth2" }],
+		mcpServers: {},
 	},
 	{
 		name: "vercel",
@@ -436,8 +452,36 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	},
 ];
 
+export const SUPERSET_API_URL = "https://api.superset.sh";
+
+/**
+ * Where an agent reaches a plugin whose tools run on someone's credential.
+ * Superset fronts every one of them, so the agent holds a Superset token and
+ * never the vendor's — and the endpoint is `/mcp/plugins/<marketplace>/<name>`,
+ * which the manifest already determines. Writing it out per plugin would only
+ * add somewhere for it to be wrong.
+ */
+export function pluginProxyMcpServers(
+	name: string,
+	marketplace: string = DEFAULT_MARKETPLACE,
+): Record<string, PluginMcpServerConfig> | undefined {
+	const extension = firstPartyManifest(name)?.extensions?.superset as
+		| { connector?: { slug: string } }
+		| undefined;
+	if (!extension?.connector) return undefined;
+	return {
+		[name]: {
+			type: "http",
+			url: `${SUPERSET_API_URL}/mcp/plugins/${marketplace}/${name}`,
+		},
+	};
+}
+
 export function getPluginByName(name: string): PluginCatalogEntry | undefined {
-	return PLUGIN_CATALOG.find((plugin) => plugin.name === name);
+	const entry = PLUGIN_CATALOG.find((plugin) => plugin.name === name);
+	if (!entry) return undefined;
+	const proxied = pluginProxyMcpServers(name);
+	return proxied ? { ...entry, mcpServers: proxied } : entry;
 }
 
 /**

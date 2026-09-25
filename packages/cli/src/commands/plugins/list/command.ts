@@ -13,8 +13,8 @@ export default command({
 	display: (data) =>
 		table(
 			(data ?? []) as Record<string, unknown>[],
-			["name", "version", "status", "account", "pluginId"],
-			["PLUGIN", "VERSION", "STATUS", "ACCOUNT", "PLUGIN ID"],
+			["name", "version", "status", "account", "connectionId"],
+			["PLUGIN", "VERSION", "STATUS", "ACCOUNT", "CONNECTION"],
 			[16, 9, 24, 24, 38],
 		),
 	run: async ({ ctx, options }) => {
@@ -22,12 +22,16 @@ export default command({
 
 		const visible = options.available
 			? plugins
-			: plugins.filter((plugin) => plugin.installed);
+			: plugins.filter(
+					(plugin) => plugin.installed || plugin.connections.length > 0,
+				);
 
 		const status = (plugin: CatalogPlugin) => {
-			if (!plugin.installed) return "available";
+			if (!plugin.installed) {
+				return plugin.connections.length ? "not installed" : "available";
+			}
 			if (!plugin.enabled) return "disabled";
-			if (plugin.authMethods.length > 0 && plugin.connections.length === 0) {
+			if (plugin.connector && plugin.connections.length === 0) {
 				return "needs connection";
 			}
 			return plugin.accounts.length
@@ -46,11 +50,11 @@ export default command({
 					description: plugin.description,
 				};
 				if (plugin.connections.length === 0) {
-					return [{ ...row, pluginId: "", account: null }];
+					return [{ ...row, connectionId: "", account: null }];
 				}
 				return plugin.connections.map((connection) => ({
 					...row,
-					pluginId: connection.id,
+					connectionId: connection.id,
 					account: connection.account,
 				}));
 			}),

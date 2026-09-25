@@ -23,6 +23,7 @@ import {
 	useFinalizeProjectSetup,
 } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { GitHubRepositoryPicker } from "./components/GitHubRepositoryPicker";
 
 interface NewProjectModalProps {
 	open: boolean;
@@ -60,6 +61,9 @@ export function NewProjectModal({
 	const [url, setUrl] = useState("");
 	const [name, setName] = useState("");
 	const [nameTouched, setNameTouched] = useState(false);
+	const [selectedRepository, setSelectedRepository] = useState<string | null>(
+		null,
+	);
 	const [working, setWorking] = useState(false);
 
 	useEffect(() => {
@@ -76,6 +80,7 @@ export function NewProjectModal({
 		setUrl("");
 		setName("");
 		setNameTouched(false);
+		setSelectedRepository(null);
 		setWorking(false);
 	};
 
@@ -198,6 +203,20 @@ export function NewProjectModal({
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
+					{isV2CloudEnabled && (
+						<GitHubRepositoryPicker
+							disabled={working}
+							hostUrl={activeHostUrl}
+							onSelect={(repository) => {
+								setUrl(repository.cloneUrl);
+								setName(deriveProjectNameFromUrl(repository.cloneUrl));
+								setNameTouched(false);
+								setSelectedRepository(repository.fullName);
+							}}
+							selectedFullName={selectedRepository}
+						/>
+					)}
+
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="clone-url" className="text-xs">
 							<Trans>Repository URL or path</Trans>
@@ -205,7 +224,10 @@ export function NewProjectModal({
 						<Input
 							id="clone-url"
 							value={url}
-							onChange={(e) => setUrl(e.target.value)}
+							onChange={(e) => {
+								setUrl(e.target.value);
+								setSelectedRepository(null);
+							}}
 							placeholder={t({
 								message: "https://github.com/owner/repo.git or /path/to/repo",
 							})}

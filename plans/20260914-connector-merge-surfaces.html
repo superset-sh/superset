@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Surfaces the connector merge touches</title>
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --surface-2: #eeece4;
+    --ink: #1b1d22;
+    --ink-2: #4c505a;
+    --ink-3: #82858e;
+    --border: #ddd8cc;
+    --border-2: #cac4b3;
+    --accent: #35507c;
+    --accent-ink: #ffffff;
+    --accent-soft: #e7edf6;
+    --good: #2f7a52;
+    --good-soft: #e5f1ea;
+    --warn: #9a6a1c;
+    --warn-soft: #f6ecd6;
+    --bad: #ad4531;
+    --bad-soft: #f7e6e0;
+    --code-bg: #eeece4;
+    --measure: 70ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121317;
+      --surface: #191b20;
+      --surface-2: #1f2127;
+      --ink: #edeef1;
+      --ink-2: #b6b9c1;
+      --ink-3: #82858f;
+      --border: #2b2e35;
+      --border-2: #383c45;
+      --accent: #8aa8d3;
+      --accent-ink: #10161f;
+      --accent-soft: #1d2733;
+      --good: #74c093;
+      --good-soft: #16251c;
+      --warn: #d5aa5f;
+      --warn-soft: #2b2313;
+      --bad: #d9917d;
+      --bad-soft: #2c1b16;
+      --code-bg: #1f2127;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121317;
+    --surface: #191b20;
+    --surface-2: #1f2127;
+    --ink: #edeef1;
+    --ink-2: #b6b9c1;
+    --ink-3: #82858f;
+    --border: #2b2e35;
+    --border-2: #383c45;
+    --accent: #8aa8d3;
+    --accent-ink: #10161f;
+    --accent-soft: #1d2733;
+    --good: #74c093;
+    --good-soft: #16251c;
+    --warn: #d5aa5f;
+    --warn-soft: #2b2313;
+    --bad: #d9917d;
+    --bad-soft: #2c1b16;
+    --code-bg: #1f2127;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16.5px/1.6 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  ::selection { background: var(--accent-soft); }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px 120px; }
+
+  header.masthead { padding: 58px 0 26px; border-bottom: 2px solid var(--ink); margin-bottom: 34px; }
+  .kicker {
+    font: 600 11.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
+  }
+  h1 {
+    font: 800 clamp(30px, 4.6vw, 46px)/1.08 ui-sans-serif, -apple-system, sans-serif;
+    letter-spacing: -.02em; margin: 0 0 14px; max-width: 19ch; text-wrap: balance;
+  }
+  .standfirst {
+    font: 400 19px/1.55 ui-serif, "Iowan Old Style", Georgia, serif;
+    color: var(--ink-2); max-width: var(--measure); margin: 0;
+  }
+  .meta {
+    margin-top: 26px; font: 400 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 5px 26px;
+  }
+  .meta b { color: var(--ink-2); font-weight: 600; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 52px;
+  }
+  .stat { background: var(--surface); padding: 16px 18px; }
+  .stat .n {
+    font: 700 26px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+  }
+  .stat .n.good { color: var(--good); }
+  .stat .n.bad { color: var(--bad); }
+  .stat .l { margin-top: 5px; font: 500 12px/1.4 ui-sans-serif, sans-serif; color: var(--ink-3); }
+
+  nav.toc {
+    border: 1px solid var(--border-2); background: var(--surface); padding: 18px 24px; margin-bottom: 56px;
+  }
+  nav.toc .lbl {
+    font: 600 11px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 12px; display: block;
+  }
+  nav.toc ol { columns: 2; column-gap: 40px; margin: 0; padding-left: 18px; font-size: 14.5px; }
+  nav.toc li { margin-bottom: 6px; break-inside: avoid; }
+  nav.toc a { color: var(--ink-2); }
+  nav.toc a:hover { color: var(--accent); }
+  @media (max-width: 620px) { nav.toc ol { columns: 1; } }
+
+  section { margin: 0 0 64px; scroll-margin-top: 20px; }
+  h2 {
+    font: 800 clamp(21px, 2.3vw, 26px)/1.2 ui-sans-serif, sans-serif;
+    letter-spacing: -.01em; margin: 0 0 6px; padding-top: 22px;
+    border-top: 1px solid var(--border-2); display: flex; align-items: baseline; gap: 13px;
+  }
+  h2 .num { font: 600 12.5px/1 ui-monospace, monospace; color: var(--accent); flex: none; padding-top: 3px; }
+  h3 {
+    font: 700 16.5px/1.3 ui-sans-serif, sans-serif; letter-spacing: -.005em; margin: 30px 0 6px;
+  }
+  h4 {
+    font: 600 12px/1.4 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-3); margin: 22px 0 8px;
+  }
+  p, li { max-width: var(--measure); font: 400 16.5px/1.62 ui-serif, "Iowan Old Style", Georgia, serif; }
+  p { margin: 0 0 14px; color: var(--ink-2); }
+  li { color: var(--ink-2); margin-bottom: 6px; }
+  ul, ol.prose { margin: 0 0 16px; padding-left: 21px; }
+  strong { font-weight: 650; color: var(--ink); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  .lede { font: 400 17.5px/1.55 ui-serif, "Iowan Old Style", Georgia, serif; color: var(--ink-2); max-width: var(--measure); }
+
+  code, .path {
+    font: 400 .84em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 3px; word-break: break-word; color: var(--ink);
+  }
+
+  .scroll { overflow-x: auto; margin: 16px 0 24px; -webkit-overflow-scrolling: touch; }
+
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 16px 9px 0; border-bottom: 1px solid var(--border); }
+  th {
+    font: 600 11px/1.3 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-3); border-bottom: 1px solid var(--border-2); white-space: nowrap;
+  }
+  td .path { font-size: 13px; }
+  td:last-child, th:last-child { padding-right: 0; }
+
+  .pill {
+    display: inline-block; font: 600 11px/1.6 ui-monospace, monospace; letter-spacing: .02em;
+    padding: 0 8px; border-radius: 3px; white-space: nowrap;
+  }
+  .pill.new { background: var(--accent-soft); color: var(--accent); }
+  .pill.removed { background: var(--bad-soft); color: var(--bad); }
+  .pill.renamed { background: var(--warn-soft); color: var(--warn); }
+  .pill.modified { background: var(--surface-2); color: var(--ink-3); }
+
+  .group-title {
+    font: 700 14.5px/1.3 ui-sans-serif, sans-serif; margin: 30px 0 3px; color: var(--ink);
+  }
+  .group-note { font-size: 13.5px; color: var(--ink-3); margin: 0 0 12px; max-width: none; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 15px 20px;
+    margin: 20px 0; max-width: var(--measure);
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout p { color: var(--ink-2); }
+  .callout .tag {
+    font: 600 11px/1 ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 8px;
+  }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .callout.warn .tag { color: var(--warn); }
+
+  .diagram { border: 1px solid var(--border-2); background: var(--surface); padding: 22px 8px; margin: 10px 0 26px; }
+  .diagram svg { display: block; width: 100%; height: auto; }
+  .diagram-cap { font-size: 12.5px; color: var(--ink-3); padding: 10px 18px 0; font-family: ui-monospace, monospace; }
+
+  .phase-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 18px 0 8px; }
+  .phase {
+    background: var(--surface); padding: 14px 18px; display: grid;
+    grid-template-columns: 26px 1fr auto; gap: 4px 14px; align-items: baseline;
+  }
+  .phase .idx { font: 700 13px/1.6 ui-monospace, monospace; color: var(--ink-3); }
+  .phase .name { font: 650 15px/1.5 ui-sans-serif, sans-serif; grid-column: 2; }
+  .phase .desc { grid-column: 2; font-size: 14px; color: var(--ink-3); max-width: none; margin: 0; }
+  .status {
+    font: 600 11px/1.6 ui-monospace, monospace; letter-spacing: .03em; padding: 0 9px; border-radius: 3px;
+    height: fit-content; white-space: nowrap;
+  }
+  .status.done { background: var(--good-soft); color: var(--good); }
+  .status.partial { background: var(--warn-soft); color: var(--warn); }
+  .status.todo { background: var(--surface-2); color: var(--ink-3); }
+
+  .risk { display: flex; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--border); padding: 13px 0; }
+  .risk:last-of-type { border-bottom: 0; }
+  .risk .tag {
+    flex: none; width: 30px; font: 700 12px/1.5 ui-monospace, monospace; color: var(--bad);
+  }
+  .risk .body p { margin: 3px 0 0; font-size: 14.5px; }
+  .risk .body b { font-size: 15.5px; color: var(--ink); }
+
+  footer { border-top: 2px solid var(--ink); padding-top: 18px; color: var(--ink-3); font-size: 13.5px; }
+  footer p { max-width: none; font-family: ui-monospace, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Working-tree audit &middot; integration-plugins</div>
+  <h1>What the connector merge touches</h1>
+  <p class="standfirst">Uncommitted changes on <code>integration-plugins</code> begin collapsing two auth planes &mdash; org-scoped <code>integration_connections</code> and user-scoped <code>plugin_connections</code> &mdash; into one <code>connections</code> table and one declarative registry. This walks every surface that moved: schema, API routes, tRPC, desktop, web, CLI, and the plugin manifests themselves.</p>
+  <div class="meta">
+    <span><b>2026-09-14</b></span>
+    <span>branch <b>integration-plugins</b></span>
+    <span>base <b>HEAD</b> (uncommitted)</span>
+    <span>plan <b>plans/20260909-one-plugin-surface.html</b></span>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="n">146</div><div class="l">paths touched</div></div>
+  <div class="stat"><div class="n good">+1653</div><div class="l">lines added</div></div>
+  <div class="stat"><div class="n bad">&minus;3871</div><div class="l">lines removed</div></div>
+  <div class="stat"><div class="n">22</div><div class="l">new files</div></div>
+  <div class="stat"><div class="n">11</div><div class="l">deleted files</div></div>
+  <div class="stat"><div class="n">3</div><div class="l">renamed</div></div>
+  <div class="stat"><div class="n">8</div><div class="l">surface areas</div></div>
+</div>
+
+<nav class="toc" aria-label="Contents">
+  <span class="lbl">Contents</span>
+  <ol>
+    <li><a href="#shape">01 &middot; The shape of the change</a></li>
+    <li><a href="#inventory">02 &middot; Surface inventory</a></li>
+    <li><a href="#retired">03 &middot; What got retired outright</a></li>
+    <li><a href="#roadmap">04 &middot; Where this sits on the roadmap</a></li>
+    <li><a href="#risk">05 &middot; Still open</a></li>
+  </ol>
+</nav>
+
+<section id="shape">
+  <h2><span class="num">01</span> The shape of the change</h2>
+  <p class="lede">Every first-party integration &mdash; Google, Linear, Slack, Notion, Sentry, Microsoft Teams, GitHub &mdash; used to authenticate twice: once as an org-scoped <code>integration_connections</code> row behind a hand-written <code>connect</code>/<code>callback</code> route pair, and again as a user-scoped <code>plugin_connections</code> row behind a second, generic-but-separate OAuth pipeline. This diff does not touch triggers, webhooks, or the MCP dispatch path yet &mdash; it fuses the auth plane only, one table and one route pair standing in for both.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1080 300" role="img" aria-labelledby="diagram-title">
+      <title id="diagram-title">Before: two separate connection tables and OAuth route pairs feeding seven provider integrations. After: one connections table and one declarative connectors.json feeding the same providers through one route pair.</title>
+      <style>
+        .lbl { font: 600 11px ui-monospace, monospace; fill: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
+        .box-t { font: 650 13px ui-sans-serif, sans-serif; fill: var(--ink); }
+        .box-s { font: 400 11px ui-monospace, monospace; fill: var(--ink-3); }
+        .box { fill: var(--surface); stroke: var(--border-2); stroke-width: 1; }
+        .box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+        .box-bad { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1; stroke-dasharray: 3 3; }
+        .arrow { stroke: var(--ink-3); stroke-width: 1.2; fill: none; marker-end: url(#arrowhead); }
+        .arrow-accent { stroke: var(--accent); stroke-width: 1.4; fill: none; marker-end: url(#arrowhead-accent); }
+        .divider { stroke: var(--border-2); stroke-width: 1; stroke-dasharray: 2 4; }
+      </style>
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--ink-3)" />
+        </marker>
+        <marker id="arrowhead-accent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
+        </marker>
+      </defs>
+
+      <text x="20" y="24" class="lbl">before</text>
+      <rect x="14" y="34" width="235" height="52" rx="3" class="box-bad" />
+      <text x="26" y="55" class="box-t">integration_connections</text>
+      <text x="26" y="71" class="box-s">org-scoped &middot; pgEnum provider</text>
+
+      <rect x="14" y="98" width="235" height="52" rx="3" class="box-bad" />
+      <text x="26" y="119" class="box-t">plugin_connections</text>
+      <text x="26" y="135" class="box-s">user-scoped &middot; per install</text>
+
+      <path class="arrow" d="M131,86 L131,98" />
+
+      <rect x="14" y="168" width="108" height="40" rx="3" class="box" />
+      <text x="26" y="192" class="box-s">connect / callback</text>
+      <text x="130" y="192" class="box-s" text-anchor="middle">&times;7</text>
+      <rect x="150" y="168" width="99" height="40" rx="3" class="box" />
+      <text x="162" y="192" class="box-s">connect / callback</text>
+
+      <path class="arrow" d="M67,150 L67,168" />
+      <path class="arrow" d="M197,150 L197,168" />
+
+      <text x="60" y="240" class="lbl">7 providers, 2 routes each</text>
+      <text x="60" y="256" class="box-s">google &middot; linear &middot; slack &middot; notion</text>
+      <text x="60" y="270" class="box-s">sentry &middot; teams &middot; github</text>
+
+      <line x1="380" y1="10" x2="380" y2="290" class="divider" />
+
+      <text x="410" y="24" class="lbl">after</text>
+      <rect x="404" y="40" width="255" height="56" rx="3" class="box-accent" />
+      <text x="418" y="62" class="box-t">connections</text>
+      <text x="418" y="79" class="box-s">owner_kind: user | org &middot; one row per grant</text>
+
+      <path class="arrow-accent" d="M531,96 L531,116" />
+
+      <rect x="404" y="116" width="255" height="52" rx="3" class="box-accent" />
+      <text x="418" y="137" class="box-t">connectors.json</text>
+      <text x="418" y="153" class="box-s">declarative registry &middot; packages/shared</text>
+
+      <path class="arrow-accent" d="M531,168 L531,188" />
+
+      <rect x="452" y="188" width="160" height="40" rx="3" class="box" />
+      <text x="466" y="212" class="box-s">connect / callback</text>
+
+      <text x="470" y="256" class="lbl">7 providers, 1 route pair</text>
+      <text x="470" y="272" class="box-s">+ discovery.ts for RFC 9728</text>
+
+      <line x1="700" y1="10" x2="700" y2="290" class="divider" />
+
+      <text x="730" y="24" class="lbl">consumers</text>
+      <rect x="724" y="40" width="330" height="36" rx="3" class="box" />
+      <text x="738" y="63" class="box-s">packages/trpc/router/connectors &middot; catalog · status · connectApiKey · disconnect</text>
+
+      <rect x="724" y="86" width="160" height="36" rx="3" class="box" />
+      <text x="738" y="109" class="box-s">desktop ConnectorSection</text>
+      <rect x="894" y="86" width="160" height="36" rx="3" class="box" />
+      <text x="908" y="109" class="box-s">web /connect/[connector]</text>
+
+      <rect x="724" y="132" width="330" height="36" rx="3" class="box" />
+      <text x="738" y="155" class="box-s">CLI &middot; superset plugins connect / install</text>
+
+      <rect x="724" y="178" width="330" height="52" rx="3" class="box" />
+      <text x="738" y="199" class="box-s">7 integration route handlers, unchanged shape,</text>
+      <text x="738" y="215" class="box-s">now read/write connections instead of the old tables</text>
+
+      <path class="arrow-accent" d="M612,208 L724,60" />
+      <path class="arrow-accent" d="M612,208 L724,104" />
+      <path class="arrow-accent" d="M612,208 L894,104" />
+      <path class="arrow-accent" d="M612,208 L724,150" />
+      <path class="arrow-accent" d="M612,208 L724,204" />
+    </svg>
+    <div class="diagram-cap">Two auth planes, seven duplicated route pairs &rarr; one table, one registry, one route pair, five consumers.</div>
+  </div>
+
+  <p>The merge is <strong>additive at the edges, subtractive in the middle</strong>: every provider-specific webhook handler, sync job, and trigger matcher named in the earlier design proposal is untouched in this diff &mdash; <code>syncMailbox.ts</code>, <code>processDelivery.ts</code>, <code>jobs/renew-watches</code> all still exist and still do what they did. What changed under them is where a token comes from: <code>connections</code> instead of <code>integration_connections</code>, resolved through <code>packages/trpc/src/lib/connectors</code> instead of a per-provider helper.</p>
+</section>
+
+<section id="inventory">
+  <h2><span class="num">02</span> Surface inventory</h2>
+  <p class="lede">Grouped by the eight places a change had to land. Status reads against the working tree: <span class="pill new">new</span> a file that did not exist before, <span class="pill removed">removed</span> deleted outright, <span class="pill renamed">renamed</span> moved and edited, <span class="pill modified">modified</span> edited in place.</p>
+
+  <div class="group-title">Database &amp; schema</div>
+  <p class="group-note">One migration: a <code>connections</code> table replaces <code>plugin_connections</code>, and <code>automation_events</code> repoints its foreign key at it.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">packages/db/drizzle/0112_add_connectors_registry.sql</td><td><span class="pill new">new</span></td><td>Creates <code>connections</code>, drops <code>plugin_connections</code>, widens <code>ingest.webhook_events.provider</code> from enum to text</td></tr>
+      <tr><td class="path">packages/db/src/schema/schema.ts</td><td><span class="pill modified">modified</span></td><td>Adds the <code>connections</code> table def; owner-kind partial unique indexes for org vs. user scope</td></tr>
+      <tr><td class="path">packages/db/src/schema/plugins.ts</td><td><span class="pill modified">modified</span></td><td>Drops the <code>pluginConnections</code> table definition</td></tr>
+      <tr><td class="path">packages/db/src/schema/relations.ts</td><td><span class="pill modified">modified</span></td><td>Relation graph repointed at <code>connections</code></td></tr>
+      <tr><td class="path">packages/db/src/schema/ingest.ts</td><td><span class="pill modified">modified</span></td><td><code>webhook_events.provider</code> enum &rarr; text</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">API routes &mdash; apps/api</div>
+  <p class="group-note">The three plugin-specific OAuth routes are retired wholesale; a parallel <code>connectors</code> route tree replaces them. The seven provider callback/webhook routes keep their paths and just read the new table.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">app/api/connectors/[connector]/connect/route.ts</td><td><span class="pill new">new</span></td><td>93 lines &mdash; generic authorize redirect for any registry entry</td></tr>
+      <tr><td class="path">app/api/connectors/callback/[connector]/route.ts</td><td><span class="pill new">new</span></td><td>106 lines &mdash; generic token exchange + identity probe + upsert</td></tr>
+      <tr><td class="path">app/api/connectors/[connector]/client-metadata/route.ts</td><td><span class="pill new">new</span></td><td>Serves the CIMD document for RFC 9728 dynamic client registration</td></tr>
+      <tr><td class="path">app/api/plugins/[plugin]/connect/route.ts</td><td><span class="pill removed">removed</span></td><td>Superseded by <code>connectors/[connector]/connect</code></td></tr>
+      <tr><td class="path">app/api/plugins/callback/[plugin]/route.ts</td><td><span class="pill removed">removed</span></td><td>Superseded by <code>connectors/callback/[connector]</code></td></tr>
+      <tr><td class="path">app/api/plugins/[plugin]/client-metadata/route.ts</td><td><span class="pill removed">removed</span></td><td>Superseded by <code>connectors/[connector]/client-metadata</code></td></tr>
+      <tr><td class="path">app/api/integrations/{google,linear,slack,notion,sentry,microsoft-teams}/…</td><td><span class="pill modified">modified</span></td><td>21 route/lib files &mdash; callback and webhook handlers repointed at <code>connections</code>; shape and paths unchanged</td></tr>
+      <tr><td class="path">src/lib/integrations/upsertConnection.ts</td><td><span class="pill removed">removed</span></td><td>146 lines &mdash; logic absorbed into <code>packages/trpc/src/lib/connectors/upsert.ts</code></td></tr>
+      <tr><td class="path">src/lib/oauth-state.ts</td><td><span class="pill modified">modified</span></td><td>State payload gains a connector slug alongside the plugin name</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">tRPC &mdash; connector plumbing</div>
+  <p class="group-note">A new <code>lib/connectors</code> replaces the OAuth logic that used to live under <code>router/plugins</code>; a new <code>router/connectors</code> is the tRPC surface the two UIs call.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">lib/connectors/index.ts</td><td><span class="pill new">new</span></td><td>444 lines &mdash; registry lookup, method resolution, endpoint resolution</td></tr>
+      <tr><td class="path">lib/connectors/upsert.ts</td><td><span class="pill new">new</span></td><td>195 lines &mdash; one connection write path for both OAuth and API-key methods</td></tr>
+      <tr><td class="path">lib/connectors/lookup.ts</td><td><span class="pill new">new</span></td><td>134 lines &mdash; <code>orgConnection</code> / user-scoped reads, newest-first, live-only by default</td></tr>
+      <tr><td class="path">lib/connectors/refresh.ts</td><td><span class="pill new">new</span></td><td>98 lines &mdash; <code>ensureFreshConnection</code>, throws <code>UnrefreshableConnectionError</code> instead of silently going stale</td></tr>
+      <tr><td class="path">lib/connectors/discovery.ts</td><td><span class="pill renamed">renamed</span></td><td>from <code>router/plugins/discovery.ts</code> &mdash; RFC 9728 protected-resource + authorization-server metadata discovery</td></tr>
+      <tr><td class="path">lib/connectors/client-identity.ts</td><td><span class="pill renamed">renamed</span></td><td>from <code>router/plugins/client-identity.ts</code> &mdash; dynamic client registration (RFC 7591 / CIMD)</td></tr>
+      <tr><td class="path">router/connectors/index.ts</td><td><span class="pill new">new</span></td><td><code>catalog</code>, <code>get</code>, <code>status</code>, <code>connectApiKey</code>, <code>disconnect</code> procedures</td></tr>
+      <tr><td class="path">router/plugins/oauth.ts + oauth.test.ts</td><td><span class="pill removed">removed</span></td><td>433 + 172 lines &mdash; the plugin-only OAuth implementation this replaces</td></tr>
+      <tr><td class="path">router/plugins/refresh.ts</td><td><span class="pill removed">removed</span></td><td>55 lines &mdash; folded into <code>lib/connectors/refresh.ts</code></td></tr>
+      <tr><td class="path">router/plugins/{connections,plugins,manifest,dispatch}.ts</td><td><span class="pill modified">modified</span></td><td>Read connection state through the new lib instead of owning it</td></tr>
+      <tr><td class="path">router/integration/… (18 files)</td><td><span class="pill modified">modified</span></td><td>google, linear, notion, sentry, slack, microsoft-teams routers and their auth/refresh/state helpers, all repointed at <code>connections</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">Shared &mdash; the connector registry</div>
+  <p class="group-note">What used to be OAuth config scattered across seven <code>plugin.json</code> files is now one declarative document, validated by a discriminated union over four method types.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">packages/shared/src/connectors/connectors.json</td><td><span class="pill new">new</span></td><td>7 connectors &mdash; google, linear, notion, slack, sentry, microsoft_teams, github</td></tr>
+      <tr><td class="path">packages/shared/src/connectors/index.ts</td><td><span class="pill new">new</span></td><td>Zod schema for <code>oauth2</code> / <code>api_key</code> / <code>app_install</code> / <code>admin_consent</code> methods</td></tr>
+      <tr><td class="path">packages/shared/src/plugins/manifests.generated.ts</td><td><span class="pill modified">modified</span></td><td>&minus;212 lines &mdash; per-plugin <code>auth</code> blocks dropped now that connectors.json owns them</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">Desktop</div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">components/ConnectorSection/{ConnectorSection,useConnector}.tsx</td><td><span class="pill new">new</span></td><td>Promoted to top-level <code>renderer/components</code> &mdash; used from both the plugin detail page and the automation trigger editor</td></tr>
+      <tr><td class="path">components/ConnectorSection/components/ConnectConnectorDialog.tsx</td><td><span class="pill new">new</span></td><td>Shared connect modal, API-key form included</td></tr>
+      <tr><td class="path">plugins/$pluginName/.../PluginDetail.tsx</td><td><span class="pill modified">modified</span></td><td>Swaps its bespoke <code>PluginConnections</code> block for <code>&lt;ConnectorSection slug={plugin.connector}&gt;</code></td></tr>
+      <tr><td class="path">plugins/$pluginName/.../PluginConnections/*</td><td><span class="pill removed">removed</span></td><td>237-line component + hook, superseded</td></tr>
+      <tr><td class="path">plugins/hooks/usePluginConnections/*</td><td><span class="pill removed">removed</span></td><td>84 lines &mdash; superseded by <code>useConnector</code></td></tr>
+      <tr><td class="path">automations/components/TriggersEditor/TriggersEditor.tsx</td><td><span class="pill modified">modified</span></td><td>Missing-connection trigger rows now open <code>ConnectConnectorDialog</code> in place, rather than routing away</td></tr>
+      <tr><td class="path">automations/components/TriggerSentence/TriggerSentence.tsx</td><td><span class="pill modified">modified</span></td><td>Takes an <code>onConnect</code> callback to trigger the dialog above</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">Web</div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">app/(app)/(page)/connect/[connector]/page.tsx</td><td><span class="pill new">new</span></td><td>Marketing/marketplace-side connect page, one route for every registry entry</td></tr>
+      <tr><td class="path">.../connect/[connector]/components/ConnectorConnect/*</td><td><span class="pill new">new</span></td><td>176-line client component &mdash; same catalog + status + connect flow as the desktop dialog</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="group-title">CLI &amp; plugin manifests</div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Path</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="path">packages/cli/src/commands/plugins/{connect,install,list}/command.ts</td><td><span class="pill modified">modified</span></td><td><code>superset plugins connect</code> now resolves against the connector registry, not a per-plugin auth block</td></tr>
+      <tr><td class="path">packages/cli/src/lib/plugins/{connection-ref,inputs,marketplace}.ts</td><td><span class="pill modified">modified</span></td><td>Connection reference resolution follows the same slug</td></tr>
+      <tr><td class="path">plugins/{gmail,linear,notion,slack,github}/plugin.json</td><td><span class="pill modified">modified</span></td><td>Each drops its own <code>auth</code> block and gains one line: <code>"connector": "&lt;slug&gt;"</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="retired">
+  <h2><span class="num">03</span> What got retired outright</h2>
+  <p class="lede">Three things disappear rather than move, because the merged table makes them redundant:</p>
+  <ul>
+    <li><strong>Per-plugin OAuth config.</strong> Every <code>plugin.json</code>'s hand-written <code>auth: [...]</code> block &mdash; authorization URL, token URL, scopes, identity probe, bind spec &mdash; is gone. That configuration now lives once, in <code>connectors.json</code>, keyed by the same slug the manifest references.</li>
+    <li><strong>The plugin-only OAuth implementation.</strong> <code>router/plugins/oauth.ts</code> (433 lines) and its test file are deleted outright, not refactored &mdash; the generic <code>connect</code>/<code>callback</code> pair under <code>connectors</code> replaces what it did for every provider at once.</li>
+    <li><strong>Two parallel connection UIs.</strong> Desktop's <code>PluginConnections</code> and its <code>usePluginConnections</code> hook are gone; <code>ConnectorSection</code> is the one component both the plugin detail page and the trigger editor now mount.</li>
+  </ul>
+</section>
+
+<section id="roadmap">
+  <h2><span class="num">04</span> Where this sits on the roadmap</h2>
+  <p class="lede">The design proposal committed to this branch (<code>plans/20260909-one-plugin-surface.html</code>) lays out four phases. Reading the diff against it:</p>
+
+  <div class="phase-list">
+    <div class="phase">
+      <div class="idx">1</div>
+      <div class="name">Connections</div>
+      <span class="status done">merged</span>
+      <p class="desc">One <code>connections</code> table, backfilled indexes for org vs. user scope, one revoke path. This diff, essentially in full.</p>
+    </div>
+    <div class="phase">
+      <div class="idx">2</div>
+      <div class="name">One server ABI</div>
+      <span class="status todo">not started</span>
+      <p class="desc">Stateless MCP dispatch collapsing remote and bundled plugin servers behind one <code>handle()</code> function. <code>dispatch.ts</code> is touched only incidentally here, not restructured.</p>
+    </div>
+    <div class="phase">
+      <div class="idx">3</div>
+      <div class="name">Discovery-first auth</div>
+      <span class="status partial">partial</span>
+      <p class="desc"><code>discovery.ts</code> (RFC 9728) and <code>client-identity.ts</code> (dynamic client registration) both moved into <code>lib/connectors</code> and are wired into the new callback route. <code>legacyOauth</code> as a distinct manifest shape, and the RFC 9207 <code>iss</code> check called out as missing, aren't visibly addressed yet.</p>
+    </div>
+    <div class="phase">
+      <div class="idx">4</div>
+      <div class="name">Events</div>
+      <span class="status todo">not started</span>
+      <p class="desc">Generic ingress, generic trigger matcher, <code>attributes</code>-based filters. Every webhook route (<code>gmail/push</code>, <code>linear/webhook</code>, <code>notion/webhook</code>, <code>sentry/webhook</code>, Teams subscriptions) keeps its own provider-specific verify-and-normalize logic in this diff &mdash; only its token source changed.</p>
+    </div>
+  </div>
+</section>
+
+<section id="risk">
+  <h2><span class="num">05</span> Still open</h2>
+  <p class="lede">From the proposal's blocker list (B1&ndash;B8), the two that this diff's scope leaves untouched and that later phases will have to answer:</p>
+
+  <div class="risk">
+    <div class="tag">B2</div>
+    <div class="body">
+      <b>Audience-bound tokens</b>
+      <p>A connection minted through <code>connectors/callback</code> for, say, Linear's MCP server is not automatically valid against <code>api.linear.app/graphql</code>. Product code that still calls provider REST/GraphQL APIs directly &mdash; <code>getLinearClient()</code>, Teams' Graph calls &mdash; needs the credentials-per-resource design from &sect;05 of the proposal before this can be relied on universally. Not yet visible in the diff.</p>
+    </div>
+  </div>
+  <div class="risk">
+    <div class="tag">B1</div>
+    <div class="body">
+      <b>Webhook lifecycle stays hand-rolled</b>
+      <p>Google's watch renewal (<code>jobs/renew-watches</code>), Notion and Teams' per-workspace registration are still bespoke cron jobs against the old per-provider shape, just now reading tokens from <code>connections</code>. The manifest-driven <code>events.lifecycle</code> block from Phase 4 would fold these into one shared cron; until then, each stays a distinct thing to keep renewing correctly.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Generated from the working tree of integration-plugins against HEAD (64a8276f2) &middot; git diff --stat HEAD + git status --porcelain &middot; 2026-09-14</p>
+</footer>
+
+</div>
+</body>
+</html>

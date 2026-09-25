@@ -394,20 +394,27 @@ export function useDashboardSidebarState() {
 			if (existing) return existing;
 			const parsed = parseSidebarFolderKey(sectionId);
 			if (!parsed) return null;
+			const hostOrder = tagFolderContext.tagSettings.find(
+				(setting) =>
+					setting.projectId === parsed.projectId &&
+					normalizeWorkspaceTag(setting.tag) === parsed.tag,
+			)?.tabOrder;
 			collections.v2SidebarSections.insert({
 				sectionId,
 				projectId: parsed.projectId,
 				name: parsed.tag,
 				tag: parsed.tag,
 				createdAt: new Date(),
-				tabOrder: getNextTabOrder(
-					getProjectTopLevelItems(
-						collections,
-						hostWorkspaces,
-						tagFolderContext,
-						laneProjectIdForScope(parsed.projectId),
+				tabOrder:
+					hostOrder ??
+					getNextTabOrder(
+						getProjectTopLevelItems(
+							collections,
+							hostWorkspaces,
+							tagFolderContext,
+							laneProjectIdForScope(parsed.projectId),
+						),
 					),
-				),
 				isCollapsed: false,
 				color: null,
 			});

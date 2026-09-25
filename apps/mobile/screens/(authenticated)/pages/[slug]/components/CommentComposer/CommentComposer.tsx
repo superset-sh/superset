@@ -3,7 +3,7 @@ import { getInitials } from "@superset/shared/names";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { ArrowUp } from "lucide-react-native";
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, Pressable, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -11,22 +11,34 @@ import { useSession } from "@/lib/auth/client";
 import { errorCopy } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
-export function CommentComposer({
-	placeholder,
-	autoFocus = false,
-	pending = false,
-	onSubmit,
-}: {
+export interface CommentComposerHandle {
+	focus: () => void;
+}
+
+interface CommentComposerProps {
 	placeholder: string;
 	autoFocus?: boolean;
 	pending?: boolean;
 	onSubmit: (body: string) => Promise<void>;
-}) {
+}
+
+export const CommentComposer = forwardRef<
+	CommentComposerHandle,
+	CommentComposerProps
+>(function CommentComposer(
+	{ placeholder, autoFocus = false, pending = false, onSubmit },
+	ref,
+) {
 	const { t } = useLingui();
 	const { data: session } = useSession();
+	const inputRef = useRef<TextInput>(null);
 	const [body, setBody] = useState("");
 	const trimmed = body.trim();
 	const canSend = trimmed.length > 0 && !pending;
+
+	useImperativeHandle(ref, () => ({
+		focus: () => inputRef.current?.focus(),
+	}));
 
 	const send = async () => {
 		if (!canSend) return;
@@ -40,7 +52,7 @@ export function CommentComposer({
 	};
 
 	return (
-		<View className="flex-row items-end gap-2.5">
+		<View className="flex-row items-center gap-2.5">
 			<View className="bg-muted size-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
 				{session?.user.image ? (
 					<Image
@@ -57,6 +69,7 @@ export function CommentComposer({
 
 			<View className="border-border min-h-10 flex-1 flex-row items-center gap-2 rounded-3xl border px-4 py-1.5">
 				<TextInput
+					ref={inputRef}
 					value={body}
 					onChangeText={setBody}
 					autoFocus={autoFocus}
@@ -87,4 +100,4 @@ export function CommentComposer({
 			</View>
 		</View>
 	);
-}
+});

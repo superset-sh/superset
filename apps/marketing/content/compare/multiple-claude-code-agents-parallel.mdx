@@ -2,7 +2,7 @@
 title: "How to Run Multiple Claude Code Agents in Parallel"
 description: "Learn the safest way to run multiple Claude Code sessions at once. Compare terminal tabs, tmux, manual Git worktrees, and Superset's orchestration workflow."
 date: 2026-03-20
-lastUpdated: 2026-03-20
+lastUpdated: 2026-09-23
 type: "tutorial"
 competitors:
   - claude-code
@@ -16,9 +16,7 @@ keywords:
   - claude code tmux
 ---
 
-Claude Code is excellent at deep, single-task work. The moment you want three agents writing tests, fixing lint, and refactoring a service at the same time, the bottleneck is no longer model quality. The bottleneck is workflow.
-
-The safe way to parallelize Claude Code is simple: give every session its own Git worktree, its own branch, and a review step before anything lands on your main branch.
+Run multiple Claude Code sessions by assigning each task its own Git worktree and branch. Install the project dependencies in each worktree, launch a session there, and review each diff before merging. Separate working directories prevent shared-checkout edits; they do not prevent merge conflicts or isolate shared services.
 
 ---
 
@@ -29,6 +27,8 @@ Running multiple Claude Code sessions is easy. Running them without stepping on 
 If two sessions share one working directory, they can both edit the same files, overwrite each other's changes, and leave you with a review mess. Even when they touch different files, you still have to remember which branch belongs to which task, which terminal owns which session, and what changed where.
 
 That is why "multiple agents" is really an isolation problem first and an interface problem second.
+
+For a complete exercise with three scoped prompts, a deliberate approval pause, separate previews, and an integration check, follow the [three-task walkthrough](/blog/parallel-coding-agents-guide).
 
 ## The Three Common Approaches
 
@@ -54,7 +54,7 @@ git worktree add ../repo-refactor -b ai/refactor
 
 Then you `cd` into each directory and launch Claude Code there.
 
-This is safe and effective. It is also repetitive. You still have to create branches, name directories, track which session maps to which task, and review each diff manually in your editor or Git UI.
+This separates working files, but does not sandbox the agent or prevent merge conflicts. It is also repetitive. You still have to create branches, name directories, track which session maps to which task, and review each diff manually in your editor or Git UI.
 
 ### 3. Superset + Claude Code
 
@@ -120,6 +120,22 @@ The right loop is:
 4. spawn follow-up tasks from the remaining gaps
 
 This is why worktrees matter so much: every agent output stays isolated until you decide what lands.
+
+## Verify the setup before adding more agents
+
+In each session, run these commands and compare the output:
+
+```bash
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+```
+
+Each independent task should show a different worktree path and branch. If both sessions show the same path, they are editing the same checkout. Assign separate preview ports, and check whether both tasks use the same database or credentials.
+
+Record the starting commit, agent version, model, prompt, test command, and result for each task. After reviewing and integrating the changes, run the relevant checks on the combined branch. A passing test in one worktree does not prove two changes work together.
+
+Our [reproducible worktree check](/parallel-coding-agents#a-reproducible-isolation-check) demonstrates both independent edits and a deliberate merge conflict. Use the [three-task walkthrough](/blog/parallel-coding-agents-guide) to apply that review process to a real project.
 
 ## Why Superset Fits This Workflow
 

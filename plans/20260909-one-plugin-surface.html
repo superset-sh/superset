@@ -1,0 +1,747 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One plugin surface</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --panel: #ffffff;
+    --ink: #17150f;
+    --ink-2: #4a463c;
+    --ink-3: #7d7869;
+    --rule: #e3ded3;
+    --rule-2: #cfc8b8;
+    --accent: #a8401a;
+    --accent-soft: #f6e9e2;
+    --blue: #2c4f7c;
+    --blue-soft: #e7edf5;
+    --green: #3d6b3f;
+    --code-bg: #f3f0ea;
+    --measure: 76ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14130f;
+      --panel: #1b1a15;
+      --ink: #f2eee5;
+      --ink-2: #c3bdae;
+      --ink-3: #8d8778;
+      --rule: #2e2c25;
+      --rule-2: #3f3c32;
+      --accent: #e0824f;
+      --accent-soft: #2a1d15;
+      --blue: #9dbbe0;
+      --blue-soft: #1a2029;
+      --green: #8fc192;
+      --code-bg: #201e18;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 17px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 110px; }
+
+  header.masthead { border-bottom: 2px solid var(--ink); padding: 52px 0 20px; margin-bottom: 40px; }
+  .kicker {
+    font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px;
+  }
+  h1 {
+    font: 600 clamp(34px, 5.2vw, 52px)/1.05 ui-serif, Iowan Old Style, Georgia, serif;
+    letter-spacing: -.018em; margin: 0 0 12px; max-width: 20ch;
+  }
+  .standfirst { font-size: 20px; line-height: 1.48; color: var(--ink-2); max-width: var(--measure); margin: 0; }
+  .meta {
+    margin-top: 24px; font: 400 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 26px;
+  }
+
+  section { margin: 0 0 62px; scroll-margin-top: 20px; }
+  h2 {
+    font: 600 clamp(23px, 2.6vw, 30px)/1.18 ui-serif, Iowan Old Style, Georgia, serif;
+    letter-spacing: -.012em; margin: 0 0 4px; padding-top: 24px;
+    border-top: 1px solid var(--rule-2); display: flex; align-items: baseline; gap: 14px;
+  }
+  h2 .num { font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); flex: none; padding-top: 4px; }
+  h3 { font: 600 18px/1.3 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.004em; margin: 32px 0 8px; }
+  h4 {
+    font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 24px 0 8px;
+  }
+  p, li { max-width: var(--measure); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 21px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+  code {
+    font: 400 .875em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 3px; word-break: break-word;
+  }
+  .lede { font-size: 18.5px; color: var(--ink-2); max-width: var(--measure); }
+
+  .scroll { overflow-x: auto; margin: 18px 0 22px; -webkit-overflow-scrolling: touch; }
+  pre {
+    margin: 0; background: var(--code-bg); border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    padding: 17px 20px; font: 400 13.5px/1.62 ui-monospace, SFMono-Regular, Menlo, monospace; min-width: min-content;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .c-key { color: var(--blue); }
+  .c-str { color: var(--green); }
+  .c-com { color: var(--ink-3); font-style: italic; }
+  .c-hi { background: var(--accent-soft); border-radius: 2px; padding: 0 2px; }
+
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 16px 9px 0; border-bottom: 1px solid var(--rule); }
+  th {
+    font: 600 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--rule-2); white-space: nowrap;
+  }
+  td code { font-size: 13px; }
+  .num-col { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .yes { color: var(--green); font-weight: 650; }
+  .no { color: var(--accent); font-weight: 650; }
+
+  .callout { border-left: 3px solid var(--blue); background: var(--blue-soft); padding: 15px 20px; margin: 20px 0; max-width: var(--measure); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .tag {
+    font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--blue); display: block; margin-bottom: 7px;
+  }
+  .callout.warn { border-left-color: var(--accent); background: var(--accent-soft); }
+  .callout.warn .tag { color: var(--accent); }
+
+  .cols { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin: 22px 0; }
+  .card { border: 1px solid var(--rule); background: var(--panel); padding: 18px 20px; }
+  .card h4 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+  .card p, .card li { max-width: none; }
+  .card ul { padding-left: 18px; font-size: 15px; }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 9px; margin: 22px 0; }
+  .flow .step { flex: 1 1 148px; border: 1px solid var(--rule-2); background: var(--panel); padding: 11px 13px; font-size: 14px; line-height: 1.42; }
+  .flow .step b {
+    display: block; font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+  }
+
+  .toc { border: 1px solid var(--rule-2); background: var(--panel); padding: 20px 24px; margin-bottom: 50px; }
+  .toc ol { columns: 2; column-gap: 42px; margin: 0; padding-left: 20px; font-size: 15px; }
+  .toc li { margin-bottom: 5px; break-inside: avoid; max-width: none; }
+  @media (max-width: 640px) { .toc ol { columns: 1; } .wrap { padding: 0 18px 80px; } }
+
+  .rank { display: flex; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--rule); padding: 14px 0; }
+  .rank:last-of-type { border-bottom: 0; }
+  .rank .n {
+    flex: none; width: 26px; font: 600 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent);
+  }
+  .rank .body { max-width: var(--measure); }
+  .rank .body p { margin: 4px 0 0; font-size: 15.5px; color: var(--ink-2); }
+  .rank .body b { font-size: 16.5px; }
+
+  footer { border-top: 2px solid var(--ink); padding-top: 18px; color: var(--ink-3); font-size: 14px; }
+  footer p { max-width: none; }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">Design proposal &middot; integrations + plugins</div>
+  <h1>One plugin surface</h1>
+  <p class="standfirst">An integration is nine files across two auth planes and two enum migrations. A plugin is a directory. This merges them: one manifest, one server module that answers both tool calls and webhook deliveries, zero migrations per provider — so writing a new integration becomes writing one folder.</p>
+  <div class="meta">
+    <span>2026-09-09</span>
+    <span>v5</span>
+    <span>branch: integration-plugins</span>
+    <span>status: proposal</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#today">Today, crisply</a></li>
+    <li><a href="#manifest">The merged <code>plugin.json</code></a></li>
+    <li><a href="#server">One server module, two callers</a></li>
+    <li><a href="#triggers">How triggers work</a></li>
+    <li><a href="#gate">Install, connection, token</a></li>
+    <li><a href="#blockers">Major blockers</a></li>
+    <li><a href="#examples">Two worked examples</a></li>
+    <li><a href="#phases">Phasing</a></li>
+  </ol>
+</nav>
+
+<section id="today">
+  <h2><span class="num">01</span> Today, crisply</h2>
+
+  <div class="cols">
+    <div class="card">
+      <h4>An integration</h4>
+      <ul>
+        <li>Auth in <code>integration_connections</code> — org-scoped, <code>provider</code> is a <strong>pgEnum</strong></li>
+        <li>OAuth is a hand-written <code>connect</code> + <code>callback</code> route pair per provider</li>
+        <li>Webhook is a route per provider: verify, dedup into <code>ingest.webhook_events</code>, enqueue</li>
+        <li>A <code>normalizeXDelivery.ts</code> fetches what the delivery points at and flattens it</li>
+        <li>Trigger config is a zod variant; matching is a typed <code>MatchableEvent</code> + <code>matchX()</code></li>
+        <li>Listed in <code>INTEGRATIONS</code> with i18n label, category, <code>triggerKinds</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>A plugin</h4>
+      <ul>
+        <li>Auth in <code>plugin_connections</code> — user-scoped, per install, manifest-driven</li>
+        <li>OAuth is generic: one <code>connect</code> + <code>callback</code> pair reads the manifest</li>
+        <li>Tools come from a remote MCP URL, or a bundled <code>server/index.mjs</code></li>
+        <li>Credentials never leave the API; the proxy attaches them at dispatch</li>
+        <li>Released as a git tag; the bundled server is pinned by <code>path</code> + <code>ref</code> + <code>integrity</code></li>
+        <li>Knows nothing about events, triggers, or webhooks</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>Both planes cover the same products — Linear, Notion, Slack, GitHub, Google — with separate tokens, separate scopes, separate refresh and separate revoke. Connecting Notion in one place does nothing for the other.</p>
+
+  <h4>What adding a provider costs</h4>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Surface</th><th>Integration</th><th>Plugin</th><th>Merged</th></tr></thead>
+    <tbody>
+      <tr><td>pgEnum migrations</td><td class="num-col">2</td><td class="num-col">0</td><td class="num-col yes">0</td></tr>
+      <tr><td>API routes</td><td class="num-col">3–4</td><td class="num-col">0</td><td class="num-col yes">0</td></tr>
+      <tr><td>Typed match code in <code>packages/shared</code></td><td class="num-col">~3 files</td><td class="num-col">0</td><td class="num-col yes">0</td></tr>
+      <tr><td>Catalog entries</td><td class="num-col">1 + icon</td><td class="num-col">1 + icon</td><td class="num-col yes">1 icon</td></tr>
+      <tr><td>Connection rows per user</td><td class="num-col">1</td><td class="num-col">1</td><td class="num-col yes">1 shared</td></tr>
+      <tr><td><strong>Total places to land a change</strong></td><td class="num-col">9</td><td class="num-col">2</td><td class="num-col yes">1 directory</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="manifest">
+  <h2><span class="num">02</span> The merged <code>plugin.json</code></h2>
+  <p class="lede">Agent Plugins 1.0 at the top level, everything Superset-specific under a reverse-DNS extension key. Four blocks: what it looks like, where its server is, how it connects, what it emits.</p>
+
+  <div class="scroll">
+<pre><code>{
+  <span class="c-key">"$schema"</span>: <span class="c-str">"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"</span>,
+  <span class="c-key">"name"</span>: <span class="c-str">"acme"</span>,
+  <span class="c-key">"version"</span>: <span class="c-str">"1.0.0"</span>,
+  <span class="c-key">"description"</span>: <span class="c-str">"…"</span>,
+  <span class="c-key">"license"</span>: <span class="c-str">"MIT"</span>,
+
+  <span class="c-key">"extensions"</span>: {
+    <span class="c-key">"sh.superset"</span>: {
+
+      <span class="c-key">"interface"</span>: { <span class="c-key">"displayName"</span>: <span class="c-str">"Acme"</span>, <span class="c-key">"category"</span>: <span class="c-str">"Productivity"</span>, <span class="c-key">"icon"</span>: <span class="c-str">"acme"</span> },
+
+      <span class="c-com">// ── where the server is ──────────────────────────────────────</span>
+      <span class="c-com">// exactly one of `url` (remote) or `module` (bundled index.mjs).</span>
+      <span class="c-com">// Both speak MCP 2026-07-28. Nothing else differs.</span>
+      <span class="c-key">"server"</span>: {
+        <span class="c-key">"url"</span>: <span class="c-str">"https://mcp.acme.com/mcp"</span>
+        <span class="c-com">// or: "module": "server/index.mjs"  → publish adds integrity + ref</span>
+      },
+
+      <span class="c-com">// ── how it connects ──────────────────────────────────────────</span>
+      <span class="c-com">// a list, not a singleton: a plugin may need more than one</span>
+      <span class="c-com">// credential — per audience, or bot + user. See §05.</span>
+      <span class="c-key">"connection"</span>: {
+        <span class="c-key">"scope"</span>: <span class="c-str">"org"</span>,                       <span class="c-com">// org | user</span>
+        <span class="c-key">"identity"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"get_self"</span>, <span class="c-key">"id"</span>: <span class="c-str">"$.org.id"</span>, <span class="c-key">"label"</span>: <span class="c-str">"$.org.name"</span> }
+        <span class="c-com">// no authorization_url / token_url / scopes / requires_env:</span>
+        <span class="c-com">// RFC 9728 discovery is the path. `legacyOauth` is the exception.</span>
+      },
+
+      <span class="c-com">// ── what it emits ────────────────────────────────────────────</span>
+      <span class="c-key">"events"</span>: {
+        <span class="c-key">"ingress"</span>: {
+          <span class="c-key">"path"</span>: <span class="c-str">"acme"</span>,                     <span class="c-com">// POST /api/plugins/acme/events</span>
+          <span class="c-key">"verify"</span>: { <span class="c-key">"scheme"</span>: <span class="c-str">"hmac-sha256"</span>, <span class="c-key">"header"</span>: <span class="c-str">"X-Acme-Signature"</span>,
+                      <span class="c-key">"prefix"</span>: <span class="c-str">"sha256="</span>, <span class="c-key">"over"</span>: <span class="c-str">"{body}"</span>,
+                      <span class="c-key">"secret"</span>: <span class="c-str">"connection.config.webhook_secret"</span> },
+          <span class="c-key">"eventId"</span>: <span class="c-str">"$.id"</span>,                  <span class="c-com">// dedup key</span>
+          <span class="c-key">"account"</span>: <span class="c-str">"$.org_id"</span>               <span class="c-com">// → connections.external_account_id</span>
+          <span class="c-com">// normalization is always the server module's superset_normalize_event</span>
+        },
+        <span class="c-key">"lifecycle"</span>: { <span class="c-key">"register"</span>: <span class="c-str">true</span>, <span class="c-key">"renewEveryHours"</span>: 144 },  <span class="c-com">// optional; see §05</span>
+
+        <span class="c-key">"triggers"</span>: [
+          { <span class="c-key">"event"</span>: <span class="c-str">"issue.created"</span>, <span class="c-key">"title"</span>: <span class="c-str">"Issue created"</span>,
+            <span class="c-key">"filters"</span>: [
+              { <span class="c-key">"name"</span>: <span class="c-str">"team"</span>, <span class="c-key">"label"</span>: <span class="c-str">"Team"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"teamId"</span>,
+                <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_teams"</span>, <span class="c-key">"id"</span>: <span class="c-str">"$.id"</span>, <span class="c-key">"label"</span>: <span class="c-str">"$.name"</span> } }
+            ] }
+        ]
+      }
+    }
+  }
+}</code></pre>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h4>Gone from the manifest</h4>
+      <ul>
+        <li><code>authorization_url</code>, <code>token_url</code></li>
+        <li><code>scopes</code>, <code>scope_separator</code></li>
+        <li><code>requires_env</code>, <code>pkce</code></li>
+        <li><code>token_request_auth_method</code></li>
+        <li><code>bind</code> — Bearer is a MUST now</li>
+        <li><code>client: "dynamic"</code> — not a mode, the path</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>New in the manifest</h4>
+      <ul>
+        <li><code>connection.scope</code> — replaces hardcoded index predicates</li>
+        <li><code>events.ingress</code> — verify, dedup, account routing</li>
+        <li><code>events.triggers[]</code> — events + filters + option sources</li>
+        <li><code>events.lifecycle</code> — webhook registration and renewal</li>
+        <li><code>server.module</code> — bundled and remote, one field pair</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="server">
+  <h2><span class="num">03</span> One server module, two callers</h2>
+  <p class="lede">The crux. A plugin's <code>index.mjs</code> stops being "a bundled tool provider" and becomes the plugin's whole server-side implementation — tools for the agent, verification and normalization for the webhook — behind one ABI.</p>
+
+  <h3>Why one ABI is now possible</h3>
+  <p>Today <code>dispatch.ts</code> carries two paths. <code>remoteTarget()</code> builds a URL and headers and speaks JSON-RPC; <code>bundledDispatch()</code> downloads a module, checks its digest, imports it, and calls <code>run({ event: "call-tool", eventBody, config })</code> — a different ABI, with the access token passed inside <code>config</code> instead of a header. Two vocabularies to keep in sync by hand.</p>
+
+  <p>MCP 2026-07-28 removes the session handshake, so a call is a pure function from request to response. That makes "server over HTTP" and "function in this process" the same shape:</p>
+
+  <div class="scroll">
+<pre><code><span class="c-com">// plugins/&lt;name&gt;/src/index.ts — the only entrypoint a plugin needs</span>
+export async function handle(
+  request: JsonRpcRequest,        <span class="c-com">// server/discover | tools/list | tools/call</span>
+  ctx: { headers: Headers },      <span class="c-com">// Authorization: Bearer …  — same as remote</span>
+): Promise&lt;JsonRpcResponse&gt;</code></pre>
+  </div>
+
+  <p>Dispatch collapses to: build the JSON-RPC request, then either <code>fetch</code> it to <code>server.url</code> or hand it to <code>server.module</code>'s <code>handle</code>. The digest pinning, the 8 MB cap, the tmpdir cache and the "manifest <code>ref</code> beats marketplace branch" rule all survive untouched — they are about trusting bytes, not about the protocol.</p>
+
+  <h3>Webhooks are just more tools on the same module</h3>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Tool</th><th>Called by</th><th>When</th><th>Required</th></tr></thead>
+    <tbody>
+      <tr><td><code>list_*</code>, <code>create_*</code>, …</td><td>the agent, via the proxy</td><td>tool call</td><td>—</td></tr>
+      <tr><td><code>superset_normalize_event</code></td><td>ingest</td><td>every delivery</td><td>if <code>events</code> is declared</td></tr>
+      <tr><td><code>superset_verify_delivery</code></td><td>ingress, before anything else</td><td>every delivery</td><td>only if <code>verify.scheme = "tool"</code></td></tr>
+      <tr><td><code>superset_register_delivery</code></td><td>connect flow</td><td>on connect</td><td>only if <code>lifecycle.register</code></td></tr>
+      <tr><td><code>superset_renew_delivery</code></td><td>one shared cron</td><td>per <code>renewEveryHours</code></td><td>only if <code>lifecycle.renewEveryHours</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>These are ordinary MCP tools, called with the same connection and the same credential injection as any other. Three consequences worth stating:</p>
+  <ul>
+    <li><strong>They are never offered to an agent.</strong> Gated behind a capability in <code>server/discover</code>, not a naming convention — the <code>superset_</code> prefix is for humans reading the file.</li>
+    <li><strong>The proxy can enforce it.</strong> <code>Mcp-Name</code> is a header in 2026-07-28, so ingest is allowlisted to exactly these tool names without parsing a body.</li>
+    <li><strong>A remote-MCP plugin can still have webhooks.</strong> If the vendor's hosted server implements these tools, ingest calls them there. If it doesn't — the normal case — the plugin ships a small <code>index.mjs</code> that implements only the <code>superset_*</code> tools and leaves the agent-facing tools to the remote URL. That is the one case where <code>server</code> carries both a <code>url</code> and a <code>module</code>.</li>
+  </ul>
+
+  <div class="callout warn">
+    <span class="tag">One rule on the ingest path</span>
+    <p>MRTR — a tool answering <code>resultType: "input_required"</code> to ask the user something mid-call — is right for agent tool calls and wrong here, where no user is present. Ingest must treat <code>input_required</code> from a <code>superset_*</code> tool as a hard failure, not something to satisfy.</p>
+  </div>
+
+  <h3>What an agent has to write to add an integration</h3>
+  <div class="scroll">
+<pre><code>plugins/acme/
+├── plugin.json          <span class="c-com">// §02 — declaration only</span>
+├── src/index.ts         <span class="c-com">// tools + superset_* handlers</span>
+├── server/index.mjs     <span class="c-com">// built by `superset plugins build`, committed</span>
+└── skills/…/SKILL.md    <span class="c-com">// optional</span>
+
+superset plugins create acme      <span class="c-com">// scaffold</span>
+superset plugins publish acme     <span class="c-com">// bump, rebuild, rewrite generated manifests</span>
+git tag acme@1.0.0                <span class="c-com">// the tag is the release</span></code></pre>
+  </div>
+  <p>No migration, no API route, no <code>packages/shared</code> edit, no enum. That is the whole point of the merge: the thing an agent has to hold in its head to add Asana is one folder and two commands.</p>
+</section>
+
+<section id="triggers">
+  <h2><span class="num">04</span> How triggers work</h2>
+
+  <div class="flow">
+    <div class="step"><b>1 · verify</b>Generic route <code>/api/plugins/:name/events</code>. HMAC per the manifest, or <code>superset_verify_delivery</code>.</div>
+    <div class="step"><b>2 · record + ack</b>Dedup on <code>eventId</code>, store the raw body, answer. Nothing is acknowledged before it is durable, and nothing waits on a tool call to be acknowledged.</div>
+    <div class="step"><b>3 · route</b><code>account</code> JSONPath → the connection whose <code>external_account_id</code> matches.</div>
+    <div class="step"><b>4 · fan out</b>To every consumer subscribed to this plugin. The trigger matcher is <em>one</em> of them — see B5.</div>
+    <div class="step"><b>5 · normalize</b>Trigger consumer only: one stateless MCP call to <code>superset_normalize_event</code> with that connection's token.</div>
+    <div class="step"><b>6 · match → dispatch</b>Each declared filter's scope against <code>attributes[…]</code>, then <code>automation_events</code> → QStash → run.</div>
+  </div>
+
+  <h3>The one contract</h3>
+  <p>Everything typed per-provider today — <code>MatchableEvent</code>, <code>xEventNames()</code>, <code>matchX()</code>, the <code>TriggerConfigInput</code> variant — collapses into what <code>superset_normalize_event</code> returns:</p>
+
+  <div class="scroll">
+<pre><code>{ <span class="c-key">"events"</span>: [ {
+    <span class="c-key">"eventTypes"</span>: [<span class="c-str">"comment.created"</span>, <span class="c-str">"comment.mentioned"</span>],  <span class="c-com">// one delivery, many names</span>
+    <span class="c-key">"externalEventId"</span>: <span class="c-str">"e02c…"</span>,
+    <span class="c-key">"resourceKey"</span>: <span class="c-str">"notion:page_9f2b"</span>,        <span class="c-com">// runs debounce per subject</span>
+    <span class="c-key">"title"</span>: <span class="c-str">"Re: Q4 planning"</span>,
+    <span class="c-key">"url"</span>: <span class="c-str">"https://…"</span>,
+    <span class="c-key">"actor"</span>: { <span class="c-key">"id"</span>: <span class="c-str">"u_44"</span>, <span class="c-key">"label"</span>: <span class="c-str">"Priya"</span>, <span class="c-key">"isExternal"</span>: false },
+    <span class="c-hi"><span class="c-key">"attributes"</span></span>: { <span class="c-key">"teamId"</span>: <span class="c-str">"t_1"</span>, <span class="c-key">"labelIds"</span>: [<span class="c-str">"l_3"</span>], <span class="c-key">"assigneeId"</span>: <span class="c-str">"u_9"</span> },
+    <span class="c-key">"payload"</span>: { <span class="c-str">"…"</span> }                       <span class="c-com">// delivery + fetched context, for the prompt</span>
+} ] }</code></pre>
+  </div>
+
+  <p>Matching becomes one function: for each filter the manifest declares, does the trigger's stored <code>TriggerScope</code> allow <code>attributes[filter.attribute]</code>? The existing <code>scopeAllows</code> semantics carry over verbatim. A filter may only name an attribute the plugin declares it emits — enforced by <code>check:plugins</code> at publish time, which is where the compile-time guarantee goes.</p>
+
+  <h3>Schema changes</h3>
+  <div class="scroll">
+<pre><code><span class="c-key">automation_triggers</span>
+  kind         <span class="c-com">-- now only: schedule | webhook | plugin</span>
+  <span class="c-hi">plugin_name</span>  text    <span class="c-com">-- non-null exactly when kind = 'plugin'</span>
+  <span class="c-hi">event</span>        text    <span class="c-com">-- the manifest trigger's `event`</span>
+  config       jsonb   <span class="c-com">-- { filters: { team: TriggerScope, … } }</span>
+  <span class="c-com">-- dispatcher indexes untouched: (next_run_at) where kind='schedule',</span>
+  <span class="c-com">-- (organization_id, kind). The kind↔config CHECK is replaced.</span>
+
+<span class="c-key">connections</span>  <span class="c-com">-- integration_connections ∪ plugin_connections</span>
+  <span class="c-hi">owner_kind</span>   text   <span class="c-com">-- 'user' | 'org', from manifest connection.scope</span>
+  <span class="c-hi">issuer</span>, <span class="c-hi">resource</span>  <span class="c-com">-- the real OAuth key: two plugins on one server share a row</span>
+  external_account_id, external_account_label, scopes[], config,
+  access_token, refresh_token, token_expires_at, disconnected_at
+  unique (owner_kind, coalesce(organization_id, user_id), issuer, resource,
+          external_account_id) where disconnected_at is null
+
+<span class="c-key">automation_events</span>   provider → plugin_name; integration_connection_id → connection_id;
+                    + attributes jsonb  <span class="c-com">-- re-dispatch without re-normalizing</span>
+<span class="c-key">ingest.webhook_events</span>  provider: integration_provider <span class="c-hi">→ text</span></code></pre>
+  </div>
+  <p><code>schedule</code> and <code>webhook</code> stay first-class kinds — they have no plugin behind them. Every provider kind collapses into <code>plugin</code>, and that is the migration that stops recurring.</p>
+</section>
+
+<section id="gate">
+  <h2><span class="num">05</span> Install, connection, token</h2>
+  <p class="lede">If Slack's app-home and Linear's mirror are consumers of the plugin's pipe (B5), then something has to gate them and something has to give them a credential. Those are two different things, and the second one has a sharp edge.</p>
+
+  <h3>The gate is the connection, not the install</h3>
+  <p><code>plugin_installs</code> is user-scoped — <code>user_id</code> is <code>notNull</code>, <code>organization_id</code> is nullable, and the unique index is on <code>(user_id, marketplace, plugin_name)</code>. An install is what materializes skills and MCP config onto <em>your</em> machines. Slack's app-home and Linear's mirroring are org behaviour. Gate them on an install and one person uninstalling takes down the workspace's Slack app.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th></th><th>Install</th><th>Connection</th></tr></thead>
+    <tbody>
+      <tr><td>Scope</td><td>per user</td><td><code>owner_kind</code>: user or org, from the manifest</td></tr>
+      <tr><td>Governs</td><td>skills on disk, MCP entries in agent configs, the version pin</td><td>whether the product may act as you against that provider</td></tr>
+      <tr><td>Gates a product flow</td><td class="no">no</td><td class="yes">yes</td></tr>
+      <tr><td>Gates agent tools</td><td class="yes">yes</td><td class="yes">yes — both</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>So: <em>Linear mirroring runs for an org that has an active org-scoped Linear connection.</em> Whether anyone in that org installed the plugin on a laptop is unrelated. The single surface a contributor touches is still one directory — that was always about authoring, not about runtime gating.</p>
+
+  <h3>The token has an audience</h3>
+  <p>This is the part that does not come for free. <code>getLinearClient(organizationId)</code> takes a token out of <code>integration_connections</code> and calls <code>api.linear.app/graphql</code>. A token minted through the plugin's flow is bound by RFC 8707 to <code>resource = https://mcp.linear.app/mcp</code>, and 2026-07-28 is explicit in both directions: servers <strong>MUST</strong> validate that a token was issued for them, and clients <strong>MUST NOT</strong> send a token anywhere other than the server its authorization server issued it for. "Take the token from the connected Linear plugin and use it for our own flows" is exactly the thing the spec tightened.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Option</th><th>What it means</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Go through the plugin's tools</td><td>the mirror calls <code>list_issues</code> instead of GraphQL</td><td>Right where the tool surface is good enough. Vendor tools are shaped for agents — prose summaries, agent-sized pages — not for a sync job that wants every issue since a cursor.</td></tr>
+      <tr><td class="yes">Credentials per resource</td><td>one consent, two audiences: <code>mcp.linear.app/mcp</code> and <code>api.linear.app</code>. The manifest declares both; <code>connections</code> is already keyed by <code>(issuer, resource)</code>, so it is a row per resource sharing one grant</td><td>The default. Costs one field in the manifest and nothing in the schema.</td></tr>
+      <tr><td>A separate token for the mirror</td><td>what we do today</td><td>Precisely the thing this proposal exists to delete.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="tag">Do not design on "it happens to work"</span>
+    <p>Whether an authorization server actually rejects a wrong-audience token varies. Linear may well accept an MCP-issued token against GraphQL today; Google's per-API scoping will not be so forgiving, and any vendor can start enforcing without warning because the spec now tells them to. A design that quietly relies on lax audience validation is a design with a deprecation notice on it.</p>
+  </div>
+
+  <h3>Slack: one grant, two tokens, both stored by the plugin</h3>
+  <p>Slack turns out to be the easy case, and it does not need the per-resource machinery above. Its authorize endpoint takes <strong>both</strong> scope sets in one call — <code>scope</code> for the bot, <code>user_scope</code> for the user — and <code>oauth.v2.access</code> returns both tokens in one response. One consent screen, one callback, two credentials.</p>
+
+  <p>Today the plugin asks for user scopes only and posts to <code>oauth.v2.user.access</code>, which by construction returns just the <code>xoxp-</code> token. Point it at <code>oauth.v2.access</code>, add the bot scopes, and the workspace's <code>xoxb-</code> arrives in the same response that the tools token does:</p>
+
+  <div class="scroll">
+<pre><code><span class="c-key">"connection"</span>: [
+  { <span class="c-key">"id"</span>: <span class="c-str">"bot"</span>,  <span class="c-key">"scope"</span>: <span class="c-str">"org"</span>,   <span class="c-key">"authorizeParam"</span>: <span class="c-str">"scope"</span>,
+    <span class="c-key">"scopes"</span>: [<span class="c-str">"app_mentions:read"</span>, <span class="c-str">"chat:write"</span>, <span class="c-str">"links:read"</span>, <span class="c-str">"links:write"</span>, <span class="c-str">"…"</span>],
+    <span class="c-key">"token"</span>: <span class="c-str">"$.access_token"</span>,
+    <span class="c-key">"identity"</span>: { <span class="c-key">"id"</span>: <span class="c-str">"$.team.id"</span>, <span class="c-key">"label"</span>: <span class="c-str">"$.team.name"</span> } },
+
+  { <span class="c-key">"id"</span>: <span class="c-str">"user"</span>, <span class="c-key">"scope"</span>: <span class="c-str">"user"</span>,  <span class="c-key">"authorizeParam"</span>: <span class="c-str">"user_scope"</span>,
+    <span class="c-key">"scopes"</span>: [<span class="c-str">"channels:history"</span>, <span class="c-str">"search:read"</span>, <span class="c-str">"chat:write"</span>, <span class="c-str">"…"</span>],
+    <span class="c-key">"token"</span>: <span class="c-str">"$.authed_user.access_token"</span>,
+    <span class="c-key">"identity"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"auth_test"</span>, <span class="c-key">"id"</span>: <span class="c-str">"$.user_id"</span> } }
+]
+<span class="c-com">// one authorize: ?scope=…&user_scope=…   → one POST oauth.v2.access → two rows</span></code></pre>
+  </div>
+
+  <p><strong>Two rows, not one blob.</strong> The bot credential belongs to the workspace and the user credential to the person, and their lifecycles differ: someone leaving should invalidate their <code>xoxp-</code> and leave the workspace's <code>xoxb-</code> alone; one bot row per team, N user rows. Both carry the same <code>external_account_id</code> (the team id) so they are obviously one grant, and the second person to connect reuses the bot row and adds only their own. If Slack token rotation is enabled both get refresh tokens and 12-hour expiries, which the per-row columns already handle.</p>
+
+  <div class="callout">
+    <span class="tag">Why Slack dodges B2 entirely</span>
+    <p>The Slack plugin has no <code>mcp</code> block — it is a bundled module calling <code>slack.com/api</code> directly. So there is no vendor-hosted MCP server and therefore no second audience: the same <code>xoxb-</code> that <code>process-app-home-opened</code> uses is the one the plugin's tools use. The audience problem in B2 only bites where we use a vendor's hosted MCP server <em>and</em> call that vendor's own API — Linear and Notion, not Slack or Gmail. Which is a decent tiebreaker when choosing between a hosted server and a bundled module for a provider we also drive from product code.</p>
+  </div>
+
+  <h3>One governance note</h3>
+  <p>If product behaviour depends on a plugin, then publishing a plugin changes product behaviour. A first-party plugin that backs a product flow should be pinned by the API to a known tag, not by whatever version a given account's install happens to point at. Otherwise <code>superset plugins publish linear --bump patch</code> is a production deploy wearing a different hat.</p>
+</section>
+
+<section id="blockers">
+  <h2><span class="num">06</span> Major blockers</h2>
+  <p class="lede">Ranked by how likely they are to stop the change, not by how hard they are to type.</p>
+
+  <div class="rank">
+    <div class="n">B1</div>
+    <div class="body">
+      <b>Webhook registration and renewal is stateful, per connection</b>
+      <p>Linear uses one app-level webhook and <code>LINEAR_WEBHOOK_SECRET</code>; Notion and Google register per workspace or per mailbox, and Google's watches <em>expire</em> — hence <code>jobs/renew-watches</code>. A manifest cannot express that, so it needs <code>events.lifecycle</code> plus <code>superset_register_delivery</code> / <code>superset_renew_delivery</code> on the module, driven by one shared cron. This is the single largest piece of new machinery in the proposal and the part most likely to be got wrong quietly — a watch that silently stops renewing looks exactly like a quiet integration.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B2</div>
+    <div class="body">
+      <b>An MCP-issued token may not work against the vendor's own API</b>
+      <p>The premise of reusing one connection for product flows — Linear mirroring, Slack unfurls — is that the token is usable for both. It is audience-bound: minted for <code>resource = https://mcp.linear.app/mcp</code>, while <code>getLinearClient()</code> calls <code>api.linear.app/graphql</code>. 2026-07-28 says servers MUST check they are the audience and clients MUST NOT send a token elsewhere. Fix is credentials-per-resource on one grant (§05), which is cheap — but it has to be designed in, not discovered when a vendor starts enforcing.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B3</div>
+    <div class="body">
+      <b>A normalizer is untrusted code on the dispatch path holding a user's token</b>
+      <p>It runs in-process in the API, with a credential, returning data that decides which automations fire. First-party only until it is sandboxed. <code>trustedManifest(marketplace)</code> already exists and already gates identity probes — extend it so an untrusted marketplace may ship <code>server</code> and <code>skills</code> but not <code>events</code>. Consequence worth accepting out loud: the contribution-surface win is immediate for us and only eventual for outside contributors.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B4</div>
+    <div class="body">
+      <b>Matching loses its compile-time guarantee</b>
+      <p><code>_EveryKindHasEnumValue</code> currently makes enum drift a type error, and each provider's trigger config is a typed zod variant. Under <code>attributes</code> the guarantee moves to <code>check:plugins</code>: every filter must name a declared attribute, every declared attribute must be emitted. Weaker, and the main thing to argue about. Mitigation: the plugin declares its attribute set in the manifest and the CI check diffs it against a recorded fixture per event type.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B5</div>
+    <div class="body">
+      <b>Merging connections means backfilling <code>issuer</code> and <code>resource</code> that were never recorded</b>
+      <p>Existing <code>integration_connections</code> rows predate both fields. Inferring them from the provider is correct for the seven current providers and is exactly the kind of shortcut that outlives its excuse. Also: <code>ingest.webhook_events.provider</code> is a pgEnum on a large table with a <code>(provider, event_id)</code> unique index — the type change is routine but not free.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B6</div>
+    <div class="body">
+      <b>One delivery has three consumers, and only one of them is triggers</b>
+      <p>Slack's app-home, mentions, interactions and link-unfurling are a second thing entirely: Superset <em>as a Slack app</em>, answering back into the product rather than starting an automation. Linear's task mirroring, initial sync and sweeps are a third: keeping our own <code>tasks</code> table in step with theirs. Neither belongs in a plugin.</p>
+      <p>But "so handle Slack separately" is the wrong cut, because it leaves the duplication where it actually is. <code>slack/events</code>, <code>slack/interactions</code>, <code>slack/link</code> and the trigger route each verify a signature, resolve a connection and dedup a delivery — four times, per provider. <strong>The fix is that <code>events.ingress</code> does not belong to triggers.</strong> One pipe verifies, resolves the connection and stores once, then fans out to consumers; the trigger matcher is one subscriber, Slack's app-home handler is another, Linear's mirror is a third. The handlers stay exactly where they are in <code>apps/api</code> and stop owning routes.</p>
+      <p>Two constraints that fall out of it. Slack wants an ack in about three seconds, so the acknowledgement happens after verify-and-store and <em>before</em> any MCP call — which is why normalization sits behind the fan-out rather than in front of it. And normalization is per-consumer, not global: the interactive path wants the raw payload, only the trigger consumer wants <code>attributes</code>. Keep the routes separate instead and the merge half-lands — two verifiers, two connection lookups, two dedup stores, and a Slack signing secret that has to be understood in two places. What gates each consumer, and where it gets a credential, is §05.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B7</div>
+    <div class="body">
+      <b>Secrets that belong to the app, not the connection</b>
+      <p><code>verify.secret</code> has to be able to name an env var (Linear, Slack) as well as a connection field (Notion, Acme). Env vars in this repo mean the five-places problem in <code>docs/environment-variables.md</code>, and a plugin naming an env var the API has never heard of must fail at publish, not at first delivery.</p>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="n">B8</div>
+    <div class="body">
+      <b>An extra hop in the delivery path</b>
+      <p>Normalization becomes an MCP call. Store-then-process ordering already holds, so failures are retryable rather than lost — but delivery-to-run latency now includes a tool call, and a slow provider becomes a slow trigger. Needs a timeout, a retry budget, and a dead-letter that is visible.</p>
+    </div>
+  </div>
+</section>
+
+<section id="examples">
+  <h2><span class="num">07</span> Two worked examples</h2>
+  <p class="lede">Between them they exercise everything: remote MCP and bundled module, spec-compliant OAuth and legacy OAuth, HMAC ingress and tool-verified ingress, filters with remote option sources.</p>
+
+  <h3>Linear — remote MCP server, discovered OAuth, HMAC webhook</h3>
+  <div class="scroll">
+<pre><code>{
+  <span class="c-key">"name"</span>: <span class="c-str">"linear"</span>, <span class="c-key">"version"</span>: <span class="c-str">"2.0.0"</span>, <span class="c-key">"license"</span>: <span class="c-str">"MIT"</span>,
+  <span class="c-key">"description"</span>: <span class="c-str">"Plan and build products: create, search and update Linear issues."</span>,
+  <span class="c-key">"extensions"</span>: { <span class="c-key">"sh.superset"</span>: {
+
+    <span class="c-key">"interface"</span>: { <span class="c-key">"displayName"</span>: <span class="c-str">"Linear"</span>, <span class="c-key">"category"</span>: <span class="c-str">"Productivity"</span>, <span class="c-key">"icon"</span>: <span class="c-str">"linear"</span> },
+
+    <span class="c-key">"server"</span>: {
+      <span class="c-key">"url"</span>: <span class="c-str">"https://mcp.linear.app/mcp"</span>,      <span class="c-com">// agent-facing tools: theirs</span>
+      <span class="c-key">"module"</span>: <span class="c-str">"server/index.mjs"</span>            <span class="c-com">// superset_* tools: ours</span>
+    },
+
+    <span class="c-key">"connection"</span>: {
+      <span class="c-key">"scope"</span>: <span class="c-str">"org"</span>,
+      <span class="c-key">"identity"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"get_viewer"</span>,
+                     <span class="c-key">"id"</span>: <span class="c-str">"$.organization.id"</span>, <span class="c-key">"label"</span>: <span class="c-str">"$.organization.name"</span> }
+      <span class="c-com">// mcp.linear.app advertises PRM + CIMD, so nothing else is needed.</span>
+      <span class="c-com">// PLUGIN_LINEAR_CLIENT_ID / _SECRET stay deleted.</span>
+    },
+
+    <span class="c-key">"events"</span>: {
+      <span class="c-key">"ingress"</span>: {
+        <span class="c-key">"path"</span>: <span class="c-str">"linear"</span>,
+        <span class="c-key">"verify"</span>: { <span class="c-key">"scheme"</span>: <span class="c-str">"hmac-sha256"</span>, <span class="c-key">"header"</span>: <span class="c-str">"linear-signature"</span>,
+                    <span class="c-key">"over"</span>: <span class="c-str">"{body}"</span>, <span class="c-key">"secret"</span>: <span class="c-str">"env.LINEAR_WEBHOOK_SECRET"</span>,
+                    <span class="c-key">"replayWindowSeconds"</span>: 60 },
+        <span class="c-key">"eventId"</span>: <span class="c-str">"$.webhookId"</span>,
+        <span class="c-key">"account"</span>: <span class="c-str">"$.organizationId"</span>
+      },
+      <span class="c-com">// app-level webhook configured once in Linear's dashboard — no lifecycle block</span>
+
+      <span class="c-key">"triggers"</span>: [
+        { <span class="c-key">"event"</span>: <span class="c-str">"issue.status_changed"</span>, <span class="c-key">"title"</span>: <span class="c-str">"Issue moved to a status"</span>,
+          <span class="c-key">"filters"</span>: [
+            { <span class="c-key">"name"</span>: <span class="c-str">"teams"</span>,    <span class="c-key">"attribute"</span>: <span class="c-str">"teamId"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_teams"</span> } },
+            { <span class="c-key">"name"</span>: <span class="c-str">"projects"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"projectId"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_projects"</span> } },
+            { <span class="c-key">"name"</span>: <span class="c-str">"labels"</span>,   <span class="c-key">"attribute"</span>: <span class="c-str">"labelIds"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_labels"</span> } },
+            { <span class="c-key">"name"</span>: <span class="c-str">"toStatus"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"toStateId"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_workflow_states"</span> } },
+            { <span class="c-key">"name"</span>: <span class="c-str">"assignee"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"assigneeId"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_users"</span> } }
+          ] },
+        { <span class="c-key">"event"</span>: <span class="c-str">"comment.created"</span>, <span class="c-key">"title"</span>: <span class="c-str">"Comment on an issue"</span>,
+          <span class="c-key">"filters"</span>: [ { <span class="c-key">"name"</span>: <span class="c-str">"teams"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"teamId"</span>,
+                         <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_teams"</span> } } ] }
+      ]
+    }
+  } }
+}</code></pre>
+  </div>
+  <p>That block replaces: the <code>linear</code> pgEnum values, <code>linearTriggerConfigSchema</code>, <code>LinearMatchableEvent</code> + <code>matchLinear()</code>, the <code>connect</code>/<code>callback</code> pair, and the <code>INTEGRATIONS</code> entry. It does <strong>not</strong> replace <code>jobs/process-delivery</code>, <code>jobs/initial-sync</code> or <code>jobs/sweep-abandoned</code> — that is task mirroring, which is not a trigger (B5). The Hookdeck path in front of the route stays; it is ingress plumbing, not per-provider logic.</p>
+
+  <h3>Gmail — bundled module, legacy OAuth, Pub/Sub ingress</h3>
+  <div class="scroll">
+<pre><code>{
+  <span class="c-key">"name"</span>: <span class="c-str">"gmail"</span>, <span class="c-key">"version"</span>: <span class="c-str">"2.0.0"</span>, <span class="c-key">"license"</span>: <span class="c-str">"MIT"</span>,
+  <span class="c-key">"extensions"</span>: { <span class="c-key">"sh.superset"</span>: {
+
+    <span class="c-key">"interface"</span>: { <span class="c-key">"displayName"</span>: <span class="c-str">"Gmail"</span>, <span class="c-key">"category"</span>: <span class="c-str">"Communication"</span>, <span class="c-key">"icon"</span>: <span class="c-str">"gmail"</span> },
+
+    <span class="c-key">"server"</span>: { <span class="c-key">"module"</span>: <span class="c-str">"server/index.mjs"</span> },   <span class="c-com">// integrity + ref added by publish</span>
+
+    <span class="c-key">"connection"</span>: {
+      <span class="c-key">"scope"</span>: <span class="c-str">"user"</span>,                            <span class="c-com">// a mailbox is one person's</span>
+      <span class="c-key">"identity"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"get_profile"</span>, <span class="c-key">"id"</span>: <span class="c-str">"$.emailAddress"</span> },
+
+      <span class="c-com">// accounts.google.com implements neither PRM nor CIMD — the</span>
+      <span class="c-com">// documented exception, and check:plugins warns if a server that</span>
+      <span class="c-com">// DOES advertise PRM still ships one of these.</span>
+      <span class="c-key">"legacyOauth"</span>: {
+        <span class="c-key">"issuer"</span>: <span class="c-str">"https://accounts.google.com"</span>,
+        <span class="c-key">"requiresEnv"</span>: [<span class="c-str">"PLUGIN_GOOGLE_CLIENT_ID"</span>, <span class="c-str">"PLUGIN_GOOGLE_CLIENT_SECRET"</span>],
+        <span class="c-key">"scopes"</span>: [<span class="c-str">"https://www.googleapis.com/auth/gmail.modify"</span>, <span class="c-str">"…"</span>],
+        <span class="c-key">"authorizationParams"</span>: { <span class="c-key">"access_type"</span>: <span class="c-str">"offline"</span>, <span class="c-key">"prompt"</span>: <span class="c-str">"consent"</span> }
+      }
+    },
+
+    <span class="c-key">"events"</span>: {
+      <span class="c-key">"ingress"</span>: {
+        <span class="c-key">"path"</span>: <span class="c-str">"gmail"</span>,
+        <span class="c-com">// Pub/Sub push: a Google-signed JWT against a rotating JWKS, not an</span>
+        <span class="c-com">// HMAC over the body. Declarative verification cannot express it.</span>
+        <span class="c-key">"verify"</span>: { <span class="c-key">"scheme"</span>: <span class="c-str">"tool"</span> },
+        <span class="c-key">"eventId"</span>: <span class="c-str">"$.message.messageId"</span>,
+        <span class="c-key">"account"</span>: <span class="c-str">"$.message.attributes.emailAddress"</span>
+      },
+      <span class="c-com">// watches expire after 7 days; this is what replaces jobs/renew-watches</span>
+      <span class="c-key">"lifecycle"</span>: { <span class="c-key">"register"</span>: <span class="c-str">true</span>, <span class="c-key">"renewEveryHours"</span>: 144 },
+
+      <span class="c-key">"triggers"</span>: [
+        { <span class="c-key">"event"</span>: <span class="c-str">"message.received"</span>, <span class="c-key">"title"</span>: <span class="c-str">"New mail arrives"</span>,
+          <span class="c-key">"filters"</span>: [
+            { <span class="c-key">"name"</span>: <span class="c-str">"labels"</span>, <span class="c-key">"attribute"</span>: <span class="c-str">"labelIds"</span>,
+              <span class="c-key">"options"</span>: { <span class="c-key">"tool"</span>: <span class="c-str">"list_labels"</span> } },
+            { <span class="c-key">"name"</span>: <span class="c-str">"from"</span>,   <span class="c-key">"attribute"</span>: <span class="c-str">"fromAddress"</span>, <span class="c-key">"free"</span>: <span class="c-str">true</span> }
+          ] }
+      ]
+    }
+  } }
+}</code></pre>
+  </div>
+
+  <div class="scroll">
+<pre><code><span class="c-com">// plugins/gmail/src/index.ts — one module, both callers</span>
+export async function handle(request, ctx) {
+  const token = bearer(ctx.headers);              <span class="c-com">// same injection as remote</span>
+
+  switch (request.method) {
+    case <span class="c-str">"server/discover"</span>:
+      return ok({ capabilities: { tools: {},
+        extensions: { <span class="c-str">"sh.superset/events"</span>: {} } } });   <span class="c-com">// how ingest knows</span>
+
+    case <span class="c-str">"tools/list"</span>:
+      <span class="c-com">// superset_* tools are filtered out unless the caller is ingest</span>
+      return ok({ tools: agentTools(ctx), ttlMs: 3_600_000 });
+
+    case <span class="c-str">"tools/call"</span>: {
+      const { name, arguments: args } = request.params;
+      switch (name) {
+        <span class="c-hi">case <span class="c-str">"superset_verify_delivery"</span>:</span>
+          return ok(await verifyPubSubJwt(args.headers, args.body));
+
+        <span class="c-hi">case <span class="c-str">"superset_normalize_event"</span>:</span> {
+          <span class="c-com">// the historyId means nothing without a history walk — the same</span>
+          <span class="c-com">// walk apps/api/.../google/lib/syncMailbox.ts does today</span>
+          const msgs = await historySince(token, args.body.historyId);
+          return ok({ events: msgs.map(toNormalizedEvent) });
+        }
+
+        <span class="c-hi">case <span class="c-str">"superset_register_delivery"</span>:</span>
+          return ok(await users.watch(token, { topicName: args.topic }));
+        <span class="c-hi">case <span class="c-str">"superset_renew_delivery"</span>:</span>
+          return ok(await users.watch(token, { topicName: args.topic }));
+
+        default:
+          return ok(await callTool(name, args, token));   <span class="c-com">// today's handlers, unchanged</span>
+      }
+    }
+  }
+}</code></pre>
+  </div>
+
+  <p>Two things fall out of this that are worth more than the tidiness. <code>apps/api/.../google/lib/syncMailbox.ts</code> and the plugin's own history handler stop being two implementations of one walk, versioned separately, with the webhook copy invisible to <code>superset plugins publish</code>. And <code>jobs/renew-watches</code> stops being Google-specific: one cron walks every connection whose plugin declares <code>renewEveryHours</code> and calls its renew tool.</p>
+</section>
+
+<section id="phases">
+  <h2><span class="num">08</span> Phasing</h2>
+  <div class="cols">
+    <div class="card">
+      <h4>1 · connections</h4>
+      <p>Create <code>connections</code>, backfill both tables into it, leave <code>integration_connections</code> as a view. Fixes the double-connect and gives one revoke. Nothing else changes.</p>
+    </div>
+    <div class="card">
+      <h4>2 · one server ABI</h4>
+      <p>Stateless dispatch with the <code>initialize</code> fallback retained; bundled modules move to <code>handle()</code>. Pure refactor of the tools plane — no schema, no manifest change.</p>
+    </div>
+    <div class="card">
+      <h4>3 · discovery-first auth</h4>
+      <p>PRM becomes the default, the static block becomes <code>legacyOauth</code>. Fold in the open OAuth review findings, and add the RFC 9207 <code>iss</code> check the callback is missing today.</p>
+    </div>
+    <div class="card">
+      <h4>4 · events</h4>
+      <p>Generic ingress, generic matcher, <code>attributes</code>, lifecycle cron. Port <strong>one</strong> provider behind a flag with the old path still live, and compare matches on real deliveries before porting the rest.</p>
+    </div>
+  </div>
+  <p>Phases 1 and 2 are worth doing whichever way 3 and 4 go. Phase 4 is the one that can silently stop firing someone's automation, which is why it ports one provider first and compares rather than cutting over.</p>
+</section>
+
+<footer>
+  <p>Protocol claims are against MCP specification 2026-07-28 (authorization, base protocol, extensions), SEP-2575 (stateless MCP), and Agent Plugins 1.0. Repo references are to <code>integration-plugins</code> at the time of writing.</p>
+</footer>
+
+</div>

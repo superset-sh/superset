@@ -9,6 +9,7 @@ import {
 	BoxIcon,
 	ChartNoAxesColumnIcon,
 	CircleDashedIcon,
+	CpuIcon,
 	DatabaseIcon,
 	FileCode2Icon,
 	FilePlus2Icon,
@@ -21,7 +22,6 @@ import {
 	PaperclipIcon,
 	ServerIcon,
 	ShieldCheckIcon,
-	SparklesIcon,
 	SplitIcon,
 	ZapIcon,
 } from "lucide-react";
@@ -399,7 +399,7 @@ function DemoToolbar({
 				type="button"
 				className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
-				<SparklesIcon className="size-4" />
+				<CpuIcon className="size-4" />
 				{model}
 			</button>
 			<button

@@ -16,7 +16,25 @@ export interface ShapedComment {
 	authorUserId: string | null;
 	authorName: string;
 	authorImage: string | null;
+	agentLabel: string | null;
 	createdAt: Date;
+}
+
+/**
+ * An agent writes under the credential of the person whose session it is, so
+ * author_user_id — and every name joined from it — is that person. The agent's
+ * own identity is only in the session id: `mcp:<label>` for MCP, which the
+ * server sets, and whatever a CLI agent claimed otherwise.
+ */
+export function agentLabelFor(
+	comment: Pick<SelectPageComment, "authorKind" | "agentSessionId">,
+): string | null {
+	if (comment.authorKind !== "agent") return null;
+	const session = comment.agentSessionId ?? "";
+	if (!session.startsWith("mcp:")) return "Agent";
+	const label = session.slice("mcp:".length).trim();
+	if (!label || label === "unknown") return "Agent";
+	return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export interface ShapedThread {
@@ -43,6 +61,7 @@ export function shapeComment(
 		authorUserId: comment.authorUserId,
 		authorName: author.name ?? "Unknown",
 		authorImage: author.image ?? null,
+		agentLabel: agentLabelFor(comment),
 		createdAt: comment.createdAt,
 	};
 }

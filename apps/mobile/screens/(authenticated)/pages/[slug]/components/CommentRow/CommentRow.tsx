@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { ServerThread } from "@superset/cloud-client";
 import { formatDate } from "@superset/i18n/format";
 import { getInitials } from "@superset/shared/names";
+import { commentAuthor } from "@superset/shared/page-comments";
 import { Bot } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -12,15 +13,18 @@ type Comment = ServerThread["comments"][number];
 export function CommentRow({
 	comment,
 	onReply,
+	onToggleResolved,
+	resolved = false,
 	indented = false,
 }: {
 	comment: Comment;
 	onReply?: () => void;
+	onToggleResolved?: () => void;
+	resolved?: boolean;
 	indented?: boolean;
 }) {
 	const { t } = useLingui();
-	const isAgent = comment.authorKind === "agent";
-	const name = comment.authorName ?? "";
+	const { name, isAgent } = commentAuthor(comment);
 
 	return (
 		<View
@@ -48,17 +52,35 @@ export function CommentRow({
 					</Text>
 				</View>
 				<Text className="text-[15px] leading-5">{comment.body}</Text>
-				{onReply ? (
-					<Pressable
-						accessibilityRole="button"
-						onPress={onReply}
-						hitSlop={8}
-						className="self-start pt-0.5 active:opacity-60"
-					>
-						<Text className="text-muted-foreground text-xs font-medium">
-							{t({ message: "Reply" })}
-						</Text>
-					</Pressable>
+				{onReply || onToggleResolved ? (
+					<View className="flex-row items-center gap-4 pt-0.5">
+						{onReply ? (
+							<Pressable
+								accessibilityRole="button"
+								onPress={onReply}
+								hitSlop={8}
+								className="active:opacity-60"
+							>
+								<Text className="text-muted-foreground text-xs font-medium">
+									{t({ message: "Reply" })}
+								</Text>
+							</Pressable>
+						) : null}
+						{onToggleResolved ? (
+							<Pressable
+								accessibilityRole="button"
+								onPress={onToggleResolved}
+								hitSlop={8}
+								className="active:opacity-60"
+							>
+								<Text className="text-muted-foreground text-xs font-medium">
+									{resolved
+										? t({ message: "Reopen" })
+										: t({ message: "Resolve" })}
+								</Text>
+							</Pressable>
+						) : null}
+					</View>
 				) : null}
 			</View>
 		</View>

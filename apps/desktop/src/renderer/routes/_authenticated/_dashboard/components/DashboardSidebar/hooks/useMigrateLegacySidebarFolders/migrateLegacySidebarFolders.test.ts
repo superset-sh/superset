@@ -205,21 +205,47 @@ describe("migrateLegacySidebarFolders", () => {
 		expect(h.deleted).toEqual([LEGACY_ID]);
 	});
 
-	it("skips a stale member whose workspace no host serves and still converts", async () => {
+	it("defers missing members and migrates them when their host returns", async () => {
 		const h = makeHarness({
 			sections: [makeLegacySection()],
 			localRows: [
 				{ workspaceId: "w1", sectionId: LEGACY_ID, isVisible: true },
-				// Points at a deleted workspace: no host row anywhere. Must not
-				// hold the folder legacy forever.
-				{ workspaceId: "w-dead", sectionId: LEGACY_ID, isVisible: true },
+				{ workspaceId: "w-missing", sectionId: LEGACY_ID, isVisible: true },
 			],
 			hostRows: [{ id: "w1", tags: [], hostReachable: true }],
 		});
+		const parked = new Set<string>();
+		const result = await migrateLegacySidebarFolders(h.io, parked);
+		expect(result.deferred).toEqual([LEGACY_ID]);
+		expect(result.converted).toEqual([]);
+		expect(h.writes).toEqual([]);
+		expect(h.inserted).toEqual([]);
+		expect(h.deleted).toEqual([]);
+		expect(h.cleared).toEqual([]);
+		expect(parked.size).toBe(0);
+
+		h.io.hostRowsById = new Map([
+			...h.io.hostRowsById,
+			[
+				"w-missing",
+				{ id: "w-missing", projectId: PROJECT, tags: [], hostReachable: true },
+			],
+		]);
+		const retry = await migrateLegacySidebarFolders(h.io, parked);
+		expect(retry.converted).toEqual([LEGACY_ID]);
+		expect(h.writes.map((w) => w.workspaceId)).toEqual(["w1", "w-missing"]);
+		expect(h.cleared.map((c) => c.workspaceId)).toEqual(["w1", "w-missing"]);
+	});
+
+	it("does not treat a folder with only missing members as empty", async () => {
+		const h = makeHarness({
+			sections: [makeLegacySection()],
+			localRows: [{ workspaceId: "w1", sectionId: LEGACY_ID, isVisible: true }],
+		});
 		const result = await migrateLegacySidebarFolders(h.io, new Set());
-		expect(result.converted).toEqual([LEGACY_ID]);
-		expect(h.writes.map((w) => w.workspaceId)).toEqual(["w1"]);
-		expect(h.cleared.map((c) => c.workspaceId)).toEqual(["w1"]);
+		expect(result.deferred).toEqual([LEGACY_ID]);
+		expect(h.deleted).toEqual([]);
+		expect(h.inserted).toEqual([]);
 	});
 
 	it("a partial earlier run's tag is reused on retry, not suffixed", async () => {

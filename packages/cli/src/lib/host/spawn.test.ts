@@ -29,6 +29,9 @@ const spawnCalls: Array<{
 	options: SpawnOptions;
 }> = [];
 
+type ExitListener = (code: number | null, signal: string | null) => void;
+const exitListeners: ExitListener[] = [];
+
 const spawnMock = mock(
 	(command: string, args: string[], options: SpawnOptions) => {
 		spawnCalls.push({ command, args, options });
@@ -36,6 +39,9 @@ const spawnMock = mock(
 			pid: 12345,
 			kill: mock(() => undefined),
 			unref: mock(() => undefined),
+			once: (event: string, listener: ExitListener) => {
+				if (event === "exit") exitListeners.push(listener);
+			},
 		};
 	},
 );
@@ -46,7 +52,7 @@ mock.module("node:child_process", () => ({
 }));
 
 const { SUPERSET_CONFIG_PATH } = await import("../config");
-const { spawnHostService } = await import("./spawn");
+const { describeHostExit, spawnHostService } = await import("./spawn");
 
 function createApi(): ApiClient {
 	return {
@@ -60,6 +66,7 @@ function createApi(): ApiClient {
 
 afterEach(() => {
 	spawnCalls.length = 0;
+	exitListeners.length = 0;
 	spawnMock.mockClear();
 	globalThis.fetch = originalFetch;
 });
@@ -134,5 +141,32 @@ describe("spawnHostService", () => {
 			SUPERSET_CONFIG_PATH,
 		);
 		expect(spawnCalls[0]?.options.env?.AUTH_TOKEN).toBe("session-token");
+	});
+
+	test("reports the host process exit so the caller can stop supervising nothing", async () => {
+		globalThis.fetch = mock(
+			async () => new Response("ok", { status: 200 }),
+		) as unknown as typeof fetch;
+
+		const { exited } = await spawnHostService({
+			organizationId: "00000000-0000-0000-0000-000000000001",
+			sessionToken: "session-token",
+			api: createApi(),
+			port: 54879,
+			daemon: false,
+		});
+
+		let settled = false;
+		void exited.then(() => {
+			settled = true;
+		});
+		await Promise.resolve();
+		expect(settled).toBe(false);
+
+		for (const listener of exitListeners) listener(null, "SIGSEGV");
+		const exit = await exited;
+		expect(exit).toEqual({ code: null, signal: "SIGSEGV" });
+		expect(describeHostExit(exit)).toBe("killed by SIGSEGV");
+		expect(describeHostExit({ code: 3, signal: null })).toBe("exit code 3");
 	});
 });

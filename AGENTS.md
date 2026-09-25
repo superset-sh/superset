@@ -2,7 +2,9 @@
 
 Superset is an agent-first development platform, with an Electron desktop IDE, Next.js web apps, and an Expo mobile app as the main customer-facing surfaces. It's a Turborepo monorepo, deployed apps are in apps/ and supporting packages are in packages/, and we use tRPC for the api.
 
-You're working inside a Superset workspace, an isolated git-worktree copy of this repo. "Workspace" in a user message means that, not an editor workspace.
+You're working inside a Superset workspace, an isolated checkout of this repo — a git worktree on a
+machine someone owns, a plain clone at `/workspace` in a cloud workspace. "Workspace" in a user
+message means that, not an editor workspace.
 
 ## Project Structure
 
@@ -81,7 +83,7 @@ The `src/components/ui/` and `src/components/ai-elements` directories contain sh
 ## Database
 
 Drizzle ORM, schema in `packages/db/src/`. Follow `.agents/skills/db-migrations/SKILL.md` to generate
-migrations. Never hand-edit `packages/db/drizzle/` (SQL, `meta/_journal.json`, snapshots) without
+migrations and to clear its production safety checklist before opening the PR. Never hand-edit `packages/db/drizzle/` (SQL, `meta/_journal.json`, snapshots) without
 explicit user confirmation, and never apply migrations against a shared or production database.
 
 ## Releases
@@ -92,8 +94,11 @@ Desktop, host-service, and cli share one version; cut releases on a dedicated br
 
 ## Plugins
 
-First-party plugins live in `plugins/<name>/`: a `plugin.json` manifest, `skills/`, and optionally
-an MCP server. A release is the git tag `<name>@<version>` on this repo — that tree is what a host
+First-party plugins live in `plugins/<name>/`: a `plugin.json` manifest and `skills/`. A plugin
+ships no code — agents reach its tools through `/mcp/plugins/<marketplace>/<plugin>` on the API,
+which proxies to the vendor's MCP server or, for the plugins named in the `SUPERSET_HOSTED_PLUGINS` constant,
+serves them from `packages/trpc/src/router/plugins/servers/`. A release is the git tag
+`<name>@<version>` on this repo — that tree is what a host
 downloads — and `packages/shared/src/plugins/manifests.generated.ts` is the bundle the API resolves
 against, which is generated and must never be hand-edited. Change the source, then
 `superset plugins publish <name> --bump patch`, which rewrites the marketplace entry in
@@ -186,13 +191,15 @@ in the commit message and the PR.
 
 ## Further reading
 
-- `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
-  `SKILL.md` when a task fits its description.
+- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, ticket
+  format, and more. Read the matching `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
 - `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
   contract, the credential proxy, and which files are generated.
 - `docs/environment-variables.md`: read before adding an environment variable. Five places,
   and missing one fails silently.
+- `docs/deploy-workflows.md`: read before writing or testing a deploy workflow step. `run:` has
+  no `pipefail` by default, and production secrets exist only in GitHub.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the

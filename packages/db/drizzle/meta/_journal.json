@@ -834,6 +834,69 @@
       "when": 1789546826052,
       "tag": "0118_slack_thread_stop_requested",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1789625882184,
+      "tag": "0119_plugin_oauth_clients_and_connectors",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1790142341751,
+      "tag": "0120_pages_created_at_keyset_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1790179236474,
+      "tag": "0121_page_watch_ownership",
+      "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1790229159510,
+      "tag": "0122_webhook_events_swap_to_short_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1790234140420,
+      "tag": "0123_cloud_workspaces_reset_for_base_branch",
+      "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1790234141135,
+      "tag": "0124_cloud_workspaces_base_branch",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1790237352260,
+      "tag": "0125_automation_events_swap_to_short_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1790289704277,
+      "tag": "0126_cloud_workspaces_agent_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1790361707624,
+      "tag": "0127_environments_region",
+      "breakpoints": true
     }
   ]
 }

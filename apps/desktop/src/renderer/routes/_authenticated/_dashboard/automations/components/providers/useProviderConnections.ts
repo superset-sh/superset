@@ -19,6 +19,8 @@ const POLL_MS = 10_000;
  */
 export function useProviderConnections(organizationId: string): {
 	connected: Record<string, boolean>;
+	/** Connected once, but the refresh failed: the fix is Reconnect, not Connect. */
+	needsReauth: Record<string, boolean>;
 	isPending: boolean;
 } {
 	const query = cloudTrpc.integration.connectionStatus.useQuery(
@@ -34,8 +36,13 @@ export function useProviderConnections(organizationId: string): {
 		},
 	);
 
-	return useMemo(
-		() => ({ connected: query.data ?? {}, isPending: query.isPending }),
-		[query.data, query.isPending],
-	);
+	return useMemo(() => {
+		const connected: Record<string, boolean> = {};
+		const needsReauth: Record<string, boolean> = {};
+		for (const [provider, state] of Object.entries(query.data ?? {})) {
+			connected[provider] = state.connected;
+			needsReauth[provider] = state.needsReauth;
+		}
+		return { connected, needsReauth, isPending: query.isPending };
+	}, [query.data, query.isPending]);
 }

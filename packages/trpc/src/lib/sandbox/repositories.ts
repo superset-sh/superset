@@ -31,9 +31,30 @@ export type RepositoryRow = typeof githubRepositories.$inferSelect;
 
 export interface WorkspaceRepository {
 	repository: RepositoryRow;
+	/** The branch the checkout works on, cut from `baseBranch`. */
 	branch: string;
+	/** The remote branch it is cut from, and what a pull request targets. */
+	baseBranch: string;
 	path: string;
 	hooks: boolean;
+}
+
+/**
+ * The branch a cloud workspace works on. Namespaced so it is obvious on the
+ * remote who opened it, and suffixed with the workspace id because two
+ * workspaces may carry the same name.
+ */
+export function workspaceBranchName(workspace: {
+	id: string;
+	name: string;
+}): string {
+	const slug = workspace.name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 40)
+		.replace(/-+$/g, "");
+	return `superset/${slug || "workspace"}-${workspace.id.slice(0, 8)}`;
 }
 
 /** Repositories by id, in the order given, all in one installation of `organizationId`. */
@@ -130,8 +151,10 @@ export async function recordWorkspaceRepositories(args: {
 export async function workspaceRepositories(args: {
 	cloudWorkspaceId: string;
 	hooksRepositoryId: string | null;
-	/** The workspace's branch; the other repositories check out their default. */
+	/** The base the primary is cut from; the others use their default branch. */
 	primaryBranch: string;
+	/** The branch every checkout works on. */
+	workingBranch: string;
 }): Promise<WorkspaceRepository[]> {
 	const rows = await db
 		.select({
@@ -164,7 +187,8 @@ export async function workspaceRepositories(args: {
 	);
 	return ordered.map(({ link, repository }) => ({
 		repository,
-		branch:
+		branch: args.workingBranch,
+		baseBranch:
 			repository.id === hooksId ? args.primaryBranch : repository.defaultBranch,
 		path: link.path,
 		hooks: repository.id === hooksId,
@@ -182,6 +206,9 @@ export function toSandboxRepositories(
 	return repositories.map((entry) => ({
 		url: cloneUrl(entry.repository),
 		branch: entry.branch,
+		...(entry.baseBranch === entry.branch
+			? {}
+			: { baseBranch: entry.baseBranch }),
 		path: entry.path,
 		...(entry.hooks ? { hooks: true } : {}),
 	}));

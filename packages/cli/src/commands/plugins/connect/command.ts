@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { CLIError, positional, string, table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { getApiUrl } from "../../../lib/config";
@@ -13,9 +11,9 @@ import {
 	missingInputsError,
 	parseInputs,
 } from "../../../lib/plugins/inputs";
-import { supersetExtension } from "../../../lib/plugins/marketplace";
 
 export default command({
+	sandbox: false,
 	description: "Connect an account to an installed plugin",
 	args: [
 		positional("plugin")
@@ -54,15 +52,23 @@ export default command({
 			);
 		}
 
-		const methods =
-			supersetExtension(
-				JSON.parse(
-					fs.readFileSync(
-						path.join(installed.installPath, "plugin.json"),
-						"utf8",
-					),
-				),
-			)?.auth ?? [];
+		const catalog = await ctx.api.plugins.list.query();
+		const slug =
+			catalog.find(
+				(entry) =>
+					entry.name === name &&
+					(!marketplace || entry.marketplace === marketplace),
+			)?.connector ?? undefined;
+
+		if (!slug) {
+			return {
+				data: [{ plugin: name, status: "not required", detail: "" }],
+				message: `"${name}" needs no connection.`,
+			};
+		}
+
+		const connector = await ctx.api.connectors.get.query({ slug });
+		const methods = connector.methods;
 
 		const requested = options.method as string | undefined;
 		const auth = requested
@@ -85,10 +91,7 @@ export default command({
 		}
 
 		if (!auth) {
-			return {
-				data: [{ plugin: name, status: "not required", detail: "" }],
-				message: `"${name}" needs no connection.`,
-			};
+			throw new CLIError(`"${slug}" has no ${requested ?? "default"} method.`);
 		}
 
 		const declared = (auth.inputs ?? []) as AuthInputSpec[];
@@ -100,19 +103,23 @@ export default command({
 			);
 			if (missing.length) throw missingInputsError(name, missing, declared);
 
-			const created = await ctx.api.plugins.connectApiKey.mutate({
-				name,
+			const organization = await ctx.api.user.myOrganization.query();
+			if (!organization) {
+				throw new CLIError(
+					"You need to be part of an organization to connect accounts.",
+				);
+			}
+
+			const created = await ctx.api.connectors.connectApiKey.mutate({
+				organizationId: organization.id,
+				slug,
 				inputs: provided,
 			});
 			return {
 				data: [
-					{
-						plugin: name,
-						status: "connected",
-						detail: created.account ?? created.connectionId,
-					},
+					{ plugin: name, status: "connected", detail: created.connectionId },
 				],
-				message: `Connected ${name}${created.account ? ` as ${created.account}` : ""}.`,
+				message: `Connected ${slug} for ${name}.`,
 			};
 		}
 
@@ -140,7 +147,14 @@ export default command({
 			),
 			method: auth.type,
 		});
-		const url = `${getApiUrl()}/api/plugins/${name}/connect?${params}`;
+		const organization = await ctx.api.user.myOrganization.query();
+		if (!organization) {
+			throw new CLIError(
+				"You need to be part of an organization to connect accounts.",
+			);
+		}
+		params.set("organizationId", organization.id);
+		const url = `${getApiUrl()}/api/connectors/${slug}/connect?${params}`;
 
 		return {
 			data: [{ plugin: name, status: "authorize", detail: url }],
@@ -148,7 +162,7 @@ export default command({
 				`Open this URL to authorize ${name}:`,
 				`  ${url}`,
 				"",
-				`Then confirm with: superset plugins connections --plugin ${name}`,
+				`Then confirm with: superset plugins list`,
 			].join("\n"),
 		};
 	},

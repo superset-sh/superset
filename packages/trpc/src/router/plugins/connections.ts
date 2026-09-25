@@ -1,227 +1,13 @@
 import { db } from "@superset/db/client";
-import {
-	pluginConnections,
-	pluginInstalls,
-	pluginMarketplaces,
-	type SelectPluginConnection,
-} from "@superset/db/schema";
-import {
-	DEFAULT_MARKETPLACE,
-	DEFAULT_MARKETPLACE_REF,
-	DEFAULT_MARKETPLACE_REPO,
-} from "@superset/shared/plugins";
-import { and, asc, countDistinct, desc, eq, isNull } from "drizzle-orm";
-import {
-	decryptOptional,
-	decryptSecret,
-	encryptOptional,
-	encryptSecret,
-} from "./crypto";
-import {
-	type PluginManifest,
-	supersetExtension,
-	type TemplateScope,
-} from "./manifest";
-
-export interface ConnectionSecrets {
-	accessToken: string;
-	refreshToken: string | null;
-	inputs: Record<string, unknown>;
-}
-
-export interface UpsertConnectionInput {
-	userId: string;
-	organizationId: string | null;
-	pluginName: string;
-	installId?: string | null;
-	authMethod: string;
-	accessToken: string;
-	refreshToken?: string | null;
-	tokenExpiresAt?: Date | null;
-	scopes?: string[] | null;
-	inputs?: Record<string, unknown>;
-	secretInputs?: string[];
-	externalAccountId: string;
-	externalAccountLabel?: string | null;
-}
-
-async function encryptInputs(
-	inputs: Record<string, unknown>,
-	secretNames: string[],
-): Promise<Record<string, unknown>> {
-	const secrets = new Set(secretNames);
-	const out: Record<string, unknown> = {};
-	for (const [name, value] of Object.entries(inputs)) {
-		out[name] =
-			secrets.has(name) && typeof value === "string"
-				? { __encrypted: await encryptSecret(value) }
-				: value;
-	}
-	return out;
-}
-
-async function decryptInputs(
-	config: unknown,
-): Promise<Record<string, unknown>> {
-	if (!config || typeof config !== "object") return {};
-	const out: Record<string, unknown> = {};
-	for (const [name, value] of Object.entries(
-		config as Record<string, unknown>,
-	)) {
-		if (value && typeof value === "object" && "__encrypted" in value) {
-			out[name] = await decryptSecret(
-				(value as { __encrypted: string }).__encrypted,
-			);
-		} else {
-			out[name] = value;
-		}
-	}
-	return out;
-}
-
-export async function upsertConnection(
-	input: UpsertConnectionInput,
-): Promise<SelectPluginConnection> {
-	const values = {
-		userId: input.userId,
-		organizationId: input.organizationId,
-		pluginName: input.pluginName,
-		installId: input.installId ?? null,
-		authMethod: input.authMethod,
-		accessToken: await encryptSecret(input.accessToken),
-		refreshToken: await encryptOptional(input.refreshToken),
-		tokenExpiresAt: input.tokenExpiresAt ?? null,
-		scopes: input.scopes ?? null,
-		config: await encryptInputs(input.inputs ?? {}, input.secretInputs ?? []),
-		externalAccountId: input.externalAccountId,
-		externalAccountLabel: input.externalAccountLabel ?? null,
-	};
-
-	await db
-		.update(pluginConnections)
-		.set({ disconnectedAt: new Date(), disconnectReason: "install_removed" })
-		.where(
-			and(
-				eq(pluginConnections.userId, values.userId),
-				eq(pluginConnections.pluginName, values.pluginName),
-				eq(pluginConnections.externalAccountId, values.externalAccountId),
-				isNull(pluginConnections.installId),
-				isNull(pluginConnections.disconnectedAt),
-			),
-		);
-
-	const [row] = await db
-		.insert(pluginConnections)
-		.values(values)
-		.onConflictDoUpdate({
-			target: [
-				pluginConnections.userId,
-				pluginConnections.installId,
-				pluginConnections.externalAccountId,
-			],
-			targetWhere: isNull(pluginConnections.disconnectedAt),
-			set: {
-				installId: values.installId,
-				authMethod: values.authMethod,
-				accessToken: values.accessToken,
-				...(values.refreshToken ? { refreshToken: values.refreshToken } : {}),
-				tokenExpiresAt: values.tokenExpiresAt,
-				scopes: values.scopes,
-				config: values.config,
-				externalAccountLabel: values.externalAccountLabel,
-				organizationId: values.organizationId,
-			},
-		})
-		.returning();
-
-	if (!row) throw new Error("Failed to persist connection");
-	return row;
-}
-
-export async function listConnections(
-	userId: string,
-	pluginName?: string,
-): Promise<SelectPluginConnection[]> {
-	return await db
-		.select()
-		.from(pluginConnections)
-		.where(
-			and(
-				eq(pluginConnections.userId, userId),
-				isNull(pluginConnections.disconnectedAt),
-				pluginName ? eq(pluginConnections.pluginName, pluginName) : undefined,
-			),
-		)
-		.orderBy(desc(pluginConnections.createdAt));
-}
-
-export async function getConnection(
-	userId: string,
-	connectionId: string,
-): Promise<SelectPluginConnection | null> {
-	const [row] = await db
-		.select()
-		.from(pluginConnections)
-		.where(
-			and(
-				eq(pluginConnections.id, connectionId),
-				eq(pluginConnections.userId, userId),
-				isNull(pluginConnections.disconnectedAt),
-			),
-		)
-		.limit(1);
-	return row ?? null;
-}
-
-export async function disconnect(
-	userId: string,
-	connectionId: string,
-	reason = "user_disconnected",
-): Promise<boolean> {
-	const result = await db
-		.update(pluginConnections)
-		.set({
-			disconnectedAt: new Date(),
-			disconnectReason: reason,
-			accessToken: "",
-			refreshToken: null,
-			config: null,
-		})
-		.where(
-			and(
-				eq(pluginConnections.id, connectionId),
-				eq(pluginConnections.userId, userId),
-				isNull(pluginConnections.disconnectedAt),
-			),
-		)
-		.returning({ id: pluginConnections.id });
-	return result.length > 0;
-}
-
-export async function connectionSecrets(
-	connection: SelectPluginConnection,
-): Promise<ConnectionSecrets> {
-	return {
-		accessToken: await decryptSecret(connection.accessToken),
-		refreshToken: await decryptOptional(connection.refreshToken),
-		inputs: await decryptInputs(connection.config),
-	};
-}
-
-export async function templateScope(
-	connection: SelectPluginConnection,
-): Promise<TemplateScope> {
-	const secrets = await connectionSecrets(connection);
-	return {
-		config: { access_token: secrets.accessToken },
-		inputs: secrets.inputs,
-	};
-}
+import { pluginInstalls } from "@superset/db/schema";
+import { and, asc, countDistinct, eq } from "drizzle-orm";
+import { installConnector, type PluginManifest } from "./manifest";
 
 export interface InstalledPlugin {
 	id: string;
 	manifest: PluginManifest;
 	marketplace: string;
+	connector: string | undefined;
 }
 
 export class AmbiguousPluginError extends Error {
@@ -271,6 +57,7 @@ export async function installedPlugin(
 		id: row.id,
 		manifest: row.manifest as PluginManifest,
 		marketplace: row.marketplace,
+		connector: installConnector({ ...row, pluginName }),
 	};
 }
 
@@ -326,6 +113,7 @@ export async function installById(
 			id: pluginInstalls.id,
 			manifest: pluginInstalls.manifest,
 			marketplace: pluginInstalls.marketplace,
+			pluginName: pluginInstalls.pluginName,
 		})
 		.from(pluginInstalls)
 		.where(
@@ -342,47 +130,8 @@ export async function installById(
 		id: row.id,
 		manifest: row.manifest as PluginManifest,
 		marketplace: row.marketplace,
+		connector: installConnector(row),
 	};
-}
-
-export async function installForConnection(
-	userId: string,
-	connection: Pick<SelectPluginConnection, "installId" | "pluginName">,
-): Promise<InstalledPlugin | null> {
-	return connection.installId
-		? await installById(userId, connection.installId)
-		: null;
-}
-
-export interface ConnectionContext {
-	connection: SelectPluginConnection;
-	install: InstalledPlugin;
-	source: BundledSource | null;
-}
-
-function exposesTools(manifest: PluginManifest): boolean {
-	const extension = supersetExtension(manifest);
-	return Boolean(extension?.mcp?.url || extension?.server?.path);
-}
-
-export async function toolConnections(
-	userId: string,
-): Promise<ConnectionContext[]> {
-	const connections = await listConnections(userId);
-	const contexts = await Promise.all(
-		connections.map(async (connection) => {
-			const install = await installForConnection(userId, connection);
-			if (!install || !exposesTools(install.manifest)) return null;
-			return {
-				connection,
-				install,
-				source: await bundledSource(userId, install.marketplace),
-			};
-		}),
-	);
-	return contexts.filter(
-		(context): context is ConnectionContext => context !== null,
-	);
 }
 
 export async function installedManifest(
@@ -393,37 +142,4 @@ export async function installedManifest(
 	return (
 		(await installedPlugin(userId, pluginName, marketplace))?.manifest ?? null
 	);
-}
-
-export interface BundledSource {
-	repo: string;
-	ref: string;
-}
-
-export async function bundledSource(
-	userId: string,
-	marketplace: string,
-): Promise<BundledSource | null> {
-	const [row] = await db
-		.select()
-		.from(pluginMarketplaces)
-		.where(
-			and(
-				eq(pluginMarketplaces.userId, userId),
-				eq(pluginMarketplaces.name, marketplace),
-			),
-		)
-		.limit(1);
-
-	if (!row) {
-		return marketplace === DEFAULT_MARKETPLACE
-			? { repo: DEFAULT_MARKETPLACE_REPO, ref: DEFAULT_MARKETPLACE_REF }
-			: null;
-	}
-	if (row.sourceKind !== "github" || !row.repo) return null;
-	return { repo: row.repo, ref: row.ref ?? "HEAD" };
-}
-
-export function manifestAuth(manifest: PluginManifest) {
-	return supersetExtension(manifest)?.auth;
 }

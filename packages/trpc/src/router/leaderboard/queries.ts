@@ -5,6 +5,7 @@ import {
 	publicProfiles,
 	users,
 } from "@superset/db/schema";
+import { escapeLikePattern } from "@superset/db/utils";
 import { and, desc, eq, gt, gte, isNull, lte, sql } from "drizzle-orm";
 import { type LeaderboardPeriod, resolveWindow } from "./periods";
 import { type Tier, tierProgress } from "./tier";
@@ -377,9 +378,6 @@ export async function listPublicHandles(): Promise<
 
 export const SEARCH_MIN_LENGTH = 2;
 
-const escapeLike = (value: string) =>
-	value.replace(/[\\%_]/g, (char) => `\\${char}`);
-
 interface SearchRow extends Record<string, unknown> {
 	handle: string;
 	name: string | null;
@@ -406,8 +404,8 @@ export async function searchParticipants(
 
 	const range = resolveWindow(opts);
 	const byCost = opts.metric === "cost";
-	const prefix = `${escapeLike(query)}%`;
-	const contains = `%${escapeLike(query)}%`;
+	const prefix = `${escapeLikePattern(query)}%`;
+	const contains = `%${escapeLikePattern(query)}%`;
 	const take = Math.min(limit, SEARCH_LIMIT);
 
 	const ranked = range

@@ -19,21 +19,20 @@ something is connected, and it is two steps: list the tools, then call one.
 
 ```bash
 superset plugins list                     # one row per connected account, one row if none yet
-superset plugins connections --plugin linear
 ```
 
 Read the `STATUS` column. `connected: <account>` is callable. `needs connection` means the
 skills are installed but no account is authorized, so its tools will fail until someone
-connects one; that is a connect step, not a bug. `PLUGIN ID` holds the connection id, and it
-is empty on a row with no connection yet. A plugin with two connected accounts has two rows
-and two ids.
+connects one; that is a connect step, not a bug. `not installed` is a connection whose plugin
+is gone: the credential is still live, and the `PLUGIN` column holds the connector it belongs
+to. `CONNECTION` holds the connection id, empty on a row with no connection yet. A plugin with
+two connected accounts has two rows.
 
 ## 2. List the tools before calling one
 
 ```bash
-superset mcp tools linear
-superset mcp tools --connection <id>              # when the name has several accounts
-superset mcp tools linear | jq -r '.[].tool'      # names only; descriptions run long
+superset mcp tools --plugin linear
+superset mcp tools --plugin linear | jq -r '.[].tool'   # names only; descriptions run long
 ```
 
 Names and descriptions come from the plugin's own server, not from anything in this repo, and
@@ -47,22 +46,20 @@ back as a tool error naming the offending field; correct it from there.
 ## 3. Call it
 
 ```bash
-superset mcp call-tool linear list_issues
-superset mcp call-tool linear create_issue '{"team":"ENG","title":"Export 500s"}'
-echo '{"team":"ENG","title":"..."}' | superset mcp call-tool linear create_issue -
-superset mcp call-tool linear create_issue --connection <id> '{"team":"ENG","title":"..."}'
+superset mcp call-tool list_issues --plugin linear
+superset mcp call-tool create_issue --plugin linear '{"team":"ENG","title":"Export 500s"}'
+echo '{"team":"ENG","title":"..."}' | superset mcp call-tool create_issue --plugin linear -
 ```
 
-The plugin name is the first positional and the tool name the second, always. `--connection`
-picks the account; it does not stand in for the plugin positional. Arguments are the third
-positional, default `{}`, and `-` reads them from stdin. Use stdin for anything secret, since
-an argument is visible in `ps` and in shell history.
+The tool name is the first positional and the plugin travels in `--plugin`, always. Arguments
+are the second positional, default `{}`, and `-` reads them from stdin. Use stdin for anything
+secret, since an argument is visible in `ps` and in shell history.
 
 What comes back is the MCP result verbatim: a `content` array whose text parts are usually
 themselves JSON strings.
 
 ```bash
-superset mcp call-tool linear list_issues | jq -r '.content[0].text' | jq
+superset mcp call-tool list_issues --plugin linear | jq -r '.content[0].text' | jq
 ```
 
 ## When another skill expects tools you do not have
@@ -78,8 +75,8 @@ do not tell the user the integration is unavailable. The same operations sit on 
 account, one command away:
 
 ```bash
-superset mcp tools linear                       # what the account can actually do
-superset mcp call-tool linear create_issue '{"team":"ENG","title":"..."}'
+superset mcp tools --plugin linear              # what the account can actually do
+superset mcp call-tool create_issue --plugin linear '{"team":"ENG","title":"..."}'
 ```
 
 Keep following the skill you were reading, since its judgment about what makes a good issue or
@@ -90,10 +87,10 @@ a good triage still applies. Only the transport changes.
 | What you see | What it means |
 | --- | --- |
 | `"x" is not connected. Connect an account first.` | Nothing is authorized under that name. Also what an uninstalled plugin looks like. Run `superset plugins connect x`, or install it first. |
-| `"x" has N connected accounts; choose one:` | The CLI refuses to guess and prints a `--connection <id>` line per account. Ask the user which account, do not take the first. |
-| `Name a plugin, or pass --connection <id>.` | `superset mcp tools` with no target. |
-| `Missing required argument: <tool>` | `call-tool` takes the plugin, then the tool. |
-| `Arguments must be JSON: ...` | The third positional is a JSON object, quoted as one shell word. |
+| `--connection takes a plugin name now, not a connection id.` | You passed a UUID. The handle is the plugin name: `--plugin <name>`. |
+| `Pass --plugin <name>.` | `superset mcp tools` with no target. |
+| `Missing required argument: <tool>` | `call-tool` takes the tool name first; the plugin goes in `--plugin`. |
+| `Arguments must be JSON: ...` | The second positional is a JSON object, quoted as one shell word. Passing the plugin as a positional lands here. |
 | 401 or 403 from the tool itself | Read the error before acting. Reconnect only when it names an invalid, revoked, or expired credential. A 403 that names a scope, a permission, or a resource means the connected account lacks that access, and reconnecting the same account changes nothing. |
 | `needs connection` in `plugins list` | Installed, unauthorized. Nothing you pass to `mcp` fixes this. |
 
@@ -101,7 +98,7 @@ a good triage still applies. Only the transport changes.
 
 - Calling a tool without listing tools first. You are guessing at a name and a schema the
   plugin owns.
-- `--plugin-id`. Deprecated alias for `--connection`.
+- `--connection` or `--plugin-id`. Deprecated aliases for `--plugin`, and both reject a UUID.
 - Passing a credential as a command argument when the command reads stdin.
 - Picking one of several connected accounts yourself. Which account acts is the user's call.
 - Reconnecting on any 403. Half of them are a permissions problem on the account you already

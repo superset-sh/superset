@@ -1,7 +1,11 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, subscriptions } from "@superset/db/schema";
+import { subscriptions } from "@superset/db/schema";
+import {
+	accountConnection,
+	connectionBotToken,
+} from "@superset/trpc/connectors";
 import { Client as QStash } from "@upstash/qstash";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
 import { findSlackUserLink } from "../../lib/find-slack-user-link";
@@ -109,17 +113,7 @@ export async function processAgentMessage({
 		user: event.user,
 	});
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.provider, "slack"),
-			eq(integrationConnections.externalOrgId, teamId),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [
-			desc(integrationConnections.updatedAt),
-			desc(integrationConnections.id),
-		],
-	});
+	const connection = await accountConnection("slack", teamId);
 
 	if (!connection) {
 		console.error(
@@ -129,7 +123,8 @@ export async function processAgentMessage({
 		return;
 	}
 
-	const slack = createSlackClient(connection.accessToken);
+	const botToken = await connectionBotToken(connection);
+	const slack = createSlackClient(botToken);
 
 	const [slackUserLink, activeSubscription] = await Promise.all([
 		event.user
@@ -266,9 +261,9 @@ export async function processAgentMessage({
 	// a placeholder message that carries progress and is removed once the final
 	// reply exists, so the thread ends with one notifying message.
 	const deadline = Date.now() + RUN_BUDGET_MS;
-	const run = createSlackClient(connection.accessToken, { deadline });
+	const run = createSlackClient(botToken, { deadline });
 	const replyDeadline = deadline + REPLY_BUDGET_MS;
-	const reply = createSlackClient(connection.accessToken, {
+	const reply = createSlackClient(botToken, {
 		deadline: replyDeadline,
 	});
 	let placeholderTs: string | undefined;
@@ -394,7 +389,7 @@ export async function processAgentMessage({
 		const imageAssets = await extractSlackImageAssets({
 			eventFiles: event.files,
 			slack: run,
-			slackToken: connection.accessToken,
+			slackToken: botToken,
 			deadline,
 		});
 
@@ -437,7 +432,7 @@ export async function processAgentMessage({
 			messageTs: event.ts,
 			organizationId: connection.organizationId,
 			userId: slackUserLink.userId,
-			slackToken: connection.accessToken,
+			slackToken: botToken,
 			model: slackUserLink.modelPreference ?? undefined,
 			images: imageAssets,
 			deadline,

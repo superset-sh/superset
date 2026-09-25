@@ -674,7 +674,8 @@ const runtimeJs = /* js */ `
 		} else if (message.type === "copySelection") {
 			copySelection();
 		} else if (message.type === "scrollToBottom") {
-			term.scrollToBottom();
+			if (term.buffer.active.type === "normal") term.scrollToBottom();
+			else if (claudeJumpPillShowing()) sendInput(CLAUDE_SCROLL_TO_BOTTOM);
 		} else if (message.type === "visible") {
 			if (isVisible === message.visible) return;
 			isVisible = message.visible;
@@ -1111,17 +1112,44 @@ const runtimeJs = /* js */ `
 	var thumb = document.getElementById("scrollbar-thumb");
 	var scrollbarFrame = 0;
 	// RN draws the scroll-to-bottom button, so it needs this side's answer to
-	// the question the scrollbar already asks — the two appear together. The
-	// alternate buffer keeps no scrollback, so "hidden" is 0 there and neither
-	// shows: a TUI in full-screen mode owns its own scroll, and scrollToBottom
-	// would be a no-op.
+	// the question the scrollbar already asks — the two appear together.
 	var atBottom = true;
+
+	// The alternate buffer keeps no scrollback: a full-screen TUI owns its own
+	// scroll. Claude Code's fullscreen mode reports its position nowhere but
+	// the pill it centers above the prompt while scrolled up, and scrolls back
+	// down on its scroll:bottom binding, ctrl+End.
+	var CLAUDE_JUMP_PILL =
+		/(?:Jump to bottom|\\d+ new messages?)(?:(?: \\([^)]*\\))? ↓|: \\S+ to scroll)?/;
+	var CLAUDE_SCROLL_TO_BOTTOM = "\\x1b[1;5F";
+
+	function claudeJumpPillShowing() {
+		var buffer = term.buffer.active;
+		if (buffer.type !== "alternate") return false;
+		for (var y = 1; y <= term.rows; y++) {
+			var line = buffer.getLine(y - 1);
+			if (!line || !CLAUDE_JUMP_PILL.test(line.translateToString(true))) continue;
+			var logical = readLogicalLine(y);
+			var match = CLAUDE_JUMP_PILL.exec(logical.text);
+			if (!match) continue;
+			var first = logical.cells[match.index];
+			var last = logical.cells[match.index + match[0].length - 1];
+			if (first.y !== y || last.y !== y) continue;
+			var leftGap = first.x - 2;
+			var rightGap = term.cols - (last.x + 1);
+			if (Math.abs(leftGap - rightGap) <= 1) return true;
+		}
+		return false;
+	}
 
 	function updateScrollbar() {
 		scrollbarFrame = 0;
 		var buffer = term.buffer.active;
 		var hidden = buffer.length - term.rows;
-		var nowAtBottom = hidden <= 0 || buffer.viewportY >= hidden;
+		var nowAtBottom =
+			buffer.type === "alternate"
+				? !claudeJumpPillShowing()
+				: hidden <= 0 || buffer.viewportY >= hidden;
 		if (nowAtBottom !== atBottom) {
 			atBottom = nowAtBottom;
 			post({ type: "scroll", atBottom: atBottom });

@@ -1,13 +1,8 @@
 import type { LinearClient, WorkflowState } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import type { LinearConfig, SelectTask } from "@superset/db/schema";
-import {
-	integrationConnections,
-	members,
-	taskStatuses,
-	tasks,
-	users,
-} from "@superset/db/schema";
+import type { SelectTask } from "@superset/db/schema";
+import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import { userConnection } from "@superset/trpc/connectors";
 import {
 	getLinearClient,
 	mapPriorityToLinear,
@@ -23,20 +18,17 @@ const payloadSchema = z.object({
 
 async function getNewTasksTeamId(
 	organizationId: string,
+	userId: string,
 ): Promise<string | null> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "linear"),
-		),
+	const connection = await userConnection(organizationId, "linear", userId, {
+		includeDisconnected: true,
 	});
 
-	if (!connection?.config) {
+	if (connection?.state?.provider !== "linear") {
 		return null;
 	}
 
-	const config = connection.config as LinearConfig;
-	return config.newTasksTeamId ?? null;
+	return connection.state.newTasksTeamId ?? null;
 }
 
 async function findLinearState(
@@ -88,7 +80,7 @@ async function syncTaskToLinear(
 	externalUrl?: string;
 	error?: string;
 }> {
-	const client = await getLinearClient(task.organizationId);
+	const client = await getLinearClient(task.organizationId, task.creatorId);
 
 	if (!client) {
 		return { success: false, error: "No Linear connection found" };
@@ -285,7 +277,7 @@ export async function POST(request: Request) {
 	}
 
 	const resolvedTeamId =
-		teamId ?? (await getNewTasksTeamId(task.organizationId));
+		teamId ?? (await getNewTasksTeamId(task.organizationId, task.creatorId));
 
 	const result = await syncTaskToLinear(task, resolvedTeamId);
 

@@ -1,5 +1,9 @@
 export { mintSandboxGateAccess, sandboxHostSecretFor } from "./access";
 export {
+	type ReportSandboxAgentStatusOutcome,
+	reportSandboxAgentStatus,
+} from "./agent-status";
+export {
 	resolveSandboxCaller,
 	SANDBOX_ALLOWED_PROCEDURES,
 	type SandboxCaller,
@@ -28,6 +32,7 @@ export {
 	sortRepositories,
 	toSandboxRepositories,
 	type WorkspaceRepository,
+	workspaceBranchName,
 	workspaceRepositories,
 } from "./repositories";
 export {

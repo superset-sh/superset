@@ -4,7 +4,7 @@ import {
 	isFullUser,
 	iteratePaginatedAPI,
 } from "@notionhq/client";
-import { activeConnection } from "../connections";
+import { connectionAccessToken, userConnection } from "../../../lib/connectors";
 import type { TriggerOption, TriggerOptionSource } from "../trigger-options";
 import { notionClient, plainText } from "./client";
 
@@ -17,19 +17,21 @@ const MAX_OPTIONS = 500;
  * list users) throws to the shared procedure, which shows an empty list —
  * the chip keeps its "anyone / me" entries rather than the editor going red.
  */
-async function connectedClient(organizationId: string): Promise<Client | null> {
-	const connection = await activeConnection(organizationId, "notion", {
-		accessToken: true,
-	});
-	return connection ? notionClient(connection.accessToken) : null;
+async function connectedClient(
+	organizationId: string,
+	userId: string,
+): Promise<Client | null> {
+	const connection = await userConnection(organizationId, "notion", userId);
+	if (!connection) return null;
+	return notionClient(await connectionAccessToken(connection));
 }
 
 /**
  * The data sources the workspace has shared with the integration. Ids, not
  * titles: a title can be renamed.
  */
-const dataSources: TriggerOptionSource = async ({ organizationId }) => {
-	const client = await connectedClient(organizationId);
+const dataSources: TriggerOptionSource = async ({ organizationId, userId }) => {
+	const client = await connectedClient(organizationId, userId);
 	if (!client) return [];
 
 	const options: TriggerOption[] = [];
@@ -51,8 +53,8 @@ const dataSources: TriggerOptionSource = async ({ organizationId }) => {
  * The people in the workspace, by Notion user id — what a comment's author
  * and mentions carry. Bots are left out: nobody filters on them.
  */
-const people: TriggerOptionSource = async ({ organizationId }) => {
-	const client = await connectedClient(organizationId);
+const people: TriggerOptionSource = async ({ organizationId, userId }) => {
+	const client = await connectedClient(organizationId, userId);
 	if (!client) return [];
 
 	const options: TriggerOption[] = [];

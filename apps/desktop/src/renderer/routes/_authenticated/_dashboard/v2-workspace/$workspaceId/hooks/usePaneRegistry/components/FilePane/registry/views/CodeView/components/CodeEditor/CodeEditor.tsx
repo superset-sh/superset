@@ -28,6 +28,7 @@ import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
+import { replaceEditorDocument } from "renderer/lib/replaceEditorDocument";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
 import {
@@ -225,13 +226,7 @@ export function CodeEditor({
 		// Guarantee flag reset regardless of whether dispatch throws (e.g. view destroyed between null-check and dispatch).
 		isExternalUpdateRef.current = true;
 		try {
-			view.dispatch({
-				changes: {
-					from: 0,
-					to: view.state.doc.length,
-					insert: value,
-				},
-			});
+			view.dispatch(replaceEditorDocument(view.state, value));
 		} finally {
 			isExternalUpdateRef.current = false;
 		}

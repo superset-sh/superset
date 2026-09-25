@@ -26,16 +26,12 @@ export type TriggerProvider<
 	label: string | MessageDescriptor;
 	icon: IconType;
 	/**
-	 * The `integration_provider` this trigger needs connected before it can
-	 * fire, if any. Absent for providers that carry their own credentials — a
-	 * schedule needs nothing, and a webhook trigger carries its own URL.
-	 *
-	 * Deliberately not derived from `optionGroup`: the two disagree (Teams is
-	 * `microsoftTeams` there and `microsoft_teams` here) and they answer
-	 * different questions — one names a list to fetch, this names a connection
-	 * to check.
+	 * Overrides the connector slug this trigger needs connected, which defaults
+	 * to `kind`. A string where they diverge (Gmail reads the `google`
+	 * connection), `null` where no connection is needed at all. Read
+	 * through `connectorFor`, never directly.
 	 */
-	connectionProvider?: string;
+	connectionProvider?: string | null;
 	/**
 	 * The Add Trigger subtree. A single leaf for providers with one trigger
 	 * (Scheduled, Webhook); nested for those with many (GitHub).
@@ -47,7 +43,7 @@ export type TriggerProvider<
 	 * The key this provider's pickable lists live under (`options.slack`),
 	 * fetched from `integration.triggerOptions` when a row of this kind is on
 	 * screen. Absent for providers with nothing to fetch (Scheduled, Webhook).
-	 * Two kinds can share one group — Calendar and Gmail both read `google`.
+	 * Two kinds can share one group when they share a connection.
 	 */
 	optionGroup?: string;
 	/**

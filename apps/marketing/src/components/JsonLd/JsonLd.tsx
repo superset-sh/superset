@@ -1,4 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
+import {
+	PRODUCT_DISAMBIGUATION,
+	PRODUCT_PLATFORMS,
+	PRODUCT_SUMMARY,
+} from "@/lib/product-facts";
 
 function serializeJsonLd(schema: unknown): string {
 	const json = JSON.stringify(schema);
@@ -34,10 +39,12 @@ export function OrganizationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
+		"@id": `${COMPANY.MARKETING_URL}/#organization`,
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/apple-touch-icon.png`,
 		description: "One workspace for orchestrating any coding agent",
+		disambiguatingDescription: PRODUCT_DISAMBIGUATION,
 		email: supportEmail,
 		contactPoint: {
 			"@type": "ContactPoint",
@@ -68,8 +75,11 @@ export function SoftwareApplicationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "SoftwareApplication",
+		"@id": `${COMPANY.MARKETING_URL}/#software`,
 		name: COMPANY.NAME,
-		operatingSystem: "macOS",
+		operatingSystem: PRODUCT_PLATFORMS,
+		license: `${COMPANY.GITHUB_URL}/blob/main/LICENSE.md`,
+		publisher: { "@id": `${COMPANY.MARKETING_URL}/#organization` },
 		applicationCategory: "DeveloperApplication",
 		applicationSubCategory: "Developer Tools",
 		offers: {
@@ -77,7 +87,8 @@ export function SoftwareApplicationJsonLd() {
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "One workspace for orchestrating any coding agent",
+		description: PRODUCT_SUMMARY,
+		disambiguatingDescription: PRODUCT_DISAMBIGUATION,
 		url: COMPANY.MARKETING_URL,
 	};
 

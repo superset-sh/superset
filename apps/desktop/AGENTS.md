@@ -16,3 +16,26 @@ Guardrail: localStorage is for small singleton UI state. Anything entity-scoped 
 ## Verifying renderer changes via CDP
 
 Read `.agents/skills/cdp-verification/SKILL.md`: attaching to the right renderer, repairing auth, and what counts as end-to-end evidence.
+
+## Renderer failure architecture
+
+Mount the router through `RendererRouter`: `RendererLayout` owns the outer
+`RendererErrorBoundary` and the baseline Lingui provider, above route layouts.
+Keep TanStack's `disableGlobalCatchBoundary` enabled so an error in a route's
+fallback reaches our desktop boundary instead of its unstyled built-in screen.
+App providers that need IPC, auth, or telemetry stay inside the root route layout;
+the emergency screen must render without them.
+
+All full-window failure screens use `FailureLayout`. Its provider-free, inline
+styles reserve the native title-bar region and scroll content independently;
+`boot-errors.ts` uses the same styles before React mounts. Do not duplicate title-bar
+spacers in individual error pages or add provider-dependent UI to the emergency
+boundary. `RendererLayout/renderer-safety.test.ts` audits its transitive imports
+and prevents additional production router roots. `RendererRouter`'s fault-injection
+fixture uses real compiled Lingui macros; mocked translation hooks cannot verify
+this provider contract.
+
+The same architecture test inventories fallback registrations; new boundaries
+must be added to the audit and covered for recovery. Dashboard and Settings content use
+`ContentBoundary`, which resets when navigation commits (`loadedAt`),
+so it does not retry the stale outlet during a pending URL change.

@@ -1,7 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { db } from "@superset/db/client";
 import type { MicrosoftTeamsConfig } from "@superset/db/schema";
-import { integrationConnections } from "@superset/db/schema";
+import {
+	connectionConflict,
+	connectorMethod,
+	orgConnection,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
 import {
 	acquireAppToken,
 	deleteTeamsSubscriptions,
@@ -9,16 +14,15 @@ import {
 	graphRequest,
 	microsoftCredentials,
 } from "@superset/trpc/integrations/microsoft-teams";
-import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
-import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import {
-	connectionConflict,
-	upsertConnection,
-} from "@/lib/integrations/upsertConnection";
-import { createSignedState } from "@/lib/oauth-state";
+	beginOAuthFlow,
+	exitOAuthFlow,
+	STATE_COOKIES,
+} from "@/lib/integrations/oauthFlow";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import {
 	IDENTITY_REDIRECT_URI,
 	IDENTITY_SCOPES,
@@ -26,11 +30,18 @@ import {
 
 const SETTINGS_URL = `${env.NEXT_PUBLIC_WEB_URL}/integrations/microsoft-teams`;
 
-function fail(error: string, detail?: string): Response {
+function settingsUrl(error?: string, detail?: string): string {
 	const url = new URL(SETTINGS_URL);
-	url.searchParams.set("error", error);
+	if (error) url.searchParams.set("error", error);
 	if (detail) url.searchParams.set("detail", detail.slice(0, 200));
-	return Response.redirect(url.toString());
+	return url.toString();
+}
+
+function refuse(error: string, detail?: string): Response {
+	return exitOAuthFlow(
+		STATE_COOKIES.microsoftTeams,
+		settingsUrl(error, detail),
+	);
 }
 
 /**
@@ -66,16 +77,19 @@ export async function GET(request: Request) {
 			error: url.searchParams.get("error"),
 			description: url.searchParams.get("error_description"),
 		});
-		return fail("oauth_denied");
+		return refuse("oauth_denied");
 	}
 
 	const callback = await resolveCallback(request, {
 		params: ["tenant"],
-		redirect: fail,
+		redirect: (error) => settingsUrl(error),
+		cookie: STATE_COOKIES.microsoftTeams,
 	});
 	if (callback instanceof Response) return callback;
 	const { organizationId, userId, params } = callback;
 	const tenantId = params.tenant;
+	const fail = (error: string, detail?: string) =>
+		callback.exit(settingsUrl(error, detail));
 
 	let token: Awaited<ReturnType<typeof acquireAppToken>>;
 	try {
@@ -105,12 +119,8 @@ export async function GET(request: Request) {
 	// A reconnect replaces the clientState below, so whatever subscriptions the
 	// previous connection held would only ever be refused. Remove them from
 	// Graph while their ids are still on the row.
-	const previous = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "microsoft_teams"),
-		),
-		columns: { id: true },
+	const previous = await orgConnection(organizationId, "microsoft_teams", {
+		includeDisconnected: true,
 	});
 	if (previous) await deleteTeamsSubscriptions(previous.id);
 
@@ -124,15 +134,28 @@ export async function GET(request: Request) {
 	};
 	const externalOrgName = await tenantDisplayName(token.accessToken, tenantId);
 
+	const connector = requireConnector("microsoft_teams");
 	const result = await upsertConnection({
+		connector,
+		slug: "microsoft_teams",
+		authMethod: connectorMethod(connector, "admin_consent").type,
 		organizationId,
 		userId,
-		provider: "microsoft_teams",
-		accessToken: token.accessToken,
-		tokenExpiresAt: token.expiresAt,
-		externalOrgId: tenantId,
-		externalOrgName,
-		config,
+		tokens: {
+			accessToken: token.accessToken,
+			refreshToken: null,
+			expiresAt: token.expiresAt,
+			scopes: null,
+			stored: {},
+			raw: {},
+		},
+		identity: {
+			// The tenant id, not Graph's directory object id: it is the path
+			// segment every client-credentials token acquisition needs.
+			account: { id: tenantId, label: externalOrgName },
+			user: null,
+		},
+		state: config,
 	});
 	if (result.conflict) {
 		return fail(
@@ -166,18 +189,24 @@ export async function GET(request: Request) {
 
 	// Consent named the tenant; the sign-in that follows names the admin, so
 	// `me` on their triggers can resolve. The connection is saved already, so
-	// this leg failing loses nothing but that.
-	const signIn = new URL(
-		"https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
-	);
-	signIn.searchParams.set("client_id", microsoftCredentials().clientId);
-	signIn.searchParams.set("response_type", "code");
-	signIn.searchParams.set("response_mode", "query");
-	signIn.searchParams.set("redirect_uri", IDENTITY_REDIRECT_URI);
-	signIn.searchParams.set("scope", IDENTITY_SCOPES);
-	signIn.searchParams.set(
-		"state",
-		createSignedState({ organizationId, userId }),
-	);
-	return Response.redirect(signIn.toString());
+	// this leg failing loses nothing but that. Its state is minted here rather
+	// than in a connect route, so this redirect is what binds it to the
+	// browser — and it retires the consent leg's cookie on the way.
+	return beginOAuthFlow({
+		cookie: STATE_COOKIES.microsoftTeamsIdentity,
+		payload: { organizationId, userId },
+		clear: [STATE_COOKIES.microsoftTeams],
+		authorizeUrl: (state) => {
+			const signIn = new URL(
+				"https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
+			);
+			signIn.searchParams.set("client_id", microsoftCredentials().clientId);
+			signIn.searchParams.set("response_type", "code");
+			signIn.searchParams.set("response_mode", "query");
+			signIn.searchParams.set("redirect_uri", IDENTITY_REDIRECT_URI);
+			signIn.searchParams.set("scope", IDENTITY_SCOPES);
+			signIn.searchParams.set("state", state);
+			return signIn.toString();
+		},
+	});
 }

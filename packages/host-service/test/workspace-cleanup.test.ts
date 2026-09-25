@@ -31,7 +31,12 @@ type WorkspaceRow = {
 	pullRequestId?: string | null;
 	archivedAt?: number | null;
 };
-type ProjectRow = { id: string; repoPath: string; worktreeBaseDir?: string };
+type ProjectRow = {
+	id: string;
+	repoPath: string;
+	worktreeBaseDir?: string;
+	name?: string;
+};
 
 type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 
@@ -104,7 +109,8 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 		sync: () => workspaceRow,
 	}));
 	const projectFindFirst = mock(() => ({
-		sync: () => spec.project,
+		// `projects.name` is NOT NULL DEFAULT '' in the real table.
+		sync: () => (spec.project ? { name: "", ...spec.project } : undefined),
 	}));
 
 	const dbDeleteRun = mock(() => {});

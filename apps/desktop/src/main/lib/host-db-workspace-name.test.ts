@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getWorkspaceNameFromHostDbs } from "./host-db-workspace-name";
@@ -66,6 +72,44 @@ describe("getWorkspaceNameFromHostDbs", () => {
 		writeFileSync(notADir, "");
 		expect(
 			getWorkspaceNameFromHostDbs(worktreePath, openReadonly, notADir),
+		).toBeUndefined();
+	});
+
+	it("resolves a saved path alias and reads later workspace renames", () => {
+		const physicalPath = join(root, "physical-worktree");
+		const aliasPath = join(root, "saved-worktree");
+		mkdirSync(physicalPath);
+		symlinkSync(physicalPath, aliasPath, "dir");
+		seedHostDb(root, "org-a", [
+			{ worktreePath: join(root, "missing"), name: "Deleted workspace" },
+			{ worktreePath: aliasPath, name: "Initial name" },
+		]);
+		expect(getWorkspaceNameFromHostDbs(physicalPath, openReadonly, root)).toBe(
+			"Initial name",
+		);
+		const db = new Database(join(root, "org-a", "host.db"));
+		db.run("UPDATE workspaces SET name = ? WHERE worktree_path = ?", [
+			"Generated name",
+			aliasPath,
+		]);
+		db.close();
+		expect(getWorkspaceNameFromHostDbs(physicalPath, openReadonly, root)).toBe(
+			"Generated name",
+		);
+	});
+
+	it("does not match different directories whose names differ only in case", () => {
+		const lowerPath = join(root, "worktree");
+		const upperPath = join(root, "WORKTREE");
+		mkdirSync(lowerPath);
+		try {
+			mkdirSync(upperPath);
+		} catch {
+			return;
+		}
+		seedHostDb(root, "org-a", [{ worktreePath: upperPath, name: "Other" }]);
+		expect(
+			getWorkspaceNameFromHostDbs(lowerPath, openReadonly, root),
 		).toBeUndefined();
 	});
 

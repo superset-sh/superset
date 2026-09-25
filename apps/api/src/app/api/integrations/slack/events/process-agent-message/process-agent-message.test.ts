@@ -41,15 +41,16 @@ const findLink = mock(
 mock.module("@superset/db/client", () => ({
 	db: {
 		query: {
-			integrationConnections: {
-				findFirst: async () => ({
-					organizationId: "org",
-					accessToken: "token",
-				}),
-			},
 			subscriptions: { findFirst: async () => ({ id: "subscription" }) },
 		},
 	},
+}));
+// `mock.module` is process-wide, so every export the real module has must be
+// here: another file's import of one of these resolves against this stub too.
+mock.module("@superset/trpc/connectors", () => ({
+	accountConnection: async () => ({ organizationId: "org" }),
+	accountConnections: async () => [{ organizationId: "org" }],
+	connectionBotToken: async () => "token",
 }));
 mock.module("@/env", () => ({
 	env: {

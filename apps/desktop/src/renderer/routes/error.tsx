@@ -8,7 +8,9 @@ import {
 	HiExclamationTriangle,
 	HiOutlineClipboard,
 } from "react-icons/hi2";
+import { FailureLayout } from "renderer/components/FailureLayout";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { reportRendererError } from "renderer/lib/report-renderer-error";
 
 const IS_DEV = process.env.NODE_ENV === "development";
 const ERROR_DETAILS_ID = "error-details";
@@ -25,21 +27,12 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 	const { copyToClipboard, copied } = useCopyToClipboard();
 
 	useEffect(() => {
-		console.error("[renderer] Route error caught:", error, componentStack);
-		void import("@sentry/electron/renderer")
-			.then((Sentry) =>
-				Sentry.captureException(error, {
-					extra: componentStack ? { componentStack } : undefined,
-				}),
-			)
-			.catch(() => {});
+		reportRendererError(error, componentStack);
 	}, [error, componentStack]);
 
 	return (
-		<div className="flex flex-col h-full w-full bg-background">
-			<div className="h-12 w-full drag shrink-0" />
-
-			<div className="flex flex-1 items-start justify-center overflow-y-auto pt-[18vh] pb-12">
+		<FailureLayout>
+			<div className="flex items-start justify-center pt-[10vh] pb-12">
 				<div className="flex flex-col items-center w-full max-w-2xl px-8 gap-6">
 					<div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
 						<HiExclamationTriangle className="h-8 w-8 text-destructive" />
@@ -106,6 +99,6 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 					)}
 				</div>
 			</div>
-		</div>
+		</FailureLayout>
 	);
 }

@@ -552,4 +552,47 @@ describe("rethrowEnvironmentalGitError", () => {
 			),
 		).toBeNull();
 	});
+
+	test("index its storage cannot deliver → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		const timedOut =
+			"fatal: .git/index: unable to map index file: Operation timed out\n";
+		const thrown = capture(new Error(timedOut));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(timedOut);
+		expect(
+			causeKind(
+				capture(
+					new Error(
+						"fatal: /repo/.git/worktrees/feature/index: unable to map index file: Operation canceled\n",
+					),
+				),
+			),
+		).toBe("GIT_ENVIRONMENT");
+	});
+
+	test("does not claim other index mapping failures or network timeouts", () => {
+		expect(
+			capture(
+				new Error(
+					"fatal: .git/index: unable to map index file: Cannot allocate memory\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"ssh: connect to host example.invalid port 22: Operation timed out\n" +
+						"fatal: Could not read from remote repository.\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: unable to access 'https://example.invalid/repo.git/': Failed to connect to example.invalid port 443 after 75002 ms: Operation timed out\n",
+				),
+			),
+		).toBeNull();
+	});
 });

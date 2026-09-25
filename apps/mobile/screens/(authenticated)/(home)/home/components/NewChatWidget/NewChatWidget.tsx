@@ -230,23 +230,6 @@ export function NewChatWidget({
 			);
 			return;
 		}
-		if (selectedTarget.kind === "cloud") {
-			await createCloudWorkspace
-				.mutateAsync({
-					branch: baseBranch ?? branchData?.defaultBranch ?? null,
-					environmentId: selectedEnvironment?.id ?? null,
-					agent: effectiveAgentId,
-					model,
-					effort,
-					message,
-				})
-				.then(() => {
-					setBaseBranch(null);
-					clearComposer();
-				})
-				.catch(() => {});
-			return;
-		}
 		// Before the create is recorded, so the failed screen's retry replays
 		// ids rather than URIs the cleared draft no longer has. Usually
 		// instant: the upload started when the file was attached, and the ring
@@ -263,6 +246,24 @@ export function NewChatWidget({
 				t({ message: "Could not attach files" }),
 				errorMessage(error),
 			);
+			return;
+		}
+		if (selectedTarget.kind === "cloud") {
+			await createCloudWorkspace
+				.mutateAsync({
+					branch: baseBranch ?? branchData?.defaultBranch ?? null,
+					environmentId: selectedEnvironment?.id ?? null,
+					agent: effectiveAgentId,
+					model,
+					effort,
+					message,
+					attachmentFileIds,
+				})
+				.then(() => {
+					setBaseBranch(null);
+					clearComposer();
+				})
+				.catch(() => {});
 			return;
 		}
 		await createTerminalWorkspace

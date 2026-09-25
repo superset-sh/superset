@@ -9,12 +9,14 @@
  * Publishes the bundle first so the box can fetch it if the image is older.
  * Leaves the sandbox up for inspection on failure; deletes it on success.
  */
+
 import { randomUUID } from "node:crypto";
 import { SANDBOX_IMAGE_NAME } from "@superset/shared/constants";
 import {
 	SANDBOX_CONTRACT_VERSION,
 	type SandboxIdentity,
 } from "@superset/shared/sandbox-contract";
+import { DEFAULT_SANDBOX_REGION } from "@superset/shared/sandbox-regions";
 import { Sandbox } from "@vercel/sandbox";
 
 process.env.SKIP_ENV_VALIDATION ??= "1";
@@ -51,6 +53,9 @@ const { checkWakeLog, probeBox } = await import("./environments/probe");
 
 const name = `ws-real-check-${Date.now().toString(36)}`;
 const workspaceId = randomUUID();
+// Cut from main the way a real workspace is, so the probe's branch check
+// covers the branching itself and not just that a checkout happened.
+const workingBranch = `superset/real-check-${workspaceId.slice(0, 8)}`;
 const identity: SandboxIdentity = {
 	SUPERSET_SANDBOX_CONTRACT: String(SANDBOX_CONTRACT_VERSION) as "1",
 	SUPERSET_BUNDLE_SHA: bundle.sha256,
@@ -60,7 +65,8 @@ const identity: SandboxIdentity = {
 	SUPERSET_SANDBOX_REPOSITORIES: JSON.stringify([
 		{
 			url: "https://github.com/superset-sh/superset.git",
-			branch: "main",
+			branch: workingBranch,
+			baseBranch: "main",
 			path: ".",
 		},
 	]),
@@ -85,7 +91,11 @@ for (;;) {
 	try {
 		await provisionSandbox({
 			name,
-			environment: { sourceKind: "image", sourceRef: SANDBOX_IMAGE_NAME },
+			environment: {
+				sourceKind: "image",
+				sourceRef: SANDBOX_IMAGE_NAME,
+				region: DEFAULT_SANDBOX_REGION,
+			},
 			claim,
 		});
 		break;
@@ -107,7 +117,7 @@ let failed = await probeBox({
 	credentials,
 	hostSecret,
 	bundleSha: bundle.sha256,
-	branch: "main",
+	branch: workingBranch,
 	primaryPath: ".",
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId, userId: randomUUID() }

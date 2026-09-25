@@ -1,13 +1,9 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
-import { Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
-import { Button } from "../../../ui/button";
 import { DeletePageDialog } from "./components/DeletePageDialog";
-import { PagePublicBanner } from "./components/PagePublicBanner";
-import { PageSharePopover } from "./components/PageSharePopover";
+import { PageShareButton } from "./components/PageShareButton";
 import { PageTitleMenu } from "./components/PageTitleMenu";
 import { PageVersionBanner } from "./components/PageVersionBanner";
 import { RenamePageDialog } from "./components/RenamePageDialog";
@@ -87,7 +83,7 @@ export function PageHeader({
 
 				<div className="no-drag ml-auto flex shrink-0 items-center gap-1">
 					{trailing}
-					<PageSharePopover
+					<PageShareButton
 						page={page}
 						versions={versions}
 						editable={isOwner}
@@ -95,12 +91,7 @@ export function PageHeader({
 						onOpenChange={setShareOpen}
 						onSetVisibility={onSetVisibility}
 						onSetSharedVersion={onSetSharedVersion}
-					>
-						<Button size="xs" variant="ghost" className="gap-1.5">
-							<Share2 className="size-3.5" />
-							<Trans>Share</Trans>
-						</Button>
-					</PageSharePopover>
+					/>
 				</div>
 
 				<DeletePageDialog
@@ -123,11 +114,6 @@ export function PageHeader({
 				<PageVersionBanner
 					version={previewVersion}
 					onExit={() => onPreviewVersion(null)}
-				/>
-			) : isOwner && page.visibility === "everyone" ? (
-				<PagePublicBanner
-					url={page.url}
-					onOpenShareSettings={() => setShareOpen(true)}
 				/>
 			) : null}
 		</>

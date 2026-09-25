@@ -89,6 +89,9 @@ ensure_bundle() {
 	done
 	stamp "bundle.installed ${want:0:12} was ${have:0:12}"
 }
+self_hash() { sha256sum "$0" 2>/dev/null | cut -d' ' -f1; }
+BOOT_HASH_BEFORE="$(self_hash)"
+
 ensure_bundle || true
 BUNDLE="${SUPERSET_BUNDLE_ROOT}/current"
 
@@ -97,6 +100,15 @@ BUNDLE="${SUPERSET_BUNDLE_ROOT}/current"
 stamp "rootfs.start"; "$BUNDLE/setup" apply-rootfs >> "$SUPERSET_BOOT_LOG" 2>&1; stamp "rootfs.end"
 # apply-rootfs may have replaced the contract; re-read it.
 . /etc/superset/contract.sh
+# It may also have replaced this script. The shell is running the copy the
+# image baked, so without this a bundle's change to the boot script only
+# takes effect on the boot after the one that installed it — which is how an
+# older image's checkout raced a newer bundle's. Once per boot: the guard
+# stops a bundle whose script never settles from spinning here.
+if [ -z "${SUPERSET_BOOT_REEXEC:-}" ] && [ "$(self_hash)" != "$BOOT_HASH_BEFORE" ]; then
+	stamp "boot.reexec into the installed bundle's script"
+	SUPERSET_BOOT_REEXEC=1 exec "$0" "$@"
+fi
 stamp "assets.start"; "$BUNDLE/setup" sync-assets >> "$SUPERSET_BOOT_LOG" 2>&1 || stamp "assets.failed continuing"; stamp "assets.end"
 stamp "steps.start"; "$BUNDLE/setup" run-steps >> "$SUPERSET_BOOT_LOG" 2>&1; stamp "steps.end"
 
@@ -195,15 +207,16 @@ start_hook() {
 # a golden has the markers stripped so a fork fetches its branch into the
 # checkout it inherited.
 checkout_one() {
-	local url="$1" branch="$2" path="$3"
+	local url="$1" branch="$2" path="$3" base="$4"
+	[ -n "$base" ] || base="$branch"
 	local ws="${SUPERSET_WORKSPACE_DIR}/${path}" marker="${SUPERSET_CHECKOUTS_DIR}/${path}"
 	if [ "$path" = "." ]; then ws="$SUPERSET_WORKSPACE_DIR"; marker="${SUPERSET_CHECKOUTS_DIR}/@root"; fi
 	if [ -f "$marker" ]; then stamp "checkout.skipped ${path} already done"; return 0; fi
 	local baked
 	baked="$(as_user git -C "$ws" remote get-url origin 2>/dev/null || true)"
 	if [ "$baked" = "$url" ] && [ -d "$ws/.git" ]; then
-		if as_user git -C "$ws" fetch -q --depth 1 origin "$branch" && as_user git -C "$ws" checkout -q -B "$branch" FETCH_HEAD; then
-			touch "$marker"; stamp "checkout.fetched ${path} ${branch}"; return 0
+		if as_user git -C "$ws" fetch -q --depth 1 origin "$base" && as_user git -C "$ws" checkout -q -B "$branch" FETCH_HEAD; then
+			touch "$marker"; stamp "checkout.fetched ${path} ${branch} from ${base}"; return 0
 		fi
 		# A clone a previous session interrupted leaves a repository that can
 		# fetch nothing; start over rather than fail every boot.
@@ -217,8 +230,9 @@ checkout_one() {
 	local tmp
 	tmp="$(mktemp -d "${SUPERSET_WORKSPACE_DIR}/.clone.XXXXXX")"
 	chown "$SUPERSET_USER:$SUPERSET_USER" "$tmp"
-	if as_user git clone -q --depth 1 --single-branch --branch "$branch" "$url" "$tmp" \
+	if as_user git clone -q --depth 1 --single-branch --branch "$base" "$url" "$tmp" \
 		|| { find "$tmp" -mindepth 1 -delete; as_user git clone -q --depth 1 "$url" "$tmp"; }; then
+		as_user git -C "$tmp" checkout -q -B "$branch"
 		install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$ws"
 		find "$ws" -mindepth 1 -maxdepth 1 ! -name '.clone.*' -exec rm -rf {} +
 		( shopt -s dotglob nullglob; for entry in "$tmp"/*; do [ "${entry##*/}" = ".git" ] || mv "$entry" "$ws"/; done )
@@ -231,11 +245,11 @@ checkout() {
 	exec >> "${SUPERSET_LOG_DIR}/checkout.log" 2>&1
 	install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$SUPERSET_WORKSPACE_DIR"
 	install -d "$SUPERSET_CHECKOUTS_DIR"
-	local failed=0 url branch path
-	while IFS=$'\t' read -r url branch path; do
+	local failed=0 url branch path base
+	while IFS=$'\t' read -r url branch path base; do
 		[ -n "$path" ] || continue
-		checkout_one "$url" "$branch" "$path" || failed=1
-	done < <(printf '%s' "$SUPERSET_SANDBOX_REPOSITORIES" | jq -r '.[] | [.url, .branch, .path] | @tsv')
+		checkout_one "$url" "$branch" "$path" "$base" || failed=1
+	done < <(printf '%s' "$SUPERSET_SANDBOX_REPOSITORIES" | jq -r '.[] | [.url, .branch, .path, (.baseBranch // "")] | @tsv')
 	return "$failed"
 }
 (

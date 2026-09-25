@@ -1,13 +1,12 @@
 import { Trans } from "@lingui/react/macro";
 import { Pixel404 } from "@superset/ui/pixel-404";
 import { Link } from "@tanstack/react-router";
+import { FailureLayout } from "renderer/components/FailureLayout";
 
 export function NotFound() {
 	return (
-		<div className="flex flex-col h-full w-full bg-background">
-			<div className="h-12 w-full drag shrink-0" />
-
-			<div className="flex flex-1 items-center justify-center">
+		<FailureLayout>
+			<div className="flex min-h-full items-center justify-center">
 				<div className="flex flex-col items-center w-full max-w-md px-8">
 					<div className="flex flex-col items-center text-center">
 						<Pixel404 className="max-w-[260px] text-foreground mb-6" />
@@ -26,6 +25,6 @@ export function NotFound() {
 					</div>
 				</div>
 			</div>
-		</div>
+		</FailureLayout>
 	);
 }

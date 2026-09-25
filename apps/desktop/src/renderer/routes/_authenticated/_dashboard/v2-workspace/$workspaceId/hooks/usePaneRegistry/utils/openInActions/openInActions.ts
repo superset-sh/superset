@@ -8,7 +8,7 @@ import {
 	runFileLinkAction,
 	runFolderLinkAction,
 	runUrlLinkAction,
-} from "../../components/TerminalPane/utils/runTerminalLinkAction";
+} from "../runTerminalLinkAction";
 
 // Destinations, not sentences: these read under an "Open in" submenu trigger.
 // They name the same three targets as Settings → Links, so the menu and the

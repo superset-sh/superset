@@ -1,0 +1,398 @@
+{
+	"version": "1.0.0",
+	"connectors": {
+		"google": {
+			"displayName": "Google",
+			"icon": "google",
+			"category": "Communication",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "Sign in with Google",
+					"authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+					"token_url": "https://oauth2.googleapis.com/token",
+					"scopes": [
+						"openid",
+						"email",
+						"https://www.googleapis.com/auth/calendar.readonly",
+						"https://www.googleapis.com/auth/gmail.readonly",
+						"https://www.googleapis.com/auth/gmail.compose",
+						"https://www.googleapis.com/auth/gmail.modify",
+						"https://www.googleapis.com/auth/gmail.labels",
+						"https://www.googleapis.com/auth/gmail.settings.basic",
+						"https://mail.google.com/"
+					],
+					"scope_separator": " ",
+					"token_request_auth_method": "client_secret_post",
+					"token_expiration_buffer": 300,
+					"requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+					"authorization_params": {
+						"access_type": "offline",
+						"prompt": "consent",
+						"include_granted_scopes": "true"
+					},
+					"identity": {
+						"url": "https://openidconnect.googleapis.com/v1/userinfo",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.email",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"linear": {
+			"displayName": "Linear",
+			"icon": "linear",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"authorization_url": "https://linear.app/oauth/authorize",
+					"token_url": "https://api.linear.app/oauth/token",
+					"scopes": ["read", "write", "issues:create"],
+					"scope_separator": ",",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": ["LINEAR_CLIENT_ID", "LINEAR_CLIENT_SECRET"],
+					"identity": {
+						"url": "https://api.linear.app/graphql",
+						"method": "POST",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Content-Type": "application/json"
+						},
+						"body": {
+							"query": "query { viewer { id name email organization { id name } } }"
+						},
+						"account": {
+							"id": "$.data.viewer.organization.id",
+							"label": "$.data.viewer.organization.name"
+						},
+						"user": {
+							"id": "$.data.viewer.id",
+							"label": "$.data.viewer.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				},
+				{
+					"type": "api_key",
+					"label": "Personal API key",
+					"credential_input": "api_key",
+					"inputs": [
+						{
+							"name": "api_key",
+							"label": "Linear API key",
+							"placeholder": "lin_api_\u2026",
+							"description": "Linear \u2192 Settings \u2192 Security & access \u2192 Personal API keys",
+							"required": true,
+							"secret": true
+						}
+					],
+					"identity": {
+						"url": "https://api.linear.app/graphql",
+						"method": "POST",
+						"headers": {
+							"Authorization": "${config.access_token}",
+							"Content-Type": "application/json"
+						},
+						"body": {
+							"query": "query { viewer { id name email organization { id name } } }"
+						},
+						"account": {
+							"id": "$.data.viewer.organization.id",
+							"label": "$.data.viewer.organization.name"
+						},
+						"user": {
+							"id": "$.data.viewer.id",
+							"label": "$.data.viewer.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"notion": {
+			"displayName": "Notion",
+			"icon": "notion",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"authorization_url": "https://api.notion.com/v1/oauth/authorize",
+					"token_url": "https://api.notion.com/v1/oauth/token",
+					"scopes": [],
+					"token_request_auth_method": "client_secret_basic",
+					"requires_env": ["NOTION_CLIENT_ID", "NOTION_CLIENT_SECRET"],
+					"authorization_params": {
+						"owner": "user"
+					},
+					"identity": {
+						"account": {
+							"id": "$.workspace_id",
+							"label": "$.workspace_name"
+						},
+						"user": {
+							"id": "$.owner.user.id",
+							"label": "$.owner.user.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Notion-Version": "2022-06-28"
+						}
+					}
+				}
+			]
+		},
+		"notion_mcp": {
+			"displayName": "Notion",
+			"icon": "notion",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.notion.com/mcp",
+					"scopes": [],
+					"token_request_auth_method": "client_secret_basic",
+					"authorization_params": {
+						"owner": "user"
+					},
+					"identity": {
+						"account": {
+							"id": "$.workspace_id",
+							"label": "$.workspace_name"
+						},
+						"user": {
+							"id": "$.user_id"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Notion-Version": "2022-06-28"
+						}
+					}
+				}
+			]
+		},
+		"slack": {
+			"displayName": "Slack",
+			"icon": "slack",
+			"category": "Communication",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "Add to Slack",
+					"authorization_url": "https://slack.com/oauth/v2/authorize",
+					"token_url": "https://slack.com/api/oauth.v2.access",
+					"scope_separator": ",",
+					"scope_identifier": "user_scope",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"],
+					"scopes": [
+						"channels:history",
+						"channels:read",
+						"channels:write",
+						"groups:history",
+						"groups:read",
+						"groups:write",
+						"im:history",
+						"im:read",
+						"im:write",
+						"mpim:history",
+						"mpim:read",
+						"mpim:write",
+						"chat:write",
+						"reactions:read",
+						"reactions:write",
+						"users:read",
+						"users:read.email",
+						"users:write",
+						"search:read",
+						"team:read"
+					],
+					"authorization_params": {
+						"scope": "app_mentions:read,chat:write,reactions:read,reactions:write,channels:history,channels:read,groups:history,groups:read,im:history,im:read,im:write,mpim:history,users:read,files:read,assistant:write,links:read,links:write"
+					},
+					"token": "$.authed_user.access_token",
+					"store": {
+						"bot_token": "$.access_token",
+						"bot_user_id": "$.bot_user_id",
+						"slack_user_id": "$.authed_user.id"
+					},
+					"identity": {
+						"url": "https://slack.com/api/auth.test",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.team_id",
+							"label": "$.team"
+						},
+						"user": {
+							"id": "$.user_id",
+							"label": "$.user"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"sentry": {
+			"displayName": "Sentry",
+			"icon": "sentry",
+			"category": "Developer tools",
+			"scope": "org",
+			"methods": [
+				{
+					"type": "app_install",
+					"label": "Install the Sentry app",
+					"install_url": "https://sentry.io/sentry-apps/${env.SENTRY_APP_SLUG}/external-install/",
+					"token_url": "https://sentry.io/api/0/sentry-app-installations/${params.installationId}/authorizations/",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": [
+						"SENTRY_CLIENT_ID",
+						"SENTRY_CLIENT_SECRET",
+						"SENTRY_APP_SLUG"
+					],
+					"callback_params": ["code", "installationId", "orgSlug"],
+					"identity": {
+						"url": "https://sentry.io/api/0/sentry-app-installations/${params.installationId}/",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.organization.slug",
+							"label": "$.organization.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"microsoft_teams": {
+			"displayName": "Microsoft Teams",
+			"icon": "microsoft-teams",
+			"category": "Communication",
+			"scope": "org",
+			"methods": [
+				{
+					"type": "admin_consent",
+					"label": "Grant admin consent",
+					"consent_url": "https://login.microsoftonline.com/organizations/v2.0/adminconsent",
+					"token_url": "https://login.microsoftonline.com/${config.tenant_id}/oauth2/v2.0/token",
+					"grant_type": "client_credentials",
+					"scopes": ["https://graph.microsoft.com/.default"],
+					"scope_separator": " ",
+					"requires_env": ["MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"],
+					"callback_params": ["tenant", "admin_consent"],
+					"identity_signin": {
+						"authorization_url": "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
+						"scopes": ["openid", "profile", "email"],
+						"scope_separator": " "
+					},
+					"identity": {
+						"url": "https://graph.microsoft.com/v1.0/organization",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.value[0].id",
+							"label": "$.value[0].displayName"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"github": {
+			"displayName": "GitHub",
+			"icon": "github",
+			"category": "Developer tools",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"authorization_url": "https://github.com/login/oauth/authorize",
+					"token_url": "https://github.com/login/oauth/access_token",
+					"scopes": ["repo", "read:org", "workflow"],
+					"scope_separator": " ",
+					"token_request_auth_method": "client_secret_post",
+					"requires_env": [
+						"PLUGIN_GITHUB_CLIENT_ID",
+						"PLUGIN_GITHUB_CLIENT_SECRET"
+					],
+					"identity": {
+						"url": "https://api.github.com/user",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}",
+							"Accept": "application/vnd.github+json"
+						},
+						"account": {
+							"id": "$.id",
+							"label": "$.login"
+						},
+						"user": {
+							"id": "$.id",
+							"label": "$.login"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		}
+	}
+}

@@ -45,6 +45,7 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 				current.state.data?.some((row) => row.status === "provisioning")
 					? PROVISIONING_POLL_MS
 					: false,
+			refetchIntervalInBackground: true,
 		},
 	);
 

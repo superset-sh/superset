@@ -360,3 +360,45 @@ bun test apps/mobile/react-native-screens-sheet-patch.test.ts
 Verify in the simulator: open a workspace with two PRs, tap the PR chip, tap a
 row, go back, reopen the sheet, tap the other row. The second PR must show its
 description and the Files row without scrolling.
+
+## @pierre/trees (`@pierre%2Ftrees@<version>.patch`)
+
+**Why:** DESKTOP-19G, DESKTOP-KR, DESKTOP-P5, DESKTOP-P4 (and DESKTOP-11E's
+158 events, which #6789 wrapped at one call site). The path store's segment
+walk (`findNodeIdBySegments` in `dist/path-store/src/canonical.js`) resolves
+`a/b/c` by looking each segment up in the child index of the node it reached so
+far, and reads that index without checking that the node is a directory. When
+`a/b` is held as a **file** and the leaf name `c` exists anywhere else in the
+tree, the walk reaches the file node and `getDirectoryIndex` throws `Unknown
+directory child index for node N` — a different `N` each time, so Sentry files
+every occurrence as a fresh issue. `getPathInfo` is documented to return null
+for a path the store does not hold, and `getItem`, `isExpanded` and the
+selection remap inside `resetPaths` all sit on it. The Files tab feeds it
+exactly that shape whenever a loaded directory comes back from the host as a
+non-directory (a dangling symlink, or a directory replaced by a file between
+listings) while a row beneath it is still selected; the throw leaves the
+controller half-reset (store swapped, subscription dropped, projection stale)
+until the next refresh. Reproduced against 1.0.0-beta.5; 1.0.0-beta.6 carries
+the same code.
+
+**What it changes** (`dist/path-store/src/canonical.js`): one line in
+`findNodeIdBySegments` — return null when the node reached so far is not a
+directory, before asking for its child index. Every path-keyed query then
+answers "not held" for a path beneath a file, which is what its contract says.
+
+**Guard test:** `apps/desktop/src/pierre-trees-lookup-patch.test.ts`.
+
+**Regenerating after a version bump** (~2 min):
+
+```bash
+bun patch @pierre/trees@<new-version>
+# in node_modules/@pierre/trees/dist/path-store/src/canonical.js, in
+# findNodeIdBySegments, return null when
+# !isDirectoryNode(requireNode(state, currentNodeId)) before getDirectoryIndex
+bun patch --commit 'node_modules/@pierre/trees'
+bun test apps/desktop/src/pierre-trees-lookup-patch.test.ts
+```
+
+**Removing:** delete the patch, the `patchedDependencies` entry and the guard
+test once @pierre/trees ships a release whose segment walk stops at a file
+node.

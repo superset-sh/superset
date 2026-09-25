@@ -5,6 +5,7 @@ import {
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 export const SETTING_ITEM_ID = {
+	MOBILE_APP: "mobile-app",
 	ACCOUNT_PROFILE: "account-profile",
 	ACCOUNT_SIGNOUT: "account-signout",
 	ACCOUNT_DELETE: "account-delete",
@@ -249,6 +250,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK]: "shared",
 
 	[SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY]: "shared",
+	[SETTING_ITEM_ID.MOBILE_APP]: "shared",
 
 	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
 	[SETTING_ITEM_ID.ENVIRONMENTS_LIST]: "v2",
@@ -312,15 +314,7 @@ const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
 		"communication",
 	],
 	sentry: ["errors", "issues", "monitoring", "alerts", "triage"],
-	google: [
-		"calendar",
-		"gmail",
-		"email",
-		"mail",
-		"events",
-		"triggers",
-		"automations",
-	],
+	google: ["gmail", "email", "mail", "triggers", "automations"],
 };
 
 const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(
@@ -340,6 +334,13 @@ const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(
 );
 
 export const SETTINGS_ITEMS: SettingsItem[] = [
+	{
+		id: SETTING_ITEM_ID.MOBILE_APP,
+		section: "mobile",
+		title: "Mobile",
+		description: "Use Superset on your iPhone",
+		keywords: ["phone", "mobile", "qr", "scan", "ios", "app store"],
+	},
 	{
 		id: SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		section: "account",
@@ -1988,9 +1989,12 @@ export function getVisibleMatchCountBySection(
 	query: string,
 	isV2: boolean,
 	cloudWorkspaces: boolean,
+	mobileEnabled = false,
 ): Partial<Record<SettingsSection, number>> {
-	const matches = searchSettings(query).filter((item) =>
-		isItemOffered(item, isV2, cloudWorkspaces),
+	const matches = searchSettings(query).filter(
+		(item) =>
+			isItemOffered(item, isV2, cloudWorkspaces) &&
+			(item.section !== "mobile" || mobileEnabled),
 	);
 	const counts: Partial<Record<SettingsSection, number>> = {};
 	for (const item of matches) {

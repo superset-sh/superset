@@ -23,6 +23,11 @@ export default defineConfig({
 			.env("SUPERSET_API_KEY")
 			.desc("Use a Superset API key (sk_live_…) instead of OAuth login"),
 	},
+	audiences: () =>
+		process.env.SUPERSET_CLI_AUDIENCE === "internal"
+			? ["internal", "public"]
+			: ["public"],
+	sandbox: () => Boolean(process.env.SUPERSET_SANDBOX_WORKSPACE_ID),
 	help: {
 		tagline: "Command your fleet of coding agents from any shell.",
 		docsUrl: "https://docs.superset.sh/cli",

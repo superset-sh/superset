@@ -2,7 +2,7 @@
 title: "Best IDE for Claude Code in 2026: Where to Run It"
 description: "The best places to run Claude Code in 2026, from the terminal and VS Code to JetBrains, Zed, Conductor, and Superset for parallel worktree sessions."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "roundup"
 competitors:
   - vs-code
@@ -30,7 +30,7 @@ This guide covers both, from the simplest terminal setup to a full parallel-agen
 
 | Where you run Claude Code | Best for | Parallel sessions on one repo? | Main tradeoff |
 |---|---|---|---|
-| **Superset** | Running many Claude Code sessions at once | Yes -- one Git worktree per task | Not a single-file editor experience |
+| **Superset** | Running many Claude Code sessions at once | Git worktrees for local branch-based workspaces | Not a single-file editor experience |
 | **Terminal (CLI)** | The most complete, scriptable Claude Code | Manual (tmux + worktrees yourself) | You manage isolation and review |
 | **VS Code extension** | Editing alongside Claude Code | Limited without extra tooling | In-editor, single working copy |
 | **JetBrains extension** | JetBrains users | Limited | Tied to JetBrains IDEs |
@@ -74,7 +74,7 @@ For the direct comparison, see [Superset vs cmux](/compare/superset-vs-cmux).
 
 ### Superset
 
-Superset runs Claude Code as a first-class agent, giving every session its own Git worktree, branch, and persistent terminal, so multiple Claude Code sessions can work the same repository at once without collisions. Around that it adds a built-in diff and file editor, an in-app browser, MCP tooling, and remote and cloud workspaces. You can review inside Superset or hand off to VS Code, Cursor, JetBrains, or Xcode. It is the strongest fit when your goal is many Claude Code sessions in parallel, not another editor pane.
+Superset runs Claude Code as a first-class agent, using separate Git worktrees and terminals for new local branch-based workspaces, so multiple Claude Code sessions can work the same repository at once in separate working directories. Around that it adds a built-in diff and file editor, an in-app browser, MCP tooling, and remote and cloud workspaces. You can review inside Superset or hand off to VS Code, Cursor, JetBrains, or Xcode. It is the strongest fit when your goal is many Claude Code sessions in parallel, not another editor pane. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 For the direct comparison, see [Superset vs Claude Code](/compare/superset-vs-claude-code).
 
@@ -100,7 +100,7 @@ Zed's ACP support runs Claude Code cleanly inside a fast, modern editor.
 
 ### Best for parallel Claude Code sessions: Superset
 
-Superset gives every session its own worktree, so many can run at once without collisions, with review and orchestration built in.
+Superset gives new local branch-based workspaces separate worktrees, so many can run at once in separate working directories, with review and orchestration built in.
 
 ## Verdict
 

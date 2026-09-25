@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useWorkspaceConnectionRefresh } from "../useWorkspaceConnectionRefresh";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
@@ -19,7 +20,6 @@ export function usePageWatchers(
 	options?: { enabled?: boolean },
 ): Map<string, PageWatcher> {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
-	const queryClient = useQueryClient();
 	const queryKey = useMemo(
 		() => getPageWatchersQueryKey(workspaceId),
 		[workspaceId],
@@ -32,29 +32,24 @@ export function usePageWatchers(
 		queryKey,
 		enabled,
 		staleTime: 30_000,
-		queryFn: async () => {
+		queryFn: async ({ signal }) => {
 			if (!hostUrl) return [] as PageWatchers;
-			return await getHostServiceClientByUrl(hostUrl).pageWatch.getAll.query({
-				workspaceId,
-			});
+			return await getHostServiceClientByUrl(hostUrl).pageWatch.getAll.query(
+				{
+					workspaceId,
+				},
+				{ signal },
+			);
 		},
 	});
 
-	useWorkspaceEvent(
-		"page-watch:changed",
+	const invalidate = useWorkspaceConnectionRefresh(
 		workspaceId,
-		useCallback(() => {
-			void queryClient.invalidateQueries({ queryKey });
-		}, [queryClient, queryKey]),
+		queryKey,
+		enabled,
 	);
-
-	useWorkspaceEvent(
-		"terminal:lifecycle",
-		workspaceId,
-		useCallback(() => {
-			void queryClient.invalidateQueries({ queryKey });
-		}, [queryClient, queryKey]),
-	);
+	useWorkspaceEvent("page-watch:changed", workspaceId, invalidate, enabled);
+	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
 
 	return useMemo(() => {
 		const map = new Map<string, PageWatcher>();

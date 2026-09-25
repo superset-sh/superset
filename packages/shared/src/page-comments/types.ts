@@ -12,6 +12,7 @@ export interface PageComment {
 	authorImage: string | null;
 	authorKind: "human" | "agent";
 	authorUserId: string | null;
+	agentLabel: string | null;
 	body: string;
 	createdAt: number;
 }
@@ -20,7 +21,7 @@ export type CommentIntent = "delete" | "approve";
 
 export interface CommentThread {
 	id: string;
-	anchor: CommentAnchor;
+	anchor: CommentAnchor | null;
 	intent?: CommentIntent | null;
 	comments: PageComment[];
 	resolved: boolean;
@@ -35,8 +36,8 @@ export interface CommentDraft {
 }
 
 export interface CreateThreadInput {
-	anchor: CommentAnchor;
-	anchorText: string;
+	anchor?: CommentAnchor;
+	anchorText?: string;
 	body: string;
 	intent?: CommentIntent | null;
 }

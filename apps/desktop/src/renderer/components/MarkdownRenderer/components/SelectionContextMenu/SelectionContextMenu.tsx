@@ -24,11 +24,13 @@ function getModifierKeyLabel() {
 interface SelectionContextMenuProps<T extends HTMLElement> {
 	children: ReactNode;
 	selectAllContainerRef: RefObject<T | null>;
+	getMarkdownSelection?: () => string;
 }
 
 export function SelectionContextMenu<T extends HTMLElement>({
 	children,
 	selectAllContainerRef,
+	getMarkdownSelection,
 }: SelectionContextMenuProps<T>) {
 	const { copyToClipboard } = useCopyToClipboard();
 	const [selectionText, setSelectionText] = useState("");
@@ -61,6 +63,11 @@ export function SelectionContextMenu<T extends HTMLElement>({
 		if (!text) return;
 
 		copyToClipboard(text);
+	};
+
+	const handleCopyAsMarkdown = () => {
+		const markdown = getMarkdownSelection?.();
+		if (markdown) copyToClipboard(markdown);
 	};
 
 	const handleCopyLinkAddress = async () => {
@@ -97,6 +104,11 @@ export function SelectionContextMenu<T extends HTMLElement>({
 					<Trans>Copy</Trans>
 					<ContextMenuShortcut>{`${modifierKeyLabel}C`}</ContextMenuShortcut>
 				</ContextMenuItem>
+				{getMarkdownSelection && (
+					<ContextMenuItem disabled={!canCopy} onSelect={handleCopyAsMarkdown}>
+						<Trans>Copy as Markdown</Trans>
+					</ContextMenuItem>
+				)}
 				{linkHref && (
 					<ContextMenuItem onSelect={handleCopyLinkAddress}>
 						<Trans>Copy Link Address</Trans>

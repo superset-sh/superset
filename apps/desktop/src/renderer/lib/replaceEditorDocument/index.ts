@@ -1,0 +1,1 @@
+export { replaceEditorDocument } from "./replaceEditorDocument";

@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./connectors": {
+			"types": "./src/lib/connectors/index.ts",
+			"default": "./src/lib/connectors/index.ts"
+		},
 		"./lib/sandbox": {
 			"types": "./src/lib/sandbox/index.ts",
 			"default": "./src/lib/sandbox/index.ts"
@@ -23,6 +27,10 @@
 		"./page-thumbnail": {
 			"types": "./src/router/page/thumbnail.ts",
 			"default": "./src/router/page/thumbnail.ts"
+		},
+		"./page-preview": {
+			"types": "./src/router/page/preview.ts",
+			"default": "./src/router/page/preview.ts"
 		},
 		"./file-sweep": {
 			"types": "./src/lib/files/sweep.ts",
@@ -92,6 +100,14 @@
 			"types": "./src/router/analytics/business.ts",
 			"default": "./src/router/analytics/business.ts"
 		},
+		"./account-purge": {
+			"types": "./src/lib/account-purge/index.ts",
+			"default": "./src/lib/account-purge/index.ts"
+		},
+		"./plugins-proxy": {
+			"types": "./src/router/plugins/proxy/index.ts",
+			"default": "./src/router/plugins/proxy/index.ts"
+		},
 		"./router/cloud-workspace/provision": {
 			"types": "./src/router/cloud-workspace/provision.ts",
 			"default": "./src/router/cloud-workspace/provision.ts"
@@ -111,6 +127,7 @@
 		"@googleapis/gmail": "18.0.0",
 		"@linear/sdk": "68.1.1",
 		"@microsoft/microsoft-graph-client": "3.0.7",
+		"@modelcontextprotocol/sdk": "1.30.0",
 		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
 		"@sentry/core": "10.68.0",

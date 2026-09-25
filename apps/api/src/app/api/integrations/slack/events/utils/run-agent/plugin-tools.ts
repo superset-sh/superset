@@ -1,14 +1,25 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import {
-	type ConnectionContext,
-	callTool,
-	listTools,
-	type ToolDefinition,
-	templateScope,
-	toolConnections,
-} from "@superset/trpc/integrations/plugins";
+	AmbiguousPluginError,
+	buildPluginServer,
+	PluginTargetError,
+	resolveTarget,
+} from "@superset/trpc/plugins-proxy";
+
+export type ToolDefinition = Tool;
+
+/** One connected client per plugin, over the same server the MCP endpoint serves. */
+export interface PluginSession {
+	client: Client;
+	/** Per installation: the same plugin from two marketplaces lists different tools. */
+	cacheKey: string;
+	close: () => Promise<void>;
+}
 
 export interface PluginToolSet {
-	context: ConnectionContext;
+	context: PluginSession;
 	tools: ToolDefinition[];
 }
 
@@ -16,6 +27,7 @@ export interface PluginTools {
 	sets: Map<string, PluginToolSet>;
 	/** False when connections could not be listed: absence then means unknown, not unconnected. */
 	resolved: boolean;
+	close: () => Promise<void>;
 }
 
 export interface ToolCallResult {
@@ -36,70 +48,101 @@ export function invalidatePluginToolCache(): void {
 	toolListCache.clear();
 }
 
-/** Per installation: the same plugin from two marketplaces can list different tools. */
-function cacheKey({ connection, install }: ConnectionContext): string {
-	return `${install.id}:${install.marketplace}/${connection.pluginName}@${install.manifest.version}:${connection.authMethod}`;
+async function openSession(
+	userId: string,
+	organizationId: string | null,
+	plugin: string,
+): Promise<PluginSession | null> {
+	const target = await resolveTarget({ userId, organizationId, plugin });
+	if (target.kind === "needs-auth") return null;
+
+	const server = await buildPluginServer(target);
+	const [clientTransport, serverTransport] =
+		InMemoryTransport.createLinkedPair();
+	const client = new Client({ name: "slack-agent", version: "1.0.0" });
+	await Promise.all([
+		server.connect(serverTransport),
+		client.connect(clientTransport),
+	]);
+	return {
+		client,
+		cacheKey: `${target.connectionId}:${target.plugin}@${target.version}`,
+		close: async () => {
+			await client.close();
+			await server.close();
+		},
+	};
 }
 
 async function cachedListTools(
-	context: ConnectionContext,
+	session: PluginSession,
 	signal: AbortSignal,
 ): Promise<ToolDefinition[]> {
-	const key = cacheKey(context);
-	const cached = toolListCache.get(key);
+	const cached = toolListCache.get(session.cacheKey);
 	if (cached && cached.expiresAt > Date.now()) return cached.tools;
 
-	const tools = await listTools(
-		context.install.manifest,
-		await templateScope(context.connection),
-		context.connection.authMethod,
-		context.source,
-		{ signal },
-	);
-	toolListCache.set(key, { tools, expiresAt: Date.now() + TOOL_LIST_TTL_MS });
+	const { tools } = await session.client.listTools(undefined, { signal });
+	toolListCache.set(session.cacheKey, {
+		tools,
+		expiresAt: Date.now() + TOOL_LIST_TTL_MS,
+	});
 	return tools;
 }
 
-/** The newest connection wins when a user holds several for one plugin. */
 export async function loadPluginTools({
 	userId,
+	organizationId,
 	pluginNames,
 	signal,
 }: {
 	userId: string;
+	organizationId: string | null;
 	pluginNames: Iterable<string>;
 	signal: AbortSignal;
 }): Promise<PluginTools> {
-	const wanted = new Set(pluginNames);
-	const byPlugin = new Map<string, ConnectionContext>();
-	let contexts: ConnectionContext[];
-	try {
-		contexts = await toolConnections(userId);
-	} catch (error) {
-		console.warn("[slack-agent] Skipping plugin tools this run:", error);
-		return { sets: new Map(), resolved: false };
-	}
-	for (const context of contexts) {
-		const name = context.connection.pluginName;
-		if (wanted.has(name) && !byPlugin.has(name)) byPlugin.set(name, context);
-	}
-
 	const sets = new Map<string, PluginToolSet>();
+	let resolved = true;
+
 	await Promise.all(
-		[...byPlugin.values()].map(async (context) => {
-			const name = context.connection.pluginName;
+		[...new Set(pluginNames)].map(async (name) => {
+			let session: PluginSession | null = null;
+			try {
+				session = await openSession(userId, organizationId, name);
+			} catch (error) {
+				// Not installed is an answer; anything else leaves this plugin's
+				// connection state unknown, so the brief must not claim either.
+				const absent =
+					(error instanceof PluginTargetError && error.status === 404) ||
+					error instanceof AmbiguousPluginError;
+				if (!absent) resolved = false;
+				console.warn(`[slack-agent] Skipping ${name} tools:`, error);
+				return;
+			}
+			// Not connected: absent from the sets means "Connect" in the brief.
+			if (!session) return;
 			try {
 				sets.set(name, {
-					context,
-					tools: await cachedListTools(context, signal),
+					context: session,
+					tools: await cachedListTools(session, signal),
 				});
 			} catch (error) {
+				// The connection is real, so it stays in the sets with no tools
+				// rather than being reported as unconnected.
 				console.warn(`[slack-agent] Skipping ${name} tools:`, error);
-				sets.set(name, { context, tools: [] });
+				sets.set(name, { context: session, tools: [] });
 			}
 		}),
 	);
-	return { sets, resolved: true };
+
+	return {
+		sets,
+		resolved,
+		close: async () => {
+			await Promise.all(
+				[...sets.values()].map((set) => set.context.close().catch(() => {})),
+			);
+		},
+	};
 }
 
 export async function callPluginTool({
@@ -108,18 +151,14 @@ export async function callPluginTool({
 	args,
 	signal,
 }: {
-	context: ConnectionContext;
+	context: PluginSession;
 	tool: string;
 	args: Record<string, unknown>;
 	signal: AbortSignal;
 }): Promise<ToolCallResult> {
-	const result = await callTool(
-		context.install.manifest,
-		await templateScope(context.connection),
-		tool,
-		args,
-		context.connection.authMethod,
-		context.source,
+	const result = await context.client.callTool(
+		{ name: tool, arguments: args },
+		undefined,
 		{ signal },
 	);
 	return (result ?? {}) as ToolCallResult;

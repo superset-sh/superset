@@ -54,11 +54,11 @@ export const PAGE_THEME_CSS = `:where(:root),
 }
 
 :where(html) {
-	background: var(--sp-bg);
 	color: var(--sp-text);
 }
 
 :where(body) {
+	background: var(--sp-bg);
 	margin: 0;
 	font-family: var(--sp-font-sans);
 	font-size: 16px;

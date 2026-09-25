@@ -133,8 +133,9 @@ export function useSubmitWorkspace(
 				// Returns as soon as the row exists — the sandbox is still being
 				// provisioned behind it, which the workspace screen renders.
 				// Same rule as a local create: an agent launches only when there
-				// is something to say to it. Attachments stay behind — they are
-				// written to a host, and this workspace's host doesn't exist yet.
+				// is something to say to it. Attachments were uploaded to cloud
+				// storage rather than a host, so the ids here are `files.id`s the
+				// sandbox resolves and pulls once it is up.
 				const wantCloudAgent =
 					selectedAgent !== "none" &&
 					(!!draft.prompt.trim() ||
@@ -163,6 +164,9 @@ export function useSubmitWorkspace(
 								model: selectedModel ?? undefined,
 								effort: selectedEffort ?? undefined,
 								mode: selectedMode ?? undefined,
+								...(attachmentIds.length > 0
+									? { attachmentFileIds: attachmentIds }
+									: {}),
 							}
 						: {}),
 				});

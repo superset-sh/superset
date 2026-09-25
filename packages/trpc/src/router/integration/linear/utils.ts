@@ -1,7 +1,6 @@
 import { LinearClient } from "@linear/sdk";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import type { SelectConnection } from "@superset/db/schema";
+import { decryptSecret, userConnection } from "../../../lib/connectors";
 import { markDisconnected, REFRESH_BUFFER_MS } from "../token-refresh";
 import { isLinearAuthError, refreshLinearToken } from "./refresh";
 
@@ -39,15 +38,18 @@ export function mapPriorityFromLinear(linearPriority: number): Priority {
 
 export async function getLinearClient(
 	organizationId: string,
+	userId: string,
 ): Promise<LinearClient | null> {
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, organizationId),
-			eq(integrationConnections.provider, "linear"),
-		),
+	const connection = await userConnection(organizationId, "linear", userId, {
+		includeDisconnected: true,
 	});
+	return connection ? linearClientFor(connection) : null;
+}
 
-	if (!connection || connection.disconnectedAt) {
+export async function linearClientFor(
+	connection: SelectConnection,
+): Promise<LinearClient | null> {
+	if (connection.disconnectedAt) {
 		return null;
 	}
 
@@ -69,11 +71,15 @@ export async function getLinearClient(
 				connection.tokenExpiresAt &&
 				connection.tokenExpiresAt.getTime() > Date.now();
 			if (tokenStillValid && !isLinearAuthError(error)) {
-				return new LinearClient({ accessToken: connection.accessToken });
+				return new LinearClient({
+					accessToken: await decryptSecret(connection.accessToken),
+				});
 			}
 			throw error;
 		}
 	}
 
-	return new LinearClient({ accessToken: connection.accessToken });
+	return new LinearClient({
+		accessToken: await decryptSecret(connection.accessToken),
+	});
 }

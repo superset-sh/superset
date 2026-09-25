@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import type { WorkspaceProps } from "@superset/panes";
+import type { WorkspaceProps, WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
 import {
@@ -7,6 +7,7 @@ import {
 	probeTerminalRunning,
 } from "renderer/lib/terminal/confirm-close-terminals";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import type { StoreApi } from "zustand";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import { useDirtyTabCloseGuard } from "../useDirtyTabCloseGuard";
 
@@ -20,12 +21,14 @@ type OnBeforeCloseTab = NonNullable<
  * a prompt via the tab-close gesture (the per-pane onBeforeClose never fires on
  * tab close). Terminals are checked first, then unsaved files.
  */
-export function useTabCloseGuard(): OnBeforeCloseTab {
+export function useTabCloseGuard(
+	store: StoreApi<WorkspaceStore<PaneViewerData>>,
+): OnBeforeCloseTab {
 	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const utils = workspaceTrpc.useUtils();
-	const dirtyGuard = useDirtyTabCloseGuard();
+	const dirtyGuard = useDirtyTabCloseGuard(store);
 
 	return useCallback<OnBeforeCloseTab>(
 		async (tab) => {
