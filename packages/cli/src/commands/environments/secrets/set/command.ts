@@ -88,7 +88,7 @@ export default command({
 			message:
 				agentNames.length === 0
 					? set
-					: `${set}. Your app reads ${agentNames.join(", ")}; agents sign in under Settings › Agents and never use a variable set here.`,
+					: `${set}. Agents never read ${agentNames.join(", ")} here; they sign in under Settings › Agents.`,
 		};
 	},
 });

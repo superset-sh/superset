@@ -1644,6 +1644,9 @@ msgstr "Ajanlar rutin biletleri görev ortasında müdahale olmadan tamamlar."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incelemeye hazır işaretlemeden önce ekran görüntüsü kanıtı ekler."
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "Ajanlar bu değişkeni burada asla okumaz; Ayarlar › Ajanlar bölümünden oturum açarlar."
+
 msgid "Agents running at once"
 msgstr "Aynı anda çalışan ajanlar"
 
@@ -17195,9 +17198,6 @@ msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş olu
 
 msgid "Your Agents, Your Accounts"
 msgstr "Sizin ajanlarınız, sizin hesaplarınız"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "Bu değişkeni uygulamanız okur. Ajanlar Ayarlar › Ajanlar bölümünden oturum açar ve burada ayarlanan bir değişkeni asla kullanmaz."
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Tarayıcınız hangi yongaya sahip olduğunuzu bildirmediğinden bu, Apple Silicon derlemesidir. Intel Mac kullanıyorsanız bunun yerine <0>Intel derlemesini indirin</0>."

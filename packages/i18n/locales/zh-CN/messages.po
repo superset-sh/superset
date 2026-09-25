@@ -1644,6 +1644,9 @@ msgstr "智能体无需中途干预即可完成常规工单。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "智能体自己加载预览、操作界面，并在标记为待审查之前附上截图证据。"
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "智能体不会读取此处的变量；它们在「设置 › 智能体」中登录。"
+
 msgid "Agents running at once"
 msgstr "同时运行的智能体数"
 
@@ -17195,9 +17198,6 @@ msgstr "你的账户由你所在的组织管理。请联系管理员来创建新
 
 msgid "Your Agents, Your Accounts"
 msgstr "你的智能体，你的账号"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "此变量由你的应用读取。智能体在「设置 › 智能体」中登录，绝不会使用此处设置的变量。"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "你的浏览器未报告芯片类型，因此这是 Apple Silicon 版本。如果你使用 Intel Mac，请改为<0>获取 Intel 版本</0>。"
