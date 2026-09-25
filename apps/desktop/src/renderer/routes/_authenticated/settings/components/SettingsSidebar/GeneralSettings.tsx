@@ -7,6 +7,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import {
+	HiOutlineAdjustmentsHorizontal,
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
@@ -25,7 +26,6 @@ import {
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineShieldCheck,
-	HiOutlineSparkles,
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
@@ -149,7 +149,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: msg({
 					message: "General",
 				}),
-				icon: <HiOutlineSparkles className="h-4 w-4" />,
+				icon: <HiOutlineAdjustmentsHorizontal className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/keyboard",

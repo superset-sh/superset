@@ -20,7 +20,7 @@ export async function generateCloudWorkspaceName(
 	if (!cleaned) return null;
 
 	try {
-		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const anthropic = new Anthropic({ apiKey: env.SERVER_ANTHROPIC_API_KEY });
 		const response = await anthropic.messages.create({
 			model: "claude-haiku-4-5",
 			max_tokens: 64,

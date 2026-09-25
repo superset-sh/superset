@@ -1,12 +1,13 @@
 import { db } from "@superset/db/client";
 import { pluginInstalls } from "@superset/db/schema";
 import { and, asc, countDistinct, eq } from "drizzle-orm";
-import type { PluginManifest } from "./manifest";
+import { installConnector, type PluginManifest } from "./manifest";
 
 export interface InstalledPlugin {
 	id: string;
 	manifest: PluginManifest;
 	marketplace: string;
+	connector: string | undefined;
 }
 
 export class AmbiguousPluginError extends Error {
@@ -56,6 +57,7 @@ export async function installedPlugin(
 		id: row.id,
 		manifest: row.manifest as PluginManifest,
 		marketplace: row.marketplace,
+		connector: installConnector({ ...row, pluginName }),
 	};
 }
 
@@ -111,6 +113,7 @@ export async function installById(
 			id: pluginInstalls.id,
 			manifest: pluginInstalls.manifest,
 			marketplace: pluginInstalls.marketplace,
+			pluginName: pluginInstalls.pluginName,
 		})
 		.from(pluginInstalls)
 		.where(
@@ -127,6 +130,7 @@ export async function installById(
 		id: row.id,
 		manifest: row.manifest as PluginManifest,
 		marketplace: row.marketplace,
+		connector: installConnector(row),
 	};
 }
 

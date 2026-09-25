@@ -6,14 +6,21 @@ const identityRef = z.object({
 	label: z.string().optional(),
 });
 
-const identityProbe = z.object({
-	url: z.string(),
-	method: z.enum(["GET", "POST"]).default("GET"),
-	headers: z.record(z.string(), z.string()).optional(),
-	body: z.record(z.string(), z.unknown()).optional(),
+const identityPaths = {
 	account: identityRef,
 	user: identityRef.optional(),
-});
+};
+
+const identityProbe = z.union([
+	z.object({
+		url: z.string(),
+		method: z.enum(["GET", "POST"]).default("GET"),
+		headers: z.record(z.string(), z.string()).optional(),
+		body: z.record(z.string(), z.unknown()).optional(),
+		...identityPaths,
+	}),
+	z.strictObject(identityPaths),
+]);
 
 const bindSpec = z.object({
 	headers: z.record(z.string(), z.string()).optional(),

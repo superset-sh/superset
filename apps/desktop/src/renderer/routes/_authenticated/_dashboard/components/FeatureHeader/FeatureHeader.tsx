@@ -9,11 +9,11 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ReactNode } from "react";
 import {
+	LuBot,
 	LuChevronDown,
 	LuCircleHelp,
 	LuPencil,
 	LuPlus,
-	LuSparkles,
 } from "react-icons/lu";
 
 interface FeatureHeaderProps {
@@ -104,7 +104,7 @@ export function FeatureHeader({
 								disabled={isCreating}
 								onSelect={onCreate}
 							>
-								<LuSparkles className="mt-0.5 size-4" />
+								<LuBot className="mt-0.5 size-4" />
 								<span className="flex min-w-0 flex-col gap-0.5">
 									<Trans>Create with AI</Trans>
 									{createDescription && (
@@ -118,7 +118,7 @@ export function FeatureHeader({
 					</DropdownMenu>
 				) : (
 					<Button size="sm" disabled={isCreating} onClick={onCreate}>
-						<LuSparkles className="size-3.5" />
+						<LuBot className="size-3.5" />
 						<Trans>Create with AI</Trans>
 					</Button>
 				))}

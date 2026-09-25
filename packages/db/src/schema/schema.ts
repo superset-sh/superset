@@ -1,3 +1,4 @@
+import type { ActiveAgentStatus } from "@superset/shared/agent-status";
 import { desc, sql } from "drizzle-orm";
 import {
 	bigint,
@@ -645,6 +646,8 @@ export const environments = pgTable(
 		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
+		/** Where its golden lives and every box forked from it runs; a snapshot only exists in its region. */
+		region: text().notNull().default("sfo1"),
 		/** The sandbox bundle every workspace of this environment boots on; null keeps the image's own. */
 		bundleSha: text("bundle_sha"),
 		/**
@@ -763,6 +766,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
+		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		deletedAt: timestamp("deleted_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",

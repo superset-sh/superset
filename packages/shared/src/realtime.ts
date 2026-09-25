@@ -1,14 +1,23 @@
-/**
- * The realtime channel carries invalidations, never data: the API tells an
- * organization's subscribers that a kind of thing changed, and they refetch.
- */
+import { type ActiveAgentStatus, isActiveAgentStatus } from "./agent-status";
+
+// A change that fits in a patch never turns into a refetch.
 export const REALTIME_NUDGE_KINDS = ["hosts", "cloud_workspaces"] as const;
 
 export type RealtimeNudgeKind = (typeof REALTIME_NUDGE_KINDS)[number];
 
+export interface RealtimeCloudWorkspaceUpdate {
+	kind: "cloud_workspaces";
+	workspaceId: string;
+	agentStatus: ActiveAgentStatus | null;
+	agentStatusAt: number;
+}
+
+export type RealtimeUpdate = RealtimeCloudWorkspaceUpdate;
+
 export interface RealtimeNudgeMessage {
 	type: "nudge";
 	kinds: RealtimeNudgeKind[];
+	updates: RealtimeUpdate[];
 }
 
 export function isRealtimeNudgeKind(
@@ -17,6 +26,18 @@ export function isRealtimeNudgeKind(
 	return (
 		typeof value === "string" &&
 		(REALTIME_NUDGE_KINDS as readonly string[]).includes(value)
+	);
+}
+
+export function isRealtimeUpdate(value: unknown): value is RealtimeUpdate {
+	if (typeof value !== "object" || value === null) return false;
+	const update = value as Record<string, unknown>;
+	return (
+		update.kind === "cloud_workspaces" &&
+		typeof update.workspaceId === "string" &&
+		update.workspaceId.length > 0 &&
+		(update.agentStatus === null || isActiveAgentStatus(update.agentStatus)) &&
+		typeof update.agentStatusAt === "number"
 	);
 }
 
@@ -38,10 +59,12 @@ export function parseRealtimeNudgeMessage(
 	) {
 		return null;
 	}
-	const kinds = (parsed as { kinds: unknown[] }).kinds.filter(
-		isRealtimeNudgeKind,
-	);
-	return { type: "nudge", kinds };
+	const message = parsed as { kinds: unknown[]; updates?: unknown };
+	const kinds = message.kinds.filter(isRealtimeNudgeKind);
+	const updates = Array.isArray(message.updates)
+		? message.updates.filter(isRealtimeUpdate)
+		: [];
+	return { type: "nudge", kinds, updates };
 }
 
 /** Subscribe path for an organization's nudges, relative to the realtime origin. */

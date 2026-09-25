@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
-import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
+import { LuGitBranch, LuPlus, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -120,7 +120,7 @@ export function WorkspacePicker({
 						) : selected || resolving ? (
 							<LuGitBranch className="size-4 shrink-0" />
 						) : (
-							<LuSparkles className="size-4 shrink-0" />
+							<LuPlus className="size-4 shrink-0" />
 						)
 					}
 					label={label}
@@ -147,7 +147,7 @@ export function WorkspacePicker({
 									setOpen(false);
 								}}
 							>
-								<LuSparkles className="size-4" />
+								<LuPlus className="size-4" />
 								<span>
 									{projectId === null ? (
 										<Trans>New session</Trans>

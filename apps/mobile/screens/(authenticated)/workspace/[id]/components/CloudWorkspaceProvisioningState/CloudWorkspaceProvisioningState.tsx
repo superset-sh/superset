@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import {
 	AlertCircle,
 	Check,
-	Cloud,
 	GitBranch,
 	type LucideIcon,
 } from "lucide-react-native";
@@ -15,6 +14,7 @@ import { Text } from "@/components/ui/text";
 import { useCloudWorkspaceActions } from "@/hooks/useCloudWorkspaceActions";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { cn } from "@/lib/utils";
+import { CloudIcon } from "@/screens/(authenticated)/components/CloudIcon";
 
 /**
  * A warm sandbox is up in a second or two; the first ones after an image
@@ -64,7 +64,7 @@ export function CloudWorkspaceProvisioningState({
 	const sandboxReady = cloud.status !== "provisioning";
 
 	return (
-		<Frame icon={Cloud} iconClassName="text-muted-foreground">
+		<Frame icon={CloudIcon} iconClassName="text-muted-foreground">
 			<Heading
 				title={t({
 					message: "Starting workspace",

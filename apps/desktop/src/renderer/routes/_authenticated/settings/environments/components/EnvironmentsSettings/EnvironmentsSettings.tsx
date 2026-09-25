@@ -160,6 +160,7 @@ export function EnvironmentsSettings({
 												),
 												hooksRepositoryId: environment.hooksRepositoryId,
 												repositoriesFrozen: environment.sourceKind !== "image",
+												region: environment.region,
 											},
 										})
 									}

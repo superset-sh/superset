@@ -118,6 +118,7 @@ function installed(
 		id: "install-1",
 		marketplace,
 		manifest: manifest(options) as InstalledPlugin["manifest"],
+		connector: options.connector,
 	};
 }
 
@@ -249,6 +250,7 @@ describe("resolveTarget", () => {
 				name: "gmail",
 				connector: "google",
 			}) as InstalledPlugin["manifest"],
+			connector: "google",
 		};
 		active = { id: "conn-1", authMethod: "oauth2" };
 
@@ -266,6 +268,7 @@ describe("resolveTarget", () => {
 				name: "gmail",
 				connector: "google",
 			}) as InstalledPlugin["manifest"],
+			connector: "google",
 		};
 		active = { id: "conn-1", authMethod: "oauth2" };
 

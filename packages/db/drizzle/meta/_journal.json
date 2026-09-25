@@ -883,6 +883,20 @@
       "when": 1790237352260,
       "tag": "0125_automation_events_swap_to_short_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1790289704277,
+      "tag": "0126_cloud_workspaces_agent_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1790361707624,
+      "tag": "0127_environments_region",
+      "breakpoints": true
     }
   ]
 }
