@@ -6,40 +6,30 @@ import {
 	nestedRepositoriesTask,
 } from "../../workers/tasks/watcher.ts";
 
-function getScanRunner() {
-	const runner = getHostWorkerPool().getRunner();
-	if (!runner) throw new Error("Watcher scans require the host worker bundle");
-	return runner;
-}
-
 export const scanNestedRepositories: typeof findNestedRepoRoots = (
 	rootPath,
 	{ signal, now: _now, ...options },
 ) =>
-	getScanRunner().runTask(
-		nestedRepositoriesTask.type,
+	getHostWorkerPool().run(
+		nestedRepositoriesTask,
 		{ rootPath, options },
 		{ signal },
 	);
 
-export async function scanGitIgnoredDirectories(
+export function scanGitIgnoredDirectories(
 	rootPath: string,
 	signal?: AbortSignal,
 ): Promise<string[]> {
-	return getScanRunner().runTask(
-		ignoredDirectoriesTask.type,
+	return getHostWorkerPool().run(
+		ignoredDirectoriesTask,
 		{ rootPath },
 		{ signal },
 	);
 }
 
-export async function resolveGitDirectory(
+export function resolveGitDirectory(
 	rootPath: string,
 	signal: AbortSignal,
 ): Promise<string | null> {
-	return getScanRunner().runTask(
-		gitDirectoryTask.type,
-		{ rootPath },
-		{ signal },
-	);
+	return getHostWorkerPool().run(gitDirectoryTask, { rootPath }, { signal });
 }
