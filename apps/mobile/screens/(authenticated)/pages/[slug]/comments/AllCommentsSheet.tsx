@@ -126,9 +126,7 @@ export function AllCommentsSheet() {
 			pendingScroll.current = null;
 			throw error;
 		}
-		// Closing the bar unmounts the composer holding the draft, so it can
-		// only happen once the reply is actually in.
-		setReplyingTo(null);
+		setReplyingTo((current) => (current === replyingTo ? null : current));
 	};
 
 	return (
@@ -281,6 +279,7 @@ export function AllCommentsSheet() {
 
 			{replyingTo ? (
 				<ReplyBar
+					key={replyingTo.threadId}
 					ref={composerRef}
 					replyingTo={replyingTo.name}
 					excerpt={replyingTo.excerpt}

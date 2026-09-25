@@ -22,7 +22,7 @@ interface CommentComposerProps {
 	placeholder: string;
 	autoFocus?: boolean;
 	pending?: boolean;
-	actions?: ReactNode;
+	actions?: (state: { hasDraft: boolean }) => ReactNode;
 	onSubmit: (body: string) => Promise<void>;
 }
 
@@ -36,6 +36,7 @@ export const CommentComposer = forwardRef<
 	const { t } = useLingui();
 	const theme = useTheme();
 	const inputRef = useRef<TextInput>(null);
+	const inFlight = useRef(false);
 	const [body, setBody] = useState("");
 	const trimmed = body.trim();
 	const canSend = trimmed.length > 0 && !pending;
@@ -45,13 +46,16 @@ export const CommentComposer = forwardRef<
 	}));
 
 	const send = async () => {
-		if (!canSend) return;
+		if (!canSend || inFlight.current) return;
+		inFlight.current = true;
 		void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 		try {
 			await onSubmit(trimmed);
 			setBody("");
 		} catch (error) {
 			Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
+		} finally {
+			inFlight.current = false;
 		}
 	};
 
@@ -70,7 +74,9 @@ export const CommentComposer = forwardRef<
 			/>
 
 			<View className="flex-row items-center justify-between">
-				<View className="flex-1">{actions}</View>
+				<View className="flex-1">
+					{actions?.({ hasDraft: trimmed.length > 0 })}
+				</View>
 
 				<Pressable
 					accessibilityRole="button"

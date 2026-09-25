@@ -9,7 +9,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { APPROVE_BODY, DELETE_BODY, QUICK_PRESETS } from "./constants";
 
 const GLYPH = 20;
-const HIT = 30;
+const HIT = 44;
+const BLEED = -(HIT - GLYPH) / 2;
 
 interface QuickRepliesProps {
 	disabled: boolean;
@@ -28,7 +29,10 @@ export function QuickReplies({
 	const size = { width: HIT, height: HIT };
 
 	return (
-		<View className="flex-row items-center gap-4">
+		<View
+			className="flex-row items-center gap-0.5"
+			style={{ marginLeft: BLEED }}
+		>
 			<SymbolButton
 				systemImage="trash"
 				size={GLYPH}

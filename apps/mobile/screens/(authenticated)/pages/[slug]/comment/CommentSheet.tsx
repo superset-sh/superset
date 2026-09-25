@@ -87,15 +87,15 @@ export function CommentSheet() {
 				placeholder={t({ message: "Write a comment" })}
 				pending={store.submitting}
 				onSubmit={(body) => post(body)}
-				actions={
+				actions={({ hasDraft }) => (
 					<QuickReplies
-						disabled={store.submitting}
+						disabled={store.submitting || hasDraft}
 						onQuick={(quick: MessageDescriptor, intent: CommentIntent) => {
 							void postQuick(i18n._(quick), intent);
 						}}
 						onPreset={(preset) => void postQuick(preset)}
 					/>
-				}
+				)}
 			/>
 		</View>
 	);
