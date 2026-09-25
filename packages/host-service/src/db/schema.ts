@@ -116,7 +116,7 @@ export const projects = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 	},
-	(table) => [index("projects_repo_path_idx").on(table.repoPath)],
+	(table) => [uniqueIndex("projects_repo_path_idx").on(table.repoPath)],
 );
 
 /**
