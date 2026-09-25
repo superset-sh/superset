@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "刪除「{title}」？"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "刪除{0}？"
 
@@ -17008,6 +17009,9 @@ msgstr "最近7天每位使用者建立的工作區數，按分位數"
 
 msgid "Workspaces on this device will show up here."
 msgstr "此裝置上的工作區會顯示在這裡。"
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "從此環境啟動的工作區將不再收到它。"
 
 msgid "worktree"
 msgstr "worktree"

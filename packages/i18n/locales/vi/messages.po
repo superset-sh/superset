@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "Xóa “{title}”?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "Xóa {0}?"
 
@@ -17008,6 +17009,9 @@ msgstr "Số workspace được tạo trên mỗi người dùng trong 7 ngày q
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace trên thiết bị này sẽ xuất hiện ở đây."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Các workspace khởi động từ môi trường này sẽ không còn nhận được nó."
 
 msgid "worktree"
 msgstr "worktree"

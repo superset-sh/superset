@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "Excluir “{title}”?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "Excluir {0}?"
 
@@ -17008,6 +17009,9 @@ msgstr "Áreas de trabalho criadas por usuário nos últimos 7 dias, por percent
 
 msgid "Workspaces on this device will show up here."
 msgstr "As áreas de trabalho deste dispositivo aparecem aqui."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Workspaces iniciados a partir deste ambiente deixarão de recebê-la."
 
 msgid "worktree"
 msgstr "worktree"

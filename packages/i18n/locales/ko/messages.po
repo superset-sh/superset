@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "“{title}”을(를) 삭제할까요?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "{0}을(를) 삭제할까요?"
 
@@ -17008,6 +17009,9 @@ msgstr "최근 7일간 사용자당 생성한 워크스페이스 수, 백분위�
 
 msgid "Workspaces on this device will show up here."
 msgstr "이 기기의 워크스페이스가 여기에 표시됩니다."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "이 환경에서 시작한 워크스페이스는 더 이상 이 값을 받지 않습니다."
 
 msgid "worktree"
 msgstr "worktree"

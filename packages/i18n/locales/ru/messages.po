@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "Удалить «{title}»?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "Удалить {0}?"
 
@@ -17008,6 +17009,9 @@ msgstr "Рабочие области, созданные одним польз�
 
 msgid "Workspaces on this device will show up here."
 msgstr "Рабочие области с этого устройства появятся здесь."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Рабочие пространства, запущенные из этого окружения, перестанут её получать."
 
 msgid "worktree"
 msgstr "worktree"

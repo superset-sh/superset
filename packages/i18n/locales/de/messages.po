@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "“{title}” löschen?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "{0} löschen?"
 
@@ -17008,6 +17009,9 @@ msgstr "In den letzten 7 Tagen pro Nutzer erstellte Arbeitsbereiche, nach Perzen
 
 msgid "Workspaces on this device will show up here."
 msgstr "Arbeitsbereiche auf diesem Gerät erscheinen hier."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Workspaces, die aus dieser Umgebung gestartet werden, erhalten sie nicht mehr."
 
 msgid "worktree"
 msgstr "Worktree"

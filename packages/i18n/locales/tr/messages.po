@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "“{title}” silinsin mi?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "{0} silinsin mi?"
 
@@ -17008,6 +17009,9 @@ msgstr "Son 7 günde kullanıcı başına oluşturulan çalışma alanları, yü
 
 msgid "Workspaces on this device will show up here."
 msgstr "Bu cihazdaki çalışma alanları burada görünecek."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Bu ortamdan başlatılan çalışma alanları artık bunu almayacak."
 
 msgid "worktree"
 msgstr "worktree"

@@ -4971,6 +4971,7 @@ msgid "Delete “{title}”?"
 msgstr "「{title}」を削除しますか?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "{0}を削除しますか?"
 
@@ -17008,6 +17009,9 @@ msgstr "直近7日のユーザーあたりワークスペース作成数(パー�
 
 msgid "Workspaces on this device will show up here."
 msgstr "このデバイスのワークスペースがここに表示されます。"
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "この環境から起動したワークスペースはこれを受け取らなくなります。"
 
 msgid "worktree"
 msgstr "ワークツリー"
