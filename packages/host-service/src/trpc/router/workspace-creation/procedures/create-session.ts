@@ -180,9 +180,10 @@ export const createSession = protectedProcedure
 			throw err;
 		}
 
-		const aiNames = aiNamesPromise ? await aiNamesPromise : null;
-		if (aiNames?.title) {
-			row = updateLocalWorkspace(ctx, row.id, { name: aiNames.title }) ?? row;
+		const naming = aiNamesPromise ? await aiNamesPromise : null;
+		if (naming?.names.title) {
+			row =
+				updateLocalWorkspace(ctx, row.id, { name: naming.names.title }) ?? row;
 		}
 
 		const terminalsResult: Array<{ terminalId: string; label: string }> = [];
@@ -212,5 +213,6 @@ export const createSession = protectedProcedure
 			workspace: toCloudShape(row, ctx.organizationId),
 			terminals: terminalsResult,
 			agents: agentsResult,
+			namingWarning: naming?.warning,
 		};
 	});
