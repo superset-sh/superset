@@ -34,5 +34,5 @@ export function apiBillingLoginCommand(
 	if (agent === "claude") {
 		return `CLAUDE_CONFIG_DIR=${quotedDir} claude auth login --console && ${mark}`;
 	}
-	return `printf 'OpenAI API key: ' && read -rs OPENAI_KEY && echo && printf '%s' "$OPENAI_KEY" | CODEX_HOME=${quotedDir} codex login --with-api-key && ${mark}; unset OPENAI_KEY`;
+	return `(printf 'OpenAI API key: ' && read -rs OPENAI_KEY && echo && printf '%s' "$OPENAI_KEY" | CODEX_HOME=${quotedDir} codex login --with-api-key && ${mark}; SUPERSET_LOGIN_STATUS=$?; unset OPENAI_KEY; exit "$SUPERSET_LOGIN_STATUS")`;
 }

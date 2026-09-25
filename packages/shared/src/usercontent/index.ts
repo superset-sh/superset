@@ -36,6 +36,8 @@ export {
 } from "./ticket";
 export {
 	fileUrl,
+	PAGE_THUMBNAIL_HEIGHT,
+	PAGE_THUMBNAIL_WIDTH,
 	pageIdFromHost,
 	pageOrigin,
 	pageThumbnailUrl,

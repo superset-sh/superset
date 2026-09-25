@@ -1,0 +1,1 @@
+export { notifyClosedPanes } from "./notifyClosedPanes";

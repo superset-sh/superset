@@ -103,6 +103,14 @@ export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
 export const FEATURE_FLAGS = {
+	/**
+	 * The public Superset Mobile launch. Off, unloaded, or unreachable all mean
+	 * "not launched": the marketing site hides /mobile from navigation and the
+	 * sitemap and disables indexing. Evaluated per site, not per
+	 * visitor, so keep it a plain on/off flag — a percentage rollout would
+	 * hash the site's single distinct id to one side.
+	 */
+	MOBILE_LAUNCH: "mobile-launch",
 	/** Gates access to the experimental mobile-first agents UI on web. */
 	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
@@ -193,7 +201,6 @@ export const FEATURE_FLAGS = {
 	 * desktop-local; the flag controls visibility, not capability.
 	 */
 	PLUGINS: "plugins",
-	PAGES: "pages",
 	/**
 	 * Lock Screen / Dynamic Island agent card on iOS. Off by default while the
 	 * card is still being worked on; the flag's release conditions decide who
@@ -216,7 +223,6 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"sentry",
 	"notion",
 	"microsoft_teams",
-	"google_calendar",
 	"gmail",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 

@@ -2,7 +2,7 @@
 title: "Superset vs super.engineering (2026): Agent Workspace vs Native Rust Control Plane"
 description: "Compare Superset and super.engineering (formerly Superconductor) for running parallel AI coding agents in Git worktrees. Native Rust performance vs a full agent workspace with automations, MCP, and remote access."
 date: 2026-08-07
-lastUpdated: 2026-09-11
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - super-engineering
@@ -24,11 +24,11 @@ Superset and super.engineering (formerly Superconductor) are direct competitors:
 
 | | **Superset** | **super.engineering** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs unlimited parallel CLI agents in worktrees from one keyboard-driven native interface |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs unlimited parallel CLI agents in worktrees from one keyboard-driven native interface |
 | **Category** | Local-first agent workspace with remote hosts | Native macOS agent control plane (alpha) |
 | **Architecture** | Desktop app | 100% Rust, Metal GPU-rendered terminal, no Electron (WebKit for browser tabs) |
 | **Agent support** | Any CLI agent (Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI, Copilot, Grok, Kimi Code, Mistral Vibe, Amp, and more) | 15 listed providers (7 stable, incl. Claude Code, Codex, Cursor, OpenCode, Pi, Grok), plus any CLI agent |
-| **Isolation** | Automatic Git worktree per task | Worktree per task (workspace → project → worktree → tab) |
+| **Isolation** | Git worktrees for local branch-based workspaces | Worktree per task (workspace → project → worktree → tab) |
 | **Forges** | GitHub, plus Linear integration | GitHub, GitHub Enterprise, GitLab, self-managed GitLab |
 | **Remote / cloud** | Remote access: add any machine as a host and keep workspaces running when your laptop sleeps | Experimental SSH remote workspaces (Linux or macOS hosts); app stays macOS-only |
 | **Automation** | Automations: scheduled agent sessions, CLI, TypeScript SDK, MCP server, Slack bot | `sc` CLI, experimental 1-8 agent teams, experimental `sc browser` automation; no scheduling |
@@ -64,7 +64,7 @@ Credit where due: super.engineering supports GitLab (including self-managed) alo
 
 ### Remote and Mobile
 
-super.engineering's remote workspaces are experimental and SSH-based: the app stays on your Mac and drives worktrees on a Linux or macOS host. It has teased an iPhone companion but has not shipped one, and its mobile session continuation relies on a third-party tool. Superset's Remote Access adds any machine as a host through a relay, with the full workspace GUI, and is in beta on the Pro plan; a Superset mobile app is listed as coming soon.
+super.engineering's remote workspaces are experimental and SSH-based: the app stays on your Mac and drives worktrees on a Linux or macOS host. It has teased an iPhone companion but has not shipped one, and its mobile session continuation relies on a third-party tool. Superset's Remote Access adds any machine as a host through a relay, with the full workspace GUI, and is in beta on the Pro plan; [Superset for iPhone is available on the App Store](https://apps.apple.com/app/id6788926383).
 
 ---
 
@@ -102,7 +102,7 @@ Yes. Superconductor rebranded to super.engineering; developer-facing names like 
 
 ### Do both use Git worktrees?
 
-Yes. Both create an isolated worktree per task. super.engineering organizes them as workspace → project → worktree → tab, with experimental cross-repo "shared context" branch groups; Superset attaches persistent terminals, diffs, and review to each worktree-backed workspace.
+Yes. Both support worktree-backed tasks. Superset uses worktrees for new local branch-based workspaces. super.engineering organizes them as workspace → project → worktree → tab, with experimental cross-repo "shared context" branch groups; Superset attaches persistent terminals, diffs, and review to each worktree-backed workspace.
 
 ### Is super.engineering open source?
 
@@ -110,4 +110,4 @@ No. It is closed-source proprietary software, currently free during its alpha, w
 
 ### Which platforms do they run on?
 
-Both are macOS-first. super.engineering requires macOS 14 or newer on a Metal-capable Mac and serves an Apple Silicon build, with Windows and Linux planned. Superset supports macOS on Apple Silicon and Intel, ships an experimental Linux build, has Windows planned, and also offers a CLI, an MCP server, and Remote Access to Linux or macOS hosts.
+Both are macOS-first. super.engineering requires macOS 14 or newer on a Metal-capable Mac and serves an Apple Silicon build, with Windows and Linux planned. Superset supports macOS on Apple Silicon and Intel, ships an experimental Linux build, does not yet support Windows, and also offers a CLI, an MCP server, and Remote Access to Linux or macOS hosts.

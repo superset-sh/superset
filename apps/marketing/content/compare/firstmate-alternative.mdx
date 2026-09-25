@@ -2,7 +2,7 @@
 title: "Best Firstmate Alternatives in 2026"
 description: "The best alternatives to Firstmate for orchestrating a crew of parallel coding agents, including Superset, Claude Squad, Herdr, Orca, and Gas Town."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "roundup"
 competitors:
   - firstmate
@@ -26,7 +26,7 @@ Firstmate is the MIT-licensed "agent distro": a cloned repo of instructions, ski
 
 | Alternative | Best for | Platform | License |
 |---|---|---|---|
-| **Superset** | The same delegation pattern with a real workspace around it | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Superset** | The same delegation pattern with a real workspace around it | macOS; experimental Linux AppImage; Windows unavailable | Source-available (ELv2) |
 | **Claude Squad** | Simple terminal-native parallel agents | macOS, Linux | Open source (AGPL) |
 | **Herdr** | Persistent runtime under your agents | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
 | **Orca** | Free desktop ADE with fan-out workflows | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
@@ -96,4 +96,4 @@ Yes, in different ways. Superset agents orchestrate workers through its CLI/MCP 
 
 ### Do these alternatives use Git worktrees like Firstmate?
 
-Superset and Orca create a worktree per task automatically; Claude Squad and Herdr manage worktrees for their sessions; Gas Town's "hooks" are git worktree-backed persistent work state.
+Superset creates worktrees for new local branch-based workspaces; Orca also supports worktree workflows; Claude Squad and Herdr manage worktrees for their sessions; Gas Town's "hooks" are git worktree-backed persistent work state.

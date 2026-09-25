@@ -151,3 +151,84 @@ describe("buildDiffPatch", () => {
 		expect(patch).toContain("+brand new");
 	});
 });
+
+/**
+ * The renderer parses this patch and its header regex only knows git's default
+ * `diff --git a/f b/f` form, so a header carrying anything else yields no
+ * section and strands the file on the "Unable to load diff" placeholder
+ * (#7596). Every case below sets the config in the repo the diff is taken in,
+ * which `-c` on the command line has to outrank.
+ */
+describe("buildDiffPatch header shape", () => {
+	let repo: string;
+	let git: SimpleGit;
+
+	beforeEach(async () => {
+		repo = mkdtempSync(join(tmpdir(), "superset-diff-prefix-"));
+		git = await initRepo(repo);
+		await writeFile(join(repo, "tracked.txt"), "one\ntwo\nthree\n");
+		await git.add(["tracked.txt"]);
+		await git.commit("initial");
+	});
+
+	afterEach(() => {
+		rmSync(repo, { recursive: true, force: true });
+	});
+
+	const request = (category: "staged" | "unstaged") => ({
+		cwd: repo,
+		env: ENV,
+		category,
+		refs: {},
+	});
+
+	test("diff.mnemonicPrefix does not reach the unstaged or staged header", async () => {
+		// Left alone these become `i/`+`w/` and `c/`+`i/`; `--no-index` picks
+		// a third pair, `1/`+`2/`.
+		await git.raw(["config", "diff.mnemonicPrefix", "true"]);
+		await writeFile(join(repo, "tracked.txt"), "one\nTWO\nthree\n");
+		await writeFile(join(repo, "fresh.txt"), "brand new\n");
+
+		const unstaged = await buildDiffPatch({
+			...request("unstaged"),
+			untrackedPaths: ["fresh.txt"],
+		});
+		expect(unstaged).toContain("diff --git a/tracked.txt b/tracked.txt");
+		expect(unstaged).toContain("diff --git a/fresh.txt b/fresh.txt");
+
+		await git.add(["tracked.txt"]);
+		const staged = await buildDiffPatch(request("staged"));
+		expect(staged).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+
+	test("diff.noprefix does not strip the header's prefixes", async () => {
+		await git.raw(["config", "diff.noprefix", "true"]);
+		await writeFile(join(repo, "tracked.txt"), "one\nTWO\nthree\n");
+
+		const patch = await buildDiffPatch(request("unstaged"));
+		expect(patch).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+
+	test("diff.srcPrefix and diff.dstPrefix do not replace the header's prefixes", async () => {
+		await git.raw(["config", "diff.srcPrefix", "src/"]);
+		await git.raw(["config", "diff.dstPrefix", "dst/"]);
+		await writeFile(join(repo, "tracked.txt"), "one\nTWO\nthree\n");
+
+		const patch = await buildDiffPatch(request("unstaged"));
+		expect(patch).toContain("diff --git a/tracked.txt b/tracked.txt");
+	});
+
+	test("a non-ASCII path is reported raw, as the status walk reports it", async () => {
+		// core.quotePath defaults to true, so this one needs no unusual config:
+		// the header would read `"a/caf\303\251.txt"`, which the regex matches
+		// but captures escaped, and the renderer looks the file up by the raw
+		// path `-z` gave it.
+		await writeFile(join(repo, "café.txt"), "hola\n");
+		await git.add(["café.txt"]);
+		await git.commit("add café");
+		await writeFile(join(repo, "café.txt"), "hola\nadios\n");
+
+		const patch = await buildDiffPatch(request("unstaged"));
+		expect(patch).toContain("diff --git a/café.txt b/café.txt");
+	});
+});

@@ -41,14 +41,13 @@ import {
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
-import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUris";
-import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { useLastSessionTabStore } from "@/screens/(authenticated)/stores/lastSessionTabStore";
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
+import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
 import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
@@ -67,6 +66,7 @@ import {
 } from "../components/TerminalWebView";
 import { useHostCompatibility } from "../hooks/useHostCompatibility";
 import { usePullRequestIconUri } from "../hooks/usePullRequestIconUri";
+import { useWorkspaceHeaderActions } from "../hooks/useWorkspaceHeaderActions";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { orderTerminalRows } from "../utils/orderTerminalRows";
 import { PULL_REQUEST_SYMBOL, pullRequestStatus } from "../utils/pullRequest";
@@ -354,6 +354,15 @@ export function WorkspaceScreen() {
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 	const hostCompatibility = useHostCompatibility(hostUrl);
+	const { renameWorkspace, deleteWorkspace, copyId, copyLink, shareWorkspace } =
+		useWorkspaceHeaderActions(workspace, host);
+	const pinned = usePinnedWorkspacesStore((state) =>
+		id ? id in state.pinnedAt : false,
+	);
+	const togglePin = usePinnedWorkspacesStore((state) => state.togglePin);
+	const setManualUnread = useUnreadWorkspacesStore(
+		(state) => state.setManualUnread,
+	);
 
 	useEffect(() => {
 		if (!id) return;
@@ -416,7 +425,6 @@ export function WorkspaceScreen() {
 	const markTerminalSeen = useTerminalSeenStore(
 		(state) => state.markTerminalSeen,
 	);
-	const requestAppReview = useAppReviewPrompt();
 	const activeRow = rows.find((row) => row.terminalId === activeTerminalId);
 	const slashCommands = useSlashCommands({
 		machineId: host?.machineId ?? null,
@@ -428,8 +436,7 @@ export function WorkspaceScreen() {
 		if (activeRow?.attention !== "review") return;
 		if (activeRow.lastEventAt === null) return;
 		markTerminalSeen(activeRow.terminalId, activeRow.lastEventAt);
-		requestAppReview("session_completed");
-	}, [activeRow, markTerminalSeen, requestAppReview]);
+	}, [activeRow, markTerminalSeen]);
 
 	// Brand marks as file URIs: the composer draws them, and neither SwiftUI nor
 	// the bridge can read a Metro asset reference.
@@ -813,7 +820,7 @@ export function WorkspaceScreen() {
 			<Stack.Screen
 				options={{
 					...headerOptions,
-					title: t({ message: "Workspace" }),
+					title: workspace?.name ?? cloud?.name ?? "",
 					headerTitle: notice
 						? () => (
 								<HeaderNotice
@@ -825,31 +832,67 @@ export function WorkspaceScreen() {
 							)
 						: undefined,
 				}}
-			>
-				{notice ? null : (
-					<Stack.Title asChild>
-						<PressableScale onPress={openActions} disabled={!workspace}>
-							{/* Width budget: the back capsule and the ⋯ button leave ~160pt of
-							    bar on a 390pt screen — wider and the title collides with them
-							    under iOS 26's floating bar items. Anything that lands in the
-							    bar later comes out of this. */}
-							<View className="max-w-40">
-								<Text className="font-semibold text-[17px]" numberOfLines={1}>
-									{workspace?.name ?? cloud?.name ?? ""}
-								</Text>
-							</View>
-						</PressableScale>
-					</Stack.Title>
-				)}
-			</Stack.Screen>
+			/>
 
 			{workspace ? (
 				<Stack.Toolbar placement="right">
-					<Stack.Toolbar.Button
+					<Stack.Toolbar.Menu
 						icon="ellipsis"
-						accessibilityLabel={t({ message: "Workspace details" })}
-						onPress={openActions}
-					/>
+						accessibilityLabel={t({ message: "Workspace actions" })}
+					>
+						<Stack.Toolbar.MenuAction icon="info.circle" onPress={openActions}>
+							{t({ message: "Workspace details" })}
+						</Stack.Toolbar.MenuAction>
+						<Stack.Toolbar.MenuAction
+							icon="pencil"
+							onPress={() => void renameWorkspace()}
+						>
+							{t({ message: "Rename" })}
+						</Stack.Toolbar.MenuAction>
+						<Stack.Toolbar.MenuAction
+							icon={pinned ? "pin.slash" : "pin"}
+							onPress={() => id && togglePin(id)}
+						>
+							{pinned ? t({ message: "Unpin" }) : t({ message: "Pin" })}
+						</Stack.Toolbar.MenuAction>
+						<Stack.Toolbar.MenuAction
+							icon="bell.badge"
+							onPress={() => id && setManualUnread(id)}
+						>
+							{t({ message: "Mark as Unread" })}
+						</Stack.Toolbar.MenuAction>
+						<Stack.Toolbar.Menu inline>
+							<Stack.Toolbar.Menu
+								icon="doc.on.doc"
+								title={t({ message: "Copy" })}
+								accessibilityLabel={t({ message: "Copy" })}
+							>
+								<Stack.Toolbar.MenuAction
+									onPress={() => copyLink(handleCopied)}
+								>
+									{t({ message: "Copy link" })}
+								</Stack.Toolbar.MenuAction>
+								<Stack.Toolbar.MenuAction onPress={() => copyId(handleCopied)}>
+									{t({ message: "Copy ID" })}
+								</Stack.Toolbar.MenuAction>
+							</Stack.Toolbar.Menu>
+							<Stack.Toolbar.MenuAction
+								icon="square.and.arrow.up"
+								onPress={shareWorkspace}
+							>
+								{t({ message: "Share" })}
+							</Stack.Toolbar.MenuAction>
+						</Stack.Toolbar.Menu>
+						<Stack.Toolbar.Menu inline>
+							<Stack.Toolbar.MenuAction
+								icon="trash"
+								destructive
+								onPress={deleteWorkspace}
+							>
+								{t({ message: "Delete workspace" })}
+							</Stack.Toolbar.MenuAction>
+						</Stack.Toolbar.Menu>
+					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
 			) : null}
 

@@ -154,8 +154,7 @@ export async function shapeAttachments(
 export async function loadCommentAttachments(
 	commentIds: string[],
 ): Promise<Map<string, ShapedCommentAttachment[]>> {
-	const shaped = new Map<string, ShapedCommentAttachment[]>();
-	if (commentIds.length === 0) return shaped;
+	if (commentIds.length === 0) return new Map();
 
 	const rows = await db
 		.select({ parentId: attachments.parentId, file: files })
@@ -168,7 +167,19 @@ export async function loadCommentAttachments(
 			),
 		)
 		.orderBy(asc(attachments.createdAt));
+	return await mintAttachmentEntries(rows);
+}
 
+/**
+ * Attachment rows a caller already loaded through its own scope, minted and
+ * grouped by comment. Split from `loadCommentAttachments` for the org-wide
+ * listing, which reaches its attachments through the same join as its
+ * threads rather than a comment-id list a large organization would overflow.
+ */
+export async function mintAttachmentEntries(
+	rows: { parentId: string; file: SelectFile }[],
+): Promise<Map<string, ShapedCommentAttachment[]>> {
+	const shaped = new Map<string, ShapedCommentAttachment[]>();
 	const entries = await Promise.all(
 		rows.map(async ({ parentId, file }) => ({
 			parentId,

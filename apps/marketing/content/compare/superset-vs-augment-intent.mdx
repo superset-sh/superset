@@ -2,7 +2,7 @@
 title: "Superset vs Augment Intent (2026): Developer-Led or Coordinator-Led Orchestration?"
 description: "Compare Superset and Augment Intent for multi-agent development. Spec-driven coordination vs direct orchestration, agent support, pricing, and platform reach."
 date: 2026-08-17
-lastUpdated: 2026-08-17
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - augment-intent
@@ -23,7 +23,7 @@ Superset and Augment Intent are both workspaces for running multiple coding agen
 
 | | **Superset** | **Augment Intent** |
 |---|---|---|
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, you direct the work | Coordinator agent drafts a spec, decomposes tasks, runs implementor agents in waves, verifier checks results |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, you direct the work | Coordinator agent drafts a spec, decomposes tasks, runs implementor agents in waves, verifier checks results |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Gemini, Copilot, more) | Auggie (native) or bring your own: Claude Code, Codex, OpenCode |
 | **Workflow** | You scope tasks, dispatch agents, review diffs per task | Three human checkpoints: spec review, task decomposition, diff review; PR generated in-app |
 | **Automations** | Scheduled recurring agent runs built in | Not documented |
@@ -101,7 +101,7 @@ Superset has a free tier and paid seats; it never proxies model calls, so your a
 
 ### Do Superset and Augment Intent both use Git worktrees?
 
-Yes. Intent backs each workspace with an isolated worktree and a dedicated branch, and each implementor commits to its own branch during parallel waves. Superset creates a worktree per task automatically. The isolation mechanism is the same; the orchestration philosophy differs.
+Yes. Intent backs each workspace with an isolated worktree and a dedicated branch, and each implementor commits to its own branch during parallel waves. Superset creates a worktree for each new local branch-based workspace. The isolation mechanism is the same; the orchestration philosophy differs.
 
 ### Can Augment Intent use any coding agent?
 

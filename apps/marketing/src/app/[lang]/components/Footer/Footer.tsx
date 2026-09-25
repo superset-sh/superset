@@ -20,7 +20,9 @@ import { ArrowUpRight, Check, ChevronDown, Languages } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { FaApple } from "react-icons/fa";
 import { track } from "@/lib/analytics";
+import { useIsMobileLaunched } from "../../providers/MobileLaunchProvider";
 import { Soc2Badge } from "../Soc2Badge";
 import { SocialLinks } from "../SocialLinks";
 
@@ -48,6 +50,11 @@ interface FooterLink {
 	label: ReactNode;
 	external?: boolean;
 }
+
+const MOBILE_LINK: FooterLink = {
+	href: "/mobile",
+	label: <Trans>Mobile</Trans>,
+};
 
 const PRODUCT_LINKS: FooterLink[] = [
 	{
@@ -89,6 +96,10 @@ const COMPANY_LINKS: FooterLink[] = [
 	{
 		href: "/join-us",
 		label: <Trans>Careers</Trans>,
+	},
+	{
+		href: "/media",
+		label: <Trans>Media kit</Trans>,
 	},
 	{
 		href: COMPANY.STATUS_URL,
@@ -153,6 +164,7 @@ const LEGAL_LINKS: FooterLink[] = [
 ];
 
 export function Footer({ locale }: { locale?: SupportedLocale }) {
+	const isMobileLaunched = useIsMobileLaunched();
 	const pathname = usePathname();
 	// Named local so the copyright message extracts as `{year}`, not `{0}`.
 	const year = new Date().getFullYear();
@@ -175,7 +187,24 @@ export function Footer({ locale }: { locale?: SupportedLocale }) {
 						>
 							<SupersetLogo />
 						</Link>
-						<SocialLinks className="-ml-2" />
+						<div className="-ml-2 flex items-center gap-2">
+							<SocialLinks />
+							<a
+								href={COMPANY.APP_STORE_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label="App Store"
+								className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
+								onClick={() =>
+									track("mobile_store_clicked", {
+										store: "app_store",
+										source: "footer",
+									})
+								}
+							>
+								<FaApple aria-hidden="true" className="size-5" />
+							</a>
+						</div>
 						<a
 							href={COMPANY.TRUST_URL}
 							target="_blank"
@@ -190,7 +219,18 @@ export function Footer({ locale }: { locale?: SupportedLocale }) {
 						<FooterLanguageSwitcher locale={locale} />
 					</div>
 
-					<FooterColumn title={<Trans>Product</Trans>} links={PRODUCT_LINKS} />
+					<FooterColumn
+						title={<Trans>Product</Trans>}
+						links={
+							isMobileLaunched
+								? [
+										...PRODUCT_LINKS.slice(0, 1),
+										MOBILE_LINK,
+										...PRODUCT_LINKS.slice(1),
+									]
+								: PRODUCT_LINKS
+						}
+					/>
 					<FooterColumn title={<Trans>Company</Trans>} links={COMPANY_LINKS} />
 					<FooterColumn
 						title={<Trans>Resources</Trans>}

@@ -97,4 +97,36 @@ describe("mobile Intl polyfills", () => {
 			`intl-polyfills.ts is missing plural data for: ${missing.join(", ")}`,
 		).toEqual([]);
 	});
+	test.each([
+		...SUPPORTED_LOCALES,
+	])("formats a relative time for %s", (locale) => {
+		const formatted = new Intl.RelativeTimeFormat(locale).format(-18, "minute");
+		expect(formatted).toContain("18");
+	});
+
+	// Plural categories do not vary by script, relative-time words do: with
+	// only `zh` loaded, zh-TW rendered Simplified "分钟" inside Traditional copy.
+	test("formats Traditional Chinese for zh-TW and Simplified for zh-CN", () => {
+		const format = (locale: string) =>
+			new Intl.RelativeTimeFormat(locale).format(-18, "minute");
+		expect(format("zh-TW")).toContain("分鐘");
+		expect(format("zh-CN")).toContain("分钟");
+	});
+
+	test("carries relative-time data for every supported locale's base language", () => {
+		const loaded = new Set(
+			[
+				...POLYFILL_SOURCE.matchAll(
+					/intl-relativetimeformat\/locale-data\/([a-zA-Z-]+)\.js/g,
+				),
+			].map((match) => match[1]),
+		);
+		const missing = SUPPORTED_LOCALES.map((l) => l.split("-")[0]).filter(
+			(base) => !loaded.has(base as string),
+		);
+		expect(
+			missing,
+			`intl-polyfills.ts is missing relative-time data for: ${missing.join(", ")}`,
+		).toEqual([]);
+	});
 });

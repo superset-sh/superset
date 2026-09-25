@@ -29,7 +29,7 @@ export default ({ config }: ConfigContext) => ({
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
 	),
-	version: "1.1.0",
+	version: "1.1.2",
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "dark",
@@ -102,6 +102,12 @@ export default ({ config }: ConfigContext) => ({
 			{
 				organization: "superset-sh",
 				project: "mobile",
+				useNativeInit: true,
+				options: {
+					dsn: process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,
+					environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
+					enableMetricKit: true,
+				},
 			},
 		],
 		[

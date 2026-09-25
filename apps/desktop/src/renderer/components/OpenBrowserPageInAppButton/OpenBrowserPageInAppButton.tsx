@@ -1,14 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { CreatePaneInput } from "@superset/panes";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AppWindow } from "lucide-react";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { env } from "renderer/env.renderer";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
-import { useOpenPage } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { getPullRequestTarget } from "./utils/getPullRequestTarget";
@@ -24,12 +21,12 @@ export function OpenBrowserPageInAppButton({
 	const navigate = useNavigate();
 	const { projects } = useHostProjects();
 	const target = getPullRequestTarget(currentUrl, projects);
-	const openPage = useOpenPage();
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES);
-	const pageSlug = isPagesEnabled
-		? parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL)
-		: null;
-	if (!target && !pageSlug) return null;
+	const pageSlug = parseSupersetPageUrl(currentUrl, env.NEXT_PUBLIC_WEB_URL);
+	const canOpen =
+		pageSlug !== null ||
+		(target !== null &&
+			(onOpenInPane !== undefined || target.projectId !== null));
+	if (!canOpen) return null;
 
 	return (
 		<Tooltip>
@@ -43,24 +40,21 @@ export function OpenBrowserPageInAppButton({
 							if (pageSlug)
 								onOpenInPane({ kind: "page", data: { slug: pageSlug } });
 							else if (target)
-								onOpenInPane({
-									kind: "pull-request",
-									data: {
-										prNumber: Number(target.prNumber),
-										projectId: target.projectId,
-									},
-								});
+								onOpenInPane({ kind: "pull-request", data: target.ref });
 							return;
 						}
 						if (pageSlug) {
-							openPage({ slug: pageSlug });
+							void navigate({
+								to: "/pages/$slug",
+								params: { slug: pageSlug },
+							});
 							return;
 						}
-						if (!target) return;
+						if (!target?.projectId) return;
 						usePullRequestsSplitViewStore.getState().expandDetail();
 						void navigate({
 							to: "/pull-requests/$prNumber",
-							params: { prNumber: target.prNumber },
+							params: { prNumber: String(target.ref.number) },
 							search: { project: target.projectId },
 						});
 					}}

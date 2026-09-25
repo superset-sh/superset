@@ -139,10 +139,12 @@ export const automationTriggerKindValues = [
 	// Same reason as integrationProviderValues: one additive migration up
 	// front, then every provider is a code-only change on top of it.
 	"microsoft_teams",
+	// Retired with the Calendar integration; Postgres cannot drop an enum
+	// value, so it stays in the type. No trigger ever had it.
 	"google_calendar",
 	"gmail",
 	"notion",
-] as const satisfies readonly TriggerConfigInput["kind"][];
+] as const;
 
 export type _EveryKindHasEnumValue = [
 	Exclude<

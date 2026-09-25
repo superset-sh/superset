@@ -20,7 +20,10 @@ function segmentsUnder(dir: string): string[] {
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => entry.name)
 		.filter((name) => !name.startsWith("(") && !name.startsWith("["))
-		.filter((name) => !["components", "hooks", "utils"].includes(name));
+		.filter(
+			(name) =>
+				!["components", "hooks", "providers", "stores", "utils"].includes(name),
+		);
 }
 
 function routeSegments(): string[] {

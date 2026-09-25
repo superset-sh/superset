@@ -25,6 +25,7 @@ import {
 	TERMINAL_DIMS_KEY_PREFIX,
 	touchTerminalStatePersistedAt,
 } from "./terminal-buffer-gc";
+import { installTerminalCopyHandler } from "./terminal-copy";
 import {
 	type ImagePasteOverride,
 	installImagePasteFallback,
@@ -59,6 +60,7 @@ export interface TerminalRuntime {
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
+	_disposeCopyHandler: (() => void) | null;
 	/**
 	 * When set, image/file pastes call this with the clipboard files instead
 	 * of forwarding Ctrl+V — used for workspaces whose PTY runs on another
@@ -321,6 +323,7 @@ export function createRuntime(
 
 	installTerminalKeyEventHandler(terminal);
 	installTerminalWheelEventHandler(terminal);
+	const disposeCopyHandler = installTerminalCopyHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
@@ -363,6 +366,7 @@ export function createRuntime(
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
 		ligaturesEnabled: appearance.ligatures,
 		_disposeImagePasteFallback: null,
+		_disposeCopyHandler: disposeCopyHandler,
 		imagePasteOverride: null,
 		initialContent,
 	};
@@ -492,6 +496,8 @@ export function disposeRuntime(
 	const persistedState = options.persistedState ?? "clear";
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
+	runtime._disposeCopyHandler?.();
+	runtime._disposeCopyHandler = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._setLigaturesEnabled = null;

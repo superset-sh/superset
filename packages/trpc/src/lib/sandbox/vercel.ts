@@ -87,6 +87,7 @@ async function getSandbox(name: string): Promise<Sandbox | null> {
 export interface SandboxEnvironment {
 	sourceKind: "image" | "fork";
 	sourceRef: string;
+	region: string;
 }
 
 /** Everything the box needs to become one workspace; nothing of it is a create-time env. */
@@ -187,7 +188,7 @@ export async function provisionSandbox(args: {
 			: await Sandbox.create({
 					...config,
 					image: args.environment.sourceRef,
-					region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
+					region: args.environment.region as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
 	await writeIdentity(sandbox, args.claim.identity);
@@ -435,7 +436,7 @@ export async function promoteSandboxToEnvironment(args: {
 	goldenName: string;
 	/** What restarts the source: it boots the same way a wake does. */
 	claim: SandboxClaim;
-}): Promise<string> {
+}): Promise<{ goldenName: string; region: string }> {
 	const source = await Sandbox.get({
 		...credentials(),
 		name: args.sourceSandbox,
@@ -465,7 +466,7 @@ export async function promoteSandboxToEnvironment(args: {
 		await writeIdentity(source, args.claim.identity);
 		await runBoot(source, args.claim.hostSecret);
 	}
-	return args.goldenName;
+	return { goldenName: args.goldenName, region: source.region };
 }
 
 /**

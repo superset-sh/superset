@@ -1,1 +1,0 @@
-export { usePagePaneIntentOpener } from "./usePagePaneIntentOpener";

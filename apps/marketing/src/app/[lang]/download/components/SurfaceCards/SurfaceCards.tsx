@@ -95,9 +95,6 @@ export function SurfaceCards() {
 					<div className={CARD_BODY_CLASS}>
 						<h3 className="flex items-center gap-2 font-medium text-base text-foreground">
 							<Trans>Mobile</Trans>
-							<span className="rounded-[2px] border border-border px-2 py-0.5 font-mono font-normal text-muted-foreground text-xs">
-								<Trans>Coming soon</Trans>
-							</span>
 						</h3>
 						<p className={CARD_COPY_CLASS}>
 							<Trans>
@@ -105,6 +102,15 @@ export function SurfaceCards() {
 								phone.
 							</Trans>
 						</p>
+						<div className={CARD_ACTION_CLASS}>
+							<a
+								href={COMPANY.APP_STORE_URL}
+								className="group flex items-center gap-2 bg-foreground px-5 py-2.5 font-normal text-background text-sm transition-colors hover:bg-brand hover:text-white"
+							>
+								<Trans>Get the iPhone app</Trans>
+								<HiMiniArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+							</a>
+						</div>
 					</div>
 				</article>
 			</div>

@@ -4,6 +4,7 @@ import { resolvePluginRef } from "../../../lib/plugins/host";
 import { setPluginEnabled } from "../../../lib/plugins/install";
 
 export default command({
+	sandbox: false,
 	description: "Enable an installed plugin",
 	args: [
 		positional("plugin")

@@ -104,7 +104,7 @@ export function LeaderboardSection() {
 							<Trans>
 								Everything you've published is deleted, not hidden. You can
 								rejoin later and it will rebuild from the transcripts still on
-								this machine — only your past ranking is lost.
+								this machine.
 							</Trans>
 						</AlertDialogDescription>
 					</AlertDialogHeader>

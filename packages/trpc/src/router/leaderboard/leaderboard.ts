@@ -34,7 +34,11 @@ import {
 	longestStreak,
 } from "./awards";
 import { isInternalRead } from "./internal-read";
-import { type LeaderboardPeriod, resolveDayRange } from "./periods";
+import {
+	LEADERBOARD_LAUNCH_DAY,
+	type LeaderboardPeriod,
+	resolveDayRange,
+} from "./periods";
 import {
 	getParticipant,
 	getStandingFor,
@@ -48,7 +52,6 @@ import {
 	joinSchema,
 	MAX_HOSTS_PER_USER,
 	meSchema,
-	PUBLISH_WINDOW_DAYS,
 	participantSchema,
 	previewRankSchema,
 	profileSchema,
@@ -169,7 +172,7 @@ function utcDayKey(ms: number): string {
 function assertDaysInWindow(days: readonly { day: string }[]): void {
 	if (days.length === 0) return;
 	const now = Date.now();
-	const oldest = utcDayKey(now - PUBLISH_WINDOW_DAYS * DAY_MS);
+	const oldest = LEADERBOARD_LAUNCH_DAY;
 	const newest = utcDayKey(now + DAY_MS);
 
 	for (const { day } of days) {

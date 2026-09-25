@@ -20,6 +20,7 @@ import {
 	installRecord,
 } from "./connections";
 import {
+	installConnector,
 	type PluginManifest,
 	pluginConnector,
 	pluginNeedsConnection,
@@ -232,7 +233,7 @@ const connectionsRouter = {
 						() => null,
 					)
 				: null;
-			const wanted = install ? pluginConnector(install.manifest) : undefined;
+			const wanted = install?.connector;
 
 			const rows = await db
 				.select({
@@ -325,7 +326,7 @@ export const pluginsRouter = createTRPCRouter({
 		}
 
 		const installed = installs.map((row) => {
-			const slug = pluginConnector(row.manifest as PluginManifest);
+			const slug = installConnector(row);
 			const held_ = slug ? (held.get(slug) ?? []) : [];
 			const published =
 				row.marketplace === FIRST_PARTY
@@ -333,6 +334,7 @@ export const pluginsRouter = createTRPCRouter({
 					: undefined;
 			return {
 				...describe(row.manifest as PluginManifest, row.marketplace),
+				connector: slug ?? null,
 				installed: true,
 				enabled: row.enabled,
 				installedAt: row.installedAt as Date | null,
@@ -350,7 +352,7 @@ export const pluginsRouter = createTRPCRouter({
 
 		const claimed = new Set(
 			installs
-				.map((row) => pluginConnector(row.manifest as PluginManifest))
+				.map((row) => installConnector(row))
 				.filter((slug): slug is string => slug !== undefined),
 		);
 
@@ -506,28 +508,31 @@ export const pluginsRouter = createTRPCRouter({
 			const { id, marketplace } = install;
 
 			const [uninstalled] = await db
-				.select({ manifest: pluginInstalls.manifest })
+				.select({
+					manifest: pluginInstalls.manifest,
+					marketplace: pluginInstalls.marketplace,
+					pluginName: pluginInstalls.pluginName,
+				})
 				.from(pluginInstalls)
 				.where(eq(pluginInstalls.id, id))
 				.limit(1);
 
 			await db.delete(pluginInstalls).where(eq(pluginInstalls.id, id));
 
-			const connector = uninstalled
-				? pluginConnector(uninstalled.manifest as PluginManifest)
-				: null;
+			const connector = uninstalled ? installConnector(uninstalled) : null;
 
 			const stillShared =
 				connector &&
 				(
 					await db
-						.select({ manifest: pluginInstalls.manifest })
+						.select({
+							manifest: pluginInstalls.manifest,
+							marketplace: pluginInstalls.marketplace,
+							pluginName: pluginInstalls.pluginName,
+						})
 						.from(pluginInstalls)
 						.where(eq(pluginInstalls.userId, ctx.session.user.id))
-				).some(
-					(entry) =>
-						pluginConnector(entry.manifest as PluginManifest) === connector,
-				);
+				).some((entry) => installConnector(entry) === connector);
 
 			const disconnected =
 				connector && !stillShared

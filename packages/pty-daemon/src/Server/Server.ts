@@ -176,7 +176,9 @@ export class Server {
 						);
 						session.buffer = [buf];
 						session.bufferBytes = buf.byteLength;
+						if (!s.modes) session.modes.feed(buf);
 					}
+					if (s.modes) session.modes.restore(s.modes);
 					this.wireSession(session);
 					adopted.push(session);
 				} catch (err) {
@@ -462,6 +464,7 @@ export class Server {
 				daemonVersion: this.opts.daemonVersion,
 				daemonPid: process.pid,
 				trustdHealthy: this.trustdHealthy,
+				supportsModeSnapshots: true,
 			});
 			return;
 		}
@@ -552,7 +555,8 @@ export class Server {
 		const pauseThreshold =
 			this.opts.outboundPauseThreshold ??
 			DEFAULT_OUTBOUND_PAUSE_THRESHOLD_BYTES;
-		session.pty.onData((chunk) => {
+		let reclaimScheduled = false;
+		const deliver = (chunk: Buffer) => {
 			this.store.appendOutput(session, chunk);
 			const out: ServerMessage = { type: "output", id: session.id };
 			let congested = false;
@@ -568,7 +572,17 @@ export class Server {
 			// Paused PTYs emit no further onData, so this fires at most once
 			// per congestion episode; the conn's 'drain' resumes us.
 			if (congested) session.pty.pause();
-		});
+			if (!reclaimScheduled) {
+				reclaimScheduled = true;
+				queueMicrotask(() => {
+					reclaimScheduled = false;
+					if (session.exited || this.store.get(session.id) !== session) return;
+					const disarm = session.modes.collectDisarm();
+					if (disarm) deliver(Buffer.from(disarm));
+				});
+			}
+		};
+		session.pty.onData(deliver);
 		session.pty.onExit((info) => {
 			session.exited = true;
 			session.exitCode = info.code;

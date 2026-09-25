@@ -29,6 +29,17 @@ export const listPageCommentsSchema = z.object({
 });
 
 /**
+ * Every thread in the organization, for a caller that would otherwise ask
+ * page by page. `workspaceId` narrows to the pages published from one
+ * workspace, matching `page.list`.
+ */
+export const listOrganizationPageCommentsSchema = z.object({
+	workspaceId: z.string().uuid().optional(),
+	activatedOnly: z.boolean().optional(),
+	unresolvedOnly: z.boolean().optional(),
+});
+
+/**
  * Uploaded images to attach, by the file ids `createImageUpload` returned.
  * Distinct because a file has one parent: attaching it twice would race the
  * pending→ready flip against itself and fail anyway, with a worse message.

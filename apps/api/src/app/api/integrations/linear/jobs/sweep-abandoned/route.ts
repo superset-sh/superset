@@ -21,8 +21,8 @@ export const SWEEP_PATH =
  * longest a delivery can legitimately be mid-processing, and QStash's three
  * retries are done well inside the hour. An hour is also where Linear's second
  * redelivery lands, so its own retry gets first attempt at anything broken and
- * this is the backstop behind it. Well inside the seven days that
- * `webhook_payloads` keeps a body, so anything swept can still be read.
+ * this is the backstop behind it. Well inside the day that `webhook_payloads`
+ * keeps a body at minimum, so anything swept can still be read.
  */
 const ABANDONED_AFTER_MINUTES = 60;
 

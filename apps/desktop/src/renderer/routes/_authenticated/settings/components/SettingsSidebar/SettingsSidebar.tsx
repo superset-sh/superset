@@ -23,6 +23,8 @@ export function SettingsSidebar() {
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const mobileEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const normalizedSearchQuery = searchQuery.trim();
@@ -31,6 +33,7 @@ export function SettingsSidebar() {
 				normalizedSearchQuery,
 				isV2CloudEnabled,
 				cloudWorkspacesEnabled,
+				mobileEnabled,
 			)
 		: null;
 

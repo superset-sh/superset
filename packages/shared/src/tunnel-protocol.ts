@@ -95,7 +95,7 @@ export interface HttpEnd {
 
 export type HttpDialFrame = HttpRequestHeader | HttpResponseHeader | HttpEnd;
 
-/** How long the host has to dial back before the relay abandons the stream.
- * The host's own connect budget (attempts × per-attempt timeout) stays inside
- * this so a `stream:dial-failed` report still finds the relay waiting. */
-export const DIAL_TIMEOUT_MS = 10_000;
+export const RELAY_CONNECT_TIMEOUT_MS = 30_000;
+
+// The relay's clock starts before the host receives the dial request.
+export const DIAL_TIMEOUT_MS = RELAY_CONNECT_TIMEOUT_MS + 5_000;

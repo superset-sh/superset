@@ -74,7 +74,7 @@ export function HeroReassurance() {
 					className={showReassurance ? undefined : "invisible"}
 					aria-hidden={!showReassurance}
 				>
-					<Trans>Free plan available · No credit card required</Trans>
+					<Trans>Free to start · No credit card required</Trans>
 				</span>
 			</p>
 		</div>

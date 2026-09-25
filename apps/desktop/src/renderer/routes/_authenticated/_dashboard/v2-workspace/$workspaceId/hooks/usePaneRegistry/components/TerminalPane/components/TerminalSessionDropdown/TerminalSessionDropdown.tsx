@@ -39,6 +39,7 @@ interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
 	launcher: TerminalLauncher;
 	workspaceId: string;
+	onSessionRemoved: (terminalId: string) => void;
 }
 
 interface VisibleTerminalSession {
@@ -103,6 +104,7 @@ export function TerminalSessionDropdown({
 	context,
 	launcher,
 	workspaceId,
+	onSessionRemoved,
 }: TerminalSessionDropdownProps) {
 	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
@@ -231,6 +233,7 @@ export function TerminalSessionDropdown({
 			context.store.getState().closePane({
 				tabId: location.tabId,
 				paneId: location.paneId,
+				intent: "remove",
 			});
 		}
 
@@ -245,7 +248,11 @@ export function TerminalSessionDropdown({
 				terminalId: session.terminalId,
 				workspaceId,
 			});
-			closePanesForTerminal(session.terminalId);
+			try {
+				onSessionRemoved(session.terminalId);
+			} finally {
+				closePanesForTerminal(session.terminalId);
+			}
 		} finally {
 			await utils.terminal.list.invalidate({ workspaceId });
 		}

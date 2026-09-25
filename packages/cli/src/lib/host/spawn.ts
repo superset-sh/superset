@@ -32,10 +32,21 @@ export interface SpawnHostOptions {
 	daemon: boolean;
 }
 
+export interface HostExit {
+	code: number | null;
+	signal: NodeJS.Signals | null;
+}
+
 export interface SpawnHostResult {
 	pid: number;
 	port: number;
 	secret: string;
+	exited: Promise<HostExit>;
+}
+
+export function describeHostExit(exit: HostExit): string {
+	if (exit.signal) return `killed by ${exit.signal}`;
+	return `exit code ${exit.code ?? "unknown"}`;
 }
 
 async function findFreePort(): Promise<number> {
@@ -159,6 +170,10 @@ export async function spawnHostService(
 		},
 	});
 
+	const exited = new Promise<HostExit>((resolve) => {
+		child.once("exit", (code, signal) => resolve({ code, signal }));
+	});
+
 	if (logFd !== -1) {
 		try {
 			closeSync(logFd);
@@ -190,5 +205,5 @@ export async function spawnHostService(
 		child.unref();
 	}
 
-	return { pid: child.pid, port, secret };
+	return { pid: child.pid, port, secret, exited };
 }

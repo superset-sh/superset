@@ -9,6 +9,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 
 const CLIENT_ID = "superset-cli";
 const LOGIN_AGAIN_MESSAGE = "Session expired. Run: superset auth login";
@@ -56,22 +57,22 @@ async function writeConfig(
 	configPath: string,
 	config: SupersetAuthConfig,
 ): Promise<void> {
-	const configDir = dirname(configPath);
-	await mkdir(configDir, { recursive: true, mode: 0o700 });
+	await mkdir(dirname(configPath), { recursive: true, mode: 0o700 });
 
+	const target = resolveWriteTarget(configPath);
 	const tempPath = join(
-		configDir,
+		dirname(target),
 		`.${randomUUID()}.${process.pid}.config.tmp`,
 	);
 	await writeFile(tempPath, JSON.stringify(config, null, 2), { mode: 0o600 });
 	await chmod(tempPath, 0o600).catch(() => undefined);
 	try {
-		await rename(tempPath, configPath);
+		await rename(tempPath, target);
 	} catch (error) {
 		await unlink(tempPath).catch(() => undefined);
 		throw error;
 	}
-	await chmod(configPath, 0o600).catch(() => undefined);
+	await chmod(target, 0o600).catch(() => undefined);
 }
 
 function loginAgainError(): Error {
@@ -94,6 +95,7 @@ export class ConfigFileSessionTokenSource {
 	private readonly apiUrl: string;
 	private refreshPromise: Promise<string> | null = null;
 	private refreshNeeded = false;
+	private rejectedRefreshToken: string | null = null;
 
 	constructor(options: ConfigFileSessionTokenSourceOptions) {
 		this.configPath = options.configPath;
@@ -116,7 +118,9 @@ export class ConfigFileSessionTokenSource {
 
 		if (this.refreshPromise) return this.refreshPromise;
 
-		if (!auth.refreshToken) throw loginAgainError();
+		if (!auth.refreshToken || auth.refreshToken === this.rejectedRefreshToken) {
+			throw loginAgainError();
+		}
 		this.refreshPromise = this.refreshAccessToken(auth).finally(() => {
 			this.refreshPromise = null;
 		});
@@ -145,6 +149,9 @@ export class ConfigFileSessionTokenSource {
 			throw loginAgainError();
 		}
 
+		if (response.status === 400 || response.status === 401) {
+			this.rejectedRefreshToken = auth.refreshToken;
+		}
 		if (!response.ok) throw loginAgainError();
 
 		let data: OAuthRefreshResponse;

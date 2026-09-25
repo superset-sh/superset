@@ -1908,14 +1908,18 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		for (const eventName of ["PreToolUse", "PostToolUse"]) {
-			expect(parsed.hooks[eventName]).toEqual([
-				{
-					matcher: "^request_user_input$",
-					hooks: [{ type: "command", command: expectedCommand }],
-				},
-			]);
-		}
+		expect(parsed.hooks.PreToolUse).toEqual([
+			{
+				matcher: "^request_user_input$",
+				hooks: [{ type: "command", command: expectedCommand }],
+			},
+		]);
+		expect(parsed.hooks.PostToolUse).toEqual([
+			{
+				matcher: "*",
+				hooks: [{ type: "command", command: expectedCommand }],
+			},
+		]);
 	});
 
 	it("preserves user hooks when merging", () => {
@@ -2034,10 +2038,13 @@ describe("agent-wrappers codex hooks.json", () => {
 			).toBe(true);
 		}
 
-		for (const eventName of ["PreToolUse", "PostToolUse"]) {
+		for (const [eventName, matcher] of [
+			["PreToolUse", "^request_user_input$"],
+			["PostToolUse", "*"],
+		] as const) {
 			expect(parsed.hooks[eventName]).toHaveLength(2);
 			expect(parsed.hooks[eventName]).toContainEqual({
-				matcher: "^request_user_input$",
+				matcher,
 				hooks: [{ type: "command", command: expectedManagedCommand }],
 			});
 		}

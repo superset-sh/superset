@@ -17,7 +17,6 @@ import { History } from "@tiptap/extension-history";
 import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import Image from "@tiptap/extension-image";
 import { Italic } from "@tiptap/extension-italic";
-import Link from "@tiptap/extension-link";
 import { ListItem } from "@tiptap/extension-list-item";
 import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
@@ -40,6 +39,10 @@ import { useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import { env } from "renderer/env.renderer";
 import { useInlineUrlPolicy } from "renderer/lib/clickPolicy";
+import {
+	SafeLink,
+	verbatimStringAttributes,
+} from "renderer/lib/tiptap/markdown-attributes";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { Markdown } from "tiptap-markdown";
 import { CodeBlockView } from "./components/CodeBlockView";
@@ -74,6 +77,7 @@ const LinearImage = Image.extend({
 	addAttributes() {
 		return {
 			...this.parent?.(),
+			...verbatimStringAttributes("alt", "title"),
 			src: {
 				default: null,
 				parseHTML: (element) => element.getAttribute("src"),
@@ -288,7 +292,7 @@ export function MarkdownEditor({
 			}),
 			HardBreak,
 			History,
-			Link.configure({
+			SafeLink.configure({
 				openOnClick: false,
 				HTMLAttributes: { class: "text-primary underline" },
 			}),

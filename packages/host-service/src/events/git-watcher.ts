@@ -682,6 +682,8 @@ export class GitWatcher {
 		// rescan re-probes and picks the workspace up when the dir returns.
 		if (!existsSync(worktreePath)) return;
 
+		if (this.filesystem.isWatchAttachBackingOff(worktreePath)) return;
+
 		let gitDir: string;
 		try {
 			const { stdout } = await execFileAsync(

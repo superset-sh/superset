@@ -1,4 +1,5 @@
 import type { BundledLanguage } from "shiki";
+import { StoreBadges } from "@/app/[lang]/components/StoreBadges";
 import { slugify } from "@/lib/blog-utils";
 import { BlogCodeBlock } from "./BlogCodeBlock";
 import { Testimonial } from "./Testimonial";
@@ -109,4 +110,9 @@ export const mdxComponents = {
 	Video,
 	Testimonial,
 	TestimonialGrid,
+	StoreBadges: (props: React.ComponentProps<typeof StoreBadges>) => (
+		<div className="not-prose my-6">
+			<StoreBadges {...props} />
+		</div>
+	),
 };

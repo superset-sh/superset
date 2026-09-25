@@ -41,18 +41,18 @@ import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
+import { WorkspacePagesMenu } from "./components/WorkspacePagesMenu";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useAgentSessionLauncher } from "./hooks/useAgentSessionLauncher";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
-import { useConsumePageOpenLink } from "./hooks/useConsumePageOpenLink";
 import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDiffPaneTarget } from "./hooks/useDiffPaneTarget";
-import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { usePullRequestPaneIntentOpener } from "./hooks/usePullRequestPaneIntentOpener";
@@ -84,8 +84,6 @@ interface WorkspaceSearch {
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
-	pageId?: string;
-	pageSlug?: string;
 }
 
 function parseOpenUrlTarget(
@@ -110,8 +108,6 @@ export const Route = createFileRoute(
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
-		pageId: parseNonEmptyString(raw.pageId),
-		pageSlug: parseNonEmptyString(raw.pageSlug),
 	}),
 });
 
@@ -155,8 +151,6 @@ function V2WorkspaceContent() {
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
-		pageId,
-		pageSlug,
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -289,15 +283,6 @@ function V2WorkspaceContent() {
 		(state) => findVisibleChangesPane(state) != null,
 	);
 
-	useConsumePageOpenLink({
-		isLayoutReady,
-		pageId,
-		pageSlug,
-		focusRequestId,
-		openPagePane,
-		consumeSearch,
-	});
-	usePagePaneIntentOpener({ workspaceId, isLayoutReady, openPagePane });
 	usePullRequestPaneIntentOpener({
 		workspaceId,
 		isLayoutReady,
@@ -312,6 +297,9 @@ function V2WorkspaceContent() {
 		});
 	}, [store]);
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
+	const { createNewAgentSession, focusAgentTerminal } = useAgentSessionLauncher(
+		{ workspaceId, store },
+	);
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,
@@ -338,7 +326,7 @@ function V2WorkspaceContent() {
 		[openFilePaneFromTreeClick, setRightSidebarOpen],
 	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
-	const onBeforeCloseTab = useTabCloseGuard();
+	const onBeforeCloseTab = useTabCloseGuard(store);
 
 	// Fallback for rows persisted before the rightSidebarWidth field existed —
 	// the live collection skips zod defaults, so an older row reads undefined
@@ -396,6 +384,15 @@ function V2WorkspaceContent() {
 			canForceStop={workspaceRun.canForceStop}
 			onToggle={workspaceRun.toggleWorkspaceRun}
 			onForceStop={workspaceRun.forceStopWorkspaceRun}
+		/>
+	);
+
+	const pagesMenu = (
+		<WorkspacePagesMenu
+			workspaceId={workspaceId}
+			onOpenPage={openPagePane}
+			onCreateNewAgentSession={createNewAgentSession}
+			onFocusAgentTerminal={focusAgentTerminal}
 		/>
 	);
 
@@ -530,6 +527,7 @@ function V2WorkspaceContent() {
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
 								runButton={workspaceRunButton}
+								pagesMenu={pagesMenu}
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}

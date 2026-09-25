@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, SyntheticEvent } from "react";
 import { useDashboardSidebarWorkspacePorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
@@ -14,6 +14,16 @@ interface DashboardSidebarWorkspaceChipsProps {
 	indentation?: DashboardSidebarWorkspaceIndentation;
 	/** Invoked when the strip itself (not one of its chips) is clicked. */
 	onClick?: MouseEventHandler<HTMLDivElement>;
+}
+
+function stopChipDragStart(event: SyntheticEvent<HTMLDivElement>) {
+	if (
+		event.target instanceof Element &&
+		(!event.currentTarget.contains(event.target) ||
+			event.target.closest("button"))
+	) {
+		event.stopPropagation();
+	}
 }
 
 /**
@@ -50,9 +60,6 @@ export function DashboardSidebarWorkspaceChips({
 	}
 
 	return (
-		// Stop pointer/touch starts from bubbling to the sortable workspace
-		// item's drag listeners, so pressing a chip isn't captured as a
-		// workspace-reorder gesture.
 		// biome-ignore lint/a11y/noStaticElementInteractions: clicks on the strip's empty area mirror the row click; chips are real buttons
 		// biome-ignore lint/a11y/useKeyWithClickEvents: keyboard activation lives on the workspace row button; the strip click is a pointer convenience
 		<div
@@ -65,8 +72,8 @@ export function DashboardSidebarWorkspaceChips({
 						: "pl-[42px]",
 				onClick && "cursor-pointer",
 			)}
-			onMouseDown={(event) => event.stopPropagation()}
-			onTouchStart={(event) => event.stopPropagation()}
+			onMouseDown={stopChipDragStart}
+			onTouchStart={stopChipDragStart}
 			onClick={(event) => {
 				if (!onClick) return;
 				const target = event.target as HTMLElement;

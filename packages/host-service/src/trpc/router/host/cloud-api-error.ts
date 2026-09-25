@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 const UNREACHABLE_CODES = new Set([
 	"ECONNREFUSED",
 	"ECONNRESET",
+	"ENOTCONN",
 	"ETIMEDOUT",
 	"ENOTFOUND",
 	"EAI_AGAIN",

@@ -1,5 +1,17 @@
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+export interface FilePosition {
+	line: number;
+	column?: number;
+}
+
+export type OpenFile = (
+	path: string,
+	openInNewTab?: boolean,
+	position?: FilePosition,
+) => void;
+
 export interface FilePaneData {
+	pendingPosition?: FilePosition;
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
 	language?: string;
@@ -54,8 +66,8 @@ export interface CommentPaneData {
 }
 
 export interface PullRequestPaneData {
-	prNumber: number;
-	projectId?: string;
+	repoFullName: string;
+	number: number;
 }
 
 export interface PagePaneData {
@@ -94,9 +106,7 @@ export type WorkspaceSearchKey =
 	| "subagentType"
 	| "openUrl"
 	| "openUrlTarget"
-	| "openUrlRequestId"
-	| "pageId"
-	| "pageSlug";
+	| "openUrlRequestId";
 
 /**
  * Drops the search params a deep link arrived with, once the hook that owns

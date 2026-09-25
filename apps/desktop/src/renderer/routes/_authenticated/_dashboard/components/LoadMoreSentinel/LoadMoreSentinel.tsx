@@ -1,6 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import type { RefObject } from "react";
-import { LuRefreshCw } from "react-icons/lu";
+import { LuLoader } from "react-icons/lu";
 
 interface LoadMoreSentinelProps {
 	sentinelRef: RefObject<HTMLDivElement | null>;
@@ -24,12 +23,7 @@ export function LoadMoreSentinel({
 			className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground"
 		>
 			{isFetchingNextPage && (
-				<>
-					<LuRefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" />
-					<span>
-						<Trans>Loading more…</Trans>
-					</span>
-				</>
+				<LuLoader className="size-4 animate-spin motion-reduce:animate-none" />
 			)}
 		</div>
 	);

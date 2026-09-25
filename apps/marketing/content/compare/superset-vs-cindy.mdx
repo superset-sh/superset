@@ -2,7 +2,7 @@
 title: "Superset vs Cindy (2026): Agent Workspace vs the General-Purpose AI Agent App"
 description: "Compare Superset and Cindy for running AI coding agents in parallel. See how a developer agent workspace differs from Cindy's cross-platform general-purpose agent app."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - cindy
@@ -23,12 +23,12 @@ Superset and Cindy overlap on one job -- running Claude Code and Codex sessions 
 
 | | **Superset** | **Cindy** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | General-purpose AI agent that runs tasks locally, including parallel coding via Claude Code and Codex |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | General-purpose AI agent that runs tasks locally, including parallel coding via Claude Code and Codex |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Open-source general-purpose agent app |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code and Codex harnesses; models incl. Claude, GPT, Grok, Gemini, DeepSeek, Kimi, Qwen, local endpoints |
 | **Multi-agent** | Parallel worktree workspaces; orchestrate via CLI/MCP/SDK | Built-in planner + parallel workers + reviewer collaboration on one task |
-| **Isolation / review** | Automatic Git worktree per task, built-in diff editor | Workspace change tracking with per-turn file changes, undo/reapply |
-| **Platforms** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS, Windows, Linux + iOS, iPadOS, Android |
+| **Isolation / review** | Git worktrees for local branch-based workspaces, built-in diff editor | Workspace change tracking with per-turn file changes, undo/reapply |
+| **Platforms** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | macOS, Windows, Linux + iOS, iPadOS, Android |
 | **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Telegram ingestion, plugins; task-centric rather than scheduled |
 | **License** | Source-available (ELv2) | Open source (Apache-2.0) |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free BYO keys; Plus $20/mo managed models |
@@ -47,7 +47,7 @@ Cindy is an open-source (Apache-2.0) AI agent app whose tagline is "consider it 
 
 ### Developer Workspace vs General Agent
 
-Superset is built for one audience: developers shipping code with parallel agents, so everything orbits Git -- worktrees, branches, diffs, PRs. Cindy is a general agent that does files, browsing, and connected apps, with coding as a headline use case. That makes Cindy more versatile for mixed personal automation, and Superset deeper for engineering: worktree-per-task isolation on real branches, persistent terminals, port management, and one-click handoff to your IDE. Cindy's change tracking (per-turn diffs with undo) is genuinely useful, but it is workspace-level capture, not branch-level Git isolation.
+Superset is built for one audience: developers shipping code with parallel agents, so everything orbits Git -- worktrees, branches, diffs, PRs. Cindy is a general agent that does files, browsing, and connected apps, with coding as a headline use case. That makes Cindy more versatile for mixed personal automation, and Superset deeper for engineering: local branch-based worktree isolation on real branches, persistent terminals, port management, and one-click handoff to your IDE. Cindy's change tracking (per-turn diffs with undo) is genuinely useful, but it is workspace-level capture, not branch-level Git isolation.
 
 ### Multi-Agent Models
 
@@ -55,7 +55,7 @@ Cindy builds team structure into a single task: a planner decomposes the work, p
 
 ### Mobile and Messaging
 
-Cindy ships real mobile apps (iOS, iPadOS, Android) and ingests tasks from Telegram groups. Superset's mobile app is on its roadmap, and its chat-ops surface is a Slack bot aimed at team workflows. If steering agents from your phone today is a hard requirement, Cindy delivers it now.
+Cindy ships mobile apps (iOS, iPadOS, Android) and ingests tasks from Telegram groups. Superset has an [iPhone app](/mobile) for workspace terminals and diff review. It requires iOS 26 or later, Pro, and a host that stays awake and online. Android is on the [waitlist](/mobile#android).
 
 ### Maturity
 
@@ -105,4 +105,4 @@ Superset runs any terminal agent -- Claude Code, Codex, OpenCode, Cursor, Copilo
 
 ### Does either work from a phone?
 
-Cindy has native iOS, iPadOS, and Android apps and can take tasks from Telegram. Superset's mobile app is on its public roadmap; today its remote workflows run through cloud workspaces and its Slack bot.
+Cindy has native iOS, iPadOS, and Android apps and can take tasks from Telegram. Superset has an [iPhone app](/mobile) for workspace terminals and diff review. It requires iOS 26 or later, Pro, and a host that stays awake and online. Android is on the [waitlist](/mobile#android).

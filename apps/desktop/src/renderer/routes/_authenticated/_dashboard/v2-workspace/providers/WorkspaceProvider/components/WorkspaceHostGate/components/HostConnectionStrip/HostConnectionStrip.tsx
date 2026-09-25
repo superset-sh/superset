@@ -4,7 +4,8 @@ import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 
 interface HostConnectionStripProps {
-	hostId: string;
+	/** Null for a host with no settings page, like a cloud workspace's box. */
+	settingsHostId: string | null;
 	hostName: string;
 	detail: string;
 	isAccessDenied: boolean;
@@ -19,7 +20,7 @@ interface HostConnectionStripProps {
 
 /** Persistent, nonmodal connection status. Recovery advice opens only on request. */
 export function HostConnectionStrip({
-	hostId,
+	settingsHostId,
 	hostName,
 	detail,
 	isAccessDenied,
@@ -43,7 +44,7 @@ export function HostConnectionStrip({
 
 	return (
 		<div className="pointer-events-none absolute inset-x-0 top-2 z-40 flex justify-center px-2">
-			<div className="pointer-events-auto flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/95 py-1.5 pl-3 pr-1.5 text-[12px] text-muted-foreground shadow-sm backdrop-blur-sm">
+			<div className="no-drag pointer-events-auto flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/95 py-1.5 pl-3 pr-1.5 text-[12px] text-muted-foreground shadow-sm backdrop-blur-sm">
 				<span
 					aria-hidden="true"
 					className={cn(
@@ -77,13 +78,15 @@ export function HostConnectionStrip({
 						<p className="select-text leading-relaxed text-muted-foreground">
 							{detail}
 						</p>
-						<Link
-							to="/settings/hosts/$hostId"
-							params={{ hostId }}
-							className="inline-block font-medium underline underline-offset-4"
-						>
-							{t({ message: "Host settings" })}
-						</Link>
+						{settingsHostId ? (
+							<Link
+								to="/settings/hosts/$hostId"
+								params={{ hostId: settingsHostId }}
+								className="inline-block font-medium underline underline-offset-4"
+							>
+								{t({ message: "Host settings" })}
+							</Link>
+						) : null}
 					</PopoverContent>
 				</Popover>
 				<button

@@ -1,10 +1,17 @@
 import "../../../../styles/hljs-github.css";
 
 import { cn } from "@superset/ui/utils";
+import type { Fragment } from "@tiptap/pm/model";
 import { EditorState } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import {
+	type LinkAction,
+	useInlineUrlPolicy,
+	useTerminalUrlPolicy,
+} from "renderer/lib/clickPolicy";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useMarkdownStyle } from "renderer/stores";
 import { defaultConfig } from "../../styles/default/config";
 import { tufteConfig } from "../../styles/tufte/config";
@@ -12,6 +19,7 @@ import { SelectionContextMenu } from "../SelectionContextMenu";
 import { BubbleMenuToolbar } from "./components/BubbleMenuToolbar";
 import { createMarkdownExtensions } from "./createMarkdownExtensions";
 import { createMarkdownMerger } from "./mergeMarkdownEdits";
+import { resolveLinkClick } from "./resolveLinkClick";
 
 const styleConfigs = {
 	default: defaultConfig,
@@ -41,6 +49,13 @@ interface TipTapMarkdownRendererProps {
 	 * change and resets the editor content and merge baseline.
 	 */
 	preserveSourceFormatting?: boolean;
+	/**
+	 * Routes a link click to the host's panes. With it, links follow the 4-tier
+	 * URL click policy; without it there is no pane to open into, so any bound
+	 * tier opens the system browser, as in MarkdownEditor.
+	 */
+	onOpenUrl?: (url: string, action: LinkAction) => void;
+	onUnboundLinkClick?: (clientX: number, clientY: number) => void;
 }
 
 interface SourceTracking {
@@ -59,6 +74,15 @@ function createSourceTracking(editor: Editor, value: string): SourceTracking {
 		lastEmitted: value,
 		merge: createMarkdownMerger(value, baseline),
 	};
+}
+
+function getSelectedEditorMarkdown(editor: Editor): string {
+	const storage = editor.storage as unknown as Record<
+		string,
+		{ serializer?: { serialize: (content: Fragment) => string } }
+	>;
+	const serializer = storage.markdown?.serializer;
+	return serializer?.serialize(editor.state.selection.content().content) ?? "";
 }
 
 function getEditorMarkdown(editor: Editor): string {
@@ -119,6 +143,8 @@ export function TipTapMarkdownRenderer({
 	onChange,
 	onSave,
 	preserveSourceFormatting = false,
+	onOpenUrl,
+	onUnboundLinkClick,
 }: TipTapMarkdownRendererProps) {
 	const globalStyle = useMarkdownStyle();
 	const style = styleProp ?? globalStyle;
@@ -128,8 +154,21 @@ export function TipTapMarkdownRenderer({
 	const onSaveRef = useRef(onSave);
 	const sourceTrackingRef = useRef<SourceTracking | null>(null);
 
+	const paneUrlPolicy = useTerminalUrlPolicy();
+	const inlineUrlPolicy = useInlineUrlPolicy();
+	const linkClickRef = useRef({
+		getAction: inlineUrlPolicy.getAction,
+		onOpenUrl,
+		onUnboundLinkClick,
+	});
+
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	linkClickRef.current = {
+		getAction: (onOpenUrl ? paneUrlPolicy : inlineUrlPolicy).getAction,
+		onOpenUrl,
+		onUnboundLinkClick,
+	};
 
 	const editor = useEditor({
 		immediatelyRender: false,
@@ -142,6 +181,37 @@ export function TipTapMarkdownRenderer({
 		editorProps: {
 			attributes: {
 				class: cn("focus:outline-none", editable && "min-h-[100px]"),
+			},
+			handleDOMEvents: {
+				// ProseMirror never calls handleClick for a shift-click (it lets the
+				// browser extend the selection), so the shift tiers are only
+				// reachable from the DOM click.
+				click: (_view, event) => {
+					const target = event.target as HTMLElement | null;
+					if (!target?.closest?.("a")) return false;
+					event.preventDefault();
+					const link = linkClickRef.current;
+					const click = resolveLinkClick(event, link.getAction);
+					if (click.kind === "none") return false;
+					if (click.kind === "unbound") {
+						link.onUnboundLinkClick?.(event.clientX, event.clientY);
+						return false;
+					}
+					if (link.onOpenUrl) {
+						link.onOpenUrl(click.url, click.action);
+						return true;
+					}
+					electronTrpcClient.external.openUrl
+						.mutate(click.url)
+						.catch((error) => {
+							console.error(
+								"[TipTapMarkdownRenderer] Failed to open URL:",
+								click.url,
+								error,
+							);
+						});
+					return true;
+				},
 			},
 		},
 		onCreate: ({ editor: createdEditor }) => {
@@ -235,12 +305,21 @@ export function TipTapMarkdownRenderer({
 		</div>
 	);
 
+	// Radix's trigger calls preventDefault on the contextmenu event, which stops
+	// Chromium emitting the webContents event that attachEditContextMenu uses to
+	// build the native edit menu. Wrapping an editable view would trade its
+	// Paste/Cut/Undo and spellcheck for this menu's copy actions.
 	if (editable) {
 		return content;
 	}
 
 	return (
-		<SelectionContextMenu selectAllContainerRef={articleRef}>
+		<SelectionContextMenu
+			getMarkdownSelection={() =>
+				editor ? getSelectedEditorMarkdown(editor) : ""
+			}
+			selectAllContainerRef={articleRef}
+		>
 			{content}
 		</SelectionContextMenu>
 	);

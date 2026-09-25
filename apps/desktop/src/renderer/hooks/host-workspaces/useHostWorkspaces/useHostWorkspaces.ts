@@ -112,17 +112,14 @@ export function useHostWorkspacesSource(
 	} = useKnownHosts();
 	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
-	// Only the open workspace's sandbox is a host here, and only once it has a
-	// running session: a stopped sandbox's URL answers nothing until the open
-	// workspace's own access wakes it and re-addresses it, and polling it
-	// before then is a stream of failed requests. The sidebar renders cloud
-	// rows from the cloud row, so nothing else needs a sandbox's served rows.
+	// Only the open workspace's sandbox is a host here: the sidebar renders
+	// cloud rows from the cloud row, so nothing else needs a sandbox's served
+	// rows, and asking would keep every sidebar sandbox awake.
 	const { workspaceId: openWorkspaceId } = useParams({ strict: false });
 	const openSandbox = useMemo(
 		() =>
-			sandboxes.find(
-				(sandbox) => sandbox.workspaceId === openWorkspaceId && sandbox.running,
-			) ?? null,
+			sandboxes.find((sandbox) => sandbox.workspaceId === openWorkspaceId) ??
+			null,
 		[sandboxes, openWorkspaceId],
 	);
 

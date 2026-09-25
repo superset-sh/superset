@@ -38,6 +38,7 @@ const COMMENT_ID = "00000000-0000-4000-8000-000000000003";
 const everyProcedure = (caller: ReturnType<typeof callerFor>) =>
 	Object.entries({
 		list: () => caller.pageComment.list({ pageId: PAGE_ID }),
+		listForOrganization: () => caller.pageComment.listForOrganization({}),
 		create: () =>
 			caller.pageComment.create({
 				pageId: PAGE_ID,

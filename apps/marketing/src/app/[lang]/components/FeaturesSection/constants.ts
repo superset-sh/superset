@@ -28,7 +28,7 @@ export const FEATURES: Feature[] = [
 			message: "Parallel Execution",
 		}),
 		title: msg({
-			message: "Scale from two agents to 100+",
+			message: "Scale to 100+ agents",
 		}),
 		description: msg({
 			message:

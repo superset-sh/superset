@@ -7,6 +7,7 @@ import { NOTION_VERSION } from "@superset/trpc/integrations/notion";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { exitOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
@@ -35,15 +36,19 @@ const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/notion`;
 
 export async function GET(request: Request) {
 	if (!env.NOTION_CLIENT_ID || !env.NOTION_CLIENT_SECRET) {
-		return Response.redirect(`${settingsUrl}?error=not_configured`);
+		return exitOAuthFlow(
+			STATE_COOKIES.notion,
+			`${settingsUrl}?error=not_configured`,
+		);
 	}
 
 	const callback = await resolveCallback(request, {
 		params: ["code"],
-		redirect: (error) => Response.redirect(`${settingsUrl}?error=${error}`),
+		redirect: (error) => `${settingsUrl}?error=${error}`,
+		cookie: STATE_COOKIES.notion,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, exit, fail } = callback;
 
 	const basic = Buffer.from(
 		`${env.NOTION_CLIENT_ID}:${env.NOTION_CLIENT_SECRET}`,
@@ -73,13 +78,13 @@ export async function GET(request: Request) {
 				await tokenResponse.text().catch(() => ""),
 			);
 		}
-		return Response.redirect(`${settingsUrl}?error=token_exchange_failed`);
+		return fail("token_exchange_failed");
 	}
 
 	const parsed = tokenResponseSchema.safeParse(await tokenResponse.json());
 	if (!parsed.success) {
 		console.error("[notion/callback] Unexpected token response:", parsed.error);
-		return Response.redirect(`${settingsUrl}?error=token_exchange_failed`);
+		return fail("token_exchange_failed");
 	}
 	const token = parsed.data;
 
@@ -108,9 +113,7 @@ export async function GET(request: Request) {
 			},
 		},
 	});
-	if (result.conflict) {
-		return Response.redirect(`${settingsUrl}?error=workspace_already_linked`);
-	}
+	if (result.conflict) return fail("workspace_already_linked");
 
 	// The authorizing member's Notion user id, so `me` in a mention trigger
 	// resolves for them. Notion user ids are per workspace, hence the scope.
@@ -125,5 +128,5 @@ export async function GET(request: Request) {
 		});
 	}
 
-	return Response.redirect(settingsUrl);
+	return exit(settingsUrl);
 }

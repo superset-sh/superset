@@ -27,17 +27,3 @@ export const usePagesFilterStore = create<PagesFilterStore>()(
 		},
 	),
 );
-
-export function matchesScope(
-	page: { visibility: string },
-	scope: PageScope,
-): boolean {
-	switch (scope) {
-		case "team":
-			return page.visibility !== "just_me";
-		case "mine":
-			return page.visibility === "just_me";
-		default:
-			return true;
-	}
-}

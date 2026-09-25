@@ -72,6 +72,7 @@ export interface SupersetChatModel extends AgentModelOption {
  * Canonical model catalog served by the cloud `tRPC chat.getModels`.
  */
 export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
+	{ id: "anthropic/claude-opus-5-5", label: "Opus 5.5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-5", label: "Opus 5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
@@ -92,6 +93,8 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		provider: "Anthropic",
 	},
 	{ id: "openai/gpt-6-astra", label: "GPT-6 Astra", provider: "OpenAI" },
+	{ id: "openai/gpt-6-sol", label: "GPT-6 Sol", provider: "OpenAI" },
+	{ id: "openai/gpt-6-luna", label: "GPT-6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
 	{
 		id: "openai/gpt-5.6-terra",
@@ -100,9 +103,6 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	},
 	{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.5", label: "GPT-5.5", provider: "OpenAI" },
-	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
-	{ id: "openai/gpt-5.4", label: "GPT-5.4", provider: "OpenAI" },
-	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
 
 const LATEST_GROUP = "Latest";
@@ -111,7 +111,7 @@ const CURSOR_ANTHROPIC_GROUP = "Anthropic";
 const CURSOR_OPENAI_GROUP = "OpenAI";
 const CURSOR_OTHER_GROUP = "Other";
 const CURRENT_GROUP = "Current";
-const CODEX_RETIRING_GROUP = "Retiring 2026-08-31";
+const CODEX_RETIRING_GROUP = "Retiring 2026-10-14";
 
 export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	{
@@ -128,6 +128,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "haiku", label: "Haiku", group: LATEST_GROUP },
 			{ id: "claude-fable-5-1", label: "Fable 5.1", group: PINNED_GROUP },
 			{ id: "claude-fable-5", label: "Fable 5", group: PINNED_GROUP },
+			{ id: "claude-opus-5-5", label: "Opus 5.5", group: PINNED_GROUP },
 			{ id: "claude-opus-5", label: "Opus 5", group: PINNED_GROUP },
 			{ id: "claude-sonnet-5", label: "Sonnet 5", group: PINNED_GROUP },
 			{ id: "claude-opus-4-8", label: "Opus 4.8", group: PINNED_GROUP },
@@ -142,23 +143,17 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "codex",
 		modelFlag: "--model",
 		models: [
-			// GPT-6 Astra is the slug Codex's model docs publish (2026-09-03) and
-			// the API's only GPT-6 id. OpenAI is enabling it account by account,
-			// so it shows up in a login's live catalog (`codex app-server` →
-			// `model/list`) only once that account has access.
+			// Availability is account-dependent; ids are verified against Codex's
+			// live catalog (`codex app-server` → `model/list`).
 			{ id: "gpt-6-astra", label: "GPT-6 Astra", group: CURRENT_GROUP },
+			{ id: "gpt-6-sol", label: "GPT-6 Sol", group: CURRENT_GROUP },
+			{ id: "gpt-6-luna", label: "GPT-6 Luna", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", group: CURRENT_GROUP },
-			{ id: "gpt-5.5", label: "GPT-5.5", group: CURRENT_GROUP },
-			// Superseded by gpt-5.6-terra/luna; the header dates the retirement
+			// Superseded by the GPT-6 family; the header dates the retirement
 			// so it reaches the person picking rather than only this file.
-			{ id: "gpt-5.4", label: "GPT-5.4", group: CODEX_RETIRING_GROUP },
-			{
-				id: "gpt-5.3-codex",
-				label: "GPT-5.3 Codex",
-				group: CODEX_RETIRING_GROUP,
-			},
+			{ id: "gpt-5.5", label: "GPT-5.5", group: CODEX_RETIRING_GROUP },
 		],
 	},
 	{
@@ -268,11 +263,15 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
 			// same models.dev catalog but need an authed anthropic provider to
 			// appear in that listing; `claude-fable-5-1` was checked against
-			// models.dev directly (2026-09-01).
+			// models.dev directly (2026-09-01), the gpt-6 family likewise
+			// (2026-09-23).
 			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
 			{ id: "anthropic/claude-fable-5-1", label: "Claude Fable 5.1" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+			{ id: "openai/gpt-6-astra", label: "GPT-6 Astra" },
+			{ id: "openai/gpt-6-sol", label: "GPT-6 Sol" },
+			{ id: "openai/gpt-6-luna", label: "GPT-6 Luna" },
 			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
 			{ id: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra" },
 			{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna" },
@@ -285,7 +284,8 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// OMP accepts configured role aliases as well as exact
 			// provider/model selectors. Exact ids verified against
 			// `omp models --json` in OMP 18.0.1; `claude-fable-5-1` against the
-			// catalog bundled in OMP 18.1.2.
+			// catalog bundled in OMP 18.1.2; the gpt-6 family against
+			// pi-catalog 18.2.11.
 			{ id: "@smol", label: "Configured fast model" },
 			{ id: "@slow", label: "Configured slow model" },
 			{ id: "@plan", label: "Configured plan model" },
@@ -296,6 +296,9 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 				id: "anthropic/claude-sonnet-4-6",
 				label: "Claude Sonnet 4.6",
 			},
+			{ id: "openai-codex/gpt-6-astra", label: "GPT-6 Astra" },
+			{ id: "openai-codex/gpt-6-sol", label: "GPT-6 Sol" },
+			{ id: "openai-codex/gpt-6-luna", label: "GPT-6 Luna" },
 			{ id: "openai-codex/gpt-5.6-sol", label: "GPT-5.6 Sol" },
 			{ id: "openai-codex/gpt-5.6-terra", label: "GPT-5.6 Terra" },
 			{ id: "openai-codex/gpt-5.6-luna", label: "GPT-5.6 Luna" },
@@ -519,18 +522,25 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
-			// Per-model support taken from Codex's own model catalog
-			// (`supported_reasoning_levels`, codex-cli 0.149.1): every GPT-5.6
-			// model takes `max`, and `ultra` — max reasoning plus automatic
-			// task delegation — is Sol and Terra only. GPT-6 Astra documents
-			// `max` (API `reasoning.effort`); `ultra` stays off until its live
-			// catalog entry confirms it.
+			// Per-model support comes from Codex's live model catalog. GPT-6
+			// Astra and Sol support `ultra`; GPT-6 Luna supports up to `max`.
 			{
 				id: "max",
 				label: "Max",
-				models: ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+				models: [
+					"gpt-6-astra",
+					"gpt-6-sol",
+					"gpt-6-luna",
+					"gpt-5.6-sol",
+					"gpt-5.6-terra",
+					"gpt-5.6-luna",
+				],
 			},
-			{ id: "ultra", label: "Ultra", models: ["gpt-5.6-sol", "gpt-5.6-terra"] },
+			{
+				id: "ultra",
+				label: "Ultra",
+				models: ["gpt-6-astra", "gpt-6-sol", "gpt-5.6-sol", "gpt-5.6-terra"],
+			},
 		],
 	},
 	{

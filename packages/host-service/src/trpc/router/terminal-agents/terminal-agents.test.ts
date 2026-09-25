@@ -125,7 +125,10 @@ function createDeps(
 		},
 		disposeSession: (terminalId) => {
 			disposedTerminals.push(terminalId);
-			return disposeSession?.(terminalId) ?? Promise.resolve();
+			return (
+				disposeSession?.(terminalId) ??
+				Promise.resolve({ daemonCloseSucceeded: true })
+			);
 		},
 		hasSession,
 		eventBus: {
@@ -532,7 +535,7 @@ describe("restartAccountSessions", () => {
 			},
 			disposeSession: (terminalId) => {
 				order.push(`kill ${terminalId}`);
-				return Promise.resolve();
+				return Promise.resolve({ daemonCloseSucceeded: true });
 			},
 		});
 
@@ -605,6 +608,36 @@ describe("restartAccountSessions", () => {
 		expect(runCalls).toEqual([]);
 		// The reaper finishes the kill; the session id must stay resumable.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+
+	it("does not relaunch when disposal resolves with a failed daemon close", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db);
+		const { deps, runCalls } = createDeps(db, {
+			disposeSession: async () => ({ daemonCloseSucceeded: false }),
+		});
+		expect(await restartAccountSessions(deps, "claude")).toEqual({
+			restartedTerminalIds: [],
+		});
+		expect(runCalls).toHaveLength(0);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+
+	it("does not report a restart when an explicit kill consumed the candidate", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db);
+		const { deps, runCalls } = createDeps(db, {
+			disposeSession: async () => {
+				createStore(db).markTerminalDisposed("t1");
+				return { daemonCloseSucceeded: true };
+			},
+		});
+		expect(await restartAccountSessions(deps, "claude")).toEqual({
+			restartedTerminalIds: [],
+		});
+		expect(runCalls).toHaveLength(0);
 	});
 
 	it("keeps the candidate for a pane to retry when the relaunch throws", async () => {

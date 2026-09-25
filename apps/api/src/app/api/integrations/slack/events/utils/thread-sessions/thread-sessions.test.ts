@@ -5,6 +5,11 @@ const isFeatureEnabled = mock(
 );
 mock.module("@superset/db/client", () => ({ db: {} }));
 mock.module("@/lib/analytics", () => ({ posthog: { isFeatureEnabled } }));
+mock.module("@superset/trpc/connectors", () => ({
+	accountConnection: async () => ({ organizationId: "org" }),
+	accountConnections: async () => [{ organizationId: "org" }],
+	connectionBotToken: async () => "token",
+}));
 const {
 	parseThreadCommand,
 	renderThreadMemory,

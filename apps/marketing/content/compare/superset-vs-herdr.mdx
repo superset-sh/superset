@@ -1,8 +1,8 @@
 ---
 title: "Superset vs Herdr (2026): Agent Workspace vs Agent Runtime"
-description: "Compare Superset and Herdr for running AI coding agents. See how a desktop agent workspace differs from Herdr's terminal-native runtime that keeps agents alive anywhere."
+description: "Compare Superset and Herdr for persistent CLI-agent workflows. Bring terminals, diff review, and browser previews together in a visual workspace."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - herdr
@@ -15,7 +15,13 @@ keywords:
   - ai agent orchestration
 ---
 
-Superset and Herdr both solve "I have more coding agents than terminals," but from opposite ends. Superset is a desktop workspace: a GUI where agents run in isolated Git worktrees with diff review, chat, a browser, and automations around them. Herdr (YC F26) is a runtime: an always-running background server with a terminal UI that holds real terminals open so agents survive your laptop lid closing, your SSH connection dropping, or every client quitting. Herdr's own compare page names Superset directly and frames the distinction as "apps manage the herd. Herdr runs it."
+Superset and Herdr share a useful starting point: keep your coding agents in persistent terminals and organize work across projects. Superset brings that workflow into a desktop workspace with visual diff review, file editing, and browser previews alongside your agents. Herdr organizes sessions in a terminal interface with remote attachment and scripting.
+
+**Choose Superset when you like working directly with CLI agents and want the surrounding work in one visual workspace.** Start with one task, keep the agent you already use, and add parallel work when you need it. Choose Herdr when a terminal interface fits the review and editing tools you already have.
+
+[Download Superset](/download) to try it with an existing repository, or follow the [workspace walkthrough](/blog/parallel-coding-agents-guide).
+
+This comparison is published by Superset and evaluates workflow fit, not measured speed or agent quality. Herdr details were checked against its official documentation on September 23, 2026.
 
 ---
 
@@ -23,14 +29,14 @@ Superset and Herdr both solve "I have more coding agents than terminals," but fr
 
 | | **Superset** | **Herdr** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Persistent runtime for agents: sessions, workspaces, tabs, and panes that outlive clients |
+| **What it does** | Persistent agent terminals with Git worktrees, chat, review, and browser | Persistent runtime for agents: sessions, workspaces, tabs, and panes that outlive clients |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Terminal-native agent runtime (TUI + CLI + socket API) |
-| **Interface** | Desktop GUI | Terminal UI with tmux-style keybindings; no GUI |
-| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | 19 agents auto-detected (Claude Code, Codex, Cursor, OpenCode, Amp, Copilot, Droid, and more) |
-| **Isolation** | Automatic Git worktree per task | Worktree-per-workspace via CLI; Vercel Sandbox plugin for full VM isolation |
+| **Interface** | Desktop GUI | Terminal UI with keyboard shortcuts, mouse controls, and a sidebar |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Agent detection and integrations; see the [supported agents](https://herdr.dev/docs/agents/) |
+| **Isolation** | Git worktrees for new local branch-based workspaces | Git worktrees through CLI and sidebar actions |
 | **Persistence** | Persistent terminal sessions | Server-owned terminals; detach anywhere, agents keep running |
-| **Diff review** | Built-in diff/file editor | None built in; pairs with external tools, sandbox changes return as Git patches |
-| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | JSON socket API, agent-automation CLI, 500+ plugins; no built-in scheduling |
+| **Diff review** | Built-in diff/file editor | Terminal-focused workflow with external review tools |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | JSON socket API, agent-automation CLI, and executable plugins |
 | **License** | Source-available (ELv2) | Open source (Apache-2.0) |
 
 ---
@@ -41,35 +47,40 @@ Superset is a local-first desktop workspace for AI coding agents. It launches Cl
 
 ## What Is Herdr?
 
-Herdr is an open-source runtime for AI coding agents -- in its own words, "the runtime your coding agents live on: laptop, desktop, or a box you rent." It is a single Rust binary running an always-on server that owns real terminal sessions, organized as sessions, workspaces, tabs, and panes, with a TUI client you attach and detach like tmux. It auto-detects 19 agent CLIs and visualizes their state (working, blocked, done) up through the sidebar. Worktree management is built into the CLI, a newline-delimited JSON socket API makes everything scriptable (agents can drive Herdr from inside their own panes), and a marketplace hosts 500+ plugins -- including a first-party Vercel Sandbox plugin that runs each agent in an isolated cloud microVM and returns changes as Git patches. Herdr runs on macOS, Linux, and Windows (beta), joined Y Combinator's F26 batch, and its runtime is Apache-2.0 and free.
+Herdr is an open-source runtime that organizes coding-agent terminals into workspaces, tabs, and panes. Its [documentation](https://herdr.dev/docs/) covers mouse controls as well as keyboard navigation. The CLI and socket API support scripting; its [plugin documentation](https://herdr.dev/docs/plugins/) describes executable actions and event hooks. Worktree creation is available from both the CLI and the sidebar, as documented under [configuration](https://herdr.dev/docs/configuration/#worktrees).
 
 ## Key Differences
 
 ### Workspace vs Runtime
 
-Superset is the place you work: launch agents, watch diffs, review, browse, merge -- one app for the whole loop. Herdr is the layer agents run on: it keeps their terminals alive and observable, and expects you to bring your own review flow, editor, and browser. Herdr's compare page is explicit that it pairs with manager apps rather than replacing the review experience. If you want one tool for the full loop, that is Superset. If you want a persistence layer under whatever tools you already use, that is Herdr.
-
+Superset brings the task's terminal, changed files, and preview into the same workspace. You can keep your agent's own commands and permissions while using the surrounding interface to navigate projects and review its work. Herdr focuses on organizing terminals; your existing editor and review tools can remain part of that workflow.
 ### GUI vs Terminal
 
-Superset is a desktop GUI with a terminal inside it. Herdr is terminal-native: TUI, tmux-style prefix keys, SSH-friendly, and "mobile support" means an SSH client on your phone. Developers who live in the terminal and want zero Electron will feel at home in Herdr; developers who want visual diff review, a browser pane, and clickable orchestration will prefer Superset.
+Superset adds a desktop interface around real terminal sessions. Herdr's terminal UI also supports clicking panes, resizing splits, and sidebar navigation. The useful distinction is what you want beside the terminal: Superset includes a diff/file editor and browser pane for the task, and can open your existing editor when you need it.
 
 ### Review and the Rest of the Loop
 
-Herdr has no built-in diff review -- agent status tells you something finished, and then you review in your editor or an external tool; its Vercel Sandbox flow returns raw Git patches you apply manually. Superset builds the review step in: a diff/file editor per worktree, plus one-click handoff to VS Code, Cursor, or JetBrains. Herdr also has no built-in scheduling; its automation story is the socket API and plugins, which are powerful but assume you script the recurring parts yourself. Superset ships automations with a TypeScript SDK and a Slack bot.
+In Superset, inspect the patch, edit a file, and open the running app beside the agent that made the change. Use [agent status and notifications](https://docs.superset.sh/agent-status) to decide which task needs attention; notification support varies by agent. Scheduled automations let you repeat a task once its setup and review steps are established. These additions can be useful with a single agent as well as several parallel tasks.
+
+### Give Feedback Where You See the Work
+
+For a UI change, [select an element in the browser preview](/blog/change-ui-with-your-coding-agent) and send your request to an agent with its element context and a screenshot when available. During review, [select lines in a PR diff](/blog/send-pr-feedback-to-your-agent) and send feedback to an agent in the PR's workspace.
+
+For work you need to discuss with teammates, [publish a report or design as a Page](/blog/review-agent-work-with-pages). They can pin feedback to an element, and a watching agent can update the page. These are concrete reasons to add a visual workspace around your CLI sessions.
 
 ### Persistence and Remote
 
-This is Herdr's home turf. The server owns the terminals, so agents keep working when every client disconnects, and a thin client can attach to a remote server over SSH with the UI streaming locally. Superset covers similar ground differently -- persistent terminal sessions plus remote and cloud workspaces that move whole worktree-isolated workspaces across your devices with the full GUI. Herdr's model is leaner and more composable; Superset's carries the entire workspace, review surface included.
+Herdr's [persistence documentation](https://herdr.dev/docs/persistence-remote/) explains server-owned terminals and remote attachment over SSH. Superset's [terminal documentation](https://docs.superset.sh/terminal-integration) covers running processes and scrollback surviving app restarts, while [remote access](https://docs.superset.sh/remote-access) connects you to another host. In both cases, continuing execution requires the machine running the agent to remain available; closing a client and stopping a host are different events.
 
-### Sandboxing
+### Worktree Isolation
 
-Herdr's Vercel Sandbox plugin is genuinely distinctive: each agent runs in an isolated Firecracker microVM, nothing touches your machine, uploads are reviewed before they happen, and deletion requires typing DELETE. Superset's isolation is Git worktrees on machines you control, which keeps your real environment, services, and dependencies available to agents. Stronger containment versus higher-fidelity environments -- which one wins depends on the task.
+Both tools can organize work in Git worktrees. Superset combines those separate working directories with visual review and previews. Worktrees separate files and branches; they do not sandbox processes or prevent conflicts when changes are merged. For a practical verification exercise, use the [parallel coding guide](/blog/parallel-coding-agents-guide).
 
 ---
 
 ## Pricing
 
-Superset offers a free tier and Pro at $20/seat/month. Herdr's runtime is free and Apache-2.0; the YC announcement says the runtime stays open, with commercial features to be built on top later (none priced as of August 2026). Vercel Sandbox usage bills at Vercel's standard rates. Both are bring-your-own-agent for model costs.
+Superset is source-available under Elastic License 2.0, with plan details on the [pricing page](/pricing). Herdr's licensing and installation details are available in its [official repository](https://github.com/herdrdev/herdr). Compare workspace costs separately from the model or agent subscriptions you bring to either tool.
 
 ---
 
@@ -77,7 +88,7 @@ Superset offers a free tier and Pro at $20/seat/month. Herdr's runtime is free a
 
 **Choose Superset if you:**
 
-- Want the full loop -- orchestration, diff review, browser, chat -- in one workspace
+- Want persistent CLI-agent terminals, diff review, and browser previews in one workspace
 - Prefer a GUI over a terminal multiplexer
 - Run scheduled or unattended agent sessions through automations and an SDK
 - Want team and enterprise features behind the tool
@@ -85,11 +96,20 @@ Superset offers a free tier and Pro at $20/seat/month. Herdr's runtime is free a
 **Choose Herdr if you:**
 
 - Live in the terminal and want a tmux-grade, Electron-free runtime
-- Care most about agents surviving disconnects, lid-closes, and client restarts
+- Want to detach from agent terminals and reconnect over SSH
 - Want to script everything over a JSON socket API or extend via plugins
-- Want per-agent cloud microVM isolation via the Vercel Sandbox plugin
+- Prefer to compose your terminal environment with external review tools
 
-**Verdict:** Herdr is the best-in-class answer to "keep my agents alive anywhere I can SSH," and its runtime-not-app framing is honest -- it deliberately leaves review, browsing, and scheduling to other tools. Superset is the better fit if you want those other tools built in: worktree orchestration, diff review, browser, automations, and remote access as one product. Plenty of terminal-first developers will run Herdr; teams standardizing an agent workflow end to end will get further with Superset.
+**Verdict:** Superset is a strong fit for developers who want to keep the direct CLI-agent experience and gain a visual home for their work. Herdr is a good fit when you want terminal session management alongside an existing toolchain. Evaluate the review and return-to-work experience with a real task, even if you only run one agent.
+
+## Try the Workflow With One Task
+
+1. [Download Superset](/download) and open a Git repository you already work in.
+2. Create a workspace for a small fix and launch your usual CLI agent there.
+3. Review the changed files in the diff view. For a UI task, run the dev server and open its URL in a browser pane.
+4. Switch to another workspace, then return to the original terminal and patch. Check whether you can pick up the task without reconstructing its context.
+
+Keep your normal tests and editor in the loop. The goal is to see whether the workspace makes your existing workflow easier to follow.
 
 ---
 
@@ -97,16 +117,16 @@ Superset offers a free tier and Pro at $20/seat/month. Herdr's runtime is free a
 
 ### Is Herdr a Superset alternative?
 
-Partially. Both orchestrate parallel coding agents, and Herdr's own comparison page lists Superset. But Herdr is a terminal runtime that deliberately excludes diff review, a browser, and scheduling, while Superset is a full workspace that includes them. Some developers use a runtime like Herdr underneath other tools.
+Yes, for developers choosing how to organize CLI-agent work. Both support persistent terminals and Git worktrees. Superset adds a desktop workspace with integrated diff review, file editing, and browser previews around that workflow.
 
 ### Do both support Git worktrees?
 
-Yes. Superset creates a worktree per task automatically. Herdr manages worktrees through its CLI, where creating a worktree creates a workspace, though it leaves the merge and review flow to you.
+Yes. New local branch-based Superset workspaces get their own Git worktree. Herdr offers worktree actions in its CLI and sidebar. In either tool, review and test the combined changes before merging.
 
 ### Is Herdr open source?
 
-Yes. Herdr's runtime is Apache-2.0 and free, and the team has said it stays open after joining Y Combinator. Superset is source-available under the Elastic License 2.0 with a free tier and paid Pro.
+Yes. Herdr's runtime uses the [Apache-2.0 license](https://github.com/herdrdev/herdr). Superset is source-available under the Elastic License 2.0 with a free tier and paid Pro.
 
-### What is Herdr's Vercel Sandbox integration?
+### Do I need to run several agents to benefit from Superset?
 
-A first-party plugin that runs each agent in an isolated Vercel Sandbox microVM instead of on your machine, with reviewed file uploads, changes returned as Git patches, and human-confirmed deletion. It is the strongest isolation story in the terminal-runtime category; Superset instead runs agents in worktrees on your own local, remote, or cloud machines.
+No. One task can use the same persistent terminal, diff review, and browser preview. Separate workspaces help you return to unfinished work across projects; parallel agents are an additional option when tasks can proceed independently.

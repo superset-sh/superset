@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
@@ -15,7 +17,11 @@ import {
 	provisionCodexAccount,
 } from "./account-provisioning";
 import { fetchAgyAccounts } from "./agy-quota";
-import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
+import {
+	fetchClaudeAccounts,
+	readClaudeLoginFingerprint,
+	readDefaultLoginEmail,
+} from "./claude";
 import { fetchCodexAccounts } from "./codex";
 import {
 	getDefaultAccountSelections,
@@ -25,7 +31,11 @@ import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { fetchOpencodeAccounts } from "./opencode-quota";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
-import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
+import {
+	discoverClaudeProfiles,
+	discoverCodexHomes,
+	readCodexProfileKind,
+} from "./profiles";
 import { validateSessionAccount } from "./session-account/session-account";
 import type { UsageAccount } from "./types";
 
@@ -69,6 +79,10 @@ function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
 	});
 	return promise;
 }
+
+export const leaderboardPayloadInput = z.object({
+	days: z.number().int().min(1).max(MAX_BACKFILL_DAYS),
+});
 
 export const usageRouter = router({
 	sessionAccount: queryProcedure
@@ -123,15 +137,17 @@ export const usageRouter = router({
 	 * Local-only login discovery (no provider network calls), safe to poll
 	 * while an add-account or switch-sign-in flow is pending in a terminal.
 	 * The default-slot fields let the UI notice a `/login` that re-signed the
-	 * system-default login (Claude by state-file email; Codex by auth.json
-	 * fingerprint, since its email is only knowable via the network).
+	 * system-default login by its credential fingerprint, including re-login
+	 * to the same account.
 	 */
 	logins: queryProcedure.query(async () => {
-		const [profiles, codexHomes, claudeDefaultEmail] = await Promise.all([
-			discoverClaudeProfiles(),
-			discoverCodexHomes(),
-			readDefaultLoginEmail(),
-		]);
+		const [profiles, codexHomes, claudeDefaultEmail, claudeDefaultFingerprint] =
+			await Promise.all([
+				discoverClaudeProfiles(),
+				discoverCodexHomes(),
+				readDefaultLoginEmail(),
+				readClaudeLoginFingerprint(null),
+			]);
 		// auth.json fingerprints let the UI notice a re-login on any Codex home
 		// (its email is only knowable via the network). The first home is the
 		// system default.
@@ -140,7 +156,10 @@ export const usageRouter = router({
 				// An API-billed home's auth.json holds the raw key and is never
 				// opened; its marker mtime is the fingerprint instead.
 				let fingerprint = loginFingerprint;
-				if (credentialKind === "subscription") {
+				if (
+					credentialKind === "subscription" &&
+					(await readCodexProfileKind(home))?.credentialKind === "subscription"
+				) {
 					try {
 						fingerprint = createHash("sha256")
 							.update(await readFile(join(home, "auth.json")))
@@ -153,12 +172,19 @@ export const usageRouter = router({
 			}),
 		);
 		return {
-			claude: profiles.map((profile) => ({
-				configDir: profile.configDir,
-				email: profile.email,
-				credentialKind: profile.credentialKind,
-				fingerprint: profile.loginFingerprint,
-			})),
+			homeDir: homedir(),
+			claudeDefaultFingerprint,
+			claude: await Promise.all(
+				profiles.map(async (profile) => ({
+					configDir: profile.configDir,
+					email: profile.email,
+					credentialKind: profile.credentialKind,
+					fingerprint:
+						profile.credentialKind === "api_key"
+							? profile.loginFingerprint
+							: await readClaudeLoginFingerprint(profile.configDir),
+				})),
+			),
 			codex,
 			claudeDefaultEmail,
 		};
@@ -361,7 +387,7 @@ export const usageRouter = router({
 
 	leaderboardPayload: queryProcedure
 		.meta({ timeoutMs: 120_000 })
-		.input(z.object({ days: z.number().int().min(1).max(90) }))
+		.input(leaderboardPayloadInput)
 		.query(
 			offLoop({
 				task: leaderboardPayloadTask,

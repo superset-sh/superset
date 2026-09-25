@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
 	chmodSync,
+	lstatSync,
+	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	readFileSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -128,6 +132,27 @@ describe("seedClaudeFolderTrust", () => {
 		await seedClaudeFolderTrust(file, "/tmp/session-g");
 		expect(statSync(file).mode & 0o777).toBe(0o600);
 	});
+
+	test("writes through a symlinked state file instead of replacing it", async () => {
+		const dotfiles = join(dir, "dotfiles-claude");
+		const home = join(dir, "home");
+		mkdirSync(dotfiles);
+		mkdirSync(home);
+		const real = join(dotfiles, ".claude.json");
+		writeFileSync(real, JSON.stringify({ oauthAccount: { id: "a" } }));
+		const file = join(home, ".claude.json");
+		symlinkSync(real, file);
+
+		await seedClaudeFolderTrust(file, "/tmp/session-link");
+
+		expect(lstatSync(file).isSymbolicLink()).toBe(true);
+		const state = JSON.parse(readFileSync(real, "utf-8"));
+		expect(state.oauthAccount.id).toBe("a");
+		expect(state.projects["/tmp/session-link"].hasTrustDialogAccepted).toBe(
+			true,
+		);
+		expect(readdirSync(home)).toEqual([".claude.json"]);
+	});
 });
 
 describe("seedCodexFolderTrust", () => {
@@ -215,5 +240,24 @@ describe("seedCodexFolderTrust", () => {
 		expect(readFileSync(file, "utf-8")).toContain(
 			'[projects."/tmp/session-h"]\ntrust_level = "trusted"\n',
 		);
+	});
+
+	test("writes through a symlinked config.toml instead of replacing it", async () => {
+		const dotfiles = join(dir, "dotfiles");
+		const codexHome = join(dir, ".codex");
+		mkdirSync(dotfiles);
+		mkdirSync(codexHome);
+		const real = join(dotfiles, "config.toml");
+		writeFileSync(real, 'model = "gpt-5"\n');
+		const file = join(codexHome, "config.toml");
+		symlinkSync(real, file);
+
+		await seedCodexFolderTrust(file, "/tmp/session-link");
+
+		expect(lstatSync(file).isSymbolicLink()).toBe(true);
+		expect(readFileSync(real, "utf-8")).toBe(
+			'model = "gpt-5"\n\n[projects."/tmp/session-link"]\ntrust_level = "trusted"\n',
+		);
+		expect(readdirSync(codexHome)).toEqual(["config.toml"]);
 	});
 });

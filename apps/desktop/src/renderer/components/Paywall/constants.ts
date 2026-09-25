@@ -108,7 +108,6 @@ export const PRO_FEATURES: ProFeature[] = [
 		icon: HiDevicePhoneMobile,
 		iconColor: "text-red-500",
 		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
-		comingSoon: true,
 	},
 ];
 

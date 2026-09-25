@@ -1,4 +1,4 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
@@ -22,12 +22,6 @@ export interface SandboxTarget {
 	url: string;
 	/** The gate address of the workspace's desktop stream, ticketed separately. */
 	desktopUrl: string;
-	/**
-	 * Whether the sandbox has a running session. A stopped one answers
-	 * nothing until the open workspace wakes it, so nothing should fan
-	 * requests out to it — they would only fail.
-	 */
-	running: boolean;
 }
 
 export interface SandboxAccessValue {
@@ -38,15 +32,46 @@ export interface SandboxAccessValue {
 
 const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
 
+interface SandboxAccess {
+	url: string;
+	desktopUrl: string;
+	expiresAt: number;
+}
+
+function sandboxAccessQueryKey(workspaceId: string) {
+	return ["cloud-workspace", "access", workspaceId] as const;
+}
+
+async function requestAccess(
+	workspaceId: string,
+	wake: boolean,
+): Promise<SandboxAccess> {
+	const granted = await apiTrpcClient.cloudWorkspace.access.mutate({
+		id: workspaceId,
+		wake,
+	});
+	setHostServiceSecret(granted.url, granted.token);
+	setHostServiceSecret(granted.desktop.url, granted.desktop.token);
+	return {
+		url: granted.url,
+		desktopUrl: granted.desktop.url,
+		expiresAt: new Date(granted.expiresAt).getTime(),
+	};
+}
+
 /**
  * Keeps a live address for every ready cloud workspace.
  *
  * A sandbox has no `v2_hosts` row; it is reached through the sandbox gate
  * with a ticket the API mints, and this is the one place that asks for one.
  * Addressing talks to the Superset API, not the sandbox, so it wakes
- * nothing — a sidebar full of sleeping sandboxes must stay asleep. Only the
- * open workspace asks to be woken, and that call returns once host-service
- * inside it answers, so its address is usable the moment it lands.
+ * nothing — a sidebar full of sleeping sandboxes must stay asleep.
+ *
+ * The open workspace is used at its address straight away, as if its box
+ * were up; a stopped one reports itself through the host connection strip
+ * like any unreachable host. Waking it runs beside that, never in front of
+ * it, and hands back a fresh ticket: a resumed box can answer on a new
+ * domain, which the old ticket does not point at.
  */
 export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	const { workspaces: cloudWorkspaces, organizationId } = useCloudWorkspaces();
@@ -64,45 +89,37 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	);
 
 	const results = useQueries({
-		queries: workspaces.map((workspace) => {
-			const wake = workspace.id === openWorkspaceId;
-			return {
-				queryKey: ["cloud-workspace", "access", workspace.id, wake] as const,
-				// The gate is reachable over the public internet, so this must not
-				// pause with navigator.onLine the way the default mode would.
-				networkMode: "always" as const,
-				queryFn: async () => {
-					const granted = await apiTrpcClient.cloudWorkspace.access.mutate({
-						id: workspace.id,
-						wake,
-					});
-					setHostServiceSecret(granted.url, granted.token);
-					setHostServiceSecret(granted.desktop.url, granted.desktop.token);
-					return {
-						url: granted.url,
-						desktopUrl: granted.desktop.url,
-						running: wake || granted.running,
-						expiresAt: new Date(granted.expiresAt).getTime(),
-					};
-				},
-				refetchInterval: (query: {
-					state: { data?: { expiresAt: number } };
-				}): number => {
-					const expiresAt = query.state.data?.expiresAt;
-					if (!expiresAt) return RETRY_MS;
-					const refreshIn = (expiresAt - Date.now()) * REFRESH_AT;
-					return Math.max(
-						RETRY_MS,
-						wake ? Math.min(refreshIn, OPEN_WORKSPACE_KEEPALIVE_MS) : refreshIn,
-					);
-				},
-				refetchIntervalInBackground: true,
-				// A wake grant is only as good as the session it woke: leaving the
-				// workspace drops it, so coming back waits for a fresh wake instead
-				// of pointing every pane at a sandbox that may have stopped since.
-				gcTime: wake ? 0 : undefined,
-			};
-		}),
+		queries: workspaces.map((workspace) => ({
+			queryKey: sandboxAccessQueryKey(workspace.id),
+			// The gate is reachable over the public internet, so this must not
+			// pause with navigator.onLine the way the default mode would.
+			networkMode: "always" as const,
+			queryFn: () => requestAccess(workspace.id, false),
+			refetchInterval: (query: { state: { data?: SandboxAccess } }): number => {
+				const expiresAt = query.state.data?.expiresAt;
+				if (!expiresAt) return RETRY_MS;
+				return Math.max(RETRY_MS, (expiresAt - Date.now()) * REFRESH_AT);
+			},
+			refetchIntervalInBackground: true,
+		})),
+	});
+
+	const queryClient = useQueryClient();
+	const openWorkspace =
+		workspaces.find((workspace) => workspace.id === openWorkspaceId) ?? null;
+	useQuery({
+		queryKey: ["cloud-workspace", "wake", openWorkspace?.id] as const,
+		enabled: openWorkspace !== null,
+		networkMode: "always",
+		queryFn: async () => {
+			if (!openWorkspace) return null;
+			const access = await requestAccess(openWorkspace.id, true);
+			queryClient.setQueryData(sandboxAccessQueryKey(openWorkspace.id), access);
+			return access;
+		},
+		refetchInterval: OPEN_WORKSPACE_KEEPALIVE_MS,
+		refetchIntervalInBackground: true,
+		gcTime: 0,
 	});
 
 	const value = useMemo<SandboxAccessValue>(() => {
@@ -115,7 +132,6 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 				organizationId,
 				url: data.url,
 				desktopUrl: data.desktopUrl,
-				running: data.running,
 			});
 		}
 		return {
