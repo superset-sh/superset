@@ -38,7 +38,9 @@ export const agentToolingRouter = router({
 			// wins over the host-default account, so discovery reads the config
 			// dir the CLI will actually run with.
 			const env = {
-				...resolveDefaultAccountEnv(ctx.db, presetId),
+				...resolveDefaultAccountEnv(ctx.db, presetId, {
+					projectId: workspace.projectId,
+				}),
 				...(config?.env ?? {}),
 			};
 			return listAgentSlashCommands({

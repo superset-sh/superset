@@ -1581,6 +1581,9 @@ msgstr "mainとの比較"
 msgid "Agent"
 msgstr "エージェント"
 
+msgid "Agent accounts"
+msgstr "エージェントアカウント"
+
 msgid "Agent commands"
 msgstr "エージェントコマンド"
 
@@ -6480,6 +6483,9 @@ msgstr "設定の更新に失敗しました"
 msgid "Failed to update team. Please try again."
 msgstr "チームを更新できませんでした。もう一度お試しください。"
 
+msgid "Failed to update the project's agent account"
+msgstr "プロジェクトのエージェントアカウントの更新に失敗しました"
+
 msgid "Failed to update URL"
 msgstr "URLの更新に失敗しました"
 
@@ -7309,6 +7315,10 @@ msgstr "ホーム"
 
 msgid "Host"
 msgstr "ホスト"
+
+#. placeholder {0}: accountLabel(hostDefault)
+msgid "Host default: {0}"
+msgstr "ホストのデフォルト: {0}"
 
 msgid "Host ID"
 msgstr "ホストID"
@@ -16312,6 +16322,9 @@ msgstr "新規エージェントに使用"
 msgid "Use global default"
 msgstr "グローバルのデフォルトを使用"
 
+msgid "Use host default"
+msgstr "ホストのデフォルトを使用"
+
 msgid "Use Superset on mobile"
 msgstr "モバイルでSupersetを使う"
 
@@ -16827,6 +16840,9 @@ msgstr "どのエージェントに対応していますか?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "どのAIコーディングエージェントに対応していますか?"
+
+msgid "Which provider login agents launched in this project use. Defaults to the host-wide choice on the Usage page."
+msgstr "このプロジェクトで起動するエージェントが使うプロバイダーのログインです。既定では使用量ページで選んだホスト全体の設定に従います。"
 
 msgid "Who can open this page from its link"
 msgstr "リンクからこのページを開ける人"

@@ -126,6 +126,10 @@ mock.module("./components/SparseCheckoutSection", () => ({
 	),
 }));
 
+// Stubbed out: the section fetches accounts and overrides on its own.
+mock.module("./components/ProjectAgentAccountsSection", () => ({
+	ProjectAgentAccountsSection: () => null,
+}));
 // Stubbed with a marker for the same reason: the assertion checks that
 // V2ProjectSettings wires the section in and seeds it from the host row.
 mock.module("./components/NamingInstructionsSection", () => ({

@@ -66,6 +66,16 @@ function makeHome(pointer: string | null): {
 	return { home, profile };
 }
 
+function writeProjectPointer(
+	home: string,
+	projectId: string,
+	pointer: string,
+): void {
+	const dir = join(home, "state", "projects", projectId);
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(join(dir, "default-claude-config-dir"), pointer);
+}
+
 describe("buildDefaultAccountResolver", () => {
 	it("adopts the pointer in a Superset terminal with no spawn-time value", () => {
 		const { home, profile } = makeHome("");
@@ -184,6 +194,58 @@ describe("buildDefaultAccountResolver", () => {
 				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: "/tmp/spawn-time",
 			}),
 		).toBe("/tmp/spawn-time");
+	});
+
+	it("prefers the terminal's project pointer over the host pointer", () => {
+		const { home, profile } = makeHome(null);
+		const projectProfile = join(home, "project-profile");
+		mkdirSync(projectProfile);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeProjectPointer(home, "proj-1", projectProfile);
+		expect(
+			resolveWithTwin({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_PROJECT_ID: "proj-1",
+			}),
+		).toBe(`${projectProfile}|${projectProfile}`);
+	});
+
+	it("pins a project to the system default over a host pointer", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeProjectPointer(home, "proj-1", "");
+		expect(
+			resolveWithTwin({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_PROJECT_ID: "proj-1",
+				CLAUDE_CONFIG_DIR: profile,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: profile,
+			}),
+		).toBe("<unset>|<unset>");
+	});
+
+	it("falls back to the host pointer when the project has no override", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeProjectPointer(home, "other-project", "/tmp/not-this-one");
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_PROJECT_ID: "proj-1",
+			}),
+		).toBe(profile);
+	});
+
+	it("ignores project pointers when the terminal has no project", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeProjectPointer(home, "proj-1", "/tmp/not-this-one");
+		expect(
+			resolve({ SUPERSET_TERMINAL_ID: "t1", SUPERSET_HOME_DIR: home }),
+		).toBe(profile);
 	});
 
 	it("ignores a pointer at a vanished dir instead of booting signed out", () => {

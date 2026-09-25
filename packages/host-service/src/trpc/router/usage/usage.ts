@@ -25,7 +25,9 @@ import {
 import { fetchCodexAccounts } from "./codex";
 import {
 	getDefaultAccountSelections,
+	getProjectDefaultAccountOverrides,
 	setDefaultAccountSelection,
+	setProjectDefaultAccountOverride,
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
@@ -233,6 +235,72 @@ export const usageRouter = router({
 				} catch (error) {
 					console.warn(
 						`[host-service] provisioning ${input.agent} account ${input.selection} failed (continuing):`,
+						error,
+					);
+				}
+			}
+			return { success: true as const };
+		}),
+
+	/**
+	 * A project's per-provider override of the host default: `null` inherits
+	 * the host-wide selection, `{ selection: null }` pins the system-default
+	 * login, `{ selection: dir }` pins that profile.
+	 */
+	projectDefaultAccounts: queryProcedure
+		.input(z.object({ projectId: z.string().uuid() }))
+		.query(({ ctx, input }) =>
+			getProjectDefaultAccountOverrides(ctx.db, input.projectId),
+		),
+
+	/**
+	 * Set or clear one provider's override for a project. Same rules as
+	 * `setDefaultAccount`: only a discovered login is accepted, and a chosen
+	 * profile is provisioned so the project's agents keep the shared setup.
+	 */
+	setProjectDefaultAccount: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				agent: z.enum(["claude", "codex"]),
+				override: z.object({ selection: z.string().nullable() }).nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const selection = input.override?.selection ?? null;
+			if (selection !== null) {
+				const accounts = await getQuota(false);
+				const known = accounts.some(
+					(account) =>
+						account.agent === input.agent && account.selection === selection,
+				);
+				if (!known) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `No ${input.agent} login found at ${selection} — refresh usage and pick again.`,
+					});
+				}
+			}
+			const updated = setProjectDefaultAccountOverride(
+				ctx.db,
+				input.projectId,
+				input.agent,
+				input.override,
+			);
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Project not set up locally: ${input.projectId}`,
+				});
+			}
+			if (selection !== null) {
+				try {
+					await (input.agent === "claude"
+						? provisionClaudeAccount(selection)
+						: provisionCodexAccount(selection));
+				} catch (error) {
+					console.warn(
+						`[host-service] provisioning ${input.agent} account ${selection} failed (continuing):`,
 						error,
 					);
 				}

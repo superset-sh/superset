@@ -24,6 +24,7 @@ import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
+import { ProjectAgentAccountsSection } from "./components/ProjectAgentAccountsSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
@@ -276,6 +277,24 @@ export function V2ProjectSettings({
 							// Hosts older than this setting omit the field entirely.
 							instructions={hostProject.namingInstructions ?? null}
 							onChanged={() => refetchHostProject()}
+						/>
+					)}
+				</SettingsSection>
+
+				<SettingsSection
+					title={t({
+						message: "Agent accounts",
+					})}
+					description={t({
+						message:
+							"Which provider login agents launched in this project use. Defaults to the host-wide choice on the Usage page.",
+					})}
+				>
+					{targetHostUrl && hostProject && (
+						<ProjectAgentAccountsSection
+							key={`${projectId}:${targetHostId}`}
+							projectId={projectId}
+							hostUrl={targetHostUrl}
 						/>
 					)}
 				</SettingsSection>

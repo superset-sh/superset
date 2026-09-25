@@ -27,6 +27,7 @@ import {
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
+import { removeProjectDefaultAccountPointers } from "../usage/default-account";
 import {
 	normalizeSparseCheckoutPaths,
 	parseSparseCheckoutPaths,
@@ -882,6 +883,7 @@ export const projectRouter = router({
 				// owners in one transaction: neither can survive a partial failure.
 				ctx.db.transaction((tx) => {
 					tx.delete(projects).where(eq(projects.id, input.projectId)).run();
+					removeProjectDefaultAccountPointers(input.projectId);
 					tx.delete(tagFolderSettings)
 						.where(eq(tagFolderSettings.scope, input.projectId))
 						.run();

@@ -1344,6 +1344,7 @@ export async function snapshotSession({
  */
 function agentLaunchEnv(
 	db: HostDb,
+	workspaceId: string,
 	definitionId: string | null | undefined,
 ): Record<string, string> | undefined {
 	if (!definitionId) return undefined;
@@ -1359,7 +1360,9 @@ function agentLaunchEnv(
 	// Overlaid the same way the launch does it: the Usage tab's default
 	// account injects CLAUDE_CONFIG_DIR without touching per-agent env, and
 	// reading only the latter would look in the wrong account's directory.
-	const accountEnv = resolveDefaultAccountEnv(db, row.presetId);
+	const accountEnv = resolveDefaultAccountEnv(db, row.presetId, {
+		workspaceId,
+	});
 	try {
 		const parsed = JSON.parse(row.envJson) as Record<string, string>;
 		const agentEnv =
@@ -1435,7 +1438,7 @@ export async function transcriptSession({
 				agentId: binding?.agentId,
 				agentSessionId: binding?.agentSessionId,
 				worktreePath,
-				env: agentLaunchEnv(db, binding?.definitionId),
+				env: agentLaunchEnv(db, workspaceId, binding?.definitionId),
 			});
 	if (harness) {
 		return {
@@ -3137,6 +3140,7 @@ async function createTerminalSessionUnlocked({
 			cwd,
 			terminalId,
 			workspaceId,
+			projectId: workspace.projectId,
 			workspacePath: workspace.worktreePath,
 			rootPath,
 			supersetEnv:
@@ -3145,10 +3149,11 @@ async function createTerminalSessionUnlocked({
 			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
-		// Usage-tab default account: provider CLIs typed or preset-launched in
-		// this terminal run on the selected login. Baked at spawn as the fast
-		// path; the agent wrappers re-resolve later switches at launch time.
-		...resolveDefaultAccountTerminalEnv(db),
+		// Default account (Usage tab, or the project's override): provider CLIs
+		// typed or preset-launched in this terminal run on the selected login.
+		// Baked at spawn as the fast path; the agent wrappers re-resolve later
+		// switches at launch time.
+		...resolveDefaultAccountTerminalEnv(db, { projectId: workspace.projectId }),
 		SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN: issueAttributionToken(terminalId),
 	};
 

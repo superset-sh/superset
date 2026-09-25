@@ -190,6 +190,8 @@ interface BuildV2TerminalEnvParams {
 	cwd: string;
 	terminalId: string;
 	workspaceId: string;
+	/** Null for sessions, which have no project. */
+	projectId?: string | null;
 	workspacePath: string;
 	rootPath: string;
 	supersetEnv: "development" | "production";
@@ -220,6 +222,7 @@ export function buildV2TerminalEnv(
 		cwd,
 		terminalId,
 		workspaceId,
+		projectId,
 		workspacePath,
 		rootPath,
 		supersetEnv,
@@ -263,6 +266,10 @@ export function buildV2TerminalEnv(
 		env.SUPERSET_ORGANIZATION_ID = organizationId;
 	}
 	env.SUPERSET_WORKSPACE_ID = workspaceId;
+	// The agent wrappers look up the project's default-account pointer by it.
+	if (projectId) {
+		env.SUPERSET_PROJECT_ID = projectId;
+	}
 	// In a cloud workspace, say so and say which: `superset` here authenticates
 	// as the workspace rather than a person, and an agent asked to reach its
 	// own box needs the id it was provisioned for.
