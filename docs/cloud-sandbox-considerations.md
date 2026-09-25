@@ -29,6 +29,17 @@ quota and cost visibility in the product — and a decision on unattended agent
 runs, which die with the session (Blaxel froze processes; Vercel snapshots the
 filesystem and boots fresh).
 
+**A golden lives exactly as long as its environment. Fixed (2026-09-25).** A
+golden is a stopped persistent sandbox whose snapshot never expires, about
+4 GB at $0.08/GB-month, and the only per-team storage nothing bounded: the
+release has deleted the golden it replaces since 2026-09-14, but archiving an
+environment left its golden behind forever. Archive now deletes it. Measured
+before the fix: 10 goldens (9 dead) and 6 orphan snapshots from before the
+orphan-cleanup flag, 54 GB, swept by hand. Still owed (SUPER-2461): a storage
+line per environment in Settings, and if goldens ever get an expiry it must
+come with an automatic rebuild, because a golden's last use only resets when a
+new box is created from it.
+
 **Delete deletes.** `useDestroyWorkspace` decides by the cloud row, not by the
 host it happens to reach: a cloud workspace goes to `cloudWorkspace.delete`,
 which removes the sandbox (and its snapshots) at the provider and marks the row

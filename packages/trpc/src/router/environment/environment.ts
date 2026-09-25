@@ -16,6 +16,7 @@ import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
+	deleteSandbox,
 	loadRepositories,
 	primaryRepository,
 	promoteSandboxToEnvironment,
@@ -404,11 +405,17 @@ export const environmentRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
-			assertOwned(await loadEnvironment(input.id, ctx));
+			const environment = await loadEnvironment(input.id, ctx);
+			assertOwned(environment);
 			await db
 				.update(environments)
 				.set({ archivedAt: new Date() })
 				.where(eq(environments.id, input.id));
+			// A golden is one environment's alone, and an archived environment
+			// never forks from it again; without this it bills storage forever.
+			if (environment.sourceKind === "fork") {
+				await deleteSandbox(environment.sourceRef);
+			}
 			return { archived: true };
 		}),
 } satisfies TRPCRouterRecord;
