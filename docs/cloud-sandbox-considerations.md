@@ -40,17 +40,24 @@ closed.
 
 ## Credentials and blast radius
 
-**Model credentials are the person's or the environment's, never ours. Fixed
-(2026-09-25).** A sandbox gets its Anthropic and OpenAI credential from the
-creator's sign-in (Settings › Agents, per user, `agent_credentials`) or from
-the environment's variables, brokered at the firewall. The org's keys used to
-be the fallback, which put agent usage on our bill with no attribution or cap;
-that fallback is gone. **Open:** nothing at workspace creation checks that the
-chosen agent has a sign-in, so a person without one gets a box whose agent
-sits on a login prompt, and an automation-created box does the same silently.
-Rotation of a person's credential reaches a running box within one keepalive:
-the firewall policy is live-updatable and every wake and `access` keepalive
-re-derives and re-applies it.
+**Model credentials are the person's sign-in, never ours and never the
+environment's. Fixed (2026-09-25).** A sandbox's Anthropic or OpenAI credential
+comes from the creator's sign-in (Settings › Agents, per user,
+`agent_credentials`), brokered at the firewall by a rule that fires only on the
+placeholder the agent presents. An environment variable of the same name is the
+app's: it enters the box as itself, its requests pass the firewall untouched,
+and it never becomes an agent credential. When the app's key holds the plain
+name, the sign-in's placeholder reaches the launched agent through the
+`SUPERSET_AGENT_ENV_` overlay, and the box seed answers Claude Code's "use this
+key?" prompt with no for the app's key and yes for the placeholder. Two things
+this leaves: `claude` typed by hand in a terminal on such a box sees the app's
+key and, with the prompt answered no, asks the person to log in; and
+**Open:** nothing at workspace creation checks that the chosen agent has a
+sign-in, so a person without one gets a box whose agent sits on a login prompt,
+and an automation-created box does the same silently. Rotation of a person's
+credential reaches a running box within one keepalive: the firewall policy is
+live-updatable and every wake and `access` keepalive re-derives and re-applies
+it.
 
 **The GitHub token outlives the clone. Fixed (v2 layout, 2026-09-13).**
 `git clone` with the token in the URL wrote it into `.git/config`, so a

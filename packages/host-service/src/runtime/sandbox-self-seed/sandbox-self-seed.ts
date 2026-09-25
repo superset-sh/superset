@@ -8,6 +8,7 @@ import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
+import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import {
 	SANDBOX_PATHS,
 	type SandboxRepository,
@@ -22,6 +23,7 @@ import { importCloudAttachments } from "../../trpc/router/attachments/attachment
 import { seedDefaultsIfEmpty } from "../../trpc/router/settings/agent-configs";
 import type { HostServiceContext } from "../../types";
 import {
+	getAgentEnvOverlay,
 	getManagedEnv,
 	waitForManagedEnv,
 } from "../sandbox-managed-env/sandbox-managed-env.ts";
@@ -235,13 +237,22 @@ export async function runSandboxStartHook(
 /**
  * Claude Code stops on a "use this custom API key?" prompt the first time it
  * sees an `ANTHROPIC_API_KEY`, and a launch nobody is watching would sit on
- * it. The key reaches the sandbox from the environment's variables, so it is
- * approved here the way the prompt would record it: the last 20 characters
- * in `~/.claude.json`.
+ * it. The answers are recorded here the way the prompt would, by the key's
+ * last 20 characters in `~/.claude.json`: yes to the placeholder the person's
+ * sign-in travels as, no to the environment's own key, which is the app's.
  */
-function approveClaudeApiKey(): void {
-	const key = process.env.ANTHROPIC_API_KEY;
-	if (!key) return;
+export function answerClaudeApiKeyPrompt(): void {
+	const placeholder =
+		getAgentEnvOverlay().ANTHROPIC_API_KEY === SANDBOX_CREDENTIAL_PLACEHOLDER
+			? SANDBOX_CREDENTIAL_PLACEHOLDER
+			: null;
+	const appKey = getManagedEnv().ANTHROPIC_API_KEY;
+	const approve = placeholder ? [placeholder.slice(-20)] : [];
+	const reject =
+		appKey && appKey !== SANDBOX_CREDENTIAL_PLACEHOLDER
+			? [appKey.slice(-20)]
+			: [];
+	if (approve.length === 0 && reject.length === 0) return;
 	const path = join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json");
 	let config: Record<string, unknown> = {};
 	if (existsSync(path)) {
@@ -254,7 +265,7 @@ function approveClaudeApiKey(): void {
 			// Rewriting a file this process cannot read would destroy whatever
 			// Claude keeps in it; leave the prompt to the person instead.
 			console.warn(
-				`[sandbox] ${path} is not readable JSON, key not approved`,
+				`[sandbox] ${path} is not readable JSON, key prompt left to the person`,
 				error,
 			);
 			return;
@@ -270,13 +281,22 @@ function approveClaudeApiKey(): void {
 			: {};
 	const approved = Array.isArray(responses.approved) ? responses.approved : [];
 	const rejected = Array.isArray(responses.rejected) ? responses.rejected : [];
-	const suffix = key.slice(-20);
-	if (approved.includes(suffix)) return;
-	config.customApiKeyResponses = {
-		...responses,
-		approved: [...approved, suffix],
-		rejected: rejected.filter((entry) => entry !== suffix),
+	const next = {
+		approved: [
+			...approved.filter((entry) => !reject.includes(entry)),
+			...approve.filter((entry) => !approved.includes(entry)),
+		],
+		rejected: [
+			...rejected.filter((entry) => !approve.includes(entry)),
+			...reject.filter((entry) => !rejected.includes(entry)),
+		],
 	};
+	if (
+		JSON.stringify(next.approved) === JSON.stringify(approved) &&
+		JSON.stringify(next.rejected) === JSON.stringify(rejected)
+	)
+		return;
+	config.customApiKeyResponses = { ...responses, ...next };
 	writeFileSync(path, JSON.stringify(config, null, 2));
 }
 
@@ -315,7 +335,6 @@ export async function launchSandboxAgentOnce(
 		// Nothing has listed this host's agents yet, so the built-in presets are
 		// not in its table; the launch resolves the agent through that table.
 		seedDefaultsIfEmpty(ctx.db);
-		if (agent === "claude") approveClaudeApiKey();
 		// Images the composer sent with the prompt: the bytes live in cloud
 		// storage because this box did not exist when they were uploaded.
 		// A download that fails must not cost the launch its prompt.

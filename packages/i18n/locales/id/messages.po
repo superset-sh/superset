@@ -17196,6 +17196,9 @@ msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membua
 msgid "Your Agents, Your Accounts"
 msgstr "Agen Anda, Akun Anda"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "Aplikasi Anda membaca variabel ini. Agen masuk melalui Pengaturan › Agen dan tidak pernah memakai variabel yang diatur di sini."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Browser Anda tidak melaporkan chip yang Anda gunakan, jadi ini adalah build Apple Silicon. Pada Mac dengan Intel, <0>ambil build Intel</0> sebagai gantinya."
 

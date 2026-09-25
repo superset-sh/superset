@@ -16,6 +16,12 @@ export const AGENT_CREDENTIAL_ENV_NAMES = [
 export type AgentCredentialEnvName =
 	(typeof AGENT_CREDENTIAL_ENV_NAMES)[number];
 
+export function isAgentCredentialEnvName(
+	name: string,
+): name is AgentCredentialEnvName {
+	return (AGENT_CREDENTIAL_ENV_NAMES as readonly string[]).includes(name);
+}
+
 export interface AgentCredentialShape {
 	agent: string;
 	kind: "subscription" | "api_key";
@@ -42,4 +48,23 @@ export function agentCredentialToEnv(
 		};
 	}
 	return {};
+}
+
+/**
+ * A credential placeholder meant for the agent's own process rather than the
+ * whole box travels under this prefix, so an environment variable of the
+ * same name (the app's real key) keeps the plain name.
+ */
+export const AGENT_ENV_OVERLAY_PREFIX = "SUPERSET_AGENT_ENV_";
+
+export function agentEnvOverlay(
+	variables: Record<string, string>,
+): Record<string, string> {
+	const overlay: Record<string, string> = {};
+	for (const [key, value] of Object.entries(variables)) {
+		if (key.startsWith(AGENT_ENV_OVERLAY_PREFIX)) {
+			overlay[key.slice(AGENT_ENV_OVERLAY_PREFIX.length)] = value;
+		}
+	}
+	return overlay;
 }

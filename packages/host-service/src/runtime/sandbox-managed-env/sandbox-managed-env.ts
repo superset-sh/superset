@@ -1,5 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import {
+	AGENT_ENV_OVERLAY_PREFIX,
+	agentEnvOverlay,
+} from "@superset/shared/agent-credentials";
 
 const run = promisify(execFile);
 
@@ -63,9 +67,18 @@ async function writeGitIdentity(
 	}
 }
 
-/** The current set, or empty until the first push. */
+/** The current set for terminals and hooks, or empty until the first push. */
 export function getManagedEnv(): Record<string, string> {
-	return managed ? { ...managed } : {};
+	const env: Record<string, string> = {};
+	for (const [key, value] of Object.entries(managed ?? {})) {
+		if (!key.startsWith(AGENT_ENV_OVERLAY_PREFIX)) env[key] = value;
+	}
+	return env;
+}
+
+/** What a launched agent's process gets on top of its terminal's environment. */
+export function getAgentEnvOverlay(): Record<string, string> {
+	return agentEnvOverlay(managed ?? {});
 }
 
 export function hasManagedEnv(): boolean {

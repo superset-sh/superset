@@ -17196,6 +17196,9 @@ msgstr "계정이 조직에서 관리됩니다. 새 조직을 만들려면 관�
 msgid "Your Agents, Your Accounts"
 msgstr "당신의 에이전트, 당신의 계정"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "이 변수는 앱이 읽습니다. 에이전트는 설정 › 에이전트에서 로그인하며 여기서 설정한 변수는 사용하지 않습니다."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "브라우저가 사용 중인 칩 정보를 제공하지 않아 Apple Silicon 빌드로 표시됩니다. Intel Mac이라면 대신 <0>Intel 빌드를 받으세요</0>."
 

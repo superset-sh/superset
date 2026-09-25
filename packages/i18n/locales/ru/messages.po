@@ -17196,6 +17196,9 @@ msgstr "Вашим аккаунтом управляет ваша организ
 msgid "Your Agents, Your Accounts"
 msgstr "Ваши агенты, ваши аккаунты"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "Эту переменную читает ваше приложение. Агенты входят в систему в разделе «Настройки › Агенты» и никогда не используют переменную, заданную здесь."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Ваш браузер не сообщает, какой у вас чип, поэтому это сборка для Apple Silicon. Если у вас Mac на Intel, лучше <0>скачайте сборку для Intel</0>."
 
