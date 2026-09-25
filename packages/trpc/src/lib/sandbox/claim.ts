@@ -135,6 +135,7 @@ export async function buildSandboxClaim(args: {
 		environment: {
 			sourceKind: environment.sourceKind,
 			sourceRef: environment.sourceRef,
+			region: environment.region,
 		},
 		repositories,
 	};

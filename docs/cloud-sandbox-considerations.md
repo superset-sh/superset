@@ -239,6 +239,18 @@ the image repository live in the team's `sandboxes` project, reached with a
 token that is not the deploy token. A second region is a per-sandbox
 `region` choice, not a second project.
 
+**An environment has a region, and every box of it runs there. Partly done
+(2026-09-25).** Snapshots are region-bound and cannot move, so a golden built
+in sfo1 only forks in sfo1, and a promoted environment cannot be reproduced
+elsewhere at all (its golden is a snapshot of a hand-shaped box, not a recipe).
+`environments.region` now records it: set from `VERCEL_SANDBOX_REGION` on
+create and on the internal release, and from the source box on promote; image
+creates use it, forks inherit the golden's. **Open:** choosing it from the
+person's location at create, showing and overriding it in Settings, and
+building the internal golden in more than one region so a first box anywhere
+starts fast. Latency lives mostly in the desktop stream; terminals through the
+edge gate are fine from a far region.
+
 **Region is one setting for everyone.** `VERCEL_SANDBOX_REGION` (sfo1) is
 where image-created sandboxes and released goldens live, and forks inherit the
 golden's region. Snapshots are region-bound — a golden in iad1 cannot be

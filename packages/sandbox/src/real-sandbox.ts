@@ -89,7 +89,11 @@ for (;;) {
 	try {
 		await provisionSandbox({
 			name,
-			environment: { sourceKind: "image", sourceRef: SANDBOX_IMAGE_NAME },
+			environment: {
+				sourceKind: "image",
+				sourceRef: SANDBOX_IMAGE_NAME,
+				region: process.env.VERCEL_SANDBOX_REGION ?? "sfo1",
+			},
 			claim,
 		});
 		break;

@@ -13,6 +13,7 @@ import {
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
 	buildSandboxClaim,
@@ -233,6 +234,7 @@ export const environmentRouter = {
 					provider: "vercel",
 					sourceKind: "image",
 					sourceRef: SANDBOX_IMAGE_NAME,
+					region: env.VERCEL_SANDBOX_REGION,
 					scope: input.scope,
 					createdByUserId: ctx.userId,
 				})
@@ -293,7 +295,7 @@ export const environmentRouter = {
 			const environmentId = crypto.randomUUID();
 			const goldenName = `env-${environmentId.replaceAll("-", "").slice(0, 24)}`;
 			const { claim } = await buildSandboxClaim({ row: workspace });
-			await promoteSandboxToEnvironment({
+			const golden = await promoteSandboxToEnvironment({
 				sourceSandbox: workspace.providerSandboxId,
 				goldenName,
 				claim,
@@ -308,6 +310,7 @@ export const environmentRouter = {
 					provider: workspace.provider,
 					sourceKind: "fork",
 					sourceRef: goldenName,
+					region: golden.region,
 					bundleSha: source?.bundleSha ?? null,
 					scope: source?.scope ?? "organization",
 					createdByUserId: ctx.userId,
