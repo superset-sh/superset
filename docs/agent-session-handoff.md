@@ -74,11 +74,16 @@ has changed its store.
   `isTrustedTranscriptPath` accepts it: absolute, `.jsonl`, and under the user's home. A
   `CLAUDE_CONFIG_DIR` outside home is never stored, and falls through to steps 2 and 3.
 - It is stored only while the binding still names the reporting session, and cleared when the
-  binding moves to another session, so a later session never reads an earlier one's file. It is
-  checked again with `isTrustedTranscriptPath` when read.
+  binding moves to another session, so a later session never reads an earlier one's file.
+- When read, it is checked again with `isTrustedTranscriptPath`, and its first megabyte must
+  contain the session id (every Claude line and Codex's opening `session_meta` carry it). A caller
+  of the unauthenticated hook therefore cannot point a handoff at some other transcript.
+- A lookup that throws (an unreadable store) is logged and answers nothing, so the handoff falls
+  back to the terminal stream instead of failing.
 - Reading widens from the last 4 MB until the conversation fills the budget or the file ends,
-  stopping at 128 MB. Most of a session file is tool output and screenshots, so a fixed tail
-  dropped early turns that would have fit.
+  stopping at 128 MB, and reads each byte once. Most of a session file is tool output and
+  screenshots, so a fixed tail dropped early turns that would have fit. All reads use one file
+  descriptor, and a short read stops widening, so a file rewritten mid-read cannot splice lines.
 
 ## Compatibility
 
@@ -108,6 +113,9 @@ If the harness's hook payload carries `transcript_path`, the notify hook already
 Codex's hooks send `session_id` (the rollout id) and `transcript_path` like Claude's. Without a
 reported path, `files.locate` walks `<CODEX_HOME or ~/.codex>/sessions/YYYY/MM/DD/` newest first
 for `rollout-<timestamp>-<id>.jsonl`, then the default `~/.codex`, stopping at 2,000 directories.
+Reverting a thread writes another rollout for the same id as `…-<id>_<rollout id>.jsonl`; the
+newest file wins. Codex 0.156 also carries a rollout-format migration, so the reported path is the
+dependable route if the layout changes again.
 `parseTurns` reads `message` items, wrapped in `response_item` or bare as in 2025 rollouts, and
 skips the setup Codex sends as user messages: the rendered AGENTS.md, `<environment_context>`,
 `<recommended_plugins>`, `<skill>` and `<user_instructions>`.

@@ -33,7 +33,9 @@ function codexHome(env: HarnessEnv): string {
 
 /**
  * Codex names rollouts `rollout-<timestamp>-<session id>.jsonl` in
- * `sessions/YYYY/MM/DD/`, newest dates walked first. `complete` is false when
+ * `sessions/YYYY/MM/DD/`. Reverting a thread writes a new rollout for the same
+ * id with `_<rollout id>` appended, so a thread can own several files; the
+ * newest wins, and newest dates are walked first. `complete` is false when
  * the walk hit its cap or the store is missing, and a miss then proves
  * nothing. Compressed rollouts count as the session but cannot be read.
  */
@@ -44,24 +46,24 @@ function findRollout(
 ): { path: string | null; complete: boolean } {
 	const root = join(home, "sessions");
 	if (!existsSync(root)) return { path: null, complete: false };
-	const suffix = `-${sessionId}.jsonl`;
+	const names = new RegExp(
+		`-${sessionId}(?:_[\\w-]+)?\\.jsonl${compressed ? "(?:\\.zst)?" : ""}$`,
+	);
 	const stack = [root];
 	let visited = 0;
 	while (stack.length > 0) {
 		if (visited++ >= MAX_DIRS_VISITED) return { path: null, complete: false };
 		const dir = stack.pop() as string;
 		const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
-			a.name.localeCompare(b.name),
+			b.name.localeCompare(a.name),
 		);
-		for (const entry of entries) {
-			if (entry.isDirectory()) {
-				stack.push(join(dir, entry.name));
-			} else if (
-				entry.name.endsWith(suffix) ||
-				(compressed && entry.name.endsWith(`${suffix}.zst`))
-			) {
-				return { path: join(dir, entry.name), complete: true };
-			}
+		const newest = entries.find(
+			(entry) => !entry.isDirectory() && names.test(entry.name),
+		);
+		if (newest) return { path: join(dir, newest.name), complete: true };
+		for (let i = entries.length - 1; i >= 0; i--) {
+			const entry = entries[i];
+			if (entry?.isDirectory()) stack.push(join(dir, entry.name));
 		}
 	}
 	return { path: null, complete: true };

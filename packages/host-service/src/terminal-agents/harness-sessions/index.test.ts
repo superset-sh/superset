@@ -340,18 +340,18 @@ describe("readHarnessTranscript", () => {
 		const { read } = seedPinnedSession(
 			`${[userLine("early"), toolResultLine(5 * 1024 * 1024), userLine("late")].join("\n")}\n`,
 		);
-		const realOpen = fs.openSync;
-		let opens = 0;
-		const open = spyOn(fs, "openSync").mockImplementation(((
-			...args: Parameters<typeof fs.openSync>
+		const realRead = fs.readSync;
+		let reads = 0;
+		const readSpy = spyOn(fs, "readSync").mockImplementation(((
+			...args: Parameters<typeof fs.readSync>
 		) => {
-			if (++opens > 1) throw new Error("ERR_STRING_TOO_LONG");
-			return realOpen(...args);
-		}) as typeof fs.openSync);
+			if (++reads > 1) throw new Error("ERR_STRING_TOO_LONG");
+			return realRead(...args);
+		}) as typeof fs.readSync);
 		try {
 			expect(read()).toBe("User: late");
 		} finally {
-			open.mockRestore();
+			readSpy.mockRestore();
 		}
 	});
 
@@ -490,7 +490,7 @@ describe("Claude transcript lookup order", () => {
 		// than the hook's session_id. The reported path is exact either way.
 		seed({
 			[`.claude-work/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("from the encoded dir")}\n`,
-			".claude-work/projects/moved/another-uuid.jsonl": `${userLine("from the reported path")}\n`,
+			".claude-work/projects/moved/another-uuid.jsonl": `${JSON.stringify({ type: "user", sessionId, message: { role: "user", content: "from the reported path" } })}\n`,
 		});
 
 		expect(
@@ -501,6 +501,20 @@ describe("Claude transcript lookup order", () => {
 				),
 			}),
 		).toBe("User: from the reported path");
+	});
+
+	test("ignores a reported file that does not name the session", () => {
+		// The hook endpoint is unauthenticated: a caller that knows a binding
+		// must not be able to point a handoff at another transcript.
+		seed({
+			[`.claude-work/projects/${encodedDir}/${sessionId}.jsonl`]: `${userLine("the bound session")}\n`,
+			".claude-work/projects/other/other.jsonl": `${JSON.stringify({ type: "user", sessionId: "other", message: { role: "user", content: "someone else's" } })}\n`,
+		});
+		expect(
+			read({
+				reportedPath: join(home, ".claude-work/projects/other/other.jsonl"),
+			}),
+		).toBe("User: the bound session");
 	});
 
 	test("falls back when the reported path is missing, relative, or outside home", () => {

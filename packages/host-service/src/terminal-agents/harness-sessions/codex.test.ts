@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import {
 	mkdirSync,
 	mkdtempSync,
@@ -104,6 +105,27 @@ describe("codex session files", () => {
 		expect(read()).toBe("User: found");
 	});
 
+	test("reads the newest rollout when a revert gave the thread another file", () => {
+		seedRollout(".codex-work", [
+			responseItem(message("user", "before the revert")),
+		]);
+		seedRollout(
+			".codex-work",
+			[responseItem(message("user", "after the revert"))],
+			{
+				name: `rollout-2026-09-21T10-00-00-${sessionId}_019f5cad-0000-7000-8000-000000000000.jsonl`,
+			},
+		);
+		seedRollout(
+			".codex-work",
+			[responseItem(message("user", "another thread"))],
+			{
+				name: `rollout-2026-09-21T11-00-00-${sessionId.slice(0, -1)}0.jsonl`,
+			},
+		);
+		expect(read()).toBe("User: after the revert");
+	});
+
 	test("reads a session left in the default home after the account switched", () => {
 		seedRollout(".codex", [responseItem(message("user", "before the switch"))]);
 		mkdirSync(join(home, ".codex-work", "sessions"), { recursive: true });
@@ -144,8 +166,21 @@ describe("codex session files", () => {
 		).toBeNull();
 	});
 
+	test("falls back to the stream instead of failing when the store cannot be read", () => {
+		seedRollout(".codex-work", [responseItem(message("user", "unreachable"))]);
+		const readdir = spyOn(fs, "readdirSync").mockImplementation(() => {
+			throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+		});
+		try {
+			expect(read()).toBeUndefined();
+		} finally {
+			readdir.mockRestore();
+		}
+	});
+
 	test("reads the path Codex's hook reported", () => {
 		const reportedPath = seedRollout(".elsewhere", [
+			JSON.stringify({ type: "session_meta", payload: { id: sessionId } }),
 			responseItem(message("user", "from the hook's path")),
 		]);
 		expect(

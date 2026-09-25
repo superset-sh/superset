@@ -2,6 +2,7 @@ import type { AgentIdentityId } from "@superset/shared/agent-catalog";
 import { isTrustedTranscriptPath } from "../transcript-path";
 import { claudeSessionStore } from "./claude";
 import { codexSessionStore } from "./codex";
+import { fileHeadIncludes } from "./file-head";
 import { isFile } from "./is-file";
 import { opencodeSessionStore } from "./opencode";
 import { piSessionStore } from "./pi";
@@ -57,16 +58,27 @@ function storeFor(
 }
 
 /**
+ * How far into a reported file its session id must appear. Every Claude line
+ * and Codex's opening session_meta carry it; this is generous for a first
+ * line swollen by pasted content.
+ */
+const REPORTED_FILE_ID_WINDOW_BYTES = 1024 * 1024;
+
+/**
  * The path the harness's own hook reported, when it is still a transcript
- * file. It is exact however the harness lays out its store; a binding clears
- * it when it moves to another session.
+ * file of this session. It is exact however the harness lays out its store,
+ * even under a name that is not the id. The hook endpoint is
+ * unauthenticated, so the file must name the session itself before it is
+ * read into another agent's prompt.
  */
 function reportedSessionFile(
 	reportedPath: string | null | undefined,
+	sessionId: string,
 ): string | null {
 	return reportedPath &&
 		isTrustedTranscriptPath(reportedPath) &&
-		isFile(reportedPath)
+		isFile(reportedPath) &&
+		fileHeadIncludes(reportedPath, sessionId, REPORTED_FILE_ID_WINDOW_BYTES)
 		? reportedPath
 		: null;
 }
@@ -92,8 +104,19 @@ export function readHarnessTranscript(
 	if (!resolved || !files || !parseTurns) return null;
 	const { query } = resolved;
 
-	const reported = reportedSessionFile(ref.reportedPath);
-	const path = reported ?? files.locate(query);
+	let reported: string | null;
+	let path: string | null;
+	try {
+		reported = reportedSessionFile(ref.reportedPath, query.sessionId);
+		path = reported ?? files.locate(query);
+	} catch (error) {
+		// An unreadable store must not fail the handoff; the stream answers.
+		console.warn(
+			`[harness-sessions] could not look up ${ref.agentId} session ${query.sessionId}:`,
+			error,
+		);
+		return null;
+	}
 	if (!path) {
 		// A bound session with no file anywhere means the harness moved its
 		// store: the handoff silently degrades to the terminal's last moments.

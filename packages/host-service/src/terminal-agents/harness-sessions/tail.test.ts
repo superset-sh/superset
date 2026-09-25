@@ -65,6 +65,23 @@ describe("readTurnsFromTail", () => {
 		expect(turns.length).toBeLessThan(2 * MB);
 	});
 
+	test("keeps the earlier reads when a wider read comes back short", () => {
+		const path = seedFile(`older\n${"f".repeat(5 * MB)}\nnewest\n`);
+		const realRead = fs.readSync;
+		let reads = 0;
+		const read = spyOn(fs, "readSync").mockImplementation(((
+			...args: Parameters<typeof fs.readSync>
+		) => {
+			const count = realRead(...args);
+			return ++reads > 1 ? Math.floor(count / 2) : count;
+		}) as typeof fs.readSync);
+		try {
+			expect(readTurnsFromTail(path, 10 * MB, lines)).toBe("newest");
+		} finally {
+			read.mockRestore();
+		}
+	});
+
 	test("reads no stale bytes when the file shrinks between stat and read", () => {
 		const path = seedFile("y".repeat(10_000));
 		const realRead = fs.readSync;
