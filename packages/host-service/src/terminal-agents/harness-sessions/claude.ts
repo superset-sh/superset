@@ -5,6 +5,7 @@ import { isFile } from "./is-file";
 import type {
 	HarnessEnv,
 	HarnessSessionFiles,
+	HarnessSessionQuery,
 	HarnessSessionStore,
 } from "./types";
 
@@ -52,21 +53,37 @@ function sessionFileName(sessionId: string): string {
 /**
  * Session ids are UUIDs, so `<id>.jsonl` in any project directory is the
  * session, wherever the agent started and however a future Claude names the
- * directory.
+ * directory. `complete` is false when the scan hit its cap, and a miss then
+ * proves nothing.
  */
-function searchProjects(env: HarnessEnv, fileName: string): string | null {
+function searchProjects(
+	env: HarnessEnv,
+	fileName: string,
+): { path: string | null; complete: boolean } {
 	const projectsDir = join(configDir(env), "projects");
 	let entries: string[];
 	try {
 		entries = readdirSync(projectsDir);
 	} catch {
-		return null;
+		return { path: null, complete: false };
 	}
 	for (const entry of entries.slice(0, MAX_PROJECT_DIRS_SCANNED)) {
 		const candidate = join(projectsDir, entry, fileName);
-		if (isFile(candidate)) return candidate;
+		if (isFile(candidate)) return { path: candidate, complete: true };
 	}
-	return null;
+	return {
+		path: null,
+		complete: entries.length <= MAX_PROJECT_DIRS_SCANNED,
+	};
+}
+
+function layoutPath(query: HarnessSessionQuery): string | null {
+	if (!query.worktreePath) return null;
+	const path = join(
+		projectDir(query.env, query.worktreePath),
+		sessionFileName(query.sessionId),
+	);
+	return isFile(path) ? path : null;
 }
 
 interface ClaudeEvent {
@@ -129,14 +146,9 @@ const claudeSessionFiles: HarnessSessionFiles = {
 	isSessionFile: (path, sessionId) =>
 		basename(path) === sessionFileName(sessionId),
 
-	locate({ sessionId, worktreePath, env }) {
-		const fileName = sessionFileName(sessionId);
-		if (worktreePath) {
-			const path = join(projectDir(env, worktreePath), fileName);
-			if (isFile(path)) return path;
-		}
-		return searchProjects(env, fileName);
-	},
+	locate: (query) =>
+		layoutPath(query) ??
+		searchProjects(query.env, sessionFileName(query.sessionId)).path,
 
 	parseTurns,
 };
@@ -146,11 +158,12 @@ export const claudeSessionStore: HarnessSessionStore = {
 
 	hasSession(query) {
 		if (!existsSync(configDir(query.env))) return null;
-		if (claudeSessionFiles.locate(query)) return true;
-		// Only a project directory we can see makes an absent session file
-		// evidence; without one, Claude may keep it somewhere we do not know
-		// to look.
-		if (!query.worktreePath) return null;
+		if (layoutPath(query)) return true;
+		const search = searchProjects(query.env, sessionFileName(query.sessionId));
+		if (search.path) return true;
+		// Absence is evidence only when the whole store was searched and the
+		// worktree's own project directory is there to have held the file.
+		if (!search.complete || !query.worktreePath) return null;
 		return existsSync(projectDir(query.env, query.worktreePath)) ? false : null;
 	},
 };

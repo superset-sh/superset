@@ -1,5 +1,16 @@
-import { describe, expect, test } from "bun:test";
-import { claudeProjectDirName } from "./claude";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { claudeProjectDirName, claudeSessionStore } from "./claude";
+
+const created: string[] = [];
+
+afterEach(() => {
+	for (const path of created.splice(0)) {
+		rmSync(path, { recursive: true, force: true });
+	}
+});
 
 describe("claudeProjectDirName", () => {
 	// Expected values come from Claude Code 2.1.282's own encoder.
@@ -31,5 +42,36 @@ describe("claudeProjectDirName", () => {
 		const name = claudeProjectDirName(path);
 		expect(name).toHaveLength(207);
 		expect(name.endsWith("aaaaaaaaaa-2d2ous")).toBe(true);
+	});
+});
+
+describe("claudeSessionStore.hasSession", () => {
+	const sessionId = "44444444-5555-4666-8777-888899990000";
+
+	function configWithProjects(count: number): string {
+		const configDir = mkdtempSync(join(tmpdir(), "claude-scan-"));
+		created.push(configDir);
+		mkdirSync(join(configDir, "projects", claudeProjectDirName("/work/tree")), {
+			recursive: true,
+		});
+		for (let i = 0; i < count; i++) {
+			mkdirSync(join(configDir, "projects", `other-${i}`));
+		}
+		return configDir;
+	}
+
+	const ask = (configDir: string) =>
+		claudeSessionStore.hasSession?.({
+			sessionId,
+			worktreePath: "/work/tree",
+			env: { CLAUDE_CONFIG_DIR: configDir },
+		});
+
+	test("answers false only after searching every project directory", () => {
+		expect(ask(configWithProjects(10))).toBe(false);
+	});
+
+	test("answers unknown when the search stopped at its cap", () => {
+		expect(ask(configWithProjects(5_000))).toBeNull();
 	});
 });

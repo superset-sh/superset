@@ -14,21 +14,13 @@ const INITIAL_TAIL_BYTES = 4 * 1024 * 1024;
  */
 const MAX_TAIL_BYTES = 128 * 1024 * 1024;
 
-/**
- * The last `maxBytes` of a file. A cut lands mid-line, and the parsers skip
- * lines they cannot parse, so the only casualty is the oldest turn.
- */
-export function readFileTail(path: string, maxBytes: number): string | null {
+function readRange(path: string, start: number, end: number): Buffer | null {
 	let fd: number | undefined;
 	try {
-		const { size } = statSync(path);
-		const length = Math.min(size, maxBytes);
-		const buffer = Buffer.allocUnsafe(length);
+		const buffer = Buffer.allocUnsafe(end - start);
 		fd = openSync(path, "r");
-		// A short read would otherwise leave uninitialised heap in the tail,
-		// which then gets decoded and shipped into another agent's prompt.
-		const read = readSync(fd, buffer, 0, length, Math.max(0, size - length));
-		return buffer.subarray(0, Math.max(0, read)).toString("utf8");
+		const read = readSync(fd, buffer, 0, buffer.length, start);
+		return buffer.subarray(0, Math.max(0, read));
 	} catch {
 		return null;
 	} finally {
@@ -44,7 +36,10 @@ export function readFileTail(path: string, maxBytes: number): string | null {
 
 /**
  * The newest turns of a session file, joined, reading only as far back as it
- * takes to fill `maxChars`. A wider read that fails keeps the last good one.
+ * takes to fill `maxChars`. Each widening reads just the bytes before the
+ * last one, and a line the boundary cut waits for the next read to complete
+ * it. Lines are split as bytes, so a boundary inside a multi-byte character
+ * never decodes. A read that fails keeps what the earlier ones found.
  */
 export function readTurnsFromTail(
 	path: string,
@@ -58,20 +53,31 @@ export function readTurnsFromTail(
 		return null;
 	}
 
+	const batches: string[] = [];
+	let chars = 0;
+	let end = size;
 	let window = INITIAL_TAIL_BYTES;
-	let joined = "";
-	while (true) {
-		const raw = readFileTail(path, window);
-		if (raw === null) break;
-		joined = parseTurns(raw).join("\n\n");
-		if (
-			joined.length >= maxChars ||
-			window >= size ||
-			window >= MAX_TAIL_BYTES
-		) {
-			break;
+	let partialLine = Buffer.alloc(0);
+	while (end > 0) {
+		const start = Math.max(0, size - window);
+		const chunk = readRange(path, start, end);
+		if (chunk === null) break;
+		const bytes = Buffer.concat([chunk, partialLine]);
+		let complete = bytes;
+		if (start > 0) {
+			const firstBreak = bytes.indexOf(0x0a);
+			partialLine = firstBreak < 0 ? bytes : bytes.subarray(0, firstBreak);
+			complete =
+				firstBreak < 0 ? Buffer.alloc(0) : bytes.subarray(firstBreak + 1);
 		}
+		const older = parseTurns(complete.toString("utf8")).join("\n\n");
+		if (older) {
+			batches.unshift(older);
+			chars += older.length;
+		}
+		end = start;
+		if (chars >= maxChars || window >= MAX_TAIL_BYTES) break;
 		window = Math.min(window * 4, MAX_TAIL_BYTES);
 	}
-	return joined || null;
+	return batches.join("\n\n") || null;
 }

@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { mkdtempSync, rmSync, truncateSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readFileTail } from "./tail";
+import { readTurnsFromTail } from "./tail";
 
 const created: string[] = [];
 
@@ -13,34 +13,71 @@ afterEach(() => {
 	}
 });
 
-describe("readFileTail", () => {
-	test("reads only the tail of a file past the byte bound", () => {
-		const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
-		created.push(dir);
-		const path = join(dir, "big.jsonl");
-		writeFileSync(path, `${"x".repeat(5000)}TAIL-MARKER`);
+const MB = 1024 * 1024;
+const lines = (raw: string) => raw.split("\n").filter(Boolean);
 
-		const tail = readFileTail(path, 100);
-		expect(tail).toBe(`${"x".repeat(89)}TAIL-MARKER`);
-		expect(tail?.length).toBe(100);
+function seedFile(body: string): string {
+	const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
+	created.push(dir);
+	const path = join(dir, "session.jsonl");
+	writeFileSync(path, body);
+	return path;
+}
+
+describe("readTurnsFromTail", () => {
+	test("rejoins a line the first read cut in half", () => {
+		const straddling = `straddle-${"s".repeat(2_000)}`;
+		const path = seedFile(
+			`oldest\n${straddling}\n${"f".repeat(4 * MB - 1_000)}\nnewest\n`,
+		);
+
+		expect(readTurnsFromTail(path, 10 * MB, lines)?.split("\n\n")).toEqual([
+			"oldest",
+			straddling,
+			"f".repeat(4 * MB - 1_000),
+			"newest",
+		]);
+	});
+
+	test("reads each byte of the file once however far it widens", () => {
+		const path = seedFile(`${"x\n".repeat(10 * MB)}`);
+		const realRead = fs.readSync;
+		let bytesRead = 0;
+		const read = spyOn(fs, "readSync").mockImplementation(((
+			...args: Parameters<typeof fs.readSync>
+		) => {
+			const count = realRead(...args);
+			bytesRead += count;
+			return count;
+		}) as typeof fs.readSync);
+		try {
+			readTurnsFromTail(path, Number.POSITIVE_INFINITY, lines);
+		} finally {
+			read.mockRestore();
+		}
+		expect(bytesRead).toBe(20 * MB);
+	});
+
+	test("stops once the budget is filled", () => {
+		const path = seedFile(`${"old\n".repeat(2 * MB)}${"new\n".repeat(1_000)}`);
+		const turns = readTurnsFromTail(path, 100, lines)?.split("\n\n") ?? [];
+		expect(turns.at(-1)).toBe("new");
+		expect(turns.length).toBeLessThan(2 * MB);
 	});
 
 	test("reads no stale bytes when the file shrinks between stat and read", () => {
-		const dir = mkdtempSync(join(tmpdir(), "tail-fixture-"));
-		created.push(dir);
-		const path = join(dir, "live.jsonl");
-		writeFileSync(path, "y".repeat(10_000));
+		const path = seedFile("y".repeat(10_000));
 		const realRead = fs.readSync;
-		const readSpy = spyOn(fs, "readSync").mockImplementation(((
+		const read = spyOn(fs, "readSync").mockImplementation(((
 			...args: Parameters<typeof fs.readSync>
 		) => {
 			truncateSync(path, 0);
 			return realRead(...args);
 		}) as typeof fs.readSync);
 		try {
-			expect(readFileTail(path, 4_096)).toBe("");
+			expect(readTurnsFromTail(path, 100, lines)).toBeNull();
 		} finally {
-			readSpy.mockRestore();
+			read.mockRestore();
 		}
 	});
 });
