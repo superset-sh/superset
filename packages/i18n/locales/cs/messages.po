@@ -2942,6 +2942,9 @@ msgstr "Řetězec úvah"
 msgid "Change avatar"
 msgstr "Změnit avatar"
 
+msgid "Change key"
+msgstr "Změnit klíč"
+
 msgid "Change location"
 msgstr "Změnit umístění"
 
@@ -5774,6 +5777,9 @@ msgstr "Líbí se vám Superset?"
 msgid "Ensure no regression"
 msgstr "Zajisti žádnou regresi"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Zadejte nový klíč API Ollama Cloud, který nahradí uložený klíč."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "Nepodařilo se odebrat"
 msgid "Failed to remove member"
 msgstr "Nepodařilo se odebrat člena"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Nepodařilo se odebrat klíč API Ollama"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Nepodařilo se odebrat propojení s PR: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Nepodařilo se uložit"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Nepodařilo se uložit instalaci. Zkuste to prosím znovu."
+
+msgid "Failed to save Ollama API key"
+msgstr "Nepodařilo se uložit klíč API Ollama"
 
 msgid "Failed to save prompt"
 msgstr "Nepodařilo se uložit prompt"
@@ -10113,6 +10125,15 @@ msgstr "Offline / local-first režim"
 msgid "Older"
 msgstr "Starší"
 
+msgid "Ollama Cloud API key"
+msgstr "Klíč API Ollama Cloud"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Klíč API Ollama Cloud byl odmítnut — zadejte níže nový klíč."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Klíč API Ollama Cloud je uložen na tomto hostiteli."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "na {offScopeHostName} — tady nepoběží"
 
@@ -10978,6 +10999,9 @@ msgstr "Poslední týden"
 
 msgid "Paste"
 msgstr "Vložit"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Vložte klíč API Ollama Cloud pro zobrazení využití. Klíč je uložen na tomto hostiteli a odesílán do Ollama Cloud za účelem načtení využití."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Vložte to do Superset CLI:"

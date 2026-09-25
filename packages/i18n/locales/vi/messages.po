@@ -2942,6 +2942,9 @@ msgstr "Chuỗi suy luận"
 msgid "Change avatar"
 msgstr "Đổi ảnh đại diện"
 
+msgid "Change key"
+msgstr "Đổi khóa"
+
 msgid "Change location"
 msgstr "Đổi vị trí"
 
@@ -5774,6 +5777,9 @@ msgstr "Thích Superset chứ?"
 msgid "Ensure no regression"
 msgstr "Đảm bảo không có hồi quy"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Nhập khóa API Ollama Cloud mới để thay thế khóa đã lưu."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Hãy nhập một thư mục cha trên {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "Không thể gỡ"
 msgid "Failed to remove member"
 msgstr "Không thể gỡ thành viên"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Không thể xóa khóa API Ollama"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Không thể gỡ liên kết PR: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Không thể lưu"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Không thể lưu bản cài đặt. Vui lòng thử lại."
+
+msgid "Failed to save Ollama API key"
+msgstr "Không thể lưu khóa API Ollama"
 
 msgid "Failed to save prompt"
 msgstr "Không thể lưu prompt"
@@ -10113,6 +10125,15 @@ msgstr "Chế độ ngoại tuyến / ưu tiên cục bộ"
 msgid "Older"
 msgstr "Cũ hơn"
 
+msgid "Ollama Cloud API key"
+msgstr "Khóa API Ollama Cloud"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Khóa API Ollama Cloud bị từ chối — nhập khóa mới bên dưới."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Khóa API Ollama Cloud đã được lưu trên máy chủ này."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "trên {offScopeHostName} — sẽ không chạy ở đây"
 
@@ -10978,6 +10999,9 @@ msgstr "Tuần qua"
 
 msgid "Paste"
 msgstr "Dán"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Dán khóa API Ollama Cloud để hiển thị mức sử dụng tại đây. Khóa được lưu trên máy này và gửi tới Ollama Cloud để lấy dữ liệu sử dụng."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Dán mã này vào Superset CLI:"

@@ -2942,6 +2942,9 @@ msgstr "Chaîne de raisonnement"
 msgid "Change avatar"
 msgstr "Changer d'avatar"
 
+msgid "Change key"
+msgstr "Changer la clé"
+
 msgid "Change location"
 msgstr "Changer l'emplacement"
 
@@ -5774,6 +5777,9 @@ msgstr "Superset vous plaît ?"
 msgid "Ensure no regression"
 msgstr "Vérifier l'absence de régression"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Saisissez une nouvelle clé API Ollama Cloud pour remplacer celle enregistrée."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Saisissez un répertoire parent sur {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "Échec de la suppression"
 msgid "Failed to remove member"
 msgstr "Échec du retrait du membre"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Échec de la suppression de la clé API Ollama"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Échec de la suppression du lien de la pull request : {0}"
@@ -6397,6 +6406,9 @@ msgstr "Échec de l'enregistrement"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Échec de l'enregistrement de l'installation. Veuillez réessayer."
+
+msgid "Failed to save Ollama API key"
+msgstr "Échec de l'enregistrement de la clé API Ollama"
 
 msgid "Failed to save prompt"
 msgstr "Échec de l'enregistrement du prompt"
@@ -10113,6 +10125,15 @@ msgstr "Mode hors ligne / local d'abord"
 msgid "Older"
 msgstr "Plus ancien"
 
+msgid "Ollama Cloud API key"
+msgstr "Clé API Ollama Cloud"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Clé API Ollama Cloud rejetée — saisissez une nouvelle clé ci-dessous."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Clé API Ollama Cloud enregistrée sur cet hôte."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "sur {offScopeHostName} — ne s'exécutera pas ici"
 
@@ -10978,6 +10999,9 @@ msgstr "Semaine dernière"
 
 msgid "Paste"
 msgstr "Coller"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Collez une clé API Ollama Cloud pour afficher l'utilisation ici. La clé est stockée sur cet hôte et envoyée à Ollama Cloud pour récupérer l'utilisation."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Collez ceci dans la CLI Superset :"

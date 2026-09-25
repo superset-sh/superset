@@ -2942,6 +2942,9 @@ msgstr "Tok rozumowania"
 msgid "Change avatar"
 msgstr "Zmień awatar"
 
+msgid "Change key"
+msgstr "Zmień klucz"
+
 msgid "Change location"
 msgstr "Zmień lokalizację"
 
@@ -5774,6 +5777,9 @@ msgstr "Podoba Ci się Superset?"
 msgid "Ensure no regression"
 msgstr "Upewnij się, że nie ma regresji"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Wprowadź nowy klucz API Ollama Cloud, aby zastąpić zapisany."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Podaj katalog nadrzędny na {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "Nie udało się usunąć"
 msgid "Failed to remove member"
 msgstr "Nie udało się usunąć członka"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Nie można usunąć klucza API Ollama"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Nie udało się usunąć powiązania z PR: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Nie udało się zapisać"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Nie udało się zapisać instalacji. Spróbuj ponownie."
+
+msgid "Failed to save Ollama API key"
+msgstr "Nie można zapisać klucza API Ollama"
 
 msgid "Failed to save prompt"
 msgstr "Nie udało się zapisać promptu"
@@ -10113,6 +10125,15 @@ msgstr "Tryb offline / local-first"
 msgid "Older"
 msgstr "Starsze"
 
+msgid "Ollama Cloud API key"
+msgstr "Klucz API Ollama Cloud"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Klucz API Ollama Cloud odrzucony — wprowadź nowy klucz poniżej."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Klucz API Ollama Cloud zapisany na tym hoście."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "na {offScopeHostName} — nie uruchomi się tutaj"
 
@@ -10978,6 +10999,9 @@ msgstr "Ostatni tydzień"
 
 msgid "Paste"
 msgstr "Wklej"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Wklej klucz API Ollama Cloud, aby pokazać tu użycie. Klucz jest przechowywany na tym hoście i wysyłany do Ollama Cloud w celu pobrania użycia."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Wklej to w CLI Superset:"

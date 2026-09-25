@@ -2942,6 +2942,9 @@ msgstr "Gedachtegang"
 msgid "Change avatar"
 msgstr "Avatar wijzigen"
 
+msgid "Change key"
+msgstr "Sleutel wijzigen"
+
 msgid "Change location"
 msgstr "Locatie wijzigen"
 
@@ -5774,6 +5777,9 @@ msgstr "Bevalt Superset?"
 msgid "Ensure no regression"
 msgstr "Zorg dat er geen regressie is"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Voer een nieuwe Ollama Cloud API-sleutel in om de opgeslagen sleutel te vervangen."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Voer een bovenliggende map op {hostName} in"
 
@@ -6314,6 +6320,9 @@ msgstr "Verwijderen mislukt"
 msgid "Failed to remove member"
 msgstr "Verwijderen van lid mislukt"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Kon de Ollama API-sleutel niet verwijderen"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Verwijderen van PR-koppeling mislukt: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Opslaan mislukt"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Opslaan van de installatie mislukt. Probeer het opnieuw."
+
+msgid "Failed to save Ollama API key"
+msgstr "Kon de Ollama API-sleutel niet opslaan"
 
 msgid "Failed to save prompt"
 msgstr "Opslaan van prompt mislukt"
@@ -10113,6 +10125,15 @@ msgstr "Offline / local-first modus"
 msgid "Older"
 msgstr "Ouder"
 
+msgid "Ollama Cloud API key"
+msgstr "Ollama Cloud API-sleutel"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Ollama Cloud API-sleutel geweigerd — voer hieronder een nieuwe sleutel in."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Ollama Cloud API-sleutel opgeslagen op deze host."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "op {offScopeHostName} — draait hier niet"
 
@@ -10978,6 +10999,9 @@ msgstr "Afgelopen week"
 
 msgid "Paste"
 msgstr "Plakken"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Plak een Ollama Cloud API-sleutel om het gebruik hier te tonen. De sleutel wordt op deze host opgeslagen en naar Ollama Cloud verzonden om het gebruik op te halen."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Plak dit in de Superset-CLI:"

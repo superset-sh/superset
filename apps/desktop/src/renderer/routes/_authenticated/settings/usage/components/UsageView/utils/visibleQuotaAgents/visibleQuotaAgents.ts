@@ -11,6 +11,7 @@ const AGENT_ORDER: QuotaAgent[] = [
 	"grok",
 	"agy",
 	"opencode",
+	"ollama",
 ];
 
 export function isManagedAgent(agent: QuotaAgent): agent is ManagedAgent {
@@ -20,9 +21,10 @@ export function isManagedAgent(agent: QuotaAgent): agent is ManagedAgent {
 /**
  * The quota panel's agent sections, in display order. Managed agents keep
  * their section with no login on the host — that is where Add account
- * lives, so hiding it would leave no way to sign in. Grok, Antigravity, and
- * OpenCode have no add flow, so an empty section would be a dead end; they
- * appear once a login exists.
+ * lives, so hiding it would leave no way to sign in. Grok, Antigravity,
+ * OpenCode, and Ollama have no add flow, so an empty section would be a
+ * dead end; they appear once a login exists. (Ollama's key form renders
+ * separately — see UsageView — so it is exempt here.)
  */
 export function visibleQuotaAgents(
 	accounts: ReadonlyArray<Pick<UsageAccount, "agent">>,

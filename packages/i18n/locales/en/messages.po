@@ -2942,6 +2942,9 @@ msgstr "Chain of Thought"
 msgid "Change avatar"
 msgstr "Change avatar"
 
+msgid "Change key"
+msgstr "Change key"
+
 msgid "Change location"
 msgstr "Change location"
 
@@ -5774,6 +5777,9 @@ msgstr "Enjoying Superset?"
 msgid "Ensure no regression"
 msgstr "Ensure no regression"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Enter a new Ollama Cloud API key to replace the saved one."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Enter a parent directory on {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "Failed to remove"
 msgid "Failed to remove member"
 msgstr "Failed to remove member"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Failed to remove Ollama API key"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "Failed to remove PR link: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Failed to save"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Failed to save installation. Please try again."
+
+msgid "Failed to save Ollama API key"
+msgstr "Failed to save Ollama API key"
 
 msgid "Failed to save prompt"
 msgstr "Failed to save prompt"
@@ -10113,6 +10125,15 @@ msgstr "Offline / local-first mode"
 msgid "Older"
 msgstr "Older"
 
+msgid "Ollama Cloud API key"
+msgstr "Ollama Cloud API key"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Ollama Cloud API key rejected — enter a new key below."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Ollama Cloud API key saved on this host."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "on {offScopeHostName} — won't run here"
 
@@ -10978,6 +10999,9 @@ msgstr "Past week"
 
 msgid "Paste"
 msgstr "Paste"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Paste this into Superset CLI:"

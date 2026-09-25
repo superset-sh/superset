@@ -134,6 +134,10 @@ export const hostSettings = sqliteTable("host_settings", {
 	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
 	defaultClaudeConfigDir: text("default_claude_config_dir"),
 	defaultCodexHome: text("default_codex_home"),
+	// Ollama Cloud API key for the Usage page quota meter. Null means no key
+	// stored. Served as configured/not only — the key itself never leaves
+	// the host over tRPC.
+	ollamaApiKey: text("ollama_api_key"),
 });
 
 export const pullRequests = sqliteTable(

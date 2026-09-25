@@ -2942,6 +2942,9 @@ msgstr "思考プロセス"
 msgid "Change avatar"
 msgstr "アバターを変更"
 
+msgid "Change key"
+msgstr "キーを変更"
+
 msgid "Change location"
 msgstr "場所を変更"
 
@@ -5774,6 +5777,9 @@ msgstr "Supersetを気に入っていただけましたか?"
 msgid "Ensure no regression"
 msgstr "デグレがないことを確認して"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "保存済みのキーと置き換える新しいOllama Cloud APIキーを入力してください。"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}の親ディレクトリを入力してください"
 
@@ -6314,6 +6320,9 @@ msgstr "削除に失敗しました"
 msgid "Failed to remove member"
 msgstr "メンバーの削除に失敗しました"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Ollama APIキーの削除に失敗しました"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "PRリンクの削除に失敗しました: {0}"
@@ -6397,6 +6406,9 @@ msgstr "保存に失敗しました"
 
 msgid "Failed to save installation. Please try again."
 msgstr "インストール情報を保存できませんでした。もう一度お試しください。"
+
+msgid "Failed to save Ollama API key"
+msgstr "Ollama APIキーの保存に失敗しました"
 
 msgid "Failed to save prompt"
 msgstr "プロンプトの保存に失敗しました"
@@ -10113,6 +10125,15 @@ msgstr "オフライン/ローカルファーストモード"
 msgid "Older"
 msgstr "それ以前"
 
+msgid "Ollama Cloud API key"
+msgstr "Ollama Cloud APIキー"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Ollama Cloud APIキーが拒否されました — 以下に新しいキーを入力してください。"
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Ollama Cloud APIキーはこのホストに保存されています。"
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName}上 — ここでは実行されません"
 
@@ -10978,6 +10999,9 @@ msgstr "過去1週間"
 
 msgid "Paste"
 msgstr "貼り付け"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "使用状況を表示するには、Ollama Cloud APIキーを貼り付けてください。キーはこのホストに保存され、使用状況の取得のためにOllama Cloudに送信されます。"
 
 msgid "Paste this into Superset CLI:"
 msgstr "これをSuperset CLIに貼り付けてください:"

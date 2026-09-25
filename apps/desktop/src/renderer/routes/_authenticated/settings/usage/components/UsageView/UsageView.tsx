@@ -11,7 +11,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	LuCheck,
 	LuCircle,
@@ -45,6 +45,7 @@ import { LeaderboardCard } from "../LeaderboardCard";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
+import { OllamaApiKeyForm } from "./components/OllamaApiKeyForm";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
 import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
@@ -59,6 +60,7 @@ const AGENT_LABELS: Record<QuotaAgent, string> = {
 	grok: "Grok",
 	agy: "Antigravity",
 	opencode: "OpenCode",
+	ollama: "Ollama Cloud",
 };
 
 /** Re-auth command for agents whose logins Superset only reads. */
@@ -69,6 +71,7 @@ const READ_ONLY_LOGIN_COMMANDS: Record<
 	grok: "grok login",
 	agy: "agy",
 	opencode: "opencode auth login",
+	ollama: "ollama signin",
 };
 
 function meterColor(usedPercent: number): string {
@@ -155,8 +158,10 @@ function AccountCard({
 	const { t } = useLingui();
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
+	// Ollama rotates via the Settings key form below, not a terminal
+	// command — the card shows a translated instruction instead.
 	const expiredCommand =
-		account.status === "token_expired"
+		account.status === "token_expired" && account.agent !== "ollama"
 			? isManagedAgent(account.agent)
 				? switchSignInCommand(account as UsageAccount & { agent: ManagedAgent })
 				: READ_ONLY_LOGIN_COMMANDS[account.agent]
@@ -257,24 +262,22 @@ function AccountCard({
 					</DropdownMenu>
 				)}
 			</div>
-			{account.credentialKind === "api_key" ? (
+			{account.credentialKind === "api_key" && account.windows.length === 0 && isManagedAgent(account.agent) ? (
 				// Pay-per-token billing has no quota windows; point at the
 				// provider's own usage page instead.
 				<div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
 					<span className="truncate">
 						<Trans>Billed per token.</Trans>
 					</span>
-					{isManagedAgent(account.agent) && (
-						<a
-							href={API_BILLING_LINKS[account.agent].usage}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="ml-auto inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap hover:text-foreground hover:underline"
-						>
-							<Trans>View usage</Trans>
-							<LuExternalLink className="size-2.5" />
-						</a>
-					)}
+					<a
+						href={API_BILLING_LINKS[account.agent].usage}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="ml-auto inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap hover:text-foreground hover:underline"
+					>
+						<Trans>View usage</Trans>
+						<LuExternalLink className="size-2.5" />
+					</a>
 				</div>
 			) : account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
@@ -323,7 +326,11 @@ function AccountCard({
 				</div>
 			) : (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					{account.statusDetail ?? <Trans>Usage unavailable.</Trans>}
+					{account.agent === "ollama" && account.status === "token_expired" ? (
+						<Trans>Ollama Cloud API key rejected — enter a new key below.</Trans>
+					) : (
+						account.statusDetail ?? <Trans>Usage unavailable.</Trans>
+					)}
 				</div>
 			)}
 			{/* The radio + accent border already mark the default when the cards
@@ -395,6 +402,14 @@ export function UsageView({
 		useRestartAgentSessions(hostUrl);
 
 	const accounts = quotaQuery.data ?? [];
+	// Ollama always renders: with no stored key there is no account to key
+	// off, so the section hosts the API key form instead.
+	const quotaAgents = useMemo<QuotaAgent[]>(() => {
+		const baseAgents = visibleQuotaAgents(accounts);
+		return baseAgents.includes("ollama")
+			? baseAgents
+			: [...baseAgents, "ollama"];
+	}, [accounts]);
 	useEffect(() => {
 		const key = `${hostUrl}:${focusedAgent}:${focusedAccountKey}`;
 		if (
@@ -559,9 +574,9 @@ export function UsageView({
 				</Button>
 			</div>
 
-			{/* Sections render before the first quota read lands so Add account is
-			    reachable straight away; each shows its own placeholder meanwhile. */}
-			{visibleQuotaAgents(accounts).map((agent) => {
+		{/* Sections render before the first quota read lands so Add account is
+		    reachable straight away; each shows its own placeholder meanwhile. */}
+		{quotaAgents.map((agent) => {
 				const agentAccounts = accounts.filter(
 					(account) => account.agent === agent,
 				);
@@ -589,14 +604,21 @@ export function UsageView({
 								<LuRefreshCw className="size-3 animate-spin" />
 								<Trans>Reading usage…</Trans>
 							</div>
-						) : agentAccounts.length === 0 ? (
+					) : agentAccounts.length === 0 ? (
+						agent === "ollama" ? (
+							<OllamaApiKeyForm
+								hostUrl={hostUrl}
+								onKeyChanged={() => quotaQuery.refetch()}
+							/>
+						) : (
 							<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 								<Trans>
 									No {AGENT_LABELS[agent]} logins on this host — sign in and
 									usage appears here.
 								</Trans>
 							</div>
-						) : (
+						)
+					) : (
 							<div className="grid gap-2 md:grid-cols-2">
 								{agentAccounts.map((account) => (
 									<div
@@ -642,6 +664,12 @@ export function UsageView({
 									</div>
 								))}
 							</div>
+						)}
+						{agent === "ollama" && agentAccounts.length > 0 && (
+							<OllamaApiKeyForm
+								hostUrl={hostUrl}
+								onKeyChanged={() => quotaQuery.refetch()}
+							/>
 						)}
 					</section>
 				);

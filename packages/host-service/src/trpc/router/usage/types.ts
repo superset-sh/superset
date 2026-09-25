@@ -26,7 +26,8 @@ export type QuotaCapableAgent =
 	| "codex"
 	| "grok"
 	| "agy"
-	| "opencode";
+	| "opencode"
+	| "ollama";
 
 /** How the provider bills work launched from this login: a subscription
  * plan with quota windows, or pay-per-token API billing (Anthropic Console,

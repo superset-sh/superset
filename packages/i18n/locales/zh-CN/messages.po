@@ -2942,6 +2942,9 @@ msgstr "思维链"
 msgid "Change avatar"
 msgstr "更换头像"
 
+msgid "Change key"
+msgstr "更换密钥"
+
 msgid "Change location"
 msgstr "更改位置"
 
@@ -5774,6 +5777,9 @@ msgstr "用得还顺手吗？"
 msgid "Ensure no regression"
 msgstr "确保没有回归"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "输入新的 Ollama Cloud API 密钥以替换已保存的密钥。"
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "请输入{hostName}上的父目录"
 
@@ -6314,6 +6320,9 @@ msgstr "移除失败"
 msgid "Failed to remove member"
 msgstr "移除成员失败"
 
+msgid "Failed to remove Ollama API key"
+msgstr "删除 Ollama API 密钥失败"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "移除PR链接失败：{0}"
@@ -6397,6 +6406,9 @@ msgstr "保存失败"
 
 msgid "Failed to save installation. Please try again."
 msgstr "保存安装信息失败。请重试。"
+
+msgid "Failed to save Ollama API key"
+msgstr "保存 Ollama API 密钥失败"
 
 msgid "Failed to save prompt"
 msgstr "保存提示词失败"
@@ -10113,6 +10125,15 @@ msgstr "离线/本地优先模式"
 msgid "Older"
 msgstr "更早"
 
+msgid "Ollama Cloud API key"
+msgstr "Ollama Cloud API 密钥"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Ollama Cloud API 密钥被拒绝 — 请在下方输入新密钥。"
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Ollama Cloud API 密钥已保存在此主机上。"
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "在{offScopeHostName}上，不会在这里运行"
 
@@ -10978,6 +10999,9 @@ msgstr "过去一周"
 
 msgid "Paste"
 msgstr "粘贴"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "粘贴 Ollama Cloud API 密钥以在此处显示用量。该密钥存储在此主机上，并会发送到 Ollama Cloud 以获取用量。"
 
 msgid "Paste this into Superset CLI:"
 msgstr "把它粘贴到Superset CLI："

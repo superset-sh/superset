@@ -2942,6 +2942,9 @@ msgstr "Düşünce zinciri"
 msgid "Change avatar"
 msgstr "Avatarı değiştir"
 
+msgid "Change key"
+msgstr "Anahtarı değiştir"
+
 msgid "Change location"
 msgstr "Konumu değiştir"
 
@@ -5774,6 +5777,9 @@ msgstr "Superset'ten memnun musunuz?"
 msgid "Ensure no regression"
 msgstr "Regresyon olmadığından emin ol"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Kaydedilenin yerine yeni bir Ollama Cloud API anahtarı girin."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
 
@@ -6314,6 +6320,9 @@ msgstr "Kaldırılamadı"
 msgid "Failed to remove member"
 msgstr "Üye kaldırılamadı"
 
+msgid "Failed to remove Ollama API key"
+msgstr "Ollama API anahtarı kaldırılamadı"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "PR bağlantısı kaldırılamadı: {0}"
@@ -6397,6 +6406,9 @@ msgstr "Kaydedilemedi"
 
 msgid "Failed to save installation. Please try again."
 msgstr "Kurulum kaydedilemedi. Lütfen yeniden deneyin."
+
+msgid "Failed to save Ollama API key"
+msgstr "Ollama API anahtarı kaydedilemedi"
 
 msgid "Failed to save prompt"
 msgstr "İstem kaydedilemedi"
@@ -10113,6 +10125,15 @@ msgstr "Çevrimdışı / yerel öncelikli mod"
 msgid "Older"
 msgstr "Daha eski"
 
+msgid "Ollama Cloud API key"
+msgstr "Ollama Cloud API anahtarı"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Ollama Cloud API anahtarı reddedildi — aşağıya yeni bir anahtar girin."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Ollama Cloud API anahtarı bu hostta kayıtlı."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "{offScopeHostName} üzerinde — burada çalışmaz"
 
@@ -10978,6 +10999,9 @@ msgstr "Geçen hafta"
 
 msgid "Paste"
 msgstr "Yapıştır"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Kullanımı burada göstermek için bir Ollama Cloud API anahtarı yapıştırın. Anahtar bu makinede saklanır ve kullanımı almak için Ollama Cloud'a gönderilir."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Bunu Superset CLI'ye yapıştırın:"

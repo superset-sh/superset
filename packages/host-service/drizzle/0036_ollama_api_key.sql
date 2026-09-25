@@ -1,0 +1,1 @@
+ALTER TABLE `host_settings` ADD `ollama_api_key` text;

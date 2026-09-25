@@ -28,6 +28,8 @@ import {
 	setDefaultAccountSelection,
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
+import { fetchOllamaAccounts } from "./ollama-quota";
+import { readOllamaApiKey } from "../settings/ollama";
 import { countAgentPrsByDay } from "./history/agent-prs";
 import { fetchOpencodeAccounts } from "./opencode-quota";
 import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
@@ -49,30 +51,38 @@ import type { UsageAccount } from "./types";
 // endpoint (ccusage deprecated its live gauge over this; CodexBar #30930).
 const QUOTA_CACHE_TTL_MS = 5 * 60 * 1000;
 
-let cachedQuota: { promise: Promise<UsageAccount[]>; cachedAt: number } | null =
-	null;
+let cachedQuota: {
+	promise: Promise<UsageAccount[]>;
+	cachedAt: number;
+	ollamaApiKey: string | null;
+} | null = null;
 
-function loadAccounts(): Promise<UsageAccount[]> {
+function loadAccounts(ollamaApiKey: string | null): Promise<UsageAccount[]> {
 	return Promise.all([
 		fetchClaudeAccounts(),
 		fetchCodexAccounts(),
 		fetchGrokAccounts(),
 		fetchAgyAccounts(),
 		fetchOpencodeAccounts(),
+		fetchOllamaAccounts(ollamaApiKey),
 	]).then((groups) => groups.flat());
 }
 
-function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
+function getQuota(
+	forceRefresh: boolean,
+	ollamaApiKey: string | null = null,
+): Promise<UsageAccount[]> {
 	if (
 		!forceRefresh &&
 		cachedQuota &&
+		cachedQuota.ollamaApiKey === ollamaApiKey &&
 		Date.now() - cachedQuota.cachedAt < QUOTA_CACHE_TTL_MS
 	) {
 		return cachedQuota.promise;
 	}
 
-	const promise = loadAccounts();
-	const entry = { promise, cachedAt: Date.now() };
+	const promise = loadAccounts(ollamaApiKey);
+	const entry = { promise, cachedAt: Date.now(), ollamaApiKey };
 	cachedQuota = entry;
 	promise.catch(() => {
 		if (cachedQuota === entry) cachedQuota = null;
@@ -118,7 +128,10 @@ export const usageRouter = router({
 		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
 		.query(async ({ ctx, input }) => {
-			const accounts = await getQuota(input?.forceRefresh ?? false);
+			const accounts = await getQuota(
+				input?.forceRefresh ?? false,
+				readOllamaApiKey(ctx.db),
+			);
 			// isDefault is applied per query, not cached with the quota: changing
 			// the default must reflect immediately without re-hitting providers.
 			const defaults = getDefaultAccountSelections(ctx.db);
@@ -205,7 +218,7 @@ export const usageRouter = router({
 			if (input.selection !== null) {
 				// Only accept a discovered login: the value lands in a shell env
 				// overlay, and a typo'd dir would boot agents signed out.
-				const accounts = await getQuota(false);
+				const accounts = await getQuota(false, readOllamaApiKey(ctx.db));
 				const known = accounts.some(
 					(account) =>
 						account.agent === input.agent &&
@@ -255,7 +268,7 @@ export const usageRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const accounts = await getQuota(false);
+			const accounts = await getQuota(false, readOllamaApiKey(ctx.db));
 			const known = accounts.some(
 				(account) =>
 					account.agent === input.agent &&

@@ -2942,6 +2942,9 @@ msgstr "Cadena de razonamiento"
 msgid "Change avatar"
 msgstr "Cambiar el avatar"
 
+msgid "Change key"
+msgstr "Cambiar clave"
+
 msgid "Change location"
 msgstr "Cambiar ubicación"
 
@@ -5774,6 +5777,9 @@ msgstr "¿Te gusta Superset?"
 msgid "Ensure no regression"
 msgstr "Asegura que no haya regresión"
 
+msgid "Enter a new Ollama Cloud API key to replace the saved one."
+msgstr "Introduce una nueva clave API de Ollama Cloud para reemplazar la guardada."
+
 msgid "Enter a parent directory on {hostName}"
 msgstr "Introduce un directorio padre en {hostName}"
 
@@ -6314,6 +6320,9 @@ msgstr "No se pudo quitar"
 msgid "Failed to remove member"
 msgstr "No se pudo quitar el miembro"
 
+msgid "Failed to remove Ollama API key"
+msgstr "No se pudo eliminar la clave API de Ollama"
+
 #. placeholder {0}: errorMessage(error, "Unknown error")
 msgid "Failed to remove PR link: {0}"
 msgstr "No se pudo quitar el enlace de la PR: {0}"
@@ -6397,6 +6406,9 @@ msgstr "No se pudo guardar"
 
 msgid "Failed to save installation. Please try again."
 msgstr "No se pudo guardar la instalación. Inténtalo de nuevo."
+
+msgid "Failed to save Ollama API key"
+msgstr "No se pudo guardar la clave API de Ollama"
 
 msgid "Failed to save prompt"
 msgstr "No se pudo guardar el prompt"
@@ -10113,6 +10125,15 @@ msgstr "Modo sin conexión / local primero"
 msgid "Older"
 msgstr "Más antiguo"
 
+msgid "Ollama Cloud API key"
+msgstr "Clave API de Ollama Cloud"
+
+msgid "Ollama Cloud API key rejected — enter a new key below."
+msgstr "Clave API de Ollama Cloud rechazada — introduce una nueva clave abajo."
+
+msgid "Ollama Cloud API key saved on this host."
+msgstr "Clave API de Ollama Cloud guardada en este host."
+
 msgid "on {offScopeHostName} — won't run here"
 msgstr "en {offScopeHostName}: no se ejecutará aquí"
 
@@ -10978,6 +10999,9 @@ msgstr "Última semana"
 
 msgid "Paste"
 msgstr "Pegar"
+
+msgid "Paste an Ollama Cloud API key to show usage here. The key is stored on this host and sent to Ollama Cloud to fetch usage."
+msgstr "Pega una clave API de Ollama Cloud para mostrar el uso aquí. La clave se almacena en este host y se envía a Ollama Cloud para obtener el uso."
 
 msgid "Paste this into Superset CLI:"
 msgstr "Pega esto en la CLI de Superset:"

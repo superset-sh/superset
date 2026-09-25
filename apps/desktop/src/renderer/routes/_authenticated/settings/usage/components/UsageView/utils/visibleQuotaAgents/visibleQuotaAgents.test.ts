@@ -42,14 +42,30 @@ describe("visibleQuotaAgents", () => {
 		]);
 	});
 
+	it("hides Ollama while it has no login", () => {
+		expect(visibleQuotaAgents([{ agent: "claude" }])).toEqual([
+			"claude",
+			"codex",
+		]);
+	});
+
+	it("shows Ollama once it has a login", () => {
+		expect(visibleQuotaAgents([{ agent: "ollama" }])).toEqual([
+			"claude",
+			"codex",
+			"ollama",
+		]);
+	});
+
 	it("orders every section by display order, not by account order", () => {
 		expect(
 			visibleQuotaAgents([
 				{ agent: "opencode" },
+				{ agent: "ollama" },
 				{ agent: "agy" },
 				{ agent: "grok" },
 				{ agent: "codex" },
 			]),
-		).toEqual(["claude", "codex", "grok", "agy", "opencode"]);
+		).toEqual(["claude", "codex", "grok", "agy", "opencode", "ollama"]);
 	});
 });
