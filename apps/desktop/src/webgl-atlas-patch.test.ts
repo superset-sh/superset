@@ -27,5 +27,14 @@ describe("@xterm/addon-webgl GPU atlas patch", () => {
 			expect(src.match(/canvas\.width\s*=\s*0/g) ?? []).toHaveLength(2);
 			expect(src.match(/canvas\.height\s*=\s*0/g) ?? []).toHaveLength(2);
 		});
+
+		test(`${name} releases the renderer's WebGL context on dispose`, () => {
+			// Chromium caps a renderer at 16 live WebGL contexts and counts a
+			// disposed-but-uncollected one, evicting a live terminal's instead.
+			expect(
+				src.match(/getExtension\("WEBGL_lose_context"\)\?\.loseContext\(\)/g) ??
+					[],
+			).toHaveLength(1);
+		});
 	}
 });

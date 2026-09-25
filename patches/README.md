@@ -64,6 +64,12 @@ matching `src/` files for readability — bundles are what run):
    oversized-glyph overflow page allocation in `TextureAtlas`).
 3. `TextureAtlas`: zero `canvas.width/height` for merged-away and evicted
    pages so backing stores free immediately instead of waiting for GC.
+4. `WebglRenderer` dispose: `WEBGL_lose_context.loseContext()` on its own
+   context. Chromium caps a renderer at 16 live WebGL contexts and still counts
+   a disposed-but-uncollected one, so evicting and rebuilding parked terminals
+   made it kill a *live* terminal's context instead, dropping that terminal to
+   the DOM renderer for good. Measured in Electron 41: 12 live terminals plus
+   12 create/dispose cycles lost 6 live contexts unpatched, 0 patched.
 
 An app-side safety net lives in
 `apps/desktop/src/renderer/lib/terminal/terminal-addons.ts` (atlas reset after
@@ -79,11 +85,13 @@ regenerate the patch — don't delete the test.
 
 ```bash
 bun patch @xterm/addon-webgl@<new-version>
-# edit node_modules/@xterm/addon-webgl per the three changes above:
+# edit node_modules/@xterm/addon-webgl per the four changes above:
 #   - both lib bundles are minified; find `getParameter(<gl>.MAX_TEXTURE_SIZE)`
 #     (2 sites) and wrap each in Math.min(4096, ...)
 #   - find `_onRemoveTextureAtlasCanvas.fire(<p>.canvas)` (merge path) and the
 #     `_evictAllPages` loop; add `<p>.canvas.width=0,<p>.canvas.height=0`
+#   - find `removeChild(this._canvas)` in WebglRenderer's dispose and append
+#     `,this._gl.getExtension("WEBGL_lose_context")?.loseContext()`
 #   - mirror the edits in src/GlyphRenderer.ts, src/WebglRenderer.ts,
 #     src/TextureAtlas.ts
 bun patch --commit 'node_modules/@xterm/addon-webgl'
