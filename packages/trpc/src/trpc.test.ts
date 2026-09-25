@@ -3,16 +3,19 @@ import { existsSync } from "node:fs";
 import { oauthAccessTokenClaims } from "@superset/auth/oauth-access-token-claims";
 import { isFirstPartyOAuthClient } from "@superset/shared/auth";
 
-// The two functions under test are pure, but the modules they live in import
-// the database client, which calls `neon()` at import and so needs a
-// DATABASE_URL — which CI has not got. Stand in for it only when there is no
-// database to reach, because `mock.module` is process-wide: the real client
-// also loads the repo's root `.env` on import, and other test files in this
-// process read what that puts in `process.env`. Stubbing it unconditionally
-// took that away from them. `@superset/db/src/env.ts` decides the same way,
-// so this is in sync with when the real import would have worked.
+// The two functions under test are pure, but the modules they live in pull
+// in two clients that need secrets at import: the database client calls
+// `neon()` with DATABASE_URL, and the analytics module constructs a PostHog
+// client with NEXT_PUBLIC_POSTHOG_KEY. CI has neither. Stand in for them
+// only when there is no repo `.env` to supply them, because `mock.module` is
+// process-wide: the real database client loads that `.env` on import, and
+// other test files in this process read what it puts in `process.env`.
+// Stubbing it unconditionally took that away from them. `@superset/db/src/env.ts`
+// decides the same way, so this is in sync with when the real import would
+// have worked.
 const rootEnvFile = new URL("../../../.env", import.meta.url);
-if (!process.env.DATABASE_URL && !existsSync(rootEnvFile)) {
+const repoEnvAvailable = existsSync(rootEnvFile);
+if (!process.env.DATABASE_URL && !repoEnvAvailable) {
 	// Process-wide, so every export the real module has must be here: another
 	// file's import of `dbWs` resolves against this stub too.
 	mock.module("@superset/db/client", () => ({
@@ -21,6 +24,14 @@ if (!process.env.DATABASE_URL && !existsSync(rootEnvFile)) {
 		},
 		dbWs: {
 			transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
+		},
+	}));
+}
+if (!process.env.NEXT_PUBLIC_POSTHOG_KEY && !repoEnvAvailable) {
+	mock.module("./lib/analytics", () => ({
+		posthog: {
+			capture: () => {},
+			isFeatureEnabled: () => Promise.resolve(undefined),
 		},
 	}));
 }
