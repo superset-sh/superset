@@ -359,32 +359,34 @@ export function EnvironmentEditorDialog({
 						<Label htmlFor="environment-region">
 							<Trans>Region</Trans>
 						</Label>
-						<Select
-							disabled={Boolean(environment)}
-							onValueChange={(value) => setRegion(value as SandboxRegionId)}
-							value={environment?.region ?? chosenRegion}
-						>
-							<SelectTrigger id="environment-region">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{SANDBOX_REGIONS.map((option) => (
-									<SelectItem key={option.id} value={option.id}>
-										{option.city} · {option.id}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<p className="text-xs text-muted-foreground">
-							{environment ? (
-								<Trans>
-									Boxes run where the environment was made; a snapshot only
-									exists in its region.
-								</Trans>
-							) : (
-								<Trans>Nearest to you.</Trans>
-							)}
-						</p>
+						<div className="flex items-center gap-3">
+							<Select
+								disabled={Boolean(environment)}
+								onValueChange={(value) => setRegion(value as SandboxRegionId)}
+								value={environment?.region ?? chosenRegion}
+							>
+								<SelectTrigger id="environment-region">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{SANDBOX_REGIONS.map((option) => (
+										<SelectItem key={option.id} value={option.id}>
+											{option.city} · {option.id}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground">
+								{environment ? (
+									<Trans>
+										Boxes run where the environment was made; a snapshot only
+										exists in its region.
+									</Trans>
+								) : (
+									<Trans>Nearest to you.</Trans>
+								)}
+							</p>
+						</div>
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="environment-scope">
