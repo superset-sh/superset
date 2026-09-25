@@ -808,9 +808,6 @@ msgstr "{noun, select, person {사람을 한 명 이상 지정하거나 {choice}
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {리포지토리를 하나 이상 지정하세요.} channel {채널을 하나 이상 지정하세요.} reaction {리액션을 하나 이상 지정하세요.} dataSource {데이터 소스를 하나 이상 지정하세요.} team {팀을 하나 이상 지정하세요.} project {프로젝트를 하나 이상 지정하세요.} calendar {캘린더를 하나 이상 지정하세요.} other {항목을 하나 이상 지정하세요.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.} other {기기 #대가 오프라인 상태이며 사본을 그대로 유지합니다.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}개 열림"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: 호스트를 사용할 수 없습니다"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: 정리에 실패했습니다"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.} other {연결 가능한 모든 기기에서 프로젝트와 워크스페이스 #개를 제거하고, 해당 worktree를 디스크에서 삭제합니다.}}"
 
 msgid "{years}y ago"
 msgstr "{years}년 전"
@@ -5058,9 +5052,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "\"{projectName}\"을(를) 삭제했습니다"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "기기 {1}대 중 {0}대에서 \"{projectName}\"을(를) 삭제했습니다 — 연결할 수 없는 기기에는 사본이 남습니다"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "선택한 기기 {1}개 중 {0}개에서 \"{projectName}\"을(를) 삭제했습니다. 실패한 기기에는 복사본이 유지됩니다."
 
 msgid "Deleted {name}"
 msgstr "{name}을(를) 삭제했습니다"
@@ -5197,6 +5191,9 @@ msgstr "개발 빌드"
 
 msgid "Device: {selectedLabel}"
 msgstr "기기: {selectedLabel}"
+
+msgid "Devices"
+msgstr "기기"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10152,11 +10149,11 @@ msgstr "호스트 소유자만 이 위치를 변경할 수 있습니다."
 msgid "Only host owners can delete this host"
 msgstr "호스트 소유자만 이 호스트를 삭제할 수 있습니다"
 
-msgid "Only organization owners can delete this project."
-msgstr "조직 소유자만 이 프로젝트를 삭제할 수 있습니다."
-
 msgid "Only organization owners can modify these settings."
 msgstr "조직 소유자만 이 설정을 변경할 수 있습니다."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "조직 소유자 또는 기기 소유자만 이 프로젝트를 삭제할 수 있습니다."
 
 msgid "Only owners can change membership."
 msgstr "소유자만 멤버십을 변경할 수 있습니다."
@@ -10798,6 +10795,9 @@ msgstr "{0} 소유 — 소유자만 이 자동화를 편집할 수 있습니다.
 
 msgid "Owner"
 msgstr "소유자"
+
+msgid "Owner access required"
+msgstr "소유자 권한 필요"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "모든 PTY 세션을 소유하며 앱을 다시 시작해도 살아 있습니다."
@@ -15425,8 +15425,8 @@ msgstr "선택한 worktree를 디스크에서 모두 제거하고 해당 워크�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "호스트와 그 접근 권한, 워크스페이스가 제거됩니다. 컴퓨터의 파일은 그대로 남습니다. 호스트가 실행 중이면 다시 나타날 수 있습니다. 이 작업은 되돌릴 수 없습니다."
 
-msgid "This removes the project from every reachable device."
-msgstr "연결 가능한 모든 기기에서 프로젝트를 제거합니다."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "선택한 기기에서 프로젝트와 워크스페이스가 제거되며, 해당 기기를 사용하는 모든 사용자에게 적용됩니다. 워크트리는 디스크에서 삭제됩니다."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "worktree를 디스크에서 제거하고 워크스페이스를 닫습니다."
@@ -16037,6 +16037,9 @@ msgstr "미해결"
 
 msgid "Unsaved changes"
 msgstr "저장하지 않은 변경 사항"
+
+msgid "Unselected devices keep their copy."
+msgstr "선택하지 않은 기기에는 복사본이 유지됩니다."
 
 msgid "Unstage all"
 msgstr "스테이징 모두 해제"

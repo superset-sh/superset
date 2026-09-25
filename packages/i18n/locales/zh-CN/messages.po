@@ -808,9 +808,6 @@ msgstr "{noun, select, person {请至少指定一个人员，或选择{choice}�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {请至少指定一个仓库。} channel {请至少指定一个频道。} reaction {请至少指定一个回应。} dataSource {请至少指定一个数据源。} team {请至少指定一个团队。} project {请至少指定一个项目。} calendar {请至少指定一个日历。} other {请至少指定一个条目。}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# 台设备处于离线状态，将保留其副本。} other {# 台设备处于离线状态，将保留其副本。}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}项已开启"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}：主机不可用"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}：清理失败"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {这会从所有可访问的设备中移除该项目及其 # 个工作区，并从磁盘删除它们的worktree。} other {这会从所有可访问的设备中移除该项目及其 # 个工作区，并从磁盘删除它们的worktree。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"
@@ -5058,9 +5052,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "已删除“{projectName}”"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "已从{1}台设备中的{0}台删除“{projectName}”——无法访问的设备仍保留副本"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "已从所选的 {1} 台设备中的 {0} 台删除“{projectName}”。删除失败的设备会保留其副本。"
 
 msgid "Deleted {name}"
 msgstr "已删除{name}"
@@ -5197,6 +5191,9 @@ msgstr "开发版本"
 
 msgid "Device: {selectedLabel}"
 msgstr "设备：{selectedLabel}"
+
+msgid "Devices"
+msgstr "设备"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10152,11 +10149,11 @@ msgstr "只有主机所有者可以更改此位置。"
 msgid "Only host owners can delete this host"
 msgstr "只有主机所有者才能删除此主机"
 
-msgid "Only organization owners can delete this project."
-msgstr "只有组织所有者可以删除此项目。"
-
 msgid "Only organization owners can modify these settings."
 msgstr "只有组织所有者可以修改这些设置。"
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "只有组织所有者或设备所有者可以删除此项目。"
 
 msgid "Only owners can change membership."
 msgstr "只有所有者可以更改成员。"
@@ -10798,6 +10795,9 @@ msgstr "归{0}所有，只有本人能编辑这个自动化。"
 
 msgid "Owner"
 msgstr "所有者"
+
+msgid "Owner access required"
+msgstr "需要所有者权限"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "持有所有PTY会话，并在应用重启后继续存活。"
@@ -15425,8 +15425,8 @@ msgstr "这会把每个选中的worktree从磁盘上移除，并删除它的工�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "这将移除该主机、其访问权限及其工作区。机器上的文件会保留。运行中的主机可能会重新出现。此操作无法撤销。"
 
-msgid "This removes the project from every reachable device."
-msgstr "这会从所有可访问的设备中移除该项目。"
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "这将从所选设备中移除项目及其工作区，影响使用这些设备的所有人。工作树将从磁盘中删除。"
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "这将从磁盘中删除该 worktree 并关闭工作区。"
@@ -16037,6 +16037,9 @@ msgstr "未解决"
 
 msgid "Unsaved changes"
 msgstr "未保存的更改"
+
+msgid "Unselected devices keep their copy."
+msgstr "未选中的设备会保留其副本。"
 
 msgid "Unstage all"
 msgstr "全部取消暂存"

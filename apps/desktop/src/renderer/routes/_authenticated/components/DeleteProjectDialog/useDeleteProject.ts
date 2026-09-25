@@ -1,60 +1,57 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { useHostUrls } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
+import {
+	defaultProjectDeletionSelection,
+	selectedProjectDeletionTargets,
+} from "./useDeleteProject.utils";
 
 interface UseDeleteProjectOptions {
 	projectId: string;
 	projectName: string;
-	/** Hosts serving this project — the delete fans out to each. */
 	hostIds: string[];
+	selectedHostIds?: string[];
 	onDeleted?: () => void;
 }
 
-/**
- * Deletes a project from every reachable host that serves it. Projects are
- * local per host, so an unreachable host keeps its copy; the caller shows
- * that in the confirmation so nobody is surprised later.
- */
 export function useDeleteProject({
 	projectId,
 	projectName,
 	hostIds,
+	selectedHostIds,
 	onDeleted,
 }: UseDeleteProjectOptions) {
 	const { t } = useLingui();
+	const { hostIds: deletionHostIds, isReady: permissionsReady } =
+		useProjectDeletionHosts(hostIds);
+	const { hosts } = useKnownHosts();
 	const hostUrls = useHostUrls(hostIds);
-	const reachableHosts = useMemo(
-		() =>
-			hostUrls.filter(
-				(host): host is { hostId: string; url: string; isLocal: boolean } =>
-					host.url !== null,
-			),
-		[hostUrls],
-	);
-	const { workspaces } = useHostWorkspaces();
-	// The main workspace is the repository checkout itself and survives;
-	// only worktrees are removed from disk. Count only hosts the delete will
-	// actually reach — an offline device keeps its worktrees, and the dialog
-	// says so separately. A remote host keeps a relay URL while offline, so
-	// the workspace's own reachability flag is the second gate.
-	const worktreeCount = useMemo(() => {
-		const reachableHostIds = new Set(reachableHosts.map((host) => host.hostId));
-		return workspaces.filter(
-			(workspace) =>
-				workspace.projectId === projectId &&
-				workspace.type === "worktree" &&
-				workspace.hostReachable &&
-				reachableHostIds.has(workspace.hostId),
-		).length;
-	}, [workspaces, projectId, reachableHosts]);
+	const targets = hostUrls.map((host) => ({
+		...host,
+		name:
+			hosts.find((known) => known.machineId === host.hostId)?.name ??
+			(host.isLocal ? t({ message: "This device" }) : host.hostId),
+		canDelete: deletionHostIds.includes(host.hostId),
+		isOnline:
+			host.url !== null &&
+			(host.isLocal ||
+				hosts.some(
+					(known) => known.machineId === host.hostId && known.isOnline,
+				)),
+	}));
+	const selection = selectedHostIds ?? defaultProjectDeletionSelection(targets);
+	const reachableHosts = selectedProjectDeletionTargets(targets, selection);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const deletionInFlight = useRef(false);
 
 	const deleteProject = async (): Promise<boolean> => {
-		if (reachableHosts.length === 0) {
+		if (deletionInFlight.current) return false;
+		if (!permissionsReady || reachableHosts.length === 0) {
 			toast.error(
 				t({
 					message: "No host serving this project is reachable right now",
@@ -62,6 +59,7 @@ export function useDeleteProject({
 			);
 			return false;
 		}
+		deletionInFlight.current = true;
 		setIsDeleting(true);
 		try {
 			const results = await Promise.allSettled(
@@ -78,11 +76,10 @@ export function useDeleteProject({
 					? first.reason
 					: new Error(String(first.reason));
 			}
-			const skipped = hostIds.length - reachableHosts.length;
-			if (failed.length > 0 || skipped > 0) {
+			if (failed.length > 0) {
 				toast.warning(
 					t({
-						message: `Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+						message: `Deleted "${projectName}" from ${results.length - failed.length} of ${results.length} selected devices. Failed devices keep their copy.`,
 					}),
 				);
 			} else {
@@ -92,6 +89,7 @@ export function useDeleteProject({
 					}),
 				);
 			}
+			if (failed.length > 0) return false;
 			onDeleted?.();
 			return true;
 		} catch (err) {
@@ -105,6 +103,7 @@ export function useDeleteProject({
 			);
 			return false;
 		} finally {
+			deletionInFlight.current = false;
 			setIsDeleting(false);
 		}
 	};
@@ -112,8 +111,10 @@ export function useDeleteProject({
 	return {
 		deleteProject,
 		isDeleting,
-		worktreeCount,
 		reachableHostCount: reachableHosts.length,
-		hostCount: hostIds.length,
+		targets,
+		permissionsReady,
+		defaultSelectedHostIds: defaultProjectDeletionSelection(targets),
+		selectedHostIds: reachableHosts.map((host) => host.hostId),
 	};
 }

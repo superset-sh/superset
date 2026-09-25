@@ -808,9 +808,6 @@ msgstr "{noun, select, person {Tentukan minimal satu orang, atau pilih {choice}.
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Tentukan minimal satu repositori.} channel {Tentukan minimal satu kanal.} reaction {Tentukan minimal satu reaksi.} dataSource {Tentukan minimal satu sumber data.} team {Tentukan minimal satu tim.} project {Tentukan minimal satu proyek.} calendar {Tentukan minimal satu kalender.} other {Tentukan minimal satu entri.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# perangkat sedang offline dan tetap menyimpan salinannya.} other {# perangkat sedang offline dan tetap menyimpan salinannya.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} terbuka"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: host tidak tersedia"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown gagal"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus worktree tersebut dari disk.} other {Ini menghapus proyek beserta # workspace-nya dari setiap perangkat yang dapat dijangkau, dan menghapus semua worktree tersebut dari disk.}}"
 
 msgid "{years}y ago"
 msgstr "{years}thn lalu"
@@ -5058,9 +5052,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "Menghapus \"{projectName}\""
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "Menghapus \"{projectName}\" dari {0} dari {1} perangkat — perangkat yang tak terjangkau tetap menyimpan salinannya"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "\"{projectName}\" dihapus dari {0} dari {1} perangkat yang dipilih. Perangkat yang gagal dihapus tetap menyimpan salinannya."
 
 msgid "Deleted {name}"
 msgstr "Menghapus {name}"
@@ -5197,6 +5191,9 @@ msgstr "Build pengembangan"
 
 msgid "Device: {selectedLabel}"
 msgstr "Perangkat: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Perangkat"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10152,11 +10149,11 @@ msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 msgid "Only host owners can delete this host"
 msgstr "Hanya pemilik host yang bisa menghapus host ini"
 
-msgid "Only organization owners can delete this project."
-msgstr "Hanya pemilik organisasi yang bisa menghapus proyek ini."
-
 msgid "Only organization owners can modify these settings."
 msgstr "Hanya pemilik organisasi yang bisa mengubah pengaturan ini."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "Hanya pemilik organisasi atau pemilik perangkat yang dapat menghapus proyek ini."
 
 msgid "Only owners can change membership."
 msgstr "Hanya pemilik yang bisa mengubah keanggotaan."
@@ -10798,6 +10795,9 @@ msgstr "Dimiliki oleh {0} — hanya dia yang bisa mengedit otomatisasi ini."
 
 msgid "Owner"
 msgstr "Pemilik"
+
+msgid "Owner access required"
+msgstr "Memerlukan akses pemilik"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Memiliki setiap sesi PTY dan bertahan saat aplikasi dimulai ulang."
@@ -15425,8 +15425,8 @@ msgstr "Ini menghapus setiap worktree terpilih dari disk dan menghapus catatan w
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Ini menghapus host, aksesnya, dan workspace-nya. File di mesin itu tetap ada. Host yang berjalan bisa muncul lagi. Ini tidak bisa dibatalkan."
 
-msgid "This removes the project from every reachable device."
-msgstr "Ini menghapus proyek dari setiap perangkat yang dapat dijangkau."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Ini menghapus proyek dan ruang kerjanya dari perangkat yang dipilih untuk semua pengguna perangkat tersebut. Worktree dihapus dari disk."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Ini menghapus worktree dari disk dan menutup workspace."
@@ -16037,6 +16037,9 @@ msgstr "Belum selesai"
 
 msgid "Unsaved changes"
 msgstr "Perubahan belum disimpan"
+
+msgid "Unselected devices keep their copy."
+msgstr "Perangkat yang tidak dipilih tetap menyimpan salinannya."
 
 msgid "Unstage all"
 msgstr "Unstage semua"
