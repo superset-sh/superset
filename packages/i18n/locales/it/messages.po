@@ -1644,6 +1644,10 @@ msgstr "Gli agenti completano i ticket di routine senza interventi a metà task.
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Gli agenti caricano la propria anteprima, guidano l'interfaccia e allegano screenshot come prova prima di segnare il lavoro come pronto per la revisione."
 
+#. placeholder {0}: warnedKeys.join(", ")
+msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
+msgstr "Gli agenti non leggono mai {0} qui; accedono da Impostazioni › Agenti. Un'esecuzione headless di claude -p o codex in uno spazio di lavoro viene comunque addebitata a questa chiave."
+
 msgid "Agents running at once"
 msgstr "Agenti in esecuzione in parallelo"
 
@@ -12794,6 +12798,9 @@ msgstr "Risparmia il 25%"
 
 msgid "Save All"
 msgstr "Salva tutto"
+
+msgid "Save anyway"
+msgstr "Salva comunque"
 
 msgid "Save as environment"
 msgstr "Salva come ambiente"

@@ -1644,6 +1644,10 @@ msgstr "Ajanlar rutin biletleri görev ortasında müdahale olmadan tamamlar."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incelemeye hazır işaretlemeden önce ekran görüntüsü kanıtı ekler."
 
+#. placeholder {0}: warnedKeys.join(", ")
+msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
+msgstr "Ajanlar {0} değişkenini burada asla okumaz; Ayarlar › Ajanlar bölümünden oturum açarlar. Bir çalışma alanında başsız claude -p veya codex çalıştırması yine de bu anahtara faturalandırılır."
+
 msgid "Agents running at once"
 msgstr "Aynı anda çalışan ajanlar"
 
@@ -12794,6 +12798,9 @@ msgstr "%25 tasarruf"
 
 msgid "Save All"
 msgstr "Tümünü kaydet"
+
+msgid "Save anyway"
+msgstr "Yine de kaydet"
 
 msgid "Save as environment"
 msgstr "Ortam olarak kaydet"
