@@ -73,9 +73,9 @@ import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-p
 import {
 	applyAiWorkspaceRename,
 	applyGeneratedWorkspaceNames,
-	type GeneratedWorkspaceNames,
 	generateWorkspaceNamesFromPrompt,
 	sanitizeBranchCandidate,
+	type WorkspaceNamingResult,
 } from "../workspace-creation/utils/ai-workspace-names";
 import { resolveProjectBranchPrefix } from "../workspace-creation/utils/branch-prefix";
 import type { ExecGh } from "../workspace-creation/utils/exec-gh";
@@ -205,6 +205,12 @@ type WorkspaceCreateResult = {
 	agents: AgentLaunchResult[];
 	alreadyExists: boolean;
 	txid: number | null;
+	/**
+	 * Set when AI naming was asked for but the agent CLI failed and the title
+	 * is a slug of the prompt instead — the fallback looks like a real result,
+	 * so clients need to be told to say so.
+	 */
+	namingWarning?: string;
 };
 
 function extractCreateTxid(row: CloudWorkspace): number | null {
@@ -631,7 +637,7 @@ export const workspacesRouter = router({
 				input.name === undefined &&
 				!!composerPrompt;
 			const namingAgent = input.agents?.[0]?.agent;
-			const aiNamesPromise: Promise<GeneratedWorkspaceNames | null> | null =
+			const aiNamesPromise: Promise<WorkspaceNamingResult | null> | null =
 				wantAi
 					? generateWorkspaceNamesFromPrompt(
 							composerPrompt,
@@ -1233,9 +1239,11 @@ export const workspacesRouter = router({
 			// second on top of the git work; the rename itself (`branch -m`
 			// plus a row update) is milliseconds. The worktree directory
 			// keeps its creation-time name.
+			let namingWarning: string | undefined;
 			if (!alreadyExists && aiNamesPromise && worktreePath !== undefined) {
-				const names = await aiNamesPromise;
-				if (names) {
+				const naming = await aiNamesPromise;
+				if (naming) {
+					namingWarning = naming.warning;
 					try {
 						const applied = await applyGeneratedWorkspaceNames({
 							ctx,
@@ -1244,7 +1252,7 @@ export const workspacesRouter = router({
 							worktreePath,
 							oldBranchName: resolvedBranch,
 							oldWorkspaceName: workspaceRow.name || resolvedBranch,
-							names,
+							names: naming.names,
 							renameTitle: true,
 							renameBranch: aiCanRenameBranch,
 							branchPrefix: resolvedBranchPrefix,
@@ -1389,6 +1397,7 @@ export const workspacesRouter = router({
 					: agentsResult,
 				alreadyExists,
 				txid: extractCreateTxid(workspaceRow),
+				namingWarning,
 			};
 		}),
 
@@ -1428,6 +1437,7 @@ export const workspacesRouter = router({
 						terminals: result.terminals,
 						agents: result.agents,
 						alreadyExists: result.alreadyExists,
+						namingWarning: result.namingWarning,
 						occurredAt: Date.now(),
 					});
 				})

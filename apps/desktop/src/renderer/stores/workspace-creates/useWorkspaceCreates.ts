@@ -15,6 +15,7 @@ import {
 } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type {
 	WorkspacesCreateAnyInput,
@@ -74,6 +75,8 @@ interface CreateOutcome {
 	 * the same as `true` (don't count it), never as `false`.
 	 */
 	alreadyExists?: boolean;
+	/** The host named the workspace from the prompt text because its agent CLI failed. */
+	namingWarning?: string;
 }
 
 /** Older hosts don't have `workspaces.createEnqueued` yet. */
@@ -228,6 +231,7 @@ async function createViaEnqueue(
 			terminals: outcome.terminals,
 			agents: outcome.agents,
 			alreadyExists: outcome.alreadyExists,
+			namingWarning: outcome.namingWarning,
 		};
 	} finally {
 		unsubscribe();
@@ -414,6 +418,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					if (result.workspace.id !== workspaceId) {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
+					}
+					if (result.namingWarning) {
+						showWorkspaceAutoNameWarningToast({
+							description: result.namingWarning,
+						});
 					}
 					// Only genuinely new worktrees count as created — never reopened
 					// ones or project-less sessions (createSession has no

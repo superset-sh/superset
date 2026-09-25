@@ -251,11 +251,14 @@ export default command({
 			...(options.tag?.length ? { tags: options.tag } : {}),
 		});
 
+		const created = result.alreadyExists
+			? `Reused existing workspace "${result.workspace.name}" on host ${target.hostId}`
+			: `Created workspace "${result.workspace.name}" on host ${target.hostId}`;
 		return {
 			data: result,
-			message: result.alreadyExists
-				? `Reused existing workspace "${result.workspace.name}" on host ${target.hostId}`
-				: `Created workspace "${result.workspace.name}" on host ${target.hostId}`,
+			message: result.namingWarning
+				? `${created}\n${result.namingWarning}`
+				: created,
 		};
 	},
 });

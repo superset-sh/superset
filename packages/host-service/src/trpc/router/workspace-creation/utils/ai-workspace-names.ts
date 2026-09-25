@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
+import { getCommandShellArgs } from "@superset/agent-setup";
 import {
 	getBuiltinAgentDefinition,
 	isBuiltinAgentId,
@@ -19,9 +20,15 @@ import {
 } from "@superset/shared/workspace-launch";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
+import {
+	getTerminalBaseEnv,
+	waitForTerminalBaseEnv,
+} from "../../../../terminal/env";
+import { resolveConfiguredShell } from "../../../../terminal/user-shell";
 import type { HostServiceContext } from "../../../../types";
 import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { resolveHostAgentConfig } from "../../agents/agents";
+import { resolveDefaultAccountEnv } from "../../usage/default-account";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -173,7 +180,7 @@ const NAMING_SMALL_MODELS: Record<string, string> = {
 function resolveNonInteractiveCommand(
 	db: HostDb,
 	agent: string,
-): string | null {
+): { presetId: string; command: string } | null {
 	const presetId = resolveHostAgentConfig(db, agent)?.presetId ?? agent;
 	if (!isBuiltinAgentId(presetId)) return null;
 	const definition = getBuiltinAgentDefinition(presetId);
@@ -187,7 +194,10 @@ function resolveNonInteractiveCommand(
 	const modelArgs = buildAgentModelArgs(presetId, smallModel);
 	const [bin, ...flags] = base.split(" ");
 	const command = [bin, ...modelArgs.map(quoteSingleShell), ...flags].join(" ");
-	return `${envOverlayPrefix(buildAgentModelEnv(presetId, smallModel))}${command}`;
+	return {
+		presetId,
+		command: `${envOverlayPrefix(buildAgentModelEnv(presetId, smallModel))}${command}`,
+	};
 }
 
 function extractNamesJson(
@@ -217,39 +227,104 @@ function extractNamesJson(
 	return null;
 }
 
-async function generateNamesViaAgentCli(
-	command: string,
-	prompt: string,
-	namingInstructions?: string | null,
-): Promise<GeneratedWorkspaceNames | null> {
-	const shell =
-		process.env.SHELL ||
-		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
-	const namingPrompt = `${buildAgentJsonInstructions(namingInstructions)}\n\n<user-prompt>\n${prompt}\n</user-prompt>`;
-	// Login shell so the agent binary resolves like it does in the user's
-	// terminal (nvm/bun-global paths a GUI-launched host-service lacks).
-	// cwd is a scratch dir: naming runs before the worktree exists and the
-	// agent must not pick up repo context or act on files.
-	const shellCommand = `${command} ${quoteSingleShell(namingPrompt)}`;
+export interface NamingShellInvocation {
+	shell: string;
+	args: string[];
+	env: Record<string, string>;
+	cwd: string;
+}
 
+/**
+ * The shell invocation that runs the naming command. Mirrors how terminals
+ * launch commands rather than a bare `$SHELL -lc`: a non-interactive login
+ * zsh never reads `.zshrc`, which is where Claude Code's native installer
+ * puts `~/.local/bin` on PATH, so the plain form fails with "command not
+ * found" while the very same CLI works in every Superset terminal (#7398).
+ * `getCommandShellArgs` sources the user's rc files through the shell
+ * wrappers and puts Superset's managed bin dir first, exactly like a
+ * terminal preset does.
+ *
+ * `baseEnv` is the terminal base-env snapshot (the interactive login-shell
+ * probe taken once at boot), not the host-service's own process env — the
+ * host may have been launched by a GUI or a unit file that never saw the
+ * user's PATH. It is also already stripped of `SUPERSET_*` runtime keys, so
+ * a dev host started from inside a Superset terminal can't make the agent
+ * wrapper report this headless call as a launch in that terminal.
+ */
+export function buildNamingShellInvocation({
+	command,
+	baseEnv,
+	accountEnv = {},
+	shell = resolveConfiguredShell(baseEnv),
+}: {
+	command: string;
+	baseEnv: Record<string, string>;
+	/** The default-account overlay (CLAUDE_CONFIG_DIR / CODEX_HOME). */
+	accountEnv?: Record<string, string>;
+	shell?: string;
+}): NamingShellInvocation {
+	const env: Record<string, string> = { ...baseEnv, ...accountEnv };
 	// The CLIs prefer provider keys in the environment over their own stored
 	// auth (claude disables its claude.ai login when ANTHROPIC_API_KEY is
 	// set). Strip them so the agent names with the credentials the user
 	// actually signed the CLI in with.
-	const env = { ...process.env };
 	delete env.ANTHROPIC_API_KEY;
 	delete env.OPENAI_API_KEY;
+	return {
+		shell,
+		args: getCommandShellArgs(shell, command),
+		env,
+		// A scratch dir: naming runs before the worktree exists and the agent
+		// must not pick up repo context or act on files.
+		cwd: tmpdir(),
+	};
+}
 
-	const output = await new Promise<string | null>((resolve) => {
-		const child = spawn(shell, ["-lc", shellCommand], {
-			cwd: tmpdir(),
-			env,
+async function resolveNamingBaseEnv(): Promise<Record<string, string>> {
+	try {
+		await waitForTerminalBaseEnv();
+		return getTerminalBaseEnv();
+	} catch {
+		// Never initialised (unit tests, one-off helpers): the host's own env
+		// is the best available approximation.
+		const snapshot: Record<string, string> = {};
+		for (const [key, value] of Object.entries(process.env)) {
+			if (typeof value === "string") snapshot[key] = value;
+		}
+		return snapshot;
+	}
+}
+
+type AgentCliNamingOutcome =
+	| { ok: true; names: GeneratedWorkspaceNames }
+	| { ok: false; reason: string };
+
+function lastNonEmptyLine(text: string): string {
+	const lines = text
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter(Boolean);
+	return lines[lines.length - 1] ?? "";
+}
+
+async function generateNamesViaAgentCli(
+	invocation: NamingShellInvocation,
+	namingInstructions?: string | null,
+): Promise<AgentCliNamingOutcome> {
+	const outcome = await new Promise<
+		{ ok: true; stdout: string } | { ok: false; reason: string }
+	>((resolve) => {
+		const child = spawn(invocation.shell, invocation.args, {
+			cwd: invocation.cwd,
+			env: invocation.env,
 			stdio: ["ignore", "pipe", "pipe"],
 		});
 		let stdout = "";
 		let stderr = "";
 		let settled = false;
-		const settle = (value: string | null) => {
+		const settle = (
+			value: { ok: true; stdout: string } | { ok: false; reason: string },
+		) => {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
@@ -260,7 +335,10 @@ async function generateNamesViaAgentCli(
 			console.warn(
 				`[generateNamesViaAgentCli] timed out after ${AGENT_GENERATE_TIMEOUT_MS}ms`,
 			);
-			settle(null);
+			settle({
+				ok: false,
+				reason: `timed out after ${AGENT_GENERATE_TIMEOUT_MS / 1000}s`,
+			});
 		}, AGENT_GENERATE_TIMEOUT_MS);
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
@@ -270,29 +348,37 @@ async function generateNamesViaAgentCli(
 		});
 		child.on("error", (error) => {
 			console.warn("[generateNamesViaAgentCli] spawn failed:", error);
-			settle(null);
+			settle({ ok: false, reason: `could not start ${invocation.shell}` });
 		});
 		child.on("close", (code) => {
 			if (code !== 0) {
 				console.warn(
 					`[generateNamesViaAgentCli] exit ${code}; stderr tail: ${stderr.slice(-500)}; stdout tail: ${stdout.slice(-200)}`,
 				);
+				const detail = lastNonEmptyLine(stderr) || lastNonEmptyLine(stdout);
+				settle({
+					ok: false,
+					reason: detail ? `exit ${code}: ${detail}` : `exit ${code}`,
+				});
+				return;
 			}
-			settle(code === 0 ? stdout : null);
+			settle({ ok: true, stdout });
 		});
 	});
-	if (output === null) return null;
+	if (!outcome.ok) return outcome;
 
-	const names = extractNamesJson(output);
+	const names = extractNamesJson(outcome.stdout);
 	if (!names) {
 		console.warn(
-			`[generateNamesViaAgentCli] no JSON names in output tail: ${output.slice(-300)}`,
+			`[generateNamesViaAgentCli] no JSON names in output tail: ${outcome.stdout.slice(-300)}`,
 		);
-		return null;
+		return { ok: false, reason: "the agent returned no names" };
 	}
 	const parsed = buildWorkspaceNamesSchema(namingInstructions).parse(names);
-	if (parsed.title === "" && parsed.branchName === "") return null;
-	return parsed;
+	if (parsed.title === "" && parsed.branchName === "") {
+		return { ok: false, reason: "the agent returned empty names" };
+	}
+	return { ok: true, names: parsed };
 }
 
 /**
@@ -307,54 +393,82 @@ function deriveNamesFromPrompt(prompt: string): GeneratedWorkspaceNames | null {
 	return { title, branchName };
 }
 
+export interface WorkspaceNamingResult {
+	names: GeneratedWorkspaceNames;
+	/** Which path produced the names — the fallback is shape-identical. */
+	source: "agent-cli" | "prompt";
+	/**
+	 * Set when the agent CLI was asked and failed, so the caller can tell the
+	 * user the title is a slug of their prompt rather than "what the AI chose".
+	 */
+	warning?: string;
+}
+
 /**
  * Generates both a workspace title and a git branch name from a prompt.
  * The launch agent's own headless CLI is the primary path: it names with
  * the credentials the user already signed that CLI in with, so the prompt
  * never leaves the providers they chose. When there is no agent context, or
  * the CLI can't run or fails, names are derived from the prompt text
- * locally.
+ * locally and the result says so.
  */
 export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
 	agentContext?: WorkspaceNamingAgentContext,
 	namingInstructions?: string | null,
-): Promise<GeneratedWorkspaceNames | null> {
+): Promise<WorkspaceNamingResult | null> {
 	const cleaned = prompt.trim();
 	if (!cleaned) return null;
 
+	let warning: string | undefined;
 	if (agentContext) {
-		const command = resolveNonInteractiveCommand(
+		const resolved = resolveNonInteractiveCommand(
 			agentContext.db,
 			agentContext.agent,
 		);
-		if (command) {
+		if (resolved) {
+			const namingPrompt = `${buildAgentJsonInstructions(namingInstructions)}\n\n<user-prompt>\n${cleaned}\n</user-prompt>`;
 			try {
-				const names = await generateNamesViaAgentCli(
-					command,
-					cleaned,
+				const invocation = buildNamingShellInvocation({
+					command: `${resolved.command} ${quoteSingleShell(namingPrompt)}`,
+					baseEnv: await resolveNamingBaseEnv(),
+					accountEnv: resolveDefaultAccountEnv(
+						agentContext.db,
+						resolved.presetId,
+					),
+				});
+				const outcome = await generateNamesViaAgentCli(
+					invocation,
 					namingInstructions,
 				);
-				if (names) {
+				if (outcome.ok) {
 					console.log(
 						`[generateWorkspaceNamesFromPrompt] named via agent CLI (${agentContext.agent})`,
 					);
-					return names;
+					return { names: outcome.names, source: "agent-cli" };
 				}
+				warning = buildNamingFallbackWarning(resolved.presetId, outcome.reason);
 			} catch (error) {
 				console.warn(
 					"[generateWorkspaceNamesFromPrompt] agent CLI naming failed:",
 					error,
+				);
+				warning = buildNamingFallbackWarning(
+					resolved.presetId,
+					error instanceof Error ? error.message : String(error),
 				);
 			}
 		}
 	}
 
 	const derived = deriveNamesFromPrompt(cleaned);
-	if (derived) {
-		console.log("[generateWorkspaceNamesFromPrompt] named from the prompt");
-	}
-	return derived;
+	if (!derived) return null;
+	console.log("[generateWorkspaceNamesFromPrompt] named from the prompt");
+	return { names: derived, source: "prompt", warning };
+}
+
+function buildNamingFallbackWarning(presetId: string, reason: string): string {
+	return `Couldn't name this workspace with ${presetId} (${reason}), so a name derived from your prompt was used instead.`;
 }
 
 interface ApplyGeneratedNamesArgs {
@@ -394,14 +508,14 @@ export async function applyAiWorkspaceRename(
 ): Promise<void> {
 	if (!args.renameTitle && !args.renameBranch) return;
 
-	const aiNames = await generateWorkspaceNamesFromPrompt(
+	const result = await generateWorkspaceNamesFromPrompt(
 		args.prompt,
 		undefined,
 		args.namingInstructions,
 	);
-	if (!aiNames) return;
+	if (!result) return;
 
-	await applyGeneratedWorkspaceNames({ ...args, names: aiNames });
+	await applyGeneratedWorkspaceNames({ ...args, names: result.names });
 }
 
 /**

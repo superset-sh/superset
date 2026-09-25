@@ -220,6 +220,8 @@ export interface WorkspaceCreateSettledMessage {
 	terminals: WorkspaceCreateTerminalLaunch[];
 	agents: WorkspaceCreateAgentLaunch[];
 	alreadyExists: boolean;
+	/** See `WorkspaceCreateResult.namingWarning`. */
+	namingWarning?: string;
 	error?: string;
 	occurredAt: number;
 }
