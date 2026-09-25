@@ -49,9 +49,15 @@ app's: it enters the box as itself, its requests pass the firewall untouched,
 and it never becomes an agent credential. When the app's key holds the plain
 name, the sign-in's placeholder reaches the launched agent through the
 `SUPERSET_AGENT_ENV_` overlay, and the box seed answers Claude Code's "use this
-key?" prompt with no for the app's key and yes for the placeholder. Two things
-this leaves: `claude` typed by hand in a terminal on such a box sees the app's
-key and, with the prompt answered no, asks the person to log in; and
+key?" prompt with no for the app's key and yes for the placeholder. Verified against Claude Code 2.1.282 with bogus
+credentials (2026-09-25): with both variables set it picks the API key by
+default, the interactive prompt defaults to "No (recommended)" and stores the
+answer as the key's last 20 characters exactly as the seed writes it, and after
+"No" requests go out with the OAuth token. The answer governs the interactive
+CLI only: `claude -p` and the SDK use an API key in the environment regardless,
+so a headless call a person starts on such a box runs on the app's key. Two
+things this leaves: `claude` typed by hand in a terminal on such a box sees the
+app's key and, with the prompt answered no, asks the person to log in; and
 **Open:** nothing at workspace creation checks that the chosen agent has a
 sign-in, so a person without one gets a box whose agent sits on a login prompt,
 and an automation-created box does the same silently. Rotation of a person's
