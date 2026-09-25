@@ -1,8 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
-import { i18n } from "@superset/i18n";
 import { X } from "lucide-react-native";
 import { forwardRef } from "react";
-import { Alert, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
 	useAnimatedKeyboard,
 	useAnimatedStyle,
@@ -10,12 +9,10 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { errorCopy } from "@/lib/errors";
 import {
 	CommentComposer,
 	type CommentComposerHandle,
 } from "../../../components/CommentComposer";
-import { QuickReplies } from "../../../components/QuickReplies";
 
 interface ReplyBarProps {
 	replyingTo: string | null;
@@ -33,16 +30,6 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 		const { t } = useLingui();
 		const insets = useSafeAreaInsets();
 		const keyboard = useAnimatedKeyboard();
-
-		// The composer owns this for typed replies; a quick reply skips it, and
-		// the caller's submit rethrows, so without this the failure is silent.
-		const submitQuick = async (body: string) => {
-			try {
-				await onSubmit(body);
-			} catch (error) {
-				Alert.alert(t({ message: "Comment not posted" }), errorCopy(error));
-			}
-		};
 
 		const lift = useAnimatedStyle(() => ({
 			paddingBottom: Math.max(keyboard.height.value, insets.bottom),
@@ -84,13 +71,6 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 						placeholder={t({ message: "Add a comment…" })}
 						pending={pending}
 						onSubmit={onSubmit}
-						actions={
-							<QuickReplies
-								disabled={pending}
-								onQuick={(body) => void submitQuick(i18n._(body))}
-								onPreset={(body) => void submitQuick(body)}
-							/>
-						}
 					/>
 				</View>
 			</Animated.View>

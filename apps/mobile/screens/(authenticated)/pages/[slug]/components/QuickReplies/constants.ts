@@ -1,22 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import {
-	Ban,
-	Blocks,
-	CircleQuestionMark,
-	FlaskConical,
-	type LucideIcon,
-	Map as MapIcon,
-	Search,
-	Shuffle,
-	TestTube,
-	ThumbsUp,
-	TrendingDown,
-} from "lucide-react-native";
 
 export interface QuickPreset {
 	id: string;
-	icon: LucideIcon;
+	/** SF Symbol name, drawn by the native menu rather than by us. */
+	symbol: string;
 	body: MessageDescriptor;
 }
 
@@ -26,32 +14,40 @@ export const APPROVE_BODY = msg({ message: "Looks good" });
 export const QUICK_PRESETS: QuickPreset[] = [
 	{
 		id: "clarify",
-		icon: CircleQuestionMark,
+		symbol: "questionmark.circle",
 		body: msg({ message: "Clarify this" }),
 	},
-	{ id: "overview", icon: MapIcon, body: msg({ message: "Missing overview" }) },
-	{ id: "verify", icon: Search, body: msg({ message: "Verify this" }) },
+	{ id: "overview", symbol: "map", body: msg({ message: "Missing overview" }) },
+	{
+		id: "verify",
+		symbol: "magnifyingglass",
+		body: msg({ message: "Verify this" }),
+	},
 	{
 		id: "example",
-		icon: FlaskConical,
+		symbol: "flask",
 		body: msg({ message: "Give me an example" }),
 	},
 	{
 		id: "patterns",
-		icon: Blocks,
+		symbol: "square.grid.2x2",
 		body: msg({ message: "Match existing patterns" }),
 	},
 	{
 		id: "alternatives",
-		icon: Shuffle,
+		symbol: "shuffle",
 		body: msg({ message: "Consider alternatives" }),
 	},
 	{
 		id: "regression",
-		icon: TrendingDown,
+		symbol: "chart.line.downtrend.xyaxis",
 		body: msg({ message: "Ensure no regression" }),
 	},
-	{ id: "scope", icon: Ban, body: msg({ message: "Out of scope" }) },
-	{ id: "tests", icon: TestTube, body: msg({ message: "Needs tests" }) },
-	{ id: "approve", icon: ThumbsUp, body: msg({ message: "Nice approach" }) },
+	{ id: "scope", symbol: "nosign", body: msg({ message: "Out of scope" }) },
+	{ id: "tests", symbol: "testtube.2", body: msg({ message: "Needs tests" }) },
+	{
+		id: "approve",
+		symbol: "hand.thumbsup",
+		body: msg({ message: "Nice approach" }),
+	},
 ];

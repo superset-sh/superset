@@ -1,22 +1,15 @@
-import { Button, Host, HStack, Image, Menu, Spacer } from "@expo/ui/swift-ui";
-import {
-	accessibilityLabel,
-	disabled as disabledModifier,
-} from "@expo/ui/swift-ui/modifiers";
 import type { MessageDescriptor } from "@lingui/core";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import type { CommentIntent } from "@superset/shared/page-comments";
+import { SymbolButton } from "@superset/symbol-button";
 import * as Haptics from "expo-haptics";
+import { View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
-import {
-	APPROVE_BODY,
-	DELETE_BODY,
-	QUICK_PRESETS,
-} from "../CommentComposer/constants";
+import { APPROVE_BODY, DELETE_BODY, QUICK_PRESETS } from "./constants";
 
 const GLYPH = 20;
-const ROW = 36;
+const HIT = 30;
 
 interface QuickRepliesProps {
 	disabled: boolean;
@@ -32,78 +25,64 @@ export function QuickReplies({
 	const { t } = useLingui();
 	const theme = useTheme();
 	const tap = () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+	const size = { width: HIT, height: HIT };
 
 	return (
-		<Host style={{ height: ROW, opacity: disabled ? 0.5 : 1 }}>
-			<HStack spacing={26}>
-				<Button
-					modifiers={[
-						disabledModifier(disabled),
-						accessibilityLabel(
-							t({ message: "Delete this", context: "quick reply button" }),
-						),
-					]}
-					onPress={() => {
-						tap();
-						onQuick(DELETE_BODY, "delete");
-					}}
-				>
-					<Image
-						systemName="trash"
-						size={GLYPH}
-						color={theme.mutedForeground}
-					/>
-				</Button>
+		<View className="flex-row items-center gap-4">
+			<SymbolButton
+				systemImage="trash"
+				size={GLYPH}
+				tint={theme.mutedForeground}
+				enabled={!disabled}
+				accessibilityLabel={t({
+					message: "Delete this",
+					context: "quick reply button",
+				})}
+				style={size}
+				onPress={() => {
+					tap();
+					onQuick(DELETE_BODY, "delete");
+				}}
+			/>
 
-				<Button
-					modifiers={[
-						disabledModifier(disabled),
-						accessibilityLabel(
-							t({ message: "Looks good", context: "quick reply button" }),
-						),
-					]}
-					onPress={() => {
-						tap();
-						onQuick(APPROVE_BODY, "approve");
-					}}
-				>
-					<Image
-						systemName="hand.thumbsup"
-						size={GLYPH}
-						color={theme.mutedForeground}
-					/>
-				</Button>
+			<SymbolButton
+				systemImage="hand.thumbsup"
+				size={GLYPH}
+				tint={theme.mutedForeground}
+				enabled={!disabled}
+				accessibilityLabel={t({
+					message: "Looks good",
+					context: "quick reply button",
+				})}
+				style={size}
+				onPress={() => {
+					tap();
+					onQuick(APPROVE_BODY, "approve");
+				}}
+			/>
 
-				<Menu
-					modifiers={[
-						disabledModifier(disabled),
-						accessibilityLabel(
-							t({ message: "Quick feedback", context: "quick reply button" }),
-						),
-					]}
-					label={
-						<Image
-							systemName="ellipsis"
-							size={GLYPH}
-							color={theme.mutedForeground}
-						/>
-					}
-				>
-					{QUICK_PRESETS.map((preset) => (
-						<Button
-							key={preset.id}
-							modifiers={[disabledModifier(disabled)]}
-							label={i18n._(preset.body)}
-							onPress={() => {
-								tap();
-								onPreset(i18n._(preset.body));
-							}}
-						/>
-					))}
-				</Menu>
-
-				<Spacer />
-			</HStack>
-		</Host>
+			<SymbolButton
+				systemImage="ellipsis"
+				size={GLYPH}
+				tint={theme.mutedForeground}
+				enabled={!disabled}
+				accessibilityLabel={t({
+					message: "Quick feedback",
+					context: "quick reply button",
+				})}
+				style={size}
+				items={QUICK_PRESETS.map((preset) => ({
+					id: preset.id,
+					title: i18n._(preset.body),
+					systemImage: preset.symbol,
+				}))}
+				onSelect={(id) => {
+					const preset = QUICK_PRESETS.find((entry) => entry.id === id);
+					if (!preset) return;
+					tap();
+					onPreset(i18n._(preset.body));
+				}}
+			/>
+		</View>
 	);
 }

@@ -1431,6 +1431,7 @@
     "node-pty@1.2.0-beta.14": "patches/node-pty@1.2.0-beta.14.patch",
     "@xterm/xterm@6.1.0-beta.302": "patches/@xterm%2Fxterm@6.1.0-beta.302.patch",
     "@pierre/trees@1.0.0-beta.5": "patches/@pierre%2Ftrees@1.0.0-beta.5.patch",
+    "expo-observe@57.0.19": "patches/expo-observe@57.0.19.patch",
     "metro@0.84.4": "patches/metro@0.84.4.patch",
     "react-native-screens@4.26.0": "patches/react-native-screens@4.26.0.patch",
   },

@@ -119,7 +119,6 @@ export function AllCommentsSheet() {
 		if (!replyingTo) return;
 		const { threadId } = replyingTo;
 		setExpanded((previous) => ({ ...previous, [threadId]: true }));
-		setReplyingTo(null);
 		pendingScroll.current = { threadId, atBottom: true };
 		try {
 			await store.addReply(threadId, body);
@@ -127,6 +126,9 @@ export function AllCommentsSheet() {
 			pendingScroll.current = null;
 			throw error;
 		}
+		// Closing the bar unmounts the composer holding the draft, so it can
+		// only happen once the reply is actually in.
+		setReplyingTo(null);
 	};
 
 	return (
