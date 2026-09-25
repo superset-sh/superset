@@ -568,6 +568,36 @@ export const serverErrorMessages: Record<
 				message: "Provide either id or slug",
 			}),
 		),
+	"serverError.page.reportNotFound": () =>
+		i18n._(
+			msg({
+				message: "Report not found",
+			}),
+		),
+	"serverError.page.reportRateLimitingIsNot": () =>
+		i18n._(
+			msg({
+				message: "Page report rate limiting is not configured",
+			}),
+		),
+	"serverError.page.reportingIsBrieflyUnavailable": () =>
+		i18n._(
+			msg({
+				message: "Reporting is briefly unavailable. Try again shortly.",
+			}),
+		),
+	"serverError.page.thisPageWasTakenDown": () =>
+		i18n._(
+			msg({
+				message: "This page was taken down and can no longer be changed",
+			}),
+		),
+	"serverError.page.tooManyReportsTryAgainLater": () =>
+		i18n._(
+			msg({
+				message: "Too many reports. Try again later.",
+			}),
+		),
 	"serverError.page.thisPageIsBeingPublishedFrom": () =>
 		i18n._(
 			msg({

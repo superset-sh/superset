@@ -2026,6 +2026,9 @@ msgstr "リンクを知っている全員"
 msgid "anything"
 msgstr "何でも"
 
+msgid "Anything else? (optional)"
+msgstr "他にありますか？（任意）"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "キーを今すぐコピーしてください — 後で再表示する�
 
 msgid "Copying configuration"
 msgstr "設定をコピー中"
+
+msgid "Copyright or trademark"
+msgstr "著作権または商標"
 
 msgid "Cost"
 msgstr "コスト"
@@ -7516,6 +7522,9 @@ msgstr "アイドル · ブランチをプッシュ済み"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Supersetを気に入っていただけたら、GitHubスターが他の開発者の発見につながります。"
 
+msgid "Illegal content"
+msgstr "違法なコンテンツ"
+
 msgid "Image"
 msgstr "画像"
 
@@ -7538,6 +7547,9 @@ msgstr "{0}の画像プレビュー。プラスとマイナスでズーム、矢
 
 msgid "Images"
 msgstr "画像"
+
+msgid "Impersonates someone"
+msgstr "他人へのなりすまし"
 
 msgid "Import"
 msgstr "インポート"
@@ -8647,6 +8659,9 @@ msgstr "チップスタイルをTooltipContentのデフォルトにする"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "対象プロジェクトで実行ボタンがこのターミナルスクリプトを起動するようにします。"
+
+msgid "Malware or phishing"
+msgstr "マルウェアまたはフィッシング"
 
 msgid "Manage"
 msgstr "管理"
@@ -10893,6 +10908,9 @@ msgstr "ページが見つかりません"
 msgid "Page Not Found"
 msgstr "ページが見つかりません"
 
+msgid "Page report rate limiting is not configured"
+msgstr "ページ報告のレート制限が設定されていません"
+
 msgid "Page title"
 msgstr "ページタイトル"
 
@@ -11106,6 +11124,9 @@ msgstr "親ディレクトリを選択してください"
 
 msgid "Pick a project location"
 msgstr "プロジェクトの場所を選択してください"
+
+msgid "Pick a reason"
+msgstr "理由を選択"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "サウンドを選ぶか、独自の音声を追加してください。カスタム音声は.mp3、.wav、.ogg対応です。"
@@ -12228,8 +12249,20 @@ msgstr "{replyingTo} に返信中"
 msgid "repo"
 msgstr "リポジトリ"
 
+msgid "Report"
+msgstr "報告"
+
 msgid "Report Issue"
 msgstr "問題を報告"
+
+msgid "Report not found"
+msgstr "報告が見つかりません"
+
+msgid "Report this page"
+msgstr "このページを報告"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "報告機能が一時的に利用できません。しばらくしてからお試しください。"
 
 msgid "Repos"
 msgstr "リポジトリ"
@@ -13327,6 +13360,9 @@ msgstr "メッセージを送信"
 msgid "Send reply"
 msgstr "返信を送信"
 
+msgid "Send report"
+msgstr "報告を送信"
+
 msgid "Send review"
 msgstr "レビューを送信"
 
@@ -13492,6 +13528,9 @@ msgstr "セットアップ"
 
 msgid "Setup script"
 msgstr "セットアップスクリプト"
+
+msgid "Sexual content"
+msgstr "性的なコンテンツ"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/uiのtooltipレシピ"
@@ -13966,6 +14005,12 @@ msgstr "一部のトリガーには追加の設定が必要です"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "このワークスペースの {entryPath} は、他の人がすでに公開しています。ページ ID を明示して相手のページにバージョンを追加するか、ファイルを移動してください。"
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Superset チームがこのページを確認します。追加の情報が必要な場合にのみご連絡します。"
+
+msgid "Something else"
+msgstr "その他"
+
 msgid "Something went wrong"
 msgstr "問題が発生しました"
 
@@ -14013,6 +14058,9 @@ msgstr "ソースパス(インポートパスではありません)"
 
 msgid "Sources"
 msgstr "Sources"
+
+msgid "Spam or a scam"
+msgstr "スパムまたは詐欺"
 
 msgid "Sparse checkout"
 msgstr "スパースチェックアウト"
@@ -14882,6 +14930,9 @@ msgstr "ティアダウンが{seconds}秒でタイムアウトしました"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "任意のエージェントに<0>superset</0> CLIを使わせて、ワークスペースの作成、タスクの実行、オートメーションの管理ができます。"
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "どこに問題があるか教えてください。報告しただけでページが削除されることはありません。"
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "10本の並列作業がそれぞれ成果をマージします"
 
@@ -14974,6 +15025,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "お問い合わせありがとうございます"
+
+msgid "Thanks, we got it"
+msgstr "ありがとうございます。受け付けました"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "{plugin} のサインインリンクの有効期限が切れました。もう一度接続してください。"
@@ -15495,6 +15549,12 @@ msgstr "このページはありません"
 msgid "This page no longer exists"
 msgstr "このページは存在しません"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "このページは Superset のユーザーが公開したものです。内容は検証されていません。"
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "このページは公開停止されたため、変更できません"
+
 msgid "This path exists, but it is not a directory."
 msgstr "このパスは存在しますが、ディレクトリではありません。"
 
@@ -15768,6 +15828,9 @@ msgstr "同時に閲覧している人が多すぎます。しばらくしてか
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "プロンプトの送信が多すぎます。しばらくしてからお試しください。"
+
+msgid "Too many reports. Try again later."
+msgstr "報告が多すぎます。後でもう一度お試しください。"
 
 msgid "Too many requests. Please try again later."
 msgstr "リクエストが多すぎます。しばらくしてからお試しください。"
@@ -16532,6 +16595,9 @@ msgstr "GitHubでSupersetのリポジトリを見る"
 msgid "View usage"
 msgstr "使用量を表示"
 
+msgid "Violence or harassment"
+msgstr "暴力または嫌がらせ"
+
 msgid "Visitors"
 msgstr "訪問者"
 
@@ -16742,6 +16808,9 @@ msgstr "新しいSupersetへようこそ"
 msgid "What builders say about Superset"
 msgstr "ビルダーが語るSuperset"
 
+msgid "What did you see on the page?"
+msgstr "ページで何を見ましたか？"
+
 msgid "What do you want to do?"
 msgstr "何をしますか?"
 
@@ -16759,6 +16828,9 @@ msgstr "ワークスペースとは?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Superset Enterpriseとは何ですか?"
+
+msgid "What is wrong?"
+msgstr "何が問題ですか？"
 
 msgid "What platforms does Superset run on?"
 msgstr "Supersetはどのプラットフォームで動きますか?"
@@ -17212,6 +17284,9 @@ msgstr "最新の状態です!"
 msgid "You've been invited to join {organization}"
 msgstr "{organization}への招待が届いています"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "アカウントは無効化されており、まもなく完全に削除されます。再有効化すると元の状態に戻ります。"
 
@@ -17235,6 +17310,9 @@ msgstr "コードは既定でローカルに留まり、連携するサービス
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "ダウンロードは自動的に開始されます。開始されない場合はこちらから取得してください。"
+
+msgid "Your email (optional)"
+msgstr "メールアドレス（任意）"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "あなたの GitHub アカウントはこの環境のリポジトリにアクセスできません"

@@ -2026,6 +2026,9 @@ msgstr "Kdokoli s odkazem"
 msgid "anything"
 msgstr "cokoli"
 
+msgid "Anything else? (optional)"
+msgstr "Ještě něco? (nepovinné)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "Zkopírujte si klíč teď — už ho znovu neuvidíte."
 
 msgid "Copying configuration"
 msgstr "Kopíruji konfiguraci"
+
+msgid "Copyright or trademark"
+msgstr "Autorská práva nebo ochranná známka"
 
 msgid "Cost"
 msgstr "Náklady"
@@ -7516,6 +7522,9 @@ msgstr "Nečinné · větev odeslána"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Pokud se vám Superset zatím líbí, hvězda na GitHubu pomůže dalším vývojářům ho objevit."
 
+msgid "Illegal content"
+msgstr "Nelegální obsah"
+
 msgid "Image"
 msgstr "Obrázek"
 
@@ -7538,6 +7547,9 @@ msgstr "Náhled obrázku {0}. Přibližujte klávesami plus a minus, posouvejte 
 
 msgid "Images"
 msgstr "Obrázky"
+
+msgid "Impersonates someone"
+msgstr "Vydává se za někoho jiného"
 
 msgid "Import"
 msgstr "Importovat"
@@ -8647,6 +8659,9 @@ msgstr "Udělat ze stylu čipu výchozí TooltipContent"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Tlačítko Spustit bude u odpovídajících projektů spouštět tento terminálový skript."
+
+msgid "Malware or phishing"
+msgstr "Malware nebo phishing"
 
 msgid "Manage"
 msgstr "Spravovat"
@@ -10893,6 +10908,9 @@ msgstr "Stránka nenalezena"
 msgid "Page Not Found"
 msgstr "Stránka nenalezena"
 
+msgid "Page report rate limiting is not configured"
+msgstr "Omezení frekvence hlášení stránek není nastaveno"
+
 msgid "Page title"
 msgstr "Název stránky"
 
@@ -11106,6 +11124,9 @@ msgstr "Vyberte nadřazený adresář"
 
 msgid "Pick a project location"
 msgstr "Vyberte umístění projektu"
+
+msgid "Pick a reason"
+msgstr "Vyberte důvod"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Vyberte zvuk nebo přidejte vlastní. Vlastní zvuk podporuje .mp3, .wav a .ogg."
@@ -12228,8 +12249,20 @@ msgstr "Odpověď pro {replyingTo}"
 msgid "repo"
 msgstr "repo"
 
+msgid "Report"
+msgstr "Nahlásit"
+
 msgid "Report Issue"
 msgstr "Nahlásit problém"
+
+msgid "Report not found"
+msgstr "Hlášení nenalezeno"
+
+msgid "Report this page"
+msgstr "Nahlásit tuto stránku"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "Nahlašování je na chvíli nedostupné. Zkuste to prosím za okamžik."
 
 msgid "Repos"
 msgstr "Repozitáře"
@@ -13327,6 +13360,9 @@ msgstr "Odeslat zprávu"
 msgid "Send reply"
 msgstr "Odeslat odpověď"
 
+msgid "Send report"
+msgstr "Odeslat hlášení"
+
 msgid "Send review"
 msgstr "Odeslat revizi"
 
@@ -13492,6 +13528,9 @@ msgstr "Setup"
 
 msgid "Setup script"
 msgstr "Setup skript"
+
+msgid "Sexual content"
+msgstr "Sexuální obsah"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "recept na tooltip v shadcn/ui"
@@ -13966,6 +14005,12 @@ msgstr "Některé spouštěče potřebují další nastavení"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Někdo jiný už {entryPath} z tohoto workspace publikoval. Publikuj s výslovným ID stránky a přidej verzi k jeho stránce, nebo soubor přesuň."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Někdo z týmu Superset tuto stránku posoudí. Ozveme se jen tehdy, když budeme potřebovat víc informací."
+
+msgid "Something else"
+msgstr "Něco jiného"
+
 msgid "Something went wrong"
 msgstr "Něco se pokazilo"
 
@@ -14013,6 +14058,9 @@ msgstr "Cesta ke zdroji (ne import)"
 
 msgid "Sources"
 msgstr "Zdroje"
+
+msgid "Spam or a scam"
+msgstr "Spam nebo podvod"
 
 msgid "Sparse checkout"
 msgstr "Sparse checkout"
@@ -14882,6 +14930,9 @@ msgstr "Teardown vypršel po {seconds} s"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Řekněte libovolnému agentovi, ať použije CLI <0>superset</0> k vytváření pracovních prostorů, spouštění úkolů nebo správě automatizací."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "Napište nám, co je špatně. Samotné nahlášení stránku neodstraní."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "Deset souběžných pracovních toků, z nichž každý dodává sloučenou práci"
 
@@ -14974,6 +15025,9 @@ msgstr "Textové pole"
 
 msgid "Thanks for reaching out"
 msgstr "Díky, že jste se ozvali"
+
+msgid "Thanks, we got it"
+msgstr "Děkujeme, máme to"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Odkaz pro přihlášení k {plugin} vypršel. Zkuste se připojit znovu."
@@ -15495,6 +15549,12 @@ msgstr "Tahle stránka tu není"
 msgid "This page no longer exists"
 msgstr "Tato stránka už neexistuje"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "Tuto stránku zveřejnil uživatel Superset. Její obsah není ověřen."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "Tato stránka byla stažena a už ji nelze měnit"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Tato cesta existuje, ale není to adresář."
 
@@ -15768,6 +15828,9 @@ msgstr "Dívá se na něj příliš mnoho lidí najednou. Zkuste to za chvíli z
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Příliš mnoho odeslaných promptů. Zkuste to později."
+
+msgid "Too many reports. Try again later."
+msgstr "Příliš mnoho hlášení. Zkuste to později."
 
 msgid "Too many requests. Please try again later."
 msgstr "Příliš mnoho požadavků. Zkuste to prosím později."
@@ -16532,6 +16595,9 @@ msgstr "Zobrazit repozitář Superset na GitHubu"
 msgid "View usage"
 msgstr "Zobrazit využití"
 
+msgid "Violence or harassment"
+msgstr "Násilí nebo obtěžování"
+
 msgid "Visitors"
 msgstr "Návštěvníci"
 
@@ -16742,6 +16808,9 @@ msgstr "Vítejte v novém Superset"
 msgid "What builders say about Superset"
 msgstr "Co o Superset říkají tvůrci"
 
+msgid "What did you see on the page?"
+msgstr "Co jste na stránce viděli?"
+
 msgid "What do you want to do?"
 msgstr "Co chcete udělat?"
 
@@ -16759,6 +16828,9 @@ msgstr "Co je pracovní prostor?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Co je Superset Enterprise?"
+
+msgid "What is wrong?"
+msgstr "Co je špatně?"
 
 msgid "What platforms does Superset run on?"
 msgstr "Na jakých platformách Superset běží?"
@@ -17212,6 +17284,9 @@ msgstr "Máte aktuální verzi!"
 msgid "You've been invited to join {organization}"
 msgstr "Byli jste pozváni do {organization}"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "Váš účet je deaktivovaný a brzy bude trvale smazán. Obnovte ho a bude přesně takový, jaký jste ho opustili."
 
@@ -17235,6 +17310,9 @@ msgstr "Váš kód zůstává ve výchozím stavu lokálně a připojené služb
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Stahování se spustí automaticky. Pokud ne, stáhněte si to zde."
+
+msgid "Your email (optional)"
+msgstr "Váš e-mail (nepovinné)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Váš účet GitHub nemá přístup k repozitáři tohoto prostředí"

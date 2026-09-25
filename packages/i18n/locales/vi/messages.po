@@ -2026,6 +2026,9 @@ msgstr "Bất kỳ ai có liên kết"
 msgid "anything"
 msgstr "bất kỳ điều gì"
 
+msgid "Anything else? (optional)"
+msgstr "Còn gì nữa không? (không bắt buộc)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "Hãy sao chép khóa ngay — bạn sẽ không xem lại được nữa
 
 msgid "Copying configuration"
 msgstr "Đang sao chép cấu hình"
+
+msgid "Copyright or trademark"
+msgstr "Bản quyền hoặc nhãn hiệu"
 
 msgid "Cost"
 msgstr "Chi phí"
@@ -7516,6 +7522,9 @@ msgstr "Rảnh · đã push nhánh"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Nếu đến giờ bạn thấy Superset hữu ích, một star trên GitHub sẽ giúp các lập trình viên khác biết đến nó."
 
+msgid "Illegal content"
+msgstr "Nội dung bất hợp pháp"
+
 msgid "Image"
 msgstr "Hình ảnh"
 
@@ -7538,6 +7547,9 @@ msgstr "Xem trước ảnh của {0}. Thu phóng bằng phím cộng và trừ, 
 
 msgid "Images"
 msgstr "Hình ảnh"
+
+msgid "Impersonates someone"
+msgstr "Mạo danh người khác"
 
 msgid "Import"
 msgstr "Nhập"
@@ -8647,6 +8659,9 @@ msgstr "Đặt kiểu chip làm mặc định cho TooltipContent"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Cho nút Chạy khởi động script terminal này với các dự án phù hợp."
+
+msgid "Malware or phishing"
+msgstr "Phần mềm độc hại hoặc lừa đảo"
 
 msgid "Manage"
 msgstr "Quản lý"
@@ -10893,6 +10908,9 @@ msgstr "Không tìm thấy trang"
 msgid "Page Not Found"
 msgstr "Không tìm thấy trang"
 
+msgid "Page report rate limiting is not configured"
+msgstr "Chưa cấu hình giới hạn tần suất báo cáo trang"
+
 msgid "Page title"
 msgstr "Tiêu đề trang"
 
@@ -11106,6 +11124,9 @@ msgstr "Hãy chọn một thư mục cha"
 
 msgid "Pick a project location"
 msgstr "Hãy chọn vị trí dự án"
+
+msgid "Pick a reason"
+msgstr "Chọn lý do"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Chọn một âm thanh hoặc thêm âm thanh riêng. Âm thanh riêng hỗ trợ .mp3, .wav và .ogg."
@@ -12228,8 +12249,20 @@ msgstr "Đang trả lời {replyingTo}"
 msgid "repo"
 msgstr "repo"
 
+msgid "Report"
+msgstr "Báo cáo"
+
 msgid "Report Issue"
 msgstr "Báo lỗi"
+
+msgid "Report not found"
+msgstr "Không tìm thấy báo cáo"
+
+msgid "Report this page"
+msgstr "Báo cáo trang này"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "Chức năng báo cáo tạm thời không khả dụng. Vui lòng thử lại sau giây lát."
 
 msgid "Repos"
 msgstr "Repo"
@@ -13327,6 +13360,9 @@ msgstr "Gửi tin nhắn"
 msgid "Send reply"
 msgstr "Gửi trả lời"
 
+msgid "Send report"
+msgstr "Gửi báo cáo"
+
 msgid "Send review"
 msgstr "Gửi review"
 
@@ -13492,6 +13528,9 @@ msgstr "Thiết lập"
 
 msgid "Setup script"
 msgstr "Script thiết lập"
+
+msgid "Sexual content"
+msgstr "Nội dung tình dục"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "Công thức tooltip của shadcn/ui"
@@ -13966,6 +14005,12 @@ msgstr "Một số trigger cần cấu hình thêm"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Người khác đã xuất bản {entryPath} từ workspace này. Hãy xuất bản kèm id trang cụ thể để thêm phiên bản vào trang của họ, hoặc di chuyển tệp."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Một thành viên của nhóm Superset sẽ xem xét trang này. Chúng tôi chỉ liên hệ lại nếu cần thêm thông tin từ bạn."
+
+msgid "Something else"
+msgstr "Vấn đề khác"
+
 msgid "Something went wrong"
 msgstr "Đã xảy ra lỗi"
 
@@ -14013,6 +14058,9 @@ msgstr "Đường dẫn nguồn (không phải import)"
 
 msgid "Sources"
 msgstr "Nguồn"
+
+msgid "Spam or a scam"
+msgstr "Thư rác hoặc lừa đảo"
 
 msgid "Sparse checkout"
 msgstr "Sparse checkout"
@@ -14882,6 +14930,9 @@ msgstr "Teardown quá thời gian sau {seconds}s"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Bảo bất kỳ agent nào dùng CLI <0>superset</0> để tạo workspace, chạy tác vụ hoặc quản lý tự động hóa."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "Hãy cho chúng tôi biết vấn đề là gì. Việc báo cáo không tự động gỡ trang này."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "Mười luồng công việc song song, mỗi luồng đều tạo ra công việc được hợp nhất"
 
@@ -14974,6 +15025,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Cảm ơn bạn đã liên hệ"
+
+msgid "Thanks, we got it"
+msgstr "Cảm ơn, chúng tôi đã nhận được"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Liên kết đăng nhập {plugin} đó đã hết hạn. Hãy thử kết nối lại."
@@ -15495,6 +15549,12 @@ msgstr "Trang này không có ở đây"
 msgid "This page no longer exists"
 msgstr "Trang này không còn tồn tại"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "Trang này do một người dùng Superset đăng. Nội dung chưa được xác minh."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "Trang này đã bị gỡ và không thể chỉnh sửa nữa"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 
@@ -15768,6 +15828,9 @@ msgstr "Có quá nhiều người đang xem cùng lúc. Vui lòng thử lại sa
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Quá nhiều lượt gửi prompt. Hãy thử lại sau."
+
+msgid "Too many reports. Try again later."
+msgstr "Quá nhiều báo cáo. Vui lòng thử lại sau."
 
 msgid "Too many requests. Please try again later."
 msgstr "Quá nhiều yêu cầu. Vui lòng thử lại sau."
@@ -16532,6 +16595,9 @@ msgstr "Xem repository Superset trên GitHub"
 msgid "View usage"
 msgstr "Xem mức sử dụng"
 
+msgid "Violence or harassment"
+msgstr "Bạo lực hoặc quấy rối"
+
 msgid "Visitors"
 msgstr "Khách truy cập"
 
@@ -16742,6 +16808,9 @@ msgstr "Chào mừng đến với Superset mới"
 msgid "What builders say about Superset"
 msgstr "Các nhà phát triển nói gì về Superset"
 
+msgid "What did you see on the page?"
+msgstr "Bạn đã thấy gì trên trang này?"
+
 msgid "What do you want to do?"
 msgstr "Bạn muốn làm gì?"
 
@@ -16759,6 +16828,9 @@ msgstr "Workspace là gì?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Superset Enterprise là gì?"
+
+msgid "What is wrong?"
+msgstr "Vấn đề là gì?"
 
 msgid "What platforms does Superset run on?"
 msgstr "Superset chạy trên những nền tảng nào?"
@@ -17212,6 +17284,9 @@ msgstr "Bạn đang dùng bản mới nhất!"
 msgid "You've been invited to join {organization}"
 msgstr "Bạn được mời tham gia {organization}"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "Tài khoản của bạn đã bị vô hiệu hóa và sẽ sớm bị xóa vĩnh viễn. Kích hoạt lại để khôi phục đúng như lúc bạn rời đi."
 
@@ -17235,6 +17310,9 @@ msgstr "Code của bạn mặc định ở lại cục bộ, với quyền kiể
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Quá trình tải xuống sẽ tự động bắt đầu. Nếu không, hãy tải tại đây."
+
+msgid "Your email (optional)"
+msgstr "Email của bạn (không bắt buộc)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Tài khoản GitHub của bạn không truy cập được một repository trong environment này"

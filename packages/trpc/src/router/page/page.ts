@@ -44,6 +44,7 @@ import { decodePageCursor, encodePageCursor } from "./cursor";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
 import { isEntryPathConflict } from "./publish-rules";
+import { pageReportRouter } from "./reports";
 import {
 	clearPageWatchSchema,
 	createPageSchema,
@@ -383,6 +384,7 @@ async function listPageBatch({
 
 export const pageRouter = {
 	assets: pageAssetRouter,
+	...pageReportRouter,
 
 	/**
 	 * A page with no versions yet. Assets stage against a page id, so a first
@@ -1179,6 +1181,7 @@ export const pageRouter = {
 				.where(eq(pages.slug, input.slug))
 				.limit(1);
 			if (!page || page.visibility !== "everyone") return null;
+			if (page.takenDownAt) return null;
 
 			const version = servedVersion(
 				page.sharedVersion,

@@ -2026,6 +2026,9 @@ msgstr "知道链接的任何人"
 msgid "anything"
 msgstr "任意内容"
 
+msgid "Anything else? (optional)"
+msgstr "还有别的吗？（选填）"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "请立即复制你的密钥，之后将无法再次查看。"
 
 msgid "Copying configuration"
 msgstr "正在复制配置"
+
+msgid "Copyright or trademark"
+msgstr "版权或商标"
 
 msgid "Cost"
 msgstr "费用"
@@ -7516,6 +7522,9 @@ msgstr "空闲 · 分支已推送"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "如果你觉得Superset还不错，一个GitHub星标能帮助更多开发者发现它。"
 
+msgid "Illegal content"
+msgstr "违法内容"
+
 msgid "Image"
 msgstr "图片"
 
@@ -7538,6 +7547,9 @@ msgstr "{0}的图片预览。用加号和减号缩放，用方向键平移，按
 
 msgid "Images"
 msgstr "图片"
+
+msgid "Impersonates someone"
+msgstr "冒充他人"
 
 msgid "Import"
 msgstr "导入"
@@ -8647,6 +8659,9 @@ msgstr "把chip样式设为TooltipContent的默认样式"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "让匹配项目的“运行”按钮启动此终端脚本。"
+
+msgid "Malware or phishing"
+msgstr "恶意软件或钓鱼"
 
 msgid "Manage"
 msgstr "管理"
@@ -10893,6 +10908,9 @@ msgstr "未找到页面"
 msgid "Page Not Found"
 msgstr "页面未找到"
 
+msgid "Page report rate limiting is not configured"
+msgstr "未配置页面举报的速率限制"
+
 msgid "Page title"
 msgstr "页面标题"
 
@@ -11106,6 +11124,9 @@ msgstr "请选择父目录"
 
 msgid "Pick a project location"
 msgstr "请选择项目位置"
+
+msgid "Pick a reason"
+msgstr "选择原因"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "选择一个声音或添加自己的。自定义音频支持.mp3、.wav和.ogg。"
@@ -12228,8 +12249,20 @@ msgstr "正在回复 {replyingTo}"
 msgid "repo"
 msgstr "仓库"
 
+msgid "Report"
+msgstr "举报"
+
 msgid "Report Issue"
 msgstr "报告问题"
+
+msgid "Report not found"
+msgstr "未找到举报"
+
+msgid "Report this page"
+msgstr "举报此页面"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "举报功能暂时不可用，请稍后再试。"
 
 msgid "Repos"
 msgstr "仓库"
@@ -13327,6 +13360,9 @@ msgstr "发送消息"
 msgid "Send reply"
 msgstr "发送回复"
 
+msgid "Send report"
+msgstr "提交举报"
+
 msgid "Send review"
 msgstr "发送审查"
 
@@ -13492,6 +13528,9 @@ msgstr "初始化"
 
 msgid "Setup script"
 msgstr "设置脚本"
+
+msgid "Sexual content"
+msgstr "色情内容"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui的tooltip方案"
@@ -13966,6 +14005,12 @@ msgstr "部分触发器需要额外配置"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "其他人已发布该工作区中的 {entryPath}。使用明确的页面 id 发布以向其页面添加版本，或移动该文件。"
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Superset 团队会审核此页面。只有在需要你补充信息时我们才会联系你。"
+
+msgid "Something else"
+msgstr "其他问题"
+
 msgid "Something went wrong"
 msgstr "出了点问题"
 
@@ -14013,6 +14058,9 @@ msgstr "源码路径（不是导入路径）"
 
 msgid "Sources"
 msgstr "来源"
+
+msgid "Spam or a scam"
+msgstr "垃圾信息或诈骗"
 
 msgid "Sparse checkout"
 msgstr "稀疏检出"
@@ -14882,6 +14930,9 @@ msgstr "清理脚本在{seconds}秒后超时"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "让任意智能体用<0>superset</0> CLI来创建工作区、运行任务或管理自动化。"
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "请告诉我们问题所在。举报本身不会移除该页面。"
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "十条并行工作流同时运行，各自交付已合并的成果"
 
@@ -14974,6 +15025,9 @@ msgstr "多行文本框"
 
 msgid "Thanks for reaching out"
 msgstr "感谢联系"
+
+msgid "Thanks, we got it"
+msgstr "谢谢，我们已收到"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "该 {plugin} 登录链接已过期。请重新连接。"
@@ -15495,6 +15549,12 @@ msgstr "找不到这个页面"
 msgid "This page no longer exists"
 msgstr "这个页面已不存在"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "此页面由 Superset 用户发布，内容未经核实。"
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "此页面已下架，无法再修改"
+
 msgid "This path exists, but it is not a directory."
 msgstr "此路径存在，但不是目录。"
 
@@ -15768,6 +15828,9 @@ msgstr "同时查看的人太多了，请稍后再试。"
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "提示词提交次数过多。请稍后重试。"
+
+msgid "Too many reports. Try again later."
+msgstr "举报次数过多，请稍后再试。"
 
 msgid "Too many requests. Please try again later."
 msgstr "请求过于频繁。请稍后重试。"
@@ -16532,6 +16595,9 @@ msgstr "在GitHub上查看Superset仓库"
 msgid "View usage"
 msgstr "查看用量"
 
+msgid "Violence or harassment"
+msgstr "暴力或骚扰"
+
 msgid "Visitors"
 msgstr "访客"
 
@@ -16742,6 +16808,9 @@ msgstr "欢迎使用全新的 Superset"
 msgid "What builders say about Superset"
 msgstr "开发者怎么评价Superset"
 
+msgid "What did you see on the page?"
+msgstr "你在页面上看到了什么？"
+
 msgid "What do you want to do?"
 msgstr "你想做什么？"
 
@@ -16759,6 +16828,9 @@ msgstr "什么是工作区？"
 
 msgid "What is Superset Enterprise?"
 msgstr "什么是Superset Enterprise？"
+
+msgid "What is wrong?"
+msgstr "哪里有问题？"
 
 msgid "What platforms does Superset run on?"
 msgstr "Superset支持哪些平台？"
@@ -17212,6 +17284,9 @@ msgstr "已是最新！"
 msgid "You've been invited to join {organization}"
 msgstr "你受邀加入{organization}"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "你的账户已停用，并将很快被永久删除。重新激活即可恢复到你离开时的状态。"
 
@@ -17235,6 +17310,9 @@ msgstr "你的代码默认留在本地，连接哪些服务由你明确决定。
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "下载将自动开始。如果没有，请点此获取。"
+
+msgid "Your email (optional)"
+msgstr "你的邮箱（选填）"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "你的 GitHub 账户无法访问此环境中的某个仓库"
