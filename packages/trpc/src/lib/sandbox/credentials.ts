@@ -86,8 +86,9 @@ function rule(headers: Record<string, string>): HeaderRule[] {
 
 /**
  * The precedence for a model provider: the person's own sign-in beats the
- * environment's variable, which beats the organization's key. Whichever
- * wins becomes the header rule; the box only ever sees the placeholder.
+ * environment's variable. Nothing else supplies one, so a person with no
+ * sign-in gets a box whose agent asks them to log in. Whichever wins
+ * becomes the header rule; the box only ever sees the placeholder.
  */
 export async function deriveSandboxCredentials(
 	inputs: SandboxCredentialInputs,
@@ -122,7 +123,7 @@ export async function deriveSandboxCredentials(
 	// an API key with x-api-key. The CLI decides which header it sends from
 	// which placeholder variable is set, so exactly one is set.
 	const oauth = pick("CLAUDE_CODE_OAUTH_TOKEN");
-	const anthropicKey = pick("ANTHROPIC_API_KEY") ?? env.ANTHROPIC_API_KEY;
+	const anthropicKey = pick("ANTHROPIC_API_KEY");
 	if (oauth) {
 		allow["api.anthropic.com"] = rule({ Authorization: `Bearer ${oauth}` });
 		managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
@@ -133,7 +134,7 @@ export async function deriveSandboxCredentials(
 	const anthropicBase = pick("ANTHROPIC_BASE_URL");
 	if (anthropicBase) managedEnv.ANTHROPIC_BASE_URL = anthropicBase;
 
-	const openaiKey = pick("OPENAI_API_KEY") ?? env.OPENAI_API_KEY;
+	const openaiKey = pick("OPENAI_API_KEY");
 	if (openaiKey) {
 		allow["api.openai.com"] = rule({ Authorization: `Bearer ${openaiKey}` });
 		managedEnv.OPENAI_API_KEY = SANDBOX_CREDENTIAL_PLACEHOLDER;

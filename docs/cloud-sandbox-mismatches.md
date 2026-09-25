@@ -121,8 +121,8 @@ host-service verified Ed25519 tokens itself. `health.check` stays public on
 purpose — it is how the API tells a booting sandbox from a dead one — so
 probe the gate on a guarded route (`/events`), not on health.
 
-**Model credentials never enter a sandbox.** The organization's keys are
-injected into egress by the sandbox firewall: a `transform` rule on
+**Model credentials never enter a sandbox.** The person's or the environment's
+keys are injected into egress by the sandbox firewall: a `transform` rule on
 `api.anthropic.com` / `api.openai.com` sets the auth header, and the sandbox
 env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
 *set* — an unset key reads as "not logged in" and produces no request to
@@ -382,7 +382,7 @@ brokering (`networkPolicy` with `transform` rules) can be set at create, on a
 fork, or changed on a running sandbox, and a fork copies the source's policy
 unless overridden. Both Blaxel limitations — routing fixed at creation, forks
 unable to have the proxy at all — are gone, which is why every sandbox now
-brokers the organization's keys. A custom policy denies everything it doesn't
+brokers its model credentials at the firewall. A custom policy denies everything it doesn't
 list: the `"*": []` catch-all is what keeps npm, git and the rest reachable.
 
 **A fork copies the source's config; every field we pass is an override.**

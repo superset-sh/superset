@@ -40,14 +40,17 @@ closed.
 
 ## Credentials and blast radius
 
-**Model credentials are ours by default. gated** A sandbox without a personal
-sign-in (Settings › Cloud › Agents, per user, `agent_credentials`) runs on the
-org's Anthropic and OpenAI keys, brokered at the firewall, so agent usage lands
-on our bill with no per-org attribution or cap. Fine while only we can create
-sandboxes; unshippable after. Rotation no longer needs a recreate: the
-firewall policy is live-updatable and every wake and `access` keepalive
-re-derives and re-applies it, so a rotated key reaches a running box within
-one keepalive.
+**Model credentials are the person's or the environment's, never ours. Fixed
+(2026-09-25).** A sandbox gets its Anthropic and OpenAI credential from the
+creator's sign-in (Settings › Agents, per user, `agent_credentials`) or from
+the environment's variables, brokered at the firewall. The org's keys used to
+be the fallback, which put agent usage on our bill with no attribution or cap;
+that fallback is gone. **Open:** nothing at workspace creation checks that the
+chosen agent has a sign-in, so a person without one gets a box whose agent
+sits on a login prompt, and an automation-created box does the same silently.
+Rotation of a person's credential reaches a running box within one keepalive:
+the firewall policy is live-updatable and every wake and `access` keepalive
+re-derives and re-applies it.
 
 **The GitHub token outlives the clone. Fixed (v2 layout, 2026-09-13).**
 `git clone` with the token in the URL wrote it into `.git/config`, so a
