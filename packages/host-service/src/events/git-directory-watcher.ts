@@ -40,8 +40,9 @@ export class GitDirectoryWatcher {
 					else subscription?.onChange(message.filename);
 				},
 			);
-			const fail = () => {
+			const fail = (reason: unknown) => {
 				if (this.worker !== worker) return;
+				console.warn("[git-watcher] .git directory worker stopped", reason);
 				this.worker = null;
 				const subscriptions = [...this.subscriptions.values()];
 				this.subscriptions.clear();

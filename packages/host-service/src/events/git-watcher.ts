@@ -750,7 +750,11 @@ export class GitWatcher {
 					this.stopWatching(workspaceId);
 				},
 			);
-		} catch {
+		} catch (error) {
+			console.warn("[git-watcher] .git directory watch unavailable", {
+				workspaceId,
+				error,
+			});
 			disposeWorktreeWatch();
 			return;
 		}
