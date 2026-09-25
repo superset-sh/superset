@@ -151,6 +151,10 @@ export function useDashboardSidebarShortcuts(
 			if (pinnedWorkspaces.some((workspace) => workspace.id === workspaceId)) {
 				const { collapsed, toggle } =
 					useSidebarSectionsCollapseStore.getState();
+				// The Pinned section itself only renders while the Workspaces
+				// list isn't collapsed — un-collapsing "pinned" alone still
+				// leaves the target invisible if "workspaces" is collapsed too.
+				if (collapsed.workspaces) toggle("workspaces");
 				if (collapsed.pinned) toggle("pinned");
 				return;
 			}

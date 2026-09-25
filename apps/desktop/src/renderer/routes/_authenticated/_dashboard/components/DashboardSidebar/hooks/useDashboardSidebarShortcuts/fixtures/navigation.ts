@@ -160,6 +160,26 @@ test("navigates when every workspace is pinned and reveals collapsed pins", () =
 	expect(toggleProjectCollapsed).not.toHaveBeenCalled();
 });
 
+test("reveals a collapsed Workspaces section, not just Pinned, for a pinned target", () => {
+	currentWorkspaceId = "project-workspace";
+	useSidebarSectionsCollapseStore.setState({
+		collapsed: {
+			cloud: false,
+			pinned: false,
+			sessions: false,
+			workspaces: true,
+		},
+	});
+	renderHook(() =>
+		useDashboardSidebarShortcuts(groups, sessions, [], { pinnedWorkspaces }),
+	);
+	press("NEXT_WORKSPACE");
+	expectTarget("pinned-project");
+	expect(useSidebarSectionsCollapseStore.getState().collapsed.workspaces).toBe(
+		false,
+	);
+});
+
 test("skips a pinned workspace being deleted", () => {
 	currentWorkspaceId = "pinned-project";
 	useDeletingWorkspacesStore.getState().markDeleting("pinned-session");
