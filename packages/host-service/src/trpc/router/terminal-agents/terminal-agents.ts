@@ -114,7 +114,12 @@ function bindingHasHarnessSession(
 		agentId: config.presetId,
 		sessionId: binding.agentSessionId,
 		worktreePath,
-		env: { ...resolveDefaultAccountEnv(db, config.presetId), ...config.env },
+		env: {
+			...resolveDefaultAccountEnv(db, config.presetId, {
+				workspaceId: binding.workspaceId,
+			}),
+			...config.env,
+		},
 	});
 }
 
@@ -507,7 +512,9 @@ export const terminalAgentsRouter = router({
 				// A pinned provider account keeps its transcript under its own
 				// config directory.
 				env: config
-					? resolveDefaultAccountEnv(ctx.db, config.presetId)
+					? resolveDefaultAccountEnv(ctx.db, config.presetId, {
+							workspaceId: input.workspaceId,
+						})
 					: undefined,
 			});
 		}),

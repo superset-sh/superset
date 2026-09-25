@@ -1581,6 +1581,9 @@ msgstr "Rispetto a main"
 msgid "Agent"
 msgstr "Agente"
 
+msgid "Agent accounts"
+msgstr "Account degli agenti"
+
 msgid "Agent commands"
 msgstr "Comandi degli agenti"
 
@@ -6480,6 +6483,9 @@ msgstr "Aggiornamento dell'impostazione non riuscito"
 msgid "Failed to update team. Please try again."
 msgstr "Aggiornamento del team non riuscito. Riprova."
 
+msgid "Failed to update the project's agent account"
+msgstr "Impossibile aggiornare l'account agente del progetto"
+
 msgid "Failed to update URL"
 msgstr "Aggiornamento dell'URL non riuscito"
 
@@ -7309,6 +7315,10 @@ msgstr "Home"
 
 msgid "Host"
 msgstr "Host"
+
+#. placeholder {0}: accountLabel(hostDefault)
+msgid "Host default: {0}"
+msgstr "Predefinito dell'host: {0}"
 
 msgid "Host ID"
 msgstr "ID host"
@@ -16312,6 +16322,9 @@ msgstr "Usa per i nuovi agenti"
 msgid "Use global default"
 msgstr "Usa il valore predefinito globale"
 
+msgid "Use host default"
+msgstr "Usa il valore predefinito dell'host"
+
 msgid "Use Superset on mobile"
 msgstr "Usa Superset sul cellulare"
 
@@ -16827,6 +16840,9 @@ msgstr "Quali agenti sono supportati?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Quali agenti di programmazione AI sono supportati?"
+
+msgid "Which provider login agents launched in this project use. Defaults to the host-wide choice on the Usage page."
+msgstr "Quale accesso al provider usano gli agenti avviati in questo progetto. Per impostazione predefinita, la scelta globale dell'host nella pagina Utilizzo."
 
 msgid "Who can open this page from its link"
 msgstr "Chi può aprire questa pagina dal suo link"

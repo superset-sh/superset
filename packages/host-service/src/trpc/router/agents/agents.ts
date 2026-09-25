@@ -408,7 +408,9 @@ function validateForkSessionIsResolvable(
 	// provider account keeps its sessions in that account's directory, and
 	// looking in the default one would refuse a fork that would have worked.
 	const launchEnv = {
-		...resolveDefaultAccountEnv(db, config.presetId),
+		...resolveDefaultAccountEnv(db, config.presetId, {
+			workspaceId: input.workspaceId,
+		}),
 		...config.env,
 	};
 	const resolvable = hasHarnessSession({
@@ -534,9 +536,12 @@ export function buildTerminalAgentLaunch(
 		},
 	);
 	const modelEnv = buildAgentModelEnv(launchPresetId, input.model);
-	// Host-default provider account (Usage tab switcher). Per-agent env wins,
-	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
-	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
+	// Default provider account (Usage tab switcher, or the project's own
+	// override). Per-agent env wins, so a "Claude (work)" agent with its own
+	// CLAUDE_CONFIG_DIR stays pinned.
+	const accountEnv = resolveDefaultAccountEnv(db, config.presetId, {
+		workspaceId: input.workspaceId,
+	});
 	return {
 		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
 		label: config.label,

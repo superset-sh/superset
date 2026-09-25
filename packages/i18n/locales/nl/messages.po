@@ -1581,6 +1581,9 @@ msgstr "Ten opzichte van main"
 msgid "Agent"
 msgstr "Agent"
 
+msgid "Agent accounts"
+msgstr "Agentaccounts"
+
 msgid "Agent commands"
 msgstr "Agentcommando's"
 
@@ -6480,6 +6483,9 @@ msgstr "Bijwerken van instelling mislukt"
 msgid "Failed to update team. Please try again."
 msgstr "Bijwerken van team mislukt. Probeer het opnieuw."
 
+msgid "Failed to update the project's agent account"
+msgstr "Kan het agentaccount van het project niet bijwerken"
+
 msgid "Failed to update URL"
 msgstr "Bijwerken van URL mislukt"
 
@@ -7309,6 +7315,10 @@ msgstr "Home"
 
 msgid "Host"
 msgstr "Host"
+
+#. placeholder {0}: accountLabel(hostDefault)
+msgid "Host default: {0}"
+msgstr "Hoststandaard: {0}"
 
 msgid "Host ID"
 msgstr "Host-ID"
@@ -16312,6 +16322,9 @@ msgstr "Gebruiken voor nieuwe agents"
 msgid "Use global default"
 msgstr "Globale standaard gebruiken"
 
+msgid "Use host default"
+msgstr "Hoststandaard gebruiken"
+
 msgid "Use Superset on mobile"
 msgstr "Gebruik Superset op je mobiel"
 
@@ -16827,6 +16840,9 @@ msgstr "Welke agents worden ondersteund?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Welke AI-coding agents worden ondersteund?"
+
+msgid "Which provider login agents launched in this project use. Defaults to the host-wide choice on the Usage page."
+msgstr "Met welke provider-login agents in dit project starten. Standaard de hostbrede keuze op de pagina Gebruik."
 
 msgid "Who can open this page from its link"
 msgstr "Wie deze pagina via de link kan openen"

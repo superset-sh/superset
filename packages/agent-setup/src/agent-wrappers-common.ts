@@ -131,20 +131,25 @@ function buildRealBinaryResolver(): string {
 }
 
 /**
- * Shell block that re-resolves the Usage-tab default account at launch.
+ * Shell block that re-resolves the default account at launch.
  * The PTY env is frozen at terminal spawn, so an account switch would
  * otherwise reach only brand-new terminals; this re-reads the host's
  * pointer file every time the agent starts instead. Superset terminals
  * only, and a value the user exported by hand — one that differs from what
- * Superset injected at spawn — always wins. A missing pointer file (older
- * host build) changes nothing; an empty one means the system default.
+ * Superset injected at spawn — always wins. The terminal's project pointer
+ * (`state/projects/$SUPERSET_PROJECT_ID/<name>`) takes precedence over the
+ * host-wide one when it exists. A missing pointer file (older host build,
+ * or a project with no override) changes nothing; an empty one means the
+ * system default.
  */
 export function buildDefaultAccountResolver(
 	envVar: string,
 	pointerName: string,
 	ambientEnvVar?: string,
 ): string {
-	const pointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	const hostPointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	const projectPointer = `"$SUPERSET_HOME_DIR/state/projects/$SUPERSET_PROJECT_ID/${pointerName}"`;
+	const pointer = '"$superset_account_pointer"';
 	const restoreSystemDefault = ambientEnvVar
 		? `if [ -n "\${${ambientEnvVar}}" ]; then
     export ${envVar}="\${${ambientEnvVar}}"
@@ -155,7 +160,11 @@ export function buildDefaultAccountResolver(
   fi`
 		: `unset ${envVar}
   unset SUPERSET_DEFAULT_${envVar}`;
-	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
+	return `superset_account_pointer=${hostPointer}
+if [ -n "$SUPERSET_PROJECT_ID" ] && [ -f ${projectPointer} ]; then
+  superset_account_pointer=${projectPointer}
+fi
+if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
   superset_default_account="$(cat ${pointer} 2>/dev/null)"

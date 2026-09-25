@@ -16,7 +16,9 @@ import {
 import type { HostDb } from "../../../db/index.ts";
 import {
 	getDefaultAccountSelections,
+	listProjectAccountSelections,
 	syncDefaultAccountPointers,
+	syncProjectDefaultAccountPointers,
 } from "./default-account.ts";
 import {
 	shareClaudeSessionState,
@@ -55,18 +57,27 @@ export async function provisionSelectedAccounts(db: HostDb): Promise<void> {
 	// Heal the wrapper pointer files first — a build predating them (or a
 	// crashed switch) leaves agents launching on a stale spawn-time default.
 	syncDefaultAccountPointers(db);
+	syncProjectDefaultAccountPointers(db);
 	const { claudeConfigDir, codexHome } = getDefaultAccountSelections(db);
+	const claudeDirs = new Set<string>();
+	const codexHomes = new Set<string>();
+	if (claudeConfigDir) claudeDirs.add(claudeConfigDir);
+	if (codexHome) codexHomes.add(codexHome);
+	// Project overrides are launched on just like the host default is.
+	for (const project of listProjectAccountSelections(db)) {
+		if (project.claudeConfigDir) claudeDirs.add(project.claudeConfigDir);
+		if (project.codexHome) codexHomes.add(project.codexHome);
+	}
 	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
 	// A pointer at a vanished dir is skipped, not recreated: agent launches
 	// already fall back to the system-default login in that case.
-	if (claudeConfigDir && existsSync(claudeConfigDir)) {
-		targets.push([
-			claudeConfigDir,
-			() => provisionClaudeAccount(claudeConfigDir),
-		]);
+	for (const dir of claudeDirs) {
+		if (existsSync(dir)) targets.push([dir, () => provisionClaudeAccount(dir)]);
 	}
-	if (codexHome && existsSync(codexHome)) {
-		targets.push([codexHome, () => provisionCodexAccount(codexHome)]);
+	for (const home of codexHomes) {
+		if (existsSync(home)) {
+			targets.push([home, () => provisionCodexAccount(home)]);
+		}
 	}
 	for (const [dir, provision] of targets) {
 		try {
