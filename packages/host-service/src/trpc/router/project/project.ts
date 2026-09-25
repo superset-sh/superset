@@ -40,7 +40,7 @@ import {
 	createFromTemplate,
 } from "./handlers";
 import { listLiveLocalWorkspaces } from "./utils/create-local-workspace";
-import { getGitHubRemotes } from "./utils/git-remote";
+import { getAllRemoteUrls, getGitHubRemotes } from "./utils/git-remote";
 import { listGitHubRepositories } from "./utils/github-repositories";
 import { persistLocalProject } from "./utils/persist-project";
 import {
@@ -70,6 +70,14 @@ export interface FindByPathCandidate {
 	repoCloneUrl: string | null;
 	source: "local-path" | "remote";
 	matchesExpected: boolean;
+	/**
+	 * True when this cloud candidate was discovered via the repo's `origin`
+	 * remote (the canonical "this is my repo" identity). `origin` is what
+	 * makes a lone cloud match trustworthy: a v1 repo that merely *references*
+	 * another repo as a secondary remote must not silently claim that other
+	 * repo's v2 project. Only meaningful for `source: "remote"`.
+	 */
+	viaOrigin: boolean;
 }
 
 export const projectRouter = router({
@@ -473,6 +481,7 @@ export const projectRouter = router({
 					candidates: [],
 					cloudErrors: [] as { url: string; message: string }[],
 					needsGitInit: true as const,
+					hasOriginRemote: false,
 				};
 			}
 
@@ -511,9 +520,11 @@ export const projectRouter = router({
 							repoCloneUrl: localProject.repoUrl ?? null,
 							source: "local-path" as const,
 							matchesExpected: matches(localProject.repoUrl ?? null),
+							viaOrigin: false,
 						},
 					],
 					cloudErrors: [] as { url: string; message: string }[],
+					hasOriginRemote: false,
 				};
 			}
 
@@ -521,12 +532,22 @@ export const projectRouter = router({
 			// hit means the caller creates a fresh local project; the cloud
 			// is never consulted.
 			if (!input.walkAllRemotes) {
-				return { candidates: [], cloudErrors: [] };
+				return { candidates: [], cloudErrors: [], hasOriginRemote: false };
 			}
 
 			// walkAllRemotes branch — v1→v2 importer, no local row: discover
 			// linkable cloud candidates across every GitHub remote.
-			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
+			const git = createUserSimpleGit(gitRoot);
+			const [allRemotes, rawRemotes] = await Promise.all([
+				getGitHubRemotes(git),
+				getAllRemoteUrls(git),
+			]);
+			// `origin` is the repo's canonical identity even when it points at
+			// a non-GitHub host (GitLab, a self-hosted forge, an SSH alias):
+			// `getGitHubRemotes` drops those, so consult the raw remote list
+			// for existence and keep the parsed map only for `viaOrigin`.
+			const hasOriginRemote = rawRemotes.has("origin");
+			const originUrl = allRemotes.get("origin")?.url.toLowerCase();
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
 			for (const parsed of allRemotes.values()) {
@@ -543,6 +564,7 @@ export const projectRouter = router({
 			// importer (the only caller that sets walkAllRemotes).
 			const cloudErrors: { url: string; message: string }[] = [];
 			for (const parsed of urlsToQuery.values()) {
+				const viaOrigin = parsed.url.toLowerCase() === originUrl;
 				try {
 					const { candidates } =
 						await ctx.api.v2Project.findByGitHubRemote.query({
@@ -556,6 +578,7 @@ export const projectRouter = router({
 							// candidate and merge the match flag.
 							existing.matchesExpected =
 								existing.matchesExpected || matches(parsed.url);
+							existing.viaOrigin = existing.viaOrigin || viaOrigin;
 							existing.repoCloneUrl = existing.repoCloneUrl ?? parsed.url;
 						} else {
 							byId.set(c.id, {
@@ -564,6 +587,7 @@ export const projectRouter = router({
 								repoCloneUrl: parsed.url,
 								source: "remote",
 								matchesExpected: matches(parsed.url),
+								viaOrigin,
 							});
 						}
 					}
@@ -578,8 +602,14 @@ export const projectRouter = router({
 				}
 			}
 
-			// Sort: matchesExpected first, then alphabetic.
+			// Sort origin-derived candidates first (they are this repo's own
+			// identity), then expected matches, then alphabetic. When a repo
+			// references another repo as a secondary remote, the origin-ranked
+			// candidate is the one that belongs to *this* repo.
 			const candidates = Array.from(byId.values()).sort((a, b) => {
+				if (a.viaOrigin !== b.viaOrigin) {
+					return a.viaOrigin ? -1 : 1;
+				}
 				if (a.matchesExpected !== b.matchesExpected) {
 					return a.matchesExpected ? -1 : 1;
 				}
@@ -590,7 +620,15 @@ export const projectRouter = router({
 			// one cloud query failed — so users see a clear "couldn't reach
 			// cloud" instead of a misleading "Import" (which would create a
 			// duplicate v2 project).
-			return { candidates, cloudErrors };
+			return {
+				candidates,
+				cloudErrors,
+				// Whether this repo has an `origin` remote (any host, not just
+				// GitHub) — the renderer gate in decideProjectImport refuses a
+				// lone non-origin match when origin exists (multi-remote
+				// hijack guard).
+				hasOriginRemote,
+			};
 		}),
 
 	create: machineOnlyProcedure
