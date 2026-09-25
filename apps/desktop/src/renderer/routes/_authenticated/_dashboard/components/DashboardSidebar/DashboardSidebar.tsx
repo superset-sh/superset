@@ -237,7 +237,7 @@ export function DashboardSidebar({
 		sortedGroups,
 		sessionWorkspaces,
 		sessionChildren,
-		{ revealCollapsed: !isFilterActive },
+		{ revealCollapsed: !isFilterActive, pinnedWorkspaces },
 	);
 	// Scoped to what the filter actually shows — select-all and range-select
 	// must not reach rows the filter is hiding.

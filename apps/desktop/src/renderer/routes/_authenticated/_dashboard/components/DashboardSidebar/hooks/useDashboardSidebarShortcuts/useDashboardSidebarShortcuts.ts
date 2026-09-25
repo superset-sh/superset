@@ -4,6 +4,7 @@ import { useHotkey } from "renderer/hotkeys";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -54,6 +55,7 @@ function useStableWorkspaceShortcutLabels(
 }
 
 interface UseDashboardSidebarShortcutsOptions {
+	pinnedWorkspaces?: DashboardSidebarWorkspace[];
 	/**
 	 * Expand a collapsed project/folder so the target row is visible after the
 	 * jump. Off while the Projects filter is active: the filtered view already
@@ -67,7 +69,10 @@ export function useDashboardSidebarShortcuts(
 	groups: DashboardSidebarProject[],
 	sessionWorkspaces: DashboardSidebarWorkspace[] = [],
 	sessionChildren: DashboardSidebarProjectChild[] = [],
-	{ revealCollapsed = true }: UseDashboardSidebarShortcutsOptions = {},
+	{
+		revealCollapsed = true,
+		pinnedWorkspaces = [],
+	}: UseDashboardSidebarShortcutsOptions = {},
 ) {
 	const navigate = useNavigate();
 	const { toggleProjectCollapsed, toggleSectionCollapsed } =
@@ -88,6 +93,13 @@ export function useDashboardSidebarShortcuts(
 	);
 	const workspaceShortcutLabels =
 		useStableWorkspaceShortcutLabels(flattenedWorkspaces);
+	const navigationWorkspaces = useMemo(
+		() => [
+			...pinnedWorkspaces.filter((workspace) => !deletingIds.has(workspace.id)),
+			...flattenedWorkspaces,
+		],
+		[pinnedWorkspaces, flattenedWorkspaces, deletingIds],
+	);
 
 	const workspaceLocations = useMemo(() => {
 		const map = new Map<string, WorkspaceLocation>();
@@ -136,6 +148,12 @@ export function useDashboardSidebarShortcuts(
 
 	const revealWorkspace = useCallback(
 		(workspaceId: string) => {
+			if (pinnedWorkspaces.some((workspace) => workspace.id === workspaceId)) {
+				const { collapsed, toggle } =
+					useSidebarSectionsCollapseStore.getState();
+				if (collapsed.pinned) toggle("pinned");
+				return;
+			}
 			const location = workspaceLocations.get(workspaceId);
 			if (!location) return;
 			if (location.projectId !== null && location.projectIsCollapsed) {
@@ -145,7 +163,12 @@ export function useDashboardSidebarShortcuts(
 				toggleSectionCollapsed(location.sectionId);
 			}
 		},
-		[workspaceLocations, toggleProjectCollapsed, toggleSectionCollapsed],
+		[
+			pinnedWorkspaces,
+			workspaceLocations,
+			toggleProjectCollapsed,
+			toggleSectionCollapsed,
+		],
 	);
 
 	const switchToWorkspace = useCallback(
@@ -178,23 +201,23 @@ export function useDashboardSidebarShortcuts(
 		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
 
 	useHotkey("PREV_WORKSPACE", () => {
-		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
-		const index = flattenedWorkspaces.findIndex(
+		if (!currentWorkspaceId || navigationWorkspaces.length === 0) return;
+		const index = navigationWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
-		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
-		const target = flattenedWorkspaces[prevIndex];
+		const prevIndex = index <= 0 ? navigationWorkspaces.length - 1 : index - 1;
+		const target = navigationWorkspaces[prevIndex];
 		revealWorkspace(target.id);
 		navigateToV2Workspace(target.id, navigate);
 	});
 
 	useHotkey("NEXT_WORKSPACE", () => {
-		if (!currentWorkspaceId || flattenedWorkspaces.length === 0) return;
-		const index = flattenedWorkspaces.findIndex(
+		if (!currentWorkspaceId || navigationWorkspaces.length === 0) return;
+		const index = navigationWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
-		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
-		const target = flattenedWorkspaces[nextIndex];
+		const nextIndex = index >= navigationWorkspaces.length - 1 ? 0 : index + 1;
+		const target = navigationWorkspaces[nextIndex];
 		revealWorkspace(target.id);
 		navigateToV2Workspace(target.id, navigate);
 	});
