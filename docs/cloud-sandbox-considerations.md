@@ -55,10 +55,13 @@ default, the interactive prompt defaults to "No (recommended)" and stores the
 answer as the key's last 20 characters exactly as the seed writes it, and after
 "No" requests go out with the OAuth token. The answer governs the interactive
 CLI only: `claude -p` and the SDK use an API key in the environment regardless,
-so a headless call a person starts on such a box runs on the app's key. Two
-things this leaves: `claude` typed by hand in a terminal on such a box sees the
-app's key and, with the prompt answered no, asks the person to log in; and
-**Open:** nothing at workspace creation checks that the chosen agent has a
+so a headless call a person starts on such a box runs on the app's key. What
+this leaves: a headless `claude -p`, an SDK call, or `codex` typed by hand on a
+box whose environment carries the provider's key runs on that key, the team's
+own app key, because those clients take an environment key without asking; a
+hand-typed `claude` is fine for a subscription sign-in (the terminal carries the
+OAuth placeholder) and asks the person to log in only when their sign-in is an
+API key whose name the app's key already holds; and **Open:** nothing at workspace creation checks that the chosen agent has a
 sign-in, so a person without one gets a box whose agent sits on a login prompt,
 and an automation-created box does the same silently. Rotation of a person's
 credential reaches a running box within one keepalive: the firewall policy is
