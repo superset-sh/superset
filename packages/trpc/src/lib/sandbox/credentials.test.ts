@@ -42,7 +42,7 @@ describe("deriveSandboxCredentials", () => {
 			match: {
 				headers: [
 					{
-						key: { regex: "(?i)^authorization$" },
+						key: { exact: "authorization" },
 						value: { exact: `Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}` },
 					},
 				],

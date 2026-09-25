@@ -95,9 +95,7 @@ function swap(
 	return [
 		{
 			match: {
-				headers: [
-					{ key: { regex: `(?i)^${header}$` }, value: { exact: placeholder } },
-				],
+				headers: [{ key: { exact: header }, value: { exact: placeholder } }],
 			},
 			transform: [{ headers: { [header]: value } }],
 		},
