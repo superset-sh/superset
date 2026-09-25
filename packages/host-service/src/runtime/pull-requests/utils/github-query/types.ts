@@ -38,6 +38,8 @@ export interface GitHubPullRequestNode {
 	headRepositoryOwner: { login: string } | null;
 	headRepository: { name: string } | null;
 	updatedAt: string;
+	/** GitHub's `merged_at` parsed to epoch ms; null when absent or unparseable. */
+	mergedAt: number | null;
 }
 
 export type GitHubPullRequestReviewDecision =

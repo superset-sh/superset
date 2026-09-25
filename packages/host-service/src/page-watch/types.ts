@@ -1,0 +1,60 @@
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
+
+export interface PageWatchAssignment {
+	pageId: string;
+	slug: string;
+	title: string;
+	workspaceId: string;
+	terminalId: string;
+	agentId: string | null;
+}
+
+export interface PageWatchEntry extends PageWatchAssignment {
+	abortController: AbortController;
+	agentBinding: TerminalAgentBinding;
+	assignedAt: number;
+	token: string;
+	seenCommentIds: Set<string>;
+	pendingDelivery: {
+		reservationId: string;
+		commentIds: string[];
+		pings: Map<string, number>;
+		delivered: boolean;
+	} | null;
+	lastHumanCommentAt: number;
+	lastHeartbeatAt: number;
+	lastPolledAt: number;
+	failures: number;
+	pings: Map<string, number>;
+	pendingSince: number | null;
+}
+
+export interface WatchedThreadComment {
+	id: string;
+	body: string;
+	authorKind: "human" | "agent";
+	authorName: string;
+	createdAt: Date;
+}
+
+export interface WatchedThread {
+	id: string;
+	anchorKind: "element" | "text" | "page";
+	anchor: { path: string; tag: string } | null;
+	anchorText: string | null;
+	resolved: boolean;
+	version: number;
+	comments: WatchedThreadComment[];
+}
+
+export interface PageWatchStatus {
+	pageId: string;
+	slug: string;
+	title: string;
+	workspaceId: string;
+	terminalId: string;
+	agentId: string | null;
+	assignedAt: number;
+	lastHumanCommentAt: number;
+	pendingSince: number | null;
+}

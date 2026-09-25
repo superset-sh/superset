@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/lib/utils";
 import type { AppMetrics, UsageValues } from "../../types";
 import { formatCpu, formatMemory } from "../../utils/formatters";
@@ -41,6 +42,7 @@ export function AppResourceSection({
 	app,
 	totalUsage,
 }: AppResourceSectionProps) {
+	const { t } = useLingui();
 	const appSeverity = getUsageSeverity(app, totalUsage);
 	const mainSeverity = getUsageSeverity(app.main, app);
 	const rendererSeverity = getUsageSeverity(app.renderer, app);
@@ -52,7 +54,7 @@ export function AppResourceSection({
 			<div className="flex items-center justify-between px-3.5 py-1.5">
 				<div className="flex items-center gap-1.5 min-w-0 mr-2">
 					<span className="text-[12px] font-medium text-foreground truncate min-w-0">
-						Superset App
+						<Trans>Superset App</Trans>
 					</span>
 					<UsageSeverityBadge severity={appSeverity} />
 				</div>
@@ -63,20 +65,26 @@ export function AppResourceSection({
 			</div>
 
 			<SubRow
-				label="Main"
+				label={t({
+					message: "Main",
+				})}
 				cpu={app.main.cpu}
 				memory={app.main.memory}
 				severity={mainSeverity}
 			/>
 			<SubRow
-				label="Renderer"
+				label={t({
+					message: "Renderer",
+				})}
 				cpu={app.renderer.cpu}
 				memory={app.renderer.memory}
 				severity={rendererSeverity}
 			/>
 			{showOther && (
 				<SubRow
-					label="Other"
+					label={t({
+						message: "Other",
+					})}
 					cpu={app.other.cpu}
 					memory={app.other.memory}
 					severity={otherSeverity}

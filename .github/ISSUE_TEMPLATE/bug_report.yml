@@ -1,0 +1,49 @@
+name: 🐞 Bug report
+description: Something isn't working right
+labels: [bug]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did this happen?
+      options:
+        - Desktop app (macOS)
+        - Web app (app.superset.sh)
+        - CLI
+        - Building from source
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Desktop: Superset > About Superset. CLI: superset --version. Source builds: the commit SHA."
+      placeholder: "e.g. 1.15.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: If you can't reproduce it reliably, describe what you were doing when it happened.
+      placeholder: |
+        1. Open a workspace
+        2. ...
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Logs, screenshots, or recordings
+      description: Anything that shows the problem. Drag and drop files here.
+    validations:
+      required: false

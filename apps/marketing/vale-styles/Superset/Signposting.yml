@@ -1,0 +1,10 @@
+extends: existence
+message: "'%s' is signposting, an AI tell (Kiet's voice doc); start with the substance."
+link: https://app.notion.com/p/399b9d5bf61680db9841f6126d1c1ab4
+level: warning
+ignorecase: true
+tokens:
+  - "here['’]s the thing"
+  - "here['’]s the breakdown"
+  - the key insight
+  - to be clear

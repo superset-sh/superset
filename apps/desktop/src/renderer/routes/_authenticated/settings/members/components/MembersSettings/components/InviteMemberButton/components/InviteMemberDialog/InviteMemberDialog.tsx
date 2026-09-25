@@ -1,8 +1,6 @@
-import {
-	canInvite,
-	ORGANIZATION_ROLES,
-	type OrganizationRole,
-} from "@superset/shared/auth";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
+import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -24,6 +22,8 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { organizationRoleName } from "renderer/lib/organizationRoleName";
 
 interface InviteMemberDialogProps {
 	open: boolean;
@@ -42,13 +42,20 @@ export function InviteMemberDialog({
 	invitableRoles,
 	currentUserRole,
 }: InviteMemberDialogProps) {
+	const { t } = useLingui();
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<OrganizationRole>("member");
 	const [isInviting, setIsInviting] = useState(false);
+	const utils = cloudTrpc.useUtils();
 
 	const handleInvite = async () => {
 		if (!canInvite(currentUserRole, role)) {
-			toast.error(`Cannot invite users as ${ORGANIZATION_ROLES[role].name}`);
+			const roleName = organizationRoleName(role);
+			toast.error(
+				t({
+					message: `Cannot invite users as ${roleName}`,
+				}),
+			);
 			return;
 		}
 
@@ -60,13 +67,23 @@ export function InviteMemberDialog({
 				role,
 			});
 
-			toast.success(`Invitation sent to ${email}`);
+			await utils.organization.listInvitations.invalidate();
+			toast.success(
+				t({
+					message: `Invitation sent to ${email}`,
+				}),
+			);
 			setEmail("");
 			setRole("member");
 			onOpenChange(false);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to send invitation",
+				errorMessage(
+					error,
+					t({
+						message: "Failed to send invitation",
+					}),
+				),
 			);
 		} finally {
 			setIsInviting(false);
@@ -77,19 +94,28 @@ export function InviteMemberDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Invite Member</DialogTitle>
+					<DialogTitle>
+						<Trans>Invite Member</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Send an invitation to join {organizationName}. Expires in 48 hours.
+						<Trans>
+							Send an invitation to join {organizationName}. Expires in 48
+							hours.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 py-4">
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
+						<Label htmlFor="email">
+							<Trans>Email</Trans>
+						</Label>
 						<Input
 							id="email"
 							type="email"
-							placeholder="user@example.com"
+							placeholder={t({
+								message: "user@example.com",
+							})}
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							onKeyDown={(e) => {
@@ -102,7 +128,9 @@ export function InviteMemberDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="role">Role</Label>
+						<Label htmlFor="role">
+							<Trans>Role</Trans>
+						</Label>
 						<Select
 							value={role}
 							onValueChange={(val) => setRole(val as OrganizationRole)}
@@ -113,7 +141,7 @@ export function InviteMemberDialog({
 							<SelectContent>
 								{invitableRoles.map((r) => (
 									<SelectItem key={r} value={r}>
-										{ORGANIZATION_ROLES[r].name}
+										{organizationRoleName(r)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -127,10 +155,14 @@ export function InviteMemberDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isInviting}
 					>
-						Cancel
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button onClick={handleInvite} disabled={isInviting || !email}>
-						{isInviting ? "Sending..." : "Send Invitation"}
+						{isInviting ? (
+							<Trans>Sending...</Trans>
+						) : (
+							<Trans>Send Invitation</Trans>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

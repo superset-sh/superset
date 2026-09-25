@@ -9,6 +9,8 @@ export interface HostAgentPreset {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	resumeArgs: string[];
+	forkArgs: string[];
 	env: Record<string, string>;
 }
 
@@ -16,14 +18,14 @@ function tokenize(commandString: string): string[] {
 	return commandString.split(/\s+/).filter(Boolean);
 }
 
-function derivePromptArgs(
+// The variant commands include the base command; strip the shared prefix to
+// get just the variant-only args (e.g. "codex --flag --" → ["--"]).
+function deriveSuffixArgs(
 	commandTokens: string[],
-	promptCommand: string | undefined,
+	variantCommand: string | undefined,
 ): string[] {
-	if (!promptCommand) return [];
-	// promptCommand includes the base command; strip the shared prefix to
-	// get just the prompt-only args (e.g. "codex --flag --" → ["--"]).
-	return tokenize(promptCommand).slice(commandTokens.length);
+	if (!variantCommand) return [];
+	return tokenize(variantCommand).slice(commandTokens.length);
 }
 
 /**
@@ -37,6 +39,11 @@ function derivePromptArgs(
  *     : [command, ...args]
  *
  * Stdin transport pipes the prompt to stdin instead of pushing it to argv.
+ *
+ * Resuming a previous session splices `[...resumeArgs, sessionId]` after the
+ * base args. Empty `resumeArgs` means the agent has no id-based resume.
+ * Forking uses `forkArgs`; `{sessionId}` marks the provider-specific id
+ * position, otherwise the id is appended after those args.
  */
 export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 	BUILTIN_TERMINAL_AGENTS.map((agent) => {
@@ -49,7 +56,9 @@ export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 			command: bin,
 			args,
 			promptTransport: agent.promptTransport ?? "argv",
-			promptArgs: derivePromptArgs(commandTokens, agent.promptCommand),
+			promptArgs: deriveSuffixArgs(commandTokens, agent.promptCommand),
+			resumeArgs: deriveSuffixArgs(commandTokens, agent.resumeCommand),
+			forkArgs: deriveSuffixArgs(commandTokens, agent.forkCommand),
 			env: {},
 		};
 	});
@@ -59,6 +68,8 @@ function clonePreset(preset: HostAgentPreset): HostAgentPreset {
 		...preset,
 		args: [...preset.args],
 		promptArgs: [...preset.promptArgs],
+		resumeArgs: [...preset.resumeArgs],
+		forkArgs: [...preset.forkArgs],
 		env: { ...preset.env },
 	};
 }

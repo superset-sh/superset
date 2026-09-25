@@ -34,11 +34,13 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 		if (typeof window === "undefined" || !projectStorageKey) return null;
 		return window.localStorage.getItem(projectStorageKey);
 	});
-	const [selectedAgent, setSelectedAgentState] = useState<TAgent>(() => {
-		if (typeof window === "undefined") return defaultAgent;
-		const stored = window.localStorage.getItem(agentStorageKey);
-		return stored ? (stored as TAgent) : defaultAgent;
-	});
+	const [preferredAgent, setSelectedAgentState] = useState<TAgent | null>(
+		() => {
+			if (typeof window === "undefined") return null;
+			const stored = window.localStorage.getItem(agentStorageKey);
+			return stored ? (stored as TAgent) : null;
+		},
+	);
 	const [autoRun, setAutoRunState] = useState(() => {
 		if (typeof window === "undefined" || !autoRunStorageKey) {
 			return initialAutoRun;
@@ -60,33 +62,13 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 		window.localStorage.setItem(projectStorageKey, initialProjectId);
 	}, [projectStorageKey, recentProjects, selectedProjectId]);
 
-	// Never persist the fallback to localStorage — a transient unavailability
-	// should not permanently overwrite the user's explicit choice.
-	useEffect(() => {
-		if (!agentsReady) {
-			return;
-		}
-		if (validAgentSet.has(selectedAgent)) {
-			return;
-		}
-
-		const stored =
-			typeof window === "undefined"
-				? null
-				: window.localStorage.getItem(agentStorageKey);
-		if (stored && validAgentSet.has(stored as TAgent)) {
-			setSelectedAgentState(stored as TAgent);
-			return;
-		}
-
-		setSelectedAgentState(fallbackAgent);
-	}, [
-		agentStorageKey,
-		agentsReady,
-		fallbackAgent,
-		selectedAgent,
-		validAgentSet,
-	]);
+	// Availability is display state, not a new preference. Keeping the explicit
+	// choice lets it recover after host switches or asynchronous agent loading.
+	const requestedAgent = preferredAgent ?? defaultAgent;
+	const selectedAgent =
+		!agentsReady || validAgentSet.has(requestedAgent)
+			? requestedAgent
+			: fallbackAgent;
 
 	const setSelectedProjectId = (projectId: string | null) => {
 		setSelectedProjectIdState(projectId);
@@ -99,6 +81,9 @@ export function useAgentLaunchPreferences<TAgent extends string>({
 	};
 
 	const setSelectedAgent = (agent: TAgent) => {
+		// Radix's native select can emit an empty value as host options change.
+		// It is not a user choice (the explicit opt-out is "none").
+		if (!agent) return;
 		setSelectedAgentState(agent);
 		if (typeof window !== "undefined") {
 			window.localStorage.setItem(agentStorageKey, agent);

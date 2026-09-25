@@ -1,29 +1,43 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	getVisibleSidebarWorkspaces,
-	isAutoIncludedLocalMainWorkspace,
-} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	deriveTagFolders,
+	useTagFolderContext,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
+	DashboardSidebarHiddenProject,
+	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
-import { buildDashboardSidebarProjects } from "./buildDashboardSidebarProjects";
+import {
+	buildDashboardSidebarPinnedWorkspaces,
+	buildDashboardSidebarProjects,
+	buildDashboardSidebarSessions,
+	partitionSidebarWorkspacesByPinned,
+} from "./buildDashboardSidebarProjects";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
+import { pickGithubStatus } from "./pickGithubStatus";
+import { createPullRequestRefreshGate } from "./pullRequestRefreshCooldown";
 
-const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+// Module-level so remounting the sidebar doesn't reset the cool-down.
+const pullRequestRefreshGate = createPullRequestRefreshGate();
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -86,6 +100,26 @@ function useStablePullRequestsByWorkspaceId(
 	}, [rows]);
 }
 
+/**
+ * Returns the previous reference while the JSON serialization is unchanged.
+ * Same purpose as the fingerprinted hooks below: the sidebar builders produce
+ * fresh arrays every run, and downstream memoization needs stable identities.
+ */
+function useJsonStable<Value>(value: Value): Value {
+	const previousRef = useRef<{ fingerprint: string; value: Value } | null>(
+		null,
+	);
+	return useMemo(() => {
+		const fingerprint = JSON.stringify(value);
+		const previous = previousRef.current;
+		if (previous?.fingerprint === fingerprint) {
+			return previous.value;
+		}
+		previousRef.current = { fingerprint, value };
+		return value;
+	}, [value]);
+}
+
 function useStableDashboardSidebarProjects(
 	projects: DashboardSidebarProject[],
 ): DashboardSidebarProject[] {
@@ -134,109 +168,203 @@ export function useDashboardSidebarData() {
 	const workspaceTransactionsById = useWorkspaceTransactionsStore(
 		(state) => state.byWorkspaceId,
 	);
-	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
-		(state) => state.clear,
-	);
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const { hosts, organizationId: knownHostsOrgId } = useKnownHosts();
 	const hostsByMachineId = useMemo(
 		() => new Map(hosts.map((host) => [host.machineId, host])),
 		[hosts],
 	);
 
-	const { data: rawSidebarProjects = [] } = useLiveQuery(
+	// Placement (order/collapse) is local; project identity comes from the
+	// host fan-out (useHostProjects) — projects are fully local, so the
+	// sidebar joins the two in JS on the project id.
+	const { data: sidebarProjectRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ sidebarProjects, projects }) =>
-						eq(sidebarProjects.projectId, projects.id),
-				)
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
-				.orderBy(({ sidebarProjects }) => sidebarProjects.tabOrder, "asc")
-				.select(({ sidebarProjects, projects, repos }) => ({
-					id: projects.id,
-					name: projects.name,
-					slug: projects.slug,
-					githubRepositoryId: projects.githubRepositoryId,
-					githubOwner: repos?.owner ?? null,
-					githubRepoName: repos?.name ?? null,
-					iconUrl: projects.iconUrl,
-					createdAt: projects.createdAt,
-					updatedAt: projects.updatedAt,
+				.select(({ sidebarProjects }) => ({
+					projectId: sidebarProjects.projectId,
 					isCollapsed: sidebarProjects.isCollapsed,
+					isHidden: sidebarProjects.isHidden,
+					tabOrder: sidebarProjects.tabOrder,
 				})),
 		[collections],
 	);
-
-	const sidebarProjects = useMemo(
+	// Sorted in JS, not via the query's orderBy: the incremental orderBy
+	// does not reliably re-sort on row inserts/renumbers (a newly added
+	// project stayed appended at the bottom until reload), and tabOrders
+	// can collide (bulk ensure paths mint duplicates) so ties need a
+	// stable secondary key. Workspaces/sections don't need this — the
+	// project-tree builder re-sorts them by tabOrder itself.
+	const orderedSidebarProjectRows = useMemo(
 		() =>
-			rawSidebarProjects.map((project) => ({
-				...project,
-				githubOwner: project.githubOwner ?? null,
-				githubRepoName: project.githubRepoName ?? null,
-			})),
-		[rawSidebarProjects],
+			[...sidebarProjectRows].sort(
+				(left, right) =>
+					left.tabOrder - right.tabOrder ||
+					left.projectId.localeCompare(right.projectId),
+			),
+		[sidebarProjectRows],
 	);
 
-	const { data: sidebarSections = [] } = useLiveQuery(
+	const { projects: hostProjects } = useHostProjects();
+
+	const hostProjectsByKey = useMemo(
+		() => new Map(hostProjects.map((project) => [project.projectKey, project])),
+		[hostProjects],
+	);
+	const sidebarProjects = useMemo(
+		() =>
+			orderedSidebarProjectRows.flatMap((row) => {
+				// A hidden project keeps its placement rows but renders nowhere;
+				// it comes back through the "hidden projects" restore list.
+				if (row.isHidden) return [];
+				const project = hostProjectsByKey.get(row.projectId);
+				// No host serves it: stale placement row (deleted project) — drop
+				// it, same as the old inner join did.
+				if (!project) return [];
+				return [
+					{
+						id: project.projectKey,
+						name: project.name,
+						githubOwner: project.repoOwner,
+						githubRepoName: project.repoName,
+						iconUrl: resolveProjectIconUrl(project),
+						color: project.color,
+						createdAt: new Date(project.createdAt),
+						updatedAt: new Date(project.updatedAt),
+						isCollapsed: row.isCollapsed,
+					},
+				];
+			}),
+		[orderedSidebarProjectRows, hostProjectsByKey],
+	);
+	const hiddenProjects = useMemo<DashboardSidebarHiddenProject[]>(
+		() =>
+			orderedSidebarProjectRows.flatMap((row) => {
+				if (!row.isHidden) return [];
+				const project = hostProjectsByKey.get(row.projectId);
+				if (!project) return [];
+				return [
+					{
+						id: project.projectKey,
+						name: project.name,
+						iconUrl: resolveProjectIconUrl(project),
+						color: project.color,
+					},
+				];
+			}),
+		[orderedSidebarProjectRows, hostProjectsByKey],
+	);
+
+	const { data: storedSidebarSections = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarSections: collections.v2SidebarSections })
+				// Same tie-breaking rationale as the projects query above.
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
+				.orderBy(({ sidebarSections }) => sidebarSections.sectionId, "asc")
 				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
+					sectionId: sidebarSections.sectionId,
 					projectId: sidebarSections.projectId,
 					name: sidebarSections.name,
 					createdAt: sidebarSections.createdAt,
 					isCollapsed: sidebarSections.isCollapsed,
 					tabOrder: sidebarSections.tabOrder,
 					color: sidebarSections.color,
+					tag: sidebarSections.tag,
 				})),
 		[collections],
 	);
 
-	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
+	const { workspaces: allHostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
+	// Cloud workspaces render in the Cloud section only, whatever placement
+	// their local-state row carries.
+	const hostWorkspaces = useMemo(
+		() =>
+			allHostWorkspaces.filter(
+				(workspace) => !hostWorkspacesCache.isSandboxHost(workspace.hostId),
+			),
+		[allHostWorkspaces, hostWorkspacesCache],
+	);
+	const hostWorkspacesById = useMemo(
+		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
+		[hostWorkspaces],
+	);
+
+	// The section lane the builder consumes is the deriveTagFolders union:
+	// stored presentation rows PLUS folders that exist only because some
+	// workspace carries the tag. A folder must exist because a workspace
+	// carries the tag, not because a local row does.
+	const tagFolderContext = useTagFolderContext();
+	const sidebarSections = useMemo(
+		() =>
+			deriveTagFolders(
+				storedSidebarSections,
+				hostWorkspaces,
+				tagFolderContext,
+			).map((section) => ({
+				id: section.sectionId,
+				projectId: section.projectId,
+				name: section.name,
+				createdAt: section.createdAt,
+				isCollapsed: section.isCollapsed,
+				tabOrder: section.tabOrder,
+				color: section.color,
+				tag: section.tag,
+			})),
+		[hostWorkspaces, storedSidebarSections, tagFolderContext],
+	);
+
+	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.innerJoin(
-					{ workspaces: collections.v2Workspaces },
-					({ sidebarWorkspaces, workspaces }) =>
-						eq(sidebarWorkspaces.workspaceId, workspaces.id),
-				)
+				// Same tie-breaking rationale as the projects query above.
 				.orderBy(
 					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
 					"asc",
 				)
-				.select(({ sidebarWorkspaces, workspaces }) => ({
-					id: workspaces.id,
+				.orderBy(
+					({ sidebarWorkspaces }) => sidebarWorkspaces.workspaceId,
+					"asc",
+				)
+				.select(({ sidebarWorkspaces }) => ({
+					workspaceId: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
-					hostId: workspaces.hostId,
-					type: workspaces.type,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					taskId: workspaces.taskId,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
-					isSynced: workspaces.$synced,
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
+					pinnedAt: sidebarWorkspaces.sidebarState.pinnedAt,
 				})),
 		[collections],
+	);
+	const rawSidebarWorkspaces = useMemo(
+		() =>
+			sidebarLocalStateRows.flatMap((localState) => {
+				const workspace = hostWorkspacesById.get(localState.workspaceId);
+				if (!workspace) return [];
+				return [
+					{
+						id: workspace.id,
+						projectId: localState.projectId,
+						hostId: workspace.hostId,
+						type: workspace.type,
+						name: workspace.name,
+						branch: workspace.branch,
+						taskId: workspace.taskId,
+						createdAt: workspace.createdAt,
+						updatedAt: workspace.updatedAt,
+						lastActivityAt: workspace.lastActivityAt,
+						tabOrder: localState.tabOrder,
+						sectionId: localState.sectionId,
+						tags: workspace.tags,
+						isHidden: localState.isHidden,
+						pinnedAt: localState.pinnedAt,
+					},
+				];
+			}),
+		[hostWorkspacesById, sidebarLocalStateRows],
 	);
 	const rawSidebarWorkspacesWithHostStatus = useMemo(
 		() =>
@@ -253,80 +381,24 @@ export function useDashboardSidebarData() {
 		[rawSidebarWorkspacesWithHostStatus],
 	);
 
-	const localStateWorkspaceIds = useMemo(
-		() => new Set(rawSidebarWorkspaces.map((workspace) => workspace.id)),
-		[rawSidebarWorkspaces],
-	);
+	// Placement is the only way into the sidebar: local and worktree rows
+	// alike appear because a local-state row says so (the reconciler in
+	// usePlaceWorktreesInSidebar writes one for anything created outside
+	// this renderer), never because of the row's type.
+	const visibleSidebarWorkspaces = sidebarWorkspaces;
 
-	const { data: rawLocalMainWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.type, "main"))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					hostId: workspaces.hostId,
-					type: workspaces.type,
-					name: workspaces.name,
-					branch: workspaces.branch,
-					taskId: workspaces.taskId,
-					createdAt: workspaces.createdAt,
-					updatedAt: workspaces.updatedAt,
-					isSynced: workspaces.$synced,
-					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
-					sectionId: null as string | null,
-				})),
-		[collections],
-	);
-	const localMainWorkspaces = useMemo(
+	// From the placement rows, not the host-joined list: a hidden project
+	// whose host is offline has no host metadata yet still has cached
+	// workspace rows that must not poll.
+	const hiddenProjectIds = useMemo(
 		() =>
-			rawLocalMainWorkspaces.map((workspace) => ({
-				...workspace,
-				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
-				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
-			})),
-		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],
+			new Set(
+				orderedSidebarProjectRows
+					.filter((row) => row.isHidden)
+					.map((row) => row.projectId),
+			),
+		[orderedSidebarProjectRows],
 	);
-
-	useEffect(() => {
-		for (const workspace of [
-			...rawSidebarWorkspaces,
-			...rawLocalMainWorkspaces,
-		]) {
-			const transaction = workspaceTransactionsById[workspace.id];
-			if (workspace.isSynced && transaction?.type === "insert") {
-				clearWorkspaceTransaction(workspace.id);
-			}
-		}
-	}, [
-		clearWorkspaceTransaction,
-		rawLocalMainWorkspaces,
-		rawSidebarWorkspaces,
-		workspaceTransactionsById,
-	]);
-
-	const visibleSidebarWorkspaces = useMemo(() => {
-		const sidebarProjectIds = new Set(
-			sidebarProjects.map((project) => project.id),
-		);
-		const autoLocalMainWorkspaces = localMainWorkspaces.filter((workspace) =>
-			isAutoIncludedLocalMainWorkspace(workspace, {
-				localStateWorkspaceIds,
-				sidebarProjectIds,
-				machineId,
-			}),
-		);
-
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
-	}, [
-		localMainWorkspaces,
-		localStateWorkspaceIds,
-		machineId,
-		sidebarProjects,
-		sidebarWorkspaces,
-	]);
-
 	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(
 		() =>
 			derivePullRequestQueryTargets({
@@ -334,16 +406,36 @@ export function useDashboardSidebarData() {
 				hosts,
 				machineId,
 				relayUrl,
-				workspaces: visibleSidebarWorkspaces,
+				// Sessions (null projectId) have no remote and never carry PRs.
+				// A hidden project renders nothing, so its workspaces stop
+				// polling too.
+				workspaces: visibleSidebarWorkspaces.filter(
+					(workspace) =>
+						workspace.projectId !== null &&
+						!hiddenProjectIds.has(workspace.projectId),
+				),
+				fallbackOrganizationId: knownHostsOrgId,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl, visibleSidebarWorkspaces],
+		[
+			activeHostUrl,
+			hiddenProjectIds,
+			hosts,
+			knownHostsOrgId,
+			machineId,
+			relayUrl,
+			visibleSidebarWorkspaces,
+		],
 	);
 
 	const pullRequestQueries = useQueries({
 		queries: pullRequestQueryTargets.map((target) => ({
 			queryKey: getDashboardSidebarPullRequestQueryKey(target),
 			refetchInterval: 10_000,
+			// Unreachable host: keep the query mounted so cached chips stay
+			// rendered through the outage; fetches resume when the URL returns.
+			enabled: target.hostUrl !== null,
 			queryFn: async () => {
+				if (!target.hostUrl) return { workspaces: [], github: null };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
@@ -367,6 +459,20 @@ export function useDashboardSidebarData() {
 		return rows;
 	}, [pullRequestQueries]);
 
+	// One notice for the whole sidebar: the hold is per host credential, not
+	// per workspace, and the local machine's is the one the user can fix.
+	const githubStatus = useMemo(
+		() =>
+			pickGithubStatus(
+				pullRequestQueries.map((query, index) => ({
+					machineId: pullRequestQueryTargets[index]?.machineId ?? "",
+					status: query.data?.github,
+				})),
+				machineId,
+			),
+		[machineId, pullRequestQueries, pullRequestQueryTargets],
+	);
+
 	const refreshWorkspacePullRequest = useCallback(
 		async (workspaceId: string) => {
 			const workspace = visibleSidebarWorkspaces.find(
@@ -376,7 +482,10 @@ export function useDashboardSidebarData() {
 			const target = pullRequestQueryTargets.find(
 				(candidate) => candidate.machineId === workspace.hostId,
 			);
-			if (!target) return;
+			if (!target?.hostUrl) return;
+			if (!pullRequestRefreshGate.shouldRefresh(workspaceId, Date.now())) {
+				return;
+			}
 
 			const client = getHostServiceClientByUrl(target.hostUrl);
 			await client.pullRequests.refreshByWorkspaces.mutate({
@@ -392,12 +501,31 @@ export function useDashboardSidebarData() {
 	const pullRequestsByWorkspaceId =
 		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
+	// Pinned rows render only in the top-level Pinned section, so they are
+	// partitioned out before the per-project tree is built. PR polling targets
+	// derive from the pre-partition list above, so pinned rows keep PR status.
+	const { pinned: pinnedRows, unpinned: unpinnedRows } = useMemo(
+		() => partitionSidebarWorkspacesByPinned(visibleSidebarWorkspaces),
+		[visibleSidebarWorkspaces],
+	);
+
+	// Unpinned sessions render in the top-level Sessions section; pinned
+	// sessions stay in Pinned like any other row.
+	const { sessionRows, projectRows } = useMemo(() => {
+		const sessions: typeof unpinnedRows = [];
+		const projectScoped: typeof unpinnedRows = [];
+		for (const row of unpinnedRows) {
+			(row.projectId === null ? sessions : projectScoped).push(row);
+		}
+		return { sessionRows: sessions, projectRows: projectScoped };
+	}, [unpinnedRows]);
+
 	const computedGroups = useMemo<DashboardSidebarProject[]>(
 		() =>
 			buildDashboardSidebarProjects({
 				sidebarProjects,
 				sidebarSections,
-				visibleSidebarWorkspaces,
+				visibleSidebarWorkspaces: projectRows,
 				machineId,
 				pullRequestsByWorkspaceId,
 			}),
@@ -406,13 +534,43 @@ export function useDashboardSidebarData() {
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
 			sidebarSections,
-			visibleSidebarWorkspaces,
+			projectRows,
 		],
 	);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
+	const computedSessions = useMemo(
+		() =>
+			buildDashboardSidebarSessions({
+				sessionSidebarWorkspaces: sessionRows,
+				sidebarSections,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}),
+		[machineId, pullRequestsByWorkspaceId, sessionRows, sidebarSections],
+	);
+	const sessions = useJsonStable(computedSessions);
+	const sessionWorkspaces = sessions.workspaces;
+
+	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
+		() =>
+			buildDashboardSidebarPinnedWorkspaces({
+				pinnedSidebarWorkspaces: pinnedRows,
+				sidebarProjects,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}),
+		[machineId, pinnedRows, pullRequestsByWorkspaceId, sidebarProjects],
+	);
+	const pinnedWorkspaces = useJsonStable(computedPinnedWorkspaces);
+
 	return {
 		groups,
+		hiddenProjects,
+		pinnedWorkspaces,
+		sessionWorkspaces,
+		sessionChildren: sessions.children,
+		githubStatus,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

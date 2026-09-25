@@ -92,9 +92,7 @@ export function FileDiffHeader({
 						<LuExternalLink className="size-3 shrink-0 opacity-0 group-hover/filename:opacity-100 transition-opacity" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Click to open in editor
-				</TooltipContent>
+				<TooltipContent side="bottom">Click to open in editor</TooltipContent>
 			</Tooltip>
 
 			<Tooltip>
@@ -111,7 +109,7 @@ export function FileDiffHeader({
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="bottom">
 					{isCopied ? "Copied!" : "Copy path"}
 				</TooltipContent>
 			</Tooltip>
@@ -135,7 +133,7 @@ export function FileDiffHeader({
 							<LuPencil className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{isEditing ? "Switch to read-only" : "Edit file"}
 					</TooltipContent>
 				</Tooltip>
@@ -197,7 +195,7 @@ export function FileDiffHeader({
 								<LuUndo2 className="size-3.5" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
+						<TooltipContent side="bottom">
 							{isDeleteAction ? "Delete" : "Discard changes"}
 						</TooltipContent>
 					</Tooltip>
@@ -218,9 +216,7 @@ export function FileDiffHeader({
 										<HiMiniPlus className="size-4" />
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									Stage
-								</TooltipContent>
+								<TooltipContent side="bottom">Stage</TooltipContent>
 							</Tooltip>
 						)}
 						{onUnstage && (
@@ -236,9 +232,7 @@ export function FileDiffHeader({
 										<HiMiniMinus className="size-4" />
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									Unstage
-								</TooltipContent>
+								<TooltipContent side="bottom">Unstage</TooltipContent>
 							</Tooltip>
 						)}
 					</>

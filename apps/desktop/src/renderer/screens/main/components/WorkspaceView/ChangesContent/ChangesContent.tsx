@@ -1,6 +1,9 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "renderer/screens/main/hooks/useGitChangesStatus";
 import {
 	RightSidebarTab,
 	useSidebarStore,
@@ -18,11 +21,12 @@ export function ChangesContent() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
-		worktreePath,
-		refetchInterval: isChangesSidebarVisible ? undefined : 2500,
-		refetchOnWindowFocus: !isChangesSidebarVisible,
-	});
+	const { status, isLoading, errorCause, effectiveBaseBranch } =
+		useGitChangesStatus({
+			worktreePath,
+			refetchInterval: isChangesSidebarVisible ? undefined : 2500,
+			refetchOnWindowFocus: !isChangesSidebarVisible,
+		});
 
 	if (!worktreePath) {
 		return (
@@ -32,7 +36,15 @@ export function ChangesContent() {
 		);
 	}
 
-	if (isLoading) {
+	if (errorCause) {
+		return (
+			<div className="h-full flex select-text cursor-text items-center justify-center text-muted-foreground">
+				{gitChangesUnavailableCopy(errorCause)}
+			</div>
+		);
+	}
+
+	if (!status && isLoading) {
 		return (
 			<div className="h-full flex items-center justify-center text-muted-foreground">
 				Loading changes...
@@ -42,7 +54,7 @@ export function ChangesContent() {
 
 	if (!status) {
 		return (
-			<div className="h-full flex items-center justify-center text-muted-foreground">
+			<div className="h-full flex select-text cursor-text items-center justify-center text-muted-foreground">
 				Unable to load changes
 			</div>
 		);

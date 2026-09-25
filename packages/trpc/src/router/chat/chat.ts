@@ -3,11 +3,10 @@ import { chatSessions } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
-import { uploadChatAttachment } from "./utils/upload-chat-attachment";
+import { protectedProcedure, userError } from "../../trpc";
+import { requireActiveOrgMembership } from "../utils/active-org";
 
 // Re-shaped from the canonical catalog in `@superset/shared/agent-models` so
 // the chat API and the workspace-create model picker never drift.
@@ -22,6 +21,40 @@ export const chatRouter = {
 		return { models: AVAILABLE_MODELS };
 	}),
 
+	listSessions: protectedProcedure
+		.input(
+			z
+				.object({ sessionIds: z.array(z.uuid()).max(100).optional() })
+				.optional(),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const sessionIds = input?.sessionIds;
+			// Unfiltered reads are capped: sessions grow without bound and the
+			// recent 200 covers every list surface; id-filtered reads (open
+			// panes, run links) fetch exactly what they name.
+			const query = db
+				.select({
+					id: chatSessions.id,
+					title: chatSessions.title,
+					workspaceId: chatSessions.workspaceId,
+					v2WorkspaceId: chatSessions.v2WorkspaceId,
+					organizationId: chatSessions.organizationId,
+					createdBy: chatSessions.createdBy,
+					createdAt: chatSessions.createdAt,
+					lastActiveAt: chatSessions.lastActiveAt,
+				})
+				.from(chatSessions)
+				.where(
+					and(
+						eq(chatSessions.organizationId, organizationId),
+						sessionIds ? inArray(chatSessions.id, sessionIds) : undefined,
+					),
+				)
+				.orderBy(desc(chatSessions.lastActiveAt));
+			return sessionIds ? query : query.limit(200);
+		}),
+
 	createSession: protectedProcedure
 		.input(
 			z.object({
@@ -33,9 +66,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -77,9 +111,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -102,7 +137,6 @@ export const chatRouter = {
 					and(
 						eq(chatSessions.id, input.sessionId),
 						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
 					),
 				)
 				.returning({ id: chatSessions.id });
@@ -116,9 +150,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -129,7 +164,6 @@ export const chatRouter = {
 						and(
 							eq(chatSessions.id, input.sessionId),
 							eq(chatSessions.organizationId, organizationId),
-							eq(chatSessions.createdBy, ctx.session.user.id),
 						),
 					)
 					.returning({ id: chatSessions.id });
@@ -142,55 +176,6 @@ export const chatRouter = {
 			const { deleted, txid } = result;
 
 			return { deleted: !!deleted, txid };
-		}),
-
-	uploadAttachment: protectedProcedure
-		.input(
-			z.object({
-				sessionId: z.uuid(),
-				filename: z.string().min(1).max(255),
-				mediaType: z.string().min(1).max(255),
-				fileData: z.string().min(1),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.activeOrganizationId;
-
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "No active organization selected",
-				});
-			}
-
-			const [sessionRecord] = await db
-				.select({
-					id: chatSessions.id,
-					organizationId: chatSessions.organizationId,
-				})
-				.from(chatSessions)
-				.where(
-					and(
-						eq(chatSessions.id, input.sessionId),
-						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
-					),
-				)
-				.limit(1);
-
-			if (!sessionRecord) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Chat session not found",
-				});
-			}
-
-			const result = await uploadChatAttachment({
-				...input,
-				userId: ctx.session.user.id,
-				organizationId: sessionRecord.organizationId,
-			});
-			return result;
 		}),
 
 	updateTitle: protectedProcedure

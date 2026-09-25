@@ -1,0 +1,212 @@
+import { randomBytes } from "node:crypto";
+import type { MicrosoftTeamsConfig } from "@superset/db/schema";
+import {
+	connectionConflict,
+	connectorMethod,
+	orgConnection,
+	requireConnector,
+	upsertConnection,
+} from "@superset/trpc/connectors";
+import {
+	acquireAppToken,
+	deleteTeamsSubscriptions,
+	ensureTeamsSubscriptions,
+	graphRequest,
+	microsoftCredentials,
+} from "@superset/trpc/integrations/microsoft-teams";
+
+import { env } from "@/env";
+import { posthog } from "@/lib/analytics";
+import {
+	beginOAuthFlow,
+	exitOAuthFlow,
+	STATE_COOKIES,
+} from "@/lib/integrations/oauthFlow";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
+import {
+	IDENTITY_REDIRECT_URI,
+	IDENTITY_SCOPES,
+} from "../identity/identityFlow";
+
+const SETTINGS_URL = `${env.NEXT_PUBLIC_WEB_URL}/integrations/microsoft-teams`;
+
+function settingsUrl(error?: string, detail?: string): string {
+	const url = new URL(SETTINGS_URL);
+	if (error) url.searchParams.set("error", error);
+	if (detail) url.searchParams.set("detail", detail.slice(0, 200));
+	return url.toString();
+}
+
+function refuse(error: string, detail?: string): Response {
+	return exitOAuthFlow(
+		STATE_COOKIES.microsoftTeams,
+		settingsUrl(error, detail),
+	);
+}
+
+/**
+ * The tenant's display name, if the app was also granted a directory read.
+ * That permission is not required for anything else, so a 403 here is the
+ * common case and the tenant id stands in.
+ */
+async function tenantDisplayName(
+	accessToken: string,
+	tenantId: string,
+): Promise<string> {
+	try {
+		const body = await graphRequest<{
+			value?: Array<{ displayName?: string | null }>;
+		}>(accessToken, "/organization?$select=displayName");
+		return body.value?.[0]?.displayName ?? tenantId;
+	} catch {
+		return tenantId;
+	}
+}
+
+/**
+ * Where Entra sends the admin after consent. There is no code to exchange:
+ * consent creates the app's service principal in the tenant, and from then on
+ * the client-credentials grant against that tenant yields tokens. Getting one
+ * here is what proves the tenant really consented — the `tenant` query
+ * parameter on its own is attacker-controlled.
+ */
+export async function GET(request: Request) {
+	const url = new URL(request.url);
+	if (url.searchParams.get("error")) {
+		console.error("[microsoft-teams/callback] consent refused:", {
+			error: url.searchParams.get("error"),
+			description: url.searchParams.get("error_description"),
+		});
+		return refuse("oauth_denied");
+	}
+
+	const callback = await resolveCallback(request, {
+		params: ["tenant"],
+		redirect: (error) => settingsUrl(error),
+		cookie: STATE_COOKIES.microsoftTeams,
+	});
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
+	const tenantId = params.tenant;
+	const fail = (error: string, detail?: string) =>
+		callback.exit(settingsUrl(error, detail));
+
+	let token: Awaited<ReturnType<typeof acquireAppToken>>;
+	try {
+		token = await acquireAppToken(tenantId);
+	} catch (error) {
+		console.error(
+			"[microsoft-teams/callback] token acquisition failed:",
+			error,
+		);
+		return fail(
+			"token_exchange_failed",
+			error instanceof Error ? error.message : undefined,
+		);
+	}
+
+	// One tenant, one organization — checked before touching the previous
+	// connection's subscriptions, so a refused reconnect leaves them running.
+	const conflict = await connectionConflict(
+		"microsoft_teams",
+		tenantId,
+		organizationId,
+	);
+	if (conflict) {
+		return fail("tenant_already_linked", conflict.ownerEmail ?? undefined);
+	}
+
+	// A reconnect replaces the clientState below, so whatever subscriptions the
+	// previous connection held would only ever be refused. Remove them from
+	// Graph while their ids are still on the row.
+	const previous = await orgConnection(organizationId, "microsoft_teams", {
+		includeDisconnected: true,
+	});
+	if (previous) await deleteTeamsSubscriptions(previous.id);
+
+	const config: MicrosoftTeamsConfig = {
+		provider: "microsoft_teams",
+		tenantId,
+		// 64 hex characters, under Graph's 128 limit. Fresh on every consent,
+		// so a reconnect also invalidates whatever the old subscriptions echo.
+		clientState: randomBytes(32).toString("hex"),
+		subscriptions: {},
+	};
+	const externalOrgName = await tenantDisplayName(token.accessToken, tenantId);
+
+	const connector = requireConnector("microsoft_teams");
+	const result = await upsertConnection({
+		connector,
+		slug: "microsoft_teams",
+		authMethod: connectorMethod(connector, "admin_consent").type,
+		organizationId,
+		userId,
+		tokens: {
+			accessToken: token.accessToken,
+			refreshToken: null,
+			expiresAt: token.expiresAt,
+			scopes: null,
+			stored: {},
+			raw: {},
+		},
+		identity: {
+			// The tenant id, not Graph's directory object id: it is the path
+			// segment every client-credentials token acquisition needs.
+			account: { id: tenantId, label: externalOrgName },
+			user: null,
+		},
+		state: config,
+	});
+	if (result.conflict) {
+		return fail(
+			"tenant_already_linked",
+			result.conflict.ownerEmail ?? undefined,
+		);
+	}
+
+	posthog.capture({
+		distinctId: userId,
+		event: "microsoft_teams_connected",
+		properties: { tenant_id: tenantId },
+	});
+
+	// The connection is saved either way; the renew job retries subscriptions
+	// that could not be created here. But the person who just consented is the
+	// one who can fix a permission Graph refused, so tell them now.
+	const ensured = await ensureTeamsSubscriptions(result.connectionId);
+	const failure = ensured
+		? Object.values(ensured.failures).find(Boolean)
+		: "no access token";
+	if (failure) {
+		console.error("[microsoft-teams/callback] subscriptions:", ensured);
+		return fail("subscription_failed", failure);
+	}
+
+	console.log("[microsoft-teams/callback] Connected tenant:", {
+		organizationId,
+		tenantId,
+	});
+
+	// Consent named the tenant; the sign-in that follows names the admin, so
+	// `me` on their triggers can resolve. The connection is saved already, so
+	// this leg failing loses nothing but that. Its state is minted here rather
+	// than in a connect route, so this redirect is what binds it to the
+	// browser — and it retires the consent leg's cookie on the way.
+	return beginOAuthFlow({
+		cookie: STATE_COOKIES.microsoftTeamsIdentity,
+		payload: { organizationId, userId },
+		clear: [STATE_COOKIES.microsoftTeams],
+		authorizeUrl: (state) => {
+			const signIn = new URL(
+				"https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
+			);
+			signIn.searchParams.set("client_id", microsoftCredentials().clientId);
+			signIn.searchParams.set("response_type", "code");
+			signIn.searchParams.set("response_mode", "query");
+			signIn.searchParams.set("redirect_uri", IDENTITY_REDIRECT_URI);
+			signIn.searchParams.set("scope", IDENTITY_SCOPES);
+			signIn.searchParams.set("state", state);
+			return signIn.toString();
+		},
+	});
+}

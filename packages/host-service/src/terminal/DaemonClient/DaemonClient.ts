@@ -24,6 +24,24 @@ import {
 	type SessionInfo,
 	type SessionMeta,
 } from "@superset/pty-daemon/protocol";
+import type { TerminalModesSnapshot } from "@superset/pty-daemon/terminal-modes";
+import { ReplayCompletion } from "./utils/ReplayCompletion/index.ts";
+
+/**
+ * The daemon didn't answer — the single enumeration of TRANSIENT daemon
+ * failures. Thrown for: socket connect failure/timeout, handshake timeout,
+ * request timeout, disconnect mid-request, and writes on a dead socket.
+ * The supervisor respawns stalled/crashed daemons, so callers retry these.
+ * Everything else stays a plain Error and is treated as permanent: handshake
+ * rejection/protocol mismatch, daemon-reported request errors, and supervisor
+ * bootstrap failures (missing binary, no socket path, crash circuit open).
+ */
+export class DaemonUnavailableError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "DaemonUnavailableError";
+	}
+}
 
 export interface OpenResult {
 	id: string;
@@ -39,11 +57,14 @@ export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL" | "SIGHUP";
 
 export interface SubscribeCallbacks {
 	onOutput: (chunk: Buffer) => void;
+	onReplayComplete?: (modes: TerminalModesSnapshot) => void;
 	onExit: (info: ExitInfo) => void;
 }
 
 interface SessionCallbacks {
 	output: Set<(chunk: Buffer) => void>;
+	replayComplete: Set<(modes: TerminalModesSnapshot) => void>;
+	replay?: ReplayCompletion;
 	exit: Set<(info: ExitInfo) => void>;
 }
 
@@ -75,6 +96,7 @@ export class DaemonClient {
 	private daemonVersion = "";
 	private negotiated: number | null = null;
 	private connected = false;
+	private modeSnapshots = false;
 
 	constructor(opts: DaemonClientOptions) {
 		this.opts = opts;
@@ -102,6 +124,14 @@ export class DaemonClient {
 
 	get isConnected(): boolean {
 		return this.connected && this.socket !== null && !this.socket.destroyed;
+	}
+
+	get supportsModeSnapshots(): boolean {
+		return this.modeSnapshots;
+	}
+
+	waitForReplay(id: string): Promise<void> {
+		return this.callbacks.get(id)?.replay?.promise ?? Promise.resolve();
 	}
 
 	get version(): string {
@@ -200,36 +230,54 @@ export class DaemonClient {
 		let entry = this.callbacks.get(id);
 		const wasFirst = !entry;
 		if (!entry) {
-			entry = { output: new Set(), exit: new Set() };
+			entry = { output: new Set(), exit: new Set(), replayComplete: new Set() };
 			this.callbacks.set(id, entry);
 		}
+		if (cb.onReplayComplete) entry.replayComplete.add(cb.onReplayComplete);
 		entry.output.add(cb.onOutput);
 		entry.exit.add(cb.onExit);
-		// Only the first subscribe per session id sends the wire `subscribe`.
-		// Subsequent local callbacks just register into the existing entry.
-		// The daemon's ring buffer is delivered once, on the first subscribe
-		// — so `replay: true` only makes sense on a fresh subscription.
-		// Loud-fail the surprising case where a later subscriber asks for
-		// replay; the caller needs to replay from a server-side cache
-		// instead (see terminal.ts replayBuffer).
 		if (!wasFirst && opts.replay) {
-			throw new Error(
-				`subscribe(${id}): replay is not available on a second subscribe; the daemon's buffer was already consumed.`,
+			console.warn(
+				`[daemon-client] subscribe(${id}): ring replay unavailable on a repeat subscribe; joining live stream only`,
 			);
 		}
-		if (wasFirst) {
-			this.send({
-				type: "subscribe",
-				id,
-				replay: opts.replay,
-			});
+		if (
+			wasFirst ||
+			(this.modeSnapshots &&
+				cb.onReplayComplete &&
+				entry.replay?.status === "ready")
+		) {
+			if (this.modeSnapshots) {
+				entry.replay = new ReplayCompletion(
+					5000,
+					new DaemonUnavailableError(`Replay timed out for ${id}`),
+				);
+			}
+			try {
+				this.send({
+					type: "subscribe",
+					id,
+					replay: wasFirst && opts.replay,
+					...(this.modeSnapshots ? { modeSnapshot: true } : {}),
+				});
+			} catch (error) {
+				entry.replay?.reject(error as Error);
+				this.callbacks.delete(id);
+				throw error;
+			}
 		}
 		return () => {
 			const e = this.callbacks.get(id);
 			if (!e) return;
+			if (cb.onReplayComplete) e.replayComplete.delete(cb.onReplayComplete);
 			e.output.delete(cb.onOutput);
 			e.exit.delete(cb.onExit);
 			if (e.output.size === 0 && e.exit.size === 0) {
+				if (e.replay) {
+					e.replay.reject(
+						new DaemonUnavailableError(`Unsubscribed during replay for ${id}`),
+					);
+				}
 				this.callbacks.delete(id);
 				this.send({ type: "unsubscribe", id });
 			}
@@ -237,9 +285,12 @@ export class DaemonClient {
 	}
 
 	async dispose(): Promise<void> {
-		this.connected = false;
 		const sock = this.socket;
+		this.connected = false;
 		this.socket = null;
+		this.rejectPendingReplays(
+			new DaemonUnavailableError("Disposed during replay"),
+		);
 		if (!sock || sock.destroyed) return;
 		await new Promise<void>((resolve) => {
 			sock.end(() => resolve());
@@ -267,6 +318,7 @@ export class DaemonClient {
 		if (ack.type !== "hello-ack") {
 			throw new Error(`daemon handshake unexpected reply: ${ack.type}`);
 		}
+		this.modeSnapshots = ack.supportsModeSnapshots === true;
 		this.daemonVersion = ack.daemonVersion;
 		this.negotiated = ack.protocol;
 	}
@@ -300,12 +352,12 @@ export class DaemonClient {
 					settle(m);
 			});
 			const offDisc = this.onDisconnect((err) =>
-				fail(err ?? new Error("daemon disconnected")),
+				fail(new DaemonUnavailableError(err?.message ?? "daemon disconnected")),
 			);
 			const timer = setTimeout(
 				() =>
 					fail(
-						new Error(
+						new DaemonUnavailableError(
 							`daemon ${req.type} ${id}: timed out after ${timeoutMs}ms`,
 						),
 					),
@@ -351,11 +403,15 @@ export class DaemonClient {
 				if (m.type === "error" && m.id === undefined) settle(m);
 			});
 			const offDisc = this.onDisconnect((err) =>
-				fail(err ?? new Error("daemon disconnected")),
+				fail(new DaemonUnavailableError(err?.message ?? "daemon disconnected")),
 			);
 			const timer = setTimeout(
 				() =>
-					fail(new Error(`daemon ${req.type}: timed out after ${timeoutMs}ms`)),
+					fail(
+						new DaemonUnavailableError(
+							`daemon ${req.type}: timed out after ${timeoutMs}ms`,
+						),
+					),
 				timeoutMs,
 			);
 			const cleanup = () => {
@@ -391,7 +447,9 @@ export class DaemonClient {
 			});
 			const timer = setTimeout(() => {
 				off();
-				reject(new Error(`daemon: timed out after ${timeoutMs}ms`));
+				reject(
+					new DaemonUnavailableError(`daemon: timed out after ${timeoutMs}ms`),
+				);
 			}, timeoutMs);
 		});
 	}
@@ -399,7 +457,10 @@ export class DaemonClient {
 	private send(msg: unknown, payload?: Uint8Array): void {
 		const sock = this.socket;
 		if (!sock || sock.destroyed) {
-			throw new Error("DaemonClient: socket not connected");
+			// The socket can die between a caller's isConnected check and this
+			// write (the 'close' event may not have dispatched yet) — same
+			// transient class as a disconnect, so requests reject typed.
+			throw new DaemonUnavailableError("DaemonClient: socket not connected");
 		}
 		sock.write(encodeFrame(msg, payload));
 	}
@@ -420,6 +481,20 @@ export class DaemonClient {
 		}
 		for (const frame of frames) {
 			const msg = frame.message as ServerMessage;
+			if (msg.type === "error" && msg.id) {
+				this.callbacks.get(msg.id)?.replay?.reject(new Error(msg.message));
+			}
+			if (msg.type === "replay-complete") {
+				const entry = this.callbacks.get(msg.id);
+				if (entry?.replay?.status !== "pending") continue;
+				try {
+					for (const cb of entry?.replayComplete ?? []) cb(msg.modes);
+					entry.replay.resolve();
+				} catch (error) {
+					entry?.replay?.reject(error as Error);
+				}
+				continue;
+			}
 			// Route session-keyed events to subscriber callbacks.
 			if (msg.type === "output" && this.callbacks.has(msg.id)) {
 				if (frame.payload) {
@@ -450,10 +525,19 @@ export class DaemonClient {
 		}
 	}
 
+	private rejectPendingReplays(error: Error): void {
+		for (const entry of this.callbacks.values()) {
+			entry.replay?.reject(error);
+		}
+	}
+
 	private onClose(err?: Error): void {
 		if (!this.connected && this.socket === null) return;
 		this.connected = false;
 		this.socket = null;
+		this.rejectPendingReplays(
+			err ?? new DaemonUnavailableError("Disconnected during replay"),
+		);
 		for (const cb of this.disconnectCbs) cb(err);
 	}
 }
@@ -464,7 +548,11 @@ function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {
 		const socket = net.createConnection({ path: opts.socketPath });
 		const timer = setTimeout(() => {
 			socket.destroy();
-			reject(new Error(`DaemonClient: connect timed out after ${timeoutMs}ms`));
+			reject(
+				new DaemonUnavailableError(
+					`DaemonClient: connect timed out after ${timeoutMs}ms`,
+				),
+			);
 		}, timeoutMs);
 		socket.once("connect", () => {
 			clearTimeout(timer);
@@ -472,7 +560,13 @@ function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {
 		});
 		socket.once("error", (err) => {
 			clearTimeout(timer);
-			reject(err);
+			// Connect-level failures (ECONNREFUSED after a crash, ENOENT during
+			// a respawn window) heal once the supervisor respawns the daemon.
+			reject(
+				new DaemonUnavailableError(
+					`DaemonClient: connect failed: ${err.message}`,
+				),
+			);
 		});
 	});
 }

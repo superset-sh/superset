@@ -10,14 +10,23 @@ const tempHome = fs.mkdtempSync(
 process.env.SUPERSET_HOME_DIR = tempHome;
 
 const { resolveAuth } = await import("./resolve-auth");
-const { writeConfig } = await import("./config");
+const { readConfig, writeConfig } = await import("./config");
 
 function clearConfig(): void {
 	writeConfig({});
 }
 
+// Clean baseline: the real dev/CI shell may export SUPERSET_API_KEY, which
+// would leak into every test. Clear it for the suite, restore in afterAll.
+const originalEnvKey = process.env.SUPERSET_API_KEY;
+const originalOrganizationId = process.env.SUPERSET_ORGANIZATION_ID;
+delete process.env.SUPERSET_API_KEY;
+delete process.env.SUPERSET_ORGANIZATION_ID;
+
 afterEach(() => {
 	clearConfig();
+	delete process.env.SUPERSET_API_KEY;
+	delete process.env.SUPERSET_ORGANIZATION_ID;
 });
 
 afterAll(() => {
@@ -26,6 +35,13 @@ afterAll(() => {
 		delete process.env.SUPERSET_HOME_DIR;
 	} else {
 		process.env.SUPERSET_HOME_DIR = originalSupersetHomeDir;
+	}
+	if (originalEnvKey === undefined) delete process.env.SUPERSET_API_KEY;
+	else process.env.SUPERSET_API_KEY = originalEnvKey;
+	if (originalOrganizationId === undefined) {
+		delete process.env.SUPERSET_ORGANIZATION_ID;
+	} else {
+		process.env.SUPERSET_ORGANIZATION_ID = originalOrganizationId;
 	}
 });
 
@@ -74,6 +90,49 @@ describe("resolveAuth", () => {
 		const result = await resolveAuth("sk_live_override");
 		expect(result.bearer).toBe("sk_live_override");
 		expect(result.authSource).toBe("override");
+	});
+
+	it("uses SUPERSET_API_KEY env as an override when no flag is passed", async () => {
+		process.env.SUPERSET_API_KEY = "sk_live_env";
+		const result = await resolveAuth(undefined);
+		expect(result.bearer).toBe("sk_live_env");
+		expect(result.authSource).toBe("override");
+	});
+
+	it("prefers the --api-key flag over SUPERSET_API_KEY env", async () => {
+		process.env.SUPERSET_API_KEY = "sk_live_env";
+		const result = await resolveAuth("sk_live_flag");
+		expect(result.bearer).toBe("sk_live_flag");
+		expect(result.authSource).toBe("override");
+	});
+
+	it("prefers SUPERSET_API_KEY env over a stored apiKey and OAuth", async () => {
+		writeConfig({
+			apiKey: "sk_live_stored",
+			auth: {
+				accessToken: "oauth-token",
+				expiresAt: Date.now() + 60 * 60 * 1000,
+			},
+		});
+		process.env.SUPERSET_API_KEY = "sk_live_env";
+		const result = await resolveAuth(undefined);
+		expect(result.bearer).toBe("sk_live_env");
+		expect(result.authSource).toBe("override");
+	});
+
+	it("overrides the stored org with SUPERSET_ORGANIZATION_ID", async () => {
+		writeConfig({ apiKey: "sk_live_stored", organizationId: "org_stored" });
+		process.env.SUPERSET_ORGANIZATION_ID = "org_env";
+		const result = await resolveAuth(undefined);
+		expect(result.config.organizationId).toBe("org_env");
+		// Invocation-scoped only: the stored config on disk keeps the user's org.
+		expect(readConfig().organizationId).toBe("org_stored");
+	});
+
+	it("keeps the stored org when SUPERSET_ORGANIZATION_ID is unset", async () => {
+		writeConfig({ apiKey: "sk_live_stored", organizationId: "org_stored" });
+		const result = await resolveAuth(undefined);
+		expect(result.config.organizationId).toBe("org_stored");
 	});
 
 	it("prefers a stored apiKey over a stored OAuth session", async () => {

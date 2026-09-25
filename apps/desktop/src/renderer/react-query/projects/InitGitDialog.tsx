@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -24,21 +25,27 @@ export function InitGitDialog() {
 		>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Initialize Git Repository?</AlertDialogTitle>
+					<AlertDialogTitle>
+						<Trans>Initialize Git Repository?</Trans>
+					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="space-y-2">
 							{isSingle ? (
 								<p>
-									<span className="font-medium text-foreground">
-										{paths[0]?.split("/").pop()}
-									</span>{" "}
-									is not a git repository. Would you like to initialize one?
+									<Trans>
+										<span className="font-medium text-foreground">
+											{paths[0]?.split("/").pop()}
+										</span>{" "}
+										is not a git repository. Would you like to initialize one?
+									</Trans>
 								</p>
 							) : (
 								<>
 									<p>
-										The following folders are not git repositories. Would you
-										like to initialize them?
+										<Trans>
+											The following folders are not git repositories. Would you
+											like to initialize them?
+										</Trans>
 									</p>
 									<ul className="list-disc pl-4 space-y-1">
 										{paths.map((p) => (
@@ -63,10 +70,14 @@ export function InitGitDialog() {
 						disabled={isPending}
 						onClick={() => onCancel?.()}
 					>
-						Cancel
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button disabled={isPending} onClick={() => onConfirm?.()}>
-						{isPending ? "Initializing..." : "Initialize Git"}
+						{isPending ? (
+							<Trans>Initializing...</Trans>
+						) : (
+							<Trans>Initialize Git</Trans>
+						)}
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

@@ -7,6 +7,7 @@ import {
 } from "../../lib/host/manifest";
 
 export default command({
+	sandbox: false,
 	description: "Stop the host service daemon",
 	run: async ({ ctx }) => {
 		const organization = await ctx.api.user.myOrganization.query();

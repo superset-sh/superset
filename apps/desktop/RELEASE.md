@@ -2,31 +2,45 @@
 
 ## Quick Start
 
-From the monorepo root:
+From the monorepo root, use the unified entry point:
 
 ```bash
-./apps/desktop/create-release.sh
+bun run release           # interactive: pick Desktop or CLI hotfix
+bun run release desktop   # desktop release directly
 ```
 
-The script will:
+The release toolchain is TypeScript under `scripts/release/` (run by Bun). For the
+full runbook — all flows, release-branch usage, and cleanup — see
+[`scripts/release/README.md`](../../scripts/release/README.md). This file covers
+desktop-specific details (build output, signing, auto-update, troubleshooting).
+
+The flow will:
 1. Show current version and prompt for new version (patch/minor/major/custom)
-2. Update `package.json` version
+2. Set desktop, `host-service`, and `cli` all to the new version (unified) and refresh `bun.lock`
 3. Create and push a `desktop-v<version>` tag
 4. Monitor the GitHub Actions build
 5. Create a **draft release** for review
+
+> Desktop, `host-service`, and `cli` share one version, enforced by CI
+> (`bun run check:versions`). `pty-daemon` stays on its own `0.x` track. See
+> [`plans/20260709-unified-version-bumping.md`](../../plans/20260709-unified-version-bumping.md).
 
 ### Options
 
 ```bash
 # Interactive version selection (recommended)
-./apps/desktop/create-release.sh
+bun run release desktop
 
 # Explicit version
-./apps/desktop/create-release.sh 0.0.50
+bun run release desktop 0.0.50
 
 # Auto-publish (skip draft)
-./apps/desktop/create-release.sh --publish
-./apps/desktop/create-release.sh 0.0.50 --publish
+bun run release desktop --publish
+bun run release desktop 0.0.50 --publish
+
+# Non-interactive (e.g. an agent): pass a version; use --republish to
+# recreate an existing tag instead of being prompted.
+bun run release desktop 0.0.50 --republish
 ```
 
 To publish a draft:
@@ -39,6 +53,22 @@ gh release edit desktop-v0.0.50 --draft=false
 
 - GitHub CLI (`gh`) installed and authenticated
 - Clean git working directory
+
+## Interim CLI releases
+
+To ship a CLI-side fix **between** desktop releases, use the CLI flow (from the
+monorepo root):
+
+```bash
+bun run release cli            # bumps cli + host-service to <desktop>-N (e.g. 1.14.0-1)
+bun run release cli --daemon   # ...and patch-bumps pty-daemon (0.2.5 -> 0.2.6) to ship a daemon fix
+```
+
+The `-N` suffix is a prerelease **below** the desktop version, so the CLI never
+ships above desktop. It tags `cli-v<version>` to trigger `release-cli.yml`.
+`pty-daemon` is only bumped with `--daemon`, and stays on its own `0.x` track —
+never the `-N` version (a prerelease daemon would sort below desktop's bundled
+one and churn on the shared org socket).
 
 ## Manual Release
 

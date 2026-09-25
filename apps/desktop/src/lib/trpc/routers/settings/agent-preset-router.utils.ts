@@ -1,5 +1,4 @@
 import { PROMPT_TRANSPORTS } from "@superset/local-db";
-import type { AgentDefinition } from "@superset/shared/agent-catalog";
 import type {
 	AgentPresetPatch,
 	CustomAgentDefinitionPatch,
@@ -67,10 +66,8 @@ function toTrimmedRequiredValue(field: string, value: string): string {
 }
 
 export function normalizeAgentPresetPatch({
-	definition,
 	patch,
 }: {
-	definition: AgentDefinition;
 	patch: z.infer<typeof updateAgentPresetInputSchema>["patch"];
 }): AgentPresetPatch {
 	const normalized: AgentPresetPatch = {};
@@ -100,23 +97,18 @@ export function normalizeAgentPresetPatch({
 		normalized.taskPromptTemplate = taskPromptTemplate;
 	}
 
-	if (definition.kind === "terminal") {
-		if (patch.command !== undefined) {
-			normalized.command = toTrimmedRequiredValue("Command", patch.command);
-		}
-		if (patch.promptCommand !== undefined) {
-			normalized.promptCommand = toTrimmedRequiredValue(
-				"Prompt command",
-				patch.promptCommand,
-			);
-		}
-		if (patch.promptCommandSuffix !== undefined) {
-			const promptCommandSuffix = patch.promptCommandSuffix?.trim() ?? "";
-			normalized.promptCommandSuffix = promptCommandSuffix || null;
-		}
-	} else if (patch.model !== undefined) {
-		const model = patch.model?.trim() ?? "";
-		normalized.model = model || null;
+	if (patch.command !== undefined) {
+		normalized.command = toTrimmedRequiredValue("Command", patch.command);
+	}
+	if (patch.promptCommand !== undefined) {
+		normalized.promptCommand = toTrimmedRequiredValue(
+			"Prompt command",
+			patch.promptCommand,
+		);
+	}
+	if (patch.promptCommandSuffix !== undefined) {
+		const promptCommandSuffix = patch.promptCommandSuffix?.trim() ?? "";
+		normalized.promptCommandSuffix = promptCommandSuffix || null;
 	}
 
 	if (Object.keys(normalized).length === 0) {

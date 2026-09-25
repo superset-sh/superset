@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
@@ -12,12 +13,13 @@ interface WorkspaceCreateErrorStateProps {
 export function WorkspaceCreateErrorState({
 	entry,
 }: WorkspaceCreateErrorStateProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const { submit } = useWorkspaceCreates();
 
 	const name = entry.input.name;
-	const branch = entry.input.branch;
+	const branch = "branch" in entry.input ? entry.input.branch : undefined;
 
 	const handleRetry = () => {
 		const { workspaceId, completed } = submit({
@@ -57,10 +59,13 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Couldn't create workspace
+						<Trans>Couldn't create workspace</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
-						{name || "Untitled workspace"}
+						{name ||
+							t({
+								message: "Untitled workspace",
+							})}
 					</p>
 				</div>
 
@@ -85,10 +90,10 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex items-center gap-2">
 					<Button size="sm" onClick={handleRetry}>
-						Try again
+						<Trans>Try again</Trans>
 					</Button>
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>
-						Dismiss
+						<Trans>Dismiss</Trans>
 					</Button>
 				</div>
 			</div>

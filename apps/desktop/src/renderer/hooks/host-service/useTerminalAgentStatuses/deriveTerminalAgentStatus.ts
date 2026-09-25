@@ -1,3 +1,4 @@
+import { agentStatusFromEvent } from "@superset/shared/agent-status";
 import type { PaneStatus } from "shared/tabs-types";
 
 /**
@@ -14,10 +15,9 @@ export function deriveTerminalAgentStatus({
 	lastEventAt: number;
 	lastSeenAt: number | undefined;
 }): PaneStatus {
-	if (lastEventType === "Start") return "working";
-	if (lastEventType === "PermissionRequest") return "permission";
-	if (lastEventType === "Stop") {
+	const status = agentStatusFromEvent(lastEventType);
+	if (status === "review") {
 		return lastEventAt > (lastSeenAt ?? 0) ? "review" : "idle";
 	}
-	return "idle";
+	return status ?? "idle";
 }

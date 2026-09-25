@@ -1,0 +1,1 @@
+export { registerDom } from "./registerDom";

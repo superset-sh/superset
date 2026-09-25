@@ -7,7 +7,7 @@ image: /changelog/docs.png
 ## SQLite Local Database <PRBadge url="https://github.com/superset-sh/superset/pull/477" />
 
 - Desktop app now uses a local SQLite-backed database with automatic migration from the legacy JSON store
-- Adds `@superset/local-db` package with Drizzle ORM schema for SQLite
+- Typed schema and migrations for the new local database
 - Migrates all database operations from lowdb (db.json) to SQLite using better-sqlite3
 - UUID defaults for all ID fields (prep for local-first architecture)
 
@@ -15,7 +15,7 @@ image: /changelog/docs.png
 
 - Added error tracking and monitoring to the desktop application for improved stability reporting
 - Add Sentry integration for main and renderer processes
-- Add tRPC middleware to automatically capture all backend errors with proper context (path, type, code)
+- Backend errors are now captured automatically with context (path, type, code)
 - Added developer testing tools to validate error reporting functionality
 
 ## Features and FAQ Sections <PRBadge url="https://github.com/superset-sh/superset/pull/472" />

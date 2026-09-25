@@ -1,3 +1,8 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
+import { formatCompactNumber } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
 import { createContext, useContext, useMemo } from "react";
 import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -78,7 +83,11 @@ const ContextIcon = () => {
 
 	return (
 		<Svg
-			accessibilityLabel="Model context usage"
+			accessibilityLabel={i18n._(
+				msg({
+					message: "Model context usage",
+				}),
+			)}
 			height={20}
 			viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
 			width={20}
@@ -113,12 +122,11 @@ const ContextIcon = () => {
 export type ContextTriggerProps = ButtonProps;
 
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
+	const { formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
-	const renderedPercent = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 1,
-		style: "percent",
-	}).format(usedPercent);
+	const renderedPercent = formatPercent(usedPercent);
 
 	return (
 		<HoverCardTrigger asChild>
@@ -153,18 +161,13 @@ export const ContextContentHeader = ({
 	className,
 	...props
 }: ContextContentHeaderProps) => {
+	const { formatCompactNumber, formatPercent } = useFormat();
+
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
-	const displayPct = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 1,
-		style: "percent",
-	}).format(usedPercent);
-	const used = new Intl.NumberFormat("en-US", {
-		notation: "compact",
-	}).format(usedTokens);
-	const total = new Intl.NumberFormat("en-US", {
-		notation: "compact",
-	}).format(maxTokens);
+	const displayPct = formatPercent(usedPercent);
+	const used = formatCompactNumber(usedTokens);
+	const total = formatCompactNumber(maxTokens);
 
 	return (
 		<View
@@ -207,6 +210,8 @@ export const ContextContentFooter = ({
 	className,
 	...props
 }: ContextContentFooterProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { modelId, usage } = useContextValue();
 	const costUSD = modelId
 		? getUsage({
@@ -217,10 +222,7 @@ export const ContextContentFooter = ({
 				},
 			}).costUSD?.totalUSD
 		: undefined;
-	const totalCost = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(costUSD ?? 0);
+	const totalCost = formatCurrency(costUSD ?? 0);
 
 	return (
 		<TextClassContext.Provider value="text-xs">
@@ -233,7 +235,9 @@ export const ContextContentFooter = ({
 			>
 				{children ?? (
 					<>
-						<Text className="text-muted-foreground">Total cost</Text>
+						<Text className="text-muted-foreground">
+							<Trans>Total cost</Trans>
+						</Text>
 						<Text>{totalCost}</Text>
 					</>
 				)}
@@ -250,11 +254,7 @@ const TokensWithCost = ({
 	costText?: string;
 }) => (
 	<Text className="text-xs">
-		{tokens === undefined
-			? "—"
-			: new Intl.NumberFormat("en-US", {
-					notation: "compact",
-				}).format(tokens)}
+		{tokens === undefined ? "—" : formatCompactNumber(tokens)}
 		{costText ? (
 			<Text className="text-muted-foreground text-xs"> • {costText}</Text>
 		) : null}
@@ -268,6 +268,8 @@ export const ContextInputUsage = ({
 	children,
 	...props
 }: ContextInputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const inputTokens = usage?.inputTokens ?? 0;
 
@@ -285,17 +287,16 @@ export const ContextInputUsage = ({
 				usage: { input: inputTokens, output: 0 },
 			}).costUSD?.totalUSD
 		: undefined;
-	const inputCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(inputCost ?? 0);
+	const inputCostText = formatCurrency(inputCost ?? 0);
 
 	return (
 		<View
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Input</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Input</Trans>
+			</Text>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</View>
 	);
@@ -308,6 +309,8 @@ export const ContextOutputUsage = ({
 	children,
 	...props
 }: ContextOutputUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const outputTokens = usage?.outputTokens ?? 0;
 
@@ -325,17 +328,16 @@ export const ContextOutputUsage = ({
 				usage: { input: 0, output: outputTokens },
 			}).costUSD?.totalUSD
 		: undefined;
-	const outputCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(outputCost ?? 0);
+	const outputCostText = formatCurrency(outputCost ?? 0);
 
 	return (
 		<View
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Output</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Output</Trans>
+			</Text>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</View>
 	);
@@ -348,6 +350,8 @@ export const ContextReasoningUsage = ({
 	children,
 	...props
 }: ContextReasoningUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const reasoningTokens = usage?.reasoningTokens ?? 0;
 
@@ -365,17 +369,16 @@ export const ContextReasoningUsage = ({
 				usage: { reasoningTokens },
 			}).costUSD?.totalUSD
 		: undefined;
-	const reasoningCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(reasoningCost ?? 0);
+	const reasoningCostText = formatCurrency(reasoningCost ?? 0);
 
 	return (
 		<View
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Reasoning</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Reasoning</Trans>
+			</Text>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</View>
 	);
@@ -388,6 +391,8 @@ export const ContextCacheUsage = ({
 	children,
 	...props
 }: ContextCacheUsageProps) => {
+	const { formatCurrency } = useFormat();
+
 	const { usage, modelId } = useContextValue();
 	const cacheTokens = usage?.cachedInputTokens ?? 0;
 
@@ -405,17 +410,16 @@ export const ContextCacheUsage = ({
 				usage: { cacheReads: cacheTokens, input: 0, output: 0 },
 			}).costUSD?.totalUSD
 		: undefined;
-	const cacheCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(cacheCost ?? 0);
+	const cacheCostText = formatCurrency(cacheCost ?? 0);
 
 	return (
 		<View
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Cache</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans>Cache</Trans>
+			</Text>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</View>
 	);

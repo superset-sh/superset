@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Pages"
+  short_description: "Publish a self-contained HTML page to a shareable URL and answer the comments on it"
+  default_prompt: "Use $superset-page to publish this as a page and share the link."

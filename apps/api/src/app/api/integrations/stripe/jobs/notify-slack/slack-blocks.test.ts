@@ -19,6 +19,7 @@ function createEnrichedSubscription(
 		discount: null,
 		accessEndsAt: new Date("2026-05-31T00:00:00.000Z"),
 		cancellationDetails: null,
+		customerEmail: "founder@acme.com",
 		...overrides,
 	};
 }
@@ -46,6 +47,15 @@ describe("formatSubscriptionCancelled", () => {
 		expect(serializedBlocks).toContain(
 			"*Comment:*\\nMissing an admin approval workflow.",
 		);
+		expect(serializedBlocks).toContain("*Email:*\\nfounder@acme.com");
+	});
+
+	test("renders N/A when the customer email is missing", () => {
+		const blocks = formatSubscriptionCancelled(
+			createEnrichedSubscription({ customerEmail: null }),
+		);
+
+		expect(JSON.stringify(blocks)).toContain("*Email:*\\nN/A");
 	});
 
 	test("renders unknown Stripe cancellation values without throwing", () => {

@@ -1,0 +1,31 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "superset-gate",
+	"main": "src/index.ts",
+	"workers_dev": false,
+	// One hostname per workspace and port. Needs a proxied `*.sandbox` DNS
+	// record and an Advanced Certificate Manager certificate for the
+	// second-level wildcard, both on the usercontent zone.
+	"routes": [
+		{
+			"pattern": "*.sandbox.supersetusercontent.com/*",
+			"zone_name": "supersetusercontent.com"
+		}
+	],
+	"compatibility_date": "2026-07-01",
+	"vars": {
+		"SANDBOX_GATE_DOMAIN": "sandbox.supersetusercontent.com"
+	},
+	"observability": { "enabled": true },
+	"dev": { "port": 8790 },
+	"env": {
+		// `bun run dev`: one hostname for every workspace, so the domain binding
+		// is off and the ticket alone routes; the port and the secret come from
+		// the worktree's .env.
+		"dev": {
+			"workers_dev": true,
+			"routes": [],
+			"vars": {}
+		}
+	}
+}

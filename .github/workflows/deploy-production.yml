@@ -13,6 +13,9 @@ jobs:
     name: Deploy Database Migrations
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: production-database-migrations
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
@@ -38,7 +41,28 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-        run: bun drizzle-kit migrate
+          # drizzle applies every pending migration in one transaction, so a
+          # migration that queues for a lock blocks all traffic behind it.
+          PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
+        # Losing a lock race rolls back cleanly, so only that is retried.
+        run: |
+          # GitHub's default shell is `bash -e` without pipefail, so without this
+          # the `| tee` below reports a failed migration as a success.
+          set -o pipefail
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if bun drizzle-kit migrate 2>&1 | tee migrate.log; then exit 0; fi
+            grep -qE "deadlock detected|lock timeout" migrate.log || exit 1
+            echo "::warning::Migration lost a lock race (attempt $attempt), retrying"
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+      - name: Verify migrations applied
+        working-directory: packages/db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: bun run src/verify-migrations-applied.ts
 
   deploy-api:
     name: Deploy API to Vercel
@@ -81,54 +105,100 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_PRIVATE_BUCKET: ${{ secrets.R2_PRIVATE_BUCKET }}
+          R2_PUBLIC_BUCKET: ${{ secrets.R2_PUBLIC_BUCKET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
+          USERCONTENT_TOKEN_SECRET: ${{ secrets.USERCONTENT_TOKEN_SECRET }}
+          CLOUDFLARE_BROWSER_RENDERING_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_RENDERING_TOKEN }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_PUBSUB_TOPIC: ${{ secrets.GOOGLE_PUBSUB_TOPIC }}
+          GOOGLE_PUBSUB_PUSH_TOKEN: ${{ secrets.GOOGLE_PUBSUB_PUSH_TOKEN }}
+          SUPPORT_LOOKUP_TOKEN: ${{ secrets.SUPPORT_LOOKUP_TOKEN }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
           NEXT_PUBLIC_SENTRY_DSN_API: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_API }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
           LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
           LINEAR_WEBHOOK_SECRET: ${{ secrets.LINEAR_WEBHOOK_SECRET }}
+          NOTION_CLIENT_ID: ${{ secrets.NOTION_CLIENT_ID }}
+          NOTION_CLIENT_SECRET: ${{ secrets.NOTION_CLIENT_SECRET }}
+          NOTION_WEBHOOK_VERIFICATION_TOKEN: ${{ secrets.NOTION_WEBHOOK_VERIFICATION_TOKEN }}
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          MICROSOFT_CLIENT_SECRET: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          SENTRY_APP_SLUG: ${{ secrets.SENTRY_APP_SLUG }}
+          SENTRY_CLIENT_ID: ${{ secrets.SENTRY_CLIENT_ID }}
+          SENTRY_CLIENT_SECRET: ${{ secrets.SENTRY_CLIENT_SECRET }}
           SLACK_CLIENT_ID: ${{ secrets.SLACK_CLIENT_ID }}
           SLACK_CLIENT_SECRET: ${{ secrets.SLACK_CLIENT_SECRET }}
           SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SERVER_ANTHROPIC_API_KEY: ${{ secrets.SERVER_ANTHROPIC_API_KEY }}
           GH_APP_ID: ${{ secrets.GH_APP_ID }}
           GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
+          GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
+          GH_APP_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
+          HOOKDECK_SIGNING_SECRET: ${{ secrets.HOOKDECK_SIGNING_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_URL: ${{ secrets.QSTASH_URL }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
-          DURABLE_STREAMS_URL: ${{ secrets.DURABLE_STREAMS_URL }}
-          DURABLE_STREAMS_SECRET: ${{ secrets.DURABLE_STREAMS_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          MERCURY_API_TOKEN: ${{ secrets.MERCURY_API_TOKEN }}
+          GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT }}
+          PLUGIN_CLIENT_METADATA_BASE_URL: ${{ secrets.PLUGIN_CLIENT_METADATA_BASE_URL }}
+          PLUGIN_GITHUB_CLIENT_ID: ${{ secrets.PLUGIN_GITHUB_CLIENT_ID }}
+          PLUGIN_GITHUB_CLIENT_SECRET: ${{ secrets.PLUGIN_GITHUB_CLIENT_SECRET }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
           STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
           STRIPE_ENTERPRISE_YEARLY_PRICE_ID: ${{ secrets.STRIPE_ENTERPRISE_YEARLY_PRICE_ID }}
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
+          REALTIME_NUDGE_SECRET: ${{ secrets.REALTIME_NUDGE_SECRET }}
+          VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}
+          VERCEL_SANDBOX_TEAM_ID: ${{ secrets.VERCEL_SANDBOX_TEAM_ID }}
+          VERCEL_SANDBOX_PROJECT_ID: ${{ secrets.VERCEL_SANDBOX_PROJECT_ID }}
+          VERCEL_SANDBOX_REGION: sfo1
+          SANDBOX_GATE_SECRET: ${{ secrets.SANDBOX_GATE_SECRET }}
+          SANDBOX_GATE_ORIGIN: ${{ secrets.SANDBOX_GATE_ORIGIN }}
+          SENTRY_DSN_SANDBOX: ${{ secrets.SENTRY_DSN_SANDBOX }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_APP_SLUG: ${{ secrets.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
-            --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
+            --env CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID \
+            --env R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
+            --env R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
+            --env R2_PRIVATE_BUCKET=$R2_PRIVATE_BUCKET \
+            --env R2_PUBLIC_BUCKET=$R2_PUBLIC_BUCKET \
+            --env R2_ENDPOINT=$R2_ENDPOINT \
+            --env USERCONTENT_URL=$USERCONTENT_URL \
+            --env STATIC_URL=$STATIC_URL \
+            --env USERCONTENT_TOKEN_SECRET=$USERCONTENT_TOKEN_SECRET \
+            --env CLOUDFLARE_BROWSER_RENDERING_TOKEN=$CLOUDFLARE_BROWSER_RENDERING_TOKEN \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
             --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
@@ -137,6 +207,9 @@ jobs:
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
             --env GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET \
+            --env GOOGLE_PUBSUB_TOPIC=$GOOGLE_PUBSUB_TOPIC \
+            --env GOOGLE_PUBSUB_PUSH_TOKEN=$GOOGLE_PUBSUB_PUSH_TOKEN \
+            --env SUPPORT_LOOKUP_TOKEN=$SUPPORT_LOOKUP_TOKEN \
             --env GH_CLIENT_ID=$GH_CLIENT_ID \
             --env GH_CLIENT_SECRET=$GH_CLIENT_SECRET \
             --env NEXT_PUBLIC_SENTRY_DSN_API=$NEXT_PUBLIC_SENTRY_DSN_API \
@@ -147,33 +220,58 @@ jobs:
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
             --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
             --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
+            --env NOTION_CLIENT_ID=$NOTION_CLIENT_ID \
+            --env NOTION_CLIENT_SECRET=$NOTION_CLIENT_SECRET \
+            --env NOTION_WEBHOOK_VERIFICATION_TOKEN=$NOTION_WEBHOOK_VERIFICATION_TOKEN \
+            --env MICROSOFT_CLIENT_ID=$MICROSOFT_CLIENT_ID \
+            --env MICROSOFT_CLIENT_SECRET=$MICROSOFT_CLIENT_SECRET \
+            --env SENTRY_APP_SLUG=$SENTRY_APP_SLUG \
+            --env SENTRY_CLIENT_ID=$SENTRY_CLIENT_ID \
+            --env SENTRY_CLIENT_SECRET=$SENTRY_CLIENT_SECRET \
             --env SLACK_CLIENT_ID=$SLACK_CLIENT_ID \
             --env SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET \
             --env SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET \
-            --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+            --env SERVER_ANTHROPIC_API_KEY=$SERVER_ANTHROPIC_API_KEY \
             --env GH_APP_ID="$GH_APP_ID" \
             --env GH_APP_PRIVATE_KEY="$GH_APP_PRIVATE_KEY" \
             --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
+            --env GH_APP_CLIENT_ID="$GH_APP_CLIENT_ID" \
+            --env GH_APP_CLIENT_SECRET="$GH_APP_CLIENT_SECRET" \
+            --env HOOKDECK_SIGNING_SECRET="$HOOKDECK_SIGNING_SECRET" \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_URL=$QSTASH_URL \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
             --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
-            --env DURABLE_STREAMS_URL=$DURABLE_STREAMS_URL \
-            --env DURABLE_STREAMS_SECRET=$DURABLE_STREAMS_SECRET \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env MERCURY_API_TOKEN=$MERCURY_API_TOKEN \
+            --env GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT="$GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT" \
+            --env PLUGIN_CLIENT_METADATA_BASE_URL="$PLUGIN_CLIENT_METADATA_BASE_URL" \
+            --env PLUGIN_GITHUB_CLIENT_ID="$PLUGIN_GITHUB_CLIENT_ID" \
+            --env PLUGIN_GITHUB_CLIENT_SECRET="$PLUGIN_GITHUB_CLIENT_SECRET" \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
             --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env TAVILY_API_KEY=$TAVILY_API_KEY \
-            --env RELAY_URL=$RELAY_URL
+            --env RELAY_URL=$RELAY_URL \
+            --env REALTIME_URL=$REALTIME_URL \
+            --env REALTIME_NUDGE_SECRET=$REALTIME_NUDGE_SECRET \
+            --env VERCEL_SANDBOX_TOKEN=$VERCEL_SANDBOX_TOKEN \
+            --env VERCEL_SANDBOX_TEAM_ID=$VERCEL_SANDBOX_TEAM_ID \
+            --env VERCEL_SANDBOX_PROJECT_ID=$VERCEL_SANDBOX_PROJECT_ID \
+            --env VERCEL_SANDBOX_REGION=$VERCEL_SANDBOX_REGION \
+            --env SANDBOX_GATE_SECRET=$SANDBOX_GATE_SECRET \
+            --env SANDBOX_GATE_ORIGIN=$SANDBOX_GATE_ORIGIN \
+            --env SENTRY_DSN_SANDBOX=$SENTRY_DSN_SANDBOX \
+            --env OPENAI_API_KEY=$OPENAI_API_KEY \
+            --env GH_APP_SLUG=$GH_APP_SLUG
 
   deploy-web:
     name: Deploy Web to Vercel
@@ -216,13 +314,15 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
+          USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_WEB: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_WEB }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
@@ -234,7 +334,7 @@ jobs:
           STRIPE_ENTERPRISE_YEARLY_PRICE_ID: ${{ secrets.STRIPE_ENTERPRISE_YEARLY_PRICE_ID }}
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SERVER_ANTHROPIC_API_KEY: ${{ secrets.SERVER_ANTHROPIC_API_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
@@ -249,6 +349,8 @@ jobs:
             --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_RELAY_URL=$NEXT_PUBLIC_RELAY_URL \
+            --env USERCONTENT_URL=$USERCONTENT_URL \
+            --env STATIC_URL=$STATIC_URL \
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
@@ -265,7 +367,7 @@ jobs:
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+            --env SERVER_ANTHROPIC_API_KEY=$SERVER_ANTHROPIC_API_KEY
 
   deploy-marketing:
     name: Deploy Marketing to Vercel
@@ -312,9 +414,10 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_MARKETING: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_MARKETING }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
@@ -324,7 +427,7 @@ jobs:
           STRIPE_ENTERPRISE_YEARLY_PRICE_ID: ${{ secrets.STRIPE_ENTERPRISE_YEARLY_PRICE_ID }}
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SERVER_ANTHROPIC_API_KEY: ${{ secrets.SERVER_ANTHROPIC_API_KEY }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -343,6 +446,7 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
@@ -352,7 +456,7 @@ jobs:
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+            --env SERVER_ANTHROPIC_API_KEY=$SERVER_ANTHROPIC_API_KEY
 
   deploy-admin:
     name: Deploy Admin to Vercel
@@ -401,19 +505,21 @@ jobs:
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           NEXT_PUBLIC_SENTRY_DSN_ADMIN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_ADMIN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          MERCURY_API_TOKEN: ${{ secrets.MERCURY_API_TOKEN }}
+          GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
           STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
           STRIPE_ENTERPRISE_YEARLY_PRICE_ID: ${{ secrets.STRIPE_ENTERPRISE_YEARLY_PRICE_ID }}
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SERVER_ANTHROPIC_API_KEY: ${{ secrets.SERVER_ANTHROPIC_API_KEY }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -437,16 +543,143 @@ jobs:
             --env KV_URL=$KV_URL \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env MERCURY_API_TOKEN=$MERCURY_API_TOKEN \
+            --env GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT="$GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT" \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
             --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+            --env SERVER_ANTHROPIC_API_KEY=$SERVER_ANTHROPIC_API_KEY
 
-  deploy-electric-proxy:
-    name: Deploy Electric Proxy to Cloudflare
+  # Every relay deploy restarts every Durable Object, which drops the control
+  # socket of every connected host at once. Only deploy when the push touches
+  # something the relay bundle is built from.
+  relay-changes:
+    name: Detect Relay Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      relay: ${{ steps.filter.outputs.relay }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relay:
+              - 'apps/relay/**'
+              - 'packages/shared/src/tunnel-protocol.ts'
+              - 'packages/shared/src/host-routing.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
+  deploy-relay:
+    name: Deploy Relay to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+    needs: relay-changes
+    # Fail open: a broken detector must not leave a stale relay in production.
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.relay-changes.result != 'success'
+        || needs.relay-changes.outputs.relay == 'true'
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/relay
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  realtime-changes:
+    name: Detect Realtime Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      realtime: ${{ steps.filter.outputs.realtime }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            realtime:
+              - 'apps/realtime/**'
+              - 'packages/shared/src/realtime.ts'
+              - 'patches/**'
+              - '.github/workflows/deploy-production.yml'
+
+  deploy-realtime:
+    name: Deploy Realtime Worker to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+    needs: realtime-changes
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch'
+        || needs.realtime-changes.result != 'success'
+        || needs.realtime-changes.outputs.realtime == 'true'
+      )
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/realtime
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  deploy-content:
+    name: Deploy Usercontent Worker to Cloudflare
     runs-on: ubuntu-latest
     environment: production
 
@@ -470,7 +703,38 @@ jobs:
         run: bun install --frozen --ignore-scripts
 
       - name: Deploy Worker
-        working-directory: apps/electric-proxy
+        working-directory: apps/usercontent
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler deploy
+
+  deploy-sandbox-gate:
+    name: Deploy Gate Worker to Cloudflare
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Deploy Worker
+        working-directory: apps/gate
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -518,7 +782,7 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           NEXT_PUBLIC_SENTRY_DSN_DOCS: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_DOCS }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN

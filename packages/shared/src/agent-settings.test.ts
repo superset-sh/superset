@@ -11,9 +11,10 @@ import {
 	resolveAgentConfigs,
 	upsertCustomAgentDefinition,
 } from "./agent-settings";
+import { DEFAULT_TERMINAL_PRESET_AGENT_TYPES } from "./builtin-terminal-agents";
 
 describe("resolveAgentConfigs", () => {
-	test("resolves built-in terminal and chat configs with overrides", () => {
+	test("resolves built-in terminal configs with overrides", () => {
 		const presets = resolveAgentConfigs({
 			overrideEnvelope: {
 				version: 1,
@@ -25,16 +26,11 @@ describe("resolveAgentConfigs", () => {
 						promptCommand: "claude-custom --prompt",
 						enabled: false,
 					},
-					{
-						id: "superset",
-						taskPromptTemplate: "Chat {{slug}}",
-					},
 				],
 			},
 		});
 
 		const claude = presets.find((preset) => preset.id === "claude");
-		const chat = presets.find((preset) => preset.id === "superset");
 
 		expect(claude).toMatchObject({
 			id: "claude",
@@ -47,15 +43,22 @@ describe("resolveAgentConfigs", () => {
 		expect(claude?.overriddenFields).toEqual(
 			expect.arrayContaining(["label", "command", "promptCommand", "enabled"]),
 		);
+	});
 
-		expect(chat).toMatchObject({
-			id: "superset",
-			kind: "chat",
-			taskPromptTemplate: "Chat {{slug}}",
+	test("includes Oh My Pi as a first-class built-in terminal config", () => {
+		const omp = resolveAgentConfigs({}).find((preset) => preset.id === "omp");
+
+		expect(omp).toMatchObject({
+			id: "omp",
+			kind: "terminal",
+			label: "Oh My Pi",
+			command: "omp",
+			promptCommand: "omp",
+			enabled: true,
 		});
 	});
 
-	test("includes pi as a built-in terminal config", () => {
+	test("preserves the legacy Pi built-in terminal config", () => {
 		const pi = resolveAgentConfigs({}).find((preset) => preset.id === "pi");
 
 		expect(pi).toMatchObject({
@@ -66,6 +69,11 @@ describe("resolveAgentConfigs", () => {
 			promptCommand: "pi",
 			enabled: true,
 		});
+	});
+
+	test("includes Oh My Pi in default terminal presets", () => {
+		expect(DEFAULT_TERMINAL_PRESET_AGENT_TYPES).toContain("omp");
+		expect(DEFAULT_TERMINAL_PRESET_AGENT_TYPES).not.toContain("pi");
 	});
 
 	test("uses amp as the built-in prompt command for Amp", () => {
@@ -306,22 +314,6 @@ describe("contextPromptTemplate resolution", () => {
 			DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
 		);
 		expect(claude?.overriddenFields).toContain("contextPromptTemplateUser");
-	});
-
-	test("override works for chat agents too", () => {
-		const override = {
-			version: 1 as const,
-			presets: [
-				{
-					id: "superset",
-					contextPromptTemplateSystem: "custom sys",
-				},
-			],
-		};
-		const chat = resolveAgentConfigs({ overrideEnvelope: override }).find(
-			(p) => p.id === "superset",
-		);
-		expect(chat?.contextPromptTemplateSystem).toBe("custom sys");
 	});
 
 	test("custom terminal agents without templates fall back to markdown defaults", () => {

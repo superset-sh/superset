@@ -1,5 +1,7 @@
-import { boolean, positional, string } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveHostFilter } from "../../../lib/host-target";
+import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 export default command({
 	description: "Update an automation's metadata (name, schedule, agent, host)",
@@ -13,13 +15,53 @@ export default command({
 			"New host agent instance id or presetId (e.g. claude, codex, superset).",
 		),
 		host: string().desc("New target host id"),
+		local: boolean().desc("Retarget the automation to this machine"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
-		mcpScope: string().desc("Comma-separated MCP scope strings"),
+		continueSession: boolean().desc(
+			"Continue the agent session the previous run left (--continue-session) or start a new one each run (--no-continue-session). Requires a pinned workspace",
+		),
+		session: boolean().desc(
+			"Switch to session mode: no project, each run creates a project-less session workspace",
+		),
 		enabled: boolean().desc("Enable or pause the automation"),
+		tag: string()
+			.variadic()
+			.desc(
+				"Replace the tag set applied to each run's created workspace. Repeatable",
+			),
+		clearTags: boolean().desc("Remove every tag from the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
+
+		// Validate before any mutation — setEnabled below must not run for a
+		// rejected invocation.
+		if (options.session && (options.workspace || options.project)) {
+			throw new CLIError(
+				"--session cannot be combined with --project or --workspace",
+			);
+		}
+		if (options.tag?.length && options.clearTags) {
+			throw new CLIError(
+				"Cannot combine --tag and --clear-tags",
+				"Pass one or the other",
+			);
+		}
+
+		// Ahead of every mutation: `setEnabled` runs before the update, and a
+		// combination the server will refuse must not flip `enabled` first.
+		if (options.session && options.continueSession) {
+			throw new CLIError(
+				"--continue-session requires a pinned workspace",
+				"Session mode has none; drop --session or pass --no-continue-session",
+			);
+		}
+
+		const targetHostId = resolveHostFilter({
+			host: options.host ?? undefined,
+			local: options.local ?? undefined,
+		});
 
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
@@ -28,13 +70,28 @@ export default command({
 			});
 		}
 
-		const mcpScope =
-			options.mcpScope !== undefined
-				? options.mcpScope
-						.split(",")
-						.map((s) => s.trim())
-						.filter(Boolean)
-				: undefined;
+		// Retargeting (--workspace or --project) re-derives targetHostId +
+		// v2ProjectId; the resource must exist on the target host.
+		let target:
+			| { targetHostId: string; v2ProjectId: string | null }
+			| undefined;
+		if (options.workspace || options.project) {
+			const organizationId = ctx.config.organizationId;
+			if (!organizationId) {
+				throw new CLIError(
+					"No active organization",
+					"Run: superset auth login",
+				);
+			}
+			target = await resolveAutomationTarget({
+				organizationId,
+				userJwt: ctx.bearer,
+				api: ctx.api,
+				hostId: targetHostId,
+				workspaceId: options.workspace ?? undefined,
+				projectId: options.project ?? undefined,
+			});
+		}
 
 		const result = await ctx.api.automation.update.mutate({
 			id,
@@ -43,14 +100,25 @@ export default command({
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agent: options.agent,
-			...(options.host !== undefined ? { targetHostId: options.host } : {}),
+			...(targetHostId !== undefined ? { targetHostId } : {}),
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }
 				: {}),
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
-			...(mcpScope !== undefined ? { mcpScope } : {}),
+			// Session mode clears both the project and any workspace pin.
+			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...(options.continueSession === undefined
+				? {}
+				: { continueAgentSession: options.continueSession }),
+			// --tag replaces the whole set; --clear-tags empties it.
+			...(options.clearTags
+				? { tags: [] }
+				: options.tag?.length
+					? { tags: options.tag }
+					: {}),
+			...target,
 		});
 
 		return {

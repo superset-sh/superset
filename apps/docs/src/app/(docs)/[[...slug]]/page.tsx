@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { sections } from "@/app/(docs)/components/Sidebar/components/SidebarContent";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 import {
@@ -16,6 +17,10 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 	if (!page) notFound();
 
 	const MDX = page.data.body;
+	const section = sections.find((s) =>
+		s.items.some((item) => item.href === page.url),
+	);
+	const markdownUrl = page.url === "/" ? "/index.mdx" : `${page.url}.mdx`;
 
 	return (
 		<DocsPage
@@ -30,6 +35,11 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 				path: `apps/docs/content/docs/${page.path}`,
 			}}
 		>
+			{section ? (
+				<p className="-mb-4 text-xs font-semibold uppercase tracking-wider text-brand-dark dark:text-brand-light">
+					{section.title}
+				</p>
+			) : null}
 			<DocsTitle>
 				<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
 					<span>{page.data.title}</span>
@@ -42,9 +52,9 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 			</DocsTitle>
 			<DocsDescription>{page.data.description}</DocsDescription>
 			<div className="flex flex-row gap-2 items-center border-b pb-3">
-				<LLMCopyButton markdownUrl={`${page.url}.mdx`} />
+				<LLMCopyButton markdownUrl={markdownUrl} />
 				<ViewOptions
-					markdownUrl={`${page.url}.mdx`}
+					markdownUrl={markdownUrl}
 					githubUrl={`https://github.com/superset-sh/superset/blob/main/apps/docs/content/docs/${page.path}`}
 				/>
 			</div>

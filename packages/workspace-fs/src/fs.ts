@@ -1,3 +1,4 @@
+import { constants as bufferConstants } from "node:buffer";
 import { createHash, randomUUID } from "node:crypto";
 import type { Dirent, Stats } from "node:fs";
 import fs from "node:fs/promises";
@@ -23,6 +24,11 @@ export class WorkspaceFsPathError extends Error {
 		this.name = "WorkspaceFsPathError";
 	}
 }
+
+// Text past V8's string ceiling can never be returned, and a single
+// FileHandle.read of 2 GiB or more fails a Node CHECK that aborts the whole
+// process instead of throwing.
+const MAX_READ_BYTES = bufferConstants.MAX_STRING_LENGTH;
 
 const PATH_LOCK_STALE_MS = 30_000;
 const PATH_LOCK_RETRY_MS = 50;
@@ -77,8 +83,9 @@ function ensureWithinRoot({
 	const normalizedAbsolutePath = normalizeAbsolutePath(absolutePath);
 
 	if (!isPathWithinRoot(normalizedRootPath, normalizedAbsolutePath)) {
-		throw new Error(
+		throw new WorkspaceFsPathError(
 			`Path is outside workspace root: ${normalizedAbsolutePath}`,
+			"INVALID_TARGET",
 		);
 	}
 
@@ -328,6 +335,16 @@ async function withPathLock<T>(
 	}
 }
 
+async function resolveWriteTarget(absolutePath: string): Promise<string> {
+	try {
+		return await fs.realpath(absolutePath);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT" && code !== "ELOOP") throw error;
+		return absolutePath;
+	}
+}
+
 async function writeAtomically({
 	rootPath,
 	absolutePath,
@@ -339,12 +356,13 @@ async function writeAtomically({
 	content: string | Uint8Array;
 	encoding?: string;
 }): Promise<void> {
-	const tempPath = `${absolutePath}.superset-tmp-${randomUUID()}`;
+	const targetPath = await resolveWriteTarget(absolutePath);
+	const tempPath = `${targetPath}.superset-tmp-${randomUUID()}`;
 	await assertParentWithinRoot(rootPath, tempPath);
 
 	let sourceMode: number | undefined;
 	try {
-		const currentStats = await fs.stat(absolutePath);
+		const currentStats = await fs.stat(targetPath);
 		sourceMode = currentStats.mode;
 	} catch (error) {
 		if (!isEnoent(error)) {
@@ -359,7 +377,7 @@ async function writeAtomically({
 		if (sourceMode !== undefined) {
 			await fs.chmod(tempPath, sourceMode);
 		}
-		await fs.rename(tempPath, absolutePath);
+		await fs.rename(tempPath, targetPath);
 	} finally {
 		await fs.rm(tempPath, { force: true });
 	}
@@ -453,59 +471,34 @@ export async function readFile({
 		const fileSize = stats.size;
 		const startOffset = offset ?? 0;
 		const remaining = Math.max(0, fileSize - startOffset);
+		const limit = Math.min(maxBytes ?? MAX_READ_BYTES, MAX_READ_BYTES);
 
-		if (maxBytes !== undefined) {
-			const bytesToAttempt = Math.min(maxBytes + 1, remaining);
-			const buffer = Buffer.allocUnsafe(Math.max(bytesToAttempt, 0));
-			const { bytesRead } = await fileHandle.read(
-				buffer,
-				0,
-				bytesToAttempt,
-				startOffset,
-			);
-			const exceededLimit = bytesRead > maxBytes;
-			const actualBytes = Math.min(bytesRead, maxBytes);
-			const resultBuffer = buffer.subarray(0, actualBytes);
-
-			if (encoding) {
-				return {
-					kind: "text",
-					content: resultBuffer.toString(encoding as BufferEncoding),
-					byteLength: actualBytes,
-					exceededLimit,
-					revision,
-				};
-			}
-			return {
-				kind: "bytes",
-				content: new Uint8Array(resultBuffer),
-				byteLength: actualBytes,
-				exceededLimit,
-				revision,
-			};
-		}
-
-		const buffer = Buffer.allocUnsafe(remaining);
-		const { bytesRead } =
-			remaining > 0
-				? await fileHandle.read(buffer, 0, remaining, startOffset)
-				: { bytesRead: 0 };
-		const resultBuffer = buffer.subarray(0, bytesRead);
+		const bytesToAttempt = Math.min(limit + 1, remaining);
+		const buffer = Buffer.allocUnsafe(bytesToAttempt);
+		const { bytesRead } = await fileHandle.read(
+			buffer,
+			0,
+			bytesToAttempt,
+			startOffset,
+		);
+		const exceededLimit = bytesRead > limit;
+		const actualBytes = Math.min(bytesRead, limit);
+		const resultBuffer = buffer.subarray(0, actualBytes);
 
 		if (encoding) {
 			return {
 				kind: "text",
 				content: resultBuffer.toString(encoding as BufferEncoding),
-				byteLength: bytesRead,
-				exceededLimit: false,
+				byteLength: actualBytes,
+				exceededLimit,
 				revision,
 			};
 		}
 		return {
 			kind: "bytes",
 			content: new Uint8Array(resultBuffer),
-			byteLength: bytesRead,
-			exceededLimit: false,
+			byteLength: actualBytes,
+			exceededLimit,
 			revision,
 		};
 	} finally {
@@ -580,7 +573,7 @@ export async function writeFile({
 	const execute = async (): Promise<FsWriteResult> => {
 		if (precondition?.ifMatch !== undefined) {
 			try {
-				const stats = await fs.lstat(targetPath);
+				const stats = await fs.stat(targetPath);
 				const currentRevision = toRevision(stats);
 				if (currentRevision !== precondition.ifMatch) {
 					return { ok: false, reason: "conflict", currentRevision };
@@ -661,6 +654,210 @@ export async function createDirectory({
 		}
 	}
 	return { absolutePath: targetPath, kind: "directory" };
+}
+
+/**
+ * How many `baseName`, `baseName-2`, `baseName-3`, ... candidates
+ * `createUniqueEntry` will try before giving up. Deliberately a module
+ * constant rather than a parameter: it bounds the syscalls one request can
+ * make, so it must not be caller-controlled.
+ */
+const CREATE_UNIQUE_MAX_ATTEMPTS = 100;
+
+export type FsCreateUniqueResult =
+	| { ok: true; absolutePath: string; name: string; revision?: string }
+	| { ok: false; reason: "exhausted" | "invalid-name" };
+
+/**
+ * A single path leaf — no separators, no traversal, no NUL. `ensureWithinRoot`
+ * and `assertRealpathWithinRoot` are a backstop, not the primary guard here: a
+ * `baseName` of `a/b` stays inside the root, so it would silently create a
+ * nested path instead of being rejected.
+ */
+function isValidLeafName(name: string): boolean {
+	if (name.trim().length === 0) return false;
+	if (name === "." || name === "..") return false;
+	return !(name.includes("/") || name.includes("\\") || name.includes("\0"));
+}
+
+function isEnotempty(error: unknown): boolean {
+	if (!(error instanceof Error) || !("code" in error)) return false;
+	// POSIX reports ENOTEMPTY; some platforms report EEXIST for the same case.
+	return error.code === "ENOTEMPTY" || error.code === "EEXIST";
+}
+
+/**
+ * Atomically create a new, empty entry under `parentAbsolutePath`, starting at
+ * `baseName` and falling back to `baseName-2`, `baseName-3`, ... until one
+ * wins.
+ *
+ * Every attempt is exclusive — `mkdir` without `recursive`, `writeFile` with
+ * the `wx` flag — so a stale client-side listing or a concurrent creator can
+ * never cause an existing entry to be adopted. Callers depend on that:
+ * the Files tab removes the entry it created when the user cancels, which
+ * would be destructive if creation could silently adopt someone else's.
+ *
+ * This is why `createDirectory` is not reused — it treats an existing
+ * directory as success.
+ */
+export async function createUniqueEntry({
+	rootPath,
+	parentAbsolutePath,
+	baseName,
+	kind,
+}: {
+	rootPath: string;
+	parentAbsolutePath: string;
+	baseName: string;
+	kind: "directory" | "file";
+}): Promise<FsCreateUniqueResult> {
+	if (!isValidLeafName(baseName)) {
+		return { ok: false, reason: "invalid-name" };
+	}
+
+	const parentPath = ensureWithinRoot({
+		rootPath,
+		absolutePath: parentAbsolutePath,
+	});
+	await assertRealpathWithinRoot(rootPath, parentPath);
+
+	for (let attempt = 0; attempt < CREATE_UNIQUE_MAX_ATTEMPTS; attempt++) {
+		const name = attempt === 0 ? baseName : `${baseName}-${attempt + 1}`;
+		const targetPath = ensureWithinRoot({
+			rootPath,
+			absolutePath: path.join(parentPath, name),
+		});
+
+		try {
+			if (kind === "directory") {
+				await fs.mkdir(targetPath);
+				return { ok: true, absolutePath: targetPath, name };
+			}
+
+			await fs.writeFile(targetPath, Buffer.alloc(0), { flag: "wx" });
+			const stats = await fs.stat(targetPath);
+			return {
+				ok: true,
+				absolutePath: targetPath,
+				name,
+				revision: toRevision(stats),
+			};
+		} catch (error) {
+			if (isEexist(error)) continue;
+			throw error;
+		}
+	}
+
+	return { ok: false, reason: "exhausted" };
+}
+
+export type FsRemoveEmptyDirectoryResult =
+	| { ok: true }
+	| { ok: false; reason: "not-empty" | "wrong-type" };
+
+/**
+ * Remove a directory only if it is empty, via `rmdir` — never `rm -r`.
+ *
+ * This is the cancel path for a provisionally-created folder, so it must be
+ * incapable of destroying data: if anything landed in the directory between
+ * creation and cancellation, the removal fails and the caller keeps the
+ * directory. `lstat` (not `stat`) also means a symlink is reported as
+ * `wrong-type` rather than followed.
+ */
+export async function removeEmptyDirectory({
+	rootPath,
+	absolutePath,
+}: {
+	rootPath: string;
+	absolutePath: string;
+}): Promise<FsRemoveEmptyDirectoryResult> {
+	if (normalizeAbsolutePath(absolutePath) === normalizeAbsolutePath(rootPath)) {
+		throw new WorkspaceFsPathError(
+			"Cannot target workspace root",
+			"INVALID_TARGET",
+		);
+	}
+
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+
+	let stats: Stats;
+	try {
+		stats = await fs.lstat(targetPath);
+	} catch (error) {
+		if (isEnoent(error)) return { ok: true };
+		throw error;
+	}
+
+	if (!stats.isDirectory()) return { ok: false, reason: "wrong-type" };
+
+	await assertRealpathWithinRoot(rootPath, targetPath);
+
+	try {
+		await fs.rmdir(targetPath);
+		return { ok: true };
+	} catch (error) {
+		if (isEnoent(error)) return { ok: true };
+		if (isEnotempty(error)) return { ok: false, reason: "not-empty" };
+		throw error;
+	}
+}
+
+export type FsRemoveFileIfUnchangedResult =
+	| { ok: true }
+	| { ok: false; reason: "modified" | "wrong-type" };
+
+/**
+ * Remove a file only if it still matches `revision` (as returned by
+ * `writeFile` / `createUniqueEntry`).
+ *
+ * Best-effort, and deliberately so: the stat-then-unlink pair is serialized
+ * against other `withPathLock` holders, but nothing stops an unrelated process
+ * writing between the two syscalls. It is the cancel path for a provisional
+ * empty file we created moments earlier, so the residual window is tiny and
+ * the worst case is removing a file that an external writer touched in that
+ * instant. Folder cancellation has no equivalent gap — `rmdir` is atomic.
+ */
+export async function removeFileIfUnchanged({
+	rootPath,
+	absolutePath,
+	revision,
+}: {
+	rootPath: string;
+	absolutePath: string;
+	revision: string;
+}): Promise<FsRemoveFileIfUnchangedResult> {
+	if (normalizeAbsolutePath(absolutePath) === normalizeAbsolutePath(rootPath)) {
+		throw new WorkspaceFsPathError(
+			"Cannot target workspace root",
+			"INVALID_TARGET",
+		);
+	}
+
+	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
+
+	return await withPathLock(targetPath, async () => {
+		let stats: Stats;
+		try {
+			stats = await fs.lstat(targetPath);
+		} catch (error) {
+			if (isEnoent(error)) return { ok: true };
+			throw error;
+		}
+
+		if (!stats.isFile()) return { ok: false, reason: "wrong-type" };
+		if (toRevision(stats) !== revision)
+			return { ok: false, reason: "modified" };
+
+		await assertRealpathWithinRoot(rootPath, targetPath);
+
+		try {
+			await fs.rm(targetPath);
+			return { ok: true };
+		} catch (error) {
+			if (isEnoent(error)) return { ok: true };
+			throw error;
+		}
+	});
 }
 
 export async function deletePath({

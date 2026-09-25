@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getVisibleItemsForSection,
+	getVisibleMatchCountBySection,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -42,6 +44,12 @@ describe("settings search - font settings", () => {
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT);
 	});
 
+	it("normalizes whitespace between search terms", () => {
+		const results = searchSettings("  terminal   font  ");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT);
+	});
+
 	it("empty search returns all settings items", () => {
 		const results = searchSettings("");
 		expect(results.length).toBeGreaterThan(0);
@@ -61,5 +69,61 @@ describe("settings search - font settings", () => {
 
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
+	});
+});
+
+describe("settings search - hosts", () => {
+	it('searching "delete host" returns the host deletion setting', () => {
+		const ids = getIds(searchSettings("delete host"));
+
+		expect(ids).toContain(SETTING_ITEM_ID.HOST_DELETE);
+	});
+});
+
+describe("settings search - usage in sidebar", () => {
+	it('searching "sidebar" in Usage returns the usage-in-sidebar switch for v2 users', () => {
+		const ids = getVisibleItemsForSection({
+			section: "usage",
+			searchQuery: "sidebar",
+			isV2: true,
+		});
+		expect(ids).toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
+	});
+
+	it("hides the usage-in-sidebar switch from v1 users", () => {
+		const ids = getVisibleItemsForSection({
+			section: "usage",
+			searchQuery: "sidebar",
+			isV2: false,
+		});
+		expect(ids).not.toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
+	});
+
+	it('searching "shortcut" matches the usage-in-sidebar item', () => {
+		const ids = getIds(searchSettings("shortcut"));
+		expect(ids).toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
+	});
+
+	it("lists the usage-in-sidebar switch in Usage without a search for v2 users", () => {
+		const ids = getVisibleItemsForSection({
+			section: "usage",
+			searchQuery: "",
+			isV2: true,
+		});
+		expect(ids).toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
+	});
+});
+
+describe("settings search - mobile rollout", () => {
+	it("excludes mobile matches until the feature flag is enabled", () => {
+		expect(
+			getVisibleMatchCountBySection("iPhone", true, false).mobile,
+		).toBeUndefined();
+		expect(
+			getVisibleMatchCountBySection("iPhone", true, false, true).mobile,
+		).toBe(1);
+		expect(
+			getVisibleMatchCountBySection("iPhone", false, false, true).mobile,
+		).toBe(1);
 	});
 });

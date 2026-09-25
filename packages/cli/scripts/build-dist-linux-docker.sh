@@ -8,8 +8,10 @@
 #   packages/cli/scripts/build-dist-linux-docker.sh [linux-x64|linux-arm64]
 #
 # Outputs the tarball at packages/cli/dist/superset-<target>.tar.gz inside
-# the container's copy of the repo and runs the same require() smoke test
-# the CI workflow runs.
+# the container's copy of the repo, runs the same require() smoke test the
+# CI workflow runs, then the headless-host E2E (headless-e2e.sh) against
+# the built distribution — provisioning, agent hooks, and login-shell env
+# merge on a machine that never ran the desktop app.
 set -euo pipefail
 
 TARGET="${1:-linux-x64}"
@@ -40,7 +42,7 @@ docker run --rm --platform "$PLATFORM" \
   "oven/bun:${BUN_VERSION}" bash -euxc '
     apt-get update -qq
     apt-get install -y --no-install-recommends \
-      curl python3 make g++ ca-certificates xz-utils rsync >/dev/null
+      curl python3 make g++ ca-certificates xz-utils rsync procps zsh >/dev/null
 
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
       | tar -xJ -C /usr/local --strip-components=1
@@ -64,5 +66,6 @@ docker run --rm --platform "$PLATFORM" \
 
     DIST="$(pwd)/dist/superset-${TARGET}"
     bash scripts/smoke-test.sh "$DIST" "$TARGET"
+    SUPERSET_HEADLESS_E2E=1 bash scripts/headless-e2e.sh "$DIST"
     echo "[docker-build] tarball: $(ls -la "$DIST.tar.gz")"
   '

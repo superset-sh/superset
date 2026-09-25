@@ -1,47 +1,39 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { LuExternalLink } from "react-icons/lu";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface LinkedTaskSectionProps {
 	taskId: string;
 }
 
 export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
-	const collections = useCollections();
+	const { t } = useLingui();
+	const { data: taskRecord } = cloudTrpc.task.byIdOrSlug.useQuery(taskId);
+	const { data: statuses } = cloudTrpc.task.statuses.list.useQuery(undefined);
 
-	const { data: rows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ t: collections.tasks })
-				.leftJoin({ s: collections.taskStatuses }, ({ t, s }) =>
-					eq(t.statusId, s.id),
-				)
-				.where(({ t }) => eq(t.id, taskId))
-				.select(({ t, s }) => ({
-					id: t.id,
-					slug: t.slug,
-					title: t.title,
-					externalUrl: t.externalUrl,
-					statusType: s?.type ?? null,
-					statusColor: s?.color ?? null,
-					statusProgress: s?.progressPercent ?? null,
-				})),
-		[collections, taskId],
-	);
+	if (!taskRecord) return null;
 
-	const task = rows[0];
-	if (!task) return null;
+	const status =
+		statuses?.find((entry) => entry.id === taskRecord.statusId) ?? null;
+	const task = {
+		id: taskRecord.id,
+		slug: taskRecord.slug,
+		title: taskRecord.title,
+		externalUrl: taskRecord.externalUrl,
+		statusType: status?.type ?? null,
+		statusColor: status?.color ?? null,
+		statusProgress: status?.progressPercent ?? null,
+	};
 
 	return (
 		<div className="pt-2 border-t border-border space-y-0.5">
 			<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-				Task
+				<Trans>Task</Trans>
 			</span>
 			<div className="flex items-center gap-1.5">
 				<Link
@@ -72,7 +64,9 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 						target="_blank"
 						rel="noopener noreferrer"
 						className="shrink-0 text-muted-foreground hover:text-foreground"
-						title="Open task externally"
+						title={t({
+							message: "Open task externally",
+						})}
 						onClick={(e) => e.stopPropagation()}
 					>
 						<LuExternalLink className="size-3" />

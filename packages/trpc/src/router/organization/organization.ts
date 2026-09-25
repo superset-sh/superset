@@ -1,7 +1,13 @@
 import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
-import { members, organizations } from "@superset/db/schema";
+import {
+	members,
+	organizations,
+	teamMembers,
+	teams,
+	users,
+} from "@superset/db/schema";
 import {
 	sessions as authSessions,
 	invitations,
@@ -10,11 +16,17 @@ import {
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
+import {
+	jwtProcedure,
+	protectedProcedure,
+	publicProcedure,
+	userError,
+} from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import { organizationMembersRouter } from "./members";
 
 async function getInvitationById(invitationId: string) {
@@ -27,9 +39,10 @@ async function getInvitationById(invitationId: string) {
 	});
 
 	if (!invitation) {
-		throw new TRPCError({
+		throw userError({
 			code: "NOT_FOUND",
 			message: "Invitation not found",
+			i18nKey: "serverError.organization.invitationNotFound",
 		});
 	}
 
@@ -57,6 +70,121 @@ function verificationMatchesInvitation({
 
 export const organizationRouter = {
 	members: organizationMembersRouter,
+
+	list: protectedProcedure.query(async ({ ctx }) => {
+		return db
+			.select({
+				id: organizations.id,
+				name: organizations.name,
+				slug: organizations.slug,
+				logo: organizations.logo,
+			})
+			.from(organizations)
+			.innerJoin(members, eq(members.organizationId, organizations.id))
+			.where(eq(members.userId, ctx.session.user.id))
+			.orderBy(organizations.name);
+	}),
+
+	listMembers: protectedProcedure
+		.input(
+			z.object({ includeDeactivated: z.boolean().default(false) }).nullish(),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const conditions = [eq(members.organizationId, organizationId)];
+			if (!input?.includeDeactivated) {
+				conditions.push(isNull(users.deletionRequestedAt));
+			}
+			return db
+				.select({
+					id: members.id,
+					role: members.role,
+					createdAt: members.createdAt,
+					userId: members.userId,
+					user: {
+						id: users.id,
+						name: users.name,
+						email: users.email,
+						image: users.image,
+						deletionRequestedAt: users.deletionRequestedAt,
+					},
+				})
+				.from(members)
+				.innerJoin(users, eq(members.userId, users.id))
+				.where(and(...conditions));
+		}),
+
+	listInvitations: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		return db
+			.select({
+				id: invitations.id,
+				email: invitations.email,
+				role: invitations.role,
+				status: invitations.status,
+				expiresAt: invitations.expiresAt,
+				createdAt: invitations.createdAt,
+				inviterId: invitations.inviterId,
+				inviter: {
+					id: users.id,
+					name: users.name,
+					email: users.email,
+					image: users.image,
+				},
+			})
+			.from(invitations)
+			.innerJoin(users, eq(invitations.inviterId, users.id))
+			.where(
+				and(
+					eq(invitations.organizationId, organizationId),
+					eq(invitations.status, "pending"),
+				),
+			)
+			.orderBy(desc(invitations.createdAt));
+	}),
+
+	listTeams: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		const [teamRows, teamMemberRows] = await Promise.all([
+			db
+				.select({
+					id: teams.id,
+					name: teams.name,
+					slug: teams.slug,
+					createdAt: teams.createdAt,
+				})
+				.from(teams)
+				.where(eq(teams.organizationId, organizationId))
+				.orderBy(teams.name),
+			db
+				.select({
+					id: teamMembers.id,
+					teamId: teamMembers.teamId,
+					userId: teamMembers.userId,
+					createdAt: teamMembers.createdAt,
+				})
+				.from(teamMembers)
+				.where(eq(teamMembers.organizationId, organizationId)),
+		]);
+
+		const membersByTeam = new Map<
+			string,
+			{ id: string; userId: string; createdAt: Date | null }[]
+		>();
+		for (const { teamId, ...member } of teamMemberRows) {
+			const existing = membersByTeam.get(teamId);
+			if (existing) {
+				existing.push(member);
+			} else {
+				membersByTeam.set(teamId, [member]);
+			}
+		}
+
+		return teamRows.map((team) => ({
+			...team,
+			members: membersByTeam.get(team.id) ?? [],
+		}));
+	}),
 
 	getActive: protectedProcedure.query(async ({ ctx }) => {
 		const orgId = ctx.activeOrganizationId;
@@ -171,9 +299,10 @@ export const organizationRouter = {
 				});
 
 			if (!hasValidToken) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Invitation not found",
+					i18nKey: "serverError.organization.invitationNotFound",
 				});
 			}
 
@@ -206,10 +335,11 @@ export const organizationRouter = {
 					where: sql`${organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
 				});
 				if (domainOrg) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message:
 							"Your account is managed by your organization. Contact your admin to create a new organization.",
+						i18nKey: "serverError.organization.managedDomain",
 					});
 				}
 			}
@@ -224,9 +354,10 @@ export const organizationRouter = {
 			});
 
 			if (!organization) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create organization",
+					i18nKey: "serverError.organization.createFailed",
 				});
 			}
 
@@ -261,16 +392,19 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
 			if (membership.role !== "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",
+					i18nKey:
+						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
 				});
 			}
 
@@ -283,9 +417,10 @@ export const organizationRouter = {
 				});
 
 				if (existingOrg) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "This slug is already taken",
+						i18nKey: "serverError.organization.slugTaken",
 					});
 				}
 			}
@@ -328,16 +463,19 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
 			if (membership.role !== "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",
+					i18nKey:
+						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
 				});
 			}
 
@@ -346,21 +484,20 @@ export const organizationRouter = {
 			});
 
 			if (!organization) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Organization not found",
+					i18nKey: "serverError.organization.organizationNotFound",
 				});
 			}
 
 			const pathname = generateImagePathname({
 				prefix: `organization/${input.organizationId}/logo`,
-				mimeType: input.mimeType,
 			});
 
 			try {
 				const url = await uploadImage({
 					fileData: input.fileData,
-					mimeType: input.mimeType,
 					pathname,
 					existingUrl: organization.logo,
 				});
@@ -375,9 +512,10 @@ export const organizationRouter = {
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				console.error("[organization/uploadLogo] Upload failed:", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to upload logo",
+					i18nKey: "serverError.organization.failedToUploadLogo",
 				});
 			}
 		}),
@@ -416,9 +554,10 @@ export const organizationRouter = {
 
 			const targetMember = allMembers.find((m) => m.userId === input.userId);
 			if (!targetMember) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Member not found",
+					i18nKey: "serverError.organization.memberNotFound",
 				});
 			}
 
@@ -426,9 +565,10 @@ export const organizationRouter = {
 				(m) => m.userId === ctx.session.user.id,
 			);
 			if (!actorMembership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -444,20 +584,24 @@ export const organizationRouter = {
 
 			if (!canRemove) {
 				if (isTargetSelf) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message: "Cannot remove yourself",
+						i18nKey: "serverError.organization.cannotRemoveYourself",
 					});
 				}
 				if (targetMember.role === "owner" && ownerCount === 1) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message: "Cannot remove the last owner. Transfer ownership first.",
+						i18nKey:
+							"serverError.organization.cannotRemoveTheLastOwnerTransfer",
 					});
 				}
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You don't have permission to remove this member",
+					i18nKey: "serverError.organization.youDonTHavePermission",
 				});
 			}
 
@@ -487,9 +631,10 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -499,9 +644,10 @@ export const organizationRouter = {
 			});
 
 			if (!leaveResult) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to leave organization",
+					i18nKey: "serverError.organization.failedToLeaveOrganization",
 				});
 			}
 
@@ -545,9 +691,10 @@ export const organizationRouter = {
 
 			const targetMember = allMembers.find((m) => m.id === input.memberId);
 			if (!targetMember) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Member not found",
+					i18nKey: "serverError.organization.memberNotFound",
 				});
 			}
 
@@ -555,9 +702,10 @@ export const organizationRouter = {
 				(m) => m.userId === ctx.session.user.id,
 			);
 			if (!actorMembership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -566,23 +714,26 @@ export const organizationRouter = {
 			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
 
 			if (actorRole === "admin" && targetRole === "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Admins cannot modify owners",
+					i18nKey: "serverError.organization.adminsCannotModifyOwners",
 				});
 			}
 
 			if (actorRole === "admin" && input.role === "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Admins cannot promote members to owner",
+					i18nKey: "serverError.organization.adminsCannotPromoteMembersToOwner",
 				});
 			}
 
 			if (actorRole === "member") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Members cannot modify roles",
+					i18nKey: "serverError.organization.membersCannotModifyRoles",
 				});
 			}
 
@@ -591,9 +742,10 @@ export const organizationRouter = {
 				ownerCount === 1 &&
 				input.role !== "owner"
 			) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Cannot demote the last owner. Promote someone else first.",
+					i18nKey: "serverError.organization.cannotDemoteTheLastOwnerPromote",
 				});
 			}
 

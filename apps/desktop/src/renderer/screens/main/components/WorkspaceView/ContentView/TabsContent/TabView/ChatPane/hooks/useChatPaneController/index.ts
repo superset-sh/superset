@@ -1,1 +1,0 @@
-export { useChatPaneController } from "./useChatPaneController";

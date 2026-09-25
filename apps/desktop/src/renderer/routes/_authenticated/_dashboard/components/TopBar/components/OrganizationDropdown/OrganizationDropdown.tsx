@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import {
@@ -11,38 +12,53 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { FiUsers } from "react-icons/fi";
 import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
-	HiOutlineCog6Tooth,
+	HiOutlineArrowsRightLeft,
 	HiOutlinePlus,
+	HiOutlineWindow,
 } from "react-icons/hi2";
-import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HelpSubMenu } from "./components/HelpSubMenu";
+import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
 
 export function OrganizationDropdown({
 	variant = "topbar",
 }: {
 	variant?: "topbar" | "expanded" | "collapsed";
 }) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const signOut = useSignOut();
 	const navigate = useNavigate();
+	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
+	const openNewWindow = electronTrpc.window.openNew.useMutation({
+		onError: (error) =>
+			toast.error(
+				t({
+					message: `Failed to open new window: ${error.message}`,
+				}),
+			),
+	});
 
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window active org (from CollectionsProvider), not the shared session —
+	// so the checkmark reflects what THIS window is showing.
+	const activeOrganizationId = collections.activeOrganizationId;
 
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const activeOrganization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -55,7 +71,12 @@ export function OrganizationDropdown({
 	}
 
 	const userName = session?.user?.name;
-	const displayName = activeOrganization?.name ?? userName ?? "Organization";
+	const displayName =
+		activeOrganization?.name ??
+		userName ??
+		t({
+			message: "Organization",
+		});
 
 	const { plan: currentPlan } = useCurrentPlan();
 	const isPaid = currentPlan !== "free";
@@ -73,8 +94,10 @@ export function OrganizationDropdown({
 		variant === "collapsed" ? (
 			<button
 				type="button"
-				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-				aria-label="Organization menu"
+				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
+				aria-label={t({
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"
@@ -86,8 +109,10 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
-				aria-label="Organization menu"
+				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
+				aria-label={t({
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"
@@ -97,13 +122,14 @@ export function OrganizationDropdown({
 				/>
 				<span className="truncate">{displayName}</span>
 				{planBadge}
-				<HiChevronUpDown className="ml-auto h-3.5 w-3.5 text-muted-foreground shrink-0" />
 			</button>
 		) : (
 			<button
 				type="button"
 				className="group no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
-				aria-label="Organization menu"
+				aria-label={t({
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"
@@ -122,81 +148,97 @@ export function OrganizationDropdown({
 	const contentAlign = variant === "topbar" ? "end" : "start";
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
-			<DropdownMenuContent
-				align={contentAlign}
-				className={
-					variant === "expanded"
-						? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"
-						: "w-56"
-				}
-			>
-				{/* Organization */}
-				{/* TODO(v1): Settings lives in the sidebar footer in v2; kept here for v1. Remove once v1 is gone. */}
-				<DropdownMenuItem
-					onSelect={() => navigate({ to: "/settings/account" })}
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align={contentAlign}
+					className={
+						variant === "expanded"
+							? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"
+							: "w-56"
+					}
 				>
-					<HiOutlineCog6Tooth className="h-4 w-4" />
-					<span>Settings</span>
-					<HotkeyMenuShortcut hotkeyId="OPEN_SETTINGS" />
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					onSelect={() => navigate({ to: "/settings/organization" })}
-				>
-					<FiUsers className="h-4 w-4" />
-					<span>Manage members</span>
-				</DropdownMenuItem>
-				{organizations && organizations.length > 0 && (
-					<DropdownMenuSub>
-						<DropdownMenuSubTrigger className="gap-2">
-							<span>Switch organization</span>
-						</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent>
-							{userEmail && (
-								<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-									{userEmail}
-								</DropdownMenuLabel>
-							)}
-							{organizations.map((organization) => (
+					{/* Organization */}
+					<DropdownMenuItem
+						onSelect={() => navigate({ to: "/settings/organization" })}
+					>
+						<FiUsers className="h-4 w-4" />
+						<span>
+							<Trans>Manage members</Trans>
+						</span>
+					</DropdownMenuItem>
+					{organizations && organizations.length > 0 && (
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger className="gap-2">
+								<HiOutlineArrowsRightLeft className="h-4 w-4" />
+								<span>
+									<Trans>Switch organization</Trans>
+								</span>
+							</DropdownMenuSubTrigger>
+							<DropdownMenuSubContent>
+								{userEmail && (
+									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
+										{userEmail}
+									</DropdownMenuLabel>
+								)}
+								{organizations.map((organization) => (
+									<DropdownMenuItem
+										key={organization.id}
+										onSelect={() =>
+											collections.switchOrganization(organization.id)
+										}
+										className="gap-2"
+									>
+										<Avatar
+											size="xs"
+											fullName={organization.name}
+											image={organization.logo}
+											className="rounded-md"
+										/>
+										<span className="flex-1 truncate">{organization.name}</span>
+										{organization.id === activeOrganization?.id && (
+											<HiCheck className="h-4 w-4 text-primary" />
+										)}
+									</DropdownMenuItem>
+								))}
+								<DropdownMenuSeparator />
 								<DropdownMenuItem
-									key={organization.id}
-									onSelect={() =>
-										collections.switchOrganization(organization.id)
-									}
-									className="gap-2"
+									onSelect={() => navigate({ to: "/create-organization" })}
 								>
-									<Avatar
-										size="xs"
-										fullName={organization.name}
-										image={organization.logo}
-										className="rounded-md"
-									/>
-									<span className="flex-1 truncate">{organization.name}</span>
-									{organization.id === activeOrganization?.id && (
-										<HiCheck className="h-4 w-4 text-primary" />
-									)}
+									<HiOutlinePlus className="h-4 w-4" />
+									<span>
+										<Trans>Create organization</Trans>
+									</span>
 								</DropdownMenuItem>
-							))}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								onSelect={() => navigate({ to: "/create-organization" })}
-							>
-								<HiOutlinePlus className="h-4 w-4" />
-								<span>Create organization</span>
-							</DropdownMenuItem>
-						</DropdownMenuSubContent>
-					</DropdownMenuSub>
-				)}
+							</DropdownMenuSubContent>
+						</DropdownMenuSub>
+					)}
 
-				<DropdownMenuSeparator />
+					<DropdownMenuItem onSelect={() => openNewWindow.mutate()}>
+						<HiOutlineWindow className="h-4 w-4" />
+						<span>
+							<Trans>New window</Trans>
+						</span>
+					</DropdownMenuItem>
 
-				{/* Account */}
-				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
-					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
-					<span>Log out</span>
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					<HelpSubMenu onSubmitPrompt={() => setSubmitPromptOpen(true)} />
+
+					<DropdownMenuSeparator />
+
+					{/* Account */}
+					<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
+						<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
+						<span>
+							<Trans>Log out</Trans>
+						</span>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<SubmitPromptDialog
+				open={submitPromptOpen}
+				onOpenChange={setSubmitPromptOpen}
+			/>
+		</>
 	);
 }

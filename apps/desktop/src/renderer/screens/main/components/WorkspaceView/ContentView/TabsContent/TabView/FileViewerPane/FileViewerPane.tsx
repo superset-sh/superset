@@ -3,9 +3,9 @@ import { Button } from "@superset/ui/button";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { FileSaveConflictDialog } from "renderer/components/FileSaveConflictDialog";
 import type { MarkdownEditorAdapter } from "renderer/components/MarkdownRenderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
 import { useChangesStore } from "renderer/stores/changes";
 import {
@@ -696,11 +696,6 @@ export function FileViewerPane({
 							onSwitchToRawAtLocation={handleSwitchToRawAtLocation}
 							onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 							onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
-							onSplitWithNewChat={() =>
-								splitPaneVertical(tabId, paneId, path, {
-									paneType: "chat",
-								})
-							}
 							onSplitWithNewBrowser={() =>
 								splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 							}

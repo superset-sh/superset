@@ -1,0 +1,280 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { useQueryClient } from "@tanstack/react-query";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import { Alert, ScrollView, TextInput, View } from "react-native";
+import { Text } from "@/components/ui/text";
+import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { useTheme } from "@/hooks/useTheme";
+import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { errorCopy } from "@/lib/errors";
+import {
+	getHostServiceClientByUrl,
+	hostServiceUrl,
+} from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
+import { useStartWorkspaceTerminal } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceTerminal";
+import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import {
+	getHostTerminalsQueryKey,
+	useHostTerminals,
+} from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
+import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
+import {
+	agentLaunchPresetId,
+	useAgentLaunchPreferences,
+} from "@/screens/(authenticated)/hooks/useAgentLaunchPreferences";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+import {
+	type DraftComment,
+	NO_COMMENTS,
+	useDraftCommentsStore,
+} from "../stores/draftCommentsStore";
+
+function composeReviewPrompt(
+	message: string,
+	comments: DraftComment[],
+): string {
+	const parts: string[] = [];
+	const trimmed = message.trim();
+	if (trimmed) parts.push(trimmed);
+	for (const comment of comments) {
+		const anchor =
+			comment.line > 0 ? `${comment.path}:${comment.line}` : comment.path;
+		parts.push(
+			comment.line > 0
+				? `**${anchor}**\n\`\`\`\n${comment.lineText}\n\`\`\`\n${comment.body}`
+				: `**${anchor}**\n${comment.body}`,
+		);
+	}
+	return `Review feedback on the current changes:\n\n${parts.join("\n\n")}`;
+}
+
+export function FinishReviewSheet() {
+	const { t } = useLingui();
+	const { id } = useLocalSearchParams<{ id: string }>();
+	const router = useRouter();
+	const queryClient = useQueryClient();
+	const workspaceId = id ?? "";
+
+	const { workspace, host } = useWorkspaceHost(workspaceId || null);
+	const { terminalsByWorkspace } = useHostTerminals(host);
+	const comments = useDraftCommentsStore(
+		(state) => state.commentsByWorkspace[workspaceId] ?? NO_COMMENTS,
+	);
+	const clearWorkspace = useDraftCommentsStore((state) => state.clearWorkspace);
+
+	const widgetWorkspaces = useMemo<HostWorkspaceItem[]>(
+		() => (workspace ? [{ ...workspace, hostReachable: true }] : []),
+		[workspace],
+	);
+	const startWorkspaceTerminal = useStartWorkspaceTerminal(widgetWorkspaces);
+	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
+	const agentConfigs = useHostAgentConfigs({
+		machineId: host?.machineId ?? null,
+		hostUrl: host ? hostServiceUrl(host.organizationId, host.machineId) : null,
+	});
+	const agentConfig = agentConfigs.data?.find(
+		(config) => config.presetId === agentId,
+	);
+	// The preset id stands in until the configs answer (see NewChatWidget).
+	const launch = useAgentLaunchPreferences(
+		agentConfig ? agentLaunchPresetId(agentConfig) : agentId,
+	);
+
+	const terminalRows = useMemo(
+		() => (workspaceId ? (terminalsByWorkspace.get(workspaceId) ?? []) : []),
+		[terminalsByWorkspace, workspaceId],
+	);
+
+	const theme = useTheme();
+	const [message, setMessage] = useState("");
+	const [target, setTarget] = useState<"new" | string>("new");
+	const [sending, setSending] = useState(false);
+
+	const submit = async () => {
+		if (!workspace || !host || comments.length === 0 || sending) return;
+		const prompt = composeReviewPrompt(message, comments);
+		const submitted = {
+			workspace_id: workspaceId,
+			comment_count: comments.length,
+			target: target === "new" ? "new_session" : "existing_session",
+		};
+		setSending(true);
+		try {
+			if (target === "new") {
+				startWorkspaceTerminal.mutate(
+					{
+						target: {
+							workspaceId: workspace.id,
+							hostId: workspace.hostId,
+						},
+						message: { text: prompt, attachments: [] },
+						agentId,
+						model: launch.model?.id ?? null,
+						effort: launch.effort?.id ?? null,
+					},
+					{
+						onSuccess: () => {
+							posthog.capture("review_submitted", submitted);
+							clearWorkspace(workspaceId);
+						},
+					},
+				);
+				router.back();
+				return;
+			}
+			const hostUrl = hostServiceUrl(host.organizationId, host.machineId);
+			await getHostServiceClientByUrl(hostUrl).terminal.send.mutate({
+				terminalId: target,
+				workspaceId,
+				text: prompt,
+			});
+			posthog.capture("review_submitted", submitted);
+			clearWorkspace(workspaceId);
+			void queryClient.invalidateQueries({
+				queryKey: getHostTerminalsQueryKey(host.machineId),
+			});
+			router.back();
+			router.push(`/(authenticated)/workspace/${workspaceId}?tab=${target}`);
+		} catch (cause) {
+			Alert.alert(
+				t({
+					message: "Could not send review",
+				}),
+				errorCopy(cause),
+			);
+		} finally {
+			setSending(false);
+		}
+	};
+
+	return (
+		<>
+			<Stack.Screen
+				options={{
+					title: t({
+						message: "Finish review",
+					}),
+				}}
+			/>
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button
+					icon="xmark"
+					accessibilityLabel={t({
+						message: "Close",
+					})}
+					onPress={() => router.back()}
+				/>
+			</Stack.Toolbar>
+			<ScrollView
+				className="bg-background flex-1"
+				contentInsetAdjustmentBehavior="automatic"
+				keyboardShouldPersistTaps="handled"
+				contentContainerClassName="pb-10 pt-2"
+			>
+				<Text className="text-muted-foreground px-4 pb-2 text-[12px]">
+					<Trans>Review message</Trans> ·{" "}
+					<Plural
+						value={comments.length}
+						one="# comment attached"
+						other="# comments attached"
+					/>
+				</Text>
+				<TextInput
+					className="border-border text-foreground mx-3 min-h-20 rounded-xl border px-3.5 py-3 text-[15px]"
+					multiline
+					onChangeText={setMessage}
+					placeholder={t({
+						message: "Leave a summary…",
+					})}
+					placeholderTextColor="#6b7280"
+					selectionColor={theme.foreground}
+					value={message}
+				/>
+				<Text className="text-muted-foreground px-4 pb-2 pt-4 text-[12px]">
+					<Trans>Send to</Trans>
+				</Text>
+				<TargetRow
+					name={t({
+						message: "New agent session",
+					})}
+					subtitle={t({
+						message: "Starts a fresh session in this workspace",
+					})}
+					selected={target === "new"}
+					onPress={() => setTarget("new")}
+				/>
+				{terminalRows.map((row) => (
+					<TargetRow
+						key={row.terminalId}
+						name={row.title}
+						subtitle={
+							row.attention === "working"
+								? t({ message: "Running" })
+								: t({ message: "Idle" })
+						}
+						selected={target === row.terminalId}
+						onPress={() => setTarget(row.terminalId)}
+					/>
+				))}
+				<PressableScale
+					className={
+						comments.length > 0 && !sending
+							? "bg-primary mx-3 mt-4 items-center rounded-xl py-3"
+							: "bg-primary/40 mx-3 mt-4 items-center rounded-xl py-3"
+					}
+					disabled={comments.length === 0 || sending}
+					onPress={() => void submit()}
+				>
+					<Text className="text-primary-foreground font-semibold text-[15px]">
+						{sending
+							? t({ message: "Sending…" })
+							: t({ message: "Send review" })}
+					</Text>
+				</PressableScale>
+			</ScrollView>
+		</>
+	);
+}
+
+function TargetRow({
+	name,
+	subtitle,
+	selected,
+	onPress,
+}: {
+	name: string;
+	subtitle: string;
+	selected: boolean;
+	onPress: () => void;
+}) {
+	return (
+		<PressableScale
+			className={
+				selected
+					? "border-muted-foreground mx-3 mb-2 flex-row items-center gap-3 rounded-xl border px-3.5 py-3"
+					: "border-border mx-3 mb-2 flex-row items-center gap-3 rounded-xl border px-3.5 py-3"
+			}
+			onPress={onPress}
+		>
+			<View
+				className={
+					selected
+						? "bg-primary size-4.5 items-center justify-center rounded-full"
+						: "border-border size-4.5 rounded-full border-2"
+				}
+			>
+				{selected ? (
+					<View className="bg-primary-foreground size-1.5 rounded-full" />
+				) : null}
+			</View>
+			<View className="min-w-0 flex-1">
+				<Text className="font-semibold text-[14px]" numberOfLines={1}>
+					{name}
+				</Text>
+				<Text className="text-muted-foreground text-[11.5px]">{subtitle}</Text>
+			</View>
+		</PressableScale>
+	);
+}

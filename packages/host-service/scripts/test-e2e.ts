@@ -1,10 +1,14 @@
-// Runs the host-service end-to-end adoption test under Electron-as-Node.
+// Runs the host-service end-to-end terminal tests under Electron-as-Node.
 //
 // Why Electron and not raw `node`: host-service uses better-sqlite3, whose
 // native module is compiled against the Electron bundled Node ABI for
-// production. Running the test under Electron-as-Node ensures the same
+// production. Running the tests under Electron-as-Node ensures the same
 // native-module ABI as production. Raw `node` would fail with
 // NODE_MODULE_VERSION mismatch.
+//
+// Why the tsx loader and not --experimental-strip-types: the import chain
+// (terminal.ts → terminal-agents/persistence.ts) uses TypeScript parameter
+// properties, which strip-only mode rejects; tsx transforms them.
 //
 // Usage: bun run test:e2e
 
@@ -16,11 +20,11 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../..");
 
-// Resolve the Electron binary from the workspace's node_modules. Bun's flat
-// .bun/<pkg>@<version>/node_modules/<pkg> layout makes this a glob.
-function findElectronBinary(): string {
+// Resolve a binary from the workspace's node_modules. Bun's flat
+// .bun/<pkg>@<version>/node_modules/<pkg> layout makes these globs.
+function findInNodeModules(pattern: string, label: string): string {
 	const candidates = childProcess
-		.execSync("find . -path '*/electron/dist/*.app/Contents/MacOS/Electron'", {
+		.execSync(`find . -path '${pattern}'`, {
 			cwd: repoRoot,
 			encoding: "utf-8",
 		})
@@ -29,27 +33,43 @@ function findElectronBinary(): string {
 	const first = candidates[0];
 	if (!first) {
 		throw new Error(
-			"Electron binary not found. Run `bun install` from the repo root first.",
+			`${label} not found. Run \`bun install\` from the repo root first.`,
 		);
 	}
 	return path.join(repoRoot, first);
 }
 
-const electronBin = findElectronBinary();
-const testFile = path.resolve(
-	__dirname,
-	"..",
-	"src/terminal/terminal.adoption.node-test.ts",
+const electronBin = findInNodeModules(
+	"*/electron/dist/*.app/Contents/MacOS/Electron",
+	"Electron binary",
+);
+const tsxLoader = findInNodeModules(
+	"*/node_modules/tsx/dist/loader.mjs",
+	"tsx loader",
 );
 
-if (!fs.existsSync(testFile)) {
-	console.error(`Test file missing: ${testFile}`);
-	process.exit(1);
+const testFiles = [
+	"src/terminal/terminal.adoption.node-test.ts",
+	"src/terminal/terminal.seq-catchup.node-test.ts",
+].map((file) => path.resolve(__dirname, "..", file));
+
+for (const testFile of testFiles) {
+	if (!fs.existsSync(testFile)) {
+		console.error(`Test file missing: ${testFile}`);
+		process.exit(1);
+	}
 }
 
 const result = childProcess.spawnSync(
 	electronBin,
-	["--experimental-strip-types", "--test", "--test-reporter=spec", testFile],
+	[
+		"--import",
+		tsxLoader,
+		"--test",
+		"--test-force-exit",
+		"--test-reporter=spec",
+		...testFiles,
+	],
 	{
 		stdio: "inherit",
 		env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },

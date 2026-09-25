@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import {
 	canRemoveMember,
 	getRoleSortPriority,
@@ -14,10 +16,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -32,53 +36,50 @@ interface MembersSettingsProps {
 }
 
 export function MembersSettings({ visibleItems }: MembersSettingsProps) {
+	const { formatDate: formatLocaleDate } = useFormat();
+
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
 
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		visibleItems,
 	);
 
-	const { data: membersData, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ members, users }) => ({
-					...users,
-					...members,
-					memberId: members.id,
-				}))
-				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections, activeOrganizationId],
-	);
+	const { data: membersData, isPending } =
+		cloudTrpc.organization.listMembers.useQuery({ includeDeactivated: true });
 
-	// Get organization name from collections
-	const { data: orgData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ organizations: collections.organizations })
-				.select(({ organizations }) => ({ ...organizations })),
-		[collections],
-	);
+	const { data: orgData } = cloudTrpc.organization.list.useQuery(undefined);
 	const organization = orgData?.find((org) => org.id === activeOrganizationId);
 
-	const members: TeamMember[] = (membersData ?? [])
-		.map((m) => ({
-			...m,
-			role: m.role as OrganizationRole,
-		}))
-		.sort((a, b) => {
-			const priorityDiff =
-				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
-			if (priorityDiff !== 0) return priorityDiff;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+	const members: TeamMember[] = useMemo(() => {
+		if (!activeOrganizationId) return [];
+		return (membersData ?? [])
+			.map((m) => ({
+				memberId: m.id,
+				userId: m.userId,
+				organizationId: activeOrganizationId,
+				role: m.role as OrganizationRole,
+				createdAt: m.createdAt,
+				name: m.user.name,
+				email: m.user.email,
+				image: m.user.image,
+				deletionRequestedAt: m.user.deletionRequestedAt,
+			}))
+			.sort((a, b) => {
+				const priorityDiff =
+					getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+				if (priorityDiff !== 0) return priorityDiff;
+				return (
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+			});
+	}, [membersData, activeOrganizationId]);
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
@@ -87,7 +88,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", {
+		return formatLocaleDate(d, {
 			month: "short",
 			day: "numeric",
 		});
@@ -97,9 +98,13 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 		<div className="flex-1 flex flex-col min-h-0">
 			<div className="p-8">
 				<div className="max-w-5xl">
-					<h2 className="text-2xl font-semibold">Members</h2>
+					<h2 className="text-2xl font-semibold">
+						<Trans>Members</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Invite and manage members, assign roles, and control permissions
+						<Trans>
+							Invite and manage members, assign roles, and control permissions
+						</Trans>
 					</p>
 				</div>
 			</div>
@@ -118,10 +123,17 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					)}
 
 					<div className="max-w-5xl space-y-4">
-						<h3 className="text-lg font-semibold">Team Members</h3>
+						<h3 className="text-lg font-semibold">
+							<HighlightText
+								text={t({
+									message: "Team Members",
+								})}
+								query={searchQuery}
+							/>
+						</h3>
 
 						{showMembersList &&
-							(!isReady && members.length === 0 ? (
+							(isPending && members.length === 0 ? (
 								<div className="space-y-2 border rounded-lg">
 									{[1, 2, 3].map((i) => (
 										<div key={i} className="flex items-center gap-4 p-4">
@@ -137,17 +149,25 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								</div>
 							) : members.length === 0 ? (
 								<div className="text-center py-12 text-muted-foreground border rounded-lg">
-									No members yet
+									<Trans>No members yet</Trans>
 								</div>
 							) : (
 								<div className="border rounded-lg">
 									<Table>
 										<TableHeader>
 											<TableRow>
-												<TableHead>Name</TableHead>
-												<TableHead>Email</TableHead>
-												<TableHead>Role</TableHead>
-												<TableHead>Joined</TableHead>
+												<TableHead>
+													<Trans>Name</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans>Email</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans>Role</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans>Joined</Trans>
+												</TableHead>
 												<TableHead className="w-[50px]" />
 											</TableRow>
 										</TableHeader>
@@ -166,15 +186,33 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																	image={member.image}
 																/>
 																<div className="flex items-center gap-2">
-																	<span className="font-medium">
-																		{member.name || "Unknown"}
+																	<span
+																		className={
+																			member.deletionRequestedAt
+																				? "font-medium text-muted-foreground"
+																				: "font-medium"
+																		}
+																	>
+																		{member.name ||
+																			t({
+																				message: "Unknown",
+																				context: "person",
+																			})}
 																	</span>
 																	{isCurrentUserRow && (
 																		<Badge
 																			variant="secondary"
 																			className="text-xs"
 																		>
-																			You
+																			<Trans>You</Trans>
+																		</Badge>
+																	)}
+																	{member.deletionRequestedAt && (
+																		<Badge
+																			variant="outline"
+																			className="text-xs text-muted-foreground"
+																		>
+																			<Trans>Deactivated</Trans>
 																		</Badge>
 																	)}
 																</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import {
 	type ComponentProps,
@@ -199,6 +200,7 @@ export const InlineCitationCarouselPrev = ({
 	className,
 	...props
 }: InlineCitationCarouselPrevProps) => {
+	const { t } = useLingui();
 	const api = useCarouselApi();
 
 	const handleClick = useCallback(() => {
@@ -209,7 +211,7 @@ export const InlineCitationCarouselPrev = ({
 
 	return (
 		<button
-			aria-label="Previous"
+			aria-label={t({ message: "Previous" })}
 			className={cn("shrink-0", className)}
 			onClick={handleClick}
 			type="button"
@@ -226,6 +228,7 @@ export const InlineCitationCarouselNext = ({
 	className,
 	...props
 }: InlineCitationCarouselNextProps) => {
+	const { t } = useLingui();
 	const api = useCarouselApi();
 
 	const handleClick = useCallback(() => {
@@ -236,7 +239,7 @@ export const InlineCitationCarouselNext = ({
 
 	return (
 		<button
-			aria-label="Next"
+			aria-label={t({ message: "Next" })}
 			className={cn("shrink-0", className)}
 			onClick={handleClick}
 			type="button"

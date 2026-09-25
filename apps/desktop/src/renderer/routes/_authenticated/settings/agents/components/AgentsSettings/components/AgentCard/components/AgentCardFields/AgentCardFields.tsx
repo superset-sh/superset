@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -21,11 +22,14 @@ export function AgentCardFields({
 	validationMessage,
 	onFieldBlur,
 }: AgentCardFieldsProps) {
+	const { t } = useLingui();
 	return (
 		<>
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="space-y-2">
-					<Label htmlFor={`${preset.id}-label`}>Label</Label>
+					<Label htmlFor={`${preset.id}-label`}>
+						<Trans>Label</Trans>
+					</Label>
 					<Input
 						key={`${preset.id}-${inputVersion}-label-${preset.label}`}
 						id={`${preset.id}-label`}
@@ -34,7 +38,9 @@ export function AgentCardFields({
 					/>
 				</div>
 				<div className="space-y-2">
-					<Label htmlFor={`${preset.id}-description`}>Description</Label>
+					<Label htmlFor={`${preset.id}-description`}>
+						<Trans>Description</Trans>
+					</Label>
 					<Input
 						key={`${preset.id}-${inputVersion}-description-${preset.description ?? ""}`}
 						id={`${preset.id}-description`}
@@ -47,7 +53,9 @@ export function AgentCardFields({
 			{showCommands && preset.kind === "terminal" && (
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="space-y-2">
-						<Label htmlFor={`${preset.id}-command`}>Command (No Prompt)</Label>
+						<Label htmlFor={`${preset.id}-command`}>
+							<Trans>Command (No Prompt)</Trans>
+						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-command-${preset.command}`}
 							id={`${preset.id}-command`}
@@ -57,7 +65,7 @@ export function AgentCardFields({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor={`${preset.id}-prompt-command`}>
-							Command (With Prompt)
+							<Trans>Command (With Prompt)</Trans>
 						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-prompt-command-${preset.promptCommand}`}
@@ -70,7 +78,7 @@ export function AgentCardFields({
 					</div>
 					<div className="space-y-2 md:col-span-2">
 						<Label htmlFor={`${preset.id}-prompt-command-suffix`}>
-							Prompt Command Suffix
+							<Trans>Prompt Command Suffix</Trans>
 						</Label>
 						<Input
 							key={`${preset.id}-${inputVersion}-prompt-command-suffix-${preset.promptCommandSuffix ?? ""}`}
@@ -79,7 +87,9 @@ export function AgentCardFields({
 							onBlur={(event) =>
 								onFieldBlur("promptCommandSuffix", event.target.value)
 							}
-							placeholder="Optional flags appended after the prompt payload"
+							placeholder={t({
+								message: "Optional flags appended after the prompt payload",
+							})}
 						/>
 					</div>
 				</div>
@@ -88,7 +98,7 @@ export function AgentCardFields({
 			{showTaskPrompts && (
 				<div className="space-y-2">
 					<Label htmlFor={`${preset.id}-task-template`}>
-						Task Prompt Template
+						<Trans>Task Prompt Template</Trans>
 					</Label>
 					<Textarea
 						key={`${preset.id}-${inputVersion}-task-template-${preset.taskPromptTemplate}`}
@@ -98,19 +108,6 @@ export function AgentCardFields({
 							onFieldBlur("taskPromptTemplate", event.target.value)
 						}
 						className="min-h-40 font-mono text-xs"
-					/>
-				</div>
-			)}
-
-			{preset.kind === "chat" && (
-				<div className="space-y-2">
-					<Label htmlFor={`${preset.id}-model`}>Model Override</Label>
-					<Input
-						key={`${preset.id}-${inputVersion}-model-${preset.model ?? ""}`}
-						id={`${preset.id}-model`}
-						defaultValue={preset.model ?? ""}
-						onBlur={(event) => onFieldBlur("model", event.target.value)}
-						placeholder="Optional model id"
 					/>
 				</div>
 			)}

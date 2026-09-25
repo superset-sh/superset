@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	getAttachedTerminalIdsKey,
-	getBackgroundTerminalCountRefetchInterval,
-	getBackgroundTerminalListRefetchInterval,
+	getBackgroundTerminalRefetchInterval,
 	getBackgroundTerminalSessions,
 	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
@@ -51,10 +50,8 @@ describe("BackgroundTerminalsButton utils", () => {
 		).toEqual(["term-b"]);
 	});
 
-	test("uses shallow count polling only while closed", () => {
-		expect(getBackgroundTerminalCountRefetchInterval(false)).toBe(10_000);
-		expect(getBackgroundTerminalCountRefetchInterval(true)).toBe(false);
-		expect(getBackgroundTerminalListRefetchInterval(false)).toBe(false);
-		expect(getBackgroundTerminalListRefetchInterval(true)).toBe(2_000);
+	test("polls slowly while closed and fast while open", () => {
+		expect(getBackgroundTerminalRefetchInterval(false)).toBe(10_000);
+		expect(getBackgroundTerminalRefetchInterval(true)).toBe(2_000);
 	});
 });

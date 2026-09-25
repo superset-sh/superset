@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
 	Table,
@@ -7,32 +9,40 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useMemo } from "react";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
-	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const { formatDate: formatLocaleDate } = useFormat();
+
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const navigate = useNavigate();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
 
-	const { data: teamsData, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ teams: collections.teams })
-				.select(({ teams }) => ({ ...teams }))
-				.orderBy(({ teams }) => teams.createdAt, "asc"),
-		[collections],
+	const { data: teamsData, isPending } =
+		cloudTrpc.organization.listTeams.useQuery(undefined);
+
+	const teams = useMemo(
+		() =>
+			[...(teamsData ?? [])].sort(
+				(a, b) =>
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+			),
+		[teamsData],
 	);
-
-	const teams = teamsData ?? [];
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+		return formatLocaleDate(d, { month: "short", day: "numeric" });
 	};
 
 	if (!activeOrganizationId) {
@@ -44,10 +54,17 @@ export function TeamsSettings() {
 			<div className="p-8">
 				<div className="max-w-5xl flex items-end justify-between gap-4">
 					<div>
-						<h2 className="text-2xl font-semibold">Teams</h2>
+						<h2 className="text-2xl font-semibold">
+							<HighlightText
+								text={t({ message: "Teams" })}
+								query={searchQuery}
+							/>
+						</h2>
 						<p className="text-sm text-muted-foreground mt-1">
-							Organize your work into teams. Tasks and integrations can sync
-							per-team.
+							<Trans>
+								Organize your work into teams. Tasks and integrations can sync
+								per-team.
+							</Trans>
 						</p>
 					</div>
 					<CreateTeamButton organizationId={activeOrganizationId} />
@@ -57,7 +74,7 @@ export function TeamsSettings() {
 			<div className="flex-1 overflow-auto">
 				<div className="p-8">
 					<div className="max-w-5xl">
-						{!isReady && teams.length === 0 ? (
+						{isPending && teams.length === 0 ? (
 							<div className="space-y-2 border rounded-lg p-2">
 								{[1, 2, 3].map((i) => (
 									<div key={i} className="flex items-center gap-4 p-4">
@@ -70,15 +87,19 @@ export function TeamsSettings() {
 							</div>
 						) : teams.length === 0 ? (
 							<div className="text-center py-12 text-muted-foreground border rounded-lg">
-								No teams yet
+								<Trans>No teams yet</Trans>
 							</div>
 						) : (
 							<div className="border rounded-lg">
 								<Table>
 									<TableHeader>
 										<TableRow>
-											<TableHead>Name</TableHead>
-											<TableHead>Created</TableHead>
+											<TableHead>
+												<Trans>Name</Trans>
+											</TableHead>
+											<TableHead>
+												<Trans>Created</Trans>
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>

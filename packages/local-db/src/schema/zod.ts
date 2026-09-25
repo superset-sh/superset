@@ -116,6 +116,21 @@ export const terminalPresetSchema = z.object({
 	applyOnWorkspaceCreated: z.boolean().optional(),
 	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),
+	/**
+	 * One-shot bridge for scripts authored by the CLI. V2 copies the row into
+	 * its renderer collection, then clears this marker in the shared legacy
+	 * store. Older desktop builds ignore the extra JSON field and still show
+	 * the script normally.
+	 */
+	cliImportPending: z.boolean().optional(),
+	/** Organization-scoped destination for the v2 one-shot import. */
+	cliTargetOrganizationId: z.string().optional(),
+	/**
+	 * Tombstone left by `superset scripts delete`. V2 removes its copy, then
+	 * drops the row from this store. Kept as a marker rather than an immediate
+	 * removal so a script the desktop already imported is deleted there too.
+	 */
+	cliDeletePending: z.boolean().optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;

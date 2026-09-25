@@ -56,6 +56,10 @@ export function useAgentHookListener() {
 			if (event.type === NOTIFICATION_EVENTS.FOCUS_V2_NOTIFICATION_SOURCE) {
 				return;
 			}
+			if (event.type === NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE) {
+				// handled by useSettingsExternalChangeListener
+				return;
+			}
 
 			const state = useTabsStore.getState();
 			const target = resolveNotificationTarget(event.data, state);

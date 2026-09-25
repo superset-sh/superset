@@ -1,5 +1,7 @@
 import type { RendererContext } from "@superset/panes";
-import { useCallback, useEffect, useRef } from "react";
+import { useParams } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { replayForwardedKey } from "renderer/hotkeys";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type {
 	BrowserPaneData,
@@ -18,11 +20,25 @@ export function usePersistentWebview({
 	ctx,
 }: UsePersistentWebviewOptions) {
 	const placeholderRef = useRef<HTMLDivElement | null>(null);
+	// The registry's host layer above this pane's webview; pane UI that must
+	// cover the page portals into it. Null until attached.
+	const [overlayContainer, setOverlayContainer] = useState<HTMLElement | null>(
+		null,
+	);
 	const ctxRef = useRef(ctx);
 	ctxRef.current = ctx;
+	// Workspace scoping for the browser bridge (CLI/agent control). Panes only
+	// render inside the $workspaceId route, so this is always present.
+	const { workspaceId } = useParams({ strict: false });
 
 	const paneData = ctx.pane.data as BrowserPaneData;
-	const initialUrlRef = useRef(paneData.url || DEFAULT_BROWSER_URL);
+	// Read through a ref so attach keys on paneId alone: navigation echoes
+	// updating pane data must not re-attach, but a replacePane (new paneId on
+	// the same component instance — e.g. opening a link into an existing
+	// browser pane) must attach with the new pane's URL, not the URL captured
+	// at first mount.
+	const attachUrlRef = useRef(paneData.url || DEFAULT_BROWSER_URL);
+	attachUrlRef.current = paneData.url || DEFAULT_BROWSER_URL;
 
 	useEffect(() => {
 		const placeholder = placeholderRef.current;
@@ -31,7 +47,8 @@ export function usePersistentWebview({
 		browserRuntimeRegistry.attach(
 			paneId,
 			placeholder,
-			initialUrlRef.current,
+			attachUrlRef.current,
+			workspaceId ?? "",
 			({ url, pageTitle, faviconUrl }) => {
 				const current = ctxRef.current.pane.data as BrowserPaneData;
 				if (
@@ -47,12 +64,17 @@ export function usePersistentWebview({
 					faviconUrl,
 				});
 			},
+			() => {
+				void ctxRef.current.actions.close();
+			},
 		);
+		setOverlayContainer(browserRuntimeRegistry.getOverlayContainer(paneId));
 
 		return () => {
 			browserRuntimeRegistry.detach(paneId);
+			setOverlayContainer(null);
 		};
-	}, [paneId]);
+	}, [paneId, workspaceId]);
 
 	useEffect(() => {
 		const newWindowSub = electronTrpcClient.browser.onNewWindow.subscribe(
@@ -98,11 +120,31 @@ export function usePersistentWebview({
 				},
 			},
 		);
+		// Chords the main process suppressed in the focused guest, replayed
+		// onto the host document so react-hotkeys-hook picks them up.
+		const keyForwardSub = electronTrpcClient.browser.onKeyForward.subscribe(
+			{ paneId },
+			{ onData: replayForwardedKey },
+		);
+		// Clicking anywhere in a pane activates it, but a click inside the
+		// webview never reaches the pane's own mousedown handler — the guest is
+		// a separate WebContents hoisted out of the pane tree. The main process
+		// reports the guest gaining focus instead, so the pane activates itself.
+		const paneFocusSub = electronTrpcClient.browser.onPaneFocus.subscribe(
+			{ paneId },
+			{
+				onData: () => {
+					ctxRef.current.actions.focus();
+				},
+			},
+		);
 		return () => {
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
 			closePaneSub.unsubscribe();
 			reloadPaneSub.unsubscribe();
+			paneFocusSub.unsubscribe();
+			keyForwardSub.unsubscribe();
 		};
 	}, [paneId]);
 
@@ -127,6 +169,7 @@ export function usePersistentWebview({
 
 	return {
 		placeholderRef,
+		overlayContainer,
 		goBack,
 		goForward,
 		reload,

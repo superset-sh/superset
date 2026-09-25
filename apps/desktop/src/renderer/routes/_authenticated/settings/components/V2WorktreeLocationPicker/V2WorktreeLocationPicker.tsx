@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
@@ -25,15 +26,26 @@ export function V2WorktreeLocationPicker({
 	hostName,
 	isRemoteTarget,
 	disabled,
-	browseTitle = "Select worktree location",
+	browseTitle,
 	browseDescription,
 	onSelect,
 	onReset,
 }: V2WorktreeLocationPickerProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const [remoteBrowseOpen, setRemoteBrowseOpen] = useState(false);
+	const resolvedBrowseTitle =
+		browseTitle ??
+		t({
+			message: "Select worktree location",
+		});
 
-	const displayPath = currentPath ?? fallbackPath ?? "Host unavailable";
+	const displayPath =
+		currentPath ??
+		fallbackPath ??
+		t({
+			message: "Host unavailable",
+		});
 	const isBusy = disabled || selectDirectory.isPending;
 
 	const handleBrowse = async () => {
@@ -43,7 +55,7 @@ export function V2WorktreeLocationPicker({
 			return;
 		}
 		const result = await selectDirectory.mutateAsync({
-			title: browseTitle,
+			title: resolvedBrowseTitle,
 			defaultPath: currentPath ?? fallbackPath ?? undefined,
 		});
 		if (!result.canceled && result.path) {
@@ -71,12 +83,16 @@ export function V2WorktreeLocationPicker({
 							className="size-9 shrink-0"
 							onClick={handleBrowse}
 							disabled={isBusy || !hostUrl}
-							aria-label="Change worktree location"
+							aria-label={t({
+								message: "Change worktree location",
+							})}
 						>
 							<LuFolderOpen className="size-4" />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Change location</TooltipContent>
+					<TooltipContent>
+						<Trans>Change location</Trans>
+					</TooltipContent>
 				</Tooltip>
 				{currentPath ? (
 					<Tooltip>
@@ -88,12 +104,16 @@ export function V2WorktreeLocationPicker({
 								className="size-9 shrink-0"
 								onClick={onReset}
 								disabled={disabled}
-								aria-label="Reset worktree location"
+								aria-label={t({
+									message: "Reset worktree location",
+								})}
 							>
 								<LuRotateCcw className="size-4" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent>Reset location</TooltipContent>
+						<TooltipContent>
+							<Trans>Reset location</Trans>
+						</TooltipContent>
 					</Tooltip>
 				) : null}
 			</div>
@@ -104,11 +124,16 @@ export function V2WorktreeLocationPicker({
 				hostUrl={hostUrl}
 				hostName={hostName}
 				initialPath={currentPath ?? fallbackPath}
-				title={browseTitle}
+				title={resolvedBrowseTitle}
 				description={
-					browseDescription ?? `Pick the worktree folder on ${hostName}.`
+					browseDescription ??
+					t({
+						message: `Pick the worktree folder on ${hostName}.`,
+					})
 				}
-				confirmLabel="Use this folder"
+				confirmLabel={t({
+					message: "Use this folder",
+				})}
 				onPick={(path) => {
 					void onSelect(path);
 				}}

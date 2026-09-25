@@ -1,0 +1,127 @@
+import { WebSocket as ReconnectingWebSocket } from "partysocket";
+import { probeRelayHost, type RelayHostProbe } from "../probeRelayHost";
+
+export interface RelaySocketOptions {
+	/** URL for this attempt, WITHOUT the auth token — the wrapper signs it. */
+	buildUrl: () => string | Promise<string>;
+	/** Fresh token per attempt (user JWT for relay hosts, PSK for local). */
+	getToken: () => string | null | Promise<string | null>;
+	/**
+	 * Definitive access denial: the `_whoowns` preflight returned 403 (the
+	 * relay only 403s a verified-valid token, so retrying with a fresher one
+	 * can't change the answer; expired tokens surface as 401 and self-heal via
+	 * `getToken`). Without `accessDeniedRetryMs` the socket closes permanently
+	 * — call `reconnect()` to try again after access changes.
+	 */
+	onAccessDenied?: () => void;
+	/** Keep re-probing at this cadence after a 403 instead of closing. */
+	accessDeniedRetryMs?: number;
+	/**
+	 * Re-probe at this cadence after a 503 (host not connected to the relay)
+	 * instead of partysocket's seconds-scale backoff: an offline host stays
+	 * offline for minutes or days, and the probe is what says when it is back.
+	 */
+	hostOfflineRetryMs?: number;
+	/**
+	 * Called with the `_whoowns` probe result before every WS attempt (null
+	 * when the URL isn't relay-routed or the relay is unreachable). Lets callers
+	 * surface *why* a stream is down — host offline (503), unauthorized (401),
+	 * host present but not answering (502/504/200) — which the WS upgrade status
+	 * otherwise hides.
+	 */
+	onProbe?: (probe: RelayHostProbe | null) => void;
+	minReconnectionDelay?: number;
+	maxReconnectionDelay?: number;
+	maxRetries?: number;
+	connectionTimeout?: number;
+	/** Defaults to 0: send() is a no-op unless the socket is open. Opt into
+	 * partysocket's buffer-and-replay only when stale sends are safe. */
+	maxEnqueuedMessages?: number;
+}
+
+export type RelaySocket = ReconnectingWebSocket;
+
+// Accepts http(s) host URLs and converts to ws(s), so consumers can pass
+// their host URL straight through without scheme juggling.
+function signUrl(url: string, token: string | null): string {
+	const u = new URL(url);
+	if (u.protocol === "http:") u.protocol = "ws:";
+	if (u.protocol === "https:") u.protocol = "wss:";
+	if (token) u.searchParams.set("token", token);
+	return u.toString();
+}
+
+/**
+ * Reconnecting WebSocket for host-service endpoints (direct or relay-fronted).
+ * partysocket evaluates the async URL provider before EVERY attempt, so each
+ * dial carries a fresh token — the class of bug where a reconnect loop reuses
+ * a URL signed with an hourly-rotated JWT (PR #5628) can't recur here. The
+ * provider also runs the `_whoowns` probe, the only place a browser client
+ * can observe the upgrade's real HTTP status.
+ */
+export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
+	let socket: ReconnectingWebSocket | null = null;
+	let cancelRetryWait: (() => void) | undefined;
+	const waitBeforeRetry = (ms: number) =>
+		new Promise<void>((resolve) => {
+			const finish = () => {
+				clearTimeout(timer);
+				cancelRetryWait = undefined;
+				resolve();
+			};
+			const timer = setTimeout(finish, ms);
+			cancelRetryWait = finish;
+		});
+
+	// Per-dial epoch so a slow preflight from a superseded dial (URL swap,
+	// reconnect) can't publish its probe after a newer dial has started —
+	// otherwise a stale probe could make the diagnosis describe the prior endpoint.
+	let probeEpoch = 0;
+
+	const provider = async (): Promise<string> => {
+		const epoch = ++probeEpoch;
+		const url = signUrl(await opts.buildUrl(), await opts.getToken());
+		const probe = await probeRelayHost(url);
+		if (epoch === probeEpoch) opts.onProbe?.(probe);
+		if (probe?.status === 403) {
+			opts.onAccessDenied?.();
+			if (opts.accessDeniedRetryMs == null) {
+				socket?.close(1000, "relay access denied");
+			} else {
+				await waitBeforeRetry(opts.accessDeniedRetryMs);
+			}
+			// Rejecting aborts this attempt; partysocket surfaces it as an error
+			// event and re-enters its backoff loop (no-op once close() was called).
+			throw new Error("relay access denied");
+		}
+		if (probe?.status === 503 && opts.hostOfflineRetryMs != null) {
+			await waitBeforeRetry(opts.hostOfflineRetryMs);
+			throw new Error("relay host offline");
+		}
+		return url;
+	};
+
+	socket = new ReconnectingWebSocket(provider, [], {
+		minReconnectionDelay: opts.minReconnectionDelay,
+		maxReconnectionDelay: opts.maxReconnectionDelay,
+		maxRetries: opts.maxRetries,
+		connectionTimeout: opts.connectionTimeout,
+		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
+	});
+
+	// The URL provider holds partysocket's connection lock while awaiting a
+	// cooldown. Wake it on explicit retry/close so the provider settles
+	// promptly and the native retry loop can honor the user's action.
+	const reconnect = socket.reconnect.bind(socket);
+	socket.reconnect = (code, reason) => {
+		cancelRetryWait?.();
+		reconnect(code, reason);
+	};
+	const close = socket.close.bind(socket);
+	socket.close = (code, reason) => {
+		cancelRetryWait?.();
+		close(code, reason);
+	};
+
+	return socket;
+}

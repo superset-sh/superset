@@ -3,6 +3,10 @@
  * Renderer extends these with MosaicNode layout specifics.
  */
 
+import {
+	ACTIVE_AGENT_STATUSES,
+	type ActiveAgentStatus,
+} from "@superset/shared/agent-status";
 import type { ChangeCategory } from "./changes-types";
 
 /**
@@ -12,32 +16,29 @@ export type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
-	| "chat"
 	| "devtools"
-	| "comment";
+	| "comment"
+	| "desktop";
 
 /**
  * Pane status for agent lifecycle indicators
  * - idle: No indicator shown (default)
  * - working: Agent actively processing (amber)
- * - permission: Agent blocked, needs user action (red)
+ * - permission: Agent blocked, needs user action (yellow)
  * - review: Agent completed, ready for review (green)
+ * - failed: Agent turn/process ended in failure, needs attention (red)
  */
-export type PaneStatus = "idle" | "working" | "permission" | "review";
+export type PaneStatus = "idle" | ActivePaneStatus;
 
 /** Non-idle status for UI indicators */
-export type ActivePaneStatus = Exclude<PaneStatus, "idle">;
+export type ActivePaneStatus = ActiveAgentStatus;
 
-/**
- * Status priority order (higher = more urgent).
- * Single source of truth for aggregation logic.
- */
-export const STATUS_PRIORITY = {
+export const STATUS_PRIORITY: Record<PaneStatus, number> = {
 	idle: 0,
-	review: 1,
-	working: 2,
-	permission: 3,
-} as const satisfies Record<PaneStatus, number>;
+	...(Object.fromEntries(
+		ACTIVE_AGENT_STATUSES.map((status, index) => [status, index + 1]),
+	) as Record<ActiveAgentStatus, number>),
+};
 
 /**
  * Compare two statuses and return the higher priority one.
@@ -140,7 +141,6 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
-	chat?: ChatPaneState; // For chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
 	comment?: CommentPaneState; // For comment panes
@@ -152,30 +152,6 @@ export interface Pane {
 }
 
 export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
-
-// TODO: `initialFiles` stores base64 data URLs inline. This bloats
-// the pane layout state in localStorage (v2WorkspaceLocalState
-// collection). Migrate to IndexedDB blob storage — store file
-// references here, actual blobs in IndexedDB keyed by session/pane ID.
-// See renderer/lib/pending-attachment-store.ts for the IndexedDB pattern.
-export interface ChatLaunchConfig {
-	initialPrompt?: string;
-	draftInput?: string;
-	initialFiles?: Array<{
-		data: string;
-		mediaType: string;
-		filename?: string;
-	}>;
-	metadata?: {
-		model?: string;
-	};
-	retryCount?: number;
-}
-
-export interface ChatPaneState {
-	sessionId: string | null;
-	launchConfig?: ChatLaunchConfig | null;
-}
 
 /**
  * Single entry in the browser pane's navigation history

@@ -1,0 +1,1 @@
+export { compactTime } from "./compactTime";

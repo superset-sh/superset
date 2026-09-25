@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -132,6 +134,7 @@ export const WebPreviewUrl = ({
 	onKeyDown,
 	...props
 }: WebPreviewUrlProps) => {
+	const { t } = useLingui();
 	const { url, setUrl } = useWebPreview();
 	const [inputValue, setInputValue] = useState(url);
 
@@ -158,7 +161,9 @@ export const WebPreviewUrl = ({
 			className="h-8 flex-1 text-sm"
 			onChange={onChange ?? handleChange}
 			onKeyDown={handleKeyDown}
-			placeholder="Enter URL..."
+			placeholder={t({
+				message: "Enter URL...",
+			})}
 			value={value ?? inputValue}
 			{...props}
 		/>
@@ -175,6 +180,7 @@ export const WebPreviewBody = ({
 	src,
 	...props
 }: WebPreviewBodyProps) => {
+	const { t } = useLingui();
 	const { url } = useWebPreview();
 
 	return (
@@ -183,7 +189,7 @@ export const WebPreviewBody = ({
 				className={cn("size-full", className)}
 				sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
 				src={(src ?? url) || undefined}
-				title="Preview"
+				title={t({ message: "Preview" })}
 				{...props}
 			/>
 			{loading}
@@ -205,6 +211,8 @@ export const WebPreviewConsole = ({
 	children,
 	...props
 }: WebPreviewConsoleProps) => {
+	const { formatDate } = useFormat();
+
 	const { consoleOpen, setConsoleOpen } = useWebPreview();
 
 	return (
@@ -219,7 +227,7 @@ export const WebPreviewConsole = ({
 					className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50"
 					variant="ghost"
 				>
-					Console
+					<Trans>Console</Trans>
 					<ChevronDownIcon
 						className={cn(
 							"h-4 w-4 transition-transform duration-200",
@@ -236,7 +244,9 @@ export const WebPreviewConsole = ({
 			>
 				<div className="max-h-48 space-y-1 overflow-y-auto">
 					{logs.length === 0 ? (
-						<p className="text-muted-foreground">No console output</p>
+						<p className="text-muted-foreground">
+							<Trans>No console output</Trans>
+						</p>
 					) : (
 						logs.map((log, index) => (
 							<div
@@ -249,7 +259,11 @@ export const WebPreviewConsole = ({
 								key={`${log.timestamp.getTime()}-${index}`}
 							>
 								<span className="text-muted-foreground">
-									{log.timestamp.toLocaleTimeString()}
+									{formatDate(log.timestamp, {
+										hour: "numeric",
+										minute: "2-digit",
+										second: "2-digit",
+									})}
 								</span>{" "}
 								{log.message}
 							</div>

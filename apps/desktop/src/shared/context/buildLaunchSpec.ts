@@ -1,5 +1,6 @@
 import { renderPromptTemplate } from "@superset/shared/agent-prompt-template";
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
+import { WORKSPACE_ATTACHMENTS_DIR } from "@superset/shared/workspace-attachments";
 import type {
 	AgentLaunchSpec,
 	ContentPart,
@@ -191,13 +192,15 @@ function renderKindBlock(sections: ContextSection[]): string {
 function renderAttachmentsList(sections: ContextSection[]): string {
 	const refs: string[] = [];
 	for (const section of sectionsOfKind(sections, "attachment")) {
-		refs.push(`- .superset/attachments/${section.label}`);
+		refs.push(`- ${WORKSPACE_ATTACHMENTS_DIR}/${section.label}`);
 	}
 	for (const section of sectionsOfKind(sections, "user-prompt")) {
 		for (const part of section.content) {
 			if (part.type === "text") continue;
 			const label = part.type === "file" ? part.filename : undefined;
-			refs.push(`- .superset/attachments/${label ?? "inline-attachment"}`);
+			refs.push(
+				`- ${WORKSPACE_ATTACHMENTS_DIR}/${label ?? "inline-attachment"}`,
+			);
 		}
 	}
 	if (refs.length === 0) return "";
@@ -205,7 +208,7 @@ function renderAttachmentsList(sections: ContextSection[]): string {
 		"# Attached files",
 		"",
 		"The user attached these files alongside the prompt. They've been",
-		"written into the worktree at `.superset/attachments/`. Read them",
+		`written into the worktree at \`${WORKSPACE_ATTACHMENTS_DIR}/\`. Read them`,
 		"to understand the request — they're part of the task, not",
 		"optional reference.",
 		"",

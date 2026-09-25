@@ -1,59 +1,52 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import { useMemo, useState } from "react";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	LuArrowUpRight,
 	LuCheck,
+	LuClipboard,
 	LuLoaderCircle,
 	LuMinus,
 	LuX,
 } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
+import { CHECK_STATUS_ICONS } from "renderer/routes/_authenticated/_dashboard/utils/checkStatusIcons";
 import type { NormalizedCheck, NormalizedPR } from "../../types";
 
-const checkIconConfig = {
-	success: {
-		icon: LuCheck,
-		className: "text-emerald-600 dark:text-emerald-400",
-	},
-	failure: { icon: LuX, className: "text-red-600 dark:text-red-400" },
-	pending: {
-		icon: LuLoaderCircle,
-		className: "text-amber-600 dark:text-amber-400",
-	},
-	skipped: { icon: LuMinus, className: "text-muted-foreground" },
-	cancelled: { icon: LuMinus, className: "text-muted-foreground" },
-} as const;
-
 const checkSummaryIconConfig = {
-	success: checkIconConfig.success,
-	failure: checkIconConfig.failure,
-	pending: checkIconConfig.pending,
-	none: { icon: LuMinus, className: "text-muted-foreground" },
+	success: CHECK_STATUS_ICONS.success,
+	failure: CHECK_STATUS_ICONS.failure,
+	pending: CHECK_STATUS_ICONS.pending,
+	none: { Icon: LuMinus, className: "text-muted-foreground" },
 } as const;
 
 interface ChecksSectionProps {
+	workspaceId: string;
 	checks: NormalizedCheck[];
 	checksStatus: NormalizedPR["checksStatus"];
 	prUrl: string;
 }
 
 export function ChecksSection({
+	workspaceId,
 	checks,
 	checksStatus,
 	prUrl,
 }: ChecksSectionProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(true);
 
+	// Mirrors computeChecksRollup: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantChecks = useMemo(
-		() =>
-			checks.filter(
-				(check) => check.status !== "skipped" && check.status !== "cancelled",
-			),
+		() => checks.filter((check) => check.status !== "skipped"),
 		[checks],
 	);
 
@@ -62,10 +55,14 @@ export function ChecksSection({
 	).length;
 	const checksSummary =
 		relevantChecks.length > 0
-			? `${passingChecks}/${relevantChecks.length} checks passing`
-			: "No checks reported";
+			? t({
+					message: `${passingChecks}/${relevantChecks.length} checks passing`,
+				})
+			: t({
+					message: "No checks reported",
+				});
 	const checksStatusConfig = checkSummaryIconConfig[checksStatus];
-	const ChecksStatusIcon = checksStatusConfig.icon;
+	const ChecksStatusIcon = checksStatusConfig.Icon;
 
 	return (
 		<Collapsible open={open} onOpenChange={setOpen}>
@@ -82,7 +79,9 @@ export function ChecksSection({
 							open && "rotate-90",
 						)}
 					/>
-					<span className="truncate text-xs font-medium">Checks</span>
+					<span className="truncate text-xs font-medium">
+						<Trans>Checks</Trans>
+					</span>
 					<span className="shrink-0 text-[10px] text-muted-foreground">
 						{relevantChecks.length}
 					</span>
@@ -107,12 +106,13 @@ export function ChecksSection({
 			<CollapsibleContent className="min-w-0 overflow-hidden px-0.5 pb-1">
 				{relevantChecks.length === 0 ? (
 					<div className="px-1.5 py-1 text-xs text-muted-foreground">
-						No checks reported.
+						<Trans>No checks reported.</Trans>
 					</div>
 				) : (
 					relevantChecks.map((check, index) => (
 						<CheckRow
 							key={`${check.name}-${index}`}
+							workspaceId={workspaceId}
 							check={check}
 							prUrl={prUrl}
 						/>
@@ -133,12 +133,28 @@ function resolveCheckUrl(
 	return undefined;
 }
 
-function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
-	const { icon: CheckIcon, className } = checkIconConfig[check.status];
+function CheckRow({
+	workspaceId,
+	check,
+	prUrl,
+}: {
+	workspaceId: string;
+	check: NormalizedCheck;
+	prUrl: string;
+}) {
+	const { Icon: CheckIcon, className } = CHECK_STATUS_ICONS[check.status];
 	const checkUrl = resolveCheckUrl(check, prUrl);
+	// Mirror the server's guard: only failed github.com Actions job URLs have
+	// downloadable logs, so don't offer copy for non-GitHub CI checks.
+	const canCopyLogs =
+		check.status === "failure" &&
+		!!check.url &&
+		URL.canParse(check.url) &&
+		new URL(check.url).hostname === "github.com" &&
+		/\/job\/\d+/.test(check.url);
 
-	const inner = (
-		<div className="flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
+	const rowContent = (
+		<div className="flex min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
 			<CheckIcon
 				className={cn(
 					"size-3 shrink-0",
@@ -160,16 +176,90 @@ function CheckRow({ check, prUrl }: { check: NormalizedCheck; prUrl: string }) {
 		</div>
 	);
 
-	return checkUrl ? (
-		<a
-			href={checkUrl}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="group block"
+	// Keep the copy button a sibling of the link, never a child: nesting an
+	// interactive element inside an <a> is invalid HTML and breaks AT focus.
+	return (
+		<div className="group flex min-w-0 items-center gap-0.5">
+			{checkUrl ? (
+				<a
+					href={checkUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="block min-w-0 flex-1"
+				>
+					{rowContent}
+				</a>
+			) : (
+				rowContent
+			)}
+			{canCopyLogs && check.url && (
+				<CopyLogsButton workspaceId={workspaceId} detailsUrl={check.url} />
+			)}
+		</div>
+	);
+}
+
+function CopyLogsButton({
+	workspaceId,
+	detailsUrl,
+}: {
+	workspaceId: string;
+	detailsUrl: string;
+}) {
+	const { t } = useLingui();
+	const utils = workspaceTrpc.useUtils();
+	const [state, setState] = useState<"idle" | "loading" | "copied" | "error">(
+		"idle",
+	);
+	const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+	useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+	const handleCopy = async () => {
+		if (state === "loading") return;
+		// Cancel a pending reset so it can't fire mid-flight on a quick re-click.
+		clearTimeout(resetTimer.current);
+		setState("loading");
+		try {
+			const { logs } = await utils.git.getCheckJobLogs.fetch({
+				workspaceId,
+				detailsUrl,
+			});
+			await navigator.clipboard.writeText(logs);
+			setState("copied");
+		} catch {
+			setState("error");
+		}
+		resetTimer.current = setTimeout(() => setState("idle"), 2000);
+	};
+
+	const Icon =
+		state === "loading"
+			? LuLoaderCircle
+			: state === "copied"
+				? LuCheck
+				: state === "error"
+					? LuX
+					: LuClipboard;
+
+	return (
+		<button
+			type="button"
+			onClick={handleCopy}
+			title={t({
+				message: "Copy job logs to clipboard",
+			})}
+			aria-label={t({
+				message: "Copy job logs to clipboard",
+			})}
+			className={cn(
+				"shrink-0 rounded-sm p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
+				"opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+				state !== "idle" && "opacity-100",
+				state === "copied" && "text-emerald-600 dark:text-emerald-400",
+				state === "error" && "text-red-600 dark:text-red-400",
+			)}
 		>
-			{inner}
-		</a>
-	) : (
-		inner
+			<Icon className={cn("size-3", state === "loading" && "animate-spin")} />
+		</button>
 	);
 }

@@ -1,0 +1,33 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "superset-relay",
+	"main": "src/index.ts",
+	// relay.superset.sh is the relay: it is what every shipped build bakes into
+	// its CSP and what the API hands out. The Workers route is how the hostname
+	// reaches this script, so removing it from this list takes the relay down
+	// on the next deploy. relay2.superset.sh and the workers.dev URL are
+	// interim aliases from the migration off the Fly relay; they serve the same
+	// Durable Objects and can go once nothing dials them.
+	"workers_dev": true,
+	"routes": [
+		{ "pattern": "relay.superset.sh/*", "zone_name": "superset.sh" },
+		{ "pattern": "relay2.superset.sh", "custom_domain": true }
+	],
+	"compatibility_date": "2026-07-01",
+	"compatibility_flags": ["nodejs_als"],
+	"vars": {
+		// Must match the API's JWT issuer/audience exactly — a mismatch 401s
+		// every connection. Same value as the Fly relay's NEXT_PUBLIC_API_URL.
+		"NEXT_PUBLIC_API_URL": "https://api.superset.sh"
+	},
+	"durable_objects": {
+		"bindings": [{ "name": "HostTunnel", "class_name": "HostTunnel" }]
+	},
+	// Which Durable Object serves each host, written only by the host's own
+	// control connect so the object is created at the host's ingress.
+	"kv_namespaces": [
+		{ "binding": "PLACEMENT", "id": "7ebff5dc36db4edcb31172e37e40eb31" }
+	],
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["HostTunnel"] }],
+	"observability": { "enabled": true }
+}

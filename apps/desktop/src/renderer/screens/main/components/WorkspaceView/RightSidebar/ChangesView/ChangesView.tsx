@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -14,7 +16,10 @@ import {
 	countOpenPullRequestComments,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/ChangesView/components/ReviewPanel/utils";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
-import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
 import {
 	pathsMatch,
@@ -82,6 +87,8 @@ export function ChangesView({
 	isExpandedView,
 	isActive = true,
 }: ChangesViewProps) {
+	const { _: translate } = useTranslation();
+
 	const { workspaceId } = useParams({ strict: false });
 	const trpcUtils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
@@ -99,16 +106,22 @@ export function ChangesView({
 		},
 	);
 
-	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
-		useGitChangesStatus({
-			worktreePath,
-			refetchInterval: isActive ? 2500 : undefined,
-			refetchOnWindowFocus: isActive,
-			branchRefetchInterval: isActive
-				? undefined
-				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
-			branchRefetchOnWindowFocus: true,
-		});
+	const {
+		status,
+		isLoading,
+		errorCause,
+		effectiveBaseBranch,
+		branchData,
+		refetch,
+	} = useGitChangesStatus({
+		worktreePath,
+		refetchInterval: isActive ? 2500 : undefined,
+		refetchOnWindowFocus: isActive,
+		branchRefetchInterval: isActive
+			? undefined
+			: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
+		branchRefetchOnWindowFocus: true,
+	});
 
 	const {
 		data: githubStatus,
@@ -383,7 +396,6 @@ export function ChangesView({
 				const invalidations: Promise<unknown>[] = [
 					trpcUtils.changes.getStatus.invalidate({
 						worktreePath,
-						defaultBranch: effectiveBaseBranch,
 					}),
 				];
 
@@ -599,6 +611,7 @@ export function ChangesView({
 		againstBaseFiles,
 		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
 		commitsWithFiles,
+		totalCommitCount: status?.totalCommitCount ?? commits.length,
 		expandedCommits,
 		onCommitToggle: handleCommitToggle,
 		onCommitFileSelect: handleCommitFileSelect,
@@ -663,7 +676,15 @@ export function ChangesView({
 		);
 	}
 
-	if (isLoading) {
+	if (errorCause) {
+		return (
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
+				{gitChangesUnavailableCopy(errorCause)}
+			</div>
+		);
+	}
+
+	if (!status && isLoading) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Loading changes...
@@ -680,7 +701,7 @@ export function ChangesView({
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
 			</div>
 		);
@@ -690,10 +711,12 @@ export function ChangesView({
 	const reviewCommentCount = activePullRequest
 		? countOpenPullRequestComments(githubComments)
 		: 0;
+	// Mirrors computeChecksStatus: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantReviewTabChecks =
-		activePullRequest?.checks.filter(
-			(check) => check.status !== "skipped" && check.status !== "cancelled",
-		) ?? [];
+		activePullRequest?.checks.filter((check) => check.status !== "skipped") ??
+		[];
 	const reviewTabChecksStatus =
 		relevantReviewTabChecks.length > 0
 			? (activePullRequest?.checksStatus ?? "none")
@@ -835,8 +858,13 @@ export function ChangesView({
 			<DiscardConfirmDialog
 				open={showDiscardUnstagedDialog}
 				onOpenChange={setShowDiscardUnstagedDialog}
-				title="Discard all unstaged changes?"
-				description="This will revert all unstaged modifications and delete untracked files. This action cannot be undone."
+				title={translate(msg({ message: "Discard all unstaged changes?" }))}
+				description={translate(
+					msg({
+						message:
+							"This will revert all unstaged modifications and delete untracked files. This action cannot be undone.",
+					}),
+				)}
 				onConfirm={() =>
 					discardAllUnstagedMutation.mutate({
 						worktreePath: worktreePath || "",
@@ -848,8 +876,13 @@ export function ChangesView({
 			<DiscardConfirmDialog
 				open={showDiscardStagedDialog}
 				onOpenChange={setShowDiscardStagedDialog}
-				title="Discard all staged changes?"
-				description="This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone."
+				title={translate(msg({ message: "Discard all staged changes?" }))}
+				description={translate(
+					msg({
+						message:
+							"This will unstage and revert all staged changes. Staged new files will be deleted. This action cannot be undone.",
+					}),
+				)}
 				onConfirm={() =>
 					discardAllStagedMutation.mutate({
 						worktreePath: worktreePath || "",

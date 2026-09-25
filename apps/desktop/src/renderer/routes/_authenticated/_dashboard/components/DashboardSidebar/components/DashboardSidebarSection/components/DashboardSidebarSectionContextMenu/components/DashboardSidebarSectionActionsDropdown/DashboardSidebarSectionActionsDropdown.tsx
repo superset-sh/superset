@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,7 +13,9 @@ export function DashboardSidebarSectionActionsDropdown({
 	onRename,
 	onSetColor,
 	onDelete,
+	onHide,
 }: DashboardSidebarSectionActionsProps) {
+	const { t } = useLingui();
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -21,8 +24,10 @@ export function DashboardSidebarSectionActionsDropdown({
 					onPointerDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 					onContextMenu={(event) => event.stopPropagation()}
-					className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/80 opacity-0 transition-[opacity,color,background-color] hover:bg-muted hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-					aria-label="Group actions"
+					className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground/80 opacity-0 transition-[opacity,color,background-color] hover:bg-fill-hover hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+					aria-label={t({
+						message: "Group actions",
+					})}
 				>
 					<LuEllipsis className="size-3.5" />
 				</button>
@@ -39,6 +44,7 @@ export function DashboardSidebarSectionActionsDropdown({
 					kind="dropdown"
 					onRename={onRename}
 					onSetColor={onSetColor}
+					onHide={onHide}
 					onDelete={onDelete}
 				/>
 			</DropdownMenuContent>

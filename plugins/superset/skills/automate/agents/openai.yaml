@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Automate"
+  short_description: "Turn a recurring chore into a scheduled Superset automation"
+  default_prompt: "Use $superset-automate to turn this recurring task into a Superset automation."

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { SiLinear } from "react-icons/si";
@@ -16,13 +17,19 @@ export function LinearCTA() {
 					<SiLinear className="size-8" />
 				</div>
 				<div className="space-y-2">
-					<h3 className="text-lg font-semibold">Connect Linear</h3>
+					<h3 className="text-lg font-semibold">
+						<Trans>Connect Linear</Trans>
+					</h3>
 					<p className="text-sm text-muted-foreground">
-						Connect your Linear workspace to sync issues and manage tasks
-						directly from Superset.
+						<Trans>
+							Connect your Linear workspace to sync issues and manage tasks
+							directly from Superset.
+						</Trans>
 					</p>
 				</div>
-				<Button onClick={handleConnectLinear}>Connect Linear</Button>
+				<Button onClick={handleConnectLinear}>
+					<Trans>Connect Linear</Trans>
+				</Button>
 			</div>
 		</div>
 	);

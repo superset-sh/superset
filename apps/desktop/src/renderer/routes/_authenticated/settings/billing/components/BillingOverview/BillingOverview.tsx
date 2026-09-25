@@ -1,20 +1,29 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { rawErrorMessage } from "@superset/i18n/errors";
+import { useFormat } from "@superset/i18n/react";
+import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import type { PlanTier } from "../../constants";
 import { BillingDetails } from "./components/BillingDetails";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
+import { PaymentFailedBanner } from "./components/PaymentFailedBanner";
 import { RecentInvoices } from "./components/RecentInvoices";
 import { UpgradeCard } from "./components/UpgradeCard";
 
@@ -23,42 +32,50 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { formatPrice } = useFormat();
+
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
+	const searchQuery = useSettingsSearchQuery();
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 
-	const activeOrgId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrgId = useActiveOrganizationId();
 
-	const { data: activeOrg } = authClient.useActiveOrganization();
+	// Ownership must be judged against the org being billed. The session's
+	// active organization is shared by every window, so reading membership from
+	// it would grant or withhold owner-only billing actions based on whatever
+	// org another window happens to be showing. This member list is scoped
+	// server-side by the organization header this window sends.
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery({
+		includeDeactivated: false,
+	});
 	const currentUserId = session?.user?.id;
-	const currentMember = activeOrg?.members?.find(
-		(m) => m.userId === currentUserId,
-	);
+	const currentMember = members?.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 
-	// Get subscription from Electric (preloaded, instant)
-	const { data: subscriptionsData } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
-	);
+	const { plan, activePlan } = useCurrentPlan();
 
-	// Derive plan from subscription data (not session, which can be stale)
-	const plan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
+	// Seats are billed from this — never derive it from an unresolved query.
+	// undefined (not 0) keeps the upgrade action disabled until it loads. It is
+	// the same list rendered above, which excludes members pending deletion, so
+	// checkout bills exactly the seats the organization can see.
+	const memberCount =
+		members && members.length > 0 ? members.length : undefined;
 
-	// Get member count from Electric
-	const { data: membersData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.select(({ members }) => ({ id: members.id })),
-		[collections],
-	);
-	const memberCount = membersData ? membersData.length : undefined;
+	const isPaymentFailing = isPaymentFailingStatus(activePlan?.status);
+	const { data: outstandingInvoice } =
+		cloudTrpc.billing.outstandingInvoice.useQuery(undefined, {
+			enabled: isPaymentFailing,
+		});
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const amountDue = outstandingInvoice
+		? formatPrice(outstandingInvoice.amountDue, outstandingInvoice.currency)
+		: null;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -67,6 +84,19 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 	const handleUpgrade = async (annual = false) => {
 		if (!activeOrgId || memberCount === undefined) return;
+
+		// Second route into Stripe Checkout, alongside the plans page. `source`
+		// is what lets the funnel tell them apart.
+		const checkoutProperties = {
+			plan: "pro",
+			annual,
+			seats: memberCount,
+			// `plan` here is the tier they are on now — same shape as the plans
+			// page, so both sources group together.
+			previous_plan: plan,
+			source: "billing_overview",
+		};
+		track("checkout_started", checkoutProperties);
 
 		setIsUpgrading(true);
 		try {
@@ -83,13 +113,24 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				{
 					onSuccess: (ctx) => {
 						if (ctx.data?.url) {
+							track("checkout_redirected", checkoutProperties);
 							window.open(ctx.data.url, "_blank");
 						}
+					},
+					// Better Auth resolves rather than throws, so without this hook a
+					// failed checkout is invisible: the button just resets.
+					onError: (ctx) => {
+						track("checkout_failed", {
+							...checkoutProperties,
+							status: ctx.response?.status,
+							error: rawErrorMessage(ctx.error),
+						});
 					},
 				},
 			);
 		} finally {
 			setIsUpgrading(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -113,6 +154,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			);
 		} finally {
 			setIsCanceling(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -124,9 +166,14 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			await authClient.subscription.restore({
 				referenceId: activeOrgId,
 			});
-			toast.success("Plan restored");
+			toast.success(
+				t({
+					message: "Plan restored",
+				}),
+			);
 		} finally {
 			setIsRestoring(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -134,30 +181,49 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Billing</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans>Billing</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						For questions about billing,{" "}
-						<a
-							href="mailto:founders@superset.sh"
-							className="text-primary hover:underline"
-						>
-							contact us
-						</a>
-						.
+						<Trans>
+							For questions about billing,{" "}
+							<a
+								href="mailto:support@superset.sh"
+								className="text-primary hover:underline"
+							>
+								contact us
+							</a>
+							.
+						</Trans>
 					</p>
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing/plans">
-						All plans
+						<HighlightText
+							text={t({
+								message: "All plans",
+							})}
+							query={searchQuery}
+						/>
 						<HiArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>
 			</div>
 
 			<div className="space-y-6">
+				{isPaymentFailing && (
+					<PaymentFailedBanner
+						amountDue={amountDue}
+						hostedInvoiceUrl={outstandingInvoice?.hostedInvoiceUrl ?? null}
+						isOwner={isOwner}
+						onPayInvoice={(url) => openUrl.mutate(url)}
+					/>
+				)}
 				{showOverview && (
 					<div>
-						<h3 className="text-sm font-medium mb-2">Plan</h3>
+						<h3 className="text-sm font-medium mb-2">
+							<Trans context="billing">Plan</Trans>
+						</h3>
 						<div className="divide-y divide-border">
 							<CurrentPlanCard
 								currentPlan={plan}
@@ -165,8 +231,9 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								isCanceling={isCanceling}
 								onRestore={handleRestore}
 								isRestoring={isRestoring}
-								cancelAt={subscriptionData?.cancelAt}
-								periodEnd={subscriptionData?.periodEnd}
+								cancelAt={activePlan?.cancelAt}
+								periodEnd={activePlan?.periodEnd}
+								status={activePlan?.status}
 							/>
 							{plan === "free" && (
 								<UpgradeCard

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -13,7 +14,7 @@ import {
 	HiOutlineTrash,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 
 interface TaskActionMenuProps {
@@ -22,7 +23,8 @@ interface TaskActionMenuProps {
 }
 
 export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { t } = useLingui();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const { copyToClipboard } = useCopyToClipboard();
@@ -52,7 +54,9 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					variant="ghost"
 					size="icon"
 					className="h-8 w-8"
-					aria-label="Open task actions"
+					aria-label={t({
+						message: "Open task actions",
+					})}
 				>
 					<HiEllipsisHorizontal className="h-4 w-4" />
 				</Button>
@@ -60,11 +64,15 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuItem onSelect={handleCopyId}>
 					<HiOutlineDocumentDuplicate className="size-4" />
-					<span>Copy ID</span>
+					<span>
+						<Trans>Copy ID</Trans>
+					</span>
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={handleCopyTitle}>
 					<HiOutlineDocumentDuplicate className="size-4" />
-					<span>Copy Title</span>
+					<span>
+						<Trans>Copy Title</Trans>
+					</span>
 				</DropdownMenuItem>
 
 				<DropdownMenuSeparator />
@@ -74,7 +82,9 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					className="text-destructive focus:text-destructive"
 				>
 					<HiOutlineTrash className="text-destructive size-4" />
-					<span>Delete</span>
+					<span>
+						<Trans>Delete</Trans>
+					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

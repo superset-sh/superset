@@ -61,20 +61,41 @@ jobs:
 
       - name: Install dependencies (macOS)
         if: startsWith(matrix.target, 'darwin-')
-        run: bun install --frozen
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if bun install --frozen; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 10))"
+          done
 
       - name: Build distribution
         working-directory: packages/cli
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
-          SUPERSET_API_URL: ${{ vars.SUPERSET_API_URL }}
-          SUPERSET_WEB_URL: ${{ vars.SUPERSET_WEB_URL }}
+          SUPERSET_API_URL: ${{ secrets.SUPERSET_API_URL }}
+          SUPERSET_WEB_URL: ${{ secrets.SUPERSET_WEB_URL }}
         run: bun run build:dist --target=${{ matrix.target }}
 
       - name: Smoke test binary
         run: |
           DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
           bash packages/cli/scripts/smoke-test.sh "$DIST" "${{ matrix.target }}"
+
+      # Linux only: the E2E simulates a systemd launch (stat -c, stripped env)
+      # and wipes the runner $HOME's agent configs — fine on an ephemeral
+      # runner, which is why SUPERSET_HEADLESS_E2E must be set explicitly.
+      - name: Headless-host E2E
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          # zsh enables the wrapper-chain check; the E2E skips it when absent.
+          sudo apt-get install -y zsh || (sudo apt-get update -qq && sudo apt-get install -y zsh) || true
+          DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
+          SUPERSET_HEADLESS_E2E=1 bash packages/cli/scripts/headless-e2e.sh "$DIST"
 
       - name: Upload tarball
         if: inputs.upload

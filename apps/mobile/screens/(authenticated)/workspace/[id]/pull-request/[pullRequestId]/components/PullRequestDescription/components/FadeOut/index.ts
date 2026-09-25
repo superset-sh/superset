@@ -1,0 +1,1 @@
+export { FadeOut } from "./FadeOut";

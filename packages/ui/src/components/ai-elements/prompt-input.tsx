@@ -1,5 +1,7 @@
 "use client";
 
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
 	CornerDownLeftIcon,
@@ -33,7 +35,15 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
+import {
+	type AttachmentConstraintError,
+	type AttachmentConstraints,
+	applyAttachmentConstraints,
+} from "../../lib/attachment-constraints";
+import { getClipboardFiles } from "../../lib/clipboard-files";
+import { i18n } from "../../lib/i18n";
 import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -105,6 +115,19 @@ export type PromptInputControllerProps = {
 	__registerTextarea: (ref: RefObject<HTMLTextAreaElement | null>) => void;
 	/** INTERNAL: Allows TiptapPromptEditor (or similar) to override focus behavior */
 	__registerFocusCallback: (cb: (() => void) | null) => void;
+	/**
+	 * INTERNAL: Lets PromptInput publish its accept/maxFiles/maxFileSize into
+	 * the controller. The constraints are declared on PromptInput but the files
+	 * live here, and consumers commonly call useProviderAttachments() *above*
+	 * PromptInput, so validation has to happen at the store rather than in a
+	 * context PromptInput's subtree alone can see.
+	 */
+	__registerConstraints: (
+		registration: {
+			constraints: AttachmentConstraints;
+			onError?: (error: AttachmentConstraintError) => void;
+		} | null,
+	) => void;
 };
 
 const PromptInputController = createContext<PromptInputControllerProps | null>(
@@ -141,8 +164,61 @@ export const useProviderAttachments = () => {
 const useOptionalProviderAttachments = () =>
 	useContext(ProviderAttachmentsContext);
 
+export type PromptInputAttachmentItem = FileUIPart & { id: string };
+
+export interface PromptInputAttachmentsStore {
+	get: () => PromptInputAttachmentItem[];
+	set: (files: PromptInputAttachmentItem[]) => void;
+	subscribe: (listener: () => void) => () => void;
+	/** Revokes all blob URLs and empties the store; safe while no provider is mounted. */
+	clear: () => void;
+}
+
+/**
+ * Module-scoped attachment state for PromptInputProvider. Pass the result as
+ * `attachmentsStore` to make attachments survive provider unmount (e.g. route
+ * navigation). The store then owns the blob URLs' lifetime: they are no longer
+ * revoked on unmount, only by remove/clear/setFiles or store.clear().
+ */
+export function createPromptInputAttachmentsStore(): PromptInputAttachmentsStore {
+	let files: PromptInputAttachmentItem[] = [];
+	const listeners = new Set<() => void>();
+	const notify = () => {
+		for (const listener of listeners) {
+			listener();
+		}
+	};
+	return {
+		get: () => files,
+		set: (next) => {
+			files = next;
+			notify();
+		},
+		subscribe: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+		clear: () => {
+			for (const f of files) {
+				if (f.url) {
+					URL.revokeObjectURL(f.url);
+				}
+			}
+			files = [];
+			notify();
+		},
+	};
+}
+
+const EMPTY_ATTACHMENTS: PromptInputAttachmentItem[] = [];
+const emptyAttachmentsSubscribe = () => () => {};
+const getEmptyAttachments = () => EMPTY_ATTACHMENTS;
+
 export type PromptInputProviderProps = PropsWithChildren<{
 	initialInput?: string;
+	attachmentsStore?: PromptInputAttachmentsStore;
 }>;
 
 /**
@@ -151,6 +227,7 @@ export type PromptInputProviderProps = PropsWithChildren<{
  */
 export function PromptInputProvider({
 	initialInput: initialTextInput = "",
+	attachmentsStore,
 	children,
 }: PromptInputProviderProps) {
 	// ----- textInput state
@@ -180,41 +257,103 @@ export function PromptInputProvider({
 		focusCallbackRef.current = cb;
 	}, []);
 
-	// ----- attachments state (global when wrapped)
-	const [attachmentFiles, setAttachmentFiles] = useState<
-		(FileUIPart & { id: string })[]
-	>([]);
+	// ----- attachments state (global when wrapped, module-scoped when an
+	// external store is provided)
+	const [localFiles, setLocalFiles] = useState<PromptInputAttachmentItem[]>([]);
+	const storeFiles = useSyncExternalStore(
+		attachmentsStore?.subscribe ?? emptyAttachmentsSubscribe,
+		attachmentsStore?.get ?? getEmptyAttachments,
+	);
+	const attachmentFiles = attachmentsStore ? storeFiles : localFiles;
+	// A synchronous mirror of the list. React defers state updaters to render,
+	// so without this a same-tick `clear(); add(...)` (or two adds in a row)
+	// would budget against a list that no longer reflects what just happened.
+	// The render assignment below re-syncs it from the authoritative state.
+	const attachmentFilesRef =
+		useRef<PromptInputAttachmentItem[]>(attachmentFiles);
+	attachmentFilesRef.current = attachmentFiles;
+	const attachmentCountRef = useRef(0);
+	attachmentCountRef.current = attachmentFiles.length;
+
+	// Every list mutation funnels through here, so this is the one place the
+	// mirror has to be kept honest: add, remove, clear, takeFiles and setFiles
+	// all land their new length before the call returns.
+	const setAttachmentFiles = useCallback(
+		(
+			updater: (
+				prev: PromptInputAttachmentItem[],
+			) => PromptInputAttachmentItem[],
+		) => {
+			const base = attachmentsStore
+				? attachmentsStore.get()
+				: attachmentFilesRef.current;
+			const next = updater(base);
+			attachmentFilesRef.current = next;
+			attachmentCountRef.current = next.length;
+			if (attachmentsStore) {
+				attachmentsStore.set(next);
+			} else {
+				setLocalFiles(next);
+			}
+		},
+		[attachmentsStore],
+	);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const openRef = useRef<() => void>(() => {});
 
-	const add = useCallback((files: File[] | FileList) => {
-		const incoming = Array.from(files);
-		if (incoming.length === 0) {
-			return;
-		}
-
-		setAttachmentFiles((prev) =>
-			prev.concat(
-				incoming.map((file) => ({
-					id: nanoid(),
-					type: "file" as const,
-					url: URL.createObjectURL(file),
-					mediaType: file.type,
-					filename: file.name,
-				})),
-			),
-		);
-	}, []);
-
-	const remove = useCallback((id: string) => {
-		setAttachmentFiles((prev) => {
-			const found = prev.find((f) => f.id === id);
-			if (found?.url) {
-				URL.revokeObjectURL(found.url);
+	const constraintsRef = useRef<{
+		constraints: AttachmentConstraints;
+		onError?: (error: AttachmentConstraintError) => void;
+	} | null>(null);
+	const __registerConstraints = useCallback(
+		(registration: typeof constraintsRef.current) => {
+			constraintsRef.current = registration;
+		},
+		[],
+	);
+	const add = useCallback(
+		(files: File[] | FileList) => {
+			const registration = constraintsRef.current;
+			// Validated here, not in PromptInput: this is the only point every
+			// caller funnels through, wherever it grabbed the context.
+			const incoming = registration
+				? applyAttachmentConstraints({
+						files,
+						currentCount: attachmentCountRef.current,
+						constraints: registration.constraints,
+						onError: registration.onError,
+					})
+				: Array.from(files);
+			if (incoming.length === 0) {
+				return;
 			}
-			return prev.filter((f) => f.id !== id);
-		});
-	}, []);
+			setAttachmentFiles((prev) =>
+				prev.concat(
+					incoming.map((file) => ({
+						id: nanoid(),
+						type: "file" as const,
+						url: URL.createObjectURL(file),
+						mediaType: file.type,
+						filename: file.name,
+					})),
+				),
+			);
+		},
+		[setAttachmentFiles],
+	);
+
+	const remove = useCallback(
+		(id: string) => {
+			setAttachmentFiles((prev) => {
+				const found = prev.find((f) => f.id === id);
+				if (found?.url) {
+					URL.revokeObjectURL(found.url);
+				}
+				return prev.filter((f) => f.id !== id);
+			});
+		},
+		[setAttachmentFiles],
+	);
 
 	const clear = useCallback(() => {
 		setAttachmentFiles((prev) => {
@@ -225,46 +364,49 @@ export function PromptInputProvider({
 			}
 			return [];
 		});
-	}, []);
+	}, [setAttachmentFiles]);
 
-	const setFiles = useCallback((files: FileUIPart[]) => {
-		setAttachmentFiles((prev) => {
-			for (const f of prev) {
-				if (f.url) {
-					URL.revokeObjectURL(f.url);
+	const setFiles = useCallback(
+		(files: FileUIPart[]) => {
+			setAttachmentFiles((prev) => {
+				for (const f of prev) {
+					if (f.url) {
+						URL.revokeObjectURL(f.url);
+					}
 				}
-			}
-			return files.map((file) => ({
-				...file,
-				id: nanoid(),
-			}));
-		});
-	}, []);
+				return files.map((file) => ({
+					...file,
+					id: nanoid(),
+				}));
+			});
+		},
+		[setAttachmentFiles],
+	);
 
 	const takeFiles = useCallback(() => {
-		const takenFiles = attachmentsRef.current;
-		attachmentsRef.current = [];
-		setAttachmentFiles([]);
+		// The mirror, not the render-time ref: a submit in the same tick as an
+		// add would otherwise return the pre-add list and then clear the files
+		// it never handed back.
+		const takenFiles = attachmentFilesRef.current;
+		setAttachmentFiles(() => []);
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";
 		}
 		return takenFiles;
-	}, []);
+	}, [setAttachmentFiles]);
 
-	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
-	const attachmentsRef = useRef(attachmentFiles);
-	attachmentsRef.current = attachmentFiles;
-
-	// Cleanup blob URLs on unmount to prevent memory leaks
+	// Cleanup blob URLs on unmount to prevent memory leaks. With an external
+	// store the files outlive the provider, so their URLs must stay valid.
 	useEffect(() => {
+		if (attachmentsStore) return;
 		return () => {
-			for (const f of attachmentsRef.current) {
+			for (const f of attachmentFilesRef.current) {
 				if (f.url) {
 					URL.revokeObjectURL(f.url);
 				}
 			}
 		};
-	}, []);
+	}, [attachmentsStore]);
 
 	const openFileDialog = useCallback(() => {
 		openRef.current?.();
@@ -304,6 +446,7 @@ export function PromptInputProvider({
 			__registerFileInput,
 			__registerTextarea,
 			__registerFocusCallback,
+			__registerConstraints,
 		}),
 		[
 			textInput,
@@ -313,6 +456,7 @@ export function PromptInputProvider({
 			__registerFileInput,
 			__registerTextarea,
 			__registerFocusCallback,
+			__registerConstraints,
 		],
 	);
 
@@ -356,6 +500,7 @@ export function PromptInputAttachment({
 	className,
 	...props
 }: PromptInputAttachmentProps) {
+	const { t } = useLingui();
 	const attachments = usePromptInputAttachments();
 
 	const filename = data.filename || "";
@@ -364,7 +509,9 @@ export function PromptInputAttachment({
 		data.mediaType?.startsWith("image/") && data.url ? "image" : "file";
 	const isImage = mediaType === "image";
 
-	const attachmentLabel = filename || (isImage ? "Image" : "Attachment");
+	const attachmentLabel =
+		filename ||
+		(isImage ? t({ message: "Image" }) : t({ message: "Attachment" }));
 
 	return (
 		<PromptInputHoverCard>
@@ -381,7 +528,12 @@ export function PromptInputAttachment({
 						<div className="absolute inset-0 flex size-5 items-center justify-center overflow-hidden rounded bg-background transition-opacity group-hover:opacity-0">
 							{isImage ? (
 								<img
-									alt={filename || "attachment"}
+									alt={
+										filename ||
+										t({
+											message: "attachment",
+										})
+									}
 									className="size-5 object-cover"
 									height={20}
 									src={data.url}
@@ -394,7 +546,9 @@ export function PromptInputAttachment({
 							)}
 						</div>
 						<Button
-							aria-label="Remove attachment"
+							aria-label={t({
+								message: "Remove attachment",
+							})}
 							className="absolute inset-0 size-5 cursor-pointer rounded p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-2.5"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -404,7 +558,9 @@ export function PromptInputAttachment({
 							variant="ghost"
 						>
 							<XIcon />
-							<span className="sr-only">Remove</span>
+							<span className="sr-only">
+								<Trans>Remove</Trans>
+							</span>
 						</Button>
 					</div>
 
@@ -416,7 +572,12 @@ export function PromptInputAttachment({
 					{isImage && (
 						<div className="relative flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
 							<img
-								alt={filename || "attachment preview"}
+								alt={
+									filename ||
+									t({
+										message: "attachment preview",
+									})
+								}
 								className={cn(
 									"max-h-full max-w-full object-contain",
 									loading && "opacity-50",
@@ -435,7 +596,7 @@ export function PromptInputAttachment({
 					<div className="flex items-center gap-2.5">
 						<div className="min-w-0 flex-1 space-y-1 px-0.5">
 							<h4 className="truncate font-semibold text-sm leading-none">
-								{filename || (isImage ? "Image" : "Attachment")}
+								{attachmentLabel}
 							</h4>
 							{data.mediaType && (
 								<p className="truncate font-mono text-muted-foreground text-xs">
@@ -487,7 +648,11 @@ export type PromptInputActionAddAttachmentsProps = ComponentProps<
 };
 
 export const PromptInputActionAddAttachments = ({
-	label = "Add photos or files",
+	label = i18n._(
+		msg({
+			message: "Add photos or files",
+		}),
+	),
 	...props
 }: PromptInputActionAddAttachmentsProps) => {
 	const attachments = usePromptInputAttachments();
@@ -550,6 +715,7 @@ export const PromptInput = ({
 	children,
 	...props
 }: PromptInputProps) => {
+	const { t } = useLingui();
 	// Try to use a provider controller if present
 	const controller = useOptionalPromptInputController();
 	const usingProvider = !!controller;
@@ -570,77 +736,34 @@ export const PromptInput = ({
 		inputRef.current?.click();
 	}, []);
 
-	const matchesAccept = useCallback(
-		(f: File) => {
-			if (!accept || accept.trim() === "") {
-				return true;
-			}
-
-			const patterns = accept
-				.split(",")
-				.map((s) => s.trim())
-				.filter(Boolean);
-
-			return patterns.some((pattern) => {
-				if (pattern.endsWith("/*")) {
-					const prefix = pattern.slice(0, -1); // e.g: image/* -> image/
-					return f.type.startsWith(prefix);
-				}
-				return f.type === pattern;
-			});
-		},
-		[accept],
+	const applyConstraints = useCallback(
+		(fileList: File[] | FileList, currentCount: number): File[] =>
+			applyAttachmentConstraints({
+				files: fileList,
+				currentCount,
+				constraints: { accept, maxFiles, maxFileSize },
+				onError,
+			}),
+		[accept, maxFiles, maxFileSize, onError],
 	);
 
 	const addLocal = useCallback(
 		(fileList: File[] | FileList) => {
-			const incoming = Array.from(fileList);
-			const accepted = incoming.filter((f) => matchesAccept(f));
-			if (incoming.length && accepted.length === 0) {
-				onError?.({
-					code: "accept",
-					message: "No files match the accepted types.",
-				});
-				return;
-			}
-			const withinSize = (f: File) =>
-				maxFileSize ? f.size <= maxFileSize : true;
-			const sized = accepted.filter(withinSize);
-			if (accepted.length > 0 && sized.length === 0) {
-				onError?.({
-					code: "max_file_size",
-					message: "All files exceed the maximum size.",
-				});
-				return;
-			}
-
 			setItems((prev) => {
-				const capacity =
-					typeof maxFiles === "number"
-						? Math.max(0, maxFiles - prev.length)
-						: undefined;
-				const capped =
-					typeof capacity === "number" ? sized.slice(0, capacity) : sized;
-				if (typeof capacity === "number" && sized.length > capacity) {
-					onError?.({
-						code: "max_files",
-						message: "Too many files. Some were not added.",
-					});
-				}
-				const next: (FileUIPart & { id: string })[] = [];
-				for (const file of capped) {
-					next.push({
+				const capped = applyConstraints(fileList, prev.length);
+				if (capped.length === 0) return prev;
+				return prev.concat(
+					capped.map((file) => ({
 						id: nanoid(),
-						type: "file",
+						type: "file" as const,
 						url: URL.createObjectURL(file),
 						mediaType: file.type,
 						filename: file.name,
-					});
-				}
-				return prev.concat(next);
+					})),
+				);
 			});
 		},
-		[matchesAccept, maxFiles, maxFileSize, onError],
+		[applyConstraints],
 	);
 
 	const removeLocal = useCallback(
@@ -691,6 +814,19 @@ export const PromptInput = ({
 		}
 		return takenFiles;
 	}, []);
+
+	// Publish this PromptInput's constraints to the controller so the store
+	// enforces them for every caller, including the many that read
+	// useProviderAttachments() above this component.
+	const registerConstraints = controller?.__registerConstraints;
+	useEffect(() => {
+		if (!registerConstraints) return;
+		registerConstraints({
+			constraints: { accept, maxFiles, maxFileSize },
+			onError,
+		});
+		return () => registerConstraints(null);
+	}, [registerConstraints, accept, maxFiles, maxFileSize, onError]);
 
 	const add = usingProvider ? controller.attachments.add : addLocal;
 	const setFiles = usingProvider
@@ -921,12 +1057,14 @@ export const PromptInput = ({
 		<>
 			<input
 				accept={accept}
-				aria-label="Upload files"
+				aria-label={t({
+					message: "Upload files",
+				})}
 				className="hidden"
 				multiple={multiple}
 				onChange={handleChange}
 				ref={inputRef}
-				title="Upload files"
+				title={t({ message: "Upload files" })}
 				type="file"
 			/>
 			<form
@@ -965,7 +1103,11 @@ export type PromptInputTextareaProps = ComponentProps<
 export const PromptInputTextarea = ({
 	onChange,
 	className,
-	placeholder = "What would you like to know?",
+	placeholder = i18n._(
+		msg({
+			message: "What would you like to know?",
+		}),
+	),
 	...props
 }: PromptInputTextareaProps) => {
 	const controller = useOptionalPromptInputController();
@@ -1018,23 +1160,7 @@ export const PromptInputTextarea = ({
 	};
 
 	const handlePaste: ClipboardEventHandler<HTMLTextAreaElement> = (event) => {
-		const items = event.clipboardData?.items;
-
-		if (!items) {
-			return;
-		}
-
-		const files: File[] = [];
-
-		for (const item of items) {
-			if (item.kind === "file") {
-				const file = item.getAsFile();
-				if (file) {
-					files.push(file);
-				}
-			}
-		}
-
+		const files = getClipboardFiles(event.clipboardData);
 		if (files.length > 0) {
 			event.preventDefault();
 			attachments.add(files);
@@ -1186,6 +1312,7 @@ export const PromptInputSubmit = ({
 	children,
 	...props
 }: PromptInputSubmitProps) => {
+	const { t } = useLingui();
 	let Icon = <CornerDownLeftIcon className="size-4" />;
 
 	if (status === "submitted") {
@@ -1198,7 +1325,7 @@ export const PromptInputSubmit = ({
 
 	return (
 		<InputGroupButton
-			aria-label="Submit"
+			aria-label={t({ message: "Submit" })}
 			className={cn(className)}
 			size={size}
 			type="submit"

@@ -1,8 +1,15 @@
+import {
+	INTEGRATIONS,
+	type IntegrationProvider,
+} from "@superset/shared/integrations";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 export const SETTING_ITEM_ID = {
+	MOBILE_APP: "mobile-app",
 	ACCOUNT_PROFILE: "account-profile",
 	ACCOUNT_SIGNOUT: "account-signout",
+	ACCOUNT_DELETE: "account-delete",
+	ACCOUNT_LEADERBOARD: "account-leaderboard",
 
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
@@ -12,10 +19,12 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
+	ORGANIZATION_DELETE: "organization-delete",
 
 	TEAMS_LIST: "teams-list",
 
 	APPEARANCE_THEME: "appearance-theme",
+	APPEARANCE_LANGUAGE: "appearance-language",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
@@ -23,11 +32,20 @@ export const SETTING_ITEM_ID = {
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
+	USAGE_TOKENS: "usage-tokens",
+	USAGE_RESOURCES: "usage-resources",
+
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
+	BEHAVIOR_CHANGES_OPEN_TARGET: "behavior-changes-open-target",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
+	USAGE_IN_SIDEBAR: "usage-in-sidebar",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_STAR_GITHUB: "behavior-star-github",
+
+	BROWSER_HOMEPAGE: "browser-homepage",
+	BROWSER_IMPORT_HISTORY: "browser-import-history",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -41,23 +59,22 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_LIMIT: "terminal-background-limit",
+	TERMINAL_COPY_ON_SELECT: "terminal-copy-on-select",
 
 	LINKS_FILE: "links-file",
+	LINKS_FOLDER: "links-folder",
 	LINKS_URL: "links-url",
 	LINKS_SIDEBAR_FILE: "links-sidebar-file",
 	LINKS_PORT: "links-port",
-
-	MODELS_ANTHROPIC: "models-anthropic",
-	MODELS_OPENAI: "models-openai",
+	LINKS_PAGE: "links-page",
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
 	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
-
-	INTEGRATIONS_LINEAR: "integrations-linear",
-	INTEGRATIONS_GITHUB: "integrations-github",
-	INTEGRATIONS_SLACK: "integrations-slack",
+	EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT:
+		"experimental-wait-for-setup-before-agent",
 
 	BILLING_OVERVIEW: "billing-overview",
 	BILLING_PLANS: "billing-plans",
@@ -68,8 +85,8 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_SPARSE_CHECKOUT: "project-sparse-checkout",
 	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
-	PROJECT_ENV_VARS: "project-env-vars",
 
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
@@ -84,13 +101,29 @@ export const SETTING_ITEM_ID = {
 		"security-expose-host-service-via-relay",
 
 	HOST_MEMBERS: "host-members",
+	ENVIRONMENTS_LIST: "environments-list",
+	AGENT_ACCOUNTS: "agent-accounts",
+	CONNECTIONS: "connections",
+	ENVIRONMENTS_SECRETS: "environments-secrets",
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
 	HOST_WORKTREE_LOCATION: "host-worktree-location",
+	HOST_SERVICE_VERSION: "host-service-version",
+	HOST_DELETE: "host-delete",
 } as const;
 
+/** One settings-search row per roster entry, id derived from the provider. */
+export function integrationSettingItemId<P extends IntegrationProvider>(
+	provider: P,
+): `integrations-${P}` {
+	return `integrations-${provider}`;
+}
+
+type IntegrationSettingItemId = `integrations-${IntegrationProvider}`;
+
 export type SettingItemId =
-	(typeof SETTING_ITEM_ID)[keyof typeof SETTING_ITEM_ID];
+	| (typeof SETTING_ITEM_ID)[keyof typeof SETTING_ITEM_ID]
+	| IntegrationSettingItemId;
 
 export interface SettingsItem {
 	id: SettingItemId;
@@ -111,9 +144,20 @@ export interface SettingsItem {
  */
 export type SettingVariant = "v1" | "v2" | "shared";
 
+const INTEGRATION_ITEM_VARIANTS = Object.fromEntries(
+	INTEGRATIONS.map((integration) => [
+		integrationSettingItemId(integration.provider),
+		"shared",
+	]),
+) as Record<IntegrationSettingItemId, SettingVariant>;
+
 export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
+	...INTEGRATION_ITEM_VARIANTS,
+
 	[SETTING_ITEM_ID.ACCOUNT_PROFILE]: "shared",
 	[SETTING_ITEM_ID.ACCOUNT_SIGNOUT]: "shared",
+	[SETTING_ITEM_ID.ACCOUNT_DELETE]: "shared",
+	[SETTING_ITEM_ID.ACCOUNT_LEADERBOARD]: "shared",
 
 	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
@@ -122,23 +166,37 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_DELETE]: "shared",
 
 	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
 
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_LANGUAGE]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
+
+	[SETTING_ITEM_ID.USAGE_TOKENS]: "shared",
+	[SETTING_ITEM_ID.USAGE_RESOURCES]: "shared",
 
 	[SETTING_ITEM_ID.KEYBOARD_SHORTCUTS]: "shared",
 
 	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
+	// The top-bar Changes control is a v2-only surface.
+	[SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET]: "v2",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
+	// The home sidebar (DashboardSidebar) only renders for v2 users.
+	[SETTING_ITEM_ID.USAGE_IN_SIDEBAR]: "v2",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB]: "shared",
+
+	// The in-app browser pane is a v2-only surface.
+	[SETTING_ITEM_ID.BROWSER_HOMEPAGE]: "v2",
+	[SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY]: "v2",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -153,23 +211,22 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+	[SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT]: "v2",
+	[SETTING_ITEM_ID.TERMINAL_COPY_ON_SELECT]: "v2",
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
+	[SETTING_ITEM_ID.LINKS_FOLDER]: "v2",
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
 	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
-
-	[SETTING_ITEM_ID.MODELS_ANTHROPIC]: "shared",
-	[SETTING_ITEM_ID.MODELS_OPENAI]: "shared",
+	[SETTING_ITEM_ID.LINKS_PAGE]: "v2",
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
-
-	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
-	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
-	[SETTING_ITEM_ID.INTEGRATIONS_SLACK]: "shared",
+	// Gates both the v1 renderer launch and the v2 host-side launch.
+	[SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	[SETTING_ITEM_ID.BILLING_OVERVIEW]: "shared",
 	[SETTING_ITEM_ID.BILLING_PLANS]: "shared",
@@ -180,8 +237,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "shared",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT]: "v2",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
-	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
 
 	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
 	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
@@ -193,11 +250,18 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK]: "shared",
 
 	[SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY]: "shared",
+	[SETTING_ITEM_ID.MOBILE_APP]: "shared",
 
 	[SETTING_ITEM_ID.HOST_MEMBERS]: "shared",
+	[SETTING_ITEM_ID.ENVIRONMENTS_LIST]: "v2",
+	[SETTING_ITEM_ID.AGENT_ACCOUNTS]: "v2",
+	[SETTING_ITEM_ID.CONNECTIONS]: "v2",
+	[SETTING_ITEM_ID.ENVIRONMENTS_SECRETS]: "v2",
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
 	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
+	[SETTING_ITEM_ID.HOST_SERVICE_VERSION]: "v2",
+	[SETTING_ITEM_ID.HOST_DELETE]: "shared",
 };
 
 export function isItemAllowedForVariant(
@@ -209,7 +273,74 @@ export function isItemAllowedForVariant(
 	return isV2 ? variant === "v2" : variant === "v1";
 }
 
+/**
+ * Search keywords per integration; everything else (title, description, id)
+ * comes from the shared roster. Exhaustive so a new roster entry fails
+ * typecheck until it gets keywords.
+ */
+const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
+	linear: ["issues", "tasks", "sync", "project management"],
+	github: [
+		"repos",
+		"repositories",
+		"pull requests",
+		"pr",
+		"sync",
+		"version control",
+		"git",
+	],
+	slack: [
+		"messages",
+		"conversations",
+		"tasks",
+		"chat",
+		"sync",
+		"communication",
+	],
+	notion: [
+		"pages",
+		"databases",
+		"data sources",
+		"comments",
+		"docs",
+		"knowledge",
+	],
+	microsoft_teams: [
+		"teams",
+		"microsoft",
+		"channels",
+		"messages",
+		"chat",
+		"communication",
+	],
+	sentry: ["errors", "issues", "monitoring", "alerts", "triage"],
+	google: ["gmail", "email", "mail", "triggers", "automations"],
+};
+
+const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(
+	(integration) => ({
+		id: integrationSettingItemId(integration.provider),
+		section: "integrations",
+		title: integration.label,
+		description: integration.description(),
+		keywords: [
+			"integrations",
+			integration.label.toLowerCase(),
+			...INTEGRATION_KEYWORDS[integration.provider],
+			"connect",
+			"connected",
+		],
+	}),
+);
+
 export const SETTINGS_ITEMS: SettingsItem[] = [
+	{
+		id: SETTING_ITEM_ID.MOBILE_APP,
+		section: "mobile",
+		title: "Mobile",
+		description: "Use Superset on your iPhone",
+		keywords: ["phone", "mobile", "qr", "scan", "ios", "app store"],
+	},
 	{
 		id: SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		section: "account",
@@ -239,6 +370,39 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"log out",
 			"disconnect",
 			"leave",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ACCOUNT_DELETE,
+		section: "account",
+		title: "Delete Account",
+		description: "Permanently delete your account",
+		keywords: [
+			"account",
+			"delete",
+			"remove",
+			"close",
+			"deactivate",
+			"gdpr",
+			"erase",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ACCOUNT_LEADERBOARD,
+		section: "account",
+		title: "Leaderboard",
+		description: "Publish your agent usage to the public leaderboard",
+		keywords: [
+			"leaderboard",
+			"rank",
+			"ranking",
+			"public",
+			"share",
+			"usage",
+			"tokens",
+			"stats",
+			"opt in",
+			"opt out",
 		],
 	},
 	{
@@ -358,6 +522,20 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.ORGANIZATION_DELETE,
+		section: "organization",
+		title: "Delete Organization",
+		description: "Permanently delete this organization",
+		keywords: [
+			"organization",
+			"delete",
+			"remove",
+			"close",
+			"disband",
+			"danger",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.TEAMS_LIST,
 		section: "teams",
 		title: "Teams",
@@ -370,6 +548,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"rename team",
 			"delete team",
 			"organize",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
+		section: "appearance",
+		title: "Language",
+		description: "App display language",
+		keywords: [
+			"appearance",
+			"language",
+			"locale",
+			"translation",
+			"i18n",
+			"english",
+			"international",
 		],
 	},
 	{
@@ -428,8 +621,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		section: "appearance",
-		title: "Editor Font",
-		description: "Font used in diff views and file editors",
+		title: "Editor Typography",
+		description: "Typography used in V2 diff views and file editors",
 		keywords: [
 			"appearance",
 			"font",
@@ -440,14 +633,19 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
 			"custom",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		section: "appearance",
-		title: "Terminal Font",
-		description: "Font used in terminal panels",
+		title: "Terminal Typography",
+		description: "Typography and cursor behavior used in V2 terminal panels",
 		keywords: [
 			"appearance",
 			"font",
@@ -457,6 +655,15 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
+			"contrast",
+			"minimum contrast",
+			"cursor",
+			"blink",
 			"custom",
 			"nerd",
 		],
@@ -481,6 +688,44 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chime",
 			"mute",
 			"volume",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.USAGE_TOKENS,
+		section: "usage",
+		title: "Token usage",
+		description: "Track per-account token usage, quotas, and model spend",
+		keywords: [
+			"usage",
+			"tokens",
+			"token",
+			"cost",
+			"spend",
+			"quota",
+			"limit",
+			"plan",
+			"model",
+			"models",
+			"claude",
+			"account",
+			"history",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.USAGE_RESOURCES,
+		section: "usage",
+		title: "Machine resources",
+		description: "Monitor live CPU and memory usage on this machine",
+		keywords: [
+			"usage",
+			"resources",
+			"cpu",
+			"memory",
+			"ram",
+			"processor",
+			"machine",
+			"performance",
+			"monitor",
 		],
 	},
 	{
@@ -575,6 +820,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET,
+		section: "behavior",
+		title: "Changes open target",
+		description:
+			"Open the Changes view as a pane in the current tab or as its own tab",
+		keywords: [
+			"changes",
+			"diff",
+			"open",
+			"pane",
+			"tab",
+			"split",
+			"new tab",
+			"viewer",
+			"behavior",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
 		section: "behavior",
 		title: "Resource monitor",
@@ -591,6 +854,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"performance",
 			"process",
 			"terminal",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.USAGE_IN_SIDEBAR,
+		section: "usage",
+		title: "Show usage tab on sidebar",
+		description: "Show a Usage button in the home sidebar, under Pull requests",
+		keywords: [
+			"sidebar",
+			"rail",
+			"button",
+			"shortcut",
+			"nav",
+			"home",
+			"gauge",
+			"pull requests",
+			"usage",
 		],
 	},
 	{
@@ -625,6 +905,55 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
+		section: "behavior",
+		title: "Star Superset on GitHub",
+		description: "Support the project with a GitHub star",
+		keywords: [
+			"star",
+			"github",
+			"support",
+			"feedback",
+			"open source",
+			"repo",
+			"repository",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BROWSER_HOMEPAGE,
+		section: "browser",
+		title: "Browser homepage",
+		description: "The page new in-app browser tabs open to",
+		keywords: [
+			"browser",
+			"homepage",
+			"home",
+			"start page",
+			"default url",
+			"new tab",
+			"landing",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY,
+		section: "browser",
+		title: "Import settings from another browser",
+		description:
+			"Copy browsing history and logins from Chrome, Brave, Arc, or another Chromium browser",
+		keywords: [
+			"browser",
+			"import",
+			"history",
+			"logins",
+			"cookies",
+			"chrome",
+			"brave",
+			"arc",
+			"chromium",
+			"migrate",
 		],
 	},
 	{
@@ -663,6 +992,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"copilot",
 			"cursor",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
+			"grok",
+			"xai",
+			"hermes",
+			"nous",
+			"muse",
+			"meta",
+			"devin",
+			"cognition",
+			"fx",
+			"vercel",
+			"antigravity",
+			"agy",
+			"google",
+			"kiro",
+			"aws",
 		],
 	},
 	{
@@ -684,12 +1032,14 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
-		title: "Terminal Presets",
-		description: "Manage your terminal presets",
+		title: "Terminal Scripts",
+		description: "Manage reusable commands that launch in terminals",
 		keywords: [
 			"terminal",
 			"preset",
 			"presets",
+			"scripts",
+			"terminal scripts",
 			"commands",
 			"agent",
 			"launch",
@@ -704,7 +1054,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
 		section: "terminal",
 		title: "Quick Add Templates",
-		description: "Pre-configured terminal presets",
+		description: "Pre-configured terminal scripts",
 		keywords: [
 			"terminal",
 			"quick",
@@ -718,6 +1068,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"ai",
 			"assistant",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
+			"grok",
+			"xai",
+			"hermes",
+			"nous",
+			"muse",
+			"meta",
+			"devin",
+			"cognition",
+			"fx",
+			"vercel",
+			"antigravity",
+			"agy",
+			"google",
+			"kiro",
+			"aws",
 		],
 	},
 	{
@@ -742,6 +1111,39 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"stop",
 			"manage",
 			"pty",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
+		section: "terminal",
+		title: "Background terminal memory",
+		description: "How many hidden terminals stay fully loaded",
+		keywords: [
+			"terminal",
+			"memory",
+			"background",
+			"hidden",
+			"parked",
+			"limit",
+			"cap",
+			"performance",
+			"ram",
+			"scrollback",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_COPY_ON_SELECT,
+		section: "terminal",
+		title: "Copy on select",
+		description: "Copy selected terminal text to the clipboard right away",
+		keywords: [
+			"terminal",
+			"copy",
+			"select",
+			"selection",
+			"clipboard",
+			"ghostty",
+			"iterm",
 		],
 	},
 	{
@@ -785,6 +1187,31 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"terminal",
 			"chat",
 			"markdown",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_FOLDER,
+		section: "links",
+		title: "Folder links",
+		description:
+			"How folder paths open when clicked in terminals: reveal in sidebar, editor, or Finder",
+		keywords: [
+			"links",
+			"folder",
+			"directory",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"finder",
+			"reveal",
+			"sidebar",
+			"editor",
+			"external",
+			"open",
+			"terminal",
 			"behavior",
 		],
 	},
@@ -867,35 +1294,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.MODELS_ANTHROPIC,
-		section: "models",
-		title: "Anthropic Model Auth",
-		description: "Connect Anthropic for workspace naming and small model tasks",
+		id: SETTING_ITEM_ID.LINKS_PAGE,
+		section: "links",
+		title: "Pages",
+		description:
+			"Whether Page links (in terminals, chat, and task markdown) open inside Superset or the system browser",
 		keywords: [
-			"models",
-			"anthropic",
-			"claude",
-			"oauth",
-			"api key",
-			"auth",
-			"workspace naming",
-			"auto name",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.MODELS_OPENAI,
-		section: "models",
-		title: "OpenAI Model Auth",
-		description: "Connect OpenAI for supported model tasks",
-		keywords: [
-			"models",
-			"openai",
-			"gpt",
-			"oauth",
-			"api key",
-			"auth",
-			"workspace naming",
-			"auto name",
+			"links",
+			"page",
+			"pages",
+			"click",
+			"browser",
+			"in-app",
+			"system",
+			"external",
+			"open",
+			"behavior",
 		],
 	},
 	{
@@ -939,15 +1353,18 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
 		section: "experimental",
-		title: "Inline workspace ports",
+		title: "Ports in top bar dropdown",
 		description:
-			"Show detected ports under each workspace in the sidebar instead of a single panel at the bottom",
+			"Show detected ports as a dropdown in the top bar instead of a chip under each workspace",
 		keywords: [
 			"experimental",
 			"ports",
 			"port",
 			"inline",
 			"sidebar",
+			"topbar",
+			"top bar",
+			"dropdown",
 			"workspace",
 			"workspaces",
 			"dev server",
@@ -976,58 +1393,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
-		section: "integrations",
-		title: "Linear",
-		description: "Sync issues bidirectionally with Linear",
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
+		section: "experimental",
+		title: "Wait for workspace setup before starting agents",
+		description:
+			"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
 		keywords: [
-			"integrations",
-			"linear",
-			"issues",
-			"tasks",
-			"sync",
-			"connect",
-			"connected",
-			"project management",
+			"experimental",
+			"workspace",
+			"setup",
+			"script",
+			"agent",
+			"terminal",
+			"wait",
+			"gate",
+			"complete",
+			"finish",
+			"reuse",
+			"sequential",
+			"install",
 		],
 	},
-	{
-		id: SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
-		section: "integrations",
-		title: "GitHub",
-		description: "Connect repos and sync pull requests",
-		keywords: [
-			"integrations",
-			"github",
-			"repos",
-			"repositories",
-			"pull requests",
-			"pr",
-			"sync",
-			"connect",
-			"connected",
-			"version control",
-			"git",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.INTEGRATIONS_SLACK,
-		section: "integrations",
-		title: "Slack",
-		description: "Manage tasks from Slack conversations",
-		keywords: [
-			"integrations",
-			"slack",
-			"messages",
-			"conversations",
-			"tasks",
-			"chat",
-			"sync",
-			"connect",
-			"connected",
-			"communication",
-		],
-	},
+	...INTEGRATION_SEARCH_ITEMS,
 	{
 		id: SETTING_ITEM_ID.BILLING_OVERVIEW,
 		section: "billing",
@@ -1102,8 +1489,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.PROJECT_SCRIPTS,
 		section: "project",
-		title: "Scripts",
-		description: "Setup, teardown, and run scripts for workspaces",
+		title: "Project Lifecycle Scripts",
+		description: "Setup, teardown, and run lifecycle scripts for workspaces",
 		keywords: [
 			"project",
 			"scripts",
@@ -1158,6 +1545,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT,
+		section: "project",
+		title: "Sparse Checkout",
+		description: "Limit new worktrees to specific folders of the repository",
+		keywords: [
+			"project",
+			"sparse",
+			"checkout",
+			"cone",
+			"worktree",
+			"folders",
+			"directories",
+			"subset",
+			"partial",
+			"monorepo",
+			"size",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
 		section: "project",
 		title: "Import Worktrees",
@@ -1173,20 +1579,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"existing",
 			"disk",
 			"add",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.PROJECT_ENV_VARS,
-		section: "project",
-		title: "Environment Variables",
-		description: "Manage environment variables and secrets for cloud sandboxes",
-		keywords: [
-			"environment",
-			"variables",
-			"secrets",
-			"env",
-			"cloud",
-			"sandbox",
 		],
 	},
 	{
@@ -1314,14 +1706,18 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY,
 		section: "security",
-		title: "Allow remote workspaces to access this device via relay",
+		title: "Allow remote access to this device via relay",
 		description:
-			"Controls whether remote workspaces can reach your local host service through the Superset relay",
+			"Controls whether other devices can reach your local host service through the Superset relay",
 		keywords: [
 			"security",
 			"relay",
 			"remote",
+			"remote access",
 			"workspace",
+			// The section was called Remote Workspaces until the rename; keep the
+			// old name searchable for anyone who still reaches for it.
+			"workspaces",
 			"expose",
 			"lockdown",
 			"network",
@@ -1329,6 +1725,71 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"host service",
 			"tunnel",
 			"attack surface",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.AGENT_ACCOUNTS,
+		section: "agentAccounts",
+		title: "Agents",
+		description: "Sign-ins cloud agents run with",
+		keywords: [
+			"claude",
+			"codex",
+			"subscription",
+			"api key",
+			"oauth",
+			"sign in",
+			"token",
+			"account",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.CONNECTIONS,
+		section: "connections",
+		title: "Connections",
+		description: "Your own GitHub account for cloud workspaces",
+		keywords: [
+			"github",
+			"connect",
+			"account",
+			"commit",
+			"author",
+			"push",
+			"pull request",
+			"personal",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ENVIRONMENTS_LIST,
+		section: "environments",
+		title: "Environments",
+		description: "Starting points a cloud workspace boots from",
+		keywords: [
+			"environment",
+			"environments",
+			"sandbox",
+			"cloud",
+			"image",
+			"fork",
+			"base",
+			"template",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ENVIRONMENTS_SECRETS,
+		section: "environments",
+		title: "Environment variables",
+		description: "Variables set on every sandbox started from an environment",
+		keywords: [
+			"environment",
+			"variable",
+			"variables",
+			"secret",
+			"secrets",
+			"env",
+			"dotenv",
+			"key",
+			"credential",
 		],
 	},
 	{
@@ -1367,6 +1828,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.HOST_SERVICE_VERSION,
+		section: "hosts",
+		title: "Host service",
+		description:
+			"The host service version running on a host, and update it when it is behind this app",
+		keywords: [
+			"host",
+			"hosts",
+			"version",
+			"update",
+			"upgrade",
+			"outdated",
+			"behind",
+			"restart",
+			"host service",
+			"machine",
+			"device",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.HOST_INVITE_MEMBER,
 		section: "hosts",
 		title: "Grant access to a host",
@@ -1397,18 +1878,41 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"admin",
 		],
 	},
+	{
+		id: SETTING_ITEM_ID.HOST_DELETE,
+		section: "hosts",
+		title: "Delete host",
+		description:
+			"Remove a host and its synced workspace records from the organization",
+		keywords: [
+			"host",
+			"hosts",
+			"delete",
+			"remove",
+			"machine",
+			"device",
+			"workspace",
+			"owner",
+			"danger zone",
+		],
+	},
 ];
 
-export function searchSettings(query: string): SettingsItem[] {
-	if (!query.trim()) return SETTINGS_ITEMS;
+export function splitSearchTerms(query: string): string[] {
+	return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
 
-	const q = query.toLowerCase();
-	return SETTINGS_ITEMS.filter(
-		(item) =>
-			item.title.toLowerCase().includes(q) ||
-			item.description.toLowerCase().includes(q) ||
-			item.keywords.some((kw) => kw.toLowerCase().includes(q)),
-	);
+export function searchSettings(query: string): SettingsItem[] {
+	const terms = splitSearchTerms(query);
+	if (terms.length === 0) return SETTINGS_ITEMS;
+
+	return SETTINGS_ITEMS.filter((item) => {
+		const searchableText = [item.title, item.description, ...item.keywords]
+			.join(" ")
+			.toLowerCase();
+
+		return terms.every((term) => searchableText.includes(term));
+	});
 }
 
 export function getMatchCountBySection(
@@ -1463,12 +1967,34 @@ export function getVisibleItemsForSection(params: {
  * active v1/v2 variant. Used by the sidebar so search counts and section
  * visibility agree.
  */
+/** Sections offered only with the cloud workspaces flag. */
+const CLOUD_WORKSPACE_SECTIONS: ReadonlySet<SettingsSection> = new Set([
+	"environments",
+	"agentAccounts",
+	"connections",
+]);
+
+function isItemOffered(
+	item: { id: SettingItemId; section: SettingsSection },
+	isV2: boolean,
+	cloudWorkspaces: boolean,
+): boolean {
+	return (
+		isItemAllowedForVariant(item.id, isV2) &&
+		(cloudWorkspaces || !CLOUD_WORKSPACE_SECTIONS.has(item.section))
+	);
+}
+
 export function getVisibleMatchCountBySection(
 	query: string,
 	isV2: boolean,
+	cloudWorkspaces: boolean,
+	mobileEnabled = false,
 ): Partial<Record<SettingsSection, number>> {
-	const matches = searchSettings(query).filter((item) =>
-		isItemAllowedForVariant(item.id, isV2),
+	const matches = searchSettings(query).filter(
+		(item) =>
+			isItemOffered(item, isV2, cloudWorkspaces) &&
+			(item.section !== "mobile" || mobileEnabled),
 	);
 	const counts: Partial<Record<SettingsSection, number>> = {};
 	for (const item of matches) {
@@ -1484,10 +2010,11 @@ export function getVisibleMatchCountBySection(
  */
 export function getAllowedSectionsForVariant(
 	isV2: boolean,
+	cloudWorkspaces: boolean,
 ): Set<SettingsSection> {
 	const sections = new Set<SettingsSection>();
 	for (const item of SETTINGS_ITEMS) {
-		if (isItemAllowedForVariant(item.id, isV2)) sections.add(item.section);
+		if (isItemOffered(item, isV2, cloudWorkspaces)) sections.add(item.section);
 	}
 	return sections;
 }

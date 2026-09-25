@@ -1,4 +1,8 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import {
+	assignAttachmentFileName,
+	WORKSPACE_ATTACHMENTS_DIR,
+} from "@superset/shared/workspace-attachments";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
@@ -34,6 +38,7 @@ async function writeTaskPromptFile(
 	await electronTrpcClient.filesystem.createDirectory.mutate({
 		workspaceId,
 		absolutePath: supersetDirectory,
+		recursive: true,
 	});
 	await electronTrpcClient.filesystem.writeFile.mutate({
 		workspaceId,
@@ -107,16 +112,18 @@ async function writeAttachmentFiles(
 		throw new Error(`Workspace path not found: ${workspaceId}`);
 	}
 
+	// `.superset` doesn't exist in a fresh worktree, so this must be
+	// recursive — a plain mkdir ENOENTs and kills the whole agent launch.
 	const attachmentsDirectory = joinAbsolutePath(
 		workspace.worktreePath,
-		".superset/attachments",
+		WORKSPACE_ATTACHMENTS_DIR,
 	);
 	await electronTrpcClient.filesystem.createDirectory.mutate({
 		workspaceId,
 		absolutePath: attachmentsDirectory,
+		recursive: true,
 	});
 
-	// Track all used filenames to prevent collisions (includes user and generated names)
 	const usedFilenames = new Set<string>();
 	const writtenPaths: string[] = [];
 
@@ -124,46 +131,13 @@ async function writeAttachmentFiles(
 		const { file, base64Data } = parsedFiles[i];
 		if (!file) continue;
 
-		// Generate unique filename
-		let fileName: string;
-
-		if (!file.filename) {
-			// Generated names: find next available attachment_N
-			let index = i + 1;
-			do {
-				fileName = `attachment_${index}`;
-				index++;
-			} while (usedFilenames.has(fileName));
-		} else {
-			// Sanitize filename
-			const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-			// Handle empty sanitized filename (e.g., "!!!" becomes "")
-			if (!sanitized.trim()) {
-				let index = i + 1;
-				do {
-					fileName = `attachment_${index}`;
-					index++;
-				} while (usedFilenames.has(fileName));
-			} else if (usedFilenames.has(sanitized)) {
-				// Find unique name by appending _1, _2, etc. if needed
-				const parts = sanitized.split(".");
-				const ext = parts.length > 1 ? parts.pop() : undefined;
-				const base = parts.join(".");
-
-				let counter = 1;
-				do {
-					fileName = ext
-						? `${base}_${counter}.${ext}`
-						: `${sanitized}_${counter}`;
-					counter++;
-				} while (usedFilenames.has(fileName));
-			} else {
-				fileName = sanitized;
-			}
-		}
-
-		usedFilenames.add(fileName);
+		// Must assign identically to the prompt renderer
+		// (agent-launch-request.ts), which runs over the same list.
+		const fileName = assignAttachmentFileName({
+			rawName: file.filename,
+			index: i,
+			used: usedFilenames,
+		});
 
 		const absolutePath = joinAbsolutePath(attachmentsDirectory, fileName);
 		await electronTrpcClient.filesystem.writeFile.mutate({
@@ -173,10 +147,27 @@ async function writeAttachmentFiles(
 		});
 
 		// Return relative path from workspace root
-		writtenPaths.push(`.superset/attachments/${fileName}`);
+		writtenPaths.push(`${WORKSPACE_ATTACHMENTS_DIR}/${fileName}`);
 	}
 
 	return writtenPaths;
+}
+
+async function writeLaunchFiles(
+	workspaceId: string,
+	terminal: TerminalLaunchRequest["terminal"],
+): Promise<void> {
+	if (terminal.taskPromptContent && terminal.taskPromptFileName) {
+		await writeTaskPromptFile(
+			workspaceId,
+			terminal.taskPromptFileName,
+			terminal.taskPromptContent,
+		);
+	}
+
+	if (terminal.initialFiles?.length) {
+		await writeAttachmentFiles(workspaceId, terminal.initialFiles);
+	}
 }
 
 export async function launchTerminalAdapter(
@@ -204,28 +195,35 @@ export async function launchTerminalAdapter(
 			throw new Error(`Tab not found for pane: ${targetPaneId}`);
 		}
 
+		if (request.terminal.reuseExistingPane) {
+			// The target pane belongs to the caller (e.g. the workspace setup
+			// terminal). This launch owns attaching it — the caller must not
+			// createOrAttach it separately — but never removes it on failure.
+			await writeLaunchFiles(workspaceId, request.terminal);
+			await launchCommandInPane({
+				paneId: targetPaneId,
+				tabId: tab.id,
+				workspaceId,
+				command: request.terminal.command,
+				createOrAttach: context.createOrAttach,
+				write: context.write,
+				noExecute,
+			});
+
+			return {
+				tabId: tab.id,
+				paneId: targetPaneId,
+				sessionId: null,
+			};
+		}
+
 		const newPaneId = tabs.addTerminalPane(tab.id);
 		if (!newPaneId) {
 			throw new Error("Failed to add pane");
 		}
 
 		try {
-			if (
-				request.terminal.taskPromptContent &&
-				request.terminal.taskPromptFileName
-			) {
-				await writeTaskPromptFile(
-					workspaceId,
-					request.terminal.taskPromptFileName,
-					request.terminal.taskPromptContent,
-				);
-			}
-
-			// Write attachment files if present
-			if (request.terminal.initialFiles?.length) {
-				await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
-			}
-
+			await writeLaunchFiles(workspaceId, request.terminal);
 			await launchCommandInPane({
 				paneId: newPaneId,
 				tabId: tab.id,
@@ -251,22 +249,7 @@ export async function launchTerminalAdapter(
 	tabs.setTabAutoTitle(tabId, request.terminal.name ?? "Agent");
 
 	try {
-		if (
-			request.terminal.taskPromptContent &&
-			request.terminal.taskPromptFileName
-		) {
-			await writeTaskPromptFile(
-				workspaceId,
-				request.terminal.taskPromptFileName,
-				request.terminal.taskPromptContent,
-			);
-		}
-
-		// Write attachment files if present
-		if (request.terminal.initialFiles?.length) {
-			await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
-		}
-
+		await writeLaunchFiles(workspaceId, request.terminal);
 		await launchCommandInPane({
 			paneId,
 			tabId,

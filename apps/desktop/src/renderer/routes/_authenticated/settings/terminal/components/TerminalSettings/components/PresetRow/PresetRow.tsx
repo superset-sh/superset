@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
@@ -29,7 +30,7 @@ interface PresetRowProps {
 	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
 	/**
 	 * v2 host-agent configs. When the preset's `agentId` matches a config,
-	 * its `presetId` (e.g. `"cursor-agent"`) is used to resolve the icon.
+	 * its `iconId` override or fallback `presetId` is used to resolve the icon.
 	 * Older v2 rows that still store `presetId` in `agentId` resolve via the
 	 * `presetId` fallback. Omitted by v1 callers — no v1 row has `agentId`.
 	 */
@@ -50,6 +51,7 @@ export function PresetRow({
 	onPersistReorder,
 	onToggleVisibility,
 }: PresetRowProps) {
+	const { t } = useLingui();
 	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLButtonElement>(null);
 
@@ -102,7 +104,10 @@ export function PresetRow({
 	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel = getPresetModeLabel(modeValue, commands.length);
 	const firstCommand =
-		commands.find((cmd) => cmd.trim().length > 0)?.trim() ?? "Empty command";
+		commands.find((cmd) => cmd.trim().length > 0)?.trim() ??
+		t({
+			message: "Empty command",
+		});
 	const commandSummary =
 		commands.length > 1
 			? `${firstCommand}  +${commands.length - 1}`
@@ -142,14 +147,17 @@ export function PresetRow({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">
-						{preset.name.trim() || "Untitled preset"}
+						{preset.name.trim() ||
+							t({
+								message: "Untitled script",
+							})}
 					</span>
 					{isWorkspaceCreation && (
 						<Badge
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Workspace
+							<Trans>Workspace</Trans>
 						</Badge>
 					)}
 					{isWorkspaceRun && (
@@ -157,7 +165,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Run
+							<Trans>Run</Trans>
 						</Badge>
 					)}
 					{isNewTab && (
@@ -165,7 +173,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Tab
+							<Trans>Tab</Trans>
 						</Badge>
 					)}
 				</div>
@@ -190,8 +198,24 @@ export function PresetRow({
 					e.stopPropagation();
 					onToggleVisibility(preset.id, !isVisibleInBar);
 				}}
-				title={isVisibleInBar ? "Hide from bar" : "Show in bar"}
-				aria-label={isVisibleInBar ? "Hide from bar" : "Show in bar"}
+				title={
+					isVisibleInBar
+						? t({
+								message: "Hide from bar",
+							})
+						: t({
+								message: "Show in bar",
+							})
+				}
+				aria-label={
+					isVisibleInBar
+						? t({
+								message: "Hide from bar",
+							})
+						: t({
+								message: "Show in bar",
+							})
+				}
 				aria-pressed={isVisibleInBar}
 			>
 				{isVisibleInBar ? (
@@ -210,7 +234,9 @@ export function PresetRow({
 					"opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
 					isDragging && "opacity-100",
 				)}
-				aria-label="Drag to reorder"
+				aria-label={t({
+					message: "Drag to reorder",
+				})}
 			>
 				<LuGripVertical className="size-4" />
 			</button>

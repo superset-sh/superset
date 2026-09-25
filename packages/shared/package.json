@@ -4,17 +4,157 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./connectors": {
+			"types": "./src/connectors/index.ts",
+			"default": "./src/connectors/index.ts"
+		},
+		"./page-zoom": {
+			"types": "./src/page-zoom.ts",
+			"default": "./src/page-zoom.ts"
+		},
+		"./usercontent": {
+			"types": "./src/usercontent/index.ts",
+			"default": "./src/usercontent/index.ts"
+		},
+		"./page-comments-runtime": {
+			"types": "./src/page-comments-runtime.ts",
+			"default": "./src/page-comments-runtime.ts"
+		},
+		"./page-comments": {
+			"types": "./src/page-comments/index.ts",
+			"default": "./src/page-comments/index.ts"
+		},
+		"./automation-matching": {
+			"types": "./src/automation-matching/index.ts",
+			"default": "./src/automation-matching/index.ts"
+		},
+		"./env-file": {
+			"types": "./src/env-file.ts",
+			"default": "./src/env-file.ts"
+		},
+		"./environment-secrets": {
+			"types": "./src/environment-secrets.ts",
+			"default": "./src/environment-secrets.ts"
+		},
+		"./automation-triggers": {
+			"types": "./src/automation-triggers.ts",
+			"default": "./src/automation-triggers.ts"
+		},
+		"./cloud-agent-launch": {
+			"types": "./src/cloud-agent-launch.ts",
+			"default": "./src/cloud-agent-launch.ts"
+		},
+		"./cloud-environments": {
+			"types": "./src/cloud-environments.ts",
+			"default": "./src/cloud-environments.ts"
+		},
+		"./attachment-limits": {
+			"types": "./src/attachment-limits.ts",
+			"default": "./src/attachment-limits.ts"
+		},
+		"./agent-credentials": {
+			"types": "./src/agent-credentials.ts",
+			"default": "./src/agent-credentials.ts"
+		},
+		"./agent-status": {
+			"types": "./src/agent-status.ts",
+			"default": "./src/agent-status.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
+		},
+		"./format-scaled": {
+			"types": "./src/format-scaled.ts",
+			"default": "./src/format-scaled.ts"
+		},
+		"./format-tokens": {
+			"types": "./src/format-tokens.ts",
+			"default": "./src/format-tokens.ts"
+		},
+		"./git-hook-tolerance": {
+			"types": "./src/git-hook-tolerance.ts",
+			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./github-stars": {
+			"types": "./src/github-stars.ts",
+			"default": "./src/github-stars.ts"
+		},
+		"./integrations": {
+			"types": "./src/integrations.ts",
+			"default": "./src/integrations.ts"
+		},
+		"./plugins": {
+			"types": "./src/plugins/index.ts",
+			"default": "./src/plugins/index.ts"
+		},
+		"./sandbox-contract": {
+			"types": "./src/sandbox-contract.ts",
+			"default": "./src/sandbox-contract.ts"
+		},
+		"./pull-request": {
+			"types": "./src/pull-request.ts",
+			"default": "./src/pull-request.ts"
+		},
+		"./sandbox-gate": {
+			"types": "./src/sandbox-gate.ts",
+			"default": "./src/sandbox-gate.ts"
+		},
+		"./sentry": {
+			"types": "./src/sentry.ts",
+			"default": "./src/sentry.ts"
+		},
+		"./sentry-throttle": {
+			"types": "./src/sentry-throttle.ts",
+			"default": "./src/sentry-throttle.ts"
+		},
+		"./sqlite-migrations": {
+			"types": "./src/sqlite-migrations/index.ts",
+			"default": "./src/sqlite-migrations/index.ts"
+		},
+		"./slash-commands": {
+			"types": "./src/slash-commands.ts",
+			"default": "./src/slash-commands.ts"
+		},
+		"./terminal-wheel-handler": {
+			"types": "./src/terminal-wheel-handler/index.ts",
+			"default": "./src/terminal-wheel-handler/index.ts"
 		},
 		"./dev-credentials": {
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
 		},
+		"./dev-app-profile": {
+			"types": "./src/dev-app-profile.ts",
+			"default": "./src/dev-app-profile.ts"
+		},
+		"./desktop-notices": {
+			"types": "./src/desktop-notices.ts",
+			"default": "./src/desktop-notices.ts"
+		},
 		"./media-files": {
 			"types": "./src/media-files.ts",
 			"default": "./src/media-files.ts"
+		},
+		"./ringtones": {
+			"types": "./src/ringtones.ts",
+			"default": "./src/ringtones.ts"
+		},
+		"./settings-constraints": {
+			"types": "./src/settings-constraints.ts",
+			"default": "./src/settings-constraints.ts"
+		},
+		"./themes": {
+			"types": "./src/themes/index.ts",
+			"default": "./src/themes/index.ts"
+		},
+		"./themes/types": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
+		},
+		"./themes/utils": {
+			"types": "./src/themes/utils.ts",
+			"default": "./src/themes/utils.ts"
 		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
@@ -88,9 +228,25 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-tags": {
+			"types": "./src/workspace-tags.ts",
+			"default": "./src/workspace-tags.ts"
+		},
+		"./workspace-attachments": {
+			"types": "./src/workspace-attachments.ts",
+			"default": "./src/workspace-attachments.ts"
+		},
 		"./agent-permissions-migration": {
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
+		},
+		"./page-content-types": {
+			"types": "./src/page-content-types.ts",
+			"default": "./src/page-content-types.ts"
+		},
+		"./page-slug": {
+			"types": "./src/page-slug.ts",
+			"default": "./src/page-slug.ts"
 		},
 		"./task-slug": {
 			"types": "./src/task-slug.ts",
@@ -108,13 +264,33 @@
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
 		},
+		"./port-forward-mux": {
+			"types": "./src/port-forward-mux.ts",
+			"default": "./src/port-forward-mux.ts"
+		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
 		},
+		"./rotating-log": {
+			"types": "./src/rotating-log.ts",
+			"default": "./src/rotating-log.ts"
+		},
 		"./host-routing": {
 			"types": "./src/host-routing.ts",
 			"default": "./src/host-routing.ts"
+		},
+		"./realtime": {
+			"types": "./src/realtime.ts",
+			"default": "./src/realtime.ts"
+		},
+		"./verify-jwt": {
+			"types": "./src/verify-jwt.ts",
+			"default": "./src/verify-jwt.ts"
+		},
+		"./install-update-lock": {
+			"types": "./src/install-update-lock.ts",
+			"default": "./src/install-update-lock.ts"
 		},
 		"./host-version": {
 			"types": "./src/host-version.ts",
@@ -132,6 +308,10 @@
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
 		},
+		"./leaked-input-mode-reclaim": {
+			"types": "./src/leaked-input-mode-reclaim.ts",
+			"default": "./src/leaked-input-mode-reclaim.ts"
+		},
 		"./terminal-title-scanner": {
 			"types": "./src/terminal-title-scanner.ts",
 			"default": "./src/terminal-title-scanner.ts"
@@ -139,6 +319,18 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./terminal-session-handoff": {
+			"types": "./src/terminal-session-handoff.ts",
+			"default": "./src/terminal-session-handoff.ts"
+		},
+		"./theme-colors": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
+		},
+		"./plugins/manifest-schema": {
+			"types": "./src/plugins/manifest-schema.ts",
+			"default": "./src/plugins/manifest-schema.ts"
 		}
 	},
 	"scripts": {
@@ -148,14 +340,23 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"@lingui/core": "6.6.0",
+		"@superset/i18n": "workspace:*",
+		"culori": "4.0.2",
+		"drizzle-orm": "0.45.2",
 		"friendly-words": "1.3.1",
+		"jose": "6.2.2",
 		"rrule": "2.8.1",
-		"zod": "4.3.6"
+		"semver": "7.7.4",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/culori": "4.0.1",
 		"@types/friendly-words": "1.2.2",
-		"bun-types": "1.3.11",
+		"@types/semver": "7.7.1",
+		"@xterm/xterm": "6.1.0-beta.302",
+		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}
 }

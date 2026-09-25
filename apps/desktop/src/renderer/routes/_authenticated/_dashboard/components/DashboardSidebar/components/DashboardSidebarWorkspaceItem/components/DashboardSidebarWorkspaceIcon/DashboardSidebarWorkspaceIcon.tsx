@@ -61,7 +61,10 @@ export function DashboardSidebarWorkspaceIcon({
 	pullRequestState = null,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
-	const iconColor = isActive ? "text-foreground" : "text-muted-foreground";
+	const iconColor = cn(
+		"text-muted-foreground",
+		isActive ? "opacity-100" : "opacity-80",
+	);
 	const isRemoteDeviceOffline =
 		hostType === "remote-device" && hostIsOnline === false;
 
@@ -77,7 +80,7 @@ export function DashboardSidebarWorkspaceIcon({
 		}
 
 		if (hostType === "local-device") {
-			if (workspaceType === "main") {
+			if (workspaceType === "local") {
 				return (
 					<CgLaptop className={cn("size-4 transition-colors", iconColor)} />
 				);

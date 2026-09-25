@@ -1,1 +1,0 @@
-export { EnvironmentVariablesList } from "./EnvironmentVariablesList";

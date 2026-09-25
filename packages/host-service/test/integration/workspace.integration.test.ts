@@ -2,10 +2,15 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+	archiveLocalWorkspace,
+	unarchiveLocalWorkspace,
+} from "../../src/workspaces/local-workspace-store";
+import {
 	type BasicScenario,
 	createBasicScenario,
 	createFeatureWorktreeScenario,
 } from "../helpers/scenarios";
+import { seedWorkspace } from "../helpers/seed";
 
 describe("workspace router integration", () => {
 	let scenario: BasicScenario;
@@ -78,5 +83,75 @@ describe("workspace router integration", () => {
 		await expect(
 			scenario.host.trpc.workspace.gitStatus.query({ id: "no-such-id" }),
 		).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+	});
+});
+
+describe("workspace list archive semantics", () => {
+	let scenario: BasicScenario;
+
+	beforeEach(async () => {
+		scenario = await createBasicScenario();
+	});
+
+	afterEach(async () => {
+		await scenario?.dispose();
+	});
+
+	function storeCtx() {
+		return {
+			db: scenario.host.db,
+			eventBus: { broadcastWorkspaceChanged: () => {} } as never,
+		};
+	}
+
+	test("list excludes archived rows by default and includes them on opt-in", async () => {
+		const { id: archivedId } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: join(scenario.repo.repoPath, "..", "gone-worktree"),
+			branch: "feature/gone",
+		});
+		archiveLocalWorkspace(storeCtx(), archivedId, "merged");
+
+		const defaultList = await scenario.host.trpc.workspace.list.query();
+		expect(defaultList.map((w) => w.id)).not.toContain(archivedId);
+		expect(defaultList.map((w) => w.id)).toContain(scenario.workspaceId);
+
+		const fullList = await scenario.host.trpc.workspace.list.query({
+			includeArchived: true,
+		});
+		const archived = fullList.find((w) => w.id === archivedId);
+		expect(archived).toBeDefined();
+		expect(archived?.archiveReason).toBe("merged");
+		expect(archived?.archivedAt).toBeGreaterThan(0);
+		const live = fullList.find((w) => w.id === scenario.workspaceId);
+		expect(live?.archivedAt).toBeNull();
+		expect(live?.archiveReason).toBeNull();
+	});
+
+	test("archive is idempotent and unarchive restores the row", async () => {
+		const { id } = seedWorkspace(scenario.host, {
+			projectId: scenario.projectId,
+			worktreePath: join(scenario.repo.repoPath, "..", "wt-2"),
+			branch: "feature/two",
+		});
+		archiveLocalWorkspace(storeCtx(), id, "deleted");
+		const first = await scenario.host.trpc.workspace.list.query({
+			includeArchived: true,
+		});
+		const firstArchivedAt = first.find((w) => w.id === id)?.archivedAt;
+
+		// Re-archiving with a different reason keeps the original tombstone.
+		archiveLocalWorkspace(storeCtx(), id, "merged");
+		const second = await scenario.host.trpc.workspace.list.query({
+			includeArchived: true,
+		});
+		expect(second.find((w) => w.id === id)?.archivedAt).toBe(
+			firstArchivedAt ?? -1,
+		);
+		expect(second.find((w) => w.id === id)?.archiveReason).toBe("deleted");
+
+		unarchiveLocalWorkspace(storeCtx(), id);
+		const restored = await scenario.host.trpc.workspace.list.query();
+		expect(restored.map((w) => w.id)).toContain(id);
 	});
 });

@@ -11,25 +11,33 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { SelectTaskStatus } from "@superset/db/schema";
-import { useCallback, useMemo, useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { type UIEvent, useCallback, useMemo, useState } from "react";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { compareStatusesForDropdown } from "../../utils/sorting";
 import { KanbanCard } from "./components/KanbanCard";
 import { KanbanColumn } from "./components/KanbanColumn";
 
+const LOAD_MORE_DISTANCE = 400;
+
 interface TasksBoardViewProps {
 	data: TaskWithStatus[];
 	allStatuses: SelectTaskStatus[];
 	onTaskClick: (task: TaskWithStatus) => void;
+	hasNextPage: boolean;
+	isFetchingNextPage: boolean;
+	onLoadMore: () => void;
 }
 
 export function TasksBoardView({
 	data,
 	allStatuses,
 	onTaskClick,
+	hasNextPage,
+	isFetchingNextPage,
+	onLoadMore,
 }: TasksBoardViewProps) {
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [activeTask, setActiveTask] = useState<TaskWithStatus | null>(null);
 
 	const sensors = useSensors(
@@ -104,6 +112,16 @@ export function TasksBoardView({
 		setActiveTask(null);
 	}, []);
 
+	const handleColumnScroll = useCallback(
+		(event: UIEvent<HTMLDivElement>) => {
+			if (!hasNextPage || isFetchingNextPage) return;
+			const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+			if (scrollHeight - scrollTop - clientHeight > LOAD_MORE_DISTANCE) return;
+			onLoadMore();
+		},
+		[hasNextPage, isFetchingNextPage, onLoadMore],
+	);
+
 	return (
 		<DndContext
 			sensors={sensors}
@@ -118,6 +136,7 @@ export function TasksBoardView({
 						status={status}
 						tasks={tasksByStatus.get(status.id) ?? []}
 						onTaskClick={onTaskClick}
+						onScroll={handleColumnScroll}
 					/>
 				))}
 			</div>

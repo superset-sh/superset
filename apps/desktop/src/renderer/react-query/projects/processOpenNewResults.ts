@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import type { ElectronRouterOutputs } from "renderer/lib/electron-trpc";
 
@@ -34,16 +36,26 @@ export function processOpenNewResults({
 	const errors = results.filter((r): r is ErrorOutcome => r.status === "error");
 
 	for (const err of errors) {
-		toast.error(`Failed to open ${err.selectedPath.split("/").pop()}`, {
-			description: err.error,
-		});
+		toast.error(
+			i18n._({
+				...msg({
+					message: "Failed to open {name}",
+				}),
+				values: { name: err.selectedPath.split("/").pop() },
+			}),
+			{ description: err.error },
+		);
 	}
 
 	if (showSuccessToast && successes.length > 0) {
 		toast.success(
-			successes.length === 1
-				? "Project opened"
-				: `${successes.length} projects opened`,
+			i18n._({
+				...msg({
+					message:
+						"{count, plural, one {Project opened} other {# projects opened}}",
+				}),
+				values: { count: successes.length },
+			}),
 		);
 	}
 

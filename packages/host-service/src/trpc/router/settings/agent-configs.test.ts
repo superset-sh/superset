@@ -5,6 +5,7 @@ import {
 	getDefaultSeedPresets,
 	getPresetById,
 } from "@superset/shared/host-agent-presets";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "../../../db/schema";
@@ -28,9 +29,14 @@ function createTestDb() {
 }
 
 function createCaller() {
+	return createCallerWithDb().caller;
+}
+
+/** For tests that need to reach past the router and edit rows directly. */
+function createCallerWithDb() {
 	const db = createTestDb();
 	const ctx = { db, isAuthenticated: true } as unknown as HostServiceContext;
-	return agentConfigsRouter.createCaller(ctx);
+	return { caller: agentConfigsRouter.createCaller(ctx), db };
 }
 
 async function listFirst(
@@ -70,7 +76,7 @@ describe("agentConfigsRouter", () => {
 			expect(claude?.args).toEqual(["--dangerously-skip-permissions"]);
 		});
 
-		it("seeds Codex with its most permissive flag", async () => {
+		it("seeds Codex with its most permissive flags", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
 			const codex = result.find((row) => row.presetId === "codex");
@@ -80,9 +86,103 @@ describe("agentConfigsRouter", () => {
 			);
 			expect(codex?.args).toEqual([
 				"--dangerously-bypass-approvals-and-sandbox",
+				"--dangerously-bypass-hook-trust",
 			]);
 			expect(codex?.args).not.toContain("--sandbox");
 			expect(codex?.args).not.toContain("--ask-for-approval");
+		});
+
+		it("seeds resume args for agents with an id-based resume", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+
+			const claude = result.find((row) => row.presetId === "claude");
+			expect(claude?.resumeArgs).toEqual(["--resume"]);
+
+			const amp = result.find((row) => row.presetId === "amp");
+			expect(amp?.resumeArgs).toEqual(["threads", "continue"]);
+
+			const codex = result.find((row) => row.presetId === "codex");
+			expect(codex?.resumeArgs).toEqual(["resume"]);
+		});
+
+		it("seeds native fork args for every harness whose CLI has them", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+
+			const claude = result.find((row) => row.presetId === "claude");
+			expect(claude?.forkArgs).toEqual([
+				"--resume",
+				"{sessionId}",
+				"--fork-session",
+			]);
+
+			const codex = result.find((row) => row.presetId === "codex");
+			expect(codex?.forkArgs).toEqual(["fork", "{sessionId}"]);
+
+			// Each of these mirrors the harness's own documented syntax, checked
+			// against the installed binaries: the flags are accepted and only the
+			// session id is rejected.
+			const opencode = result.find((row) => row.presetId === "opencode");
+			expect(opencode?.forkArgs).toEqual([
+				"--session",
+				"{sessionId}",
+				"--fork",
+			]);
+
+			const pi = result.find((row) => row.presetId === "pi");
+			expect(pi?.forkArgs).toEqual(["--fork", "{sessionId}"]);
+
+			const grok = result.find((row) => row.presetId === "grok");
+			expect(grok?.forkArgs).toEqual([
+				"--resume",
+				"{sessionId}",
+				"--fork-session",
+			]);
+
+			const droid = result.find((row) => row.presetId === "droid");
+			expect(droid?.forkArgs).toEqual(["--fork", "{sessionId}"]);
+
+			// No fork in their CLIs, so the menu item stays disabled rather than
+			// launching something that quietly starts fresh.
+			for (const presetId of ["amp", "gemini", "copilot", "cursor-agent"]) {
+				const row = result.find((item) => item.presetId === presetId);
+				expect(row?.forkArgs).toEqual([]);
+			}
+		});
+
+		it("backfills fork args onto an install seeded before the preset had them", async () => {
+			const { caller, db } = createCallerWithDb();
+			const seeded = await caller.list();
+			const opencode = seeded.find((row) => row.presetId === "opencode");
+			// Simulate the pre-existing install: the row was seeded when the
+			// preset had no fork support.
+			db.update(schema.hostAgentConfigs)
+				.set({ forkArgsJson: "[]" })
+				.where(eq(schema.hostAgentConfigs.id, opencode?.id ?? ""))
+				.run();
+
+			const after = await caller.list();
+			expect(
+				after.find((row) => row.presetId === "opencode")?.forkArgs,
+			).toEqual(["--session", "{sessionId}", "--fork"]);
+		});
+
+		it("leaves a customised agent's fork args alone", async () => {
+			const { caller, db } = createCallerWithDb();
+			const seeded = await caller.list();
+			const opencode = seeded.find((row) => row.presetId === "opencode");
+			// Cleared fork args on a row whose launch command the user edited:
+			// their row, their settings.
+			db.update(schema.hostAgentConfigs)
+				.set({ forkArgsJson: "[]", command: "opencode --my-flag" })
+				.where(eq(schema.hostAgentConfigs.id, opencode?.id ?? ""))
+				.run();
+
+			const after = await caller.list();
+			expect(
+				after.find((row) => row.presetId === "opencode")?.forkArgs,
+			).toEqual([]);
 		});
 
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
@@ -112,10 +212,10 @@ describe("agentConfigsRouter", () => {
 			const caller = createCaller();
 			await caller.list();
 
-			const created = await caller.add(presetBody("pi"));
+			const created = await caller.add(presetBody("omp"));
 
-			expect(created.presetId).toBe("pi");
-			expect(created.command).toBe("pi");
+			expect(created.presetId).toBe("omp");
+			expect(created.command).toBe("omp");
 			expect(created.promptTransport).toBe("argv");
 			expect(created.order).toBe(DEFAULT_PRESET_IDS.length);
 			const all = await caller.list();
@@ -157,6 +257,26 @@ describe("agentConfigsRouter", () => {
 			expect(created.command).toBe("my-agent");
 			expect(created.args).toEqual(["--flag"]);
 			expect(created.env).toEqual({ FOO: "bar" });
+			// Omitted session capabilities default to unsupported.
+			expect(created.resumeArgs).toEqual([]);
+			expect(created.forkArgs).toEqual([]);
+		});
+
+		it("stores supplied resumeArgs", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "Resumable",
+				command: "resumable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				resumeArgs: ["--resume"],
+				env: {},
+			});
+
+			expect(created.resumeArgs).toEqual(["--resume"]);
 		});
 
 		it("preserves an arbitrary presetId tag verbatim", async () => {
@@ -270,7 +390,7 @@ describe("agentConfigsRouter", () => {
 	});
 
 	describe("update()", () => {
-		it("persists label, command, args, promptTransport, promptArgs, env", async () => {
+		it("persists label, command, args, promptTransport, promptArgs, resumeArgs, env", async () => {
 			const caller = createCaller();
 			const first = await listFirst(caller);
 
@@ -282,6 +402,7 @@ describe("agentConfigsRouter", () => {
 					args: ["--mode", "fast"],
 					promptTransport: "stdin",
 					promptArgs: ["-X"],
+					resumeArgs: ["--continue-session"],
 					env: { ANTHROPIC_API_KEY: "test" },
 				},
 			});
@@ -291,6 +412,7 @@ describe("agentConfigsRouter", () => {
 			expect(updated.args).toEqual(["--mode", "fast"]);
 			expect(updated.promptTransport).toBe("stdin");
 			expect(updated.promptArgs).toEqual(["-X"]);
+			expect(updated.resumeArgs).toEqual(["--continue-session"]);
 			expect(updated.env).toEqual({ ANTHROPIC_API_KEY: "test" });
 		});
 
@@ -390,6 +512,73 @@ describe("agentConfigsRouter", () => {
 		});
 	});
 
+	describe("restoreDefault()", () => {
+		it("repairs a malformed built-in config without replacing its row", async () => {
+			const caller = createCaller();
+			const configs = await caller.list();
+			const codex = configs.find((row) => row.presetId === "codex");
+			expect(codex).toBeDefined();
+			if (!codex) return;
+
+			await caller.update({
+				id: codex.id,
+				patch: {
+					label: "Broken Codex",
+					command: "codex",
+					args: [
+						"-c",
+						"model_reasoning_summary=detailed",
+						" ",
+						"--dangerously-bypass-approvals-and-sandbox",
+					],
+					promptTransport: "stdin",
+					promptArgs: ["--prompt"],
+					resumeArgs: ["--wrong-resume"],
+					env: { CODEX_HOME: "/tmp/old-codex" },
+					iconId: "claude",
+				},
+			});
+
+			const restored = await caller.restoreDefault({ id: codex.id });
+			const preset = getPresetById("codex");
+			expect(preset).toBeDefined();
+			if (!preset) return;
+
+			expect(restored).toMatchObject({
+				id: codex.id,
+				presetId: "codex",
+				iconId: null,
+				label: preset.label,
+				command: preset.command,
+				args: preset.args,
+				promptTransport: preset.promptTransport,
+				promptArgs: preset.promptArgs,
+				resumeArgs: preset.resumeArgs,
+				env: preset.env,
+				order: codex.order,
+			});
+		});
+
+		it("rejects custom agents and unknown ids", async () => {
+			const caller = createCaller();
+			const custom = await caller.add({
+				label: "Custom",
+				command: "custom",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+
+			await expect(caller.restoreDefault({ id: custom.id })).rejects.toThrow(
+				/no bundled default/i,
+			);
+			await expect(
+				caller.restoreDefault({ id: "does-not-exist" }),
+			).rejects.toThrow(/not found/i);
+		});
+	});
+
 	describe("reorder()", () => {
 		it("persists the submitted id order", async () => {
 			const caller = createCaller();
@@ -430,15 +619,15 @@ describe("agentConfigsRouter", () => {
 				id: seedFirst.id,
 				patch: { label: "Renamed" },
 			});
-			await caller.add(presetBody("pi"));
+			await caller.add(presetBody("omp"));
 
 			const result = await caller.resetToDefaults();
 
 			expect(result.map((row) => row.presetId)).toEqual(DEFAULT_PRESET_IDS);
 			expect(result.find((row) => row.label === "Renamed")).toBeUndefined();
-			// `pi` is in defaults now, so reset re-seeds exactly one — the
+			// `omp` is in defaults now, so reset re-seeds exactly one — the
 			// extra row added above is dropped.
-			expect(result.filter((row) => row.presetId === "pi")).toHaveLength(1);
+			expect(result.filter((row) => row.presetId === "omp")).toHaveLength(1);
 		});
 	});
 });

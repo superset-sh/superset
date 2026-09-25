@@ -61,3 +61,58 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 		expect(source).toContain("RunInWorkspacePopover");
 	});
 });
+
+describe("Tasks and pull requests navigation", () => {
+	test("keeps GitHub issues as a contextual Tasks source", () => {
+		const source = readComponent("components/TasksTopBar/TasksTopBar.tsx");
+
+		expect(source).toContain('message: "Linear"');
+		expect(source).toContain('message: "GitHub issues"');
+		expect(source).not.toContain('"PRs"');
+	});
+
+	test("keeps pull request UI out of TasksView", () => {
+		const source = readComponent("TasksView.tsx");
+
+		expect(source).not.toContain("WorkItemsTabs");
+		expect(source).not.toContain("PullRequestsTopBar");
+		expect(source).not.toContain("PullRequestsContent");
+	});
+
+	test("gives pull requests an independent route and view", () => {
+		const layoutSource = readComponent("../../../pull-requests/layout.tsx");
+		const viewSource = readComponent(
+			"../../../pull-requests/components/PullRequestsView/PullRequestsView.tsx",
+		);
+
+		expect(layoutSource).toContain("<PullRequestsView");
+		expect(viewSource).toContain("<PullRequestsTopBar");
+		expect(viewSource).toContain("<PullRequestsContent");
+	});
+
+	test("renders Tasks and Pull requests as separate left-rail destinations", () => {
+		const sidebarSources = [
+			readComponent(
+				"../../../components/DashboardSidebar/components/DashboardSidebarHeader/DashboardSidebarHeader.tsx",
+			),
+			readComponent(
+				"../../../../../../screens/main/components/WorkspaceSidebar/WorkspaceSidebarHeader/WorkspaceSidebarHeader.tsx",
+			),
+		];
+
+		// v2's labels go through Lingui (`message: "Tasks"`); v1 still has the
+		// literal aria-label. Accept either so this keeps asserting the routes
+		// stay separate rather than how their labels are authored.
+		const labelled = (source: string, label: string) =>
+			source.includes(`aria-label="${label}"`) ||
+			source.includes(`message: "${label}"`);
+
+		for (const source of sidebarSources) {
+			expect(source).toContain('to: "/tasks"');
+			expect(source).toContain('to: "/pull-requests"');
+			expect(labelled(source, "Tasks")).toBe(true);
+			expect(labelled(source, "Pull requests")).toBe(true);
+			expect(source).not.toContain("Tasks & PRs");
+		}
+	});
+});

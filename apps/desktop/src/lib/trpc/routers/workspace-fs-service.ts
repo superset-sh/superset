@@ -4,6 +4,7 @@ import {
 	type FsHostService,
 	FsWatcherManager,
 } from "@superset/workspace-fs/host";
+import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
 import { getWorkspace } from "./workspaces/utils/db-helpers";
 import { execWithShellEnv } from "./workspaces/utils/shell-env";
@@ -31,12 +32,20 @@ const sharedHostServiceOptions = {
 export function resolveWorkspaceRootPath(workspaceId: string): string {
 	const workspace = getWorkspace(workspaceId);
 	if (!workspace) {
-		throw new Error(`Workspace not found: ${workspaceId}`);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace not found: ${workspaceId}`,
+			cause: { kind: "WORKSPACE_NOT_FOUND", workspaceId },
+		});
 	}
 
 	const rootPath = getWorkspacePath(workspace);
 	if (!rootPath) {
-		throw new Error(`Workspace path not found: ${workspaceId}`);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace path not found: ${workspaceId}`,
+			cause: { kind: "WORKSPACE_NOT_FOUND", workspaceId },
+		});
 	}
 
 	return rootPath;
@@ -79,7 +88,11 @@ export function toRegisteredWorktreeRelativePath(
 		relativePath.startsWith(`..${path.sep}`) ||
 		path.isAbsolute(relativePath)
 	) {
-		throw new Error(`Path is outside worktree: ${absolutePath}`);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Path is outside worktree: ${absolutePath}`,
+			cause: { kind: "PATH_VALIDATION", code: "INVALID_TARGET" },
+		});
 	}
 
 	return relativePath.replace(/\\/g, "/");

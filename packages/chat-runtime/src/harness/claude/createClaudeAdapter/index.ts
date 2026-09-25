@@ -1,0 +1,1 @@
+export { createClaudeAdapter } from "./createClaudeAdapter";

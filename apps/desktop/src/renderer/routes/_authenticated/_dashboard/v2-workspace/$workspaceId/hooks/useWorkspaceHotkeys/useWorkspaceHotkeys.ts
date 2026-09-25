@@ -3,6 +3,7 @@ import {
 	getPaneParentDirection,
 	getSpatialNeighborPaneId,
 	type PaneRegistry,
+	type WorkspaceProps,
 	type WorkspaceStore,
 } from "@superset/panes";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -13,11 +14,11 @@ import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggl
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
-	DiffPaneData,
+	DesktopPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspaceHotkeys({
@@ -25,17 +26,24 @@ export function useWorkspaceHotkeys({
 	matchedPresets,
 	executePreset,
 	addTerminalTab,
+	openChangesPane,
 	paneRegistry,
 	launcher,
+	onBeforeCloseTab,
+	isSandbox,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	matchedPresets: V2TerminalPresetRow[];
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	addTerminalTab: () => Promise<void>;
+	openChangesPane: () => void;
 	paneRegistry: PaneRegistry<PaneViewerData>;
 	launcher: TerminalLauncher;
+	isSandbox: boolean;
+	onBeforeCloseTab?: WorkspaceProps<PaneViewerData>["onBeforeCloseTab"];
 }) {
-	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
+	const { setRightSidebarOpen } = useV2UserPreferences();
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const visiblePresets = useMemo(
 		() => matchedPresets.filter((preset) => preset.pinnedToBar !== false),
 		[matchedPresets],
@@ -59,19 +67,13 @@ export function useWorkspaceHotkeys({
 		await addTerminalTab();
 	});
 
-	useHotkey("NEW_CHAT", () => {
-		store.getState().addTab({
-			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
-		});
-	});
-
 	useHotkey("NEW_BROWSER", () => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "browser",
 					data: {
-						url: "about:blank",
+						url: defaultBrowserUrl,
 					} as BrowserPaneData,
 				},
 			],
@@ -79,26 +81,7 @@ export function useWorkspaceHotkeys({
 	});
 
 	useHotkey("OPEN_DIFF_VIEWER", () => {
-		setRightSidebarOpen(true);
-		setRightSidebarTab("changes");
-
-		const state = store.getState();
-		for (const tab of state.tabs) {
-			for (const pane of Object.values(tab.panes)) {
-				if (pane.kind !== "diff") continue;
-				state.setActiveTab(tab.id);
-				state.setActivePane({ tabId: tab.id, paneId: pane.id });
-				return;
-			}
-		}
-		state.addTab({
-			panes: [
-				{
-					kind: "diff",
-					data: { path: "", collapsedFiles: [] } as DiffPaneData,
-				},
-			],
-		});
+		openChangesPane();
 	});
 
 	// --- Tab management ---
@@ -122,10 +105,21 @@ export function useWorkspaceHotkeys({
 		}
 	});
 
-	useHotkey("CLOSE_TAB", () => {
-		const state = store.getState();
-		if (state.activeTabId) {
-			state.removeTab(state.activeTabId);
+	const isClosingTabRef = useRef(false);
+	useHotkey("CLOSE_TAB", async () => {
+		if (isClosingTabRef.current) return;
+		isClosingTabRef.current = true;
+		try {
+			const state = store.getState();
+			const tab = state.getActiveTab();
+			if (!tab) return;
+			if (onBeforeCloseTab) {
+				const allowed = await onBeforeCloseTab(tab);
+				if (!allowed) return;
+			}
+			state.removeTab(tab.id);
+		} finally {
+			isClosingTabRef.current = false;
 		}
 	});
 
@@ -204,7 +198,7 @@ export function useWorkspaceHotkeys({
 	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
 	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
-	useHotkey("SPLIT_AUTO", async () => {
+	useHotkey("SPLIT_AUTO", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
@@ -213,64 +207,74 @@ export function useWorkspaceHotkeys({
 			? getPaneParentDirection(tab.layout, active.pane.id)
 			: null;
 		const position = parentDirection === "horizontal" ? "bottom" : "right";
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position,
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_RIGHT", async () => {
+	useHotkey("SPLIT_RIGHT", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "right",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_DOWN", async () => {
+	useHotkey("SPLIT_DOWN", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "bottom",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_WITH_CHAT", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "chat",
-				data: { sessionId: null } as ChatPaneData,
-			},
-		});
-	});
+	useHotkey(
+		"SPLIT_WITH_DESKTOP",
+		() => {
+			const state = store.getState();
+			const active = state.getActivePane();
+			if (!active) return;
+			state.splitPane({
+				tabId: active.tabId,
+				paneId: active.pane.id,
+				position: "right",
+				newPane: {
+					kind: "desktop",
+					data: { kind: "desktop" } as DesktopPaneData,
+				},
+			});
+		},
+		{ enabled: isSandbox },
+	);
 
 	useHotkey("SPLIT_WITH_BROWSER", () => {
 		const state = store.getState();
@@ -283,7 +287,7 @@ export function useWorkspaceHotkeys({
 			newPane: {
 				kind: "browser",
 				data: {
-					url: "about:blank",
+					url: defaultBrowserUrl,
 				} as BrowserPaneData,
 			},
 		});

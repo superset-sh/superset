@@ -1,3 +1,6 @@
+import { attachBrowserViewportZoom } from "renderer/lib/browser-viewport-zoom";
+import { pointerPassthrough } from "renderer/lib/pointer-passthrough";
+import { selectRuntimesToEvict } from "renderer/lib/terminal/terminal-runtime-eviction";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserLoadError } from "shared/tabs-types";
 import { sanitizeUrl } from "./sanitizeUrl";
@@ -10,6 +13,11 @@ export interface BrowserRuntimeState {
 	error: BrowserLoadError | null;
 	canGoBack: boolean;
 	canGoForward: boolean;
+	/**
+	 * Chromium page zoom is per-origin, so navigation can change this factor.
+	 * Pinch magnification transforms the embedded surface separately.
+	 */
+	zoomFactor: number;
 }
 
 export interface PersistableBrowserState {
@@ -20,14 +28,37 @@ export interface PersistableBrowserState {
 
 interface RegistryEntry {
 	webview: Electron.WebviewTag;
+	/**
+	 * Host layer painted directly above this pane's webview, mirroring its
+	 * rect and visibility. The webview is hoisted to a body-level container,
+	 * so nothing inside the pane tree can paint over it: the pane tree is its
+	 * own stacking context (isolated so resize handles stay under dialogs),
+	 * and z-index never crosses one. Pane UI that must cover the page (the
+	 * design-mode composer, find bar, load-error and blank states) portals
+	 * in here instead of competing from inside the tree.
+	 */
+	overlay: HTMLDivElement;
 	state: BrowserRuntimeState;
 	onPersist: ((state: PersistableBrowserState) => void) | null;
+	/** Asks the pane to close itself; fired when the guest closes itself. */
+	onClose: (() => void) | null;
+	/** Owning workspace — sent on register so the main process scopes pane ops. */
+	workspaceId: string;
 	webContentsId: number | null;
 	detachHandlers: () => void;
 	placeholder: HTMLElement | null;
 	resizeObserver: ResizeObserver | null;
 	visible: boolean;
+	/** Monotonic use counter; bumped on attach/detach, drives hidden-LRU eviction. */
+	lastUsedAt: number;
 }
+
+/**
+ * Cap on hidden (detached) webviews kept alive. Each one is a full guest
+ * Chromium process; past the cap the least-recently-visible are destroyed
+ * and rebuilt from the pane's persisted URL on next attach. (SUPER-1545)
+ */
+const MAX_HIDDEN_WEBVIEWS = 3;
 
 const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 	currentUrl: "about:blank",
@@ -37,17 +68,33 @@ const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 	error: null,
 	canGoBack: false,
 	canGoForward: false,
+	zoomFactor: 1,
 });
 
 const ROOT_CONTAINER_ID = "browser-runtime-root";
 
+/** Page-zoom bounds and step for a browser pane (1 = 100%). */
+export const BROWSER_ZOOM = Object.freeze({ min: 0.25, max: 5, step: 0.1 });
+
+export type BrowserZoomDirection = "in" | "out" | "reset";
+
 class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private listenersByPaneId = new Map<string, Set<() => void>>();
+	private foundInPageListenersByPaneId = new Map<
+		string,
+		Set<(result: Electron.FoundInPageResult) => void>
+	>();
+	private useSeq = 0;
+	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
 	private rootContainer: HTMLDivElement | null = null;
 	private globalListenersInstalled = false;
-	private windowDragPassthrough = false;
-	private shellInteractionPassthrough = false;
+	// Panes an agent is driving (live CDP session or in-flight capture, fed
+	// by the main process). Parked presentable instead of hidden — a
+	// visibility-hidden webview gets no compositor frames, so CDP
+	// screenshots hang and input hit-testing goes stale — and exempt from
+	// hidden-webview eviction so the guest isn't destroyed mid-session.
+	private agentActivePaneIds = new Set<string>();
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -86,57 +133,58 @@ class BrowserRuntimeRegistryImpl {
 		return root;
 	}
 
+	constructor() {
+		// Webviews are hoisted to <body>, out of reach of the stylesheet rule
+		// that handles iframes, so the passthrough state is mirrored onto them.
+		pointerPassthrough.subscribe((active) =>
+			this.applyPointerPassthrough(active),
+		);
+	}
+
 	private installGlobalListeners() {
 		if (this.globalListenersInstalled) return;
 		this.globalListenersInstalled = true;
-
-		window.addEventListener(
-			"dragstart",
-			() => this.setWindowDragPassthrough(true),
-			true,
-		);
-		window.addEventListener(
-			"dragend",
-			() => this.setWindowDragPassthrough(false),
-			true,
-		);
-		window.addEventListener(
-			"drop",
-			() => this.setWindowDragPassthrough(false),
-			true,
-		);
-		window.addEventListener("blur", () => this.setWindowDragPassthrough(false));
 
 		window.addEventListener("resize", () => {
 			for (const entry of this.entries.values()) {
 				if (entry.placeholder) this.updateLayout(entry);
 			}
 		});
+
+		electronTrpcClient.browser.onAgentActivePanes.subscribe(undefined, {
+			onData: ({ paneIds }: { paneIds: string[] }) => {
+				this.agentActivePaneIds = new Set(paneIds);
+				for (const [paneId, entry] of this.entries) {
+					if (!entry.visible) this.applyParkedStyle(paneId, entry);
+				}
+				// A session ending can leave more hidden webviews than the cap
+				// allows (they were exempt while attached) — sweep again.
+				this.scheduleHiddenEviction();
+			},
+		});
 	}
 
-	private setWindowDragPassthrough(passthrough: boolean) {
-		const wasActive = this.isPointerPassthroughActive();
-		this.windowDragPassthrough = passthrough;
-		this.applyPointerPassthroughIfChanged(wasActive);
+	/**
+	 * Style for a parked (detached) webview. Default parking is
+	 * `visibility: hidden` — cheap, the guest compositor idles. While an
+	 * agent drives the pane it must stay presentable (frames keep flowing
+	 * for CDP screenshots and input hit-testing), so park it transparent and
+	 * click-through instead.
+	 */
+	private applyParkedStyle(paneId: string, entry: RegistryEntry): void {
+		const style = entry.webview.style;
+		if (this.agentActivePaneIds.has(paneId)) {
+			style.visibility = "visible";
+			style.opacity = "0";
+			style.pointerEvents = "none";
+		} else {
+			style.visibility = "hidden";
+			style.opacity = "";
+		}
+		entry.overlay.style.visibility = "hidden";
 	}
 
-	setShellInteractionPassthrough(passthrough: boolean): void {
-		const wasActive = this.isPointerPassthroughActive();
-		this.shellInteractionPassthrough = passthrough;
-		this.applyPointerPassthroughIfChanged(wasActive);
-	}
-
-	private isPointerPassthroughActive() {
-		return this.windowDragPassthrough || this.shellInteractionPassthrough;
-	}
-
-	private applyPointerPassthroughIfChanged(wasActive: boolean) {
-		const isActive = this.isPointerPassthroughActive();
-		if (wasActive !== isActive) this.applyPointerPassthrough();
-	}
-
-	private applyPointerPassthrough() {
-		const passthrough = this.isPointerPassthroughActive();
+	private applyPointerPassthrough(passthrough: boolean) {
 		for (const entry of this.entries.values()) {
 			if (!entry.visible) continue;
 			entry.webview.style.pointerEvents = passthrough ? "none" : "auto";
@@ -146,17 +194,32 @@ class BrowserRuntimeRegistryImpl {
 	private updateLayout(entry: RegistryEntry) {
 		if (!entry.placeholder) return;
 		const rect = entry.placeholder.getBoundingClientRect();
-		const w = entry.webview;
-		w.style.top = `${rect.top}px`;
-		w.style.left = `${rect.left}px`;
-		w.style.width = `${rect.width}px`;
-		w.style.height = `${rect.height}px`;
+		for (const style of [entry.webview.style, entry.overlay.style]) {
+			style.top = `${rect.top}px`;
+			style.left = `${rect.left}px`;
+			style.width = `${rect.width}px`;
+			style.height = `${rect.height}px`;
+		}
+	}
+
+	/** Host layer above the pane's webview; null until the pane has attached. */
+	getOverlayContainer(paneId: string): HTMLElement | null {
+		return this.entries.get(paneId)?.overlay ?? null;
 	}
 
 	private notify(paneId: string) {
 		const listeners = this.listenersByPaneId.get(paneId);
 		if (!listeners) return;
 		for (const listener of listeners) listener();
+	}
+
+	private notifyFoundInPage(
+		paneId: string,
+		result: Electron.FoundInPageResult,
+	) {
+		const listeners = this.foundInPageListenersByPaneId.get(paneId);
+		if (!listeners) return;
+		for (const listener of listeners) listener(result);
 	}
 
 	private setState(paneId: string, patch: Partial<BrowserRuntimeState>) {
@@ -187,8 +250,27 @@ class BrowserRuntimeRegistryImpl {
 		this.setState(paneId, { canGoBack, canGoForward });
 	}
 
-	private createEntry(paneId: string, initialUrl: string): RegistryEntry {
+	/**
+	 * Chromium zoom is per-origin, not per-webview: navigating can land on an
+	 * origin with a different (usually default) zoom while our state still
+	 * holds the previous page's factor. Read the truth back so the menu's
+	 * percentage matches what the page actually renders at.
+	 */
+	private refreshZoomState(paneId: string) {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		try {
+			this.setState(paneId, { zoomFactor: entry.webview.getZoomFactor() });
+		} catch {}
+	}
+
+	private createEntry(
+		paneId: string,
+		initialUrl: string,
+		workspaceId: string,
+	): RegistryEntry {
 		const webview = document.createElement("webview") as Electron.WebviewTag;
+		const detachViewportZoom = attachBrowserViewportZoom(webview);
 		webview.setAttribute("partition", "persist:superset");
 		webview.setAttribute("allowpopups", "");
 		webview.style.position = "fixed";
@@ -203,15 +285,32 @@ class BrowserRuntimeRegistryImpl {
 		webview.style.pointerEvents = "auto";
 		webview.src = sanitizeUrl(initialUrl);
 
+		// Click-through by default so the page stays interactive; whatever is
+		// portalled in opts back into pointer events itself. z-index 1 keeps it
+		// above every webview in the container, including ones appended later.
+		const overlay = document.createElement("div");
+		overlay.style.position = "fixed";
+		overlay.style.top = "0";
+		overlay.style.left = "0";
+		overlay.style.width = "0";
+		overlay.style.height = "0";
+		overlay.style.zIndex = "1";
+		overlay.style.pointerEvents = "none";
+		overlay.style.visibility = "hidden";
+
 		const entry: RegistryEntry = {
 			webview,
+			overlay,
 			state: { ...EMPTY_STATE, currentUrl: initialUrl },
 			onPersist: null,
+			onClose: null,
+			workspaceId,
 			webContentsId: null,
 			detachHandlers: () => {},
 			placeholder: null,
 			resizeObserver: null,
 			visible: false,
+			lastUsedAt: 0,
 		};
 
 		const firePersist = () => {
@@ -227,7 +326,7 @@ class BrowserRuntimeRegistryImpl {
 			if (entry.webContentsId !== webContentsId) {
 				entry.webContentsId = webContentsId;
 				electronTrpcClient.browser.register
-					.mutate({ paneId, webContentsId })
+					.mutate({ paneId, webContentsId, workspaceId: entry.workspaceId })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] register failed:", err);
 					});
@@ -242,18 +341,23 @@ class BrowserRuntimeRegistryImpl {
 			});
 		};
 
+		// URL and title come from the events that carry them, never from
+		// `getURL()`/`getTitle()`: those are synchronous calls into the guest,
+		// and the guest can already be gone when a queued event is handled. A
+		// page that calls `window.close()` is destroyed by Electron the moment
+		// it asks, while the did-stop-loading it emitted first is still in
+		// flight, so a read in that handler throws "Invalid guestInstanceId".
+		// The title resets on each committed navigation and arrives through
+		// page-title-updated, so a page with no <title> shows the pane's URL
+		// fallback instead of Chromium's synthesized one.
 		const handleDidStopLoading = () => {
-			const url = webview.getURL() ?? "";
-			const title = webview.getTitle() ?? "";
-			this.setState(paneId, {
-				isLoading: false,
-				currentUrl: url,
-				pageTitle: title,
-			});
+			this.setState(paneId, { isLoading: false });
 			this.refreshNavState(paneId);
-			if (url && url !== "about:blank") {
+			this.refreshZoomState(paneId);
+			const { currentUrl, pageTitle, faviconUrl } = entry.state;
+			if (currentUrl && currentUrl !== "about:blank") {
 				electronTrpcClient.browserHistory.upsert
-					.mutate({ url, title, faviconUrl: entry.state.faviconUrl })
+					.mutate({ url: currentUrl, title: pageTitle, faviconUrl })
 					.catch((err) => {
 						console.error("[browserRuntimeRegistry] upsert history:", err);
 					});
@@ -262,20 +366,17 @@ class BrowserRuntimeRegistryImpl {
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
-			const url = e.url ?? "";
-			const title = webview.getTitle() ?? "";
 			this.setState(paneId, {
-				currentUrl: url,
-				pageTitle: title,
+				currentUrl: e.url ?? "",
+				pageTitle: "",
 				isLoading: false,
 			});
 			this.refreshNavState(paneId);
+			this.refreshZoomState(paneId);
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
-			const url = e.url ?? "";
-			const title = webview.getTitle() ?? "";
-			this.setState(paneId, { currentUrl: url, pageTitle: title });
+			this.setState(paneId, { currentUrl: e.url ?? "" });
 			this.refreshNavState(paneId);
 		};
 
@@ -300,14 +401,35 @@ class BrowserRuntimeRegistryImpl {
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {
 			if (e.errorCode === -3) return; // ERR_ABORTED
+			// A failed main-frame load commits Chromium's error page without a
+			// did-navigate, so the address comes from the failure itself.
 			this.setState(paneId, {
 				isLoading: false,
+				...(e.isMainFrame
+					? { currentUrl: e.validatedURL ?? "", pageTitle: "" }
+					: {}),
 				error: {
 					code: e.errorCode ?? 0,
 					description: e.errorDescription ?? "",
 					url: e.validatedURL ?? "",
 				},
 			});
+		};
+
+		const handleFoundInPage = (e: Electron.FoundInPageEvent) => {
+			this.notifyFoundInPage(paneId, e.result);
+		};
+
+		// The guest webContents is gone: Electron destroys a guest whose page
+		// calls `window.close()` (a sign-in flow finishing, a page closing
+		// itself). The element cannot be revived — every guest method now throws
+		// "Invalid guestInstanceId" — so the entry goes with it and the pane
+		// closes, as a browser closes a tab whose page closed itself.
+		const handleDestroyed = () => {
+			if (this.entries.get(paneId) !== entry) return;
+			const onClose = entry.onClose;
+			this.destroy(paneId);
+			onClose?.();
 		};
 
 		webview.addEventListener("dom-ready", handleDomReady);
@@ -333,8 +455,14 @@ class BrowserRuntimeRegistryImpl {
 			"did-fail-load",
 			handleDidFailLoad as EventListener,
 		);
+		webview.addEventListener(
+			"found-in-page",
+			handleFoundInPage as EventListener,
+		);
+		webview.addEventListener("destroyed", handleDestroyed);
 
 		entry.detachHandlers = () => {
+			detachViewportZoom();
 			webview.removeEventListener("dom-ready", handleDomReady);
 			webview.removeEventListener("did-start-loading", handleDidStartLoading);
 			webview.removeEventListener("did-stop-loading", handleDidStopLoading);
@@ -358,8 +486,37 @@ class BrowserRuntimeRegistryImpl {
 				"did-fail-load",
 				handleDidFailLoad as EventListener,
 			);
+			webview.removeEventListener(
+				"found-in-page",
+				handleFoundInPage as EventListener,
+			);
+			webview.removeEventListener("destroyed", handleDestroyed);
 		};
 
+		return entry;
+	}
+
+	/** Create an agent's guest without mounting or focusing its workspace route. */
+	openBackground(
+		paneId: string,
+		url: string,
+		workspaceId: string,
+		onPersist: (state: PersistableBrowserState) => void,
+	): RegistryEntry {
+		const existing = this.entries.get(paneId);
+		if (existing) return existing;
+		const root = this.ensureRootContainer();
+		const entry = this.createEntry(paneId, url, workspaceId);
+		entry.onPersist = onPersist;
+		entry.lastUsedAt = ++this.useSeq;
+		// Give automation a usable viewport before this pane has ever been shown.
+		entry.webview.style.width = "1280px";
+		entry.webview.style.height = "720px";
+		this.entries.set(paneId, entry);
+		this.applyParkedStyle(paneId, entry);
+		root.appendChild(entry.webview);
+		root.appendChild(entry.overlay);
+		this.scheduleHiddenEviction();
 		return entry;
 	}
 
@@ -367,53 +524,114 @@ class BrowserRuntimeRegistryImpl {
 		paneId: string,
 		placeholder: HTMLElement,
 		initialUrl: string,
+		workspaceId: string,
 		onPersist: (state: PersistableBrowserState) => void,
+		onClose: () => void,
 	): void {
-		const root = this.ensureRootContainer();
-		let entry = this.entries.get(paneId);
-		if (!entry) {
-			entry = this.createEntry(paneId, initialUrl);
-			this.entries.set(paneId, entry);
-			root.appendChild(entry.webview);
-		} else {
-			this.refreshNavState(paneId);
+		const entry = this.openBackground(
+			paneId,
+			initialUrl,
+			workspaceId,
+			onPersist,
+		);
+		// A reused pane can move between workspaces (the attach effect keys on
+		// workspaceId). Keep the registration's workspace current so main-side
+		// pane scoping addresses it under the new workspace, not the old one.
+		if (entry.workspaceId !== workspaceId) {
+			entry.workspaceId = workspaceId;
+			if (entry.webContentsId != null) {
+				electronTrpcClient.browser.register
+					.mutate({
+						paneId,
+						webContentsId: entry.webContentsId,
+						workspaceId,
+					})
+					.catch((err) => {
+						console.error("[browserRuntimeRegistry] re-register failed:", err);
+					});
+			}
 		}
+		this.refreshNavState(paneId);
 		entry.onPersist = onPersist;
+		entry.onClose = onClose;
 		entry.placeholder = placeholder;
 		entry.visible = true;
+		entry.lastUsedAt = ++this.useSeq;
 
 		entry.resizeObserver?.disconnect();
 		const observer = new ResizeObserver(() => {
-			if (entry) this.updateLayout(entry);
+			this.updateLayout(entry);
 		});
 		observer.observe(placeholder);
 		entry.resizeObserver = observer;
 
 		this.updateLayout(entry);
 		entry.webview.style.visibility = "visible";
-		this.applyPointerPassthrough();
+		entry.webview.style.opacity = "";
+		entry.overlay.style.visibility = "visible";
+		this.applyPointerPassthrough(pointerPassthrough.active);
 	}
 
 	detach(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		entry.onPersist = null;
+		// Keep the persistence callback while hidden. A navigation can finish
+		// after React detaches the pane; clearing it here would leave only the
+		// previous URL to rebuild from if this webview is then LRU-evicted.
 		entry.placeholder = null;
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;
 		entry.visible = false;
-		entry.webview.style.visibility = "hidden";
+		this.applyParkedStyle(paneId, entry);
+		entry.lastUsedAt = ++this.useSeq;
+		this.scheduleHiddenEviction();
+	}
+
+	/** Deferred so a pane-switch (detach then attach) re-adopts before the sweep counts. */
+	private scheduleHiddenEviction() {
+		if (this.pendingEviction !== null) return;
+		this.pendingEviction = setTimeout(() => {
+			this.pendingEviction = null;
+			this.evictExcessHiddenWebviews();
+		}, 0);
+	}
+
+	private evictExcessHiddenWebviews() {
+		const candidates = Array.from(
+			this.entries.entries(),
+			([paneId, entry]) => ({
+				paneId,
+				runtime: { container: entry.visible ? entry : null },
+				lastUsedAt: entry.lastUsedAt,
+			}),
+		);
+		for (const victim of selectRuntimesToEvict(
+			candidates,
+			MAX_HIDDEN_WEBVIEWS,
+			(candidate) => this.agentActivePaneIds.has(candidate.paneId),
+		)) {
+			this.destroy(victim.paneId);
+		}
 	}
 
 	destroy(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
+		entry.onPersist = null;
+		entry.onClose = null;
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();
+		entry.overlay.remove();
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
-		electronTrpcClient.browser.unregister.mutate({ paneId }).catch(() => {});
+		this.foundInPageListenersByPaneId.delete(paneId);
+		electronTrpcClient.browser.unregister.mutate({ paneId }).catch((err) => {
+			console.error(
+				`[browserRuntimeRegistry] unregister failed for ${paneId}:`,
+				err,
+			);
+		});
 	}
 
 	navigate(paneId: string, url: string): void {
@@ -449,6 +667,87 @@ class BrowserRuntimeRegistryImpl {
 		return () => {
 			listeners.delete(listener);
 		};
+	}
+
+	/** Starts (or continues) a find-in-page search; empty text clears it. */
+	findInPage(
+		paneId: string,
+		text: string,
+		options?: Electron.FindInPageOptions,
+	): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		if (!text) {
+			entry.webview.stopFindInPage("clearSelection");
+			return;
+		}
+		entry.webview.findInPage(text, options);
+	}
+
+	stopFindInPage(
+		paneId: string,
+		action: "clearSelection" | "keepSelection" | "activateSelection",
+	): void {
+		this.entries.get(paneId)?.webview.stopFindInPage(action);
+	}
+
+	onFoundInPage(
+		paneId: string,
+		listener: (result: Electron.FoundInPageResult) => void,
+	): () => void {
+		let set = this.foundInPageListenersByPaneId.get(paneId);
+		if (!set) {
+			set = new Set();
+			this.foundInPageListenersByPaneId.set(paneId, set);
+		}
+		set.add(listener);
+		return () => {
+			set.delete(listener);
+		};
+	}
+
+	print(paneId: string): void {
+		this.entries
+			.get(paneId)
+			?.webview.print({ printBackground: true })
+			.catch((err) => {
+				console.error("[browserRuntimeRegistry] print failed:", err);
+			});
+	}
+
+	setZoomFactor(paneId: string, factor: number): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		const clamped = Math.min(
+			BROWSER_ZOOM.max,
+			Math.max(BROWSER_ZOOM.min, factor),
+		);
+		entry.webview.setZoomFactor(clamped);
+		this.setState(paneId, { zoomFactor: clamped });
+	}
+
+	stepZoom(paneId: string, direction: BrowserZoomDirection): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		if (direction === "reset") {
+			this.setZoomFactor(paneId, 1);
+			return;
+		}
+		// Zoom is per-origin, so another pane on the same origin may have moved
+		// it since we last read it; step from what the page renders at now.
+		this.refreshZoomState(paneId);
+		const delta = direction === "in" ? BROWSER_ZOOM.step : -BROWSER_ZOOM.step;
+		// Round to the step grid so repeated steps don't drift (1.2000000000000002).
+		const next = Math.round((entry.state.zoomFactor + delta) * 100) / 100;
+		this.setZoomFactor(paneId, next);
+	}
+
+	/** The pane whose `<webview>` is `element`, e.g. `document.activeElement`. */
+	getPaneIdForWebview(element: Element): string | null {
+		for (const [paneId, entry] of this.entries) {
+			if (entry.webview === element) return paneId;
+		}
+		return null;
 	}
 }
 

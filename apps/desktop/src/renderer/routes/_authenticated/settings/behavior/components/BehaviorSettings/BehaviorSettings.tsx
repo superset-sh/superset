@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { FileOpenMode } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import {
@@ -9,23 +10,33 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { type ChangesOpenTarget, useSettings } from "renderer/stores/settings";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { GithubStarRow } from "./components/GithubStarRow";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
 export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
 	);
 	const showFileOpenMode = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
+		visibleItems,
+	);
+	const showChangesOpenTarget = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET,
 		visibleItems,
 	);
 	const showResourceMonitor = isItemVisible(
@@ -36,8 +47,14 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showStarGithub = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
+	const changesOpenTarget = useSettings((s) => s.changesOpenTarget);
+	const updateSetting = useSettings((s) => s.update);
 
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		electronTrpc.settings.getConfirmOnQuit.useQuery();
@@ -128,9 +145,11 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">General</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans>General</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure general app preferences
+					<Trans>Configure general app preferences</Trans>
 				</p>
 			</div>
 
@@ -139,10 +158,15 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
-								Confirm before quitting
+								<HighlightText
+									text={t({
+										message: "Confirm before quitting",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Show a confirmation dialog when quitting the app
+								<Trans>Show a confirmation dialog when quitting the app</Trans>
 							</p>
 						</div>
 						<Switch
@@ -157,9 +181,16 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				{showFileOpenMode && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">File open mode</Label>
+							<Label htmlFor="file-open-mode" className="text-sm font-medium">
+								<HighlightText
+									text={t({
+										message: "File open mode",
+									})}
+									query={searchQuery}
+								/>
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Choose how files open when no preview pane exists
+								<Trans>Choose how files open when no preview pane exists</Trans>
 							</p>
 						</div>
 						<Select
@@ -169,12 +200,57 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={isFileOpenModeLoading || setFileOpenMode.isPending}
 						>
-							<SelectTrigger className="w-[180px]">
+							<SelectTrigger id="file-open-mode" className="w-[180px]">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="split-pane">Split pane</SelectItem>
-								<SelectItem value="new-tab">New tab</SelectItem>
+								<SelectItem value="split-pane">
+									<Trans>Split pane</Trans>
+								</SelectItem>
+								<SelectItem value="new-tab">
+									<Trans>New tab</Trans>
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				)}
+
+				{showChangesOpenTarget && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="changes-open-target"
+								className="text-sm font-medium"
+							>
+								<HighlightText
+									text={t({
+										message: "Changes open target",
+									})}
+									query={searchQuery}
+								/>
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								<Trans>
+									Choose how the Changes view opens from the top bar
+								</Trans>
+							</p>
+						</div>
+						<Select
+							value={changesOpenTarget}
+							onValueChange={(value) =>
+								updateSetting("changesOpenTarget", value as ChangesOpenTarget)
+							}
+						>
+							<SelectTrigger id="changes-open-target" className="w-[180px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="pane">
+									<Trans>Pane in current tab</Trans>
+								</SelectItem>
+								<SelectItem value="tab">
+									<Trans>New tab</Trans>
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -184,10 +260,15 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="resource-monitor" className="text-sm font-medium">
-								Resource monitor
+								<HighlightText
+									text={t({
+										message: "Resource monitor",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Show CPU and memory usage in the top bar
+								<Trans>Show CPU and memory usage in the top bar</Trans>
 							</p>
 						</div>
 						<Switch
@@ -210,11 +291,18 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								htmlFor="open-links-in-app"
 								className="text-sm font-medium"
 							>
-								Open links in the in-app browser
+								<HighlightText
+									text={t({
+										message: "Open links in the in-app browser",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Open links from chat and terminal in the in-app browser instead
-								of your default browser
+								<Trans>
+									Open links from chat and terminal in the in-app browser
+									instead of your default browser
+								</Trans>
 							</p>
 						</div>
 						<Switch
@@ -227,6 +315,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						/>
 					</div>
 				)}
+
+				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
 			</div>
 		</div>
 	);

@@ -42,7 +42,7 @@ export function InfiniteScrollView({
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
 	const { stageFileMutation, unstageFileMutation, handleDiscard, isActioning } =
-		useFileMutations({ worktreePath, baseBranch });
+		useFileMutations({ worktreePath });
 
 	const totals = useMemo(() => {
 		const allFiles = [

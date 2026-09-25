@@ -1,11 +1,10 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useV2ProjectDefaultApp } from "renderer/routes/_authenticated/hooks/useV2ProjectDefaultApp";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 export interface OpenInExternalEditorOptions {
@@ -14,20 +13,10 @@ export interface OpenInExternalEditorOptions {
 }
 
 export function useOpenInExternalEditor(workspaceId: string) {
-	const collections = useCollections();
+	const { t } = useLingui();
 	const { machineId } = useLocalHostService();
-	const { data: workspaceRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.id, workspaceId))
-				.select(({ workspaces }) => ({
-					hostId: workspaces.hostId,
-					projectId: workspaces.projectId ?? null,
-				})),
-		[collections, workspaceId],
-	);
-	const workspaceRow = workspaceRows[0];
+	const { workspaces } = useHostWorkspaces();
+	const workspaceRow = workspaces.find((w) => w.id === workspaceId);
 	const projectId = workspaceRow?.projectId ?? undefined;
 
 	// Forward the v2 CMD+O choice as an explicit app override; the server
@@ -42,7 +31,11 @@ export function useOpenInExternalEditor(workspaceId: string) {
 	return useCallback(
 		(path: string, opts?: OpenInExternalEditorOptions) => {
 			if (workspaceRow?.hostId !== machineId) {
-				toast.error("Can't open remote workspace paths in an external editor");
+				toast.error(
+					t({
+						message: "Can't open remote workspace paths in an external editor",
+					}),
+				);
 				return;
 			}
 			electronTrpcClient.external.openFileInEditor
@@ -56,9 +49,13 @@ export function useOpenInExternalEditor(workspaceId: string) {
 				})
 				.catch((error) => {
 					console.error("Failed to open in external editor:", error);
-					toast.error("Failed to open in external editor");
+					toast.error(
+						t({
+							message: "Failed to open in external editor",
+						}),
+					);
 				});
 		},
-		[workspaceRow, machineId, projectId, worktreePath, v2PreferredApp],
+		[workspaceRow, machineId, projectId, t, worktreePath, v2PreferredApp],
 	);
 }

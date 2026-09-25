@@ -9,10 +9,23 @@
  * DO NOT mock internal code here - tests should use real implementations
  * or mock at the individual test level when necessary.
  */
+import "../../scripts/test-preload.ts";
 import { beforeEach, mock } from "bun:test";
+import "@superset/workspace-client/relay-socket";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
+
+// Partysocket subclasses EventTarget at import time; socket tests must use the
+// same native event realm even after another suite registers happy-dom.
+export const nativeWebGlobals = {
+	WebSocket: globalThis.WebSocket,
+	fetch: globalThis.fetch,
+	Response: globalThis.Response,
+	Event: globalThis.Event,
+	MessageEvent: globalThis.MessageEvent,
+	EventTarget: globalThis.EventTarget,
+};
 
 process.env.NODE_ENV = "test";
 process.env.SKIP_ENV_VALIDATION = "1";
@@ -93,7 +106,7 @@ beforeEach(() => {
 
 // Ensure window has addEventListener/removeEventListener for react-hotkeys-hook's IIFE
 if (typeof globalThis.window !== "undefined") {
-	const win = globalThis.window as Record<string, unknown>;
+	const win = globalThis.window;
 	if (!win.addEventListener) win.addEventListener = mock(() => {});
 	if (!win.removeEventListener) win.removeEventListener = mock(() => {});
 } else {
@@ -170,6 +183,9 @@ mock.module("electron", () => ({
 	ipcMain: {
 		handle: mock(),
 		on: mock(),
+	},
+	webContents: {
+		fromId: mock(() => null),
 	},
 	shell: {
 		openExternal: mock(() => Promise.resolve()),
@@ -328,4 +344,95 @@ mock.module("main/lib/local-db", () => ({
 			})),
 		})),
 	},
+}));
+
+// =============================================================================
+// Lingui Macro Mock (macros are compile-time; bun test runs uncompiled source,
+// and the runtime @lingui/*/macro entries require babel-plugin-macros)
+// =============================================================================
+
+type MessageDescriptor = {
+	id: string;
+	message?: string;
+	values?: Record<string, unknown>;
+};
+
+const renderMessage = (descriptor: MessageDescriptor): string => {
+	let text = descriptor.message ?? descriptor.id;
+	for (const [key, value] of Object.entries(descriptor.values ?? {})) {
+		text = text.replaceAll(`{${key}}`, String(value));
+	}
+	return text;
+};
+
+const pickPluralBranch = (
+	value: number,
+	branches: Record<string, unknown>,
+): unknown => {
+	const branch =
+		value === 1 && branches.one !== undefined ? branches.one : branches.other;
+	return typeof branch === "string"
+		? branch.replaceAll("#", String(value))
+		: branch;
+};
+
+mock.module("@lingui/react/macro", () => ({
+	Trans: ({ children }: { children?: unknown }) => children,
+	Plural: ({ value, ...branches }: { value: number }) =>
+		pickPluralBranch(value, branches),
+	Select: ({ value, ...branches }: { value: string }) =>
+		(branches as Record<string, unknown>)[value] ??
+		(branches as Record<string, unknown>).other,
+	SelectOrdinal: ({ value, ...branches }: { value: number }) =>
+		pickPluralBranch(value, branches),
+	useLingui: () => ({
+		t: (descriptor: MessageDescriptor) => renderMessage(descriptor),
+		i18n: { _: (descriptor: MessageDescriptor) => renderMessage(descriptor) },
+	}),
+}));
+
+mock.module("@lingui/core/macro", () => ({
+	msg: (descriptor: MessageDescriptor) => descriptor,
+	t: (descriptor: MessageDescriptor) => renderMessage(descriptor),
+	plural: (value: number, branches: Record<string, string>) =>
+		String(pickPluralBranch(value, branches)),
+}));
+
+// The compiled macro turns `message: `${minutes}m`` into "{minutes}m" plus
+// matching `values`, so the catalog stores placeholders. The shim above runs
+// on uncompiled source, where the template is already interpolated and no
+// values exist — a real `i18n._` would then find the catalog's placeholder
+// message and render it empty. Resolve descriptors from their own message in
+// tests so assertions see the English defaults.
+const realI18nModule = await import("@superset/i18n");
+// Proxy rather than spread: `i18n` is a class instance, so `load`/`activate`
+// live on the prototype and a spread would drop them.
+const testI18n = new Proxy(realI18nModule.i18n, {
+	get(target, prop, receiver) {
+		if (prop === "_") {
+			return (
+				descriptor: MessageDescriptor | string,
+				values?: Record<string, unknown>,
+			) =>
+				typeof descriptor === "string"
+					? descriptor
+					: renderMessage({
+							...descriptor,
+							values: values ?? descriptor.values,
+						});
+		}
+		const value = Reflect.get(target, prop, receiver);
+		return typeof value === "function" ? value.bind(target) : value;
+	},
+});
+mock.module("@superset/i18n", () => ({ ...realI18nModule, i18n: testI18n }));
+
+// Component unit tests render without the application providers. Match the
+// macro shim for runtime descriptors and context-bound formatters. Real
+// provider subscriptions/state preservation are covered in packages/i18n's
+// isolated renderer tests, which do not load this shim.
+const realLinguiReact = await import("@lingui/react");
+mock.module("@lingui/react", () => ({
+	...realLinguiReact,
+	useLingui: () => ({ i18n: testI18n, _: testI18n._ }),
 }));

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
@@ -29,7 +30,9 @@ export function ChecksList({ checks }: ChecksListProps) {
 				) : (
 					<LuChevronRight className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
-				<span>{expanded ? "Hide checks" : "Show checks"}</span>
+				<span>
+					{expanded ? <Trans>Hide checks</Trans> : <Trans>Show checks</Trans>}
+				</span>
 			</button>
 
 			{expanded && (

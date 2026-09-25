@@ -1,21 +1,27 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	type PersistableTransaction,
-	useOptimisticCollectionActions,
-} from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+	useOptimisticActions,
+} from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { ExposeViaRelaySection } from "renderer/routes/_authenticated/settings/components/ExposeViaRelaySection";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
+import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
+import { HostServiceSection } from "./components/HostServiceSection";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
+import { useHostLastSeenAt } from "./hooks/useHostLastSeenAt";
 
 function notifyOnPersist(
 	tx: PersistableTransaction | null,
@@ -32,58 +38,46 @@ interface HostSettingsProps {
 }
 
 export function HostSettings({ hostId }: HostSettingsProps) {
-	const collections = useCollections();
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id ?? null;
-	const actions = useOptimisticCollectionActions();
+	const actions = useOptimisticActions();
 	const { machineId } = useLocalHostService();
 	const hostUrl = useHostUrl(hostId);
 
-	const { data: hostRows = [], isReady: hostReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ hosts: collections.v2Hosts })
-				.where(({ hosts }) => eq(hosts.machineId, hostId))
-				.select(({ hosts }) => ({ ...hosts })),
-		[collections, hostId],
+	const { hosts, settled: hostsSettled } = useKnownHosts();
+	const hostsPending = !hostsSettled;
+	const host = useMemo(
+		() => hosts.find((row) => row.machineId === hostId),
+		[hosts, hostId],
 	);
-	const host = hostRows[0];
-
-	const { data: hostUserRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ uh: collections.v2UsersHosts })
-				.where(({ uh }) => eq(uh.hostId, hostId))
-				.select(({ uh }) => ({ ...uh })),
-		[collections, hostId],
+	const hostIsOnline = host?.isOnline ?? false;
+	const lastSeenAt = useHostLastSeenAt(
+		host,
+		host !== undefined && !hostIsOnline,
 	);
 
-	const { data: orgUsers = [] } = useLiveQuery(
-		(q) =>
-			q.from({ users: collections.users }).select(({ users }) => ({
-				id: users.id,
-				name: users.name,
-				email: users.email,
-			})),
-		[collections],
+	const { data: allHostMembers = [] } =
+		cloudTrpc.host.listMembers.useQuery(undefined);
+	const hostUserRows = useMemo(
+		() => allHostMembers.filter((row) => row.hostId === hostId),
+		[allHostMembers, hostId],
 	);
 
-	const { data: orgMembers = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ m: collections.members })
-				.where(({ m }) => eq(m.organizationId, host?.organizationId ?? ""))
-				.select(({ m }) => ({ userId: m.userId })),
-		[collections, host?.organizationId],
-	);
+	const { data: orgMembers = [] } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
 
 	const userMap = useMemo(() => {
 		const map = new Map<string, { name: string; email: string }>();
-		for (const u of orgUsers) {
-			map.set(u.id, { name: u.name, email: u.email });
+		for (const member of orgMembers) {
+			map.set(member.user.id, {
+				name: member.user.name,
+				email: member.user.email,
+			});
 		}
 		return map;
-	}, [orgUsers]);
+	}, [orgMembers]);
 
 	const members: MemberRowData[] = useMemo(() => {
 		return hostUserRows
@@ -93,7 +87,11 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					usersHostsId: `${row.userId}:${row.hostId}`,
 					userId: row.userId,
 					role: row.role as "owner" | "member",
-					name: u?.name ?? "Unknown user",
+					name:
+						u?.name ??
+						t({
+							message: "Unknown user",
+						}),
 					email: u?.email ?? "",
 				};
 			})
@@ -101,7 +99,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
 				return a.name.localeCompare(b.name);
 			});
-	}, [hostUserRows, userMap]);
+	}, [hostUserRows, userMap, t]);
 
 	const candidates: CandidateRow[] = useMemo(() => {
 		const onHost = new Set(hostUserRows.map((r) => r.userId));
@@ -111,12 +109,16 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				const u = userMap.get(m.userId);
 				return {
 					userId: m.userId,
-					name: u?.name ?? "Unknown user",
+					name:
+						u?.name ??
+						t({
+							message: "Unknown user",
+						}),
 					email: u?.email ?? "",
 				};
 			})
 			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [orgMembers, hostUserRows, userMap]);
+	}, [orgMembers, hostUserRows, userMap, t]);
 
 	const isOwner = useMemo(() => {
 		if (!currentUserId) return false;
@@ -127,10 +129,10 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 	const isRemoteTarget = Boolean(machineId && hostId !== machineId);
 
 	if (!host) {
-		if (!hostReady) return null;
+		if (hostsPending) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				Host not found in this organization.
+				<Trans>Host not found in this organization.</Trans>
 			</div>
 		);
 	}
@@ -142,21 +144,21 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				userId: candidate.userId,
 				organizationId: host.organizationId,
 			}),
-			"Member added",
+			t({ message: "Member added" }),
 		);
 	};
 
 	const handleRemove = (member: MemberRowData) => {
 		notifyOnPersist(
 			actions.v2UsersHosts.removeMember(member.usersHostsId),
-			"Member removed",
+			t({ message: "Member removed" }),
 		);
 	};
 
 	const handleSetRole = (member: MemberRowData, role: "owner" | "member") => {
 		notifyOnPersist(
 			actions.v2UsersHosts.setMemberRole(member.usersHostsId, role),
-			"Role updated",
+			t({ message: "Role updated" }),
 		);
 	};
 
@@ -164,27 +166,62 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<HostHeader
 				name={host.name}
-				isOnline={host.isOnline}
+				isOnline={hostIsOnline}
 				machineId={host.machineId}
 				canRename={isOwner}
 			/>
 
 			<div className="space-y-10">
+				<HostServiceSection
+					key={hostId}
+					hostUrl={hostUrl}
+					isLocalHost={hostId === machineId}
+					isOnline={hostIsOnline}
+					canUpdate={isOwner}
+					registered={{
+						version: host.version,
+						platform: host.platform,
+						installSource: host.installSource,
+					}}
+					lastSeenAt={lastSeenAt}
+				/>
+
 				<WorktreeLocationSection
 					hostUrl={hostUrl}
 					hostName={host.name}
 					isRemoteTarget={isRemoteTarget}
-					isOnline={host.isOnline || !isRemoteTarget}
+					isOnline={hostIsOnline || !isRemoteTarget}
 					canEdit={isOwner}
 				/>
+
+				{hostId === machineId && (
+					<section className="space-y-3">
+						<h3 className="text-sm font-medium">
+							<HighlightText
+								text={t({
+									message: "Remote access",
+								})}
+								query={searchQuery}
+							/>
+						</h3>
+						<ExposeViaRelaySection />
+					</section>
+				)}
 
 				<section className="space-y-3">
 					<div className="flex items-end justify-between gap-4">
 						<div>
-							<h3 className="text-sm font-medium">Members</h3>
+							<h3 className="text-sm font-medium">
+								<HighlightText
+									text={t({
+										message: "Members",
+									})}
+									query={searchQuery}
+								/>
+							</h3>
 							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">
-									Only owners can change membership.
+									<Trans>Only owners can change membership.</Trans>
 								</p>
 							)}
 						</div>
@@ -200,6 +237,14 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 						onRemove={handleRemove}
 					/>
 				</section>
+
+				{isOwner ? (
+					<DeleteHostSection
+						hostId={hostId}
+						hostName={host.name}
+						isLocalHost={hostId === machineId}
+					/>
+				) : null}
 			</div>
 		</div>
 	);

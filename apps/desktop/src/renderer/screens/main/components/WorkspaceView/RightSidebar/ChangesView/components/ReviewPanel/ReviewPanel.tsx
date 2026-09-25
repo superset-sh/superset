@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
+import { errorMessage } from "@superset/i18n/errors";
 import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
@@ -54,6 +57,8 @@ export function ReviewPanel({
 	workspaceId,
 	onCommentsChange,
 }: ReviewPanelProps) {
+	const { _: translate } = useTranslation();
+
 	const [checksOpen, setChecksOpen] = useState(true);
 	const [commentsOpen, setCommentsOpen] = useState(true);
 	const [resolvedCommentsGroupOpen, setResolvedCommentsGroupOpen] =
@@ -117,7 +122,7 @@ export function ReviewPanel({
 			await copyToClipboardMutation.mutateAsync(text);
 			markCopiedAction(actionKey);
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
+			const message = errorMessage(error, "Unknown error");
 			toast.error(`${errorLabel}: ${message}`);
 		}
 	};
@@ -146,8 +151,7 @@ export function ReviewPanel({
 					onCommentsChange?.();
 				},
 				onError: (error) => {
-					const message =
-						error instanceof Error ? error.message : "Unknown error";
+					const message = errorMessage(error, "Unknown error");
 					toast.error(
 						`Failed to ${comment.isResolved ? "undo" : "mark as done"}: ${message}`,
 					);
@@ -181,8 +185,11 @@ export function ReviewPanel({
 
 	const requestedReviewers = pr.requestedReviewers ?? [];
 
+	// Mirrors computeChecksStatus: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantChecks = pr.checks.filter(
-		(check) => check.status !== "skipped" && check.status !== "cancelled",
+		(check) => check.status !== "skipped",
 	);
 	const passingChecks = relevantChecks.filter(
 		(check) => check.status === "success",
@@ -345,7 +352,9 @@ export function ReviewPanel({
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-								aria-label="Open comment on GitHub"
+								aria-label={translate(
+									msg({ message: "Open comment on GitHub" }),
+								)}
 							>
 								<LuArrowUpRight className="size-3" />
 							</a>

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { LuChevronDown, LuChevronsUpDown, LuChevronUp } from "react-icons/lu";
 
@@ -24,6 +25,7 @@ export function SortableHeader<F extends string>({
 	onSort,
 	srOnlyLabel = false,
 }: SortableHeaderProps<F>) {
+	const { t } = useLingui();
 	const isActive = sortField === field;
 	const Icon = !isActive
 		? LuChevronsUpDown
@@ -32,15 +34,17 @@ export function SortableHeader<F extends string>({
 			: LuChevronDown;
 	const sortLabel = isActive
 		? sortDirection === "asc"
-			? "ascending"
-			: "descending"
-		: "not sorted";
+			? t({ message: "ascending" })
+			: t({ message: "descending" })
+		: t({ message: "not sorted" });
 
 	return (
 		<button
 			type="button"
 			onClick={() => onSort(field)}
-			aria-label={`Sort by ${label}, currently ${sortLabel}`}
+			aria-label={t({
+				message: `Sort by ${label}, currently ${sortLabel}`,
+			})}
 			className={cn(
 				"group flex min-w-0 items-center gap-1 rounded outline-none transition-colors",
 				"hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40",

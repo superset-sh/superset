@@ -1,0 +1,1 @@
+DROP TABLE `acp_sessions`;

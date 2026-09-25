@@ -1,0 +1,8 @@
+# The setup screen polls presence every 5s, so it must give way on its own.
+appId: sh.superset.mobile
+---
+- extendedWaitUntil:
+    notVisible: "One step left"
+    timeout: 20000
+- assertNotVisible: ".*is offline"
+- assertNotVisible: "Can’t check.*"

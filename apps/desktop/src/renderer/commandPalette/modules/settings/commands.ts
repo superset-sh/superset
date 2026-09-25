@@ -1,11 +1,12 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import {
 	BeakerIcon,
 	BellIcon,
 	BookmarkIcon,
 	BuildingIcon,
-	CpuIcon,
+	ChartBarIcon,
 	CreditCardIcon,
-	FileTextIcon,
 	FolderIcon,
 	GitBranchIcon,
 	KeyboardIcon,
@@ -25,7 +26,7 @@ import type { Command } from "../../core/types";
 
 interface SettingsTab {
 	id: string;
-	title: string;
+	title: MessageDescriptor;
 	path: string;
 	icon: LucideIcon;
 	keywords?: string[];
@@ -34,105 +35,154 @@ interface SettingsTab {
 const TABS: SettingsTab[] = [
 	{
 		id: "account",
-		title: "Account",
+		title: msg({
+			message: "Account",
+		}),
 		path: "/settings/account",
 		icon: UserIcon,
 	},
 	{
 		id: "appearance",
-		title: "Appearance",
+		title: msg({
+			message: "Appearance",
+		}),
 		path: "/settings/appearance",
 		icon: PaletteIcon,
 		keywords: ["theme", "color"],
 	},
 	{
 		id: "behavior",
-		title: "Behavior",
+		title: msg({
+			message: "Behavior",
+		}),
 		path: "/settings/behavior",
 		icon: SlidersIcon,
 	},
 	{
-		id: "models",
-		title: "Models",
-		path: "/settings/models",
-		icon: CpuIcon,
-		keywords: ["ai", "llm"],
-	},
-	{
 		id: "terminal",
-		title: "Terminal",
+		title: msg({
+			message: "Terminal",
+		}),
 		path: "/settings/terminal",
 		icon: TerminalIcon,
+		keywords: ["terminal scripts", "scripts", "presets", "commands"],
 	},
-	{ id: "git", title: "Git", path: "/settings/git", icon: GitBranchIcon },
+	{
+		id: "git",
+		title: msg({ message: "Git" }),
+		path: "/settings/git",
+		icon: GitBranchIcon,
+	},
 	{
 		id: "experimental",
-		title: "Experimental",
+		title: msg({
+			message: "Experimental",
+		}),
 		path: "/settings/experimental",
 		icon: BeakerIcon,
 	},
 	{
 		id: "integrations",
-		title: "Integrations",
+		title: msg({
+			message: "Integrations",
+		}),
 		path: "/settings/integrations",
 		icon: LinkIcon,
 	},
 	{
 		id: "organization",
-		title: "Organization",
+		title: msg({
+			message: "Organization",
+		}),
 		path: "/settings/organization",
 		icon: BuildingIcon,
 	},
-	{ id: "teams", title: "Teams", path: "/settings/teams", icon: UsersIcon },
+	{
+		id: "teams",
+		title: msg({ message: "Teams" }),
+		path: "/settings/teams",
+		icon: UsersIcon,
+	},
 	{
 		id: "keyboard",
-		title: "Keyboard shortcuts",
+		title: msg({
+			message: "Keyboard shortcuts",
+		}),
 		path: "/settings/keyboard",
 		icon: KeyboardIcon,
 		keywords: ["hotkeys", "shortcuts"],
 	},
-	{ id: "links", title: "Links", path: "/settings/links", icon: BookmarkIcon },
+	{
+		id: "links",
+		title: msg({ message: "Links" }),
+		path: "/settings/links",
+		icon: BookmarkIcon,
+	},
 	{
 		id: "permissions",
-		title: "Permissions",
+		title: msg({
+			message: "Permissions",
+		}),
 		path: "/settings/permissions",
 		icon: ShieldIcon,
 	},
-	{ id: "hosts", title: "Hosts", path: "/settings/hosts", icon: ServerIcon },
+	{
+		id: "hosts",
+		title: msg({ message: "Hosts" }),
+		path: "/settings/hosts",
+		icon: ServerIcon,
+	},
 	{
 		id: "projects",
-		title: "Projects",
+		title: msg({
+			message: "Projects",
+		}),
 		path: "/settings/projects",
 		icon: FolderIcon,
 	},
 	{
 		id: "ringtones",
-		title: "Ringtones",
+		title: msg({
+			message: "Ringtones",
+		}),
 		path: "/settings/ringtones",
 		icon: BellIcon,
 	},
 	{
+		id: "usage",
+		title: msg({ message: "Usage" }),
+		path: "/settings/usage",
+		icon: ChartBarIcon,
+		keywords: ["tokens", "cost", "quota", "cpu", "memory", "resources"],
+	},
+	{
 		id: "billing",
-		title: "Billing",
+		title: msg({
+			message: "Billing",
+		}),
 		path: "/settings/billing",
 		icon: CreditCardIcon,
 	},
 	{
 		id: "security",
-		title: "Security",
+		title: msg({
+			message: "Remote Access",
+		}),
 		path: "/settings/security",
 		icon: KeyRoundIcon,
+		keywords: ["security", "relay"],
 	},
-	{ id: "agents", title: "Agents", path: "/settings/agents", icon: WrenchIcon },
 	{
-		id: "presets",
-		title: "Presets",
-		path: "/settings/presets",
-		icon: FileTextIcon,
+		id: "agents",
+		title: msg({ message: "Agents" }),
+		path: "/settings/agents",
+		icon: WrenchIcon,
 	},
 	{
 		id: "api-keys",
-		title: "API keys",
+		title: msg({
+			message: "API keys",
+		}),
 		path: "/settings/api-keys",
 		icon: KeyRoundIcon,
 		keywords: ["token"],

@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { ZoomStable } from "renderer/components/ZoomStable";
@@ -6,15 +8,16 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { AppMenuButton } from "../AppMenuButton";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
+import { WindowControlsInset } from "../WindowControlsInset";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
-import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
+import { TopBarPortsDropdown } from "./components/TopBarPortsDropdown";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
-import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
 	const matchRoute = useMatchRoute();
@@ -35,6 +38,8 @@ export function TopBar() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
+	const isPullRequestsRoute =
+		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false;
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
@@ -52,15 +57,26 @@ export function TopBar() {
 
 	return (
 		<div
-			className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35"
+			// Window-drag regions live on the empty leaf elements (traffic-light
+			// spacer + title filler), never on this container: `no-drag` carve-outs
+			// under a `drag` ancestor are lost inside zoomed/masked/scrollable
+			// wrappers, which makes the whole bar swallow clicks.
+			className={cn(
+				"gap-2 h-12 w-full flex items-center justify-between relative dark:bg-muted/35",
+				isPullRequestsRoute && isSidebarCollapsed
+					? "bg-sidebar"
+					: "bg-muted/45",
+			)}
 			style={barStyle}
 		>
-			<div
-				className="flex items-center h-full"
-				style={{ paddingLeft: trafficLightInset }}
-			>
+			<div className="flex items-center h-full">
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: trafficLightInset }}
+				/>
 				{!sidebarHostsChrome && (
 					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+						{!isMac && <AppMenuButton />}
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
@@ -68,25 +84,25 @@ export function TopBar() {
 				)}
 			</div>
 
-			<div className="flex min-w-0 flex-1 items-center justify-start">
+			<div className="drag flex h-full min-w-0 flex-1 items-center justify-start">
 				{isV2WorkspaceRoute && v2WorkspaceId && (
 					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
 				)}
 			</div>
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{!sidebarHostsChrome && isV2CloudEnabled && (
-					<ResourceConsumption surface="v2" />
-				)}
+				{/* When the expanded sidebar hosts the chrome, its header also hosts
+				    the ports pill — don't render a duplicate here. */}
+				{!sidebarHostsChrome && <TopBarPortsDropdown />}
 				{!isOnline && (
-					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+					<div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
-						<span>Offline</span>
+						<span>
+							<Trans>Offline</Trans>
+						</span>
 					</div>
 				)}
-				{isV2WorkspaceRoute ? (
-					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
-				) : workspace?.worktreePath ? (
+				{!isV2WorkspaceRoute && workspace?.worktreePath ? (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}
@@ -95,7 +111,7 @@ export function TopBar() {
 				) : null}
 				{!isV2CloudEnabled && <OrganizationDropdown />}
 				{isV2WorkspaceRoute && <RightSidebarToggle />}
-				{!isMac && <WindowControls />}
+				{!isMac && <WindowControlsInset />}
 			</div>
 		</div>
 	);

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { PaneActionConfig } from "@superset/panes";
 import { useMemo } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
@@ -11,6 +12,7 @@ export function useDefaultPaneActions({
 }: {
 	launcher: TerminalLauncher;
 }): PaneActionConfig<PaneViewerData>[] {
+	const { t } = useLingui();
 	return useMemo<PaneActionConfig<PaneViewerData>[]>(
 		() => [
 			{
@@ -21,24 +23,32 @@ export function useDefaultPaneActions({
 					) : (
 						<TbLayoutColumns className="size-3.5" />
 					),
-				tooltip: <HotkeyLabel label="Split pane" id="SPLIT_AUTO" />,
-				onClick: async (ctx) => {
+				tooltip: (
+					<HotkeyLabel
+						label={t({
+							message: "Split pane",
+						})}
+						id="SPLIT_AUTO"
+					/>
+				),
+				onClick: (ctx) => {
 					const position =
 						ctx.pane.parentDirection === "horizontal" ? "down" : "right";
-					const terminalId = await launcher.create();
 					ctx.actions.split(position, {
 						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
+						data: {
+							terminalId: launcher.mint(),
+							createOnAttach: true,
+						} as TerminalPaneData,
 					});
 				},
 			},
 			{
 				key: "close",
 				icon: <HiMiniXMark className="size-3.5" />,
-				tooltip: <HotkeyLabel label="Close pane" id="CLOSE_PANE" />,
 				onClick: (ctx) => ctx.actions.close(),
 			},
 		],
-		[launcher],
+		[launcher, t],
 	);
 }

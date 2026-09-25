@@ -5,25 +5,34 @@ import {
 	type Range,
 	useVirtualizer,
 } from "@tanstack/react-virtual";
-import { Fragment, useCallback, useMemo, useRef } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef } from "react";
+import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import type { TaskWithStatus } from "../../hooks/useTasksTable";
 import { TaskContextMenu } from "./components/TaskContextMenu";
 
 const ROW_HEIGHT = 36;
 const OVERSCAN = 50;
+const LOAD_MORE_ROOT_MARGIN = `${ROW_HEIGHT * 10}px`;
 
 interface TasksTableViewProps {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
 	onTaskClick: (task: TaskWithStatus) => void;
+	hasNextPage: boolean;
+	isFetchingNextPage: boolean;
+	onLoadMore: () => void;
 }
 
 export function TasksTableView({
 	table,
 	slugColumnWidth,
 	onTaskClick,
+	hasNextPage,
+	isFetchingNextPage,
+	onLoadMore,
 }: TasksTableViewProps) {
 	const scrollRef = useRef<HTMLDivElement>(null);
+	const sentinelRef = useRef<HTMLDivElement>(null);
 	const rows = table.getRowModel().rows;
 
 	// Track which row indices are group headers so we can pin the active one
@@ -68,6 +77,23 @@ export function TasksTableView({
 	});
 
 	const virtualItems = virtualizer.getVirtualItems();
+
+	useEffect(() => {
+		const sentinel = sentinelRef.current;
+		const scrollContainer = scrollRef.current;
+		if (!sentinel || !scrollContainer || !hasNextPage || isFetchingNextPage) {
+			return;
+		}
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (!entries[0]?.isIntersecting) return;
+				onLoadMore();
+			},
+			{ root: scrollContainer, rootMargin: LOAD_MORE_ROOT_MARGIN },
+		);
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [hasNextPage, isFetchingNextPage, onLoadMore]);
 
 	return (
 		<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
@@ -135,6 +161,11 @@ export function TasksTableView({
 					);
 				})}
 			</div>
+			<LoadMoreSentinel
+				sentinelRef={sentinelRef}
+				hasNextPage={hasNextPage}
+				isFetchingNextPage={isFetchingNextPage}
+			/>
 		</div>
 	);
 }

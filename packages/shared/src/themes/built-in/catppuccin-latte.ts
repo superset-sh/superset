@@ -1,0 +1,95 @@
+import type { Theme } from "../types";
+
+/**
+ * Catppuccin Latte - the light flavor of the Catppuccin palette
+ */
+export const catppuccinLatteTheme: Theme = {
+	id: "catppuccin-latte",
+	name: "Catppuccin Latte",
+	author: "Catppuccin",
+	type: "light",
+	isBuiltIn: true,
+	description: "The light flavor of the Catppuccin palette",
+
+	ui: {
+		background: "#eff1f5",
+		foreground: "#4c4f69",
+		card: "#e6e9ef",
+		cardForeground: "#4c4f69",
+		popover: "#e6e9ef",
+		popoverForeground: "#4c4f69",
+		primary: "#8839ef",
+		primaryForeground: "#dce0e8",
+		secondary: "#ccd0da",
+		secondaryForeground: "#4c4f69",
+		muted: "#ccd0da",
+		mutedForeground: "#6c6f85",
+		accent: "#bcc0cc",
+		accentForeground: "#4c4f69",
+		tertiary: "#dce0e8",
+		tertiaryActive: "#ccd0da",
+		destructive: "#d20f39",
+		destructiveForeground: "#dce0e8",
+		warning: "#885000",
+		warningForeground: "#ffffff",
+		success: "#40a02b",
+		border: "#bcc0cc",
+		input: "#bcc0cc",
+		ring: "#8839ef",
+		sidebar: "#e6e9ef",
+		sidebarForeground: "#4c4f69",
+		sidebarPrimary: "#8839ef",
+		sidebarPrimaryForeground: "#dce0e8",
+		sidebarAccent: "#ccd0da",
+		sidebarAccentForeground: "#4c4f69",
+		sidebarBorder: "#ccd0da",
+		sidebarRing: "#8839ef",
+		chart1: "#8839ef",
+		chart2: "#40a02b",
+		chart3: "#df8e1d",
+		chart4: "#1e66f5",
+		chart5: "#d20f39",
+
+		// Search highlights - mauve tint matching the accent
+		highlightMatch: "rgba(136, 57, 239, 0.2)",
+		highlightActive: "rgba(136, 57, 239, 0.5)",
+
+		// Brand highlight - Catppuccin mauve
+		highlight: "#8839ef",
+		highlightForeground: "#eff1f5",
+	},
+
+	terminal: {
+		background: "#eff1f5",
+		foreground: "#4c4f69",
+		cursor: "#dc8a78",
+		cursorAccent: "#eff1f5",
+		selectionBackground: "#acb0be",
+
+		// Catppuccin Latte ANSI colors
+		black: "#bcc0cc",
+		red: "#d20f39",
+		green: "#40a02b",
+		yellow: "#df8e1d",
+		blue: "#1e66f5",
+		magenta: "#ea76cb",
+		cyan: "#04a5e5",
+		white: "#5c5f77",
+
+		// Bright variants
+		brightBlack: "#acb0be",
+		brightRed: "#d20f39",
+		brightGreen: "#40a02b",
+		brightYellow: "#df8e1d",
+		brightBlue: "#1e66f5",
+		brightMagenta: "#ea76cb",
+		brightCyan: "#04a5e5",
+		brightWhite: "#4c4f69",
+	},
+
+	editor: {
+		syntax: {
+			comment: "#acb0be",
+		},
+	},
+};

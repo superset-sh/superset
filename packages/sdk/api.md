@@ -32,62 +32,32 @@ Methods:
 
 Types:
 
-- <code><a href="./src/resources/workspaces.ts">Workspace</a></code>
-- <code><a href="./src/resources/workspaces.ts">HostWorkspace</a></code>
+- <code><a href="./src/resources/workspaces.ts">CloudWorkspace</a></code>
+- <code><a href="./src/resources/workspaces.ts">CloudWorkspaceStatus</a></code>
 - <code><a href="./src/resources/workspaces.ts">WorkspaceListParams</a></code>
 - <code><a href="./src/resources/workspaces.ts">WorkspaceListResponse</a></code>
 - <code><a href="./src/resources/workspaces.ts">WorkspaceCreateParams</a></code>
-- <code><a href="./src/resources/workspaces.ts">WorkspaceCreateResult</a></code>
-- <code><a href="./src/resources/workspaces.ts">WorkspaceAgentLaunch</a></code>
-- <code><a href="./src/resources/workspaces.ts">WorkspaceCreateAgentResult</a></code>
 - <code><a href="./src/resources/workspaces.ts">WorkspaceUpdateParams</a></code>
-- <code><a href="./src/resources/workspaces.ts">WorkspaceUpdateResult</a></code>
 - <code><a href="./src/resources/workspaces.ts">WorkspaceDeleteResult</a></code>
 
 Methods:
 
-- <code title="get /api/trpc/v2Workspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">list</a>({ ...params }) -> WorkspaceListResponse</code>
-- <code title="host post /api/trpc/workspaces.create">client.workspaces.<a href="./src/resources/workspaces.ts">create</a>({ ...params }) -> WorkspaceCreateResult</code>
-- <code title="post /api/trpc/v2Workspace.update">client.workspaces.<a href="./src/resources/workspaces.ts">update</a>(id, { ...params }) -> WorkspaceUpdateResult</code>
-- <code title="host post /api/trpc/workspace.delete">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id, { hostId? }) -> WorkspaceDeleteResult</code>
-
-# Projects
-
-Types:
-
-- <code><a href="./src/resources/projects.ts">Project</a></code>
-- <code><a href="./src/resources/projects.ts">ProjectListResponse</a></code>
-
-Methods:
-
-- <code title="get /api/trpc/v2Project.list">client.projects.<a href="./src/resources/projects.ts">list</a>() -> ProjectListResponse</code>
-
-# Hosts
-
-Types:
-
-- <code><a href="./src/resources/hosts.ts">Host</a></code>
-- <code><a href="./src/resources/hosts.ts">HostListResponse</a></code>
-
-Methods:
-
-- <code title="get /api/trpc/host.list">client.hosts.<a href="./src/resources/hosts.ts">list</a>() -> HostListResponse</code>
+- <code title="get /api/trpc/cloudWorkspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">list</a>({ search? }) -> WorkspaceListResponse</code>
+- <code title="get /api/trpc/cloudWorkspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">retrieve</a>(id) -> CloudWorkspace | null</code>
+- <code title="post /api/trpc/cloudWorkspace.create">client.workspaces.<a href="./src/resources/workspaces.ts">create</a>({ environment?, name?, branch?, agent?, prompt?, model?, effort? }) -> CloudWorkspace</code>
+- <code title="post /api/trpc/cloudWorkspace.rename">client.workspaces.<a href="./src/resources/workspaces.ts">update</a>(id, { name }) -> CloudWorkspace</code>
+- <code title="post /api/trpc/cloudWorkspace.delete">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id) -> WorkspaceDeleteResult</code>
 
 # Agents
 
 Types:
 
-- <code><a href="./src/resources/agents.ts">HostAgentConfig</a></code>
-- <code><a href="./src/resources/agents.ts">PromptTransport</a></code>
-- <code><a href="./src/resources/agents.ts">AgentListParams</a></code>
-- <code><a href="./src/resources/agents.ts">AgentListResponse</a></code>
 - <code><a href="./src/resources/agents.ts">AgentCreateParams</a></code>
 - <code><a href="./src/resources/agents.ts">AgentCreateResult</a></code>
 
 Methods:
 
-- <code title="host get /api/trpc/settings.agentConfigs.list">client.agents.<a href="./src/resources/agents.ts">list</a>({ hostId }) -> AgentListResponse</code>
-- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ workspaceId, agent, prompt, attachmentIds? }, { hostId? }) -> AgentCreateResult</code>
+- <code title="workspace post /trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ workspaceId, agent, prompt?, resumeSessionId?, model?, effort? }) -> AgentCreateResult</code>
 
 # Terminals
 
@@ -95,38 +65,23 @@ Types:
 
 - <code><a href="./src/resources/terminals.ts">TerminalCreateParams</a></code>
 - <code><a href="./src/resources/terminals.ts">TerminalCreateResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalListParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalListResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSummary</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSendParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSendResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalReadParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalReadResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalCloseParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalCloseResult</a></code>
 
 Methods:
 
-- <code title="host post /api/trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ workspaceId, command?, cwd? }, { hostId? }) -> TerminalCreateResult</code>
-
-# Automations
-
-Types:
-
-- <code><a href="./src/resources/automations.ts">Automation</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationSummary</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationListResponse</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationCreateParams</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationUpdateParams</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationRun</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationRunDispatched</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationLogsParams</a></code>
-- <code><a href="./src/resources/automations.ts">AutomationLogsResponse</a></code>
-
-Methods:
-
-- <code title="get /api/trpc/automation.list">client.automations.<a href="./src/resources/automations.ts">list</a>({ name? }) -> AutomationListResponse</code>
-- <code title="get /api/trpc/automation.get">client.automations.<a href="./src/resources/automations.ts">retrieve</a>(id) -> AutomationSummary</code>
-- <code title="post /api/trpc/automation.create">client.automations.<a href="./src/resources/automations.ts">create</a>({ ...params }) -> Automation</code>
-- <code title="post /api/trpc/automation.update">client.automations.<a href="./src/resources/automations.ts">update</a>({ ...params }) -> Automation</code>
-- <code title="post /api/trpc/automation.delete">client.automations.<a href="./src/resources/automations.ts">delete</a>(id) -> void</code>
-- <code title="post /api/trpc/automation.runNow">client.automations.<a href="./src/resources/automations.ts">run</a>(id) -> AutomationRunDispatched</code>
-- <code title="post /api/trpc/automation.setEnabled">client.automations.<a href="./src/resources/automations.ts">pause</a>(id) -> Automation</code>
-- <code title="post /api/trpc/automation.setEnabled">client.automations.<a href="./src/resources/automations.ts">resume</a>(id) -> Automation</code>
-- <code title="get /api/trpc/automation.listRuns">client.automations.<a href="./src/resources/automations.ts">logs</a>(automationId, { limit? }) -> AutomationLogsResponse</code>
-- <code title="get /api/trpc/automation.getPrompt">client.automations.<a href="./src/resources/automations.ts">getPrompt</a>(id) -> &#123; prompt: string &#125;</code>
-- <code title="post /api/trpc/automation.setPrompt">client.automations.<a href="./src/resources/automations.ts">setPrompt</a>(id, prompt) -> Automation</code>
+- <code title="workspace post /trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ workspaceId, command?, cwd? }) -> TerminalCreateResult</code>
+- <code title="workspace get /trpc/terminal.list">client.terminals.<a href="./src/resources/terminals.ts">list</a>({ workspaceId }) -> TerminalListResult</code>
+- <code title="workspace post /trpc/terminal.send">client.terminals.<a href="./src/resources/terminals.ts">send</a>({ workspaceId, terminalId, text, submit? }) -> TerminalSendResult</code>
+- <code title="workspace get /trpc/terminal.snapshot">client.terminals.<a href="./src/resources/terminals.ts">read</a>({ workspaceId, terminalId, maxLines? }) -> TerminalReadResult</code>
+- <code title="workspace post /trpc/terminal.killSession">client.terminals.<a href="./src/resources/terminals.ts">close</a>({ workspaceId, terminalId }) -> TerminalCloseResult</code>
 
 # Organization
 
@@ -142,3 +97,7 @@ Types:
 Methods:
 
 - <code title="get /api/trpc/organization.members.list">client.organization.members.<a href="./src/resources/organization.ts">list</a>({ search?, limit? }) -> MemberListResponse</code>
+
+# Telemetry
+
+Every resource method reports one `sdk_method_called` event (method name, SDK version, runtime, success, duration) to `analytics.captureEvent` after the call settles. It is best-effort and never affects the call itself. Set `SUPERSET_TELEMETRY=0` to opt out.

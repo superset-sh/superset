@@ -14,7 +14,7 @@ export function ReviewStatus({
 		},
 		changes_requested: {
 			label: "Changes requested",
-			className: "bg-destructive/15 text-destructive-foreground",
+			className: "bg-destructive/15 text-destructive",
 		},
 		pending: {
 			label:

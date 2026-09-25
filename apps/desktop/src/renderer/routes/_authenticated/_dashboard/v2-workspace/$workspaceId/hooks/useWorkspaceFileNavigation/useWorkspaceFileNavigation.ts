@@ -3,17 +3,22 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { V2UserPreferencesApi } from "renderer/hooks/useV2UserPreferences";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	isWithinWorkspacePath,
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
-import type { FilePaneData, PaneViewerData } from "../../types";
+import type { FilePaneData, OpenFile, PaneViewerData } from "../../types";
+import { setWorkspaceSidebarTab } from "../../utils/setWorkspaceSidebarTab";
 import {
 	type RecentFile,
 	useRecentlyViewedFiles,
 } from "../useRecentlyViewedFiles";
+import { useRevealInFinder } from "../useRevealInFinder";
+import { openFilePaneInStore } from "./utils/openFilePaneInStore";
 
 interface PendingReveal {
 	path: string;
@@ -23,14 +28,12 @@ interface PendingReveal {
 export function useWorkspaceFileNavigation({
 	store,
 	setRightSidebarOpen,
-	setRightSidebarTab,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	setRightSidebarOpen: V2UserPreferencesApi["setRightSidebarOpen"];
-	setRightSidebarTab: V2UserPreferencesApi["setRightSidebarTab"];
 }): {
-	openFilePane: (filePath: string, openInNewTab?: boolean) => void;
-	openFilePaneFromTreeClick: (filePath: string, openInNewTab?: boolean) => void;
+	openFilePane: OpenFile;
+	openFilePaneFromTreeClick: OpenFile;
 	revealPath: (
 		path: string,
 		options?: {
@@ -49,6 +52,8 @@ export function useWorkspaceFileNavigation({
 	const worktreePath = workspaceQuery.data?.worktreePath ?? "";
 
 	const { recentFiles, recordView } = useRecentlyViewedFiles(workspace.id);
+	const revealInFinder = useRevealInFinder(workspace.id);
+	const collections = useCollections();
 
 	const activeFilePanePath = useStore(store, (state) => {
 		const tab = state.tabs.find(
@@ -91,8 +96,8 @@ export function useWorkspaceFileNavigation({
 		[openFilePathsKey],
 	);
 
-	const openFilePane = useCallback(
-		(filePath: string, openInNewTab?: boolean) => {
+	const openFilePane = useCallback<OpenFile>(
+		(filePath, openInNewTab, position) => {
 			const absoluteFilePath = worktreePath
 				? toAbsoluteWorkspacePath(worktreePath, filePath)
 				: filePath;
@@ -105,58 +110,17 @@ export function useWorkspaceFileNavigation({
 					recordView({ relativePath, absolutePath: absoluteFilePath });
 				}
 			}
-			const state = store.getState();
-			if (openInNewTab) {
-				state.addTab({
-					panes: [
-						{
-							kind: "file",
-							data: {
-								filePath: absoluteFilePath,
-								mode: "editor",
-							} as FilePaneData,
-						},
-					],
-				});
-				return;
-			}
-			// Focus an existing pane for this file (anywhere in any tab) before
-			// opening anything new. The previous pin-on-same-file branch turned
-			// re-picks into pin operations — which broke the preview/overwrite
-			// flow: once pinned, the next pick couldn't find an unpinned pane
-			// to replace and got split into a new pane. Pinning is now
-			// explicit only (header click, dirty edit).
-			for (const tab of state.tabs) {
-				for (const pane of Object.values(tab.panes)) {
-					if (
-						pane.kind === "file" &&
-						(pane.data as FilePaneData).filePath === absoluteFilePath
-					) {
-						state.setActiveTab(tab.id);
-						state.setActivePane({ tabId: tab.id, paneId: pane.id });
-						return;
-					}
-				}
-			}
-			state.openPane({
-				pane: {
-					kind: "file",
-					data: {
-						filePath: absoluteFilePath,
-						mode: "editor",
-					} as FilePaneData,
-				},
-			});
+			openFilePaneInStore(store, absoluteFilePath, openInNewTab, position);
 		},
 		[store, worktreePath, recordView],
 	);
 
 	// User-facing file opens from the workspace sidebar layer the VS-Code-style
 	// "click an already-active row to pin it" pattern on top of openFilePane.
-	const openFilePaneFromTreeClick = useCallback(
-		(filePath: string, openInNewTab?: boolean) => {
-			if (openInNewTab) {
-				openFilePane(filePath, true);
+	const openFilePaneFromTreeClick = useCallback<OpenFile>(
+		(filePath, openInNewTab, position) => {
+			if (openInNewTab || position) {
+				openFilePane(filePath, openInNewTab, position);
 				return;
 			}
 			const absoluteFilePath = worktreePath
@@ -178,12 +142,26 @@ export function useWorkspaceFileNavigation({
 
 	const revealPath = useCallback(
 		(path: string, options?: { isDirectory?: boolean }) => {
+			const isDirectory = options?.isDirectory === true;
+			// The sidebar file tree only spans the worktree; paths outside it
+			// (e.g. a ~/some/dir link from the terminal) are revealed in Finder.
+			if (worktreePath && !isWithinWorkspacePath(worktreePath, path)) {
+				revealInFinder(path, { isDirectory });
+				return;
+			}
 			setRightSidebarOpen(true);
-			setRightSidebarTab("files");
+			// Switch the sidebar's tab too, or the reveal lands behind Changes/Review.
+			setWorkspaceSidebarTab(collections, workspace.id, "files");
 			setSelectedFilePath(path);
-			setPendingReveal({ path, isDirectory: options?.isDirectory === true });
+			setPendingReveal({ path, isDirectory });
 		},
-		[setRightSidebarOpen, setRightSidebarTab],
+		[
+			setRightSidebarOpen,
+			worktreePath,
+			revealInFinder,
+			collections,
+			workspace.id,
+		],
 	);
 
 	return {

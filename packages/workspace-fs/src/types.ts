@@ -63,5 +63,12 @@ export type FsWatchEvent = {
 	kind: "create" | "update" | "delete" | "rename" | "overflow";
 	absolutePath: string;
 	oldAbsolutePath?: string;
+	/**
+	 * Absent when the watcher could not determine the path's type — its stat
+	 * lost a race with whatever changed the path again. `false` is a positive
+	 * assertion that the path is not a directory; absent is "no answer", and
+	 * consumers that need one should fall back to what they already know
+	 * about the path rather than reading it as a file.
+	 */
 	isDirectory?: boolean;
 };

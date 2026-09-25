@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -29,6 +30,7 @@ export function HostSelect({
 	align = "end",
 	className,
 }: HostSelectProps) {
+	const { t } = useLingui();
 	const selected = options.find((option) => option.id === value);
 
 	return (
@@ -40,11 +42,23 @@ export function HostSelect({
 				<SelectValue>
 					<span className="flex items-center gap-1.5">
 						<span className="truncate">
-							{selected?.isLocal ? "This device" : (selected?.name ?? value)}
+							{selected?.isLocal ? (
+								<Trans>This device</Trans>
+							) : (
+								(selected?.name ?? value)
+							)}
 						</span>
 						{selected && !selected.isLocal && (
 							<span
-								title={selected.isOnline ? "Online" : "Offline"}
+								title={
+									selected.isOnline
+										? t({
+												message: "Online",
+											})
+										: t({
+												message: "Offline",
+											})
+								}
 								className={
 									selected.isOnline
 										? "size-1.5 shrink-0 rounded-full bg-emerald-500"
@@ -65,10 +79,12 @@ export function HostSelect({
 								<HiOutlineServer className="size-4 text-muted-foreground" />
 							)}
 							<span className="truncate">
-								{option.isLocal ? "This device" : option.name}
+								{option.isLocal ? <Trans>This device</Trans> : option.name}
 							</span>
 							{!option.isLocal && !option.isOnline && (
-								<span className="text-xs text-muted-foreground">offline</span>
+								<span className="text-xs text-muted-foreground">
+									<Trans>offline</Trans>
+								</span>
 							)}
 						</span>
 					</SelectItem>

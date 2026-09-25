@@ -1,0 +1,1 @@
+export { buildStandingsQuery } from "./buildStandingsQuery";

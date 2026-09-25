@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	CodeBlock,
 	CodeBlockCopyButton,
@@ -77,7 +78,7 @@ async function forceDeleteWithToast({
 			toast.error(result.error ?? "Failed to delete", { id: toastId });
 		}
 	} catch (error) {
-		toast.error(error instanceof Error ? error.message : "Failed to delete", {
+		toast.error(errorMessage(error, "Failed to delete"), {
 			id: toastId,
 		});
 	}
@@ -127,7 +128,7 @@ export async function deleteWithToast({
 			}, 100);
 		}
 	} catch (error) {
-		toast.error(error instanceof Error ? error.message : "Failed to delete", {
+		toast.error(errorMessage(error, "Failed to delete"), {
 			id: toastId,
 		});
 	}

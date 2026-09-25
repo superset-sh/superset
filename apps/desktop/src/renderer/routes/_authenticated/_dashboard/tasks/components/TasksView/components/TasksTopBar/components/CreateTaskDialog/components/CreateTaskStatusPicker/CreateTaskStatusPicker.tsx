@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectTaskStatus } from "@superset/db/schema";
 import {
 	DropdownMenu,
@@ -55,7 +56,9 @@ export function CreateTaskStatusPicker({
 							<span>{currentStatus.name}</span>
 						</>
 					) : (
-						<span className="text-muted-foreground">Status</span>
+						<span className="text-muted-foreground">
+							<Trans>Status</Trans>
+						</span>
 					)}
 					<HiChevronDown className="size-3.5 text-muted-foreground" />
 				</button>

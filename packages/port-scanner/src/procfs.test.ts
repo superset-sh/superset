@@ -1,5 +1,50 @@
-import { describe, expect, test } from "bun:test";
-import { parseIPv4Hex, parseIPv6Hex, parseProcNetLine } from "./procfs";
+import { describe, expect, spyOn, test } from "bun:test";
+import { promises as fs } from "node:fs";
+import {
+	parseIPv4Hex,
+	parseIPv6Hex,
+	parseProcNetLine,
+	readEnvValuesLinuxProcfs,
+} from "./procfs";
+
+describe("readEnvValuesLinuxProcfs", () => {
+	test("forwards cancellation to active reads and does not swallow it", async () => {
+		const controller = new AbortController();
+		const reason = new Error("scan cancelled");
+		const read = spyOn(fs, "readFile").mockImplementation(async () => {
+			controller.abort(reason);
+			throw reason;
+		});
+		try {
+			await expect(
+				readEnvValuesLinuxProcfs(
+					[123],
+					["SUPERSET_TERMINAL_ID"],
+					controller.signal,
+				),
+			).rejects.toBe(reason);
+			expect(read).toHaveBeenCalledWith("/proc/123/environ", {
+				encoding: "utf-8",
+				signal: controller.signal,
+			});
+		} finally {
+			read.mockRestore();
+		}
+	});
+
+	test("continues to treat ordinary read failures as unreadable environments", async () => {
+		const read = spyOn(fs, "readFile").mockRejectedValue(
+			new Error("permission denied"),
+		);
+		try {
+			expect(
+				await readEnvValuesLinuxProcfs([123], ["SUPERSET_TERMINAL_ID"]),
+			).toEqual(new Map([[123, null]]));
+		} finally {
+			read.mockRestore();
+		}
+	});
+});
 
 describe("parseIPv4Hex", () => {
 	test("decodes little-endian hex to dotted quad", () => {

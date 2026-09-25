@@ -20,11 +20,8 @@ export const cloudOk = {
 		(machineId = "test-machine-1") =>
 		() => ({ machineId }),
 
-	/**
-	 * Echoes branch/name back with a fresh UUID id per call. Many
-	 * procedures call `ensureMainWorkspace` first, which hits this same
-	 * mock — each invocation needs a distinct id to avoid PK collisions.
-	 */
+	/** Echoes branch/name back with a fresh UUID id per call so repeated
+	 * invocations never collide on the PK. */
 	workspaceCreate:
 		(overrides: Partial<CloudWorkspace> = {}) =>
 		(input: unknown): CloudWorkspace => {

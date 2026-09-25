@@ -1,0 +1,1 @@
+export { DashboardSidebarWorkspacesHeader } from "./DashboardSidebarWorkspacesHeader";

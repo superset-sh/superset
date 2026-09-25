@@ -1,15 +1,16 @@
-import { auth } from "@superset/auth/server";
-import { findOrgMembership } from "@superset/db/utils";
-
 import { env } from "@/env";
-import { createSignedState } from "@/lib/oauth-state";
+import { beginOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
+import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
 
 const SLACK_SCOPES = [
 	"app_mentions:read",
 	"chat:write",
+	"reactions:read",
 	"reactions:write",
 	"channels:history",
+	"channels:read",
 	"groups:history",
+	"groups:read",
 	"im:history",
 	"im:read",
 	"im:write",
@@ -22,46 +23,22 @@ const SLACK_SCOPES = [
 ].join(",");
 
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const organizationId = url.searchParams.get("organizationId");
-	if (!organizationId) {
-		return Response.json(
-			{ error: "Missing organizationId parameter" },
-			{ status: 400 },
-		);
-	}
+	const member = await requireOrgMember(request);
+	if (member instanceof Response) return member;
 
-	const session = await auth.api.getSession({
-		headers: request.headers,
+	return beginOAuthFlow({
+		cookie: STATE_COOKIES.slack,
+		payload: { organizationId: member.organizationId, userId: member.userId },
+		authorizeUrl: (state) => {
+			const slackAuthUrl = new URL("https://slack.com/oauth/v2/authorize");
+			slackAuthUrl.searchParams.set("client_id", env.SLACK_CLIENT_ID);
+			slackAuthUrl.searchParams.set(
+				"redirect_uri",
+				`${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`,
+			);
+			slackAuthUrl.searchParams.set("scope", SLACK_SCOPES);
+			slackAuthUrl.searchParams.set("state", state);
+			return slackAuthUrl.toString();
+		},
 	});
-
-	if (!session?.user) {
-		return Response.json({ error: "Unauthorized" }, { status: 401 });
-	}
-
-	const userId = session.user.id;
-
-	const membership = await findOrgMembership({ userId, organizationId });
-
-	if (!membership) {
-		return Response.json(
-			{ error: "User is not a member of this organization" },
-			{ status: 403 },
-		);
-	}
-
-	const state = createSignedState({
-		organizationId,
-		userId,
-	});
-
-	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
-
-	const slackAuthUrl = new URL("https://slack.com/oauth/v2/authorize");
-	slackAuthUrl.searchParams.set("client_id", env.SLACK_CLIENT_ID);
-	slackAuthUrl.searchParams.set("redirect_uri", redirectUri);
-	slackAuthUrl.searchParams.set("scope", SLACK_SCOPES);
-	slackAuthUrl.searchParams.set("state", state);
-
-	return Response.redirect(slackAuthUrl.toString());
 }

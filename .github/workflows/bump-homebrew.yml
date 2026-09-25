@@ -52,7 +52,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          for target in darwin-arm64 linux-x64 linux-arm64; do
+          for target in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
             url="https://github.com/superset-sh/superset/releases/download/${TAG}/superset-${target}.tar.gz"
             echo "Fetching SHA for $url"
             tmp=$(mktemp)
@@ -77,6 +77,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DARWIN_ARM64_SHA: ${{ steps.shas.outputs.darwin_arm64_sha }}
+          DARWIN_X64_SHA: ${{ steps.shas.outputs.darwin_x64_sha }}
           LINUX_X64_SHA: ${{ steps.shas.outputs.linux_x64_sha }}
           LINUX_ARM64_SHA: ${{ steps.shas.outputs.linux_arm64_sha }}
         run: |
@@ -93,6 +94,10 @@ jobs:
               on_arm do
                 url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-darwin-arm64.tar.gz"
                 sha256 "{darwin_arm64}"
+              end
+              on_intel do
+                url "https://github.com/superset-sh/superset/releases/download/cli-v#{{version}}/superset-darwin-x64.tar.gz"
+                sha256 "{darwin_x64}"
               end
             end
 
@@ -121,6 +126,7 @@ jobs:
           print(template.format(
               version=os.environ["VERSION"],
               darwin_arm64=os.environ["DARWIN_ARM64_SHA"],
+              darwin_x64=os.environ["DARWIN_X64_SHA"],
               linux_x64=os.environ["LINUX_X64_SHA"],
               linux_arm64=os.environ["LINUX_ARM64_SHA"],
           ), end="")

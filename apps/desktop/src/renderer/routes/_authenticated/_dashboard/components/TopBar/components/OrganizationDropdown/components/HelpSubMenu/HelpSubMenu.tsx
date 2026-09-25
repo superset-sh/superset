@@ -1,0 +1,111 @@
+import { Trans } from "@lingui/react/macro";
+import { isPaidPlanTier } from "@superset/shared/billing";
+import { COMPANY } from "@superset/shared/constants";
+import {
+	DropdownMenuItem,
+	DropdownMenuShortcut,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+} from "@superset/ui/dropdown-menu";
+import { useNavigate } from "@tanstack/react-router";
+import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
+import {
+	HiOutlineBookOpen,
+	HiOutlineChatBubbleLeftRight,
+	HiOutlineEnvelope,
+	HiOutlineQuestionMarkCircle,
+} from "react-icons/hi2";
+import { IoBugOutline } from "react-icons/io5";
+import { LuKeyboard, LuMegaphone } from "react-icons/lu";
+import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
+import { useHotkeyDisplay } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+
+import { useGettingStartedStore } from "renderer/stores/getting-started";
+
+interface HelpSubMenuProps {
+	onSubmitPrompt: () => void;
+}
+
+export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
+	const navigate = useNavigate();
+	const { plan, isReady } = useCurrentPlan();
+	const shortcutsHotkey = useHotkeyDisplay("SHOW_HOTKEYS").text;
+	const openUrlMutation = electronTrpc.external.openUrl.useMutation();
+
+	const openExternal = (url: string) => {
+		openUrlMutation.mutate(url);
+	};
+
+	return (
+		<DropdownMenuSub>
+			<DropdownMenuSubTrigger>
+				<HiOutlineQuestionMarkCircle className="h-4 w-4" />
+				<span>
+					<Trans>Help</Trans>
+				</span>
+			</DropdownMenuSubTrigger>
+			<DropdownMenuSubContent className="w-56">
+				{isReady && isPaidPlanTier(plan) && (
+					<DropdownMenuItem
+						onSelect={() => useGettingStartedStore.getState().show()}
+					>
+						<HiOutlineBookOpen className="h-4 w-4" />
+						<Trans>Get the best out of Pro</Trans>
+					</DropdownMenuItem>
+				)}
+				<DropdownMenuItem onSelect={onSubmitPrompt}>
+					<LuMegaphone className="h-4 w-4" />
+					<Trans>Submit a prompt</Trans>
+				</DropdownMenuItem>
+				<DropdownMenuItem onSelect={() => openExternal(COMPANY.DOCS_URL)}>
+					<HiOutlineBookOpen className="h-4 w-4" />
+					<Trans>Documentation</Trans>
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onSelect={() => navigate({ to: "/settings/keyboard" })}
+				>
+					<LuKeyboard className="h-4 w-4" />
+					<Trans>Keyboard Shortcuts</Trans>
+					{shortcutsHotkey !== "Unassigned" && (
+						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
+					)}
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onSelect={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
+				>
+					<IoBugOutline className="h-4 w-4" />
+					<Trans>Report Issue</Trans>
+				</DropdownMenuItem>
+				<DropdownMenuSub>
+					<DropdownMenuSubTrigger>
+						<HiOutlineChatBubbleLeftRight className="h-4 w-4" />
+						<Trans>Contact Us</Trans>
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent sideOffset={8} className="w-56">
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.GITHUB_URL)}>
+							<FaGithub className="h-4 w-4" />
+							<Trans>GitHub</Trans>
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={() => openExternal(COMPANY.DISCORD_URL)}
+						>
+							<FaDiscord className="h-4 w-4" />
+							<Trans>Discord</Trans>
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.X_URL)}>
+							<FaXTwitter className="h-4 w-4" />
+							{/* Brand name — never translated (glossary). */}
+							{"X"}
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.MAIL_TO)}>
+							<HiOutlineEnvelope className="h-4 w-4" />
+							<Trans>Email Support</Trans>
+						</DropdownMenuItem>
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+			</DropdownMenuSubContent>
+		</DropdownMenuSub>
+	);
+}

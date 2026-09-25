@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "linear",
+	"version": "1.5.2",
+	"description": "Plan and build products: create, search, and update Linear issues.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["linear", "issues", "project-management", "planning"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Linear",
+				"category": "Productivity",
+				"icon": "linear"
+			},
+			"connector": {
+				"slug": "linear"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.linear.app/mcp"
+			}
+		}
+	}
+}

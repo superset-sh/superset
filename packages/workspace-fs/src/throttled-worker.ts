@@ -1,3 +1,4 @@
+import { clearTimeout, setTimeout } from "node:timers";
 /**
  * Self-contained port of VS Code's `ThrottledWorker`
  * (microsoft/vscode `src/vs/base/common/async.ts`, ~line 1311). Same algorithm,

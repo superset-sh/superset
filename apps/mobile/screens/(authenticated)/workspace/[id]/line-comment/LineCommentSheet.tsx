@@ -1,0 +1,127 @@
+import { useLingui } from "@lingui/react/macro";
+import * as Crypto from "expo-crypto";
+import { Stack, useRouter } from "expo-router";
+import { useState } from "react";
+import { ScrollView, TextInput, View } from "react-native";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/hooks/useTheme";
+import { posthog } from "@/lib/posthog";
+import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
+import { useCommentComposerStore } from "../stores/commentComposerStore";
+import { useDraftCommentsStore } from "../stores/draftCommentsStore";
+import { AnchorLineRow } from "./components/AnchorLineRow";
+
+export function LineCommentSheet() {
+	const { t } = useLingui();
+	const router = useRouter();
+	const anchor = useCommentComposerStore((state) => state.anchor);
+	const closeComposer = useCommentComposerStore((state) => state.closeComposer);
+	const addComment = useDraftCommentsStore((state) => state.addComment);
+	const updateComment = useDraftCommentsStore((state) => state.updateComment);
+
+	const theme = useTheme();
+	const [body, setBody] = useState(anchor?.initialBody ?? "");
+	const trimmed = body.trim();
+
+	const submit = () => {
+		if (!anchor || trimmed.length === 0) return;
+		if (anchor.editingDraftId) {
+			updateComment(anchor.workspaceId, anchor.editingDraftId, trimmed);
+		} else {
+			addComment(anchor.workspaceId, {
+				id: Crypto.randomUUID(),
+				path: anchor.path,
+				side: anchor.side,
+				line: anchor.line,
+				lineText: anchor.lineText,
+				lineType: anchor.lineType,
+				tokens: anchor.tokens,
+				body: trimmed,
+				createdAt: Date.now(),
+			});
+		}
+		posthog.capture("line_comment_added", {
+			workspace_id: anchor.workspaceId,
+			is_edit: !!anchor.editingDraftId,
+			line_type: anchor.lineType,
+			side: anchor.side,
+			message_length: trimmed.length,
+		});
+		closeComposer();
+		router.back();
+	};
+
+	return (
+		// The scroll view must stay the sheet's only layout child (formSheet
+		// cold-mount flex bug); title/toolbar render null into the native bar.
+		<>
+			<Stack.Screen
+				options={{
+					title: anchor?.editingDraftId
+						? t({ message: "Edit comment" })
+						: t({ message: "Add comment" }),
+				}}
+			/>
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button
+					icon="xmark"
+					accessibilityLabel={t({
+						message: "Close",
+					})}
+					onPress={() => {
+						closeComposer();
+						router.back();
+					}}
+				/>
+			</Stack.Toolbar>
+			<ScrollView
+				className="bg-background flex-1"
+				contentInsetAdjustmentBehavior="automatic"
+				keyboardShouldPersistTaps="handled"
+				contentContainerClassName="pb-10 pt-2"
+			>
+				{anchor && anchor.lineType !== "file" ? (
+					<View className="border-border mx-3 mb-3 overflow-hidden rounded-xl border">
+						<AnchorLineRow
+							type={anchor.lineType}
+							lineNumber={anchor.line}
+							text={anchor.lineText}
+							tokens={anchor.tokens}
+						/>
+					</View>
+				) : anchor ? (
+					<Text className="text-muted-foreground mx-3 mb-3 font-mono text-[13px]">
+						{anchor.path}
+					</Text>
+				) : null}
+				<TextInput
+					autoFocus
+					className="border-border text-foreground mx-3 min-h-32 rounded-xl border px-3.5 py-3 text-[15px]"
+					multiline
+					onChangeText={setBody}
+					placeholder={t({
+						message: "Leave a comment…",
+					})}
+					placeholderTextColor="#6b7280"
+					selectionColor={theme.foreground}
+					value={body}
+				/>
+				<PressableScale
+					className={
+						trimmed.length > 0
+							? "bg-primary mx-3 mt-3 items-center rounded-xl py-3"
+							: "bg-primary/40 mx-3 mt-3 items-center rounded-xl py-3"
+					}
+					disabled={trimmed.length === 0}
+					onPress={submit}
+				>
+					<Text className="text-primary-foreground font-semibold text-[15px]">
+						{anchor?.editingDraftId
+							? t({ message: "Save" })
+							: t({ message: "Comment" })}
+					</Text>
+				</PressableScale>
+			</ScrollView>
+		</>
+	);
+}

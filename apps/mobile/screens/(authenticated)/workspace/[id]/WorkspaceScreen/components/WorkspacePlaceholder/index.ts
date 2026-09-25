@@ -1,0 +1,1 @@
+export { WorkspacePlaceholder } from "./WorkspacePlaceholder";

@@ -29,7 +29,7 @@ export function RightSidebarToggle() {
 	};
 
 	return (
-		<Tooltip delayDuration={300}>
+		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>
 				<button
 					type="button"
@@ -43,7 +43,7 @@ export function RightSidebarToggle() {
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="left">
-				<HotkeyLabel label="Toggle sidebar" id="TOGGLE_SIDEBAR" />
+				<HotkeyLabel fallbackLabel="Toggle sidebar" id="TOGGLE_SIDEBAR" />
 			</TooltipContent>
 		</Tooltip>
 	);

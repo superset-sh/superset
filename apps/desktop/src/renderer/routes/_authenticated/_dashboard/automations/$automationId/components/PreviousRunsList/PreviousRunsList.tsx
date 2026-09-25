@@ -1,15 +1,27 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
 import type { SelectAutomationRun } from "@superset/db/schema";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceStrict } from "date-fns";
 import { useNow } from "renderer/hooks/useNow";
+import { runErrorHelp } from "../../../utils/runErrorHelp";
+
+function describeRunError(run: SelectAutomationRun): string {
+	const error = run.error ?? "";
+	const help = runErrorHelp(run.errorCode);
+	// Lead with the plain-language fix; keep the raw host error for reports.
+	return help ? `${i18n._(help)}\n\n(${error})` : error;
+}
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatched: "bg-emerald-500",
 	dispatching: "bg-amber-500",
 	skipped_offline: "bg-red-500",
 	dispatch_failed: "bg-red-500",
+	debounced: "bg-slate-400",
+	rejected: "bg-amber-500",
 };
 
 interface PreviousRunsListProps {
@@ -18,8 +30,18 @@ interface PreviousRunsListProps {
 
 function formatAgo(date: Date, now: Date): string {
 	const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-	if (seconds < 60) return "less than a minute ago";
-	return `${formatDistanceStrict(date, now)} ago`;
+	if (seconds < 60)
+		return i18n._(
+			msg({
+				message: "less than a minute ago",
+			}),
+		);
+	const distance = formatDistanceStrict(date, now);
+	return i18n._(
+		msg({
+			message: `${distance} ago`,
+		}),
+	);
 }
 
 export function PreviousRunsList({ runs }: PreviousRunsListProps) {
@@ -27,7 +49,11 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 	const now = useNow();
 
 	if (runs.length === 0) {
-		return <p className="text-sm italic text-muted-foreground">No runs yet</p>;
+		return (
+			<p className="text-sm italic text-muted-foreground">
+				<Trans>No runs yet</Trans>
+			</p>
+		);
 	}
 
 	const handleOpenRun = (run: SelectAutomationRun) => {
@@ -38,7 +64,6 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 			params: { workspaceId: run.v2WorkspaceId },
 			search: {
 				terminalId: run.terminalSessionId ?? undefined,
-				chatSessionId: run.chatSessionId ?? undefined,
 			},
 		});
 	};
@@ -67,7 +92,9 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 								STATUS_DOT[run.status],
 							)}
 						/>
-						<span className="truncate">{run.title || "Automation"}</span>
+						<span className="truncate">
+							{run.title || <Trans>Automation</Trans>}
+						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{run.scheduledFor
 								? formatAgo(new Date(run.scheduledFor), now)
@@ -77,18 +104,11 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 				);
 				return (
 					<li key={run.id}>
-						{run.error ? (
-							<Tooltip>
-								<TooltipTrigger asChild>{row}</TooltipTrigger>
-								<TooltipContent
-									side="left"
-									className="max-w-xs whitespace-pre-wrap"
-								>
-									{run.error}
-								</TooltipContent>
-							</Tooltip>
-						) : (
-							row
+						{row}
+						{run.error && (
+							<p className="select-text cursor-text mx-2 mb-1 whitespace-pre-wrap rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+								{describeRunError(run)}
+							</p>
 						)}
 					</li>
 				);

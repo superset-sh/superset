@@ -5,9 +5,7 @@ import { resolvePaneId } from "./resolve-pane-id";
 describe("notifications/server", () => {
 	describe("resolvePaneId", () => {
 		it("returns an explicit paneId even when app state is not initialized", () => {
-			expect(resolvePaneId("pane-1", "tab-1", "ws-1", "session-1")).toBe(
-				"pane-1",
-			);
+			expect(resolvePaneId("pane-1", "tab-1", "ws-1")).toBe("pane-1");
 		});
 	});
 
@@ -42,6 +40,11 @@ describe("notifications/server", () => {
 		it("should map Codex native stop events to 'Stop'", () => {
 			expect(mapEventType("stop")).toBe("Stop");
 			expect(mapEventType("task_complete")).toBe("Stop");
+		});
+
+		it("should map Vibe hook events", () => {
+			expect(mapEventType("pre_tool")).toBe("Start");
+			expect(mapEventType("post_agent")).toBe("Stop");
 		});
 
 		it("should map 'PostToolUse' to 'Start'", () => {

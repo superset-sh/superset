@@ -29,6 +29,14 @@ interface ResizablePanelProps {
 	clampWidth?: boolean;
 	/** Callback when the resize handle is double-clicked */
 	onDoubleClickHandle?: () => void;
+	/**
+	 * Renders as a flexible, full-width panel with no resize handle instead
+	 * of a fixed-width one — for a sibling pane that can be collapsed, so
+	 * this panel keeps the same element type (and its children stay mounted)
+	 * across both states rather than swapping between this and a plain div.
+	 * @default false
+	 */
+	disabled?: boolean;
 }
 
 export function ResizablePanel({
@@ -43,6 +51,7 @@ export function ResizablePanel({
 	className,
 	clampWidth = true,
 	onDoubleClickHandle,
+	disabled = false,
 }: ResizablePanelProps) {
 	const startXRef = useRef(0);
 	const startWidthRef = useRef(0);
@@ -124,33 +133,36 @@ export function ResizablePanel({
 	return (
 		<div
 			className={cn(
-				"relative h-full shrink-0 overflow-hidden border-border",
-				handleSide === "right" ? "border-r" : "border-l",
+				"relative h-full overflow-hidden border-border",
+				disabled ? "flex-1" : "shrink-0",
+				!disabled && (handleSide === "right" ? "border-r" : "border-l"),
 				className,
 			)}
-			style={{ width }}
+			style={disabled ? undefined : { width }}
 		>
 			{children}
-			{/* biome-ignore lint/a11y/useSemanticElements: <hr> is not appropriate for interactive resize handles */}
-			<div
-				role="separator"
-				aria-orientation="vertical"
-				aria-valuenow={width}
-				aria-valuemin={minWidth}
-				aria-valuemax={maxWidth}
-				tabIndex={0}
-				onMouseDown={handleMouseDown}
-				onDoubleClick={onDoubleClickHandle}
-				className={cn(
-					"absolute top-0 w-5 h-full cursor-col-resize z-10",
-					"after:absolute after:top-0 after:w-1 after:h-full after:transition-colors",
-					"hover:after:bg-border focus:outline-none focus:after:bg-border",
-					isResizing && "after:bg-border",
-					handleSide === "left"
-						? "-left-2 after:right-2"
-						: "-right-2 after:left-2",
-				)}
-			/>
+			{!disabled && (
+				// biome-ignore lint/a11y/useSemanticElements: <hr> is not appropriate for interactive resize handles
+				<div
+					role="separator"
+					aria-orientation="vertical"
+					aria-valuenow={width}
+					aria-valuemin={minWidth}
+					aria-valuemax={maxWidth}
+					tabIndex={0}
+					onMouseDown={handleMouseDown}
+					onDoubleClick={onDoubleClickHandle}
+					className={cn(
+						"absolute top-0 w-5 h-full cursor-col-resize z-10",
+						"after:absolute after:top-0 after:w-1 after:h-full after:transition-colors",
+						"hover:after:bg-border focus:outline-none focus:after:bg-border",
+						isResizing && "after:bg-border",
+						handleSide === "left"
+							? "-left-2 after:right-2"
+							: "-right-2 after:left-2",
+					)}
+				/>
+			)}
 		</div>
 	);
 }

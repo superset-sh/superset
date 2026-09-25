@@ -10,7 +10,8 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { env } from "./env";
 
 export type SupersetConfig = {
@@ -46,10 +47,23 @@ export function readConfig(): SupersetConfig {
 	return JSON.parse(readFileSync(SUPERSET_CONFIG_PATH, "utf-8"));
 }
 
+/**
+ * SUPERSET_ORGANIZATION_ID overrides the stored org for this invocation
+ * (headless/CI, and dev where the CLI must target a specific local org),
+ * mirroring how SUPERSET_API_KEY overrides the stored credential. Not
+ * persisted to disk.
+ */
+export function resolveOrganizationId(
+	config: SupersetConfig,
+): string | undefined {
+	return process.env.SUPERSET_ORGANIZATION_ID?.trim() || config.organizationId;
+}
+
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
+	const configPath = resolveWriteTarget(SUPERSET_CONFIG_PATH);
 	const tempPath = join(
-		SUPERSET_HOME_DIR,
+		dirname(configPath),
 		`.${randomUUID()}.${process.pid}.config.tmp`,
 	);
 	writeFileSync(tempPath, JSON.stringify(config, null, 2), { mode: 0o600 });
@@ -57,7 +71,7 @@ export function writeConfig(config: SupersetConfig): void {
 		chmodSync(tempPath, 0o600);
 	} catch {}
 	try {
-		renameSync(tempPath, SUPERSET_CONFIG_PATH);
+		renameSync(tempPath, configPath);
 	} catch (error) {
 		try {
 			unlinkSync(tempPath);
@@ -65,7 +79,7 @@ export function writeConfig(config: SupersetConfig): void {
 		throw error;
 	}
 	try {
-		chmodSync(SUPERSET_CONFIG_PATH, 0o600);
+		chmodSync(configPath, 0o600);
 	} catch {}
 }
 

@@ -1,21 +1,42 @@
 {
 	"cli": {
-		"version": ">= 16.0.0",
+		"version": ">= 22.0.0",
 		"appVersionSource": "remote"
 	},
 	"build": {
 		"development": {
 			"developmentClient": true,
-			"distribution": "internal"
+			"distribution": "internal",
+			"environment": "development",
+			"channel": "development"
 		},
 		"preview": {
-			"distribution": "internal"
+			"distribution": "internal",
+			"environment": "preview",
+			"channel": "preview"
+		},
+		"e2e-test": {
+			"withoutCredentials": true,
+			"ios": {
+				"simulator": true
+			},
+			"env": {
+				"EXPO_PUBLIC_E2E": "1"
+			}
 		},
 		"production": {
-			"autoIncrement": true
+			"autoIncrement": true,
+			"environment": "production",
+			"channel": "production"
 		}
 	},
 	"submit": {
-		"production": {}
+		"production": {
+			"ios": {
+				"ascAppId": "6788926383",
+				"appleTeamId": "NV9657CS5A",
+				"metadataPath": "./store.config.js"
+			}
+		}
 	}
 }

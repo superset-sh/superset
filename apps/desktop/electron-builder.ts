@@ -70,6 +70,11 @@ const config: Configuration = {
 			filter: ["**/*"],
 		},
 		{
+			from: "dist/resources/chat-migrations",
+			to: "resources/chat-migrations",
+			filter: ["**/*"],
+		},
+		{
 			from: "dist/resources/bin",
 			to: "resources/bin",
 			filter: ["**/*"],
@@ -134,6 +139,10 @@ const config: Configuration = {
 		},
 	},
 
+	// fpm's default xz takes ~15 minutes on the 2 GB tree; gzip takes about
+	// one and costs roughly a tenth in download size.
+	deb: { compression: "gz" },
+
 	// Deep linking protocol
 	protocols: {
 		name: productName,
@@ -143,10 +152,46 @@ const config: Configuration = {
 	// Linux
 	linux: {
 		...(existsSync(linuxIconPath) ? { icon: linuxIconPath } : {}),
+		// Otherwise the binary, and with it the window class the desktop entry
+		// must match, is the package name mangled to "@supersetdesktop".
+		executableName: "superset",
 		category: "Utility",
 		synopsis: pkg.description,
-		target: ["AppImage"],
+		// The AppImage runtime needs libfuse2, which Debian 12 / Ubuntu 22.04+
+		// no longer install by default; the deb needs nothing extra and installs
+		// the desktop entry and icon that the dock and deep links resolve.
+		target: ["AppImage", "deb"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
+		// GNOME's app menus only show their heuristic "New Window" item
+		// intermittently for running apps; an explicit desktop action (the
+		// Chrome/VS Code approach) is always shown. The action relaunches with
+		// --new-window, which the second-instance handler answers by opening a
+		// window; a plain relaunch focuses the running app. `superset` is the
+		// deb's /usr/bin link; AppImage integration rewrites Exec lines to the
+		// image path, and the un-integrated AppImage never shows actions.
+		desktop: {
+			// electron-builder appends [Desktop Action] groups but never writes
+			// the Actions= key that exposes them, so declare it explicitly —
+			// launchers ignore action groups not listed under Actions.
+			entry: {
+				Actions: "new-window;",
+				// Electron sets the window class from the executable name, so the
+				// default (the product name) never matches and the dock shows a
+				// second, iconless entry for the running app.
+				StartupWMClass: "superset",
+			},
+			desktopActions: {
+				"new-window": {
+					Name: "New Window",
+					// Args must stay in sync with linux.executableArgs (the
+					// AppImage default is --no-sandbox when unset); %U is
+					// intentionally omitted. --new-window is what the
+					// second-instance handler keys on to open a window instead
+					// of focusing the running app.
+					Exec: "superset --new-window",
+				},
+			},
+		},
 	},
 
 	// Windows

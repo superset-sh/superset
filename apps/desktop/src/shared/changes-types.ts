@@ -43,7 +43,8 @@ export interface GitChangesStatus {
 	branch: string;
 	defaultBranch: string; // Default branch (main/master)
 	againstBase: ChangedFile[]; // All files changed vs base branch
-	commits: CommitInfo[]; // Individual commits on branch (not on default)
+	commits: CommitInfo[]; // Individual commits on branch (not on default), capped for display
+	totalCommitCount: number; // True number of commits on branch, even beyond the display cap
 	staged: ChangedFile[];
 	unstaged: ChangedFile[];
 	untracked: ChangedFile[];
@@ -53,6 +54,43 @@ export interface GitChangesStatus {
 	pushCount: number; // Commits to push to tracking branch
 	pullCount: number; // Commits to pull from tracking branch
 	hasUpstream: boolean; // Whether branch has an upstream tracking branch
+}
+
+/** Security codes for path validation failures (attached as PATH_VALIDATION causes) */
+export type PathValidationCode =
+	| "ABSOLUTE_PATH"
+	| "PATH_TRAVERSAL"
+	| "UNREGISTERED_WORKTREE"
+	| "INVALID_TARGET"
+	| "SYMLINK_ESCAPE";
+
+/**
+ * Machine-readable causes attached to git/changes TRPCErrors. Serialized to
+ * the renderer via the errorFormatter in lib/trpc; renderer narrows with
+ * isGitChangesErrorCause instead of parsing error messages.
+ */
+export type GitChangesErrorCause =
+	| { kind: "WORKTREE_MISSING"; worktreePath?: string }
+	| { kind: "NOT_GIT_REPO" }
+	| { kind: "GIT_ENVIRONMENT" }
+	| { kind: "PATH_VALIDATION"; code: PathValidationCode };
+
+const GIT_CHANGES_CAUSE_KINDS = new Set([
+	"WORKTREE_MISSING",
+	"NOT_GIT_REPO",
+	"GIT_ENVIRONMENT",
+	"PATH_VALIDATION",
+]);
+
+export function isGitChangesErrorCause(
+	value: unknown,
+): value is GitChangesErrorCause {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		typeof (value as { kind?: unknown }).kind === "string" &&
+		GIT_CHANGES_CAUSE_KINDS.has((value as { kind: string }).kind)
+	);
 }
 
 /** Whether a file status represents a brand-new file (no previous version to diff against) */

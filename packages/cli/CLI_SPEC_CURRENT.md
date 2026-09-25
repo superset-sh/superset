@@ -156,6 +156,17 @@ The desktop app uses the same host manifest schema and home tree in
 production, so a desktop-started host service and a CLI-started host
 service can discover each other through the same manifest path.
 
+Desktop-managed terminals also set `SUPERSET_ORGANIZATION_ID` to the
+workspace's organization. The CLI prefers that invocation-scoped value over
+the active organization stored in `config.json`, which keeps workspace and
+host routing aligned without changing the user's global CLI selection.
+
+The desktop bundle contains only the `superset` executable, not the standalone
+`superset-host` runtime and its Node/native dependencies. `superset start`
+discovers Desktop's already-running service through the shared manifest; use
+the standalone CLI distribution when a new headless host service must be
+launched.
+
 The standalone install script is separate from runtime state. It installs
 the CLI and host binary under `SUPERSET_HOME` (default `~/superset`) and
 adds `<SUPERSET_HOME>/bin` to the user's shell `PATH`. These locations do

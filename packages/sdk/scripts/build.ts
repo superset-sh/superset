@@ -8,6 +8,10 @@
  *
  * Strategy: bun bundles src/index.ts → dist/index.{js,cjs}; tsc emits the
  * .d.ts hierarchy into dist/. dist/package.json points at the bundled output.
+ *
+ * Releasing: bump "version" in package.json, run this script, publish from
+ * dist/. src/version.ts is stamped from package.json here and is never
+ * hand-edited; commit the regenerated file with the release.
  */
 
 import { execSync } from "node:child_process";
@@ -25,6 +29,16 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const DIST = join(ROOT, "dist");
+
+const pkg = JSON.parse(
+	readFileSync(join(ROOT, "package.json"), "utf-8"),
+) as Record<string, unknown>;
+
+console.log(`> stamping src/version.ts with ${pkg.version}`);
+writeFileSync(
+	join(ROOT, "src", "version.ts"),
+	`// Stamped from package.json by scripts/build.ts. Do not edit.\nexport const VERSION = "${pkg.version}";\n`,
+);
 
 console.log(`> cleaning ${DIST}`);
 rmSync(DIST, { recursive: true, force: true });
@@ -55,9 +69,6 @@ for (const f of ["LICENSE", "README.md", "api.md"]) {
 }
 
 console.log("> writing dist/package.json");
-const pkg = JSON.parse(
-	readFileSync(join(ROOT, "package.json"), "utf-8"),
-) as Record<string, unknown>;
 const publishName =
 	(pkg.publishConfig as { name?: string } | undefined)?.name ??
 	(pkg.name as string);

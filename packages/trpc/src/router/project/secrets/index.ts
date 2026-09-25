@@ -1,1 +1,0 @@
-export { secretsRouter } from "./secrets";

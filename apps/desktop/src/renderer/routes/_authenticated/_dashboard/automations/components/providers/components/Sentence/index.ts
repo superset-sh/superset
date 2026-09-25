@@ -1,0 +1,1 @@
+export { Sentence } from "./Sentence";

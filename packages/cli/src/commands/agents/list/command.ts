@@ -5,8 +5,8 @@ import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 export default command({
 	description: "List agents configured on a host",
 	options: {
-		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		host: string().desc("Target host machineId (required unless --local)"),
+		local: boolean().desc("Target this machine (required unless --host)"),
 	},
 	display: (data) =>
 		table(
@@ -25,22 +25,13 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
-		const terminalConfigs =
-			await target.client.settings.agentConfigs.list.query();
-		return [
-			...terminalConfigs,
-			{
-				id: "superset",
-				presetId: "superset",
-				label: "Superset",
-				command: "(superset runtime)",
-			},
-		];
+		return await target.client.settings.agentConfigs.list.query();
 	},
 });

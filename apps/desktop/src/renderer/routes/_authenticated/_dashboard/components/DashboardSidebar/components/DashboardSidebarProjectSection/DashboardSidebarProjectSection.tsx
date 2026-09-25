@@ -2,15 +2,16 @@ import type {
 	DraggableAttributes,
 	DraggableSyntheticListeners,
 } from "@dnd-kit/core";
-import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
+import { DeleteProjectDialog } from "renderer/routes/_authenticated/components/DeleteProjectDialog";
 import type { DashboardSidebarProject } from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardSidebarCollapsedProjectContent";
 import { DashboardSidebarExpandedProjectContent } from "./components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarProjectContextMenu } from "./components/DashboardSidebarProjectContextMenu";
 import { DashboardSidebarProjectRow } from "./components/DashboardSidebarProjectRow";
+import { ImportWorktreesDialog } from "./components/ImportWorktreesDialog";
 import { useDashboardSidebarProjectSectionActions } from "./hooks/useDashboardSidebarProjectSectionActions";
 
 interface DashboardSidebarProjectSectionProps {
@@ -40,16 +41,27 @@ export function DashboardSidebarProjectSection({
 	);
 
 	const {
+		canDeleteProject,
 		cancelRename,
-		confirmRemoveFromSidebar,
+		confirmImportWorktrees,
 		deleteSection,
+		handleImportWorktrees,
 		handleNewSection,
+		hideProject,
+		isDeleteDialogOpen,
+		leaveProjectIfActive,
+		openDeleteDialog,
+		projectHostIds,
+		setIsDeleteDialogOpen,
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		importableWorktrees,
+		isImportingWorktrees,
 		isRenaming,
 		renameSection,
 		renameValue,
+		setImportableWorktrees,
 		setRenameValue,
 		startRename,
 		submitRename,
@@ -60,44 +72,77 @@ export function DashboardSidebarProjectSection({
 
 	const totalWorkspaceCount = flattenedCollapsedWorkspaces.length;
 
+	const deleteProjectDialog = canDeleteProject && (
+		<DeleteProjectDialog
+			open={isDeleteDialogOpen}
+			onOpenChange={setIsDeleteDialogOpen}
+			projectId={project.id}
+			projectName={project.name}
+			hostIds={projectHostIds}
+			onDeleted={leaveProjectIfActive}
+		/>
+	);
+
+	// Rendered only while open so the checkbox state resets per invocation.
+	const importWorktreesDialog = importableWorktrees && (
+		<ImportWorktreesDialog
+			open
+			worktrees={importableWorktrees}
+			isImporting={isImportingWorktrees}
+			onOpenChange={(open) => {
+				if (!open) setImportableWorktrees(null);
+			}}
+			onConfirm={confirmImportWorktrees}
+		/>
+	);
+
 	if (isSidebarCollapsed) {
 		return (
 			<DashboardSidebarProjectContextMenu
+				projectId={project.id}
 				onCreateSection={handleNewSection}
+				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
-				onRemoveFromSidebar={confirmRemoveFromSidebar}
+				onHide={hideProject}
+				onDelete={canDeleteProject ? openDeleteDialog : null}
 				onRename={startRename}
 			>
-				<div className={cn("border-b border-border last:border-b-0")}>
+				<div className="mt-1 first:mt-0">
 					<DashboardSidebarCollapsedProjectContent
+						projectId={project.id}
 						projectName={project.name}
 						iconUrl={project.iconUrl}
+						projectColor={project.color}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
-						workspaces={flattenedCollapsedWorkspaces}
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
 					/>
+					{importWorktreesDialog}
+					{deleteProjectDialog}
 				</div>
 			</DashboardSidebarProjectContextMenu>
 		);
 	}
 
 	return (
-		<div className={cn("border-b border-border last:border-b-0")}>
+		<div className="mt-1 first:mt-0">
 			<DashboardSidebarProjectContextMenu
+				projectId={project.id}
 				onCreateSection={handleNewSection}
+				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
-				onRemoveFromSidebar={confirmRemoveFromSidebar}
+				onHide={hideProject}
+				onDelete={canDeleteProject ? openDeleteDialog : null}
 				onRename={startRename}
 			>
 				<DashboardSidebarProjectRow
 					projectName={project.name}
 					iconUrl={project.iconUrl}
-					totalWorkspaceCount={totalWorkspaceCount}
+					projectColor={project.color}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}
 					renameValue={renameValue}
@@ -122,9 +167,9 @@ export function DashboardSidebarProjectSection({
 						className="overflow-hidden"
 					>
 						<DashboardSidebarExpandedProjectContent
+							containerId={project.id}
 							projectId={project.id}
 							isCollapsed={project.isCollapsed}
-							projectChildren={project.children}
 							workspaceShortcutLabels={workspaceShortcutLabels}
 							onWorkspaceHover={onWorkspaceHover}
 							onDeleteSection={deleteSection}
@@ -134,6 +179,8 @@ export function DashboardSidebarProjectSection({
 					</motion.div>
 				)}
 			</AnimatePresence>
+			{importWorktreesDialog}
+			{deleteProjectDialog}
 		</div>
 	);
 }

@@ -136,7 +136,7 @@ describe("BENCH: pathTypes heap delta vs unique paths", () => {
 		const manager = new FsWatcherManager({ debounceMs: 50 });
 		let createCount = 0;
 		const unsubscribe = await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
+			{ absolutePath: rootPath },
 			(batch) => {
 				for (const event of batch.events) {
 					if (event.kind === "create") createCount++;

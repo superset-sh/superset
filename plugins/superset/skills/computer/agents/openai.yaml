@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Computer"
+  short_description: "Operate native desktop apps and windows through an accessibility driver"
+  default_prompt: "Use $superset-computer to operate this desktop app and verify the result."

@@ -1,10 +1,19 @@
-import { copyFile, mkdtemp, open, realpath, rm, stat } from "node:fs/promises";
+import {
+	copyFile,
+	mkdtemp,
+	open,
+	readFile,
+	realpath,
+	rm,
+	stat,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import {
 	BINARY_SNIFF_BYTES,
 	isBinaryMediaFile,
 } from "@superset/shared/media-files";
+import { TRPCError } from "@trpc/server";
 import type { SimpleGit } from "simple-git";
 import { resolveUpstream } from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
@@ -25,11 +34,15 @@ const UNTRACKED_IO_CONCURRENCY = 64;
 // file size, and comfortably covers the 8KB binary sniff window.
 const UNTRACKED_READ_CHUNK_SIZE = 64 * 1024;
 
-async function mapWithConcurrency<T>(
+/** Runs `fn` over `items` with at most `limit` in flight at once, returning
+ * results in input order. Shared by any caller that needs to bound
+ * concurrent subprocess/file-descriptor usage across a batch. */
+export async function mapWithConcurrency<T, R>(
 	items: T[],
 	limit: number,
-	fn: (item: T) => Promise<void>,
-): Promise<void> {
+	fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
 	let next = 0;
 	const workers = Array.from(
 		{ length: Math.min(limit, items.length) },
@@ -37,11 +50,12 @@ async function mapWithConcurrency<T>(
 			while (true) {
 				const i = next++;
 				if (i >= items.length) return;
-				await fn(items[i] as T);
+				results[i] = await fn(items[i] as T, i);
 			}
 		},
 	);
 	await Promise.all(workers);
+	return results;
 }
 
 /** Map git's single-letter status codes to GitHub-aligned FileStatus */
@@ -341,6 +355,7 @@ export async function countUntrackedFileLines(
 				// the \n, so counting \n bytes is equivalent.)
 				file.additions =
 					lastByte === -1 ? 0 : lastByte === 0x0a ? newlines : newlines + 1;
+				file.deletions = 0;
 			} finally {
 				await handle.close();
 			}
@@ -398,7 +413,12 @@ export async function detectUnstagedRenames(
 			GIT_INDEX_FILE: tempIndex,
 		});
 
-		await tempGit.raw(["add", "--intent-to-add", "--", ...untrackedPaths]);
+		await tempGit.raw([
+			"add",
+			"--intent-to-add",
+			"--",
+			...untrackedPaths.map((path) => `:(literal)${path}`),
+		]);
 
 		const [nameStatusRaw, numstatRaw] = await Promise.all([
 			tempGit.raw(["diff", "--name-status", "-z", "-M"]),
@@ -464,4 +484,165 @@ export async function getChangedFilesForDiff(
 	} catch {
 		return [];
 	}
+}
+
+/** Rejects a caller-supplied relative path that could escape the worktree
+ * (absolute, `..` traversal, or the worktree root itself) — required before
+ * any git/fs operation joins it onto a worktree path. */
+export function assertSafeRelativePath(filePath: string): void {
+	if (isAbsolute(filePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Absolute paths are not allowed",
+		});
+	}
+	const normalized = normalize(filePath);
+	if (normalized.split(sep).includes("..")) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Path traversal is not allowed",
+		});
+	}
+	if (normalized === "" || normalized === ".") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Cannot target worktree root",
+		});
+	}
+}
+
+export type DiffCategory = "against-base" | "staged" | "unstaged" | "commit";
+
+/** Refs shared by every file in a `getDiff`/`getDiffBulk` request for a given
+ * category — resolved once per request rather than once per file. */
+export interface DiffCategoryRefs {
+	/** against-base: merge-base(baseRef, HEAD) */
+	originRef?: string;
+	/** commit: the "before" ref (fromHash, or commitHash^) */
+	fromRef?: string;
+	/** commit: the commit itself */
+	toRef?: string;
+}
+
+export async function resolveDiffCategoryRefs(
+	git: SimpleGit,
+	category: DiffCategory,
+	opts: { baseBranch?: string; commitHash?: string; fromHash?: string },
+): Promise<DiffCategoryRefs> {
+	if (category === "against-base") {
+		const base = await resolveBaseComparison(git, opts.baseBranch);
+		const baseRef = base?.baseRef ?? "HEAD";
+		// Use the merge base so the diff excludes unrelated changes landed on
+		// the base branch after we forked — matches what the file list
+		// (3-dot diff) is already filtered by.
+		const originRef = await git
+			.raw(["merge-base", baseRef, "HEAD"])
+			.then((s) => s.trim())
+			.catch(() => baseRef);
+		return { originRef };
+	}
+	if (category === "commit") {
+		if (!opts.commitHash) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "commitHash is required for commit diffs",
+			});
+		}
+		return {
+			fromRef: opts.fromHash ?? `${opts.commitHash}^`,
+			toRef: opts.commitHash,
+		};
+	}
+	return {};
+}
+
+export async function loadFileDiffContent(
+	git: SimpleGit,
+	worktreePath: string,
+	category: DiffCategory,
+	path: string,
+	refs: DiffCategoryRefs,
+): Promise<{
+	oldFile: { name: string; contents: string };
+	newFile: { name: string; contents: string };
+}> {
+	let originalContent = "";
+	let modifiedContent = "";
+
+	if (category === "against-base") {
+		try {
+			originalContent = await git.show([`${refs.originRef}:${path}`]);
+		} catch {}
+		try {
+			modifiedContent = await git.show([`HEAD:${path}`]);
+		} catch {}
+	} else if (category === "staged") {
+		try {
+			originalContent = await git.show([`HEAD:${path}`]);
+		} catch {}
+		try {
+			modifiedContent = await git.show([`:0:${path}`]);
+		} catch {}
+	} else if (category === "commit") {
+		try {
+			originalContent = await git.show([`${refs.fromRef}:${path}`]);
+		} catch {}
+		try {
+			modifiedContent = await git.show([`${refs.toRef}:${path}`]);
+		} catch {}
+	} else {
+		// Unstaged: compare index (staged version) against working tree.
+		// If the file isn't in the index (untracked), originalContent stays
+		// empty = "new file".
+		try {
+			originalContent = await git.show([`:0:${path}`]);
+		} catch {}
+		try {
+			modifiedContent = await readFile(`${worktreePath}/${path}`, "utf-8");
+		} catch {}
+	}
+
+	const fileName = path.split("/").pop() ?? path;
+	return {
+		oldFile: { name: fileName, contents: originalContent },
+		newFile: { name: fileName, contents: modifiedContent },
+	};
+}
+
+/**
+ * Expand the `dir/` entries `--untracked-files=normal` collapses back into the
+ * individual files `-uall` would have listed, keyed by the collapsed entry.
+ * The walk is scoped to the untracked directories themselves rather than the
+ * whole worktree, so it costs a fraction of what `-uall` does — and nothing at
+ * all in the common case where there are no untracked directories.
+ */
+export async function expandUntrackedDirectories(
+	git: SimpleGit,
+	untrackedPaths: string[],
+): Promise<Map<string, string[]>> {
+	const dirs = untrackedPaths.filter((path) => path.endsWith("/"));
+	const expanded = new Map<string, string[]>();
+	if (dirs.length === 0) return expanded;
+
+	// `--exclude-standard` matches what status itself honours, including
+	// .gitignore files nested inside the untracked directory.
+	const raw = await git
+		.raw([
+			"ls-files",
+			"--others",
+			"--exclude-standard",
+			"-z",
+			"--",
+			...dirs.map((dir) => `:(literal)${dir}`),
+		])
+		.catch(() => "");
+
+	for (const path of raw.split("\0").filter(Boolean)) {
+		const dir = dirs.find((candidate) => path.startsWith(candidate));
+		if (!dir) continue;
+		const files = expanded.get(dir);
+		if (files) files.push(path);
+		else expanded.set(dir, [path]);
+	}
+	return expanded;
 }

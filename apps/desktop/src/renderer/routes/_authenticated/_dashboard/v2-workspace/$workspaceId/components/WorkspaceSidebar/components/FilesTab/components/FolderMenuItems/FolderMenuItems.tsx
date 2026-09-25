@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -26,22 +27,22 @@ export function FolderMenuItems({
 		<>
 			<DropdownMenuItem onSelect={() => setTimeout(onNewFile, 0)}>
 				<FilePlus />
-				New File...
+				<Trans>New File...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem onSelect={() => setTimeout(onNewFolder, 0)}>
 				<FolderPlus />
-				New Folder...
+				<Trans>New Folder...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<PathActions absolutePath={absolutePath} relativePath={relativePath} />
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
 				<Pencil />
-				Rename...
+				<Trans>Rename...</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem variant="destructive" onSelect={onDelete}>
 				<Trash2 />
-				Delete
+				<Trans>Delete</Trans>
 			</DropdownMenuItem>
 		</>
 	);

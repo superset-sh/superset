@@ -1,1 +1,0 @@
-export { OpenAIProviderHeading } from "./OpenAIProviderHeading";

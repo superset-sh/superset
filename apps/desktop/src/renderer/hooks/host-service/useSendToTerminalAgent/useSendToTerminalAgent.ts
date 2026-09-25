@@ -1,8 +1,11 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { normalizeTerminalCommand } from "renderer/lib/terminal/launch-command";
+import { getTerminalAgentBindingsQueryKey } from "../useTerminalAgentBindings/useTerminalAgentBindings";
 
 export type AgentPromptFileSide = "additions" | "deletions" | "mixed";
 
@@ -48,7 +51,7 @@ export function formatAgentPromptWithFileContext({
 export interface SendToTerminalAgentInput {
 	workspaceId: string;
 	terminalId: string;
-	/** Already-formatted prompt body. Trailing newline is added by the hook. */
+	/** Already-formatted prompt body. The host submits it with Enter. */
 	text: string;
 }
 
@@ -59,32 +62,50 @@ interface UseSendToTerminalAgentResult {
 
 /**
  * Shared writer for pushing a comment/prompt into an existing terminal
- * agent's pty via the host-service `terminal.writeInput` mutation.
+ * agent via the host-service `terminal.send` mutation, which paste-frames the
+ * text. `terminal.writeInput` delivers raw keystrokes: a TUI reads a prompt's
+ * embedded newlines as Enter presses and drops or splits the text.
  * Surfaces (DiffPane composer, file-viewer comments, etc.) should funnel
  * through this so the payload normalization + error toast stay consistent.
  */
 export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
-	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
+	const { t } = useLingui();
+	const queryClient = useQueryClient();
+	const sendToTerminal = workspaceTrpc.terminal.send.useMutation();
 
 	const send = useCallback(
 		async ({ workspaceId, terminalId, text }: SendToTerminalAgentInput) => {
 			try {
-				// Sanitize here, not in terminal.writeInput — that channel also
-				// carries real keystrokes, which legitimately contain ESC sequences.
-				await writeInput.mutateAsync({
+				await sendToTerminal.mutateAsync({
 					workspaceId,
 					terminalId,
-					data: normalizeTerminalCommand(sanitizePromptForPty(text)),
+					text: sanitizePromptForPty(text).trimEnd(),
+					submit: true,
 				});
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Unknown error";
-				toast.error("Couldn't send to agent", { description: message });
+				// The likeliest failure is a target whose pty died (daemon crash,
+				// reboot) while its session row lagged behind — refetch the
+				// bindings so the composer stops offering the dead agent.
+				void queryClient.invalidateQueries({
+					queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
+				});
+				const message = errorMessage(
+					error,
+					t({
+						message: "Unknown error",
+					}),
+				);
+				toast.error(
+					t({
+						message: "Couldn't send to agent",
+					}),
+					{ description: message },
+				);
 				throw error;
 			}
 		},
-		[writeInput],
+		[sendToTerminal, t, queryClient],
 	);
 
-	return { send, isPending: writeInput.isPending };
+	return { send, isPending: sendToTerminal.isPending };
 }

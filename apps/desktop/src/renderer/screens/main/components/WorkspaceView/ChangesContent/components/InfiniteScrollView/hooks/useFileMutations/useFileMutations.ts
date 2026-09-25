@@ -3,20 +3,13 @@ import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangedFile } from "shared/changes-types";
 
-export function useFileMutations({
-	worktreePath,
-	baseBranch,
-}: {
-	worktreePath: string;
-	baseBranch: string;
-}) {
+export function useFileMutations({ worktreePath }: { worktreePath: string }) {
 	const trpcUtils = electronTrpc.useUtils();
 	const refetch = useCallback(() => {
 		trpcUtils.changes.getStatus.invalidate({
 			worktreePath,
-			defaultBranch: baseBranch,
 		});
-	}, [trpcUtils, worktreePath, baseBranch]);
+	}, [trpcUtils, worktreePath]);
 
 	const stageFileMutation = electronTrpc.changes.stageFile.useMutation({
 		onSuccess: () => refetch(),

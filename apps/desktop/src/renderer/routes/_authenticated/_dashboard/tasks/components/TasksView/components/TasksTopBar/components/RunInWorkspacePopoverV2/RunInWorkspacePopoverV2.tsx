@@ -1,3 +1,6 @@
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -9,27 +12,22 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HiCheck, HiMiniPlay } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { env } from "renderer/env.renderer";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
-import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
-import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
-import { MOCK_ORG_ID } from "shared/constants";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskBatchAgent";
@@ -57,13 +55,9 @@ export function RunInWorkspacePopoverV2({
 	tasks,
 	onComplete,
 }: RunInWorkspacePopoverV2Props) {
-	const collections = useCollections();
+	const { t } = useLingui();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { submit } = useWorkspaceCreates();
 
@@ -87,45 +81,18 @@ export function RunInWorkspacePopoverV2({
 	const launchHostUrl = useHostUrl(hostId);
 	const setUpProjectIds = useSelectedHostProjectIds(hostId);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId),
-				)
-				.select(({ projects }) => ({ ...projects })),
-		[collections, activeOrganizationId],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
-				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				iconUrl: project.iconUrl ?? null,
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
 				needsSetup:
 					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
-			};
-		});
-	}, [v2Projects, githubRepositories, setUpProjectIds]);
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
 
 	const seededProjectId =
 		lastProjectId &&
@@ -178,26 +145,47 @@ export function RunInWorkspacePopoverV2({
 	const [projectPickerOpen, setProjectPickerOpen] = useState(false);
 
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!selectedProjectId) return "Select a project";
-		if (!hostId) return "No active host";
+		if (!selectedProjectId)
+			return t({
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				message: "No active host",
+			});
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				message: "Host service is not running",
+			});
 		}
 		// Block while the host's project list is still loading — otherwise users
 		// can submit before we know whether the project is set up there.
-		if (setUpProjectIds === null) return "Checking host…";
+		if (setUpProjectIds === null)
+			return t({
+				message: "Checking host…",
+			});
 		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
+			return t({
+				message: "Project not set up on this host",
+			});
 		}
 		// Agent UUIDs are host-scoped; block until the host-specific config
 		// query resolves and the selection is verified to exist there.
 		if (selectedAgent !== NONE) {
-			if (!v2AgentsFetched) return "Checking agents…";
+			if (!v2AgentsFetched)
+				return t({
+					message: "Checking agents…",
+				});
 			if (!validAgentIds.has(selectedAgent)) {
-				return "Selected agent is not available on this host";
+				return t({
+					message: "Selected agent is not available on this host",
+				});
 			}
 		}
 		return null;
@@ -212,6 +200,7 @@ export function RunInWorkspacePopoverV2({
 		machineId,
 		otherHosts,
 		activeHostUrl,
+		t,
 	]);
 
 	const handleRun = () => {
@@ -219,7 +208,7 @@ export function RunInWorkspacePopoverV2({
 		if (submitBlocker) {
 			if (hostId === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "run tasks in workspaces",
+					action: "runTasksInWorkspaces",
 				});
 			} else {
 				toast.error(submitBlocker);
@@ -234,7 +223,12 @@ export function RunInWorkspacePopoverV2({
 					id: crypto.randomUUID(),
 					projectId: selectedProjectId,
 					name: task.title,
-					branch: deriveBranchName({ slug: task.slug, title: task.title }),
+					branch: deriveBranchName({
+						slug: task.slug,
+						title: task.title,
+						branch: task.branch,
+					}),
+					skipBranchPrefix: task.branch?.trim() ? true : undefined,
 					taskId: task.id,
 					agents:
 						selectedAgent === NONE
@@ -265,9 +259,20 @@ export function RunInWorkspacePopoverV2({
 		);
 
 		toast.promise(promise, {
-			loading: `Creating ${tasks.length} workspace${tasks.length === 1 ? "" : "s"}...`,
-			success: (count) => `Created ${count} workspace${count === 1 ? "" : "s"}`,
-			error: (err) => (err instanceof Error ? err.message : String(err)),
+			loading: t({
+				message: plural(tasks.length, {
+					one: "Creating # workspace...",
+					other: "Creating # workspaces...",
+				}),
+			}),
+			success: (count) =>
+				t({
+					message: plural(count, {
+						one: "Created # workspace",
+						other: "Created # workspaces",
+					}),
+				}),
+			error: (err) => errorMessage(err),
 		});
 
 		setOpen(false);
@@ -283,7 +288,7 @@ export function RunInWorkspacePopoverV2({
 					className="h-7 text-xs gap-1.5 bg-muted/50"
 				>
 					<HiMiniPlay className="size-3" />
-					Run in Workspace
+					<Trans>Run in Workspace</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-72 p-0">
@@ -316,7 +321,7 @@ export function RunInWorkspacePopoverV2({
 										</>
 									) : (
 										<span className="text-muted-foreground">
-											Select project
+											<Trans>Select project</Trans>
 										</span>
 									)}
 								</span>
@@ -325,9 +330,15 @@ export function RunInWorkspacePopoverV2({
 						</PopoverTrigger>
 						<PopoverContent align="start" className="w-60 p-0">
 							<Command>
-								<CommandInput placeholder="Search projects..." />
+								<CommandInput
+									placeholder={t({
+										message: "Search projects...",
+									})}
+								/>
 								<CommandList>
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>
+										<Trans>No projects found.</Trans>
+									</CommandEmpty>
 									<CommandGroup>
 										{recentProjects.map((project) => (
 											<CommandItem
@@ -347,7 +358,7 @@ export function RunInWorkspacePopoverV2({
 												<span className="flex-1 truncate">{project.name}</span>
 												{project.needsSetup === true && (
 													<span className="text-[10px] text-amber-500">
-														not set up
+														<Trans>not set up</Trans>
 													</span>
 												)}
 												{project.id === selectedProjectId && (
@@ -364,12 +375,16 @@ export function RunInWorkspacePopoverV2({
 					<AgentSelect<SelectedAgent>
 						agents={v2Agents}
 						value={selectedAgent}
-						placeholder="Select agent"
+						placeholder={t({
+							message: "Select agent",
+						})}
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
 						allowNone
-						noneLabel="No agent"
+						noneLabel={t({
+							message: "No agent",
+						})}
 						noneValue={NONE}
 					/>
 				</div>
@@ -381,7 +396,11 @@ export function RunInWorkspacePopoverV2({
 						disabled={!!submitBlocker}
 						onClick={handleRun}
 					>
-						Run {tasks.length} Workspace{tasks.length === 1 ? "" : "s"}
+						<Plural
+							value={tasks.length}
+							one="Run # Workspace"
+							other="Run # Workspaces"
+						/>
 					</Button>
 				</div>
 			</PopoverContent>

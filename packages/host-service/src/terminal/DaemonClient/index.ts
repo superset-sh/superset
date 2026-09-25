@@ -5,4 +5,4 @@ export type {
 	Signal,
 	SubscribeCallbacks,
 } from "./DaemonClient.ts";
-export { DaemonClient } from "./DaemonClient.ts";
+export { DaemonClient, DaemonUnavailableError } from "./DaemonClient.ts";

@@ -1,127 +1,59 @@
-import { SupersetError } from "../core/error";
+import type { APIPromise } from "../core/api-promise";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
 
 /**
- * Configured terminal-agent rows live on each developer's host service —
- * one row per installed agent in Settings → Agents on that machine. Reads
- * (`list`) and the launch action (`create`) are routed to a specific host
- * through the relay tunnel.
+ * Agents run in terminal sessions inside a cloud workspace's sandbox. The
+ * workspace must be `ready` (see `workspaces.retrieve`).
  *
- * Mirrors the CLI's `superset agents …` commands.
+ * Mirrors the CLI's `superset agents create`.
  */
 export class Agents extends APIResource {
 	/**
-	 * List agents configured on a host — the rows that drive the agent picker
-	 * inside workspaces, in persisted display order. Includes user edits to
-	 * label/command/args/env. First call on a fresh host seeds bundled
-	 * defaults.
-	 *
-	 * Mirrors `superset agents list --host <id>`.
+	 * Launch an agent session in a cloud workspace: starts the named built-in
+	 * agent in a fresh terminal session there.
 	 */
-	list(params: AgentListParams, options?: RequestOptions) {
-		this._requireOrgId();
-		return this._client.hostQuery<AgentListResponse>(
-			params.hostId,
-			"settings.agentConfigs.list",
-			undefined,
+	create(
+		params: AgentCreateParams,
+		options?: RequestOptions,
+	): APIPromise<AgentCreateResult> {
+		return this._client.workspaceMutation<AgentCreateResult>(
+			params.workspaceId,
+			{ method: "agents.create", procedure: "agents.run" },
+			{
+				workspaceId: params.workspaceId,
+				agent: params.agent,
+				prompt: params.prompt,
+				resumeSessionId: params.resumeSessionId,
+				model: params.model,
+				effort: params.effort,
+			},
 			options,
 		);
 	}
-
-	/**
-	 * Create (launch) an agent session inside an existing workspace. Looks up
-	 * the host that owns the workspace (cloud index) and starts the named
-	 * preset (or HostAgentConfig instance) in a fresh terminal session on that
-	 * host. Pass an explicit `hostId` to skip the lookup.
-	 *
-	 * Mirrors `superset agents create`.
-	 */
-	async create(
-		params: AgentCreateParams,
-		options?: { hostId?: string },
-	): Promise<AgentCreateResult> {
-		this._requireOrgId();
-		let hostId = options?.hostId;
-		if (!hostId) {
-			const cloud = await this._client.query<HostLookup | null>(
-				"v2Workspace.getFromHost",
-				{
-					organizationId: this._client.organizationId,
-					id: params.workspaceId,
-				},
-			);
-			if (!cloud) {
-				throw new SupersetError(`Workspace not found: ${params.workspaceId}`);
-			}
-			hostId = cloud.hostId;
-		}
-		return this._client.hostMutation<AgentCreateResult>(hostId, "agents.run", {
-			workspaceId: params.workspaceId,
-			agent: params.agent,
-			prompt: params.prompt,
-			attachmentIds: params.attachmentIds,
-		});
-	}
-
-	private _requireOrgId(): string {
-		if (!this._client.organizationId) {
-			throw new SupersetError(
-				"organizationId is required. Set SUPERSET_ORGANIZATION_ID, or pass `organizationId` to the Superset constructor.",
-			);
-		}
-		return this._client.organizationId;
-	}
-}
-
-export type PromptTransport = "argv" | "stdin";
-
-/** A configured terminal-agent row on a host (from `list`). */
-export interface HostAgentConfig {
-	id: string;
-	presetId: string;
-	label: string;
-	command: string;
-	args: string[];
-	promptTransport: PromptTransport;
-	promptArgs: string[];
-	env: Record<string, string>;
-	order: number;
-}
-
-export type AgentListResponse = Array<HostAgentConfig>;
-
-export interface AgentListParams {
-	/** Host machineId to query (see `hosts.list()`). */
-	hostId: string;
 }
 
 export interface AgentCreateParams {
-	/** Workspace UUID to launch the agent session in. */
+	/** Cloud workspace id to launch the agent session in. */
 	workspaceId: string;
-	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
+	/** Built-in agent id installed in the sandbox (e.g. `"claude"` or `"codex"`). */
 	agent: string;
-	/** Prompt sent to the agent. */
-	prompt: string;
-	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
-	attachmentIds?: string[];
+	/** Prompt sent to the agent. Optional when `resumeSessionId` is provided. */
+	prompt?: string;
+	/** Session id of a previous run of this agent to restore instead of starting fresh (e.g. `claude --resume <id>`). */
+	resumeSessionId?: string;
+	/** Model for this launch. Supported values depend on the agent; omit to use its default. */
+	model?: string;
+	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
+	effort?: string;
 }
 
-interface HostLookup {
-	hostId: string;
-}
-
-export type AgentCreateResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+export type AgentCreateResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
 export declare namespace Agents {
-	export type {
-		HostAgentConfig,
-		AgentListResponse,
-		AgentListParams,
-		AgentCreateParams,
-		AgentCreateResult,
-		PromptTransport,
-	};
+	export type { AgentCreateParams, AgentCreateResult };
 }

@@ -1,1 +1,0 @@
-export { DitheredBackground } from "./DitheredBackground";

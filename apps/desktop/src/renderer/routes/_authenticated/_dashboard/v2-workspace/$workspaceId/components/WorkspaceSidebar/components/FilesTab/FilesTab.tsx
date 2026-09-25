@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	FileTreeRenameEvent,
 	FileTreeRowDecoration,
@@ -10,7 +11,6 @@ import {
 	useFileTree as usePierreFileTree,
 } from "@pierre/trees/react";
 import type { AppRouter } from "@superset/host-service";
-import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
@@ -19,6 +19,7 @@ import {
 	FoldVertical,
 	Loader2,
 	RefreshCw,
+	Search,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
@@ -28,9 +29,12 @@ import {
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
-import { createPierreTreeStyle } from "renderer/lib/pierreTree";
+import {
+	createPierreTreeStyle,
+	PIERRE_TREE_UNSAFE_CSS,
+} from "renderer/lib/pierreTree";
+import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
-import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
 import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
 import { FilesTabHeaderButton } from "./components/FilesTabHeaderButton";
@@ -43,6 +47,7 @@ import {
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
 import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
+import { useFileTreeScrollFade } from "./hooks/useFileTreeScrollFade";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
 import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
@@ -63,6 +68,7 @@ interface FilesTabProps {
 	} | null;
 	workspaceId: string;
 	gitStatus: GitStatusData | undefined;
+	onSearch?: () => void;
 }
 
 export function FilesTab({
@@ -71,10 +77,18 @@ export function FilesTab({
 	pendingReveal,
 	workspaceId,
 	gitStatus,
+	onSearch,
 }: FilesTabProps) {
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	const { t } = useLingui();
+	// Shares the query cache with V2WorkspacePage's workspace.get query, so
+	// the first render after a workspace switch typically already has cached
+	// data from React Query (the parent route resolves it first). staleTime
+	// is set high enough that intra-session switches to a previously-visited
+	// workspace render instantly without a refetch.
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
@@ -101,6 +115,7 @@ export function FilesTab({
 	const handlersRef = useRef({
 		onSelect(_path: string) {},
 		onRename(_event: FileTreeRenameEvent) {},
+		onRenameError(_message: string) {},
 		renderRowDecoration(
 			_ctx: FileTreeRowDecorationContext,
 		): FileTreeRowDecoration | null {
@@ -112,9 +127,10 @@ export function FilesTab({
 		paths: [],
 		initialExpansion: "closed",
 		search: false,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
 		renaming: {
 			onRename: (event) => handlersRef.current.onRename(event),
-			onError: (message) => toast.error(message),
+			onError: (message) => handlersRef.current.onRenameError(message),
 		},
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
@@ -133,15 +149,49 @@ export function FilesTab({
 	});
 
 	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
-	const { reveal, startCreating, handleRename, handleDelete, collapseAll } =
-		useFilesTabActions({
-			model,
-			bridge,
-			rootPath,
-			workspaceId,
-			selectedFilePath,
-			onSelectFile,
-		});
+	const {
+		reveal,
+		startCreating,
+		handleRename,
+		handleRenameError,
+		handleDelete,
+		collapseAll,
+	} = useFilesTabActions({
+		model,
+		bridge,
+		rootPath,
+		workspaceId,
+	});
+
+	// Clicking blank space below the rows clears the selection, so "New Folder"
+	// can target the workspace root.
+	//
+	// This sits on the tab's outermost element, so it sees every click in the
+	// tab — including the header's own buttons, which bubble up here. Only a
+	// click that reaches the empty tree viewport should deselect: Refresh or
+	// Collapse All silently retargeting the next New Folder at the root would be
+	// far worse than a sticky selection. Pierre renders rows in a shadow root
+	// and stamps them with `data-item-path`, so walk composedPath() and bail on
+	// a row, the header, or any interactive control.
+	const handleTreeBackgroundClick = useCallback(
+		(event: React.MouseEvent<HTMLDivElement>) => {
+			for (const node of event.nativeEvent.composedPath()) {
+				if (!(node instanceof HTMLElement)) continue;
+				if (
+					node.dataset.itemPath !== undefined ||
+					node.dataset.fileTreeHeader !== undefined ||
+					node.closest("button, a, input, [role='button'], [role='menuitem']")
+				) {
+					return;
+				}
+			}
+			for (const selectedPath of model.getSelectedPaths()) {
+				model.getItem(selectedPath)?.deselect();
+			}
+		},
+		[model],
+	);
+
 	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
 
 	// Push live git status updates into Pierre.
@@ -173,6 +223,7 @@ export function FilesTab({
 	// Wire the ref-based handlers so Pierre's stable callbacks always reach
 	// the latest closures. Updated on every render — no diffing needed.
 	handlersRef.current.onRename = (event) => void handleRename(event);
+	handlersRef.current.onRenameError = (message) => handleRenameError(message);
 	handlersRef.current.onSelect = (treePath) => {
 		const abs = toAbs(rootPath, treePath);
 		// Skip the reveal-induced echo. The reveal flow programmatically
@@ -243,13 +294,17 @@ export function FilesTab({
 			);
 		},
 		[
-			model,
 			rootPath,
 			startCreating,
 			handleDelete,
 			onSelectFile,
 			openInExternalEditor,
+			model.startRenaming,
 		],
+	);
+
+	const fadeContainerRef = useFileTreeScrollFade<HTMLDivElement>(
+		Boolean(rootPath),
 	);
 
 	if (!rootPath) {
@@ -258,10 +313,14 @@ export function FilesTab({
 				{workspaceQuery.isLoading ? (
 					<>
 						<Loader2 className="size-3.5 animate-spin" />
-						<span>Loading files...</span>
+						<span>
+							<Trans>Loading files...</Trans>
+						</span>
 					</>
 				) : (
-					"Workspace worktree not available"
+					t({
+						message: "Workspace worktree not available",
+					})
 				)}
 			</div>
 		);
@@ -269,9 +328,12 @@ export function FilesTab({
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
+		// biome-ignore lint/a11y/useKeyWithClickEvents: click target is the empty background below the rows, used only to clear the selection; keyboard users move between rows directly and never land on it
 		<div
+			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
+			onClick={handleTreeBackgroundClick}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}
@@ -282,28 +344,50 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-							<span className="truncate">Explorer</span>
-							<div className="flex items-center gap-0.5">
+						<div
+							data-file-tree-header="true"
+							className="group flex h-10 items-center gap-1 bg-background px-2"
+						>
+							{onSearch && (
+								<button
+									type="button"
+									onClick={onSearch}
+									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								>
+									<Search className="size-3.5 shrink-0" />
+									<span className="truncate">
+										<Trans>Search files</Trans>
+									</span>
+								</button>
+							)}
+							<div className="ml-auto flex items-center gap-0.5">
 								<FilesTabHeaderButton
 									icon={FilePlus}
-									label="New File"
+									label={t({
+										message: "New File",
+									})}
 									onClick={() => void startCreating("file")}
 								/>
 								<FilesTabHeaderButton
 									icon={FolderPlus}
-									label="New Folder"
+									label={t({
+										message: "New Folder",
+									})}
 									onClick={() => void startCreating("folder")}
 								/>
 								<FilesTabHeaderButton
 									icon={RefreshCw}
-									label="Refresh"
+									label={t({
+										message: "Refresh",
+									})}
 									loading={bridge.isRefreshing}
 									onClick={() => void bridge.doRefresh()}
 								/>
 								<FilesTabHeaderButton
 									icon={FoldVertical}
-									label="Collapse All"
+									label={t({
+										message: "Collapse All",
+									})}
 									onClick={collapseAll}
 								/>
 							</div>

@@ -1,1 +1,0 @@
-export { MoreMenuScreen } from "./MoreMenuScreen";

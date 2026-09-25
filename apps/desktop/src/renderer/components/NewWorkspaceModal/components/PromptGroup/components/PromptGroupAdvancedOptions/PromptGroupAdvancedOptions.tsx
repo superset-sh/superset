@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Collapsible,
@@ -69,6 +70,7 @@ export function PromptGroupAdvancedOptions({
 	filteredBranches,
 	onSelectCompareBaseBranch,
 }: PromptGroupAdvancedOptionsProps) {
+	const { t } = useLingui();
 	const showCompareBaseBranch = onCompareBaseBranchOpenChange != null;
 
 	return (
@@ -78,7 +80,7 @@ export function PromptGroupAdvancedOptions({
 					<HiChevronDown
 						className={`size-3 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
 					/>
-					Advanced options
+					<Trans>Advanced options</Trans>
 				</CollapsibleTrigger>
 				{shortcutHint && (
 					<span className="text-[11px] text-muted-foreground/50">
@@ -90,7 +92,7 @@ export function PromptGroupAdvancedOptions({
 				<div className="space-y-1.5">
 					<div className="flex items-center justify-between">
 						<label htmlFor="branch" className="text-xs text-muted-foreground">
-							Branch name
+							<Trans>Branch name</Trans>
 						</label>
 						<button
 							type="button"
@@ -98,13 +100,17 @@ export function PromptGroupAdvancedOptions({
 							className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<HiOutlinePencil className="size-3" />
-							<span>Edit prefix</span>
+							<span>
+								<Trans>Edit prefix</Trans>
+							</span>
 						</button>
 					</div>
 					<Input
 						id="branch"
 						className="h-8 text-sm font-mono"
-						placeholder="auto-generated"
+						placeholder={t({
+							message: "auto-generated",
+						})}
 						value={branchInputValue}
 						onChange={(event) => onBranchInputChange(event.target.value)}
 						onBlur={onBranchInputBlur}
@@ -113,10 +119,12 @@ export function PromptGroupAdvancedOptions({
 
 				{showCompareBaseBranch && (
 					<div className="space-y-1.5">
-						<span className="text-xs text-muted-foreground">Base branch</span>
+						<span className="text-xs text-muted-foreground">
+							<Trans>Base branch</Trans>
+						</span>
 						{isBranchesError ? (
 							<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
-								Failed to load branches
+								<Trans>Failed to load branches</Trans>
 							</div>
 						) : (
 							<Popover
@@ -134,11 +142,13 @@ export function PromptGroupAdvancedOptions({
 										<span className="flex items-center gap-2 truncate">
 											<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 											<span className="truncate font-mono text-sm">
-												{effectiveCompareBaseBranch || "Select branch..."}
+												{effectiveCompareBaseBranch || (
+													<Trans>Select branch...</Trans>
+												)}
 											</span>
 											{effectiveCompareBaseBranch === defaultBranch && (
 												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-													default
+													<Trans>default</Trans>
 												</span>
 											)}
 										</span>
@@ -152,12 +162,16 @@ export function PromptGroupAdvancedOptions({
 								>
 									<Command shouldFilter={false}>
 										<CommandInput
-											placeholder="Search branches..."
+											placeholder={t({
+												message: "Search branches...",
+											})}
 											value={branchSearch}
 											onValueChange={onBranchSearchChange}
 										/>
 										<CommandList className="max-h-[200px]">
-											<CommandEmpty>No branches found</CommandEmpty>
+											<CommandEmpty>
+												<Trans>No branches found</Trans>
+											</CommandEmpty>
 											{filteredBranches?.map((branch) => (
 												<CommandItem
 													key={branch.name}
@@ -172,7 +186,7 @@ export function PromptGroupAdvancedOptions({
 														<span className="truncate">{branch.name}</span>
 														{branch.name === defaultBranch && (
 															<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																default
+																<Trans>default</Trans>
 															</span>
 														)}
 													</span>
@@ -202,7 +216,7 @@ export function PromptGroupAdvancedOptions({
 							htmlFor="run-setup-script"
 							className="text-xs text-muted-foreground"
 						>
-							Run setup script
+							<Trans>Run setup script</Trans>
 						</Label>
 						<Switch
 							id="run-setup-script"

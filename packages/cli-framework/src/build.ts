@@ -31,13 +31,16 @@ await run({
 	version: config.version,
 	tree: { commands, groups, middleware },
 	globals: config.globals,
+	help: config.help,
+	audiences: config.audiences?.(),
+	sandbox: config.sandbox?.(),
 });
 `,
 	);
 
 	const result = await Bun.build({
 		entrypoints: [entryPath],
-		plugins: [createCommandsPlugin({ commandsDir })],
+		plugins: [createCommandsPlugin({ commandsDir }), ...(config.plugins ?? [])],
 		compile: target ? { target, outfile } : { outfile },
 		define: config.define,
 	});

@@ -25,11 +25,24 @@ import {
 	type ServerMessage,
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
+import { probeTrustdHealthy } from "@superset/pty-daemon/trustd-probe";
 import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
+
+/**
+ * Replay buffer the daemon retains per session. Its own default is 64 KB,
+ * which is enough to repaint a screen on reattach but not to answer "what
+ * happened in this session" after a host-service restart: adoption refills
+ * the host's 2 MB catch-up ring from this buffer alone, so it is the real
+ * ceiling on a post-restart session handoff. Sized to leave a useful
+ * transcript without holding megabytes per session across many worktrees.
+ */
+const DAEMON_REPLAY_BUFFER_BYTES = 512 * 1024;
+
 import {
+	assertIsolatedDaemonNamespaceInTests,
 	isProcessAlive,
 	type PtyDaemonManifest,
 	ptyDaemonManifestDir,
@@ -50,11 +63,30 @@ interface DaemonInstance {
 	updatePending: boolean;
 	/** Last failed background update attempt for this still-running daemon. */
 	autoUpdateFailure?: DaemonAutoUpdateFailure;
+	/**
+	 * When the daemon first stopped answering probes; null while reachable.
+	 * Drives the UI's "terminals aren't responding" state, which waits for a
+	 * sustained silence so a transient stall doesn't prompt a destructive
+	 * restart of shells that were about to come back.
+	 */
+	unreachableSince: number | null;
+	/**
+	 * macOS trustd reachability the daemon self-reported. `false` = degraded
+	 * (its terminals hit `gh -26276`); undefined = pre-probe daemon version.
+	 */
+	trustdHealthy?: boolean;
+}
+
+export interface DaemonHealth {
+	reachable: boolean;
+	/** 0 while reachable. */
+	unreachableForMs: number;
 }
 
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	trustdHealthy?: boolean;
 }
 
 export interface DaemonAutoUpdateFailure {
@@ -75,8 +107,24 @@ const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
-const AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS = 1_500;
 const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
+/**
+ * Escalated budget for a socket whose listener keeps accepting but whose
+ * hello never came back within the ordinary budget. Spawning instead would
+ * unlink that listener's path and orphan its PTYs forever, so it is worth
+ * waiting longer — a daemon starved of CPU (the exact condition in GH #6822)
+ * can miss a 3s budget and still be perfectly healthy. The per-attempt cap
+ * matters as much as the total: retrying a 1.5s attempt can never adopt a
+ * daemon that uniformly needs longer than 1.5s per connection.
+ *
+ * The budget bounds how long terminal readiness can stall behind a daemon
+ * that is wedged-but-accepting (the one case where waiting is wasted): the
+ * ordinary 3s probe plus this escalation is the worst case, and the
+ * escalated retry loop stops early the moment connects are refused — so a
+ * daemon that dies mid-probe costs ~one attempt, not the whole budget.
+ */
+const ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS = 8_000;
+const ADOPTION_PROBE_LIVE_SOCKET_ATTEMPT_TIMEOUT_MS = 4_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -86,8 +134,21 @@ const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
  */
 const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
-/** How often to poll an adopted daemon's PID for liveness. */
-const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
+/** How often to poll a daemon's PID for liveness. */
+const PID_LIVENESS_INTERVAL_MS = 2_000;
+/**
+ * How often to probe the daemon socket for reachability. Slower than the
+ * pid poll: a probe is a full connect+hello handshake, and the UI only
+ * samples health every 5s anyway.
+ */
+const REACHABILITY_PROBE_INTERVAL_MS = 5_000;
+/**
+ * Total retry budget for a steady-state reachability probe. A daemon
+ * relaying heavy PTY output can miss a single 1.5s deadline while still
+ * healthy; retrying across 3s keeps a busy daemon from being reported
+ * unreachable (which would offer the user a destructive restart).
+ */
+const REACHABILITY_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const ADOPT_IN_DEV_ENV = "SUPERSET_PTY_DAEMON_ADOPT_IN_DEV";
 
 export function shouldKillStaleDaemonForDev(
@@ -98,19 +159,39 @@ export function shouldKillStaleDaemonForDev(
 }
 
 /**
- * Per-organization socket path. **Must stay short** — Darwin's `sun_path`
+ * Per-instance socket path. **Must stay short** — Darwin's `sun_path`
  * is 104 bytes, and `$SUPERSET_HOME_DIR/host/{orgId}/pty-daemon.sock` blows
- * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID).
- *
- * We put the socket in `os.tmpdir()` with a hash of the org id. Owner-only
+ * past that in dev (worktree-relative SUPERSET_HOME_DIR + 36-char UUID), so
+ * the socket lives in `os.tmpdir()` under a fixed-length hash. Owner-only
  * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
  * the directory permissions don't matter.
+ *
+ * Any non-default `SUPERSET_HOME_DIR` (dev worktrees, test temp homes)
+ * namespaces the socket by home as well as org — two instances of the same
+ * org must never share a socket, or one instance's supervisor/reaper acts
+ * on the other's PTYs. All default-home (production) paths deliberately
+ * keep the legacy org-only socket so existing packaged daemons remain
+ * adoptable across updates.
  */
-export function ptyDaemonSocketPath(organizationId: string): string {
-	const shortId = createHash("sha256")
-		.update(organizationId)
-		.digest("hex")
-		.slice(0, 12);
+export function ptyDaemonSocketPath(
+	organizationId: string,
+	env: NodeJS.ProcessEnv = process.env,
+): string {
+	assertIsolatedDaemonNamespaceInTests(env);
+	// A cloud workspace sandbox keeps every per-boot file under one directory
+	// the boot runner clears, so a socket from the previous session never
+	// looks live on a restored disk.
+	if (env.SUPERSET_RUN_DIR) return path.join(env.SUPERSET_RUN_DIR, "ptyd.sock");
+	const home = env.SUPERSET_HOME_DIR;
+	const defaultHome = path.join(os.homedir(), ".superset");
+	const isDefaultHome =
+		!home || path.resolve(home) === path.resolve(defaultHome);
+	// Hash the RESOLVED home so equivalent spellings of one custom home
+	// (trailing slash, relative segments) land on the same socket.
+	const key = isDefaultHome
+		? organizationId
+		: `${organizationId}:${path.resolve(home)}`;
+	const shortId = createHash("sha256").update(key).digest("hex").slice(0, 12);
 	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }
 
@@ -139,6 +220,12 @@ export interface DaemonSupervisorOptions {
 	 * real handoff.
 	 */
 	autoUpdate?: boolean;
+	/**
+	 * Override for host-service's own trustd probe. Tests inject this to
+	 * exercise the degraded-host branch (heal suppressed), which can't be
+	 * staged for real without breaking the test process's own bootstrap.
+	 */
+	hostTrustdProbe?: () => Promise<boolean>;
 }
 
 export class DaemonSupervisor {
@@ -157,12 +244,12 @@ export class DaemonSupervisor {
 	 */
 	private readonly lastUpdatePendingPair = new Map<string, string>();
 	/**
-	 * Liveness pollers per org. We only attach a `child.on("exit")` handler
-	 * to daemons we *spawned* — adopted daemons (PIDs from a manifest) have
-	 * no child handle, so we'd never notice if they died externally. This
-	 * timer polls `process.kill(pid, 0)` to bridge that gap.
+	 * Health pollers per org, for every daemon however we came by it: pid
+	 * liveness each tick, plus a slower socket reachability probe. For
+	 * adopted daemons (no child handle) this is also how we notice death;
+	 * spawned daemons get death handling from `child.on("exit")`.
 	 */
-	private readonly adoptedLivenessTimers = new Map<
+	private readonly healthPollTimers = new Map<
 		string,
 		ReturnType<typeof setInterval>
 	>();
@@ -177,9 +264,45 @@ export class DaemonSupervisor {
 		string,
 		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
+	/** Whether host-service itself can reach trustd; probed once, cached. */
+	private hostTrustdHealthyCache: Promise<boolean> | null = null;
 
 	constructor(opts: DaemonSupervisorOptions) {
 		this.opts = opts;
+	}
+
+	/**
+	 * Whether host-service's own Mach bootstrap can reach com.apple.trustd. Used
+	 * to gate healing a trustd-degraded daemon: only worth respawning from here
+	 * if we're healthy. Cached — a process's bootstrap doesn't change under it.
+	 */
+	private hostTrustdHealthy(): Promise<boolean> {
+		this.hostTrustdHealthyCache ??= (
+			this.opts.hostTrustdProbe ?? probeTrustdHealthy
+		)();
+		return this.hostTrustdHealthyCache;
+	}
+
+	/**
+	 * Terminate an adopted daemon so ensure() can respawn a fresh one. An
+	 * adopted daemon has no child handle or crash-respawn hook attached yet, so
+	 * this just kills its process tree and clears its manifest + socket. Its PTY
+	 * sessions are lost — acceptable, since a trustd-degraded daemon's shells are
+	 * already broken for `gh`/TLS.
+	 */
+	private async killAdoptedDaemon(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
+		removePtyDaemonManifest(organizationId);
+		try {
+			if (fs.existsSync(instance.socketPath)) {
+				fs.unlinkSync(instance.socketPath);
+			}
+		} catch {
+			// best-effort; the fresh daemon unlinks a stale socket on bind anyway
+		}
 	}
 
 	/**
@@ -267,7 +390,7 @@ export class DaemonSupervisor {
 		// or adopted (liveness poll); either way, marking `stopping` makes
 		// the exit handler treat it as expected.
 		this.stopping.add(organizationId);
-		this.stopAdoptedLivenessCheck(organizationId);
+		this.stopHealthPoll(organizationId);
 
 		// Mark the manifest so a host-service crash mid-handoff is
 		// debuggable. We restore on failure or replace on success.
@@ -349,23 +472,26 @@ export class DaemonSupervisor {
 			startedAt: successorStartedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending:
-				!!probedVersion &&
-				!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+			updatePending: isVersionUpdatePending(probedVersion),
+			unreachableSince: probedVersion ? null : Date.now(),
 		};
 		this.instances.set(organizationId, successorInstance);
 		this.stopping.delete(organizationId);
 		this.lastUpdatePendingPair.delete(organizationId);
 
-		if (existingManifest) {
-			writePtyDaemonManifest({
-				pid: result.successorPid,
-				socketPath: instance.socketPath,
-				protocolVersions: existingManifest.protocolVersions,
-				startedAt: successorStartedAt,
-				organizationId,
-			});
-		}
+		// Always write, even when the predecessor had no manifest (it was
+		// adopted from its socket). Skipping it left the successor invisible to
+		// the next boot's `tryAdopt`, forcing the socket-adopt path whose
+		// probe failure orphans a live daemon (GH #6822).
+		writePtyDaemonManifest({
+			pid: result.successorPid,
+			socketPath: instance.socketPath,
+			protocolVersions: existingManifest?.protocolVersions ?? [
+				CURRENT_PROTOCOL_VERSION,
+			],
+			startedAt: successorStartedAt,
+			organizationId,
+		});
 
 		// Successor wasn't spawned as our child — start liveness polling.
 		this.startAdoptedLivenessCheck(organizationId, result.successorPid);
@@ -473,7 +599,7 @@ export class DaemonSupervisor {
 	async stop(organizationId: string): Promise<void> {
 		const instance = this.instances.get(organizationId);
 		this.instances.delete(organizationId);
-		this.stopAdoptedLivenessCheck(organizationId);
+		this.stopHealthPoll(organizationId);
 		if (!instance) return;
 		this.stopping.add(organizationId);
 		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
@@ -492,37 +618,154 @@ export class DaemonSupervisor {
 	 * `ensure()` call respawns.
 	 */
 	private startAdoptedLivenessCheck(organizationId: string, pid: number): void {
-		this.stopAdoptedLivenessCheck(organizationId);
-		const timer = setInterval(() => {
-			if (isProcessAlive(pid)) return;
+		this.startHealthPoll(organizationId, pid, () => {
 			console.log(
 				`[pty-daemon:${organizationId}] adopted process ${pid} died — clearing instance for next-ensure respawn`,
 			);
-			this.stopAdoptedLivenessCheck(organizationId);
 			const current = this.instances.get(organizationId);
 			if (current?.pid === pid) {
 				this.instances.delete(organizationId);
 				removePtyDaemonManifest(organizationId);
 			}
-		}, ADOPTED_LIVENESS_INTERVAL_MS);
-		this.adoptedLivenessTimers.set(organizationId, timer);
+		});
 	}
 
-	private stopAdoptedLivenessCheck(organizationId: string): void {
-		const timer = this.adoptedLivenessTimers.get(organizationId);
+	/**
+	 * Poll a daemon's health. Reachability is tracked for every daemon — one
+	 * can wedge no matter how we came by it — but death handling differs:
+	 * adopted daemons have no child handle, so `onDeath` cleans up for them,
+	 * while spawned ones pass null because `child.on("exit")` already owns
+	 * that (and the crash-respawn that goes with it). Clearing the instance
+	 * from here for a spawned daemon would make its exit handler no-op and
+	 * silently disable respawn.
+	 */
+	private startHealthPoll(
+		organizationId: string,
+		pid: number,
+		onDeath: (() => void) | null,
+	): void {
+		this.stopHealthPoll(organizationId);
+		let probing = false;
+		let lastProbeAt = 0;
+		const timer = setInterval(() => {
+			if (!isProcessAlive(pid)) {
+				// Never keep polling a dead pid, whoever handles the death.
+				this.stopHealthPoll(organizationId);
+				onDeath?.();
+				return;
+			}
+			// The socket probe runs on its own slower cadence, one at a time.
+			if (probing || Date.now() - lastProbeAt < REACHABILITY_PROBE_INTERVAL_MS)
+				return;
+			probing = true;
+			lastProbeAt = Date.now();
+			void this.refreshReachability(organizationId, pid).finally(() => {
+				probing = false;
+			});
+		}, PID_LIVENESS_INTERVAL_MS);
+		this.healthPollTimers.set(organizationId, timer);
+	}
+
+	/**
+	 * Track whether the daemon is still answering. An alive pid says nothing
+	 * about whether the socket works — a wedged daemon holds its shells but
+	 * serves nobody. Recording *when* it went quiet lets the UI wait out a
+	 * stall instead of offering a restart that would kill recoverable shells.
+	 *
+	 * Doubles as the retry for a version we couldn't read at adoption time.
+	 */
+	private async refreshReachability(
+		organizationId: string,
+		pid: number,
+	): Promise<void> {
+		const instance = this.instances.get(organizationId);
+		if (!instance || instance.pid !== pid) return;
+		const probe = await probeDaemonHelloWithRetry(
+			instance.socketPath,
+			REACHABILITY_PROBE_TOTAL_TIMEOUT_MS,
+		);
+		// Re-read: the instance can be replaced while the probe is in flight.
+		const current = this.instances.get(organizationId);
+		if (!current || current.pid !== pid) return;
+		if (!probe) {
+			current.unreachableSince ??= Date.now();
+			return;
+		}
+		current.unreachableSince = null;
+		if (current.runningVersion === "unknown") {
+			current.runningVersion = probe.daemonVersion;
+			current.updatePending = isVersionUpdatePending(probe.daemonVersion);
+			// The adopt path couldn't see the version, so it skipped these —
+			// this late read is the same "adopted a stale daemon" discovery.
+			this.maybeFireUpdatePending(organizationId, current);
+			if (current.updatePending && this.opts.autoUpdate !== false) {
+				this.kickoffAutoUpdate(organizationId, current);
+			}
+		}
+		// The daemon probes trustd AFTER binding, so a daemon adopted right
+		// after it started may not have self-reported yet. Fill in the value
+		// only while unknown — the reported value never changes after startup,
+		// so this can complete adoption-time triage late but can never turn
+		// into a mid-life kill of a long-adopted daemon.
+		if (
+			current.trustdHealthy === undefined &&
+			probe.trustdHealthy !== undefined
+		) {
+			current.trustdHealthy = probe.trustdHealthy;
+			if (probe.trustdHealthy === false && (await this.hostTrustdHealthy())) {
+				// Re-check after the await: a concurrent restart can have
+				// replaced the instance, and killing `current` then would
+				// unlink the successor's socket and manifest under it.
+				if (this.instances.get(organizationId) !== current) return;
+				logEvent("pty_daemon_trustd_degraded_respawn", {
+					organizationId,
+					pid: current.pid,
+					runningVersion: current.runningVersion,
+					lateReport: true,
+				});
+				this.stopHealthPoll(organizationId);
+				await this.killAdoptedDaemon(organizationId, current);
+				if (this.instances.get(organizationId)?.pid === pid) {
+					this.instances.delete(organizationId);
+				}
+				void this.ensure(organizationId).catch((err) => {
+					console.error(
+						`[pty-daemon:${organizationId}] respawn after late degraded report failed:`,
+						err,
+					);
+				});
+			}
+		}
+	}
+
+	/**
+	 * Daemon reachability for the UI. Null when there's no daemon for the org.
+	 */
+	getHealth(organizationId: string): DaemonHealth | null {
+		const instance = this.instances.get(organizationId);
+		if (!instance) return null;
+		const { unreachableSince } = instance;
+		return {
+			reachable: unreachableSince === null,
+			unreachableForMs:
+				unreachableSince === null ? 0 : Date.now() - unreachableSince,
+		};
+	}
+
+	private stopHealthPoll(organizationId: string): void {
+		const timer = this.healthPollTimers.get(organizationId);
 		if (timer) {
 			clearInterval(timer);
-			this.adoptedLivenessTimers.delete(organizationId);
+			this.healthPollTimers.delete(organizationId);
 		}
 	}
 
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. The background path
-	 * is intentionally conservative: live sessions keep running on the
-	 * predecessor and the foreground Settings UI remains the place for
-	 * user-approved handoff/restart.
+	 * boot, fire-and-track, doesn't block anything. Live sessions are
+	 * fine — the handoff is non-destructive (fd-handoff carries them to
+	 * the successor), and on failure the predecessor keeps running.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -555,26 +798,6 @@ export class DaemonSupervisor {
 		organizationId: string,
 		instance: DaemonInstance,
 	): Promise<void> {
-		const sessions = await this.listSessions(
-			organizationId,
-			AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
-		);
-		if (sessions === null) {
-			this.deferAutoUpdate(
-				organizationId,
-				instance,
-				"session_list_unavailable",
-			);
-			return;
-		}
-		const aliveSessionCount = countAliveSessions(sessions);
-		if (aliveSessionCount > 0) {
-			this.deferAutoUpdate(organizationId, instance, "live_sessions_present", {
-				aliveSessionCount,
-			});
-			return;
-		}
-
 		const update = this.startUpdate(organizationId);
 		try {
 			const result = await update.promise;
@@ -654,22 +877,6 @@ export class DaemonSupervisor {
 		};
 	}
 
-	private deferAutoUpdate(
-		organizationId: string,
-		instance: DaemonInstance,
-		reason: string,
-		extra: Record<string, unknown> = {},
-	): void {
-		logEvent("pty_daemon_auto_update_deferred", {
-			organizationId,
-			pid: instance.pid,
-			runningVersion: instance.runningVersion,
-			expectedVersion: instance.expectedVersion,
-			reason,
-			...extra,
-		});
-	}
-
 	/**
 	 * Dev-only: SIGTERM any existing daemon for this org so the next
 	 * adopt-or-spawn always lands on a fresh daemon process. Reads
@@ -705,7 +912,26 @@ export class DaemonSupervisor {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		let adopted = await this.tryAdopt(organizationId);
+		// Heal a trustd-degraded daemon: it inherited a Mach bootstrap that can't
+		// reach com.apple.trustd, so its terminals hit `gh: x509: OSStatus -26276`.
+		// Adopting it keeps the breakage — if WE (host-service) can reach trustd,
+		// kill it and respawn fresh from our healthy context below. If we're also
+		// degraded, a respawn wouldn't help; adopt and let the next healthy launch
+		// heal it.
+		if (
+			adopted &&
+			adopted.trustdHealthy === false &&
+			(await this.hostTrustdHealthy())
+		) {
+			logEvent("pty_daemon_trustd_degraded_respawn", {
+				organizationId,
+				pid: adopted.pid,
+				runningVersion: adopted.runningVersion,
+			});
+			await this.killAdoptedDaemon(organizationId, adopted);
+			adopted = null;
+		}
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
 			console.log(
@@ -780,72 +1006,120 @@ export class DaemonSupervisor {
 				reason: "manifest_pid_dead",
 			});
 		}
-		const reachable = await isSocketConnectable(manifest.socketPath, 1000);
-		if (!reachable) {
-			// PID alive but socket gone — daemon is wedged. Kill and respawn.
-			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
-			removePtyDaemonManifest(organizationId);
-			if (manifest.socketPath !== expectedSocketPath) {
-				return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
-					reason: "manifest_socket_unreachable",
-					previousManifest: manifest,
-				});
-			}
-			return null;
-		}
-
+		// The pid is alive, so it may still own the user's PTYs — adopt it.
+		// Killing it here signalled the daemon's whole process tree, taking
+		// every live shell with it (SUPER-833). A failed probe only means we
+		// couldn't read its version; a wedged daemon is recovered by an
+		// explicit user restart.
 		const probe = await probeDaemonHelloWithRetry(
 			manifest.socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		if (!probe) {
-			logEvent("pty_daemon_adopt_rejected", {
+		if (!probe && !(await isSocketConnectable(manifest.socketPath, 1000))) {
+			// Nothing is even accepting on the socket. A live daemon keeps its
+			// listener no matter how overloaded it is, so this pid isn't our
+			// daemon — most likely recycled after a reboot. Adopting it would
+			// wedge terminals behind a phantom instance and aim a later user
+			// restart at an innocent process. Never signal it; drop the manifest
+			// and fall back to socket adoption / a fresh spawn.
+			logEvent("pty_daemon_manifest_stale", {
 				organizationId,
 				pid: manifest.pid,
 				socketPath: manifest.socketPath,
-				reason: "version_probe_failed",
 			});
-			await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
 			removePtyDaemonManifest(organizationId);
-			if (manifest.socketPath !== expectedSocketPath) {
-				return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
-					reason: "manifest_version_probe_failed",
-					previousManifest: manifest,
-				});
-			}
-			return null;
+			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+				reason: "manifest_socket_unreachable",
+			});
 		}
-		const runningVersion = probe.daemonVersion;
-		const updatePending = !semver.satisfies(
-			runningVersion,
-			`>=${EXPECTED_DAEMON_VERSION}`,
-		);
-
+		if (
+			probe &&
+			isPositiveInteger(probe.daemonPid) &&
+			probe.daemonPid !== manifest.pid
+		) {
+			// The socket answers, but a DIFFERENT daemon serves it — the
+			// manifest pid is stale (recycled, or lost a bind race). Adopting
+			// manifest.pid would aim any later destructive action (trustd heal,
+			// user restart) at an unrelated process tree. Trust the socket.
+			logEvent("pty_daemon_manifest_pid_mismatch", {
+				organizationId,
+				manifestPid: manifest.pid,
+				probedPid: probe.daemonPid,
+				socketPath: manifest.socketPath,
+			});
+			removePtyDaemonManifest(organizationId);
+			// Reuse the probe we already have — re-probing would let a
+			// transient failure demote this confirmed-live daemon to a fresh
+			// spawn. Fall back to a socket adopt only if the probed pid died.
+			return (
+				this.adoptFromProbe(
+					organizationId,
+					manifest.socketPath,
+					probe,
+					"manifest_pid_mismatch",
+				) ??
+				this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+					reason: "manifest_pid_mismatch",
+				})
+			);
+		}
+		const runningVersion = probe?.daemonVersion ?? "unknown";
 		return {
 			pid: manifest.pid,
 			socketPath: manifest.socketPath,
 			startedAt: manifest.startedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending,
+			updatePending: isVersionUpdatePending(probe?.daemonVersion ?? null),
+			// Start the clock here when it didn't answer: the liveness poll
+			// clears it the moment it does.
+			unreachableSince: probe ? null : Date.now(),
+			trustdHealthy: probe?.trustdHealthy,
 		};
 	}
 
 	private async tryAdoptFromSocket(
 		organizationId: string,
 		socketPath: string,
-		context: {
-			reason: string;
-			previousManifest?: PtyDaemonManifest;
-		},
+		context: { reason: string },
 	): Promise<DaemonInstance | null> {
 		const reachable = await isSocketConnectable(socketPath, 1000);
 		if (!reachable) return null;
 
-		const probe = await probeDaemonHelloWithRetry(
+		let probe = await probeDaemonHelloWithRetry(
 			socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
+		if (!probe) {
+			// The listener was accepting a moment ago, so a silent probe most
+			// likely means a live daemon too busy to answer — not a stale
+			// socket file. Conceding now sends us to `spawn`, whose
+			// `Server.listen` unlinks this path unconditionally: POSIX leaves
+			// the old listener bound to an unreachable inode, so it keeps
+			// every PTY (agents, dev servers, watchers) running and burning
+			// CPU with no way back (GH #6822). No EADDRINUSE is raised, so
+			// nothing downstream notices.
+			logEvent("pty_daemon_socket_adopt_escalated", {
+				organizationId,
+				socketPath,
+				sourceReason: context.reason,
+				timeoutMs: ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS,
+			});
+			// Raise the PER-ATTEMPT cap too, not just the total: retrying a
+			// 1.5s attempt can never adopt a daemon that uniformly needs
+			// longer than 1.5s to answer, which is the starved daemon we are
+			// trying not to orphan. stopWhenNoListener bounds the wasted wait:
+			// if the daemon died since the probe above, the first refused
+			// connect ends the escalation instead of spinning out the budget.
+			probe = await probeDaemonHelloWithRetry(
+				socketPath,
+				ADOPTION_PROBE_LIVE_SOCKET_TIMEOUT_MS,
+				{
+					perAttemptTimeoutMs: ADOPTION_PROBE_LIVE_SOCKET_ATTEMPT_TIMEOUT_MS,
+					stopWhenNoListener: true,
+				},
+			);
+		}
 		if (!probe) {
 			logEvent("pty_daemon_socket_adopt_rejected", {
 				organizationId,
@@ -856,19 +1130,40 @@ export class DaemonSupervisor {
 			return null;
 		}
 
+		return this.adoptFromProbe(
+			organizationId,
+			socketPath,
+			probe,
+			context.reason,
+		);
+	}
+
+	/**
+	 * Build an adoption from an already-successful hello probe: validate the
+	 * probed pid, recover the manifest, and return the instance. Split out so
+	 * callers that HAVE a good probe (e.g. the manifest-pid-mismatch path)
+	 * don't re-probe — a transient failure of a second probe would turn a
+	 * confirmed live daemon into a fresh spawn that unlinks its socket.
+	 */
+	private adoptFromProbe(
+		organizationId: string,
+		socketPath: string,
+		probe: DaemonProbeResult,
+		sourceReason: string,
+	): DaemonInstance | null {
 		const resolvedPid = probe.daemonPid;
 		if (!isPositiveInteger(resolvedPid) || !isProcessAlive(resolvedPid)) {
 			logEvent("pty_daemon_socket_adopt_rejected", {
 				organizationId,
 				socketPath,
 				reason: "pid_unavailable",
-				sourceReason: context.reason,
+				sourceReason,
 				probedPid: resolvedPid,
 			});
 			return null;
 		}
 
-		const startedAt = context.previousManifest?.startedAt ?? Date.now();
+		const startedAt = Date.now();
 		writePtyDaemonManifest({
 			pid: resolvedPid,
 			socketPath,
@@ -881,7 +1176,7 @@ export class DaemonSupervisor {
 			organizationId,
 			pid: resolvedPid,
 			socketPath,
-			sourceReason: context.reason,
+			sourceReason,
 			runningVersion: probe.daemonVersion,
 		});
 
@@ -891,20 +1186,40 @@ export class DaemonSupervisor {
 			startedAt,
 			runningVersion: probe.daemonVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending: !semver.satisfies(
-				probe.daemonVersion,
-				`>=${EXPECTED_DAEMON_VERSION}`,
-			),
+			updatePending: isVersionUpdatePending(probe.daemonVersion),
+			unreachableSince: null,
+			trustdHealthy: probe.trustdHealthy,
 		};
 	}
 
 	private async spawn(organizationId: string): Promise<DaemonInstance> {
+		// Resolve before spawning the child: an await between the spawn and
+		// instances.set would let a crashing child's exit handler run against
+		// a not-yet-registered instance.
+		const hostTrustdHealthy = await this.hostTrustdHealthy();
 		const dir = ptyDaemonManifestDir(organizationId);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 		}
 		const socketPath = ptyDaemonSocketPath(organizationId);
 		const logPath = path.join(dir, "pty-daemon.log");
+
+		// Adoption has already given up by the time we get here, yet a listener
+		// is STILL accepting on this path. Today the spawned daemon unlinks it
+		// and takes the name — the incumbent stays alive, bound to an
+		// unreachable inode, holding its whole PTY tree, visible only in `ps`
+		// days later (GH #6822). The event names the hazardous *condition*
+		// (spawning over a live socket), not that outcome: once the daemon-side
+		// bind refusal lands, the same condition ends with the child standing
+		// down instead of orphaning, and the event keeps marking the residual
+		// adopt-then-spawn disagreement worth investigating.
+		if (await isSocketConnectable(socketPath, 1000)) {
+			logEvent("pty_daemon_spawn_over_live_socket", {
+				organizationId,
+				socketPath,
+				reason: "adoption conceded but the socket is still accepting",
+			});
+		}
 
 		if (!fs.existsSync(this.opts.scriptPath)) {
 			throw new Error(
@@ -949,7 +1264,11 @@ export class DaemonSupervisor {
 			const isWindows = process.platform === "win32";
 			const command = isWindows ? process.execPath : "/bin/sh";
 			const commandArgs = isWindows
-				? [this.opts.scriptPath, `--socket=${socketPath}`]
+				? [
+						this.opts.scriptPath,
+						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
+					]
 				: [
 						"-c",
 						'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
@@ -957,6 +1276,7 @@ export class DaemonSupervisor {
 						process.execPath,
 						this.opts.scriptPath,
 						`--socket=${socketPath}`,
+						`--buffer-bytes=${DAEMON_REPLAY_BUFFER_BYTES}`,
 					];
 			child = childProcess.spawn(command, commandArgs, {
 				detached: !isDev,
@@ -1085,8 +1405,14 @@ export class DaemonSupervisor {
 			runningVersion: EXPECTED_DAEMON_VERSION,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
+			unreachableSince: null,
+			// A freshly spawned daemon inherits host-service's bootstrap, so its
+			// trustd reachability matches ours.
+			trustdHealthy: hostTrustdHealthy,
 		};
 		this.instances.set(organizationId, instance);
+		// Reachability only — `child.on("exit")` above owns death + respawn.
+		this.startHealthPoll(organizationId, childPid, null);
 		console.log(
 			`[pty-daemon:${organizationId}] spawned pid=${childPid} socket=${socketPath}`,
 		);
@@ -1120,8 +1446,17 @@ function pipeWithPrefix(
 	});
 }
 
-function countAliveSessions(sessions: SessionInfo[]): number {
-	return sessions.filter((session) => session.alive).length;
+/**
+ * "Running < expected" per semver. An unreadable version (probe failed)
+ * is never pending — probe failure ≠ stale.
+ */
+function isVersionUpdatePending(
+	probedVersion: string | null | undefined,
+): boolean {
+	return (
+		probedVersion != null &&
+		!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`)
+	);
 }
 
 async function waitForSocket(
@@ -1230,16 +1565,34 @@ export async function listDaemonSessions(
  * `probeDaemonVersion` resolves to null on the first connect-error;
  * we have to actively retry.
  */
-async function probeDaemonHelloWithRetry(
+export async function probeDaemonHelloWithRetry(
 	socketPath: string,
 	totalTimeoutMs: number,
+	options: {
+		perAttemptTimeoutMs?: number;
+		/**
+		 * End the retry loop as soon as an attempt is DEFINITIVELY refused —
+		 * ECONNREFUSED/ENOENT prove no listener holds the path. The default
+		 * keeps retrying through refused connects because the handoff path
+		 * needs it (brief predecessor-exit → successor-bind gap); the
+		 * adoption-escalation path sets this so a daemon that dies mid-probe
+		 * costs one attempt, not the whole budget. An attempt that times out
+		 * with the connect still pending is NOT treated as no-listener: a
+		 * flooded daemon whose accept backlog is full hangs connects, and it
+		 * is exactly the live daemon the escalation exists to protect.
+		 */
+		stopWhenNoListener?: boolean;
+	} = {},
 ): Promise<DaemonProbeResult | null> {
+	const perAttemptCap = options.perAttemptTimeoutMs ?? VERSION_PROBE_TIMEOUT_MS;
 	const deadline = Date.now() + totalTimeoutMs;
 	while (Date.now() < deadline) {
 		const remaining = deadline - Date.now();
-		const perAttempt = Math.min(remaining, VERSION_PROBE_TIMEOUT_MS);
-		const probe = await probeDaemonHello(socketPath, perAttempt);
+		const perAttempt = Math.min(remaining, perAttemptCap);
+		const outcome: ProbeAttemptOutcome = {};
+		const probe = await probeDaemonHello(socketPath, perAttempt, outcome);
 		if (probe !== null) return probe;
+		if (options.stopWhenNoListener && outcome.noListener) return null;
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	return null;
@@ -1316,9 +1669,22 @@ export async function probeDaemonVersion(
 	return (await probeDaemonHello(socketPath, timeoutMs))?.daemonVersion ?? null;
 }
 
+/**
+ * How a failed probe attempt failed, for the retry wrapper's stop decision.
+ * `connected` = the connect succeeded (a silent listener holds the path).
+ * `noListener` = the connect was definitively refused (ECONNREFUSED/ENOENT).
+ * Neither set = indeterminate — most notably a timeout with the connect still
+ * pending, which is how a flooded listener with a full accept backlog looks.
+ */
+interface ProbeAttemptOutcome {
+	connected?: boolean;
+	noListener?: boolean;
+}
+
 function probeDaemonHello(
 	socketPath: string,
 	timeoutMs: number,
+	outcome?: ProbeAttemptOutcome,
 ): Promise<DaemonProbeResult | null> {
 	return new Promise<DaemonProbeResult | null>((resolve) => {
 		const sock = net.createConnection({ path: socketPath });
@@ -1345,10 +1711,20 @@ function probeDaemonHello(
 
 		const timer = setTimeout(() => cleanup(null), timeoutMs);
 
-		sock.once("error", () => cleanup(null));
+		sock.once("error", (err: NodeJS.ErrnoException) => {
+			if (
+				outcome &&
+				!outcome.connected &&
+				(err.code === "ECONNREFUSED" || err.code === "ENOENT")
+			) {
+				outcome.noListener = true;
+			}
+			cleanup(null);
+		});
 		sock.once("close", () => cleanup(null));
 
 		sock.once("connect", () => {
+			if (outcome) outcome.connected = true;
 			try {
 				sock.write(
 					encodeFrame({
@@ -1376,6 +1752,7 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							trustdHealthy: msg.trustdHealthy,
 						});
 						return;
 					}

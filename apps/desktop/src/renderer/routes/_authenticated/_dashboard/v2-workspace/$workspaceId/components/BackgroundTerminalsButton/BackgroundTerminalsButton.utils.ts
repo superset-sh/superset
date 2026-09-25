@@ -1,6 +1,6 @@
 export const BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS = 250;
-export const BACKGROUND_TERMINAL_COUNT_REFETCH_INTERVAL_MS = 10_000;
-export const BACKGROUND_TERMINAL_LIST_REFETCH_INTERVAL_MS = 2_000;
+export const BACKGROUND_TERMINAL_CLOSED_REFETCH_INTERVAL_MS = 10_000;
+export const BACKGROUND_TERMINAL_OPEN_REFETCH_INTERVAL_MS = 2_000;
 
 interface TerminalPaneLike {
 	kind: string;
@@ -68,14 +68,8 @@ export function getUnattachedTerminalIds(
 		.sort();
 }
 
-export function getBackgroundTerminalCountRefetchInterval(
-	isOpen: boolean,
-): number | false {
-	return isOpen ? false : BACKGROUND_TERMINAL_COUNT_REFETCH_INTERVAL_MS;
-}
-
-export function getBackgroundTerminalListRefetchInterval(
-	isOpen: boolean,
-): number | false {
-	return isOpen ? BACKGROUND_TERMINAL_LIST_REFETCH_INTERVAL_MS : false;
+export function getBackgroundTerminalRefetchInterval(isOpen: boolean): number {
+	return isOpen
+		? BACKGROUND_TERMINAL_OPEN_REFETCH_INTERVAL_MS
+		: BACKGROUND_TERMINAL_CLOSED_REFETCH_INTERVAL_MS;
 }

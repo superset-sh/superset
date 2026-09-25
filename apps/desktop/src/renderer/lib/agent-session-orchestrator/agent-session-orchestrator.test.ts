@@ -51,16 +51,6 @@ describe("selectAgentLaunchAdapter", () => {
 
 		expect(selectAgentLaunchAdapter(request)).toBe("terminal");
 	});
-
-	it("picks chat adapter for chat requests", () => {
-		const request: AgentLaunchRequest = {
-			kind: "chat",
-			workspaceId: "ws-1",
-			chat: {},
-		};
-
-		expect(selectAgentLaunchAdapter(request)).toBe("chat");
-	});
 });
 
 describe("launchAgentSession", () => {
@@ -74,10 +64,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane: mock(() => "pane-2"),
 			removePane: mock(() => {}),
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({
@@ -106,6 +92,91 @@ describe("launchAgentSession", () => {
 		expect(secondResult.tabId).toBe("tab-1");
 	});
 
+	it("reuses the target pane without splitting when reuseExistingPane is set", async () => {
+		const addTerminalPane = mock(() => "pane-2");
+		const removePane = mock(() => {});
+		const writes: Array<{ paneId: string; data: string }> = [];
+		const tabs: AgentLaunchTabsAdapter = {
+			getPane: mock(() => ({
+				id: "setup-pane",
+				tabId: "tab-1",
+				type: "terminal",
+			})),
+			getTab: mock(() => ({ id: "tab-1", workspaceId: "ws-1" })),
+			addTerminalTab: mock(() => ({ tabId: "tab-9", paneId: "pane-9" })),
+			addTerminalPane,
+			removePane,
+			setTabAutoTitle: mock(() => {}),
+		};
+
+		const context = createContext({
+			tabs,
+			write: async (input) => {
+				writes.push({ paneId: input.paneId, data: input.data });
+			},
+		});
+
+		const result = await launchAgentSession(
+			{
+				kind: "terminal",
+				workspaceId: "ws-1",
+				terminal: {
+					command: "bun install && claude",
+					paneId: "setup-pane",
+					reuseExistingPane: true,
+				},
+			},
+			context,
+		);
+
+		expect(addTerminalPane).not.toHaveBeenCalled();
+		expect(result.status).toBe("running");
+		expect(result.tabId).toBe("tab-1");
+		expect(result.paneId).toBe("setup-pane");
+		expect(writes).toEqual([
+			{ paneId: "setup-pane", data: "bun install && claude\n" },
+		]);
+	});
+
+	it("does not remove the reused pane when the launch fails", async () => {
+		const removePane = mock(() => {});
+		const tabs: AgentLaunchTabsAdapter = {
+			getPane: mock(() => ({
+				id: "setup-pane",
+				tabId: "tab-1",
+				type: "terminal",
+			})),
+			getTab: mock(() => ({ id: "tab-1", workspaceId: "ws-1" })),
+			addTerminalTab: mock(() => ({ tabId: "tab-9", paneId: "pane-9" })),
+			addTerminalPane: mock(() => "pane-2"),
+			removePane,
+			setTabAutoTitle: mock(() => {}),
+		};
+
+		const context = createContext({
+			tabs,
+			write: async () => {
+				throw new Error("terminal write failed");
+			},
+		});
+
+		const result = await launchAgentSession(
+			{
+				kind: "terminal",
+				workspaceId: "ws-1",
+				terminal: {
+					command: "bun install && claude",
+					paneId: "setup-pane",
+					reuseExistingPane: true,
+				},
+			},
+			context,
+		);
+
+		expect(removePane).not.toHaveBeenCalled();
+		expect(result.status).toBe("failed");
+	});
+
 	it("rolls back pane when terminal launch fails", async () => {
 		const removePane = mock(() => {});
 		const tabs: AgentLaunchTabsAdapter = {
@@ -115,10 +186,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane: mock(() => "pane-3"),
 			removePane,
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({

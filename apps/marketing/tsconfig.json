@@ -1,6 +1,7 @@
 {
 	"extends": "@superset/typescript/next.json",
 	"compilerOptions": {
+		"types": ["bun-types"],
 		"paths": {
 			"@/*": ["./src/*"]
 		}

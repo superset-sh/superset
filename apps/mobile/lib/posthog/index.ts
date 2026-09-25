@@ -1,1 +1,1 @@
-export { posthogConfig } from "./client";
+export { posthog, posthogConfig, registerSuperProperties } from "./client";

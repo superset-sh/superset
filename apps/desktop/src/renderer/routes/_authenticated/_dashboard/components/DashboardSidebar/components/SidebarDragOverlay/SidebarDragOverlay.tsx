@@ -12,14 +12,26 @@ type ActiveItem =
 
 interface SidebarDragOverlayProps {
 	activeItem: ActiveItem | null;
+	/** Predicted section color at the current drop position (workspace drags). */
+	accentColor?: string | null;
 }
 
-export function SidebarDragOverlay({ activeItem }: SidebarDragOverlayProps) {
+export function SidebarDragOverlay({
+	activeItem,
+	accentColor,
+}: SidebarDragOverlayProps) {
 	if (!activeItem) return null;
 
+	// Transparent on purpose (both branches): the sidebar surface comes from
+	// window vibrancy, so an opaque bg renders as a solid slab under the
+	// dragged row.
 	if (activeItem.type === "workspace") {
 		return (
-			<div className="bg-background shadow-lg">
+			<div
+				style={{
+					boxShadow: accentColor ? `inset 3px 0 ${accentColor}` : undefined,
+				}}
+			>
 				<DashboardSidebarWorkspaceItem workspace={activeItem.workspace} />
 			</div>
 		);
@@ -31,11 +43,10 @@ export function SidebarDragOverlay({ activeItem }: SidebarDragOverlayProps) {
 
 	return (
 		<div
-			className="bg-background shadow-lg"
 			style={{
-				borderLeft: hasColor
-					? `2px solid ${section.color}`
-					: "2px solid var(--color-border)",
+				boxShadow: hasColor
+					? `inset 3px 0 ${section.color}`
+					: "inset 2px 0 var(--color-border)",
 			}}
 		>
 			<div className="flex min-h-8 w-full items-center gap-1.5 pl-0.5 pr-2 py-1.5 text-[11px] font-medium text-muted-foreground">

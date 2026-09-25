@@ -5,6 +5,7 @@ import {
 import { promisify } from "node:util";
 import { USER_GIT_ENV_SIMPLE_GIT_OPTIONS } from "@superset/shared/simple-git-options";
 import simpleGit, { type SimpleGit, type SimpleGitOptions } from "simple-git";
+import { GitEnvironmentError } from "./git-errors";
 import { getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -15,16 +16,43 @@ const execFileAsync = promisify(execFile);
 const SIMPLE_GIT_OPTIONS =
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
 
-function createUserSimpleGit(repoPath?: string): SimpleGit {
-	return repoPath
-		? simpleGit(repoPath, SIMPLE_GIT_OPTIONS)
-		: simpleGit(SIMPLE_GIT_OPTIONS);
+// The git task worker sets this for the task it is running, so every git
+// process built on that thread meanwhile dies with the task when the runner
+// cancels it. The main thread never sets it.
+let taskAbortSignal: AbortSignal | undefined;
+
+export function setGitTaskAbortSignal(signal: AbortSignal | undefined): void {
+	taskAbortSignal = signal;
+}
+
+function createUserSimpleGit(
+	repoPath?: string,
+	overrides?: Partial<SimpleGitOptions>,
+): SimpleGit {
+	const options: Partial<SimpleGitOptions> = {
+		...SIMPLE_GIT_OPTIONS,
+		...overrides,
+	};
+	if (taskAbortSignal && !options.abort) {
+		options.abort = taskAbortSignal;
+	}
+	try {
+		if (repoPath) {
+			return simpleGit(repoPath, options);
+		}
+		return simpleGit(options);
+	} catch (error) {
+		throw new GitEnvironmentError(
+			error instanceof Error ? error.message : String(error),
+		);
+	}
 }
 
 export async function getSimpleGitWithShellPath(
 	repoPath?: string,
+	overrides?: Partial<SimpleGitOptions>,
 ): Promise<SimpleGit> {
-	const git = createUserSimpleGit(repoPath);
+	const git = createUserSimpleGit(repoPath, overrides);
 	git.env(await getProcessEnvWithShellPath());
 	return git;
 }
@@ -41,5 +69,6 @@ export async function execGitWithShellPath(
 		...options,
 		encoding: "utf8",
 		env,
+		signal: options?.signal ?? taskAbortSignal,
 	});
 }

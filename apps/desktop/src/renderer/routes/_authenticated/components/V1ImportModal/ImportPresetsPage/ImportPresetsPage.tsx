@@ -1,14 +1,16 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { TerminalPreset } from "@superset/local-db";
-import {
-	AGENT_LABELS,
-	AGENT_TYPES,
-	type AgentType,
-} from "@superset/shared/agent-command";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { LuTerminal } from "react-icons/lu";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	buildV2TerminalPresetRow,
+	recordV1MigrationOutcome,
+	resolvePresetImport,
+} from "renderer/lib/v1-migration";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -19,9 +21,9 @@ interface ImportPresetsPageProps {
 	organizationId: string;
 }
 
-const BUILTIN_AGENT_IDS = new Set<string>(AGENT_TYPES);
-
 export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
+	const { _: translate } = useTranslation();
+
 	const collections = useCollections();
 	const presetsQuery = electronTrpc.settings.getTerminalPresets.useQuery();
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -33,31 +35,8 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 		[collections],
 	);
 
-	const importedAgentIds = useMemo(
-		() => new Set(v2Presets.flatMap((p) => (p.agentId ? [p.agentId] : []))),
-		[v2Presets],
-	);
-	const importedNames = useMemo(
-		() => new Set(v2Presets.flatMap((p) => (p.agentId ? [] : [p.name]))),
-		[v2Presets],
-	);
-
 	const isLoading = presetsQuery.isPending;
 	const presets = presetsQuery.data ?? [];
-	const agentConfigIdByPresetId = useMemo(() => {
-		const map = new Map<AgentType, string>();
-		for (const agent of agents) {
-			if (!BUILTIN_AGENT_IDS.has(agent.presetId)) {
-				continue;
-			}
-			const presetId = agent.presetId as AgentType;
-			if (map.has(presetId)) {
-				continue;
-			}
-			map.set(presetId, agent.id);
-		}
-		return map;
-	}, [agents]);
 
 	const refresh = async () => {
 		setIsRefreshing(true);
@@ -70,36 +49,28 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 
 	return (
 		<ImportPageShell
-			title="Bring over your terminal presets"
-			description="Import each v1 terminal preset into v2."
+			title={translate(msg({ message: "Bring over your terminal scripts" }))}
+			description={translate(
+				msg({ message: "Import each v1 terminal script into v2." }),
+			)}
 			isLoading={isLoading}
 			itemCount={presets.length}
-			emptyMessage="No v1 terminal presets found."
+			emptyMessage={translate(
+				msg({ message: "No v1 terminal scripts found." }),
+			)}
 			onRefresh={refresh}
 			isRefreshing={isRefreshing}
 		>
 			{presets.map((preset, index) => {
-				const builtInAgentId = BUILTIN_AGENT_IDS.has(preset.name)
-					? (preset.name as AgentType)
-					: undefined;
-				const linkedAgentId = builtInAgentId
-					? (agentConfigIdByPresetId.get(builtInAgentId) ?? builtInAgentId)
-					: undefined;
-				const v2Name = builtInAgentId
-					? AGENT_LABELS[builtInAgentId]
-					: preset.name;
-				const alreadyImported = linkedAgentId
-					? importedAgentIds.has(linkedAgentId) ||
-						(!!builtInAgentId && importedAgentIds.has(builtInAgentId))
-					: importedNames.has(v2Name);
+				const resolved = resolvePresetImport(preset, agents, v2Presets);
 				return (
 					<PresetRow
 						key={preset.id}
 						preset={preset}
 						tabOrder={index}
-						linkedAgentId={linkedAgentId}
-						v2Name={v2Name}
-						alreadyImported={alreadyImported}
+						linkedAgentId={resolved.linkedAgentId}
+						v2Name={resolved.v2Name}
+						alreadyImported={resolved.alreadyImported}
 						organizationId={organizationId}
 					/>
 				);
@@ -133,22 +104,18 @@ function PresetRow({
 		setRunning(true);
 		setErrorMessage(null);
 		try {
-			const row: V2TerminalPresetRow = {
-				id: crypto.randomUUID(),
-				name: v2Name,
-				description: preset.description,
-				cwd: preset.cwd,
-				commands: preset.commands,
-				projectIds: preset.projectIds ?? null,
-				pinnedToBar: preset.pinnedToBar,
-				applyOnWorkspaceCreated: preset.applyOnWorkspaceCreated,
-				applyOnNewTab: preset.applyOnNewTab,
-				executionMode: preset.executionMode ?? "new-tab",
+			const row: V2TerminalPresetRow = buildV2TerminalPresetRow(
+				preset,
 				tabOrder,
-				createdAt: new Date(),
-				agentId: linkedAgentId,
-			};
+				{ v2Name, linkedAgentId },
+			);
 			collections.v2TerminalPresets.insert(row);
+			recordV1MigrationOutcome(organizationId, {
+				v1Id: preset.id,
+				kind: "preset",
+				status: "success",
+				v2Id: row.id,
+			});
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			setErrorMessage(message);

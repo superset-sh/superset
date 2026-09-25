@@ -1,0 +1,1 @@
+export { GithubSentenceSlot } from "./GithubSentenceSlot";

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
@@ -18,6 +19,8 @@ export interface CreateCustomAgentInput {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	resumeArgs: string[];
+	forkArgs: string[];
 	env: Record<string, string>;
 	presetId: string;
 	iconId?: string;
@@ -35,10 +38,13 @@ export function NewCustomAgentDetail({
 	onCancel,
 	isSubmitting,
 }: NewCustomAgentDetailProps) {
+	const { t } = useLingui();
 	const [label, setLabel] = useState("");
 	const [iconId, setIconId] = useState<string | null>(null);
 	const [commandText, setCommandText] = useState("");
 	const [promptArgsText, setPromptArgsText] = useState("");
+	const [resumeArgsText, setResumeArgsText] = useState("");
+	const [forkArgsText, setForkArgsText] = useState("");
 	const [promptTransport, setPromptTransport] =
 		useState<PromptTransport>("argv");
 
@@ -57,6 +63,8 @@ export function NewCustomAgentDetail({
 			args: parsedCommand.args,
 			promptTransport,
 			promptArgs: parseArgs(promptArgsText),
+			resumeArgs: parseArgs(resumeArgsText),
+			forkArgs: parseArgs(forkArgsText),
 			env: parsedCommand.env,
 			presetId: "custom",
 			iconId: iconId ?? undefined,
@@ -68,8 +76,10 @@ export function NewCustomAgentDetail({
 			<AgentDetailHeader
 				iconId={iconId}
 				presetId="custom"
-				title={trimmedLabel || "New agent"}
-				subtitle="Add your own terminal agent to this device."
+				title={trimmedLabel || t({ message: "New agent" })}
+				subtitle={t({
+					message: "Add your own terminal agent to this device.",
+				})}
 			/>
 
 			<form
@@ -79,18 +89,36 @@ export function NewCustomAgentDetail({
 					handleCreate();
 				}}
 			>
-				<Section title="Identity">
-					<StackedField label="Label" htmlFor="new-agent-label">
+				<Section
+					title={t({
+						message: "Identity",
+					})}
+				>
+					<StackedField
+						label={t({
+							message: "Label",
+						})}
+						htmlFor="new-agent-label"
+					>
 						<Input
 							id="new-agent-label"
 							value={label}
 							onChange={(e) => setLabel(e.target.value)}
-							placeholder="My Agent"
+							placeholder={t({
+								message: "My Agent",
+							})}
 							autoFocus
 						/>
 					</StackedField>
 
-					<StackedField label="Icon" hint="Shown in launchers and this list.">
+					<StackedField
+						label={t({
+							message: "Icon",
+						})}
+						hint={t({
+							message: "Shown in launchers and this list.",
+						})}
+					>
 						<AgentIconPicker value={iconId} onChange={setIconId} />
 					</StackedField>
 				</Section>
@@ -101,16 +129,20 @@ export function NewCustomAgentDetail({
 					onCommandTextChange={setCommandText}
 					promptArgsText={promptArgsText}
 					onPromptArgsTextChange={setPromptArgsText}
+					resumeArgsText={resumeArgsText}
+					onResumeArgsTextChange={setResumeArgsText}
+					forkArgsText={forkArgsText}
+					onForkArgsTextChange={setForkArgsText}
 					promptTransport={promptTransport}
 					onPromptTransportChange={setPromptTransport}
 				/>
 
 				<div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
 					<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-						Cancel
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button type="submit" size="sm" disabled={!canCreate}>
-						Add agent
+						<Trans>Add agent</Trans>
 					</Button>
 				</div>
 			</form>

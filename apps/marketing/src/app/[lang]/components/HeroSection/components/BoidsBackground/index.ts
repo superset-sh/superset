@@ -1,0 +1,1 @@
+export { BoidsBackground } from "./BoidsBackground";

@@ -8,6 +8,7 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useRingtoneStore } from "renderer/stores/ringtone";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
+import { applyRememberedV2PaneSelection } from "renderer/stores/v2-pane-selection";
 import { getV2NativeNotificationContent } from "./notificationContent";
 import {
 	isV2NotificationTargetVisible,
@@ -25,6 +26,7 @@ import {
 export function handleV2AgentLifecycleEvent({
 	workspaceId,
 	workspaceName,
+	projectName,
 	payload,
 	paneLayout,
 	volume,
@@ -32,17 +34,21 @@ export function handleV2AgentLifecycleEvent({
 }: {
 	workspaceId: string;
 	workspaceName: string;
+	projectName?: string;
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 	volume: number;
 	muted: boolean;
 }): void {
+	const localPaneLayout = paneLayout
+		? applyRememberedV2PaneSelection(workspaceId, paneLayout)
+		: paneLayout;
 	const target = resolveV2NotificationTarget({
 		workspaceId,
 		payload,
-		paneLayout,
+		paneLayout: localPaneLayout,
 	});
-	markSeenIfTargetVisible({ payload, paneLayout, target });
+	markSeenIfTargetVisible({ payload, paneLayout: localPaneLayout, target });
 
 	// Only Stop and PermissionRequest deserve sound. Start fires per-prompt
 	// (the working spinner is feedback enough); Attached/Detached fire on
@@ -55,7 +61,7 @@ export function handleV2AgentLifecycleEvent({
 	) {
 		return;
 	}
-	if (shouldSuppress(target, paneLayout)) return;
+	if (shouldSuppress(target, localPaneLayout)) return;
 
 	const ringtoneId = useRingtoneStore.getState().selectedRingtoneId;
 	void playRingtone({ ringtoneId, volume, muted });
@@ -64,6 +70,7 @@ export function handleV2AgentLifecycleEvent({
 		payload,
 		workspaceId,
 		workspaceName,
+		projectName,
 		target,
 	});
 }
@@ -81,12 +88,15 @@ export function markV2AgentLifecycleTargetSeen({
 	payload: AgentLifecyclePayload;
 	paneLayout: WorkspaceState<PaneViewerData> | null | undefined;
 }): void {
+	const localPaneLayout = paneLayout
+		? applyRememberedV2PaneSelection(workspaceId, paneLayout)
+		: paneLayout;
 	const target = resolveV2NotificationTarget({
 		workspaceId,
 		payload,
-		paneLayout,
+		paneLayout: localPaneLayout,
 	});
-	markSeenIfTargetVisible({ payload, paneLayout, target });
+	markSeenIfTargetVisible({ payload, paneLayout: localPaneLayout, target });
 }
 
 export function handleV2TerminalLifecycleEvent({
@@ -146,21 +156,25 @@ function showNativeNotification({
 	payload,
 	workspaceId,
 	workspaceName,
+	projectName,
 	target,
 }: {
 	payload: AgentLifecyclePayload;
 	workspaceId: string;
 	workspaceName: string;
+	projectName?: string;
 	target: V2NotificationTarget;
 }): void {
-	const { title, body } = getV2NativeNotificationContent({
+	const { title, subtitle, body } = getV2NativeNotificationContent({
 		workspaceName,
+		projectName,
 		payload,
 	});
 
 	void electronTrpcClient.notifications.showNative
 		.mutate({
 			title,
+			subtitle,
 			body,
 			silent: true,
 			clickTarget: {

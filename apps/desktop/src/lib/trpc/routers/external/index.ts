@@ -8,7 +8,7 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { clipboard, shell } from "electron";
+import { app, clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { externalUrlLogLabel, isSafeExternalUrl } from "main/lib/safe-url";
 import { z } from "zod";
@@ -18,6 +18,7 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import {
 	type ExternalApp,
 	getAppCommand,
+	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	spawnAsync,
@@ -79,6 +80,19 @@ async function openPathInApp(
 	filePath: string,
 	app: ExternalApp,
 ): Promise<void> {
+	// Paths reach here from terminal links, diff rows and workspace rows, any
+	// of which can name something an agent has since deleted or a worktree that
+	// has been removed. Whether it is still there is ours to answer, so answer
+	// it before handing the path to another program: otherwise the miss comes
+	// back as an opaque non-zero exit (macOS `open` writes "The file <path>
+	// does not exist"), which we can only report as a 500 (DESKTOP-15).
+	if (await pathIsMissing(filePath)) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "This file no longer exists.",
+		});
+	}
+
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;
@@ -144,6 +158,49 @@ export const createExternalRouter = () => {
 			.input(z.string())
 			.mutation(async ({ input }) => {
 				shell.showItemInFolder(input);
+			}),
+
+		// Opens a folder itself in Finder (like `open <path>`), rather than
+		// highlighting it in its parent the way openInFinder does.
+		openFolderInFinder: publicProcedure
+			.input(z.string())
+			.mutation(async ({ input }) => {
+				if (!nodePath.isAbsolute(input)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `openFolderInFinder requires an absolute path (got ${JSON.stringify(input)}).`,
+					});
+				}
+				const errorMessage = await shell.openPath(input);
+				if (errorMessage) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: errorMessage,
+					});
+				}
+			}),
+
+		saveToDownloads: publicProcedure
+			.input(
+				z.object({
+					filename: z.string().min(1),
+					// ~10MB attachment cap → ~14M base64 chars; reject anything wilder.
+					dataBase64: z.string().max(20_000_000),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const safeName = nodePath.basename(input.filename) || "download";
+				const downloadsDir = app.getPath("downloads");
+				const { name, ext } = nodePath.parse(safeName);
+				let target = nodePath.join(downloadsDir, safeName);
+				for (let i = 1; fs.existsSync(target); i++) {
+					target = nodePath.join(downloadsDir, `${name} (${i})${ext}`);
+				}
+				await fs.promises.writeFile(
+					target,
+					Buffer.from(input.dataBase64, "base64"),
+				);
+				return { path: target };
 			}),
 
 		openInApp: publicProcedure

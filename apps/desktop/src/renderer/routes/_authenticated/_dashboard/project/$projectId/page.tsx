@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -113,6 +115,7 @@ function parseConfigContent(content: string | null): {
 }
 
 function ProjectPage() {
+	const { t } = useLingui();
 	const { projectId } = Route.useParams();
 
 	const { data: project } = electronTrpc.projects.get.useQuery({
@@ -239,12 +242,24 @@ function ProjectPage() {
 				compareBaseBranch: compareBaseBranch || undefined,
 			});
 
-			toast.success("Workspace created", {
-				description: "Setting up in the background...",
-			});
+			toast.success(
+				t({
+					message: "Workspace created",
+				}),
+				{
+					description: t({
+						message: "Setting up in the background...",
+					}),
+				},
+			);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to create workspace",
+				errorMessage(
+					error,
+					t({
+						message: "Failed to create workspace",
+					}),
+				),
 			);
 		}
 	};
@@ -275,7 +290,12 @@ function ProjectPage() {
 			await handleCreateWorkspace();
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to save setup config",
+				errorMessage(
+					error,
+					t({
+						message: "Failed to save setup config",
+					}),
+				),
 			);
 		}
 	};
@@ -314,17 +334,23 @@ function ProjectPage() {
 					<div className="w-full max-w-3xl space-y-6">
 						<div className="space-y-1.5">
 							<p className="text-xs uppercase tracking-wide text-muted-foreground">
-								Step {step === "workspace" ? 1 : 2} of 2
+								<Trans>Step {step === "workspace" ? 1 : 2} of 2</Trans>
 							</p>
 							<h1 className="text-2xl font-semibold text-foreground">
-								{step === "workspace" && "Create your first workspace"}
-								{step === "setup" && "Setup script"}
+								{step === "workspace" && (
+									<Trans>Create your first workspace</Trans>
+								)}
+								{step === "setup" && <Trans>Setup script</Trans>}
 							</h1>
 							<p className="text-sm text-muted-foreground">
-								{step === "workspace" &&
-									"Workspaces are isolated task environments backed by git worktrees."}
+								{step === "workspace" && (
+									<Trans>
+										Workspaces are isolated task environments backed by git
+										worktrees.
+									</Trans>
+								)}
 								{step === "setup" && (
-									<>
+									<Trans>
 										These commands run automatically when a workspace is
 										created.{" "}
 										<a
@@ -336,7 +362,7 @@ function ProjectPage() {
 											Read our docs
 											<HiChevronRight className="size-3 transition-transform duration-150 group-hover:translate-x-0.5" />
 										</a>
-									</>
+									</Trans>
 								)}
 							</p>
 						</div>
@@ -352,12 +378,16 @@ function ProjectPage() {
 									className="space-y-4"
 								>
 									<div className="space-y-2">
-										<Label htmlFor="task-title">Task</Label>
+										<Label htmlFor="task-title">
+											<Trans>Task</Trans>
+										</Label>
 										<Input
 											id="task-title"
 											ref={titleInputRef}
 											className="h-11"
-											placeholder="e.g. Add dark mode, Fix checkout bug"
+											placeholder={t({
+												message: "e.g. Add dark mode, Fix checkout bug",
+											})}
 											value={title}
 											onChange={(e) => setTitle(e.target.value)}
 											onKeyDown={(e) => {
@@ -371,12 +401,20 @@ function ProjectPage() {
 
 									<div className="rounded-md border border-border/60 bg-card/40 px-3 py-2 text-sm">
 										<div className="flex items-center gap-2 text-muted-foreground">
-											<GoGitBranch className="size-3.5" />
-											<span className="font-mono">
+											<GoGitBranch className="size-3.5 shrink-0" />
+											<span
+												className="min-w-0 truncate font-mono"
+												title={generatedBranchName || "branch-name"}
+											>
 												{generatedBranchName || "branch-name"}
 											</span>
-											<span className="text-muted-foreground/50">from</span>
-											<span className="font-mono">
+											<span className="shrink-0 text-muted-foreground/50">
+												<Trans>from</Trans>
+											</span>
+											<span
+												className="min-w-0 truncate font-mono"
+												title={effectiveCompareBaseBranch ?? undefined}
+											>
 												{effectiveCompareBaseBranch}
 											</span>
 										</div>
@@ -390,7 +428,7 @@ function ProjectPage() {
 											<HiChevronDown
 												className={`size-3 transition-transform duration-200 ${showAdvanced ? "" : "-rotate-90"}`}
 											/>
-											Advanced options
+											<Trans>Advanced options</Trans>
 										</CollapsibleTrigger>
 										<AnimatePresence initial={false}>
 											{showAdvanced && (
@@ -403,11 +441,11 @@ function ProjectPage() {
 												>
 													<div className="pt-3 space-y-2">
 														<span className="text-xs font-medium text-muted-foreground">
-															Base branch
+															<Trans>Base branch</Trans>
 														</span>
 														{isBranchesError ? (
 															<div className="flex items-center gap-2 h-10 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-sm">
-																Failed to load branches
+																<Trans>Failed to load branches</Trans>
 															</div>
 														) : (
 															<Popover
@@ -424,13 +462,14 @@ function ProjectPage() {
 																		<span className="flex items-center gap-2 truncate">
 																			<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 																			<span className="truncate font-mono text-sm">
-																				{effectiveCompareBaseBranch ||
-																					"Select branch..."}
+																				{effectiveCompareBaseBranch || (
+																					<Trans>Select branch...</Trans>
+																				)}
 																			</span>
 																			{effectiveCompareBaseBranch ===
 																				branchData?.defaultBranch && (
 																				<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																					default
+																					<Trans>default</Trans>
 																				</span>
 																			)}
 																		</span>
@@ -444,13 +483,15 @@ function ProjectPage() {
 																>
 																	<Command shouldFilter={false}>
 																		<CommandInput
-																			placeholder="Search branches..."
+																			placeholder={t({
+																				message: "Search branches...",
+																			})}
 																			value={branchSearch}
 																			onValueChange={setBranchSearch}
 																		/>
 																		<CommandList className="max-h-[200px]">
 																			<CommandEmpty>
-																				No branches found
+																				<Trans>No branches found</Trans>
 																			</CommandEmpty>
 																			{filteredBranches.map((branch) => (
 																				<CommandItem
@@ -471,7 +512,7 @@ function ProjectPage() {
 																						{branch.name ===
 																							branchData?.defaultBranch && (
 																							<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																								default
+																								<Trans>default</Trans>
 																							</span>
 																						)}
 																					</span>
@@ -506,7 +547,7 @@ function ProjectPage() {
 											onClick={handleContinueToSetup}
 											disabled={!canContinueFromWorkspace}
 										>
-											Continue
+											<Trans>Continue</Trans>
 											<HiChevronRight className="size-4" />
 										</Button>
 									</div>
@@ -557,7 +598,7 @@ function ProjectPage() {
 												onClick={switchToCustom}
 												className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
 											>
-												Customize commands
+												<Trans>Customize commands</Trans>
 											</button>
 										</div>
 									)}
@@ -565,8 +606,10 @@ function ProjectPage() {
 									{setupMode === "checklist" && actions.length === 0 && (
 										<div className="overflow-hidden rounded-lg border bg-card/40 p-6 text-center space-y-3">
 											<p className="text-sm text-muted-foreground">
-												We couldn't detect a package manager or environment
-												config.
+												<Trans>
+													We couldn't detect a package manager or environment
+													config.
+												</Trans>
 											</p>
 											<div className="flex items-center justify-center gap-2">
 												<Button
@@ -574,7 +617,7 @@ function ProjectPage() {
 													size="sm"
 													onClick={() => setSetupMode("custom")}
 												>
-													Add commands
+													<Trans>Add commands</Trans>
 												</Button>
 												<Button
 													variant="ghost"
@@ -585,7 +628,7 @@ function ProjectPage() {
 														createWorkspace.isPending
 													}
 												>
-													Skip
+													<Trans>Skip</Trans>
 												</Button>
 											</div>
 										</div>
@@ -599,7 +642,7 @@ function ProjectPage() {
 													onClick={() => setSetupMode("checklist")}
 													className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
 												>
-													Back to checklist
+													<Trans>Back to checklist</Trans>
 												</button>
 											)}
 											<div className="overflow-hidden rounded-lg border bg-card/40">
@@ -608,20 +651,24 @@ function ProjectPage() {
 														id="setup-script"
 														wrap="off"
 														className="h-full min-h-[220px] resize-none overflow-x-auto whitespace-pre font-mono text-xs"
-														placeholder="Add setup commands, one per line..."
+														placeholder={t({
+															message: "Add setup commands, one per line...",
+														})}
 														value={setupContent}
 														onChange={(e) => setSetupContent(e.target.value)}
 													/>
 													<div className="flex flex-wrap items-center gap-1.5 border-t px-1 pt-2 text-[11px] text-muted-foreground">
-														<span className="mr-1">Variables</span>
-														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_ROOT_PATH
+														<span className="mr-1">
+															<Trans>Variables</Trans>
 														</span>
 														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_WORKSPACE_PATH
+															{"$SUPERSET_ROOT_PATH"}
 														</span>
 														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
-															$SUPERSET_WORKSPACE_NAME
+															{"$SUPERSET_WORKSPACE_PATH"}
+														</span>
+														<span className="rounded bg-muted px-1.5 py-0.5 font-mono">
+															{"$SUPERSET_WORKSPACE_NAME"}
 														</span>
 													</div>
 												</div>
@@ -637,7 +684,7 @@ function ProjectPage() {
 											<HiChevronDown
 												className={`size-3 transition-transform duration-200 ${teardownOpen ? "" : "-rotate-90"}`}
 											/>
-											Teardown commands (optional)
+											<Trans>Teardown commands (optional)</Trans>
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-2">
 											<Textarea
@@ -656,7 +703,7 @@ function ProjectPage() {
 											onClick={() => setStep("workspace")}
 										>
 											<HiChevronLeft className="size-4" />
-											Back
+											<Trans>Back</Trans>
 										</Button>
 										<div className="flex items-center gap-2">
 											<Button
@@ -667,7 +714,7 @@ function ProjectPage() {
 													createWorkspace.isPending
 												}
 											>
-												Skip for now
+												<Trans>Skip for now</Trans>
 											</Button>
 											<Button
 												onClick={handleSaveAndCreateWorkspace}
@@ -677,11 +724,13 @@ function ProjectPage() {
 												}
 											>
 												{updateConfigMutation.isPending ||
-												createWorkspace.isPending
-													? "Creating..."
-													: setupMode === "checklist"
-														? "Create workspace"
-														: "Save & create workspace"}
+												createWorkspace.isPending ? (
+													<Trans>Creating...</Trans>
+												) : setupMode === "checklist" ? (
+													<Trans>Create workspace</Trans>
+												) : (
+													<Trans>Save & create workspace</Trans>
+												)}
 												<HiChevronRight className="size-4" />
 											</Button>
 										</div>

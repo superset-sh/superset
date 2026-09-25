@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -11,7 +13,6 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LuFolderOpen } from "react-icons/lu";
 import { RemotePathPicker } from "renderer/components/RemotePathPicker";
@@ -21,16 +22,11 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { ClickablePath } from "../../../../../../components/ClickablePath";
 import { SetupProjectModal } from "../SetupProjectModal";
 
-interface BackfillConflict {
-	id: string;
-	name: string;
-}
-
 interface ProjectLocationSectionProps {
 	projectId: string;
+	projectName?: string;
 	currentPath: string | null;
 	repoCloneUrl: string | null;
-	hostId: string | null;
 	hostUrl: string | null;
 	hostName: string;
 	isRemoteTarget: boolean;
@@ -39,28 +35,30 @@ interface ProjectLocationSectionProps {
 
 export function ProjectLocationSection({
 	projectId,
+	projectName,
 	currentPath,
 	repoCloneUrl,
-	hostId,
 	hostUrl,
 	hostName,
 	isRemoteTarget,
 	onChanged,
 }: ProjectLocationSectionProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
-	const navigate = useNavigate();
-	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
-		useDashboardSidebarState();
+	const { ensureProjectInSidebar } = useDashboardSidebarState();
 
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
-	const [conflict, setConflict] = useState<BackfillConflict | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [setupOpen, setSetupOpen] = useState(false);
 	const [changeBrowseOpen, setChangeBrowseOpen] = useState(false);
 
 	const pickPath = async (title: string) => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return null;
 		}
 		try {
@@ -71,32 +69,26 @@ export function ProjectLocationSection({
 			if (picked.canceled || !picked.path) return null;
 			return picked.path;
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 			return null;
 		}
 	};
 
 	const proposeRelocate = async (path: string) => {
 		if (path === currentPath) {
-			toast.info("Project is already at that location");
+			toast.info(
+				t({
+					message: "Project is already at that location",
+				}),
+			);
 			return;
 		}
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
-			return;
-		}
-		try {
-			const client = getHostServiceClientByUrl(hostUrl);
-			const precheck = await client.project.findBackfillConflict.query({
-				projectId,
-				repoPath: path,
-			});
-			if (precheck.conflict) {
-				setConflict(precheck.conflict);
-				return;
-			}
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(
+				t({
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		setPendingPath(path);
@@ -107,7 +99,11 @@ export function ProjectLocationSection({
 			setChangeBrowseOpen(true);
 			return;
 		}
-		const path = await pickPath("Select new project location");
+		const path = await pickPath(
+			t({
+				message: "Select new project location",
+			}),
+		);
 		if (!path) return;
 		await proposeRelocate(path);
 	};
@@ -115,7 +111,11 @@ export function ProjectLocationSection({
 	const handleConfirmRelocate = async () => {
 		if (!pendingPath) return;
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		setIsSubmitting(true);
@@ -125,16 +125,16 @@ export function ProjectLocationSection({
 				projectId,
 				mode: { kind: "import", repoPath: pendingPath, allowRelocate: true },
 			});
-			toast.success(`Project relocated to ${result.repoPath}`);
-			if (result.mainWorkspaceId) {
-				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
-			} else {
-				ensureProjectInSidebar(projectId);
-			}
+			toast.success(
+				t({
+					message: `Project relocated to ${result.repoPath}`,
+				}),
+			);
+			ensureProjectInSidebar(projectId);
 			onChanged?.();
 			setPendingPath(null);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -143,31 +143,35 @@ export function ProjectLocationSection({
 	return (
 		<>
 			{currentPath ? (
-				<div className="relative w-96">
-					<div className="flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 pr-9 dark:bg-input/30">
+				<div className="flex w-[28rem] max-w-full items-center gap-2">
+					<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
 						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
 					</div>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
 								type="button"
-								variant="ghost"
+								variant="outline"
 								size="icon"
-								className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+								className="size-9 shrink-0"
 								onClick={handleChange}
 								disabled={selectDirectory.isPending || isSubmitting}
-								aria-label="Change location"
+								aria-label={t({
+									message: "Change location",
+								})}
 							>
 								<LuFolderOpen className="size-4" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent>Change location</TooltipContent>
+						<TooltipContent>
+							<Trans>Change location</Trans>
+						</TooltipContent>
 					</Tooltip>
 				</div>
 			) : (
 				<div className="flex items-center gap-3">
 					<span className="text-sm text-muted-foreground">
-						Not set up on {hostName}
+						<Trans>Not set up on {hostName}</Trans>
 					</span>
 					<Button
 						type="button"
@@ -176,7 +180,7 @@ export function ProjectLocationSection({
 						onClick={() => setSetupOpen(true)}
 						disabled={!hostUrl}
 					>
-						Set up project…
+						<Trans>Set up project…</Trans>
 					</Button>
 				</div>
 			)}
@@ -185,12 +189,12 @@ export function ProjectLocationSection({
 				open={setupOpen}
 				onOpenChange={setSetupOpen}
 				projectId={projectId}
+				projectName={projectName}
 				hostUrl={hostUrl}
 				hostName={hostName}
 				repoCloneUrl={repoCloneUrl}
 				isRemoteTarget={isRemoteTarget}
 				onChanged={onChanged}
-				onConflict={setConflict}
 			/>
 
 			<RemotePathPicker
@@ -199,53 +203,19 @@ export function ProjectLocationSection({
 				hostUrl={hostUrl}
 				hostName={hostName}
 				initialPath={currentPath ?? undefined}
-				title="Change project location"
-				description={`Pick the new project folder on ${hostName}.`}
-				confirmLabel="Use this folder"
+				title={t({
+					message: "Change project location",
+				})}
+				description={t({
+					message: `Pick the new project folder on ${hostName}.`,
+				})}
+				confirmLabel={t({
+					message: "Use this folder",
+				})}
 				onPick={(path) => {
 					void proposeRelocate(path);
 				}}
 			/>
-
-			<AlertDialog
-				open={conflict !== null}
-				onOpenChange={(open) => {
-					if (!open) {
-						setConflict(null);
-						setIsSubmitting(false);
-					}
-				}}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Repository already linked</AlertDialogTitle>
-						<AlertDialogDescription className="select-text cursor-text">
-							This repository is already linked to project "
-							{conflict?.name ?? ""}" in this organization. Open that project to
-							set it up on {hostName}.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={(e) => {
-								e.preventDefault();
-								if (!conflict) return;
-								const target = conflict;
-								setConflict(null);
-								setIsSubmitting(false);
-								navigate({
-									to: "/settings/projects/$projectId",
-									params: { projectId: target.id },
-									search: { hostId: hostId ?? undefined },
-								});
-							}}
-						>
-							Open project
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 
 			<AlertDialog
 				open={pendingPath !== null}
@@ -255,27 +225,35 @@ export function ProjectLocationSection({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Relocate project?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans>Relocate project?</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-3 text-sm select-text cursor-text">
 								<div>
-									<div className="text-muted-foreground text-xs">From</div>
+									<div className="text-muted-foreground text-xs">
+										<Trans>From</Trans>
+									</div>
 									<div className="font-mono break-all">{currentPath}</div>
 								</div>
 								<div>
-									<div className="text-muted-foreground text-xs">To</div>
+									<div className="text-muted-foreground text-xs">
+										<Trans>To</Trans>
+									</div>
 									<div className="font-mono break-all">{pendingPath}</div>
 								</div>
 								<p className="text-muted-foreground">
-									Existing worktrees under the old path will be orphaned. You
-									can re-import them from the worktrees flow.
+									<Trans>
+										Existing worktrees under the old path will be orphaned. You
+										can re-import them from the worktrees flow.
+									</Trans>
 								</p>
 							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isSubmitting}>
-							Cancel
+							<Trans>Cancel</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={(e) => {
@@ -284,7 +262,11 @@ export function ProjectLocationSection({
 							}}
 							disabled={isSubmitting}
 						>
-							{isSubmitting ? "Relocating…" : "Relocate"}
+							{isSubmitting ? (
+								<Trans>Relocating…</Trans>
+							) : (
+								<Trans>Relocate</Trans>
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

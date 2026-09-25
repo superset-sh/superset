@@ -4,9 +4,10 @@ import {
 } from "@superset/shared/workspace-launch";
 import { z } from "zod";
 import { hostSettings } from "../../../db/schema";
-import { createUserSimpleGit } from "../../../runtime/git/simple-git";
+import { getStrictShellEnvironment } from "../../../terminal/clean-shell-env";
+import { gitIdentityTask } from "../../../workers/tasks/git";
 import { protectedProcedure, router } from "../../index";
-import { resolveGitInfo } from "../workspace-creation/utils/branch-prefix";
+import { offLoop } from "../../off-loop";
 
 /**
  * Host-wide branch-prefix default. Projects without their own override fall
@@ -53,7 +54,14 @@ export const branchPrefixRouter = router({
 	 * Git identity for the settings preview — lets the UI show what the
 	 * `author`/`github` modes would actually resolve to.
 	 */
-	gitInfo: protectedProcedure.query(({ ctx }) => {
-		return resolveGitInfo(createUserSimpleGit(), ctx.execGh);
-	}),
+	gitInfo: protectedProcedure.query(
+		offLoop({
+			task: gitIdentityTask,
+			prepare: async () => ({
+				shellEnv: await getStrictShellEnvironment().catch(
+					() => process.env as Record<string, string>,
+				),
+			}),
+		}),
+	),
 });

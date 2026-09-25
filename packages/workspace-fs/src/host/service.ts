@@ -1,14 +1,23 @@
 import type { FsService } from "../core/service";
+import type {
+	FsCreateUniqueResult,
+	FsRemoveEmptyDirectoryResult,
+	FsRemoveFileIfUnchangedResult,
+} from "../fs";
 import {
 	copyPath,
 	createDirectory,
+	createUniqueEntry,
 	deletePath,
 	getMetadata,
 	listDirectory,
 	movePath,
 	readFile,
+	removeEmptyDirectory,
+	removeFileIfUnchanged,
 	writeFile,
 } from "../fs";
+import { normalizeAbsolutePath } from "../paths";
 import type { SearchContentOptions } from "../search";
 import { searchContent, searchFiles } from "../search";
 import type { FsWatchEvent } from "../types";
@@ -16,6 +25,29 @@ import type { FsWatcherManager, WatchPathOptions } from "../watch";
 
 export interface FsHostService extends FsService {
 	close(): Promise<void>;
+
+	/**
+	 * Host-only provisional-entry lifecycle, used by editors that create an entry
+	 * on disk before letting the user name it inline.
+	 *
+	 * Deliberately not on `FsService`: that interface is mirrored by
+	 * `createFsClient` through `FsRequestMap`, and nothing consumes these over
+	 * that transport. Widening it would add remote surface for no caller.
+	 */
+	createUniqueEntry(input: {
+		parentAbsolutePath: string;
+		baseName: string;
+		kind: "directory" | "file";
+	}): Promise<FsCreateUniqueResult>;
+
+	removeEmptyDirectory(input: {
+		absolutePath: string;
+	}): Promise<FsRemoveEmptyDirectoryResult>;
+
+	removeFileIfUnchanged(input: {
+		absolutePath: string;
+		revision: string;
+	}): Promise<FsRemoveFileIfUnchangedResult>;
 }
 
 export interface FsHostServiceOptions {
@@ -179,6 +211,30 @@ export function createFsHostService(
 			});
 		},
 
+		async createUniqueEntry(input) {
+			return await createUniqueEntry({
+				rootPath,
+				parentAbsolutePath: input.parentAbsolutePath,
+				baseName: input.baseName,
+				kind: input.kind,
+			});
+		},
+
+		async removeEmptyDirectory(input) {
+			return await removeEmptyDirectory({
+				rootPath,
+				absolutePath: input.absolutePath,
+			});
+		},
+
+		async removeFileIfUnchanged(input) {
+			return await removeFileIfUnchanged({
+				rootPath,
+				absolutePath: input.absolutePath,
+				revision: input.revision,
+			});
+		},
+
 		async deletePath(input) {
 			return await deletePath({
 				rootPath,
@@ -237,11 +293,18 @@ export function createFsHostService(
 				throw new Error("watchPath requires a watcher manager");
 			}
 
-			return createAsyncQueue<{ events: FsWatchEvent[] }>(async (push) => {
-				return await watcherManager.subscribe(
-					{ absolutePath: input.absolutePath, recursive: input.recursive },
-					push,
+			// Only the workspace root may be watched. A watch root at/inside an
+			// ignored dir (node_modules) or behind a symlink defeats the ignore
+			// globs, which match relative to the watch root.
+			const absolutePath = normalizeAbsolutePath(input.absolutePath);
+			if (absolutePath !== normalizeAbsolutePath(rootPath)) {
+				throw new Error(
+					`watchPath only supports the workspace root: ${rootPath}`,
 				);
+			}
+
+			return createAsyncQueue<{ events: FsWatchEvent[] }>(async (push) => {
+				return await watcherManager.subscribe({ absolutePath }, push);
 			});
 		},
 

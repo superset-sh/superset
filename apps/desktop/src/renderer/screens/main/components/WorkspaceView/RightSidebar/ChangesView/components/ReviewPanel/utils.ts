@@ -1,5 +1,11 @@
 import type { GitHubStatus, PullRequestComment } from "@superset/local-db";
-import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
+import {
+	LuCheck,
+	LuLoaderCircle,
+	LuMinus,
+	LuSkipForward,
+	LuX,
+} from "react-icons/lu";
 
 export type PullRequestCheck = NonNullable<
 	GitHubStatus["pr"]
@@ -42,7 +48,7 @@ export const checkIconConfig = {
 		label: "Pending",
 	},
 	skipped: {
-		icon: LuMinus,
+		icon: LuSkipForward,
 		className: "text-muted-foreground",
 		label: "Skipped",
 	},

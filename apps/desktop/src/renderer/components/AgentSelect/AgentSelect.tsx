@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -20,6 +21,10 @@ export interface AgentSelectAgent {
 	id: string;
 	label: string;
 	iconId?: string;
+	/** Host preset slug ("claude", "custom", …) — stable across hosts and DB re-seeds, unlike `id`. */
+	presetId?: string;
+	/** Executable-aware launch capability id; differs from presetId for OMP. */
+	launchPresetId?: string;
 }
 
 interface AgentSelectProps<T extends string> {
@@ -48,10 +53,12 @@ export function AgentSelect<T extends string>({
 	contentClassName,
 	iconClassName = "size-3.5 object-contain",
 	allowNone = false,
-	noneLabel = "No agent",
+	noneLabel,
 	noneValue,
 }: AgentSelectProps<T>) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
+	const resolvedNoneLabel = noneLabel ?? t({ message: "No agent" });
 	const isDark = useIsDarkTheme();
 	const selectableIds = new Set<string>(agents.map((agent) => agent.id));
 	const selectedValue =
@@ -82,7 +89,7 @@ export function AgentSelect<T extends string>({
 			</SelectTrigger>
 			<SelectContent className={contentClassName}>
 				{allowNone && noneValue != null && (
-					<SelectItem value={noneValue}>{noneLabel}</SelectItem>
+					<SelectItem value={noneValue}>{resolvedNoneLabel}</SelectItem>
 				)}
 				{agents.map((agent) => {
 					const icon = getPresetIcon(agent.iconId ?? agent.id, isDark);

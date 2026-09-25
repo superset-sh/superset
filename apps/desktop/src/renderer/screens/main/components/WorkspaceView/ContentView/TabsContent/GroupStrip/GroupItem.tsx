@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -65,6 +67,8 @@ export function GroupItem({
 	onPaneDrop,
 	onReorder,
 }: GroupItemProps) {
+	const { _: translate } = useTranslation();
+
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
@@ -265,14 +269,12 @@ export function GroupItem({
 												onClose();
 											}}
 											className="cursor-pointer size-6 hover:bg-muted"
-											aria-label="Close pane"
+											aria-label={translate(msg({ message: "Close pane" }))}
 										>
 											<HiMiniXMark className="size-4" />
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent side="top" showArrow={false}>
-										Close pane
-									</TooltipContent>
+									<TooltipContent side="top">Close pane</TooltipContent>
 								</Tooltip>
 							</div>
 						</>

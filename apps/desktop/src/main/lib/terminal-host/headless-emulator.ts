@@ -73,6 +73,9 @@ export class HeadlessEmulator {
 	// Buffer for partial escape sequences that span chunk boundaries
 	private escapeSequenceBuffer = "";
 
+	// Callers waiting on flush(), so dispose() can release them
+	private pendingFlushes = new Set<() => void>();
+
 	// Maximum buffer size to prevent unbounded growth (safety cap)
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
@@ -220,7 +223,11 @@ export class HeadlessEmulator {
 		if (this.disposed) return;
 		// Write an empty string with callback to ensure all pending writes are processed
 		return new Promise<void>((resolve) => {
-			this.terminal.write("", () => resolve());
+			this.pendingFlushes.add(resolve);
+			this.terminal.write("", () => {
+				this.pendingFlushes.delete(resolve);
+				resolve();
+			});
 		});
 	}
 
@@ -299,15 +306,6 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Generate a complete snapshot after flushing pending writes.
-	 * This is the preferred method for getting consistent snapshots.
-	 */
-	async getSnapshotAsync(): Promise<TerminalSnapshot> {
-		await this.flush();
-		return this.getSnapshot();
-	}
-
-	/**
 	 * Clear terminal buffer
 	 */
 	clear(): void {
@@ -331,6 +329,12 @@ export class HeadlessEmulator {
 		if (this.disposed) return;
 		this.disposed = true;
 		this.terminal.dispose();
+
+		// Disposing the terminal drops the write callbacks xterm still had
+		// queued, so a flush() already in flight would never be answered.
+		const waiting = this.pendingFlushes;
+		this.pendingFlushes = new Set();
+		for (const resolve of waiting) resolve();
 	}
 
 	// ===========================================================================
@@ -509,53 +513,69 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Generate escape sequences to restore current mode state
-	 * These sequences should be written to a fresh xterm instance before
-	 * writing the snapshot to ensure input behavior matches.
+	 * Generate escape sequences to bring an attaching xterm to this emulator's
+	 * mode state.
+	 *
+	 * This is an authoritative resync, not a diff against xterm defaults: the
+	 * attaching xterm is not always fresh. A cached renderer xterm that missed
+	 * a TUI's mode-restore bytes (laptop sleep, dropped stream, replayed stale
+	 * scrollback) can have mouse tracking or app-cursor mode still armed while
+	 * the PTY sits at a plain shell prompt — every scroll then sprays SGR mouse
+	 * reports into the shell. So input-affecting modes are asserted in BOTH
+	 * directions, the way tmux resyncs a client tty on attach.
+	 *
+	 * Origin mode (?6) is the exception: both DECSET and DECRST home the
+	 * cursor, so it is only asserted when set.
 	 */
 	private generateRehydrateSequences(): string {
 		const sequences: string[] = [];
 
-		// Helper to add DECSET/DECRST sequence
-		const addModeSequence = (
-			modeNum: number,
-			enabled: boolean,
-			defaultEnabled: boolean,
-		) => {
-			// Only add sequence if different from default
-			if (enabled !== defaultEnabled) {
-				sequences.push(`${ESC}[?${modeNum}${enabled ? "h" : "l"}`);
-			}
+		const assertMode = (modeNum: number, enabled: boolean) => {
+			sequences.push(`${ESC}[?${modeNum}${enabled ? "h" : "l"}`);
 		};
 
 		// Application cursor keys (mode 1)
-		addModeSequence(1, this.modes.applicationCursorKeys, false);
+		assertMode(1, this.modes.applicationCursorKeys);
 
-		// Origin mode (mode 6)
-		addModeSequence(6, this.modes.originMode, false);
+		// Origin mode (mode 6): set-only — DECSET/DECRST both home the cursor,
+		// so an unconditional ?6l would teleport the cursor on every attach.
+		if (this.modes.originMode) {
+			assertMode(6, true);
+		}
 
 		// Auto-wrap mode (mode 7)
-		addModeSequence(7, this.modes.autoWrap, true);
+		assertMode(7, this.modes.autoWrap);
 
 		// Cursor visibility (mode 25)
-		addModeSequence(25, this.modes.cursorVisible, true);
+		assertMode(25, this.modes.cursorVisible);
 
-		// Mouse tracking modes (mutually exclusive typically, but we track all)
-		addModeSequence(9, this.modes.mouseTrackingX10, false);
-		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
-		addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
-		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
-		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
+		// Mouse tracking protocol: the levels are one mutually exclusive group
+		// in xterm (any level's reset clears the whole protocol). Reset every
+		// inactive level first and set the active one last — a reset emitted
+		// after the set would immediately disarm it again.
+		const mouseLevels: Array<[number, boolean]> = [
+			[9, this.modes.mouseTrackingX10],
+			[1000, this.modes.mouseTrackingNormal],
+			[1001, this.modes.mouseTrackingHighlight],
+			[1002, this.modes.mouseTrackingButtonEvent],
+			[1003, this.modes.mouseTrackingAnyEvent],
+		];
+		for (const [modeNum, active] of mouseLevels) {
+			if (!active) assertMode(modeNum, false);
+		}
+		for (const [modeNum, active] of mouseLevels) {
+			if (active) assertMode(modeNum, true);
+		}
 
 		// Mouse encoding modes
-		addModeSequence(1005, this.modes.mouseUtf8, false);
-		addModeSequence(1006, this.modes.mouseSgr, false);
+		assertMode(1005, this.modes.mouseUtf8);
+		assertMode(1006, this.modes.mouseSgr);
 
 		// Focus reporting (mode 1004)
-		addModeSequence(1004, this.modes.focusReporting, false);
+		assertMode(1004, this.modes.focusReporting);
 
 		// Bracketed paste (mode 2004)
-		addModeSequence(2004, this.modes.bracketedPaste, false);
+		assertMode(2004, this.modes.bracketedPaste);
 
 		// Note: We don't restore alternate screen mode (1049/47) here because
 		// the serialized snapshot already contains the correct screen buffer.

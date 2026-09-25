@@ -1,0 +1,1 @@
+export { useDeleteAccount } from "./useDeleteAccount";

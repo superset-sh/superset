@@ -1,8 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import { memo } from "react";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
+import { CommentsSection } from "../../../../../CommentsSection";
 import type { NormalizedComment, NormalizedPR } from "../../types";
 import { ChecksSection } from "../ChecksSection";
-import { CommentsSection } from "../CommentsSection";
 import { PRHeader } from "../PRHeader";
 
 interface ReviewTabContentProps {
@@ -13,6 +15,7 @@ interface ReviewTabContentProps {
 	isError: boolean;
 	isCommentsLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenPullRequest?: (ref: PullRequestRef) => void;
 	onOpenInDiff?: (
 		path: string,
 		line?: number,
@@ -29,12 +32,13 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	isError,
 	isCommentsLoading,
 	onOpenComment,
+	onOpenPullRequest,
 	onOpenInDiff,
 }: ReviewTabContentProps) {
 	if (isError) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				Unable to load review status
+				<Trans>Unable to load review status</Trans>
 			</div>
 		);
 	}
@@ -42,7 +46,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isLoading && !pr) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading review...
+				<Trans>Loading review...</Trans>
 			</div>
 		);
 	}
@@ -50,18 +54,21 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (!pr) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				Open a pull request to view review status, checks, and comments.
+				<Trans>
+					Open a pull request to view review status, checks, and comments.
+				</Trans>
 			</div>
 		);
 	}
 
 	return (
 		<div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden overflow-y-auto">
-			<PRHeader pr={pr} />
+			<PRHeader pr={pr} onOpenPullRequest={onOpenPullRequest} />
 
 			<div className="my-1 border-b border-border/70" />
 
 			<ChecksSection
+				workspaceId={workspaceId}
 				checks={pr.checks}
 				checksStatus={pr.checksStatus}
 				prUrl={pr.url}

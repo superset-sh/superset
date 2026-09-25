@@ -8,7 +8,18 @@
 	--font-family-sans: var(--font-inter), ui-sans-serif, sans-serif;
 }
 
-.xterm-viewport {
-	touch-action: pan-y;
-	overscroll-behavior: contain;
+/* Same hover/selected fills the desktop sidebar uses. */
+:root {
+	--fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+
+.dark {
+	--fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+
+@theme inline {
+	--color-fill-hover: var(--fill-hover);
+	--color-fill-selected: var(--fill-selected);
 }

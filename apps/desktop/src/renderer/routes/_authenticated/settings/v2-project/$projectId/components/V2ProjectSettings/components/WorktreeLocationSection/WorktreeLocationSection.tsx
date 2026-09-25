@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -27,6 +29,7 @@ export function WorktreeLocationSection({
 	isProjectSetup,
 	onChanged,
 }: WorktreeLocationSectionProps) {
+	const { t } = useLingui();
 	const hostSettingsQuery = useV2WorktreeLocationSettings(hostUrl, {
 		enabled: isHostOnline,
 	});
@@ -41,13 +44,17 @@ export function WorktreeLocationSection({
 		onSuccess: (_data, path) => {
 			toast.success(
 				path
-					? "Project worktree location updated"
-					: "Project worktree location reset",
+					? t({
+							message: "Project worktree location updated",
+						})
+					: t({
+							message: "Project worktree location reset",
+						}),
 			);
 			onChanged?.();
 		},
 		onError: (err) => {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		},
 	});
 
@@ -69,8 +76,12 @@ export function WorktreeLocationSection({
 				hostSettingsQuery.isLoading ||
 				setLocation.isPending
 			}
-			browseTitle="Select project worktree location"
-			browseDescription={`Pick the project worktree folder on ${hostName}.`}
+			browseTitle={t({
+				message: "Select project worktree location",
+			})}
+			browseDescription={t({
+				message: `Pick the project worktree folder on ${hostName}.`,
+			})}
 			onSelect={(path) => setLocation.mutate(path)}
 			onReset={() => setLocation.mutate(null)}
 		/>

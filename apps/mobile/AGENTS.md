@@ -1,9 +1,9 @@
-# Mobile App Structure
+# Superset Mobile App
+
+## Project Structure
 
 Guidelines for organizing the Superset mobile app mostly follow repo's patterns,
 with some caveats:
-
-## Rules
 
 ### Keep in app/
 1. Any routing related logic i.e. redirects, route guards, etc.
@@ -46,17 +46,36 @@ export default function Index() {
 ```tsx
 // app/(authenticated)/_layout.tsx
 import { Stack } from "expo-router";
-import { CollectionsProvider } from "@/providers/CollectionsProvider";
+import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
 
 export default function AuthenticatedLayout() {
   return (
-    <CollectionsProvider>
+    <PromptInputProvider>
       <Stack screenOptions={{ headerShown: false }} />
-    </CollectionsProvider>
+    </PromptInputProvider>
   );
 }
 ```
 
-## Key Principle
+### Key Principle
 
 **Separation of concerns**: `app/` owns routing/navigation, `screens/` owns UI/business logic.
+
+## Conventions
+
+- **`apps/mobile` is iOS-only.** No Android fallbacks or platform guards for iOS-only APIs, and
+  Android incompatibility isn't a blocker until Android is explicitly in scope.
+- **Bottom sheets are expo-router `formSheet` routes** — `...glassHeaderOptions` gives the native
+  title and ✕, the body is RN + uniwind (never `@expo/ui` SwiftUI content, which can't be themed to
+  match ours), and the list stays the screen's only layout child or it cold-mounts at zero height.
+  Copy `PullRequestsSheet` and its route entry.
+- **Hermes ships a partial `Intl`.** `lib/intl-polyfills` lists what is missing and what is
+  polyfilled. A `@superset/i18n/format` helper that reaches for an API outside that list throws, and
+  no mobile screen has an error boundary, so the throw takes the screen down. Add the polyfill, its
+  per-locale data, and a case in the polyfill test.
+- **Pending and failed are not answers.** A query with no data yet has not said "offline" or
+  "empty". Keep loading while it is pending and say you could not check when it failed; Home once
+  painted "is offline" on every cold start because presence defaulted to `false`.
+- **Verifying in the real app:** `.agents/skills/mobile-sim-verification/SKILL.md`.
+- **Iterating on a native module?** Build its own pod scheme (`-scheme Composer`), not the app —
+  the difference between ~6s and minutes.

@@ -13,6 +13,7 @@ export async function GET(request: Request): Promise<Response> {
 					? authServerMetadata.issuer
 					: undefined,
 			resourceName: "Superset MCP Server",
+			resourceDocumentation: "https://superset.sh/auth.md",
 			scopesSupported: Array.isArray(authServerMetadata.scopes_supported)
 				? authServerMetadata.scopes_supported
 				: undefined,

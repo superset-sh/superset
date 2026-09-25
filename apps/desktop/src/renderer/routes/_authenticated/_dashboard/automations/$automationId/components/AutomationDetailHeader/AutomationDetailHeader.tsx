@@ -1,114 +1,117 @@
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@superset/ui/breadcrumb";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuClock, LuPause, LuPlay, LuTrash2 } from "react-icons/lu";
+import { LuClock, LuEllipsis, LuLink, LuPlay, LuTrash2 } from "react-icons/lu";
+import { AutomationBreadcrumbBar } from "../AutomationBreadcrumbBar";
 
 interface AutomationDetailHeaderProps {
 	name: string;
-	enabled: boolean;
-	onBack: () => void;
-	onToggleEnabled: () => void;
+	onCopyLink: () => void;
 	onDelete: () => void;
 	onRunNow: () => void;
 	onOpenHistory: () => void;
-	toggleDisabled?: boolean;
 	deleteDisabled?: boolean;
 	runNowDisabled?: boolean;
+	/** Disables the actions — they're all owner-gated server-side. */
+	readOnly?: boolean;
 }
 
 export function AutomationDetailHeader({
 	name,
-	enabled,
-	onBack,
-	onToggleEnabled,
+	onCopyLink,
 	onDelete,
 	onRunNow,
 	onOpenHistory,
-	toggleDisabled,
 	deleteDisabled,
 	runNowDisabled,
+	readOnly,
 }: AutomationDetailHeaderProps) {
+	const { t } = useLingui();
 	return (
-		<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
-			<Breadcrumb>
-				<BreadcrumbList className="text-sm">
-					<BreadcrumbItem>
-						<BreadcrumbLink onClick={onBack} className="cursor-pointer">
-							Automations
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbSeparator />
-					<BreadcrumbItem>
-						<BreadcrumbPage className="font-medium">{name}</BreadcrumbPage>
-					</BreadcrumbItem>
-				</BreadcrumbList>
-			</Breadcrumb>
-
-			<div className="flex items-center gap-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
+		<AutomationBreadcrumbBar name={name}>
+			<Tooltip>
+				{/* Disabled buttons swallow hover events, so the trigger is a
+					    span — otherwise the read-only explanation never shows. */}
+				<TooltipTrigger asChild>
+					<span className="inline-flex">
 						<Button
 							variant="ghost"
 							size="icon-sm"
 							onClick={onOpenHistory}
-							aria-label="Version history"
+							disabled={readOnly}
+							aria-label={t({
+								message: "Prompt history",
+							})}
 						>
 							<LuClock className="size-4" />
 						</Button>
-					</TooltipTrigger>
-					<TooltipContent>Version history</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>
+					{readOnly ? (
+						<Trans>Only the owner can view prompt history</Trans>
+					) : (
+						<Trans>Prompt history</Trans>
+					)}
+				</TooltipContent>
+			</Tooltip>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label={t({
+							message: "More actions",
+						})}
+					>
+						<LuEllipsis className="size-4" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuItem onSelect={onCopyLink}>
+						<LuLink className="size-4" />
+						<Trans>Copy link</Trans>
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						variant="destructive"
+						disabled={readOnly || deleteDisabled}
+						onSelect={onDelete}
+					>
+						<LuTrash2 className="size-4" />
+						<Trans>Delete automation</Trans>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<div className="mx-1 h-4 w-px bg-border" />
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="inline-flex">
 						<Button
-							variant="ghost"
-							size="icon-sm"
-							onClick={onToggleEnabled}
-							disabled={toggleDisabled}
-							aria-label={enabled ? "Pause" : "Resume"}
+							variant="outline"
+							size="sm"
+							className="h-8 gap-1.5 px-3"
+							onClick={onRunNow}
+							disabled={readOnly || runNowDisabled}
 						>
-							{enabled ? (
-								<LuPause className="size-4" />
-							) : (
-								<LuPlay className="size-4" />
-							)}
+							<LuPlay className="size-4" />
+							<span>
+								<Trans>Run now</Trans>
+							</span>
 						</Button>
-					</TooltipTrigger>
-					<TooltipContent>{enabled ? "Pause" : "Resume"}</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							onClick={onDelete}
-							disabled={deleteDisabled}
-							aria-label="Delete"
-						>
-							<LuTrash2 className="size-4" />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent>Delete</TooltipContent>
-				</Tooltip>
-				<div className="mx-1 h-4 w-px bg-border" />
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-8 gap-1.5 px-3"
-					onClick={onRunNow}
-					disabled={runNowDisabled}
-				>
-					<LuPlay className="size-4" />
-					<span>Run now</span>
-				</Button>
-			</div>
-		</header>
+					</span>
+				</TooltipTrigger>
+				{readOnly && (
+					<TooltipContent>
+						<Trans>Only the owner can run this automation</Trans>
+					</TooltipContent>
+				)}
+			</Tooltip>
+		</AutomationBreadcrumbBar>
 	);
 }

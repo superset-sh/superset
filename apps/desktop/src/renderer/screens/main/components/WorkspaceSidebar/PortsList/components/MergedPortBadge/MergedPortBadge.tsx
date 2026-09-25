@@ -99,7 +99,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					</button>
 				</div>
 			</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={6} showArrow={false}>
+			<TooltipContent side="top" sideOffset={6}>
 				<div className="text-xs space-y-1">
 					{port.label && <div className="font-medium">{port.label}</div>}
 					<div

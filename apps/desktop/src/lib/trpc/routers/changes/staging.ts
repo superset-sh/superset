@@ -3,6 +3,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getServiceForRootPath } from "../workspace-fs-service";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../workspaces/utils/git-errors";
 import {
 	gitCheckoutFiles,
 	gitDiscardAllStaged,
@@ -21,17 +22,24 @@ import { assertRegisteredWorktree } from "./security/path-validation";
 import { parseGitStatus } from "./utils/parse-status";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
-async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
+async function getStatusOrRethrow(worktreePath: string) {
 	assertRegisteredWorktree(worktreePath);
 	const git = await getSimpleGitWithShellPath(worktreePath);
-	const status = await git.status();
+	try {
+		return await git.status();
+	} catch (error) {
+		rethrowEnvironmentalGitError(error);
+		throw error;
+	}
+}
+
+async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
+	const status = await getStatusOrRethrow(worktreePath);
 	return parseGitStatus(status).untracked.map((f) => f.path);
 }
 
 async function getStagedNewFilePaths(worktreePath: string): Promise<string[]> {
-	assertRegisteredWorktree(worktreePath);
-	const git = await getSimpleGitWithShellPath(worktreePath);
-	const status = await git.status();
+	const status = await getStatusOrRethrow(worktreePath);
 	return parseGitStatus(status)
 		.staged.filter((f) => f.status === "added")
 		.map((f) => f.path);

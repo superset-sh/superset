@@ -1,0 +1,1 @@
+export { createSnapshotDocument } from "./createSnapshotDocument";

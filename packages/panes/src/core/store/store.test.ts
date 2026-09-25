@@ -378,6 +378,66 @@ describe("split operations", () => {
 			}
 		}
 	});
+
+	it("equalizes only the tracks adjacent to a split boundary", () => {
+		const store = makeStore({
+			version: 1,
+			activeTabId: "t1",
+			tabs: [
+				{
+					id: "t1",
+					createdAt: 1,
+					activePaneId: "p3",
+					panes: {
+						p1: { id: "p1", kind: "test", data: { label: "p1" } },
+						p2: { id: "p2", kind: "test", data: { label: "p2" } },
+						p3: { id: "p3", kind: "test", data: { label: "p3" } },
+					},
+					layout: {
+						type: "split",
+						direction: "horizontal",
+						splitPercentage: 50,
+						first: { type: "pane", paneId: "p1" },
+						second: {
+							type: "split",
+							direction: "horizontal",
+							splitPercentage: 50,
+							first: { type: "pane", paneId: "p2" },
+							second: { type: "pane", paneId: "p3" },
+						},
+					},
+				},
+			],
+		});
+
+		store.getState().equalizeSplit({ tabId: "t1", path: [] });
+
+		const layout = store.getState().tabs[0]?.layout;
+		expect(layout?.type).toBe("split");
+		if (layout?.type === "split") {
+			expect(layout.splitPercentage).toBe(37.5);
+			if (layout.second.type === "split") {
+				expect(layout.second.splitPercentage).toBe(60);
+			}
+		}
+
+		store.getState().resizeSplit({
+			tabId: "t1",
+			path: ["second"],
+			splitPercentage: 85,
+		});
+		store.getState().equalizeSplit({ tabId: "t1", path: ["second"] });
+
+		const equalizedAgain = store.getState().tabs[0]?.layout;
+		expect(equalizedAgain?.type).toBe("split");
+		if (
+			equalizedAgain?.type === "split" &&
+			equalizedAgain.second.type === "split"
+		) {
+			expect(equalizedAgain.splitPercentage).toBe(37.5);
+			expect(equalizedAgain.second.splitPercentage).toBe(50);
+		}
+	});
 });
 
 describe("collapsing", () => {
@@ -798,5 +858,58 @@ describe("reorderTab", () => {
 		store.getState().reorderTab({ tabId: "t1", toIndex: 100 });
 
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
+	});
+});
+
+describe("explicit pane close notifications", () => {
+	it("notifies only the originating window after its state is updated", () => {
+		const first = makeStore();
+		first.getState().addTab({ id: "tab", panes: [tp("pane")] });
+		const second = makeStore(first.getState());
+		const local: string[] = [];
+		const remote: string[] = [];
+		first.getState().subscribePaneClose((panes) => {
+			expect(first.getState().getPane("pane")).toBeNull();
+			local.push(...panes.map((pane) => pane.id));
+		});
+		second.getState().subscribePaneClose((panes) => {
+			remote.push(...panes.map((pane) => pane.id));
+		});
+		first.subscribe((state) => second.getState().replaceState(state));
+		first.getState().closePane({ tabId: "tab", paneId: "pane" });
+		expect(local).toEqual(["pane"]);
+		expect(remote).toEqual([]);
+		expect(second.getState().tabs).toEqual([]);
+	});
+
+	it("batches tab closure and does not repeat a missing close", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "tab", panes: [tp("a"), tp("b")] });
+		const batches: string[][] = [];
+		const unsubscribe = store.getState().subscribePaneClose((panes) => {
+			batches.push(panes.map((pane) => pane.id));
+		});
+		store.getState().removeTab("tab");
+		store.getState().removeTab("tab");
+		expect(batches).toEqual([["a", "b"]]);
+		unsubscribe();
+		store.getState().addTab({ id: "other", panes: [tp("c")] });
+		store.getState().removeTab("other");
+		expect(batches).toHaveLength(1);
+	});
+
+	it("reconciliation, movement and explicit view removal never signal termination", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "tab", panes: [tp("a"), tp("b")] });
+		const closed: string[] = [];
+		store
+			.getState()
+			.subscribePaneClose((panes) =>
+				closed.push(...panes.map((pane) => pane.id)),
+			);
+		store.getState().movePaneToNewTab({ paneId: "a" });
+		store.getState().closePane({ tabId: "tab", paneId: "b", intent: "remove" });
+		store.getState().replaceState({ version: 1, tabs: [], activeTabId: null });
+		expect(closed).toEqual([]);
 	});
 });

@@ -1,1 +1,0 @@
-export { UserMessageText } from "./UserMessageText";

@@ -1,1 +1,0 @@
-export { BootErrorBoundary } from "./BootErrorBoundary";

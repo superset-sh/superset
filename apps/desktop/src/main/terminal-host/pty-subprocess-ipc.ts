@@ -85,6 +85,17 @@ export class PtySubprocessFrameDecoder {
 				const payloadLength = this.header.readUInt32LE(1);
 
 				if (payloadLength > MAX_FRAME_BYTES) {
+					// A corrupted stream can present a garbage length field
+					// (observed: 1131308389 = ASCII "Come" read as u32LE).
+					// Reset the decoder state BEFORE surfacing the error so a
+					// later chunk can re-sync. Without the reset, headerOffset
+					// stays at HEADER_BYTES and every subsequent push()
+					// re-reads the same stale header and re-throws forever,
+					// permanently freezing the session (#6153).
+					this.headerOffset = 0;
+					this.frameType = null;
+					this.payload = null;
+					this.payloadOffset = 0;
 					throw new Error(
 						`PtySubprocess IPC frame too large: ${payloadLength} bytes`,
 					);

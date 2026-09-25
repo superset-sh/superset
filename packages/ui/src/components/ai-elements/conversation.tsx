@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { useCallback } from "react";
@@ -76,26 +77,38 @@ const ConversationStateContainer = ({
 
 export const ConversationEmptyState = ({
 	className,
-	title = "No messages yet",
-	description = "Start a conversation to see messages here",
+	title,
+	description,
 	icon,
 	children,
 	...props
-}: ConversationEmptyStateProps) => (
-	<ConversationStateContainer className={className} {...props}>
-		{children ?? (
-			<>
-				{icon && <div className="text-muted-foreground">{icon}</div>}
-				<div className="space-y-1">
-					<h3 className="font-medium text-sm">{title}</h3>
-					{description && (
-						<p className="text-muted-foreground text-sm">{description}</p>
-					)}
-				</div>
-			</>
-		)}
-	</ConversationStateContainer>
-);
+}: ConversationEmptyStateProps) => {
+	const { t } = useLingui();
+	const resolvedTitle = title ?? t({ message: "No messages yet" });
+	const resolvedDescription =
+		description ??
+		t({
+			message: "Start a conversation to see messages here",
+		});
+
+	return (
+		<ConversationStateContainer className={className} {...props}>
+			{children ?? (
+				<>
+					{icon && <div className="text-muted-foreground">{icon}</div>}
+					<div className="space-y-1">
+						<h3 className="font-medium text-sm">{resolvedTitle}</h3>
+						{resolvedDescription && (
+							<p className="text-muted-foreground text-sm">
+								{resolvedDescription}
+							</p>
+						)}
+					</div>
+				</>
+			)}
+		</ConversationStateContainer>
+	);
+};
 
 export type ConversationLoadingStateProps = ComponentProps<"div"> & {
 	label?: string;
@@ -104,20 +117,29 @@ export type ConversationLoadingStateProps = ComponentProps<"div"> & {
 
 export const ConversationLoadingState = ({
 	className,
-	label = "Loading conversation...",
+	label,
 	icon,
 	children,
 	...props
-}: ConversationLoadingStateProps) => (
-	<ConversationStateContainer className={className} {...props}>
-		{children ?? (
-			<>
-				{icon ?? <Loader className="text-muted-foreground" size={14} />}
-				<p className="text-muted-foreground text-sm">{label}</p>
-			</>
-		)}
-	</ConversationStateContainer>
-);
+}: ConversationLoadingStateProps) => {
+	const { t } = useLingui();
+	const resolvedLabel =
+		label ??
+		t({
+			message: "Loading conversation...",
+		});
+
+	return (
+		<ConversationStateContainer className={className} {...props}>
+			{children ?? (
+				<>
+					{icon ?? <Loader className="text-muted-foreground" size={14} />}
+					<p className="text-muted-foreground text-sm">{resolvedLabel}</p>
+				</>
+			)}
+		</ConversationStateContainer>
+	);
+};
 
 export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 

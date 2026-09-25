@@ -1,3 +1,4 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
@@ -28,6 +29,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 	diffStats,
 	onEditBranchClick,
 }: DashboardSidebarWorkspaceHoverCardContentProps) {
+	const { t } = useLingui();
 	const {
 		name,
 		branch,
@@ -55,7 +57,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 		>
 			<a href={previewUrl} target="_blank" rel="noopener noreferrer">
 				<LuGlobe className="size-3" />
-				Open Preview
+				<Trans>Open Preview</Trans>
 			</a>
 		</Button>
 	) : null;
@@ -63,10 +65,17 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 	return (
 		<div className="space-y-3">
 			<div className="space-y-1.5">
-				{hasCustomAlias && <div className="text-sm font-medium">{name}</div>}
+				{hasCustomAlias && (
+					<div
+						className="text-sm font-medium break-words line-clamp-2"
+						title={name}
+					>
+						{name}
+					</div>
+				)}
 				<div className="space-y-0.5">
 					<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-						Branch
+						<Trans>Branch</Trans>
 					</span>
 					<div className="flex items-center gap-1.5">
 						{onEditBranchClick ? (
@@ -74,7 +83,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 								type="button"
 								onClick={() => onEditBranchClick(branch)}
 								className={`group/branch flex min-w-0 flex-1 items-center gap-1 font-mono break-all text-left hover:text-foreground hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
-								title="Rename branch"
+								title={t({
+									message: "Rename branch",
+								})}
 							>
 								<span className="break-all">{branch}</span>
 								<LuPencil className="size-3 shrink-0 opacity-0 group-hover/branch:opacity-100 transition-opacity" />
@@ -92,7 +103,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 								target="_blank"
 								rel="noopener noreferrer"
 								className="shrink-0 text-muted-foreground hover:text-foreground"
-								title="Open branch on GitHub"
+								title={t({
+									message: "Open branch on GitHub",
+								})}
 								onClick={(e) => e.stopPropagation()}
 							>
 								<LuExternalLink className="size-3" />
@@ -111,8 +124,15 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
 					<LuTriangleAlert className="size-3.5 shrink-0" />
 					<span>
-						Behind main by {behindCount ?? "?"} commit
-						{behindCount !== 1 && "s"}, needs rebase
+						{behindCount != null ? (
+							<Plural
+								value={behindCount}
+								one="Behind main by # commit, needs rebase"
+								other="Behind main by # commits, needs rebase"
+							/>
+						) : (
+							<Trans>Behind main by ? commits, needs rebase</Trans>
+						)}
 					</span>
 				</div>
 			)}
@@ -134,14 +154,21 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 									/>
 								)}
 						</div>
-						{diffStats && (
-							<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
-								<span className="text-emerald-500">+{diffStats.additions}</span>
-								<span className="text-destructive-foreground">
-									-{diffStats.deletions}
-								</span>
-							</div>
-						)}
+						{diffStats &&
+							(diffStats.additions > 0 || diffStats.deletions > 0) && (
+								<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
+									{diffStats.additions > 0 && (
+										<span className="text-emerald-500">
+											+{diffStats.additions}
+										</span>
+									)}
+									{diffStats.deletions > 0 && (
+										<span className="text-destructive">
+											-{diffStats.deletions}
+										</span>
+									)}
+								</div>
+							)}
 					</div>
 
 					<p className="text-xs leading-relaxed line-clamp-2">
@@ -170,7 +197,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					>
 						<a href={pullRequest.url} target="_blank" rel="noopener noreferrer">
 							<FaGithub className="size-3" />
-							View on GitHub
+							<Trans>View on GitHub</Trans>
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (
@@ -187,7 +214,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 			) : repoUrl ? (
 				<div className="pt-2 border-t border-border space-y-2">
 					<div className="text-xs text-muted-foreground">
-						No PR for this branch
+						<Trans>No PR for this branch</Trans>
 					</div>
 					{previewButton}
 				</div>
@@ -205,7 +232,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 							rel="noopener noreferrer"
 						>
 							<LuGlobe className="size-3" />
-							Open Preview
+							<Trans>Open Preview</Trans>
 						</a>
 					</Button>
 				</div>

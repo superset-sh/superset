@@ -1,7 +1,7 @@
 "use client";
+import { Trans } from "@lingui/react/macro";
 import type { TOCItemType } from "fumadocs-core/toc";
 import * as Primitive from "fumadocs-core/toc";
-import { useI18n } from "fumadocs-ui/contexts/i18n";
 import { ChevronRight, Text } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import {
@@ -60,11 +60,9 @@ export function Toc(props: HTMLAttributes<HTMLDivElement>) {
 }
 
 export function TocItemsEmpty() {
-	const { text } = useI18n();
-
 	return (
 		<div className="rounded-lg border bg-fd-card p-3 text-xs text-fd-muted-foreground">
-			{text.tocNoHeadings}
+			<Trans>No Headings</Trans>
 		</div>
 	);
 }
@@ -341,7 +339,6 @@ export function TocPopoverTrigger({
 	items,
 	...props
 }: ComponentProps<typeof CollapsibleTrigger> & { items: TOCItemType[] }) {
-	const { text } = useI18n();
 	const context = use(Context);
 	if (!context)
 		throw new Error("TocPopoverTrigger must be used within TocPopover");
@@ -361,7 +358,7 @@ export function TocPopoverTrigger({
 			)}
 		>
 			<Text className="size-4 shrink-0" />
-			{text.toc}
+			<Trans>On this page</Trans>
 			<ChevronRight
 				className={cn(
 					"size-4 shrink-0 text-fd-muted-foreground transition-all",

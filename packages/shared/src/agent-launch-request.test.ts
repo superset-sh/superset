@@ -45,42 +45,8 @@ describe("buildPromptAgentLaunchRequest", () => {
 			kind: "terminal",
 			agentType: "codex",
 			terminal: {
-				command: "codex --dangerously-bypass-approvals-and-sandbox",
-			},
-		});
-	});
-
-	test("passes files and task slug through for chat agents", () => {
-		const configsById = indexResolvedAgentConfigs(resolveAgentConfigs({}));
-		const request = buildPromptAgentLaunchRequest({
-			workspaceId: "workspace-1",
-			source: "new-workspace",
-			selectedAgent: "superset",
-			prompt: "hello",
-			initialFiles: [
-				{
-					data: "data:text/plain;base64,aGVsbG8=",
-					mediaType: "text/plain",
-					filename: "hello.txt",
-				},
-			],
-			taskSlug: "demo-task",
-			configsById,
-		});
-
-		expect(request).toMatchObject({
-			kind: "chat",
-			agentType: "superset",
-			chat: {
-				initialPrompt: "hello",
-				initialFiles: [
-					{
-						data: "data:text/plain;base64,aGVsbG8=",
-						mediaType: "text/plain",
-						filename: "hello.txt",
-					},
-				],
-				taskSlug: "demo-task",
+				command:
+					"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
 			},
 		});
 	});
@@ -120,39 +86,6 @@ describe("buildTaskAgentLaunchRequest", () => {
 		});
 
 		expect(request).toBeNull();
-	});
-
-	test("uses the chat template configured for superset chat", () => {
-		const configsById = indexResolvedAgentConfigs(
-			resolveAgentConfigs({
-				overrideEnvelope: {
-					version: 1,
-					presets: [
-						{
-							id: "superset",
-							taskPromptTemplate: "Chat {{title}} / {{slug}}",
-						},
-					],
-				},
-			}),
-		);
-		const request = buildTaskAgentLaunchRequest({
-			workspaceId: "workspace-1",
-			source: "open-in-workspace",
-			selectedAgent: "superset",
-			task: TASK,
-			autoRun: true,
-			configsById,
-		});
-
-		expect(request).toMatchObject({
-			kind: "chat",
-			chat: {
-				initialPrompt: "Chat Demo Task / demo-task",
-				autoExecute: true,
-				taskSlug: "demo-task",
-			},
-		});
 	});
 
 	test("builds terminal task launches from resolved config", () => {

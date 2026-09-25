@@ -12,16 +12,16 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import {
+	getCommandShellArgs,
+	getShellArgs,
+} from "@superset/agent-setup/shell-wrappers";
+import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import {
-	getCommandShellArgs,
-	getShellArgs,
-} from "../lib/agent-setup/shell-wrappers";
 import { raceWithAbort, throwIfAborted } from "../lib/terminal/abort";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { isTerminalAttachCanceledError } from "../lib/terminal/errors";
@@ -34,6 +34,7 @@ import type {
 	TerminalErrorEvent,
 	TerminalExitEvent,
 	TerminalSnapshot,
+	TerminalSpawnFailureCause,
 } from "../lib/terminal-host/types";
 import { treeKillAsync } from "../lib/tree-kill";
 import {
@@ -80,6 +81,14 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
  * buffered writes flush immediately (same behavior as before this feature).
  */
 const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/**
+ * How much of the process's first output to keep for a spawn failure report,
+ * counted in characters of the decoded text, not bytes — non-ASCII output
+ * crosses the socket larger than this number suggests. A shell that dies
+ * during init prints why in its first lines.
+ */
+const SPAWN_OUTPUT_HEAD_CHARS = 2048;
 
 /**
  * Shell readiness lifecycle:
@@ -154,6 +163,13 @@ export class Session {
 	private subprocessStdinDrainArmed = false;
 	private ptyPid: number | null = null;
 	private emulatorWriteBackpressured = false;
+
+	// Spawn failure diagnostics — see describeSpawnFailure()
+	private spawnArgs: string[] = [];
+	private outputHead = "";
+	private ptyExitSignal: number | undefined;
+	private ptyExitReported = false;
+	private ptySpawnError: string | null = null;
 
 	// Promise that resolves when PTY is ready to accept writes
 	private ptyReadyPromise: Promise<void>;
@@ -262,6 +278,7 @@ export class Session {
 		const shellArgs = this.command
 			? getCommandShellArgs(this.shell, this.command)
 			: getShellArgs(this.shell);
+		this.spawnArgs = shellArgs;
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
@@ -299,6 +316,9 @@ export class Session {
 
 		this.subprocess.on("error", (error) => {
 			console.error(`[Session ${this.sessionId}] Subprocess error:`, error);
+			if (this.ptyPid === null) {
+				this.ptySpawnError ??= error.message;
+			}
 			this.handleSubprocessExit(-1);
 		});
 
@@ -387,6 +407,18 @@ export class Session {
 					bytes.byteLength,
 				).toString("utf8");
 
+				if (this.outputHead.length < SPAWN_OUTPUT_HEAD_CHARS) {
+					const head =
+						this.outputHead +
+						data.slice(0, SPAWN_OUTPUT_HEAD_CHARS - this.outputHead.length);
+					// The cap counts UTF-16 code units, so it can land between the
+					// halves of a surrogate pair. Drop the orphan rather than report
+					// a lone surrogate.
+					const lastUnit = head.charCodeAt(head.length - 1);
+					this.outputHead =
+						lastUnit >= 0xd800 && lastUnit <= 0xdbff ? head.slice(0, -1) : head;
+				}
+
 				this.enqueueEmulatorWrite(data);
 
 				this.broadcastEvent("data", {
@@ -400,6 +432,8 @@ export class Session {
 				const exitCode = payload.length >= 4 ? payload.readInt32LE(0) : 0;
 				const signal = payload.length >= 8 ? payload.readInt32LE(4) : 0;
 				this.exitCode = exitCode;
+				this.ptyExitSignal = signal !== 0 ? signal : undefined;
+				this.ptyExitReported = true;
 
 				this.broadcastEvent("exit", {
 					type: "exit",
@@ -425,6 +459,9 @@ export class Session {
 					`[Session ${this.sessionId}] Subprocess error:`,
 					errorMessage,
 				);
+				if (this.ptyPid === null) {
+					this.ptySpawnError ??= errorMessage;
+				}
 
 				this.broadcastEvent("error", {
 					type: "error",
@@ -472,7 +509,13 @@ export class Session {
 
 		while (this.subprocessStdinQueue.length > 0) {
 			const buf = this.subprocessStdinQueue[0];
+			// write() buffers the chunk even when it returns false, so the chunk
+			// must leave our queue either way — re-sending it after 'drain'
+			// duplicates bytes and misaligns the frame stream (#6153).
 			const canWrite = this.subprocess.stdin.write(buf);
+			this.subprocessStdinQueue.shift();
+			this.subprocessStdinQueuedBytes -= buf.length;
+
 			if (!canWrite) {
 				if (!this.subprocessStdinDrainArmed) {
 					this.subprocessStdinDrainArmed = true;
@@ -483,9 +526,6 @@ export class Session {
 				}
 				return;
 			}
-
-			this.subprocessStdinQueue.shift();
-			this.subprocessStdinQueuedBytes -= buf.length;
 		}
 	}
 
@@ -783,6 +823,32 @@ export class Session {
 	}
 
 	/**
+	 * Why the PTY is not usable after waitForReady(). Only meaningful when
+	 * `!isAlive || pid === null`.
+	 */
+	describeSpawnFailure(): TerminalSpawnFailureCause {
+		if (this.ptyPid !== null && this.ptyExitReported) {
+			return {
+				kind: "SHELL_EXITED",
+				shell: this.shell,
+				args: this.spawnArgs,
+				exitCode: this.exitCode ?? -1,
+				signal: this.ptyExitSignal,
+				outputHead: this.outputHead,
+			};
+		}
+		if (this.exitCode !== null || this.ptySpawnError !== null) {
+			return {
+				kind: "PTY_SPAWN_FAILED",
+				shell: this.shell,
+				exitCode: this.exitCode,
+				error: this.ptySpawnError ?? undefined,
+			};
+		}
+		return { kind: "PTY_SPAWN_TIMEOUT", shell: this.shell };
+	}
+
+	/**
 	 * Get number of attached clients
 	 */
 	get clientCount(): number {
@@ -826,6 +892,9 @@ export class Session {
 
 			await raceWithAbort(this.emulator.flush(), signal);
 			throwIfAborted(signal);
+			// The session can be reaped while the emulator catches up — the shell
+			// exits, or another attach to this session force-disposes it.
+			if (this.disposed) throw new Error("Session disposed");
 			return this.emulator.getSnapshot();
 		} catch (error) {
 			if (isTerminalAttachCanceledError(error)) {

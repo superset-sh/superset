@@ -1,0 +1,1 @@
+export { getCharacterOffsetAtClientX } from "./getCharacterOffsetAtClientX";

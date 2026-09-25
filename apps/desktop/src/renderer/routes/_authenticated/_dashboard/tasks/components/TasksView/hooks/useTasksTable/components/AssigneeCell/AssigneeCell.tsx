@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -5,12 +6,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import type { CellContext } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../useTasksTable";
 
 interface AssigneeCellProps {
@@ -18,19 +18,20 @@ interface AssigneeCellProps {
 }
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { t } = useLingui();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;
 	const assigneeId = info.getValue();
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
+	const { data: members, isLoading: isLoadingMembers } =
+		cloudTrpc.organization.listMembers.useQuery(undefined, { enabled: open });
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
+	);
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === assigneeId && !task.assigneeExternalId) {
@@ -61,7 +62,12 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					) : task.assigneeExternalId ? (
 						<Avatar
 							size="xs"
-							fullName={task.assigneeDisplayName || "External"}
+							fullName={
+								task.assigneeDisplayName ||
+								t({
+									message: "External",
+								})
+							}
 							image={task.assigneeAvatarUrl}
 						/>
 					) : (
@@ -80,11 +86,18 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 						className="flex items-center gap-2"
 					>
 						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
-						<span className="text-sm">No assignee</span>
+						<span className="text-sm">
+							<Trans>No assignee</Trans>
+						</span>
 						{!assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}
 					</DropdownMenuItem>
+					{isLoadingMembers && (
+						<div className="px-2 py-1.5 text-sm text-muted-foreground">
+							<Trans>Loading members...</Trans>
+						</div>
+					)}
 					{users.map((user) => (
 						<DropdownMenuItem
 							key={user.id}

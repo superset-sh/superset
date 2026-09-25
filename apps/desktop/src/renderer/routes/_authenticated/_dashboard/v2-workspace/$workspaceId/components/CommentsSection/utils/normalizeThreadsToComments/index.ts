@@ -1,0 +1,1 @@
+export { normalizeThreadsToComments } from "./normalizeThreadsToComments";

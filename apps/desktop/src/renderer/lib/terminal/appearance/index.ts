@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { FontWeight, ITheme } from "@xterm/xterm";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
 	builtInThemes,
@@ -11,6 +11,25 @@ export interface TerminalAppearance {
 	background: string;
 	fontFamily: string;
 	fontSize: number;
+	lineHeight: number;
+	letterSpacing: number;
+	fontWeight: FontWeight;
+	ligatures: boolean;
+	minimumContrastRatio: number;
+	cursorStyle: "block" | "bar" | "underline";
+	cursorBlink: boolean;
+}
+
+export interface TerminalFontSettings {
+	terminalFontFamily?: string | null;
+	terminalFontSize?: number | null;
+	terminalLineHeight?: number | null;
+	terminalLetterSpacing?: number | null;
+	terminalFontWeight?: number | null;
+	terminalLigatures?: boolean | null;
+	terminalMinimumContrast?: number | null;
+	terminalCursorStyle?: "block" | "bar" | "underline" | null;
+	terminalCursorBlink?: boolean | null;
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
@@ -42,15 +61,22 @@ const GENERIC_FONT_FAMILIES = new Set([
 function serializeFontFamilyList(families: string[]): string {
 	return families
 		.map((family) =>
-			GENERIC_FONT_FAMILIES.has(family)
+			GENERIC_FONT_FAMILIES.has(family.toLowerCase())
 				? family
-				: `"${family.replaceAll('"', '\\"')}"`,
+				: // Backslashes first, then quotes — a family ending in "\" would
+					// otherwise escape its own closing quote and invalidate the value.
+					`"${family.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`,
 		)
 		.join(", ");
 }
 
-export const DEFAULT_TERMINAL_FONT_FAMILIES = [
-	"JetBrains Mono",
+/**
+ * Icon-capable fallback families appended after the user's chosen font so
+ * Nerd Font glyphs (private-use-area icons from eza/starship/etc.) resolve
+ * even when the primary font lacks them. CSS font matching is per-character,
+ * so these only ever supply glyphs the earlier families are missing.
+ */
+export const NERD_FONT_FALLBACK_FAMILIES = [
 	"JetBrainsMono Nerd Font",
 	"MesloLGM Nerd Font",
 	"MesloLGM NF",
@@ -59,6 +85,13 @@ export const DEFAULT_TERMINAL_FONT_FAMILIES = [
 	"Hack Nerd Font",
 	"FiraCode Nerd Font",
 	"CaskaydiaCove Nerd Font",
+	"Symbols Nerd Font Mono",
+	"Symbols Nerd Font",
+] as const;
+
+export const DEFAULT_TERMINAL_FONT_FAMILIES = [
+	"JetBrains Mono",
+	...NERD_FONT_FALLBACK_FAMILIES,
 	"Menlo",
 	"Monaco",
 	"Courier New",
@@ -70,6 +103,13 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 ]);
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+export const DEFAULT_TERMINAL_LINE_HEIGHT = 1;
+export const DEFAULT_TERMINAL_LETTER_SPACING = 0;
+export const DEFAULT_TERMINAL_FONT_WEIGHT: FontWeight = "normal";
+export const DEFAULT_TERMINAL_LIGATURES = true;
+export const DEFAULT_TERMINAL_MINIMUM_CONTRAST = 1;
+export const DEFAULT_TERMINAL_CURSOR_STYLE = "block" as const;
+export const DEFAULT_TERMINAL_CURSOR_BLINK = true;
 
 const MONOSPACE_GENERIC_FAMILIES = new Set(["monospace", "ui-monospace"]);
 
@@ -143,10 +183,17 @@ function isFontFamilyMonospace(family: string): boolean {
  */
 export function sanitizeTerminalFontFamily(
 	cssValue: string | null | undefined,
+	installedIconFonts: readonly string[] = [],
 ): string {
-	if (!cssValue || !cssValue.trim()) return DEFAULT_TERMINAL_FONT_FAMILY;
+	const defaultStack = () =>
+		buildIconCapableStack(
+			[...DEFAULT_TERMINAL_FONT_FAMILIES],
+			installedIconFonts,
+		);
+
+	if (!cssValue || !cssValue.trim()) return defaultStack();
 	const families = parseFontFamilyList(cssValue);
-	if (families.length === 0) return DEFAULT_TERMINAL_FONT_FAMILY;
+	if (families.length === 0) return defaultStack();
 
 	// Validate the actual CSS primary (first entry), not the first non-generic.
 	// A value like `sans-serif, "JetBrains Mono"` resolves to sans-serif in the
@@ -156,37 +203,102 @@ export function sanitizeTerminalFontFamily(
 	const primaryKey = primary.toLowerCase();
 
 	if (GENERIC_FONT_FAMILIES.has(primaryKey)) {
-		if (MONOSPACE_GENERIC_FAMILIES.has(primaryKey)) return cssValue;
-		console.warn(
-			`[terminal] Font stack "${cssValue}" has no monospace primary family; falling back to default terminal font.`,
-		);
-		return DEFAULT_TERMINAL_FONT_FAMILY;
-	}
-
-	if (!isFontFamilyMonospace(primary)) {
+		if (!MONOSPACE_GENERIC_FAMILIES.has(primaryKey)) {
+			console.warn(
+				`[terminal] Font stack "${cssValue}" has no monospace primary family; falling back to default terminal font.`,
+			);
+			return defaultStack();
+		}
+	} else if (!isFontFamilyMonospace(primary)) {
 		console.warn(
 			`[terminal] Font "${primary}" is not monospace; falling back to default terminal font.`,
 		);
-		return DEFAULT_TERMINAL_FONT_FAMILY;
+		return defaultStack();
 	}
-	// Ensure a generic monospace tail — if the configured primary isn't
-	// installed on this machine, the browser falls back to the OS monospace
-	// generic instead of a proportional default (mirrors VS Code's behavior
-	// in src/vs/workbench/contrib/terminal/browser/terminalConfigurationService.ts).
-	const hasMonoTail = families.some((f) =>
-		MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()),
+	return buildIconCapableStack(families, installedIconFonts);
+}
+
+/**
+ * Re-serialize a validated family list with every non-generic name quoted,
+ * Nerd Font fallbacks merged in, and a generic monospace tail.
+ *
+ * Quoting: the persisted setting is a bare family name, and families that
+ * aren't valid unquoted CSS idents (e.g. the digit-led "0xProto Nerd Font")
+ * otherwise invalidate the whole font-family value — canvas `ctx.font` then
+ * silently keeps its previous value, so the WebGL glyph atlas rasterizes with
+ * the default sans-serif: every icon becomes tofu and cell metrics diverge
+ * (SUPER-1782).
+ *
+ * Fallbacks: CSS font matching is per-character, so appending icon-capable
+ * families after the user's choice only ever supplies glyphs the chosen font
+ * is missing — without them, picking any font dropped the default stack's
+ * Nerd Font tail and PUA icons went tofu. `installedIconFonts` extends the
+ * well-known names with Nerd Fonts actually installed on this machine.
+ *
+ * Generic tail: keeps an uninstalled primary from falling back to a
+ * proportional default (mirrors VS Code's terminalConfigurationService).
+ */
+function buildIconCapableStack(
+	families: string[],
+	installedIconFonts: readonly string[],
+): string {
+	const seen = new Set(families.map((f) => f.toLowerCase()));
+	const fallbacks: string[] = [];
+	for (const f of [...NERD_FONT_FALLBACK_FAMILIES, ...installedIconFonts]) {
+		const key = f.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		fallbacks.push(f);
+	}
+	// Insert before the generic tail, but never before the primary — a
+	// generic-monospace primary (e.g. bare "monospace") must stay first while
+	// still gaining the icon fallbacks after it.
+	const firstGenericIdx = families.findIndex((f) =>
+		GENERIC_FONT_FAMILIES.has(f.toLowerCase()),
 	);
-	return hasMonoTail ? cssValue : `${cssValue}, monospace`;
+	const insertAt =
+		firstGenericIdx === -1 ? families.length : Math.max(firstGenericIdx, 1);
+	const merged = [
+		...families.slice(0, insertAt),
+		...fallbacks,
+		...families.slice(insertAt),
+	];
+	if (!merged.some((f) => MONOSPACE_GENERIC_FAMILIES.has(f.toLowerCase()))) {
+		merged.push("monospace");
+	}
+	return serializeFontFamilyList(merged);
 }
 
 /** Reads localStorage theme cache for flash-free first paint. */
 export function getDefaultTerminalAppearance(): TerminalAppearance {
 	const theme = readCachedTerminalTheme();
+	return resolveTerminalAppearance(theme);
+}
+
+export function resolveTerminalAppearance(
+	theme: ITheme,
+	fontSettings: TerminalFontSettings = {},
+	installedIconFonts: readonly string[] = [],
+): TerminalAppearance {
 	return {
 		theme,
 		background: theme.background ?? "#151110",
-		fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
-		fontSize: DEFAULT_TERMINAL_FONT_SIZE,
+		fontFamily: sanitizeTerminalFontFamily(
+			fontSettings.terminalFontFamily,
+			installedIconFonts,
+		),
+		fontSize: fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE,
+		lineHeight: fontSettings.terminalLineHeight ?? DEFAULT_TERMINAL_LINE_HEIGHT,
+		letterSpacing:
+			fontSettings.terminalLetterSpacing ?? DEFAULT_TERMINAL_LETTER_SPACING,
+		fontWeight: fontSettings.terminalFontWeight ?? DEFAULT_TERMINAL_FONT_WEIGHT,
+		ligatures: fontSettings.terminalLigatures ?? DEFAULT_TERMINAL_LIGATURES,
+		minimumContrastRatio:
+			fontSettings.terminalMinimumContrast ?? DEFAULT_TERMINAL_MINIMUM_CONTRAST,
+		cursorStyle:
+			fontSettings.terminalCursorStyle ?? DEFAULT_TERMINAL_CURSOR_STYLE,
+		cursorBlink:
+			fontSettings.terminalCursorBlink ?? DEFAULT_TERMINAL_CURSOR_BLINK,
 	};
 }
 

@@ -15,12 +15,26 @@ describe("host-service smoke", () => {
 
 	test("health.check returns ok without auth", async () => {
 		const result = await host.unauthenticatedTrpc.health.check.query();
-		expect(result).toEqual({ status: "ok" });
+		expect(result).toEqual({
+			status: "ok",
+			pid: process.pid,
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
+			cloudRegistered: false,
+			registrationError: null,
+		});
 	});
 
 	test("health.check returns ok with auth", async () => {
 		const result = await host.trpc.health.check.query();
-		expect(result).toEqual({ status: "ok" });
+		expect(result).toEqual({
+			status: "ok",
+			pid: process.pid,
+			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
+			cloudRegistered: false,
+			registrationError: null,
+		});
 	});
 
 	test("protected procedure rejects requests without bearer token", async () => {

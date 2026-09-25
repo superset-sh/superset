@@ -1,0 +1,1 @@
+export { pagePaneLabel } from "./pagePaneLabel";

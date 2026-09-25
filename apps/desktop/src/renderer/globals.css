@@ -4,18 +4,12 @@
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+/* @superset/panes renders inside this app with its own class names. Without
+   this scan any utility used only there (PANE_MIN_SIZE_CLASS_NAME's
+   min-w-[260px], the pane header's @container) never gets generated and
+   silently does nothing — panes could squeeze far below their minimum. */
+@source "../../../../packages/panes/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
-
-/*
- * Active when the sidebar workspace activity strip should show its expanded
- * (pill) state: the workspace item (`group/item`) is hovered or keyboard
- * focused, or one of the strip's own dropdown menus (`group/details` scope)
- * is open so it can't collapse under the pointer.
- */
-@custom-variant details-expanded (&:is(
-		:where(.group\/item:hover, .group\/item:focus-within) *,
-		.group\/details:has([data-state="open"]) *
-	));
 
 /**
  * Theme CSS Variables
@@ -45,6 +39,9 @@
 	--tertiary-active: #252220;
 	--destructive: #cc4444;
 	--destructive-foreground: #ffcccc;
+	--warning: #e5c07b;
+	--warning-foreground: #000000;
+	--success: #5fb37f;
 	--border: #2a2827;
 	--input: #2a2827;
 	--ring: #3a3837;
@@ -66,11 +63,14 @@
 	--highlight-active: rgba(224, 120, 80, 0.5);
 	--highlight: #e07850;
 	--highlight-foreground: #151110;
+	/* Sidebar row fills: low-opacity foreground washes so they track any theme */
+	--fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 
 /* Light theme fallback values - applied before hydration if user has light theme saved */
 :root.light {
-	--background: oklch(1 0 0);
+	--background: #f9f9fa;
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.145 0 0);
@@ -81,13 +81,16 @@
 	--secondary: oklch(0.97 0 0);
 	--secondary-foreground: oklch(0.205 0 0);
 	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.556 0 0);
+	--muted-foreground: #4a4847;
 	--accent: oklch(0.97 0 0);
 	--accent-foreground: oklch(0.205 0 0);
 	--tertiary: oklch(0.95 0.003 40);
 	--tertiary-active: oklch(0.9 0.003 40);
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.985 0 0);
+	--warning: oklch(0.554 0.113 86.265);
+	--warning-foreground: oklch(0.985 0 0);
+	--success: oklch(0.596 0.145 163.225);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
 	--ring: oklch(0.708 0 0);
@@ -96,7 +99,7 @@
 	--chart-3: oklch(0.398 0.07 227.392);
 	--chart-4: oklch(0.828 0.189 84.429);
 	--chart-5: oklch(0.769 0.188 70.08);
-	--sidebar: oklch(0.985 0 0);
+	--sidebar: #ececec;
 	--sidebar-foreground: oklch(0.145 0 0);
 	--sidebar-primary: oklch(0.205 0 0);
 	--sidebar-primary-foreground: oklch(0.985 0 0);
@@ -108,6 +111,8 @@
 	--highlight-active: rgba(255, 150, 50, 0.55);
 	--highlight: oklch(0.646 0.222 41.116);
 	--highlight-foreground: oklch(0.985 0 0);
+	--fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
 }
 
 @theme inline {
@@ -129,6 +134,9 @@
 	--color-tertiary-active: var(--tertiary-active);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-success: var(--success);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -151,6 +159,9 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-highlight: var(--highlight);
 	--color-highlight-foreground: var(--highlight-foreground);
+	--color-highlight-match: var(--highlight-match);
+	--color-fill-hover: var(--fill-hover);
+	--color-fill-selected: var(--fill-selected);
 }
 
 @layer base {
@@ -298,9 +309,55 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: countdown line tracing the border while the confirmation runs out */
+	@keyframes countdown-border-trace {
+		from {
+			stroke-dashoffset: 100;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: retro pixel-dissolve when the confirmation expires — a
+	   checkerboard mask flips on and coarsens in discrete steps (mask-image
+	   animates discretely, swapping at segment midpoints) until the pill
+	   crumbles away */
+	@keyframes pill-pixel-out {
+		0% {
+			opacity: 1;
+			mask-image: none;
+		}
+		30% {
+			opacity: 1;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 3px 3px;
+		}
+		55% {
+			opacity: 0.9;
+			mask-image: repeating-conic-gradient(transparent 0% 25%, #000 0% 50%);
+			mask-size: 5px 5px;
+		}
+		80% {
+			opacity: 0.75;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 8px 8px;
+		}
+		100% {
+			opacity: 0;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 12px 12px;
+		}
 	}
 
 	/* Tiptap chat input placeholder */
@@ -317,4 +374,10 @@
 	.tiptap-chat-input p {
 		margin: 0;
 	}
+}
+
+/* Embedded documents hit-test ahead of the host; while a host gesture is in
+   flight they yield to it. See renderer/lib/pointer-passthrough.ts. */
+html[data-pointer-passthrough] iframe {
+	pointer-events: none;
 }

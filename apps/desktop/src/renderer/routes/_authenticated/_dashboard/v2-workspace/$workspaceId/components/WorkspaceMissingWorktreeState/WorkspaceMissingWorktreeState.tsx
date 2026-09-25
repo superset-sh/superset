@@ -1,8 +1,8 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, FolderX, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 interface WorkspaceMissingWorktreeStateProps {
 	workspaceId: string;
@@ -21,7 +21,6 @@ export function WorkspaceMissingWorktreeState({
 	onRefresh,
 	isRefreshing = false,
 }: WorkspaceMissingWorktreeStateProps) {
-	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const displayName = workspaceName || branch;
 
 	return (
@@ -37,18 +36,20 @@ export function WorkspaceMissingWorktreeState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="select-text cursor-text text-[15px] font-medium tracking-tight text-foreground">
-						Worktree missing
+						<Trans>Worktree missing</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						This workspace record still exists, but its worktree folder is no
-						longer on this host. Terminals and file actions are unavailable.
+						<Trans>
+							This workspace record still exists, but its worktree folder is no
+							longer on this host. Terminals and file actions are unavailable.
+						</Trans>
 					</p>
 				</div>
 
 				{worktreePath ? (
 					<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
 						<span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-							Path
+							<Trans>Path</Trans>
 						</span>
 						<div className="min-w-0 flex-1 overflow-x-auto">
 							<code
@@ -66,10 +67,15 @@ export function WorkspaceMissingWorktreeState({
 						size="sm"
 						variant="destructive"
 						className="h-7 gap-1.5 px-2.5 text-[13px]"
-						onClick={() => setDeleteDialogOpen(true)}
+						onClick={() =>
+							useDeleteWorkspaceIntent.getState().request({
+								workspaceId,
+								workspaceName: displayName,
+							})
+						}
 					>
 						<Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
-						Delete workspace
+						<Trans>Delete workspace</Trans>
 					</Button>
 					<Button
 						size="sm"
@@ -83,7 +89,7 @@ export function WorkspaceMissingWorktreeState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						Refresh
+						<Trans>Refresh</Trans>
 					</Button>
 					<Button
 						asChild
@@ -92,7 +98,7 @@ export function WorkspaceMissingWorktreeState({
 						className="h-7 gap-1.5 px-2 text-[13px] font-medium"
 					>
 						<Link to="/v2-workspaces">
-							Browse workspaces
+							<Trans>Browse workspaces</Trans>
 							<ArrowRight
 								className="size-3.5"
 								strokeWidth={2}
@@ -101,13 +107,6 @@ export function WorkspaceMissingWorktreeState({
 						</Link>
 					</Button>
 				</div>
-
-				<DashboardSidebarDeleteDialog
-					workspaceId={workspaceId}
-					workspaceName={displayName}
-					open={deleteDialogOpen}
-					onOpenChange={setDeleteDialogOpen}
-				/>
 			</div>
 		</div>
 	);

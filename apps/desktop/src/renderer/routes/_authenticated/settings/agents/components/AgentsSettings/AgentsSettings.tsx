@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -10,17 +11,17 @@ import { AgentCard } from "./components/AgentCard";
 
 interface AgentsSettingsProps {
 	visibleItems?: SettingItemId[] | null;
-	/** Builtin preset id to pre-select in v2 (`?agent=claude`). Ignored in v1. */
-	initialAgentPresetId?: string | null;
+	/** Config UUID or built-in preset id to select in v2. Ignored in v1. */
+	initialAgentId?: string | null;
 }
 
 export function AgentsSettings({
 	visibleItems,
-	initialAgentPresetId,
+	initialAgentId,
 }: AgentsSettingsProps) {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	if (isV2CloudEnabled) {
-		return <V2AgentsSettings initialAgentPresetId={initialAgentPresetId} />;
+		return <V2AgentsSettings initialAgentId={initialAgentId} />;
 	}
 	return <V1AgentsSettings visibleItems={visibleItems} />;
 }
@@ -45,16 +46,20 @@ function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 	return (
 		<div className="p-6 max-w-5xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Agents</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans>Agents</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure which agents appear in launchers and how their launches are
-					built.
+					<Trans>
+						Configure which agents appear in launchers and how their launches
+						are built.
+					</Trans>
 				</p>
 			</div>
 
 			{isLoading ? (
 				<p className="text-sm text-muted-foreground">
-					Loading agent settings...
+					<Trans>Loading agent settings...</Trans>
 				</p>
 			) : (
 				<div className="space-y-4">

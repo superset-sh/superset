@@ -120,8 +120,8 @@ export interface ChangedFile {
 	path: string;
 	oldPath?: string;
 	status: FileStatus;
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 	isBinary?: boolean;
 }
 
@@ -130,5 +130,6 @@ export interface Commit {
 	shortHash: string;
 	message: string;
 	author: string;
+	authorEmail: string;
 	date: string;
 }

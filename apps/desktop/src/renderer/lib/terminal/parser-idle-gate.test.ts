@@ -158,6 +158,25 @@ describe("runWhenParserIdle", () => {
 		expect(ran).toBe(false);
 	});
 
+	test("a throwing write still releases the gate", async () => {
+		const gate = createParserIdleGate();
+		// xterm throws out of write() past its own pending-data ceiling and
+		// never calls back; the gate must not stay armed on that path.
+		const write = wrapWrite(gate, () => {
+			throw new Error("write data discarded, use flow control");
+		});
+
+		expect(() => write("burst")).toThrow("write data discarded");
+
+		let ran = false;
+		runWhenParserIdle(gate, () => {
+			ran = true;
+		});
+		await flushMicrotasks();
+		expect(gate.pending).toBe(0);
+		expect(ran).toBe(true);
+	});
+
 	test("preserves the caller's own write callback", () => {
 		const gate = createParserIdleGate();
 		const fake = fakeWrite();

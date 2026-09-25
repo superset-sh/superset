@@ -1,4 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
+import {
+	PRODUCT_DISAMBIGUATION,
+	PRODUCT_PLATFORMS,
+	PRODUCT_SUMMARY,
+} from "@/lib/product-facts";
 
 function serializeJsonLd(schema: unknown): string {
 	const json = JSON.stringify(schema);
@@ -30,14 +35,37 @@ export function JsonLdScript({ schema }: { schema: unknown }) {
 }
 
 export function OrganizationJsonLd() {
+	const supportEmail = COMPANY.MAIL_TO.replace("mailto:", "");
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
+		"@id": `${COMPANY.MARKETING_URL}/#organization`,
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
-		logo: `${COMPANY.MARKETING_URL}/logo.png`,
-		description: "Run 10+ parallel coding agents on your machine",
-		sameAs: [COMPANY.GITHUB_URL, COMPANY.X_URL],
+		logo: `${COMPANY.MARKETING_URL}/apple-touch-icon.png`,
+		description: "One workspace for orchestrating any coding agent",
+		disambiguatingDescription: PRODUCT_DISAMBIGUATION,
+		email: supportEmail,
+		contactPoint: {
+			"@type": "ContactPoint",
+			contactType: "customer support",
+			email: supportEmail,
+			url: `${COMPANY.MARKETING_URL}/contact`,
+			availableLanguage: "English",
+		},
+		address: {
+			"@type": "PostalAddress",
+			addressLocality: "San Francisco",
+			addressRegion: "CA",
+			addressCountry: "US",
+		},
+		sameAs: [
+			COMPANY.GITHUB_URL,
+			"https://github.com/superset-sh",
+			COMPANY.X_URL,
+			COMPANY.LINKEDIN_URL,
+			COMPANY.YOUTUBE_URL,
+		],
 	};
 
 	return <JsonLdScript schema={schema} />;
@@ -47,15 +75,20 @@ export function SoftwareApplicationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "SoftwareApplication",
+		"@id": `${COMPANY.MARKETING_URL}/#software`,
 		name: COMPANY.NAME,
-		operatingSystem: "macOS, Windows, Linux",
+		operatingSystem: PRODUCT_PLATFORMS,
+		license: `${COMPANY.GITHUB_URL}/blob/main/LICENSE.md`,
+		publisher: { "@id": `${COMPANY.MARKETING_URL}/#organization` },
 		applicationCategory: "DeveloperApplication",
+		applicationSubCategory: "Developer Tools",
 		offers: {
 			"@type": "Offer",
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "Run 10+ parallel coding agents on your machine",
+		description: PRODUCT_SUMMARY,
+		disambiguatingDescription: PRODUCT_DISAMBIGUATION,
 		url: COMPANY.MARKETING_URL,
 	};
 
@@ -73,6 +106,7 @@ interface ArticleJsonLdProps {
 	description?: string;
 	author: ArticleAuthor;
 	publishedTime: string;
+	modifiedTime?: string;
 	url: string;
 	image?: string;
 }
@@ -82,6 +116,7 @@ export function ArticleJsonLd({
 	description,
 	author,
 	publishedTime,
+	modifiedTime,
 	url,
 	image,
 }: ArticleJsonLdProps) {
@@ -106,7 +141,7 @@ export function ArticleJsonLd({
 			},
 		},
 		datePublished: publishedTime,
-		dateModified: publishedTime,
+		dateModified: modifiedTime ?? publishedTime,
 		mainEntityOfPage: {
 			"@type": "WebPage",
 			"@id": url,
@@ -186,6 +221,51 @@ export function WebsiteJsonLd() {
 	return <JsonLdScript schema={schema} />;
 }
 
+export function HomeWebPageJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "WebPage",
+		"@id": COMPANY.MARKETING_URL,
+		url: COMPANY.MARKETING_URL,
+		name: `${COMPANY.NAME}: Orchestrate any coding agent`,
+		isPartOf: {
+			"@type": "WebSite",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: ["h1", "#hero-subheadline"],
+		},
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+export function ServiceJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: `${COMPANY.NAME} agent orchestration`,
+		serviceType: "AI coding agent orchestration platform",
+		description:
+			"Bring Claude Code, Codex, OpenCode, or any CLI-based coding agent into one workspace. Run tasks in parallel with isolated Git worktrees, diff review, persistent terminals, scheduled automations, and an MCP server for programmatic control.",
+		provider: {
+			"@type": "Organization",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		url: COMPANY.MARKETING_URL,
+		offers: {
+			"@type": "Offer",
+			price: "0",
+			priceCurrency: "USD",
+		},
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
 interface FAQPageJsonLdProps {
 	items: Array<{ question: string; answer: string }>;
 }
@@ -201,6 +281,27 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
 				"@type": "Answer",
 				text: item.answer,
 			},
+		})),
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+interface ItemListJsonLdProps {
+	name: string;
+	items: Array<{ name: string; url?: string }>;
+}
+
+export function ItemListJsonLd({ name, items }: ItemListJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		name,
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			...(item.url && { url: item.url }),
 		})),
 	};
 

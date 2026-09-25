@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { TerminalIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -62,9 +63,15 @@ const ClampedOutput = ({
 					onPress={() => setIsExpanded((prev) => !prev)}
 				>
 					<Text className="mt-1 text-muted-foreground text-xs underline">
-						{isExpanded
-							? "Show less"
-							: `Show ${lineCount - MAX_OUTPUT_LINES} more lines`}
+						{isExpanded ? (
+							<Trans>Show less</Trans>
+						) : (
+							<Plural
+								value={lineCount - MAX_OUTPUT_LINES}
+								one="Show # more line"
+								other="Show # more lines"
+							/>
+						)}
 					</Text>
 				</Pressable>
 			) : null}

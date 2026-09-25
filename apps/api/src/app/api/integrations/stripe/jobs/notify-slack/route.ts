@@ -1,12 +1,12 @@
 import { db } from "@superset/db/client";
 import { subscriptions } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
-import { Receiver } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 import {
 	type EnrichedSubscription,
@@ -21,11 +21,6 @@ import {
 } from "./slack-blocks";
 
 // --- QStash verification ---
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 // --- Stripe client ---
 
@@ -94,13 +89,13 @@ async function enrichFromSubscription(
 ): Promise<EnrichedSubscription | null> {
 	const stripeSub = await stripeClient.subscriptions.retrieve(
 		stripeSubscriptionId,
-		{ expand: ["discounts.source.coupon"] },
+		{ expand: ["discounts.source.coupon", "customer"] },
 	);
 
+	const customer =
+		typeof stripeSub.customer === "string" ? null : stripeSub.customer;
 	const customerId =
-		typeof stripeSub.customer === "string"
-			? stripeSub.customer
-			: stripeSub.customer?.id;
+		typeof stripeSub.customer === "string" ? stripeSub.customer : customer?.id;
 
 	if (!customerId) return null;
 
@@ -129,6 +124,7 @@ async function enrichFromSubscription(
 		discount: getDiscountInfo(stripeSub),
 		accessEndsAt: dbSub?.periodEnd ?? null,
 		cancellationDetails: stripeSub.cancellation_details,
+		customerEmail: customer && !customer.deleted ? customer.email : null,
 	};
 }
 
@@ -136,21 +132,12 @@ async function enrichFromSubscription(
 
 export async function POST(request: Request) {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	const isValid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`,
-	});
-
-	if (!isValid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		"/api/integrations/stripe/jobs/notify-slack",
+	);
+	if (rejected) return rejected;
 
 	let rawPayload: unknown;
 	try {
@@ -182,13 +169,23 @@ export async function POST(request: Request) {
 		case "subscription_started":
 			blocks = formatSubscriptionStarted(enriched);
 			break;
-		case "subscription_cancelled":
+		case "subscription_cancelled": {
+			// Prefer fresh fields: the portal attaches feedback after the queued webhook snapshot
+			const queued = payload.cancellationDetails ?? null;
+			const fresh = enriched.cancellationDetails;
 			blocks = formatSubscriptionCancelled({
 				...enriched,
 				cancellationDetails:
-					payload.cancellationDetails ?? enriched.cancellationDetails,
+					fresh || queued
+						? {
+								comment: fresh?.comment ?? queued?.comment,
+								feedback: fresh?.feedback ?? queued?.feedback,
+								reason: fresh?.reason ?? queued?.reason,
+							}
+						: null,
 			});
 			break;
+		}
 		case "seat_added":
 			blocks = formatSeatAdded(
 				enriched,

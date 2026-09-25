@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,9 +24,11 @@ export function DiscardConfirmDialog({
 	onOpenChange,
 	title,
 	description,
-	confirmLabel = "Discard",
+	confirmLabel,
 	onConfirm,
 }: DiscardConfirmDialogProps) {
+	const { t } = useLingui();
+	const resolvedConfirmLabel = confirmLabel ?? t({ message: "Discard" });
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<EnterEnabledAlertDialogContent className="max-w-[360px] gap-0 p-0">
@@ -40,7 +43,7 @@ export function DiscardConfirmDialog({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans>Cancel</Trans>
 					</Button>
 					<AlertDialogAction
 						variant="destructive"
@@ -48,7 +51,7 @@ export function DiscardConfirmDialog({
 						className="h-7 px-3 text-xs"
 						onClick={onConfirm}
 					>
-						{confirmLabel}
+						{resolvedConfirmLabel}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</EnterEnabledAlertDialogContent>

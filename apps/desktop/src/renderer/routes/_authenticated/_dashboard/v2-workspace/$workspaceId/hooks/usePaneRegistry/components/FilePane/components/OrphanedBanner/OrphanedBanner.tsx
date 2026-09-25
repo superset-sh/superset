@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+
 interface OrphanedBannerProps {
 	dirty: boolean;
 	onDiscard?: () => void;
@@ -5,11 +7,15 @@ interface OrphanedBannerProps {
 
 export function OrphanedBanner({ dirty, onDiscard }: OrphanedBannerProps) {
 	return (
-		<div className="flex items-center gap-2 border-b border-border bg-destructive/10 px-3 py-1.5 text-xs text-destructive-foreground">
+		<div className="flex items-center gap-2 border-b border-border bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
 			<span>
-				{dirty
-					? "File was deleted on disk. You still have unsaved changes."
-					: "File was deleted on disk."}
+				{dirty ? (
+					<Trans>
+						File was deleted on disk. You still have unsaved changes.
+					</Trans>
+				) : (
+					<Trans>File was deleted on disk.</Trans>
+				)}
 			</span>
 			{dirty && onDiscard && (
 				<button
@@ -17,7 +23,7 @@ export function OrphanedBanner({ dirty, onDiscard }: OrphanedBannerProps) {
 					className="underline hover:no-underline"
 					onClick={onDiscard}
 				>
-					Discard
+					<Trans>Discard</Trans>
 				</button>
 			)}
 		</div>

@@ -1,0 +1,24 @@
+---
+extends: substitution
+message: Consider using '%s' instead of '%s' (which may be insensitive).
+ignorecase: true
+level: warning
+action:
+  name: replace
+swap:
+  commit suicide: die by suicide
+  committed suicide: died by suicide
+  complete suicide: die by suicide
+  completed suicide: died by suicide
+  epidemic of suicides: rise in suicides
+  failed attempt: suicide attempt|attempted suicide
+  failed suicide: suicide attempt|attempted suicide
+  hang: the app froze|the app stopped responding|the app stopped responding to events|the
+    app became unresponsive
+  hanged: the app froze|the app stopped responding|the app stopped responding to events|the
+    app became unresponsive
+  successful suicide: die by suicide
+  suicide epidemic: rise in suicides
+  suicide failure: suicide attempt|attempted suicide
+  suicide note: a note from the deceased
+  suicide pact: rise in suicides

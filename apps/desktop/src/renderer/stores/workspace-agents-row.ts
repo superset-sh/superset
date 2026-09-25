@@ -4,15 +4,15 @@ import { devtools, persist } from "zustand/middleware";
 /**
  * EXPERIMENT: show running agents inline under each workspace in the sidebar.
  *
- * Off by default. Single source of truth for the experiment — read it
+ * On by default. Single source of truth for the experiment — read it
  * everywhere via {@link useWorkspaceAgentsRowEnabled}.
  *
  * To conclude the experiment, pick an outcome and remove the other side:
  *   1. This store + `useWorkspaceAgentsRowEnabled`.
  *   2. The toggle UI in `ExperimentalSettings` and its `settings-search` entry
  *      (`EXPERIMENTAL_WORKSPACE_AGENTS`).
- *   3. The flag branch in `DashboardSidebarWorkspaceDetails` (the `agents`
- *      section) and the `enabled` it threads into
+ *   3. The flag branch in `DashboardSidebarWorkspaceChips` (the agents chip)
+ *      and the `enabled` it threads into
  *      `useDashboardSidebarWorkspaceRunningAgents`.
  */
 interface WorkspaceAgentsRowState {
@@ -25,7 +25,7 @@ export const useWorkspaceAgentsRowStore = create<WorkspaceAgentsRowState>()(
 	devtools(
 		persist(
 			(set) => ({
-				enabled: false,
+				enabled: true,
 				setEnabled: (enabled) => set({ enabled }),
 			}),
 			{ name: "workspace-agents-row" },

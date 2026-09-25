@@ -23,7 +23,7 @@ export function MetricBadge({ label, value, tooltip }: MetricBadgeProps) {
 	return (
 		<Tooltip delayDuration={150}>
 			<TooltipTrigger asChild>{content}</TooltipTrigger>
-			<TooltipContent side="top" sideOffset={6} showArrow={false}>
+			<TooltipContent side="top" sideOffset={6}>
 				{tooltip}
 			</TooltipContent>
 		</Tooltip>

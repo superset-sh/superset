@@ -28,6 +28,7 @@ export interface SeedProjectOptions {
 	repoUrl?: string;
 	repoProvider?: string;
 	remoteName?: string;
+	worktreeBaseDir?: string | null;
 }
 
 export function seedProject(
@@ -45,6 +46,7 @@ export function seedProject(
 			repoUrl: options.repoUrl,
 			repoProvider: options.repoProvider,
 			remoteName: options.remoteName,
+			worktreeBaseDir: options.worktreeBaseDir,
 		})
 		.run();
 	return { id };
@@ -55,6 +57,8 @@ export interface SeedWorkspaceOptions {
 	projectId: string;
 	worktreePath: string;
 	branch: string;
+	name?: string;
+	type?: "local" | "worktree";
 	headSha?: string | null;
 	upstreamOwner?: string | null;
 	upstreamRepo?: string | null;
@@ -74,6 +78,8 @@ export function seedWorkspace(
 			projectId: options.projectId,
 			worktreePath: options.worktreePath,
 			branch: options.branch,
+			name: options.name ?? options.branch,
+			type: options.type ?? "worktree",
 			headSha: options.headSha,
 			upstreamOwner: options.upstreamOwner,
 			upstreamRepo: options.upstreamRepo,

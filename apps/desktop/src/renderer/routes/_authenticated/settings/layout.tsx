@@ -1,11 +1,15 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	createFileRoute,
 	Outlet,
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { CheckResourcesHotkeyMount } from "renderer/commandPalette";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
@@ -14,12 +18,14 @@ import {
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { NavigationControls } from "../_dashboard/components/NavigationControls";
+import { ContentBoundary } from "../components/ContentBoundary";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
-import { SettingsSidebar } from "./components/SettingsSidebar";
 import {
-	getMatchCountBySection,
-	searchSettings,
-} from "./utils/settings-search";
+	FULL_WIDTH_SECTION_PATHS,
+	SettingsSidebar,
+} from "./components/SettingsSidebar";
+import { useScrollReset } from "./hooks/useScrollReset";
+import { getVisibleMatchCountBySection } from "./utils/settings-search";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,
@@ -27,97 +33,125 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 const SECTION_ORDER: SettingsSection[] = [
 	"account",
+	"connections",
 	"appearance",
 	"ringtones",
+	"usage",
+	"mobile",
 	"keyboard",
 	"behavior",
 	"git",
+	"agents",
 	"terminal",
 	"links",
-	"models",
+	"browser",
+	"environments",
+	"agentAccounts",
 	"organization",
 	"teams",
 	"project",
 	"integrations",
 	"billing",
 	"apikeys",
+	"security",
 	"permissions",
 	"hosts",
 	"experimental",
 ];
 
+/**
+ * Single source of truth for section <-> path, read in both directions by
+ * getSectionFromPath/getPathFromSection below instead of two independently
+ * hand-maintained lookups that can drift out of sync with each other.
+ */
+const SECTION_PATHS: Partial<Record<SettingsSection, string>> = {
+	mobile: "/settings/mobile",
+	account: "/settings/account",
+	connections: "/settings/connections",
+	organization: "/settings/organization",
+	teams: "/settings/teams",
+	appearance: "/settings/appearance",
+	ringtones: "/settings/ringtones",
+	usage: "/settings/usage",
+	keyboard: "/settings/keyboard",
+	behavior: "/settings/behavior",
+	git: "/settings/git",
+	agents: "/settings/agents",
+	terminal: "/settings/terminal",
+	links: "/settings/links",
+	browser: "/settings/browser",
+	experimental: "/settings/experimental",
+	integrations: "/settings/integrations",
+	billing: "/settings/billing",
+	apikeys: "/settings/api-keys",
+	security: "/settings/security",
+	permissions: "/settings/permissions",
+	hosts: "/settings/hosts",
+	project: "/settings/projects",
+};
+
 function getSectionFromPath(pathname: string): SettingsSection | null {
-	if (pathname.includes("/settings/account")) return "account";
-	if (pathname.includes("/settings/organization")) return "organization";
-	if (pathname.includes("/settings/teams")) return "teams";
-	if (pathname.includes("/settings/appearance")) return "appearance";
-	if (pathname.includes("/settings/ringtones")) return "ringtones";
-	if (pathname.includes("/settings/keyboard")) return "keyboard";
-	if (pathname.includes("/settings/behavior")) return "behavior";
-	if (pathname.includes("/settings/git")) return "git";
-	if (pathname.includes("/settings/terminal")) return "terminal";
-	if (pathname.includes("/settings/links")) return "links";
-	if (pathname.includes("/settings/models")) return "models";
-	if (pathname.includes("/settings/experimental")) return "experimental";
-	if (pathname.includes("/settings/integrations")) return "integrations";
-	if (pathname.includes("/settings/permissions")) return "permissions";
-	if (pathname.includes("/settings/hosts")) return "hosts";
-	if (pathname.includes("/settings/project")) return "project";
-	return null;
+	const match = Object.entries(SECTION_PATHS).find(([, path]) =>
+		pathname.includes(path),
+	);
+	return match ? (match[0] as SettingsSection) : null;
 }
 
 function getPathFromSection(section: SettingsSection): string {
-	switch (section) {
-		case "account":
-			return "/settings/account";
-		case "organization":
-			return "/settings/organization";
-		case "teams":
-			return "/settings/teams";
-		case "appearance":
-			return "/settings/appearance";
-		case "ringtones":
-			return "/settings/ringtones";
-		case "keyboard":
-			return "/settings/keyboard";
-		case "behavior":
-			return "/settings/behavior";
-		case "git":
-			return "/settings/git";
-		case "terminal":
-			return "/settings/terminal";
-		case "links":
-			return "/settings/links";
-		case "models":
-			return "/settings/models";
-		case "experimental":
-			return "/settings/experimental";
-		case "integrations":
-			return "/settings/integrations";
-		case "permissions":
-			return "/settings/permissions";
-		case "hosts":
-			return "/settings/hosts";
-		case "project":
-			return "/settings/projects";
-		default:
-			return "/settings/account";
-	}
+	return SECTION_PATHS[section] ?? "/settings/account";
 }
+
+/**
+ * Sections whose drilldown routes (a param segment with no index route of
+ * its own) would 404 if the Escape handler below popped just one path
+ * segment — going up from those lands on /settings/usage instead.
+ */
+const NON_ROUTABLE_ESCAPE_PARENTS = new Set([
+	"/settings/usage/model",
+	"/settings/usage/workspace",
+]);
 
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const mobileEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
+	const cloudWorkspacesEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const isMac = platform === undefined || platform === "darwin";
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
+	// Reset scroll to top when navigating to a different settings page.
+	const contentRef = useScrollReset<HTMLDivElement>(location.pathname);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
-	const totalMatches = isSearchActive
-		? searchSettings(normalizedSearchQuery).length
-		: 0;
+	// Variant-filtered like the sidebar's per-section counts, so hidden
+	// v1-/v2-only items are never reported as matches.
+	const matchCounts = useMemo(
+		() =>
+			isSearchActive
+				? getVisibleMatchCountBySection(
+						normalizedSearchQuery,
+						isV2CloudEnabled,
+						cloudWorkspacesEnabled,
+						mobileEnabled,
+					)
+				: {},
+		[
+			isSearchActive,
+			normalizedSearchQuery,
+			isV2CloudEnabled,
+			cloudWorkspacesEnabled,
+			mobileEnabled,
+		],
+	);
+	const totalMatches = Object.values(matchCounts).reduce(
+		(sum, count) => sum + count,
+		0,
+	);
 
 	useEffect(() => {
 		if (!isSearchActive) return;
@@ -127,8 +161,8 @@ function SettingsLayout() {
 
 		if (currentSection === "project") return;
 		if (currentSection === "hosts") return;
+		if (currentSection === "usage") return;
 
-		const matchCounts = getMatchCountBySection(normalizedSearchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
 
 		if (!currentHasMatches) {
@@ -139,7 +173,7 @@ function SettingsLayout() {
 				navigate({ to: getPathFromSection(firstMatch), replace: true });
 			}
 		}
-	}, [isSearchActive, location.pathname, navigate, normalizedSearchQuery]);
+	}, [isSearchActive, location.pathname, navigate, matchCounts]);
 
 	useHotkeys(
 		"escape",
@@ -153,31 +187,38 @@ function SettingsLayout() {
 			}
 
 			const parent = `/${segments.slice(0, -1).join("/")}`;
-			navigate({ to: parent });
+			navigate({
+				to: NON_ROUTABLE_ESCAPE_PARENTS.has(parent)
+					? "/settings/usage"
+					: parent,
+			});
 		},
 		{ enableOnFormTags: false, enableOnContentEditable: false },
 		[navigate, location.pathname, originRoute],
 	);
 
-	const usesInnerSidebar =
-		location.pathname.startsWith("/settings/projects") ||
-		location.pathname.startsWith("/settings/hosts") ||
-		location.pathname.startsWith("/settings/agents");
+	const usesFullWidthContent = FULL_WIDTH_SECTION_PATHS.some((path) =>
+		location.pathname.startsWith(path),
+	);
 
 	return (
-		<div className="flex flex-col h-screen w-screen bg-tertiary">
-			<div
-				className="drag flex h-12 w-full items-center gap-1.5 bg-tertiary"
-				style={{
-					paddingLeft: isMac ? "96px" : "8px",
-				}}
-			>
+		<div className="flex flex-col h-screen w-screen bg-background">
+			{/* CommandPaletteHost (Cmd/Ctrl+K etc.) only mounts inside the
+			    _dashboard route tree; CHECK_RESOURCES needs its own mount here so
+			    the hotkey and native "Resources" menu item still work in Settings. */}
+			<CheckResourcesHotkeyMount />
+			<div className="flex h-12 w-full items-center bg-sidebar dark:bg-muted/35">
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: isMac ? "96px" : "8px" }}
+				/>
 				<NavigationControls />
+				<div className="drag h-full min-w-0 flex-1" />
 			</div>
 
-			<div className="flex flex-1 overflow-hidden">
+			<div className="flex flex-1 overflow-hidden bg-background">
 				<SettingsSidebar />
-				<div className="flex-1 m-3 bg-background rounded overflow-auto">
+				<div ref={contentRef} className="flex-1 overflow-auto">
 					{isSearchActive && (
 						<SearchResultsBanner
 							query={normalizedSearchQuery}
@@ -185,13 +226,15 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					{usesInnerSidebar ? (
-						<Outlet />
-					) : (
-						<div className="mx-auto max-w-4xl">
+					<ContentBoundary>
+						{usesFullWidthContent ? (
 							<Outlet />
-						</div>
-					)}
+						) : (
+							<div className="mx-auto max-w-4xl">
+								<Outlet />
+							</div>
+						)}
+					</ContentBoundary>
 				</div>
 			</div>
 		</div>

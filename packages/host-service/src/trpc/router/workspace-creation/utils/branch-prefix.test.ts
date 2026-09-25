@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import type { SimpleGit } from "simple-git";
 import * as schema from "../../../../db/schema";
 import { hostSettings } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
@@ -22,11 +21,11 @@ function createTestDb() {
 
 type TestDb = ReturnType<typeof createTestDb>;
 
-/** Git stub whose `user.name` is fixed — only the `author` mode reads it. */
-function gitWithAuthor(authorName: string | null): SimpleGit {
-	return {
-		getConfig: async () => ({ value: authorName }),
-	} as unknown as SimpleGit;
+/** Stub author-name resolver — only the `author` mode invokes it. */
+function authorNameGetter(
+	authorName: string | null,
+): () => Promise<string | null> {
+	return async () => authorName;
 }
 
 function makeProject(overrides: Partial<LocalProject>): LocalProject {
@@ -58,7 +57,7 @@ describe("resolveProjectBranchPrefix", () => {
 		const result = await resolveProjectBranchPrefix({
 			ctx: makeCtx(createTestDb()),
 			project: makeProject({}),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: [],
 		});
 		expect(result).toBeUndefined();
@@ -70,7 +69,7 @@ describe("resolveProjectBranchPrefix", () => {
 		const result = await resolveProjectBranchPrefix({
 			ctx: makeCtx(db),
 			project: makeProject({}),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: [],
 		});
 		expect(result).toBe("team");
@@ -85,7 +84,7 @@ describe("resolveProjectBranchPrefix", () => {
 				branchPrefixMode: "custom",
 				branchPrefixCustom: "proj",
 			}),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: [],
 		});
 		expect(result).toBe("proj");
@@ -98,7 +97,7 @@ describe("resolveProjectBranchPrefix", () => {
 			ctx: makeCtx(db),
 			// branchPrefixCustom set but mode null — must NOT count as an override.
 			project: makeProject({ branchPrefixCustom: "stale" }),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: [],
 		});
 		expect(result).toBe("team");
@@ -110,7 +109,7 @@ describe("resolveProjectBranchPrefix", () => {
 		const result = await resolveProjectBranchPrefix({
 			ctx: makeCtx(db),
 			project: makeProject({ branchPrefixMode: "none" }),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: [],
 		});
 		expect(result).toBeUndefined();
@@ -122,7 +121,7 @@ describe("resolveProjectBranchPrefix", () => {
 		const result = await resolveProjectBranchPrefix({
 			ctx: makeCtx(db),
 			project: makeProject({}),
-			git: gitWithAuthor(null),
+			getAuthorName: authorNameGetter(null),
 			existingBranches: ["main", "Team"],
 		});
 		expect(result).toBeUndefined();
@@ -132,7 +131,7 @@ describe("resolveProjectBranchPrefix", () => {
 		const result = await resolveProjectBranchPrefix({
 			ctx: makeCtx(createTestDb()),
 			project: makeProject({ branchPrefixMode: "author" }),
-			git: gitWithAuthor("Jane Doe"),
+			getAuthorName: authorNameGetter("Jane Doe"),
 			existingBranches: [],
 		});
 		expect(result).toBe("Jane-Doe");

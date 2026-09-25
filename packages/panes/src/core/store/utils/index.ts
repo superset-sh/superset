@@ -1,6 +1,7 @@
 export type { FocusDirection } from "./utils";
 export {
 	equalizeAllSplits,
+	equalizeSplitBoundary,
 	findFirstPaneId,
 	findPaneInLayout,
 	findPanePath,

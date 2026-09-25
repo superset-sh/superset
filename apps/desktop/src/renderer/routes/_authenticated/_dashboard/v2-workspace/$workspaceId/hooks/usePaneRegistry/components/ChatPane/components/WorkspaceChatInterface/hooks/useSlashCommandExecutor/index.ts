@@ -1,1 +1,0 @@
-export { useSlashCommandExecutor } from "./useSlashCommandExecutor";

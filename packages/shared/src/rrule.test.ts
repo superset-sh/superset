@@ -3,6 +3,7 @@ import {
 	buildRrule,
 	describeSchedule,
 	formatDateTimeInTimezone,
+	isValidRrule,
 	matchPreset,
 	nextOccurrences,
 	type PresetMatch,
@@ -88,10 +89,12 @@ describe("describeSchedule / WEEKLY", () => {
 		expect(describeSchedule("FREQ=WEEKLY;BYDAY=SA,SU", US)).toBe("Weekends");
 	});
 
-	it("single day pluralized", () => {
+	it("single day reads as a full sentence", () => {
+		// "Mondays" pluralized the weekday by appending an s, which only
+		// English can do; the message is now a whole translatable sentence.
 		expect(
 			describeSchedule("FREQ=WEEKLY;BYDAY=MO;BYHOUR=10;BYMINUTE=0", US),
-		).toBe("Mondays at 10:00 AM");
+		).toBe("Every Monday at 10:00 AM");
 	});
 
 	it("multi-day list keeps canonical order", () => {
@@ -192,12 +195,6 @@ describe("matchPreset", () => {
 		});
 	});
 
-	it("recognizes weekdays with time", () => {
-		expect(
-			matchPreset("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=30"),
-		).toEqual({ kind: "weekdays", hour: 9, minute: 30 });
-	});
-
 	it("recognizes weekly on a specific day", () => {
 		expect(matchPreset("FREQ=WEEKLY;BYDAY=MO;BYHOUR=10;BYMINUTE=0")).toEqual({
 			kind: "weekly",
@@ -205,12 +202,6 @@ describe("matchPreset", () => {
 			hour: 10,
 			minute: 0,
 		});
-	});
-
-	it("treats BYDAY order insensitively for weekdays", () => {
-		expect(
-			matchPreset("FREQ=WEEKLY;BYDAY=FR,TH,WE,TU,MO;BYHOUR=9"),
-		).toMatchObject({ kind: "weekdays" });
 	});
 
 	it("falls through to custom when INTERVAL>1", () => {
@@ -228,13 +219,16 @@ describe("matchPreset", () => {
 		});
 	});
 
-	it("falls through to custom for weekends or multi-day-not-weekdays", () => {
+	it("falls through to custom for any multi-day BYDAY", () => {
 		expect(matchPreset("FREQ=WEEKLY;BYDAY=SA,SU;BYHOUR=9")).toMatchObject({
 			kind: "custom",
 		});
 		expect(matchPreset("FREQ=WEEKLY;BYDAY=MO,WE,FR;BYHOUR=9")).toMatchObject({
 			kind: "custom",
 		});
+		expect(
+			matchPreset("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=30"),
+		).toMatchObject({ kind: "custom" });
 	});
 
 	it("hourly with BYHOUR → custom (our hourly preset takes no time)", () => {
@@ -264,12 +258,6 @@ describe("buildRrule", () => {
 		);
 	});
 
-	it("emits weekdays with time", () => {
-		expect(buildRrule({ kind: "weekdays", hour: 9, minute: 30 })).toBe(
-			"FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=30",
-		);
-	});
-
 	it("emits weekly with a specific day", () => {
 		expect(buildRrule({ kind: "weekly", day: "FR", hour: 15, minute: 0 })).toBe(
 			"FREQ=WEEKLY;BYDAY=FR;BYHOUR=15;BYMINUTE=0",
@@ -288,7 +276,6 @@ describe("matchPreset + buildRrule round-trip", () => {
 		{ kind: "hourly" },
 		{ kind: "daily", hour: 9, minute: 0 },
 		{ kind: "daily", hour: 23, minute: 45 },
-		{ kind: "weekdays", hour: 8, minute: 30 },
 		{ kind: "weekly", day: "MO", hour: 10, minute: 0 },
 		{ kind: "weekly", day: "SU", hour: 18, minute: 15 },
 	];
@@ -392,5 +379,33 @@ describe("recurrence timezone math", () => {
 			dayPeriod: "PM",
 			timeZoneName: "UTC",
 		});
+	});
+});
+
+describe("isValidRrule", () => {
+	it("accepts the picker presets", () => {
+		expect(isValidRrule("FREQ=HOURLY")).toBe(true);
+		expect(isValidRrule("FREQ=DAILY;BYHOUR=9;BYMINUTE=0")).toBe(true);
+		expect(
+			isValidRrule("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0"),
+		).toBe(true);
+	});
+
+	it("accepts hand-written custom rules", () => {
+		expect(isValidRrule("FREQ=MONTHLY;BYMONTHDAY=-1;BYHOUR=17")).toBe(true);
+		expect(isValidRrule("FREQ=WEEKLY;INTERVAL=2;BYDAY=FR")).toBe(true);
+	});
+
+	it("rejects partially typed and malformed rules", () => {
+		expect(isValidRrule("")).toBe(false);
+		expect(isValidRrule("FREQ=")).toBe(false);
+		expect(isValidRrule("FREQ")).toBe(false);
+		expect(isValidRrule("FREQ=DAILY;BYHOUR=")).toBe(false);
+		expect(isValidRrule("every monday at 9")).toBe(false);
+		expect(isValidRrule("FREQ=BOGUS")).toBe(false);
+	});
+
+	it("rejects rules with no future occurrences", () => {
+		expect(isValidRrule("FREQ=DAILY;UNTIL=20200101T000000Z")).toBe(false);
 	});
 });

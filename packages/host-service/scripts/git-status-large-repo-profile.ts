@@ -2,19 +2,18 @@ import { spawn } from "node:child_process";
 import { chmodSync, existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { monitorEventLoopDelay } from "node:perf_hooks";
 import type { HostDb } from "../src/db";
-import { EventBus } from "../src/events/event-bus";
+import { EventBus, MAX_GIT_WATCHES_PER_CLIENT } from "../src/events/event-bus";
 import { GitWatcher } from "../src/events/git-watcher";
 import type { ServerMessage } from "../src/events/types";
 import { WorkspaceFilesystemManager } from "../src/runtime/filesystem";
-import { createUserSimpleGit } from "../src/runtime/git/simple-git";
-import { gitRouter } from "../src/trpc/router/git/git";
-import { getGitStatusSnapshot } from "../src/trpc/router/git/utils/git-status";
 import {
 	GitStatusRefreshLimiter,
 	gitStatusRefreshLimiter,
 } from "../src/trpc/router/git/utils/git-status-refresh-limiter";
-import type { HostServiceContext } from "../src/types";
+import { getHostWorkerPool } from "../src/workers/host-worker-pool";
+import { gitStatusSnapshotTask } from "../src/workers/tasks/git";
 
 type Mode = "limited" | "unbounded";
 type Flow = "compute" | "event-bus";
@@ -27,9 +26,11 @@ interface Options {
 	events: number;
 	eventIntervalMs: number;
 	concurrency: number;
+	workspaces: number;
 	gitDelayMs: number;
 	mode: Mode | "both";
 	flow: Flow;
+	refreshOnGitChange: boolean;
 	recreate: boolean;
 	cdpPort: number | null;
 }
@@ -37,12 +38,14 @@ interface Options {
 interface ScenarioResult {
 	flow: Flow;
 	mode: Mode;
+	executionMode: "worker" | "inline";
 	requestedRefreshes: number;
 	worktreeMutations?: number;
 	gitChangedEvents?: number;
 	actualRefreshes: number;
 	durationMs: number;
 	maxActiveRefreshes: number;
+	eventLoopDelayMs: { p50: number; p99: number; max: number };
 	gitInvocations: number;
 	maxActiveGitProcesses: number;
 	topGitCommands: Array<{ command: string; count: number }>;
@@ -60,6 +63,7 @@ interface CdpCapture {
 
 const DEFAULT_REPO_PATH = ".cache/git-status-large-repo";
 const DEFAULT_OUT_DIR = ".cache/git-status-profiles";
+const GIT_DIR_WARMUP_SETTLE_MS = 1_200;
 
 function parseArgs(argv: string[]): Options {
 	const options: Options = {
@@ -70,9 +74,11 @@ function parseArgs(argv: string[]): Options {
 		events: 60,
 		eventIntervalMs: 50,
 		concurrency: 4,
+		workspaces: 1,
 		gitDelayMs: 0,
 		mode: "both",
 		flow: "compute",
+		refreshOnGitChange: true,
 		recreate: false,
 		cdpPort: null,
 	};
@@ -107,6 +113,9 @@ function parseArgs(argv: string[]): Options {
 			case "--concurrency":
 				options.concurrency = Number(next());
 				break;
+			case "--workspaces":
+				options.workspaces = Number(next());
+				break;
 			case "--git-delay-ms":
 				options.gitDelayMs = Number(next());
 				break;
@@ -126,6 +135,9 @@ function parseArgs(argv: string[]): Options {
 				options.flow = flow;
 				break;
 			}
+			case "--watcher-only":
+				options.refreshOnGitChange = false;
+				break;
 			case "--recreate":
 				options.recreate = true;
 				break;
@@ -147,6 +159,7 @@ function parseArgs(argv: string[]): Options {
 		events: options.events,
 		eventIntervalMs: options.eventIntervalMs,
 		concurrency: options.concurrency,
+		workspaces: options.workspaces,
 		gitDelayMs: options.gitDelayMs,
 	})) {
 		if (!Number.isFinite(value) || value < 0) {
@@ -157,6 +170,14 @@ function parseArgs(argv: string[]): Options {
 	if (options.events < 1) throw new Error("events must be at least 1");
 	if (options.concurrency < 1)
 		throw new Error("concurrency must be at least 1");
+	if (options.workspaces < 1) throw new Error("workspaces must be at least 1");
+	// One mock client registers every workspace; past the bus cap its
+	// git:watch commands are rejected and the counts silently under-report.
+	if (options.workspaces > MAX_GIT_WATCHES_PER_CLIENT) {
+		throw new Error(
+			`workspaces must be at most ${MAX_GIT_WATCHES_PER_CLIENT} (the per-client git:watch cap)`,
+		);
+	}
 
 	return options;
 }
@@ -173,11 +194,14 @@ Options:
   --events <n>                 Refresh invalidation count. Default: 60
   --event-interval-ms <n>      Delay between invalidations. Default: 50
   --concurrency <n>            Limiter concurrency. Default: 4
+  --workspaces <n>             Distinct limiter workspace keys. Default: 1
   --git-delay-ms <n>           Artificial delay before each git subprocess.
                                Useful for modeling EDR/exec overhead.
   --mode <limited|unbounded|both>
   --flow <compute|event-bus>   compute stresses getStatus directly; event-bus
                                runs GitWatcher → EventBus → client refresh.
+  --watcher-only              In event-bus flow, observe events without running
+                               status refreshes (isolates watcher loop cost).
   --recreate                   Delete and recreate the synthetic repo first
   --cdp-port <port>            Capture renderer CPU profile from Electron CDP
 `);
@@ -348,26 +372,26 @@ async function runScenario(
 	let actualRefreshes = 0;
 	let lastSummary: ScenarioResult["statusSummary"] | null = null;
 	const limiter = new GitStatusRefreshLimiter(options.concurrency);
-	const startedAt = performance.now();
+	const workerPool = getHostWorkerPool();
+	const executionMode = workerPool.getMode();
 	const promises: Array<Promise<unknown>> = [];
+	const gitEnv = createProfileGitEnv({
+		gitLogPath,
+		gitDelayMs: options.gitDelayMs,
+		realGitBinary,
+		wrapperDir,
+	});
 
 	const runRefresh = async () => {
 		actualRefreshes++;
 		activeRefreshes++;
 		maxActiveRefreshes = Math.max(maxActiveRefreshes, activeRefreshes);
 		try {
-			const git = createUserSimpleGit(options.repoPath).env({
-				...process.env,
-				GIT_OPTIONAL_LOCKS: "0",
-				GIT_PROFILE_DELAY_SECONDS: (options.gitDelayMs / 1000).toFixed(3),
-				GIT_PROFILE_LOG: gitLogPath,
-				PATH: `${wrapperDir}:${process.env.PATH ?? ""}`,
-				REAL_GIT: realGitBinary,
-			});
-			const status = await getGitStatusSnapshot({
-				git,
+			const result = await workerPool.run(gitStatusSnapshotTask, {
 				worktreePath: options.repoPath,
+				gitEnv,
 			});
+			const status = result.snapshot;
 			lastSummary = {
 				againstBase: status.againstBase.length,
 				staged: status.staged.length,
@@ -380,12 +404,21 @@ async function runScenario(
 		}
 	};
 
+	// Exclude worker startup / source transpilation from the measured window.
+	await runRefresh();
+	actualRefreshes = 0;
+	activeRefreshes = 0;
+	maxActiveRefreshes = 0;
+	lastSummary = null;
+	await writeFile(gitLogPath, "");
+	const stopEventLoopMonitor = startEventLoopMonitor();
+	const startedAt = performance.now();
+
 	for (let event = 0; event < options.events; event++) {
-		await mutateChurnFile(options.repoPath, event);
 		const promise =
 			mode === "limited"
 				? limiter.run({
-						workspaceId: "large-repo",
+						workspaceId: `large-repo-${event % options.workspaces}`,
 						requestKey: JSON.stringify({ baseBranch: null }),
 						run: runRefresh,
 					})
@@ -408,14 +441,17 @@ async function runScenario(
 		);
 	}
 	const gitStats = await parseGitLog(gitLogPath);
+	const eventLoopDelayMs = stopEventLoopMonitor();
 
 	return {
 		flow: "compute",
 		mode,
+		executionMode,
 		requestedRefreshes: options.events,
 		actualRefreshes,
 		durationMs: Math.round(performance.now() - startedAt),
 		maxActiveRefreshes,
+		eventLoopDelayMs,
 		gitInvocations: gitStats.invocations,
 		maxActiveGitProcesses: gitStats.maxActive,
 		topGitCommands: gitStats.topCommands,
@@ -433,14 +469,25 @@ async function runEventBusScenario(
 	mode: Mode,
 	label: string,
 ): Promise<ScenarioResult> {
-	const workspaceId = "large-repo";
+	const workspaceIds = Array.from(
+		{ length: options.workspaces },
+		(_, index) => `large-repo-${index}`,
+	);
+	const workspaceIdSet = new Set(workspaceIds);
+	const workspacePaths = await prepareProfileWorktrees(options);
+	const worktreePathByWorkspaceId = new Map(
+		workspaceIds.map((id, index) => [
+			id,
+			workspacePaths[index] ?? options.repoPath,
+		]),
+	);
 	const gitLogPath = join(options.outDir, `${label}-git.log`);
 	const wrapperDir = join(options.outDir, `${label}-bin`);
 	const realGit = await commandOutput("git", ["--exec-path"]);
 	const realGitBinary = join(realGit.trim(), "git");
 	await installGitWrapper(wrapperDir, gitLogPath, realGitBinary);
 
-	const db = createSingleWorkspaceDb(workspaceId, options.repoPath);
+	const db = createWorkspaceDb(worktreePathByWorkspaceId);
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	const gitWatcher = new GitWatcher(db, filesystem);
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
@@ -450,60 +497,37 @@ async function runEventBusScenario(
 	let activeRefreshes = 0;
 	let maxActiveRefreshes = 0;
 	let lastSummary: ScenarioResult["statusSummary"] | null = null;
+	const workerPool = getHostWorkerPool();
+	const executionMode = workerPool.getMode();
+	const gitEnv = createProfileGitEnv({
+		gitLogPath,
+		gitDelayMs: options.gitDelayMs,
+		realGitBinary,
+		wrapperDir,
+	});
 
-	const createProfiledGit = (worktreePath: string) =>
-		createUserSimpleGit(worktreePath).env({
-			...process.env,
-			GIT_OPTIONAL_LOCKS: "0",
-			GIT_PROFILE_DELAY_SECONDS: (options.gitDelayMs / 1000).toFixed(3),
-			GIT_PROFILE_LOG: gitLogPath,
-			PATH: `${wrapperDir}:${process.env.PATH ?? ""}`,
-			REAL_GIT: realGitBinary,
-		});
-
-	const runRefresh = async () => {
+	const runRefresh = async (workspaceId: string) => {
 		actualRefreshes++;
 		activeRefreshes++;
 		maxActiveRefreshes = Math.max(maxActiveRefreshes, activeRefreshes);
 		try {
-			const status = await getGitStatusSnapshot({
-				git: createProfiledGit(options.repoPath),
-				worktreePath: options.repoPath,
+			const worktreePath =
+				worktreePathByWorkspaceId.get(workspaceId) ?? options.repoPath;
+			const result = await workerPool.run(gitStatusSnapshotTask, {
+				worktreePath,
+				gitEnv,
 			});
-			lastSummary = summarizeStatus(status);
-			return status;
+			lastSummary = summarizeStatus(result.snapshot);
+			return result.snapshot;
 		} finally {
 			activeRefreshes--;
 		}
 	};
 
-	const runLimitedRefresh = async () => {
-		let counted = false;
-		const caller = gitRouter.createCaller(
-			createRouterContext({
-				db,
-				eventBus,
-				filesystem,
-				git: async (worktreePath) => {
-					if (!counted) {
-						counted = true;
-						actualRefreshes++;
-						activeRefreshes++;
-						maxActiveRefreshes = Math.max(maxActiveRefreshes, activeRefreshes);
-					}
-					return createProfiledGit(worktreePath);
-				},
-			}),
-		);
-		try {
-			const status = await caller.getStatus({ workspaceId });
-			lastSummary = summarizeStatus(status);
-			return status;
-		} finally {
-			if (counted) activeRefreshes--;
-		}
-	};
-
+	// Command rejections the bus sends back (e.g. the per-client git:watch
+	// cap). Silently ignoring them would leave watchers unattached and the
+	// counts under-reported, so the run fails loudly instead.
+	const busErrors: string[] = [];
 	const socket: {
 		readyState: number;
 		send: (data: string) => void;
@@ -512,14 +536,26 @@ async function runEventBusScenario(
 		readyState: 1,
 		send: (data) => {
 			const message = JSON.parse(data) as ServerMessage;
+			if (message.type === "error") {
+				busErrors.push(message.message);
+				return;
+			}
 			if (
 				message.type !== "git:changed" ||
-				message.workspaceId !== workspaceId
+				!workspaceIdSet.has(message.workspaceId)
 			) {
 				return;
 			}
 			gitChangedEvents++;
-			const promise = mode === "limited" ? runLimitedRefresh() : runRefresh();
+			if (!options.refreshOnGitChange) return;
+			const promise =
+				mode === "limited"
+					? gitStatusRefreshLimiter.run({
+							workspaceId: message.workspaceId,
+							requestKey: JSON.stringify({ baseBranch: null }),
+							run: () => runRefresh(message.workspaceId),
+						})
+					: runRefresh(message.workspaceId);
 			if (promise) refreshPromises.push(promise);
 		},
 		close: () => {
@@ -527,11 +563,44 @@ async function runEventBusScenario(
 		},
 	};
 
-	const startedAt = performance.now();
 	gitStatusRefreshLimiter.clear();
 	eventBus.start();
-	eventBus.handleOpen(socket);
 	await (gitWatcher as unknown as { rescan: () => Promise<void> }).rescan();
+	await sleep(500);
+
+	// Warm the worker and Git implementation before measuring watcher churn.
+	await Promise.all(workspaceIds.map((id) => runRefresh(id)));
+	// Let any watcher events caused by warm-up Git processes flush before the
+	// mock renderer attaches, so they cannot race the measurement counters.
+	await sleep(GIT_DIR_WARMUP_SETTLE_MS);
+	actualRefreshes = 0;
+	activeRefreshes = 0;
+	maxActiveRefreshes = 0;
+	lastSummary = null;
+	await writeFile(gitLogPath, "");
+	eventBus.handleOpen(socket);
+	// GitWatcher only watches a workspace while someone holds interest
+	// (#6729) — the earlier direct rescan() call no longer attaches anything
+	// on its own, so this profile needs to register interest per workspace
+	// explicitly, same as a real client would.
+	for (const workspaceId of workspaceIds) {
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({ type: "git:watch", workspaceId }),
+		);
+	}
+	if (busErrors.length > 0) {
+		throw new Error(
+			`event bus rejected ${busErrors.length} git:watch command(s): ${busErrors[0]}`,
+		);
+	}
+	// Let every watcher's async attach chain (DB lookup + `git rev-parse`
+	// subprocess) settle before measuring — otherwise that overhead bleeds
+	// into the steady-state window this profile exists to isolate. Mirrors
+	// gitignored-churn-bench.ts's settle after its own git:watch send.
+	await sleep(GIT_DIR_WARMUP_SETTLE_MS);
+	const stopEventLoopMonitor = startEventLoopMonitor();
+	const startedAt = performance.now();
 
 	let closedEventSources = false;
 	const closeEventSources = async () => {
@@ -544,12 +613,15 @@ async function runEventBusScenario(
 	};
 
 	try {
-		for (let event = 0; event < options.events; event++) {
-			await mutateChurnFile(options.repoPath, event);
-			if (options.eventIntervalMs > 0) {
-				await sleep(options.eventIntervalMs);
-			}
-		}
+		// Keep the load generator off this process's event loop; otherwise a
+		// high-volume run measures its own mkdir/writeFile promises alongside
+		// GitWatcher and overstates watcher-induced delay.
+		await mutateChurnFilesInChild(
+			workspacePaths,
+			options.events,
+			options.eventIntervalMs,
+			options.files,
+		);
 
 		await sleep(Math.max(1_000, options.eventIntervalMs + 1_000));
 		await closeEventSources();
@@ -566,15 +638,18 @@ async function runEventBusScenario(
 		}
 
 		const gitStats = await parseGitLog(gitLogPath);
+		const eventLoopDelayMs = stopEventLoopMonitor();
 		return {
 			flow: "event-bus",
 			mode,
+			executionMode,
 			requestedRefreshes: gitChangedEvents,
 			worktreeMutations: options.events,
 			gitChangedEvents,
 			actualRefreshes,
 			durationMs: Math.round(performance.now() - startedAt),
 			maxActiveRefreshes,
+			eventLoopDelayMs,
 			gitInvocations: gitStats.invocations,
 			maxActiveGitProcesses: gitStats.maxActive,
 			topGitCommands: gitStats.topCommands,
@@ -672,7 +747,7 @@ async function startCdpCapture(
 }
 
 function summarizeStatus(
-	status: Awaited<ReturnType<typeof getGitStatusSnapshot>>,
+	status: Awaited<ReturnType<typeof gitStatusSnapshotTask.handler>>["snapshot"],
 ): ScenarioResult["statusSummary"] {
 	return {
 		againstBase: status.againstBase.length,
@@ -682,55 +757,164 @@ function summarizeStatus(
 	};
 }
 
-function createSingleWorkspaceDb(
-	workspaceId: string,
-	worktreePath: string,
+function createProfileGitEnv({
+	gitLogPath,
+	gitDelayMs,
+	realGitBinary,
+	wrapperDir,
+}: {
+	gitLogPath: string;
+	gitDelayMs: number;
+	realGitBinary: string;
+	wrapperDir: string;
+}): Record<string, string> {
+	const inheritedEnv = Object.fromEntries(
+		Object.entries(process.env).filter(
+			(entry): entry is [string, string] => typeof entry[1] === "string",
+		),
+	);
+	return {
+		...inheritedEnv,
+		GIT_OPTIONAL_LOCKS: "0",
+		GIT_PROFILE_DELAY_SECONDS: (gitDelayMs / 1000).toFixed(3),
+		GIT_PROFILE_LOG: gitLogPath,
+		PATH: `${wrapperDir}:${process.env.PATH ?? ""}`,
+		REAL_GIT: realGitBinary,
+	};
+}
+
+function startEventLoopMonitor(): () => ScenarioResult["eventLoopDelayMs"] {
+	const histogram = monitorEventLoopDelay({ resolution: 10 });
+	histogram.enable();
+	return () => {
+		histogram.disable();
+		const toMs = (nanoseconds: number) =>
+			Math.round((nanoseconds / 1_000_000) * 10) / 10;
+		return {
+			p50: toMs(histogram.percentile(50)),
+			p99: toMs(histogram.percentile(99)),
+			max: toMs(histogram.max),
+		};
+	};
+}
+
+async function prepareProfileWorktrees(options: Options): Promise<string[]> {
+	if (options.workspaces === 1) return [options.repoPath];
+
+	const worktreeRoot = `${options.repoPath}-worktrees`;
+	await mkdir(worktreeRoot, { recursive: true });
+	const paths: string[] = [];
+	for (let index = 0; index < options.workspaces; index++) {
+		const worktreePath = join(worktreeRoot, `workspace-${index}`);
+		if (!existsSync(join(worktreePath, ".git"))) {
+			await run(
+				"git",
+				["worktree", "add", "--detach", worktreePath, "HEAD"],
+				options.repoPath,
+			);
+		}
+		await resetDirtyState(worktreePath);
+		await makeDirtyState(worktreePath, options);
+		paths.push(worktreePath);
+	}
+	return paths;
+}
+
+/**
+ * Best-effort extraction of a bound workspace id from a drizzle predicate
+ * (e.g. `and(eq(workspaces.id, x), isNull(workspaces.archivedAt))`, as
+ * `GitWatcher.attachFromDb` builds), without depending on drizzle's exact SQL
+ * tree shape beyond `value`/`queryChunks` — the same two properties the
+ * `findFirst` mock below already relies on. Only follows those two keys, so
+ * it never walks into a column's `table` (which circularly references its
+ * own `columns`, including itself).
+ */
+function findBoundWorkspaceId(
+	node: unknown,
+	knownIds: ReadonlySet<string>,
+	seen = new Set<unknown>(),
+): string | undefined {
+	if (typeof node === "string") return knownIds.has(node) ? node : undefined;
+	if (node === null || typeof node !== "object") return undefined;
+	if (seen.has(node)) return undefined;
+	seen.add(node);
+	if (Array.isArray(node)) {
+		for (const item of node) {
+			const found = findBoundWorkspaceId(item, knownIds, seen);
+			if (found) return found;
+		}
+		return undefined;
+	}
+	const obj = node as { value?: unknown; queryChunks?: unknown };
+	if ("value" in obj) {
+		const found = findBoundWorkspaceId(obj.value, knownIds, seen);
+		if (found) return found;
+	}
+	if (Array.isArray(obj.queryChunks)) {
+		return findBoundWorkspaceId(obj.queryChunks, knownIds, seen);
+	}
+	return undefined;
+}
+
+function createWorkspaceDb(
+	worktreePathByWorkspaceId: Map<string, string>,
 ): HostDb {
-	const workspace = { id: workspaceId, worktreePath };
+	const workspaceRows = Array.from(
+		worktreePathByWorkspaceId,
+		([id, worktreePath]) => ({ id, worktreePath }),
+	);
+	const knownIds = new Set(worktreePathByWorkspaceId.keys());
 	return {
 		select: () => ({
 			from: () => ({
-				all: () => [workspace],
+				all: () => workspaceRows,
+				// GitWatcher.attachFromDb's select().from().where(...).get() path
+				// (added alongside the lazy-registration fix, #6729) — the mock
+				// above only ever supported the bulk .all() the old eager rescan
+				// used, so this lookup used to throw, get silently caught, and
+				// leave every workspace unattached (the profile then measured
+				// zero watcher activity, per code review on that PR).
+				where: (predicate: unknown) => {
+					const matchedId = findBoundWorkspaceId(predicate, knownIds);
+					// No bound id means rescan()'s `isNull(archivedAt)` scan: it must
+					// see every row, or the 30s sweep reads "nothing exists" and
+					// tears down every watcher mid-profile.
+					const matched = matchedId
+						? workspaceRows.filter((row) => row.id === matchedId)
+						: workspaceRows;
+					return {
+						all: () => matched,
+						get: () => matched[0],
+					};
+				},
 			}),
 		}),
 		query: {
 			workspaces: {
-				findFirst: () => ({
-					sync: () => workspace,
+				findFirst: (config: unknown) => ({
+					sync: () => {
+						const chunks = (
+							config as {
+								where?: { queryChunks?: Array<{ value?: unknown }> };
+							}
+						).where?.queryChunks;
+						const workspaceId = chunks?.find(
+							(chunk) =>
+								typeof chunk.value === "string" &&
+								worktreePathByWorkspaceId.has(chunk.value),
+						)?.value;
+						return typeof workspaceId === "string"
+							? {
+									id: workspaceId,
+									worktreePath:
+										worktreePathByWorkspaceId.get(workspaceId) ?? "",
+								}
+							: undefined;
+					},
 				}),
 			},
 		},
 	} as unknown as HostDb;
-}
-
-function createRouterContext({
-	db,
-	eventBus,
-	filesystem,
-	git,
-}: {
-	db: HostDb;
-	eventBus: EventBus;
-	filesystem: WorkspaceFilesystemManager;
-	git: HostServiceContext["git"];
-}): HostServiceContext {
-	return {
-		api: {} as HostServiceContext["api"],
-		db,
-		eventBus,
-		execGh: (() => {
-			throw new Error("execGh is not used by git-status profiling");
-		}) as HostServiceContext["execGh"],
-		git,
-		github: (async () => {
-			throw new Error("github is not used by git-status profiling");
-		}) as HostServiceContext["github"],
-		isAuthenticated: true,
-		organizationId: "profile-org",
-		runtime: {
-			filesystem,
-		} as HostServiceContext["runtime"],
-	};
 }
 
 async function connectCdp(webSocketUrl: string): Promise<{
@@ -881,10 +1065,42 @@ function summarizeGitCommand(args: string): string {
 	return command;
 }
 
-async function mutateChurnFile(repoPath: string, event: number): Promise<void> {
-	await writeTextFile(
-		join(repoPath, "churn", `event-${event % 20}.txt`),
-		`event ${event} at ${new Date().toISOString()}\n`,
+async function mutateChurnFilesInChild(
+	repoPaths: string[],
+	events: number,
+	eventIntervalMs: number,
+	files: number,
+): Promise<void> {
+	const script = [
+		'import { writeFile } from "node:fs/promises";',
+		'import { join } from "node:path";',
+		"const [repoPathsRaw, eventsRaw, intervalRaw, filesRaw] = process.argv.slice(1);",
+		"const repoPaths = JSON.parse(repoPathsRaw);",
+		"const events = Number(eventsRaw);",
+		"const interval = Number(intervalRaw);",
+		"const files = Number(filesRaw);",
+		"for (let event = 0; event < events; event++) {",
+		"  const id = event % files;",
+		"  const bucket = String(Math.floor(id / 1000)).padStart(4, '0');",
+		"  const file = String(id).padStart(6, '0');",
+		"  await Promise.all(repoPaths.map((repoPath, workspace) => writeFile(",
+		"    join(repoPath, 'src', bucket, 'file-' + file + '.ts'),",
+		"    'export const value' + id + ' = ' + id + ';\\nexport const churn' + workspace + ' = ' + event + ';\\n',",
+		"  )));",
+		"  if (interval > 0) await new Promise((resolve) => setTimeout(resolve, interval));",
+		"}",
+	].join("\n");
+	await run(
+		process.execPath,
+		[
+			"--eval",
+			script,
+			JSON.stringify(repoPaths),
+			String(events),
+			String(eventIntervalMs),
+			String(files),
+		],
+		process.cwd(),
 	);
 }
 

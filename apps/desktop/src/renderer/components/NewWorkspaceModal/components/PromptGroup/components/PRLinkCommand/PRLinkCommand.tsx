@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -62,6 +64,7 @@ export function PRLinkCommand({
 	repoName,
 	anchorRef,
 }: PRLinkCommandProps) {
+	const { t } = useLingui();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
@@ -167,7 +170,9 @@ export function PRLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pull requests..."
+						placeholder={t({
+							message: "Search pull requests...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -181,33 +186,46 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[280px]">
 						{pullRequests.length === 0 && (
 							<CommandEmpty>
-								{isLoading
-									? debouncedTrimmed
-										? "Searching..."
-										: "Loading pull requests..."
-									: isCrossRepositoryUrl
-										? `PR URL must match ${selectedRepositoryLabel}.`
-										: debouncedTrimmed
-											? "No pull requests found."
-											: showClosed
-												? "No pull requests found."
-												: "No open pull requests."}
+								{isLoading ? (
+									debouncedTrimmed ? (
+										<Trans>Searching...</Trans>
+									) : (
+										<Trans>Loading pull requests...</Trans>
+									)
+								) : isCrossRepositoryUrl ? (
+									<Trans>PR URL must match {selectedRepositoryLabel}.</Trans>
+								) : debouncedTrimmed ? (
+									<Trans>No pull requests found.</Trans>
+								) : showClosed ? (
+									<Trans>No pull requests found.</Trans>
+								) : (
+									<Trans>No open pull requests.</Trans>
+								)}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										? t({
+												message: plural(pullRequests.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent pull requests"
-											: "Open pull requests"
+											? t({
+													message: "Recent pull requests",
+												})
+											: t({
+													message: "Open pull requests",
+												})
 								}
 							>
 								{pullRequests.map((pr) => (
@@ -228,7 +246,7 @@ export function PRLinkCommand({
 											{pr.title}
 										</span>
 										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											Link ↵
+											<Trans>Link ↵</Trans>
 										</span>
 									</CommandItem>
 								))}

@@ -1,3 +1,6 @@
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -19,6 +22,7 @@ import { useImportAllWorktrees } from "renderer/react-query/workspaces/useImport
 const MAX_VISIBLE_BRANCHES = 5;
 
 export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
+	const { t } = useLingui();
 	const { data: externalWorktrees = [], isLoading } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
 	const importableWorktrees = externalWorktrees.filter(
@@ -35,11 +39,21 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 		try {
 			const result = await importAllWorktrees.mutateAsync({ projectId });
 			toast.success(
-				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
+				t({
+					message: plural(result.imported, {
+						one: "Imported # workspace",
+						other: "Imported # workspaces",
+					}),
+				}),
 			);
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to import worktrees",
+				errorMessage(
+					err,
+					t({
+						message: "Failed to import worktrees",
+					}),
+				),
 			);
 		}
 	};
@@ -58,8 +72,11 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 			<div className="flex items-start justify-between gap-4">
 				<div className="space-y-2 min-w-0">
 					<p className="text-sm font-medium text-foreground">
-						{importableWorktrees.length} existing worktree
-						{importableWorktrees.length === 1 ? "" : "s"} found
+						<Plural
+							value={importableWorktrees.length}
+							one="# existing worktree found"
+							other="# existing worktrees found"
+						/>
 					</p>
 					<div className="flex flex-wrap gap-1.5">
 						{visibleBranches.map((wt) => (
@@ -73,7 +90,7 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 						))}
 						{remainingCount > 0 && (
 							<span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-								+{remainingCount} more
+								<Trans>+{remainingCount} more</Trans>
 							</span>
 						)}
 					</div>
@@ -87,23 +104,32 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 							className="shrink-0"
 							disabled={importAllWorktrees.isPending}
 						>
-							{importAllWorktrees.isPending ? "Importing..." : "Import all"}
+							{importAllWorktrees.isPending ? (
+								<Trans>Importing...</Trans>
+							) : (
+								<Trans>Import all</Trans>
+							)}
 						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Import all worktrees</AlertDialogTitle>
+							<AlertDialogTitle>
+								<Trans>Import all worktrees</Trans>
+							</AlertDialogTitle>
 							<AlertDialogDescription>
-								This will import {importableWorktrees.length} existing worktree
-								{importableWorktrees.length === 1 ? "" : "s"} into Superset as
-								workspaces. Each worktree on disk will be tracked and appear in
-								your sidebar. No files will be modified.
+								<Plural
+									value={importableWorktrees.length}
+									one="This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
+									other="This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
+								/>
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogCancel>
+								<Trans>Cancel</Trans>
+							</AlertDialogCancel>
 							<AlertDialogAction onClick={handleImportAll}>
-								Import all
+								<Trans>Import all</Trans>
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

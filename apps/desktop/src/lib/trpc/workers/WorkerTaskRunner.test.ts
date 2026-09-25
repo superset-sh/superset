@@ -5,6 +5,10 @@ type WorkerBehavior =
 	| "boot-fail"
 	| "fail-on-task"
 	| "mismatched-only"
+	// Never answers its first task; answers a cancel for it, then works normally.
+	| "hang-once"
+	// Never answers anything, cancels included.
+	| "hang-deaf"
 	| "success";
 
 let behaviors: WorkerBehavior[] = [];
@@ -13,8 +17,10 @@ const workers: MockWorker[] = [];
 
 class MockWorker extends EventEmitter {
 	public readonly id: number;
+	public readonly cancelledTaskIds: string[] = [];
+	public terminated = false;
 	private readonly behavior: WorkerBehavior;
-	private terminated = false;
+	private hungTaskId: string | null = null;
 
 	constructor(_scriptPath: string) {
 		super();
@@ -40,6 +46,33 @@ class MockWorker extends EventEmitter {
 			typeof message.taskId === "string"
 				? message.taskId
 				: "unknown";
+		const kind =
+			typeof message === "object" && message !== null && "kind" in message
+				? message.kind
+				: undefined;
+
+		if (kind === "cancel") {
+			this.cancelledTaskIds.push(taskId);
+			if (this.behavior === "hang-once" && this.hungTaskId === taskId) {
+				queueMicrotask(() => {
+					if (this.terminated) return;
+					this.emit("message", {
+						kind: "result",
+						taskId,
+						ok: false,
+						error: { name: "GitPluginError", message: "Abort signal received" },
+					});
+				});
+			}
+			return;
+		}
+
+		if (this.behavior === "hang-deaf") return;
+
+		if (this.behavior === "hang-once" && this.hungTaskId === null) {
+			this.hungTaskId = taskId;
+			return;
+		}
 
 		if (this.behavior === "fail-on-task") {
 			queueMicrotask(() => {
@@ -182,5 +215,49 @@ describe("WorkerTaskRunner failure handling", () => {
 
 		await expect(firstSettled).resolves.toBe("rejected");
 		await expect(secondSettled).resolves.toBe("rejected");
+	});
+
+	test("a timed-out task is cancelled in place and the worker is reused", async () => {
+		behaviors = ["hang-once"];
+		const runner = new WorkerTaskRunner({
+			workerScriptPath: "/mock/worker.js",
+			concurrency: 1,
+			cancelGraceMs: 1_000,
+		});
+
+		const first = runner.runTask("status", { id: "first" }, { timeoutMs: 20 });
+		await expect(first).rejects.toThrow(/timed out after 20ms$/);
+
+		const worker = workers[0];
+		expect(worker?.cancelledTaskIds.length).toBe(1);
+		expect(worker?.terminated).toBe(false);
+
+		const second = runner.runTask<{ workerId: number }>("status", {
+			id: "second",
+		});
+		await expect(second).resolves.toEqual({ workerId: 1 });
+		expect(workers.length).toBe(1);
+		await runner.dispose();
+	});
+
+	test("a worker that never reports the cancelled task is terminated after the grace period", async () => {
+		behaviors = ["hang-deaf", "success"];
+		const runner = new WorkerTaskRunner({
+			workerScriptPath: "/mock/worker.js",
+			concurrency: 1,
+			cancelGraceMs: 20,
+		});
+
+		const first = runner.runTask("status", { id: "first" }, { timeoutMs: 20 });
+		await expect(first).rejects.toThrow(/timed out after 20ms$/);
+		expect(workers[0]?.cancelledTaskIds.length).toBe(1);
+		expect(workers[0]?.terminated).toBe(false);
+
+		const second = runner.runTask<{ workerId: number }>("status", {
+			id: "second",
+		});
+		await expect(second).resolves.toEqual({ workerId: 2 });
+		expect(workers[0]?.terminated).toBe(true);
+		await runner.dispose();
 	});
 });

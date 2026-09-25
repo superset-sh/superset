@@ -1,22 +1,16 @@
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { auth } from "@superset/auth/server";
-import { createMcpServer } from "@superset/mcp";
-import { verifyAccessToken } from "better-auth/oauth2";
 import { env } from "@/env";
-import { handleMcpRequest, type McpRequestDeps } from "./auth-flow";
 
-const deps: McpRequestDeps = {
-	apiUrl: env.NEXT_PUBLIC_API_URL,
-	authApi: auth.api,
-	createServer: createMcpServer,
-	createTransport: () => new WebStandardStreamableHTTPServerTransport(),
-	verifyAccessToken,
-};
-
-async function handleRequest(req: Request): Promise<Response> {
-	return handleMcpRequest(req, deps);
+function gone(): Response {
+	return Response.json(
+		{
+			error: {
+				code: "GONE",
+				message: "The v1 MCP server has been removed.",
+				hint: `Connect to ${env.NEXT_PUBLIC_API_URL}/mcp instead.`,
+			},
+		},
+		{ status: 410 },
+	);
 }
 
-export const maxDuration = 800;
-
-export { handleRequest as GET, handleRequest as POST, handleRequest as DELETE };
+export { gone as GET, gone as POST, gone as DELETE };

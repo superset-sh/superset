@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	PromptInputProvider,
 	usePromptInputController,
@@ -13,10 +15,11 @@ import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
+import { useOpenEmptyProjectModal } from "renderer/stores/add-repository-modal";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
+	useOpenNewWorkspaceModal,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { NewWorkspaceModalContent } from "./components/NewWorkspaceModalContent";
@@ -44,9 +47,11 @@ function PromptInputResetSync() {
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
+	const { t } = useLingui();
 	const closeModal = useCloseNewWorkspaceModal();
 	const { openNew } = useOpenProject();
-	const openNewProject = useOpenNewProjectModal();
+	const openEmptyProject = useOpenEmptyProjectModal();
+	const openNewWorkspace = useOpenNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
 
 	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
@@ -57,16 +62,19 @@ export function NewWorkspaceModal() {
 		try {
 			await openNew();
 		} catch (error) {
-			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
-			});
+			toast.error(
+				t({
+					message: "Failed to open project",
+				}),
+				{ description: errorMessage(error, "An unknown error occurred") },
+			);
 		}
 	};
 
-	const handleNewProject = () => {
+	const handleNewProject = async () => {
 		closeModal();
-		openNewProject();
+		const result = await openEmptyProject();
+		if (result) openNewWorkspace(result.projectId);
 	};
 
 	return (
@@ -79,8 +87,12 @@ export function NewWorkspaceModal() {
 					onOpenChange={(open) => !open && closeModal()}
 				>
 					<DialogHeader className="sr-only">
-						<DialogTitle>New Workspace</DialogTitle>
-						<DialogDescription>Create a new workspace</DialogDescription>
+						<DialogTitle>
+							<Trans>New Workspace</Trans>
+						</DialogTitle>
+						<DialogDescription>
+							<Trans>Create a new workspace</Trans>
+						</DialogDescription>
 					</DialogHeader>
 					<DialogContent
 						showCloseButton={false}

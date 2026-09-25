@@ -63,6 +63,10 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude --dangerously-skip-permissions",
+		resumeCommand: "claude --dangerously-skip-permissions --resume",
+		forkCommand:
+			"claude --dangerously-skip-permissions --resume {sessionId} --fork-session",
+		nonInteractiveCommand: "claude -p",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -71,6 +75,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Amp's coding agent for terminal-first coding, subagents, and task work.",
 		command: "amp",
+		resumeCommand: "amp threads continue",
+		nonInteractiveCommand: "amp -x",
 		promptTransport: "stdin",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -79,8 +85,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Codex",
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command: "codex --dangerously-bypass-approvals-and-sandbox",
-		promptCommand: "codex --dangerously-bypass-approvals-and-sandbox --",
+		command:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
+		promptCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
+		resumeCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust resume",
+		forkCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust fork {sessionId}",
+		nonInteractiveCommand: "codex exec --skip-git-repo-check",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -90,6 +103,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Google's open-source terminal agent for coding, problem-solving, and task work.",
 		command: "gemini --approval-mode=auto_edit",
 		promptCommand: "gemini --approval-mode=auto_edit",
+		resumeCommand: "gemini --approval-mode=auto_edit --resume",
+		nonInteractiveCommand: "gemini --skip-trust -p",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -100,6 +115,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "mastracode",
 		promptCommand: "mastracode --prompt",
 		promptCommandSuffix: "; mastracode",
+		resumeCommand: "mastracode --thread",
+		nonInteractiveCommand: "mastracode --mode plan --prompt",
 	}),
 	createBuiltinTerminalAgent({
 		id: "opencode",
@@ -107,6 +124,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Open-source coding agent for the terminal, IDE, and desktop.",
 		command: "opencode",
 		promptCommand: "opencode --prompt",
+		resumeCommand: "opencode --session",
+		forkCommand: "opencode --session {sessionId} --fork",
+		nonInteractiveCommand: "opencode run --agent plan",
+	}),
+	createBuiltinTerminalAgent({
+		id: "omp",
+		label: "Oh My Pi",
+		description:
+			"Oh My Pi's coding agent for terminal-first coding, session-aware workflows, and task work.",
+		command: "omp",
+		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
 		id: "pi",
@@ -114,6 +142,9 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Minimal terminal coding harness for flexible coding workflows.",
 		command: "pi",
+		resumeCommand: "pi --session",
+		forkCommand: "pi --fork {sessionId}",
+		nonInteractiveCommand: "pi --no-tools -p",
 	}),
 	createBuiltinTerminalAgent({
 		id: "copilot",
@@ -122,6 +153,40 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot --allow-tool=write",
 		promptCommand: "copilot --allow-tool=write -i",
+		resumeCommand: "copilot --allow-tool=write --resume",
+		nonInteractiveCommand: "copilot -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "vibe",
+		label: "Mistral Vibe",
+		description:
+			"Mistral's coding agent for reading, editing, and running code from the terminal.",
+		command: "vibe --trust --auto-approve",
+		resumeCommand: "vibe --trust --auto-approve --resume",
+		nonInteractiveCommand: "vibe --trust --agent plan -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "kimi",
+		label: "Kimi Code",
+		description:
+			"Moonshot AI's coding agent for reading, editing, and running code from the terminal.",
+		command: "kimi",
+		promptCommand: "kimi -p",
+		promptCommandSuffix: "; kimi --auto --continue",
+		resumeCommand: "kimi --session",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "grok",
+		label: "Grok",
+		description:
+			"xAI's coding agent for reading, editing, and running code from the terminal.",
+		command: "grok --always-approve",
+		resumeCommand: "grok --always-approve --resume",
+		forkCommand: "grok --always-approve --resume {sessionId} --fork-session",
+		nonInteractiveCommand: "grok --permission-mode plan -p",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -130,12 +195,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Cursor's coding agent for editing, running, and debugging code in parallel.",
 		command: "cursor-agent",
+		resumeCommand: "cursor-agent --resume",
+		nonInteractiveCommand: "cursor-agent --trust --mode ask -p",
 	}),
 	createBuiltinTerminalAgent({
 		id: "droid",
 		label: "Droid",
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
+		resumeCommand: "droid --resume",
+		forkCommand: "droid --fork {sessionId}",
+		nonInteractiveCommand: "droid exec",
 	}),
 	createBuiltinTerminalAgent({
 		id: "polygraph",
@@ -144,6 +214,70 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"The meta-harness that gives agents cross-repo visibility and memory that survives every session.",
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
+	}),
+	createBuiltinTerminalAgent({
+		id: "kiro",
+		label: "Kiro",
+		description:
+			"AWS's spec-driven coding agent for agentic workflows in the terminal.",
+		command: "kiro-cli chat --trust-all-tools",
+		resumeCommand: "kiro-cli chat --trust-all-tools --resume-id",
+		nonInteractiveCommand: "kiro-cli chat --no-interactive",
+	}),
+	createBuiltinTerminalAgent({
+		// Google's Antigravity CLI. The id matches the binary name (`agy`), the
+		// same way every other builtin id is the command users type.
+		id: "agy",
+		label: "Antigravity",
+		description:
+			"Google's Antigravity CLI for reasoning, editing, and running code from the terminal.",
+		command: "agy --mode accept-edits",
+		promptCommand: "agy --mode accept-edits -i",
+		resumeCommand: "agy --mode accept-edits --conversation",
+		nonInteractiveCommand: "agy -p",
+	}),
+	createBuiltinTerminalAgent({
+		id: "fx",
+		label: "fx",
+		description:
+			"Vercel's coding agent for reading, editing, and running code from the terminal.",
+		command: "fx",
+		promptCommand: "fx ask --auto",
+		promptCommandSuffix: "; fx resume last",
+		resumeCommand: "fx resume",
+		nonInteractiveCommand: "fx ask --auto",
+	}),
+	createBuiltinTerminalAgent({
+		id: "hermes",
+		label: "Hermes",
+		description:
+			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
+		command: "hermes chat --yolo",
+		promptCommand: "hermes chat --yolo -q",
+		promptCommandSuffix: "; hermes chat --yolo -c",
+		resumeCommand: "hermes chat --yolo -r",
+		nonInteractiveCommand: "hermes chat -q",
+	}),
+	createBuiltinTerminalAgent({
+		id: "muse",
+		label: "Muse Code",
+		description:
+			"Meta's terminal coding agent with persistent subagents and worktree fan-out.",
+		command: "muse",
+		resumeCommand: "muse resume",
+		nonInteractiveCommand: "muse exec",
+	}),
+	createBuiltinTerminalAgent({
+		id: "devin",
+		label: "Devin",
+		description:
+			"Cognition's Devin agent in the terminal, with handoff to Devin Cloud.",
+		command: "devin --permission-mode dangerous",
+		promptCommand: "devin --permission-mode dangerous --",
+		resumeCommand: "devin --permission-mode dangerous --resume",
+		// Print mode cannot show the workspace trust prompt and fails in an
+		// untrusted directory without this.
+		nonInteractiveCommand: "devin --respect-workspace-trust false -p",
 	}),
 ] as const;
 
@@ -168,6 +302,17 @@ export const BUILTIN_TERMINAL_AGENT_COMMANDS = createAgentRecord(
 	BUILTIN_TERMINAL_AGENTS,
 	(agent) => [agent.command],
 );
+
+/**
+ * Headless one-shot command per builtin agent, or undefined for agents
+ * without a non-interactive mode (polygraph orchestrates sessions and has
+ * no one-shot prompt form).
+ */
+export const BUILTIN_TERMINAL_AGENT_NON_INTERACTIVE_COMMANDS =
+	createAgentRecord(
+		BUILTIN_TERMINAL_AGENTS,
+		(agent) => agent.nonInteractiveCommand,
+	);
 
 export const BUILTIN_TERMINAL_AGENT_PROMPT_COMMANDS = createAgentRecord(
 	BUILTIN_TERMINAL_AGENTS,

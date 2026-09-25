@@ -31,6 +31,26 @@ const relayHttpOrigin = process.env.RELAY_URL
 	: isProduction
 		? "https://relay.superset.sh"
 		: null;
+// Failover relay origin. Env-driven so it flips with the domain at cutover;
+// prod default stays superset.sh until RELAY_BACKUP_URL is set (e.g. boid.so).
+const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
+	? new URL(process.env.RELAY_BACKUP_URL).origin
+	: isProduction
+		? "https://relay-backup.superset.sh"
+		: null;
+const relayBackupWsOrigin = relayBackupHttpOrigin
+	? relayBackupHttpOrigin.replace(/^http/, "ws")
+	: null;
+// Published pages are framed from their own origin, one subdomain per page.
+// An unset GitHub Actions var arrives as an empty string, which `??`
+// does not catch — and `new URL("")` throws before Next even loads.
+const usercontentUrl = new URL(
+	process.env.USERCONTENT_URL ||
+		(isProduction
+			? "https://frame.supersetusercontent.com"
+			: "http://frame.usercontent.localhost:8787"),
+);
+const usercontentFrameSource = `${usercontentUrl.protocol}//*.${usercontentUrl.host}`;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -40,13 +60,14 @@ const contentSecurityPolicy = [
 		apiOrigin,
 		relayWsOrigin,
 		relayHttpOrigin,
-		"wss://relay-backup.superset.sh",
-		"https://relay-backup.superset.sh",
+		relayBackupWsOrigin,
+		relayBackupHttpOrigin,
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",
 		"https://us-assets.i.posthog.com",
 		"https://us.posthog.com",
+		"https://cloudflareinsights.com",
 		!isProduction && "ws:",
 		!isProduction && "wss:",
 	]
@@ -55,9 +76,16 @@ const contentSecurityPolicy = [
 	"font-src 'self' data: https://fonts.gstatic.com",
 	"form-action 'self'",
 	"frame-ancestors 'none'",
+	`frame-src ${usercontentFrameSource}`,
 	"img-src 'self' data: blob: https:",
 	"object-src 'none'",
-	["script-src 'self' 'unsafe-inline'", !isProduction && "'unsafe-eval'"]
+	[
+		// wasm-unsafe-eval: WebAssembly.instantiate only — NOT eval()/Function.
+		// Without it Chrome blocks wasm under script-src (WEB-2K, /oauth/consent).
+		"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+		"https://static.cloudflareinsights.com",
+		!isProduction && "'unsafe-eval'",
+	]
 		.filter(Boolean)
 		.join(" "),
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -99,13 +127,10 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
+	// Compiles @lingui/react/macro at build time. Version must stay in
+	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
+	experimental: {
+		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 
 	async rewrites() {
@@ -140,6 +165,7 @@ const config: NextConfig = {
 export default withSentryConfig(config, {
 	org: "superset-sh",
 	project: "web",
+	applicationKey: "superset-web",
 	silent: !process.env.CI,
 	authToken: process.env.SENTRY_AUTH_TOKEN,
 	widenClientFileUpload: true,

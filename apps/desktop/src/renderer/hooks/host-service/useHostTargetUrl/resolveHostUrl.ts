@@ -19,7 +19,10 @@ export function resolveHostUrl(args: {
 	activeHostUrl: string | null;
 	organizationId: string;
 	relayUrl: string;
+	/** Set for cloud workspaces: reached directly, without relay. */
+	sandboxUrl?: string | null;
 }): string | null {
+	if (args.sandboxUrl) return args.sandboxUrl;
 	if (args.hostId === args.machineId) return args.activeHostUrl;
 	const routingKey = buildHostRoutingKey(args.organizationId, args.hostId);
 	return `${args.relayUrl}/hosts/${routingKey}`;

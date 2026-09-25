@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import * as Clipboard from "expo-clipboard";
 import {
 	CheckIcon,
@@ -133,7 +136,15 @@ export function ShowCode({
 				<CodeBlockActions>
 					{isOverflowing ? (
 						<Button
-							accessibilityLabel={isExpanded ? "Collapse" : "Expand"}
+							accessibilityLabel={
+								isExpanded
+									? i18n._(
+											msg({
+												message: "Collapse",
+											}),
+										)
+									: i18n._(msg({ message: "Expand" }))
+							}
 							className="h-6 w-6"
 							onPress={() => setIsExpanded((prev) => !prev)}
 							size="icon"
@@ -147,7 +158,11 @@ export function ShowCode({
 					) : null}
 					{onOpen && filename ? (
 						<Button
-							accessibilityLabel="Open"
+							accessibilityLabel={i18n._(
+								msg({
+									message: "Open",
+								}),
+							)}
 							className="h-6 w-6"
 							onPress={() => onOpen()}
 							size="icon"
@@ -157,7 +172,11 @@ export function ShowCode({
 						</Button>
 					) : null}
 					<Button
-						accessibilityLabel={isCopied ? "Copied" : "Copy"}
+						accessibilityLabel={
+							isCopied
+								? i18n._(msg({ message: "Copied" }))
+								: i18n._(msg({ message: "Copy" }))
+						}
 						className="h-6 w-6"
 						onPress={handleCopy}
 						size="icon"
@@ -179,7 +198,7 @@ export function ShowCode({
 					onPress={() => setIsExpanded((prev) => !prev)}
 				>
 					<Text className="text-muted-foreground text-xs underline">
-						{isExpanded ? "Show less" : "Show more"}
+						{isExpanded ? <Trans>Show less</Trans> : <Trans>Show more</Trans>}
 					</Text>
 				</Pressable>
 			) : null}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
@@ -21,7 +22,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 			<ScrollArea className="h-full">
 				<div className="p-4 space-y-6">
 					<h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Properties
+						<Trans>Properties</Trans>
 					</h3>
 
 					<div className="space-y-3">
@@ -32,7 +33,9 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 
 					{/* Labels */}
 					<div className="flex flex-col gap-2">
-						<span className="text-xs text-muted-foreground">Labels</span>
+						<span className="text-xs text-muted-foreground">
+							<Trans>Labels</Trans>
+						</span>
 						{labels.length > 0 ? (
 							<div className="flex flex-wrap gap-1">
 								{labels.map((label) => (
@@ -42,7 +45,9 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 								))}
 							</div>
 						) : (
-							<span className="text-sm text-muted-foreground">No labels</span>
+							<span className="text-sm text-muted-foreground">
+								<Trans>No labels</Trans>
+							</span>
 						)}
 					</div>
 

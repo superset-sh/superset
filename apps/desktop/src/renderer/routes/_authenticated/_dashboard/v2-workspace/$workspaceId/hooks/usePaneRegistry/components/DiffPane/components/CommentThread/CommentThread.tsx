@@ -1,3 +1,6 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
+import { errorMessage } from "@superset/i18n/errors";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -17,7 +20,9 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
+import { msg } from "@lingui/core/macro";
 
 interface Comment {
 	id: string;
@@ -34,6 +39,10 @@ interface CommentThreadProps {
 	isOutdated?: boolean;
 	url?: string;
 	comments: Comment[];
+	/** REST databaseId of a comment already in the thread — replies thread
+	 *  onto it regardless of which comment they target. Undefined only if
+	 *  GitHub ever returns a thread with zero comments (shouldn't happen). */
+	replyToCommentId?: number;
 	/** Force-expand the bubble whenever this changes — lets jump-to-line
 	 *  reveal a collapsed (resolved/outdated) thread. */
 	focusTick?: number;
@@ -46,8 +55,10 @@ export function CommentThread({
 	isOutdated,
 	url,
 	comments,
+	replyToCommentId,
 	focusTick,
 }: CommentThreadProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
 	useEffect(() => {
@@ -66,7 +77,11 @@ export function CommentThread({
 			.then(() => setIsCopied(true))
 			.catch((err) => {
 				console.error("[CommentThread/copy] Failed to copy:", err);
-				toast.error("Couldn't copy comment");
+				toast.error(
+					t({
+						message: "Couldn't copy comment",
+					}),
+				);
 			});
 	};
 	// Auto-collapse on resolve/outdated (matches GitHub).
@@ -85,12 +100,37 @@ export function CommentThread({
 				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
 			},
 			onError: (error) => {
-				toast.error("Couldn't update thread", {
-					description: error.message,
-				});
+				toast.error(
+					t({
+						message: "Couldn't update thread",
+					}),
+					{
+						description: errorMessage(error),
+					},
+				);
 			},
 		},
 	);
+	const [replyText, setReplyText] = useState("");
+	const replyToThread = workspaceTrpc.git.replyToReviewThread.useMutation({
+		onSuccess: () => {
+			void utils.git.getPullRequestThreads.invalidate({ workspaceId });
+		},
+		onError: (error, variables) => {
+			// The draft is cleared as soon as it's sent; hand it back so a
+			// rejected reply isn't retyped — unless a new one is already
+			// underway.
+			setReplyText((current) => (current.trim() ? current : variables.body));
+			toast.error(
+				t({
+					message: "Couldn't post reply",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
+		},
+	});
 
 	return (
 		<Collapsible
@@ -104,7 +144,15 @@ export function CommentThread({
 			<div className="flex items-center gap-2 px-2.5 py-1.5">
 				<CollapsibleTrigger
 					className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none"
-					aria-label={open ? "Collapse thread" : "Expand thread"}
+					aria-label={
+						open
+							? t({
+									message: "Collapse thread",
+								})
+							: t({
+									message: "Expand thread",
+								})
+					}
 				>
 					<LuChevronRight
 						className={cn(
@@ -113,18 +161,20 @@ export function CommentThread({
 						)}
 					/>
 					<span className="shrink-0">
-						{comments.length === 1
-							? "1 comment"
-							: `${comments.length} comments`}
+						<Plural
+							value={comments.length}
+							one="# comment"
+							other="# comments"
+						/>
 					</span>
 					{isOutdated && (
 						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
-							Outdated
+							<Trans>Outdated</Trans>
 						</span>
 					)}
 					{isResolved && (
 						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
-							Resolved
+							<Trans>Resolved</Trans>
 						</span>
 					)}
 				</CollapsibleTrigger>
@@ -134,10 +184,14 @@ export function CommentThread({
 					className="shrink-0 text-muted-foreground hover:text-foreground"
 					aria-label={
 						isCopied
-							? "Copied"
+							? t({ message: "Copied" })
 							: comments.length === 1
-								? "Copy comment"
-								: "Copy comments"
+								? t({
+										message: "Copy comment",
+									})
+								: t({
+										message: "Copy comments",
+									})
 					}
 				>
 					{isCopied ? (
@@ -153,7 +207,9 @@ export function CommentThread({
 						rel="noreferrer"
 						onClick={(e) => e.stopPropagation()}
 						className="shrink-0 text-muted-foreground hover:text-foreground"
-						aria-label="Open on GitHub"
+						aria-label={t({
+							message: "Open on GitHub",
+						})}
 					>
 						<LuExternalLink className="size-3" />
 					</a>
@@ -165,26 +221,45 @@ export function CommentThread({
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex items-center justify-end border-t border-border bg-muted/30 px-2.5 py-1.5">
-					<Button
-						type="button"
-						size="xs"
-						variant="outline"
-						disabled={setResolution.isPending}
-						onClick={() =>
-							setResolution.mutate({
-								workspaceId,
-								threadId,
-								resolved: !isResolved,
-							})
-						}
-					>
-						{setResolution.isPending && (
-							<LuLoaderCircle className="size-3 animate-spin" />
-						)}
-						{isResolved ? "Unresolve" : "Resolve conversation"}
-					</Button>
-				</div>
+				<ReviewThreadReplyComposer
+					value={replyText}
+					onChange={setReplyText}
+					onReply={(body) => {
+						if (replyToCommentId == null) return false;
+						replyToThread.mutate({
+							workspaceId,
+							commentId: replyToCommentId,
+							body,
+						});
+						return true;
+					}}
+					isPending={replyToThread.isPending}
+					className="border-border bg-muted/30 px-2.5"
+					actions={
+						<Button
+							type="button"
+							size="xs"
+							variant="outline"
+							disabled={setResolution.isPending}
+							onClick={() =>
+								setResolution.mutate({
+									workspaceId,
+									threadId,
+									resolved: !isResolved,
+								})
+							}
+						>
+							{setResolution.isPending && (
+								<LuLoaderCircle className="size-3 animate-spin" />
+							)}
+							{isResolved ? (
+								<Trans>Unresolve</Trans>
+							) : (
+								<Trans>Resolve conversation</Trans>
+							)}
+						</Button>
+					}
+				/>
 			</CollapsibleContent>
 		</Collapsible>
 	);
@@ -228,15 +303,50 @@ function formatRelative(ms: number): string {
 	// Clamp >=0 so future-dated timestamps from clock skew aren't negative.
 	const delta = Math.max(0, Date.now() - ms);
 	const seconds = Math.floor(delta / 1000);
-	if (seconds < 60) return `${seconds}s ago`;
+	if (seconds < 60)
+		return i18n._({
+			...msg({
+				message: "{seconds}s ago",
+			}),
+			values: { seconds },
+		});
 	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60) return `${minutes}m ago`;
+	if (minutes < 60)
+		return i18n._({
+			...msg({
+				message: "{minutes}m ago",
+			}),
+			values: { minutes },
+		});
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
+	if (hours < 24)
+		return i18n._({
+			...msg({
+				message: "{hours}h ago",
+			}),
+			values: { hours },
+		});
 	const days = Math.floor(hours / 24);
-	if (days < 30) return `${days}d ago`;
+	if (days < 30)
+		return i18n._({
+			...msg({
+				message: "{days}d ago",
+			}),
+			values: { days },
+		});
 	const months = Math.floor(days / 30);
-	if (months < 12) return `${months}mo ago`;
+	if (months < 12)
+		return i18n._({
+			...msg({
+				message: "{months}mo ago",
+			}),
+			values: { months },
+		});
 	const years = Math.floor(days / 365);
-	return `${years}y ago`;
+	return i18n._({
+		...msg({
+			message: "{years}y ago",
+		}),
+		values: { years },
+	});
 }

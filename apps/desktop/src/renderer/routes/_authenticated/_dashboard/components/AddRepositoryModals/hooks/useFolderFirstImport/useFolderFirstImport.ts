@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -23,32 +24,38 @@ export function useFolderFirstImport(options?: {
 	onError?: (message: string) => void;
 	onMultipleProjects?: (input: { candidates: MatchingProject[] }) => void;
 }): UseFolderFirstImportResult {
+	const { t } = useLingui();
 	const hostService = useLocalHostService();
-	const { activeHostUrl } = hostService;
+	const { waitForHostReady } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const requestGitInit = useRequestGitInitConfirm();
 	const { onError, onMultipleProjects } = options ?? {};
 
 	const start = useCallback(async (): Promise<ProjectSetupResult | null> => {
-		if (!activeHostUrl) {
-			onError?.(
-				getHostServiceUnavailableMessage(hostService, {
-					action: "import a folder",
-				}),
-			);
-			return null;
-		}
-
+		// Pick the folder first — the native dialog is a local Electron call and
+		// must not wait on the host service. Only the registration below needs it.
 		let repoPath: string;
 		try {
 			const picked = await selectDirectory.mutateAsync({
-				title: "Import existing folder",
+				title: t({
+					message: "Import existing folder",
+				}),
 			});
 			if (picked.canceled || !picked.path) return null;
 			repoPath = picked.path;
 		} catch (err) {
 			onError?.(err instanceof Error ? err.message : String(err));
+			return null;
+		}
+
+		const activeHostUrl = await waitForHostReady();
+		if (!activeHostUrl) {
+			onError?.(
+				getHostServiceUnavailableMessage(hostService, {
+					action: "importFolder",
+				}),
+			);
 			return null;
 		}
 
@@ -73,7 +80,11 @@ export function useFolderFirstImport(options?: {
 			candidates = response.candidates;
 			if (candidates.length === 0 && response.cloudErrors.length > 0) {
 				const first = response.cloudErrors[0];
-				onError?.(`Couldn't reach cloud for ${first.url}: ${first.message}`);
+				onError?.(
+					t({
+						message: `Couldn't reach cloud for ${first.url}: ${first.message}`,
+					}),
+				);
 				return null;
 			}
 		} catch (err) {
@@ -87,7 +98,9 @@ export function useFolderFirstImport(options?: {
 				onMultipleProjects({ candidates });
 			} else {
 				onError?.(
-					`Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
+					t({
+						message: `Multiple projects use this repository (${candidates.length}). Open the project you want from settings to set it up on this device.`,
+					}),
 				);
 			}
 			return null;
@@ -103,7 +116,6 @@ export function useFolderFirstImport(options?: {
 				result = {
 					projectId: only.id,
 					repoPath: setupResult.repoPath,
-					mainWorkspaceId: setupResult.mainWorkspaceId,
 				};
 			} else {
 				result = await client.project.create.mutate({
@@ -118,13 +130,14 @@ export function useFolderFirstImport(options?: {
 			return null;
 		}
 	}, [
-		activeHostUrl,
+		waitForHostReady,
 		finalizeSetup,
 		hostService,
 		onError,
 		onMultipleProjects,
 		requestGitInit,
 		selectDirectory,
+		t,
 	]);
 
 	return { start };

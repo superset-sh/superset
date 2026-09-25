@@ -32,6 +32,61 @@ jobs:
       - name: Sherif
         run: bunx sherif
 
+  vale:
+    name: Vale prose lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Vale
+        run: |
+          curl -sfLo /tmp/vale.tar.gz https://github.com/errata-ai/vale/releases/download/v3.17.1/vale_3.17.1_Linux_64-bit.tar.gz
+          echo "db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd  /tmp/vale.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/vale.tar.gz -C /usr/local/bin vale
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Lint marketing content
+        working-directory: apps/marketing
+        run: bun run lint:prose
+
+  version-sync:
+    name: Version Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Typecheck release scripts
+        run: bun run typecheck:release
+
+      - name: Test release scripts
+        run: bun run test:release
+
+      - name: Check unified versions (desktop == host-service == cli)
+        run: bun run check:versions
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -57,6 +112,16 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Check i18n catalogs
+        run: bun run check:i18n && git diff --exit-code --stat HEAD -- packages/i18n/locales
+
+      # `plugins/<name>/versions/<v>/` and the manifests bundled into
+      # @superset/shared are both written by `superset plugins publish`. An edit
+      # to a plugin that skipped publishing leaves the API resolving a stale
+      # manifest — and that manifest names the token_url and the proxy target.
+      - name: Audit plugin marketplace
+        run: bun run check:plugins
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -79,17 +144,32 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
-      - name: Install Linux native build deps
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxkbfile-dev
-
-      - name: Install desktop native dependencies
-        working-directory: apps/desktop
-        run: bun run install:deps
-
       - name: Test
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun run test
+
+      # The terminal launch-protection suites (src/terminal/*.node-test.ts)
+      # need real PTYs + node:test, which bun can't provide.
+      - name: Setup Node.js (terminal node-tests)
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      # bun install ran with --ignore-scripts, so better-sqlite3 has no native
+      # build; fetch the prebuilt binary for the Node ABI using the lockfile-
+      # pinned prebuild-install that ships as its dependency (bun tests use
+      # bun:sqlite and are unaffected).
+      - name: Prepare better-sqlite3 for Node
+        run: |
+          for dir in node_modules/.bun/better-sqlite3@*/node_modules/better-sqlite3; do
+            (cd "$dir" && ../.bin/prebuild-install)
+          done
+
+      - name: Terminal node-tests
+        working-directory: packages/host-service
+        run: bun run test:integration:terminal
 
   typecheck:
     name: Typecheck
@@ -148,12 +228,13 @@ jobs:
       - name: Build Desktop
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          REALTIME_URL: ${{ secrets.REALTIME_URL }}
         run: bun turbo run build --filter=@superset/desktop
 
   build-cli:
     name: Build CLI
     uses: ./.github/workflows/build-cli.yml
     with:
-      targets: '[{"os":"ubuntu-latest","target":"linux-x64"},{"os":"macos-14","target":"darwin-arm64"},{"os":"ubuntu-24.04-arm","target":"linux-arm64"}]'
+      targets: '[{"os":"ubuntu-latest","target":"linux-x64"},{"os":"macos-14","target":"darwin-arm64"},{"os":"macos-15-intel","target":"darwin-x64"},{"os":"ubuntu-24.04-arm","target":"linux-arm64"}]'
       upload: false
     secrets: inherit

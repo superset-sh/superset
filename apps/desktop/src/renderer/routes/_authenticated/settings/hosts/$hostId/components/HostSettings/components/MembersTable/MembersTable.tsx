@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Table,
 	TableBody,
@@ -26,9 +27,15 @@ export function MembersTable({
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead>Name</TableHead>
-						<TableHead>Email</TableHead>
-						<TableHead className="w-32">Role</TableHead>
+						<TableHead>
+							<Trans>Name</Trans>
+						</TableHead>
+						<TableHead>
+							<Trans>Email</Trans>
+						</TableHead>
+						<TableHead className="w-32">
+							<Trans>Role</Trans>
+						</TableHead>
 						{isOwner && <TableHead className="w-12" />}
 					</TableRow>
 				</TableHeader>
@@ -48,7 +55,7 @@ export function MembersTable({
 								colSpan={isOwner ? 4 : 3}
 								className="text-center text-sm text-muted-foreground py-6"
 							>
-								No members yet.
+								<Trans>No members yet.</Trans>
 							</TableCell>
 						</TableRow>
 					)}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { FaSlack } from "react-icons/fa";
 import { HiCheck } from "react-icons/hi2";
 
@@ -22,11 +23,11 @@ export function SlackIntegrationDemo() {
 					<div className="flex items-center gap-2">
 						<FaSlack className="size-4 text-violet-400" />
 						<span className="font-medium text-foreground text-xs">
-							#engineering
+							<Trans>#engineering</Trans>
 						</span>
 					</div>
 					<span className="rounded bg-foreground/10 px-2 py-0.5 text-muted-foreground/70 text-xs">
-						Live
+						<Trans>Live</Trans>
 					</span>
 				</div>
 
@@ -50,7 +51,9 @@ export function SlackIntegrationDemo() {
 					<div className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
 						<div className="flex items-center gap-2 text-emerald-300 text-xs">
 							<HiCheck className="size-3.5" />
-							<span className="font-medium">Task synced to Linear</span>
+							<span className="font-medium">
+								<Trans>Task synced to Linear</Trans>
+							</span>
 						</div>
 					</div>
 				</div>

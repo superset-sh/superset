@@ -15,7 +15,9 @@ Import custom ringtone audio files (MP3, WAV, OGG, up to 20MB) from **Settings �
 
 Color-code your projects in the sidebar for quick identification.
 
-Click project settings → Choose a color
+Click the project thumbnail in project settings to open the icon picker: choose an accent color, pick a glyph, or upload a custom image. Colors set on v1 projects carry over when they're imported.
+
+![The project icon and color picker](/images/project-icon-color-picker.png)
 
 ## Default Editor
 
@@ -32,13 +34,18 @@ Settings → Behavior → File open mode
 - **Split pane** (default) - Opens files by splitting the current tab
 - **New tab** - Opens files in a new tab
 
-Preview pane reuse works in both modes—this setting only affects the fallback when no reusable pane exists.
+Preview pane reuse works in both modes. This setting only affects the fallback when no reusable pane exists.
 
-## Terminal Presets
+## Terminal Scripts
 
-Save terminal configurations (commands, environment) as presets for quick access.
+Save reusable terminal commands, group them into panes or tabs, and launch them
+from the Scripts bar or CLI.
 
-Settings → Terminal → Manage Presets
+Settings → Terminal → Terminal Scripts
+
+These are separate from repository setup, run, and teardown behavior, which
+uses [project lifecycle scripts](/setup-teardown-scripts). See the full
+[Terminal Scripts guide](/terminal-scripts).
 
 ## Custom Themes
 

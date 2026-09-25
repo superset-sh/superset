@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
 import { TeardownFailedPane } from "./components/TeardownFailedPane";
 import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
@@ -24,11 +26,17 @@ export function DashboardSidebarDeleteDialog({
 	onOpenChange,
 	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
+	const { t } = useLingui();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const isSession =
+		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.type ===
+		"session";
 	const {
 		deleteBranch,
 		setDeleteBranch,
 		hasChanges,
 		hasUnpushedCommits,
+		sharesProjectCheckout,
 		canConfirm,
 		blockingReason,
 		error,
@@ -48,26 +56,32 @@ export function DashboardSidebarDeleteDialog({
 				open={open}
 				onOpenChange={handleOpenChange}
 				cause={error.cause}
-				onForceDelete={() => run(true)}
+				onForceDelete={() => run({ force: true, skipTeardown: true })}
 			/>
 		);
 	}
 
 	const hasWarnings = hasChanges || hasUnpushedCommits;
-	const confirmLabel = hasWarnings ? "Delete anyway" : "Delete";
+	const confirmLabel = hasWarnings
+		? t({
+				message: "Delete anyway",
+			})
+		: t({ message: "Delete" });
 
 	return (
 		<DestroyConfirmPane
 			open={open}
 			onOpenChange={handleOpenChange}
 			workspaceName={workspaceName}
+			isSession={isSession}
+			sharesProjectCheckout={sharesProjectCheckout}
 			deleteBranch={deleteBranch}
 			onDeleteBranchChange={setDeleteBranch}
 			hasChanges={hasChanges}
 			hasUnpushedCommits={hasUnpushedCommits}
 			canConfirm={canConfirm}
 			blockingReason={blockingReason}
-			onConfirm={() => run(hasWarnings)}
+			onConfirm={() => run({ force: hasWarnings })}
 			confirmLabel={confirmLabel}
 		/>
 	);

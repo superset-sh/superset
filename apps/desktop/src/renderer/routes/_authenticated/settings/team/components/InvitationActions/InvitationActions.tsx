@@ -1,4 +1,6 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectInvitation } from "@superset/db/schema";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -16,6 +18,7 @@ interface InvitationActionsProps {
 }
 
 export function InvitationActions({ invitation }: InvitationActionsProps) {
+	const { t } = useLingui();
 	const [isCanceling, setIsCanceling] = useState(false);
 
 	const handleCancel = async () => {
@@ -24,10 +27,19 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 			await authClient.organization.cancelInvitation({
 				invitationId: invitation.id,
 			});
-			toast.success("Invitation canceled");
+			toast.success(
+				t({
+					message: "Invitation canceled",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to cancel invitation",
+				errorMessage(
+					error,
+					t({
+						message: "Failed to cancel invitation",
+					}),
+				),
 			);
 		} finally {
 			setIsCanceling(false);
@@ -48,7 +60,7 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 					className="text-destructive gap-2"
 				>
 					<HiOutlineXMark className="h-4 w-4" />
-					Cancel
+					<Trans>Cancel</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

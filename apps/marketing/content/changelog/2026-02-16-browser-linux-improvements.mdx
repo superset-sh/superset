@@ -8,7 +8,7 @@ image: /changelog/chat.png
 
 Chat got a major upgrade this week. Streaming responses now support interactive tool-approval flows, so you can review and approve each tool call as it happens. A new multi-provider model picker lets you choose between providers and models. Agent and tool calls render as expandable UI blocks with tool-specific displays, and a new web search tool lets Claude fetch and reference live content.
 
-We also shipped a series of fixes to MCP connectivity — replacing the stagnant `mcp-handler` library with a direct SDK transport <PRBadge url="https://github.com/superset-sh/superset/pull/1518" />, fixing OAuth connections through the reverse proxy <PRBadge url="https://github.com/superset-sh/superset/pull/1512" />, and resolving SDK version conflicts that caused session failures <PRBadge url="https://github.com/superset-sh/superset/pull/1515" /> <PRBadge url="https://github.com/superset-sh/superset/pull/1516" />.
+We also shipped a series of fixes to MCP connectivity: replacing the stagnant `mcp-handler` library with a direct SDK transport <PRBadge url="https://github.com/superset-sh/superset/pull/1518" />, fixing OAuth connections through the reverse proxy <PRBadge url="https://github.com/superset-sh/superset/pull/1512" />, and resolving SDK version conflicts that caused session failures <PRBadge url="https://github.com/superset-sh/superset/pull/1515" /> <PRBadge url="https://github.com/superset-sh/superset/pull/1516" />.
 
 ![Chat with tool approval](/changelog/chat.png)
 
@@ -16,7 +16,7 @@ We also shipped a series of fixes to MCP connectivity — replacing the stagnant
 
 Browse documentation, preview dev servers, and test web apps without leaving Superset. The new embedded browser includes Chrome-like URL autocomplete with browsing history, favicon capture, and DevTools support.
 
-- Navigate directly from detected ports — click the external link icon to open in a browser pane instead of your system browser
+- Navigate directly from detected ports: click the external link icon to open in a browser pane instead of your system browser
 - URL bar with persistent history and keyboard navigation
 - Clear browsing data from the overflow menu
 - Open browser tabs with Cmd+Shift+B hotkey
@@ -25,7 +25,7 @@ Browse documentation, preview dev servers, and test web apps without leaving Sup
 
 ## Desktop Automation Tools <PRBadge url="https://github.com/superset-sh/superset/pull/1481" />
 
-Added MCP-based automation tools that let Claude Code interact with the Superset UI programmatically. Claude can now take screenshots, click UI elements, type into fields, and inspect the DOM — enabling fully automated testing and debugging workflows through natural language.
+Added MCP-based automation tools that let Claude Code interact with the Superset UI programmatically. Claude can now take screenshots, click UI elements, type into fields, and inspect the DOM, enabling fully automated testing and debugging workflows through natural language.
 
 ## Improvements
 

@@ -4,7 +4,8 @@ import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuExternalLink, LuSearch, LuTrash2 } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbWorld } from "react-icons/tb";
+import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { getAppOption } from "renderer/components/OpenInExternalDropdown";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -38,7 +39,6 @@ export function EmptyTabView({
 	const { workspaceId } = useParams({
 		from: "/_authenticated/_dashboard/workspace/$workspaceId/",
 	});
-	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const activeTheme = useTheme();
 
@@ -50,7 +50,6 @@ export function EmptyTabView({
 		useWorkspaceDeleteHandler();
 
 	const { keys: newGroupDisplay } = useHotkeyDisplay("NEW_GROUP");
-	const { keys: newChatDisplay } = useHotkeyDisplay("NEW_CHAT");
 	const { keys: quickOpenDisplay } = useHotkeyDisplay("QUICK_OPEN");
 	const { keys: newBrowserDisplay } = useHotkeyDisplay("NEW_BROWSER");
 	const { keys: openInAppDisplay } = useHotkeyDisplay("OPEN_IN_APP");
@@ -59,10 +58,6 @@ export function EmptyTabView({
 	const handleShowTerminal = useCallback(() => {
 		addTab(workspaceId);
 	}, [addTab, workspaceId]);
-
-	const handleNewAgent = useCallback(() => {
-		addChatTab(workspaceId);
-	}, [addChatTab, workspaceId]);
 
 	const handleOpenBrowser = useCallback(() => {
 		addBrowserTab(workspaceId);
@@ -82,13 +77,6 @@ export function EmptyTabView({
 				display: newGroupDisplay,
 				icon: BsTerminalPlus,
 				onClick: handleShowTerminal,
-			},
-			{
-				id: "new-agent",
-				label: "Open Chat",
-				display: newChatDisplay,
-				icon: TbMessageCirclePlus,
-				onClick: handleNewAgent,
 			},
 		];
 
@@ -120,11 +108,9 @@ export function EmptyTabView({
 
 		return baseActions;
 	}, [
-		handleNewAgent,
 		handleOpenBrowser,
 		handleShowTerminal,
 		newBrowserDisplay,
-		newChatDisplay,
 		newGroupDisplay,
 		openInActionLabel,
 		onOpenInApp,
@@ -169,6 +155,7 @@ export function EmptyTabView({
 						Delete workspace
 					</button>
 				)}
+				<GitHubStarPill className="mt-6" />
 			</div>
 			{workspace && (
 				<DeleteWorkspaceDialog

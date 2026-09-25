@@ -1,0 +1,70 @@
+---
+title: "Schedule an agent maintenance check you can review"
+description: "Set up a recurring Superset agent check on a connected host, inspect its workspace, and handle offline runs. Includes a bounded maintenance prompt and review checklist."
+author: kiet
+date: 2026-09-22
+unlisted: true
+category: Engineering
+relatedSlugs:
+  - parallel-coding-agents-guide
+  - claude-code-codex-iphone
+---
+
+Have an agent check your repository every week and leave a report you can review. Superset Automations run the task on a computer you choose and keep the work in a workspace you can reopen.
+
+Start with a check that reports findings without changing files.
+
+## Prepare the host and project
+
+Automations require **Superset Pro or Enterprise**, an available target device, and an installed, authenticated agent. Choose a project with an existing test or lint command. Set up its dependencies and credentials on the host first.
+
+Use a connected machine that will be awake when the schedule fires. A remote host requires appropriate host membership; see [remote access](https://docs.superset.sh/remote-access). Your model subscription or API usage is separate from Superset's plan.
+
+## Create a weekly maintenance check
+
+Open **Automations → New automation**. Select the project, device, and agent, then use a title such as “Weekly test and documentation check.” Choose a weekly time when you can review the result. The schedule uses the timezone selected at creation.
+
+Use this prompt and add the test or lint command from your project:
+
+```text
+Inspect this project's documented local setup and run its existing
+focused test or lint command. Do not install or upgrade dependencies,
+change files, commit, push, open issues, or contact external services.
+
+Report:
+- the starting commit;
+- the exact command and exit status;
+- any setup documentation that disagrees with package scripts;
+- at most three actionable findings, with paths and supporting output;
+- which checks could not run and why.
+
+If the environment is missing a dependency or credential, stop and
+report the missing prerequisite. Do not attempt to repair the host.
+This job may run more than once; do not create duplicate external work.
+```
+
+For expensive test suites, name a focused command and time budget rather than asking the agent to “check everything.” An empty findings list is a valid outcome.
+
+## Run it once before relying on the schedule
+
+Use **Run now**, then open **Run History**. Open the created workspace and inspect the terminal and report. Confirm the agent used the intended repository, command, and scope.
+
+A run marked **created** means Superset created the workspace. It does **not** mean the agent's checks passed or its work was correct. Read the actual output before treating the maintenance job as successful.
+
+## Handle offline and duplicate runs
+
+If the target host is offline at dispatch time, the run fails and the schedule advances. Restore the host and inspect the recorded error. Use **Run now** to re-dispatch that automation, or **Retry all** on the **Mine** tab to re-dispatch all your automations whose latest run failed. Do not assume the missed work was completed later.
+
+A retry can occasionally start the job twice. Write prompts that are safe to repeat, especially if a later version opens issues or pull requests.
+
+## Turn a finding into an isolated change
+
+Choose one validated finding and start a separate workspace for its fix. Ask the agent to make the smallest relevant change and run the focused check. Review the diff and combined test result before merging, using the [parallel-workflow review steps](/blog/parallel-coding-agents-guide).
+
+After a few runs, check whether the findings are worth the time and model usage. Narrow the prompt or pause the schedule if it keeps reporting noise.
+
+## Share the review responsibility
+
+Choose who will review each run. Teammates need host and project access to continue the work. The automation owner can edit the schedule, pause it, or run it manually.
+
+See the [Automations documentation](https://docs.superset.sh/automations) for CLI commands and schedule options.

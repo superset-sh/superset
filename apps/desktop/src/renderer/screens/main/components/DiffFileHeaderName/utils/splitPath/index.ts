@@ -1,0 +1,1 @@
+export { splitPath } from "./splitPath";

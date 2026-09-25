@@ -1,1 +1,0 @@
-export { AuthenticatedTabBar } from "./AuthenticatedTabBar";

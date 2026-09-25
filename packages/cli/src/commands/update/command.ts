@@ -5,7 +5,6 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
-	renameSync,
 	rmSync,
 	statSync,
 } from "node:fs";
@@ -13,8 +12,10 @@ import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { boolean, CLIError, string } from "@superset/cli-framework";
+import { acquireInstallUpdateLock } from "@superset/shared/install-update-lock";
 import { command } from "../../lib/command";
-import { env } from "../../lib/env";
+import { env, isDesktopBundled } from "../../lib/env";
+import { atomicReplace, backupRootFor } from "./atomic-replace";
 
 // `cli-latest` is a rolling GH Release/tag updated by build-cli.yml on every
 // CLI release. Reading from a fixed download path (rather than the global
@@ -99,25 +100,6 @@ function findExtractedRoot(extractDir: string): string {
 	return extractDir;
 }
 
-function atomicReplace(installRoot: string, newRoot: string): void {
-	const backupRoot = `${installRoot}.bak`;
-	if (existsSync(backupRoot)) {
-		rmSync(backupRoot, { recursive: true, force: true });
-	}
-	if (existsSync(installRoot)) {
-		renameSync(installRoot, backupRoot);
-	}
-	try {
-		renameSync(newRoot, installRoot);
-	} catch (error) {
-		if (existsSync(backupRoot)) {
-			renameSync(backupRoot, installRoot);
-		}
-		throw error;
-	}
-	rmSync(backupRoot, { recursive: true, force: true });
-}
-
 function resolveInstallRoot(): string {
 	if (process.env.SUPERSET_INSTALL_ROOT) {
 		return process.env.SUPERSET_INSTALL_ROOT;
@@ -127,6 +109,7 @@ function resolveInstallRoot(): string {
 }
 
 export default command({
+	sandbox: false,
 	description: "Update the Superset CLI and host service to the latest release",
 	skipMiddleware: true,
 	options: {
@@ -135,8 +118,18 @@ export default command({
 		version: string().desc(
 			"Install a specific CLI version (e.g. 0.1.2) instead of the rolling latest",
 		),
+		keepBackup: boolean().desc(
+			"Leave the previous install at <root>.bak so a caller restarting the host service out of the new tree can roll back",
+		),
 	},
 	run: async ({ options }) => {
+		if (isDesktopBundled()) {
+			throw new CLIError(
+				"This CLI is bundled with the Superset desktop app and updates together with the app.",
+				"For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh",
+			);
+		}
+
 		const target = detectTarget();
 		const currentVersion = getCurrentVersion();
 		if (currentVersion === "0.0.0-dev") {
@@ -188,9 +181,12 @@ export default command({
 		// Stage as a sibling of the install root so the final renameSync()
 		// is an intra-filesystem move. tmpdir() is frequently a separate
 		// mount (tmpfs on Linux) — renaming across it fails with EXDEV.
-		const tempDir = mkdtempSync(`${installRoot}.update-`);
-
+		const releaseLock = acquireInstallUpdateLock(installRoot, {
+			allowParent: true,
+		});
+		let tempDir: string | undefined;
 		try {
+			tempDir = mkdtempSync(`${installRoot}.update-`);
 			await downloadAndExtract(tarballUrl(target, pinnedVersion), tempDir);
 			const newRoot = findExtractedRoot(tempDir);
 			const newBin = join(newRoot, "bin", "superset");
@@ -203,7 +199,9 @@ export default command({
 			const newHostBin = join(newRoot, "bin", "superset-host");
 			if (existsSync(newHostBin)) chmodSync(newHostBin, 0o755);
 
-			atomicReplace(installRoot, newRoot);
+			atomicReplace(installRoot, newRoot, {
+				keepBackup: options.keepBackup ?? false,
+			});
 
 			return {
 				data: {
@@ -211,13 +209,20 @@ export default command({
 					target: targetVersion,
 					updated: true,
 					installRoot,
+					...(options.keepBackup
+						? { backupRoot: backupRootFor(installRoot) }
+						: {}),
 				},
 				message: pinnedVersion
 					? `Installed ${targetVersion} (${installRoot})`
 					: `Updated ${currentVersion} → ${targetVersion} (${installRoot})`,
 			};
 		} finally {
-			rmSync(tempDir, { recursive: true, force: true });
+			try {
+				if (tempDir) rmSync(tempDir, { recursive: true, force: true });
+			} finally {
+				releaseLock();
+			}
 		}
 	},
 });

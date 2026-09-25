@@ -15,6 +15,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { HostAgentPreset } from "@superset/shared/host-agent-presets";
 import {
@@ -59,6 +60,7 @@ export function AgentsSettingsSidebar({
 	isAdding,
 	isResetting,
 }: AgentsSettingsSidebarProps) {
+	const { t } = useLingui();
 	const sortableIds = useMemo(() => configs.map((c) => c.id), [configs]);
 
 	const sensors = useSensors(
@@ -87,13 +89,15 @@ export function AgentsSettingsSidebar({
 					className={settingsListItemClass(false, "gap-2 w-full text-left")}
 				>
 					<Plus className="size-3.5 shrink-0" />
-					<span className="truncate flex-1">Add agent</span>
+					<span className="truncate flex-1">
+						<Trans>Add agent</Trans>
+					</span>
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-56">
 				<DropdownMenuItem className="gap-2" onSelect={onCreateCustomAgent}>
 					<Wrench className="size-4 shrink-0 text-muted-foreground" />
-					Custom agent…
+					<Trans>Custom agent…</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				{presets.map((preset) => (
@@ -111,7 +115,7 @@ export function AgentsSettingsSidebar({
 					onSelect={() => onResetToDefaults()}
 					disabled={isResetting}
 				>
-					Reset to defaults
+					<Trans>Reset to defaults</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
@@ -128,16 +132,34 @@ export function AgentsSettingsSidebar({
 				strategy={verticalListSortingStrategy}
 			>
 				<SettingsListSidebar
-					searchPlaceholder="Filter agents..."
-					searchAriaLabel="Filter agents"
+					searchPlaceholder={t({
+						message: "Filter agents...",
+					})}
+					searchAriaLabel={t({
+						message: "Filter agents",
+					})}
 					listHeader={listHeader}
-					groups={[{ id: "all", title: "Agents", rows: configs }]}
+					groups={[
+						{
+							id: "all",
+							title: t({
+								message: "Agents",
+							}),
+							rows: configs,
+						},
+					]}
 					filterRow={(row, q) =>
 						row.label.toLowerCase().includes(q.toLowerCase())
 					}
 					getRowKey={(row) => row.id}
-					emptyLabel="No agents yet."
-					noMatchLabel={(q) => `No agents match "${q}".`}
+					emptyLabel={t({
+						message: "No agents yet.",
+					})}
+					noMatchLabel={(q) =>
+						t({
+							message: `No agents match "${q}".`,
+						})
+					}
 					renderRow={(row) => (
 						<AgentSidebarRow
 							row={row}
@@ -158,6 +180,7 @@ interface AgentSidebarRowProps {
 }
 
 function AgentSidebarRow({ row, isActive, onSelect }: AgentSidebarRowProps) {
+	const { t } = useLingui();
 	const {
 		setNodeRef,
 		setActivatorNodeRef,
@@ -200,7 +223,9 @@ function AgentSidebarRow({ row, isActive, onSelect }: AgentSidebarRowProps) {
 					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
 					isDragging && "opacity-100",
 				)}
-				aria-label="Drag to reorder"
+				aria-label={t({
+					message: "Drag to reorder",
+				})}
 			>
 				<LuGripVertical className="size-3.5" />
 			</button>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { CardFooter } from "@superset/ui/card";
 
@@ -13,7 +14,7 @@ export function AgentCardActions({
 	return (
 		<CardFooter className="mt-2 justify-end">
 			<Button variant="outline" onClick={onReset} disabled={isResetting}>
-				Reset to Defaults
+				<Trans>Reset to Defaults</Trans>
 			</Button>
 		</CardFooter>
 	);

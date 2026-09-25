@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CommandPrimitive, CommandSeparator } from "@superset/ui/command";
 import { SearchIcon } from "lucide-react";
@@ -37,6 +39,8 @@ export function CommandPalette({
 	recentlyViewedFiles,
 	openFilePaths,
 }: CommandPaletteProps) {
+	const { _: translate } = useTranslation();
+
 	const [query, setQuery] = useState("");
 	const [filtersOpen, setFiltersOpen] = useState(false);
 	const [includePattern, setIncludePattern] = useState("");
@@ -145,7 +149,7 @@ export function CommandPalette({
 							<SearchIcon className="size-5 shrink-0 opacity-50" />
 							<CommandPrimitive.Input
 								ref={inputRef}
-								placeholder="Search files..."
+								placeholder={translate(msg({ message: "Search files..." }))}
 								value={query}
 								onValueChange={setQuery}
 								className="flex h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -171,13 +175,17 @@ export function CommandPalette({
 								<input
 									value={includePattern}
 									onChange={(e) => setIncludePattern(e.target.value)}
-									placeholder="files to include (glob)"
+									placeholder={translate(
+										msg({ message: "files to include (glob)" }),
+									)}
 									className="h-8 rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
 								/>
 								<input
 									value={excludePattern}
 									onChange={(e) => setExcludePattern(e.target.value)}
-									placeholder="files to exclude (glob)"
+									placeholder={translate(
+										msg({ message: "files to exclude (glob)" }),
+									)}
 									className="h-8 rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
 								/>
 							</div>

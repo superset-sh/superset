@@ -1,1 +1,1 @@
-export { V2SetupScriptCard } from "./V2SetupScriptCard";
+export { useV2SetupScriptCard } from "./useV2SetupScriptCard";

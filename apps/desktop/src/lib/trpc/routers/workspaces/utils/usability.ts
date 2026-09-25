@@ -74,19 +74,22 @@ export function assertWorkspaceUsable(
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
 					message: "Workspace is still initializing",
-					cause: { reason: "initializing", progress: check.progress },
+					cause: { kind: "WORKSPACE_INITIALIZING", progress: check.progress },
 				});
 			case "failed":
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
 					message: "Workspace initialization failed",
-					cause: { reason: "failed", progress: check.progress },
+					cause: { kind: "WORKSPACE_INIT_FAILED", progress: check.progress },
 				});
 			case "path_missing":
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Workspace path does not exist",
-					cause: { reason: "path_missing" },
+					cause: {
+						kind: "WORKTREE_MISSING",
+						...(worktreePath ? { worktreePath } : {}),
+					},
 				});
 			default:
 				throw new TRPCError({
@@ -95,28 +98,4 @@ export function assertWorkspaceUsable(
 				});
 		}
 	}
-}
-
-/**
- * Check if a workspace usability error indicates the workspace is initializing.
- * Useful for frontend to determine whether to show progress UI.
- */
-export function isInitializingError(error: unknown): boolean {
-	if (error instanceof TRPCError) {
-		const cause = error.cause as { reason?: string } | undefined;
-		return cause?.reason === "initializing";
-	}
-	return false;
-}
-
-/**
- * Check if a workspace usability error indicates the workspace failed to initialize.
- * Useful for frontend to determine whether to show error UI with retry option.
- */
-export function isFailedError(error: unknown): boolean {
-	if (error instanceof TRPCError) {
-		const cause = error.cause as { reason?: string } | undefined;
-		return cause?.reason === "failed";
-	}
-	return false;
 }

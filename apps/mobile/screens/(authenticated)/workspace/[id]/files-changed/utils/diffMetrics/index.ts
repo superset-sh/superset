@@ -1,0 +1,13 @@
+export { CharWidthProbe } from "./CharWidthProbe";
+export {
+	CODE_PADDING_RIGHT,
+	contentWidthForChars,
+	DIFF_FONT_SIZE,
+	DIFF_LINE_HEIGHT,
+	ESTIMATED_CHAR_WIDTH,
+	EXPANDER_ROW_HEIGHT,
+	FILE_HEADER_HEIGHT,
+	GUTTER_WIDTH,
+	NOTE_ROW_HEIGHT,
+	SIGN_WIDTH,
+} from "./diffMetrics";

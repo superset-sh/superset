@@ -108,6 +108,9 @@ async function runSync(workspaceCount: number) {
 		git: git as never,
 		github: async () => ({}) as never,
 		gitWatcher: { onChanged: () => () => {} } as never,
+		// Fixture worktree paths are fabricated; open the missing-dir gate
+		// so the scaling assertions still count real git-factory calls.
+		worktreeExists: () => true,
 	});
 
 	// `syncWorkspaceBranches` calls `refreshProject` only for changed projects;

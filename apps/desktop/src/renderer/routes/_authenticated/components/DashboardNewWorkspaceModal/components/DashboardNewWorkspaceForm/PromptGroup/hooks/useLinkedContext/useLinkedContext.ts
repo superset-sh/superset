@@ -1,4 +1,6 @@
 import { useCallback } from "react";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import type {
 	DashboardNewWorkspaceDraft,
 	LinkedIssue,
@@ -19,14 +21,34 @@ export function useLinkedContext(
 	updateDraft: (patch: Partial<DashboardNewWorkspaceDraft>) => void,
 ) {
 	const addLinkedIssue = useCallback(
-		(slug: string, title: string, taskId: string | undefined, url?: string) => {
+		(
+			slug: string,
+			title: string,
+			taskId: string | undefined,
+			url?: string,
+			branch?: string,
+		) => {
 			if (linkedIssues.some((issue) => issue.slug === slug)) return;
-			updateDraft({
+			const patch: Partial<DashboardNewWorkspaceDraft> = {
 				linkedIssues: [
 					...linkedIssues,
-					{ slug, title, source: "internal", taskId, url },
+					{ slug, title, source: "internal", taskId, url, branch },
 				],
-			});
+			};
+			// Seed the workspace/branch fields from the issue so the branch
+			// matches the provider's format (Linear autolinks it back to the
+			// issue). Never overwrite something the user already typed.
+			const draft = useNewWorkspaceDraftStore.getState();
+			if (!draft.branchNameEdited && !draft.branchName.trim()) {
+				patch.branchName = deriveBranchName({ slug, title, branch });
+				patch.branchNameEdited = true;
+				patch.branchNameFromProvider = !!branch?.trim();
+			}
+			if (!draft.workspaceNameEdited && !draft.workspaceName.trim()) {
+				patch.workspaceName = title;
+				patch.workspaceNameEdited = true;
+			}
+			updateDraft(patch);
 		},
 		[linkedIssues, updateDraft],
 	);
@@ -53,9 +75,48 @@ export function useLinkedContext(
 
 	const removeLinkedIssue = useCallback(
 		(slug: string) => {
-			updateDraft({
-				linkedIssues: linkedIssues.filter((i) => i.slug !== slug),
-			});
+			const removed = linkedIssues.find((i) => i.slug === slug);
+			const remaining = linkedIssues.filter((i) => i.slug !== slug);
+			const patch: Partial<DashboardNewWorkspaceDraft> = {
+				linkedIssues: remaining,
+			};
+			// Clear the seeded names, but only when they still match what the
+			// issue seeded — a user edit sticks. When another internal issue is
+			// still linked, hand the seed to it instead of going blank.
+			if (removed?.source === "internal") {
+				const draft = useNewWorkspaceDraftStore.getState();
+				const next = remaining.find((i) => i.source === "internal");
+				const seededBranch = deriveBranchName({
+					slug: removed.slug,
+					title: removed.title,
+					branch: removed.branch,
+				});
+				if (draft.branchName === seededBranch) {
+					if (next) {
+						patch.branchName = deriveBranchName({
+							slug: next.slug,
+							title: next.title,
+							branch: next.branch,
+						});
+						patch.branchNameEdited = true;
+						patch.branchNameFromProvider = !!next.branch?.trim();
+					} else {
+						patch.branchName = "";
+						patch.branchNameEdited = false;
+						patch.branchNameFromProvider = false;
+					}
+				}
+				if (draft.workspaceName === removed.title) {
+					if (next) {
+						patch.workspaceName = next.title;
+						patch.workspaceNameEdited = true;
+					} else {
+						patch.workspaceName = "";
+						patch.workspaceNameEdited = false;
+					}
+				}
+			}
+			updateDraft(patch);
 		},
 		[linkedIssues, updateDraft],
 	);

@@ -1,9 +1,8 @@
 import { router } from "../index";
+import { agentToolingRouter } from "./agent-tooling";
 import { agentsRouter } from "./agents";
 import { attachmentsRouter } from "./attachments";
-import { authRouter } from "./auth";
-import { chatRouter } from "./chat";
-import { cloudRouter } from "./cloud";
+import { browserRouter } from "./browser/browser";
 import { configRouter } from "./config";
 import { filesystemRouter } from "./filesystem";
 import { gitRouter } from "./git";
@@ -12,12 +11,17 @@ import { healthRouter } from "./health";
 import { hostRouter } from "./host";
 import { issuesRouter } from "./issues";
 import { notificationsRouter } from "./notifications";
+import { pageWatchRouter } from "./page-watch";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
+import { sandboxRouter } from "./sandbox";
 import { settingsRouter } from "./settings";
+import { systemRouter } from "./system";
+import { tagFoldersRouter } from "./tag-folders";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
+import { usageRouter } from "./usage";
 import { workspaceRouter } from "./workspace";
 import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
@@ -25,24 +29,28 @@ import { workspacesRouter } from "./workspaces";
 
 export const appRouter = router({
 	agents: agentsRouter,
+	agentTooling: agentToolingRouter,
 	attachments: attachmentsRouter,
-	auth: authRouter,
+	browser: browserRouter,
 	health: healthRouter,
 	host: hostRouter,
-	chat: chatRouter,
 	config: configRouter,
 	filesystem: filesystemRouter,
 	git: gitRouter,
 	github: githubRouter,
-	cloud: cloudRouter,
 	issues: issuesRouter,
 	notifications: notificationsRouter,
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,
+	tagFolders: tagFoldersRouter,
+	pageWatch: pageWatchRouter,
 	ports: portsRouter,
+	sandbox: sandboxRouter,
 	settings: settingsRouter,
+	system: systemRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,
+	usage: usageRouter,
 	workspace: workspaceRouter,
 	workspaces: workspacesRouter,
 	workspaceCleanup: workspaceCleanupRouter,

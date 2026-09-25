@@ -1,0 +1,1 @@
+export { PluginsView } from "./PluginsView";

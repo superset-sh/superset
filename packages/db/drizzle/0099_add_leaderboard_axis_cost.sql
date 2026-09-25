@@ -1,0 +1,1 @@
+ALTER TABLE "leaderboard_participants" ADD COLUMN "axis_cost" numeric(10, 2) DEFAULT '0' NOT NULL;

@@ -62,7 +62,7 @@ describe("createFsClient", () => {
 		expect(metadata).toBeNull();
 
 		const iterator = client
-			.watchPath({ absolutePath: "/tmp/workspace", recursive: true })
+			.watchPath({ absolutePath: "/tmp/workspace" })
 			[Symbol.asyncIterator]();
 		const next = await iterator.next();
 		expect(next).toEqual({
@@ -95,7 +95,7 @@ describe("createFsClient", () => {
 			},
 			{
 				method: "watchPath",
-				input: { absolutePath: "/tmp/workspace", recursive: true },
+				input: { absolutePath: "/tmp/workspace" },
 			},
 		]);
 	});

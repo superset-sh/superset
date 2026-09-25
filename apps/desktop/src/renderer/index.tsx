@@ -2,9 +2,9 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
-import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { createRouter } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
-import { BootErrorBoundary } from "./components/BootErrorBoundary";
+import { RendererRouter } from "./components/RendererRouter";
 import {
 	cleanupBootErrorHandling,
 	initBootErrorHandling,
@@ -12,8 +12,10 @@ import {
 	markBootMounted,
 	reportBootError,
 } from "./lib/boot-errors";
+import { sweepDeadPersistedKeys } from "./lib/persisted-keys";
 import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
+import { pruneExpiredTerminalState } from "./lib/terminal/terminal-buffer-gc";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
@@ -23,6 +25,12 @@ import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
+
+// Before any terminal mounts: unbounded persisted scrollback wedged the
+// renderer once it grew to hundreds of orphaned buffers (23.7 MB observed).
+pruneExpiredTerminalState();
+// Keys from removed features otherwise live on user profiles forever.
+sweepDeadPersistedKeys();
 
 const router = createRouter({
 	routeTree,
@@ -37,6 +45,7 @@ const router = createRouter({
 const unsubscribe = router.subscribe("onResolved", (event) => {
 	posthog.capture("$pageview", {
 		$current_url: event.toLocation.pathname,
+		$pathname: event.toLocation.pathname,
 	});
 });
 
@@ -72,12 +81,6 @@ declare module "@tanstack/react-router" {
 if (!rootElement) {
 	reportBootError("Missing <app> root element");
 } else if (!isBootErrorReported()) {
-	ReactDom.createRoot(rootElement).render(
-		<BootErrorBoundary
-			onError={(error) => reportBootError("Render failed", error)}
-		>
-			<RouterProvider router={router} />
-		</BootErrorBoundary>,
-	);
+	ReactDom.createRoot(rootElement).render(<RendererRouter router={router} />);
 	markBootMounted();
 }

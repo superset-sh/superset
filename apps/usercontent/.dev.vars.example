@@ -1,0 +1,3 @@
+# `bun run dev` reads this as `.dev.vars`. The API must sign tickets with the
+# same secret (USERCONTENT_TOKEN_SECRET in the root .env).
+USERCONTENT_TOKEN_SECRET=local-dev-usercontent-secret-change-me-32

@@ -1,5 +1,46 @@
 import type { CSSProperties } from "react";
 
+/**
+ * Pierre detects overflow in pure CSS: a hidden `word-break: break-all` copy of
+ * the label sits beside the visible one, and `@container measure (height > 1lh)`
+ * on the marker cell reveals the middle-truncation marker — the `…` + fade that
+ * paints over the name. A name that fits measures exactly `1lh`, so the test has
+ * no margin: any sub-pixel rounding of the line box marks every row as
+ * overflowing and hides ~3 characters mid-name at every sidebar width.
+ *
+ * Give the query 1.5 lines of slack — out of reach of rounding, still tripped by
+ * a real second line. The marker's own box is sized in `lh` too, so pin it back
+ * to one row.
+ */
+const MIDDLE_TRUNCATE_ZOOM_CSS = `
+	[data-truncate-marker-cell] {
+		line-height: calc(var(--trees-row-height) * 1.5);
+	}
+	[data-truncate-marker] {
+		line-height: var(--trees-row-height);
+	}
+`;
+
+/**
+ * `unsafeCSS` for the file trees. Pierre keeps an empty decoration lane
+ * (`flex: 1 1 0`) on every row whenever the git lane is active but the row has
+ * no custom decoration (every file in the Files-tab explorer, plus any change
+ * with no `+/−` summary). That empty lane grows to fill the row and starves the
+ * name column, so Pierre's truncation grid middle-truncates names that easily
+ * fit (`CLAUDE.md` → `CLAUD…d`). Let the name column take the free space and the
+ * decoration hug its own content instead. Pierre wraps this in `@layer unsafe`,
+ * which overrides its `@layer base` by cascade order — no `!important` needed.
+ */
+export const PIERRE_TREE_UNSAFE_CSS = `
+	[data-item-section="content"] {
+		flex: 1 1 auto;
+	}
+	[data-item-section="decoration"] {
+		flex: 0 1 auto;
+	}
+	${MIDDLE_TRUNCATE_ZOOM_CSS}
+`;
+
 interface PierreTreeStyleOptions {
 	/** Row height in px — keep in sync with the model's `itemHeight`. */
 	rowHeight: number;

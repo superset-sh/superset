@@ -1,0 +1,111 @@
+---
+title: Computer Control
+description: Let agents operate native desktop applications through an accessibility-first driver
+---
+
+## Overview
+
+Superset includes a `computer` skill that teaches agents to operate native
+desktop applications through an accessibility-first driver. It can inspect
+windows, read accessibility state and screenshots, click, type, scroll, use
+native menus, and verify the resulting UI state on macOS, Windows, and Linux.
+
+The skill's workflow is driver-agnostic; [Cua
+Driver](https://cua.ai/docs/cua-driver) is the default. On macOS,
+[Peekaboo](https://peekaboo.sh) works as an alternative — agents use whichever
+supported driver you have installed, and ask before installing one.
+
+The agent works in the actual app window you can see. Cua Driver targets a
+specific process and window and uses background interaction when the platform
+supports it, so routine automation does not need to take over your mouse or
+bring the target app to the front.
+
+## Install a driver
+
+<Callout type="info" title="Optional third-party software">
+	Drivers are not built or maintained by Superset — Cua Driver comes from
+	[Cua](https://cua.ai) and Peekaboo from [its open-source
+	project](https://peekaboo.sh) — and nothing in Superset requires one:
+	without a driver installed, this skill simply isn't used. Installing a
+	driver and granting it Accessibility and Screen Recording gives it, and
+	agents driving it, deep control of your machine — extend it the same trust
+	as any system-level tool.
+</Callout>
+
+The skill is bundled with Superset, but the driver runtime is installed
+separately. Cua Driver is the default:
+
+**macOS and Linux**
+
+```bash
+/bin/bash -c "$(curl -fsSL https://cua.ai/driver/install.sh)"
+```
+
+**Windows (PowerShell)**
+
+```powershell
+irm https://cua.ai/driver/install.ps1 | iex
+cua-driver autostart enable
+cua-driver autostart kick
+```
+
+Then verify the host:
+
+```bash
+cua-driver --version
+cua-driver doctor
+```
+
+macOS also requires Accessibility and Screen Recording permission for the
+CuaDriver app. Run `cua-driver permissions grant` and follow the System
+Settings prompts. See the complete [installation and permissions
+guide](https://cua.ai/docs/how-to-guides/driver/install).
+
+Cua Driver enables anonymous telemetry by default; turn it off with
+`cua-driver telemetry disable`.
+
+**Prefer Peekaboo? (macOS only)**
+
+```bash
+brew install steipete/tap/peekaboo
+```
+
+[Peekaboo](https://peekaboo.sh) needs the same Accessibility and Screen
+Recording permissions. Agents use whichever supported driver is installed, so
+installing Peekaboo instead of Cua Driver selects it.
+
+## Hand an app to your agent
+
+Ask naturally, or invoke `/superset:computer` in Claude Code and
+`/superset/computer` in Superset's in-app chat:
+
+```text
+Open Calculator, compute 27 × 14, and tell me the displayed result.
+```
+
+```text
+Use the open design app to export the current canvas as a PNG, then verify the
+file appeared in the chosen folder.
+```
+
+The skill makes the agent declare a task-scoped session, identify the exact app
+and window, take a fresh state snapshot before every action, and verify the UI
+afterward. It starts with accessibility targets, uses pixels only when needed,
+and escalates to foreground or full-desktop control only after observed failure.
+
+## Computer or browser?
+
+Use [`browser`](/browser) for a page open in Superset's in-app browser pane. It
+provides direct DOM, console, screenshot, and Chrome DevTools Protocol access.
+
+Use `computer` for native applications, the Superset desktop UI itself, browser
+chrome, or a browser engine that is not available through the in-app browser
+skill.
+
+## Safety
+
+The agent sees the real state of the targeted application. The skill tells it
+to avoid unrelated private data, preserve your other windows, and ask before
+consequential actions such as sending a message, submitting a form that creates
+an external commitment, publishing, purchasing, deleting data, or changing
+account settings.

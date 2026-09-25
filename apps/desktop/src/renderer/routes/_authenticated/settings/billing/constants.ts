@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { PLAN_TIERS, type PlanTier } from "@superset/shared/billing";
 
 export { PLAN_TIERS, type PlanTier };
@@ -12,8 +14,8 @@ export interface PlanFeature {
 
 export interface Plan {
 	id: PlanTier;
-	name: string;
-	description: string;
+	name: MessageDescriptor;
+	description: MessageDescriptor;
 	price: {
 		monthly: number;
 		yearly?: number;
@@ -35,8 +37,10 @@ export interface Plan {
 export const PLANS: Record<PlanTier, Plan> = {
 	free: {
 		id: "free",
-		name: "Free",
-		description: "For individuals getting started",
+		name: msg({ message: "Free" }),
+		description: msg({
+			message: "For individuals getting started",
+		}),
 		price: null,
 		limits: {
 			maxUsers: 1,
@@ -55,8 +59,10 @@ export const PLANS: Record<PlanTier, Plan> = {
 	},
 	pro: {
 		id: "pro",
-		name: "Pro",
-		description: "For teams that need more power",
+		name: msg({ message: "Pro" }),
+		description: msg({
+			message: "For teams that need more power",
+		}),
 		price: { monthly: 2000, yearly: 18000 },
 		limits: {
 			maxUsers: null,
@@ -81,8 +87,12 @@ export const PLANS: Record<PlanTier, Plan> = {
 	},
 	enterprise: {
 		id: "enterprise",
-		name: "Enterprise",
-		description: "For organizations with advanced needs",
+		name: msg({
+			message: "Enterprise",
+		}),
+		description: msg({
+			message: "For organizations with advanced needs",
+		}),
 		price: null,
 		limits: {
 			maxUsers: null,

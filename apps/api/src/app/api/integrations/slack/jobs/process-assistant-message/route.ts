@@ -1,13 +1,9 @@
-import { Receiver } from "@upstash/qstash";
 import { z } from "zod";
-
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { processAssistantMessage } from "../../events/process-assistant-message";
+import { isUnpostableChannelError } from "../../events/utils/slack-client";
 
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
+export const maxDuration = 300;
 
 const slackFileSchema = z.object({
 	id: z.string(),
@@ -29,6 +25,7 @@ const payloadSchema = z.object({
 		event_ts: z.string(),
 		thread_ts: z.string().optional(),
 		files: z.array(slackFileSchema).optional(),
+		queued_ts: z.array(z.string()).optional(),
 	}),
 	teamId: z.string(),
 	eventId: z.string(),
@@ -36,23 +33,20 @@ const payloadSchema = z.object({
 
 export async function POST(request: Request) {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	const isValid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/jobs/process-assistant-message`,
-	});
+		"/api/integrations/slack/jobs/process-assistant-message",
+	);
+	if (rejected) return rejected;
 
-	if (!isValid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	let payload: unknown;
+	try {
+		payload = JSON.parse(body);
+	} catch {
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
-
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	const parsed = payloadSchema.safeParse(payload);
 	if (!parsed.success) {
 		console.error(
 			"[slack/process-assistant-message] Invalid payload:",
@@ -61,11 +55,24 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	await processAssistantMessage({
-		event: parsed.data.event,
-		teamId: parsed.data.teamId,
-		eventId: parsed.data.eventId,
-	});
+	try {
+		await processAssistantMessage({
+			event: parsed.data.event,
+			teamId: parsed.data.teamId,
+			eventId: parsed.data.eventId,
+		});
+	} catch (error) {
+		// Replies to read-only/archived/unjoined channels can never be
+		// delivered; a 500 would only make Slack redeliver the event.
+		if (isUnpostableChannelError(error)) {
+			console.warn(
+				"[slack/process-assistant-message] channel cannot receive replies; dropping event",
+				{ error: String(error) },
+			);
+			return Response.json({ success: true, status: "undeliverable" });
+		}
+		throw error;
+	}
 
 	return Response.json({ success: true });
 }

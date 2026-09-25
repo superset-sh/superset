@@ -1,17 +1,24 @@
+import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { msg } from "@lingui/core/macro";
+import {
+	setAgentSetupTemplatesDir,
+	setupAgentIntegrations,
+	writeSharedDisabledAgentIds,
+	writeSharedDisabledSkillIds,
+} from "@superset/agent-setup";
+import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
 import {
-	app,
-	BrowserWindow,
-	dialog,
-	Notification,
-	net,
-	protocol,
-	session,
-} from "electron";
+	devAppProfileDirName,
+	isDevAppProfileDirName,
+	workspaceDevAppProfileDirName,
+} from "@superset/shared/dev-app-profile";
+import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
+	authEvents,
 	handleAuthCallback,
 	loadToken,
 	parseAuthDeepLink,
@@ -23,22 +30,27 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
-import { setupAgentHooks } from "./lib/agent-setup";
+import { sweepDevAppProfiles } from "./dev-app-profile-sweep";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
+import { startBrowserBridge } from "./lib/browser/browser-bridge";
+import { browserManager } from "./lib/browser/browser-manager";
+import { downloadManager } from "./lib/browser/download-manager";
 import { installBundledCliShim } from "./lib/bundled-cli";
+import { installDevRunnerExit } from "./lib/dev-runner-exit";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
+import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
-import {
-	initTanstackDbPersistence,
-	shutdownTanstackDbPersistence,
-} from "./lib/persistence/persistence";
+import { menuEmitter } from "./lib/menu-events";
+import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
+import { portForwardManager } from "./lib/port-forward";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
+import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -49,8 +61,15 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
-import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
-import { MainWindow } from "./windows/main";
+import { getFocusedOrLastWindow } from "./lib/window-registry/window-registry";
+import { sweepNetworkLogs } from "./network-logger-sweep";
+import {
+	createPlatformWindow,
+	initAppServices,
+	markAppQuitting,
+	persistOpenWindows,
+	restoreWindows,
+} from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -59,11 +78,30 @@ void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
 });
 
-// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+// Keep the readable dock label separate from the stable storage identity.
 if (IS_DEV) {
+	const profilePath = path.join(
+		app.getPath("appData"),
+		workspaceDevAppProfileDirName({
+			workspaceId: process.env.SUPERSET_WORKSPACE_ID,
+			appPath: app.getAppPath(),
+		}),
+	);
+	mkdirSync(profilePath, { recursive: true });
+	app.setPath("userData", profilePath);
+	app.setPath("sessionData", profilePath);
 	const workspaceName = resolveDevWorkspaceName();
-	if (workspaceName) {
-		app.setName(`Superset (${workspaceName})`);
+	const profileName = workspaceName
+		? devAppProfileDirName(workspaceName)
+		: undefined;
+	// Retain the existing validation for the display label.
+	if (profileName && isDevAppProfileDirName(profileName)) {
+		app.setName(profileName);
+	} else if (profileName) {
+		console.warn(
+			"[main] Not renaming the app: unusable profile name",
+			profileName,
+		);
 	}
 }
 
@@ -79,43 +117,71 @@ if (process.defaultApp) {
 }
 
 async function processDeepLink(url: string): Promise<void> {
-	console.log("[main] Processing deep link:", url);
-
-	const authParams = parseAuthDeepLink(url);
-	if (authParams) {
-		const result = await handleAuthCallback(authParams);
+	const authLink = parseAuthDeepLink(url);
+	if (authLink.type !== "not-auth") {
+		// Never log the auth URL: it contains the desktop session token.
+		console.log("[main] Processing auth deep link");
+		// `error` stays English: it is the log line. What the user reads is
+		// resolved separately below so it can be translated.
+		const result =
+			authLink.type === "valid"
+				? await handleAuthCallback(authLink.params)
+				: {
+						success: false as const,
+						error: "sign-in link was missing required parameters",
+					};
 		if (result.success) {
 			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
+			focusMainWindow();
+			dialog.showErrorBox(
+				i18n._(msg({ message: "Sign-in failed" })),
+				authLink.type === "valid"
+					? (result.error ??
+							i18n._(
+								msg({
+									message:
+										"Superset could not complete sign-in. Please try again.",
+								}),
+							))
+					: i18n._(
+							msg({
+								message: "The sign-in link was incomplete. Please try again.",
+							}),
+						),
+			);
 		}
 		return;
 	}
+
+	console.log("[main] Processing deep link:", url);
 
 	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
 	const path = `/${url.split("://")[1]}`;
 	focusMainWindow();
 
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("deep-link-navigate", path);
-	}
+	const target = getFocusedOrLastWindow();
+	target?.webContents.send("deep-link-navigate", path);
 }
+
+browserManager.on("deep-link", (url: string) => {
+	void processDeepLink(url);
+});
 
 function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
 export function focusMainWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
+	const target = getFocusedOrLastWindow();
+	if (target) {
+		if (target.isMinimized()) {
+			target.restore();
 		}
-		mainWindow.show();
-		mainWindow.focus();
+		target.show();
+		target.focus();
 	} else {
 		// Triggers window creation via makeAppSetup's activate handler
 		app.emit("activate");
@@ -165,6 +231,10 @@ app.on("open-url", async (event, url) => {
 
 let isQuitting = false;
 let skipQuitConfirmation = false;
+// A second quit request while the confirmation is open would open a second
+// dialog on top of the first — the overlay close button on Linux makes that
+// easy to trigger.
+let quitConfirmationOpen = false;
 let forceFullCleanup = false;
 
 export function setSkipQuitConfirmation(): void {
@@ -188,6 +258,15 @@ export function exitImmediately(): void {
 	app.exit(0);
 }
 
+function getLanguageSetting(): string | null {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.language ?? null;
+	} catch {
+		return null;
+	}
+}
+
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -197,47 +276,71 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+// macOS keeps running without windows (dock and tray reopen it); elsewhere a
+// windowless app is an invisible process nothing brings back.
+app.on("window-all-closed", () => {
+	if (process.platform === "darwin") return;
+	// The last window's close already asked; with no window left there is
+	// nothing a cancelled confirmation could keep.
+	skipQuitConfirmation = true;
+	app.quit();
+});
+
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
 		event.preventDefault();
+		if (quitConfirmationOpen) return;
+		quitConfirmationOpen = true;
 
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
-				buttons: ["Quit", "Cancel"],
+				buttons: [
+					i18n._(msg({ message: "Quit" })),
+					i18n._(msg({ message: "Cancel" })),
+				],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
+				title: i18n._(msg({ message: "Quit Superset" })),
+				message: i18n._(
+					msg({
+						message: "Are you sure you want to quit?",
+					}),
+				),
 			});
 
+			quitConfirmationOpen = false;
 			if (response === 1) {
 				return;
 			}
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
+		quitConfirmationOpen = false;
 	}
 
 	isQuitting = true;
-	try {
-		getHostServiceCoordinator().stopAll();
-		if (isDev || forceFullCleanup) {
-			await teardownTerminalHost();
-		} else if (isUpdateReadyToInstall()) {
-			disposeTerminalHostClient();
-		}
-		shutdownTanstackDbPersistence();
-		disposeTray();
-	} catch (error) {
-		console.error("[main] Cleanup during quit failed:", error);
-	} finally {
-		await stopNetworkLogger();
-	}
-	app.exit(0);
+	// Local port-forward listeners hold no state worth draining; drop them so
+	// nothing keeps 127.0.0.1:<port> bound after the app is gone.
+	portForwardManager.stopAll();
+	// Snapshot all open windows (bounds + org) before they close, so relaunch
+	// restores them. markAppQuitting() stops per-window close handlers from
+	// shrinking the set as windows close one-by-one.
+	markAppQuitting();
+	persistOpenWindows();
+	await runQuitCleanup({
+		isDev,
+		forceFullCleanup,
+		isUpdateInstalling: isUpdateReadyToInstall(),
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		disposeTerminalHostClient,
+		disposeTray,
+		forceExit: (code) => app.exit(code),
+	});
 });
 
 /**
@@ -264,43 +367,27 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	let signalHandled = false;
-	const handleTerminationSignal = (signal: string) => {
-		if (signalHandled) return;
-		signalHandled = true;
-		console.log(`[main] Received ${signal}, quitting...`);
-		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([
-			teardownTerminalHost(),
-			stopNetworkLogger(),
-		]).finally(() => app.exit(0));
-	};
-
-	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
-	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
-
-	// Fallback: electron-vite may exit without signaling the child Electron process
-	const parentPid = process.ppid;
-	const isParentAlive = (): boolean => {
-		try {
-			process.kill(parentPid, 0);
-			return true;
-		} catch {
-			return false;
-		}
-	};
-
-	const parentCheckInterval = setInterval(() => {
-		if (!isParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
-			clearInterval(parentCheckInterval);
-			handleTerminationSignal("parent-exit");
-		}
-	}, 1000);
-	parentCheckInterval.unref();
+	installDevRunnerExit({
+		parentPid: process.ppid,
+		stdio: [process.stdout, process.stderr],
+		subscribeSignal: (signal, handler) => {
+			process.on(signal, handler);
+		},
+		markQuitting: () => {
+			isQuitting = true;
+		},
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		exit: (code) => app.exit(code),
+	});
 }
+
+// Chromium refuses to cache any single entry larger than about an eighth
+// of the disk cache, and the default cache is a few hundred MB — too
+// small for a video inside a page. 1 GiB lifts the per-entry cap to
+// roughly 128 MB.
+app.commandLine.appendSwitch("disk-cache-size", String(1024 * 1024 * 1024));
 
 protocol.registerSchemesAsPrivileged([
 	{
@@ -330,15 +417,40 @@ if (!gotTheLock) {
 } else {
 	// Windows/Linux: protocol URL arrives as argv on the second instance
 	app.on("second-instance", async (_event, argv) => {
-		focusMainWindow();
+		// An auto-update restart spawns the replacement while this process
+		// still holds the single-instance lock; don't build windows mid-quit.
+		if (isQuitting) return;
 		const url = findDeepLinkInArgv(argv);
 		if (url) {
+			// processDeepLink focuses the window on every one of its paths.
 			await processDeepLink(url);
+			return;
 		}
+		// The desktop entry's "New Window" action (GNOME top-bar/dock app
+		// menus) relaunches the executable with --new-window, and the
+		// single-instance lock lands it here. A plain relaunch keeps the
+		// Electron-standard behavior of focusing the running app, so a
+		// Start-menu or launcher re-click never stacks extra windows. The
+		// listener-count check covers the boot window before initAppServices
+		// registers the handler; falling back to focus matches pre-ready
+		// behavior instead of dropping the event silently.
+		if (
+			argv.includes("--new-window") &&
+			menuEmitter.listenerCount("new-window") > 0
+		) {
+			console.log("[main] Second instance requested a new window");
+			menuEmitter.emit("new-window");
+			return;
+		}
+		focusMainWindow();
 	});
 
 	(async () => {
 		await app.whenReady();
+		// Persisted language setting wins; otherwise infer from OS preferences
+		// (plans/20260826-i18n-strategy.md). Menus are built later in
+		// initAppServices/initTray, so a plain activate is enough here.
+		await initI18nAsync(resolveAppLocale(getLanguageSetting()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();
@@ -392,13 +504,9 @@ if (!gotTheLock) {
 		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
-		initTanstackDbPersistence();
 
-		try {
-			await startNetworkLogger();
-		} catch (error) {
-			console.error("[main] Failed to start network logger:", error);
-		}
+		sweepNetworkLogs();
+		sweepDevAppProfiles();
 
 		await loadWebviewBrowserExtension();
 
@@ -406,10 +514,87 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 
+		// Must be listening before any host-service spawns: the child learns the
+		// bridge endpoint/secret from its env, so a late bridge means browser
+		// control stays dark until the next respawn.
 		try {
-			setupAgentHooks();
+			await startBrowserBridge();
 		} catch (error) {
-			console.error("[main] Failed to set up agent hooks:", error);
+			console.error("[main] Failed to start browser bridge:", error);
+		}
+		downloadManager.start();
+
+		const hostServiceCoordinator = getHostServiceCoordinator();
+		hostServiceCoordinator.setConfigProvider(async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		});
+
+		// The authenticated session's cached membership is the source of truth.
+		// Host data on disk can outlive membership and must never resurrect an
+		// obsolete service. This cache keeps subsequent launches offline-capable.
+		let authGeneration = 0;
+		const reconcileHostServices = async (providedAuth?: {
+			token: string;
+			organizationIds: string[];
+		}) => {
+			const generation = authGeneration;
+			try {
+				const storedAuth = providedAuth ?? (await loadToken());
+				if (generation !== authGeneration) return;
+				if (!storedAuth.token || !storedAuth.organizationIds) return;
+				await hostServiceCoordinator.reconcile(storedAuth.organizationIds, {
+					authToken: storedAuth.token,
+					cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL,
+				});
+			} catch (error) {
+				console.error("[main] host-service reconcile failed:", error);
+			}
+		};
+		void reconcileHostServices();
+		// A new token can belong to a different account. Stop immediately and wait
+		// for that account's session membership before starting anything.
+		authEvents.on("token-saved", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on("token-cleared", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on(
+			"organization-ids-saved",
+			(data: { token: string; organizationIds: string[] }) => {
+				authGeneration++;
+				void reconcileHostServices(data);
+			},
+		);
+
+		try {
+			// The vite build copies @superset/agent-setup's templates (plus the
+			// bundled Claude plugin) next to this bundle; see vite/helpers.ts.
+			setAgentSetupTemplatesDir(path.join(__dirname, "templates"));
+			const settingsRow = localDb.select().from(settings).get();
+			const disabledAgentHooks = settingsRow?.disabledAgentHooks ?? [];
+			const disabledSkills = settingsRow?.disabledSkills ?? [];
+			// Mirror the disable lists so CLI-launched host-services on this
+			// machine honor them instead of re-provisioning disabled agents/skills.
+			writeSharedDisabledAgentIds(disabledAgentHooks);
+			writeSharedDisabledSkillIds(disabledSkills);
+			setupAgentIntegrations({
+				disabledAgentIds: disabledAgentHooks,
+				disabledSkillIds: disabledSkills,
+			});
+		} catch (error) {
+			console.error("[main] Failed to set up agent integrations:", error);
+		}
+		try {
+			// Converge agent MCP configs on the installed-plugin set, so
+			// installs/uninstalls that missed a mid-session sync land here.
+			syncInstalledPluginMcpServers();
+		} catch (error) {
+			console.error("[main] Failed to sync installed plugins:", error);
 		}
 		try {
 			installBundledCliShim();
@@ -418,14 +603,18 @@ if (!gotTheLock) {
 		}
 
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(async () => {
+			hostServiceCoordinator.enableDevReload(async () => {
 				const { token } = await loadToken();
 				if (!token) return null;
 				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
 			});
 		}
 
-		await makeAppSetup(() => MainWindow());
+		initAppServices();
+		await makeAppSetup(
+			() => createPlatformWindow({ orgId: null }),
+			restoreWindows,
+		);
 		setupAutoUpdater();
 		initTray();
 

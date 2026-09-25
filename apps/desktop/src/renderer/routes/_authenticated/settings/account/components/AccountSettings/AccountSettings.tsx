@@ -1,14 +1,28 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
+import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	getImageExtensionFromMimeType,
 	parseBase64DataUrl,
@@ -18,6 +32,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { LeaderboardSection } from "./components/LeaderboardSection";
 import { ProfileSkeleton } from "./components/ProfileSkeleton";
 
 interface AccountSettingsProps {
@@ -25,6 +40,7 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ visibleItems }: AccountSettingsProps) {
+	const { t } = useLingui();
 	const showProfile = isItemVisible(
 		SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		visibleItems,
@@ -33,24 +49,48 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		SETTING_ITEM_ID.ACCOUNT_SIGNOUT,
 		visibleItems,
 	);
+	const showDelete = isItemVisible(
+		SETTING_ITEM_ID.ACCOUNT_DELETE,
+		visibleItems,
+	);
+	const showLeaderboard = isItemVisible(
+		SETTING_ITEM_ID.ACCOUNT_LEADERBOARD,
+		visibleItems,
+	);
 
-	const { data: session } = authClient.useSession();
-	const currentUserId = session?.user?.id;
-	const collections = useCollections();
+	const {
+		data: session,
+		isPending,
+		refetch: refetchSession,
+	} = authClient.useSession();
+	const user = session?.user;
 
 	const [nameValue, setNameValue] = useState("");
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-	const { data: usersData, isReady } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
-
-	const user = usersData?.find((u) => u.id === currentUserId);
-
 	const signOut = useSignOut();
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	const selectImageMutation = electronTrpc.window.selectImageFile.useMutation();
+
+	async function handleDeleteAccount() {
+		setIsDeleting(true);
+		try {
+			await apiTrpcClient.user.deleteAccount.mutate();
+			await signOut();
+		} catch (error) {
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						message: "Failed to delete account",
+					}),
+				),
+			);
+		} finally {
+			setIsDeleting(false);
+		}
+	}
 
 	useEffect(() => {
 		if (!user) return;
@@ -75,9 +115,14 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			});
 
 			setAvatarPreview(uploadResult.url);
-			toast.success("Avatar updated!");
+			await refetchSession();
+			toast.success(t({ message: "Avatar updated!" }));
 		} catch {
-			toast.error("Failed to update avatar");
+			toast.error(
+				t({
+					message: "Failed to update avatar",
+				}),
+			);
 		}
 	}
 
@@ -91,9 +136,14 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 		try {
 			await apiTrpcClient.user.updateProfile.mutate({ name: nameValue });
-			toast.success("Name updated!");
+			await refetchSession();
+			toast.success(t({ message: "Name updated!" }));
 		} catch {
-			toast.error("Failed to update name");
+			toast.error(
+				t({
+					message: "Failed to update name",
+				}),
+			);
 			setNameValue(user.name ?? "");
 		}
 	}
@@ -101,25 +151,36 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Account</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans>Account</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Manage your account settings
+					<Trans>Manage your account settings</Trans>
 				</p>
 			</div>
 
 			<div className="space-y-3">
 				{showProfile &&
-					(!isReady && !user ? (
+					(isPending && !user ? (
 						<ProfileSkeleton />
 					) : user ? (
 						<>
-							<SettingRow label="Avatar" hint="Recommended size 256×256.">
+							<SettingRow
+								label={t({
+									message: "Avatar",
+								})}
+								hint={t({
+									message: "Recommended size 256×256.",
+								})}
+							>
 								<button
 									type="button"
 									onClick={handleAvatarUpload}
 									disabled={selectImageMutation.isPending}
 									className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
-									aria-label="Change avatar"
+									aria-label={t({
+										message: "Change avatar",
+									})}
 								>
 									<Avatar
 										size="xl"
@@ -129,17 +190,23 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								</button>
 							</SettingRow>
 
-							<SettingRow label="Name">
+							<SettingRow label={t({ message: "Name" })}>
 								<Input
 									value={nameValue}
 									onChange={(e) => setNameValue(e.target.value)}
 									onBlur={handleNameBlur}
-									placeholder="Your name"
+									placeholder={t({
+										message: "Your name",
+									})}
 									className="w-80"
 								/>
 							</SettingRow>
 
-							<SettingRow label="Email">
+							<SettingRow
+								label={t({
+									message: "Email",
+								})}
+							>
 								<Input
 									value={user.email}
 									readOnly
@@ -149,25 +216,87 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 						</>
 					) : (
 						<p className="text-sm text-muted-foreground">
-							Unable to load user info
+							<Trans>Unable to load user info</Trans>
 						</p>
 					))}
 
 				{showSignOut && (
 					<div className={showProfile ? "pt-5" : undefined}>
 						<SettingRow
-							label="Sign out of this device"
-							hint="You'll need to sign in again to use Superset on this device."
+							label={t({
+								message: "Sign out of this device",
+							})}
+							hint={t({
+								message:
+									"You'll need to sign in again to use Superset on this device.",
+							})}
 						>
 							<Button
 								variant="outline"
 								onClick={async () => {
 									await signOut();
-									toast.success("Signed out");
+									toast.success(
+										t({
+											message: "Signed out",
+										}),
+									);
 								}}
 							>
-								Sign out
+								<Trans>Sign out</Trans>
 							</Button>
+						</SettingRow>
+					</div>
+				)}
+
+				{showLeaderboard && (
+					<div className="pt-5">
+						<LeaderboardSection />
+					</div>
+				)}
+
+				{showDelete && (
+					<div className="pt-5">
+						<SettingRow
+							label={t({
+								message: "Delete account",
+							})}
+						>
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button variant="destructive" disabled={isDeleting}>
+										{isDeleting ? (
+											<Trans>Deleting…</Trans>
+										) : (
+											<Trans>Delete account</Trans>
+										)}
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>
+											<Trans>Delete account?</Trans>
+										</AlertDialogTitle>
+										<AlertDialogDescription>
+											<Trans>
+												All of your data will be permanently deleted after{" "}
+												{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before
+												then to restore your account.
+											</Trans>
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel>
+											<Trans>Cancel</Trans>
+										</AlertDialogCancel>
+										<AlertDialogAction
+											variant="destructive"
+											onClick={handleDeleteAccount}
+										>
+											<Trans>Delete account</Trans>
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
 						</SettingRow>
 					</div>
 				)}
@@ -183,12 +312,18 @@ interface SettingRowProps {
 }
 
 function SettingRow({ label, hint, children }: SettingRowProps) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="flex items-center justify-between gap-8">
 			<div className="flex-1 min-w-0">
-				<div className="text-sm font-medium">{label}</div>
+				<div className="text-sm font-medium">
+					<HighlightText text={label} query={searchQuery} />
+				</div>
 				{hint && (
-					<div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+					<div className="text-xs text-muted-foreground mt-0.5">
+						<HighlightText text={hint} query={searchQuery} />
+					</div>
 				)}
 			</div>
 			<div className="flex-shrink-0">{children}</div>

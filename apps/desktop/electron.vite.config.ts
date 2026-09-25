@@ -3,7 +3,6 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
-import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
@@ -15,6 +14,7 @@ import {
 	defineEnv,
 	devPath,
 	htmlEnvTransformPlugin,
+	linguiMacroPlugin,
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
@@ -43,9 +43,25 @@ const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
 		})
 	: null;
 
+// host-service runs as a child process reporting to its own Sentry project,
+// and sourcemap lookup is per-project — its bundles must also be uploaded
+// there or host-service stacks stay unsymbolicated. Debug IDs are derived
+// from file content, so the double injection with sentryPlugin is identical.
+const hostServiceSentryPlugin = process.env.SENTRY_AUTH_TOKEN
+	? sentryVitePlugin({
+			org: "superset-sh",
+			project: "host-service",
+			authToken: process.env.SENTRY_AUTH_TOKEN,
+			release: { name: version },
+			sourcemaps: {
+				assets: ["**/host-service.js*", "**/host-worker.js*"],
+			},
+		})
+	: null;
+
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, copyResourcesPlugin()],
+		plugins: [tsconfigPaths, linguiMacroPlugin(), copyResourcesPlugin()],
 
 		define: {
 			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),
@@ -73,10 +89,18 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
+			),
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
+				process.env.SENTRY_DSN_HOST_SERVICE,
+			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			// Must match renderer for analytics in main process
 			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
@@ -92,7 +116,6 @@ export default defineConfig({
 			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
 				process.env.DESKTOP_NOTIFICATIONS_PORT,
 			),
-			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
 			),
@@ -114,12 +137,15 @@ export default defineConfig({
 					// pty-daemon - long-lived per-org Unix-socket server that owns PTYs.
 					// Spawned by PtyDaemonCoordinator; survives host-service restarts.
 					"pty-daemon": resolve("src/main/pty-daemon/index.ts"),
+					// host-service worker thread — emitted side-by-side with
+					// host-service.js so the pool's script resolution finds it.
+					"host-worker": resolve("src/main/host-worker/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
 				},
 				external: ["electron", ...mainExternalizedDependencies],
-				plugins: [sentryPlugin].filter(Boolean),
+				plugins: [sentryPlugin, hostServiceSentryPlugin].filter(Boolean),
 			},
 		},
 		resolve: {
@@ -182,13 +208,13 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_MARKETING_URL,
 				"https://superset.sh",
 			),
-			"process.env.NEXT_PUBLIC_ELECTRIC_URL": defineEnv(
-				process.env.NEXT_PUBLIC_ELECTRIC_URL,
-				"https://electric-proxy.avi-6ac.workers.dev",
-			),
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
 			),
 			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
@@ -201,6 +227,7 @@ export default defineConfig({
 				process.env.SENTRY_DSN_DESKTOP,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
+			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
 				"https://superset-stream.fly.dev",
@@ -209,7 +236,6 @@ export default defineConfig({
 			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
 				process.env.DESKTOP_NOTIFICATIONS_PORT,
 			),
-			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
 			),
@@ -233,13 +259,10 @@ export default defineConfig({
 			}),
 			tsconfigPaths,
 			tailwindcss(),
-			codeInspectorPlugin({
-				bundler: "vite",
-				hotKeys: ["altKey"],
-				hideConsole: true,
-				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
+			reactPlugin({
+				// Compiles @lingui/react/macro (Trans, useLingui) at build time.
+				babel: { plugins: ["@lingui/babel-plugin-lingui-macro"] },
 			}),
-			reactPlugin(),
 			htmlEnvTransformPlugin(),
 		],
 

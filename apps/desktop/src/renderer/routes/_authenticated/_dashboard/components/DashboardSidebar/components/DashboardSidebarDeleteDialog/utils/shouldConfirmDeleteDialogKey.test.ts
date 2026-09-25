@@ -14,6 +14,12 @@ describe("shouldConfirmDeleteDialogKey", () => {
 		expect(shouldConfirmDeleteDialogKey(plainEnter)).toBe(true);
 	});
 
+	test("rejects a held (auto-repeating) Enter", () => {
+		expect(shouldConfirmDeleteDialogKey({ ...plainEnter, repeat: true })).toBe(
+			false,
+		);
+	});
+
 	test("rejects modified Enter", () => {
 		expect(shouldConfirmDeleteDialogKey({ ...plainEnter, metaKey: true })).toBe(
 			false,

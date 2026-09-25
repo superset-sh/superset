@@ -1,16 +1,20 @@
+import { Trans } from "@lingui/react/macro";
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import {
 	DEV_EMAIL,
 	DEV_NAME,
 	DEV_PASSWORD,
 } from "@superset/shared/dev-credentials";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { track } from "renderer/lib/analytics";
 import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -22,6 +26,10 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+const workspaceRedirect = <Redirect to="/workspace" replace />;
+
+const SESSION_PENDING_TIMEOUT_MS = 15_000;
 
 type AuthMethod = AuthProvider | "dev";
 
@@ -40,14 +48,20 @@ function SignInPage() {
 	const [devError, setDevError] = useState<string | null>(null);
 	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	// A session fetch that never settles must not trap the user on a spinner —
+	// fall through to the sign-in buttons after a while (#5729).
+	const pendingTimedOut = useDelayElapsed(
+		isPending,
+		SESSION_PENDING_TIMEOUT_MS,
+	);
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	// Show loading while session is being fetched
-	if (isPending) {
+	if (isPending && !pendingTimedOut) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
 				<Spinner className="size-8" />
@@ -57,7 +71,7 @@ function SignInPage() {
 
 	// If already signed in, redirect to workspace
 	if (session?.user) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	const rememberLastUsedMethod = (method: AuthMethod) => {
@@ -134,9 +148,9 @@ function SignInPage() {
 	};
 
 	const lastUsedBadge = (
-		<span className="absolute right-3 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-			Last used
-		</span>
+		<Badge variant="secondary">
+			<Trans>Last used</Trans>
+		</Badge>
 	);
 
 	return (
@@ -151,12 +165,14 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							Welcome to Superset
+							<Trans>Welcome to Superset</Trans>
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							{hasLocalToken
-								? "Restoring your session"
-								: "Sign in to get started"}
+							{hasLocalToken ? (
+								<Trans>Restoring your session</Trans>
+							) : (
+								<Trans>Sign in to get started</Trans>
+							)}
 						</p>
 					</div>
 
@@ -166,7 +182,7 @@ function SignInPage() {
 								variant="outline"
 								size="lg"
 								onClick={signInAsDev}
-								className="relative w-full gap-3"
+								className="w-full gap-3"
 								disabled={isLoadingDev}
 							>
 								{isLoadingDev
@@ -184,11 +200,11 @@ function SignInPage() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("github")}
-							className="relative w-full gap-3"
+							className="w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
-							Continue with GitHub
+							<Trans>Continue with GitHub</Trans>
 							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
@@ -196,34 +212,36 @@ function SignInPage() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("google")}
-							className="relative w-full gap-3"
+							className="w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />
-							Continue with Google
+							<Trans>Continue with Google</Trans>
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
-						By signing in, you agree to our{" "}
-						<a
-							href={COMPANY.TERMS_URL}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="underline hover:text-muted-foreground transition-colors"
-						>
-							Terms of Service
-						</a>{" "}
-						and{" "}
-						<a
-							href={COMPANY.PRIVACY_URL}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="underline hover:text-muted-foreground transition-colors"
-						>
-							Privacy Policy
-						</a>
+						<Trans>
+							By signing in, you agree to our{" "}
+							<a
+								href={COMPANY.TERMS_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline hover:text-muted-foreground transition-colors"
+							>
+								Terms of Service
+							</a>{" "}
+							and{" "}
+							<a
+								href={COMPANY.PRIVACY_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline hover:text-muted-foreground transition-colors"
+							>
+								Privacy Policy
+							</a>
+						</Trans>
 					</p>
 				</div>
 			</div>

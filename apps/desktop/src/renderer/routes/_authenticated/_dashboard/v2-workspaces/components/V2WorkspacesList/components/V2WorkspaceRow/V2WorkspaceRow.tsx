@@ -1,455 +1,269 @@
-import { Button } from "@superset/ui/button";
-import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuSeparator,
-	ContextMenuTrigger,
-} from "@superset/ui/context-menu";
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@superset/ui/hover-card";
-import { toast } from "@superset/ui/sonner";
-import { TableCell, TableRow } from "@superset/ui/table";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useFormat } from "@superset/i18n/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { memo } from "react";
 import { CgLaptop } from "react-icons/cg";
-import {
-	LuArrowUpRight,
-	LuCircleCheck,
-	LuCircleDashed,
-	LuCircleX,
-	LuGitBranch,
-	LuLaptop,
-	LuMonitor,
-	LuTrash2,
-} from "react-icons/lu";
-import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
-import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
-import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { LuLaptop, LuMonitor } from "react-icons/lu";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";
-import type {
-	AccessibleV2Workspace,
-	V2WorkspaceHostType,
-	V2WorkspacePrSummary,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
+import { WorkspaceStateGlyph } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/WorkspaceStateGlyph";
+import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import { workspaceActivityAt } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 
 interface V2WorkspaceRowProps {
 	workspace: AccessibleV2Workspace;
 	isCurrentRoute: boolean;
 }
 
-function hostIconFor(hostType: V2WorkspaceHostType) {
-	return hostType === "local-device" ? LuLaptop : LuMonitor;
+/** 181909 → "181.9k" — keeps outlier churn from blowing out the stats slot. */
+function formatCount(count: number): string {
+	if (count < 10_000) return String(count);
+	return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
 }
 
-export function V2WorkspaceRow({
+// Memoized: filter/sort changes re-render the whole list, and at hundreds of
+// rows (each carrying a context menu, marquee, and tooltips) that costs
+// hundreds of ms per menu-checkbox toggle. Workspace object identities are
+// stable across those changes, so unchanged rows must skip.
+export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	workspace,
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
+	const { formatDateTime } = useFormat();
+
+	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { gateFeature } = usePaywall();
-	const {
-		ensureWorkspaceInSidebar,
-		removeWorkspaceFromSidebar,
-		hideWorkspaceInSidebar,
-	} = useDashboardSidebarState();
-	const { copyToClipboard } = useCopyToClipboard();
-	const isMainWorkspace = workspace.type === "main";
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const { isDeleting } = useDeletingWorkspaces();
-	const deleting = isDeleting(workspace.id);
-
-	const HostIcon = hostIconFor(workspace.hostType);
-
-	const treatAsOffline =
+	const isLocalWorkspace = workspace.type === "local";
+	const DeviceIcon =
+		workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
+	// The local device is the one running this app — it can't be offline from
+	// its own point of view, whatever presence says.
+	const isDeviceOffline =
 		!workspace.hostIsOnline && workspace.hostType !== "local-device";
-
-	const handleOpen = useCallback(() => {
-		const open = () => navigateToV2Workspace(workspace.id, navigate);
-		if (workspace.hostType === "local-device") {
-			open();
-			return;
-		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, open);
-	}, [gateFeature, navigate, workspace.hostType, workspace.id]);
-
-	const addToSidebar = useCallback(() => {
-		const add = () =>
-			ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
-		if (workspace.hostType === "local-device") {
-			add();
-			return;
-		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, add);
-	}, [
-		ensureWorkspaceInSidebar,
-		gateFeature,
-		workspace.hostType,
-		workspace.id,
-		workspace.projectId,
-	]);
-
-	const removeFromSidebar = useCallback(() => {
-		if (isCurrentRoute) return;
-		// Unpin directly (synchronous optimistic write) rather than routing
-		// through the intent store + RemoveFromSidebarMount effect, which adds
-		// an extra render cycle of latency. The list view is never a workspace
-		// route, so there's no active workspace to navigate away from.
-		//
-		// Always hide (keep the row with isHidden) rather than delete: the
-		// auto-add-local-workspaces hook treats a missing v2WorkspaceLocalState
-		// row as never-seen and would re-pin it. The tombstone row preserves the
-		// unpin intent.
-		hideWorkspaceInSidebar(workspace.id, workspace.projectId);
-	}, [
-		isCurrentRoute,
-		hideWorkspaceInSidebar,
-		workspace.id,
-		workspace.projectId,
-	]);
-
-	const handleCopyBranchName = useCallback(async () => {
-		try {
-			await copyToClipboard(workspace.branch);
-			toast.success("Branch name copied");
-		} catch (error) {
-			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
-		}
-	}, [copyToClipboard, workspace.branch]);
-
-	const handleDeleteClick = useCallback((event: React.MouseEvent) => {
-		event.stopPropagation();
-		setIsDeleteDialogOpen(true);
-	}, []);
-
-	const handleDeleted = useCallback(() => {
-		removeWorkspaceFromSidebar(workspace.id);
-	}, [removeWorkspaceFromSidebar, workspace.id]);
+	// Drives the name's hover-reveal for keyboard users: the row, not the
+	// name span, is what's actually tabbable.
+	const {
+		isFocusVisible: isFocused,
+		onFocus: handleRowFocus,
+		onBlur: handleRowBlur,
+	} = useFocusVisible();
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
-		? "you"
-		: (workspace.createdByName ?? "unknown");
+		? t({ message: "you" })
+		: workspace.createdByName;
 
-	const timeLabel = getRelativeTime(workspace.createdAt.getTime(), {
+	// The visible age tracks activity (matches the default sort); creation
+	// and last-agent-event details live in the tooltip.
+	const timeLabel = getRelativeTime(workspaceActivityAt(workspace), {
 		format: "compact",
 	});
+	const createdAtLabel = formatDateTime(workspace.createdAt, undefined);
+	const timeTitle = [
+		creatorLabel
+			? t({
+					message: `Created ${createdAtLabel} by ${creatorLabel}`,
+				})
+			: t({
+					message: `Created ${createdAtLabel}`,
+				}),
+		workspace.lastAgentEventAt
+			? t({
+					message: `Last agent activity ${formatDateTime(new Date(workspace.lastAgentEventAt), undefined)}`,
+				})
+			: null,
+	]
+		.filter(Boolean)
+		.join("\n");
 
-	const handleRowKeyDown = useCallback(
-		(event: React.KeyboardEvent<HTMLTableRowElement>) => {
-			if (event.target !== event.currentTarget) return;
-			if (event.key === "Enter" || event.key === " ") {
-				event.preventDefault();
-				handleOpen();
-			}
-		},
-		[handleOpen],
-	);
-
-	const hostCell = (
-		<span
-			className={cn(
-				"flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",
-				treatAsOffline && "text-muted-foreground/60",
-			)}
-			title={workspace.hostName}
-		>
-			<HostIcon className="size-3 shrink-0" />
-			<span className="min-w-0 truncate">{workspace.hostName}</span>
-			{treatAsOffline ? (
-				<span
-					aria-hidden
-					className="inline-block size-1.5 shrink-0 rounded-full bg-muted-foreground/40"
-				/>
-			) : null}
-		</span>
-	);
+	// PR, branch, and project no longer get their own persistent slot in the
+	// row — the list was trying to be a table and reads noisy for it. They're
+	// still one hover away instead of gone outright.
+	const rowTitle = [
+		workspace.pr
+			? t({
+					message: `PR #${workspace.pr.prNumber} (${workspace.pr.state})`,
+				})
+			: null,
+		workspace.type !== "session" &&
+		workspace.branch.toLowerCase() !== workspace.name.toLowerCase()
+			? t({
+					message: `Branch: ${workspace.branch}`,
+				})
+			: null,
+		t({
+			message: `Project: ${
+				workspace.projectName ??
+				t({
+					message: "none (session)",
+				})
+			}`,
+		}),
+	]
+		.filter(Boolean)
+		.join("\n");
 
 	return (
-		<>
-			<ContextMenu>
-				<ContextMenuTrigger asChild>
-					<TableRow
-						aria-current={isCurrentRoute ? "page" : undefined}
-						aria-busy={deleting}
-						tabIndex={deleting ? -1 : 0}
-						onClick={handleOpen}
-						onKeyDown={handleRowKeyDown}
-						className={cn(
-							"group/row border-border/50 text-sm outline-none",
-							"cursor-pointer transition-colors",
-							"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
-							isCurrentRoute
-								? "bg-muted hover:bg-muted focus-visible:bg-muted"
-								: "hover:bg-accent/50 focus-visible:bg-accent/50",
-							deleting && "pointer-events-none opacity-50",
-						)}
-					>
-						<TableCell className="py-1.5 pl-6">
-							<div className="flex items-center justify-center">
-								{workspace.isInSidebar ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={(event) => {
-													event.stopPropagation();
-													removeFromSidebar();
-												}}
-												aria-disabled={isCurrentRoute}
-												aria-pressed
-												aria-label="Unpin from sidebar"
-												className={cn(
-													"size-7 text-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent",
-													isCurrentRoute && "cursor-not-allowed opacity-50",
-												)}
-											>
-												<RiPushpinFill className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="right">
-											{isCurrentRoute
-												? "Can't unpin the current workspace"
-												: "Unpin from sidebar"}
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={(event) => {
-													event.stopPropagation();
-													addToSidebar();
-												}}
-												aria-pressed={false}
-												aria-label="Pin to sidebar"
-												className="size-7 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
-											>
-												<RiPushpinLine className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="right">Pin to sidebar</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
-						</TableCell>
-
-						<TableCell className="py-1.5">
-							<span className="flex min-w-0 items-center gap-2">
-								{isMainWorkspace ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<CgLaptop
-												className="size-3.5 shrink-0 text-muted-foreground"
-												aria-label="Main workspace"
-											/>
-										</TooltipTrigger>
-										<TooltipContent side="top">Main workspace</TooltipContent>
-									</Tooltip>
-								) : null}
-								<span
-									className="min-w-0 truncate font-medium text-foreground"
-									title={workspace.name}
-								>
-									{workspace.name}
-								</span>
-								{workspace.pr ? (
-									<WorkspacePrPill
-										pr={workspace.pr}
-										branch={workspace.branch}
-									/>
-								) : null}
-							</span>
-						</TableCell>
-
-						<TableCell className="hidden py-1.5 md:table-cell">
-							{treatAsOffline ? (
-								<Tooltip delayDuration={300}>
-									<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
-									<TooltipContent side="top">Host is offline</TooltipContent>
-								</Tooltip>
-							) : (
-								hostCell
-							)}
-						</TableCell>
-
-						<TableCell className="hidden py-1.5 lg:table-cell">
-							<span
-								className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
-								title={workspace.branch}
-							>
-								<LuGitBranch className="size-3 shrink-0" />
-								<span className="min-w-0 truncate font-mono text-[11px]">
-									{workspace.branch}
-								</span>
-							</span>
-						</TableCell>
-
-						<TableCell
-							className="hidden truncate py-1.5 text-xs tabular-nums text-muted-foreground xl:table-cell"
-							title={`Created ${workspace.createdAt.toLocaleString()} by ${creatorLabel}`}
-						>
-							{timeLabel} · {creatorLabel}
-						</TableCell>
-
-						<TableCell className="py-1.5 pr-6">
-							<div className="flex items-center justify-center">
-								{deleting ? (
-									<AsciiSpinner />
-								) : !isMainWorkspace ? (
-									<Button
-										size="icon"
-										variant="ghost"
-										onClick={handleDeleteClick}
-										aria-label="Delete workspace"
-										className="size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-transparent hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100 dark:hover:bg-transparent"
-									>
-										<LuTrash2 className="size-3.5" />
-									</Button>
-								) : null}
-							</div>
-						</TableCell>
-					</TableRow>
-				</ContextMenuTrigger>
-				<ContextMenuContent
-					onCloseAutoFocus={(event) => event.preventDefault()}
-				>
-					<ContextMenuItem onSelect={handleOpen}>
-						<LuArrowUpRight className="size-4" />
-						Open
-					</ContextMenuItem>
-					<ContextMenuItem onSelect={handleCopyBranchName}>
-						<LuGitBranch className="size-4" />
-						Copy Branch Name
-					</ContextMenuItem>
-					<ContextMenuSeparator />
-					{workspace.isInSidebar ? (
-						<ContextMenuItem
-							onSelect={removeFromSidebar}
-							disabled={isCurrentRoute}
-						>
-							<RiPushpinLine className="size-4" />
-							Unpin from Sidebar
-						</ContextMenuItem>
-					) : (
-						<ContextMenuItem onSelect={addToSidebar}>
-							<RiPushpinFill className="size-4" />
-							Pin to Sidebar
-						</ContextMenuItem>
+		<V2WorkspaceContextMenu
+			workspace={workspace}
+			isCurrentRoute={isCurrentRoute}
+		>
+			{(actions) => (
+				// biome-ignore lint/a11y/useSemanticElements: The row contains nested action buttons, so it cannot be a native button.
+				<div
+					role="button"
+					aria-current={isCurrentRoute ? "page" : undefined}
+					tabIndex={0}
+					onClick={actions.open}
+					onKeyDown={(event) => {
+						if (event.target !== event.currentTarget) return;
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							actions.open();
+						}
+					}}
+					onFocus={handleRowFocus}
+					onBlur={handleRowBlur}
+					title={rowTitle}
+					className={cn(
+						"flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-3 text-sm outline-none transition-colors",
+						"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+						isCurrentRoute
+							? "bg-muted hover:bg-muted focus-visible:bg-muted"
+							: "hover:bg-accent/50 focus-visible:bg-accent/50",
 					)}
-					{!isMainWorkspace ? (
-						<>
-							<ContextMenuSeparator />
-							<ContextMenuItem
-								onSelect={() => setIsDeleteDialogOpen(true)}
-								className="text-destructive focus:text-destructive"
-							>
-								<LuTrash2 className="size-4 text-destructive" />
-								Delete
-							</ContextMenuItem>
-						</>
-					) : null}
-				</ContextMenuContent>
-			</ContextMenu>
-			{/* Mount the dialog (and its per-workspace live-query subscription) only
-			    while it's open or a delete is in flight — not idle for every row.
-			    `|| deleting` keeps it mounted through the destroy so a
-			    teardown-failure can re-open it to offer force-delete. */}
-			{!isMainWorkspace && (isDeleteDialogOpen || deleting) ? (
-				<DashboardSidebarDeleteDialog
-					workspaceId={workspace.id}
-					workspaceName={workspace.name || workspace.branch}
-					open={isDeleteDialogOpen}
-					onOpenChange={setIsDeleteDialogOpen}
-					onDeleted={handleDeleted}
-				/>
-			) : null}
-		</>
-	);
-}
-
-interface WorkspacePrPillProps {
-	pr: V2WorkspacePrSummary;
-	branch: string;
-}
-
-function WorkspacePrPill({ pr, branch }: WorkspacePrPillProps) {
-	return (
-		<HoverCard openDelay={200} closeDelay={120}>
-			<HoverCardTrigger asChild>
-				<a
-					href={pr.url}
-					target="_blank"
-					rel="noreferrer"
-					onClick={(event) => event.stopPropagation()}
-					className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				>
-					<PRIcon state={pr.state} className="size-3" />
-					<span className="tabular-nums">#{pr.prNumber}</span>
-					<ChecksDot status={pr.checksStatus} />
-				</a>
-			</HoverCardTrigger>
-			<HoverCardContent
-				side="top"
-				align="start"
-				className="w-80 p-3"
-				onClick={(event) => event.stopPropagation()}
-			>
-				<V2WorkspacePrHoverCardContent pr={pr} branch={branch} />
-			</HoverCardContent>
-		</HoverCard>
+					<WorkspaceStateGlyph workspace={workspace} />
+
+					{isLocalWorkspace ? (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								{/* The wrapping span (not the icon itself — react-icons
+								    treats a `title` prop as an SVG <title> child, not an
+								    HTML attribute, so it can't block inheritance) carries
+								    an empty title to stop it from inheriting the row's
+								    title (PR/branch/project); without it, hovering this
+								    icon fires both the native tooltip and this Radix one
+								    at once. */}
+								<span title="">
+									<CgLaptop
+										className="size-3.5 shrink-0 text-muted-foreground"
+										aria-label={t({
+											message: "Local workspace",
+										})}
+									/>
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="top">
+								<Trans>Local workspace</Trans>
+							</TooltipContent>
+						</Tooltip>
+					) : null}
+
+					<WorkspaceNameMarquee
+						name={workspace.name}
+						forceActive={isFocused}
+						className={cn(
+							"min-w-0 flex-1 font-medium",
+							// Done states recede so live work owns the contrast.
+							workspace.archivedAt != null || workspace.pr?.state === "merged"
+								? "text-muted-foreground"
+								: "text-foreground",
+						)}
+					/>
+
+					{workspace.pr ? (
+						<button
+							type="button"
+							onClick={(event) => {
+								event.stopPropagation();
+								if (!workspace.pr) return;
+								// Opens the PR pane inside the workspace instead of GitHub.
+								const ref = pullRequestRefFromUrl(workspace.pr.url);
+								if (!ref) {
+									window.open(workspace.pr.url, "_blank");
+									return;
+								}
+								usePullRequestPaneIntent.getState().request({
+									workspaceId: workspace.id,
+									...ref,
+								});
+								void navigateToV2Workspace(workspace.id, navigate);
+							}}
+							aria-label={t({
+								message: `Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`,
+							})}
+							className="shrink-0"
+						>
+							<PRIcon state={workspace.pr.state} className="size-3.5" />
+						</button>
+					) : null}
+
+					{workspace.diffStats &&
+					(workspace.diffStats.additions > 0 ||
+						workspace.diffStats.deletions > 0) ? (
+						<span
+							className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums leading-none @max-lg:hidden"
+							title={t({
+								message: plural(workspace.diffStats.fileCount, {
+									one: "# changed file",
+									other: "# changed files",
+								}),
+							})}
+						>
+							<span className="text-emerald-600/80 dark:text-emerald-400/70">
+								+{formatCount(workspace.diffStats.additions)}
+							</span>
+							<span className="text-red-600/80 dark:text-red-400/70">
+								−{formatCount(workspace.diffStats.deletions)}
+							</span>
+						</span>
+					) : null}
+
+					<span
+						className={cn(
+							"flex max-w-36 shrink-0 items-center gap-1.5 text-xs text-muted-foreground",
+							isDeviceOffline && "text-muted-foreground/60",
+						)}
+						title={workspace.hostName}
+					>
+						<DeviceIcon className="size-3 shrink-0" />
+						{/* Narrow panes keep the glyph; sr-only (not hidden) so screen
+						    readers still hear the device name when the text is gone. */}
+						<span className="min-w-0 truncate @max-2xl:sr-only">
+							{workspace.hostName}
+						</span>
+						{isDeviceOffline ? (
+							<>
+								<span
+									aria-hidden
+									className="inline-block size-1.5 shrink-0 rounded-full bg-muted-foreground/40"
+								/>
+								{/* The dot is the only visual offline cue; screen readers
+								    need the word. */}
+								<span className="sr-only">
+									<Trans>Offline</Trans>
+								</span>
+							</>
+						) : null}
+					</span>
+
+					<span
+						className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+						title={timeTitle}
+					>
+						{timeLabel}
+					</span>
+				</div>
+			)}
+		</V2WorkspaceContextMenu>
 	);
-}
-
-interface ChecksDotProps {
-	status: V2WorkspacePrSummary["checksStatus"];
-}
-
-function ChecksDot({ status }: ChecksDotProps) {
-	if (status === "none") return null;
-	if (status === "pending") {
-		return <LuCircleDashed className="size-3 text-amber-500" />;
-	}
-	if (status === "success") {
-		return <LuCircleCheck className="size-3 text-emerald-500" />;
-	}
-	return <LuCircleX className="size-3 text-red-500" />;
-}
-
-const ASCII_SPINNER_FRAMES = ["◰", "◳", "◲", "◱"];
-const ASCII_SPINNER_INTERVAL_MS = 120;
-
-function AsciiSpinner() {
-	const [frame, setFrame] = useState(0);
-
-	useEffect(() => {
-		const id = setInterval(() => {
-			setFrame((prev) => (prev + 1) % ASCII_SPINNER_FRAMES.length);
-		}, ASCII_SPINNER_INTERVAL_MS);
-		return () => clearInterval(id);
-	}, []);
-
-	return (
-		<output
-			aria-label="Deleting workspace"
-			className="select-none font-mono text-base leading-none tabular-nums text-muted-foreground"
-		>
-			{ASCII_SPINNER_FRAMES[frame]}
-		</output>
-	);
-}
+});

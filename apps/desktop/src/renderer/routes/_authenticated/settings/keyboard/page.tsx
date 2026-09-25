@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -27,6 +29,8 @@ import {
 	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",
@@ -46,12 +50,13 @@ function HotkeyRow({
 	onReset,
 }: {
 	id: HotkeyId;
-	label: string;
-	description?: string;
+	label: MessageDescriptor;
+	description?: MessageDescriptor;
 	isRecording: boolean;
 	onStartRecording: () => void;
 	onReset: () => void;
 }) {
+	const { i18n } = useLingui();
 	const { keys } = useHotkeyDisplay(id);
 
 	return (
@@ -62,9 +67,11 @@ function HotkeyRow({
 			)}
 		>
 			<div className="flex flex-col">
-				<span className="text-sm text-foreground">{label}</span>
+				<span className="text-sm text-foreground">{i18n._(label)}</span>
 				{description && (
-					<span className="text-xs text-muted-foreground">{description}</span>
+					<span className="text-xs text-muted-foreground">
+						{i18n._(description)}
+					</span>
 				)}
 			</div>
 			<div className="flex items-center gap-2">
@@ -79,7 +86,9 @@ function HotkeyRow({
 					)}
 				>
 					{isRecording ? (
-						<span>Press a key…</span>
+						<span>
+							<Trans>Press a key…</Trans>
+						</span>
 					) : (
 						<KbdGroup>
 							{keys.map((key) => (
@@ -89,7 +98,7 @@ function HotkeyRow({
 					)}
 				</button>
 				<Button variant="ghost" size="sm" onClick={onReset}>
-					Reset
+					<Trans>Reset</Trans>
 				</Button>
 			</div>
 		</div>
@@ -102,11 +111,19 @@ export const Route = createFileRoute("/_authenticated/settings/keyboard/")({
 
 function getHotkeysByCategory(): Record<
 	HotkeyCategory,
-	Array<{ id: HotkeyId; label: string; description?: string }>
+	Array<{
+		id: HotkeyId;
+		label: MessageDescriptor;
+		description?: MessageDescriptor;
+	}>
 > {
 	const grouped: Record<
 		HotkeyCategory,
-		Array<{ id: HotkeyId; label: string; description?: string }>
+		Array<{
+			id: HotkeyId;
+			label: MessageDescriptor;
+			description?: MessageDescriptor;
+		}>
 	> = {
 		Navigation: [],
 		Workspace: [],
@@ -128,6 +145,8 @@ function getHotkeysByCategory(): Record<
 const hotkeysByCategory = getHotkeysByCategory();
 
 function KeyboardShortcutsPage() {
+	const { t, i18n } = useLingui();
+	const settingsSearchQuery = useSettingsSearchQuery();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
@@ -178,11 +197,11 @@ function KeyboardShortcutsPage() {
 			CATEGORY_ORDER.map((category) => [
 				category,
 				(hotkeysByCategory[category] ?? []).filter((hotkey) =>
-					hotkey.label.toLowerCase().includes(lower),
+					t(hotkey.label).toLowerCase().includes(lower),
 				),
 			]),
 		) as typeof hotkeysByCategory;
-	}, [searchQuery]);
+	}, [searchQuery, t]);
 
 	const handleStartRecording = (id: HotkeyId) => {
 		setRecordingId((current) => (current === id ? null : id));
@@ -197,20 +216,44 @@ function KeyboardShortcutsPage() {
 
 	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
 
+	const categoryLabels: Record<HotkeyCategory, string> = {
+		Navigation: t({
+			message: "Navigation",
+		}),
+		Workspace: t({
+			message: "Workspace",
+		}),
+		Terminal: t({
+			message: "Terminal",
+		}),
+		Layout: t({ message: "Layout" }),
+		Window: t({ message: "Window" }),
+		Help: t({ message: "Help" }),
+	};
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			{/* Header */}
 			<div className="mb-6 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Keyboard shortcuts</h2>
+					<h2 className="text-xl font-semibold">
+						<HighlightText
+							text={t({
+								message: "Keyboard shortcuts",
+							})}
+							query={settingsSearchQuery}
+						/>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Customize keyboard shortcuts for your workflow. Press{" "}
-						<KbdGroup>
-							{showHotkeysKeys.map((key) => (
-								<Kbd key={key}>{key}</Kbd>
-							))}
-						</KbdGroup>{" "}
-						to open this page anytime.
+						<Trans>
+							Customize keyboard shortcuts for your workflow. Press{" "}
+							<KbdGroup>
+								{showHotkeysKeys.map((key) => (
+									<Kbd key={key}>{key}</Kbd>
+								))}
+							</KbdGroup>{" "}
+							to open this page anytime.
+						</Trans>
 					</p>
 				</div>
 				<Button
@@ -221,7 +264,7 @@ function KeyboardShortcutsPage() {
 						resetAll();
 					}}
 				>
-					Reset all
+					<Trans>Reset all</Trans>
 				</Button>
 			</div>
 
@@ -229,13 +272,15 @@ function KeyboardShortcutsPage() {
 			<div className="mb-8 flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
-						Adaptive layout mapping
+						<Trans>Adaptive layout mapping</Trans>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
-						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
-						shortcuts are anchored to physical key positions and ignore the
-						current input source.
+						<Trans>
+							Match shortcuts to the labels on your keyboard (e.g. ⌘Z always
+							fires on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+							shortcuts are anchored to physical key positions and ignore the
+							current input source.
+						</Trans>
 					</p>
 				</div>
 				<Switch
@@ -250,7 +295,9 @@ function KeyboardShortcutsPage() {
 				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 				<Input
 					type="text"
-					placeholder="Search"
+					placeholder={t({
+						message: "Search",
+					})}
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					className="pl-9 bg-accent/30 border-transparent focus:border-accent"
@@ -266,7 +313,7 @@ function KeyboardShortcutsPage() {
 					return (
 						<div key={category}>
 							<h3 className="text-sm font-medium text-muted-foreground mb-2">
-								{category}
+								{categoryLabels[category]}
 							</h3>
 							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 								{hotkeys.map((hotkey) => (
@@ -294,7 +341,7 @@ function KeyboardShortcutsPage() {
 					(cat) => (filteredHotkeysByCategory[cat] ?? []).length === 0,
 				) && (
 					<div className="py-8 text-center text-sm text-muted-foreground">
-						No shortcuts found matching "{searchQuery}"
+						<Trans>No shortcuts found matching "{searchQuery}"</Trans>
 					</div>
 				)}
 			</div>
@@ -307,18 +354,22 @@ function KeyboardShortcutsPage() {
 				<AlertDialogContent className="max-w-[380px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
-							Shortcut already in use
+							<Trans>Shortcut already in use</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${conflictDisplay.text} is already assigned to "${
-												HOTKEYS[pendingConflict.conflictId].label
-											}".`
+										? t({
+												message: `${conflictDisplay.text} is already assigned to "${i18n._(
+													HOTKEYS[pendingConflict.conflictId].label,
+												)}".`,
+											})
 										: ""}
 								</span>
-								<span className="block">Would you like to reassign it?</span>
+								<span className="block">
+									<Trans>Would you like to reassign it?</Trans>
+								</span>
 							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
@@ -328,14 +379,14 @@ function KeyboardShortcutsPage() {
 							size="sm"
 							onClick={() => setPendingConflict(null)}
 						>
-							Cancel
+							<Trans>Cancel</Trans>
 						</Button>
 						<Button
 							variant="secondary"
 							size="sm"
 							onClick={handleConflictReassign}
 						>
-							Reassign
+							<Trans>Reassign</Trans>
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

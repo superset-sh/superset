@@ -1,48 +1,33 @@
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { Trans } from "@lingui/react/macro";
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
+import { useFormat } from "@superset/i18n/react";
+import { Badge } from "@superset/ui/badge";
+import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-interface Invoice {
-	id: string;
-	date: number;
-	amount: number;
-	currency: string;
-	hostedInvoiceUrl: string | null | undefined;
-}
-
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
-}
-
 function formatDate(timestamp: number) {
-	return format(new Date(timestamp * 1000), "MMM d, yyyy");
+	return formatLocaleDate(new Date(timestamp * 1000));
 }
 
 export function RecentInvoices() {
-	const [invoices, setInvoices] = useState<Invoice[]>([]);
+	const { formatPrice } = useFormat();
+
+	// cloudTrpc, not the imperative client: it sends this window's organization
+	// header, so the list belongs to the organization on screen.
+	const { data: invoices } = cloudTrpc.billing.invoices.useQuery(undefined);
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 
-	useEffect(() => {
-		apiTrpcClient.billing.invoices
-			.query()
-			.then(setInvoices)
-			.catch(() => {
-				// Silently handle errors — invoices are non-critical
-			});
-	}, []);
-
-	if (invoices.length === 0) {
+	if (!invoices || invoices.length === 0) {
 		return null;
 	}
 
 	return (
 		<div>
-			<h3 className="text-sm font-medium mb-2">Recent invoices</h3>
+			<h3 className="text-sm font-medium mb-2">
+				<Trans>Recent invoices</Trans>
+			</h3>
 			<div className="divide-y divide-border">
 				{invoices.map((invoice) => (
 					<div
@@ -53,9 +38,29 @@ export function RecentInvoices() {
 							<span className="text-muted-foreground tabular-nums">
 								{formatDate(invoice.date)}
 							</span>
-							<span className="tabular-nums">
-								{formatAmount(invoice.amount, invoice.currency)}
+							<span
+								className={cn(
+									"tabular-nums",
+									invoice.isUnpaid && "font-medium",
+								)}
+							>
+								{formatPrice(
+									invoice.isUnpaid ? invoice.amountDue : invoice.amountPaid,
+									invoice.currency,
+								)}
 							</span>
+							{invoice.isUnpaid && (
+								<Badge
+									variant="outline"
+									className="border-warning/30 bg-warning/10 text-warning"
+								>
+									{invoice.status === "uncollectible" ? (
+										<Trans>Uncollectible</Trans>
+									) : (
+										<Trans>Unpaid</Trans>
+									)}
+								</Badge>
+							)}
 						</div>
 						{invoice.hostedInvoiceUrl ? (
 							<button
@@ -63,9 +68,18 @@ export function RecentInvoices() {
 								onClick={() =>
 									openUrl.mutate(invoice.hostedInvoiceUrl as string)
 								}
-								className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+								className={cn(
+									"flex items-center gap-1 text-xs",
+									invoice.isUnpaid
+										? "text-warning hover:text-warning/80"
+										: "text-muted-foreground hover:text-foreground",
+								)}
 							>
-								View
+								{invoice.isUnpaid ? (
+									<Trans>Pay now</Trans>
+								) : (
+									<Trans>View</Trans>
+								)}
 								<HiArrowTopRightOnSquare className="h-3 w-3" />
 							</button>
 						) : null}

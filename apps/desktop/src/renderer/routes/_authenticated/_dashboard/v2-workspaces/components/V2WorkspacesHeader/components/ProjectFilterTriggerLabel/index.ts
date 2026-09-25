@@ -1,1 +1,0 @@
-export { ProjectFilterTriggerLabel } from "./ProjectFilterTriggerLabel";

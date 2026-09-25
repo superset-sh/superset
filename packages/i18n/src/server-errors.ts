@@ -1,0 +1,897 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "./index";
+
+// Catalog entries for user-facing server errors. Each entry pairs a stable
+// key with the translation call for it; the extractor reads the i18n._()
+// descriptors, so adding a row here is what puts the key into the catalog.
+// Servers throw these via userError() in @superset/trpc with the SAME key and
+// the SAME English text as `message` (the untranslated fallback) — keep the
+// two in sync when editing either.
+//
+// Key scheme: serverError.<router>.<name>
+export const serverErrorMessages: Record<
+	string,
+	(params?: Record<string, unknown>) => string
+> = {
+	"serverError.agentCredential.anthropicRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.anthropicRejectedToken": () =>
+		i18n._(
+			msg({
+				message: "Anthropic rejected this token.",
+			}),
+		),
+	"serverError.agentCredential.empty": () =>
+		i18n._(
+			msg({
+				message: "Enter a value.",
+			}),
+		),
+	"serverError.agentCredential.gatewayRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "Vercel AI Gateway rejected this key.",
+			}),
+		),
+	"serverError.agentCredential.gatewayNeedsApiKey": () =>
+		i18n._(
+			msg({
+				message: "A gateway is signed in with an API key.",
+			}),
+		),
+	"serverError.agentCredential.insecureEndpoint": () =>
+		i18n._(
+			msg({
+				message: "The endpoint must use https.",
+			}),
+		),
+	"serverError.agentCredential.openaiRejectedKey": () =>
+		i18n._(
+			msg({
+				message: "OpenAI rejected this API key.",
+			}),
+		),
+	"serverError.agentCredential.providerAnswered": (params) =>
+		i18n._(
+			msg({
+				message: `The provider answered ${params?.status}.`,
+			}),
+		),
+	"serverError.agentCredential.providerUnreachable": () =>
+		i18n._(
+			msg({
+				message: "Could not reach the provider. Try again.",
+			}),
+		),
+	"serverError.agentCredential.restrictedEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint is not allowed.",
+			}),
+		),
+	"serverError.agentCredential.unresolvableEndpoint": () =>
+		i18n._(
+			msg({
+				message: "That endpoint could not be resolved.",
+			}),
+		),
+	"serverError.agentCredential.unsupported": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.agent} cannot be signed in this way yet.`,
+			}),
+		),
+	"serverError.apiKey.activeOrganizationRequiredToCreate": () =>
+		i18n._(
+			msg({
+				message: "Active organization required to create an API key",
+			}),
+		),
+	"serverError.attachment.notFound": () =>
+		i18n._(
+			msg({
+				message: "Attachment not found",
+			}),
+		),
+	"serverError.attachment.notUploaded": () =>
+		i18n._(
+			msg({
+				message: "Attachment was not uploaded — send the bytes first",
+			}),
+		),
+	"serverError.automation.aRunForThisAutomation": () =>
+		i18n._(
+			msg({
+				message: "A run for this automation is already in progress.",
+			}),
+		),
+	"serverError.automation.automationHasNoInstructions": () =>
+		i18n._(
+			msg({
+				message: "Automation has no instructions",
+			}),
+		),
+	"serverError.automation.automationInAnotherOrganization": (params) =>
+		i18n._(
+			msg({
+				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
+			}),
+		),
+	"serverError.automation.automationsRequireThePro": () =>
+		i18n._(
+			msg({
+				message: "Automations require the Pro plan.",
+			}),
+		),
+	"serverError.automation.automationNotFound": () =>
+		i18n._(
+			msg({
+				message: "Automation not found",
+			}),
+		),
+	"serverError.automation.continueNeedsPinnedWorkspace": () =>
+		i18n._(
+			msg({
+				message: "Continuing an agent session requires a pinned workspace",
+			}),
+		),
+	"serverError.automation.failedToCreateAutomation": () =>
+		i18n._(
+			msg({
+				message: "Failed to create automation",
+			}),
+		),
+	"serverError.automation.targethostidDoesNotMatchTheWorkspace": () =>
+		i18n._(
+			msg({
+				message: "targetHostId does not match the workspace's host",
+			}),
+		),
+	"serverError.automation.triggerNotFound": () =>
+		i18n._(
+			msg({
+				message: "Trigger not found",
+			}),
+		),
+	"serverError.automation.v2projectidDoesNotMatchTheWorkspace": () =>
+		i18n._(
+			msg({
+				message: "v2ProjectId does not match the workspace's project",
+			}),
+		),
+	"serverError.automation.versionNotFound": () =>
+		i18n._(
+			msg({
+				message: "Version not found",
+			}),
+		),
+	"serverError.automation.webhookTriggerNotFound": () =>
+		i18n._(
+			msg({
+				message: "Webhook trigger not found",
+			}),
+		),
+	"serverError.automation.workspaceNotFound": () =>
+		i18n._(
+			msg({
+				message: "Workspace not found",
+			}),
+		),
+	"serverError.automation.youDonTHaveAccess": () =>
+		i18n._(
+			msg({
+				message: "You don't have access to this host",
+			}),
+		),
+	"serverError.billing.noActiveOrganization": () =>
+		i18n._(
+			msg({
+				message: "No active organization",
+			}),
+		),
+	"serverError.billing.noStripeCustomerFound": () =>
+		i18n._(
+			msg({
+				message: "No Stripe customer found",
+			}),
+		),
+	"serverError.billing.onlyOwnersCanManageBilling": () =>
+		i18n._(
+			msg({
+				message: "Only owners can manage billing",
+			}),
+		),
+	"serverError.chat.chatSessionNotFound": () =>
+		i18n._(
+			msg({
+				message: "Chat session not found",
+			}),
+		),
+	"serverError.chat.noActiveOrganizationSelected": () =>
+		i18n._(
+			msg({
+				message: "No active organization selected",
+			}),
+		),
+	"serverError.cloudWorkspace.cloudSandboxesAreInternalOnly": (params) =>
+		i18n._({
+			id: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
+			message:
+				"Cloud sandboxes are not enabled for {account}. Ask the Superset team for access.",
+			values: params,
+		}),
+	"serverError.cloudWorkspace.environmentHasNoRepositories": () =>
+		i18n._(
+			msg({
+				message:
+					"This environment has no repositories. Create an environment with repositories in Settings, then start the workspace from it",
+			}),
+		),
+	"serverError.environment.repositoryNotConnected": () =>
+		i18n._(
+			msg({
+				message:
+					"A repository is not connected to this organization, or the repositories come from different GitHub installations",
+			}),
+		),
+	"serverError.environment.hooksRepositoryNotIncluded": () =>
+		i18n._(
+			msg({
+				message:
+					"The config repository must be one of the environment's repositories",
+			}),
+		),
+	"serverError.githubUser.notConfigured": () =>
+		i18n._(
+			msg({
+				message: "Connecting GitHub is not configured on this server",
+			}),
+		),
+	"serverError.cloudWorkspace.githubRepositoryOutOfReach": () =>
+		i18n._(
+			msg({
+				message:
+					"Your GitHub account cannot reach a repository in this environment",
+			}),
+		),
+	"serverError.environment.repositoriesFrozen": () =>
+		i18n._(
+			msg({
+				message:
+					"This environment's repositories are fixed; promote a workspace again to change them",
+			}),
+		),
+	"serverError.environment.couldNotRecord": () =>
+		i18n._(
+			msg({
+				message: "Could not record environment",
+			}),
+		),
+	"serverError.cloudWorkspace.couldNotRecordCloudWorkspace": () =>
+		i18n._(
+			msg({
+				message: "Could not record cloud workspace",
+			}),
+		),
+	"serverError.cloudWorkspace.couldNotStartCloudWorkspaceProvisioning": () =>
+		i18n._(
+			msg({
+				message: "Could not start cloud workspace provisioning",
+			}),
+		),
+	"serverError.cloudWorkspace.notAMemberOfThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Not a member of this organization",
+			}),
+		),
+	"serverError.cloudWorkspace.notFound": () =>
+		i18n._(
+			msg({
+				message: "Not found",
+			}),
+		),
+	"serverError.cloudWorkspace.projectNotFoundInThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Project not found in this organization",
+			}),
+		),
+	"serverError.common.accountIsPendingDeletion": () =>
+		i18n._(
+			msg({
+				message: "Account is pending deletion.",
+			}),
+		),
+	"serverError.common.notAuthenticatedPleaseSignIn": () =>
+		i18n._(
+			msg({
+				message: "Not authenticated. Please sign in.",
+			}),
+		),
+	"serverError.common.cloudWorkspaceCannotCallThis": (params) =>
+		i18n._({
+			id: "serverError.common.cloudWorkspaceCannotCallThis",
+			message:
+				"A cloud workspace cannot call {path}. Run this from a client you are signed into.",
+			values: params,
+		}),
+	"serverError.common.notAuthenticatedProvideABearerJwt": () =>
+		i18n._(
+			msg({
+				message:
+					"Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+			}),
+		),
+	"serverError.host.failedToEnsureHost": () =>
+		i18n._(
+			msg({
+				message: "Failed to ensure host",
+			}),
+		),
+	"serverError.host.invalidHostid": () =>
+		i18n._(
+			msg({
+				message: "Invalid hostId",
+			}),
+		),
+	"serverError.host.noAccessToThisHost": () =>
+		i18n._(
+			msg({
+				message: "No access to this host",
+			}),
+		),
+	"serverError.host.notAMemberOfThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Not a member of this organization",
+			}),
+		),
+	"serverError.host.onlyTheHostOwnerCanSet": () =>
+		i18n._(
+			msg({
+				message: "Only the host owner can set its wake command",
+			}),
+		),
+	"serverError.integration.adminAccessRequired": () =>
+		i18n._(
+			msg({
+				message: "Admin access required",
+			}),
+		),
+	"serverError.integration.githubInstallationNotFound": () =>
+		i18n._(
+			msg({
+				message: "GitHub installation not found",
+			}),
+		),
+	"serverError.integration.notAMemberOfThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Not a member of this organization",
+			}),
+		),
+	"serverError.integration.onlyOwnersCanDeleteProjects": () =>
+		i18n._(
+			msg({
+				message: "Only owners can delete projects",
+			}),
+		),
+	"serverError.integration.repositoryNotInstalled": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.repoFullName} is not a repository the GitHub App is installed on`,
+			}),
+		),
+	"serverError.integration.sentryRejectedTheToken": () =>
+		i18n._(
+			msg({
+				message: "Sentry rejected the token",
+			}),
+		),
+	"serverError.leaderboard.notFound": () =>
+		i18n._(
+			msg({
+				message: "Not found",
+			}),
+		),
+	"serverError.leaderboard.notOnTheLeaderboardOptIn": () =>
+		i18n._(
+			msg({
+				message: "Not on the leaderboard. Opt in first.",
+			}),
+		),
+	"serverError.leaderboard.rateLimitExceeded": () =>
+		i18n._(
+			msg({
+				message: "Rate limit exceeded.",
+			}),
+		),
+	"serverError.leaderboard.thatHandleIsTaken": () =>
+		i18n._(
+			msg({
+				message: "That handle is taken.",
+			}),
+		),
+	"serverError.leaderboard.tooManyMachinesPublishing": () =>
+		i18n._(
+			msg({
+				message: "Too many machines publishing for this account.",
+			}),
+		),
+	"serverError.organization.adminsCannotModifyOwners": () =>
+		i18n._(
+			msg({
+				message: "Admins cannot modify owners",
+			}),
+		),
+	"serverError.organization.adminsCannotPromoteMembersToOwner": () =>
+		i18n._(
+			msg({
+				message: "Admins cannot promote members to owner",
+			}),
+		),
+	"serverError.organization.cannotDemoteTheLastOwnerPromote": () =>
+		i18n._(
+			msg({
+				message: "Cannot demote the last owner. Promote someone else first.",
+			}),
+		),
+	"serverError.organization.cannotRemoveTheLastOwnerTransfer": () =>
+		i18n._(
+			msg({
+				message: "Cannot remove the last owner. Transfer ownership first.",
+			}),
+		),
+	"serverError.organization.cannotRemoveYourself": () =>
+		i18n._(
+			msg({
+				message: "Cannot remove yourself",
+			}),
+		),
+	"serverError.organization.createFailed": () =>
+		i18n._(
+			msg({
+				message: "Failed to create organization",
+			}),
+		),
+	"serverError.organization.failedToLeaveOrganization": () =>
+		i18n._(
+			msg({
+				message: "Failed to leave organization",
+			}),
+		),
+	"serverError.organization.failedToUploadLogo": () =>
+		i18n._(
+			msg({
+				message: "Failed to upload logo",
+			}),
+		),
+	"serverError.organization.invitationNotFound": () =>
+		i18n._(
+			msg({
+				message: "Invitation not found",
+			}),
+		),
+	"serverError.organization.managedDomain": () =>
+		i18n._(
+			msg({
+				message:
+					"Your account is managed by your organization. Contact your admin to create a new organization.",
+			}),
+		),
+	"serverError.organization.memberNotFound": () =>
+		i18n._(
+			msg({
+				message: "Member not found",
+			}),
+		),
+	"serverError.organization.membersCannotModifyRoles": () =>
+		i18n._(
+			msg({
+				message: "Members cannot modify roles",
+			}),
+		),
+	"serverError.organization.onlyOwnersCanUpdateOrganizationSettings": () =>
+		i18n._(
+			msg({
+				message: "Only owners can update organization settings",
+			}),
+		),
+	"serverError.organization.organizationNotFound": () =>
+		i18n._(
+			msg({
+				message: "Organization not found",
+			}),
+		),
+	"serverError.organization.slugTaken": () =>
+		i18n._(
+			msg({
+				message: "This slug is already taken",
+			}),
+		),
+	"serverError.organization.youAreNotAMember": () =>
+		i18n._(
+			msg({
+				message: "You are not a member of this organization",
+			}),
+		),
+	"serverError.organization.youDonTHavePermission": () =>
+		i18n._(
+			msg({
+				message: "You don't have permission to remove this member",
+			}),
+		),
+	"serverError.page.failedToCreatePage": () =>
+		i18n._(
+			msg({
+				message: "Failed to create page",
+			}),
+		),
+	"serverError.page.failedToRecordPageVersion": () =>
+		i18n._(
+			msg({
+				message: "Failed to record page version",
+			}),
+		),
+	"serverError.page.onlyThePersonWhoCreated": () =>
+		i18n._(
+			msg({
+				message: "Only the person who created this page can change it",
+			}),
+		),
+	"serverError.page.pageContentIsNotAvailable": () =>
+		i18n._(
+			msg({
+				message: "Page content is not available",
+			}),
+		),
+	"serverError.page.pageHasNoVersions": () =>
+		i18n._(
+			msg({
+				message: "Page has no versions",
+			}),
+		),
+	"serverError.page.pageNotFound": () =>
+		i18n._(
+			msg({
+				message: "Page not found",
+			}),
+		),
+	"serverError.page.provideEitherIdOrSlug": () =>
+		i18n._(
+			msg({
+				message: "Provide either id or slug",
+			}),
+		),
+	"serverError.page.thisPageIsBeingPublishedFrom": () =>
+		i18n._(
+			msg({
+				message: "This page is being published from somewhere else — retry",
+			}),
+		),
+	"serverError.page.entryPathHeldByAnotherOrganization": (params) =>
+		i18n._({
+			id: "serverError.page.entryPathHeldByAnotherOrganization",
+			message:
+				"{entryPath} in this workspace is already published as a page in another organization. Move the file, or publish with that page's id.",
+			values: params,
+		}),
+	"serverError.page.entryPathHeldByColleague": (params) =>
+		i18n._({
+			id: "serverError.page.entryPathHeldByColleague",
+			message:
+				"Someone else has already published {entryPath} from this workspace. Publish with an explicit page id to add a version to their page, or move the file.",
+			values: params,
+		}),
+	"serverError.page.workspaceNotFound": () =>
+		i18n._(
+			msg({
+				message: "Workspace not found",
+			}),
+		),
+	"serverError.pageComment.commentNotFound": () =>
+		i18n._(
+			msg({
+				message: "Comment not found",
+			}),
+		),
+	"serverError.pageComment.failedToCreateThread": () =>
+		i18n._(
+			msg({
+				message: "Failed to create thread",
+			}),
+		),
+	"serverError.pageComment.failedToPostReply": () =>
+		i18n._(
+			msg({
+				message: "Failed to post reply",
+			}),
+		),
+	"serverError.pageComment.onlyTheAuthorCanEdit": () =>
+		i18n._(
+			msg({
+				message: "Only the author can edit a comment",
+			}),
+		),
+	"serverError.pageComment.onlyTheThreadSAuthor": () =>
+		i18n._(
+			msg({
+				message: "Only the thread's author or the page's owner can delete it",
+			}),
+		),
+	"serverError.pageComment.pageNotFound": () =>
+		i18n._(
+			msg({
+				message: "Page not found",
+			}),
+		),
+	"serverError.pageComment.thisThreadHasNotBeenHanded": () =>
+		i18n._(
+			msg({
+				message:
+					"This thread is not open to agents. A person has to comment on it before an agent can reply.",
+			}),
+		),
+	"serverError.pageComment.threadNotFound": () =>
+		i18n._(
+			msg({
+				message: "Thread not found",
+			}),
+		),
+	"serverError.plugins.ambiguousConnection": (params) =>
+		i18n._({
+			id: "serverError.plugins.ambiguousConnection",
+			message:
+				"More than one {connector} connection matches; disconnect the one you do not want.",
+			values: params,
+		}),
+	"serverError.plugins.ambiguousPlugin": (params) =>
+		i18n._({
+			id: "serverError.plugins.ambiguousPlugin",
+			message: "{reason}",
+			values: params,
+		}),
+	"serverError.plugins.connectionNotFound": () =>
+		i18n._({
+			id: "serverError.plugins.connectionNotFound",
+			message: "Connection not found",
+		}),
+	"serverError.plugins.credentialUnverified": (params) =>
+		i18n._({
+			id: "serverError.plugins.credentialUnverified",
+			message: "Could not verify the credential: {reason}",
+			values: params,
+		}),
+	"serverError.plugins.dispatchFailed": (params) =>
+		i18n._({
+			id: "serverError.plugins.dispatchFailed",
+			message: "{reason}",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceBuiltinRemove": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceBuiltinRemove",
+			message: "{name} is built in and cannot be removed",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceHasInstalls": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceHasInstalls",
+			message:
+				"Installed plugins came from {name}: {plugins}. Remove them first.",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceNotAdded": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceNotAdded",
+			message: "{name} is not added",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceNotResolvable": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceNotResolvable",
+			message:
+				"Account install resolves first-party manifests only, so {plugin} from {marketplace} cannot be installed to your account yet. It stays installed on this machine.",
+			values: params,
+		}),
+	"serverError.plugins.marketplaceReserved": (params) =>
+		i18n._({
+			id: "serverError.plugins.marketplaceReserved",
+			message: "{name} is built in and cannot be replaced",
+			values: params,
+		}),
+	"serverError.plugins.missingInput": (params) =>
+		i18n._({
+			id: "serverError.plugins.missingInput",
+			message: "Missing required input {input}",
+			values: params,
+		}),
+	"serverError.plugins.noApiKeyAuth": (params) =>
+		i18n._({
+			id: "serverError.plugins.noApiKeyAuth",
+			message: "Plugin {plugin} does not use api_key auth",
+			values: params,
+		}),
+	"serverError.plugins.notInstalled": (params) =>
+		i18n._({
+			id: "serverError.plugins.notInstalled",
+			message: "Plugin {plugin} is not installed",
+			values: params,
+		}),
+	"serverError.plugins.unknownPlugin": (params) =>
+		i18n._({
+			id: "serverError.plugins.unknownPlugin",
+			message: "Unknown plugin {plugin}",
+			values: params,
+		}),
+	"serverError.support.failedToSavePrompt": () =>
+		i18n._(
+			msg({
+				message: "Failed to save prompt",
+			}),
+		),
+	"serverError.support.failedToSendFeedback": () =>
+		i18n._(
+			msg({
+				message: "Failed to send feedback",
+			}),
+		),
+	"serverError.support.failedToSendMigrationReport": () =>
+		i18n._(
+			msg({
+				message: "Failed to send migration report",
+			}),
+		),
+	"serverError.support.feedbackRateLimitingIsNotConfigured": () =>
+		i18n._(
+			msg({
+				message: "Feedback rate limiting is not configured",
+			}),
+		),
+	"serverError.support.submitPromptRateLimitingIsNot": () =>
+		i18n._(
+			msg({
+				message: "Submit prompt rate limiting is not configured",
+			}),
+		),
+	"serverError.support.supportRateLimitingIsNotConfigured": () =>
+		i18n._(
+			msg({
+				message: "Support rate limiting is not configured",
+			}),
+		),
+	"serverError.support.tooManyFeedbackSubmissionsTryAgain": () =>
+		i18n._(
+			msg({
+				message: "Too many feedback submissions. Try again later.",
+			}),
+		),
+	"serverError.support.tooManyPromptSubmissionsTryAgain": () =>
+		i18n._(
+			msg({
+				message: "Too many prompt submissions. Try again later.",
+			}),
+		),
+	"serverError.support.tooManySupportReportsTryAgain": () =>
+		i18n._(
+			msg({
+				message: "Too many support reports. Try again later.",
+			}),
+		),
+	"serverError.task.failedToGenerateAUniqueTask": () =>
+		i18n._(
+			msg({
+				message: "Failed to generate a unique task slug",
+			}),
+		),
+	"serverError.team.teamNotFoundInThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Team not found in this organization",
+			}),
+		),
+	"serverError.upload.invalidImageTypeOnlyPngJpeg": () =>
+		i18n._(
+			msg({
+				message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
+			}),
+		),
+	"serverError.user.failedToUploadAvatar": () =>
+		i18n._(
+			msg({
+				message: "Failed to upload avatar",
+			}),
+		),
+	"serverError.user.theRecoveryPeriodHasEndedContact": () =>
+		i18n._(
+			msg({
+				message: "The recovery period has ended. Contact support@superset.sh.",
+			}),
+		),
+	"serverError.user.userNotFound": () =>
+		i18n._(
+			msg({
+				message: "User not found",
+			}),
+		),
+	"serverError.user.youAreTheOnlyOwner": () =>
+		i18n._(
+			msg({
+				message:
+					"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
+			}),
+		),
+	"serverError.host.aHostMustHaveAtLeast": () =>
+		i18n._(
+			msg({
+				message: "A host must have at least one owner.",
+			}),
+		),
+	"serverError.host.hostNotFoundInThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Host not found in this organization",
+			}),
+		),
+	"serverError.host.onlyHostOwnersCanChangeMembership": () =>
+		i18n._(
+			msg({
+				message: "Only host owners can change membership",
+			}),
+		),
+	"serverError.host.onlyHostOwnersCanDelete": () =>
+		i18n._(
+			msg({
+				message: "Only host owners can delete this host",
+			}),
+		),
+	"serverError.host.thisUserRunsTheHostService": () =>
+		i18n._(
+			msg({
+				message:
+					"This user runs the host service for this device and can't be removed.",
+			}),
+		),
+	"serverError.host.thisUserRunsTheHostService2": () =>
+		i18n._(
+			msg({
+				message:
+					"This user runs the host service for this device and must remain an owner.",
+			}),
+		),
+	"serverError.host.userAlreadyHasAccess": () =>
+		i18n._(
+			msg({
+				message: "User already has access to this host",
+			}),
+		),
+	"serverError.host.userIsNotAMember": () =>
+		i18n._(
+			msg({
+				message: "User is not a member of this organization",
+			}),
+		),
+	"serverError.host.userIsNotAMemberOf2": () =>
+		i18n._(
+			msg({
+				message: "User is not a member of this host",
+			}),
+		),
+	"serverError.v2Project.notAMemberOfThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Not a member of this organization",
+			}),
+		),
+	"serverError.v2Workspace.notAMemberOfThisOrganization": () =>
+		i18n._(
+			msg({
+				message: "Not a member of this organization",
+			}),
+		),
+};

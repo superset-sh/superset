@@ -1,0 +1,1 @@
+export { DeletePageDialog } from "./DeletePageDialog";

@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -48,6 +50,7 @@ export function PRLinkCommand({
 	projectId,
 	hostId,
 }: PRLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -79,7 +82,6 @@ export function PRLinkCommand({
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
-		retry: false,
 	});
 
 	// One toast per error transition — without this, the dropdown's
@@ -93,8 +95,12 @@ export function PRLinkCommand({
 		}
 		if (lastToastedError.current === msg) return;
 		lastToastedError.current = msg;
-		toast.error(`Couldn't load pull requests: ${msg}`);
-	}, [error]);
+		toast.error(
+			t({
+				message: `Couldn't load pull requests: ${msg}`,
+			}),
+		);
+	}, [error, t]);
 
 	const pullRequests = data?.pullRequests ?? [];
 	const repoMismatch =
@@ -138,7 +144,9 @@ export function PRLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pull requests..."
+						placeholder={t({
+							message: "Search pull requests...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -152,7 +160,7 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -160,26 +168,26 @@ export function PRLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										"Searching..."
+										<Trans>Searching...</Trans>
 									) : (
-										"Loading..."
+										<Trans>Loading...</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									`PR URL must match ${repoMismatch}.`
+									<Trans>PR URL must match {repoMismatch}.</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										"No pull requests found."
+										<Trans>No pull requests found.</Trans>
 									) : (
-										"No open pull requests found."
+										<Trans>No open pull requests found.</Trans>
 									)
 								) : showClosed ? (
-									"No pull requests found."
+									<Trans>No pull requests found.</Trans>
 								) : (
-									"No open pull requests."
+									<Trans>No open pull requests.</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -187,10 +195,19 @@ export function PRLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										? t({
+												message: plural(pullRequests.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent PRs"
-											: "Open PRs"
+											? t({
+													message: "Recent PRs",
+												})
+											: t({
+													message: "Open PRs",
+												})
 								}
 							>
 								{pullRequests.map((pr) => {

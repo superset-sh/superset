@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { app, BrowserWindow, Menu, shell } from "electron";
 import { env } from "main/env.main";
@@ -16,13 +18,33 @@ export function createApplicationMenu() {
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
+	// macOS/VS Code convention for New Window. On Windows/Linux Ctrl+Shift+N is
+	// already New Workspace, so use Ctrl+Alt+N there.
+	const newWindowAccelerator =
+		process.platform === "darwin" ? "Cmd+Shift+N" : "Ctrl+Alt+N";
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
-			label: "File",
+			label: i18n._(msg({ message: "File" })),
 			submenu: [
 				{
-					label: "Open Repo...",
+					label: i18n._(
+						msg({
+							message: "New Window",
+						}),
+					),
+					accelerator: newWindowAccelerator,
+					click: () => {
+						menuEmitter.emit("new-window");
+					},
+				},
+				{ type: "separator" },
+				{
+					label: i18n._(
+						msg({
+							message: "Open Repo...",
+						}),
+					),
 					accelerator: "CmdOrCtrl+O",
 					click: () => {
 						menuEmitter.emit("open-project");
@@ -34,15 +56,46 @@ export function createApplicationMenu() {
 				// `before-input-event` interception and closes the window instead of
 				// the focused pane.
 				{
-					label: "Close Window",
+					label: i18n._(
+						msg({
+							message: "Close Window",
+						}),
+					),
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.close();
 					},
 				},
+				// macOS keeps these in the application menu, which only it has.
+				...(process.platform === "darwin"
+					? []
+					: ([
+							{ type: "separator" },
+							{
+								label: i18n._(msg({ message: "Settings..." })),
+								accelerator: openSettingsAccelerator,
+								click: () => {
+									menuEmitter.emit("open-settings");
+								},
+							},
+							{
+								label: i18n._(msg({ message: "Check for Updates..." })),
+								click: () => {
+									checkForUpdatesInteractive();
+								},
+							},
+							{ type: "separator" },
+							{ role: "quit" },
+							{
+								label: i18n._(msg({ message: "Quit Superset Completely" })),
+								click: () => {
+									void confirmAndQuitCompletely();
+								},
+							},
+						] satisfies Electron.MenuItemConstructorOptions[])),
 			],
 		},
 		{
-			label: "Edit",
+			label: i18n._(msg({ message: "Edit" })),
 			submenu: [
 				{ role: "undo" },
 				{ role: "redo" },
@@ -54,10 +107,10 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "View",
+			label: i18n._(msg({ message: "View", context: "menu" })),
 			submenu: [
 				{
-					label: "Reload",
+					label: i18n._(msg({ message: "Reload" })),
 					accelerator: reloadAccelerator,
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.reload();
@@ -67,22 +120,45 @@ export function createApplicationMenu() {
 				// an implicit CmdOrCtrl+Shift+R accelerator that prevents the renderer's
 				// Reopen Closed Tab shortcut from receiving the event.
 				{
-					label: "Force Reload",
+					label: i18n._(
+						msg({
+							message: "Force Reload",
+						}),
+					),
 					click: () => {
 						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
 					},
 				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
-				{ role: "resetZoom" },
-				{ role: "zoomIn" },
-				{ role: "zoomOut" },
+				// Display-only accelerators: the renderer owns ZOOM_IN/ZOOM_OUT/
+				// ZOOM_RESET so a focused terminal zooms its font and a focused
+				// browser pane zooms its page. Registering them here would fire
+				// the role (page zoom) before the renderer ever sees the key.
+				{ role: "resetZoom", registerAccelerator: false },
+				{ role: "zoomIn", registerAccelerator: false },
+				{ role: "zoomOut", registerAccelerator: false },
+				{ type: "separator" },
+				{
+					label: i18n._(
+						msg({
+							message: "Toggle Scripts Bar",
+						}),
+					),
+					click: () => {
+						menuEmitter.emit("toggle-presets-bar");
+					},
+				},
 				{ type: "separator" },
 				{ role: "togglefullscreen" },
 			],
 		},
 		{
-			label: "Window",
+			label: i18n._(msg({ message: "Window" })),
+			// macOS appends the list of open windows to a windowMenu-role menu,
+			// which is how you switch between platform windows. Without the role
+			// the list never appears, so multi-window has no switcher.
+			role: process.platform === "darwin" ? "windowMenu" : undefined,
 			submenu: [
 				{ role: "minimize" },
 				{ role: "zoom" },
@@ -91,36 +167,76 @@ export function createApplicationMenu() {
 			],
 		},
 		{
-			label: "Help",
+			label: i18n._(msg({ message: "Resources" })),
+			submenu: [
+				// No accelerator here: on macOS, a menu accelerator is always live
+				// and would bypass the renderer's user-customizable CHECK_RESOURCES
+				// binding (Settings > Keyboard). The default shortcut stays
+				// discoverable via the command palette and keyboard settings, both
+				// of which reflect the user's actual current/overridden binding.
+				{
+					label: i18n._(
+						msg({
+							message: "Check Resources",
+						}),
+					),
+					click: () => {
+						menuEmitter.emit("check-resources");
+					},
+				},
+			],
+		},
+		{
+			label: i18n._(msg({ message: "Help" })),
 			submenu: [
 				{
-					label: "Documentation",
+					label: i18n._(
+						msg({
+							message: "Documentation",
+						}),
+					),
 					click: () => {
 						shell.openExternal(COMPANY.DOCS_URL);
 					},
 				},
 				{ type: "separator" },
 				{
-					label: "Contact Us",
+					label: i18n._(
+						msg({
+							message: "Contact Us",
+						}),
+					),
 					click: () => {
 						shell.openExternal(COMPANY.MAIL_TO);
 					},
 				},
 				{
-					label: "Report Issue",
+					label: i18n._(
+						msg({
+							message: "Report Issue",
+						}),
+					),
 					click: () => {
 						shell.openExternal(COMPANY.REPORT_ISSUE_URL);
 					},
 				},
 				{
-					label: "Join Discord",
+					label: i18n._(
+						msg({
+							message: "Join Discord",
+						}),
+					),
 					click: () => {
 						shell.openExternal(COMPANY.DISCORD_URL);
 					},
 				},
 				{ type: "separator" },
 				{
-					label: "Keyboard Shortcuts",
+					label: i18n._(
+						msg({
+							message: "Keyboard Shortcuts",
+						}),
+					),
 					accelerator: showHotkeysAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings", "keyboard");
@@ -173,14 +289,22 @@ export function createApplicationMenu() {
 				{ role: "about" },
 				{ type: "separator" },
 				{
-					label: "Settings...",
+					label: i18n._(
+						msg({
+							message: "Settings...",
+						}),
+					),
 					accelerator: openSettingsAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings");
 					},
 				},
 				{
-					label: "Check for Updates...",
+					label: i18n._(
+						msg({
+							message: "Check for Updates...",
+						}),
+					),
 					click: () => {
 						checkForUpdatesInteractive();
 					},
@@ -194,7 +318,11 @@ export function createApplicationMenu() {
 				{ type: "separator" },
 				{ role: "quit" },
 				{
-					label: "Quit Superset Completely",
+					label: i18n._(
+						msg({
+							message: "Quit Superset Completely",
+						}),
+					),
 					click: () => {
 						void confirmAndQuitCompletely();
 					},

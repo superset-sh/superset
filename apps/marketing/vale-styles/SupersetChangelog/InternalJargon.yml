@@ -1,0 +1,7 @@
+extends: existence
+message: "'%s' is internal jargon; the changelog SOP bans naming the mechanism, name the user benefit."
+link: https://app.notion.com/p/3b3b9d5bf61681748db2ec6054bf1a25
+level: warning
+ignorecase: false
+raw:
+  - '\btRPC\b|\bDrizzle\b|\bElectric collections?\b|@superset/[a-z-]+'

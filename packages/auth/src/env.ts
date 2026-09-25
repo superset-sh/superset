@@ -11,6 +11,9 @@ export const env = createEnv({
 		GH_CLIENT_SECRET: z.string(),
 		GOOGLE_CLIENT_ID: z.string(),
 		GOOGLE_CLIENT_SECRET: z.string(),
+		APPLE_CLIENT_ID: z.string().default("sh.superset.mobile"),
+		APPLE_CLIENT_SECRET: z.string().default(""),
+		APPLE_APP_BUNDLE_IDENTIFIER: z.string().default("sh.superset.mobile"),
 		BETTER_AUTH_SECRET: z.string(),
 		RESEND_API_KEY: z.string(),
 		KV_REST_API_URL: z.string(),
@@ -25,6 +28,11 @@ export const env = createEnv({
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
+		NEXT_PUBLIC_POSTHOG_HOST: z
+			.string()
+			.url()
+			.default("https://us.i.posthog.com"),
 		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),

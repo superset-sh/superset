@@ -1,0 +1,47 @@
+---
+title: Run Three Workstreams at Once
+description: A feature, a bugfix, and a PR review in parallel without branch juggling
+---
+
+<Callout type="info" title="Use when">
+	your day is a mix of unrelated work: something to build, something to fix, something to review. This is the everyday shape of parallel work, no racing involved.
+</Callout>
+
+## The Idea
+
+Each workstream gets its own workspace, so switching between them is a click, not a stash-checkout-rebuild cycle. Agents keep making progress on the streams you're not looking at.
+
+![Every workstream is a workspace with its own branch](/images/workspaces-table.png)
+
+## Steps
+
+1. **Feature** (⌘N → new branch): prompt an agent with the feature task and let it run.
+
+```text
+Build the CSV export button on the reports page. Match the existing
+export patterns in this codebase. Stop and ask before adding dependencies.
+```
+
+2. **Bugfix** (⌘N → new branch): paste the bug report as the prompt.
+
+```text
+Users report the login form clears on validation errors. Reproduce it,
+find the root cause, and fix it. Include the repro steps in your final message.
+```
+
+3. **Review** (⌘N → pull request): link the PR by number, title search, or URL. Read the diff in the **Changes** tab, run the branch locally with the **Run** button, and leave your review on GitHub.
+
+4. Rotate your attention to whichever workspace needs you. The sidebar shows agent status, ahead/behind counts (**↑N**/**↓N**), and PR checks on hover.
+
+5. As each stream lands: commit and push from the diff viewer, then delete the workspace.
+
+## Tips
+
+- Descriptive branch names (`feature/csv-export`, `fix/login-clear`) keep the sidebar readable at a glance
+- The review workspace is fully functional: if the PR needs a small fix, make it there and push rather than writing a comment
+- Never work directly on `main`; the whole model assumes every stream is a branch
+
+## Variations
+
+- **Interrupt-driven days**: keep one empty "incident" workspace pattern in mind. When something urgent lands, ⌘N and delegate it without disturbing the other streams.
+- **More than three**: nothing special happens at four or five streams; the limit is your review attention, not the tool.

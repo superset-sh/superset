@@ -9,13 +9,7 @@ export const taskStatusesRouter = {
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = await requireActiveOrgMembership(ctx);
 		return db
-			.select({
-				id: taskStatuses.id,
-				name: taskStatuses.name,
-				color: taskStatuses.color,
-				type: taskStatuses.type,
-				position: taskStatuses.position,
-			})
+			.select()
 			.from(taskStatuses)
 			.where(eq(taskStatuses.organizationId, organizationId))
 			.orderBy(taskStatuses.position);

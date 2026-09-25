@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# The per-boot runner, run as root by the control plane through the sandbox
+# API on every create and every wake, with HOST_SERVICE_SECRET in its env.
+# A wake restores the disk and no processes, so everything here is about
+# turning a filesystem into a running box, cheaply when nothing changed:
+#
+#   clear /run/superset            facts about a boot that is over
+#   read the contract and identity /etc/superset/{contract.sh,sandbox.conf}
+#   install the pinned bundle      only when its hash differs from current
+#   apply-rootfs, sync-assets,     each a hash compare per file, asset, step
+#   run-steps
+#   start host-service as ubuntu   first; everything else is a side effect
+#   start the desktop and the checkout, detached
+#
+# Every phase is stamped to the boot log in milliseconds; host-service serves
+# the log on its health route so a boot is measurable from outside.
+set -uo pipefail
+. /etc/superset/contract.sh
+
+# The control plane runs this from the image's workdir, which the checkout
+# below may replace; every child would inherit a deleted cwd.
+cd /
+
+# One line per phase: `<epoch ms> <phase> [detail]`. host-service reports the
+# current boot's phases on health.check, so a phase is one dotted token.
+stamp() { printf '%s %s\n' "$(date +%s%3N)" "$*" >> "$SUPERSET_BOOT_LOG"; }
+refuse() { stamp "boot.refused $*"; echo "superset-boot: $*" >&2; exit 1; }
+as_user() { runuser -u "$SUPERSET_USER" -- "$@"; }
+
+mkdir -p "$SUPERSET_LOG_DIR" "$SUPERSET_STATE_DIR"
+
+# --- identity: the file the control plane writes before every boot.
+[ -f "$SUPERSET_CONF" ] || refuse "no ${SUPERSET_CONF}; the control plane writes it before boot"
+set -a
+# shellcheck source=/dev/null
+. "$SUPERSET_CONF"
+set +a
+[ "${SUPERSET_SANDBOX_CONTRACT:-}" = "$SUPERSET_CONTRACT_VERSION" ] ||
+	refuse "sandbox.conf is contract ${SUPERSET_SANDBOX_CONTRACT:-none}; this bundle speaks ${SUPERSET_CONTRACT_VERSION}"
+[ -n "${HOST_SERVICE_SECRET:-}" ] || refuse "HOST_SERVICE_SECRET missing from the boot env"
+
+# A wake that races a wake, or a re-delivered provision, must not stack a
+# second host-service on a live one.
+if [ -f "${SUPERSET_RUN_DIR}/host-service.pid" ] && kill -0 "$(cat "${SUPERSET_RUN_DIR}/host-service.pid")" 2>/dev/null; then
+	exit 0
+fi
+
+stamp "boot.start pid=$$ bundle=$(cat "${SUPERSET_BUNDLE_ROOT}/current.bundle-hash" 2>/dev/null | cut -c1-12)"
+
+# --- per-boot state: a restored disk carries the previous session's pids
+# and ready flags, which describe processes that no longer exist.
+rm -rf "$SUPERSET_RUN_DIR"
+install -d -m 0755 -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$SUPERSET_RUN_DIR"
+stamp "run.cleared"
+
+# --- the bundle the environment pins; unpinned keeps what the image baked
+ensure_bundle() {
+	local want="${SUPERSET_BUNDLE_SHA:-}" have
+	if [ -z "$want" ]; then stamp "bundle.unpinned keeping $(cat "${SUPERSET_BUNDLE_ROOT}/current.bundle-hash" 2>/dev/null | cut -c1-12)"; return 0; fi
+	have="$(cat "${SUPERSET_BUNDLE_ROOT}/current.bundle-hash" 2>/dev/null || true)"
+	if [ "$have" = "$want" ] && [ -x "${SUPERSET_BUNDLE_ROOT}/current/setup" ]; then
+		stamp "bundle.current ${want:0:12} matches pin"
+		return 0
+	fi
+	local dir="${SUPERSET_BUNDLE_ROOT}/${want}"
+	if [ ! -x "${dir}/setup" ]; then
+		local tmp
+		tmp="$(mktemp)"
+		stamp "bundle.fetching ${want:0:12}"
+		if ! curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$tmp" "${SUPERSET_ASSET_BASE_URL}/${want}.tar.gz"; then
+			rm -f "$tmp"; stamp "bundle.fetch.failed keeping ${have:0:12}"; return 1
+		fi
+		local got
+		got="$(sha256sum "$tmp" | cut -d' ' -f1)"
+		if [ "$got" != "$want" ]; then rm -f "$tmp"; stamp "bundle.hash.mismatch got=${got:0:12} keeping ${have:0:12}"; return 1; fi
+		rm -rf "$dir"; mkdir -p "$dir"
+		tar -xzf "$tmp" -C "$dir"; rm -f "$tmp"
+		chmod 755 "${dir}/setup"
+	fi
+	ln -sfn "$dir" "${SUPERSET_BUNDLE_ROOT}/current.tmp"
+	mv -T "${SUPERSET_BUNDLE_ROOT}/current.tmp" "${SUPERSET_BUNDLE_ROOT}/current"
+	printf '%s\n' "$want" > "${SUPERSET_BUNDLE_ROOT}/current.bundle-hash"
+	for old in "${SUPERSET_BUNDLE_ROOT}"/*/; do
+		old="${old%/}"
+		[ -L "$old" ] && continue
+		[ "$old" = "$dir" ] && continue
+		[ "$(basename "$old")" = "$have" ] && continue
+		rm -rf "$old"
+	done
+	stamp "bundle.installed ${want:0:12} was ${have:0:12}"
+}
+self_hash() { sha256sum "$0" 2>/dev/null | cut -d' ' -f1; }
+BOOT_HASH_BEFORE="$(self_hash)"
+
+ensure_bundle || true
+BUNDLE="${SUPERSET_BUNDLE_ROOT}/current"
+
+# --- the three passes. Steps are fail-open; a broken desktop step degrades
+# the desktop, never the workspace.
+stamp "rootfs.start"; "$BUNDLE/setup" apply-rootfs >> "$SUPERSET_BOOT_LOG" 2>&1; stamp "rootfs.end"
+# apply-rootfs may have replaced the contract; re-read it.
+. /etc/superset/contract.sh
+# It may also have replaced this script. The shell is running the copy the
+# image baked, so without this a bundle's change to the boot script only
+# takes effect on the boot after the one that installed it — which is how an
+# older image's checkout raced a newer bundle's. Once per boot: the guard
+# stops a bundle whose script never settles from spinning here.
+if [ -z "${SUPERSET_BOOT_REEXEC:-}" ] && [ "$(self_hash)" != "$BOOT_HASH_BEFORE" ]; then
+	stamp "boot.reexec into the installed bundle's script"
+	SUPERSET_BOOT_REEXEC=1 exec "$0" "$@"
+fi
+stamp "assets.start"; "$BUNDLE/setup" sync-assets >> "$SUPERSET_BOOT_LOG" 2>&1 || stamp "assets.failed continuing"; stamp "assets.end"
+stamp "steps.start"; "$BUNDLE/setup" run-steps >> "$SUPERSET_BOOT_LOG" 2>&1; stamp "steps.end"
+
+# --- host-service, as the sandbox user, first. A runtime that cannot start
+# is logged, not fatal: the desktop and the checkout still come up so the
+# box can be looked at, and the control plane marks the workspace failed.
+HOST="${SUPERSET_HOST_ROOT}/current"
+start_host_service() {
+[ -f "${HOST}/host-service.js" ] || { stamp "host.missing no runtime at ${HOST}"; return 0; }
+chown -R "$SUPERSET_USER:$SUPERSET_USER" "$SUPERSET_STATE_DIR" "$SUPERSET_LOG_DIR"
+if [ ! -f "$SUPERSET_HOST_DB" ] && [ -f "${HOST}/host.db.template" ]; then
+	install -m 0644 -o "$SUPERSET_USER" -g "$SUPERSET_USER" "${HOST}/host.db.template" "$SUPERSET_HOST_DB"
+	stamp "hostdb.seeded from template"
+fi
+# The workspace files belong to the user; a golden built as root left them root's.
+[ -d "$SUPERSET_WORKSPACE_DIR" ] && [ "$(stat -c %U "$SUPERSET_WORKSPACE_DIR")" != "$SUPERSET_USER" ] &&
+	chown -R "$SUPERSET_USER:$SUPERSET_USER" "$SUPERSET_WORKSPACE_DIR" && stamp "workspace.chowned to ${SUPERSET_USER}"
+
+# The firewall terminates TLS for the hosts it injects credentials into and
+# mounts its CA in the system bundle. curl, git and bun read that bundle; node
+# does not, so without this every node fetch to GitHub fails the certificate
+# check — including host-service's own pull-request lookups.
+: "${NODE_EXTRA_CA_CERTS:=/etc/ssl/certs/ca-certificates.crt}"
+export NODE_EXTRA_CA_CERTS
+
+host_env=(
+	"HOME=${SUPERSET_HOME_DIR}" "USER=${SUPERSET_USER}" "LOGNAME=${SUPERSET_USER}"
+	"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin"
+	"NODE_ENV=production" "PORT=${SUPERSET_HOST_SERVICE_PORT}"
+	"ORGANIZATION_ID=${SUPERSET_SANDBOX_ORGANIZATION_ID}"
+	"HOST_DB_PATH=${SUPERSET_HOST_DB}" "HOST_MIGRATIONS_FOLDER=${HOST}/drizzle"
+	"AUTH_TOKEN=sandbox" "SUPERSET_API_URL=${SUPERSET_API_URL}" "SUPERSET_HOST_RUN_MODE=sandbox"
+	"SUPERSET_SANDBOX_WORKSPACE_ID=${SUPERSET_SANDBOX_WORKSPACE_ID}"
+	"SUPERSET_SANDBOX_WORKSPACE_PATH=${SUPERSET_WORKSPACE_DIR}"
+	"SUPERSET_SANDBOX_REPOSITORIES=${SUPERSET_SANDBOX_REPOSITORIES}"
+	"SUPERSET_SANDBOX_IMAGE_TAG=${SUPERSET_SANDBOX_IMAGE_TAG}" "SUPERSET_SANDBOX_PROVIDER=${SUPERSET_SANDBOX_PROVIDER}"
+	"SUPERSET_RUN_DIR=${SUPERSET_RUN_DIR}" "SUPERSET_SANDBOX_BOOT_LOG=${SUPERSET_BOOT_LOG}"
+	"HOST_SERVICE_SECRET=${HOST_SERVICE_SECRET}"
+)
+for key in HOST_SERVICE_SENTRY_DSN HOST_SERVICE_SENTRY_ENVIRONMENT \
+	SUPERSET_SANDBOX_AGENT SUPERSET_SANDBOX_AGENT_PROMPT SUPERSET_SANDBOX_AGENT_MODEL SUPERSET_SANDBOX_AGENT_EFFORT SUPERSET_SANDBOX_AGENT_MODE \
+	NODE_EXTRA_CA_CERTS NODE_USE_SYSTEM_CA SSL_CERT_FILE CURL_CA_BUNDLE REQUESTS_CA_BUNDLE AWS_CA_BUNDLE GIT_SSL_CAINFO NPM_CONFIG_CAFILE PIP_CERT CARGO_HTTP_CAINFO; do
+	[ -n "${!key:-}" ] && host_env+=("${key}=${!key}")
+done
+stamp "host.exec $(cat "${SUPERSET_HOST_ROOT}/current.version" 2>/dev/null)"
+# setpriv execs in place, so the pid recorded is node's own and the process
+# that answers kill -0 is the one that serves.
+(cd "$SUPERSET_HOME_DIR" && exec setpriv --reuid="$SUPERSET_USER" --regid="$SUPERSET_USER" --init-groups \
+	env -i "${host_env[@]}" node "${HOST}/host-service.js") >> "${SUPERSET_LOG_DIR}/host-service.log" 2>&1 &
+echo $! > "${SUPERSET_RUN_DIR}/host-service.pid"
+(
+	for _ in $(seq 1 600); do
+		if curl -fs -o /dev/null "http://127.0.0.1:${SUPERSET_HOST_SERVICE_PORT}/trpc/health.check"; then
+			touch "${SUPERSET_RUN_DIR}/host-service.ready"; stamp "host.ready"; exit 0
+		fi
+		sleep 0.1
+	done
+	stamp "host.timeout after 60s"
+) &
+}
+start_host_service
+
+# --- the desktop and the checkout: side effects of being up.
+as_user env "DISPLAY=${SUPERSET_DISPLAY}" "HOME=${SUPERSET_HOME_DIR}" "USER=${SUPERSET_USER}" \
+	"SUPERSET_SANDBOX_WORKSPACE_ID=${SUPERSET_SANDBOX_WORKSPACE_ID}" \
+	/usr/local/bin/superset-desktop-init >> "${SUPERSET_LOG_DIR}/desktop.log" 2>&1 &
+stamp "desktop.start"
+
+# The repository's start hook: the services a workspace needs every boot.
+# host-service runs it, because the environment the hook needs is pushed
+# into host-service after boot and never leaves it; this runner decides
+# when: once host-service answers, the push has landed and the checkout is in.
+start_hook() {
+	local api="http://127.0.0.1:${SUPERSET_HOST_SERVICE_PORT}/trpc/sandbox"
+	local auth="Authorization: Bearer ${HOST_SERVICE_SECRET}"
+	local i
+	for i in $(seq 1 1200); do
+		[ -f "${SUPERSET_RUN_DIR}/host-service.ready" ] &&
+			curl -fs -H "$auth" "${api}.status" 2>/dev/null | grep -q '"environmentPushed":true' && break
+		sleep 0.1
+	done
+	if [ "$i" -ge 1200 ]; then stamp "hook.skipped no environment push within 120s"; return 0; fi
+	local out
+	out="$(curl -fs -X POST -H "$auth" -H 'Content-Type: application/json' -d '{}' "${api}.runStartHook" 2>&1)" ||
+		{ stamp "hook.failed ${out:0:160}"; return 0; }
+	case "$out" in
+		*'"started":true'*) stamp "hook.started ${out}" ;;
+		*'"no-hook"'*) stamp "hook.none" ;;
+		*) stamp "hook.skipped ${out:0:160}" ;;
+	esac
+}
+
+# One checkout per repository in SUPERSET_SANDBOX_REPOSITORIES, each at
+# <workspace>/<path> on its branch, or at the workspace root itself when its
+# path is ".". A marker per path under the state directory says it is done;
+# a golden has the markers stripped so a fork fetches its branch into the
+# checkout it inherited.
+checkout_one() {
+	local url="$1" branch="$2" path="$3" base="$4"
+	[ -n "$base" ] || base="$branch"
+	local ws="${SUPERSET_WORKSPACE_DIR}/${path}" marker="${SUPERSET_CHECKOUTS_DIR}/${path}"
+	if [ "$path" = "." ]; then ws="$SUPERSET_WORKSPACE_DIR"; marker="${SUPERSET_CHECKOUTS_DIR}/@root"; fi
+	if [ -f "$marker" ]; then stamp "checkout.skipped ${path} already done"; return 0; fi
+	local baked
+	baked="$(as_user git -C "$ws" remote get-url origin 2>/dev/null || true)"
+	if [ "$baked" = "$url" ] && [ -d "$ws/.git" ]; then
+		if as_user git -C "$ws" fetch -q --depth 1 origin "$base" && as_user git -C "$ws" checkout -q -B "$branch" FETCH_HEAD; then
+			touch "$marker"; stamp "checkout.fetched ${path} ${branch} from ${base}"; return 0
+		fi
+		# A clone a previous session interrupted leaves a repository that can
+		# fetch nothing; start over rather than fail every boot.
+		stamp "checkout.fetch.failed ${path} ${branch}; recloning"
+	fi
+	# Clone beside the target and move the result in, the worktree first and
+	# .git last, so the directory becomes a repository in one rename: host-service
+	# seeds the workspace row before the checkout lands and would otherwise find
+	# a half-written .git and fetch into it. The directory itself is emptied
+	# rather than replaced, so a shell already sitting in it keeps a live cwd.
+	local tmp
+	tmp="$(mktemp -d "${SUPERSET_WORKSPACE_DIR}/.clone.XXXXXX")"
+	chown "$SUPERSET_USER:$SUPERSET_USER" "$tmp"
+	if as_user git clone -q --depth 1 --single-branch --branch "$base" "$url" "$tmp" \
+		|| { find "$tmp" -mindepth 1 -delete; as_user git clone -q --depth 1 "$url" "$tmp"; }; then
+		as_user git -C "$tmp" checkout -q -B "$branch"
+		install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$ws"
+		find "$ws" -mindepth 1 -maxdepth 1 ! -name '.clone.*' -exec rm -rf {} +
+		( shopt -s dotglob nullglob; for entry in "$tmp"/*; do [ "${entry##*/}" = ".git" ] || mv "$entry" "$ws"/; done )
+		mv "$tmp/.git" "$ws/.git"; rmdir "$tmp"
+		touch "$marker"; stamp "checkout.cloned ${path} ${url}"; return 0
+	fi
+	rm -rf "$tmp"; stamp "checkout.clone.failed ${path}"; return 1
+}
+checkout() {
+	exec >> "${SUPERSET_LOG_DIR}/checkout.log" 2>&1
+	install -d -o "$SUPERSET_USER" -g "$SUPERSET_USER" "$SUPERSET_WORKSPACE_DIR"
+	install -d "$SUPERSET_CHECKOUTS_DIR"
+	local failed=0 url branch path base
+	while IFS=$'\t' read -r url branch path base; do
+		[ -n "$path" ] || continue
+		checkout_one "$url" "$branch" "$path" "$base" || failed=1
+	done < <(printf '%s' "$SUPERSET_SANDBOX_REPOSITORIES" | jq -r '.[] | [.url, .branch, .path, (.baseBranch // "")] | @tsv')
+	return "$failed"
+}
+(
+	stamp "checkout.start"
+	checkout && touch "${SUPERSET_RUN_DIR}/checkout.ready"
+	stamp "checkout.end"
+	[ -f "${SUPERSET_RUN_DIR}/checkout.ready" ] && start_hook
+) &
+
+stamp "boot.done"

@@ -1,8 +1,8 @@
 ---
-title: "Superset vs OpenCode (2026): Agent Orchestration vs Open-Source AI Terminal"
-description: "Compare Superset and OpenCode for AI-assisted development. See how parallel agent orchestration differs from a single open-source AI coding terminal."
+title: "Superset vs OpenCode (2026): Orchestrating OpenCode Across Worktrees"
+description: "Use OpenCode as your coding agent and Superset to organize parallel tasks. Compare session management, Git worktrees, review, and provider costs."
 date: 2026-02-02
-lastUpdated: 2026-03-21
+lastUpdated: 2026-09-23
 type: "1v1"
 competitors:
   - opencode
@@ -14,89 +14,66 @@ keywords:
   - opencode vs superset
 ---
 
-OpenCode is a coding agent -- a single AI assistant that reads, writes, and debugs code in your terminal. Superset is a local-first desktop workspace that runs many coding agents, including OpenCode, in parallel across isolated Git worktrees. OpenCode is the agent. Superset is the orchestration and review layer around many agents, and many developers use them together.
+**OpenCode is a coding agent; Superset organizes the workspaces where you run it.** You can use OpenCode on its own or run it inside Superset alongside other agents. For an OpenCode orchestrator, evaluate how tasks get separate working directories, how you monitor sessions, and how you review and integrate their changes.
 
----
+OpenCode is not limited to one session or a terminal-only interface. Its [documentation](https://opencode.ai/docs/) describes terminal, desktop, and IDE interfaces; its [CLI reference](https://opencode.ai/docs/cli/) includes session management and a web interface.
 
-## At a Glance
+This comparison is published by Superset. It describes workflow differences, not measured code quality or a speed benchmark. Product documentation was checked on September 23, 2026.
 
-| | **Superset** | **OpenCode** |
+## At a glance
+
+| Question | Superset | OpenCode |
 |---|---|---|
-| **Category** | Agent orchestration workspace | AI coding agent (terminal-native) |
-| **What it does** | Runs 10+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | AI assistant for writing, debugging, and refactoring code |
-| **AI approach** | Agent-agnostic -- orchestrates external agents plus Superset Chat | Model-agnostic -- 75+ providers including local models |
-| **Parallelism** | Core feature -- many agents on separate branches | Single-session; multi-session recently added |
-| **Pricing** | Free tier + Pro $20/seat/mo, source-available (ELv2) | Free, open source (MIT); pay for API usage or use Zen |
-| **GitHub stars** | 1,100+ | 95,000+ |
+| What do you use it for? | Organizing agent workspaces, terminals, review, and previews | Asking an agent to inspect code, edit files, and run commands |
+| Can they work together? | Run the installed OpenCode CLI in a workspace | Use the same provider configuration you use outside Superset |
+| How do you separate parallel tasks? | Create a workspace with its own Git worktree and branch for each task | Use separate working directories for independent writers; session management alone does not establish file isolation |
+| Where do you review changes? | Workspace diffs and your usual Git/PR checks | Inspect the agent's changes and use your usual Git/PR checks |
+| What do you pay for? | A Superset plan where required, plus the agent's provider usage | Provider usage according to your configured service |
 
----
+## Use OpenCode in parallel with Superset
 
-## What Is Superset?
+Start with two independent tasks, such as a documentation correction and a focused test. Create one Superset workspace per task from the same known base commit, then launch `opencode` in each workspace's terminal.
 
-Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, OpenCode, Codex, Aider, Copilot, Cursor Agent, Gemini CLI, Superset Chat, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode.
+Before giving either agent write access, run these commands in both terminals:
 
----
+```bash
+pwd
+git branch --show-current
+git worktree list
+```
 
-## What Is OpenCode?
+Confirm that the tasks have different directories and branches. Give each session a bounded prompt naming the files it may change, the acceptance check, and what to do if it needs work outside that scope.
 
-OpenCode is an open-source AI coding agent built for the terminal by the SST team (95,000+ GitHub stars). You describe what you want in natural language, and the AI reads your codebase, writes code, executes commands, and modifies files within a Bubble Tea TUI built in Go. Its standout feature is model flexibility: 75+ providers including Anthropic, OpenAI, Google, AWS Bedrock, OpenRouter, and local models via Ollama. It includes LSP integration, MCP support, and GitHub Actions integration.
+Follow the [OpenCode parallel-session walkthrough](/compare/multiple-opencode-agents-parallel) for a complete task and review procedure. The [three-task guide](/blog/parallel-coding-agents-guide) also covers blocked agents, previews, and combined checks.
 
----
+## What worktrees isolate
 
-## Key Differences
+A Git worktree gives a task separate working files and an index while sharing the repository. It is not a process sandbox. Agents can still contend for ports, databases, credentials, memory, or provider limits. Changes can conflict when merged, and compatible text changes can still break a shared API.
 
-### Orchestrator vs Agent
+Use distinct ports and test data where needed. Review each diff, then integrate accepted branches one at a time and rerun the relevant checks on the combined result. See the [reproducible worktree example](/parallel-coding-agents#a-reproducible-isolation-check).
 
-OpenCode talks to AI models, reads your code, and makes changes. Superset is the workspace around agents: it runs tools like OpenCode in parallel, each in its own isolated environment, then layers on task management, chat, browser preview, and review tooling. Run OpenCode inside Superset to get model flexibility per session and parallel execution across sessions.
+## Which setup fits your work?
 
-### Sequential vs Parallel
+Use OpenCode on its own if your existing terminal or editor and Git workflow already make tasks easy to track. Adding a workspace manager is optional.
 
-With OpenCode alone, you work one task at a time: prompt, review, iterate, next task. With Superset, you assign tasks to multiple agents simultaneously -- one writes tests, another refactors an API, a third fixes lint errors -- each on its own branch. You review diffs as they complete and merge when satisfied.
+Use OpenCode with Superset if switching among tasks, tracking their branches, and reviewing separate changes is becoming the bottleneck. Start with two agents and increase concurrency only while the machine, provider allowance, and review queue can support it.
 
-### Code Isolation
+Mix OpenCode with another CLI agent when that helps a specific task. Using the same underlying model does not establish equal code quality; compare actual patches and checks for your repository.
 
-OpenCode modifies files directly in your project directory unless you set up isolation yourself. Superset creates a separate Git worktree per task, giving each agent an isolated copy of the repository. This is what makes running 10 agents at once safe -- no agent can corrupt another's work.
+## Pricing and prerequisites
 
-### Model and Provider Support
+Install and authenticate OpenCode on the host where it will run. Superset does not include arbitrary model-provider usage in its workspace plan. Check [Superset pricing](/pricing) and [OpenCode provider configuration](https://opencode.ai/docs/providers/) for your intended setup. OpenCode also documents its optional [Zen service](https://opencode.ai/docs/zen/).
 
-OpenCode supports 75+ providers and lets you switch mid-session. Superset inherits whatever its agents support -- run OpenCode inside Superset and you get all 75+ providers; run Claude Code and you get Claude.
-
----
-
-## Pricing
-
-Superset offers a free tier and Pro at $20/seat/month, plus whatever your agents' providers charge for API usage. OpenCode offers Zen (pay-per-use at provider cost, $20 initial credit) and OpenCode Black ($200/month for all-model access).
-
----
-
-## Which Should You Choose?
-
-**Choose OpenCode if you:**
-- Want a single, powerful AI coding agent with maximum model flexibility
-- Prefer interactive, real-time collaboration with an AI assistant
-- Want an open-source Claude Code alternative without provider lock-in
-- Need cost control across different models via Zen's at-cost pricing
-
-**Choose Superset if you:**
-- Already use CLI coding agents and want to scale usage horizontally
-- Need to run 5-10 agents in parallel across separate tasks
-- Want Git worktree isolation so agents never conflict with each other
-- Work on large codebases where parallel execution saves hours
-
-**Use both** for the best of each: OpenCode as the agent, Superset as the orchestrator. Each Superset task launches its own OpenCode session in its own worktree -- model flexibility per session, parallel execution across all of them.
-
----
-
-## Frequently Asked Questions
+## Frequently asked questions
 
 ### Is Superset an OpenCode replacement?
 
-Not really. Superset now has built-in chat, MCP tooling, browser previews, and file review, but its core job is still coordinating agents and worktrees. OpenCode is the agent. Superset is the layer that lets you run many OpenCode sessions safely or mix OpenCode with other agents on the same repo.
+You can use them together. OpenCode performs coding work; Superset provides workspaces, persistent terminals, and review tools around those sessions.
 
-### Can I run OpenCode inside Superset?
+### Does opening two OpenCode sessions isolate their files?
 
-Yes. Each Superset task launches its own OpenCode session in its own worktree and branch, giving you model flexibility per session plus isolation and parallelism across sessions.
+Check their working directories. Two sessions in one directory can edit the same working copy. For independent writers, use separate worktrees and branches and verify them before starting.
 
-### How does OpenCode compare to Claude Code?
+### Does Superset prevent merge conflicts?
 
-Both are terminal-based AI coding agents. OpenCode is open source (MIT) and supports 75+ providers; Claude Code is proprietary and locked to Anthropic. On the same underlying model, code quality is comparable. OpenCode offers provider flexibility; Claude Code offers tighter Anthropic optimization.
+No. Separate worktrees keep active working files apart. You still need to review and integrate changes, resolve conflicts, and test the combined result.

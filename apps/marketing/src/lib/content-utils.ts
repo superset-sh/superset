@@ -1,15 +1,23 @@
+import { formatDate, getActiveLocale } from "@superset/i18n/format";
+
 const MONTH_SHORT = "short";
 const _MONTH_LONG = "long";
 
 export function formatContentDate(
 	date: string,
 	monthStyle: "short" | "long" = MONTH_SHORT,
+	locale = getActiveLocale(),
 ): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: monthStyle,
-		day: "numeric",
-	});
+	return formatDate(
+		new Date(date),
+		{
+			year: "numeric",
+			month: monthStyle,
+			day: "numeric",
+			timeZone: "UTC",
+		},
+		locale,
+	);
 }
 
 export function slugify(text: string): string {

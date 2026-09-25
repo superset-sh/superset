@@ -1,0 +1,2 @@
+DROP INDEX "automation_triggers_schedule_unique";--> statement-breakpoint
+CREATE INDEX "automation_triggers_schedule_idx" ON "automation_triggers" USING btree ("automation_id") WHERE kind = 'schedule';

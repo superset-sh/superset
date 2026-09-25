@@ -1,0 +1,1 @@
+export { McpCapabilities } from "./McpCapabilities";

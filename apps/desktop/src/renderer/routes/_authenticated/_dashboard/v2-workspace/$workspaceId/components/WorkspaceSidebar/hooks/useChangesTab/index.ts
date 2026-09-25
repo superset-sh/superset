@@ -1,1 +1,1 @@
-export { type ChangesFilter, useChangesTab } from "./useChangesTab";
+export { type SelectedDiffTarget, useChangesTab } from "./useChangesTab";

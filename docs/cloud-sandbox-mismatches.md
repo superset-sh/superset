@@ -1,0 +1,538 @@
+# Where cloud sandboxes don't fit the app
+
+**Tickets live in the Linear "Sandboxes" project** (https://linear.app/superset-sh/project/sandboxes-a52055bc936e). This file is the reasoning — what a sandbox is and why it differs from a machine someone owns — and stays the thing to read before changing this code. When you find something new, write it here and file the ticket there; when an item is fixed, say so here rather than deleting it, so the next person can see the shape of the trap.
+
+A cloud workspace runs host-service inside a provider sandbox, which lets it
+reuse the whole v2 stack — panes, terminals, git, agents — for free. The price
+is a set of places where the app's assumptions were written for *a machine a
+person owns* and a sandbox isn't one.
+
+**This list is load-bearing, not documentation.** Every entry below cost
+someone a debugging session. When you hit a new one, add it here in the same
+shape (what the app assumes → what a sandbox actually is → what we did), even
+if you worked around it in five minutes. The next person will not have your
+context.
+
+## Identity and ownership
+
+**The workspace's name belongs to the cloud row, not the sandbox.** For a local
+or remote host, `host.db` owns the workspace because the user created it there.
+A cloud workspace is created, named (by the API's namer) and listed by the
+cloud API; the sandbox's `workspaces` row exists only so host-service has
+something to serve panes against. Renaming through the generic host path writes
+a name nothing reads — `workspaces.rename` routes to `cloudWorkspace.rename`
+for these. Treat the sandbox's copy as scratch.
+
+**The project + workspace rows are still synthetic, but the sandbox writes
+them itself.** A sandbox's checkout *is* its workspace, so host-service's
+create procedures — which cut a worktree off a base repo — don't apply. It used
+to be raw SQL executed from the API against a schema it shared no types with,
+which meant any host-service migration could break provisioning silently. Now
+host-service reads the identity from its own environment on boot and inserts
+the rows through its own schema (`runSandboxSelfSeed`). Still a fabrication, and
+the project id remains meaningless to the client — which is why cloud rows get
+their own sidebar section rather than grouping under a project — but it can no
+longer drift from the schema, and provisioning has nothing to execute inside
+the sandbox.
+
+**The sandbox's `hostId` addresses nothing.** `workspace.list` reports the
+container's machine id. The fan-out restates it as the cloud workspace's id so
+every host-keyed lookup (pull requests, agent status, diff stats) resolves.
+Anything reading `hostId` off a raw sandbox response gets a dead id.
+
+**There is no `v2_hosts` row.** Sandboxes are deliberately absent from the
+hosts table, so anything that resolves a host through it degrades: the remote
+version gate has nothing to check (skipped for cloud), and the unreachable
+overlay renders "Unknown host".
+
+## Addressing and auth
+
+**The address is brokered and expires.** A sandbox has no stable URL the
+client can keep — the API resolves the sandbox's domain and signs a
+short-lived token per access, re-minted before expiry
+(`SandboxAccessProvider`, `useWorkspaceHostUrl`). Code that caches a token
+for longer than its life will start 401ing. Resolving talks to the provider's
+control plane, not the sandbox, so it works when the sandbox is stopped.
+
+**Addressing and waking are different requests.** The sidebar keeps a live
+address for every ready cloud workspace, and none of those mints may resume a
+sandbox — that is how every desktop in the organization kept every Blaxel
+sandbox awake for the whole of its life. Only the open workspace's own mint
+passes `wake`, which resumes a stopped session (a resumed session boots from
+the filesystem snapshot with no processes, so host-service is started again)
+and extends a running one so it never hits the idle stop while someone is in
+it. `resolveSandboxAddress` is the one place that knows the difference.
+
+**A box's agent status doesn't come from the box.** A host row's dot is a
+live subscription to that host's terminal bindings; the sidebar deliberately
+opens no such socket to a sandbox, since holding one keeps the VM awake all
+day. Instead the box reports its own status — the most urgent of its
+terminals, from the same lifecycle events — to
+`POST /api/cloud-workspaces/:id/agent-status` with its host secret, coalesced
+and capped at one report per five seconds (`sandbox-agent-status` in
+host-service). The row keeps the last value (`agent_status`,
+`agent_status_at`) so a cold client sees it at once, and the realtime nudge
+carries it so open clients patch their cache rather than refetch the list.
+A closed box's dot is therefore at most a few seconds behind; the open box's
+own subscribers stay live as before. Reaches a box only through a
+host-service release. **Open:** mobile receives the field and renders nothing
+for it yet.
+
+**A woken sandbox answers seconds after the wake, and every pane reconnects
+at once.** A resumed session has no processes; `wake` starts host-service
+and returns before it listens. The open workspace's hook therefore holds the
+address back until `health.check` answers (`waitForHost`), and the host
+fan-out skips a sandbox the last access reported as not running (`running`
+on the access response) until that hook re-addresses it. Without both, every
+hook fired into the boot window, the terminal-agent auto-resume burned its
+one attempt on a 502, and the agent pane sat on "Disconnected" until the
+next token refresh minutes later. What a person sees now: the pane
+reconnects, the lost session is reported gone, and the agent is resumed into
+a fresh terminal with its scrollback (the cold-restore path), about 15–20 s
+after opening.
+
+**Two gates sit between the renderer and a sandbox**, and both fail as a bare
+`TypeError: Failed to fetch`: the renderer's CSP `connect-src` allowlist
+(`https://*.vercel.run`), and the WebSocket, which can't carry a header from a
+browser and so takes the token as the `token` query param — the same param a
+local host reads its secret from. CORS is answered by host-service itself in
+sandbox mode (`*`; the bearer, never a cookie, is what gates it). Testing from
+Node proves nothing about the renderer here.
+
+**The sandbox's own address is public, so the gate is the gate.** Locally the
+pre-shared secret stops anything else on the machine from talking to a
+host-service bound to loopback. A Vercel sandbox's exposed port is a public
+`vercel.run` domain with nothing in front of it, so clients never see it: they
+reach a workspace at `<id>-<port>.sandbox.supersetusercontent.com`, a Worker
+(`apps/gate`) that verifies a ticket the API minted for that person's
+session — workspace, port, target, hours-long expiry — and forwards to the
+sandbox with a bearer only it and the API can derive
+(`sandboxHostSecret(SANDBOX_GATE_SECRET, workspaceId)`). host-service in the
+sandbox runs the same `PskHostAuthProvider` as a local host, booted with that
+secret as `HOST_SERVICE_SECRET`; nothing a client holds opens the box
+directly, and nothing inside the box — an agent that can read its own
+environment included — learns the shared secret or any other workspace's.
+A separate registrable domain keeps product cookies away from user code and
+makes every workspace its own site.
+
+That replaces the Blaxel-era posture, where a private provider preview did
+the gating and host-service accepted everything, and the interim one where
+host-service verified Ed25519 tokens itself. `health.check` stays public on
+purpose — it is how the API tells a booting sandbox from a dead one — so
+probe the gate on a guarded route (`/events`), not on health.
+
+**Model credentials never enter a sandbox.** The person's sign-in is injected
+into egress by the sandbox firewall: a rule on `api.anthropic.com` /
+`api.openai.com` that matches the auth header carrying
+`SANDBOX_CREDENTIAL_PLACEHOLDER` and replaces it. The placeholder must still be
+*set* — an unset key reads as "not logged in" and produces no request to
+rewrite. An environment variable by a credential's name is ignored and never
+reaches the box; a cloud workspace has no way to carry an app's own provider
+key.
+
+**The firewall terminates TLS for the domains it rewrites, and the terminal
+must trust its CA.** The CA is in the image's system bundle, which curl, git,
+gh, python and bun read. Node does not read it, and the platform sets no CA
+variable of its own, so `superset-boot` defaults `NODE_EXTRA_CA_CERTS` to that
+bundle before it builds host-service's environment.
+host-service builds PTY env from a login-shell snapshot, never from its own
+process env, so those variables would be lost and every model call from a
+terminal would fail with a certificate error; the sandbox-mode passthrough
+forwards them (`SANDBOX_FIREWALL_CA_KEYS`).
+
+**`superset` in a box is the workspace, not a person.** The CLI ships as its
+own image asset and sits on PATH. It holds no credential: the firewall adds
+`x-superset-sandbox-credential` to requests for the API the way it adds the
+model and GitHub ones, the API resolves that to the workspace's creator, and
+`SANDBOX_ALLOWED_PROCEDURES` is the list of things it may then call. A header
+rule applies to every process in the box, so that list is the boundary —
+widen it deliberately, and never to a procedure that can grant more access.
+
+**Docker is installed but not started.** An environment whose repository needs
+containers starts it from its own `start` command, which is also where it
+waits for the daemon:
+
+```json
+{ "start": ["sudo dockerd >/var/log/dockerd.log 2>&1 &",
+            "until docker info >/dev/null 2>&1; do sleep 0.2; done",
+            "docker compose up"] }
+```
+
+## Runtime environment
+
+**No login shell, no rc files, and the variables are not in the process env.**
+host-service builds PTY env from a login-shell snapshot and deliberately never
+from its own `process.env`. In a sandbox that yielded a terminal with no
+credentials at all — the symptom was Claude reporting "Not logged in" while
+the key was plainly in the sandbox env. Since the v2 layout (2026-09-13) the
+environment's variables are not in any process env on the box: the control
+plane pushes them into host-service over `sandbox.setEnvironment` after every
+boot, host-service holds them in memory (`sandbox-managed-env`) and
+`buildV2TerminalEnv` lays them over the base env in sandbox mode. New
+terminals and agent launches inherit the pushed set; open terminals keep the
+one they started with; nothing is written to disk. A host-service restart
+comes up with an empty set until the next push, which every wake performs.
+
+**Agent CLIs are pre-configured in the image.** A first run otherwise opens a
+theme picker, an API-key approval and a workspace trust dialog — three
+confirmations no one is there to answer. The bundle carries
+`/home/ubuntu/.claude.json` (`packages/sandbox/bundle/rootfs/home/ubuntu/`).
+Note that a headless `-p` run writes none of those keys, so a smoke test passes
+while the interactive TUI still blocks.
+
+**Claude refuses its own launch flags under root. Fixed by the v2 layout:
+everything a person touches runs as `ubuntu`.** The builtin agent runs
+`claude --dangerously-skip-permissions`, and a sandbox used to run as root, so
+picking Claude in a cloud workspace printed
+"--dangerously-skip-permissions cannot be used with root/sudo privileges" and
+exited — found from the mobile app, but the desktop launches the same
+command. Claude allows the flag under root when `IS_SANDBOX=1` is in its
+environment (verified from a sandbox terminal), and then asks once to accept
+Bypass Permissions mode, another dialog a headless smoke test never reaches.
+host-service sets `IS_SANDBOX=1` in sandbox-mode PTY env and the bundle
+bakes `bypassPermissionsModeAccepted: true` into the user's `.claude.json`.
+The root case is gone: the boot runner is the only thing that runs as root,
+and it drops to `ubuntu` (passwordless sudo) for host-service, the desktop,
+the checkout and every hook.
+
+**Several repositories are directories under `/workspace`.** A cloud workspace on one
+repository has it at `/workspace`; on several, each sits at `/workspace/<repository name>`
+(the owner is prefixed only when two names clash). The layout is fixed at create in
+`cloud_workspace_repositories` (`.` is the root), and a promoted environment's repository set
+is frozen because its golden was built for it. host-service seeds one
+project and one workspace row per checkout; the primary's row carries the cloud workspace's
+id, the others get ids derived from it and the path, so anything keyed on the cloud id (the
+desktop route, the agent launch, the terminals) lands in the primary and the rest are
+siblings. The `start` hook runs in the hooks repository's checkout, not in `/workspace`.
+
+**The checkout is the workspace.** No worktrees and no base repo — anything
+assuming a worktree can be created or discarded next to a main checkout has
+nothing to work with. Boot does cut the workspace's own branch: each checkout
+fetches its `baseBranch` and lands on `branch` (`superset/<slug>-<id>`), so an
+agent is never sitting on `main`, and the base is what a pull request targets.
+
+**There is no clipboard where the PTY runs.** Pasting an image into a terminal
+forwards Ctrl+V and lets the TUI (Claude Code, Codex) read the image from the
+OS clipboard — of the machine the PTY runs on. A sandbox (or any
+relay-reached host) never holds the user's local screenshot, so the paste
+silently did nothing or surfaced "Failed to paste image". Fixed renderer-side:
+for non-local hosts the desktop ships the clipboard bytes over
+`filesystem.writeFile` into the shared `.superset/attachments/` worktree dir
+(the same convention the agent-launch terminal adapter and the mobile
+composer use — mobile proved the pattern) and pastes the worktree-relative
+path instead (`setImagePasteOverride` in the terminal runtime registry).
+Chosen over a new host endpoint because deployed sandboxes never update
+their baked host-service.
+
+**A URL launcher succeeds and reaches nobody.** The image ships `xdg-utils`
+(`packages/sandbox/bundle/rootfs/usr/local/share/superset/desktop.Aptfile`)
+and `/etc/profile.d/superset.sh` exports `DISPLAY`, so `xdg-open` spawns
+cleanly and exits 0 — on a display no one is looking at. Nothing in the spawn
+result distinguishes that from a browser opening on the user's laptop, so a
+CLI that opens a URL as a side effect (`auth login` opening the consent
+screen) has to rule the sandbox out
+before spawning rather than react to a failure. `canReachDesktop()` in
+`packages/cli/src/lib/open-url.ts` is that check: `IS_SANDBOX` (set by
+host-service in sandbox-mode PTY env), `SSH_CONNECTION` or `SSH_TTY`. It is
+deliberately not `shouldOpenBrowser()` from `lib/auth.ts`, whose extra TTY
+test is right for an interactive login prompt and wrong for an agent running
+the CLI with piped stdout.
+
+## Lifecycle
+
+**Delete is not wired.** The generic delete routes to the owning host, which
+for a cloud workspace deletes the row *inside* the sandbox and leaves the
+sandbox running (and billing) plus the `cloud_workspaces` row intact — the
+workspace reappears on the next refetch. It needs to call
+`cloudWorkspace.delete`. **Open.**
+
+**Sidebar affordances are driven by local state, not by the row.** Visibility,
+pinning and ordering live in `v2WorkspaceLocalState`; a section that renders
+straight off an API list will show "Remove from sidebar" doing nothing. Cloud
+rows read the same collection as every other row.
+
+**Drag ordering isn't wired** — the cloud section sits outside the DnD
+containers. **Open.**
+
+**A sandbox's host-service is frozen at the version it was provisioned with,
+and nothing updates it. Open, and the most consequential item on this list.**
+On a machine someone owns, the desktop app ships host-service and updates it:
+new app version, new binary, one restart. A sandbox instead bakes
+`packages/host-service/dist` into the image, so its host-service is whatever
+the image held on the day it was created. There is no updater in there, and
+the app can't push one.
+
+Every release therefore widens a gap between a desktop that has moved on and
+sandboxes that haven't. The failure mode is not a clean version error — it is
+a client calling a procedure the sandbox's router doesn't have, or sending an
+auth shape it no longer expects, and the user seeing a workspace that is
+simply broken with no way to fix it short of recreating it and losing the
+uncommitted work inside. Long-lived sandboxes are exactly the ones people will
+care about most, so this gets worse with time rather than better.
+
+What it needs, roughly in order of how much it buys:
+
+- **A version handshake.** The sandbox reports the host-service version it is
+  running and the app compares it against what it expects, so a mismatch
+  surfaces as a clear "this workspace needs updating" instead of a broken
+  pane. Nothing else is safe to build until the app can tell.
+- **In-place update.** Ship a new `dist` into a running sandbox and restart
+  host-service, the way the desktop does — the sandbox has a filesystem and a
+  process supervisor, so this is mechanically possible.
+- **Recreate-with-carryover** as the fallback for a sandbox too old to update:
+  push the branch, provision a fresh sandbox, restore the checkout. Slower,
+  but it must exist for the cases where in-place fails.
+
+Note that the *image tag* lives on the environment row (`sourceRef`, seeded from
+the `SANDBOX_IMAGE_NAME` constant), so new sandboxes pick up a rebuilt image for free. It is only existing ones
+that strand — which is why this reads as fine right up until the first
+long-lived workspace.
+
+## Provider constraints
+
+**The platform runs no ENTRYPOINT or CMD for a custom image.** The boot
+runner (`/usr/local/bin/superset-boot`, from the bundle) is launched through
+`runCommand` as root, detached, after create and again on every wake, with
+`HOST_SERVICE_SECRET` in that command's env and nowhere else. It refuses to
+stack a second host-service on a live one (pid file in `/run/superset`), so
+a wake racing a wake is harmless. (Blaxel was the opposite: its own
+`sandbox-api` owned the entrypoint slot.)
+
+**A wake restores the disk, and no init clears anything.** `/run/superset`
+after a resume holds the previous session's pid file, ready flags and pty
+socket, all describing processes that no longer exist. The boot runner
+deletes and recreates it first thing; anything that reads a flag there must
+tolerate a stale one for the milliseconds before that.
+
+**The control plane's command runs from the image's workdir, which the
+checkout replaces.** The first boot cloned `/workspace` by deleting and
+recreating it, and every child of the boot command — host-service, git,
+websockify — had inherited that directory as its cwd. host-service died on
+`process.cwd()` (ENOENT), websockify on `os.path.abspath`, git with "Unable
+to read current working directory". The runner now `cd /` before anything,
+host-service starts in the user's home, and the checkout empties the
+directory instead of replacing it so a shell already sitting in it keeps a
+live cwd. An interrupted clone (a wake that ends the session mid-fetch)
+leaves a repository that can fetch nothing; the runner reclones rather than
+failing every boot.
+
+**A freshly pushed image is not usable for a few minutes.** VCR reports the
+tag `Preparing` while it optimises a `linux/amd64` build (a gigabyte takes
+about four minutes), and `Sandbox.create` answers 409 `image_not_ready` until
+it reads `Ready`. `sandbox:release` waits; anything else pointing an
+environment at a tag it just pushed has to as well.
+
+**Disk is 64 GB regardless of memory.** Memory is 2 GB per vCPU and the plan
+caps it (Pro: 8 vCPU, 16 GB); disk is separate NVMe. This retires the Blaxel
+rule that the writable root was tmpfs at half of memory and that a full disk
+wedged every exec — the reason goldens ran at 32 GB. The internal golden runs
+8 vCPU for the dev stack's RAM, forks inherit it, and image workspaces get
+the same: at 4 vCPU / 8 GB an agent that brought up the dev stack and an
+Electron instance took the VM down (2026-09-11).
+
+**A session ends; the sandbox does not.** A session stops at its timeout
+(`SESSION_TIMEOUT_MS`, four hours, extended while a workspace is open) or on
+`stop()`, and the platform snapshots the filesystem. The next wake boots a
+new session from that snapshot with *no processes*: uncommitted files survive,
+a running agent does not. Blaxel froze the VM instead, processes intact. So
+an unattended agent run has to finish within a session, and the idle stop
+must not fire on a workspace someone is using — which is what the open
+workspace's `wake` on every token refresh is for. Sessions cap at 24 hours on
+the plan; past that the extension is refused and the next open resumes.
+
+**A fork starts from the source's snapshot, not its live filesystem.** A
+golden is therefore a *stopped* sandbox: `promoteSandboxToEnvironment` takes
+a snapshot of the promoting workspace, creates the golden from it with an
+empty env, removes the identity files, and stops it — that stop is what forks
+start from. Identity, git token and agent credentials are configuration on
+Vercel, not files, so a golden created with `env: {}` simply doesn't have
+them; no blanking on the fork request as Blaxel needed.
+
+**`snapshot()` ends the session, and the snapshot is what the sandbox resumes
+from.** Measured while promoting: the source is `stopped` afterwards, and its
+`currentSnapshotId` is the snapshot just taken. Deleting that snapshot — the
+obvious tidy-up once the golden exists — leaves the workspace unable to ever
+resume (`410 Cannot resume sandbox: no snapshot available`), which is how one
+e2e workspace died. So the snapshot stays (`keepLastSnapshots` evicts it on
+the source's next stop), and a source that was running is started again
+before promote returns. A row whose sandbox is gone or unresumable is marked
+`failed` by the next `access`, so it gets the failed screen and a Remove
+button rather than a sidebar entry that never opens.
+
+**`stop()` returns before the stop's snapshot is current.** The sandbox is
+still `stopping` when the call resolves, and a fork taken then boots from
+whatever snapshot was current before — for a sandbox that has never stopped
+(a golden fresh from the image), nothing but the image. Measured: a file
+written just before the stop was absent from an immediate fork, and release
+probes forked that early found an empty `/workspace`, cloned into it and lost
+every baked dependency, with the golden itself intact minutes later. Promote
+and the release poll until `currentSnapshotId` has changed and the status is
+`stopped` (`waitForStopSnapshot`) before anything forks.
+
+**Snapshots exist only in the region they were taken.** Forking a golden into
+another region is refused (`snapshot_region_mismatch`), and failover regions
+don't replicate it. Forks therefore inherit the golden's region and only
+image-created sandboxes get `VERCEL_SANDBOX_REGION` — passing the setting on
+a fork was what failed every workspace once the goldens moved to sfo1.
+
+**The firewall policy is live-updatable and forks carry it.** Credential
+brokering (`networkPolicy` with `transform` rules) can be set at create, on a
+fork, or changed on a running sandbox, and a fork copies the source's policy
+unless overridden. Both Blaxel limitations — routing fixed at creation, forks
+unable to have the proxy at all — are gone, which is why every sandbox now
+brokers its model credentials at the firewall. A custom policy denies everything it doesn't
+list: the `"*": []` catch-all is what keeps npm, git and the rest reachable.
+
+**A fork copies the source's config; every field we pass is an override.**
+Resources, timeout, ports, tags, network policy, persistence and env are all
+inherited unless set on the fork request. Provisioning passes the workspace's
+full env and policy explicitly so nothing rides in from the golden by
+accident.
+
+**Sandboxes and images are scoped to one Vercel project.** Everything lives in
+the team's `sandboxes` project (`VERCEL_SANDBOX_PROJECT_ID`); the deploy
+token for the API project cannot see it, hence the separate
+`VERCEL_SANDBOX_TOKEN`. Deleting a sandbox keeps its snapshots (and their
+storage bill) unless `deleteOrphanSnapshots` is passed; `deleteSandbox` does.
+
+**The sandbox's config env is capped at 4 KB, and nothing uses it now.**
+`Sandbox.create`/`fork` answer `400 env payload too large` past that, and
+the internal environment's variables alone are ~9 KB (Blaxel took 98 keys
+without comment). The v2 layout creates every sandbox with an empty env. The
+workspace's identity (ids, repo, branch, bundle pin, hook overrides) is a
+world-readable file, `/etc/superset/sandbox.conf`, written by the API at
+claim and on every wake (a wake is `get`, then the policy update and the
+identity write together, then the boot command, a health poll and the env
+push); the environment's variables are pushed
+into host-service after boot (see the runtime section); the only secret, the
+host secret the gate presents, rides in the boot command's env. A golden has
+the identity file, host.db and the markers removed before its snapshot
+(`stripWorkspaceIdentity`); a fork writes its own.
+
+**The desktop is an Xfce session, view-only until taken.** The display is
+1920×1200 at 96 DPI and runs `xfce4-session` (panel, xfwm4, xfdesktop,
+Thunar, xfce4-terminal) with Plank for the dock (Chrome, Files, Terminal) and
+one of eight photographic wallpapers chosen by the workspace id, so it is
+stable across wakes and differs between boxes. Chrome runs as `ubuntu` and
+still launches with `--no-sandbox` (this VM needs it regardless of user; plus
+`--test-type`, which hides the bar that flag otherwise adds to every window)
+with remote debugging on 9222 for an agent (in its own profile directory,
+`~/.config/google-chrome-visible`: Chrome 136+ refuses remote debugging on
+the default one, and passing the default path explicitly does not count);
+its first run is pre-answered —
+the `First Run` sentinel and `--no-first-run` skip the terms dialog, and a
+managed policy turns off sign-in, sync and the default-browser prompt. Two
+profiles are seeded identically (`google-chrome-visible` for the visible
+instance, `google-chrome-playwright` for automation that launches its own
+Chrome),
+because Chrome is single-instance per profile, not as a boundary. The stream
+is TigerVNC's Xvnc on loopback with websockify from apt on its own published
+port (6080); the desktop pane connects to that port through the gate with
+its own ticket, and host-service no longer proxies VNC. The internal golden's
+dev stack is the environment's `start` hook (`superset-dev-stack`): the boot
+runner asks host-service to run it once host-service answers, the managed
+environment has been pushed and the checkout is in, and host-service runs
+it with that environment, which never leaves it. In
+the app, the Desktop pane connects view-only and only forwards input after
+"Take control" — an agent may be driving that desktop, and a pane that merely
+has focus must not type into its browser.
+
+**A multi-line variable (a PEM key) did not survive into `/workspace/.env`.**
+The in-sandbox materializer skipped values containing newlines, so the dev
+stack's API failed env validation on `GH_APP_PRIVATE_KEY`. It now writes them
+double-quoted with `\n`, which dotenv reads back as newlines.
+
+**The client keys a workspace's tickets by URL, so each port needs its own
+gate URL.** `cloudWorkspace.access` mints one ticket for host-service and one
+for the desktop stream, and the renderer stores each under the gate URL it
+was minted for. Production's origin carries a `*` that becomes
+`<workspace>-<port>`, so the two never meet. The dev setup used to write a
+bare `http://127.0.0.1:<port>` origin: both tickets landed under one URL,
+the desktop's ticket overwrote the host's, and every host-service call was
+answered by websockify on 6080 (`501 Not Implemented` on POST, a happy
+`101` on `/events`). The dev origin is now `http://*.localhost:<port>`,
+which Chromium resolves to loopback without a hosts entry; the CSP is built
+from the same value.
+
+**Ports answer at a random per-sandbox domain.** `sandbox.domain(4879)` is
+`https://sb-<random>.vercel.run`, unrelated to the sandbox's name and stable
+for the sandbox's life. There is no per-port authentication — see the auth
+section — and up to 15 ports may be exposed; exactly one is.
+
+**Native modules pin the image.** node-pty's prebuild links glibc (so no
+Alpine) and only the pinned version ships prebuilds at all; better-sqlite3 must
+match what host-service was built against or it crashes on load. The image
+asserts the prebuild exists rather than letting something compile silently.
+
+**Local dev cannot exercise a sandbox, and the failure mode if you force it is
+silent.** `setup.local.sh` copies `.env.local.example` to `.env`, which sets
+`VERCEL_SANDBOX_TOKEN=fake-vercel-sandbox-token` — so provisioning fails at the
+provider and no sandbox is ever created. That part is loud and fine. The trap is
+what happens when someone supplies real Vercel credentials to a local API to try
+a sandbox end-to-end: provisioning passes `SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL`
+into the sandbox, and in local dev that value is `http://localhost:<port>`. Inside
+the container `localhost` is the container, so the sandbox boots, serves, and
+looks healthy while every call it makes back to the API dials itself. Nothing
+reports an error at provision time. Treat sandboxes as a deployed-API-only
+surface, or tunnel a public URL and override `NEXT_PUBLIC_API_URL` for the
+provisioning process specifically.
+
+**Sandbox telemetry does not travel with the desktop build.** The host-service
+Sentry DSN is compiled into the desktop bundle at desktop build time
+(`apps/desktop/electron.vite.config.ts`) and handed to host-service when the
+desktop spawns it. A sandbox is started by the API and never sees a desktop
+bundle, so it can never receive that DSN — which is why sandbox startup crashes
+were invisible for as long as sandboxes have existed, rather than merely
+under-reported. Sandboxes now report to their own project via
+`SENTRY_DSN_SANDBOX` on the API, tagged with the cloud workspace id, image tag
+and provider. Keep the workspace id on both sides: a provisioning failure is
+recorded against the API and a runtime failure against the sandbox, and that id
+is the only thing that joins the two halves of one broken workspace.
+
+## Running this repo's own dev stack inside a sandbox
+
+Reproducing an app bug end to end from a cloud workspace means bringing up
+`apps/web` + `apps/api` inside the sandbox. Three of the documented ways to do
+that do not exist there (found driving GHSA-2cp5-f6gg-w5fp, 2026-09-24).
+
+**The app assumes:** `./.superset/setup.local.sh` can stand up Postgres,
+neon-proxy and Redis with `docker compose`, which is the whole point of the
+zero-credential local path in `DEVELOPMENT.md`.
+
+**A sandbox is:** a container with no Docker daemon — `/var/run/docker.sock`
+does not exist. Nothing in the local stack comes up.
+
+**What we did:** created a throwaway Neon project, migrated it from scratch and
+pointed a `.env` built from `.env.local.example` at it. Never the workspace's
+own `.env`: it carries real provider secrets, and its `DATABASE_URL` is a live
+branch.
+
+**Postgres over TCP is not reachable either.** `bun run db:migrate`
+(drizzle-kit, node-postgres, port 5432) fails against Neon with `password
+authentication failed for user 'neondb_owner'` while the *same* credentials
+work over Neon's HTTP and WebSocket drivers — so the error names the wrong
+cause and costs an hour. Apply migrations through
+`drizzle-orm/neon-serverless/migrator` instead; the HTTP driver alone cannot,
+because drizzle runs every pending migration in one multi-statement
+transaction.
+
+**`/etc/hosts` is read-only, even under sudo.** Pointing a provider hostname at
+a local stand-in — the usual way to drive an OAuth callback without a real
+provider secret — has to go through the resolver instead: a `--require`
+preload patching `dns.lookup` for Node, `--host-resolver-rules` for Chrome.
+Binding 443 and using sudo otherwise work.
+
+## Shared memory is 64 MB
+
+**The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium
+without a GPU composites in software and backs every window's tiles with
+shared memory there.
+
+**A sandbox is:** a VM with the container default, a 64 MB tmpfs. The third
+1920×1200 Electron window on the sandbox display aborted its renderer with
+`partition_alloc::TerminateBecauseOutOfMemory` from
+`CreateSharedImageForSoftwareCompositor` every time (minidump on the bench,
+2026-09-11); a few heavy Chrome tabs get there too.
+
+**What we did:** `superset-desktop-init` remounts `/dev/shm` at 50% of RAM
+at boot, after which four windows open without a crash.

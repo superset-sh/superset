@@ -14,14 +14,10 @@ if (process.env.NODE_ENV !== "production") {
 const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
-
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
+	// Compiles @lingui/core/macro, reached through @superset/shared, at build
+	// time. Version must stay in lockstep with @lingui/core.
+	experimental: {
+		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 };
 

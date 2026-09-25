@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import { X } from "lucide-react-native";
 import * as React from "react";
@@ -91,7 +92,9 @@ function DialogContent({
 								"text-accent-foreground web:pointer-events-none size-4 shrink-0",
 							)}
 						/>
-						<Text className="sr-only">Close</Text>
+						<Text className="sr-only">
+							<Trans>Close</Trans>
+						</Text>
 					</DialogPrimitive.Close>
 				</DialogPrimitive.Content>
 			</DialogOverlay>

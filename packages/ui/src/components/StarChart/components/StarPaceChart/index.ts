@@ -1,0 +1,1 @@
+export { StarPaceChart } from "./StarPaceChart";

@@ -5,7 +5,7 @@ description: Isolated environments for each git branch
 
 ## Core Concept
 
-Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports.
+A workspace gives a task its own directory, terminals, and ports. Local project workspaces use isolated git worktrees; cloud workspaces use separate clones. [Sessions](#sessions) use a managed scratch folder without requiring a project.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -17,17 +17,64 @@ Press **⌘N** or click "New Workspace". Create from:
 - **Existing branch** - Continue work on a branch
 - **Pull request** - Review or continue a PR
 
-In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly.
+In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly. The prompt box also keeps a searchable history of your previous prompts; click the history icon to reuse one.
 
-Each workspace gets:
+If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
+
+Each new branch-based workspace gets:
 - Own git branch
 - Own working directory
 - Own terminal sessions
 - Workspace-scoped port detection and controls
 
+New local worktrees use `<worktrees path>/<project name>/<branch>` directories. Existing worktrees keep their paths.
+
+### Cloud Workspaces
+
+When cloud workspaces are available to your account, Superset creates a new working branch from the selected base. For multiple repositories, it uses the same working branch name in each. Attach images to the initial prompt to give the agent visual context when it starts.
+
 ## Import Worktrees
 
 If you have existing git worktrees on disk, use the **Import** tab in the New Workspace modal to bring them into Superset. Click **Import all** to bulk-import all discovered worktrees at once.
+
+You can also right-click a project in the sidebar and choose **Import untracked worktrees**. A confirmation dialog lists the branches and paths that will be imported; the **Run setup script** checkbox is off by default, since existing worktrees are usually already set up.
+
+## Sessions
+
+A **session** is a workspace without a project. Pick **No project** in the new-workspace picker, or click **+** on the sidebar's **Sessions** section. Each session gets its own git-initialized folder under `~/.superset/sessions`. Terminals, agents, chat, and the Changes panel work as usual; there's no branch or PR link.
+
+Sessions created outside the app (by the CLI or a session-mode automation) appear in the sidebar's **Sessions** section automatically. Placement happens once: if you later remove one from the sidebar, it stays removed.
+
+From the CLI, pass `--session` explicitly. Creating a host workspace requires
+either `--project <id>` or `--session`; omitting both is an error:
+
+```bash
+superset workspaces create --session --local --agent claude --prompt "…"
+```
+
+On iPhone, choose **No project** in the composer's project picker, or tap **+** beside **No project** on Home. Sending your prompt creates a session on the selected online host.
+
+Automations can run in session mode too; see [Automations](/automations).
+
+## Pin Workspaces
+
+Keep active workspaces at the top of the sidebar:
+
+- Right-click a workspace and choose **Pin to Sidebar** (or **Unpin**)
+- Drag into the **Pinned** section to pin, drag within it to reorder, drag out to unpin
+- Sessions work the same way
+- Pinned project workspaces show a project-name prefix, such as `project/workspace`
+
+If sorting or filtering prevents a sidebar drag, the notice offers an action to restore manual ordering or clear filters.
+
+## List and Board Views
+
+The workspaces page toggles between **List** and **Board** layouts; Board is the default. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing, and both auto-hide while empty when Archived is **Hidden** (the default).
+
+Toolbar controls live in two menus, shared by both layouts:
+
+- **Filter** - Project, PR state, Agent, Pinned (All workspaces / Pinned / Unpinned), and Device. Active filters show a count badge and sync to the URL.
+- **Display** - **Sort by**, the **Archived** window (Hidden, Past week, Past month, All), and, in Board view, **Lanes**: a checkbox per column to hide or show it. Lane visibility stays out of the URL and resets on restart.
 
 ## Ahead/Behind Status
 
@@ -41,6 +88,17 @@ For **local (branch-based) workspaces**, the sidebar shows how far the active br
 PR-based workspaces show pull request state in the sidebar.
 
 Hover a workspace to see review status, CI checks, and GitHub links. If the branch has a deployment preview, you'll also see an **Open Preview** button.
+
+A branch can have more than one PR. The badge shows a count; click it to list them, open one on GitHub, or remove a stale link. Right-click the workspace for **Remove PR Link** and **Restore PR Link**. Removals get an undo toast.
+
+## Bulk Actions
+
+Select multiple workspaces within a project to act on them at once:
+
+- **⌘-click** toggles a workspace in and out of the selection; **Shift-click** selects a range
+- While workspaces are selected, the Projects header becomes a toolbar with **Move**, **Ungroup**, **Delete**, and **Clear**
+- **Move** puts the selection into a new or existing group; **Ungroup** removes grouped members from their group
+- Bulk delete previews every workspace and flags dirty or unpushed changes before you confirm
 
 ## Use Cases
 

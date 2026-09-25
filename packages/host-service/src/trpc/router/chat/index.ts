@@ -1,1 +1,0 @@
-export { chatRouter } from "./chat";

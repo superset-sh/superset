@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
@@ -13,6 +14,7 @@ interface OpenedWorktreeData {
 }
 
 export function useHandleOpenedWorktree() {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
@@ -33,10 +35,18 @@ export function useHandleOpenedWorktree() {
 				writeToTerminal: (input) => writeToTerminal.mutateAsync(input),
 			});
 			if (bootstrapError === "create_or_attach_failed") {
-				toast.error("Workspace opened, but terminal failed to start.");
+				toast.error(
+					t({
+						message: "Workspace opened, but terminal failed to start.",
+					}),
+				);
 			}
 			if (bootstrapError === "write_initial_commands_failed") {
-				toast.error("Workspace opened, but setup command failed.");
+				toast.error(
+					t({
+						message: "Workspace opened, but setup command failed.",
+					}),
+				);
 			}
 
 			navigateToWorkspace(data.workspace.id, navigate);
@@ -49,6 +59,7 @@ export function useHandleOpenedWorktree() {
 			utils.projects.getRecents,
 			utils.workspaces,
 			writeToTerminal,
+			t,
 		],
 	);
 }

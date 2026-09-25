@@ -1,0 +1,6 @@
+appId: sh.superset.mobile
+---
+- tapOn: "Try again"
+- extendedWaitUntil:
+    notVisible: "Last seen.*"
+    timeout: 15000

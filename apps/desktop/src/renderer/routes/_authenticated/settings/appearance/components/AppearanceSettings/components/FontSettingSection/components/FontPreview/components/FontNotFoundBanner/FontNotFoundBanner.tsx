@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { AlertCircleIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { GENERIC_FAMILIES, parsePrimaryFamily } from "../../../../font-utils";
@@ -70,8 +71,10 @@ export function FontNotFoundBanner({ fontFamily }: { fontFamily: string }) {
 		<div className="flex items-center gap-2 px-3 py-2 text-xs border-t border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400">
 			<AlertCircleIcon className="size-3.5 shrink-0" />
 			<span>
-				<strong>{primaryFont}</strong> is not installed on this system. Falling
-				back to the next available font.
+				<Trans>
+					<strong>{primaryFont}</strong> is not installed on this system.
+					Falling back to the next available font.
+				</Trans>
 			</span>
 		</div>
 	);

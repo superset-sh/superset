@@ -9,6 +9,7 @@ import type {
 } from "../../types";
 import {
 	equalizeAllSplits,
+	equalizeSplitBoundary,
 	findFirstPaneId,
 	findPaneInLayout,
 	generateId,
@@ -124,7 +125,14 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	getActivePane: (
 		tabId?: string,
 	) => { tabId: string; pane: Pane<TData> } | null;
-	closePane: (args: { tabId: string; paneId: string }) => void;
+	closePane: (args: {
+		tabId: string;
+		paneId: string;
+		intent?: "close" | "remove";
+	}) => void;
+	subscribePaneClose: (
+		listener: (panes: readonly Pane<TData>[]) => void,
+	) => () => void;
 	setPaneData: (args: { paneId: string; data: TData }) => void;
 	setPaneTitleOverride: (args: {
 		tabId: string;
@@ -191,10 +199,28 @@ export interface CreateWorkspaceStoreOptions<TData> {
 export function createWorkspaceStore<TData>(
 	options?: CreateWorkspaceStoreOptions<TData>,
 ): StoreApi<WorkspaceStore<TData>> {
+	const closeListeners = new Set<(panes: readonly Pane<TData>[]) => void>();
+	const notifyClosed = (panes: readonly Pane<TData>[]) => {
+		if (panes.length === 0) return;
+		for (const listener of closeListeners) {
+			try {
+				listener(panes);
+			} catch (error) {
+				console.error("Pane close listener failed", error);
+			}
+		}
+	};
 	return createStore<WorkspaceStore<TData>>((set, get) => ({
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
+
+		subscribePaneClose: (listener) => {
+			closeListeners.add(listener);
+			return () => {
+				closeListeners.delete(listener);
+			};
+		},
 
 		addTab: (args) => {
 			const builtPanes = args.panes.map(buildPane) as [
@@ -209,6 +235,8 @@ export function createWorkspaceStore<TData>(
 		},
 
 		removeTab: (tabId) => {
+			const tab = get().getTab(tabId);
+			if (!tab) return;
 			set((s) => {
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
@@ -220,6 +248,7 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			notifyClosed(Object.values(tab.panes));
 		},
 
 		setActiveTab: (tabId) => {
@@ -280,6 +309,7 @@ export function createWorkspaceStore<TData>(
 		},
 
 		closePane: (args) => {
+			const pane = get().getTab(args.tabId)?.panes[args.paneId];
 			set((s) => {
 				const tab = s.tabs.find((t) => t.id === args.tabId);
 				if (!tab || !tab.panes[args.paneId] || !tab.layout) return s;
@@ -317,6 +347,8 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			if (pane && !get().getPane(pane.id) && args.intent !== "remove")
+				notifyClosed([pane]);
 		},
 
 		setPaneData: (args) => {
@@ -393,6 +425,7 @@ export function createWorkspaceStore<TData>(
 		},
 
 		replacePane: (args) => {
+			const replaced = get().getTab(args.tabId)?.panes[args.paneId];
 			set((s) => {
 				const tab = s.tabs.find((t) => t.id === args.tabId);
 				const pane = tab?.panes[args.paneId];
@@ -420,6 +453,7 @@ export function createWorkspaceStore<TData>(
 					),
 				};
 			});
+			if (replaced && !get().getPane(replaced.id)) notifyClosed([replaced]);
 		},
 
 		openPane: (args) => {
@@ -632,11 +666,7 @@ export function createWorkspaceStore<TData>(
 						t.id === args.tabId
 							? {
 									...t,
-									layout: updateAtPath(
-										tab.layout,
-										args.path,
-										equalizeAllSplits,
-									),
+									layout: equalizeSplitBoundary(tab.layout, args.path),
 								}
 							: t,
 					),

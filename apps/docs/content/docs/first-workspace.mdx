@@ -1,35 +1,86 @@
 ---
-title: Your First Workspace
-description: Create and set up your first workspace in Superset
+title: Your First Parallel Session
+description: Go from install to three agents working in parallel, then ship the best result
 ---
 
-## Add a Repository
+In about ten minutes you'll add a repo, put three agents to work on isolated branches, and merge the winner.
 
-Add your repo from a local folder or Git URL. Requires GitHub auth (`gh auth status`).
+## 1. Add a Repository
+
+Add your repo from a local folder or clone a remote repository. In the clone dialog, search the GitHub repositories available to the selected host's GitHub CLI login, then pick one to fill in the URL and project name. You can also paste a Git URL manually. Check GitHub access with `gh auth status` on that host.
 
 ![Add Repository](/images/add-repo.png)
 
-## Create a Workspace
+## 2. Create a Workspace with a Prompt
 
-Each workspace is an isolated git worktree on its own branch. Superset only copies git-tracked files—use [setup scripts](/setup-teardown-scripts) for `.env` files or `bun install`.
+Press **⌘N** to create an isolated git worktree on its own branch.
 
-Create workspaces from:
-- New branch from main
-- Existing branch
-- Pull request
+In the prompt-first flow, describe the task, pick an agent, and create. The agent starts working on your prompt immediately.
 
-In the prompt-first flow, you can link a pull request by searching for it or pasting the full PR URL.
+A good first prompt if your repo needs dependencies or env files:
 
-![New Workspace](/images/new-workspace.png)
+```text
+Set up this project for Superset. Read docs.superset.sh/setup-teardown-scripts
+and docs.superset.sh/ports, then author a .superset/config.json for this repo.
+```
 
-## Start Working
+Future workspaces will then install dependencies and copy env files automatically via [project lifecycle scripts](/setup-teardown-scripts).
 
-- **⌘O** - Open in Cursor/VS Code
-- **Terminal** - Built-in terminal ready to use
-- **Changes** - View diffs and commit
+![Creating a workspace from a prompt](/images/prompt-first.png)
 
-## Next Steps
+## 3. Fan Out to Three Agents
 
-- [Setup Scripts](/setup-teardown-scripts) - Automate `bun install`, env files
-- [Workspaces](/workspaces) - Run multiple branches at once
-- [IDE Integration](/use-with-ide) - Configure your editor
+Press **⌘N** twice more and give each workspace the same prompt with a different agent, say Claude Code, Codex, and Amp:
+
+```text
+Find a small bug in this repo and fix it. Explain the bug and the fix
+in your final message.
+```
+
+## 4. Watch Them Work
+
+- The sidebar shows each workspace's status at a glance
+- Agents pause in the chat pane when they need input, tool approval, or plan review
+- Enable notification sounds in Settings to hear when an agent finishes instead of babysitting terminals
+
+## 5. Review in the Diff Viewer
+
+Open each workspace's **Changes** tab to see exactly what its agent did.
+
+![Diff Viewer](/images/changes.png)
+
+- Toggle split or unified view
+- Use focus mode (target icon) to step through files one at a time
+- Double-click a line or choose **Edit Here** to fix small things yourself
+
+## 6. Ship the Winner
+
+In the workspace with the best result: stage, commit, push, and **Create PR**, all from the diff viewer.
+
+If a losing attempt had one good idea, select those lines in its diff and copy them over before you clean up.
+
+## 7. Clean Up
+
+Delete the other workspaces. [Lifecycle teardown scripts](/setup-teardown-scripts) run automatically, and the worktrees are removed.
+
+## You Now Know the Core Loop
+
+Try these workflows next:
+
+<Cards>
+	<Card icon={<Split />} title="Race Agents on One Task" href="/recipes/race-agents">
+		The pattern you just ran, refined.
+	</Card>
+	<Card icon={<Workflow />} title="Run Three Workstreams at Once" href="/recipes/parallel-workstreams">
+		Feature + bugfix + PR review in parallel.
+	</Card>
+	<Card icon={<GitPullRequest />} title="Clear PR Feedback in the Background" href="/recipes/pr-feedback">
+		An agent addresses review comments while you move on.
+	</Card>
+	<Card icon={<Layers />} title="Fan Out a Big Refactor" href="/recipes/fan-out-refactor">
+		Split large changes into independent slices.
+	</Card>
+	<Card icon={<CalendarClock />} title="Wake Up to a Finished Audit" href="/recipes/nightly-audit">
+		Scheduled agent runs with Automations.
+	</Card>
+</Cards>

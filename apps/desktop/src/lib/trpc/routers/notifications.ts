@@ -34,6 +34,10 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
+	  }
+	| {
+			type: typeof NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE;
+			data?: { themeState?: unknown };
 	  };
 
 const v2NotificationSourceSchema = z.discriminatedUnion("type", [
@@ -43,6 +47,7 @@ const v2NotificationSourceSchema = z.discriminatedUnion("type", [
 
 const showNativeInputSchema = z.object({
 	title: z.string().min(1),
+	subtitle: z.string().optional(),
 	body: z.string(),
 	silent: z.boolean().default(true),
 	clickTarget: z
@@ -103,7 +108,11 @@ export const createNotificationsRouter = (
 
 				const notification = new Notification({
 					title: input.title,
-					body: input.body,
+					subtitle: process.platform === "darwin" ? input.subtitle : undefined,
+					body:
+						process.platform !== "darwin" && input.subtitle
+							? `${input.subtitle}\n${input.body}`
+							: input.body,
 					silent: input.silent,
 				});
 				const key = getNativeNotificationKey(input);
@@ -152,6 +161,13 @@ export const createNotificationsRouter = (
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
+				const onSettingsExternalChange = (data: { themeState?: unknown }) => {
+					emit.next({
+						type: NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						data,
+					});
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -164,6 +180,10 @@ export const createNotificationsRouter = (
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
+				);
+				notificationsEmitter.on(
+					NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+					onSettingsExternalChange,
 				);
 
 				return () => {
@@ -179,6 +199,10 @@ export const createNotificationsRouter = (
 					notificationsEmitter.off(
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
+					);
+					notificationsEmitter.off(
+						NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						onSettingsExternalChange,
 					);
 				};
 			});

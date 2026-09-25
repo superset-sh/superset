@@ -80,10 +80,11 @@ function getIconsDir(): string {
 }
 
 /**
- * Picks the dock icon PNG for the current build type, falling back to the
- * stable icon if a build-specific variant is missing.
+ * Picks the icon PNG for the current build type, falling back to the stable
+ * icon if a build-specific variant is missing. macOS shows it in the dock;
+ * Linux windows carry it themselves.
  */
-function getIconPath(): string {
+export function getIconPath(): string {
 	const dir = getIconsDir();
 
 	if (env.NODE_ENV === "development") {

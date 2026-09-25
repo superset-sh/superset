@@ -1,0 +1,83 @@
+---
+title: Superset in 17 languages, session handoff between agents, and tag folders
+date: 2026-08-30
+image: /changelog/2026-08-30-languages-hero.png
+---
+
+## Superset in 17 Languages <PRBadge url="https://github.com/superset-sh/superset/pull/6943" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6926" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7002" />
+
+Superset now runs in Japanese, Simplified and Traditional Chinese, French, Korean, Spanish, German, Brazilian Portuguese, Italian, Russian, Turkish, Polish, Dutch, Indonesian, Czech, and Vietnamese. The app follows your system language, or pick one in **Settings → Appearance → Language**.
+
+- Desktop, web, and mobile are fully translated, down to menus, dialogs, and notifications
+- [superset.sh](https://superset.sh) and the docs have localized URLs per language, with a picker in the footer
+- The README on GitHub comes in all sixteen languages too
+
+## Continue a Session with Another Agent, or Fork It <PRBadge url="https://github.com/superset-sh/superset/pull/6962" />
+
+Move a session's work to a different agent without retyping the context. Two actions behind the fork icon in an agent terminal's header:
+
+- **Continue with another agent** starts a fresh session of a different agent seeded with the terminal's recent output, for a session that wedged, ran out of context, or turned out to be the wrong tool for the job
+- **Fork session** asks the agent for a native clone of its own session and leaves the original running
+
+![The session handoff menu on a Claude terminal pane with Continue with another agent and Fork session actions](/changelog/2026-08-30-session-handoff.png)
+
+Both work from the CLI too:
+
+```bash
+superset agents create --workspace W --agent codex  --from-terminal T
+superset agents create --workspace W --agent claude --fork-session S
+```
+
+## Sidebar Grouping From the CLI and Automations <PRBadge url="https://github.com/superset-sh/superset/pull/6990" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6999" />
+
+Grouping workspaces in the sidebar is no longer something only you can do by dragging. Tag a workspace from the CLI, an agent, or MCP and it files itself into that folder. Give an automation a tag and every workspace its runs create lands there, on any machine.
+
+```bash
+superset ws create --tag experiments
+superset ws update WORKSPACE_ID --tag experiments
+```
+
+- Folder names and colors follow you across devices, and renaming is instant
+- Hide a folder from the project menu without touching anyone's tags
+
+![The workspace sidebar with automation and closing soon tag folders holding grouped workspaces](/changelog/2026-08-30-tag-folders.png)
+
+## Public Agent Usage Leaderboard <PRBadge url="https://github.com/superset-sh/superset/pull/6875" />
+
+An opt-in leaderboard of agent usage across Superset: tokens, sessions, models, and a factory tier computed over a rolling 30 days. It publishes token counts and model names, never repo names, file paths, or prompts. Join from the **Usage** tab and browse it at [superset.sh/leaderboard](https://superset.sh/leaderboard).
+
+![The public leaderboard at superset.sh/leaderboard with factory tiers and totals for developers, tokens, and cost](/changelog/2026-08-30-leaderboard.png)
+
+## Improvements
+
+- **PDFs open in the file pane** - a real viewer with page thumbnails, zoom, search, and print, instead of the binary-file warning <PRBadge url="https://github.com/superset-sh/superset/pull/6909" />
+- **Copy on select** - selecting terminal text copies it immediately, like Ghostty and iTerm2; off by default in **Settings → Terminal**, based on [@VelkyVenik](https://github.com/VelkyVenik)'s original PR <PRBadge url="https://github.com/superset-sh/superset/pull/6949" />
+- **Terminal scripts** - terminal presets are now [terminal scripts](https://docs.superset.sh/terminal-scripts), and `superset scripts add` registers one from the CLI; a running desktop imports it live <PRBadge url="https://github.com/superset-sh/superset/pull/6892" />
+- **Usage lives in Settings** - token spend, quotas, and machine resources moved to **Settings → Usage**, and the Settings sidebar now matches the main sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/6883" />
+- **Switch accounts without losing conversations** - changing the default provider account offers to restart that provider's running agents on the new login, keeping each conversation <PRBadge url="https://github.com/superset-sh/superset/pull/6970" />
+- **Pinned Claude models** - the workspace-create picker adds pinned releases like Opus 4.8 alongside the Latest aliases, and an unsupported model fails with a clear error instead of being silently ignored <PRBadge url="https://github.com/superset-sh/superset/pull/6920" />
+- **Browser pane menu** - regrouped like Chrome's own, adding find in page, print, zoom, device emulation, and download tracking <PRBadge url="https://github.com/superset-sh/superset/pull/6878" />
+- **New Window everywhere** - reachable from the organization menu, the command palette, and the OS dock or launcher on Linux and Windows, contributed by [@tao101](https://github.com/tao101) <PRBadge url="https://github.com/superset-sh/superset/pull/6894" />
+- **Usage analytics for every agent CLI** - Grok, Cursor, OpenCode, Copilot, Pi, and more report token usage, with live quota cards for Grok and Antigravity <PRBadge url="https://github.com/superset-sh/superset/pull/6922" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6987" />
+- **Pages** - new pages are visible to your organization by default, the grid gets cached thumbnails, owners, and delete, and agents watch their published pages to answer new comments <PRBadge url="https://github.com/superset-sh/superset/pull/6932" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6952" />
+- **OpenCode notifications** - permission and question prompts now notify like other agents <PRBadge url="https://github.com/superset-sh/superset/pull/6948" />
+- **iOS** - workspace search moves into a native search sheet, and the project picker follows the Home scope <PRBadge url="https://github.com/superset-sh/superset/pull/6937" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6934" />
+- **Remote Access** - Remote Workspaces is now called Remote Access across the site and docs <PRBadge url="https://github.com/superset-sh/superset/pull/6896" />
+
+---
+
+**Bug fixes**
+
+- Nerd Font icons render as icons with any terminal font, not just the default stack <PRBadge url="https://github.com/superset-sh/superset/pull/7008" />
+- One terminal's WebGL failure no longer switches every terminal to the slower renderer <PRBadge url="https://github.com/superset-sh/superset/pull/6874" />
+- The terminal viewport no longer freezes when Pi clears its scrollback <PRBadge url="https://github.com/superset-sh/superset/pull/6956" />
+- Command palette results rank real matches first instead of fuzzy character coincidences <PRBadge url="https://github.com/superset-sh/superset/pull/6923" />
+- Web now remembers the organization you switched to, across sessions <PRBadge url="https://github.com/superset-sh/superset/pull/6957" />
+- "Host unreachable" no longer lingers after the host service restarts <PRBadge url="https://github.com/superset-sh/superset/pull/6900" />
+- Hosts on a build older than 1.22 show an update prompt instead of a blank terminal pane <PRBadge url="https://github.com/superset-sh/superset/pull/6998" />
+- Markdown preview code blocks are readable in light themes, and syntax comments stay readable in surface-toned themes <PRBadge url="https://github.com/superset-sh/superset/pull/6876" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6873" />
+- Revoking an API key works, and the list shows only your own keys <PRBadge url="https://github.com/superset-sh/superset/pull/6877" />
+- The Pull Requests page names the rejected GitHub credential instead of failing silently <PRBadge url="https://github.com/superset-sh/superset/pull/6911" />
+- Pane resize handles no longer paint above dialogs <PRBadge url="https://github.com/superset-sh/superset/pull/6891" />
+- Interrupting a Codex turn no longer leaves the workspace stuck as working <PRBadge url="https://github.com/superset-sh/superset/pull/6963" />
+- Pasting mixed text and files keeps the text on every surface <PRBadge url="https://github.com/superset-sh/superset/pull/6939" />

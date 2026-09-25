@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { useSearchContext } from "fumadocs-ui/contexts/search";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -10,6 +11,7 @@ interface MobileSearchIconProps {
 
 export function MobileSearchIcon({ className }: MobileSearchIconProps) {
 	const { setOpenSearch } = useSearchContext();
+	const { t } = useLingui();
 
 	const handleSearchClick = () => {
 		setOpenSearch(true);
@@ -18,7 +20,7 @@ export function MobileSearchIcon({ className }: MobileSearchIconProps) {
 	return (
 		<button
 			type="button"
-			aria-label="Search"
+			aria-label={t({ message: "Search" })}
 			onClick={handleSearchClick}
 			className={cn(
 				"flex items-center justify-center size-8 p-2 navbar:hidden hover:text-foreground transition-colors",

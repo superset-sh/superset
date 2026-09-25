@@ -1,15 +1,30 @@
 import type { SimpleGit } from "simple-git";
 import type { Branch, ChangedFile } from "../types";
-import { scheduleBaseRefFetch } from "./base-ref-freshness";
+import type { BaseRefFetchTarget } from "./base-ref-freshness";
 import {
 	buildBranch,
 	countUntrackedFileLines,
 	detectUnstagedRenames,
+	expandUntrackedDirectories,
 	getChangedFilesForDiff,
 	mapGitStatus,
 	parseNumstat,
 	resolveBaseComparison,
 } from "./git-helpers";
+
+export const MAX_UNTRACKED_STAT_FILES = 5_000;
+
+/**
+ * Parse `ls-files -z --directory` output. `-z` keeps non-ASCII names raw
+ * instead of C-quoted (`"caf\303\251/"`), so they compare equal to the
+ * paths git status reports.
+ */
+export function parseIgnoredPaths(raw: string): string[] {
+	return raw
+		.split("\0")
+		.map((entry) => entry.replace(/\/$/, ""))
+		.filter(Boolean);
+}
 
 export interface GitStatusSnapshot {
 	currentBranch: Branch;
@@ -20,6 +35,12 @@ export interface GitStatusSnapshot {
 	ignoredPaths: string[];
 }
 
+export interface GitStatusSnapshotComputation {
+	snapshot: GitStatusSnapshot;
+	/** Resolved in the worker, scheduled by the process-wide coordinator. */
+	baseRefFetchTarget: BaseRefFetchTarget | null;
+}
+
 export async function getGitStatusSnapshot({
 	git,
 	worktreePath,
@@ -28,7 +49,7 @@ export async function getGitStatusSnapshot({
 	git: SimpleGit;
 	worktreePath: string;
 	baseBranch?: string;
-}): Promise<GitStatusSnapshot> {
+}): Promise<GitStatusSnapshotComputation> {
 	const currentBranchName = (
 		await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
 	).trim();
@@ -36,18 +57,19 @@ export async function getGitStatusSnapshot({
 	const defaultBranchName = base?.branchName ?? null;
 	const baseRef = base?.baseRef ?? "HEAD";
 
-	// Non-blocking refresh so the against-base diff stops ballooning after a
-	// rebase; see base-ref-freshness.
-	if (base?.fetchTarget) {
-		scheduleBaseRefFetch(git, worktreePath, base.fetchTarget);
-	}
-
 	const [currentBranch, defaultBranch, status, ignoredRaw] = await Promise.all([
 		buildBranch(git, currentBranchName, true, baseRef),
 		defaultBranchName
 			? buildBranch(git, defaultBranchName, false)
 			: buildBranch(git, currentBranchName, true),
-		git.status(),
+		// Override simple-git's hardcoded bare `-u` (= `all`). Git only consults
+		// `core.untrackedCache` in `normal` mode, so `-uall` silently re-walks the
+		// entire worktree on every refresh — reported at ~1.9s vs ~0.03s on a 60k
+		// file repo. statusTask appends custom args after its own `-u` and git
+		// honours the last flag, so this wins. `normal` collapses a wholly-
+		// untracked directory to one `dir/` entry, which the expansion below
+		// undoes.
+		git.status(["--untracked-files=normal"]),
 		git
 			.raw([
 				"ls-files",
@@ -55,6 +77,7 @@ export async function getGitStatusSnapshot({
 				"--ignored",
 				"--exclude-standard",
 				"--directory",
+				"-z",
 			])
 			.catch(() => ""),
 	]);
@@ -62,10 +85,7 @@ export async function getGitStatusSnapshot({
 	// Top-level gitignored paths. `--directory` collapses entirely-ignored
 	// folders to a single entry (e.g. `node_modules`) instead of enumerating
 	// every file inside, so this stays cheap in large repos.
-	const ignoredPaths = ignoredRaw
-		.split("\n")
-		.map((line) => line.trim().replace(/\/$/, ""))
-		.filter(Boolean);
+	const ignoredPaths = parseIgnoredPaths(ignoredRaw);
 
 	const againstBase = await getChangedFilesForDiff(git, [`${baseRef}...HEAD`]);
 
@@ -100,19 +120,30 @@ export async function getGitStatusSnapshot({
 	const unstagedNumstat = parseNumstat(
 		await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
 	);
+	const expandedUntracked = await expandUntrackedDirectories(
+		git,
+		status.files
+			.filter((file) => file.index === "?" && file.working_dir === "?")
+			.map((file) => file.path),
+	);
+
 	const unstaged: ChangedFile[] = [];
 	const untrackedFiles: ChangedFile[] = [];
 	for (const file of status.files) {
 		const wd = file.working_dir;
 		if (file.index === "?" && wd === "?") {
-			const entry: ChangedFile = {
-				path: file.path,
-				status: "untracked",
-				additions: 0,
-				deletions: 0,
-			};
-			untrackedFiles.push(entry);
-			unstaged.push(entry);
+			// Fall back to the entry itself when a collapsed directory expanded to
+			// nothing, so a path never silently disappears from the panel.
+			for (const path of expandedUntracked.get(file.path) ?? [file.path]) {
+				const entry: ChangedFile = {
+					path,
+					status: "untracked",
+					additions: null,
+					deletions: null,
+				};
+				untrackedFiles.push(entry);
+				unstaged.push(entry);
+			}
 		} else if (wd && wd !== " ") {
 			const stats = unstagedNumstat.get(file.path) ?? {
 				additions: 0,
@@ -121,6 +152,14 @@ export async function getGitStatusSnapshot({
 			};
 			unstaged.push({
 				path: file.path,
+				// Git reports an intent-to-add file next to a similar deletion
+				// as a worktree rename (` R old -> new`); keep the source so a
+				// scoped re-read of either side knows to walk in full. A staged
+				// rename edited afterwards (`RM`) is a plain modification here.
+				oldPath:
+					wd === "R" && file.from && file.from !== file.path
+						? file.from
+						: undefined,
 				status: mapGitStatus(wd),
 				additions: stats.additions,
 				deletions: stats.deletions,
@@ -128,15 +167,20 @@ export async function getGitStatusSnapshot({
 			});
 		}
 	}
-	await countUntrackedFileLines(worktreePath, untrackedFiles);
+	const statsOmitted = untrackedFiles.length > MAX_UNTRACKED_STAT_FILES;
+	if (!statsOmitted) {
+		await countUntrackedFileLines(worktreePath, untrackedFiles);
+	}
 
 	const hasDeletions = unstaged.some((file) => file.status === "deleted");
-	const renames = await detectUnstagedRenames(
-		git,
-		worktreePath,
-		untrackedFiles.map((file) => file.path),
-		hasDeletions,
-	);
+	const renames = statsOmitted
+		? []
+		: await detectUnstagedRenames(
+				git,
+				worktreePath,
+				untrackedFiles.map((file) => file.path),
+				hasDeletions,
+			);
 
 	let mergedUnstaged = unstaged;
 	if (renames.length > 0) {
@@ -166,11 +210,14 @@ export async function getGitStatusSnapshot({
 	}
 
 	return {
-		currentBranch,
-		defaultBranch,
-		againstBase,
-		staged,
-		unstaged: mergedUnstaged,
-		ignoredPaths,
+		snapshot: {
+			currentBranch,
+			defaultBranch,
+			againstBase,
+			staged,
+			unstaged: mergedUnstaged,
+			ignoredPaths,
+		},
+		baseRefFetchTarget: base?.fetchTarget ?? null,
 	};
 }

@@ -1,4 +1,5 @@
 "use client";
+import { useFormat } from "@superset/i18n/react";
 
 import {
 	ChevronDownIcon,
@@ -27,6 +28,8 @@ function Calendar({
 }: React.ComponentProps<typeof DayPicker> & {
 	buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
+	const { formatDateTime } = useFormat();
+
 	const defaultClassNames = getDefaultClassNames();
 
 	return (
@@ -40,8 +43,7 @@ function Calendar({
 			)}
 			captionLayout={captionLayout}
 			formatters={{
-				formatMonthDropdown: (date) =>
-					date.toLocaleString("default", { month: "short" }),
+				formatMonthDropdown: (date) => formatDateTime(date, { month: "short" }),
 				...formatters,
 			}}
 			classNames={{
@@ -197,7 +199,7 @@ function CalendarDayButton({
 			ref={ref}
 			variant="ghost"
 			size="icon"
-			data-day={day.date.toLocaleDateString()}
+			data-day={day.date.toISOString()}
 			data-selected-single={
 				modifiers.selected &&
 				!modifiers.range_start &&

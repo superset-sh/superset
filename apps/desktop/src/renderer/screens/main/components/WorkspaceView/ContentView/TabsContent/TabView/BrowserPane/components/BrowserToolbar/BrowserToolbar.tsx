@@ -1,4 +1,5 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	TbArrowLeft,
@@ -6,6 +7,8 @@ import {
 	TbLoader2,
 	TbRefresh,
 } from "react-icons/tb";
+import { OpenBrowserPageInAppButton } from "renderer/components/OpenBrowserPageInAppButton";
+import { suspendAncestorDragForTextSelection } from "renderer/lib/dnd";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
 
@@ -38,6 +41,8 @@ export function BrowserToolbar({
 	onReload,
 	onNavigate,
 }: BrowserToolbarProps) {
+	const { _: translate } = useTranslation();
+
 	const [isEditing, setIsEditing] = useState(false);
 	const [urlInputValue, setUrlInputValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -112,56 +117,35 @@ export function BrowserToolbar({
 	);
 
 	return (
-		<div className="flex h-full flex-1 min-w-0 items-center px-2">
+		<div className="@container/browser-toolbar flex h-full flex-1 min-w-0 items-center px-2">
 			<div className="flex items-center gap-0.5 shrink-0">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onGoBack}
-							disabled={!canGoBack}
-							className={`rounded p-1 transition-colors ${canGoBack ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
-						>
-							<TbArrowLeft className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Go Back
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onGoForward}
-							disabled={!canGoForward}
-							className={`rounded p-1 transition-colors ${canGoForward ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
-						>
-							<TbArrowRight className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Go Forward
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onReload}
-							className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-						>
-							{isLoading ? (
-								<TbLoader2 className="size-3.5 animate-spin" />
-							) : (
-								<TbRefresh className="size-3.5" />
-							)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{isLoading ? "Loading..." : "Reload"}
-					</TooltipContent>
-				</Tooltip>
+				<button
+					type="button"
+					onClick={onGoBack}
+					disabled={!canGoBack}
+					className={`rounded p-1 transition-colors ${canGoBack ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
+				>
+					<TbArrowLeft className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={onGoForward}
+					disabled={!canGoForward}
+					className={`rounded p-1 transition-colors ${canGoForward ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
+				>
+					<TbArrowRight className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={onReload}
+					className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+				>
+					{isLoading ? (
+						<TbLoader2 className="size-3.5 animate-spin" />
+					) : (
+						<TbRefresh className="size-3.5" />
+					)}
+				</button>
 			</div>
 			<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
 			<div className="relative flex flex-1 min-w-0 items-center">
@@ -177,10 +161,13 @@ export function BrowserToolbar({
 							onChange={handleInputChange}
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
-							placeholder="Enter URL or search..."
+							placeholder={translate(
+								msg({ message: "Enter URL or search..." }),
+							)}
 							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
+							onMouseDown={suspendAncestorDragForTextSelection}
 						/>
 					</form>
 				) : (
@@ -215,6 +202,7 @@ export function BrowserToolbar({
 					/>
 				)}
 			</div>
+			<OpenBrowserPageInAppButton currentUrl={currentUrl} />
 		</div>
 	);
 }

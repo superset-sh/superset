@@ -6,6 +6,7 @@
  *   bin/superset-host            — Shell wrapper to run the host-service
  *   lib/node                     — Standalone Node.js runtime
  *   lib/host-service.js          — Bundled host-service entry
+ *   lib/agent-templates/         — Agent-setup templates (+ plugin/ = repo Claude plugin)
  *   lib/node_modules/            — Full native addon packages (JS wrappers + bindings)
  *     better-sqlite3/
  *     node-pty/
@@ -53,12 +54,6 @@ const RUNTIME_PACKAGES = [
 	"better-sqlite3",
 	"node-pty",
 	"@parcel/watcher",
-	"libsql",
-	"onnxruntime-node",
-	"@anush008/tokenizers",
-	"@mastra/duckdb",
-	"@duckdb/node-api",
-	"@duckdb/node-bindings",
 	"@xterm/headless",
 ] as const;
 
@@ -70,30 +65,10 @@ const RUNTIME_PACKAGES = [
  * ship musl builds.
  */
 const TARGET_NATIVE_PACKAGES: Record<Target, string[]> = {
-	"darwin-arm64": [
-		"@libsql/darwin-arm64",
-		"@parcel/watcher-darwin-arm64",
-		"@anush008/tokenizers-darwin-universal",
-		"@duckdb/node-bindings-darwin-arm64",
-	],
-	"darwin-x64": [
-		"@libsql/darwin-x64",
-		"@parcel/watcher-darwin-x64",
-		"@anush008/tokenizers-darwin-universal",
-		"@duckdb/node-bindings-darwin-x64",
-	],
-	"linux-x64": [
-		"@libsql/linux-x64-gnu",
-		"@parcel/watcher-linux-x64-glibc",
-		"@anush008/tokenizers-linux-x64-gnu",
-		"@duckdb/node-bindings-linux-x64",
-	],
-	"linux-arm64": [
-		"@libsql/linux-arm64-gnu",
-		"@parcel/watcher-linux-arm64-glibc",
-		"@anush008/tokenizers-linux-arm64-gnu",
-		"@duckdb/node-bindings-linux-arm64",
-	],
+	"darwin-arm64": ["@parcel/watcher-darwin-arm64"],
+	"darwin-x64": ["@parcel/watcher-darwin-x64"],
+	"linux-x64": ["@parcel/watcher-linux-x64-glibc"],
+	"linux-arm64": ["@parcel/watcher-linux-arm64-glibc"],
 };
 
 /**
@@ -281,7 +256,7 @@ function copyPackageWithDeps(
 		for (const dep of Object.keys(pkg.dependencies ?? {})) {
 			copyPackageWithDeps(dep, sourcePath, repoRoot, destModules, copied);
 		}
-		// Packages we ship unbundled (e.g. @mastra/duckdb) load their peer
+		// Packages we ship unbundled load their peer
 		// deps from disk at module init — a bundled consumer's inlined copy
 		// is invisible to them. Walk non-optional peers best-effort: one the
 		// installer didn't materialize is skipped rather than failing the build.
@@ -446,6 +421,13 @@ async function main(): Promise<void> {
 	const hostServiceBundle = await buildHostService();
 	cpSync(hostServiceBundle, join(stagingRoot, "lib", "host-service.js"));
 
+	// host-worker.js ships side-by-side too: the worker pool resolves it
+	// next to host-service.js (falling back to inline execution if absent).
+	cpSync(
+		join(dirname(hostServiceBundle), "host-worker.js"),
+		join(stagingRoot, "lib", "host-worker.js"),
+	);
+
 	// pty-daemon ships side-by-side with host-service.js. The host-service
 	// resolves the script path via `resolveSupervisorScriptPath()` which
 	// looks for `pty-daemon.js` next to itself first; without this copy the
@@ -468,6 +450,24 @@ async function main(): Promise<void> {
 	cpSync(migrationsSrc, join(stagingRoot, "share", "migrations"), {
 		recursive: true,
 	});
+
+	// Agent-setup templates ship side-by-side with host-service.js (resolved
+	// by resolveAgentTemplatesDir in host-service) so headless hosts can
+	// provision notify hooks, wrappers, and shell bootstrap at startup. The
+	// repo's Claude Code plugin overlays at templates/plugin, mirroring the
+	// desktop's copy step in apps/desktop/vite/helpers.ts.
+	console.log("[build-dist] copying agent-setup templates");
+	const agentTemplatesDest = join(stagingRoot, "lib", "agent-templates");
+	cpSync(
+		resolve(import.meta.dir, "../../agent-setup/templates"),
+		agentTemplatesDest,
+		{ recursive: true },
+	);
+	cpSync(
+		resolve(import.meta.dir, "../../../plugins/superset"),
+		join(agentTemplatesDest, "plugin"),
+		{ recursive: true },
+	);
 
 	console.log("[build-dist] writing host wrapper");
 	writeHostWrapper(join(stagingRoot, "bin"));

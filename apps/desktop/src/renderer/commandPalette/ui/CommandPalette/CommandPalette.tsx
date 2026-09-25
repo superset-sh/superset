@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Command, CommandInput } from "@superset/ui/command";
 import {
 	Dialog,
@@ -12,6 +13,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 import { useCommandContext } from "../../core/ContextProvider";
@@ -27,6 +29,7 @@ export function useCommandPaletteQuery(): string {
 }
 
 export function CommandPalette() {
+	const { t, i18n } = useLingui();
 	const open = useFrameStackStore((s) => s.open);
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const frames = useFrameStackStore((s) => s.frames);
@@ -36,6 +39,7 @@ export function CommandPalette() {
 
 	const context = useCommandContext();
 	const [query, setQuery] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
 	const depth = frames.length;
 	const currentFrame = frames[depth - 1] ?? null;
 
@@ -66,6 +70,10 @@ export function CommandPalette() {
 	const handleBack = useCallback(() => {
 		popFrame();
 		setQuery("");
+		// Going back can unmount the focused element (the back button leaves
+		// with the last frame); return focus to the search input so keyboard
+		// navigation keeps working.
+		inputRef.current?.focus();
 	}, [popFrame]);
 
 	const handleKeyDown = useCallback(
@@ -78,19 +86,38 @@ export function CommandPalette() {
 		[query, depth, handleBack],
 	);
 
+	// cmdk's root Enter handler executes the highlighted list row no matter
+	// which element is focused, swallowing Enter aimed at buttons inside the
+	// palette (back arrow, expand chevrons). Activate the focused button
+	// ourselves; cmdk skips its own handling once the event is
+	// defaultPrevented.
+	const handleRootKeyDown = useCallback((event: React.KeyboardEvent) => {
+		if (event.key !== "Enter") return;
+		if (!(event.target instanceof HTMLElement)) return;
+		const button = event.target.closest("button");
+		if (!button) return;
+		event.preventDefault();
+		button.click();
+	}, []);
+
 	useEffect(() => {
 		if (!open) setQuery("");
 	}, [open]);
 
-	const placeholder = currentFrame
-		? `Search in ${currentFrame.command.title}…`
-		: "Type a command or search…";
+	const frameTitle = currentFrame ? i18n._(currentFrame.command.title) : null;
+	const placeholder = frameTitle
+		? t({
+				message: `Search in ${frameTitle}…`,
+			})
+		: t({
+				message: "Type a command or search…",
+			});
 
 	const backButton = (
 		<button
 			type="button"
 			onClick={handleBack}
-			aria-label="Back"
+			aria-label={t({ message: "Back" })}
 			className="text-muted-foreground hover:text-foreground"
 		>
 			<ArrowLeftIcon className="size-4 shrink-0" />
@@ -105,16 +132,20 @@ export function CommandPalette() {
 				style={{ top: "max(16px, calc(50% - 278px))" }}
 			>
 				<DialogHeader className="sr-only">
-					<DialogTitle>Command Palette</DialogTitle>
+					<DialogTitle>
+						<Trans>Command Palette</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Run commands and navigate the application.
+						<Trans>Run commands and navigate the application.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<Command
-					shouldFilter={!currentFrame || !currentFrame.command.renderFrame}
+					onKeyDown={handleRootKeyDown}
+					shouldFilter={false}
 					className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-list]]:max-h-[min(500px,calc(80vh-3rem))]"
 				>
 					<CommandInput
+						ref={inputRef}
 						value={query}
 						onValueChange={setQuery}
 						placeholder={placeholder}
@@ -125,10 +156,11 @@ export function CommandPalette() {
 						{currentFrame ? (
 							<SubPaletteView
 								parent={currentFrame.command}
+								query={query}
 								onSelect={handleSelect}
 							/>
 						) : (
-							<CommandListView onSelect={handleSelect} />
+							<CommandListView query={query} onSelect={handleSelect} />
 						)}
 					</QueryContext.Provider>
 				</Command>

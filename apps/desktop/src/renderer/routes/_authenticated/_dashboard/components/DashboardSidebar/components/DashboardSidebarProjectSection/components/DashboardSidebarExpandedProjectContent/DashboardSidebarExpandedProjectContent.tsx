@@ -1,21 +1,42 @@
-import { DndContext, DragOverlay } from "@dnd-kit/core";
-import {
-	SortableContext,
-	verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext } from "@dnd-kit/sortable";
+import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, motion } from "framer-motion";
-import { createPortal } from "react-dom";
-import { useSidebarDnd } from "../../../../hooks/useSidebarDnd";
-import { parseId } from "../../../../hooks/useSidebarDnd/useSidebarDnd";
-import type { DashboardSidebarProjectChild } from "../../../../types";
-import { SidebarDragOverlay } from "../../../SidebarDragOverlay";
+import { useMemo } from "react";
+import {
+	dropZoneId,
+	parseId,
+	SESSIONS_CONTAINER,
+	useDashboardSidebarDnd,
+} from "../../../../hooks/useSidebarDnd";
+import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
+import type {
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
+} from "../../../../types";
+import { WorkspaceBulkMenuScope } from "../../../DashboardSidebarWorkspaceItem/components/WorkspaceBulkMenuScope";
+import { SidebarDropZone } from "../../../SidebarDropZone";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 
+const isBulkSelectable = (workspace: DashboardSidebarWorkspace) =>
+	workspace.pendingTransaction?.type !== "insert";
+
 interface DashboardSidebarExpandedProjectContentProps {
-	projectId: string;
+	/** DnD container: a project id, or SESSIONS_CONTAINER for the Sessions lane. */
+	containerId: string;
+	/** Lane the rows are filed under: the project id, or null for sessions. */
+	projectId: string | null;
 	isCollapsed: boolean;
-	projectChildren: DashboardSidebarProjectChild[];
+	/**
+	 * Row indentation overrides; the Sessions lane sits flush with its header.
+	 * Folder headers share the top-level column so they read as siblings of
+	 * the ungrouped rows.
+	 */
+	topLevelIndentation?: Exclude<
+		DashboardSidebarWorkspaceIndentation,
+		"grouped"
+	>;
+	groupedIndentation?: DashboardSidebarWorkspaceIndentation;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onDeleteSection: (sectionId: string) => void;
@@ -23,32 +44,66 @@ interface DashboardSidebarExpandedProjectContentProps {
 	onToggleSectionCollapse: (sectionId: string) => void;
 }
 
+/**
+ * The sortable row list of one DnD container — every project, and the
+ * Sessions lane. Ungrouped rows and folder headers are flat siblings so a
+ * folder drag can move whole groups as units (see useSidebarDnd).
+ */
 export function DashboardSidebarExpandedProjectContent({
+	containerId,
 	projectId,
 	isCollapsed,
-	projectChildren,
+	topLevelIndentation,
+	groupedIndentation,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onDeleteSection,
 	onRenameSection,
 	onToggleSectionCollapse,
 }: DashboardSidebarExpandedProjectContentProps) {
+	const { t } = useLingui();
 	const {
-		sensors,
-		measuring,
-		collisionDetection,
-		flatItems,
-		sortableItems,
-		activeId,
-		activeType,
-		activeItem,
-		predictedColor,
+		projectItems,
+		sessionItems,
+		getContainerSortingStrategy,
+		activeSectionId,
+		activeWorkspaceHome,
 		groupInfo,
 		collapsedSectionIds,
 		workspacesById,
 		sectionsById,
-		handlers,
-	} = useSidebarDnd({ projectId, projectChildren });
+	} = useDashboardSidebarDnd();
+	const flatItems = useMemo(
+		() =>
+			containerId === SESSIONS_CONTAINER
+				? sessionItems
+				: (projectItems[containerId] ?? []),
+		[projectItems, sessionItems, containerId],
+	);
+	const sortingStrategy = getContainerSortingStrategy(containerId);
+	const { isWorkspaceSelected, selectWorkspaceFromEvent } =
+		useDashboardSidebarSelection();
+
+	// A pinned workspace can only return to its home container; when every row
+	// of that container is pinned, the empty list needs an explicit drop target.
+	const dropZoneEligible =
+		!isCollapsed &&
+		flatItems.length === 0 &&
+		activeWorkspaceHome === containerId;
+
+	const selectableWorkspaceIds = useMemo(
+		() =>
+			flatItems.flatMap((id) => {
+				const parsed = parseId(id);
+				if (!parsed || parsed.type !== "workspace") return [];
+				const workspace = workspacesById.get(parsed.realId);
+				if (!workspace || !isBulkSelectable(workspace)) return [];
+				const group = groupInfo.get(parsed.realId);
+				if (group && collapsedSectionIds.has(group.sectionId)) return [];
+				return [parsed.realId];
+			}),
+		[flatItems, workspacesById, groupInfo, collapsedSectionIds],
+	);
 
 	return (
 		<AnimatePresence initial={false}>
@@ -61,16 +116,12 @@ export function DashboardSidebarExpandedProjectContent({
 					className="overflow-hidden"
 				>
 					<div className="pb-1">
-						<DndContext
-							sensors={sensors}
-							collisionDetection={collisionDetection}
-							measuring={measuring}
-							{...handlers}
+						<WorkspaceBulkMenuScope
+							projectId={projectId}
+							workspacesById={workspacesById}
+							groupInfo={groupInfo}
 						>
-							<SortableContext
-								items={sortableItems}
-								strategy={verticalListSortingStrategy}
-							>
+							<SortableContext items={flatItems} strategy={sortingStrategy}>
 								{flatItems.map((id) => {
 									const parsed = parseId(id);
 									if (!parsed) return null;
@@ -83,6 +134,7 @@ export function DashboardSidebarExpandedProjectContent({
 												key={String(id)}
 												sortableId={String(id)}
 												section={section}
+												indentation={topLevelIndentation}
 												onDelete={onDeleteSection}
 												onRename={onRenameSection}
 												onToggleCollapse={onToggleSectionCollapse}
@@ -96,53 +148,56 @@ export function DashboardSidebarExpandedProjectContent({
 									const isInSection = !!group;
 									const isInCollapsedSection =
 										isInSection && collapsedSectionIds.has(group.sectionId);
-									const hidden =
-										isInCollapsedSection ||
-										(activeType === "section" && isInSection);
+									const inDraggedSection =
+										isInSection && group.sectionId === activeSectionId;
+									const canBulkSelect = isBulkSelectable(workspace);
 
+									// The zero-height collapse lives inside the sortable wrapper
+									// (see SortableWorkspaceItem) so the clip box moves with the
+									// dnd translate — wrapping here would clip displaced rows
+									// out of view mid-drag. Rows stay mounted and full-height
+									// during a section drag: the group travels as a block.
 									return (
-										<AnimatePresence key={String(id)} initial={false}>
-											{!hidden && (
-												<motion.div
-													initial={{ height: 0, opacity: 0 }}
-													animate={{ height: "auto", opacity: 1 }}
-													exit={{ height: 0, opacity: 0 }}
-													transition={{ duration: 0.15, ease: "easeOut" }}
-												>
-													<SortableWorkspaceItem
-														sortableId={String(id)}
-														workspace={workspace}
-														accentColor={
-															activeId === id ? predictedColor : group?.color
-														}
-														isInSection={groupInfo.has(parsed.realId)}
-														onHoverCardOpen={() =>
-															onWorkspaceHover(parsed.realId)
-														}
-														shortcutLabel={workspaceShortcutLabels.get(
-															parsed.realId,
-														)}
-														disabled={
-															workspace.type === "main" &&
-															workspace.hostType === "local-device"
-														}
-													/>
-												</motion.div>
-											)}
-										</AnimatePresence>
+										<SortableWorkspaceItem
+											key={String(id)}
+											sortableId={String(id)}
+											workspace={workspace}
+											accentColor={group?.color}
+											isInSection={isInSection}
+											indentation={
+												isInSection ? groupedIndentation : topLevelIndentation
+											}
+											onHoverCardOpen={onWorkspaceHover}
+											shortcutLabel={workspaceShortcutLabels.get(parsed.realId)}
+											isSelected={
+												canBulkSelect && isWorkspaceSelected(parsed.realId)
+											}
+											onSelectionClick={
+												canBulkSelect
+													? (event) =>
+															selectWorkspaceFromEvent(event, {
+																workspaceId: parsed.realId,
+																projectId: containerId,
+																orderedWorkspaceIds: selectableWorkspaceIds,
+															})
+													: undefined
+											}
+											collapsed={isInCollapsedSection}
+											isDragPlaceholder={inDraggedSection}
+											disabled={isInCollapsedSection}
+										/>
 									);
 								})}
 							</SortableContext>
-
-							{createPortal(
-								<DragOverlay dropAnimation={null}>
-									{activeId ? (
-										<SidebarDragOverlay activeItem={activeItem} />
-									) : null}
-								</DragOverlay>,
-								document.body,
+							{dropZoneEligible && (
+								<SidebarDropZone
+									dropZoneId={dropZoneId(containerId)}
+									label={t({
+										message: "Drop to unpin",
+									})}
+								/>
 							)}
-						</DndContext>
+						</WorkspaceBulkMenuScope>
 					</div>
 				</motion.div>
 			)}

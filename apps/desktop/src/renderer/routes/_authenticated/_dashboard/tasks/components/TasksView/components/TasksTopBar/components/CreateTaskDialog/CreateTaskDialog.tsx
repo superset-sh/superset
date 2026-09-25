@@ -1,5 +1,6 @@
-import { authClient } from "@superset/auth/client";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { TaskPriority } from "@superset/db/enums";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -12,14 +13,14 @@ import {
 } from "@superset/ui/dialog";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { PLATFORM } from "renderer/hotkeys";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import type { TabValue } from "../../TasksTopBar";
 import { CreateTaskAssigneePicker } from "./components/CreateTaskAssigneePicker";
@@ -41,8 +42,7 @@ export function CreateTaskDialog({
 	searchQuery,
 	assigneeFilter,
 }: CreateTaskDialogProps) {
-	const collections = useCollections();
-	const { data: session } = authClient.useSession();
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const titleInputRef = useRef<HTMLInputElement>(null);
@@ -53,38 +53,37 @@ export function CreateTaskDialog({
 	const [assigneeId, setAssigneeId] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 
-	const { data: statusData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ taskStatuses: collections.taskStatuses })
-				.select(({ taskStatuses }) => ({ ...taskStatuses })),
-		[collections],
+	const { data: statusData } = cloudTrpc.task.statuses.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const { data: userData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ users: collections.users })
-				.select(({ users }) => ({ ...users })),
-		[collections],
+	const { data: memberData } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ enabled: open },
 	);
-	const { data: organizationData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ organizations: collections.organizations })
-				.select(({ organizations }) => ({ ...organizations })),
-		[collections],
+	const { data: organizationData } = cloudTrpc.organization.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
 	const statuses = useMemo(() => statusData ?? [], [statusData]);
-	const users = useMemo(() => userData ?? [], [userData]);
-	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	const users = useMemo(
+		() => (memberData ?? []).map((member) => member.user),
+		[memberData],
+	);
+	const activeOrganizationId = useActiveOrganizationId();
 	const organizationLabel = useMemo(() => {
 		const organization = organizationData?.find(
 			(org) => org.id === activeOrganizationId,
 		);
-		return organization?.name ?? "Task";
-	}, [activeOrganizationId, organizationData]);
+		return (
+			organization?.name ??
+			t({
+				message: "Task",
+			})
+		);
+	}, [activeOrganizationId, organizationData, t]);
 
 	const defaultStatusId = useMemo(() => {
 		const sortedStatuses = [...statuses].sort(compareStatusesForDropdown);
@@ -117,7 +116,11 @@ export function CreateTaskDialog({
 		[statusId, statuses],
 	);
 	const handleAttachmentClick = () => {
-		toast.info("Attachments are not wired yet");
+		toast.info(
+			t({
+				message: "Attachments are not wired yet",
+			}),
+		);
 	};
 	const handleCreate = async () => {
 		if (!title.trim() || isCreating) return;
@@ -143,7 +146,11 @@ export function CreateTaskDialog({
 			if (searchQuery) nextSearch.search = searchQuery;
 
 			onOpenChange(false);
-			toast.success(`Created ${result.task.slug}`);
+			toast.success(
+				t({
+					message: `Created ${result.task.slug}`,
+				}),
+			);
 			navigate({
 				to: "/tasks/$taskId",
 				params: { taskId: result.task.id },
@@ -151,7 +158,12 @@ export function CreateTaskDialog({
 			});
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Failed to create task",
+				errorMessage(
+					error,
+					t({
+						message: "Failed to create task",
+					}),
+				),
 			);
 			setIsCreating(false);
 		}
@@ -168,9 +180,11 @@ export function CreateTaskDialog({
 				}}
 			>
 				<DialogHeader className="sr-only">
-					<DialogTitle>Create Task</DialogTitle>
+					<DialogTitle>
+						<Trans>Create Task</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Create a new task from the desktop tasks view.
+						<Trans>Create a new task from the desktop tasks view.</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
@@ -180,7 +194,9 @@ export function CreateTaskDialog({
 							{organizationLabel}
 						</div>
 						<HiChevronRight className="size-3.5 text-muted-foreground" />
-						<span className="font-medium">New issue</span>
+						<span className="font-medium">
+							<Trans>New issue</Trans>
+						</span>
 					</div>
 
 					<DialogClose asChild>
@@ -188,7 +204,9 @@ export function CreateTaskDialog({
 							type="button"
 							disabled={isCreating}
 							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							aria-label="Close"
+							aria-label={t({
+								message: "Close",
+							})}
 						>
 							<HiXMark className="size-4" />
 						</button>
@@ -207,7 +225,9 @@ export function CreateTaskDialog({
 								void handleCreate();
 							}
 						}}
-						placeholder="Task title"
+						placeholder={t({
+							message: "Task title",
+						})}
 						className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60"
 					/>
 
@@ -215,7 +235,9 @@ export function CreateTaskDialog({
 						<MarkdownEditor
 							content={description}
 							onChange={setDescription}
-							placeholder="Add description..."
+							placeholder={t({
+								message: "Add description...",
+							})}
 							editorClassName="min-h-[240px] text-base leading-relaxed"
 							onModEnter={handleCreate}
 						/>
@@ -257,7 +279,11 @@ export function CreateTaskDialog({
 							disabled={!title.trim() || isCreating}
 							className="h-10 rounded-full px-5 text-sm"
 						>
-							{isCreating ? "Creating..." : "Create task"}
+							{isCreating ? (
+								<Trans>Creating...</Trans>
+							) : (
+								<Trans>Create task</Trans>
+							)}
 							{!isCreating && (
 								<KbdGroup className="ml-1.5 opacity-70">
 									<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">

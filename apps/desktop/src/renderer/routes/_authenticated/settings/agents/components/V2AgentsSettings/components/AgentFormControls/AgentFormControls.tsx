@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { FORK_SESSION_ID_TOKEN } from "@superset/shared/agent-definition";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -47,14 +49,20 @@ interface AgentLaunchFieldsProps {
 	promptArgsText: string;
 	onPromptArgsTextChange: (value: string) => void;
 	onPromptArgsBlur?: () => void;
+	resumeArgsText: string;
+	onResumeArgsTextChange: (value: string) => void;
+	onResumeArgsBlur?: () => void;
+	forkArgsText: string;
+	onForkArgsTextChange: (value: string) => void;
+	onForkArgsBlur?: () => void;
 	promptTransport: PromptTransport;
 	onPromptTransportChange: (next: PromptTransport) => void;
 }
 
 /**
- * The "Launch" section (command, prompt-only args, transport). The edit pane
- * wires the blur callbacks to autosave; the create pane omits them and reads
- * the controlled values on submit.
+ * The "Launch" section (command, prompt-only args, resume/fork args, transport).
+ * The edit pane wires the blur callbacks to autosave; the create pane omits
+ * them and reads the controlled values on submit.
  */
 export function AgentLaunchFields({
 	idPrefix,
@@ -64,14 +72,29 @@ export function AgentLaunchFields({
 	promptArgsText,
 	onPromptArgsTextChange,
 	onPromptArgsBlur,
+	resumeArgsText,
+	onResumeArgsTextChange,
+	onResumeArgsBlur,
+	forkArgsText,
+	onForkArgsTextChange,
+	onForkArgsBlur,
 	promptTransport,
 	onPromptTransportChange,
 }: AgentLaunchFieldsProps) {
+	const { t } = useLingui();
+	// Named `sessionId` on purpose: the macro takes the placeholder name from
+	// this identifier, and an inline "{sessionId}" literal would be inlined
+	// into the message and then read back as an ICU argument with no value.
+	const sessionId = FORK_SESSION_ID_TOKEN;
 	return (
-		<Section title="Launch">
+		<Section title={t({ message: "Launch" })}>
 			<StackedField
-				label="Command"
-				hint="Argv used to launch the agent."
+				label={t({
+					message: "Command",
+				})}
+				hint={t({
+					message: "Argv used to launch the agent.",
+				})}
 				htmlFor={`${idPrefix}-command`}
 			>
 				<Input
@@ -85,12 +108,14 @@ export function AgentLaunchFields({
 			</StackedField>
 
 			<StackedField
-				label="Prompt-only args"
+				label={t({
+					message: "Prompt-only args",
+				})}
 				hint={
-					<>
+					<Trans>
 						Added only when launching with a prompt — e.g. <code>--</code>,{" "}
 						<code>--prompt</code>, <code>-i</code>.
-					</>
+					</Trans>
 				}
 				htmlFor={`${idPrefix}-prompt-args`}
 			>
@@ -105,14 +130,65 @@ export function AgentLaunchFields({
 			</StackedField>
 
 			<StackedField
-				label="Prompt transport"
-				hint="How the prompt is delivered to the process."
+				label={t({
+					message: "Resume args",
+				})}
+				hint={
+					<Trans>
+						Used to restore a previous session — the session id is appended
+						after these, e.g. <code>--resume</code>. Leave empty if the agent
+						can't resume by id.
+					</Trans>
+				}
+				htmlFor={`${idPrefix}-resume-args`}
 			>
+				<Input
+					id={`${idPrefix}-resume-args`}
+					className="font-mono text-xs"
+					value={resumeArgsText}
+					onChange={(e) => onResumeArgsTextChange(e.target.value)}
+					onBlur={onResumeArgsBlur}
+					placeholder="--resume"
+				/>
+			</StackedField>
+
+			<StackedField
+				label={t({
+					message: "Fork args",
+				})}
+				hint={
+					<Trans>
+						Used to clone a previous session without changing it. Put{" "}
+						<code>{sessionId}</code> where the source id belongs, or leave empty
+						if the agent cannot fork sessions.
+					</Trans>
+				}
+				htmlFor={`${idPrefix}-fork-args`}
+			>
+				<Input
+					id={`${idPrefix}-fork-args`}
+					className="font-mono text-xs"
+					value={forkArgsText}
+					onChange={(e) => onForkArgsTextChange(e.target.value)}
+					onBlur={onForkArgsBlur}
+					placeholder="--resume {sessionId} --fork-session"
+				/>
+			</StackedField>
+
+			<div className="flex items-center justify-between gap-8">
+				<div className="min-w-0 flex-1">
+					<Label className="text-sm font-medium">
+						<Trans>Prompt transport</Trans>
+					</Label>
+					<p className="text-xs text-muted-foreground mt-0.5">
+						<Trans>How the prompt is delivered to the process.</Trans>
+					</p>
+				</div>
 				<PromptTransportToggle
 					value={promptTransport}
 					onChange={onPromptTransportChange}
 				/>
-			</StackedField>
+			</div>
 		</Section>
 	);
 }
@@ -167,8 +243,9 @@ export function PromptTransportToggle({
 	value,
 	onChange,
 }: PromptTransportToggleProps) {
+	const { t } = useLingui();
 	return (
-		<div className="inline-flex rounded-md border border-border overflow-hidden">
+		<div className="inline-flex shrink-0 rounded-md border border-border overflow-hidden">
 			{TRANSPORT_OPTIONS.map((option, index) => {
 				const isSelected = value === option;
 				return (
@@ -176,7 +253,9 @@ export function PromptTransportToggle({
 						key={option}
 						type="button"
 						aria-pressed={isSelected}
-						aria-label={`Prompt transport: ${option}`}
+						aria-label={t({
+							message: `Prompt transport: ${option}`,
+						})}
 						onClick={() => onChange(option)}
 						className={cn(
 							"px-3 py-1 text-xs font-medium transition-colors",

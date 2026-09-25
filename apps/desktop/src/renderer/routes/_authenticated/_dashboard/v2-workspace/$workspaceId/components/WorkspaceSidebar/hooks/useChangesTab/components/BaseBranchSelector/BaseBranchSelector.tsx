@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { ScrollArea } from "@superset/ui/scroll-area";
@@ -19,6 +20,7 @@ export function BaseBranchSelector({
 	currentValue,
 	onChange,
 }: BaseBranchSelectorProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -31,12 +33,16 @@ export function BaseBranchSelector({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
+				{/* Same chip as the commit-filter trigger beside it, so "vs" sits
+				    between two equal paddings instead of hugging the branch. */}
 				<button
 					type="button"
-					className="inline-flex items-center gap-0.5 font-medium text-foreground hover:underline"
+					className="flex min-w-0 items-center gap-1 rounded px-1.5 py-0.5 font-medium text-foreground text-xs hover:bg-accent"
 				>
-					{currentValue}
-					<ChevronDown className="size-3" />
+					<span className="min-w-0 truncate" title={currentValue}>
+						{currentValue}
+					</span>
+					<ChevronDown className="size-3 shrink-0 text-muted-foreground" />
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -45,7 +51,9 @@ export function BaseBranchSelector({
 			>
 				<div className="border-b px-3 py-2">
 					<input
-						placeholder="Search branches..."
+						placeholder={t({
+							message: "Search branches...",
+						})}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -72,7 +80,7 @@ export function BaseBranchSelector({
 						))}
 						{filtered.length === 0 && (
 							<div className="px-2 py-3 text-center text-sm text-muted-foreground">
-								No branches found
+								<Trans>No branches found</Trans>
 							</div>
 						)}
 					</div>

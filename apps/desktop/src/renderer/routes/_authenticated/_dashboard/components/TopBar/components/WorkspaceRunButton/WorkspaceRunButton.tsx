@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -31,6 +32,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	workspaceId,
 	worktreePath,
 }: WorkspaceRunButtonProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
 	const hotkeyText = useHotkeyDisplay("RUN_WORKSPACE_COMMAND").text;
@@ -92,12 +94,22 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		void forceStopWorkspaceRun();
 	}, [forceStopWorkspaceRun]);
 
-	const buttonLabel = isRunning ? "Stop" : hasRunCommand ? "Run" : "Set Run";
-	const buttonAriaLabel = isRunning
-		? "Stop workspace run command"
+	const buttonLabel = isRunning
+		? t({ message: "Stop" })
 		: hasRunCommand
-			? "Run workspace command"
-			: "Configure workspace run command";
+			? t({ message: "Run" })
+			: t({ message: "Set Run" });
+	const buttonAriaLabel = isRunning
+		? t({
+				message: "Stop workspace run command",
+			})
+		: hasRunCommand
+			? t({
+					message: "Run workspace command",
+				})
+			: t({
+					message: "Configure workspace run command",
+				});
 
 	return (
 		<div className="flex items-center no-drag">
@@ -167,16 +179,18 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<HiMiniXMark className="mr-2 size-4 text-destructive" />
-								Force Stop
+								<Trans>Force Stop</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
 					)}
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
-						{runDefinition?.source === "terminal-preset"
-							? "Edit Run Preset"
-							: "Configure"}
+						{runDefinition?.source === "terminal-preset" ? (
+							<Trans>Edit Run Script</Trans>
+						) : (
+							<Trans>Configure</Trans>
+						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

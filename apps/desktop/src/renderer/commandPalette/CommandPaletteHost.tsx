@@ -1,10 +1,11 @@
 import { type ReactNode, useEffect } from "react";
-import { useHotkey } from "renderer/hotkeys";
 import { CommandContextProvider } from "./core/ContextProvider";
-import { useFrameStackStore } from "./core/frames";
 import { registerAllModules } from "./modules";
 import { CommandPalette } from "./ui/CommandPalette/CommandPalette";
+import { CommandPaletteTrigger } from "./ui/CommandPaletteTrigger/CommandPaletteTrigger";
 import { DeleteWorkspaceMount } from "./ui/DeleteWorkspaceMount/DeleteWorkspaceMount";
+import { FolderImportMount } from "./ui/FolderImportMount/FolderImportMount";
+import { QuickCreateWorkspaceMount } from "./ui/QuickCreateWorkspaceMount/QuickCreateWorkspaceMount";
 import { RemoveFromSidebarMount } from "./ui/RemoveFromSidebarMount/RemoveFromSidebarMount";
 import { SetPreferredOpenInAppMount } from "./ui/SetPreferredOpenInAppMount/SetPreferredOpenInAppMount";
 
@@ -21,13 +22,9 @@ export function CommandPaletteHost({ children }: { children?: ReactNode }) {
 			<DeleteWorkspaceMount />
 			<RemoveFromSidebarMount />
 			<SetPreferredOpenInAppMount />
+			<FolderImportMount />
+			<QuickCreateWorkspaceMount />
 			{children}
 		</CommandContextProvider>
 	);
-}
-
-function CommandPaletteTrigger() {
-	const setOpen = useFrameStackStore((s) => s.setOpen);
-	useHotkey("OPEN_COMMAND_PALETTE", () => setOpen(true));
-	return null;
 }

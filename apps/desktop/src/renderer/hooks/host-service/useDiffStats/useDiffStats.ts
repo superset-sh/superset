@@ -9,17 +9,28 @@ export interface DiffStats {
 	deletions: number;
 }
 
-export function useDiffStats(workspaceId: string): DiffStats | null {
+export function getDiffStatsQueryKey(
+	hostUrl: string | null,
+	workspaceId: string,
+) {
+	return ["diff-stats", hostUrl, workspaceId] as const;
+}
+
+export function useDiffStats(
+	workspaceId: string,
+	options?: { enabled?: boolean },
+): DiffStats | null {
+	const enabled = options?.enabled ?? true;
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
-		() => ["diff-stats", hostUrl, workspaceId] as const,
+		() => getDiffStatsQueryKey(hostUrl, workspaceId),
 		[hostUrl, workspaceId],
 	);
 
 	const { data: status } = useQuery({
 		queryKey,
-		enabled: Boolean(workspaceId) && Boolean(hostUrl),
+		enabled: enabled && Boolean(workspaceId) && Boolean(hostUrl),
 		queryFn: () => {
 			if (!hostUrl) return null;
 			return getHostServiceClientByUrl(hostUrl).git.getStatus.query({
@@ -35,6 +46,9 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
+	// Stays subscribed while disabled: invalidation marks the cached stats
+	// stale so they refetch when the query is re-enabled (staleTime is
+	// Infinity, so a gated subscription would freeze counts).
 	useWorkspaceEvent(
 		"git:changed",
 		workspaceId,
@@ -45,7 +59,10 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 	return useMemo<DiffStats | null>(() => {
 		if (!status) return null;
 
-		const byPath = new Map<string, { additions: number; deletions: number }>();
+		const byPath = new Map<
+			string,
+			{ additions: number | null; deletions: number | null }
+		>();
 		for (const file of status.againstBase) byPath.set(file.path, file);
 		for (const file of status.staged) byPath.set(file.path, file);
 		for (const file of status.unstaged) byPath.set(file.path, file);
@@ -53,8 +70,8 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		let additions = 0;
 		let deletions = 0;
 		for (const file of byPath.values()) {
-			additions += file.additions;
-			deletions += file.deletions;
+			additions += file.additions ?? 0;
+			deletions += file.deletions ?? 0;
 		}
 		return { additions, deletions };
 	}, [status]);

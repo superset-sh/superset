@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+
 export type Platform = "mac" | "windows" | "linux";
 
 export type PlatformKey = {
@@ -23,9 +25,9 @@ export interface HotkeyDisplay {
 
 export interface HotkeyDefinition {
 	key: ShortcutBinding | null;
-	label: string;
+	label: MessageDescriptor;
 	category: HotkeyCategory;
-	description?: string;
+	description?: MessageDescriptor;
 }
 
 /**

@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import {
@@ -34,6 +36,7 @@ export function VersionHistorySheet({
 	open,
 	onOpenChange,
 }: VersionHistorySheetProps) {
+	const { t } = useLingui();
 	const queryClient = useQueryClient();
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
 		null,
@@ -79,7 +82,11 @@ export function VersionHistorySheet({
 		onSuccess: (restored) => {
 			queryClient.invalidateQueries({ queryKey: versionsQueryKey });
 			setSelectedVersionId(restored?.id ?? null);
-			toast.success("Prompt restored");
+			toast.success(
+				t({
+					message: "Prompt restored",
+				}),
+			);
 		},
 	});
 
@@ -89,19 +96,35 @@ export function VersionHistorySheet({
 		if (!selectedVersionId) return;
 		const versionId = selectedVersionId;
 		alert({
-			title: "Restore this version?",
-			description:
-				'The current prompt will be replaced with the selected version. A new "Restored" entry will be added to history so you can undo this.',
+			title: t({
+				message: "Restore this version?",
+			}),
+			description: t({
+				message:
+					'The current prompt will be replaced with the selected version. A new "Restored" entry will be added to history so you can undo this.',
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline" },
 				{
-					label: "Restore",
+					label: t({
+						message: "Cancel",
+					}),
+					variant: "outline",
+				},
+				{
+					label: t({
+						message: "Restore",
+					}),
 					onClick: async () => {
 						try {
 							await restoreMutation.mutateAsync(versionId);
 						} catch (error) {
 							toast.error(
-								error instanceof Error ? error.message : "Failed to restore",
+								errorMessage(
+									error,
+									t({
+										message: "Failed to restore",
+									}),
+								),
 							);
 							throw error;
 						}
@@ -121,7 +144,7 @@ export function VersionHistorySheet({
 				onInteractOutside={(event) => event.preventDefault()}
 			>
 				<DialogTitle className="sr-only">
-					Version history for {automationName}
+					<Trans>Prompt history for {automationName}</Trans>
 				</DialogTitle>
 
 				<div className="flex flex-1 flex-col overflow-hidden">
@@ -135,9 +158,17 @@ export function VersionHistorySheet({
 
 				<aside className="flex w-60 shrink-0 flex-col border-l bg-background">
 					<div className="flex h-12 shrink-0 items-center justify-between border-b pr-2 pl-4">
-						<h2 className="text-base font-semibold">Version history</h2>
+						<h2 className="text-base font-semibold">
+							<Trans>Prompt history</Trans>
+						</h2>
 						<DialogClose asChild>
-							<Button variant="ghost" size="icon-xs" aria-label="Close">
+							<Button
+								variant="ghost"
+								size="icon-xs"
+								aria-label={t({
+									message: "Close",
+								})}
+							>
 								<LuX className="size-3.5" />
 							</Button>
 						</DialogClose>
@@ -146,12 +177,12 @@ export function VersionHistorySheet({
 					<div className="flex-1 overflow-y-auto">
 						{isLoading && (
 							<div className="p-4 text-sm text-muted-foreground">
-								Loading...
+								<Trans>Loading...</Trans>
 							</div>
 						)}
 						{!isLoading && versions.length === 0 && (
 							<div className="p-4 text-sm text-muted-foreground">
-								No versions yet.
+								<Trans>No versions yet.</Trans>
 							</div>
 						)}
 						{versions.map((version) => (
@@ -171,7 +202,7 @@ export function VersionHistorySheet({
 							disabled={!selectedVersionId || restoreMutation.isPending}
 							onClick={handleRestoreClick}
 						>
-							Restore
+							<Trans>Restore</Trans>
 						</Button>
 					</div>
 				</aside>

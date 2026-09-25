@@ -1,9 +1,7 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
-	component: SettingsPage,
+	beforeLoad: () => {
+		throw redirect({ to: "/settings/account", replace: true });
+	},
 });
-
-function SettingsPage() {
-	return <Navigate to="/settings/account" replace />;
-}

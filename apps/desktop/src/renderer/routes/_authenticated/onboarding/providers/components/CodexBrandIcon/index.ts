@@ -1,1 +1,0 @@
-export { CodexBrandIcon } from "./CodexBrandIcon";

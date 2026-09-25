@@ -1,6 +1,9 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	type AgentLaunchRequest,
+	buildSetupPaneLaunchRequest,
 	normalizeAgentLaunchRequest,
+	type SetupPaneLaunch,
 } from "@superset/shared/agent-launch";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
@@ -15,7 +18,10 @@ import {
 	type PendingTerminalSetup,
 	useWorkspaceInitStore,
 } from "renderer/stores/workspace-init";
-import { DEFAULT_AUTO_APPLY_DEFAULT_PRESET } from "shared/constants";
+import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
+	DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT,
+} from "shared/constants";
 
 /** Mounted at app root to survive dialog unmounts. */
 export function WorkspaceInitEffects() {
@@ -32,6 +38,11 @@ export function WorkspaceInitEffects() {
 		electronTrpc.settings.getAutoApplyDefaultPreset.useQuery();
 	const shouldApplyPreset =
 		autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+
+	const { data: waitForSetupBeforeAgent } =
+		electronTrpc.settings.getWaitForSetupBeforeAgent.useQuery();
+	const shouldWaitForSetup =
+		waitForSetupBeforeAgent ?? DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT;
 
 	const processingRef = useRef<Set<string>>(new Set());
 
@@ -72,24 +83,21 @@ export function WorkspaceInitEffects() {
 		[],
 	);
 
-	const launchAgentViaOrchestrator = useCallback(
-		(setup: PendingTerminalSetup, targetPaneId?: string) => {
-			let request: AgentLaunchRequest;
+	const resolveAgentLaunchForSetupPane = useCallback(
+		(
+			setup: PendingTerminalSetup,
+			setupPaneId?: string,
+		): SetupPaneLaunch | null => {
 			try {
 				const resolved = resolveSetupLaunchRequest(setup);
-				if (!resolved) return false;
-				request =
-					targetPaneId &&
-					resolved.kind === "terminal" &&
-					!resolved.terminal.paneId
-						? {
-								...resolved,
-								terminal: {
-									...resolved.terminal,
-									paneId: targetPaneId,
-								},
-							}
-						: resolved;
+				if (!resolved) return null;
+				if (!setupPaneId) return { request: resolved, chained: false };
+				return buildSetupPaneLaunchRequest({
+					request: resolved,
+					setupCommands: setup.initialCommands,
+					setupPaneId,
+					waitForSetup: shouldWaitForSetup,
+				});
 			} catch (error) {
 				console.error(
 					"[WorkspaceInitEffects] Invalid launch request in pending setup:",
@@ -101,26 +109,28 @@ export function WorkspaceInitEffects() {
 							? error.message
 							: "Invalid launch request in workspace setup.",
 				});
-				return true;
+				return null;
 			}
+		},
+		[resolveSetupLaunchRequest, shouldWaitForSetup],
+	);
 
+	const startAgentSession = useCallback(
+		(request: AgentLaunchRequest) => {
 			void launchAgentSession(request, {
 				source: "workspace-init",
 				createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
 				write: (input) => terminalWrite.mutateAsync(input),
 			}).then((result) => {
-				if (result.status === "failed") {
-					toast.error("Failed to start agent", {
-						description:
-							result.error ??
-							"Failed to start agent session in workspace setup.",
-					});
-				}
+				if (result.status !== "failed") return;
+				if (isTerminalAttachCanceledMessage(result.error ?? undefined)) return;
+				toast.error("Failed to start agent", {
+					description:
+						result.error ?? "Failed to start agent session in workspace setup.",
+				});
 			});
-
-			return true;
 		},
-		[resolveSetupLaunchRequest, terminalCreateOrAttach, terminalWrite],
+		[terminalCreateOrAttach, terminalWrite],
 	);
 
 	const runSetupCommandsInPane = useCallback(
@@ -153,7 +163,14 @@ export function WorkspaceInitEffects() {
 				openPresetsInActiveTab(setup.workspaceId, presets);
 
 				if (agentLaunchRequest || agentCommand) {
-					launchAgentViaOrchestrator(setup, setupPaneId);
+					const launch = resolveAgentLaunchForSetupPane(setup, setupPaneId);
+					if (launch) {
+						startAgentSession(launch.request);
+						if (launch.chained) {
+							onComplete();
+							return;
+						}
+					}
 				}
 
 				createOrAttach.mutate(
@@ -193,8 +210,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									error.message || "Terminal setup failed. Please try again.",
+								description: errorMessage(
+									error,
+									"Terminal setup failed. Please try again.",
+								),
 							});
 							onComplete();
 						},
@@ -208,7 +227,14 @@ export function WorkspaceInitEffects() {
 				setTabAutoTitle(tabId, "Workspace Setup");
 
 				if (agentLaunchRequest || agentCommand) {
-					launchAgentViaOrchestrator(setup, paneId);
+					const launch = resolveAgentLaunchForSetupPane(setup, paneId);
+					if (launch) {
+						startAgentSession(launch.request);
+						if (launch.chained) {
+							onComplete();
+							return;
+						}
+					}
 				}
 
 				createOrAttach.mutate(
@@ -245,8 +271,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									error.message || "Terminal setup failed. Please try again.",
+								description: errorMessage(
+									error,
+									"Terminal setup failed. Please try again.",
+								),
 								action: {
 									label: "Open Terminal",
 									onClick: () => {
@@ -292,17 +320,11 @@ export function WorkspaceInitEffects() {
 
 			if (hasPresets) {
 				openPresetsInActiveTab(setup.workspaceId, presets);
-				if (agentLaunchRequest || agentCommand) {
-					launchAgentViaOrchestrator(setup);
-				}
-				onComplete();
-				return;
 			}
 
 			if (agentLaunchRequest || agentCommand) {
-				launchAgentViaOrchestrator(setup);
-				onComplete();
-				return;
+				const launch = resolveAgentLaunchForSetupPane(setup);
+				if (launch) startAgentSession(launch.request);
 			}
 
 			onComplete();
@@ -311,7 +333,8 @@ export function WorkspaceInitEffects() {
 			addTab,
 			setTabAutoTitle,
 			createOrAttach,
-			launchAgentViaOrchestrator,
+			resolveAgentLaunchForSetupPane,
+			startAgentSession,
 			runSetupCommandsInPane,
 			openPresetsInActiveTab,
 			shouldApplyPreset,

@@ -1,0 +1,11 @@
+extends: existence
+message: "'%s' is performative/salesy phrasing (Kiet's voice doc); say the substance instead."
+link: https://app.notion.com/p/399b9d5bf61680db9841f6126d1c1ab4
+level: error
+ignorecase: true
+tokens:
+  - genuinely excited
+  - really appreciate
+  - 'thrilled to \w+'
+  - excited to announce
+  - "can['’]t wait to"

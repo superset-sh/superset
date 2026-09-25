@@ -186,42 +186,6 @@ export const themeListings: ThemeListing[] = [
 		},
 	},
 	{
-		slug: "catppuccin-latte",
-		name: "Catppuccin Latte",
-		type: "light",
-		author: "Catppuccin",
-		submittedBy: "tamarazuk",
-		description: "The Latte variant from the Catppuccin theme PR for Superset.",
-		addedOn: "March 21, 2026",
-		source: {
-			label: "Download",
-			href: "/marketplace/themes/catppuccin-latte.json",
-		},
-		tags: ["Catppuccin", "Light"],
-		ui: {
-			background: "#eff1f5",
-			foreground: "#4c4f69",
-			card: "#e6e9ef",
-			cardForeground: "#4c4f69",
-			primary: "#8839ef",
-			accent: "#bcc0cc",
-			border: "#bcc0cc",
-			sidebar: "#e6e9ef",
-			sidebarForeground: "#4c4f69",
-		},
-		terminal: {
-			background: "#eff1f5",
-			foreground: "#4c4f69",
-			cursor: "#dc8a78",
-			red: "#d20f39",
-			green: "#40a02b",
-			yellow: "#df8e1d",
-			blue: "#1e66f5",
-			magenta: "#ea76cb",
-			cyan: "#04a5e5",
-		},
-	},
-	{
 		slug: "ember",
 		name: "Ember",
 		type: "dark",
@@ -376,7 +340,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Concrete-and-glass discipline. Black, white, three greys — and one color, used once. The architectural equivalent of a Bauhaus chair.",
+			"Concrete-and-glass discipline. Black, white, three greys. One color, used once. The architectural equivalent of a Bauhaus chair.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -450,7 +414,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"A blacksmith's forge at first light. Cold dark steel meets hot orange embers — the metal hasn't lost its memory of fire.",
+			"A blacksmith's forge at first light. Cold dark steel meets hot orange embers. The metal hasn't lost its memory of fire.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -487,7 +451,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Working warehouse at end of shift — concrete grey, safety orange, diesel yellow, exit-sign red. Functional, not decorative.",
+			"Working warehouse at end of shift: concrete grey, safety orange, diesel yellow, exit-sign red. Functional, not decorative.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -524,7 +488,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Fountain-pen blue ink on bone-white paper. A long-form essayist's draft surface — patient, literary, cool.",
+			"Fountain-pen blue ink on bone-white paper. A long-form essayist's draft surface: patient, literary, cool.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -561,7 +525,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Black lacquer mended with gold dust. Cracks showing where the break was — the repair is the point, not what to hide.",
+			"Black lacquer mended with gold dust. Cracks showing where the break was. The repair is the point, not what to hide.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -598,7 +562,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"A cooling pool inside a research reactor — Cherenkov-blue glow on graphite walls, uranium-yellow caution.",
+			"A cooling pool inside a research reactor: Cherenkov-blue glow on graphite walls, uranium-yellow caution.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -635,7 +599,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Risograph print on cream paper. Fluorescent pink, soybean yellow, federal blue — slightly off-register, slightly handmade.",
+			"Risograph print on cream paper. Fluorescent pink, soybean yellow, federal blue. Slightly off-register, slightly handmade.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -709,7 +673,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"After the streetlights, before full night. Pre-dawn navy meets sodium-vapor orange — a single moment captured.",
+			"After the streetlights, before full night. Pre-dawn navy meets sodium-vapor orange, a single moment captured.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -740,50 +704,13 @@ export const themeListings: ThemeListing[] = [
 		},
 	},
 	{
-		slug: "vellum",
-		name: "Vellum",
-		type: "light",
-		author: "Baris Can Sayin",
-		submittedBy: "itsbariscan",
-		description:
-			"Cream paper, deep ink, sepia accent. A typography-first light theme that prints as well as it screens.",
-		addedOn: "May 7, 2026",
-		source: {
-			label: "Download",
-			href: "/marketplace/themes/vellum.json",
-		},
-		tags: ["Light", "Paper"],
-		ui: {
-			background: "#f5efdc",
-			foreground: "#1a1814",
-			card: "#ede5cc",
-			cardForeground: "#1a1814",
-			primary: "#8b3a1a",
-			accent: "#dccea7",
-			border: "#c8b896",
-			sidebar: "#efe7d0",
-			sidebarForeground: "#1a1814",
-		},
-		terminal: {
-			background: "#f5efdc",
-			foreground: "#1a1814",
-			cursor: "#8b3a1a",
-			red: "#a82e2e",
-			green: "#5e6b3a",
-			yellow: "#a8862a",
-			blue: "#4d6b6b",
-			magenta: "#5b3e6b",
-			cyan: "#5d7a78",
-		},
-	},
-	{
 		slug: "dracula",
 		name: "Dracula",
 		type: "dark",
 		author: "Zeno Rocha",
 		submittedBy: "itsbariscan",
 		description:
-			"A faithful port of Dracula — the dark theme with cyan, green, orange, pink, purple, red, yellow on deep slate.",
+			"A faithful port of Dracula: the dark theme with cyan, green, orange, pink, purple, red, yellow on deep slate.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -820,7 +747,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Pavel Pertsev",
 		submittedBy: "itsbariscan",
 		description:
-			"Retro groove from Pavel Pertsev — warm dark base, ochre/olive/clay accents. Honest, woodgrain feel.",
+			"Retro groove from Pavel Pertsev: warm dark base, ochre/olive/clay accents. Honest, woodgrain feel.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -931,7 +858,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Ethan Schoonover",
 		submittedBy: "itsbariscan",
 		description:
-			"Precision colors engineered for legibility — dark variant. Same accents as Solarized Light; only base tones flip.",
+			"Precision colors engineered for legibility, dark variant. Same accents as Solarized Light; only base tones flip.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -962,50 +889,13 @@ export const themeListings: ThemeListing[] = [
 		},
 	},
 	{
-		slug: "solarized-light",
-		name: "Solarized Light",
-		type: "light",
-		author: "Ethan Schoonover",
-		submittedBy: "itsbariscan",
-		description:
-			"Precision colors engineered for legibility — light variant. Cream paper base, ink foreground, same accent hues as Solarized Dark.",
-		addedOn: "May 7, 2026",
-		source: {
-			label: "Download",
-			href: "/marketplace/themes/solarized-light.json",
-		},
-		tags: ["Solarized", "Light"],
-		ui: {
-			background: "#fdf6e3",
-			foreground: "#586e75",
-			card: "#eee8d5",
-			cardForeground: "#073642",
-			primary: "#268bd2",
-			accent: "#eee8d5",
-			border: "#eee8d5",
-			sidebar: "#f5eecb",
-			sidebarForeground: "#657b83",
-		},
-		terminal: {
-			background: "#fdf6e3",
-			foreground: "#657b83",
-			cursor: "#586e75",
-			red: "#dc322f",
-			green: "#859900",
-			yellow: "#b58900",
-			blue: "#268bd2",
-			magenta: "#d33682",
-			cyan: "#2aa198",
-		},
-	},
-	{
 		slug: "tokyo-night",
 		name: "Tokyo Night",
 		type: "dark",
 		author: "Enkia",
 		submittedBy: "itsbariscan",
 		description:
-			"A dark theme inspired by Tokyo at night — neon over deep navy, with cyan, magenta, and lavender highlights.",
+			"A dark theme inspired by Tokyo at night: neon over deep navy, with cyan, magenta, and lavender highlights.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -1035,6 +925,116 @@ export const themeListings: ThemeListing[] = [
 			cyan: "#7dcfff",
 		},
 	},
+	{
+		slug: "tokyo-night-blackout",
+		name: "Tokyo Night Blackout",
+		type: "dark",
+		author: "Enkia (port: Baris Can Sayin); adapted by Michael Talarczyk",
+		submittedBy: "talarczykco",
+		description:
+			"Tokyo Night with the main content area and terminal forced to pure black for OLED displays, while the sidebar keeps its original navy tones.",
+		addedOn: "August 1, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/tokyo-night-blackout.json",
+		},
+		tags: ["Tokyo Night", "Dark", "OLED", "Black"],
+		ui: {
+			background: "#000000",
+			foreground: "#c0caf5",
+			card: "#000000",
+			cardForeground: "#c0caf5",
+			primary: "#7aa2f7",
+			accent: "#292e42",
+			border: "#292e42",
+			sidebar: "#13141d",
+			sidebarForeground: "#a9b1d6",
+		},
+		terminal: {
+			background: "#000000",
+			foreground: "#e1e1e1",
+			cursor: "#c0caf5",
+			red: "#f7768e",
+			green: "#9ece6a",
+			yellow: "#e0af68",
+			blue: "#7aa2f7",
+			magenta: "#bb9af7",
+			cyan: "#7dcfff",
+		},
+	},
+	{
+		slug: "obsidian",
+		name: "Obsidian",
+		type: "dark",
+		author: "joaobnobre",
+		submittedBy: "joaobnobre",
+		description: "A calm, cool-toned dark theme for focused work.",
+		addedOn: "August 18, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/obsidian.json",
+		},
+		tags: ["Dark", "Cool-toned", "Focused"],
+		ui: {
+			background: "oklch(0.1408 0.0044 265)",
+			foreground: "oklch(0.9824 0.0013 265)",
+			card: "oklch(0.1703 0.0085 265)",
+			cardForeground: "oklch(0.9824 0.0013 265)",
+			primary: "oklch(0.9824 0.0013 265)",
+			accent: "oklch(0.2502 0.016 265)",
+			border: "oklch(0.278 0.015 265)",
+			sidebar: "oklch(0.1408 0.0044 265)",
+			sidebarForeground: "oklch(0.9824 0.0013 265)",
+		},
+		terminal: {
+			background: "oklch(0.1408 0.0044 265)",
+			foreground: "oklch(0.9824 0.0013 265)",
+			cursor: "oklch(0.9824 0.0013 265)",
+			red: "oklch(0.72 0.27 25)",
+			green: "oklch(0.78 0.25 155)",
+			yellow: "oklch(0.82 0.24 85)",
+			blue: "oklch(0.74 0.2 265)",
+			magenta: "oklch(0.72 0.2 315)",
+			cyan: "oklch(0.76 0.15 205)",
+		},
+	},
+	{
+		slug: "darker",
+		name: "Darker",
+		type: "dark",
+		author: "0x962",
+		submittedBy: "0x962",
+		description:
+			"A near-black theme with cool greys and Superset's ember accent.",
+		addedOn: "August 22, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/darker.json",
+		},
+		tags: ["Dark", "Near-black", "Cool", "Superset"],
+		ui: {
+			background: "#08090a",
+			foreground: "#f7f8f8",
+			card: "#141516",
+			cardForeground: "#f7f8f8",
+			primary: "#f7f8f8",
+			accent: "#1c1d1f",
+			border: "#23252a",
+			sidebar: "#0f1011",
+			sidebarForeground: "#f7f8f8",
+		},
+		terminal: {
+			background: "#08090a",
+			foreground: "#f7f8f8",
+			cursor: "#e07850",
+			red: "#dc6b6b",
+			green: "#7ec699",
+			yellow: "#e5c07b",
+			blue: "#61afef",
+			magenta: "#c678dd",
+			cyan: "#56b6c2",
+		},
+	},
 ];
 
 function buildIssueUrl(title: string) {
@@ -1045,3 +1045,11 @@ export const marketplaceSubmissionLinks = {
 	theme: buildIssueUrl("[Marketplace] Theme submission"),
 	agent: buildIssueUrl("[Marketplace] Agent config submission"),
 };
+
+export function getAllThemeSlugs(): string[] {
+	return themeListings.map((theme) => theme.slug);
+}
+
+export function getThemeListing(slug: string): ThemeListing | undefined {
+	return themeListings.find((theme) => theme.slug === slug);
+}

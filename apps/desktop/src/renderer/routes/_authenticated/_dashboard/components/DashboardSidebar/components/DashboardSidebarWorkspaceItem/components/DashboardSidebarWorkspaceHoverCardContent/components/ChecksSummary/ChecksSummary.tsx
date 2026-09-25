@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { LuCheck, LuLoaderCircle, LuX } from "react-icons/lu";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import type { DashboardSidebarWorkspacePullRequestCheck } from "../../../../../../types";
@@ -8,6 +9,7 @@ interface ChecksSummaryProps {
 }
 
 export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
+	const { t } = useLingui();
 	if (status === "none") return null;
 
 	const passing = checks.filter((check) => check.status === "success").length;
@@ -22,7 +24,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 		},
 		failure: {
 			icon: LuX,
-			className: "text-destructive-foreground",
+			className: "text-destructive",
 		},
 		pending: {
 			icon: LuLoaderCircle,
@@ -31,7 +33,12 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 	};
 
 	const { icon: Icon, className } = config[status];
-	const label = total > 0 ? `${passing}/${total} checks` : "Checks";
+	const label =
+		total > 0
+			? t({
+					message: `${passing}/${total} checks`,
+				})
+			: t({ message: "Checks" });
 
 	return (
 		<span className={`flex items-center gap-1 ${className}`}>

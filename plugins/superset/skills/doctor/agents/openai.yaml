@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Doctor"
+  short_description: "Diagnose and fix Superset connection, host, terminal, auth, or update problems"
+  default_prompt: "Use $superset-doctor to diagnose and fix this Superset problem."

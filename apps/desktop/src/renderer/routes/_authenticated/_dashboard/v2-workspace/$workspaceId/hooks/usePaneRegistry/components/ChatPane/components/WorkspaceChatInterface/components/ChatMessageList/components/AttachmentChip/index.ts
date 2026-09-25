@@ -1,1 +1,0 @@
-export { AttachmentChip } from "./AttachmentChip";

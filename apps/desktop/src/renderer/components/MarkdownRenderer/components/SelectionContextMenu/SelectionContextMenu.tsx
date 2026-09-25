@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -23,11 +24,13 @@ function getModifierKeyLabel() {
 interface SelectionContextMenuProps<T extends HTMLElement> {
 	children: ReactNode;
 	selectAllContainerRef: RefObject<T | null>;
+	getMarkdownSelection?: () => string;
 }
 
 export function SelectionContextMenu<T extends HTMLElement>({
 	children,
 	selectAllContainerRef,
+	getMarkdownSelection,
 }: SelectionContextMenuProps<T>) {
 	const { copyToClipboard } = useCopyToClipboard();
 	const [selectionText, setSelectionText] = useState("");
@@ -62,6 +65,11 @@ export function SelectionContextMenu<T extends HTMLElement>({
 		copyToClipboard(text);
 	};
 
+	const handleCopyAsMarkdown = () => {
+		const markdown = getMarkdownSelection?.();
+		if (markdown) copyToClipboard(markdown);
+	};
+
 	const handleCopyLinkAddress = async () => {
 		if (!linkHref) return;
 		copyToClipboard(linkHref);
@@ -93,17 +101,22 @@ export function SelectionContextMenu<T extends HTMLElement>({
 			<ContextMenuContent>
 				<ContextMenuItem disabled={!canCopy} onSelect={handleCopy}>
 					<LuCopy className="size-4" />
-					Copy
+					<Trans>Copy</Trans>
 					<ContextMenuShortcut>{`${modifierKeyLabel}C`}</ContextMenuShortcut>
 				</ContextMenuItem>
+				{getMarkdownSelection && (
+					<ContextMenuItem disabled={!canCopy} onSelect={handleCopyAsMarkdown}>
+						<Trans>Copy as Markdown</Trans>
+					</ContextMenuItem>
+				)}
 				{linkHref && (
 					<ContextMenuItem onSelect={handleCopyLinkAddress}>
-						Copy Link Address
+						<Trans>Copy Link Address</Trans>
 					</ContextMenuItem>
 				)}
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={handleSelectAll}>
-					Select All
+					<Trans>Select All</Trans>
 					<ContextMenuShortcut>{`${modifierKeyLabel}A`}</ContextMenuShortcut>
 				</ContextMenuItem>
 			</ContextMenuContent>

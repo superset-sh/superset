@@ -61,20 +61,9 @@ function run(
 }
 
 function buildCliBuildEnv(): NodeJS.ProcessEnv {
-	const env = { ...process.env };
-	const apiUrl =
-		process.env.SUPERSET_API_URL || process.env.NEXT_PUBLIC_API_URL;
-	const webUrl =
-		process.env.SUPERSET_WEB_URL || process.env.NEXT_PUBLIC_WEB_URL;
-
-	if (apiUrl) {
-		env.SUPERSET_API_URL = apiUrl;
-	}
-	if (webUrl) {
-		env.SUPERSET_WEB_URL = webUrl;
-	}
-
-	return env;
+	// Only the channel is baked. Which API this CLI talks to is decided when it
+	// runs: the shim the desktop installs carries a dev stack's addresses.
+	return { ...process.env, SUPERSET_CLI_CHANNEL: "desktop-bundled" };
 }
 
 const desktopDir = resolve(import.meta.dirname, "..");

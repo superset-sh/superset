@@ -1,0 +1,1 @@
+export { ProjectAvatar } from "./ProjectAvatar";

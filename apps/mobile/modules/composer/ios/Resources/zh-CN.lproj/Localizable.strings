@@ -1,0 +1,16 @@
+"Dismiss" = "忽略";
+"Add attachment" = "添加附件";
+"Transcribing" = "正在转录";
+"Dictate" = "语音输入";
+"Sending" = "正在发送";
+"Send" = "发送";
+"Stop dictation" = "停止语音输入";
+"Remove attachment" = "移除附件";
+"Document" = "文档";
+"Close" = "关闭";
+"Done" = "完成";
+"Model: %@" = "模型：%@";
+"Microphone access is not allowed" = "未允许访问麦克风";
+"Could not start dictation" = "无法启动听写";
+"Uploading" = "正在上传";
+"Upload failed" = "上传失败";

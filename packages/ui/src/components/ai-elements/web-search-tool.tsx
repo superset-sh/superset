@@ -1,5 +1,8 @@
 "use client";
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import { Loader } from "./loader";
 import { ToolCallRow } from "./tool-call-row";
@@ -25,6 +28,8 @@ export const WebSearchTool = ({
 	state,
 	className,
 }: WebSearchToolProps) => {
+	const { _: translate } = useTranslation();
+
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isError = state === "output-error";
 	const hasResults = results.length > 0;
@@ -34,7 +39,9 @@ export const WebSearchTool = ({
 			<Loader size={12} />
 		</div>
 	) : isError ? (
-		<span className="text-xs text-destructive">Failed</span>
+		<span className="text-xs text-destructive">
+			<Trans>Failed</Trans>
+		</span>
 	) : null;
 
 	return (
@@ -45,7 +52,7 @@ export const WebSearchTool = ({
 			isError={isError}
 			isPending={isPending}
 			statusNode={statusNode}
-			title="Web Search"
+			title={translate(msg({ message: "Web Search" }))}
 		>
 			{hasResults ? (
 				<div className="max-h-[200px] overflow-y-auto">

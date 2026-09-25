@@ -1,4 +1,5 @@
 export {
+	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

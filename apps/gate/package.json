@@ -1,0 +1,22 @@
+{
+	"name": "@superset/gate",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "dotenv -e ../../.env -- sh -c 'exec wrangler dev --env dev --port ${SANDBOX_GATE_DEV_PORT:-8790} --var SANDBOX_GATE_SECRET:$SANDBOX_GATE_SECRET'",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/shared": "workspace:*",
+		"jose": "6.2.2",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "5.20260801.1",
+		"@superset/typescript": "workspace:*",
+		"typescript": "6.0.3",
+		"wrangler": "4.118.0"
+	}
+}

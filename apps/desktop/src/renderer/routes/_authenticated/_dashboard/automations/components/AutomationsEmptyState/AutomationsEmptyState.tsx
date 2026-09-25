@@ -1,45 +1,82 @@
-import { Fragment } from "react";
+import { Trans } from "@lingui/react/macro";
+import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
+import { LuPencil, LuSparkles, LuTimer } from "react-icons/lu";
 import {
-	AUTOMATION_TEMPLATE_CATEGORIES,
 	type AutomationTemplate,
+	ONBOARDING_SUGGESTIONS,
 } from "../../templates";
 import { TemplateCard } from "../TemplateCard";
 
 interface AutomationsEmptyStateProps {
 	onSelectTemplate: (template: AutomationTemplate) => void;
+	onCreateWithAgent: () => void;
+	isCreating: boolean;
+	onCreateManually: () => void;
+	isCreatingManually: boolean;
+	/** The viewer's plan can't create one; the buttons open the paywall. */
+	showProBadge?: boolean;
 }
-
 export function AutomationsEmptyState({
 	onSelectTemplate,
+	onCreateWithAgent,
+	isCreating,
+	onCreateManually,
+	isCreatingManually,
+	showProBadge = false,
 }: AutomationsEmptyStateProps) {
 	return (
-		<div className="mx-auto flex max-w-5xl flex-col gap-8">
-			<div className="flex flex-col gap-1">
-				<h2 className="text-base font-semibold tracking-tight">
-					Start from a template
-				</h2>
-				<p className="text-sm text-muted-foreground">
-					Run an agent on a schedule to automate work.
-				</p>
+		<div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-10 py-12">
+			<div className="flex flex-col items-start gap-4">
+				<div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+					<LuTimer className="size-5" />
+				</div>
+				<div className="space-y-2">
+					<h2 className="flex items-center gap-2 font-semibold text-lg tracking-tight">
+						<Trans>What should run on a schedule?</Trans>
+						{showProBadge && (
+							<Badge variant="default">
+								<Trans>PRO</Trans>
+							</Badge>
+						)}
+					</h2>
+					<p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+						<Trans>
+							Runs land in a workspace. Review the diff, merge what's good.
+						</Trans>
+					</p>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					<Button size="sm" onClick={onCreateWithAgent} disabled={isCreating}>
+						<LuSparkles className="size-3.5" />
+						<Trans>Create with AI</Trans>
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						className="text-muted-foreground"
+						onClick={onCreateManually}
+						disabled={isCreatingManually}
+					>
+						<LuPencil className="size-3.5" />
+						<Trans>Create manually</Trans>
+					</Button>
+				</div>
 			</div>
-			{AUTOMATION_TEMPLATE_CATEGORIES.map((category) => (
-				<Fragment key={category.id}>
-					<section className="flex flex-col gap-3">
-						<h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-							{category.label}
-						</h3>
-						<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-							{category.templates.map((template) => (
-								<TemplateCard
-									key={template.id}
-									template={template}
-									onSelect={onSelectTemplate}
-								/>
-							))}
-						</div>
-					</section>
-				</Fragment>
-			))}
+			<div className="space-y-2 border-t border-border/60 pt-6">
+				<h3 className="mb-3 text-xs font-medium text-muted-foreground">
+					<Trans>Suggested</Trans>
+				</h3>
+				<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+					{ONBOARDING_SUGGESTIONS.map((template) => (
+						<TemplateCard
+							key={template.id}
+							template={template}
+							onSelect={onSelectTemplate}
+						/>
+					))}
+				</div>
+			</div>
 		</div>
 	);
 }

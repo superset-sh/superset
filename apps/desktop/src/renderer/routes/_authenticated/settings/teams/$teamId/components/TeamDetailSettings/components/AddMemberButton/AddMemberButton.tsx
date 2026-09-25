@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -8,6 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiOutlinePaperAirplane, HiOutlinePlus } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface OrgUser {
 	id: string;
@@ -29,9 +31,11 @@ export function AddMemberButton({
 	currentMemberUserIds,
 	orgUsers,
 }: AddMemberButtonProps) {
+	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+	const utils = cloudTrpc.useUtils();
 
 	// Snapshot of who was a member when the popover opened. Sort against this
 	// so toggling a checkbox doesn't reorder the row under the cursor.
@@ -83,13 +87,18 @@ export function AddMemberButton({
 					userId: user.id,
 				});
 			}
+			await utils.organization.listTeams.invalidate();
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
 					: isCurrentlyMember
-						? "Failed to remove member"
-						: "Failed to add member",
+						? t({
+								message: "Failed to remove member",
+							})
+						: t({
+								message: "Failed to add member",
+							}),
 			);
 		} finally {
 			setPendingUserId(null);
@@ -101,7 +110,7 @@ export function AddMemberButton({
 			<PopoverTrigger asChild>
 				<Button size="sm">
 					<HiOutlinePlus className="h-4 w-4 mr-1" />
-					Add member
+					<Trans>Add member</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-72 p-0">
@@ -109,7 +118,9 @@ export function AddMemberButton({
 					<Input
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Add team member..."
+						placeholder={t({
+							message: "Add team member...",
+						})}
 						className="h-8"
 						autoFocus
 					/>
@@ -117,7 +128,7 @@ export function AddMemberButton({
 				<div className="max-h-64 overflow-auto p-1">
 					{sortedUsers.length === 0 ? (
 						<div className="text-center py-6 text-xs text-muted-foreground">
-							No matching org members.
+							<Trans>No matching org members.</Trans>
 						</div>
 					) : (
 						sortedUsers.map((user) => {
@@ -152,7 +163,7 @@ export function AddMemberButton({
 						className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<HiOutlinePaperAirplane className="h-4 w-4" />
-						Invite people...
+						<Trans>Invite people...</Trans>
 					</Link>
 				</div>
 			</PopoverContent>

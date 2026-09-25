@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & help
+    url: https://discord.gg/cZeD9WYcV7
+    about: Ask questions and get help from the team and community on Discord.
+  - name: 📚 Documentation
+    url: https://docs.superset.sh
+    about: Guides for using and configuring Superset.

@@ -1,8 +1,23 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, it, mock } from "bun:test";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import type { HostDb } from "../../../db";
+import * as schema from "../../../db/schema";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import type { AgentLifecycleEventType } from "../../../events";
+import type { WorkspaceChangedMessage } from "../../../events/types";
 import { TerminalAgentStore } from "../../../terminal-agents";
+import { issueAttributionToken } from "../../../terminal-agents/attribution-token";
 import type { HostServiceContext } from "../../../types";
+import {
+	getLocalWorkspace,
+	insertLocalWorkspace,
+} from "../../../workspaces/local-workspace-store";
 import { notificationsRouter } from "./notifications";
 
 interface BroadcastedAgentLifecycleEvent {
@@ -10,19 +25,32 @@ interface BroadcastedAgentLifecycleEvent {
 	eventType: AgentLifecycleEventType;
 	terminalId: string;
 	agent?: AgentIdentity;
+	preview?: string;
 	occurredAt: number;
 }
 
-function createContext(originWorkspaceId: string | null): {
+function createContext(
+	originWorkspaceId: string | null,
+	options?: { taskId?: string | null },
+): {
 	ctx: HostServiceContext;
 	broadcastAgentLifecycle: ReturnType<
 		typeof mock<(event: BroadcastedAgentLifecycleEvent) => void>
 	>;
+	broadcastAgentBindingsChanged: ReturnType<
+		typeof mock<(event: { workspaceId: string; occurredAt: number }) => void>
+	>;
 	findFirst: ReturnType<typeof mock>;
+	taskStart: ReturnType<
+		typeof mock<(input: { id: string }) => Promise<unknown>>
+	>;
 	terminalAgentStore: TerminalAgentStore;
 } {
 	const broadcastAgentLifecycle = mock(
 		(_event: BroadcastedAgentLifecycleEvent) => {},
+	);
+	const broadcastAgentBindingsChanged = mock(
+		(_event: { workspaceId: string; occurredAt: number }) => {},
 	);
 	const findFirst = mock(() => ({
 		sync: () =>
@@ -32,6 +60,10 @@ function createContext(originWorkspaceId: string | null): {
 						originWorkspaceId,
 					},
 	}));
+	const workspaceFindFirst = mock(() => ({
+		sync: () => ({ taskId: options?.taskId ?? null }),
+	}));
+	const taskStart = mock((_input: { id: string }) => Promise.resolve({}));
 	const terminalAgentStore = new TerminalAgentStore();
 
 	const ctx = {
@@ -40,18 +72,222 @@ function createContext(originWorkspaceId: string | null): {
 				terminalSessions: {
 					findFirst,
 				},
+				workspaces: {
+					findFirst: workspaceFindFirst,
+				},
+			},
+			// The activity touch (workspaces/local-workspace-store) reads and
+			// writes the row; these stubs keep it a silent no-op here. The
+			// real write path is covered by the in-memory DB tests below.
+			update: () => ({ set: () => ({ where: () => ({ run: () => {} }) }) }),
+			select: () => ({ from: () => ({ where: () => ({ all: () => [] }) }) }),
+		},
+		api: {
+			task: {
+				start: {
+					mutate: taskStart,
+				},
 			},
 		},
 		eventBus: {
 			broadcastAgentLifecycle,
+			broadcastAgentBindingsChanged,
+			broadcastWorkspaceChanged: () => {},
 		},
 		terminalAgentStore,
 	} as unknown as HostServiceContext;
 
-	return { ctx, broadcastAgentLifecycle, findFirst, terminalAgentStore };
+	return {
+		ctx,
+		broadcastAgentLifecycle,
+		broadcastAgentBindingsChanged,
+		findFirst,
+		taskStart,
+		terminalAgentStore,
+	};
+}
+
+const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
+
+/**
+ * A context over a real migrated in-memory DB, for asserting the row-level
+ * side effects of a hook (the activity stamp) rather than the fan-out.
+ */
+function createDbContext({
+	terminalId,
+	workspaceId,
+}: {
+	terminalId: string;
+	workspaceId: string;
+}): {
+	ctx: HostServiceContext;
+	db: HostDb;
+	workspaceChanged: WorkspaceChangedMessage[];
+} {
+	const sqlite = new Database(":memory:");
+	const bunDb = drizzle(sqlite, { schema });
+	migrate(bunDb, { migrationsFolder: MIGRATIONS_FOLDER });
+	// bun:sqlite's drizzle type differs from the better-sqlite3-based HostDb,
+	// but the query surface used here is identical (same cast as other tests).
+	const db = bunDb as unknown as HostDb;
+
+	const workspaceChanged: WorkspaceChangedMessage[] = [];
+	const eventBus = {
+		broadcastAgentLifecycle: () => {},
+		broadcastWorkspaceChanged: (
+			message: Omit<WorkspaceChangedMessage, "type">,
+		) => {
+			workspaceChanged.push({ type: "workspace:changed", ...message });
+		},
+	};
+
+	insertLocalWorkspace(
+		{ db, eventBus: eventBus as unknown as HostServiceContext["eventBus"] },
+		{
+			id: workspaceId,
+			projectId: null,
+			worktreePath: `/tmp/${workspaceId}`,
+			branch: "feature",
+			name: "feature",
+		},
+	);
+	// Start from "never touched" so the first hook must write.
+	db.update(workspaces)
+		.set({ lastActivityAt: null })
+		.where(eq(workspaces.id, workspaceId))
+		.run();
+	db.insert(terminalSessions)
+		.values({ id: terminalId, originWorkspaceId: workspaceId, createdAt: 1 })
+		.run();
+	workspaceChanged.length = 0;
+
+	const ctx = {
+		db,
+		api: { task: { start: { mutate: () => Promise.resolve({}) } } },
+		eventBus,
+		terminalAgentStore: new TerminalAgentStore(),
+	} as unknown as HostServiceContext;
+
+	return { ctx, db, workspaceChanged };
 }
 
 describe("notificationsRouter.hook", () => {
+	it("routes subagent events to the roster without a lifecycle broadcast or session capture", async () => {
+		const {
+			ctx,
+			broadcastAgentLifecycle,
+			broadcastAgentBindingsChanged,
+			terminalAgentStore,
+		} = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "root" },
+		});
+
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "a1", type: "Explore" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+		expect(broadcastAgentBindingsChanged).toHaveBeenCalledTimes(1);
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.agentSessionId).toBe("root");
+		expect(binding?.lastEventType).toBe("Start");
+		expect(binding?.subagents?.map((s) => [s.id, s.agentType])).toEqual([
+			["a1", "Explore"],
+		]);
+
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStop",
+			subagent: { id: "a1" },
+		});
+		expect(terminalAgentStore.get("terminal-1")?.subagents).toBeUndefined();
+		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+	});
+
+	it("resolves transcript paths with the parent binding's harness", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "parent" },
+		});
+		await caller.hook({
+			terminalId: "terminal-claude",
+			eventType: "SubagentStart",
+			subagent: {
+				id: "child",
+				sessionId: "parent",
+				transcriptPath: `${homedir()}/sessions/parent.jsonl`,
+			},
+		});
+
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "Start",
+			agent: { agentId: "codex", sessionId: "parent" },
+		});
+		await caller.hook({
+			terminalId: "terminal-codex",
+			eventType: "SubagentStart",
+			subagent: {
+				id: "child",
+				sessionId: "parent",
+				transcriptPath: `${homedir()}/sessions/parent.jsonl`,
+			},
+		});
+
+		expect(
+			terminalAgentStore.get("terminal-claude")?.subagents?.[0]?.transcriptPath,
+		).toBe(`${homedir()}/sessions/parent/subagents/agent-child.jsonl`);
+		expect(
+			terminalAgentStore.get("terminal-codex")?.subagents?.[0]?.transcriptPath,
+		).toBe(`${homedir()}/sessions/parent.jsonl`);
+	});
+
+	it("drops a Claude child event that names the parent's previous session", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "claude", sessionId: "s2" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "old-child", sessionId: "s1" },
+		});
+		expect(result).toEqual({ success: true, ignored: true });
+		expect(terminalAgentStore.get("terminal-1")?.subagents).toBeUndefined();
+	});
+
+	it("keeps only transcript paths that look like harness files under home", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "Start",
+			agent: { agentId: "codex", sessionId: "root" },
+		});
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SubagentStart",
+			subagent: { id: "c1", transcriptPath: "/etc/passwd" },
+		});
+		expect(
+			terminalAgentStore.get("terminal-1")?.subagents?.[0]?.transcriptPath,
+		).toBeUndefined();
+	});
+
 	it("derives workspaceId from terminalId before broadcasting", async () => {
 		const { ctx, broadcastAgentLifecycle, findFirst } =
 			createContext("workspace-1");
@@ -157,6 +393,88 @@ describe("notificationsRouter.hook", () => {
 		expect(binding?.lastEventType).toBe("Attached");
 	});
 
+	it("maps Claude Code's StopFailure API-error hook to a Failed event and records it", async () => {
+		const { ctx, broadcastAgentLifecycle, terminalAgentStore } =
+			createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		const failedBroadcast = broadcastAgentLifecycle.mock.calls.at(-1)?.[0];
+		expect(failedBroadcast).toMatchObject({
+			workspaceId: "workspace-1",
+			eventType: "Failed",
+			terminalId: "terminal-1",
+			// Failed keeps the agent identifiable, unlike an exit that drops it.
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.agentId).toBe("claude");
+		expect(binding?.agentSessionId).toBe("session-abc");
+	});
+
+	it("nudges the linked task to In Progress once per task on Start events", async () => {
+		// Unique per test: the once-per-process dedup set is module-level.
+		const taskId = "task-nudge-once";
+		const { ctx, taskStart } = createContext("workspace-1", { taskId });
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).toHaveBeenCalledTimes(1);
+		expect(taskStart.mock.calls[0]?.[0]).toEqual({ id: taskId });
+	});
+
+	it("retries the nudge on a later Start event after a failed call", async () => {
+		const taskId = "task-nudge-retry";
+		const { ctx, taskStart } = createContext("workspace-1", { taskId });
+		taskStart.mockImplementationOnce(() =>
+			Promise.reject(new Error("cloud unreachable")),
+		);
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+		// let the rejection handler clear the dedup entry
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not nudge the task when the workspace has no linked task", async () => {
+		const { ctx, taskStart } = createContext("workspace-1", { taskId: null });
+
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).not.toHaveBeenCalled();
+	});
+
+	it("does not nudge the task on non-Start events", async () => {
+		const { ctx, taskStart } = createContext("workspace-1", {
+			taskId: "task-nudge-stop",
+		});
+
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook({ terminalId: "terminal-1", eventType: "Stop" });
+
+		expect(taskStart).not.toHaveBeenCalled();
+	});
+
 	it("drops agent identity entirely when agentId is missing", async () => {
 		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
 
@@ -168,5 +486,130 @@ describe("notificationsRouter.hook", () => {
 
 		const broadcast = broadcastAgentLifecycle.mock.calls[0]?.[0];
 		expect(broadcast?.agent).toBeUndefined();
+	});
+
+	it("stamps the terminal's workspace lastActivityAt and broadcasts it", async () => {
+		const workspaceId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+		const { ctx, db, workspaceChanged } = createDbContext({
+			terminalId: "terminal-activity",
+			workspaceId,
+		});
+		const updatedAtBefore = getLocalWorkspace(db, workspaceId)?.updatedAt;
+		const before = Date.now();
+
+		const result = await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-activity",
+			eventType: "UserPromptSubmit",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		const row = getLocalWorkspace(db, workspaceId);
+		expect(row?.lastActivityAt ?? 0).toBeGreaterThanOrEqual(before);
+		// Activity is not a metadata edit.
+		expect(row?.updatedAt).toBe(updatedAtBefore);
+		expect(workspaceChanged).toHaveLength(1);
+		expect(workspaceChanged[0]).toMatchObject({
+			workspaceId,
+			eventType: "updated",
+			workspace: { id: workspaceId, lastActivityAt: row?.lastActivityAt },
+		});
+	});
+
+	it("does not fail the hook when the activity write throws", async () => {
+		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+		(ctx.db as unknown as { update: () => never }).update = () => {
+			throw new Error("disk full");
+		};
+		const warn = console.warn;
+		const warnings: unknown[][] = [];
+		console.warn = (...args: unknown[]) => {
+			warnings.push(args);
+		};
+		try {
+			const result = await notificationsRouter
+				.createCaller(ctx)
+				.hook({ terminalId: "terminal-1", eventType: "Stop" });
+
+			expect(result).toEqual({ success: true, ignored: false });
+			expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
+			expect(
+				warnings.some((args) =>
+					String(args[0]).includes("failed to record activity"),
+				),
+			).toBe(true);
+		} finally {
+			console.warn = warn;
+		}
+	});
+});
+
+it("broadcasts a bounded preview with the lifecycle event", async () => {
+	const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
+	await notificationsRouter.createCaller(ctx).hook({
+		terminalId: "terminal-1",
+		eventType: "Stop",
+		preview: "x".repeat(5000),
+	});
+	expect(broadcastAgentLifecycle.mock.calls[0]?.[0].preview).toBe(
+		"x".repeat(4000),
+	);
+});
+
+describe("login attribution authentication", () => {
+	it("publishes launch events after the binding and account are readable", async () => {
+		const { ctx, terminalAgentStore, broadcastAgentLifecycle } =
+			createContext("workspace-1");
+		const observed: unknown[] = [];
+		broadcastAgentLifecycle.mockImplementation(() => {
+			observed.push(terminalAgentStore.get("terminal-1"));
+		});
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "codex" },
+			accountProfile: "",
+			apiKey: true,
+			attributionToken: issueAttributionToken("terminal-1"),
+		});
+		expect(observed).toEqual([
+			expect.objectContaining({
+				agentId: "codex",
+				workspaceId: "workspace-1",
+				account: expect.objectContaining({ identity: "api-env" }),
+			}),
+		]);
+	});
+
+	for (const authorized of [false, true]) {
+		it(`records lifecycle events with ${authorized ? "verified" : "unverified"} attribution`, async () => {
+			const { ctx, terminalAgentStore } = createContext("workspace-1");
+			const caller = notificationsRouter.createCaller(ctx);
+			await caller.hook({
+				terminalId: "terminal-1",
+				eventType: "SessionStart",
+				agent: { agentId: "claude" },
+				accountProfile: "",
+				apiKey: true,
+				attributionToken: issueAttributionToken(
+					authorized ? "terminal-1" : "other-terminal",
+				),
+			});
+			expect(terminalAgentStore.get("terminal-1")?.agentId).toBe("claude");
+			expect(terminalAgentStore.get("terminal-1")?.account?.identity).toBe(
+				authorized ? "api-env" : undefined,
+			);
+		});
+	}
+	it("does not attribute unauthenticated API billing claims", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude" },
+			accountProfile: "",
+			apiKey: true,
+		});
+		expect(terminalAgentStore.get("terminal-1")?.account).toBeUndefined();
 	});
 });

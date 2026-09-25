@@ -1,23 +1,41 @@
+import { TERMINAL_HANDOFF_MAX_CHARS } from "@superset/shared/terminal-session-handoff";
+import { normalizeTerminalTitle } from "@superset/shared/terminal-title-scanner";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
-	listTerminalSessions,
+	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
+	getPendingTerminalWorkspaceId,
+	listLiveTerminalSessions,
 	parseThemeType,
+	renameTerminalSession,
+	sendAgentMessage,
+	sessionHasRunningProcess,
+	snapshotSession,
+	transcriptSession,
+	writeFramedInputToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { toTerminalSessionError } from "./errors";
 
-const createSessionInputSchema = z.object({
+export const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
-	initialCommand: z.string().trim().min(1).optional(),
+	// An empty or whitespace-only command means "open a shell with no initial
+	// command" (e.g. a preset with no command), so normalize it to absent
+	// instead of rejecting. `launchSession` still requires a non-empty command.
+	initialCommand: z
+		.string()
+		.trim()
+		.optional()
+		.transform((value) => (value ? value : undefined)),
 	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
@@ -45,10 +63,7 @@ async function createTerminalSessionFromInput({
 	});
 
 	if ("error" in result) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: result.error,
-		});
+		throw toTerminalSessionError(result);
 	}
 
 	return {
@@ -66,6 +81,16 @@ async function createTerminalSessionFromInput({
 const daemonRouter = router({
 	getUpdateStatus: protectedProcedure.query(({ ctx }) =>
 		getSupervisor().getUpdateStatus(ctx.organizationId),
+	),
+
+	/**
+	 * Whether the daemon is still answering, and for how long it hasn't.
+	 * Deliberately does not `waitForDaemonReady` — this is polled by the
+	 * terminal UI to decide whether a stall is worth surfacing, so it has to
+	 * answer immediately rather than block on the thing that may be wedged.
+	 */
+	getHealth: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getHealth(ctx.organizationId),
 	),
 
 	listSessions: protectedProcedure.query(async ({ ctx }) => {
@@ -106,32 +131,29 @@ export const terminalRouter = router({
 		)
 		.mutation(createTerminalSessionFromInput),
 
-	listSessions: protectedProcedure
+	list: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
-			}),
+			z
+				.object({
+					workspaceId: z.string().optional(),
+				})
+				.optional(),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
+		.query(async ({ ctx, input }) => ({
+			sessions: await listLiveTerminalSessions(ctx.db, {
+				workspaceId: input?.workspaceId,
 			}),
 		})),
 
-	countBackgroundSessions: protectedProcedure
+	hasRunningProcess: protectedProcedure
 		.input(
 			z.object({
+				terminalId: z.string(),
 				workspaceId: z.string(),
-				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
 		.query(({ input }) => ({
-			count: countTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
-			}),
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
 		})),
 
 	writeInput: protectedProcedure
@@ -145,12 +167,136 @@ export const terminalRouter = router({
 		.mutation(({ input }) => {
 			const result = writeInputToSession(input);
 			if ("error" in result) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: result.error,
-				});
+				throw toTerminalSessionError(result);
 			}
 			return { success: true as const };
+		}),
+
+	// Send a follow-up message into an already-running terminal (e.g. a
+	// claude/codex agent) instead of spawning a new session. Multi-line text
+	// is framed as a bracketed paste server-side.
+	send: protectedProcedure
+		.input(
+			z
+				.object({
+					terminalId: z.string(),
+					workspaceId: z.string(),
+					text: z.string(),
+					submit: z.boolean().default(true),
+				})
+				.refine((input) => input.submit || input.text.length > 0, {
+					message: "Nothing to send",
+				}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const message = { ...input, db: ctx.db, eventBus: ctx.eventBus };
+			const binding = ctx.terminalAgentStore.get(input.terminalId);
+			const result =
+				binding && binding.endedAt === undefined
+					? await sendAgentMessage({
+							...message,
+							terminalAgentStore: ctx.terminalAgentStore,
+						})
+					: await writeFramedInputToSession(message);
+			if ("error" in result) {
+				throw toTerminalSessionError(result);
+			}
+			return { terminalId: input.terminalId, submitted: input.submit };
+		}),
+
+	// Non-destructive snapshot of the terminal's current screen + recent
+	// scrollback, read off the per-session headless emulator.
+	snapshot: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				maxLines: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const result = await snapshotSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalSessionError(result);
+			}
+			const { success: _success, ...snapshot } = result;
+			return { terminalId: input.terminalId, ...snapshot };
+		}),
+
+	// Recent output as readable text for handing context to another agent.
+	// Reads the retained PTY stream, not the visible screen — see
+	// transcriptSession.
+	transcript: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				// Capped, not just positive: the budget sizes a response the host
+				// builds in memory, so a client cannot ask for an arbitrary one.
+				maxChars: z
+					.number()
+					.int()
+					.positive()
+					.max(TERMINAL_HANDOFF_MAX_CHARS)
+					.optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const result = await transcriptSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalSessionError(result);
+			}
+			const { success: _success, ...transcript } = result;
+			return { terminalId: input.terminalId, ...transcript };
+		}),
+
+	// Name a session, or clear the name with an empty string. The name is the
+	// session's, not the pane's or the tab's: it is stored on the host and
+	// every client that lists the session — this desktop, another one, a
+	// phone — sees it.
+	rename: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				// Same normalization the shell's own titles get: controls
+				// stripped, trimmed, capped — and nothing left means no name.
+				title: z.string().max(1_000).transform(normalizeTerminalTitle),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const session = ctx.db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })
+				.sync();
+
+			if (!session) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Terminal session not found",
+				});
+			}
+
+			if (session.originWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
+			renameTerminalSession({
+				terminalId: input.terminalId,
+				customTitle: input.title,
+				db: ctx.db,
+			});
+			return { terminalId: input.terminalId, title: input.title };
 		}),
 
 	killSession: protectedProcedure
@@ -172,6 +318,29 @@ export const terminalRouter = router({
 				});
 			}
 
+			const pendingWorkspaceId = getPendingTerminalWorkspaceId(
+				input.terminalId,
+			);
+			if (pendingWorkspaceId && pendingWorkspaceId !== input.workspaceId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Terminal session does not belong to this workspace",
+				});
+			}
+
+			const now = Date.now();
+			ctx.db
+				.insert(terminalSessions)
+				.values({
+					id: input.terminalId,
+					originWorkspaceId: input.workspaceId,
+					status: "disposed",
+					createdAt: now,
+					disposeRequestedAt: now,
+				})
+				.onConflictDoNothing()
+				.run();
+
 			const session = ctx.db.query.terminalSessions
 				.findFirst({ where: eq(terminalSessions.id, input.terminalId) })
 				.sync();
@@ -190,10 +359,31 @@ export const terminalRouter = router({
 				});
 			}
 
+			// Mark the binding disposed BEFORE the kill: the SIGHUP death-gasp and
+			// pty-exit events that follow would otherwise stamp it
+			// "terminal-exited" and auto-resume would resurrect a deliberately
+			// killed session at the next pane mount.
+			ctx.terminalAgentStore.markTerminalDisposed(input.terminalId);
 			await disposeSessionAndWait(input.terminalId, ctx.db);
-			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });

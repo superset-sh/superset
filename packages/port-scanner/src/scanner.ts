@@ -2,52 +2,10 @@ import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import pidtree from "pidtree";
+import { EXEC_TIMEOUT_MS, runTolerant } from "./exec.ts";
 import { getListeningPortsLinuxProcfs } from "./procfs.ts";
 
 const execFileAsync = promisify(execFile);
-
-/**
- * Run execFile and tolerate a plain non-zero exit by returning its stdout.
- * lsof exits 1 when no PIDs match the filter — a legitimate "empty" result.
- * Aborts, timeouts, and signal-kills are NOT tolerated: partial stdout from a
- * killed child is not a trustworthy snapshot, so rethrow and let the caller's
- * outer catch turn it into `[]`.
- */
-async function runTolerant(
-	file: string,
-	args: string[],
-	options: { maxBuffer: number; timeout: number; signal?: AbortSignal },
-): Promise<string> {
-	try {
-		const { stdout } = await execFileAsync(file, args, options);
-		return stdout;
-	} catch (err) {
-		if (err && typeof err === "object") {
-			const execErr = err as {
-				stdout?: string | Buffer;
-				code?: unknown;
-				killed?: boolean;
-				signal?: unknown;
-				name?: string;
-			};
-			if (
-				execErr.name === "AbortError" ||
-				execErr.code === "ABORT_ERR" ||
-				execErr.killed ||
-				execErr.signal
-			) {
-				throw err;
-			}
-			if ("stdout" in execErr) {
-				return String(execErr.stdout ?? "");
-			}
-		}
-		throw err;
-	}
-}
-
-/** Timeout for shell commands to prevent hanging (ms) */
-const EXEC_TIMEOUT_MS = 5000;
 
 export interface PortInfo {
 	port: number;
@@ -56,16 +14,72 @@ export interface PortInfo {
 	processName: string;
 }
 
+export interface ProcessTableEntry {
+	pid: number;
+	ppid: number;
+}
+
 /**
- * Get all child PIDs of a process (including the process itself)
+ * One system-wide process-table read. pidtree spawns a full `ps`/`wmic` per
+ * invocation, so a scan reads the table once and derives everything (session
+ * trees, detached-process attribution) from that single snapshot.
+ *
+ * Throws when the table can't be read, so callers can keep previous state
+ * instead of treating every session as exited.
  */
-export async function getProcessTree(pid: number): Promise<number[]> {
-	try {
-		return await pidtree(pid, { root: true });
-	} catch {
-		// Process may have exited
-		return [];
+export async function readProcessTable(): Promise<ProcessTableEntry[]> {
+	const table = await pidtree(-1, { advanced: true });
+	return table.map(({ pid, ppid }) => ({ pid, ppid }));
+}
+
+/**
+ * Get the process tree (root + descendants) for each of the given root PIDs
+ * from a process-table snapshot. Roots that are not in the table are absent
+ * from the returned map.
+ */
+export function buildProcessTrees(
+	table: ProcessTableEntry[],
+	rootPids: number[],
+): Map<number, number[]> {
+	const trees = new Map<number, number[]>();
+	if (rootPids.length === 0) return trees;
+
+	const childrenByPpid = new Map<number, number[]>();
+	const alivePids = new Set<number>();
+	for (const { pid, ppid } of table) {
+		alivePids.add(pid);
+		const siblings = childrenByPpid.get(ppid);
+		if (siblings) siblings.push(pid);
+		else childrenByPpid.set(ppid, [pid]);
 	}
+
+	for (const rootPid of rootPids) {
+		if (!alivePids.has(rootPid)) continue;
+		const pids: number[] = [];
+		const seen = new Set<number>();
+		const stack = [rootPid];
+		while (stack.length > 0) {
+			const pid = stack.pop();
+			if (pid === undefined || seen.has(pid)) continue;
+			seen.add(pid);
+			pids.push(pid);
+			const children = childrenByPpid.get(pid);
+			if (children) stack.push(...children);
+		}
+		trees.set(rootPid, pids);
+	}
+
+	return trees;
+}
+
+/**
+ * Convenience wrapper: one table read, then trees for the given roots.
+ */
+export async function getProcessTreesForPids(
+	rootPids: number[],
+): Promise<Map<number, number[]>> {
+	if (rootPids.length === 0) return new Map();
+	return buildProcessTrees(await readProcessTable(), rootPids);
 }
 
 /**
@@ -103,16 +117,16 @@ async function getListeningPortsLsof(
 	try {
 		const pidArg = pids.join(",");
 		const pidSet = new Set(pids);
+		// -a: AND the selectors — without it lsof ORs -p with -iTCP and
+		//     walks every process on the machine, only to be filtered below
 		// -p: filter by PIDs
 		// -iTCP: only TCP connections
 		// -sTCP:LISTEN: only listening sockets
 		// -P: don't convert port numbers to names
 		// -n: don't resolve hostnames
-		// Note: lsof may ignore -p filter if PIDs don't exist or have no matches,
-		// so we must validate PIDs in the output against our requested set
 		const output = await runTolerant(
 			"lsof",
-			["-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+			["-a", "-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
 			{ maxBuffer: 10 * 1024 * 1024, timeout: EXEC_TIMEOUT_MS, signal },
 		);
 
@@ -141,8 +155,8 @@ async function getListeningPortsLsof(
 
 			const pid = Number.parseInt(pidStr, 10);
 
-			// CRITICAL: Verify the PID is in our requested set
-			// lsof ignores -p filter when PIDs don't exist, returning all TCP listeners
+			// Defense in depth: -a should guarantee only requested PIDs appear,
+			// but a stray line must never attribute another process's port to a session
 			if (!pidSet.has(pid)) continue;
 
 			// Parse address:port from NAME column

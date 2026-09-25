@@ -1,44 +1,74 @@
-import type { EntityWebhookPayloadWithIssueData } from "@linear/sdk/webhooks";
+import type { LinearWebhookPayload } from "@linear/sdk/webhooks";
 import {
 	LINEAR_WEBHOOK_SIGNATURE_HEADER,
 	LinearWebhookClient,
 } from "@linear/sdk/webhooks";
-import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
-import {
-	integrationConnections,
-	members,
-	taskStatuses,
-	tasks,
-	users,
-	webhookEvents,
-} from "@superset/db/schema";
-import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+
 import { env } from "@/env";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
+import { stripNullChars } from "@/lib/strip-null-chars";
+import { verifyHookdeckDelivery } from "@/lib/webhooks/hookdeck";
+import { deliveryRowEventId } from "./deliveryIds";
+import { hasActiveSubscriber } from "./processDelivery";
+import { enqueueLinearDelivery } from "./queue";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
+/**
+ * Accepts a Linear delivery and does no work on it.
+ *
+ * The route proves the delivery is Linear's, checks somebody is still
+ * subscribed, writes it — identity and body, one round trip — and hands the
+ * fan-out to QStash. Everything a delivery owes the organizations connected to
+ * it happens in `jobs/process-delivery`. Two indexed queries and a publish,
+ * where this used to run every connected organization's task-mirror and
+ * automation writes inline.
+ *
+ * The order is the contract: nothing is acknowledged before it is durable, and
+ * nothing is acknowledged that has not been queued. A delivery recorded but not
+ * queued gets a 500 so Linear retries it, because a row nothing will ever pick
+ * up is a webhook lost in silence.
+ */
 export async function POST(request: Request) {
 	const body = await request.text();
-	const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
 
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
+	// Both paths stay live through a cutover: traffic still arriving straight
+	// from Linear verifies as it always has, and rolling back is repointing the
+	// URL rather than shipping a deploy.
+	const hookdeck = verifyHookdeckDelivery(request, body);
+	if (hookdeck instanceof Response) return hookdeck;
+
+	let payload: LinearWebhookPayload;
+	if (hookdeck === "verified") {
+		// Deliberately not re-checking Linear's signature. Hookdeck verified it
+		// at ingest, and Linear's covers a timestamp inside a ±60s replay window
+		// that Hookdeck preserves on retry — so checking it here would reject
+		// every retry, which is the delivery the gateway exists to save.
+		try {
+			payload = JSON.parse(body) as LinearWebhookPayload;
+		} catch {
+			return Response.json({ error: "Malformed payload" }, { status: 400 });
+		}
+	} else {
+		const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
+		if (!signature) {
+			return Response.json({ error: "Missing signature" }, { status: 401 });
+		}
+		try {
+			payload = parseVerifiedPayload(body, signature);
+		} catch (error) {
+			console.warn(
+				"[linear/webhook] rejected delivery:",
+				error instanceof Error ? error.message : error,
+			);
+			return Response.json({ error: "Invalid signature" }, { status: 401 });
+		}
 	}
 
-	const payload = webhookClient.parseData(Buffer.from(body), signature);
-
-	const connections = await db.query.integrationConnections.findMany({
-		where: and(
-			eq(integrationConnections.externalOrgId, payload.organizationId),
-			eq(integrationConnections.provider, "linear"),
-			isNull(integrationConnections.disconnectedAt),
-		),
-		orderBy: [asc(integrationConnections.id)],
-	});
-
-	if (connections.length === 0) {
+	// Deliveries for a Linear organization that has disconnected are dropped
+	// here rather than recorded and queued, which is what the route has always
+	// done with them.
+	if (!(await hasActiveSubscriber(payload.organizationId))) {
 		console.log(
 			"[linear/webhook] No active connections for Linear org:",
 			payload.organizationId,
@@ -46,213 +76,57 @@ export async function POST(request: Request) {
 		return Response.json({ success: true, status: "no_subscribers" });
 	}
 
-	const results = await Promise.all(
-		connections.map((connection) =>
-			processForConnection(payload, connection).catch((error) => ({
-				connectionId: connection.id,
-				outcome: "failed" as const,
-				error: error instanceof Error ? error.message : "Unknown error",
-			})),
-		),
-	);
+	const deliveryId = request.headers.get("linear-delivery");
+	const eventId = deliveryRowEventId(payload, deliveryId);
 
-	const anyFailed = results.some((r) => r.outcome === "failed");
-	const allFailed = results.every((r) => r.outcome === "failed");
-	if (anyFailed) {
-		console.error("[linear/webhook] processing failures:", results);
-	}
-	return Response.json(
-		{
-			success: !allFailed,
-			status: allFailed
-				? "failed"
-				: anyFailed
-					? "partial_failure"
-					: "processed",
-		},
-		{ status: allFailed ? 500 : 200 },
-	);
-}
+	const accepted = await recordWebhookDelivery({
+		provider: "linear",
+		eventId,
+		eventType: `${payload.type}.${payload.action}`,
+		payload: stripNullChars(payload),
+	});
 
-async function processForConnection(
-	payload: ReturnType<LinearWebhookClient["parseData"]>,
-	connection: SelectIntegrationConnection,
-): Promise<{
-	connectionId: string;
-	outcome: "processed" | "skipped" | "failed";
-	error?: string;
-}> {
-	// One webhookEvents row per (Linear event × Superset connection) so each
-	// tenant's processing status is independently retryable.
-	const eventId = `${connection.id}-${payload.organizationId}-${payload.webhookTimestamp}`;
-
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "linear",
-			eventId,
-			eventType: `${payload.type}.${payload.action}`,
-			payload,
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
-
-	if (!webhookEvent) {
-		return {
-			connectionId: connection.id,
-			outcome: "failed",
-			error: "Failed to store event",
-		};
+	if (!accepted) {
+		return Response.json({ error: "Failed to store event" }, { status: 500 });
 	}
 
-	if (webhookEvent.status === "processed") {
-		return { connectionId: connection.id, outcome: "processed" };
-	}
-	if (webhookEvent.status !== "pending") {
-		return { connectionId: connection.id, outcome: "skipped" };
+	// A delivery already carried through, or one deliberately not carried
+	// through. `recordWebhookDelivery` resets a failed row to pending, so a
+	// redelivery of something that broke is queued again rather than landing
+	// here.
+	if (accepted.status !== "pending") {
+		return Response.json({ success: true, status: accepted.status });
 	}
 
 	try {
-		let outcome: "processed" | "skipped" = "processed";
-
-		if (payload.type === "Issue") {
-			outcome = await processIssueEvent(
-				payload as EntityWebhookPayloadWithIssueData,
-				connection,
-			);
-		}
-
-		await db
-			.update(webhookEvents)
-			.set({ status: outcome, processedAt: new Date() })
-			.where(eq(webhookEvents.id, webhookEvent.id));
-
-		return { connectionId: connection.id, outcome };
+		await enqueueLinearDelivery({
+			webhookEventId: accepted.id,
+			receivedAt: accepted.receivedAt,
+			deliveryId,
+		});
 	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unknown error";
-		await db
-			.update(webhookEvents)
-			.set({
-				status: "failed",
-				error: message,
-				retryCount: webhookEvent.retryCount + 1,
-			})
-			.where(eq(webhookEvents.id, webhookEvent.id));
-
-		return { connectionId: connection.id, outcome: "failed", error: message };
+		console.error("[linear/webhook] failed to queue delivery:", error);
+		return Response.json(
+			{ error: "Failed to queue delivery" },
+			{ status: 500 },
+		);
 	}
+
+	return Response.json({ success: true, status: "accepted" });
 }
 
-async function processIssueEvent(
-	payload: EntityWebhookPayloadWithIssueData,
-	connection: SelectIntegrationConnection,
-): Promise<"processed" | "skipped"> {
-	const issue = payload.data;
-
-	if (payload.action === "create" || payload.action === "update") {
-		const taskStatus = await db.query.taskStatuses.findFirst({
-			where: and(
-				eq(taskStatuses.organizationId, connection.organizationId),
-				eq(taskStatuses.externalProvider, "linear"),
-				eq(taskStatuses.externalId, issue.state.id),
-			),
-		});
-
-		if (!taskStatus) {
-			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
-			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
-			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
-			console.warn(
-				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
-			);
-			return "skipped";
-		}
-
-		let assigneeId: string | null = null;
-		if (issue.assignee?.email) {
-			const matchedMember = await db
-				.select({ userId: users.id })
-				.from(users)
-				.innerJoin(members, eq(members.userId, users.id))
-				.where(
-					and(
-						eq(users.email, issue.assignee.email),
-						eq(members.organizationId, connection.organizationId),
-					),
-				)
-				.limit(1)
-				.then((rows) => rows[0]);
-			assigneeId = matchedMember?.userId ?? null;
-		}
-
-		let assigneeExternalId: string | null = null;
-		let assigneeDisplayName: string | null = null;
-		let assigneeAvatarUrl: string | null = null;
-
-		if (issue.assignee && !assigneeId) {
-			assigneeExternalId = issue.assignee.id;
-			assigneeDisplayName = issue.assignee.name ?? null;
-			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
-		}
-
-		const taskData = {
-			slug: issue.identifier,
-			title: issue.title,
-			description: issue.description ?? null,
-			statusId: taskStatus.id,
-			priority: mapPriorityFromLinear(issue.priority),
-			assigneeId,
-			assigneeExternalId,
-			assigneeDisplayName,
-			assigneeAvatarUrl,
-			estimate: issue.estimate ?? null,
-			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
-			labels: issue.labels.map((l) => l.name),
-			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
-			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear" as const,
-			externalId: issue.id,
-			externalKey: issue.identifier,
-			externalUrl: issue.url,
-			lastSyncedAt: new Date(),
-		};
-
-		await db
-			.insert(tasks)
-			.values({
-				...taskData,
-				organizationId: connection.organizationId,
-				creatorId: connection.connectedByUserId,
-				createdAt: new Date(issue.createdAt),
-			})
-			.onConflictDoUpdate({
-				target: [
-					tasks.organizationId,
-					tasks.externalProvider,
-					tasks.externalId,
-				],
-				set: { ...taskData, syncError: null },
-			});
-	} else if (payload.action === "remove") {
-		await db
-			.update(tasks)
-			.set({ deletedAt: new Date() })
-			.where(
-				and(
-					eq(tasks.organizationId, connection.organizationId),
-					eq(tasks.externalProvider, "linear"),
-					eq(tasks.externalId, issue.id),
-				),
-			);
-	}
-
-	return "processed";
+// The SDK only enforces Linear's ±60s replay window when handed the
+// timestamp, and the timestamp lives inside the body being verified.
+function parseVerifiedPayload(
+	body: string,
+	signature: string,
+): LinearWebhookPayload {
+	const { webhookTimestamp } = JSON.parse(body) as {
+		webhookTimestamp?: unknown;
+	};
+	return webhookClient.parseData(
+		Buffer.from(body),
+		signature,
+		typeof webhookTimestamp === "number" ? webhookTimestamp : undefined,
+	);
 }

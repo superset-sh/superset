@@ -1,10 +1,12 @@
 import { existsSync } from "node:fs";
 import type { GitHubStatus } from "@superset/local-db";
 import { workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { runGitTask } from "../../changes/workers/git-task-runner";
 import {
 	getProject,
 	getWorkspace,
@@ -100,7 +102,10 @@ export const createGitStatusProcedures = () => {
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.workspaceId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
 				}
 
 				const repoPath = getWorkspacePath(workspace);
@@ -112,7 +117,10 @@ export const createGitStatusProcedures = () => {
 
 				const project = getProject(workspace.projectId);
 				if (!project) {
-					throw new Error(`Project ${workspace.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${workspace.projectId} not found`,
+					});
 				}
 
 				const remoteDefaultBranch = await refreshDefaultBranch(
@@ -170,10 +178,28 @@ export const createGitStatusProcedures = () => {
 					return { ahead: 0, behind: 0 };
 				}
 
-				return getAheadBehindCount({
-					repoPath: project.mainRepoPath,
-					defaultBranch: workspace.branch,
-				});
+				try {
+					return await runGitTask(
+						"getAheadBehind",
+						{
+							repoPath: project.mainRepoPath,
+							defaultBranch: workspace.branch,
+						},
+						{
+							dedupeKey: `getAheadBehind:${project.mainRepoPath}:${workspace.branch}`,
+							strategy: "coalesce",
+							timeoutMs: 30_000,
+						},
+					);
+				} catch (error) {
+					// getAheadBehindCount swallows git errors, but worker-infra
+					// failures (crash/timeout) should at least leave a trace.
+					console.warn("[workspaces.getAheadBehind] worker task failed", {
+						workspaceId: input.workspaceId,
+						error,
+					});
+					return { ahead: 0, behind: 0 };
+				}
 			}),
 
 		getGitHubStatus: publicProcedure
@@ -253,7 +279,10 @@ export const createGitStatusProcedures = () => {
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.workspaceId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
 				}
 
 				const repoPath = getWorkspacePath(workspace);

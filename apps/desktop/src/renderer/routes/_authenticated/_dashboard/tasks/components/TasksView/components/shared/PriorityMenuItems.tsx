@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { TaskPriority } from "@superset/db/enums";
 import type { ReactNode } from "react";
 import { ALL_PRIORITIES } from "../../utils/sorting";
@@ -16,20 +17,30 @@ interface PriorityMenuItemsProps {
 	MenuItem: React.ComponentType<MenuItemProps>;
 }
 
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-	none: "No priority",
-	urgent: "Urgent",
-	high: "High",
-	medium: "Medium",
-	low: "Low",
-};
-
 export function PriorityMenuItems({
 	currentPriority,
 	statusType,
 	onSelect,
 	MenuItem,
 }: PriorityMenuItemsProps) {
+	const { t } = useLingui();
+	const priorityLabels: Record<TaskPriority, string> = {
+		none: t({
+			message: "No priority",
+		}),
+		urgent: t({
+			message: "Urgent",
+		}),
+		high: t({
+			message: "High",
+		}),
+		medium: t({
+			message: "Medium",
+		}),
+		low: t({
+			message: "Low",
+		}),
+	};
 	return (
 		<>
 			{ALL_PRIORITIES.map((priority) => {
@@ -41,7 +52,7 @@ export function PriorityMenuItems({
 						className="flex items-center gap-3 px-3 py-2"
 					>
 						<PriorityIcon priority={priority} statusType={statusType} />
-						<span className="text-sm flex-1">{PRIORITY_LABELS[priority]}</span>
+						<span className="text-sm flex-1">{priorityLabels[priority]}</span>
 						{isSelected && <span className="text-sm">✓</span>}
 					</MenuItem>
 				);

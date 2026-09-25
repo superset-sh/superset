@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -10,16 +13,31 @@ import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 const VOLUME_LEVELS = [
-	{ value: 20, label: "Quiet" },
-	{ value: 40, label: "Low" },
-	{ value: 60, label: "Medium" },
-	{ value: 80, label: "High" },
-	{ value: 100, label: "Maximum" },
+	{
+		value: 20,
+		label: msg({ message: "Quiet" }),
+	},
+	{
+		value: 40,
+		label: msg({ message: "Low" }),
+	},
+	{
+		value: 60,
+		label: msg({ message: "Medium" }),
+	},
+	{
+		value: 80,
+		label: msg({ message: "High" }),
+	},
+	{
+		value: 100,
+		label: msg({ message: "Maximum" }),
+	},
 ] as const;
 
 function getVolumeLabel(volume: number): string {
 	const level = VOLUME_LEVELS.find((l) => l.value === volume);
-	return level ? level.label : "Custom";
+	return level ? i18n._(level.label) : i18n._(msg({ message: "Custom" }));
 }
 
 export function VolumeDropdown() {
@@ -60,7 +78,7 @@ export function VolumeDropdown() {
 		<div>
 			<div className="flex items-center justify-between gap-4">
 				<Label htmlFor="notification-volume" className="text-sm font-medium">
-					Volume
+					<Trans>Volume</Trans>
 				</Label>
 				<Select
 					value={volume.toString()}
@@ -79,7 +97,7 @@ export function VolumeDropdown() {
 						{VOLUME_LEVELS.map((level) => (
 							<SelectItem key={level.value} value={level.value.toString()}>
 								<div className="flex items-center gap-2">
-									<span className="font-medium">{level.label}</span>
+									<span className="font-medium">{i18n._(level.label)}</span>
 									<span className="text-muted-foreground text-xs">
 										({level.value}%)
 									</span>

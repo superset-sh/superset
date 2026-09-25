@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	Breadcrumb,
 	BreadcrumbEllipsis,
@@ -59,10 +62,27 @@ const MAX_VISIBLE_SEGMENTS = 4;
 function pathToSegments(path: string, homePath: string | null): Segment[] {
 	const segments: Segment[] = [];
 	if (homePath && (path === homePath || path === `${homePath}/`)) {
-		return [{ label: "Home", path: homePath }];
+		return [
+			{
+				label: i18n._(
+					msg({
+						message: "Home",
+						context: "directory",
+					}),
+				),
+				path: homePath,
+			},
+		];
 	}
 	if (homePath && path.startsWith(`${homePath}/`)) {
-		segments.push({ label: "Home", path: homePath });
+		segments.push({
+			label: i18n._(
+				msg({
+					message: "Home",
+				}),
+			),
+			path: homePath,
+		});
 		const rest = path.slice(homePath.length + 1);
 		let cumulative = homePath;
 		for (const part of rest.split("/").filter(Boolean)) {
@@ -91,10 +111,17 @@ export function RemotePathPicker({
 	hostName,
 	initialPath,
 	onPick,
-	title = "Choose a folder",
+	title,
 	description,
-	confirmLabel = "Use this folder",
+	confirmLabel,
 }: RemotePathPickerProps) {
+	const { t } = useLingui();
+	const resolvedTitle = title ?? t({ message: "Choose a folder" });
+	const resolvedConfirmLabel =
+		confirmLabel ??
+		t({
+			message: "Use this folder",
+		});
 	const [currentPath, setCurrentPath] = useState<string | null>(
 		initialPath ?? null,
 	);
@@ -126,10 +153,12 @@ export function RemotePathPicker({
 			toast.error(
 				query.error instanceof Error
 					? query.error.message
-					: "Could not list directory",
+					: t({
+							message: "Could not list directory",
+						}),
 			);
 		}
-	}, [query.error]);
+	}, [query.error, t]);
 
 	const allSegments = query.data
 		? pathToSegments(query.data.path, query.data.homePath)
@@ -156,7 +185,7 @@ export function RemotePathPicker({
 		<Dialog open={open} onOpenChange={onOpenChange} modal>
 			<DialogContent className="max-w-[560px] gap-0 p-0">
 				<DialogHeader className="px-5 pt-5 pb-3">
-					<DialogTitle>{title}</DialogTitle>
+					<DialogTitle>{resolvedTitle}</DialogTitle>
 					<DialogDescription>
 						{description ?? `Browse folders on ${hostName}.`}
 					</DialogDescription>
@@ -212,7 +241,9 @@ export function RemotePathPicker({
 						type="button"
 						onClick={() => query.refetch()}
 						disabled={query.isFetching}
-						aria-label="Refresh"
+						aria-label={t({
+							message: "Refresh",
+						})}
 						className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
 					>
 						<LuRefreshCw
@@ -272,7 +303,7 @@ export function RemotePathPicker({
 						variant="ghost"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans>Cancel</Trans>
 					</Button>
 					<Button
 						type="button"
@@ -280,7 +311,7 @@ export function RemotePathPicker({
 						disabled={!query.data || query.isFetching}
 					>
 						<LuFolderOpen className="size-4" />
-						{confirmLabel}
+						{resolvedConfirmLabel}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -1,0 +1,1 @@
+export { hashString } from "./hashString";

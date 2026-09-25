@@ -1,20 +1,25 @@
-import type {
-	SelectAutomation,
-	SelectAutomationRun,
-} from "@superset/db/schema";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { TRPCClientError } from "@trpc/client";
+import { useMemo, useState } from "react";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
+import { useCopyAutomationLink } from "../hooks/useCopyAutomationLink";
+import { dispatchErrorCode, runErrorHelp } from "../utils/runErrorHelp";
 import { AutomationBody } from "./components/AutomationBody";
+import { AutomationBreadcrumbBar } from "./components/AutomationBreadcrumbBar";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
-import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
+import { WrongOrganizationNotice } from "./components/WrongOrganizationNotice";
 
 type AutomationDetailSearch = {
 	history?: boolean;
@@ -31,106 +36,251 @@ export const Route = createFileRoute(
 	}),
 });
 
+/** Reads the organization the server named on a wrong-active-org FORBIDDEN. */
+function organizationFromError(params: unknown): { id: string | null } | null {
+	if (typeof params !== "object" || params === null) return null;
+	const { organizationName, organizationId } = params as Record<
+		string,
+		unknown
+	>;
+	// organizationName is what identifies this particular FORBIDDEN; the id is
+	// only there to offer the switch.
+	if (typeof organizationName !== "string" || !organizationName) return null;
+	return { id: typeof organizationId === "string" ? organizationId : null };
+}
+
 const RECENT_RUNS_LIMIT = 10;
 
 function AutomationDetailPage() {
+	const { t } = useLingui();
 	const { automationId } = Route.useParams();
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
-	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
+	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
+	const copyAutomationLink = useCopyAutomationLink();
+	const { switchOrganization } = useCollections();
 
-	const { data: automationRows, isReady: automationReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ a: collections.automations })
-				.where(({ a }) => eq(a.id, automationId))
-				.select(({ a }) => ({ ...a })),
-		[collections.automations, automationId],
+	// The prompt body rides its own procedure — `get` omits it.
+	const automationQuery = cloudTrpc.automation.get.useQuery(
+		{ id: automationId },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
 	);
-	const automation = automationRows?.[0] as SelectAutomation | undefined;
+	const promptQuery = cloudTrpc.automation.getPrompt.useQuery(
+		{ id: automationId },
+		{ refetchInterval: 60_000, staleTime: 30_000 },
+	);
+	const automation = useMemo(() => {
+		if (!automationQuery.data || !promptQuery.data) return undefined;
+		return { ...automationQuery.data, prompt: promptQuery.data.prompt };
+	}, [automationQuery.data, promptQuery.data]);
 
-	const { data: runRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ r: collections.automationRuns })
-				.where(({ r }) => eq(r.automationId, automationId))
-				.orderBy(({ r }) => r.createdAt, "desc")
-				.limit(RECENT_RUNS_LIMIT)
-				.select(({ r }) => ({ ...r })),
-		[collections.automationRuns, automationId],
+	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
+		{ automationId, limit: RECENT_RUNS_LIMIT },
+		{ refetchInterval: 15_000, staleTime: 30_000 },
 	);
-	const recentRuns = runRows as SelectAutomationRun[];
+
+	const ownerUserId = automationQuery.data?.ownerUserId;
+	const { data: memberRows = [] } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ staleTime: 30_000 },
+	);
+	const owner = memberRows.find(
+		(member) => member.userId === ownerUserId,
+	)?.user;
+	const ownerName = owner?.name ?? owner?.email ?? null;
+
+	const utils = cloudTrpc.useUtils();
+	// Running and resuming are Pro (the server refuses them too); pausing,
+	// editing, and deleting stay open to a downgraded org.
+	const { gateFeature } = usePaywall();
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
 			apiTrpcClient.automation.setEnabled.mutate({ id: automationId, enabled }),
+		onSuccess: () => {
+			void utils.automation.get.invalidate({ id: automationId });
+			void utils.automation.list.invalidate();
+		},
+		onError: (error) =>
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						message: "Failed to update automation",
+					}),
+				),
+			),
 	});
 
 	const runNowMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
+		onSuccess: () =>
+			toast.success(
+				t({
+					message: "Running now",
+				}),
+			),
+		onError: (error) => {
+			const code = dispatchErrorCode(error);
+			if (code === "host_offline") {
+				setHostOfflineOpen(true);
+				return;
+			}
+			const help = runErrorHelp(code);
+			if (help) {
+				toast.error(i18n._(help));
+				return;
+			}
+			toast.error(
+				(error instanceof Error ? error.message : null) ??
+					t({
+						message: "Failed to trigger run",
+					}),
+			);
+		},
 	});
 
 	const deleteMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.delete.mutate({ id: automationId }),
-		onSuccess: () => navigate({ to: "/automations" }),
+		onSuccess: () => {
+			void utils.automation.list.invalidate();
+			navigate({ to: "/automations" });
+		},
 	});
 
 	if (!automation) {
-		if (!automationReady) return null;
+		if (automationQuery.isPending || promptQuery.isPending) return null;
+		// A deleted automation is a NOT_FOUND from the server; anything else is a
+		// failed read and must not be reported as a missing automation.
+		const loadError = automationQuery.error ?? promptQuery.error;
+		// A member looking at the wrong active organization, not a missing row —
+		// the server resolves that case to FORBIDDEN and names the organization.
+		const elsewhere =
+			loadError instanceof TRPCClientError &&
+			loadError.data?.code === "FORBIDDEN"
+				? organizationFromError(loadError.data?.i18nParams)
+				: null;
+		const isMissing =
+			loadError instanceof TRPCClientError &&
+			loadError.data?.code === "NOT_FOUND";
+		const switchTo = elsewhere?.id;
+		// Keep the breadcrumb: a deep link is how people land here, so without it
+		// there is no way back to the list.
 		return (
-			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				Automation not found.
+			<div className="flex h-full w-full flex-col overflow-hidden">
+				<AutomationBreadcrumbBar />
+				{elsewhere ? (
+					<WrongOrganizationNotice
+						description={errorMessage(loadError)}
+						onSwitch={
+							switchTo ? () => void switchOrganization(switchTo) : undefined
+						}
+					/>
+				) : (
+					<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground select-text cursor-text">
+						{loadError && !isMissing ? (
+							<Trans>Couldn't load automation: {loadError.message}</Trans>
+						) : (
+							<Trans>Automation not found.</Trans>
+						)}
+					</div>
+				)}
 			</div>
 		);
 	}
+
+	// Every automation mutation is owner-gated server-side; render teammates'
+	// automations read-only instead of letting edits silently bounce. Unknown
+	// session (still loading) stays editable — the server is the enforcement.
+	const readOnly =
+		currentUserId !== undefined && automation.ownerUserId !== currentUserId;
 
 	return (
 		<div className="flex h-full w-full flex-1 overflow-hidden">
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
-					enabled={automation.enabled}
-					onBack={() => navigate({ to: "/automations" })}
-					onToggleEnabled={() => setEnabledMutation.mutate(!automation.enabled)}
+					onCopyLink={() => copyAutomationLink(automation.id)}
 					onDelete={() => {
 						alert({
-							title: "Delete automation?",
-							description: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
+							title: t({
+								message: "Delete automation?",
+							}),
+							description: t({
+								message: `"${automation.name}" will stop firing and its run history will be removed. This can't be undone.`,
+							}),
 							actions: [
-								{ label: "Cancel", variant: "outline", onClick: () => {} },
 								{
-									label: "Delete",
+									label: t({
+										message: "Cancel",
+									}),
+									variant: "outline",
+									onClick: () => {},
+								},
+								{
+									label: t({
+										message: "Delete",
+									}),
 									variant: "destructive",
 									onClick: () => {
 										toast.promise(deleteMutation.mutateAsync(), {
-											loading: "Deleting automation...",
-											success: `"${automation.name}" deleted`,
+											loading: t({
+												message: "Deleting automation...",
+											}),
+											success: t({
+												message: `"${automation.name}" deleted`,
+											}),
 											error: (err) =>
 												err instanceof Error
 													? err.message
-													: "Failed to delete automation",
+													: t({
+															message: "Failed to delete automation",
+														}),
 										});
 									},
 								},
 							],
 						});
 					}}
-					onRunNow={() => runNowMutation.mutate()}
+					onRunNow={() =>
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							runNowMutation.mutate(),
+						)
+					}
 					onOpenHistory={() => setHistoryOpen(true)}
-					toggleDisabled={setEnabledMutation.isPending}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
+					readOnly={readOnly}
 				/>
 
-				<AutomationBody key={automation.id} automation={automation} />
+				<AutomationBody
+					key={automation.id}
+					automation={automation}
+					recentRuns={recentRuns}
+					ownerName={ownerName}
+					onToggleEnabled={(enabled) => {
+						if (!enabled) {
+							setEnabledMutation.mutate(false);
+							return;
+						}
+						gateFeature(GATED_FEATURES.AUTOMATIONS, () =>
+							setEnabledMutation.mutate(true),
+						);
+					}}
+					toggleDisabled={setEnabledMutation.isPending}
+					readOnly={readOnly}
+				/>
 			</div>
 
-			<AutomationDetailSidebar
-				automation={automation}
-				recentRuns={recentRuns}
+			<HostOfflineRunDialog
+				hostId={automation.targetHostId}
+				open={hostOfflineOpen}
+				onOpenChange={setHostOfflineOpen}
 			/>
 
 			<VersionHistorySheet
@@ -138,7 +288,9 @@ function AutomationDetailPage() {
 				automationId={automation.id}
 				automationName={automation.name}
 				currentPrompt={automation.prompt}
-				open={historyOpen}
+				// Versions are owner-gated server-side too; the header action is
+				// hidden, but the ?history=true search param could still open it.
+				open={!readOnly && historyOpen}
 				onOpenChange={setHistoryOpen}
 			/>
 		</div>

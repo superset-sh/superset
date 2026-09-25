@@ -1,0 +1,1 @@
+export { usePasteAttachments } from "./usePasteAttachments";

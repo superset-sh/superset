@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -49,6 +50,7 @@ export function TabItem<TData>({
 	icon,
 	accessory,
 }: TabItemProps<TData>) {
+	const { t } = useLingui();
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
 	const title = useTabTitle(tab, tabs, registry);
@@ -116,10 +118,10 @@ export function TabItem<TData>({
 				<div
 					ref={setRef}
 					className={cn(
-						"group relative flex h-full w-full items-center border-r border-border transition-colors",
+						"group relative flex h-full w-full items-center rounded-t-md transition-colors",
 						isActive
-							? "bg-border/30 text-foreground"
-							: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
+							? "border border-border/70 border-b-transparent bg-background text-foreground"
+							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-muted/40 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -163,9 +165,7 @@ export function TabItem<TData>({
 										</OverflowFadeText>
 									</div>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{title}
-								</TooltipContent>
+								<TooltipContent side="bottom">{title}</TooltipContent>
 							</Tooltip>
 							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
 								{accessory && (
@@ -174,16 +174,17 @@ export function TabItem<TData>({
 									</span>
 								)}
 								<Button
-									aria-label="Close tab"
+									aria-label={t({ message: "Close tab" })}
 									className={cn(
 										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-										isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
+										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
 									)}
 									onClick={(event) => {
 										event.stopPropagation();
 										onClose();
 									}}
 									onMouseDown={(event) => {
+										event.preventDefault();
 										event.stopPropagation();
 									}}
 									size="icon"
@@ -200,15 +201,19 @@ export function TabItem<TData>({
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={startEditing}>
 					<PencilIcon className="mr-2 size-4" />
-					Rename
+					<Trans>Rename</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onClose}>
 					<XIcon className="mr-2 size-4" />
-					Close
+					<Trans>Close</Trans>
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={onCloseOthers}>Close Others</ContextMenuItem>
-				<ContextMenuItem onSelect={onCloseAll}>Close All</ContextMenuItem>
+				<ContextMenuItem onSelect={onCloseOthers}>
+					<Trans>Close Others</Trans>
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onCloseAll}>
+					<Trans>Close All</Trans>
+				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
 	);

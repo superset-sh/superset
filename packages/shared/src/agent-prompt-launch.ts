@@ -83,6 +83,86 @@ export function buildPromptCommandString({
 	return `${command} "$(cat <<'${delimiter}'\n${prompt}\n${delimiter}\n)"${suffix ? ` ${suffix}` : ""}`;
 }
 
+/**
+ * Parsed shape of a heredoc prompt command produced by
+ * buildPromptCommandString. Both heredoc forms are bash/zsh-only — fish has
+ * no heredocs, so typing one into a fish session dies at parse ("Expected a
+ * string, but found a redirection", #4705). The host rewrites such commands
+ * at launch time when the shell is fish; the parser lives next to the builder
+ * so the two can't drift apart.
+ */
+export interface ParsedPromptHeredocCommand {
+	transport: PromptTransport;
+	/** For argv: the program + args before the payload. For stdin: the full command. */
+	command: string;
+	/** Exact prompt bytes carried by the heredoc body. */
+	prompt: string;
+	/** argv-transport trailing suffix (without its leading space), or undefined. */
+	suffix?: string;
+}
+
+// The delimiter is SUPERSET_PROMPT_<hex uuid> plus optional _X de-collision
+// runs — never present in the prompt body (resolveDelimiter guarantees it),
+// so the backreference match is unambiguous.
+const ARGV_HEREDOC_PATTERN =
+	/^([\s\S]+?) "\$\(cat <<'(SUPERSET_PROMPT_[A-Za-z0-9_]+)'\n([\s\S]*)\n\2\n\)"([^\n]*)$/;
+const STDIN_HEREDOC_PATTERN =
+	/^([\s\S]+?) <<'(SUPERSET_PROMPT_[A-Za-z0-9_]+)'\n([\s\S]*)\n\2$/;
+
+export function parsePromptHeredocCommand(
+	commandText: string,
+): ParsedPromptHeredocCommand | null {
+	const argv = ARGV_HEREDOC_PATTERN.exec(commandText);
+	if (argv) {
+		const [, command, , prompt, rawSuffix] = argv;
+		if (command === undefined || prompt === undefined) return null;
+		const suffix = rawSuffix?.replace(/^ /, "");
+		return {
+			transport: "argv",
+			command,
+			prompt,
+			suffix: suffix || undefined,
+		};
+	}
+	const stdin = STDIN_HEREDOC_PATTERN.exec(commandText);
+	if (stdin) {
+		const [, command, , prompt] = stdin;
+		if (command === undefined || prompt === undefined) return null;
+		return { transport: "stdin", command, prompt };
+	}
+	return null;
+}
+
+/**
+ * fish equivalent of buildPromptCommandString for a prompt already staged to
+ * disk. `(cat file | string collect)` is fish's documented way to read a file
+ * into a single argument with internal newlines preserved; like bash's
+ * `"$()"`, trailing newlines are trimmed, and --allow-empty keeps the arity
+ * identical (one argument even when the file is empty). Each form deletes the
+ * staged file the moment it has been read (argv) or opened (stdin — the
+ * begin-block redirection opens the fd before the rm runs, plain unix
+ * unlink semantics), so the prompt bytes never outlive the launch.
+ * promptFilePath must not contain backslashes (fish single-quote escaping
+ * differs from POSIX there); staged tmp-dir paths satisfy this.
+ */
+export function buildFishPromptCommandString({
+	command,
+	suffix,
+	transport,
+	promptFilePath,
+}: {
+	command: string;
+	suffix?: string;
+	transport: PromptTransport;
+	promptFilePath: string;
+}): string {
+	const quotedPath = quoteSingleShell(promptFilePath);
+	if (transport === "stdin") {
+		return `begin; command rm -f -- ${quotedPath}; ${joinCommand(command, suffix)}; end < ${quotedPath}`;
+	}
+	return `${command} (begin; cat ${quotedPath}; command rm -f -- ${quotedPath}; end | string collect --allow-empty)${suffix ? ` ${suffix}` : ""}`;
+}
+
 export function buildPromptFileCommandString({
 	command,
 	suffix,

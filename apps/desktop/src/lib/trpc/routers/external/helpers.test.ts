@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
+	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	stripPathWrappers,
@@ -88,11 +90,23 @@ describe("getAppCommand", () => {
 			expect(result).toEqual([
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.intellij",
+						"--args",
+						"/path/to/file",
+					],
 				},
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.intellij.ce",
+						"--args",
+						"/path/to/file",
+					],
 				},
 			]);
 		});
@@ -102,11 +116,23 @@ describe("getAppCommand", () => {
 			expect(result).toEqual([
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.pycharm", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.pycharm",
+						"--args",
+						"/path/to/file",
+					],
 				},
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.pycharm.ce", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.pycharm.ce",
+						"--args",
+						"/path/to/file",
+					],
 				},
 			]);
 		});
@@ -114,21 +140,127 @@ describe("getAppCommand", () => {
 		test("returns single-element array for webstorm (single-edition)", () => {
 			const result = getAppCommand("webstorm", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "WebStorm", "--args", "/path/to/file"],
+				},
 			]);
 		});
 
 		test("returns single-element array for goland (single-edition)", () => {
 			const result = getAppCommand("goland", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "GoLand", "--args", "/path/to/file"],
+				},
 			]);
 		});
 
 		test("returns single-element array for rustrover (single-edition)", () => {
 			const result = getAppCommand("rustrover", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "RustRover", "--args", "/path/to/file"],
+				},
+			]);
+		});
+	});
+
+	describe("Zed (multi-channel)", () => {
+		// `open -a Zed` fails for a user whose only install is Zed Preview (its
+		// app is "Zed Preview", not "Zed"). Resolving by bundle ID across release
+		// channels launches whichever channel is installed.
+		test("returns bundle ID candidates across release channels", () => {
+			const result = getAppCommand("zed", "/path/to/file");
+			expect(result).toEqual([
+				{ command: "open", args: ["-b", "dev.zed.Zed", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-b", "dev.zed.Zed-Preview", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "dev.zed.Zed-Nightly", "/path/to/file"],
+				},
+				{ command: "open", args: ["-b", "dev.zed.Zed-Dev", "/path/to/file"] },
+			]);
+		});
+
+		// Zed opens a directory as a project via a plain open-document event, so
+		// (unlike JetBrains, #5090) it must NOT get the `-n ... --args` treatment.
+		test("opens a folder directly, without -n/--args", () => {
+			const result = getAppCommand("zed", "/Users/me/worktree");
+			for (const cmd of result ?? []) {
+				expect(cmd.args).not.toContain("-n");
+				expect(cmd.args).not.toContain("--args");
+			}
+		});
+
+		test("still resolves via the `zed` CLI on Linux", () => {
+			const result = getAppCommand("zed", "/path/to/file", "linux");
+			expect(result).toEqual([{ command: "zed", args: ["/path/to/file"] }]);
+		});
+	});
+
+	// Regression test for #5090: "Open in IntelliJ opens the base project
+	// instead of the worktree".
+	//
+	// On macOS, `open -b <bundle> <path>` / `open -a <name> <path>` hands the
+	// path to the IDE as an "open document" Apple event. When a JetBrains IDE
+	// is already running, macOS does NOT relaunch it and the IDE simply
+	// reopens its last project (the base repo) instead of opening the passed
+	// worktree directory as a project.
+	//
+	// JetBrains IDEs only open a directory as a project when the path arrives
+	// as a launcher CLI argument (`--args`), and `--args` is only delivered
+	// when a fresh instance is requested with `-n`. This is JetBrains' own
+	// documented invocation (`open -na "IntelliJ IDEA.app" --args <path>`);
+	// the launcher detects the running instance and routes the open-project
+	// request to it, so no duplicate IDE process is spawned.
+	describe("opening a worktree as a project (issue #5090)", () => {
+		const WORKTREE = "/Users/me/.superset/worktrees/my-feature";
+
+		test("intellij passes the worktree via --args so it opens as a project", () => {
+			const result = getAppCommand("intellij", WORKTREE);
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.intellij", "--args", WORKTREE],
+				},
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.intellij.ce", "--args", WORKTREE],
+				},
+			]);
+		});
+
+		test("pycharm passes the worktree via --args so it opens as a project", () => {
+			const result = getAppCommand("pycharm", WORKTREE);
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.pycharm", "--args", WORKTREE],
+				},
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.pycharm.ce", "--args", WORKTREE],
+				},
+			]);
+		});
+
+		test("single-edition JetBrains IDEs (webstorm) use -n + --args too", () => {
+			const result = getAppCommand("webstorm", WORKTREE);
+			expect(result).toEqual([
+				{ command: "open", args: ["-n", "-a", "WebStorm", "--args", WORKTREE] },
+			]);
+		});
+
+		test("non-JetBrains editors (cursor) are unaffected", () => {
+			const result = getAppCommand("cursor", WORKTREE);
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "Cursor", WORKTREE] },
 			]);
 		});
 	});
@@ -615,5 +747,54 @@ describe("resolvePath guards against process.cwd() fallback", () => {
 		expect(resolvePath("src/index.ts", "/workspace")).toBe(
 			"/workspace/src/index.ts",
 		);
+	});
+});
+
+describe("pathIsMissing", () => {
+	let tmpDir: string;
+
+	beforeEach(async () => {
+		tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "external-helpers-"));
+	});
+
+	afterEach(async () => {
+		await fs.rm(tmpDir, { recursive: true, force: true });
+	});
+
+	test("an absent path is missing", async () => {
+		expect(await pathIsMissing(path.join(tmpDir, "gone.ts"))).toBe(true);
+	});
+
+	test("an existing file is not missing", async () => {
+		const file = path.join(tmpDir, "present.ts");
+		await fs.writeFile(file, "");
+		expect(await pathIsMissing(file)).toBe(false);
+	});
+
+	test("an existing directory is not missing", async () => {
+		// openInApp opens workspace worktrees, not just files.
+		expect(await pathIsMissing(tmpDir)).toBe(false);
+	});
+
+	test("a path below a file is missing (ENOTDIR)", async () => {
+		const file = path.join(tmpDir, "present.ts");
+		await fs.writeFile(file, "");
+		expect(await pathIsMissing(path.join(file, "child.ts"))).toBe(true);
+	});
+
+	test("a symlink to a deleted target is missing", async () => {
+		const target = path.join(tmpDir, "target.ts");
+		const link = path.join(tmpDir, "link.ts");
+		await fs.writeFile(target, "");
+		await fs.symlink(target, link);
+		await fs.rm(target);
+		// The editor cannot open it either — `open` reports it as nonexistent.
+		expect(await pathIsMissing(link)).toBe(true);
+	});
+
+	test("a stat failure that is not absence does not count as missing", async () => {
+		// ENAMETOOLONG: we cannot tell whether the path is there, so the app
+		// still gets to try and its failure still reports.
+		expect(await pathIsMissing(`/${"a".repeat(5000)}`)).toBe(false);
 	});
 });

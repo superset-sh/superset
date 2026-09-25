@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CheckIcon,
 	ChevronDownIcon,
@@ -77,6 +78,7 @@ export function ShowCode({
 	onOpen,
 	className,
 }: ShowCodeProps) {
+	const { t } = useLingui();
 	const [isCopied, setIsCopied] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -128,7 +130,11 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
-										aria-label={isExpanded ? "Collapse" : "Expand"}
+										aria-label={
+											isExpanded
+												? t({ message: "Collapse" })
+												: t({ message: "Expand" })
+										}
 										className="h-6 w-6"
 										onClick={() => setIsExpanded((prev) => !prev)}
 										size="icon"
@@ -142,7 +148,7 @@ export function ShowCode({
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>
-									{isExpanded ? "Collapse" : "Expand"}
+									{isExpanded ? <Trans>Collapse</Trans> : <Trans>Expand</Trans>}
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
@@ -152,7 +158,7 @@ export function ShowCode({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Button
-										aria-label="Open"
+										aria-label={t({ message: "Open" })}
 										className="h-6 w-6"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -164,7 +170,9 @@ export function ShowCode({
 										<ExternalLinkIcon className="h-3.5 w-3.5" />
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent>Open</TooltipContent>
+								<TooltipContent>
+									<Trans>Open</Trans>
+								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					)}
@@ -172,7 +180,9 @@ export function ShowCode({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
-									aria-label={isCopied ? "Copied" : "Copy"}
+									aria-label={
+										isCopied ? t({ message: "Copied" }) : t({ message: "Copy" })
+									}
 									className="h-6 w-6"
 									onClick={handleCopy}
 									size="icon"
@@ -198,7 +208,9 @@ export function ShowCode({
 									</div>
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>Copy</TooltipContent>
+							<TooltipContent>
+								<Trans>Copy</Trans>
+							</TooltipContent>
 						</Tooltip>
 					</TooltipProvider>
 				</div>
@@ -226,7 +238,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(true)}
 							type="button"
 						>
-							Show more
+							<Trans>Show more</Trans>
 						</button>
 					</div>
 				)}
@@ -239,7 +251,7 @@ export function ShowCode({
 							onClick={() => setIsExpanded(false)}
 							type="button"
 						>
-							Show less
+							<Trans>Show less</Trans>
 						</button>
 					</div>
 				)}

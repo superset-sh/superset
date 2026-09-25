@@ -8,17 +8,23 @@ import {
 	mock,
 } from "bun:test";
 
+const getPrimaryDisplayMock = mock(() => ({
+	workAreaSize: { width: 1920, height: 1080 },
+	bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+}));
+
 const mockScreen = {
-	getPrimaryDisplay: mock(() => ({
-		workAreaSize: { width: 1920, height: 1080 },
-		bounds: { x: 0, y: 0, width: 1920, height: 1080 },
-	})),
+	getPrimaryDisplay: getPrimaryDisplayMock,
 	getAllDisplays: mock(() => [
 		{
 			bounds: { x: 0, y: 0, width: 1920, height: 1080 },
 			workAreaSize: { width: 1920, height: 1080 },
 		},
 	]),
+	// Defaults to the primary display, matching real Electron in a
+	// single-display setup — multi-display tests override this to point at
+	// whichever display the saved position actually lands on.
+	getDisplayMatching: mock(() => getPrimaryDisplayMock()),
 };
 
 const { getInitialWindowBounds, isVisibleOnAnyDisplay, setScreenForTesting } =
@@ -218,6 +224,14 @@ describe("getInitialWindowBounds", () => {
 		(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 			{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 		]);
+		// Reset to the (possibly just-reassigned) primary display so a test
+		// further down that overrides getDisplayMatching for a secondary
+		// monitor doesn't leak into the next one.
+		(
+			screen.getDisplayMatching as ReturnType<typeof MockType>
+		).mockImplementation(() =>
+			(screen.getPrimaryDisplay as ReturnType<typeof MockType>)(),
+		);
 	});
 
 	describe("no saved state", () => {
@@ -407,6 +421,33 @@ describe("getInitialWindowBounds", () => {
 			expect(result.x).toBe(2000);
 			expect(result.y).toBe(100);
 			expect(result.center).toBe(false);
+		});
+
+		it("should clamp to the work area of the display the saved position is on, not always the primary", () => {
+			// Primary (first) display is the usual 1920x1080; the window was
+			// last on a larger secondary display and saved at a size that
+			// would get shrunk if clamped against the primary instead.
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
+				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+				{ bounds: { x: 1920, y: 0, width: 3840, height: 2160 } },
+			]);
+			(
+				screen.getDisplayMatching as ReturnType<typeof MockType>
+			).mockReturnValue({
+				workAreaSize: { width: 3840, height: 2160 },
+			});
+
+			const result = getInitialWindowBounds({
+				x: 2000,
+				y: 100,
+				width: 3800,
+				height: 2100,
+				isMaximized: false,
+			});
+
+			// Would be 1920x1080 under the old always-clamp-to-primary bug.
+			expect(result.width).toBe(3800);
+			expect(result.height).toBe(2100);
 		});
 	});
 });

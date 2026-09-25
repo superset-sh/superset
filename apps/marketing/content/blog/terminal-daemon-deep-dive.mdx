@@ -1,5 +1,5 @@
 ---
-title: "The Terminal That (Almost) Never Dies: Building a Persistent Terminal Daemon for Electron"
+title: "Keeping Terminal Sessions Alive Across Electron App Restarts"
 description: "How we built a process-isolated terminal host that survives app restarts, handles backpressure gracefully, and enables cold restore from disk."
 author: avi
 date: 2026-01-26
@@ -9,13 +9,13 @@ relatedSlugs:
   - how-to-get-hit
 ---
 
-One of the slickest features of Superset is how our terminal survives app restarts. This is a deep dive on how we built it. Huge credits to [Andreas Asprou](https://x.com/andyasprou) who spearheaded this entire effort.
+Superset keeps terminal sessions running when the desktop app restarts. [Andreas Asprou](https://x.com/andyasprou) led the work. This post explains how we separated the terminals from the app process.
 
 ---
 
-When you're building an integrated terminal for Superset, we ran into an inconvenient issue: **terminals are ephemeral processes**. This is inconvenient for many reasons. We like to update a lot. Losing progress across 10 worktrees everytime you update is a big deterrent for updating. Or if the app crashes, you lose all your processes.
+Our original terminal processes ended when the app closed. That made updates expensive: restarting Superset meant interrupting work across every open workspace. An app crash could do the same.
 
-Using on Tmux as an existence proof, we knew ephemeral terminals were possible.  
+tmux showed that terminal sessions could outlive the interface attached to them.
 
 ## The Problem: Electron Terminals Are Fragile
 
@@ -25,11 +25,11 @@ In a usual Electron + node-pty setup, your terminal lifecycle looks like this:
 App starts → spawn PTY → user runs commands → app closes → PTY dies
 ```
 
-In this workflow, the PTY is spawned in the main Node process of the app. This process is killed when the app closes, killing its child process as well. 
+In this workflow, the PTY is spawned in the main Node process of the app. This process is killed when the app closes, killing its child process as well.
 
 ## The Tempting Solution: Just Use tmux
 
-In our first iteration of the solve, we used tmux. It's battle-tested, handles persistence natively, and has a relatively easy interface.
+We tried tmux first. It's battle-tested, handles persistence natively, and has a relatively easy interface.
 
 Our workflow with tmux became:
 
@@ -45,15 +45,15 @@ tmux attach-session -t "superset-pane-123"
 
 We also used tmux with headless to make it feel native in xterm.
 
-** Why this sucks actually **
+**Why we moved away from tmux**
 
-1. An extra dependencies. Now on top of installing the app, users will have to install tmux. 
-2. Not cross platform. Tmux does not work for windows. We'd have to build another equivalent integration.
-3. xterm incompatibility. As a terminal simulator itself, tmux takes over the scroll bar, selection, hotkeys, and the likes. This hijack inside of xterm makes it feel extremely clunky.
+1. An extra dependency. Users also had to install tmux.
+2. Platform support. Native Windows support would need a different approach. We'd have to build another equivalent integration.
+3. Competing terminal controls. tmux manages scrolling, selection, and shortcuts, which made the integration with xterm feel awkward.
 
-We needed another way
+We built a separate terminal process instead.
 
-## Architecture: A detachable Daemon
+## Architecture: A detachable daemon
 
 Our solution splits terminal management across three process layers:
 
@@ -93,7 +93,7 @@ With this architecture, the Electron app becomes just a *client* of the terminal
 
 ### Spawning the Daemon
 
-The daemon is a Node.js process spawned with a clever Electron trick:
+The daemon uses Electron’s bundled Node.js runtime:
 
 ```typescript
 const daemon = spawn(process.execPath, [daemonScript], {
@@ -128,9 +128,9 @@ Communication between the main process and daemon uses newline-delimited JSON ov
 
 ### The Two-Socket Split
 
-Our first protocol version used a single socket for everything. This caused a nasty problem: **head-of-line blocking**.
+Our first protocol version used a single socket for everything. That caused **head-of-line blocking**.
 
-When a terminal produces output faster than the socket can drain, the kernel buffer fills up. Every `socket.write()` for data events would block, queuing behind them any RPC responses. The result? A user opens a new terminal, but `createOrAttach` times out because the response is stuck behind megabytes of `cat bigfile.log` output.
+When a terminal produces output faster than the socket can drain, the kernel buffer fills up. Data events and RPC responses shared the same output queue, so responses could be delayed behind terminal output. The result? A user opens a new terminal, but `createOrAttach` times out because the response is stuck behind megabytes of `cat bigfile.log` output.
 
 Protocol v2 splits communication:
 
@@ -154,7 +154,11 @@ A session goes through well-defined states:
 CREATED ──► ALIVE ──► (clients attach/detach) ──► TERMINATING ──► EXIT
 ```
 
-The magic is in **attachment semantics**:
+What surviving looks like in practice:
+
+![An interrupted Claude Code session offering a one-click Resume after the client died: the daemon kept the session alive](/changelog/2026-08-09-resume-banner.png)
+
+The attach request checks whether the session is still running:
 
 ```typescript
 async createOrAttach(params: CreateSessionParams) {
@@ -199,7 +203,7 @@ On next app launch, we detect unclean shutdown (no `endedAt` in metadata) and of
 // Old scrollback preserved, new shell spawns in same directory
 ```
 
-This gives users the best of both worlds: they see what happened before the crash, and can kinda where they left off.
+Users can read the output from before the crash and start a new shell in the same directory. The old process is gone.
 
 ## Backpressure: The Hidden Challenge
 
@@ -248,17 +252,17 @@ pty.onData((data) => {
 });
 ```
 
-This avoids the O(n²) string concatenation problem while maintaining ~30fps visual updates.
+Batching reduces the number of messages sent to the UI.
 
 ## The Headless Emulator: State Without a Screen
 
-Each daemon session runs a headless xterm.js emulator. This might seem redundant—why emulate if there's no screen?
+Each daemon session runs a headless xterm.js emulator. This might seem redundant: why emulate if there's no screen?
 
 The emulator gives us:
 
 1. **Accurate snapshots**: When a new client attaches, we serialize the *current screen state*, not just raw scrollback. The user sees exactly what was on screen, cursor position included.
 
-2. **Terminal mode tracking**: Application mode, bracketed paste, mouse tracking—all parsed and tracked so reconnecting clients get correct state.
+2. **Terminal mode tracking**: Application mode, bracketed paste, mouse tracking. All parsed and tracked so reconnecting clients get correct state.
 
 3. **CWD detection**: By parsing OSC escape sequences, we know the shell's current directory even when the session was created hours ago.
 
@@ -354,7 +358,7 @@ Users see their active terminal first, background tabs hydrate gradually.
 
 ## The Future: Cloud Backends
 
-The abstraction boundary we've built isn't just about local persistence. The `TerminalRuntime` interface is provider-neutral:
+The `TerminalRuntime` interface separates the renderer from the process that owns the terminal:
 
 ```typescript
 interface TerminalRuntime {
@@ -368,7 +372,7 @@ interface TerminalRuntime {
 }
 ```
 
-Today, `LocalTerminalRuntime` wraps our daemon. Tomorrow, `CloudTerminalRuntime` could wrap SSH connections or remote tmux sessions—same interface, different backend. The renderer doesn't need to know where the terminal lives.
+Today, `LocalTerminalRuntime` wraps our daemon. Tomorrow, `CloudTerminalRuntime` could wrap SSH connections or remote tmux sessions: same interface, different backend. The renderer doesn't need to know where the terminal lives.
 
 ---
 

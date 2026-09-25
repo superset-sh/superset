@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { HiCheck } from "react-icons/hi2";
 
 const TEAM_MEMBERS = [
@@ -25,14 +26,16 @@ export function TeamCollaborationDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
-						<span className="text-xs text-muted-foreground ml-1">Team</span>
+						<span className="text-xs text-muted-foreground ml-1">
+							<Trans>Team</Trans>
+						</span>
 					</div>
 				</div>
 
 				{/* Team members */}
 				<div className="p-4">
 					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-3">
-						Online Now
+						<Trans>Online Now</Trans>
 					</div>
 					<div className="flex items-center -space-x-2 mb-4">
 						{TEAM_MEMBERS.map((member, index) => (
@@ -51,7 +54,7 @@ export function TeamCollaborationDemo() {
 
 					{/* Activity feed */}
 					<div className="text-[10px] uppercase text-muted-foreground/70 font-medium tracking-wider mb-2">
-						Recent Activity
+						<Trans>Recent Activity</Trans>
 					</div>
 					<div className="space-y-2">
 						{ACTIVITY.map((item) => (

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
@@ -6,6 +7,7 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { BaseBranchSource } from "../../../../../DashboardNewWorkspaceDraftContext";
 import {
 	type BranchFilter,
+	type CloudRepository,
 	useBranchContext,
 } from "../../../hooks/useBranchContext";
 import type {
@@ -18,6 +20,8 @@ type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 export interface UseBranchPickerControllerArgs {
 	projectId: string | null;
 	hostId: string | null;
+	/** Cloud only: the primary repository whose branches are offered. */
+	cloudRepository?: CloudRepository | null;
 	baseBranch: string | null;
 	/** When set, used as the workspace name for picker actions; falls back to the branch name. */
 	typedWorkspaceName: string;
@@ -33,12 +37,14 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		projectId,
 		hostId,
+		cloudRepository = null,
 		baseBranch,
 		typedWorkspaceName,
 		onBaseBranchChange,
 		closeModal,
 	} = args;
 
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { machineId } = useLocalHostService();
 	const { submit } = useWorkspaceCreates();
@@ -58,7 +64,13 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 		isFetchingNextPage,
 		hasNextPage,
 		fetchNextPage,
-	} = useBranchContext(projectId, hostId, branchSearch, branchFilter);
+	} = useBranchContext(
+		projectId,
+		hostId,
+		branchSearch,
+		branchFilter,
+		cloudRepository,
+	);
 
 	const effectiveCompareBaseBranch = baseBranch || defaultBranch || null;
 
@@ -75,11 +87,19 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const onOpenWorkspace = useCallback(
 		(target: OpenWorkspaceTarget) => {
 			if (!projectId) {
-				toast.error("Select a project first");
+				toast.error(
+					t({
+						message: "Select a project first",
+					}),
+				);
 				return;
 			}
 			if (!resolvedHostId) {
-				toast.error("No active host");
+				toast.error(
+					t({
+						message: "No active host",
+					}),
+				);
 				return;
 			}
 			const branchName = target.branchName;
@@ -117,6 +137,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 			submit,
 			closeModal,
 			navigate,
+			t,
 		],
 	);
 

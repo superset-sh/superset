@@ -1,0 +1,4 @@
+interface:
+  display_name: "Redesign UI"
+  short_description: "Critique and improve a UI component visually"
+  default_prompt: "Use $redesign to critique and improve this UI component."

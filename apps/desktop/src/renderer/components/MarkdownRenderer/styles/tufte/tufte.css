@@ -146,6 +146,12 @@
 }
 
 /* Tables */
+.tufte-markdown .tableWrapper {
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-inline: contain;
+}
+
 .tufte-markdown table {
 	border-collapse: collapse;
 	width: 100%;

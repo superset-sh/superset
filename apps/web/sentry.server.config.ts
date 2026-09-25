@@ -6,8 +6,6 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_WEB,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	tracesSampleRate:
-		env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production" ? 0.1 : 1.0,
 	sendDefaultPii: true,
 	debug: false,
 });

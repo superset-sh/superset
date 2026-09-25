@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -5,11 +6,10 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
 interface AssigneePropertyProps {
@@ -17,16 +17,19 @@ interface AssigneePropertyProps {
 }
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { t } = useLingui();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
+	);
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === task.assigneeId && !task.assigneeExternalId) {
@@ -76,14 +79,21 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 								</div>
 							)}
 							<span className="text-sm">
-								{task.assigneeDisplayName || "External"}{" "}
-								<span className="text-muted-foreground">(external)</span>
+								{task.assigneeDisplayName ||
+									t({
+										message: "External",
+									})}{" "}
+								<span className="text-muted-foreground">
+									<Trans>(external)</Trans>
+								</span>
 							</span>
 						</>
 					) : (
 						<>
 							<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground" />
-							<span className="text-sm text-muted-foreground">Unassigned</span>
+							<span className="text-sm text-muted-foreground">
+								<Trans>Unassigned</Trans>
+							</span>
 						</>
 					)}
 				</button>
@@ -95,7 +105,9 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 						className="flex items-center gap-2"
 					>
 						<HiOutlineUserCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-						<span className="text-sm">No assignee</span>
+						<span className="text-sm">
+							<Trans>No assignee</Trans>
+						</span>
 						{!task.assigneeId && !task.assigneeExternalId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}

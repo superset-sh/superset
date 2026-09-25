@@ -3,7 +3,7 @@ import { parse } from "shell-quote";
 const SAFE_SHELL_TOKEN = /^[A-Za-z0-9_@%+=:,./~-]+$/;
 const ENV_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-function quoteShellToken(value: string): string {
+export function quoteShellToken(value: string): string {
 	if (value === "") return "''";
 	if (SAFE_SHELL_TOKEN.test(value)) return value;
 	return `'${value.replaceAll("'", "'\\''")}'`;

@@ -1,21 +1,28 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
-	AlertDialogContent,
+	AlertDialogAction,
+	AlertDialogCancel,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
+	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
 
 interface DestroyConfirmPaneProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	workspaceName: string;
+	/** Session workspaces delete a managed folder; no branch to offer. */
+	isSession?: boolean;
+	/** Local workspaces live on the project's checkout: only the workspace
+	 * record goes away, so there is no branch or folder to offer. */
+	sharesProjectCheckout?: boolean;
 	deleteBranch: boolean;
 	onDeleteBranchChange: (next: boolean) => void;
 	hasChanges: boolean;
@@ -30,6 +37,8 @@ export function DestroyConfirmPane({
 	open,
 	onOpenChange,
 	workspaceName,
+	isSession = false,
+	sharesProjectCheckout = false,
 	deleteBranch,
 	onDeleteBranchChange,
 	hasChanges,
@@ -42,29 +51,33 @@ export function DestroyConfirmPane({
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
-	useEffect(() => {
-		if (!open || !canConfirm) return;
-
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (!shouldConfirmDeleteDialogKey(event)) return;
-			event.preventDefault();
-			onConfirm();
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [canConfirm, onConfirm, open]);
-
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<EnterEnabledAlertDialogContent className="max-w-[340px] gap-0 p-0">
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
-						Delete workspace "{workspaceName}"?
+						{isSession ? (
+							<Trans>Delete session "{workspaceName}"?</Trans>
+						) : (
+							<Trans>Delete workspace "{workspaceName}"?</Trans>
+						)}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This removes the worktree from disk. The cloud workspace record will
-						also be removed.
+						{isSession ? (
+							<Trans>
+								This deletes the session's folder and everything in it from
+								disk.
+							</Trans>
+						) : sharesProjectCheckout ? (
+							<Trans>
+								This closes the workspace and its terminals. The project's
+								files, branches and other workspaces stay as they are.
+							</Trans>
+						) : (
+							<Trans>
+								This removes the worktree from disk and closes the workspace.
+							</Trans>
+						)}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<div className="px-4 pb-2">
@@ -76,13 +89,17 @@ export function DestroyConfirmPane({
 						}
 						aria-hidden={hasWarnings ? undefined : true}
 					>
-						{hasWarnings
-							? hasChanges && hasUnpushedCommits
-								? "Has uncommitted changes and unpushed commits"
-								: hasChanges
-									? "Has uncommitted changes"
-									: "Has unpushed commits"
-							: " "}
+						{hasWarnings ? (
+							hasChanges && hasUnpushedCommits ? (
+								<Trans>Has uncommitted changes and unpushed commits</Trans>
+							) : hasChanges ? (
+								<Trans>Has uncommitted changes</Trans>
+							) : (
+								<Trans>Has unpushed commits</Trans>
+							)
+						) : (
+							" "
+						)}
 					</div>
 				</div>
 				{blockingReason && (
@@ -92,33 +109,39 @@ export function DestroyConfirmPane({
 						</div>
 					</div>
 				)}
-				<div className="px-4 pb-2">
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id={checkboxId}
-							checked={deleteBranch}
-							onCheckedChange={(checked) =>
-								onDeleteBranchChange(checked === true)
-							}
-						/>
-						<Label
-							htmlFor={checkboxId}
-							className="text-xs text-muted-foreground cursor-pointer select-none"
-						>
-							Also delete local branch
-						</Label>
+				{!isSession && !sharesProjectCheckout && (
+					<div className="px-4 pb-2">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id={checkboxId}
+								checked={deleteBranch}
+								onCheckedChange={(checked) =>
+									onDeleteBranchChange(checked === true)
+								}
+							/>
+							<Label
+								htmlFor={checkboxId}
+								className="text-xs text-muted-foreground cursor-pointer select-none"
+							>
+								<Trans>Also delete local branch</Trans>
+							</Label>
+						</div>
 					</div>
-				</div>
+				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => onOpenChange(false)}
-					>
-						Cancel
-					</Button>
-					<Button
+					<AlertDialogCancel className="h-7 border-0 bg-transparent px-3 text-xs shadow-none">
+						<Trans>Cancel</Trans>
+					</AlertDialogCancel>
+					<AlertDialogAction
+						onKeyDown={(event) => {
+							// Let the button handle Enter natively, except held keys and IME.
+							if (
+								event.key === "Enter" &&
+								!shouldConfirmDeleteDialogKey(event.nativeEvent)
+							) {
+								event.preventDefault();
+							}
+						}}
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -126,9 +149,9 @@ export function DestroyConfirmPane({
 						disabled={!canConfirm}
 					>
 						{confirmLabel}
-					</Button>
+					</AlertDialogAction>
 				</AlertDialogFooter>
-			</AlertDialogContent>
+			</EnterEnabledAlertDialogContent>
 		</AlertDialog>
 	);
 }

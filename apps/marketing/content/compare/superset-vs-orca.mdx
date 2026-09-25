@@ -1,0 +1,64 @@
+---
+title: "Superset vs Orca: worktrees, mobile, and scheduled agents"
+description: "Compare Superset and Orca for parallel coding agents, iPhone and Android access, scheduled tasks, desktop support, and pricing."
+date: 2026-07-13
+lastUpdated: 2026-09-22
+type: "1v1"
+competitors:
+  - orca
+keywords:
+  - superset vs orca
+  - orca alternative
+  - orca ade alternative
+  - agentic ide
+  - ai agent orchestration
+  - worktree agent workspace
+---
+
+Superset and Orca both support parallel coding work, remote hosts, mobile access, and scheduled automations. Scheduling and a phone companion are shared capabilities. Choose by platform, license, host setup, and the review workflow you actually use.
+
+## At a Glance
+
+| Requirement | Superset | Orca |
+|---|---|---|
+| Parallel work | Separate workspaces and Git worktrees | Worktrees with terminals and browser tools |
+| Desktop | macOS; experimental Linux; Windows unavailable | macOS, Windows, Linux |
+| Phone | iPhone, iOS 26+, Pro; Android waitlist | iOS and Android companion, documented as beta |
+| Scheduling | Pro automations on a selected host | Scheduled automations through CLI and desktop |
+| License | Source-available, Elastic License 2.0 | MIT |
+
+Orca's [product page](https://www.onorca.dev/) describes its worktree, browser, and CLI workflow. Its [automation docs](https://www.onorca.dev/docs/cli/automations) cover schedules, host selection, and run management. Its [mobile docs](https://www.onorca.dev/docs/mobile) describe pairing, status, terminal access, and source-control review.
+
+## Superset requirements
+
+Superset runs CLI coding agents in separate workspaces, with terminals and diff review in one app. Desktop supports macOS and an experimental Linux AppImage. Windows is not yet available. Superset is source-available under Elastic License 2.0.
+
+To use [Superset on iPhone](/mobile), you need iOS 26 or later, Pro, and a host that stays online. Remote access and automations also require a paid plan. See [pricing](/pricing) and [remote access setup](https://docs.superset.sh/remote-access).
+
+## Try it in your repository
+
+Run one of your usual tasks in each app with the same agent and model. Open the diff, ask for a correction, and run your project's checks. Compare how much setup and review each app takes. The [parallel-task guide](/blog/parallel-coding-agents-guide) has prompts you can use.
+
+![Reviewing a change in Superset.](/images/readme/diff-viewer.png)
+
+## Which should you choose?
+
+Choose Superset if you want to send instructions to your coding agents and review their diffs from an iPhone, then continue in the same workspace on desktop. Follow the [phone walkthrough](/blog/claude-code-codex-iphone) and [scheduled-maintenance guide](/blog/scheduled-agent-maintenance) to test those requirements.
+
+Orca is a strong candidate if Windows, Android, or an MIT license is a requirement. If both products meet your platform needs, try the same task in each and compare the review workflow.
+
+Both require an agent provider account or API access. Superset has free and paid plans; Orca describes its core app as free and open source. Check current terms and any optional services before comparing total cost.
+
+## Frequently Asked Questions
+
+### Does Orca support scheduled agents?
+
+Yes. Orca documents scheduled automations. Superset also supports scheduled agent sessions; scheduling alone does not distinguish them.
+
+### Does Superset have a mobile app?
+
+Yes. Superset's iPhone app is available. It requires iOS 26 or later, Pro, and a connected host. Android is on the waitlist.
+
+### Do worktrees prevent all conflicts?
+
+No. They keep working copies separate. Combined changes still need review, conflict resolution when necessary, and tests.

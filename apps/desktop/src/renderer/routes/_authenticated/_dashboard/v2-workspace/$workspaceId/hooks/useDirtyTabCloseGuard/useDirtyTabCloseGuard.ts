@@ -1,8 +1,10 @@
-import type { WorkspaceProps } from "@superset/panes";
+import { useLingui } from "@lingui/react/macro";
+import type { WorkspaceProps, WorkspaceStore } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useCallback } from "react";
 import { getBaseName } from "renderer/lib/pathBasename";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import type { StoreApi } from "zustand";
 import { getDocument } from "../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../types";
 
@@ -10,7 +12,10 @@ type OnBeforeCloseTab = NonNullable<
 	WorkspaceProps<PaneViewerData>["onBeforeCloseTab"]
 >;
 
-export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
+export function useDirtyTabCloseGuard(
+	store: StoreApi<WorkspaceStore<PaneViewerData>>,
+): OnBeforeCloseTab {
+	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	return useCallback<OnBeforeCloseTab>(
@@ -26,15 +31,24 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 			if (dirtyPanes.length === 0) return true;
 			const title =
 				dirtyPanes.length === 1
-					? `Do you want to save the changes you made to ${dirtyFileNames[0]}?`
-					: `Do you want to save changes to ${dirtyPanes.length} files?`;
+					? t({
+							message: `Do you want to save the changes you made to ${dirtyFileNames[0]}?`,
+						})
+					: t({
+							message: `Do you want to save changes to ${dirtyPanes.length} files?`,
+						});
 			return new Promise<boolean>((resolve) => {
 				alert({
+					onDismiss: () => resolve(false),
 					title,
-					description: "Your changes will be lost if you don't save them.",
+					description: t({
+						message: "Your changes will be lost if you don't save them.",
+					}),
 					actions: [
 						{
-							label: "Save All",
+							label: t({
+								message: "Save All",
+							}),
 							onClick: async () => {
 								for (const pane of dirtyPanes) {
 									const filePath = (pane.data as FilePaneData).filePath;
@@ -42,6 +56,9 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 									if (!doc) continue;
 									const result = await doc.save();
 									if (result.status !== "saved") {
+										store
+											.getState()
+											.setActivePane({ tabId: tab.id, paneId: pane.id });
 										resolve(false);
 										return;
 									}
@@ -50,7 +67,9 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 							},
 						},
 						{
-							label: "Don't Save",
+							label: t({
+								message: "Don't Save",
+							}),
 							variant: "secondary",
 							onClick: async () => {
 								for (const pane of dirtyPanes) {
@@ -62,7 +81,9 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 							},
 						},
 						{
-							label: "Cancel",
+							label: t({
+								message: "Cancel",
+							}),
 							variant: "ghost",
 							onClick: () => resolve(false),
 						},
@@ -70,6 +91,6 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 				});
 			});
 		},
-		[workspaceId],
+		[t, workspaceId, store],
 	);
 }

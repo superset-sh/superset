@@ -1,10 +1,12 @@
-import type { CommandConfig } from "./command";
+import type { Audience, CommandConfig } from "./command";
 import { CLIError } from "./errors";
 import {
 	generateCommandHelp,
 	generateGroupHelp,
 	generateRootHelp,
+	type HelpBranding,
 } from "./help";
+import { runInteractiveHelp } from "./interactive-help";
 import type { MiddlewareFn } from "./middleware";
 import type { GenericBuilderInternals, ProcessedBuilderConfig } from "./option";
 import { formatOutput } from "./output";
@@ -13,6 +15,7 @@ import {
 	buildTree,
 	type CliCommand,
 	type CliGroup,
+	filterByAudience,
 	routeCommand,
 } from "./router";
 
@@ -27,6 +30,9 @@ export interface RunOptions {
 	version: string;
 	tree: CommandTree;
 	globals?: Record<string, GenericBuilderInternals>;
+	help?: HelpBranding;
+	audiences?: Audience[];
+	sandbox?: boolean;
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -38,7 +44,7 @@ export async function run(opts: RunOptions): Promise<void> {
 	try {
 		await execute(opts, opts.tree, ac.signal);
 	} catch (error) {
-		handleError(error, opts.name);
+		await handleError(error, opts.name, ac.signal);
 	} finally {
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
@@ -67,38 +73,69 @@ function formatZodIssues(message: string): string | null {
 	return lines.join("\n");
 }
 
-function handleError(error: unknown, cliName: string): never {
+/** Exported for tests. */
+export function formatError(
+	error: unknown,
+	cliName: string,
+): { message: string; hint?: string } {
 	if (error instanceof CLIError) {
-		process.stderr.write(`Error: ${error.message}\n`);
-		if (error.suggestion) process.stderr.write(`Hint: ${error.suggestion}\n`);
-		process.exit(1);
+		return { message: error.message, hint: error.suggestion };
 	}
 	if (error instanceof Error) {
 		const trpcError = error as Error & {
 			code?: string;
-			data?: { code?: string };
+			data?: { code?: string; requiredPlan?: string | null };
+			meta?: { response?: { status?: number } };
+			cause?: { status?: number };
 		};
 		const code = trpcError.data?.code ?? trpcError.code;
-		if (code === "UNAUTHORIZED") {
-			process.stderr.write(
-				`Error: Session expired\nHint: Run: ${cliName} auth login\n`,
-			);
-		} else if (code === "NOT_FOUND") {
-			process.stderr.write("Error: Not found\n");
-		} else if (
-			code === "FETCH_ERROR" ||
-			error.message.includes("fetch failed")
-		) {
-			process.stderr.write(
-				"Error: Could not connect to API\nHint: Is the API running?\n",
-			);
-		} else {
-			const formatted = formatZodIssues(error.message);
-			process.stderr.write(`Error: ${formatted ?? error.message}\n`);
+		const httpStatus =
+			trpcError.meta?.response?.status ?? trpcError.cause?.status;
+		if (code === "UNAUTHORIZED" || (!code && httpStatus === 401)) {
+			return {
+				message: "Session expired",
+				hint: `Run: ${cliName} auth login`,
+			};
 		}
-		process.exit(1);
+		// A plan gate: the server sets data.requiredPlan on every such refusal
+		// (planRequiredError in @superset/trpc), so no matching on message text.
+		const requiredPlan = trpcError.data?.requiredPlan;
+		if (requiredPlan) {
+			const tier = requiredPlan === "enterprise" ? "Enterprise" : "Pro";
+			return {
+				message: error.message,
+				hint: `Needs the ${tier} plan. Upgrade at https://superset.sh/pricing, or in the app under Settings → Billing.`,
+			};
+		}
+		if (code === "NOT_FOUND") {
+			// The server's message names the missing resource ("Host not
+			// found") — blanking it left users with no way to tell which of
+			// several ids a command resolves was rejected (issue #6415).
+			return { message: error.message || "Not found" };
+		}
+		if (code === "FETCH_ERROR" || error.message.includes("fetch failed")) {
+			return {
+				message: "Could not connect to API",
+				hint: "Is the API running?",
+			};
+		}
+		const formatted = formatZodIssues(error.message);
+		return { message: formatted ?? error.message };
 	}
-	process.stderr.write(`Error: ${String(error)}\n`);
+	return { message: String(error) };
+}
+
+async function handleError(
+	error: unknown,
+	cliName: string,
+	signal?: AbortSignal,
+): Promise<never> {
+	const { message, hint } = formatError(error, cliName);
+	const text = `Error: ${message}\n${hint ? `Hint: ${hint}\n` : ""}`;
+	// Same drain rule as stdout (see writeStream): exiting before the pipe
+	// reader catches up would drop the message. Best effort; a failed stderr
+	// write must not mask the exit code.
+	await writeStream(process.stderr, text, signal).catch(() => {});
 	process.exit(1);
 }
 
@@ -201,12 +238,46 @@ async function execute(
 	opts: RunOptions,
 	loaded: CommandTree,
 	signal: AbortSignal,
+	argsOverride?: string[],
 ): Promise<void> {
-	const args = process.argv.slice(2);
+	const args = argsOverride ?? process.argv.slice(2);
 	const { name, version } = opts;
 	const { middleware } = loaded;
 	const globalConfigs = processGlobals(opts.globals);
-	const { root, commandMap } = buildTree(loaded.groups, loaded.commands);
+	const visible = filterByAudience(
+		loaded.groups,
+		loaded.commands,
+		opts.audiences ?? ["public"],
+		opts.sandbox ?? false,
+	);
+	const { root, commandMap } = buildTree(visible.groups, visible.commands);
+
+	// EXPERIMENT: bare invocation on a TTY opens the interactive help browser
+	// instead of dumping static help. Agents/CI keep the static output.
+	if (
+		args.length === 0 &&
+		process.stdin.isTTY === true &&
+		process.stdout.isTTY === true &&
+		!isAgentMode()
+	) {
+		const result = await runInteractiveHelp({
+			name,
+			version,
+			root,
+			globals: globalConfigs,
+			branding: opts.help,
+			signal,
+			populateLeaf: (path, node) => {
+				const cmd = commandMap.get(path.join("/"));
+				if (cmd) populateNodeForHelp(node, cmd);
+			},
+		});
+		if (result.runArgs) {
+			console.log("");
+			return execute(opts, loaded, signal, result.runArgs);
+		}
+		return;
+	}
 
 	// Help
 	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
@@ -214,7 +285,9 @@ async function execute(
 		const { segments } = splitArgsForRouting(cleanArgs, globalConfigs);
 		const routeResult = routeCommand(root, segments);
 		if (routeResult.commandPath.length === 0) {
-			console.log(generateRootHelp(name, version, root, globalConfigs));
+			console.log(
+				generateRootHelp(name, version, root, globalConfigs, opts.help),
+			);
 			return;
 		}
 		const cmd = commandMap.get(routeResult.commandPath.join("/"));
@@ -251,7 +324,9 @@ async function execute(
 	}
 
 	if (commandPath.length === 0) {
-		console.log(generateRootHelp(name, version, root, globalConfigs));
+		console.log(
+			generateRootHelp(name, version, root, globalConfigs, opts.help),
+		);
 		return;
 	}
 
@@ -355,6 +430,42 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) console.log(output);
+		// All command output must leave through writeStream; a bare console.log
+		// here reintroduces truncation for any payload past the pipe buffer.
+		if (output) await writeStream(process.stdout, `${output}\n`, signal);
 	}
+}
+
+/**
+ * console.log queues pipe writes asynchronously; when the process exits while
+ * the reader is slow, Bun drops the still-queued tail, truncating output
+ * beyond ~64KB (seen with `superset tasks list --json | jq` and `$(...)`
+ * capture). Awaiting the write callback keeps the process alive until the
+ * whole payload reaches the pipe.
+ */
+function writeStream(
+	stream: NodeJS.WriteStream,
+	text: string,
+	signal?: AbortSignal,
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const settle = (fn: () => void) => {
+			if (settled) return;
+			settled = true;
+			fn();
+		};
+		stream.write(text, (error) =>
+			settle(() => (error ? reject(error) : resolve())),
+		);
+		// A full pipe whose reader never drains would otherwise wait forever
+		// and swallow SIGINT/SIGTERM (run() replaces their default exit). On
+		// abort, stop waiting and let the exit path proceed; losing the tail
+		// is the right trade once the user asked to stop.
+		if (signal?.aborted) settle(resolve);
+		else
+			signal?.addEventListener("abort", () => settle(resolve), {
+				once: true,
+			});
+	});
 }

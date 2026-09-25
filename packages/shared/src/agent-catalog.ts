@@ -2,32 +2,35 @@ import type {
 	AgentDefinition,
 	AgentDefinitionSource,
 	AgentKind,
-	ChatAgentDefinition,
 	TerminalAgentDefinition,
 } from "./agent-definition";
-import {
-	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
-	DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-	DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
-} from "./agent-prompt-template";
 import {
 	BUILTIN_TERMINAL_AGENT_TYPES,
 	BUILTIN_TERMINAL_AGENTS,
 } from "./builtin-terminal-agents";
 
-export const BUILTIN_AGENT_IDS = [
-	...BUILTIN_TERMINAL_AGENT_TYPES,
-	"superset",
-] as const;
+export const BUILTIN_AGENT_IDS = [...BUILTIN_TERMINAL_AGENT_TYPES] as const;
 
 export type BuiltinAgentId = (typeof BUILTIN_AGENT_IDS)[number];
 export type AgentDefinitionId = BuiltinAgentId | `custom:${string}`;
+
+/**
+ * Agents Superset can identify via lifecycle hooks but cannot launch —
+ * they run in an external app whose hooks land on a Superset terminal.
+ */
+export const EXTERNAL_AGENT_IDS = ["cursor-composer"] as const;
+
+export const AGENT_IDENTITY_IDS = [
+	...BUILTIN_AGENT_IDS,
+	...EXTERNAL_AGENT_IDS,
+] as const;
+
+export type AgentIdentityId = (typeof AGENT_IDENTITY_IDS)[number];
 
 export type {
 	AgentDefinition,
 	AgentDefinitionSource,
 	AgentKind,
-	ChatAgentDefinition,
 	TerminalAgentDefinition,
 };
 
@@ -35,25 +38,15 @@ export const BUILTIN_AGENT_LABELS: Record<BuiltinAgentId, string> = {
 	...Object.fromEntries(
 		BUILTIN_TERMINAL_AGENTS.map((agent) => [agent.id, agent.label]),
 	),
-	superset: "Superset",
 } as Record<BuiltinAgentId, string>;
 
-const BUILTIN_CHAT_AGENT: ChatAgentDefinition = {
-	id: "superset",
-	source: "builtin",
-	kind: "chat",
-	label: "Superset",
-	description:
-		"Superset's built-in workspace chat for project-aware help and task launches.",
-	enabled: true,
-	taskPromptTemplate: DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
-	contextPromptTemplateSystem: DEFAULT_CONTEXT_PROMPT_TEMPLATE_SYSTEM,
-	contextPromptTemplateUser: DEFAULT_CONTEXT_PROMPT_TEMPLATE_USER,
+export const AGENT_IDENTITY_LABELS: Record<AgentIdentityId, string> = {
+	...BUILTIN_AGENT_LABELS,
+	"cursor-composer": "Cursor Composer",
 };
 
 export const BUILTIN_AGENT_DEFINITIONS: AgentDefinition[] = [
 	...BUILTIN_TERMINAL_AGENTS,
-	BUILTIN_CHAT_AGENT,
 ];
 
 export function getBuiltinAgentDefinition(id: BuiltinAgentId): AgentDefinition {
@@ -68,12 +61,6 @@ export function isTerminalAgentDefinition(
 	definition: AgentDefinition,
 ): definition is TerminalAgentDefinition {
 	return definition.kind === "terminal";
-}
-
-export function isChatAgentDefinition(
-	definition: AgentDefinition,
-): definition is ChatAgentDefinition {
-	return definition.kind === "chat";
 }
 
 export function isBuiltinAgentId(id: string): id is BuiltinAgentId {

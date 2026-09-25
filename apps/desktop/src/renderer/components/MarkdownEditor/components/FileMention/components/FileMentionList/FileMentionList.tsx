@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	SuggestionKeyDownProps,
 	SuggestionProps,
@@ -63,7 +64,7 @@ export const FileMentionList = forwardRef<
 		return (
 			<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
 				<div className="px-2 py-1.5 text-xs text-muted-foreground">
-					No files found
+					<Trans>No files found</Trans>
 				</div>
 			</div>
 		);

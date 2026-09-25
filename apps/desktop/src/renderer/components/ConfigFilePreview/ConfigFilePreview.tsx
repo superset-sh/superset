@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -70,7 +71,7 @@ export function ConfigFilePreview({
 					onClick={handleLearnMore}
 					className="gap-2"
 				>
-					Learn how to use scripts
+					<Trans>Learn how to use scripts</Trans>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 				</Button>
 			</div>

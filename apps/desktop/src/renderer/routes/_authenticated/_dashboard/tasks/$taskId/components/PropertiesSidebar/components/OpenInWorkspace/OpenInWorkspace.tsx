@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
 import {
@@ -23,9 +25,9 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 type TaskLaunchAgent = AgentDefinitionId | "none";
 
@@ -34,6 +36,7 @@ interface OpenInWorkspaceProps {
 }
 
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+	const { t } = useLingui();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
@@ -86,7 +89,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			selectedAgent !== "none" &&
 			!agentConfigsById.get(selectedAgent)?.enabled
 		) {
-			toast.error("Enable an agent in Settings > Agents first");
+			toast.error(
+				t({
+					message: "Enable an agent in Settings > Agents first",
+				}),
+			);
 			return;
 		}
 		await handleSelectProject(effectiveProjectId);
@@ -114,6 +121,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		const branchName = deriveBranchName({
 			slug: task.slug,
 			title: task.title,
+			branch: task.branch,
 		});
 
 		try {
@@ -138,26 +146,48 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					write: (input) => terminalWrite.mutateAsync(input),
 				});
 				if (launchResult.status === "failed") {
-					toast.error("Failed to start agent", {
-						description: launchResult.error ?? "Failed to start agent session.",
-					});
+					toast.error(
+						t({
+							message: "Failed to start agent",
+						}),
+						{
+							description:
+								launchResult.error ??
+								t({
+									message: "Failed to start agent session.",
+								}),
+						},
+					);
 					return;
 				}
 			}
 
 			toast.success(
-				result.wasExisting ? "Opened existing workspace" : "Workspace created",
+				result.wasExisting
+					? t({
+							message: "Opened existing workspace",
+						})
+					: t({
+							message: "Workspace created",
+						}),
 			);
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
+				errorMessage(
+					err,
+					t({
+						message: "Failed to create workspace",
+					}),
+				),
 			);
 		}
 	};
 
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-xs text-muted-foreground">Open in workspace</span>
+			<span className="text-xs text-muted-foreground">
+				<Trans>Open in workspace</Trans>
+			</span>
 			<div className="flex gap-1.5">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -181,7 +211,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 										<span className="truncate">{selectedProject.name}</span>
 									</>
 								) : (
-									<span className="text-muted-foreground">Select project</span>
+									<span className="text-muted-foreground">
+										<Trans>Select project</Trans>
+									</span>
 								)}
 							</span>
 							<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -192,7 +224,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						className="w-[--radix-dropdown-menu-trigger-width]"
 					>
 						{recentProjects.length === 0 ? (
-							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
+							<DropdownMenuItem disabled>
+								<Trans>No projects found</Trans>
+							</DropdownMenuItem>
 						) : (
 							recentProjects
 								.filter((p) => p.id)
@@ -231,16 +265,20 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			<AgentSelect<TaskLaunchAgent>
 				agents={enabledAgentPresets}
 				value={selectedAgent}
-				placeholder="Select agent"
+				placeholder={t({
+					message: "Select agent",
+				})}
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
 				allowNone
-				noneLabel="No agent"
+				noneLabel={t({
+					message: "No agent",
+				})}
 				noneValue="none"
 			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
-					Auto-run command
+					<Trans>Auto-run command</Trans>
 				</Label>
 				<Switch
 					id="auto-run-toggle"

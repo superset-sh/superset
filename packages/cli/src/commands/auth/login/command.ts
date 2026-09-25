@@ -143,6 +143,7 @@ async function runApiKeyLogin({
 }
 
 export default command({
+	sandbox: false,
 	description: "Authenticate with Superset. Re-run to switch organizations.",
 	skipMiddleware: true,
 	options: {

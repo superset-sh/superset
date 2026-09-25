@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	FileTreeDirectoryHandle,
 	FileTreeRowDecoration,
@@ -9,6 +10,7 @@ import {
 	FileTree as PierreFileTree,
 	useFileTree as usePierreFileTree,
 } from "@pierre/trees/react";
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -21,13 +23,16 @@ import {
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
+	buildCollisionSafeTreePaths,
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
+	formatDiffStats,
+	PIERRE_TREE_UNSAFE_CSS,
 	type PierreGitStatusEntry,
 	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
-import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
+import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -37,9 +42,15 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
+import { setFileDragData } from "../../hooks/useFileDrag";
+import { useStagingMutations } from "../../hooks/useStagingMutations";
+import { StageToggleButton } from "../StageToggleButton";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
-import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
+import {
+	HOVER_ACTIONS_ROW_CSS,
+	ShadowRowHoverActions,
+} from "./components/ShadowRowHoverActions";
 import { useMeasuredTreeHeight } from "./hooks/useMeasuredTreeHeight";
 import { buildTreeShape } from "./utils/buildTreeShape";
 
@@ -65,6 +76,8 @@ interface ChangesTreeViewProps {
 	worktreePath?: string;
 	/** Absolute path of the file whose diff is currently open, if any. */
 	selectedFilePath?: string;
+	/** Disambiguates a path present in several sections (staged + unstaged). */
+	selectedChangeKey?: string;
 	/** Bumped by the toolbar's expand-all / collapse-all buttons. */
 	foldSignal: FoldSignal;
 	onSelectFile?: (
@@ -84,7 +97,8 @@ interface ChangesTreeViewProps {
  *  - `renderRowDecoration`: `+N/−N` on files, file count on directories
  *  - `renderContextMenu`: file-row actions matching `FileRow`; folder-row
  *    actions (open in editor, copy path)
- *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
+ *  - hover actions overlay (Discard + Stage on unstaged, Unstage on staged,
+ *    plus the more-actions ⌄ dropdown)
  *  - `useChangesSidebarFilePolicy` for settings-driven click routing
  *  - selection echo: when the diff pane's file is in this section, focus it
  *
@@ -98,21 +112,36 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	workspaceId,
 	worktreePath,
 	selectedFilePath,
+	selectedChangeKey,
 	foldSignal,
 	onSelectFile,
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesTreeViewProps) {
-	const paths = useMemo(() => files.map((f) => f.path), [files]);
-	const fileByPath = useMemo(() => {
+	const { t } = useLingui();
+	// A changeset can contain a path that is both a file and a directory of
+	// other entries (e.g. same-named file deleted + directory added). Pierre
+	// throws on that shape, so colliding file entries get disambiguated tree
+	// paths; map back through `toRealPath` before treating one as a file path.
+	const { treePaths, toTreePath, toRealPath } = useMemo(
+		() => buildCollisionSafeTreePaths(files.map((f) => f.path)),
+		[files],
+	);
+	const fileByTreePath = useMemo(() => {
 		const map = new Map<string, ChangesetFile>();
-		for (const file of files) map.set(file.path, file);
+		for (const file of files)
+			map.set(toTreePath.get(file.path) ?? file.path, file);
 		return map;
-	}, [files]);
+	}, [files, toTreePath]);
 
-	const { dirs, dirFileCount } = useMemo(() => buildTreeShape(paths), [paths]);
+	const { dirs, dirFileCount } = useMemo(
+		() => buildTreeShape(treePaths),
+		[treePaths],
+	);
 
-	const initialGitStatusEntriesRef = useRef(buildPierreGitStatus(files));
+	const initialGitStatusEntriesRef = useRef(
+		buildPierreGitStatus(files, toTreePath),
+	);
 
 	// Callbacks routed through a ref so Pierre's stable handler closures
 	// (resolved once at `useFileTree` time) always see the latest props.
@@ -126,9 +155,10 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	});
 
 	const { model } = usePierreFileTree({
-		paths,
+		paths: treePaths,
 		initialExpansion: "open",
 		search: false,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS + HOVER_ACTIONS_ROW_CSS,
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
 		itemHeight: ITEM_HEIGHT,
@@ -144,12 +174,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 
 	// Keep Pierre's path set in sync as files churn (stage/unstage, new edits).
 	useEffect(() => {
-		model.resetPaths(paths);
-	}, [model, paths]);
+		model.resetPaths(treePaths);
+	}, [model, treePaths]);
 
 	useEffect(() => {
-		model.setGitStatus(buildPierreGitStatus(files));
-	}, [model, files]);
+		model.setGitStatus(buildPierreGitStatus(files, toTreePath));
+	}, [model, files, toTreePath]);
 
 	useFallthroughIcons(model);
 
@@ -160,7 +190,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	const treeHeight =
 		contentHeight != null
 			? contentHeight + HEIGHT_CUSHION
-			: (dirs.length + paths.length) * ROW_BOX + HEIGHT_CUSHION;
+			: (dirs.length + treePaths.length) * ROW_BOX + HEIGHT_CUSHION;
 
 	const setAllDirsExpanded = useCallback(
 		(expanded: boolean) => {
@@ -195,19 +225,35 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			? toRelativeWorkspacePath(worktreePath, selectedFilePath)
 			: selectedFilePath;
 	useEffect(() => {
-		if (!selectedRelPath || !fileByPath.has(selectedRelPath)) return;
+		if (!selectedRelPath) return;
+		const selectedTreePath = toTreePath.get(selectedRelPath) ?? selectedRelPath;
+		const file = fileByTreePath.get(selectedTreePath);
+		if (!file) return;
+		// The same path can sit in several sections (staged + unstaged); only
+		// the section holding the selected change echoes the focus, or every
+		// section's copy would light up. A section that previously held the
+		// focus keeps Pierre's row highlight until something else in it is
+		// focused — the FileTree model exposes focusPath but no deselect, so
+		// the stale highlight can't be cleared without remounting the tree.
+		if (
+			selectedChangeKey != null &&
+			getChangesetFileKey(file) !== selectedChangeKey
+		) {
+			return;
+		}
 		if (lastUserSelectRef.current === selectedRelPath) {
 			lastUserSelectRef.current = null;
 			return;
 		}
-		model.focusPath(selectedRelPath);
-	}, [model, selectedRelPath, fileByPath]);
+		model.focusPath(selectedTreePath);
+	}, [model, selectedRelPath, selectedChangeKey, fileByTreePath, toTreePath]);
 
 	handlersRef.current.onSelect = (treePath) => {
-		lastUserSelectRef.current = treePath;
-		const file = fileByPath.get(treePath);
+		const realPath = toRealPath.get(treePath) ?? treePath;
+		lastUserSelectRef.current = realPath;
+		const file = fileByTreePath.get(treePath);
 		onSelectFile?.(
-			treePath,
+			realPath,
 			false,
 			file ? getChangesetFileKey(file) : undefined,
 		);
@@ -221,7 +267,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			const count = dirFileCount.get(stripTrailingSlash(ctx.item.path));
 			return count ? { text: String(count) } : null;
 		}
-		const file = fileByPath.get(ctx.item.path);
+		const file = fileByTreePath.get(ctx.item.path);
 		if (!file) return null;
 		const text = formatDiffStats(file.additions, file.deletions);
 		return text ? { text } : null;
@@ -232,20 +278,61 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		{
 			getFileIntent: filePolicy.getIntent,
 			onSelectDiff: (rel, openInNewTab) => {
-				lastUserSelectRef.current = rel;
-				const file = fileByPath.get(rel);
+				const realPath = toRealPath.get(rel) ?? rel;
+				lastUserSelectRef.current = realPath;
+				const file = fileByTreePath.get(rel);
 				onSelectFile?.(
-					rel,
+					realPath,
 					openInNewTab,
 					file ? getChangesetFileKey(file) : undefined,
 				);
 			},
 			onOpenFile: (rel, openInNewTab) => {
 				if (!worktreePath) return;
-				onOpenFile?.(toAbsoluteWorkspacePath(worktreePath, rel), openInNewTab);
+				const realPath = toRealPath.get(rel) ?? rel;
+				onOpenFile?.(
+					toAbsoluteWorkspacePath(worktreePath, realPath),
+					openInNewTab,
+				);
 			},
-			openInExternalEditor: (rel) => onOpenInEditor?.(rel),
+			openInExternalEditor: (rel) =>
+				onOpenInEditor?.(toRealPath.get(rel) ?? rel),
 		},
+	);
+
+	// Native file drag (drop a row on a terminal to paste its path). Pierre
+	// owns the row DOM and renders rows `draggable="false"`, so the drag
+	// source is this wrapper instead; Chromium still starts the drag from the
+	// nearest draggable ancestor. `dragstart` targets that source, not the
+	// row, so the row is captured on pointerdown and cancelled for non-files.
+	const dragRowRef = useRef<HTMLElement | null>(null);
+	const onPointerDownCapture = useCallback(
+		(e: React.PointerEvent) => {
+			dragRowRef.current = findFileRow(e);
+		},
+		[findFileRow],
+	);
+	const onDragStart = useCallback(
+		(e: React.DragEvent) => {
+			const row = dragRowRef.current;
+			const treePath = row?.getAttribute("data-item-path");
+			if (!row || !treePath || !worktreePath) {
+				e.preventDefault();
+				return;
+			}
+			const realPath = toRealPath.get(treePath) ?? treePath;
+			setFileDragData(
+				e.dataTransfer,
+				toAbsoluteWorkspacePath(worktreePath, realPath),
+			);
+			const rect = row.getBoundingClientRect();
+			e.dataTransfer.setDragImage(
+				row,
+				e.clientX - rect.left,
+				e.clientY - rect.top,
+			);
+		},
+		[worktreePath, toRealPath],
 	);
 
 	// Hoisted so the dialog outlives the menu/hover overlay that triggers it.
@@ -259,9 +346,18 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			void utils.git.getDiff.invalidate({ workspaceId });
 		},
 		onError: (err) => {
-			toast.error("Couldn't discard changes", { description: err.message });
+			toast.error(
+				t({
+					message: "Couldn't discard changes",
+				}),
+				{
+					description: errorMessage(err),
+				},
+			);
 		},
 	});
+
+	const { stageFile, unstageFile } = useStagingMutations(workspaceId);
 
 	const fileMenuItems = (file: ChangesetFile) => (
 		<FileRowContextMenuItems
@@ -272,6 +368,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			onOpenFile={onOpenFile}
 			onOpenInEditor={onOpenInEditor}
 			onRequestDiscard={setDiscardTarget}
+			onStageFile={stageFile}
+			onUnstageFile={unstageFile}
 		/>
 	);
 
@@ -289,7 +387,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					/>
 				);
 			}
-			const file = fileByPath.get(item.path);
+			const file = fileByTreePath.get(item.path);
 			return file ? fileMenuItems(file) : null;
 		})();
 		if (!menuItems) return null;
@@ -305,31 +403,43 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	};
 
 	const renderHoverInlineActions = (treePath: string) => {
-		if (sectionKind !== "unstaged") return null;
-		const file = fileByPath.get(treePath);
+		const file = fileByTreePath.get(treePath);
 		if (!file) return null;
+		if (sectionKind === "staged") {
+			return (
+				<StageToggleButton action="unstage" onClick={() => unstageFile(file)} />
+			);
+		}
+		if (sectionKind !== "unstaged") return null;
 		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						aria-label="Discard changes"
-						className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
-						onClick={(e) => {
-							e.stopPropagation();
-							setDiscardTarget(file);
-						}}
-					>
-						<Undo2 className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="top">Discard changes</TooltipContent>
-			</Tooltip>
+			<>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							aria-label={t({
+								message: "Discard changes",
+							})}
+							className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
+							onClick={(e) => {
+								e.stopPropagation();
+								setDiscardTarget(file);
+							}}
+						>
+							<Undo2 className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						<Trans>Discard changes</Trans>
+					</TooltipContent>
+				</Tooltip>
+				<StageToggleButton action="stage" onClick={() => stageFile(file)} />
+			</>
 		);
 	};
 
 	const renderHoverMenuContent = (treePath: string) => {
-		const file = fileByPath.get(treePath);
+		const file = fileByTreePath.get(treePath);
 		return file ? fileMenuItems(file) : null;
 	};
 
@@ -340,7 +450,13 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		: "";
 
 	return (
-		<div onClickCapture={onClickCapture}>
+		// biome-ignore lint/a11y/noStaticElementInteractions: drag source for rows Pierre renders inside a shadow root
+		<div
+			draggable
+			onClickCapture={onClickCapture}
+			onPointerDownCapture={onPointerDownCapture}
+			onDragStart={onDragStart}
+		>
 			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
 				<ShadowRowHoverActions
 					findFileRow={findFileRow}
@@ -360,15 +476,33 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					onOpenChange={(open) => !open && setDiscardTarget(null)}
 					title={
 						discardIsDelete
-							? `Delete "${discardBasename}"?`
-							: `Discard changes to "${discardBasename}"?`
+							? t({
+									message: `Delete "${discardBasename}"?`,
+								})
+							: t({
+									message: `Discard changes to "${discardBasename}"?`,
+								})
 					}
 					description={
 						discardIsDelete
-							? "This will permanently delete this file. This action cannot be undone."
-							: "This will revert all changes to this file. This action cannot be undone."
+							? t({
+									message:
+										"This will permanently delete this file. This action cannot be undone.",
+								})
+							: t({
+									message:
+										"This will revert all changes to this file. This action cannot be undone.",
+								})
 					}
-					confirmLabel={discardIsDelete ? "Delete" : "Discard"}
+					confirmLabel={
+						discardIsDelete
+							? t({
+									message: "Delete",
+								})
+							: t({
+									message: "Discard",
+								})
+					}
 					onConfirm={() => {
 						const target = discardTarget;
 						setDiscardTarget(null);
@@ -383,16 +517,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	);
 });
 
-function buildPierreGitStatus(files: ChangesetFile[]): PierreGitStatusEntry[] {
+function buildPierreGitStatus(
+	files: ChangesetFile[],
+	toTreePath: Map<string, string>,
+): PierreGitStatusEntry[] {
 	return files.map((file) => ({
-		path: file.path,
+		path: toTreePath.get(file.path) ?? file.path,
 		status: FILE_STATUS_TO_PIERRE[file.status],
 	}));
-}
-
-function formatDiffStats(additions: number, deletions: number): string {
-	if (additions === 0 && deletions === 0) return "";
-	if (additions === 0) return `−${deletions}`;
-	if (deletions === 0) return `+${additions}`;
-	return `+${additions} −${deletions}`;
 }

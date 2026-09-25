@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenuItem,
@@ -125,7 +126,9 @@ export function OpenInExternalDropdownItems({
 							alt=""
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
-						<span>IDE</span>
+						<span>
+							<Trans>IDE</Trans>
+						</span>
 					</div>
 				</DropdownMenuSubTrigger>
 				<DropdownMenuSubContent sideOffset={8} className={subContentClassName}>
@@ -146,7 +149,9 @@ export function OpenInExternalDropdownItems({
 										subTriggerIconClassName,
 									)}
 								/>
-								<span>VS Code</span>
+								<span>
+									<Trans>VS Code</Trans>
+								</span>
 							</div>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent className={subContentClassName}>
@@ -169,7 +174,9 @@ export function OpenInExternalDropdownItems({
 										subTriggerIconClassName,
 									)}
 								/>
-								<span>JetBrains</span>
+								<span>
+									<Trans>JetBrains</Trans>
+								</span>
 							</div>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent className={subContentClassName}>
@@ -197,7 +204,9 @@ export function OpenInExternalDropdownItems({
 							alt=""
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
-						<span>Terminal</span>
+						<span>
+							<Trans>Terminal</Trans>
+						</span>
 					</div>
 				</DropdownMenuSubTrigger>
 				<DropdownMenuSubContent sideOffset={8} className={subContentClassName}>
@@ -210,7 +219,9 @@ export function OpenInExternalDropdownItems({
 					className={cn("flex items-center gap-2", copyPathContentClassName)}
 				>
 					<LuCopy className={cn("size-4", copyPathIconClassName)} />
-					<span className={copyPathLabelClassName}>Copy path</span>
+					<span className={copyPathLabelClassName}>
+						<Trans>Copy path</Trans>
+					</span>
 				</div>
 				{copyPathTrailing}
 			</DropdownMenuItem>

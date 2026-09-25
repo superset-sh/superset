@@ -7,7 +7,7 @@ description: Working with monorepos
 
 Superset works with monorepos. Workspaces are created at the repo root with access to all packages.
 
-## Setup Script
+## Lifecycle Setup Script
 
 ```json
 {
@@ -27,6 +27,14 @@ bun run dev                          # All services
 bun run --filter @myapp/web dev &    # Specific package
 bun run --filter @myapp/api dev
 ```
+
+## Sparse Checkout
+
+List the folders your worktrees actually need in the project's **Sparse checkout** setting. New worktrees for that project then materialize only those folders plus the repo-root files (git cone mode).
+
+- Applies only to worktrees created after the setting changes; existing worktrees and the main repo are untouched
+- Leave the list empty for a full checkout
+- If git rejects the sparse cone, workspace creation falls back to a full checkout instead of failing
 
 ## Git Submodules
 

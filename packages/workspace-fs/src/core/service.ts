@@ -69,7 +69,6 @@ export interface FsService {
 
 	watchPath(input: {
 		absolutePath: string;
-		recursive?: boolean;
 	}): AsyncIterable<{ events: FsWatchEvent[] }>;
 }
 
@@ -147,7 +146,7 @@ export interface FsRequestMap {
 
 export interface FsSubscriptionMap {
 	watchPath: {
-		input: { absolutePath: string; recursive?: boolean };
+		input: { absolutePath: string };
 		event: { events: FsWatchEvent[] };
 	};
 }

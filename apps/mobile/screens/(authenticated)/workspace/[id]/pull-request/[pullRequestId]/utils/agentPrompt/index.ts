@@ -1,0 +1,1 @@
+export { agentPrompt } from "./agentPrompt";

@@ -4,16 +4,11 @@ import type {
 	AgentLaunchResult,
 	AgentLaunchSource,
 } from "@superset/shared/agent-launch";
-import type { ChatLaunchConfig } from "shared/tabs-types";
 
 export interface AgentLaunchPane {
 	id: string;
 	tabId: string;
 	type: string;
-	chat?: {
-		sessionId: string | null;
-		launchConfig?: ChatLaunchConfig | null;
-	};
 }
 
 export interface AgentLaunchTab {
@@ -28,19 +23,6 @@ export interface AgentLaunchTabsAdapter {
 	addTerminalPane: (tabId: string) => string;
 	removePane: (paneId: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;
-	addChatTab: (
-		workspaceId: string,
-		options?: { launchConfig?: ChatLaunchConfig | null },
-	) => { tabId: string; paneId: string };
-	addChatPane: (
-		tabId: string,
-		options?: { launchConfig?: ChatLaunchConfig | null },
-	) => string;
-	switchChatSession: (paneId: string, sessionId: string | null) => void;
-	setChatLaunchConfig: (
-		paneId: string,
-		launchConfig: ChatLaunchConfig | null,
-	) => void;
 }
 
 export interface AgentSessionLaunchContext {
@@ -58,11 +40,6 @@ export interface AgentSessionLaunchContext {
 		data: string;
 		throwOnError?: boolean;
 	}) => Promise<unknown>;
-	sendChatMessage?: (input: {
-		sessionId: string;
-		prompt: string;
-		model?: string;
-	}) => Promise<void>;
 	captureEvent?: (input: {
 		event: "agent_session_launch";
 		properties: Record<string, unknown>;
@@ -76,7 +53,7 @@ export interface QueueAgentSessionLaunchInput {
 	defaultPresets?: TerminalPreset[];
 }
 
-export type AgentSessionLaunchAdapterKind = "terminal" | "chat";
+export type AgentSessionLaunchAdapterKind = "terminal";
 
 export type LaunchResultPayload = Pick<
 	AgentLaunchResult,

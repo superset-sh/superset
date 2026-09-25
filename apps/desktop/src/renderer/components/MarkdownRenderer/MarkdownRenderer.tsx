@@ -18,12 +18,15 @@ interface MarkdownRendererProps {
 	content: string;
 	style?: keyof typeof styleConfigs;
 	className?: string;
+	/** Parse raw inline HTML. Disable for remote/untrusted content (e.g. server-driven notices). */
+	allowHtml?: boolean;
 }
 
 export function MarkdownRenderer({
 	content,
 	style: styleProp,
 	className,
+	allowHtml = true,
 }: MarkdownRendererProps) {
 	const globalStyle = useMarkdownStyle();
 	const style = styleProp ?? globalStyle;
@@ -42,7 +45,9 @@ export function MarkdownRenderer({
 				<article ref={articleRef} className={config.articleClass}>
 					<ReactMarkdown
 						remarkPlugins={[remarkGfm]}
-						rehypePlugins={[rehypeRaw, rehypeSanitize]}
+						rehypePlugins={
+							allowHtml ? [rehypeRaw, rehypeSanitize] : [rehypeSanitize]
+						}
 						components={config.components}
 					>
 						{content}

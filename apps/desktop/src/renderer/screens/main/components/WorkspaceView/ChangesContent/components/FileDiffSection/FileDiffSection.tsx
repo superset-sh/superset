@@ -1,12 +1,13 @@
+import { useFormat } from "@superset/i18n/react";
 import { Alert, AlertDescription, AlertTitle } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
+import { FileSaveConflictDialog } from "renderer/components/FileSaveConflictDialog";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
-import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useChangesStore } from "renderer/stores/changes";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -80,6 +81,8 @@ export function FileDiffSection({
 	onDiscard,
 	isActioning = false,
 }: FileDiffSectionProps) {
+	const { formatNumber } = useFormat();
+
 	const { workspaceId } = useParams({ strict: false });
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -462,7 +465,7 @@ export function FileDiffSection({
 							<p className="text-sm">
 								{isGenerated
 									? "Generated file hidden"
-									: `Large diff hidden — ${totalChanges.toLocaleString()} lines changed`}
+									: `Large diff hidden — ${formatNumber(totalChanges, undefined)} lines changed`}
 							</p>
 							<Button
 								variant="outline"

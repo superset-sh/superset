@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { LuCheck, LuClipboard } from "react-icons/lu";
@@ -70,9 +71,11 @@ export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
 	return (
 		<div className="flex w-full flex-col items-center space-y-6 px-6 text-center">
 			<h1 className="text-3xl font-semibold tracking-tight">
-				Authentication Code
+				<Trans>Authentication Code</Trans>
 			</h1>
-			<p className="text-muted-foreground">Paste this into Superset CLI:</p>
+			<p className="text-muted-foreground">
+				<Trans>Paste this into Superset CLI:</Trans>
+			</p>
 
 			{/* biome-ignore lint/a11y/useSemanticElements: keep as div so the inner <code> stays selectable as a ctrl+c fallback if clipboard write fails — wrapping in a button disrupts selection focus */}
 			<div
@@ -95,11 +98,11 @@ export function CliAuthCodeDisplay({ code, state }: CliAuthCodeDisplayProps) {
 			<Button variant="ghost" onClick={handleCopy}>
 				{copied ? (
 					<>
-						<LuCheck /> Copied!
+						<LuCheck /> <Trans>Copied!</Trans>
 					</>
 				) : (
 					<>
-						<LuClipboard /> Copy Code
+						<LuClipboard /> <Trans>Copy Code</Trans>
 					</>
 				)}
 			</Button>

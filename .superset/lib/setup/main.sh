@@ -56,19 +56,19 @@ setup_main() {
     step_failed "Allocate port base"
   fi
 
-  # Step 8: Prepare Electric SQL env
-  if ! step_prepare_electric; then
-    step_failed "Prepare Electric SQL"
-  fi
-
-  # Step 9: Write .env file
+  # Step 8: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi
 
-  # Step 10: Start Electric SQL
-  if ! step_start_electric; then
-    step_failed "Start Electric SQL"
+  # Step 9: Fill keys the root .env lacks with fakes from .env.local.example
+  if ! step_seed_env_placeholders; then
+    step_failed "Seed .env placeholders"
+  fi
+
+  # Step 10: Prove the API can load this .env
+  if ! step_validate_env; then
+    step_failed "Validate .env"
   fi
 
   # Step 11: Setup local MCP in .mcp.json (opt-in)

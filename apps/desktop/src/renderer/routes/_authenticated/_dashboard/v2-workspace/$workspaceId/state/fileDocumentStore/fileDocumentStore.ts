@@ -1,6 +1,6 @@
 import type { workspaceTrpc } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
-import { isImageFile, isVideoFile } from "shared/file-types";
+import { isImageFile, isPdfFile, isVideoFile } from "shared/file-types";
 import type {
 	ConflictResolution,
 	ConflictState,
@@ -27,6 +27,7 @@ interface DocumentEntry {
 	byteSize: number | null;
 	refCount: number;
 	version: number;
+	loadGeneration: number;
 	subscribers: Set<() => void>;
 }
 
@@ -70,7 +71,7 @@ function isBinaryText(content: string): boolean {
 	return false;
 }
 
-function decodeBase64(value: string): Uint8Array {
+export function decodeBase64(value: string): Uint8Array {
 	if (typeof Buffer !== "undefined") {
 		return new Uint8Array(Buffer.from(value, "base64"));
 	}
@@ -90,9 +91,21 @@ async function loadEntry(
 	entry: DocumentEntry,
 	options: { unlimited?: boolean } = {},
 ): Promise<void> {
+	const generation = ++entry.loadGeneration;
+	const canApplyResult = () => {
+		if (generation !== entry.loadGeneration) return false;
+		if (computeDirty(entry)) {
+			entry.hasExternalChange = true;
+			notify(entry);
+			return false;
+		}
+		return true;
+	};
 	const client = entry.trpcClient;
 	const readAsBinary =
-		isImageFile(entry.absolutePath) || isVideoFile(entry.absolutePath);
+		isImageFile(entry.absolutePath) ||
+		isVideoFile(entry.absolutePath) ||
+		isPdfFile(entry.absolutePath);
 	const maxBytes = options.unlimited ? undefined : DEFAULT_MAX_BYTES;
 	try {
 		const result = await client.filesystem.readFile.query({
@@ -101,6 +114,7 @@ async function loadEntry(
 			encoding: readAsBinary ? undefined : "utf-8",
 			maxBytes,
 		});
+		if (!canApplyResult()) return;
 
 		entry.byteSize = result.byteLength;
 		entry.isBinary = readAsBinary ? true : entry.isBinary;
@@ -133,6 +147,7 @@ async function loadEntry(
 		entry.savedContentText = result.content;
 		notify(entry);
 	} catch (error) {
+		if (!canApplyResult()) return;
 		const isNotFound = isEnoentLikeError(error);
 		entry.content = isNotFound
 			? { kind: "not-found" }
@@ -226,6 +241,7 @@ function createHandle(entry: DocumentEntry): SharedFileDocument {
 			const client = entry.trpcClient;
 			const currentValue = entry.content.value;
 			const currentRevision = entry.content.revision;
+			entry.loadGeneration += 1;
 			entry.pendingSave = true;
 			entry.saveError = null;
 			notify(entry);
@@ -272,6 +288,13 @@ function createHandle(entry: DocumentEntry): SharedFileDocument {
 				notify(entry);
 				return { status: "error", error: error as Error };
 			}
+		},
+		async compareWithDisk() {
+			const generation = entry.loadGeneration;
+			const diskContent = await fetchCurrentDiskContent(entry);
+			if (generation !== entry.loadGeneration) return;
+			entry.conflict = { diskContent };
+			notify(entry);
 		},
 		async reload() {
 			resetForLoad(entry);
@@ -340,6 +363,7 @@ export function acquireDocument(
 			byteSize: null,
 			refCount: 0,
 			version: 0,
+			loadGeneration: 0,
 			subscribers: new Set(),
 		};
 		entries.set(k, entry);
@@ -390,6 +414,7 @@ export function dispatchFsEvent(
 	for (const entry of Array.from(entries.values())) {
 		if (entry.workspaceId !== workspaceId) continue;
 		const affects =
+			event.kind === "overflow" ||
 			entry.absolutePath === event.absolutePath ||
 			(event.kind === "rename" && event.oldAbsolutePath === entry.absolutePath);
 		if (!affects) continue;
@@ -401,6 +426,7 @@ export function dispatchFsEvent(
 			(event.kind === "rename" && event.absolutePath === entry.absolutePath);
 
 		if (event.kind === "delete") {
+			entry.loadGeneration += 1;
 			entry.orphaned = true;
 			notify(entry);
 			continue;
@@ -410,10 +436,12 @@ export function dispatchFsEvent(
 			event.kind === "rename" &&
 			event.oldAbsolutePath === entry.absolutePath
 		) {
+			entry.loadGeneration += 1;
 			const oldKey = key(entry.workspaceId, entry.absolutePath);
 			entries.delete(oldKey);
 			entry.absolutePath = event.absolutePath;
 			entries.set(key(entry.workspaceId, entry.absolutePath), entry);
+			if (!computeDirty(entry)) void loadEntry(entry);
 			notify(entry);
 			continue;
 		}
@@ -421,6 +449,7 @@ export function dispatchFsEvent(
 		if (isContentMutation) {
 			if (entry.orphaned) entry.orphaned = false;
 			if (computeDirty(entry)) {
+				entry.loadGeneration += 1;
 				entry.hasExternalChange = true;
 				notify(entry);
 			} else {

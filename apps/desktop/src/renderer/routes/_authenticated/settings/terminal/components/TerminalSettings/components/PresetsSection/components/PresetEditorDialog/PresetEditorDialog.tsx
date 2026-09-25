@@ -1,10 +1,13 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
+import { errorMessage } from "@superset/i18n/errors";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
@@ -64,6 +67,12 @@ interface PresetEditorDialogProps {
 	 * row has agentId, so the linked branch stays dormant.
 	 */
 	agents?: HostAgentConfig[];
+	/**
+	 * Called after a linked-agent command save succeeds so the owner can keep
+	 * the preset rows' `commands` snapshot (the launch fallback when the agent
+	 * config isn't loaded) in sync with the edited command.
+	 */
+	onLinkedAgentSaved?: (updated: HostAgentConfig) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;
@@ -186,6 +195,7 @@ export function PresetEditorDialog({
 	preset,
 	projects,
 	agents,
+	onLinkedAgentSaved,
 	open,
 	onOpenChange,
 	onDeletePreset,
@@ -204,12 +214,12 @@ export function PresetEditorDialog({
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorDialogProps) {
+	const { t } = useLingui();
 	const linkedAgent = useMemo(() => {
 		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
 		return findLinkedAgent(agents, presetAgentId);
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
-	const isLinked = !!linkedAgentId;
 	const liveCommands = useMemo(
 		() =>
 			preset
@@ -242,7 +252,7 @@ export function PresetEditorDialog({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "save the agent command",
+						action: "saveAgentCommand",
 					}),
 				);
 			}
@@ -257,16 +267,28 @@ export function PresetEditorDialog({
 				),
 			);
 			void queryClient.invalidateQueries(queryFamily);
+			onLinkedAgentSaved?.(updated);
 		},
 		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to save"),
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to save",
+					}),
+				),
+			),
 	});
 
 	const handleLinkedCommandBlur = () => {
 		if (!linkedAgent) return;
 		const patch = parseAgentCommandText(linkedCommandText);
 		if (patch.command.length === 0) {
-			toast.error("Command cannot be empty");
+			toast.error(
+				t({
+					message: "Command cannot be empty",
+				}),
+			);
 			setLinkedCommandText(getAgentCommandText(linkedAgent));
 			return;
 		}
@@ -302,7 +324,9 @@ export function PresetEditorDialog({
 
 	const handleBrowseDirectory = async () => {
 		const result = await selectDirectory.mutateAsync({
-			title: "Select preset directory",
+			title: t({
+				message: "Select terminal script directory",
+			}),
 			defaultPath: browseDefaultPath,
 		});
 		if (!result.canceled && result.path) {
@@ -318,17 +342,44 @@ export function PresetEditorDialog({
 
 	const launchModeOptions = hasMultipleCommands
 		? [
-				{ value: "sequential", label: "All in current tab" },
-				{ value: "split-pane", label: "All in current tab (split panes)" },
-				{ value: "new-tab", label: "Each in its own new tab" },
+				{
+					value: "sequential",
+					label: t({
+						message: "All in current tab",
+					}),
+				},
+				{
+					value: "split-pane",
+					label: t({
+						message: "All in current tab (split panes)",
+					}),
+				},
+				{
+					value: "new-tab",
+					label: t({
+						message: "Each in its own new tab",
+					}),
+				},
 				{
 					value: "new-tab-split-pane",
-					label: "All in a new tab (split panes)",
+					label: t({
+						message: "All in a new tab (split panes)",
+					}),
 				},
 			]
 		: [
-				{ value: "split-pane", label: "Open in current tab" },
-				{ value: "new-tab", label: "Open in new tab" },
+				{
+					value: "split-pane",
+					label: t({
+						message: "Open in current tab",
+					}),
+				},
+				{
+					value: "new-tab",
+					label: t({
+						message: "Open in new tab",
+					}),
+				},
 			];
 	const launchModeValue = hasMultipleCommands
 		? modeValue
@@ -341,8 +392,10 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					This directory does not exist. The preset will fall back to the
-					workspace root.
+					<Trans>
+						This directory does not exist. The terminal script will fall back to
+						the workspace root.
+					</Trans>
 				</AlertDescription>
 			</Alert>
 		) : trimmedCwd &&
@@ -352,7 +405,7 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					This path exists, but it is not a directory.
+					<Trans>This path exists, but it is not a directory.</Trans>
 				</AlertDescription>
 			</Alert>
 		) : null;
@@ -364,12 +417,21 @@ export function PresetEditorDialog({
 					<>
 						<DialogHeader>
 							<DialogTitle>
-								{(linkedAgent?.label ?? preset.name).trim() || "Edit preset"}
+								{(linkedAgent?.label ?? preset.name).trim() ||
+									t({
+										message: "Edit script",
+									})}
 							</DialogTitle>
+							<DialogDescription className="sr-only">
+								<Trans>
+									Configure commands, availability, and launch behavior for this
+									terminal script.
+								</Trans>
+							</DialogDescription>
 						</DialogHeader>
 
 						<div className="space-y-3">
-							{isLinked ? (
+							{linkedAgentId ? (
 								<div className="py-2.5 space-y-2">
 									<div className="flex items-center justify-between gap-3">
 										<Label
@@ -380,15 +442,21 @@ export function PresetEditorDialog({
 											}
 											className="text-sm font-medium"
 										>
-											Command
+											<Trans>Command</Trans>
 										</Label>
 										<Link
-											to="/settings/agents"
-											search={{ agent: linkedAgentId }}
+											to="/settings/agents/$agentId"
+											params={{ agentId: linkedAgentId }}
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>
-											Open {linkedAgent?.label ?? "agent settings"}
+											<Trans>
+												Open{" "}
+												{linkedAgent?.label ??
+													t({
+														message: "agent settings",
+													})}
+											</Trans>
 											<ExternalLink className="size-3" />
 										</Link>
 									</div>
@@ -421,27 +489,41 @@ export function PresetEditorDialog({
 									)}
 									{!linkedAgent && (
 										<p className="text-xs text-muted-foreground">
-											The linked agent is missing or disabled. Showing the
-											snapshot.
+											<Trans>
+												The linked agent is missing or disabled. Showing the
+												snapshot.
+											</Trans>
 										</p>
 									)}
 								</div>
 							) : (
 								<>
-									<DialogRow label="Name" htmlFor="preset-name">
+									<DialogRow
+										label={t({
+											message: "Name",
+										})}
+										htmlFor="preset-name"
+									>
 										<Input
 											id="preset-name"
 											value={preset.name}
 											onChange={(e) => onFieldChange("name", e.target.value)}
 											onBlur={() => onFieldBlur("name")}
-											placeholder="e.g. Dev server"
+											placeholder={t({
+												message: "e.g. Dev server",
+											})}
 										/>
 									</DialogRow>
 
 									<DialogRow
-										label="Description"
+										label={t({
+											message: "Description",
+										})}
 										htmlFor="preset-description"
-										hint="Optional context shown in the presets list."
+										hint={t({
+											message:
+												"Optional context shown in the terminal scripts list.",
+										})}
 									>
 										<Input
 											id="preset-description"
@@ -450,28 +532,41 @@ export function PresetEditorDialog({
 												onFieldChange("description", e.target.value)
 											}
 											onBlur={() => onFieldBlur("description")}
-											placeholder="Optional"
+											placeholder={t({
+												message: "Optional",
+											})}
 										/>
 									</DialogRow>
 
 									<DialogRow
-										label="Commands"
-										hint="One command per row. Add multiple to launch a grouped preset."
+										label={t({
+											message: "Commands",
+										})}
+										hint={t({
+											message:
+												"One command per row. Add multiple to launch a grouped terminal script.",
+										})}
 										stacked
 									>
 										<CommandsEditor
 											commands={preset.commands}
 											onChange={onCommandsChange}
 											onBlur={onCommandsBlur}
-											placeholder="e.g. bun run dev"
+											placeholder={t({
+												message: "e.g. bun run dev",
+											})}
 										/>
 									</DialogRow>
 								</>
 							)}
 
 							<DialogRow
-								label="Applies to"
-								hint="Where this preset is available."
+								label={t({
+									message: "Applies to",
+								})}
+								hint={t({
+									message: "Where this terminal script is available.",
+								})}
 							>
 								<ProjectTargetingField
 									projectIds={preset.projectIds}
@@ -482,9 +577,14 @@ export function PresetEditorDialog({
 							</DialogRow>
 
 							<DialogRow
-								label="Directory"
+								label={t({
+									message: "Directory",
+								})}
 								htmlFor="preset-directory"
-								hint="Use a workspace-relative path or an absolute folder."
+								hint={t({
+									message:
+										"Use a workspace-relative path or an absolute folder.",
+								})}
 							>
 								<div className="flex items-center gap-2">
 									<Input
@@ -501,7 +601,9 @@ export function PresetEditorDialog({
 										size="sm"
 										onClick={handleBrowseDirectory}
 										disabled={selectDirectory.isPending}
-										aria-label="Browse for directory"
+										aria-label={t({
+											message: "Browse for directory",
+										})}
 									>
 										<HiOutlineFolderOpen className="size-4" />
 									</Button>
@@ -513,11 +615,17 @@ export function PresetEditorDialog({
 							)}
 
 							<DialogRow
-								label="Launch mode"
+								label={t({
+									message: "Launch mode",
+								})}
 								hint={
 									hasMultipleCommands
-										? "How grouped commands open."
-										: "How the command opens."
+										? t({
+												message: "How grouped commands open.",
+											})
+										: t({
+												message: "How the command opens.",
+											})
 								}
 							>
 								{hasMultipleCommands ? (
@@ -543,17 +651,32 @@ export function PresetEditorDialog({
 										value={launchModeValue}
 										onChange={(value) => onModeChange(value as ExecutionMode)}
 										options={[
-											{ value: "split-pane", label: "Current tab" },
-											{ value: "new-tab", label: "New tab" },
+											{
+												value: "split-pane",
+												label: t({
+													message: "Current tab",
+												}),
+											},
+											{
+												value: "new-tab",
+												label: t({
+													message: "New tab",
+												}),
+											},
 										]}
 									/>
 								)}
 							</DialogRow>
 
 							<DialogRow
-								label="Use as workspace run"
+								label={t({
+									message: "Use as workspace run",
+								})}
 								htmlFor="preset-workspace-run"
-								hint="Makes the Run button launch this preset for matching projects."
+								hint={t({
+									message:
+										"Makes the Run button launch this terminal script for matching projects.",
+								})}
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -565,9 +688,14 @@ export function PresetEditorDialog({
 							</DialogRow>
 
 							<DialogRow
-								label="Auto-run on workspace creation"
+								label={t({
+									message: "Auto-run on workspace creation",
+								})}
 								htmlFor="preset-workspace-autostart"
-								hint="Launch this preset when a new workspace is created."
+								hint={t({
+									message:
+										"Launch this terminal script when a new workspace is created.",
+								})}
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -581,9 +709,14 @@ export function PresetEditorDialog({
 							</DialogRow>
 
 							<DialogRow
-								label="Auto-run on new tab"
+								label={t({
+									message: "Auto-run on new tab",
+								})}
 								htmlFor="preset-tab-autostart"
-								hint="Launch this preset whenever a new terminal tab opens."
+								hint={t({
+									message:
+										"Launch this terminal script whenever a new terminal tab opens.",
+								})}
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -606,14 +739,14 @@ export function PresetEditorDialog({
 								className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 							>
 								<Trash2 className="size-4" />
-								Delete preset
+								<Trans>Delete script</Trans>
 							</Button>
 							<Button
 								type="button"
 								size="sm"
 								onClick={() => onOpenChange(false)}
 							>
-								Done
+								<Trans>Done</Trans>
 							</Button>
 						</DialogFooter>
 					</>

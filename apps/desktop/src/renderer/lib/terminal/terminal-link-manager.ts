@@ -8,7 +8,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { ILinkHandler, Terminal as XTerm } from "@xterm/xterm";
-import { UrlLinkProvider } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers";
 import type { DetectedLink } from "./links";
 import {
 	LinkDetectorAdapter,
@@ -17,10 +16,17 @@ import {
 	TerminalLinkResolver,
 	WordLinkDetector,
 } from "./links";
+import { UrlLinkProvider } from "./links/url-link-provider";
 
 export type LinkHoverInfo =
-	| { kind: "file"; isDirectory: boolean }
-	| { kind: "url" };
+	| {
+			kind: "file";
+			isDirectory: boolean;
+			resolvedPath?: string;
+			row?: number;
+			col?: number;
+	  }
+	| { kind: "url"; url: string };
 
 /**
  * Link handler callbacks for the v2 terminal.
@@ -50,7 +56,7 @@ interface LinkProviderDisposable {
  *
  * Providers are registered in priority order (xterm uses first match):
  * 1. LocalLinkDetector (file paths with validation) + styled-text fallback
- * 2. UrlLinkProvider (hard-wrapped URL detection)
+ * 2. UrlLinkProvider (wrapped URL detection)
  * 3. WordLinkDetector (bare filenames like "AGENTS.md")
  */
 export class TerminalLinkManager {
@@ -125,13 +131,16 @@ export class TerminalLinkManager {
 						onLinkHover(event, {
 							kind: "file",
 							isDirectory: link.isDirectory,
+							resolvedPath: link.resolvedPath,
+							row: link.row,
+							col: link.col,
 						})
 				: undefined,
 			onLinkLeave,
 		);
 		this._disposables.push(this._terminal.registerLinkProvider(adapter));
 
-		// 2. URL link provider (handles hard-wrapped URLs)
+		// 2. URL link provider (handles terminal-wrapped URLs)
 		if (handlers.onUrlClick) {
 			const onUrlClick = handlers.onUrlClick;
 			const urlProvider = new UrlLinkProvider(
@@ -140,7 +149,7 @@ export class TerminalLinkManager {
 					onUrlClick(event, uri);
 				},
 				onLinkHover
-					? (event) => onLinkHover(event, { kind: "url" })
+					? (event, uri) => onLinkHover(event, { kind: "url", url: uri })
 					: undefined,
 				onLinkLeave,
 			);
@@ -155,7 +164,7 @@ export class TerminalLinkManager {
 					onUrlClick(event, uri);
 				},
 				hover: onLinkHover
-					? (event) => onLinkHover(event, { kind: "url" })
+					? (event, uri) => onLinkHover(event, { kind: "url", url: uri })
 					: undefined,
 				leave: onLinkLeave ? () => onLinkLeave() : undefined,
 			};
@@ -187,7 +196,12 @@ export class TerminalLinkManager {
 					});
 				},
 				onLinkHover
-					? (event) => onLinkHover(event, { kind: "file", isDirectory: false })
+					? (event, resolvedPath) =>
+							onLinkHover(event, {
+								kind: "file",
+								isDirectory: false,
+								resolvedPath,
+							})
 					: undefined,
 				onLinkLeave,
 			);

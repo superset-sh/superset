@@ -5,8 +5,8 @@ import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 export default command({
 	description: "Create a project on a host",
 	options: {
-		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		host: string().desc("Target host machineId (required unless --local)"),
+		local: boolean().desc("Target this machine (required unless --host)"),
 		name: string().required().desc("Project name"),
 		clone: string().desc(
 			"Git remote URL to clone (requires --parent-dir). Mutually exclusive with --import",
@@ -48,10 +48,11 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const mode = options.clone

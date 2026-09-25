@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
 import {
 	isItemVisible,
@@ -5,6 +6,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
+import { LanguageSection } from "./components/LanguageSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
 
@@ -49,25 +51,40 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showLanguage = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
-		<div className="p-6 max-w-4xl w-full">
+		<div className="p-6 max-w-5xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Appearance</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans>Appearance</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Customize how Superset looks on your device
+					<Trans>Customize how Superset looks on your device</Trans>
 				</p>
 			</div>
 
 			<SectionList>
-				{showThemeSection && <ThemeSection key="theme" />}
-				{showMarkdown && <MarkdownStyleSection key="markdown" />}
-				{showEditorFont && (
-					<FontSettingSection key="editor-font" variant="editor" />
+				{(showThemeSection || showLanguage || showMarkdown) && (
+					<div
+						key="appearance-card"
+						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
+					>
+						{showThemeSection && <ThemeSection />}
+						{showLanguage && <LanguageSection />}
+						{showMarkdown && <MarkdownStyleSection />}
+					</div>
 				)}
-				{showTerminalFont && (
-					<FontSettingSection key="terminal-font" variant="terminal" />
+				{(showEditorFont || showTerminalFont) && (
+					<FontSettingSection
+						key="typography"
+						showEditor={showEditorFont}
+						showTerminal={showTerminalFont}
+					/>
 				)}
 			</SectionList>
 		</div>

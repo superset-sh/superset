@@ -1,1 +1,0 @@
-export { DeviceFilterTriggerLabel } from "./DeviceFilterTriggerLabel";

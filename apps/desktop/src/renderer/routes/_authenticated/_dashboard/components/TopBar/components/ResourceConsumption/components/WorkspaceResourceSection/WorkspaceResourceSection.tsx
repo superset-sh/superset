@@ -1,21 +1,20 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/lib/utils";
 import { HiOutlineChevronDown, HiOutlineChevronRight } from "react-icons/hi2";
 import type { SortOption, WorkspaceMetrics } from "../../types";
 import { formatCpu, formatMemory } from "../../utils/formatters";
 import { getUsageSeverity } from "../../utils/resourceSeverity";
+import {
+	groupWorkspacesByProject,
+	type ProjectResourceGroup,
+	sortProjectGroups,
+	sortWorkspaces,
+} from "../../utils/workspaceGrouping";
 import { UsageSeverityBadge } from "../UsageSeverityBadge";
 
 const METRIC_COLS = "flex items-center shrink-0 tabular-nums tracking-tight";
 const CPU_COL = "w-12 text-right";
 const MEM_COL = "w-16 text-right";
-
-interface ProjectResourceGroup {
-	projectId: string;
-	projectName: string;
-	cpu: number;
-	memory: number;
-	workspaces: WorkspaceMetrics[];
-}
 
 interface WorkspaceResourceSectionProps {
 	workspaces: WorkspaceMetrics[];
@@ -29,96 +28,6 @@ interface WorkspaceResourceSectionProps {
 	navigateToWorkspace: (workspaceId: string) => void;
 	navigateToPane: (workspaceId: string, paneId: string) => void;
 	getPaneName: (session: WorkspaceMetrics["sessions"][number]) => string;
-}
-
-function groupWorkspacesByProject(
-	workspaces: WorkspaceMetrics[],
-): ProjectResourceGroup[] {
-	const projectMap = new Map<string, ProjectResourceGroup>();
-
-	for (const workspace of workspaces) {
-		const projectId = workspace.projectId || "unknown";
-		const projectName = workspace.projectName || "Unknown Project";
-		let group = projectMap.get(projectId);
-		if (!group) {
-			group = {
-				projectId,
-				projectName,
-				cpu: 0,
-				memory: 0,
-				workspaces: [],
-			};
-			projectMap.set(projectId, group);
-		}
-
-		group.cpu += workspace.cpu;
-		group.memory += workspace.memory;
-		group.workspaces.push(workspace);
-	}
-
-	return [...projectMap.values()];
-}
-
-function sortWorkspaces(
-	workspaces: WorkspaceMetrics[],
-	sortOption: SortOption,
-	sidebarWorkspaceOrder: string[],
-): WorkspaceMetrics[] {
-	const sorted = [...workspaces];
-	switch (sortOption) {
-		case "memory":
-			sorted.sort((a, b) => b.memory - a.memory);
-			break;
-		case "cpu":
-			sorted.sort((a, b) => b.cpu - a.cpu);
-			break;
-		case "name":
-			sorted.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
-			break;
-		case "sidebar": {
-			const orderMap = new Map(
-				sidebarWorkspaceOrder.map((id, index) => [id, index]),
-			);
-			sorted.sort(
-				(a, b) =>
-					(orderMap.get(a.workspaceId) ?? Number.MAX_SAFE_INTEGER) -
-					(orderMap.get(b.workspaceId) ?? Number.MAX_SAFE_INTEGER),
-			);
-			break;
-		}
-	}
-	return sorted;
-}
-
-function sortProjectGroups(
-	groups: ProjectResourceGroup[],
-	sortOption: SortOption,
-	sidebarProjectOrder: string[],
-): ProjectResourceGroup[] {
-	const sorted = [...groups];
-	switch (sortOption) {
-		case "memory":
-			sorted.sort((a, b) => b.memory - a.memory);
-			break;
-		case "cpu":
-			sorted.sort((a, b) => b.cpu - a.cpu);
-			break;
-		case "name":
-			sorted.sort((a, b) => a.projectName.localeCompare(b.projectName));
-			break;
-		case "sidebar": {
-			const orderMap = new Map(
-				sidebarProjectOrder.map((id, index) => [id, index]),
-			);
-			sorted.sort(
-				(a, b) =>
-					(orderMap.get(a.projectId) ?? Number.MAX_SAFE_INTEGER) -
-					(orderMap.get(b.projectId) ?? Number.MAX_SAFE_INTEGER),
-			);
-			break;
-		}
-	}
-	return sorted;
 }
 
 function getProjectTotals(projects: ProjectResourceGroup[]) {
@@ -144,6 +53,7 @@ export function WorkspaceResourceSection({
 	navigateToPane,
 	getPaneName,
 }: WorkspaceResourceSectionProps) {
+	const { t } = useLingui();
 	const rawProjectGroups = groupWorkspacesByProject(workspaces);
 	const sortedProjectGroups = sortProjectGroups(
 		rawProjectGroups,
@@ -174,7 +84,13 @@ export function WorkspaceResourceSection({
 					onClick={() => toggleProject(project.projectId)}
 					className="group w-full flex items-center justify-between px-2 py-1.5 hover:bg-foreground/[0.04] transition-colors"
 					aria-label={
-						isProjectCollapsed ? "Expand project" : "Collapse project"
+						isProjectCollapsed
+							? t({
+									message: "Expand project",
+								})
+							: t({
+									message: "Collapse project",
+								})
 					}
 				>
 					<div className="flex items-center gap-1 min-w-0 mr-2">
@@ -211,7 +127,13 @@ export function WorkspaceResourceSection({
 											onClick={() => toggleWorkspace(workspace.workspaceId)}
 											className="flex items-center justify-center h-7 w-5 ml-3.5 shrink-0 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 											aria-label={
-												isCollapsed ? "Expand workspace" : "Collapse workspace"
+												isCollapsed
+													? t({
+															message: "Expand workspace",
+														})
+													: t({
+															message: "Collapse workspace",
+														})
 											}
 										>
 											{isCollapsed ? (

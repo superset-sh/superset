@@ -1,34 +1,36 @@
-import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLingui } from "@lingui/react/macro";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { LuFile } from "react-icons/lu";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useSettings } from "renderer/stores/settings";
+import {
+	WORKSPACE_SIDEBAR_TABS,
+	type WorkspaceSidebarTab,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { useReviewCommentNavigation } from "../../hooks/useReviewCommentNavigation";
+import { useRowlessSidebarTabStore } from "../../state/rowlessSidebarTabStore";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
+import {
+	DEFAULT_WORKSPACE_SIDEBAR_TAB,
+	setWorkspaceSidebarTab,
+} from "../../utils/setWorkspaceSidebarTab";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
-import { useChangesTab } from "./hooks/useChangesTab";
-import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
-import { usePRFlowState } from "./hooks/usePRFlowState";
+import { type SelectedDiffTarget, useChangesTab } from "./hooks/useChangesTab";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
 
-// Gates the "Create PR" button only — the chat-driven create flow doesn't
-// exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
-// always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
+const LABELLED_TAB_WIDTH = 88;
+const LABEL_HYSTERESIS = 20;
 
-type SidebarTabId = "changes" | "files" | "review";
-
-const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
+type SidebarTabId = WorkspaceSidebarTab;
 
 function isSidebarTabId(tab: string): tab is SidebarTabId {
-	return (VALID_TAB_IDS as readonly string[]).includes(tab);
+	return (WORKSPACE_SIDEBAR_TABS as readonly string[]).includes(tab);
 }
 
 export interface PendingReveal {
@@ -46,49 +48,34 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenChat?: OpenChatFn;
+	/** Opens the linked PR's summary pane; the Review tab's title falls back to GitHub without it. */
+	onOpenPullRequest?: (ref: PullRequestRef) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
+	/** The diff pane's current file, highlighted in the Changes tab. */
+	selectedDiffTarget?: SelectedDiffTarget;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
-}
-
-function IconButton({
-	icon: Icon,
-	tooltip,
-	onClick,
-}: {
-	icon: React.ComponentType<{ className?: string }>;
-	tooltip: string;
-	onClick?: () => void;
-}) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="size-6"
-					onClick={onClick}
-				>
-					<Icon className="size-3.5" />
-				</Button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom">{tooltip}</TooltipContent>
-		</Tooltip>
-	);
+	/** Run button rendered by the page, hosted in the sidebar's top strip. */
+	runButton: ReactNode;
+	/** Rendered by the page, which owns the pane store agents launch into. */
+	pagesMenu: ReactNode;
 }
 
 export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
-	onOpenChat,
+	onOpenPullRequest,
 	onSearch,
 	selectedFilePath,
+	selectedDiffTarget,
 	pendingReveal,
 	workspaceId,
+	runButton,
+	pagesMenu,
 }: WorkspaceSidebarProps) {
+	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
 	const collections = useCollections();
 	const { data: [localState] = [] } = useLiveQuery(
@@ -98,71 +85,61 @@ export function WorkspaceSidebar({
 				.where(({ localState }) => eq(localState.workspaceId, workspaceId)),
 		[collections, workspaceId],
 	);
+	// Workspaces without a local row (auto-included local mains) keep their
+	// tab in the session-only fallback that setWorkspaceSidebarTab writes.
+	const rowlessTab = useRowlessSidebarTabStore((s) => s.tabs[workspaceId]);
+	const clearRowlessTab = useRowlessSidebarTabStore((s) => s.clearTab);
+	// The live query can lag a render when the workspace switches; a row that
+	// still belongs to the previous workspace must not speak for this one.
+	const row = localState?.workspaceId === workspaceId ? localState : undefined;
 	const activeTab: SidebarTabId =
-		localState && isSidebarTabId(localState.sidebarState.activeTab)
-			? localState.sidebarState.activeTab
-			: "changes";
+		row && isSidebarTabId(row.sidebarState.activeTab)
+			? row.sidebarState.activeTab
+			: (rowlessTab ?? DEFAULT_WORKSPACE_SIDEBAR_TAB);
+
+	// A row created while a rowless choice is pending (pinning a local main)
+	// starts on the default tab: carry the choice into the row once, then
+	// drop the session entry so it can't resurface if the row goes away.
+	const hasRow = row != null;
+	useEffect(() => {
+		if (!hasRow || rowlessTab === undefined) return;
+		setWorkspaceSidebarTab(collections, workspaceId, rowlessTab);
+		clearRowlessTab(workspaceId);
+	}, [hasRow, rowlessTab, collections, workspaceId, clearRowlessTab]);
 
 	function setActiveTab(tab: string) {
 		if (!isSidebarTabId(tab)) return;
-		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.activeTab = tab;
-		});
+		setWorkspaceSidebarTab(collections, workspaceId, tab);
 	}
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [compact, setCompact] = useState(false);
-	useEffect(() => {
-		const el = containerRef.current;
-		if (!el) return;
-		const ro = new ResizeObserver(([entry]) => {
-			if (!entry) return;
-			const width = entry.contentRect.width;
-			// Hysteresis: expand back to labels only once we're clearly past
-			// the breakpoint, so the labels don't jitter on the edge.
-			setCompact((prev) => (prev ? width < 280 : width < 260));
-		});
-		ro.observe(el);
-		return () => ro.disconnect();
-	}, []);
 
-	const changesTabDef = useChangesTab({
+	const changesTab = useChangesTab({
 		workspaceId,
-		selectedFilePath,
+		selectedDiffTarget,
 		onSelectFile: onSelectDiffFile
 			? (path, openInNewTab, changeKey) =>
 					onSelectDiffFile(path, openInNewTab, undefined, undefined, changeKey)
 			: undefined,
 		onOpenFile: onSelectFile,
 	});
-	const changesTab: SidebarTabDefinition = {
-		...changesTabDef,
-		icon: LuGitCompareArrows,
-	};
 
+	const onOpenInDiff = useReviewCommentNavigation(
+		workspaceId,
+		onSelectDiffFile,
+	);
 	const reviewTab = useReviewTab({
 		workspaceId,
 		onOpenComment,
-		onOpenInDiff: onSelectDiffFile
-			? (path, line, openInNewTab, side) => {
-					// Force annotations on so the user lands on the comment, not an empty line.
-					useSettings.getState().update("showDiffComments", true);
-					onSelectDiffFile(path, openInNewTab ?? false, line, side);
-				}
-			: undefined,
-	});
-
-	const { flowState, onRetry } = usePRFlowState(workspaceId);
-	const dispatch = usePRFlowDispatch({
-		onOpenChat: onOpenChat ?? (() => {}),
+		onOpenPullRequest,
+		onOpenInDiff,
 	});
 
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
-		label: "Files",
+		label: t({ message: "Files" }),
 		icon: LuFile,
-		actions: <IconButton icon={Search} tooltip="Search" onClick={onSearch} />,
 		content: (
 			<FilesTab
 				onSelectFile={onSelectFile}
@@ -170,28 +147,39 @@ export function WorkspaceSidebar({
 				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
 				gitStatus={gitStatus.data}
+				onSearch={onSearch}
 			/>
 		),
 	};
 
 	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
-	const activeTabDef = tabs.find((t) => t.id === activeTab);
+	const activeTabDef = tabs.find((t) => t.id === activeTab) ?? tabs[0];
+
+	const tabCount = tabs.length;
+	useEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		const collapseBelow = tabCount * LABELLED_TAB_WIDTH;
+		const ro = new ResizeObserver(([entry]) => {
+			if (!entry) return;
+			const width = entry.contentRect.width;
+			setCompact((prev) =>
+				prev ? width < collapseBelow + LABEL_HYSTERESIS : width < collapseBelow,
+			);
+		});
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, [tabCount]);
 
 	return (
 		<div
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader
-				workspaceId={workspaceId}
-				state={flowState}
-				dispatch={dispatch}
-				onRetry={onRetry}
-				createPREnabled={CREATE_PR_BUTTON_ENABLED}
-			/>
+			<PRActionHeader runButton={runButton} pagesMenu={pagesMenu} />
 			<SidebarHeader
 				tabs={tabs}
-				activeTab={activeTab}
+				activeTab={activeTabDef?.id ?? activeTab}
 				onTabChange={setActiveTab}
 				compact={compact}
 			/>

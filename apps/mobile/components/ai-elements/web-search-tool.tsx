@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
 import * as Linking from "expo-linking";
 import { ExternalLinkIcon, GlobeIcon } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -27,6 +30,8 @@ export const WebSearchTool = ({
 	state,
 	className,
 }: WebSearchToolProps) => {
+	const { _: translate } = useTranslation();
+
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isError = state === "output-error";
 	const hasResults = results.length > 0;
@@ -36,7 +41,9 @@ export const WebSearchTool = ({
 			<Loader size={12} />
 		</View>
 	) : isError ? (
-		<Text className="text-destructive text-xs">Failed</Text>
+		<Text className="text-destructive text-xs">
+			<Trans>Failed</Trans>
+		</Text>
 	) : null;
 
 	return (
@@ -47,7 +54,7 @@ export const WebSearchTool = ({
 			isError={isError}
 			isPending={isPending}
 			statusNode={statusNode}
-			title="Web Search"
+			title={translate(msg({ message: "Web Search" }))}
 		>
 			{hasResults ? (
 				<View>

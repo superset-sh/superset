@@ -1,1 +1,0 @@
-export { ChatShortcuts } from "./ChatShortcuts";

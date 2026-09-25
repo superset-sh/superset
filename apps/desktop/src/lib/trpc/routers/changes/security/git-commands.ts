@@ -1,6 +1,8 @@
-import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
+import { runWithPostCheckoutHookTolerance } from "@superset/shared/git-hook-tolerance";
+import { TRPCError } from "@trpc/server";
 import { getCurrentBranch } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../../workspaces/utils/git-errors";
 import {
 	assertRegisteredWorktree,
 	assertValidGitPath,
@@ -20,6 +22,17 @@ import {
 
 async function getGitWithShellPath(worktreePath: string) {
 	return getSimpleGitWithShellPath(worktreePath);
+}
+
+/** Runs a git command, rethrowing environmental git failures (worktree gone,
+ * permission wall, not a repo) as typed non-500 TRPCErrors. */
+async function runGit<T>(command: () => Promise<T>): Promise<T> {
+	try {
+		return await command();
+	} catch (error) {
+		rethrowEnvironmentalGitError(error);
+		throw error;
+	}
 }
 
 async function isCurrentBranch({
@@ -53,38 +66,46 @@ export async function gitSwitchBranch(
 
 	// Validate: reject anything that looks like a flag
 	if (branch.startsWith("-")) {
-		throw new Error("Invalid branch name: cannot start with -");
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid branch name: cannot start with -",
+		});
 	}
 
 	// Validate: reject empty branch names
 	if (!branch.trim()) {
-		throw new Error("Invalid branch name: cannot be empty");
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid branch name: cannot be empty",
+		});
 	}
 
 	const git = await getGitWithShellPath(worktreePath);
 
-	await runWithPostCheckoutHookTolerance({
-		context: `Switched branch to "${branch}" in ${worktreePath}`,
-		run: async () => {
-			try {
-				// Prefer `git switch` - unambiguous branch operation (git 2.23+)
-				await git.raw(["switch", branch]);
-			} catch (switchError) {
-				// Check if it's because `switch` command doesn't exist (old git < 2.23)
-				// Git outputs: "git: 'switch' is not a git command. See 'git --help'."
-				const errorMessage = String(switchError);
-				if (errorMessage.includes("is not a git command")) {
-					// Fallback for older git versions
-					// Note: checkout WITHOUT -- is correct for branches
-					await git.checkout(branch);
-				} else {
-					throw switchError;
+	await runGit(() =>
+		runWithPostCheckoutHookTolerance({
+			context: `Switched branch to "${branch}" in ${worktreePath}`,
+			run: async () => {
+				try {
+					// Prefer `git switch` - unambiguous branch operation (git 2.23+)
+					await git.raw(["switch", branch]);
+				} catch (switchError) {
+					// Check if it's because `switch` command doesn't exist (old git < 2.23)
+					// Git outputs: "git: 'switch' is not a git command. See 'git --help'."
+					const errorMessage = String(switchError);
+					if (errorMessage.includes("is not a git command")) {
+						// Fallback for older git versions
+						// Note: checkout WITHOUT -- is correct for branches
+						await git.checkout(branch);
+					} else {
+						throw switchError;
+					}
 				}
-			}
-		},
-		didSucceed: async () =>
-			isCurrentBranch({ worktreePath, expectedBranch: branch }),
-	});
+			},
+			didSucceed: async () =>
+				isCurrentBranch({ worktreePath, expectedBranch: branch }),
+		}),
+	);
 }
 
 /**
@@ -100,7 +121,10 @@ export async function gitCheckoutFiles(
 	filePaths: string[],
 ): Promise<void> {
 	if (filePaths.length === 0) {
-		throw new Error("filePaths must not be empty");
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "filePaths must not be empty",
+		});
 	}
 	assertRegisteredWorktree(worktreePath);
 	for (const filePath of filePaths) {
@@ -108,7 +132,7 @@ export async function gitCheckoutFiles(
 	}
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.checkout(["--", ...filePaths]);
+	await runGit(() => git.checkout(["--", ...filePaths]));
 }
 
 /**
@@ -125,7 +149,7 @@ export async function gitStageFile(
 	assertValidGitPath(filePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.add(["--", filePath]);
+	await runGit(() => git.add(["--", filePath]));
 }
 
 /**
@@ -139,7 +163,10 @@ export async function gitStageFiles(
 	filePaths: string[],
 ): Promise<void> {
 	if (filePaths.length === 0) {
-		throw new Error("filePaths must not be empty");
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "filePaths must not be empty",
+		});
 	}
 	assertRegisteredWorktree(worktreePath);
 	for (const filePath of filePaths) {
@@ -147,7 +174,7 @@ export async function gitStageFiles(
 	}
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.add(["--", ...filePaths]);
+	await runGit(() => git.add(["--", ...filePaths]));
 }
 
 /**
@@ -161,7 +188,10 @@ export async function gitUnstageFiles(
 	filePaths: string[],
 ): Promise<void> {
 	if (filePaths.length === 0) {
-		throw new Error("filePaths must not be empty");
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "filePaths must not be empty",
+		});
 	}
 	assertRegisteredWorktree(worktreePath);
 	for (const filePath of filePaths) {
@@ -169,7 +199,7 @@ export async function gitUnstageFiles(
 	}
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.reset(["HEAD", "--", ...filePaths]);
+	await runGit(() => git.reset(["HEAD", "--", ...filePaths]));
 }
 
 /**
@@ -181,7 +211,7 @@ export async function gitStageAll(worktreePath: string): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.add("-A");
+	await runGit(() => git.add("-A"));
 }
 
 /**
@@ -198,7 +228,7 @@ export async function gitUnstageFile(
 	assertValidGitPath(filePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.reset(["HEAD", "--", filePath]);
+	await runGit(() => git.reset(["HEAD", "--", filePath]));
 }
 
 /**
@@ -211,7 +241,7 @@ export async function gitUnstageAll(worktreePath: string): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.reset(["HEAD"]);
+	await runGit(() => git.reset(["HEAD"]));
 }
 
 /**
@@ -226,7 +256,7 @@ export async function gitDiscardAllUnstaged(
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.checkout(["--", "."]);
+	await runGit(() => git.checkout(["--", "."]));
 }
 
 /**
@@ -239,8 +269,8 @@ export async function gitDiscardAllStaged(worktreePath: string): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.reset(["HEAD"]);
-	await git.checkout(["--", "."]);
+	await runGit(() => git.reset(["HEAD"]));
+	await runGit(() => git.checkout(["--", "."]));
 }
 
 /**
@@ -252,7 +282,7 @@ export async function gitStash(worktreePath: string): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.stash(["push"]);
+	await runGit(() => git.stash(["push"]));
 }
 
 /**
@@ -266,7 +296,7 @@ export async function gitStashIncludeUntracked(
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.stash(["push", "--include-untracked"]);
+	await runGit(() => git.stash(["push", "--include-untracked"]));
 }
 
 /**
@@ -279,5 +309,5 @@ export async function gitStashPop(worktreePath: string): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 
 	const git = await getGitWithShellPath(worktreePath);
-	await git.stash(["pop"]);
+	await runGit(() => git.stash(["pop"]));
 }

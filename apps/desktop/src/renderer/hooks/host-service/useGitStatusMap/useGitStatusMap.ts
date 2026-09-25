@@ -53,7 +53,7 @@ export function useGitStatusMap(
 		if (!status) return emptyResult();
 
 		// Union of all changes — later writes win so uncommitted state
-		// overrides committed state. Same pattern as useChangesTab's "all" filter.
+		// overrides committed state. Same pattern as the Changes tab's "all" filter.
 		const fileStatusByPath = new Map<string, FileStatus>();
 		for (const file of status.againstBase) {
 			fileStatusByPath.set(normalizePath(file.path), file.status);

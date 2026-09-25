@@ -1,5 +1,8 @@
 import { unlink } from "node:fs/promises";
-import type { GitCredentialProvider } from "../../../runtime/git/types";
+import type {
+	CredentialProblem,
+	GitCredentialProvider,
+} from "../../../runtime/git/types";
 import { writeTempAskpass } from "../askpass";
 
 interface CachedCredential {
@@ -53,6 +56,12 @@ export class CloudGitCredentialProvider implements GitCredentialProvider {
 				GIT_TERMINAL_PROMPT: "0",
 			},
 		};
+	}
+
+	credentialRemedy(_host: string, problem: CredentialProblem): string {
+		return problem === "missing"
+			? "No GitHub token for this workspace. Reconnect the GitHub integration."
+			: "GitHub rejected this workspace's token. Reconnect the GitHub integration.";
 	}
 
 	async getToken(_host: string): Promise<string | null> {

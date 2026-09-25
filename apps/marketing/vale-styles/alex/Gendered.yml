@@ -1,0 +1,108 @@
+---
+extends: substitution
+message: "Consider using '%s' instead of '%s'."
+ignorecase: true
+level: warning
+action:
+  name: replace
+swap:
+  ancient man: ancient civilization|ancient people
+  authoress: author|writer
+  average housewife: average consumer|average household|average homemaker
+  average man: average person
+  average working man: average wage earner|average taxpayer
+  aviatrix: aviator
+  bitch: whine|complain|cry
+  bitching: whining|complaining|crying
+  brotherhood of man: the human family
+  calendar girl: model
+  call girl: escort|prostitute|sex worker
+  churchman: cleric|practicing Christian|pillar of the Church
+  english master: english coordinator|senior teacher of english
+  englishmen: the english
+  executrix: executor
+  father of *: founder of
+  fellowship: camaraderie|community|organization
+  founding father: the founders|founding leaders|forebears
+  frenchmen: french|the french
+  freshman: first-year student|fresher
+  freshwoman: first-year student|fresher
+  housemaid: house worker|domestic help
+  housewife: homemaker|homeworker
+  housewives: homemakers|homeworkers
+  industrial man: industrial civilization|industrial people
+  lady doctor: doctor
+  ladylike: courteous|cultured
+  leading lady: lead
+  like a man: resolutely|bravely
+  mad man: fanatic|zealot|enthusiast
+  mad men: fanatics|zealots|enthusiasts
+  madman: fanatic|zealot|enthusiast
+  madmen: fanatics|zealots|enthusiasts
+  maiden: virgin
+  maiden flight: first flight
+  maiden name: birth name
+  maiden race: first race
+  maiden speech: first speech
+  maiden voyage: first voyage
+  man a desk: staff a desk
+  man enough: strong enough
+  man hour: staff hour|hour of work
+  man hours: staff hours|hours of work|hours of labor|hours
+  man in the street: ordinary citizen|typical person|average person
+  man of action: dynamo
+  man of letters: scholar|writer|literary figure
+  man of the land: farmer|rural worker|grazier|landowner|rural community|country people|country
+    folk
+  man of the world: sophisticate
+  man sized task: a demanding task|a big job
+  man the booth: staff the booth
+  man the phones: answer the phones
+  manhour: staff hour|hour of work
+  manhours: staff hours|hours of work|hours of labor|hours
+  mankind: humankind
+  manmade: manufactured|artificial|synthetic|machine-made|constructed
+  manned: staffed|crewed|piloted
+  manpower: human resources|workforce|personnel|staff|labor|personnel|labor force|staffing|combat
+    personnel
+  mans best friend: a faithful dog
+  mansized task: a demanding task|a big job
+  master copy: pass key|original
+  master key: pass key|original
+  master of ceremonies: emcee|moderator|convenor
+  master plan: grand scheme|guiding principles
+  master the art: become skilled
+  masterful: skilled|authoritative|commanding
+  mastermind: genius|creator|instigator|oversee|launch|originate
+  masterpiece: "work of genius|chef d\u2019oeuvre"
+  masterplan: vision|comprehensive plan
+  masterstroke: trump card|stroke of genius
+  men of science: scientists
+  midwife: birthing nurse
+  miss\.: ms.
+  moan: whine|complain|cry
+  moaning: whining|complaining|crying
+  modern man: modern civilization|modern people
+  motherly: loving|warm|nurturing
+  mrs\.: ms.
+  no mans land: unoccupied territory|wasteland|deathtrap
+  office girls: administrative staff
+  oneupmanship: upstaging|competitiveness
+  poetess: poet
+  railwayman: railway worker
+  sportsmanlike: fair|sporting
+  sportsmanship: fairness|good humor|sense of fair play
+  statesman like: diplomatic
+  statesmanlike: diplomatic
+  stockman: cattle worker|farmhand|drover
+  tax man: tax commissioner|tax office|tax collector
+  tradesmans entrance: service entrance
+  unmanned: robotic|automated
+  usherette: usher
+  wife beater: tank top|sleeveless undershirt
+  wifebeater: tank top|sleeveless undershirt
+  woman lawyer: lawyer
+  woman painter: painter
+  working mother: wage or salary earning woman|two-income family
+  working wife: wage or salary earning woman|two-income family
+  workmanship: quality construction|expertise

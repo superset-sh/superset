@@ -1,0 +1,25 @@
+# Base tools: git for the checkout, HTTPS clones, the shell tools an agent
+# reaches for. No build-essential here on purpose; the toolchain list has it.
+git
+git-lfs
+ca-certificates
+openssh-client
+curl
+wget
+procps
+rsync
+zip
+unzip
+tzdata
+locales
+less
+jq
+ripgrep
+sqlite3
+inotify-tools
+dnsutils
+iputils-ping
+netcat-openbsd
+vim
+iproute2
+sudo

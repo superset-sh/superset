@@ -10,8 +10,8 @@ interface ResolvedNames {
 
 /**
  * Returns whatever the user typed; null otherwise. The host-service
- * generates a friendly random for the missing side and runs the AI
- * rename for any side that wasn't user-supplied.
+ * seeds the branch from a typed name, otherwise creates with a friendly
+ * random and applies AI names as a deferred rename.
  */
 export function resolveNames(draft: DashboardNewWorkspaceDraft): ResolvedNames {
 	const branchName =

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import {
 	getDefaultSeedPresets,
+	getPresetById,
 	type HostAgentPreset,
 } from "@superset/shared/host-agent-presets";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +27,12 @@ export interface HostAgentConfig {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	/** Args that resume a previous session; the session id is appended after
+	 * them. Empty when the agent has no id-based resume. */
+	resumeArgs: string[];
+	/** Args that clone a previous session. `{sessionId}` marks the id position;
+	 * otherwise it is appended. Empty when native forks are unsupported. */
+	forkArgs: string[];
 	env: Record<string, string>;
 	order: number;
 }
@@ -39,6 +46,8 @@ interface HostAgentConfigRow {
 	argsJson: string;
 	promptTransport: string;
 	promptArgsJson: string;
+	resumeArgsJson: string;
+	forkArgsJson: string;
 	envJson: string;
 	displayOrder: number;
 }
@@ -87,6 +96,8 @@ function toOutput(row: HostAgentConfigRow): HostAgentConfig {
 		args: parseArgv(row.argsJson),
 		promptTransport: row.promptTransport as PromptTransport,
 		promptArgs: parseArgv(row.promptArgsJson),
+		resumeArgs: parseArgv(row.resumeArgsJson),
+		forkArgs: parseArgv(row.forkArgsJson),
 		env: parseEnv(row.envJson),
 		order: row.displayOrder,
 	};
@@ -105,6 +116,8 @@ function rowFromPreset(
 		argsJson: JSON.stringify(preset.args),
 		promptTransport: preset.promptTransport,
 		promptArgsJson: JSON.stringify(preset.promptArgs),
+		resumeArgsJson: JSON.stringify(preset.resumeArgs),
+		forkArgsJson: JSON.stringify(preset.forkArgs),
 		envJson: JSON.stringify(preset.env),
 		displayOrder,
 	};
@@ -118,7 +131,12 @@ function listOrdered(db: HostDb): HostAgentConfigRow[] {
 		.all();
 }
 
-function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
+/**
+ * Exported for the sandbox boot: a freshly forked cloud workspace launches
+ * an agent before any client has listed its agents, which is what normally
+ * seeds the defaults.
+ */
+export function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 	const existing = listOrdered(db);
 	if (existing.length > 0) return existing;
 	const seeds = getDefaultSeedPresets().map((preset, index) =>
@@ -127,6 +145,57 @@ function seedDefaultsIfEmpty(db: HostDb): HostAgentConfigRow[] {
 	if (seeds.length === 0) return existing;
 	db.insert(hostAgentConfigs).values(seeds).run();
 	return listOrdered(db);
+}
+
+/**
+ * Defaults are seeded once, when the table is empty, so an install that
+ * predates a preset gaining fork support would keep an empty `forkArgs`
+ * forever and silently offer no fork for a harness whose CLI can do it.
+ *
+ * Only rows still identical to their preset are filled in: if someone has
+ * edited an agent's launch settings, their row is theirs. The one case this
+ * cannot tell apart is an untouched agent whose fork args were deliberately
+ * cleared, which comes back on the next read; re-enabling a menu item is a
+ * small enough wrong to prefer over a schema change to record the intent.
+ */
+function backfillPresetForkArgs(
+	db: HostDb,
+	rows: HostAgentConfigRow[],
+): HostAgentConfigRow[] {
+	let changed = false;
+	for (const row of rows) {
+		if (parseArgv(row.forkArgsJson).length > 0) continue;
+		const preset = getPresetById(row.presetId);
+		if (!preset || preset.forkArgs.length === 0) continue;
+		if (!rowMatchesPresetLaunch(row, preset)) continue;
+		db.update(hostAgentConfigs)
+			.set({ forkArgsJson: JSON.stringify(preset.forkArgs) })
+			.where(eq(hostAgentConfigs.id, row.id))
+			.run();
+		changed = true;
+	}
+	return changed ? listOrdered(db) : rows;
+}
+
+/** Whether a row's launch settings are still exactly what the preset ships. */
+function rowMatchesPresetLaunch(
+	row: HostAgentConfigRow,
+	preset: HostAgentPreset,
+): boolean {
+	const sameArgv = (json: string, args: string[]) => {
+		const parsed = parseArgv(json);
+		return (
+			parsed.length === args.length &&
+			parsed.every((value, index) => value === args[index])
+		);
+	};
+	return (
+		row.command === preset.command &&
+		row.promptTransport === preset.promptTransport &&
+		sameArgv(row.argsJson, preset.args) &&
+		sameArgv(row.promptArgsJson, preset.promptArgs) &&
+		sameArgv(row.resumeArgsJson, preset.resumeArgs)
+	);
 }
 
 // An icon override is either a built-in icon key ("claude") or an uploaded
@@ -144,6 +213,8 @@ const updatePatchSchema = z
 		args: argvSchema.optional(),
 		promptTransport: promptTransportSchema.optional(),
 		promptArgs: argvSchema.optional(),
+		resumeArgs: argvSchema.optional(),
+		forkArgs: argvSchema.optional(),
 		env: envSchema.optional(),
 		iconId: iconIdPatchSchema.optional(),
 	})
@@ -154,6 +225,8 @@ const updatePatchSchema = z
 			patch.args !== undefined ||
 			patch.promptTransport !== undefined ||
 			patch.promptArgs !== undefined ||
+			patch.resumeArgs !== undefined ||
+			patch.forkArgs !== undefined ||
 			patch.env !== undefined ||
 			patch.iconId !== undefined,
 		{ message: "Patch must update at least one field" },
@@ -165,6 +238,9 @@ const addInputSchema = z.object({
 	args: argvSchema,
 	promptTransport: promptTransportSchema,
 	promptArgs: argvSchema,
+	// Defaulted so an older desktop client that doesn't send it can still add.
+	resumeArgs: argvSchema.default([]),
+	forkArgs: argvSchema.default([]),
 	env: envSchema,
 	presetId: z.string().trim().min(1).optional(),
 	iconId: iconIdSchema.optional(),
@@ -176,7 +252,7 @@ export const agentConfigsRouter = router({
 	 * on first call when no configs exist.
 	 */
 	list: protectedProcedure.query(({ ctx }) => {
-		const rows = seedDefaultsIfEmpty(ctx.db);
+		const rows = backfillPresetForkArgs(ctx.db, seedDefaultsIfEmpty(ctx.db));
 		return rows.map(toOutput);
 	}),
 
@@ -206,6 +282,8 @@ export const agentConfigsRouter = router({
 				argsJson: JSON.stringify(input.args),
 				promptTransport: input.promptTransport,
 				promptArgsJson: JSON.stringify(input.promptArgs),
+				resumeArgsJson: JSON.stringify(input.resumeArgs),
+				forkArgsJson: JSON.stringify(input.forkArgs),
 				envJson: JSON.stringify(input.env),
 				displayOrder: nextOrder,
 			})
@@ -259,6 +337,10 @@ export const agentConfigsRouter = router({
 				update.promptTransport = input.patch.promptTransport;
 			if (input.patch.promptArgs !== undefined)
 				update.promptArgsJson = JSON.stringify(input.patch.promptArgs);
+			if (input.patch.resumeArgs !== undefined)
+				update.resumeArgsJson = JSON.stringify(input.patch.resumeArgs);
+			if (input.patch.forkArgs !== undefined)
+				update.forkArgsJson = JSON.stringify(input.patch.forkArgs);
 			if (input.patch.env !== undefined)
 				update.envJson = JSON.stringify(input.patch.env);
 			if (input.patch.iconId !== undefined) update.iconId = input.patch.iconId;
@@ -279,6 +361,65 @@ export const agentConfigsRouter = router({
 				});
 			}
 			return toOutput(updated);
+		}),
+
+	/**
+	 * Restore one configured built-in agent to the bundled definition while
+	 * preserving its stable id and display order. This repairs stale defaults
+	 * without replacing unrelated custom agents or breaking linked presets.
+	 */
+	restoreDefault: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.mutation(({ ctx, input }) => {
+			const existing = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!existing) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Host agent config not found: ${input.id}`,
+				});
+			}
+
+			const preset = getPresetById(existing.presetId);
+			if (!preset) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Agent config '${input.id}' has no bundled default`,
+				});
+			}
+
+			ctx.db
+				.update(hostAgentConfigs)
+				.set({
+					iconId: null,
+					label: preset.label,
+					command: preset.command,
+					argsJson: JSON.stringify(preset.args),
+					promptTransport: preset.promptTransport,
+					promptArgsJson: JSON.stringify(preset.promptArgs),
+					resumeArgsJson: JSON.stringify(preset.resumeArgs),
+					forkArgsJson: JSON.stringify(preset.forkArgs),
+					envJson: JSON.stringify(preset.env),
+					updatedAt: Date.now(),
+				})
+				.where(eq(hostAgentConfigs.id, input.id))
+				.run();
+
+			const restored = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!restored) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to read back restored host agent config",
+				});
+			}
+			return toOutput(restored);
 		}),
 
 	/** Delete a single host agent config by id. Throws NOT_FOUND if missing. */

@@ -2,12 +2,14 @@ import type { WorkspaceState } from "@superset/panes";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffectEvent, useMemo } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import type { AgentLifecycleEvent } from "shared/notification-types";
@@ -15,13 +17,16 @@ import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
 } from "./components/HostNotificationSubscriber";
+import { getNotificationWorkspaceName } from "./lib/getNotificationWorkspaceName";
 import { markV2AgentLifecycleTargetSeen } from "./lib/lifecycleEvents";
 
 interface WorkspaceHostRow {
 	workspaceId: string;
 	organizationId: string;
 	hostId: string;
+	type: "local" | "worktree" | "session";
 	name: string;
+	projectName?: string;
 	branch: string;
 }
 
@@ -57,21 +62,25 @@ type ElectronNotificationEvent =
  */
 export function V2NotificationController() {
 	const collections = useCollections();
+	const { projects } = useHostProjects();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
-	const { data: allWorkspaceHosts = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.select(({ v2Workspaces }) => ({
-					workspaceId: v2Workspaces.id,
-					organizationId: v2Workspaces.organizationId,
-					hostId: v2Workspaces.hostId,
-					name: v2Workspaces.name,
-					branch: v2Workspaces.branch,
-				})),
-		[collections],
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const allWorkspaceHosts = useMemo<WorkspaceHostRow[]>(
+		() =>
+			hostWorkspaces.map((workspace) => ({
+				workspaceId: workspace.id,
+				organizationId: workspace.organizationId,
+				hostId: workspace.hostId,
+				type: workspace.type,
+				name: workspace.name,
+				projectName: projects.find(
+					(project) => project.id === workspace.projectId,
+				)?.name,
+				branch: workspace.branch,
+			})),
+		[hostWorkspaces, projects],
 	);
 	const { data: allLocalWorkspaceRows = [] } = useLiveQuery(
 		(q) =>
@@ -193,7 +202,7 @@ function getNotificationWorkspaceStatesById({
 		]),
 	);
 
-	const statesById = new Map(
+	const statesById = new Map<string, HostNotificationWorkspaceState>(
 		localWorkspaceRows.map((row) => [
 			row.workspaceId,
 			{
@@ -207,8 +216,8 @@ function getNotificationWorkspaceStatesById({
 	for (const workspace of workspaceHosts) {
 		statesById.set(workspace.workspaceId, {
 			workspaceId: workspace.workspaceId,
-			workspaceName:
-				workspace.name.trim() || workspace.branch.trim() || "Workspace",
+			workspaceName: getNotificationWorkspaceName(workspace),
+			projectName: workspace.projectName,
 			paneLayout: paneLayoutsByWorkspaceId.get(workspace.workspaceId) ?? null,
 		});
 	}

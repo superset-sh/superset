@@ -33,6 +33,9 @@ describe("setup scripts integration", () => {
 		}
 	});
 
+	// The ungated typing path adds deliberate delay (quiescence wait + echo
+	// verification) before the command and its Enter land — give the test
+	// headroom beyond bun's 5s default.
 	test("v2 settings config is the same config used by workspace setup terminals", async () => {
 		const scenario = await createProjectScenario({
 			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
@@ -123,10 +126,15 @@ describe("setup scripts integration", () => {
 		expect(created.terminals).toHaveLength(1);
 		expect(created.terminals[0]?.label).toBe("Workspace Setup");
 
+		// The command text and its Enter arrive as separate writes (the Enter is
+		// delayed so shell startup can't eat it) — assert both, in order.
 		await waitFor(
-			() => writes.includes("echo setup-a && echo setup-b\n"),
+			() =>
+				writes.includes("echo setup-a && echo setup-b") &&
+				writes.indexOf("\r") > writes.indexOf("echo setup-a && echo setup-b"),
 			5000,
-			() => `expected setup command write, got ${JSON.stringify(writes)}`,
+			() =>
+				`expected setup command write + Enter, got ${JSON.stringify(writes)}`,
 		);
 
 		const workspaceRow = scenario.host.db
@@ -146,10 +154,11 @@ describe("setup scripts integration", () => {
 		expect(setupTerminal.meta.env?.SUPERSET_ROOT_PATH).toBe(
 			scenario.repo.repoPath,
 		);
-	});
+	}, 20_000);
 });
 
 function createFakePty(pid: number, writes: string[]) {
+	const dataCallbacks: Array<(data: Buffer) => void> = [];
 	const exitCallbacks: Array<
 		(info: { code: number | null; signal: number | null }) => void
 	> = [];
@@ -157,9 +166,16 @@ function createFakePty(pid: number, writes: string[]) {
 	return {
 		pid,
 		write(data: string | Uint8Array) {
-			writes.push(
-				typeof data === "string" ? data : Buffer.from(data).toString("utf-8"),
-			);
+			const text =
+				typeof data === "string" ? data : Buffer.from(data).toString("utf-8");
+			writes.push(text);
+			// Simulate the kernel's canonical-mode echo: an ungated (`/bin/sh`)
+			// launch verifies its typed command by watching for this echo and
+			// would otherwise burn its whole retype budget against silence.
+			const echoed = Buffer.from(text, "utf-8");
+			queueMicrotask(() => {
+				for (const callback of dataCallbacks) callback(echoed);
+			});
 		},
 		resize() {},
 		kill() {
@@ -167,7 +183,9 @@ function createFakePty(pid: number, writes: string[]) {
 				callback({ code: null, signal: null });
 			}
 		},
-		onData() {},
+		onData(callback: (data: Buffer) => void) {
+			dataCallbacks.push(callback);
+		},
 		onExit(
 			callback: (info: { code: number | null; signal: number | null }) => void,
 		) {

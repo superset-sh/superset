@@ -1,0 +1,8 @@
+{
+	"ios": {
+		"NSSpeechRecognitionUsageDescription": "Superset은 음성 인식을 사용하여 음성을 텍스트로 변환합니다.",
+		"NSPhotoLibraryUsageDescription": "Superset은 채팅 메시지에 이미지를 첨부하기 위해 사진 보관함 접근 권한이 필요합니다.",
+		"NSCameraUsageDescription": "Superset은 채팅 메시지에 사진을 첨부하기 위해 카메라를 사용합니다.",
+		"NSMicrophoneUsageDescription": "Superset은 채팅 메시지를 음성으로 입력할 수 있도록 마이크를 사용합니다."
+	}
+}

@@ -1,0 +1,64 @@
+---
+title: "Superset vs Emdash: parallel tasks, remote hosts, and automation"
+description: "Compare Superset and Emdash for parallel coding agents, scheduled tasks, remote development, desktop platforms, and licensing."
+date: 2026-08-07
+lastUpdated: 2026-09-22
+type: "1v1"
+competitors:
+  - emdash
+keywords:
+  - superset vs emdash
+  - emdash alternative
+  - emdash ade
+  - agentic development environment
+  - ai agent orchestration
+  - worktree agent workspace
+---
+
+Superset and Emdash both organize coding agents into worktrees, provide diff review, and schedule recurring tasks. Emdash supports macOS, Windows, and Linux under an Apache-2.0 license. Superset offers an iPhone app for continuing work on a connected host.
+
+## At a Glance
+
+| Requirement | Superset | Emdash |
+|---|---|---|
+| Parallel tasks | Workspaces with separate branches and worktrees | Tasks with separate branches and worktrees |
+| Desktop | macOS; experimental Linux; Windows unavailable | macOS, Windows, Linux |
+| Scheduling | Pro automations on a selected host | Scheduled tasks with run history |
+| Remote work | Connected hosts with membership controls | SSH projects and provisioned workspaces |
+| Source license | Elastic License 2.0 | Apache-2.0 |
+
+Emdash's [documentation](https://emdash.com/docs) covers agent providers, issue intake, previews, and review. Its [automation reference](https://emdash.com/docs/automations) describes scheduled and manual runs. It also offers [cloud workspaces](https://emdash.com/cloud) and an [enterprise plan](https://emdash.com/enterprise).
+
+## Superset requirements
+
+Superset runs CLI coding agents in separate workspaces, with terminals and diff review in one app. Desktop supports macOS and an experimental Linux AppImage. Windows is not yet available. Superset is source-available under Elastic License 2.0.
+
+To use [Superset on iPhone](/mobile), you need iOS 26 or later, Pro, and a host that stays online. Remote access and automations also require a paid plan. See [pricing](/pricing) and [remote access setup](https://docs.superset.sh/remote-access).
+
+## Try it in your repository
+
+Run one of your usual tasks in each app with the same agent and model. Open the diff, ask for a correction, and run your project's checks. Compare how much setup and review each app takes. The [parallel-task guide](/blog/parallel-coding-agents-guide) has prompts you can use.
+
+![Reviewing a change in Superset.](/images/readme/diff-viewer.png)
+
+## Which should you choose?
+
+Choose Superset if you want to continue Claude Code or Codex sessions from your iPhone and review changes before returning to your desk. Try the [mobile walkthrough](/blog/claude-code-codex-iphone), then the [maintenance automation](/blog/scheduled-agent-maintenance).
+
+Choose Emdash if its supported desktop platforms, Apache-2.0 license, or documented issue integrations are decisive. Test the particular provider and tracker you need instead of selecting by the largest advertised integration count.
+
+Both products offer ways to inspect agent output. Use the same task and acceptance checks to decide which makes that review easier for your team. Emdash describes its core desktop app as free; cloud and enterprise are separate offerings whose current terms should be checked. Superset's paid feature requirements are listed on [pricing](/pricing). Agent-provider usage is separate.
+
+## Frequently Asked Questions
+
+### Can Emdash schedule recurring work?
+
+Yes. Emdash documents scheduled tasks with run history and manual runs. Superset also supports automations.
+
+### Does Emdash support remote development?
+
+Yes. Its documentation covers SSH and provisioned remote workspaces, and it has a cloud offering.
+
+### Is Superset open source under the same license?
+
+No. Superset is source-available under Elastic License 2.0. Emdash uses Apache-2.0. Read the licenses if redistribution or service hosting is part of your requirements.

@@ -19,16 +19,6 @@ describe("resolvePaneIdFromTabsState", () => {
 				type: "terminal" as const,
 				name: "Terminal",
 			},
-			"pane-chat": {
-				id: "pane-chat",
-				tabId: "tab-1",
-				type: "chat" as const,
-				name: "Chat",
-				chat: {
-					sessionId: "session-1",
-					launchConfig: null,
-				},
-			},
 		},
 		activeTabIds: { "ws-1": "tab-1" },
 		focusedPaneIds: { "tab-1": "pane-1" },
@@ -48,44 +38,19 @@ describe("resolvePaneIdFromTabsState", () => {
 				"pane-new",
 				"tab-new",
 				"ws-new",
-				undefined,
 			),
 		).toBe("pane-new");
 	});
 
 	it("resolves the focused pane from tabId when paneId is missing", () => {
 		expect(
-			resolvePaneIdFromTabsState(
-				tabsState,
-				undefined,
-				"tab-1",
-				undefined,
-				undefined,
-			),
+			resolvePaneIdFromTabsState(tabsState, undefined, "tab-1", undefined),
 		).toBe("pane-1");
 	});
 
 	it("resolves the focused pane from workspaceId when paneId is missing", () => {
 		expect(
-			resolvePaneIdFromTabsState(
-				tabsState,
-				undefined,
-				undefined,
-				"ws-1",
-				undefined,
-			),
+			resolvePaneIdFromTabsState(tabsState, undefined, undefined, "ws-1"),
 		).toBe("pane-1");
-	});
-
-	it("resolves the pane from sessionId when paneId is missing", () => {
-		expect(
-			resolvePaneIdFromTabsState(
-				tabsState,
-				undefined,
-				undefined,
-				undefined,
-				"session-1",
-			),
-		).toBe("pane-chat");
 	});
 });

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewOptions,
 	DiffLineAnnotation,
@@ -12,7 +13,7 @@ import {
 	useSendToTerminalAgent,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import type { ChangesetFile } from "../../../../../useChangeset";
-import type { AgentTarget } from "../../components/AgentCommentComposer";
+import type { AgentTarget } from "../../../AgentCommentComposer";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 interface ComposerState {
@@ -75,7 +76,7 @@ interface UseDiffCommentComposerResult {
  *   - tracks the live pierre selection that anchors the composer
  *   - synthesises the composer annotation injected via
  *     useDiffCodeViewItems' `extraAnnotationsByItemId`
- *   - dispatches submit between the existing-terminal writeInput path
+ *   - dispatches submit between the existing-terminal send path
  *     and the host `agents.run`-backed new-session path
  *
  * DiffPane only wires CodeView events; all composer state lives here.
@@ -86,6 +87,7 @@ export function useDiffCommentComposer({
 	getFile,
 	onCreateNewAgentSession,
 }: UseDiffCommentComposerArgs): UseDiffCommentComposerResult {
+	const { t } = useLingui();
 	const [composer, setComposer] = useState<ComposerState | null>(null);
 	const composerRef = useRef(composer);
 	composerRef.current = composer;
@@ -167,11 +169,15 @@ export function useDiffCommentComposer({
 
 			if (input.target.kind === "new") {
 				if (!onCreateNewAgentSession) {
-					toast.error("Couldn't start a new agent session");
+					toast.error(
+						t({
+							message: "Couldn't start a new agent session",
+						}),
+					);
 					return;
 				}
 				// Host bakes the prompt into the launch command (argv/stdin per
-				// the agent config), so no follow-up writeInput here.
+				// the agent config), so no follow-up send here.
 				const result = await onCreateNewAgentSession({
 					configId: input.target.configId,
 					placement: input.target.placement,
@@ -200,6 +206,7 @@ export function useDiffCommentComposer({
 			sendToTerminalAgent,
 			clearIfStillCurrent,
 			onCreateNewAgentSession,
+			t,
 		],
 	);
 

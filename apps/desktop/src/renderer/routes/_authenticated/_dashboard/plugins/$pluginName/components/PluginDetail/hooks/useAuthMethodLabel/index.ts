@@ -1,0 +1,1 @@
+export { useAuthMethodLabel } from "./useAuthMethodLabel";

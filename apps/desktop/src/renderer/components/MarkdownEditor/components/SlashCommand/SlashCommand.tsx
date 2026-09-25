@@ -1,3 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import { type Editor, ReactRenderer } from "@tiptap/react";
@@ -25,7 +29,7 @@ import { RiDoubleQuotesL } from "react-icons/ri";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 
 interface CommandItem {
-	title: string;
+	title: MessageDescriptor;
 	icon: React.ReactNode;
 	command: (editor: Editor) => void;
 	group: "headings" | "lists" | "blocks";
@@ -34,21 +38,27 @@ interface CommandItem {
 const COMMANDS: CommandItem[] = [
 	// Headings group
 	{
-		title: "Heading 1",
+		title: msg({
+			message: "Heading 1",
+		}),
 		icon: <span className="text-xs font-semibold">H₁</span>,
 		command: (editor) =>
 			editor.chain().focus().toggleHeading({ level: 1 }).run(),
 		group: "headings",
 	},
 	{
-		title: "Heading 2",
+		title: msg({
+			message: "Heading 2",
+		}),
 		icon: <span className="text-xs font-semibold">H₂</span>,
 		command: (editor) =>
 			editor.chain().focus().toggleHeading({ level: 2 }).run(),
 		group: "headings",
 	},
 	{
-		title: "Heading 3",
+		title: msg({
+			message: "Heading 3",
+		}),
 		icon: <span className="text-xs font-semibold">H₃</span>,
 		command: (editor) =>
 			editor.chain().focus().toggleHeading({ level: 3 }).run(),
@@ -56,32 +66,42 @@ const COMMANDS: CommandItem[] = [
 	},
 	// Lists group
 	{
-		title: "Bulleted list",
+		title: msg({
+			message: "Bulleted list",
+		}),
 		icon: <HiOutlineListBullet className="size-4" />,
 		command: (editor) => editor.chain().focus().toggleBulletList().run(),
 		group: "lists",
 	},
 	{
-		title: "Numbered list",
+		title: msg({
+			message: "Numbered list",
+		}),
 		icon: <HiOutlineNumberedList className="size-4" />,
 		command: (editor) => editor.chain().focus().toggleOrderedList().run(),
 		group: "lists",
 	},
 	{
-		title: "Checklist",
+		title: msg({
+			message: "Checklist",
+		}),
 		icon: <HiOutlineCheckCircle className="size-4" />,
 		command: (editor) => editor.chain().focus().toggleTaskList().run(),
 		group: "lists",
 	},
 	// Blocks group
 	{
-		title: "Code block",
+		title: msg({
+			message: "Code block",
+		}),
 		icon: <HiOutlineCodeBracket className="size-4" />,
 		command: (editor) => editor.chain().focus().toggleCodeBlock().run(),
 		group: "blocks",
 	},
 	{
-		title: "Blockquote",
+		title: msg({
+			message: "Blockquote",
+		}),
 		icon: <RiDoubleQuotesL className="size-4" />,
 		command: (editor) => editor.chain().focus().toggleBlockquote().run(),
 		group: "blocks",
@@ -142,7 +162,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 			return (
 				<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
 					<div className="px-2 py-1.5 text-sm text-muted-foreground">
-						No results
+						<Trans>No results</Trans>
 					</div>
 				</div>
 			);
@@ -175,13 +195,13 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 						{groupIndex > 0 && <div className="bg-border -mx-1 my-1 h-px" />}
 						{group.items.map((item) => {
 							const itemWithIndex = itemsWithIndex.find(
-								(i) => i.title === item.title,
+								(i) => i.title.id === item.title.id,
 							);
 							const index = itemWithIndex?.flatIndex ?? 0;
 							return (
 								<button
 									type="button"
-									key={item.title}
+									key={item.title.id}
 									data-index={index}
 									onClick={() => command(item)}
 									className={`relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none w-full ${
@@ -193,7 +213,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 									<span className="text-muted-foreground shrink-0 w-5 flex items-center justify-center">
 										{item.icon}
 									</span>
-									<span className="flex-1 text-left">{item.title}</span>
+									<span className="flex-1 text-left">{i18n._(item.title)}</span>
 								</button>
 							);
 						})}
@@ -241,7 +261,7 @@ export const SlashCommand = Extension.create({
 				},
 				items: ({ query }: { query: string }) => {
 					return COMMANDS.filter((item) =>
-						item.title.toLowerCase().includes(query.toLowerCase()),
+						i18n._(item.title).toLowerCase().includes(query.toLowerCase()),
 					);
 				},
 				render: () => {

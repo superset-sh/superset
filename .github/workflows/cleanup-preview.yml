@@ -18,7 +18,7 @@ jobs:
         uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3.2.1
         continue-on-error: true
         with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
           branch: ${{ github.event.pull_request.head.ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 

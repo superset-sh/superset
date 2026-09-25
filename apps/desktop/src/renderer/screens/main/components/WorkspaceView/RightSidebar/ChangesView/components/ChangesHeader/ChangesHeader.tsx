@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
 import type { GitHubStatus } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -48,6 +50,8 @@ interface ChangesHeaderProps {
 }
 
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
+	const { _: translate } = useTranslation();
+
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const utils = electronTrpc.useUtils();
@@ -63,7 +67,10 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 
 	const updateBaseBranch = electronTrpc.changes.updateBaseBranch.useMutation({
 		onSuccess: () => {
-			utils.changes.getBranches.invalidate({ worktreePath });
+			void Promise.all([
+				utils.changes.getBranches.invalidate({ worktreePath }),
+				utils.changes.getStatus.invalidate({ worktreePath }),
+			]);
 		},
 	});
 
@@ -111,14 +118,12 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="top" showArrow={false}>
-					Change base branch
-				</TooltipContent>
+				<TooltipContent side="top">Change base branch</TooltipContent>
 			</Tooltip>
 			<PopoverContent align="start" className="w-56 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search branches..."
+						placeholder={translate(msg({ message: "Search branches..." }))}
 						value={search}
 						onValueChange={setSearch}
 					/>
@@ -177,9 +182,7 @@ function StashDropdown({
 						</Button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="top" showArrow={false}>
-					Stash operations
-				</TooltipContent>
+				<TooltipContent side="top">Stash operations</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent align="start" className="w-52">
 				<DropdownMenuItem onClick={onStash} className="text-xs">
@@ -232,9 +235,7 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 					/>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="top" showArrow={false}>
-				Refresh changes
-			</TooltipContent>
+			<TooltipContent side="top">Refresh changes</TooltipContent>
 		</Tooltip>
 	);
 }

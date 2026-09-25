@@ -1,0 +1,1 @@
+export { useSkillDocument } from "./useSkillDocument";

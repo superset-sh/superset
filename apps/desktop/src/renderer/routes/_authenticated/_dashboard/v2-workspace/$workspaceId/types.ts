@@ -1,4 +1,17 @@
+import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+export interface FilePosition {
+	line: number;
+	column?: number;
+}
+
+export type OpenFile = (
+	path: string,
+	openInNewTab?: boolean,
+	position?: FilePosition,
+) => void;
+
 export interface FilePaneData {
+	pendingPosition?: FilePosition;
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
 	language?: string;
@@ -8,25 +21,14 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
-}
-
-export interface ChatPaneData {
-	sessionId: string | null;
 	/**
-	 * Transient initial launch config for a freshly-opened chat pane.
-	 * Cleared by the chat pane on first consume. Set by the V2 workspace
-	 * page's useConsumePendingLaunch when a pending chat launch exists.
+	 * Pane was inserted optimistically; the WS attach creates the session
+	 * (`create=1`) instead of a pre-awaited HTTP mutation, which starves under
+	 * Chromium's 6-per-origin socket pool. Safe to persist: the host only
+	 * honors it when no session row exists at all, so a stale flag can't
+	 * clobber a live or exited session.
 	 */
-	launchConfig?: {
-		initialPrompt?: string;
-		initialFiles?: Array<{
-			data: string;
-			mediaType: string;
-			filename?: string;
-		}>;
-		model?: string;
-		taskSlug?: string;
-	} | null;
+	createOnAttach?: boolean;
 }
 
 export interface BrowserPaneData {
@@ -46,8 +48,8 @@ export interface DiffPaneData {
 	path: string;
 	changeKey?: string;
 	collapsedFiles: string[];
-	/** Line to scroll to within `path`. `focusTick` bumps on each request
-	 *  so repeated clicks of the same line still re-scroll. */
+	/** Line to scroll to within `path`. `focusTick` bumps on each navigation
+	 *  request so it can take precedence over an older cached scroll state. */
 	focusLine?: number;
 	focusSide?: DiffFocusSide;
 	focusTick?: number;
@@ -63,11 +65,66 @@ export interface CommentPaneData {
 	line?: number;
 }
 
+export interface PullRequestPaneData {
+	repoFullName: string;
+	number: number;
+}
+
+export interface PagePaneData {
+	slug: string;
+	pageId?: string;
+	title?: string;
+}
+
+export interface ChatV3PaneData {
+	sessionId: string | null;
+}
+
+export interface DesktopPaneData {
+	kind: "desktop";
+}
+
+/**
+ * Pointer to one subagent's transcript. The transcript itself is fetched
+ * from the host on every read; only this pointer is persisted.
+ */
+export const SUBAGENT_PANE_KIND = "subagent";
+
+export interface SubagentPaneData {
+	terminalId: string;
+	subagentId: string;
+	agentId: AgentIdentityId;
+	agentType?: string;
+}
+
+export type WorkspaceSearchKey =
+	| "terminalId"
+	| "focusRequestId"
+	| "subagentTerminalId"
+	| "subagentId"
+	| "subagentAgentId"
+	| "subagentType"
+	| "openUrl"
+	| "openUrlTarget"
+	| "openUrlRequestId";
+
+/**
+ * Drops the search params a deep link arrived with, once the hook that owns
+ * them has acted. Router history is persisted with its search params and
+ * replayed at boot, so a link left in the URL fires again on every relaunch
+ * and on every Back onto that entry.
+ */
+export type ConsumeSearch = (keys: WorkspaceSearchKey[]) => void;
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
-	| ChatPaneData
+	| ChatV3PaneData
 	| BrowserPaneData
 	| DevtoolsPaneData
 	| DiffPaneData
-	| CommentPaneData;
+	| CommentPaneData
+	| PullRequestPaneData
+	| PagePaneData
+	| DesktopPaneData
+	| SubagentPaneData;

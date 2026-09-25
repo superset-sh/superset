@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import * as Clipboard from "expo-clipboard";
 import { CheckIcon, CopyIcon } from "lucide-react-native";
 import {
@@ -127,7 +129,7 @@ export const SnippetCopyButton = ({
 
 	return (
 		<Button
-			accessibilityLabel="Copy"
+			accessibilityLabel={i18n._(msg({ message: "Copy" }))}
 			className={cn("size-7 shrink-0", className)}
 			onPress={copyToClipboard}
 			size="icon"

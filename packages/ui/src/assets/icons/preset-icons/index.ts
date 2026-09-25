@@ -1,15 +1,29 @@
 import ampIcon from "./amp.svg";
+import antigravityIcon from "./antigravity.svg";
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
 import copilotIcon from "./copilot.svg";
 import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
+import devinIcon from "./devin.svg";
+import devinWhiteIcon from "./devin-white.svg";
 import droidIcon from "./droid.svg";
 import droidWhiteIcon from "./droid-white.svg";
+import fxIcon from "./fx.svg";
+import fxWhiteIcon from "./fx-white.svg";
 import geminiIcon from "./gemini.svg";
+import grokIcon from "./grok.svg";
+import grokWhiteIcon from "./grok-white.svg";
+import hermesIcon from "./hermes.svg";
+import hermesWhiteIcon from "./hermes-white.svg";
+import kimiIcon from "./kimi.svg";
+import kimiWhiteIcon from "./kimi-white.svg";
+import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
+import museIcon from "./muse.svg";
+import museWhiteIcon from "./muse-white.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
 import piIcon from "./pi.svg";
@@ -17,6 +31,7 @@ import piWhiteIcon from "./pi-white.svg";
 import polygraphIcon from "./polygraph.svg";
 import polygraphWhiteIcon from "./polygraph-white.svg";
 import supersetIcon from "./superset.svg";
+import vibeIcon from "./vibe.svg";
 
 export interface PresetIconSet {
 	light: string;
@@ -25,17 +40,29 @@ export interface PresetIconSet {
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	amp: { light: ampIcon, dark: ampIcon },
+	// Keyed by agent id: the Antigravity CLI binary is `agy`.
+	agy: { light: antigravityIcon, dark: antigravityIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
+	devin: { light: devinIcon, dark: devinWhiteIcon },
+	fx: { light: fxIcon, dark: fxWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
+	grok: { light: grokIcon, dark: grokWhiteIcon },
+	hermes: { light: hermesIcon, dark: hermesWhiteIcon },
+	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
+	kiro: { light: kiroIcon, dark: kiroIcon },
+	omp: { light: piIcon, dark: piWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
+	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
+	muse: { light: museIcon, dark: museWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
+	vibe: { light: vibeIcon, dark: vibeIcon },
 };
 
 /** True when a value is an inline `data:` image URI rather than a preset key. */
@@ -59,17 +86,31 @@ export function getPresetIcon(
 
 export {
 	ampIcon,
+	antigravityIcon,
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
 	copilotIcon,
 	copilotWhiteIcon,
 	cursorAgentIcon,
+	devinIcon,
+	devinWhiteIcon,
 	droidIcon,
 	droidWhiteIcon,
+	fxIcon,
+	fxWhiteIcon,
 	geminiIcon,
+	grokIcon,
+	grokWhiteIcon,
+	hermesIcon,
+	hermesWhiteIcon,
+	kimiIcon,
+	kimiWhiteIcon,
+	kiroIcon,
 	mastracodeIcon,
 	mastracodeWhiteIcon,
+	museIcon,
+	museWhiteIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
 	piIcon,
@@ -77,4 +118,5 @@ export {
 	polygraphIcon,
 	polygraphWhiteIcon,
 	supersetIcon,
+	vibeIcon,
 };

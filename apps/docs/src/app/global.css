@@ -11,6 +11,9 @@
    ============================================================================= */
 
 :root {
+	--brand: #d25611;
+	--brand-light: #e8804a;
+	--brand-dark: #9e400a;
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.147 0.004 49.25);
 	--card: oklch(1 0 0);
@@ -92,6 +95,9 @@
 
 @theme inline {
 	--breakpoint-navbar: 64rem;
+	--color-brand: var(--brand);
+	--color-brand-light: var(--brand-light);
+	--color-brand-dark: var(--brand-dark);
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -159,7 +165,7 @@
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply overscroll-none bg-background text-foreground selection:bg-foreground selection:text-background;
+		@apply overscroll-none bg-background text-foreground selection:bg-brand selection:text-black;
 	}
 }
 
@@ -213,6 +219,25 @@ html:not([data-anchor-scrolling]) {
 }
 
 /* =============================================================================
+   Docs prose refinements
+   ============================================================================= */
+
+.prose img {
+	border-radius: calc(var(--radius) + 6px);
+	border: 1px solid var(--border);
+}
+
+.prose :where(a):not(:where(.not-prose *, .prose a[data-card])) {
+	text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+	text-underline-offset: 3px;
+	transition: text-decoration-color 0.15s ease;
+}
+
+.prose :where(a):not(:where(.not-prose *, .prose a[data-card])):hover {
+	text-decoration-color: currentColor;
+}
+
+/* =============================================================================
    Background Pattern Utilities - Pure CSS grid and dot patterns
    ============================================================================= */
 
@@ -238,9 +263,3 @@ html:not([data-anchor-scrolling]) {
 	);
 	background-size: 16px 16px;
 }
-
-/* =============================================================================
-   Sidebar Styling - Custom sidebar (Better Auth style)
-   ============================================================================= */
-
-/* Custom sidebar is now fully implemented in React components */

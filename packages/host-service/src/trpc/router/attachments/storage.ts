@@ -70,17 +70,38 @@ export function writeAttachment(
 	metadata: AttachmentMetadata,
 	baseDirOverride?: string,
 ): void {
+	const path = prepareAttachmentTarget(metadata, baseDirOverride);
+	writeFileSync(path, bytes, { mode: 0o600 });
+	writeAttachmentMetadata(metadata, baseDirOverride);
+}
+
+/**
+ * The attachment's directory, created, and where its bytes belong. Split out
+ * so a download can stream into that path instead of buffering a whole file
+ * in memory the way `writeAttachment` does.
+ */
+export function prepareAttachmentTarget(
+	metadata: AttachmentMetadata,
+	baseDirOverride?: string,
+): string {
 	const dir = getAttachmentDir(metadata.attachmentId, baseDirOverride);
 	mkdirSync(dir, { recursive: true, mode: 0o700 });
-	writeFileSync(
-		getAttachmentFilePath(
-			metadata.attachmentId,
-			metadata.mediaType,
-			baseDirOverride,
-		),
-		bytes,
-		{ mode: 0o600 },
+	return getAttachmentFilePath(
+		metadata.attachmentId,
+		metadata.mediaType,
+		baseDirOverride,
 	);
+}
+
+/**
+ * Written last, after the bytes are down: `resolveAttachmentPath` reads the
+ * metadata first and then checks the file, so a metadata file that appears
+ * before a complete download would name a path that is still being written.
+ */
+export function writeAttachmentMetadata(
+	metadata: AttachmentMetadata,
+	baseDirOverride?: string,
+): void {
 	writeFileSync(
 		getAttachmentMetadataPath(metadata.attachmentId, baseDirOverride),
 		JSON.stringify(metadata, null, 2),

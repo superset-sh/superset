@@ -1,10 +1,25 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
+import { useFormat } from "@superset/i18n/react";
 import {
 	canRemoveMember,
 	getRoleSortPriority,
 	type OrganizationRole,
 } from "@superset/shared/auth";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -18,18 +33,20 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
 } from "react-icons/hi2";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	getImageExtensionFromMimeType,
 	parseBase64DataUrl,
@@ -57,13 +74,19 @@ interface SettingsRowProps {
 }
 
 function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="flex-1 min-w-0">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
-					{label}
+					<HighlightText text={label} query={searchQuery} />
 				</Label>
-				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+				{hint && (
+					<p className="text-xs text-muted-foreground mt-0.5">
+						<HighlightText text={hint} query={searchQuery} />
+					</p>
+				)}
 			</div>
 			<div className="shrink-0">{children}</div>
 		</div>
@@ -73,18 +96,26 @@ function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
 export function OrganizationSettings({
 	visibleItems,
 }: OrganizationSettingsProps) {
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const collections = useCollections();
+	const { formatDate: formatLocaleDate } = useFormat();
+
+	const { t } = useLingui();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
+	const utils = cloudTrpc.useUtils();
+	const navigate = useNavigate();
+	const searchQuery = useSettingsSearchQuery();
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
+	const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
+	const [isDeletingOrg, setIsDeletingOrg] = useState(false);
 
-	const { data: organizations, isReady } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations, isPending } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const organization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -113,46 +144,48 @@ export function OrganizationSettings({
 	);
 	const showId = isItemVisible(SETTING_ITEM_ID.ORGANIZATION_ID, visibleItems);
 	const { copyToClipboard, copied } = useCopyToClipboard();
+	const showDelete = isItemVisible(
+		SETTING_ITEM_ID.ORGANIZATION_DELETE,
+		visibleItems,
+	);
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		visibleItems,
 	);
 
-	const { data: membersData, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ members, users }) => ({
-					...users,
-					...members,
-					memberId: members.id,
-				}))
-				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections, activeOrganizationId],
-	);
+	const { data: membersData, isPending: membersPending } =
+		cloudTrpc.organization.listMembers.useQuery({ includeDeactivated: true });
 
-	const members: TeamMember[] = (membersData ?? [])
-		.map((m) => ({
-			...m,
-			role: m.role as OrganizationRole,
-		}))
-		.sort((a, b) => {
-			const priorityDiff =
-				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
-			if (priorityDiff !== 0) return priorityDiff;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+	const members: TeamMember[] = useMemo(() => {
+		if (!activeOrganizationId) return [];
+		return (membersData ?? [])
+			.map((m) => ({
+				memberId: m.id,
+				userId: m.userId,
+				organizationId: activeOrganizationId,
+				role: m.role as OrganizationRole,
+				createdAt: m.createdAt,
+				name: m.user.name,
+				email: m.user.email,
+				image: m.user.image,
+				deletionRequestedAt: m.user.deletionRequestedAt,
+			}))
+			.sort((a, b) => {
+				const priorityDiff =
+					getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+				if (priorityDiff !== 0) return priorityDiff;
+				return (
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+			});
+	}, [membersData, activeOrganizationId]);
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 	const currentMemberFromData = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMemberFromData?.role;
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", {
+		return formatLocaleDate(d, {
 			month: "short",
 			day: "numeric",
 		});
@@ -182,11 +215,66 @@ export function OrganizationSettings({
 			});
 
 			setLogoPreview(uploadResult.url);
-			toast.success("Logo updated");
+			await utils.organization.list.invalidate();
+			toast.success(
+				t({
+					message: "Logo updated",
+				}),
+			);
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
-			toast.error("Failed to update logo");
+			toast.error(
+				t({
+					message: "Failed to update logo",
+				}),
+			);
 		}
+	}
+
+	async function deleteOrganization(): Promise<void> {
+		if (!organization) return;
+		const { error } = await authClient.organization.delete({
+			organizationId: organization.id,
+		});
+		if (error) throw new Error(error.message);
+
+		// The server nulls the active org during deletion; explicitly move the
+		// session to the next org (or none) and re-enter the root gates, same
+		// as the leave-organization flow.
+		const remaining = (organizations ?? []).filter(
+			(o) => o.id !== organization.id,
+		);
+		await authClient.organization.setActive({
+			organizationId: remaining[0]?.id ?? null,
+		});
+		await refetchSession();
+		await utils.invalidate();
+		navigate({ to: "/" });
+	}
+
+	function handleDeleteOrganization(): void {
+		setIsDeletingOrg(true);
+		toast.promise(
+			deleteOrganization().finally(() => {
+				setIsDeletingOrg(false);
+				setDeleteConfirmValue("");
+			}),
+			{
+				loading: t({
+					message: "Deleting organization...",
+				}),
+				success: t({
+					message: "Organization deleted",
+				}),
+				error: (err) =>
+					errorMessage(
+						err,
+						t({
+							message: "Failed to delete organization",
+						}),
+					),
+			},
+		);
 	}
 
 	async function handleNameBlur(): Promise<void> {
@@ -202,10 +290,19 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
-			toast.success("Organization name updated");
+			await utils.organization.list.invalidate();
+			toast.success(
+				t({
+					message: "Organization name updated",
+				}),
+			);
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
-			toast.error("Failed to update name");
+			toast.error(
+				t({
+					message: "Failed to update name",
+				}),
+			);
 			setNameValue(organization.name);
 		}
 	}
@@ -214,13 +311,13 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground">
-					No organization selected
+					<Trans>No organization selected</Trans>
 				</p>
 			</div>
 		);
 	}
 
-	if (!organization && !isReady) {
+	if (!organization && isPending) {
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<Skeleton className="h-7 w-40 mb-8" />
@@ -243,7 +340,7 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground select-text cursor-text">
-					Organization not found.
+					<Trans>Organization not found.</Trans>
 				</p>
 			</div>
 		);
@@ -262,9 +359,11 @@ export function OrganizationSettings({
 		<>
 			<div className="p-6 max-w-4xl w-full">
 				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Organization</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans>Organization</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage your organization's branding and members.
+						<Trans>Manage your organization's branding and members.</Trans>
 					</p>
 				</div>
 
@@ -273,13 +372,22 @@ export function OrganizationSettings({
 						<section>
 							<div>
 								{showLogo && (
-									<SettingsRow label="Logo" hint="Recommended size 256×256.">
+									<SettingsRow
+										label={t({
+											message: "Logo",
+										})}
+										hint={t({
+											message: "Recommended size 256×256.",
+										})}
+									>
 										<button
 											type="button"
 											onClick={handleLogoUpload}
 											disabled={!isOwner}
 											className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
-											aria-label="Change organization logo"
+											aria-label={t({
+												message: "Change organization logo",
+											})}
 										>
 											<OrganizationLogo
 												logo={logoPreview}
@@ -290,13 +398,20 @@ export function OrganizationSettings({
 								)}
 
 								{showName && (
-									<SettingsRow label="Name" htmlFor="org-name">
+									<SettingsRow
+										label={t({
+											message: "Name",
+										})}
+										htmlFor="org-name"
+									>
 										<Input
 											id="org-name"
 											value={nameValue}
 											onChange={(e) => setNameValue(e.target.value)}
 											onBlur={handleNameBlur}
-											placeholder="Acme Inc."
+											placeholder={t({
+												message: "Acme Inc.",
+											})}
 											className="w-72"
 											disabled={!isOwner}
 										/>
@@ -305,8 +420,12 @@ export function OrganizationSettings({
 
 								{showSlug && (
 									<SettingsRow
-										label="Slug"
-										hint="Used in URLs and APIs."
+										label={t({
+											message: "Slug",
+										})}
+										hint={t({
+											message: "Used in URLs and APIs.",
+										})}
 										htmlFor="org-slug"
 									>
 										<Input
@@ -336,15 +455,21 @@ export function OrganizationSettings({
 
 								{showId && (
 									<SettingsRow
-										label="ID"
-										hint="Use this when calling the Superset API."
+										label={t({
+											message: "ID",
+										})}
+										hint={t({
+											message: "Use this when calling the Superset API.",
+										})}
 										htmlFor="org-id"
 									>
 										<button
 											type="button"
 											id="org-id"
 											onClick={() => copyToClipboard(organization.id)}
-											aria-label="Copy organization ID"
+											aria-label={t({
+												message: "Copy organization ID",
+											})}
 											className="group relative block w-72 cursor-pointer rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
 											<Input
@@ -364,7 +489,11 @@ export function OrganizationSettings({
 													</span>
 												</TooltipTrigger>
 												<TooltipContent>
-													{copied ? "Copied!" : "Copy"}
+													{copied ? (
+														<Trans>Copied!</Trans>
+													) : (
+														<Trans>Copy</Trans>
+													)}
 												</TooltipContent>
 											</Tooltip>
 										</button>
@@ -374,7 +503,9 @@ export function OrganizationSettings({
 
 							{!isOwner && (
 								<p className="text-xs text-muted-foreground mt-3">
-									Only organization owners can modify these settings.
+									<Trans>
+										Only organization owners can modify these settings.
+									</Trans>
 								</p>
 							)}
 						</section>
@@ -396,13 +527,20 @@ export function OrganizationSettings({
 							{showMembersList && (
 								<div>
 									<div className="mb-3">
-										<h3 className="text-sm font-medium">Members</h3>
+										<h3 className="text-sm font-medium">
+											<HighlightText
+												text={t({
+													message: "Members",
+												})}
+												query={searchQuery}
+											/>
+										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
-											Everyone with access to this organization.
+											<Trans>Everyone with access to this organization.</Trans>
 										</p>
 									</div>
 
-									{!membersReady && members.length === 0 ? (
+									{membersPending && members.length === 0 ? (
 										<div className="border rounded-lg divide-y divide-border">
 											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">
@@ -418,17 +556,25 @@ export function OrganizationSettings({
 										</div>
 									) : members.length === 0 ? (
 										<div className="text-center py-12 text-sm text-muted-foreground border rounded-lg">
-											No members yet.
+											<Trans>No members yet.</Trans>
 										</div>
 									) : (
 										<div className="border rounded-lg overflow-hidden">
 											<Table>
 												<TableHeader>
 													<TableRow>
-														<TableHead>Name</TableHead>
-														<TableHead>Email</TableHead>
-														<TableHead>Role</TableHead>
-														<TableHead>Joined</TableHead>
+														<TableHead>
+															<Trans>Name</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans>Email</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans>Role</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans>Joined</Trans>
+														</TableHead>
 														<TableHead className="w-[50px]" />
 													</TableRow>
 												</TableHeader>
@@ -447,15 +593,33 @@ export function OrganizationSettings({
 																			image={member.image}
 																		/>
 																		<div className="flex items-center gap-2">
-																			<span className="font-medium">
-																				{member.name || "Unknown"}
+																			<span
+																				className={
+																					member.deletionRequestedAt
+																						? "font-medium text-muted-foreground"
+																						: "font-medium"
+																				}
+																			>
+																				{member.name ||
+																					t({
+																						message: "Unknown",
+																						context: "person",
+																					})}
 																			</span>
 																			{isCurrentUserRow && (
 																				<Badge
 																					variant="secondary"
 																					className="text-[10px] h-4 px-1.5"
 																				>
-																					You
+																					<Trans>You</Trans>
+																				</Badge>
+																			)}
+																			{member.deletionRequestedAt && (
+																				<Badge
+																					variant="outline"
+																					className="text-[10px] h-4 px-1.5 text-muted-foreground"
+																				>
+																					<Trans>Deactivated</Trans>
 																				</Badge>
 																			)}
 																		</div>
@@ -506,6 +670,70 @@ export function OrganizationSettings({
 							)}
 						</section>
 					)}
+
+					{showDelete && isOwner && (
+						<section>
+							<SettingsRow
+								label={t({
+									message: "Delete organization",
+								})}
+							>
+								<AlertDialog
+									onOpenChange={(open) => {
+										if (!open) setDeleteConfirmValue("");
+									}}
+								>
+									<AlertDialogTrigger asChild>
+										<Button variant="destructive" disabled={isDeletingOrg}>
+											{isDeletingOrg ? (
+												<Trans>Deleting…</Trans>
+											) : (
+												<Trans>Delete organization</Trans>
+											)}
+										</Button>
+									</AlertDialogTrigger>
+									<AlertDialogContent>
+										<AlertDialogHeader>
+											<AlertDialogTitle>
+												<Trans>Delete {organization.name}?</Trans>
+											</AlertDialogTitle>
+											<AlertDialogDescription>
+												{members.length > 1 ? (
+													<Trans>
+														All data will be permanently deleted for all{" "}
+														{members.length} members — this cannot be undone.
+													</Trans>
+												) : (
+													<Trans>
+														All of the organization's data will be permanently
+														deleted — this cannot be undone.
+													</Trans>
+												)}{" "}
+												<Trans>Type the organization name to confirm.</Trans>
+											</AlertDialogDescription>
+										</AlertDialogHeader>
+										<Input
+											value={deleteConfirmValue}
+											onChange={(e) => setDeleteConfirmValue(e.target.value)}
+											placeholder={organization.name}
+										/>
+										<AlertDialogFooter>
+											<AlertDialogCancel>
+												<Trans>Cancel</Trans>
+											</AlertDialogCancel>
+											<AlertDialogAction
+												variant="destructive"
+												disabled={deleteConfirmValue !== organization.name}
+												onClick={handleDeleteOrganization}
+											>
+												<Trans>Delete organization</Trans>
+											</AlertDialogAction>
+										</AlertDialogFooter>
+									</AlertDialogContent>
+								</AlertDialog>
+							</SettingsRow>
+						</section>
+					)}
 				</div>
 			</div>
 
@@ -515,6 +743,7 @@ export function OrganizationSettings({
 					onOpenChange={setIsSlugDialogOpen}
 					organizationId={organization.id}
 					currentSlug={organization.slug}
+					onSuccess={() => utils.organization.list.invalidate()}
 				/>
 			)}
 		</>

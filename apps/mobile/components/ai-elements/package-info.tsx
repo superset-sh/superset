@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { LucideIcon } from "lucide-react-native";
 import {
 	ArrowRightIcon,
@@ -242,7 +243,7 @@ export const PackageInfoDependencies = ({
 }: PackageInfoDependenciesProps) => (
 	<View className={cn("gap-2", className)} {...props}>
 		<Text className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-			Dependencies
+			<Trans>Dependencies</Trans>
 		</Text>
 		<View className="gap-1">{children}</View>
 	</View>

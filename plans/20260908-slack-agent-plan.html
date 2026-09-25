@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slack Agent Plan</title>
+<style>
+  :root {
+    --ink: #1c1a17; --ink-2: #4a4640; --ink-3: #7d776e;
+    --paper: #f7f4ee; --paper-2: #efeae1; --line: #d9d2c5;
+    --accent: #b5471f; --accent-2: #0f5e5a; --warn: #8a6d0a; --ok: #2f6b3a;
+    --mono: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; }
+  .page { max-width: 880px; margin: 0 auto; padding: 52px 28px 96px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 32px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: 42px; line-height: 1.08; margin: 0 0 12px; letter-spacing: -.01em; }
+  .lede { font-size: 18px; color: var(--ink-2); max-width: 62ch; margin: 0; }
+  .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 14px; }
+  h2 { font-family: var(--serif); font-weight: 500; font-size: 28px; margin: 48px 0 12px; line-height: 1.15; }
+  h2 .num { font-family: var(--mono); font-size: 13px; color: var(--accent); display: block; margin-bottom: 4px; letter-spacing: .06em; }
+  p { max-width: 66ch; margin: 0 0 12px; }
+  ul, ol { max-width: 66ch; padding-left: 20px; margin: 0 0 12px; }
+  li { margin-bottom: 5px; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
+  .tablewrap { overflow-x: auto; margin: 0 0 18px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--ink); }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .04em; padding: 2px 7px; border-radius: 3px; border: 1px solid currentColor; }
+  .tag.bug { color: var(--accent); }
+  .callout { border-left: 3px solid var(--accent-2); background: var(--paper-2); padding: 12px 16px; margin: 16px 0 20px; max-width: 68ch; }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 16px 0 22px; }
+  .card { border: 1px solid var(--line); background: #fff; padding: 14px 16px; border-radius: 6px; }
+  .card h4 { margin: 0 0 6px; font-size: 15px; }
+  .card p { font-size: 14px; color: var(--ink-2); margin: 0; }
+  figure { margin: 18px 0 24px; }
+  figcaption { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 8px; }
+  .diagram { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .q li { margin-bottom: 10px; }
+  .q li strong { display: block; }
+  .changelog { font-size: 14.5px; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 12px 16px 6px; max-width: 68ch; margin-bottom: 6px; }
+  .changelog strong { display: block; margin-bottom: 6px; }
+  .changelog ul { margin-bottom: 6px; }
+  .vignettes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 14px 0 22px; }
+  .sl { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13.5px; display: flex; flex-direction: column; }
+  .sl-head { background: #3f0e40; color: #fff; padding: 7px 12px; font-weight: 600; font-size: 12.5px; display: flex; justify-content: space-between; }
+  .sl-head span:last-child { font-weight: 400; opacity: .75; }
+  .sl-body { padding: 8px 12px 10px; flex: 1; }
+  .msg { display: flex; gap: 8px; margin: 7px 0; }
+  .msg.thread { margin-left: 22px; padding-left: 10px; border-left: 2px solid #e8e2d8; }
+  .av { width: 26px; height: 26px; border-radius: 5px; flex: none; background: #d9d2c5; color: #1c1a17; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .av.bot { background: #0f5e5a; color: #fff; }
+  .av.b2 { background: #b5471f; color: #fff; }
+  .msg .name { font-weight: 700; font-size: 13px; margin-right: 5px; }
+  .msg .app { font-size: 9.5px; background: #ece9e4; color: #4a4640; padding: 1px 4px; border-radius: 2px; vertical-align: 1px; margin-right: 5px; }
+  .msg .txt { line-height: 1.4; }
+  .msg .txt .m { background: #e8f0fe; color: #1264a3; padding: 0 3px; border-radius: 3px; }
+  .rx { display: inline-block; font-size: 11.5px; border: 1px solid var(--line); border-radius: 12px; padding: 0 6px; margin-top: 4px; color: var(--ink-2); }
+  .status { font-size: 12px; color: var(--ink-3); font-style: italic; margin: 4px 0 0 34px; }
+  .silent { color: var(--ink-3); font-style: italic; font-size: 12.5px; margin: 6px 0 0 34px; }
+  .chk { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; }
+  .sl-foot { border-top: 1px solid var(--line); padding: 7px 12px; font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--accent); background: var(--paper); }
+  .sl-foot.quiet { color: var(--ink-3); }
+  .sl-foot.teal { color: var(--accent-2); }
+  @media (max-width: 640px) { h1 { font-size: 32px; } .page { padding: 32px 18px 72px; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <p class="kicker">Plan · Slack integration · v13</p>
+  <h1>Superset in Slack: a teammate in the channel, not a bot you summon</h1>
+  <p class="lede">Reads every message, speaks only when it should. Turns a thread into a working session on a real workspace and agent. Acts as the person who asked, with their Linear and GitHub. Remembers per channel.</p>
+  <p class="meta">v13 · 2026-09-08 · branch lace-scene · author: Claude for Avi</p>
+</header>
+
+<div class="changelog">
+  <strong>Changed from v1</strong>
+  <ul>
+    <li>Participation follows Claude Tag's rules: no per-message classifier, four outcomes, back-off, engagement memory.</li>
+    <li>A thread is a working session on a Superset workspace plus agent, with mid-task follow-ups queued.</li>
+    <li>Tool safety is tiered with an Approve button, not a flat allowlist.</li>
+    <li>Bug fixes from the code review are unchanged and still Phase 0.</li>
+  </ul>
+</div>
+
+<h2><span class="num">00</span>The model</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="13">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a4640"/></marker></defs>
+  <text x="20" y="28" font-size="11" fill="#7d776e" letter-spacing="1.5" font-family="Menlo, monospace">SLACK</text>
+  <rect x="20" y="44" width="300" height="236" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="36" y="68" font-weight="600">#platform-eng</text>
+  <text x="36" y="88" fill="#7d776e" font-size="12">top-level: every message read, few answered</text>
+  <g fill="#fdf3ee" stroke="#b5471f">
+    <rect x="36" y="104" width="268" height="48" rx="5"/>
+    <rect x="36" y="162" width="268" height="48" rx="5"/>
+  </g>
+  <text x="48" y="124" fill="#b5471f" font-weight="600">Thread: fix checkout latency</text>
+  <text x="48" y="142" fill="#7d776e" font-size="11.5">replies reach it, no mention needed</text>
+  <text x="48" y="182" fill="#b5471f" font-weight="600">Thread: file vendor bug in Linear</text>
+  <text x="48" y="200" fill="#7d776e" font-size="11.5">checklist edited in place · 👀 → ✅</text>
+  <text x="36" y="236" fill="#7d776e" font-size="11.5">other threads: side chatter, ignored</text>
+  <text x="36" y="256" fill="#7d776e" font-size="11.5">respond automatically: on · unanswered: 37/100</text>
+  <rect x="20" y="300" width="300" height="52" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="36" y="322" font-weight="600">DM</text>
+  <text x="36" y="340" fill="#7d776e" font-size="11.5">always answered · your own connections</text>
+
+  <text x="380" y="28" font-size="11" fill="#7d776e" letter-spacing="1.5" font-family="Menlo, monospace">SUPERSET</text>
+  <rect x="380" y="44" width="480" height="78" rx="6" fill="#eef6f5" stroke="#0f5e5a"/>
+  <text x="396" y="68" fill="#0f5e5a" font-weight="600">Channel session · one per channel</text>
+  <text x="396" y="88" fill="#4a4640">reads context + memory → nothing · short reply · start work · hand off</text>
+  <text x="396" y="108" fill="#7d776e" font-size="11.5">Haiku, no tools, cached · replaced after ~1h idle</text>
+
+  <rect x="380" y="140" width="480" height="112" rx="6" fill="#fdf3ee" stroke="#b5471f"/>
+  <text x="396" y="164" fill="#b5471f" font-weight="600">Working session · one per thread</text>
+  <text x="396" y="184" fill="#4a4640">= workspace + agent session (or a tool loop when no code)</text>
+  <text x="396" y="204" fill="#4a4640">transcript + entity log durable · compute ephemeral</text>
+  <text x="396" y="224" fill="#4a4640">tools: Superset MCP + author's Linear / GitHub connections</text>
+  <text x="396" y="242" fill="#7d776e" font-size="11.5">runs on the author's host or a cloud sandbox</text>
+
+  <rect x="380" y="270" width="230" height="82" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="396" y="294" font-weight="600">Channel memory</text>
+  <text x="396" y="314" fill="#7d776e" font-size="11.5">instructions · decisions</text>
+  <text x="396" y="332" fill="#7d776e" font-size="11.5">did people act on replies?</text>
+  <rect x="630" y="270" width="230" height="82" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="646" y="294" font-weight="600">Routines</text>
+  <text x="646" y="314" fill="#7d776e" font-size="11.5">= automations w/ Slack triggers</text>
+  <text x="646" y="332" fill="#2f6b3a" font-size="11.5">already shipped</text>
+
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#a)" fill="none">
+    <path d="M320,84 L378,84"/>
+    <path d="M304,128 C340,128 340,190 378,190"/>
+    <path d="M304,186 C340,186 340,210 378,210"/>
+    <path d="M620,122 L620,138"/>
+    <path d="M495,252 L495,268"/>
+    <path d="M320,326 C350,326 350,235 378,235"/>
+  </g>
+  <text x="440" y="385" text-anchor="middle" fill="#7d776e" font-size="11.5">Teal is new. Red is existing Superset machinery wired to a thread.</text>
+</svg>
+</figure>
+<div class="grid">
+  <div class="card"><h4>It joins the conversation</h4><p>Replies in threads it's in, answers when it's talked about, stays quiet otherwise.</p></div>
+  <div class="card"><h4>It uses your integrations</h4><p>Linear, GitHub and the rest come from the asker's own plugin connections.</p></div>
+  <div class="card"><h4>It remembers</h4><p>Per-thread transcript and entity log; per-channel memory anyone can edit.</p></div>
+</div>
+
+<h2><span class="num">01</span>Where it stands</h2>
+<ul>
+  <li><strong>Today:</strong> @-mention only, stateless per message, Superset tools only.</li>
+  <li><strong>Fix these first.</strong> The plan multiplies message volume and blast radius.</li>
+</ul>
+<ul>
+  <li><span class="tag bug">bug</span> Thread context reads the <em>oldest</em> 20 replies. <code>run-agent.ts:68</code></li>
+  <li><span class="tag bug">bug</span> Iteration cap, <code>max_tokens</code>, <code>refusal</code> unhandled; half-answers get posted. <code>run-agent.ts:710</code></li>
+  <li><span class="tag bug">bug</span> Slack retries aren't deduped; duplicate replies and side effects. <code>events/route.ts</code></li>
+  <li><span class="tag bug">bug</span> Image cap 120 MB where the API allows 5 MB per image. No <code>maxDuration</code> on job routes.</li>
+  <li><span class="tag bug">quality</span> Sonnet 4.6 without thinking, no caching, markdown into a mrkdwn field, every MCP tool exposed including deletes.</li>
+  <li><span class="tag bug">shape</span> Two 300-line duplicate handlers, dead v1 code, no tests under the route.</li>
+</ul>
+
+<h2><span class="num">02</span>When it speaks</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 400" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="13">
+  <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a4640"/></marker></defs>
+  <rect x="20" y="30" width="150" height="46" rx="23" fill="#1c1a17"/>
+  <text x="95" y="58" text-anchor="middle" fill="#fff" font-weight="600">message arrives</text>
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#b)" fill="none">
+    <path d="M170,53 L228,53"/>
+  </g>
+  <!-- surface decision -->
+  <rect x="230" y="22" width="170" height="62" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="315" y="48" text-anchor="middle">DM or a thread</text>
+  <text x="315" y="66" text-anchor="middle">it's already in?</text>
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#b)" fill="none">
+    <path d="M400,53 L518,53"/>
+    <path d="M315,84 L315,130"/>
+  </g>
+  <text x="455" y="45" text-anchor="middle" fill="#2f6b3a" font-size="12">yes</text>
+  <rect x="520" y="30" width="340" height="46" rx="6" fill="#eef6f5" stroke="#0f5e5a"/>
+  <text x="690" y="58" text-anchor="middle" fill="#0f5e5a" font-weight="600">always reply · feed the working session</text>
+  <text x="330" y="112" fill="#b5471f" font-size="12">no: top-level channel message</text>
+
+  <!-- gates -->
+  <rect x="230" y="132" width="170" height="46" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="315" y="160" text-anchor="middle">@-mentioned?</text>
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#b)" fill="none">
+    <path d="M400,155 L518,155"/>
+    <path d="M315,178 L315,214"/>
+  </g>
+  <text x="455" y="147" text-anchor="middle" fill="#2f6b3a" font-size="12">yes</text>
+  <rect x="520" y="132" width="340" height="46" rx="6" fill="#eef6f5" stroke="#0f5e5a"/>
+  <text x="690" y="160" text-anchor="middle" fill="#0f5e5a" font-weight="600">react 👀 · reply or start work in a thread</text>
+
+  <rect x="230" y="216" width="170" height="62" rx="6" fill="#fff" stroke="#1c1a17"/>
+  <text x="315" y="242" text-anchor="middle">respond-automatically</text>
+  <text x="315" y="260" text-anchor="middle">on and not backed off?</text>
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#b)" fill="none">
+    <path d="M230,247 L110,247 L110,340 L228,340"/>
+    <path d="M400,247 L518,247"/>
+  </g>
+  <text x="140" y="238" fill="#7d776e" font-size="12">no</text>
+  <text x="455" y="239" text-anchor="middle" fill="#2f6b3a" font-size="12">yes</text>
+
+  <!-- four outcomes -->
+  <rect x="520" y="216" width="340" height="150" rx="6" fill="#fdf3ee" stroke="#b5471f"/>
+  <text x="536" y="240" fill="#b5471f" font-weight="600">Channel session reads context + memory, picks one:</text>
+  <text x="536" y="266" fill="#1c1a17">1. Nothing (the usual outcome)</text>
+  <text x="536" y="290" fill="#1c1a17">2. Short reply in a thread, only if it already knows</text>
+  <text x="536" y="314" fill="#1c1a17">3. Start a working session, only if the channel asked</text>
+  <text x="536" y="338" fill="#1c1a17">4. Hand off silently to a thread already on it</text>
+  <text x="536" y="358" fill="#7d776e" font-size="11.5">no per-message classifier; decision uses recent channel context</text>
+
+  <rect x="230" y="318" width="170" height="46" rx="6" fill="#fff" stroke="#d9d2c5"/>
+  <text x="315" y="346" text-anchor="middle" fill="#7d776e">silent</text>
+</svg>
+<figcaption>Mentions and joined threads always get a reply. Everything else goes through the four-outcome decision.</figcaption>
+</figure>
+
+<p><strong>What that looks like.</strong> Same channel, nine moments.</p>
+<div class="vignettes">
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>side chatter</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">anyone up for lunch at 12:30?</div></div></div>
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt">in, the usual place</div></div></div>
+      <div class="silent">Superset says nothing. Unanswered count: 38 / 100.</div>
+    </div>
+    <div class="sl-foot quiet">outcome 1 · nothing</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>its name, not addressed to it</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt">saw the superset launch thread on HN, marketing did a nice job</div></div></div>
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">yeah the superset invoice for Sept also came through, forwarded to finance</div></div></div>
+      <div class="silent">Superset says nothing. The word appeared; nobody was talking to it.</div>
+    </div>
+    <div class="sl-foot quiet">outcome 1 · name is not a trigger</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>addressed by name, no @</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">superset, did #7331 make it into 1.26?</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Yes. #7331 (read-only worktree delete) is in the 1.26.0 release notes, shipped Sept 5.</div></div></div>
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt">can we have superset file the coupon bug as a task too</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Filed <code>SUP-412</code> "Safari login 500 with coupon in cart", linked to the open thread.</div></div></div>
+    </div>
+    <div class="sl-foot teal">addressed · treated like a mention</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>a concrete need</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">checkout p95 is back at 900ms since this morning, no idea which deploy did it</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">I can bisect this against today's deploys on <code>web</code> and post what changed. Want me to?</div></div></div>
+      <div class="silent">One offer, in a thread. If nobody answers, that's it.</div>
+    </div>
+    <div class="sl-foot quiet">outcome 1 · the one exception</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>it already knows</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt">what's our branch naming again? feat/ or feature/?</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt"><code>feat/&lt;ticket&gt;-short-slug</code>. From channel memory, saved by Satya on Aug 14.</div></div></div>
+    </div>
+    <div class="sl-foot teal">outcome 2 · short reply, no tools</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>the channel asked for it</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt"><span class="m">@Superset</span> remember for this channel: pick up bug reports without waiting to be tagged</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Saved. I'll start a thread on bug reports here.</div></div></div>
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt">login page 500s on Safari 18 when the session cookie is expired</div><span class="rx">👀 1</span></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">On it, on Harshith's <code>mbp</code> in a new workspace.<div class="chk">☑ Reproduced with an expired cookie<br>☑ Found the redirect in <code>auth/session.ts</code><br>☐ Fix + test<br>☐ Open PR</div></div></div></div>
+      <div class="status">Superset [fixing Safari login 500] is thinking…</div>
+    </div>
+    <div class="sl-foot">outcome 3 · working session in the thread</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>adds to work in progress</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">oh and the safari thing only happens when the cart has a coupon applied</div></div></div>
+      <div class="silent">Nothing posted here. The message lands in the login thread:</div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Satya says it only reproduces with a coupon in the cart. Adding that to the repro.</div></div></div>
+    </div>
+    <div class="sl-foot">outcome 4 · hand-off</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>in a thread it's already in</span></div>
+    <div class="sl-body">
+      <div class="msg"><div class="av b2">H</div><div><span class="name">Harshith</span><div class="txt"><span class="m">@Superset</span> where are we on the launch checklist?</div><span class="rx">✅ 1</span></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">8 of 11 done. Waiting on legal for the venue contract, since the 2nd.</div></div></div>
+      <div class="msg thread"><div class="av">S</div><div><span class="name">Satya</span><div class="txt">fold in the vendor quotes from last week too</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Added, three quotes, all under budget. Updated the checklist above.</div></div></div>
+    </div>
+    <div class="sl-foot teal">joined thread · no mention needed</div>
+  </div>
+
+  <div class="sl">
+    <div class="sl-head"><span># platform-eng</span><span>too chatty, told to stop</span></div>
+    <div class="sl-body">
+      <div class="msg thread"><div class="av">S</div><div><span class="name">Satya</span><div class="txt"><span class="m">@Superset</span> only respond in this thread when I mention you</div></div></div>
+      <div class="msg thread"><div class="av bot">Su</div><div><span class="name">Superset</span><span class="app">APP</span><div class="txt">Got it. I'll stay out of this thread unless tagged.</div></div></div>
+      <div class="silent">Channel-wide: "@Superset only respond here when mentioned" flips the channel setting.</div>
+    </div>
+    <div class="sl-foot quiet">quieted · thread or channel</div>
+  </div>
+
+</div>
+<ul>
+  <li><strong>Respond automatically</strong> is per channel, default on. Change it by asking in the channel, in App Home, or as an admin.</li>
+  <li><strong>Quiet a thread</strong> by replying "only respond when I mention you".</li>
+  <li><strong>Back-off:</strong> after ~100 channel messages with no reply from the agent, it stops reading until the next mention.</li>
+  <li><strong>Engagement memory:</strong> whether people act on unprompted replies is recorded; ignored channels get fewer.</li>
+  <li><strong>Its name is not a trigger; being addressed is.</strong> "superset, did #7331 ship?" and "have superset file that" are addressed to it and get a reply without an @. "the superset invoice came through" is not, and gets nothing. The channel session reads intent from the whole message, not a keyword. When respond-automatically is off, only an @ gets through.</li>
+  <li><strong>Bots</strong> are context, never a trigger. "@Superset triage this" under an alert is how to act on one.</li>
+</ul>
+
+<h2><span class="num">03</span>A thread is a working session</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 380" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
+  <!-- time axis -->
+  <g fill="#7d776e" font-size="11" font-family="Menlo, monospace" text-anchor="middle">
+    <text x="150" y="24">9:02</text>
+    <text x="270" y="24">9:04</text>
+    <text x="390" y="24">9:10</text>
+    <text x="520" y="24">… 5 hours …</text>
+    <text x="650" y="24">2:30</text>
+    <text x="780" y="24">2:41</text>
+  </g>
+  <line x1="110" y1="32" x2="860" y2="32" stroke="#d9d2c5"/>
+  <g stroke="#d9d2c5" stroke-dasharray="3 4">
+    <line x1="150" y1="32" x2="150" y2="350"/>
+    <line x1="270" y1="32" x2="270" y2="350"/>
+    <line x1="390" y1="32" x2="390" y2="350"/>
+    <line x1="650" y1="32" x2="650" y2="350"/>
+    <line x1="780" y1="32" x2="780" y2="350"/>
+  </g>
+
+  <!-- lane labels -->
+  <g font-size="11" fill="#7d776e" letter-spacing="1.5" font-family="Menlo, monospace">
+    <text x="20" y="72">IN SLACK</text>
+    <text x="20" y="212">RUNNING</text>
+    <text x="20" y="300">KEPT</text>
+  </g>
+
+  <!-- lane 1: Slack moments -->
+  <g>
+    <rect x="112" y="46" width="76" height="34" rx="5" fill="#fff" stroke="#1c1a17"/>
+    <text x="150" y="60" text-anchor="middle" font-size="11.5">Satya</text>
+    <text x="150" y="74" text-anchor="middle" font-size="11" fill="#4a4640">@Superset fix it</text>
+    <text x="150" y="98" text-anchor="middle" font-size="11" fill="#7d776e">👀 in seconds</text>
+
+    <rect x="232" y="46" width="76" height="34" rx="5" fill="#fff" stroke="#1c1a17"/>
+    <text x="270" y="60" text-anchor="middle" font-size="11.5">Harshith</text>
+    <text x="270" y="74" text-anchor="middle" font-size="11" fill="#4a4640">"only w/ coupon"</text>
+    <text x="270" y="98" text-anchor="middle" font-size="11" fill="#8a6d0a">queued, no @</text>
+
+    <rect x="352" y="46" width="76" height="34" rx="5" fill="#eef6f5" stroke="#0f5e5a"/>
+    <text x="390" y="60" text-anchor="middle" font-size="11.5" fill="#0f5e5a">Superset</text>
+    <text x="390" y="74" text-anchor="middle" font-size="11" fill="#0f5e5a">✅ PR #418</text>
+    <text x="390" y="98" text-anchor="middle" font-size="11" fill="#7d776e">final reply notifies</text>
+
+    <text x="520" y="66" text-anchor="middle" font-size="11.5" fill="#7d776e" font-style="italic">thread sits quiet</text>
+
+    <rect x="612" y="46" width="76" height="34" rx="5" fill="#fff" stroke="#1c1a17"/>
+    <text x="650" y="60" text-anchor="middle" font-size="11.5">Satya</text>
+    <text x="650" y="74" text-anchor="middle" font-size="11" fill="#4a4640">"add a test too"</text>
+    <text x="650" y="98" text-anchor="middle" font-size="11" fill="#7d776e">no @, same thread</text>
+
+    <rect x="742" y="46" width="76" height="34" rx="5" fill="#eef6f5" stroke="#0f5e5a"/>
+    <text x="780" y="60" text-anchor="middle" font-size="11.5" fill="#0f5e5a">Superset</text>
+    <text x="780" y="74" text-anchor="middle" font-size="11" fill="#0f5e5a">✅ pushed to #418</text>
+  </g>
+
+  <!-- lane 2: running -->
+  <rect x="150" y="150" width="240" height="70" rx="6" fill="#fdf3ee" stroke="#b5471f"/>
+  <text x="270" y="174" text-anchor="middle" fill="#b5471f" font-weight="600">agent on a workspace</text>
+  <text x="270" y="192" text-anchor="middle" fill="#b5471f" font-size="11.5">picks up Harshith's reply at the next turn</text>
+  <text x="270" y="208" text-anchor="middle" fill="#7d776e" font-size="11">checklist edited in place</text>
+
+  <rect x="400" y="150" width="240" height="70" rx="6" fill="#fff" stroke="#d9d2c5" stroke-dasharray="4 4"/>
+  <text x="520" y="180" text-anchor="middle" fill="#7d776e" font-size="12">nothing running</text>
+  <text x="520" y="198" text-anchor="middle" fill="#7d776e" font-size="11">no cost, no laptop needed</text>
+
+  <rect x="650" y="150" width="130" height="70" rx="6" fill="#fdf3ee" stroke="#b5471f"/>
+  <text x="715" y="174" text-anchor="middle" fill="#b5471f" font-weight="600">resumes</text>
+  <text x="715" y="192" text-anchor="middle" fill="#b5471f" font-size="11.5">same workspace</text>
+  <text x="715" y="208" text-anchor="middle" fill="#7d776e" font-size="11">re-reads the thread</text>
+
+  <!-- lane 3: kept -->
+  <rect x="150" y="270" width="710" height="56" rx="28" fill="#eef6f5" stroke="#0f5e5a"/>
+  <text x="505" y="292" text-anchor="middle" fill="#0f5e5a" font-weight="600">the thread's memory never stops: what was said, what was made, what's queued</text>
+  <text x="505" y="312" text-anchor="middle" fill="#0f5e5a" font-size="11.5">so "add a test too" knows which PR, which workspace, which bug</text>
+
+  <text x="440" y="366" text-anchor="middle" fill="#7d776e" font-size="11.5">Compute comes and goes. The thread's memory doesn't. That's the whole trick, and Superset's version keeps the workspace files too.</text>
+</svg>
+<figcaption>One thread over a day. Read left to right; each lane is a different question: what did people see, what was running, what was remembered.</figcaption>
+</figure>
+<ul>
+  <li><strong>Two shapes.</strong> Tools but no code: the existing loop with the transcript replayed. Code: <code>workspaces_create</code> with <code>agents</code>, and the thread becomes that agent's conversation.</li>
+  <li><strong>Where it runs.</strong> Cloud sandbox by default for channel threads, the author's host for DMs and on request, a pinned runner host per channel for teams that want one. The reasoning is below. Decision 1.</li>
+  <li><strong>Follow-ups</strong> arrive without a mention. Mid-turn they're queued; on resume the thread is back-read since last context.</li>
+  <li><strong>On a host, delivery reuses page-watch.</strong> Page comments already reach a running agent this way: host-service keeps a watch keyed by workspace, terminal and agent, polls for new items, holds them while the agent is mid-turn, and pastes a prompt into the PTY. A Slack thread gets the same watch, assigned by the API when it spawns the agent instead of by the CLI on publish. If the terminal is gone, the API relaunches the agent in the same workspace with resume and reassigns. Replies flow back the way this page's comments do: the agent calls the CLI, or the API posts on the agent's turn-end event.</li>
+  <li><strong>Progress</strong> is a checklist edited in place, streamed. Typing status under the message, no "Thinking..." placeholder.</li>
+  <li><strong>Completion callback:</strong> an agent spawned from Slack reports back into the thread. Today nothing does.</li>
+  <li><strong><code>!restart</code></strong> archives the session and starts fresh from the thread.</li>
+</ul>
+
+<h3 style="font-size:17px;font-weight:600;margin:30px 0 8px">How Claude Tag does it, and how everyone else does</h3>
+<p>Every implementation answers the same three questions differently: where the agent's compute lives, what survives between turns, and whose machine or account the work belongs to.</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>System</th><th>Compute</th><th>Between turns</th><th>Belongs to</th><th>The bet</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Claude Tag</strong></td><td>Ephemeral cloud sandbox per thread, the same engine as Claude Code on the web. Two threads, two sandboxes.</td><td>Sandbox released minutes after a turn and rebuilt on the next reply. Transcript durable on Anthropic's side. Files only in the sandbox are lost; pushed branches and posted artifacts survive.</td><td>The channel. Service accounts an admin attaches per channel; DMs use your own connectors.</td><td>Team work must not depend on anyone's laptop. Anyone in the thread can steer.</td></tr>
+    <tr><td><strong>Open-Inspect</strong></td><td>Modal sandbox per session, OpenCode inside, a Durable Object per session holding state.</td><td>Snapshot on idle, restore on the next prompt. Heartbeats and inactivity timeouts.</td><td>One shared GitHub App for the whole org. Single-tenant by design.</td><td>Fire and forget: kick it off, close the laptop, read the PR later.</td></tr>
+    <tr><td><strong>Cyrus</strong></td><td>A machine you control runs the edge worker; a git worktree per issue on that disk. Cloud only for webhooks and OAuth. A hosted option exists too.</td><td>The worktree stays on disk. Follow-ups queue while a turn runs.</td><td>The machine's owner. Bring your own keys and subscriptions.</td><td>Your environment, your tokens, your box. Cheapest to run.</td></tr>
+    <tr><td><strong>Local Claude Code bots</strong></td><td>The developer's own laptop, Claude Agent SDK, one process.</td><td>A session file on disk. Dies when the laptop sleeps.</td><td>One person.</td><td>Personal convenience, not a team surface.</td></tr>
+    <tr><td><strong>Superset today</strong></td><td>Workspaces on a user's host. Cloud sandboxes exist on Blaxel, gated to internal users.</td><td>Host worktrees persist until archived. A cloud sandbox wakes on the first inbound connection; there is no idle stop, TTL, or quota yet.</td><td>The host's owner; cloud rows belong to the org with a creator.</td><td>Both, which is the opportunity.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 style="font-size:17px;font-weight:600;margin:30px 0 8px">The best of each, and the pattern to move toward</h3>
+<figure>
+<svg class="diagram" viewBox="0 0 880 420" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
+  <defs><marker id="d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a4640"/></marker></defs>
+  <text x="20" y="26" font-size="11" fill="#7d776e" letter-spacing="1.5" font-family="Menlo, monospace">TAKE FROM</text>
+  <g fill="#fff" stroke="#1c1a17">
+    <rect x="20" y="40" width="300" height="88" rx="6"/>
+    <rect x="20" y="138" width="300" height="70" rx="6"/>
+    <rect x="20" y="218" width="300" height="88" rx="6"/>
+    <rect x="20" y="316" width="300" height="70" rx="6"/>
+  </g>
+  <g font-weight="600" font-size="13.5">
+    <text x="34" y="60">Claude Tag</text>
+    <text x="34" y="158">Cyrus</text>
+    <text x="34" y="238">Local Claude Code bots</text>
+    <text x="34" y="336">Open-Inspect</text>
+  </g>
+  <g fill="#4a4640">
+    <text x="34" y="80">quiet by default · react in seconds</text>
+    <text x="34" y="98">checklist in place · anyone steers, no re-mention</text>
+    <text x="34" y="116">thread persists, compute doesn't</text>
+    <text x="34" y="178">the work lands where you can open it</text>
+    <text x="34" y="196">follow-ups queued mid-task · 👀 → ✅</text>
+    <text x="34" y="258">one streamed, live-updating reply</text>
+    <text x="34" y="276">Approve button before any write</text>
+    <text x="34" y="294">session survives restarts</text>
+    <text x="34" y="356">clarify with a dropdown, not a question</text>
+    <text x="34" y="374">completion card with PR links, signed callbacks</text>
+  </g>
+
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#d)" fill="none">
+    <path d="M320,84 C380,84 380,210 438,210"/>
+    <path d="M320,173 C380,173 380,210 438,210"/>
+    <path d="M320,262 C380,262 380,210 438,210"/>
+    <path d="M320,351 C380,351 380,210 438,210"/>
+  </g>
+
+  <text x="440" y="26" font-size="11" fill="#0f5e5a" letter-spacing="1.5" font-family="Menlo, monospace">THE SUPERSET PATTERN</text>
+  <rect x="440" y="40" width="420" height="346" rx="8" fill="#eef6f5" stroke="#0f5e5a" stroke-width="2"/>
+  <text x="460" y="66" font-weight="600" font-size="14" fill="#0f5e5a">What a person sees, start to finish</text>
+  <g fill="#1c1a17" font-size="13">
+    <text x="460" y="96"><tspan font-weight="700" fill="#0f5e5a">1</tspan>  Say it in the channel. No @ needed if you're talking to it.</text>
+    <text x="460" y="122"><tspan font-weight="700" fill="#0f5e5a">2</tspan>  👀 within seconds. Typing status, not a placeholder.</text>
+    <text x="460" y="148"><tspan font-weight="700" fill="#0f5e5a">3</tspan>  Short answers stream. Long tasks get a live checklist.</text>
+    <text x="460" y="174"><tspan font-weight="700" fill="#0f5e5a">4</tspan>  Anyone in the thread steers. Mid-task replies queue.</text>
+    <text x="460" y="200"><tspan font-weight="700" fill="#0f5e5a">5</tspan>  Anything irreversible waits for Approve in the thread.</text>
+    <text x="460" y="226"><tspan font-weight="700" fill="#0f5e5a">6</tspan>  A final reply that notifies: links, PR, "Changes" footer.</text>
+    <text x="460" y="252"><tspan font-weight="700" fill="#0f5e5a">7</tspan>  The workspace is in your sidebar. Open it on your machine.</text>
+    <text x="460" y="278"><tspan font-weight="700" fill="#0f5e5a">8</tspan>  Come back tomorrow; the thread picks up where it left off.</text>
+  </g>
+  <line x1="460" y1="298" x2="840" y2="298" stroke="#0f5e5a" stroke-opacity=".3"/>
+  <text x="460" y="322" fill="#0f5e5a" font-size="12.5">Only Superset can do 7. Claude Tag can't hand work to your machine.</text>
+  <text x="460" y="342" fill="#0f5e5a" font-size="12.5">Only 5 and 6 fix what people complain about in Claude Tag.</text>
+  <text x="460" y="370" fill="#7d776e" font-size="11.5">Everything else on this page is in service of these eight lines.</text>
+</svg>
+<figcaption>Four sources, one experience. This is the bar each phase is measured against.</figcaption>
+</figure>
+
+<div class="callout">
+  <p><strong>This is the pattern to move toward.</strong> Claude Tag's conversational contract is the baseline, because it is the only one of the five that feels like a teammate rather than a tool. Superset adds the two things it structurally can't: the result lands in a workspace you can open in the desktop, and irreversible actions wait for a button. The other borrowings (streamed replies, queued follow-ups, dropdown clarification, signed completion callbacks) are how the baseline gets built without re-learning what the others already learned.</p>
+</div>
+
+<h3 style="font-size:17px;font-weight:600;margin:30px 0 8px">Three ways Superset could answer it</h3>
+<figure>
+<svg class="diagram" viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
+  <g fill="#fff" stroke="#1c1a17"><rect x="20" y="30" width="265" height="230" rx="6"/></g>
+  <g fill="#fff" stroke="#1c1a17"><rect x="307" y="30" width="265" height="230" rx="6"/></g>
+  <g fill="#eef6f5" stroke="#0f5e5a"><rect x="594" y="30" width="266" height="230" rx="6"/></g>
+  <g font-weight="600" font-size="14">
+    <text x="36" y="56">A · Author's host</text>
+    <text x="323" y="56">B · Cloud per thread</text>
+    <text x="610" y="56" fill="#0f5e5a">C · Split by surface</text>
+  </g>
+  <g fill="#7d776e" font-size="11" font-family="Menlo, monospace">
+    <text x="36" y="74">Cyrus · local bots</text>
+    <text x="323" y="74">Claude Tag · Open-Inspect</text>
+    <text x="610" y="74" fill="#0f5e5a">recommended</text>
+  </g>
+  <g fill="#2f6b3a">
+    <text x="36" y="102">+ real env, setup scripts, sidebar</text>
+    <text x="36" y="120">+ no new infra, no new cost</text>
+    <text x="36" y="138">+ credentials already there</text>
+    <text x="323" y="102">+ always on, nobody's laptop</text>
+    <text x="323" y="120">+ contained blast radius</text>
+    <text x="323" y="138">+ anyone in the thread can steer</text>
+    <text x="610" y="102">+ channels: cloud, always on</text>
+    <text x="610" y="120">+ DMs: your host, your connectors</text>
+    <text x="610" y="138">+ channel can pin a runner host</text>
+  </g>
+  <g fill="#b5471f">
+    <text x="36" y="168">− dies when the lid closes</text>
+    <text x="36" y="186">− teammates' follow-ups run on your box</text>
+    <text x="36" y="204">− untrusted channel text, full creds</text>
+    <text x="323" y="168">− costs per thread, needs idle policy</text>
+    <text x="323" y="186">− sandbox items still gated (below)</text>
+    <text x="323" y="204">− only pushed work survives</text>
+    <text x="610" y="168">− two code paths to keep honest</text>
+    <text x="610" y="186">− cloud must ship first for channels</text>
+  </g>
+  <g fill="#4a4640" font-size="11.5">
+    <text x="36" y="240">v3 proposal: A with B as fallback</text>
+    <text x="323" y="240">what Claude Tag ships</text>
+    <text x="610" y="240" fill="#0f5e5a">+ "open on my machine" from any thread</text>
+  </g>
+  <text x="440" y="288" text-anchor="middle" fill="#7d776e" font-size="11.5">Option C is Claude Tag's channel-versus-DM split applied to compute, with Cyrus's runner-machine idea as a per-channel setting.</text>
+</svg>
+</figure>
+
+<div class="callout">
+  <p><strong>My pick: C. Cloud is the channel default, not the fallback.</strong></p>
+  <ul>
+    <li><strong>Shared thread, shared compute.</strong> A channel thread can't die when one laptop closes.</li>
+    <li><strong>Channel text is untrusted.</strong> Don't run it on a personal machine with full credentials.</li>
+    <li><strong>Keep the Superset edge.</strong> The cloud workspace shows in the sidebar; open it on your machine.</li>
+    <li><strong>DMs stay personal.</strong> Your host, your connections, your worktrees.</li>
+    <li><strong>Runner host for teams that want one.</strong> Pin a channel to an always-on box. The Cyrus case, one setting.</li>
+    <li><strong>Files survive, unlike Claude Tag.</strong> Needs an idle policy so it doesn't cost forever.</li>
+  </ul>
+</div>
+
+<p><strong>Cloud has to clear these first</strong> (open items in the Sandboxes project, a Phase 3 dependency):</p>
+<ul>
+  <li>idle stop, TTL, or per-org quota</li>
+  <li>delete wired to <code>cloudWorkspace.delete</code></li>
+  <li>per-org model credentials instead of ours</li>
+  <li>GitHub token out of <code>.git/config</code></li>
+  <li>host-service version handshake so old sandboxes fail clearly</li>
+</ul>
+<p>Until then, Phase 1 runs mentions and DMs on the author's host, which works today. Channel working sessions wait rather than ship on a fallback.</p>
+
+<h2><span class="num">04</span>Identity and integrations</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 200" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="13">
+  <defs><marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a4640"/></marker></defs>
+  <g fill="#fff" stroke="#1c1a17">
+    <rect x="20" y="60" width="130" height="60" rx="6"/>
+    <rect x="200" y="60" width="150" height="60" rx="6"/>
+    <rect x="400" y="30" width="170" height="60" rx="6"/>
+    <rect x="400" y="110" width="170" height="60" rx="6"/>
+  </g>
+  <rect x="620" y="60" width="120" height="60" rx="6" fill="#eef6f5" stroke="#0f5e5a"/>
+  <g fill="#fdf3ee" stroke="#b5471f">
+    <rect x="780" y="20" width="80" height="40" rx="6"/>
+    <rect x="780" y="80" width="80" height="40" rx="6"/>
+    <rect x="780" y="140" width="80" height="40" rx="6"/>
+  </g>
+  <g text-anchor="middle" fill="#1c1a17">
+    <text x="85" y="86">Slack user</text><text x="85" y="104" fill="#7d776e" font-size="11.5">who asked</text>
+    <text x="275" y="86">linked Superset user</text><text x="275" y="104" fill="#7d776e" font-size="11.5">user_identities</text>
+    <text x="485" y="56">Superset MCP, in-process</text><text x="485" y="74" fill="#7d776e" font-size="11.5">same tRPC the CLI calls</text>
+    <text x="485" y="136">plugin_connections</text><text x="485" y="154" fill="#7d776e" font-size="11.5">per user, OAuth</text>
+    <text x="680" y="86" fill="#0f5e5a">credential proxy</text><text x="680" y="104" fill="#0f5e5a" font-size="11.5">listTools / callTool</text>
+    <text x="820" y="45" fill="#b5471f">Linear</text>
+    <text x="820" y="105" fill="#b5471f">GitHub</text>
+    <text x="820" y="165" fill="#b5471f">Notion…</text>
+  </g>
+  <g stroke="#4a4640" stroke-width="1.4" marker-end="url(#c)" fill="none">
+    <path d="M150,90 L198,90"/>
+    <path d="M350,80 L398,62"/>
+    <path d="M350,100 L398,138"/>
+    <path d="M570,140 L618,100"/>
+    <path d="M740,80 L778,44"/>
+    <path d="M740,90 L778,100"/>
+    <path d="M740,100 L778,156"/>
+  </g>
+</svg>
+<figcaption>Every action runs as the person who asked. No per-channel service accounts, which is the part of Claude Tag security reviews criticised.</figcaption>
+</figure>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Surface</th><th>Acts as</th><th>Unlinked author</th></tr></thead>
+  <tbody>
+    <tr><td>DM</td><td>The person, their connections</td><td>Connect prompt</td></tr>
+    <tr><td>Thread, mentioned or addressed</td><td>The author of the triggering message</td><td>Connect prompt in thread</td></tr>
+    <tr><td>Channel, unprompted</td><td>Short replies need nobody. Working sessions need a linked author.</td><td>Silence, or an offer naming the missing link</td></tr>
+    <tr><td>Routine</td><td>The automation's owner</td><td>n/a</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li><strong>MCP or CLI? Both, by where the code runs.</strong> The channel session and chat-shaped working sessions run inside the API, so they use the in-memory MCP client that exists today: in-process, no subprocess, auth context injected, no binary in the serverless bundle. A code-shaped working session is a Claude Code agent in a workspace, and it uses the <code>superset</code> CLI and installed plugins like any other agent on a host or sandbox. Both paths call the same tRPC router, so a tool added once shows up in both.</li>
+  <li>Linear and GitHub plugins already point at hosted MCP servers through the proxy. Bridging them is plumbing, not new tools. Inside a workspace the agent reaches the same servers through <code>superset mcp call-tool</code>.</li>
+  <li>Org-level <code>integration_connections</code> are inbound webhooks for triggers. They stay that way.</li>
+  <li>Notion and Sentry become plugins with an <code>mcp</code> block. Google has no hosted server. Decision 6.</li>
+  <li>Curate a Slack subset per plugin first; tool search with <code>defer_loading</code> if the count still hurts.</li>
+  <li>Not connected yet → one line plus a Connect button.</li>
+</ul>
+
+<h2><span class="num">05</span>Tool policy</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 170" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="13">
+  <rect x="20" y="30" width="270" height="110" rx="6" fill="#eef6f5" stroke="#0f5e5a"/>
+  <rect x="305" y="30" width="270" height="110" rx="6" fill="#fdf6e3" stroke="#8a6d0a"/>
+  <rect x="590" y="30" width="270" height="110" rx="6" fill="#fdf3ee" stroke="#b5471f"/>
+  <g font-weight="600" text-anchor="middle">
+    <text x="155" y="56" fill="#0f5e5a">auto</text>
+    <text x="440" y="56" fill="#8a6d0a">require approval</text>
+    <text x="725" y="56" fill="#b5471f">deny from Slack</text>
+  </g>
+  <g fill="#4a4640" text-anchor="middle" font-size="12.5">
+    <text x="155" y="82">reads · list · search</text>
+    <text x="155" y="102">create task, issue, branch, PR</text>
+    <text x="155" y="122">create workspace + agent</text>
+    <text x="440" y="82">delete · merge · close</text>
+    <text x="440" y="102">terminals_send · automation edits</text>
+    <text x="440" y="122">→ Approve button in the thread</text>
+    <text x="725" y="82">bulk writes</text>
+    <text x="725" y="102">anything outside channel scope</text>
+    <text x="725" y="122">tools a plugin didn't opt in</text>
+  </g>
+  <text x="440" y="162" text-anchor="middle" fill="#7d776e" font-size="11.5">resolved org → channel → default, strictest wins · per-channel plugin scope like tools.toml</text>
+</svg>
+</figure>
+
+<h2><span class="num">06</span>Memory</h2>
+<ul>
+  <li><strong>Scope is the channel.</strong> Public-channel memory is readable org-wide; private channels keep their own store; DMs keep per-person notes.</li>
+  <li><strong>Written three ways:</strong> "@Superset remember for this channel: …", the agent's own curation turn after a session, and past thread transcripts on request.</li>
+  <li><strong>Steers participation:</strong> "answer deploy questions without being tagged" and "only respond when mentioned" are both memory entries.</li>
+  <li><strong>Editable by anyone in the channel.</strong> "@Superset what do you remember about this channel?" lists it.</li>
+  <li><strong>Store notes and ids, not Slack content.</strong> Pull messages live when needed.</li>
+</ul>
+
+<h2><span class="num">07</span>Mechanics</h2>
+<ul>
+  <li><strong>Dedup:</strong> ack retries by header, QStash <code>deduplicationId: event_id</code>, dedupe mention plus message on channel and ts.</li>
+  <li><strong>Outbox:</strong> every reply recorded with an idempotency key before sending. No double posts, no lost replies.</li>
+  <li><strong>Output:</strong> markdown block, streaming, feedback buttons.</li>
+  <li><strong>Models:</strong> channel session on Haiku 4.5, low effort, no tools. Working session on Sonnet 5, Opus 5 in the picker, adaptive thinking, prompt caching.</li>
+  <li><strong>Loop breakers:</strong> per channel-and-bot rate limit; never reply to a bot without a person in the loop.</li>
+  <li><strong>Assistant pane:</strong> handle <code>assistant_thread_started</code> and <code>context_changed</code>.</li>
+</ul>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Table</th><th>Key</th><th>Holds</th></tr></thead>
+  <tbody>
+    <tr><td><code>slack_channel_settings</code></td><td>team, channel</td><td>respond_automatically, plugin scope, unanswered count</td></tr>
+    <tr><td><code>slack_channel_sessions</code></td><td>team, channel</td><td>current session, started_at, config hash</td></tr>
+    <tr><td><code>slack_thread_sessions</code></td><td>team, channel, thread_ts</td><td>workspace, agent session, transcript ref, entity log, checklist ts, queue, quiet</td></tr>
+    <tr><td><code>slack_channel_memory</code></td><td>org, channel, entry</td><td>curated entries, author, shared flag</td></tr>
+    <tr><td><code>slack_outbox</code></td><td>idempotency key</td><td>pending and sent replies</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">08</span>Phasing</h2>
+<figure>
+<svg class="diagram" viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12.5">
+  <g fill="#fff" stroke="#1c1a17">
+    <rect x="20" y="30" width="110" height="130" rx="6"/>
+  </g>
+  <g fill="#fdf3ee" stroke="#b5471f">
+    <rect x="145" y="30" width="200" height="130" rx="6"/>
+  </g>
+  <g fill="#eef6f5" stroke="#0f5e5a">
+    <rect x="360" y="30" width="250" height="130" rx="6"/>
+  </g>
+  <g fill="#fdf3ee" stroke="#b5471f">
+    <rect x="625" y="30" width="235" height="130" rx="6"/>
+  </g>
+  <g font-weight="600">
+    <text x="32" y="54">Phase 0</text>
+    <text x="157" y="54" fill="#b5471f">Phase 1</text>
+    <text x="372" y="54" fill="#0f5e5a">Phase 2</text>
+    <text x="637" y="54" fill="#b5471f">Phase 3</text>
+  </g>
+  <g fill="#7d776e" font-size="11" font-family="Menlo, monospace">
+    <text x="32" y="70">~2 days</text>
+    <text x="157" y="70">~1 week</text>
+    <text x="372" y="70">~1.5 weeks</text>
+    <text x="637" y="70">~1 week</text>
+  </g>
+  <g fill="#4a4640">
+    <text x="32" y="94">bug fixes</text>
+    <text x="32" y="112">model + cache</text>
+    <text x="32" y="130">one handler</text>
+    <text x="32" y="148">tests</text>
+    <text x="157" y="94">thread = session</text>
+    <text x="157" y="112">follow-ups, queue</text>
+    <text x="157" y="130">Linear + GitHub tools</text>
+    <text x="157" y="148">completion callback</text>
+    <text x="372" y="94">channel session, 4 outcomes</text>
+    <text x="372" y="112">back-off, engagement</text>
+    <text x="372" y="130">channel memory + controls</text>
+    <text x="372" y="148">Approve button</text>
+    <text x="637" y="94">code tasks → workspace + agent</text>
+    <text x="637" y="112">checklist, PR posted back</text>
+    <text x="637" y="130">!restart, hand-off, pane</text>
+    <text x="637" y="148">Notion + Sentry plugins</text>
+  </g>
+  <text x="440" y="192" text-anchor="middle" fill="#7d776e" font-size="11.5">then ongoing: transcript evals (acted / stayed quiet / right tool / linked result) and PostHog on decisions and mutes</text>
+</svg>
+</figure>
+
+<h2><span class="num">09</span>Decisions needed</h2>
+<ol class="q">
+  <li><strong>Where working sessions run.</strong> Recommended: cloud sandbox for channel threads, author's host for DMs, optional pinned runner host per channel. Alternatives: host-first with cloud fallback, or cloud-only. Section 03 has the comparison.</li>
+  <li><strong>Respond-automatically default.</strong> On like Claude Tag, or off until a channel opts in?</li>
+  <li><strong>Identity in channels.</strong> Per-user as proposed, or add channel service connections later?</li>
+  <li><strong>Approval quorum.</strong> Any linked member, or only the author?</li>
+  <li><strong>Gating.</strong> All Pro, or presence free and working sessions plus plugin tools paid?</li>
+  <li><strong>Google.</strong> Skip, or fund a bundled MCP server?</li>
+</ol>
+
+<h2><span class="num">10</span>Prior art</h2>
+<ul>
+  <li><strong>Claude Tag</strong>: reply rules, two session kinds, back-off, engagement memory. <a href="https://claude.com/docs/claude-tag/users/when-claude-responds">When it responds</a> · <a href="https://claude.com/docs/claude-tag/concepts/how-it-works">How it works</a> · <a href="https://claude.com/docs/claude-tag/users/memory">Memory</a></li>
+  <li><strong>Cyrus</strong>: thread-as-session on worktrees, follow-up queue, back-reading, 👀 → ✅. <a href="https://github.com/cyrusagents/cyrus">repo</a></li>
+  <li><strong>Open Claude Tag</strong>: channel-keyed sessions, per-channel MCP allowlists, memory curation. <a href="https://github.com/Anil-matcha/open-claude-tag">repo</a></li>
+  <li><strong>claude-code-slack-channel</strong>: tiered tool policy, outbox, loop breakers. <a href="https://github.com/jeremylongshore/claude-code-slack-channel">repo</a></li>
+  <li><strong>Open-Inspect</strong>: thread → session in KV, signed completion callbacks. <code>~/Developer/Superset/ba-2/background-agents</code></li>
+  <li><strong>Slack AI-app guidance</strong>: markdown block, streaming, status, don't store content. <a href="https://docs.slack.dev/ai/ai-apps-best-practices">docs</a></li>
+</ul>
+
+</div>
+</body>
+</html>

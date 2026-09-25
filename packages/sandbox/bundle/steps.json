@@ -1,0 +1,36 @@
+[
+	{ "name": "install-chrome", "assets": ["chrome"] },
+	{
+		"name": "configure-chrome",
+		"after": ["install-chrome"],
+		"inputs": [
+			"/usr/local/bin/google-chrome",
+			"/usr/local/share/superset/desktop/chrome-preferences.json",
+			"/etc/opt/chrome/policies/managed/superset.json"
+		]
+	},
+	{
+		"name": "install-themes",
+		"assets": ["whitesur-gtk", "whitesur-icons", "whitesur-cursors"]
+	},
+	{ "name": "install-locales" },
+	{
+		"name": "write-desktop-config",
+		"inputs": [
+			"/etc/superset/contract.sh",
+			"/usr/local/share/superset/desktop/xfce4-panel.xml",
+			"/usr/local/share/superset/desktop/xfwm4.xml",
+			"/usr/local/share/superset/desktop/xsettings.xml",
+			"/usr/local/share/superset/desktop/terminalrc",
+			"/usr/local/share/superset/desktop/gtk.css",
+			"/usr/local/share/superset/desktop/autostart/plank.desktop",
+			"/usr/local/share/superset/desktop/plank-launchers/01-chrome.dockitem",
+			"/usr/local/share/superset/desktop/plank-launchers/02-files.dockitem",
+			"/usr/local/share/superset/desktop/plank-launchers/03-terminal.dockitem",
+			"/usr/share/glib-2.0/schemas/90_superset-plank.gschema.override",
+			"/home/ubuntu/.claude.json"
+		]
+	},
+	{ "name": "install-host", "assets": ["host-service"] },
+	{ "name": "install-cli", "assets": ["cli"] }
+]

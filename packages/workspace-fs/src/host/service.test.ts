@@ -73,7 +73,6 @@ describe("createFsHostService", () => {
 		const iterator = service
 			.watchPath({
 				absolutePath: "/tmp/workspace",
-				recursive: true,
 			})
 			[Symbol.asyncIterator]();
 
@@ -106,5 +105,34 @@ describe("createFsHostService", () => {
 
 		await iterator.return?.();
 		expect(unsubscribed).toEqual(true);
+	});
+
+	it("rejects watchPath targets other than the workspace root", async () => {
+		const service = createFsHostService({
+			rootPath: "/tmp/workspace",
+			watcherManager: {
+				async subscribe() {
+					throw new Error("subscribe must not be reached");
+				},
+				async close() {},
+			},
+		});
+
+		for (const absolutePath of [
+			"/tmp/workspace/node_modules",
+			"/tmp/workspace/node_modules/pkg",
+			"/tmp/workspace/src",
+			"/tmp/other",
+			"/tmp",
+		]) {
+			expect(() => service.watchPath({ absolutePath })).toThrow(
+				"watchPath only supports the workspace root",
+			);
+		}
+
+		// Trailing-slash spelling of the root is still the root.
+		expect(() =>
+			service.watchPath({ absolutePath: "/tmp/workspace/" }),
+		).not.toThrow();
 	});
 });

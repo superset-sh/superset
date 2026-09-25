@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset 10x"
+  short_description: "Audit your Superset usage and set up the features you're missing"
+  default_prompt: "Use $superset-10x to audit how I use Superset and set up the advanced features I'm not using yet."

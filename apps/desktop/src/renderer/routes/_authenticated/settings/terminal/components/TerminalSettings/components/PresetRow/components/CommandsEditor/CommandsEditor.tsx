@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,8 +15,14 @@ export function CommandsEditor({
 	commands,
 	onChange,
 	onBlur,
-	placeholder = "Command...",
+	placeholder,
 }: CommandsEditorProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			message: "Command...",
+		});
 	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 	const commandIdsRef = useRef(
 		commands.map(() => Math.random().toString(36).slice(2)),
@@ -91,7 +98,7 @@ export function CommandsEditor({
 						onChange={(e) => handleCommandChange(index, e.target.value)}
 						onBlur={onBlur}
 						className={inputClassName}
-						placeholder={placeholder}
+						placeholder={resolvedPlaceholder}
 					/>
 					{commands.length > 1 && (
 						<Button
@@ -100,7 +107,9 @@ export function CommandsEditor({
 							size="icon-sm"
 							onClick={() => handleDeleteCommand(index)}
 							className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/command-row:opacity-100 group-focus-within/command-row:opacity-100"
-							aria-label={`Delete command ${index + 1}`}
+							aria-label={t({
+								message: `Delete command ${index + 1}`,
+							})}
 						>
 							<HiMiniXMark className="h-3.5 w-3.5" />
 						</Button>
@@ -113,7 +122,7 @@ export function CommandsEditor({
 				className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
 			>
 				<HiMiniPlus className="h-3.5 w-3.5" />
-				Add command
+				<Trans>Add command</Trans>
 			</button>
 		</div>
 	);

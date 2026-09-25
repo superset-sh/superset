@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 
 export interface PresetProjectOption {
@@ -28,7 +30,11 @@ export function getPresetProjectTargetLabel(
 ): string {
 	const normalizedProjectIds = normalizePresetProjectIds(projectIds);
 	if (normalizedProjectIds === null) {
-		return "All projects";
+		return i18n._(
+			msg({
+				message: "All projects",
+			}),
+		);
 	}
 
 	const selectedProjects = resolveSelectedPresetProjects(
@@ -36,8 +42,19 @@ export function getPresetProjectTargetLabel(
 		projectOptionsById,
 	);
 	if (normalizedProjectIds.length === 1) {
-		return selectedProjects[0]?.name ?? "Unknown project";
+		return (
+			selectedProjects[0]?.name ??
+			i18n._(
+				msg({
+					message: "Unknown project",
+				}),
+			)
+		);
 	}
 
-	return `${normalizedProjectIds.length} projects`;
+	return i18n._(
+		msg({
+			message: `${normalizedProjectIds.length} projects`,
+		}),
+	);
 }

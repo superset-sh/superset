@@ -1,0 +1,10 @@
+---
+extends: substitution
+message: When referring to a person, consider using '%s' instead of '%s'.
+ignorecase: true
+level: warning
+nonword: true
+action:
+  name: replace
+swap:
+  '\bocd\b|o\.c\.d\.': has an anxiety disorder|obsessive|pedantic|niggly|picky

@@ -17,25 +17,68 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
 	reactStrictMode: true,
-	images: {
-		remotePatterns: [
-			{
-				protocol: "https",
-				hostname: "*.public.blob.vercel-storage.com",
-			},
-		],
+	// Compiles @lingui/react/macro at build time. Version must stay in
+	// lockstep with Next's swc_core ABI — see plans/20260826-i18n-strategy.md.
+	experimental: {
+		swcPlugins: [["@lingui/swc-plugin", {}]],
 	},
 	async redirects() {
 		return [
 			{
-				source: "/",
-				destination: "/overview",
+				source: "/docs",
+				destination: "/",
 				permanent: false,
 			},
+			// Legacy /docs-prefixed URLs (e.g. /docs/automations) now live at root.
 			{
-				source: "/docs",
+				source: "/docs/:path*",
+				destination: "/:path*",
+				permanent: true,
+			},
+			// Old top-level entry points from the previous docs structure (were 404ing).
+			{
+				source: "/guides/workspace-management",
+				destination: "/workspaces",
+				permanent: true,
+			},
+			{
+				source: "/getting-started",
 				destination: "/overview",
-				permanent: false,
+				permanent: true,
+			},
+			{
+				source: "/installation",
+				destination: "/overview",
+				permanent: true,
+			},
+			{
+				source: "/quick-start",
+				destination: "/first-workspace",
+				permanent: true,
+			},
+			{
+				source: "/terminal-presets",
+				destination: "/terminal-scripts",
+				permanent: true,
+			},
+			// Remote Workspaces was renamed to Remote Access.
+			{
+				source: "/remote-workspaces",
+				destination: "/remote-access",
+				permanent: true,
+			},
+		];
+	},
+	async headers() {
+		// Keep raw markdown surfaces out of the index (they duplicate rendered pages).
+		return [
+			{
+				source: "/:path*.mdx",
+				headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+			},
+			{
+				source: "/llms-full.txt",
+				headers: [{ key: "X-Robots-Tag", value: "noindex" }],
 			},
 		];
 	},
@@ -67,6 +110,7 @@ const config = {
 export default withSentryConfig(withMDX(config), {
 	org: "superset-sh",
 	project: "docs",
+	applicationKey: "superset-docs",
 	silent: !process.env.CI,
 	widenClientFileUpload: true,
 	tunnelRoute: "/monitoring",

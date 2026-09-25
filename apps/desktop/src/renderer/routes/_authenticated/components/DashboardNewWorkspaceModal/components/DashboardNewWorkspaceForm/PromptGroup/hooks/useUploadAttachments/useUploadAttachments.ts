@@ -16,10 +16,13 @@ export interface UseUploadAttachmentsApi {
 
 /**
  * Drives background attachment uploads. Each file uploads exactly once, to
- * whichever host was active when the user added it; switching hosts does not
- * re-upload. The upload store keys results by `(fileId, hostUrl)` so the
+ * whichever target was active when the user added it; switching targets does
+ * not re-upload. The upload store keys results by `(fileId, target)` so the
  * visible pill list (filtered via `useFileIdsForHost`) follows the picker
- * while previous-host attachments stay cached for return visits.
+ * while previous targets' attachments stay cached for return visits.
+ *
+ * A target is a host URL, or `CLOUD_UPLOAD_TARGET` when the workspace will be
+ * a cloud one and has no host yet.
  */
 export function useUploadAttachments({
 	files,

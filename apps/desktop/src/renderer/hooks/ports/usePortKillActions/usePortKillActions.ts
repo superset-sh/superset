@@ -1,6 +1,9 @@
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { confirmClosePorts } from "./confirmClosePorts";
 import {
 	killPortTarget,
 	type LocalPortKill,
@@ -23,6 +26,7 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 	refreshQueryKey,
 	externalPending = false,
 }: UsePortKillActionsOptions = {}) {
+	const { t } = useLingui();
 	const queryClient = useQueryClient();
 	const [pendingCount, setPendingCount] = useState(0);
 
@@ -36,14 +40,19 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 	}, [queryClient, refreshQueryKey]);
 
 	const killPort = useCallback(
-		async (port: TPort): Promise<PortKillResult> => {
+		async (port: TPort): Promise<PortKillResult | undefined> => {
+			if (!(await confirmClosePorts(1))) return;
+
 			setPendingCount((count) => count + 1);
 			try {
 				const result = await killPortTarget(port, localKill);
 				if (!result.success) {
-					toast.error(`Failed to close port ${port.port}`, {
-						description: getFailureDescription(result),
-					});
+					toast.error(
+						t({
+							message: `Failed to close port ${port.port}`,
+						}),
+						{ description: getFailureDescription(result) },
+					);
 				}
 				return result;
 			} finally {
@@ -51,12 +60,13 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 				setPendingCount((count) => Math.max(0, count - 1));
 			}
 		},
-		[localKill, refreshPorts],
+		[localKill, refreshPorts, t],
 	);
 
 	const killPorts = useCallback(
 		async (ports: TPort[]): Promise<PortKillResult[]> => {
 			if (ports.length === 0) return [];
+			if (!(await confirmClosePorts(ports.length))) return [];
 
 			setPendingCount((count) => count + 1);
 			try {
@@ -64,14 +74,20 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 					ports.map((port) => killPortTarget(port, localKill)),
 				);
 				const failed = results.filter((result) => !result.success);
-				if (failed.length === 1) {
-					toast.error("Failed to close 1 port", {
-						description: getFailureDescription(failed[0] ?? { success: false }),
-					});
-				} else if (failed.length > 1) {
-					toast.error(`Failed to close ${failed.length} ports`, {
-						description: getFailureDescription(failed[0] ?? { success: false }),
-					});
+				if (failed.length > 0) {
+					toast.error(
+						t({
+							message: plural(failed.length, {
+								one: "Failed to close # port",
+								other: "Failed to close # ports",
+							}),
+						}),
+						{
+							description: getFailureDescription(
+								failed[0] ?? { success: false },
+							),
+						},
+					);
 				}
 				return results;
 			} finally {
@@ -79,7 +95,7 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 				setPendingCount((count) => Math.max(0, count - 1));
 			}
 		},
-		[localKill, refreshPorts],
+		[localKill, refreshPorts, t],
 	);
 
 	return {

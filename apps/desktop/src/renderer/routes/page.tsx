@@ -1,9 +1,10 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { Redirect } from "renderer/components/Redirect";
 
 export const Route = createFileRoute("/")({
 	component: RootIndexPage,
 });
 
 function RootIndexPage() {
-	return <Navigate to="/workspace" replace />;
+	return <Redirect to="/workspace" replace />;
 }

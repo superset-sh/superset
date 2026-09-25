@@ -108,7 +108,7 @@ export function WorkspaceRow({
 						)}
 					</div>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={4}>
+				<TooltipContent side="top">
 					{isBranch ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
@@ -149,7 +149,7 @@ export function WorkspaceRow({
 			{showDiffStats && (
 				<div className="flex items-center gap-1 text-[10px] font-mono shrink-0">
 					<span className="text-emerald-500">+{pr.additions}</span>
-					<span className="text-destructive-foreground">-{pr.deletions}</span>
+					<span className="text-destructive">-{pr.deletions}</span>
 				</div>
 			)}
 
@@ -232,6 +232,7 @@ export function WorkspaceRow({
 			{isClosedWorktree && workspace.worktreeId && (
 				<DeleteWorktreeDialog
 					worktreeId={workspace.worktreeId}
+					worktreePath={workspace.worktreePath}
 					worktreeName={workspace.name}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}

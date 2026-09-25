@@ -1,4 +1,5 @@
 export { HotkeyLabel } from "./components/HotkeyLabel";
+export { HotkeyTooltip } from "./components/HotkeyTooltip";
 export { formatHotkeyDisplay } from "./display";
 export {
 	getBinding,
@@ -32,3 +33,8 @@ export {
 	resolveHotkeyFromEvent,
 	serializeBinding,
 } from "./utils";
+export {
+	FORWARDED_HOTKEYS,
+	getForwardableChords,
+	replayForwardedKey,
+} from "./utils/forwardedHotkeys";

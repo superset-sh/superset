@@ -11,7 +11,7 @@ import {
 import { BsTerminalPlus } from "react-icons/bs";
 import { HiMiniChevronDown } from "react-icons/hi2";
 import { LuPlus } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { NewTabDropZone } from "../../NewTabDropZone";
 import { PresetsSubmenu } from "./components/PresetsSubmenu";
@@ -23,7 +23,6 @@ interface AddTabButtonProps {
 	onDropToNewTab: (paneId: string) => void;
 	isLastPaneInTab: (paneId: string) => boolean;
 	onAddTerminal: () => void;
-	onAddChat: () => void;
 	onAddBrowser: () => void;
 	onOpenPreset: (preset: TerminalPreset) => void;
 	onConfigurePresets: () => void;
@@ -38,7 +37,6 @@ export function AddTabButton({
 	onDropToNewTab,
 	isLastPaneInTab,
 	onAddTerminal,
-	onAddChat,
 	onAddBrowser,
 	onOpenPreset,
 	onConfigurePresets,
@@ -61,14 +59,6 @@ export function AddTabButton({
 							>
 								<BsTerminalPlus className="size-3.5" />
 								Terminal
-							</Button>
-							<Button
-								variant="ghost"
-								className="h-7 rounded-none border border-l-0 border-border/60 bg-muted/30 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-								onClick={onAddChat}
-							>
-								<TbMessageCirclePlus className="size-3.5" />
-								Chat
 							</Button>
 							<Button
 								variant="ghost"
@@ -108,11 +98,6 @@ export function AddTabButton({
 								<span>Terminal</span>
 								<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={onAddChat} className="gap-2">
-								<TbMessageCirclePlus className="size-4" />
-								<span>Chat</span>
-								<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
-							</DropdownMenuItem>
 							<DropdownMenuItem onClick={onAddBrowser} className="gap-2">
 								<TbWorld className="size-4" />
 								<span>Browser</span>
@@ -136,7 +121,7 @@ export function AddTabButton({
 						onCheckedChange={onToggleShowPresetsBar}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Preset Bar
+						Show Scripts Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuCheckboxItem
 						checked={useCompactAddButton}

@@ -23,7 +23,7 @@ function colorDistance(leftHex: string, rightHex: string) {
 
 describe("PROJECT_COLORS", () => {
 	it("keeps color names and values unique", () => {
-		const colorNames = PROJECT_COLORS.map((color) => color.name);
+		const colorNames = PROJECT_COLORS.map((color) => color.id);
 		const colorValues = PROJECT_COLORS.map((color) => color.value);
 
 		expect(new Set(colorNames).size).toBe(colorNames.length);

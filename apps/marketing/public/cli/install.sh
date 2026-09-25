@@ -31,14 +31,15 @@ detect_target() {
         Darwin)
             case "$arch" in
                 arm64) echo "darwin-arm64" ;;
-                x86_64) error "Intel Macs are not supported. Apple Silicon (arm64) only." ;;
+                x86_64) echo "darwin-x64" ;;
                 *) error "Unsupported macOS architecture: $arch" ;;
             esac
             ;;
         Linux)
             case "$arch" in
                 x86_64) echo "linux-x64" ;;
-                *) error "Unsupported Linux architecture: $arch (only x64 is supported)" ;;
+                aarch64|arm64) echo "linux-arm64" ;;
+                *) error "Unsupported Linux architecture: $arch (only x64 and arm64 are supported)" ;;
             esac
             ;;
         *)

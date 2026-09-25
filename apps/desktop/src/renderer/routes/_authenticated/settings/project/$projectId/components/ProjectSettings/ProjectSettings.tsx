@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { useLingui as useTranslation } from "@lingui/react";
+import { errorMessage } from "@superset/i18n/errors";
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
@@ -36,6 +39,8 @@ import {
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
 } from "renderer/react-query/workspaces";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import {
 	useDefaultWorktreePath,
@@ -63,15 +68,19 @@ export function SettingsSection({
 	description?: string;
 	children: ReactNode;
 }) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="space-y-3">
 			<div>
 				<h3 className="text-sm font-medium text-foreground flex items-center gap-2">
 					{icon}
-					{title}
+					<HighlightText text={title} query={searchQuery} />
 				</h3>
 				{description && (
-					<p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+					<p className="text-sm text-muted-foreground mt-0.5">
+						<HighlightText text={description} query={searchQuery} />
+					</p>
 				)}
 			</div>
 			{children}
@@ -88,6 +97,9 @@ export function ProjectSettings({
 	projectId,
 	visibleItems,
 }: ProjectSettingsProps) {
+	const { _: translate } = useTranslation();
+
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
@@ -230,9 +242,7 @@ export function ProjectSettings({
 				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
 			);
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to import worktrees",
-			);
+			toast.error(errorMessage(err, "Failed to import worktrees"));
 		}
 	};
 
@@ -245,8 +255,7 @@ export function ProjectSettings({
 			{
 				loading: "Importing worktree...",
 				success: `Imported ${branch}`,
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to import worktree",
+				error: (err) => errorMessage(err, "Failed to import worktree"),
 			},
 		);
 	};
@@ -301,7 +310,7 @@ export function ProjectSettings({
 
 			<div className="space-y-8">
 				<SettingsSection
-					title="Branch Prefix"
+					title={translate(msg({ message: "Branch Prefix" }))}
 					description={
 						previewPrefix
 							? `Preview: ${previewPrefix}/branch-name`
@@ -333,7 +342,7 @@ export function ProjectSettings({
 							</Select>
 							{currentMode === "custom" && (
 								<Input
-									placeholder="Prefix"
+									placeholder={translate(msg({ message: "Prefix" }))}
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}
@@ -346,8 +355,13 @@ export function ProjectSettings({
 				</SettingsSection>
 
 				<SettingsSection
-					title="Base Branch"
-					description="Default base for new workspaces. Override per-workspace at creation."
+					title={translate(msg({ message: "Base Branch" }))}
+					description={translate(
+						msg({
+							message:
+								"Default base for new workspaces. Override per-workspace at creation.",
+						}),
+					)}
 				>
 					<div className="flex items-center justify-end gap-4">
 						<Select
@@ -387,7 +401,7 @@ export function ProjectSettings({
 					)}
 				</SettingsSection>
 
-				<SettingsSection title="Worktrees">
+				<SettingsSection title={translate(msg({ message: "Worktrees" }))}>
 					<WorktreeLocationPicker
 						currentPath={project.worktreeBaseDir}
 						defaultPathLabel={`Using global default: ${globalPath}`}
@@ -417,7 +431,10 @@ export function ProjectSettings({
 							<div className="flex items-center justify-between">
 								<div className="space-y-0.5">
 									<Label className="text-sm font-medium">
-										Import Worktrees
+										<HighlightText
+											text="Import Worktrees"
+											query={searchQuery}
+										/>
 									</Label>
 									<p className="text-xs text-muted-foreground">
 										{importableExternalWorktrees.length} external worktree
@@ -515,7 +532,7 @@ export function ProjectSettings({
 					<ScriptsEditor projectId={project.id} />
 				)}
 
-				<SettingsSection title="Appearance">
+				<SettingsSection title={translate(msg({ message: "Appearance" }))}>
 					<div className="flex items-center justify-between gap-4">
 						<ColorSelector
 							selectedColor={project.color}
@@ -531,7 +548,7 @@ export function ProjectSettings({
 								{project.iconUrl && (
 									<img
 										src={project.iconUrl}
-										alt="Project icon"
+										alt={translate(msg({ message: "Project icon" }))}
 										className="size-8 rounded object-cover border"
 									/>
 								)}

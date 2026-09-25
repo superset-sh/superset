@@ -1,8 +1,11 @@
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { invalidateWorkspaceQueries } from "./invalidateWorkspaceQueries";
 
 export function useCreateSectionFromWorkspaces() {
+	const { t } = useLingui();
 	const utils = electronTrpc.useUtils();
 	const createSection = electronTrpc.workspaces.createSection.useMutation();
 	const moveWorkspaces =
@@ -29,7 +32,14 @@ export function useCreateSectionFromWorkspaces() {
 			await invalidateWorkspaceQueries(utils);
 		} catch (error) {
 			toast.error(
-				`Failed to create section: ${error instanceof Error ? error.message : "Unknown error"}`,
+				t({
+					message: `Failed to create section: ${errorMessage(
+						error,
+						t({
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
 	};

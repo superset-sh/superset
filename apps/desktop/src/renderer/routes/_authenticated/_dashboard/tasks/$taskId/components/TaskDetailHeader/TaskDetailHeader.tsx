@@ -1,6 +1,8 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { HiArrowLeft } from "react-icons/hi2";
 import { LuExternalLink } from "react-icons/lu";
+import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { TaskActionMenu } from "../TaskActionMenu";
 
@@ -15,6 +17,7 @@ export function TaskDetailHeader({
 	onBack,
 	onDelete,
 }: TaskDetailHeaderProps) {
+	const { t } = useLingui();
 	return (
 		<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
 			<Button
@@ -22,11 +25,15 @@ export function TaskDetailHeader({
 				size="icon"
 				className="h-8 w-8"
 				onClick={onBack}
-				aria-label="Back to tasks"
+				aria-label={t({
+					message: "Back to tasks",
+				})}
 			>
 				<HiArrowLeft className="w-4 h-4" />
 			</Button>
 			<span className="text-sm text-muted-foreground">{task.slug}</span>
+			{/* Window-drag leaf standing in for the hidden TopBar. */}
+			<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
 			<div className="ml-auto flex items-center gap-1">
 				{task.externalUrl && (
 					<a
@@ -34,13 +41,16 @@ export function TaskDetailHeader({
 						target="_blank"
 						rel="noopener noreferrer"
 						className="text-muted-foreground hover:text-foreground transition-colors p-2"
-						title="Open in Linear"
+						title={t({
+							message: "Open in Linear",
+						})}
 					>
 						<LuExternalLink className="w-4 h-4" />
 					</a>
 				)}
 				<TaskActionMenu task={task} onDelete={onDelete} />
 			</div>
+			<WindowControlsInset />
 		</div>
 	);
 }

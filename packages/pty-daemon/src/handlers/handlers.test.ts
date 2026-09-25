@@ -19,6 +19,7 @@ interface FakePtyState {
 	rows: number;
 	written: Buffer[];
 	killed: boolean;
+	disposed: boolean;
 }
 
 function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
@@ -37,7 +38,12 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		},
 		onData: () => {},
 		onExit: () => {},
+		dispose: () => {
+			state.disposed = true;
+		},
 		getMasterFd: () => -1,
+		pause: () => {},
+		resume: () => {},
 	};
 }
 
@@ -78,6 +84,7 @@ function makeCtx(): HandlerCtx & {
 				rows: opts.meta.rows,
 				written: [],
 				killed: false,
+				disposed: false,
 			};
 			states.push(state);
 			return makeFakePty(state, opts.meta);
@@ -92,6 +99,55 @@ beforeEach(() => {
 });
 
 describe("handlers", () => {
+	test("mode checkpoint follows replay even when the mode-setting bytes were evicted", () => {
+		const ctx = makeCtx();
+		ctx.store = new SessionStore({ bufferCap: 16 });
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const session = ctx.store.get("s0");
+		if (!session) throw new Error("no session");
+		ctx.store.appendOutput(session, Buffer.from("\x1b[?2004h"));
+		ctx.store.appendOutput(session, Buffer.alloc(16, 120));
+		const conn = makeConn();
+		handleSubscribe(ctx, conn, {
+			type: "subscribe",
+			id: "s0",
+			replay: true,
+			modeSnapshot: true,
+		});
+		expect(conn.sent.map((f) => f.message.type)).toEqual([
+			"output",
+			"replay-complete",
+		]);
+		expect(Buffer.from(conn.sent[0]?.payload ?? []).toString()).toBe(
+			"x".repeat(16),
+		);
+		expect(conn.sent[1]?.message).toMatchObject({
+			type: "replay-complete",
+			modes: { decModes: [7, 25, 2004] },
+		});
+	});
+
+	test("empty replay still receives its completion checkpoint", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const conn = makeConn();
+		handleSubscribe(ctx, conn, {
+			type: "subscribe",
+			id: "s0",
+			replay: true,
+			modeSnapshot: true,
+		});
+		expect(conn.sent.map((f) => f.message.type)).toEqual(["replay-complete"]);
+	});
+
 	test("open: spawns a session and replies open-ok", () => {
 		const ctx = makeCtx();
 		const reply = handleOpen(ctx, {
@@ -153,7 +209,7 @@ describe("handlers", () => {
 		expect(states[0]?.rows).toBe(30);
 	});
 
-	test("close kills the pty and replies closed", () => {
+	test("close kills and disposes the pty before replying closed", () => {
 		const ctx = makeCtx();
 		handleOpen(ctx, {
 			type: "open",
@@ -163,6 +219,24 @@ describe("handlers", () => {
 		const reply = handleClose(ctx, { type: "close", id: "s0" });
 		expect(reply.type).toBe("closed");
 		expect(states[0]?.killed).toBe(true);
+		expect(states[0]?.disposed).toBe(true);
+		expect(ctx.store.get("s0")?.exited).toBe(true);
+	});
+
+	test("open disposes a spawned pty when session wiring fails", () => {
+		const ctx = makeCtx();
+		ctx.wireSession = () => {
+			throw new Error("wire failed");
+		};
+		const reply = handleOpen(ctx, {
+			type: "open",
+			id: "partial",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		expect(reply).toMatchObject({ type: "error", code: "ESPAWN" });
+		expect(states[0]?.killed).toBe(true);
+		expect(states[0]?.disposed).toBe(true);
+		expect(ctx.store.get("partial")).toBeUndefined();
 	});
 
 	test("list returns all sessions", () => {

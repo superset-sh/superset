@@ -102,16 +102,13 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 
 		const manager = createManager({ debounceMs: 50 });
 		const events: string[] = [];
-		await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
-			(batch) => {
-				for (const event of batch.events) {
-					if (event.kind !== "overflow") {
-						events.push(`${event.kind}:${event.absolutePath}`);
-					}
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind !== "overflow") {
+					events.push(`${event.kind}:${event.absolutePath}`);
 				}
-			},
-		);
+			}
+		});
 
 		const fileCount = 12;
 		for (let i = 0; i < fileCount; i++) {
@@ -135,14 +132,11 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 
 		const manager = createManager({ debounceMs: 50 });
 		const events: string[] = [];
-		await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
-			(batch) => {
-				for (const event of batch.events) {
-					if (event.kind !== "overflow") events.push(event.kind);
-				}
-			},
-		);
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind !== "overflow") events.push(event.kind);
+			}
+		});
 
 		// Create one file, wait for it to be tracked.
 		const filePath = path.join(rootPath, "stable.txt");
@@ -169,16 +163,13 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 
 		const manager = createManager({ debounceMs: 50 });
 		const events: string[] = [];
-		await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
-			(batch) => {
-				for (const event of batch.events) {
-					if (event.kind !== "overflow") {
-						events.push(`${event.kind}:${event.absolutePath}`);
-					}
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind !== "overflow") {
+					events.push(`${event.kind}:${event.absolutePath}`);
 				}
-			},
-		);
+			}
+		});
 
 		// Phase 1: create 5 files.
 		for (let i = 0; i < 5; i++) {
@@ -230,10 +221,7 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 			debounceMs: 50,
 			filePathsMax: FILE_PATHS_MAX,
 		});
-		await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
-			() => {},
-		);
+		await manager.subscribe({ absolutePath: rootPath }, () => {});
 
 		const total = FILE_PATHS_MAX + 20;
 
@@ -276,14 +264,11 @@ describe("FsWatcherManager.pathTypes — monotonic growth", () => {
 
 		const manager = createManager({ debounceMs: 50 });
 		let createCount = 0;
-		await manager.subscribe(
-			{ absolutePath: rootPath, recursive: true },
-			(batch) => {
-				for (const event of batch.events) {
-					if (event.kind === "create") createCount++;
-				}
-			},
-		);
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind === "create") createCount++;
+			}
+		});
 
 		// Burst: create 30 unique paths before any delete fires. Without
 		// a cap, pathTypes holds all 30 simultaneously.

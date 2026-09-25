@@ -90,7 +90,15 @@ export function parseCheckContexts(
 
 export function computeChecksStatus(checks: PullRequestCheck[]): ChecksStatus {
 	if (checks.length === 0) return "none";
-	if (checks.some((check) => check.status === "failure")) return "failure";
+	// A cancelled run never produced a real verdict — treat it as a failure
+	// rather than falling through to "success".
+	if (
+		checks.some(
+			(check) => check.status === "failure" || check.status === "cancelled",
+		)
+	) {
+		return "failure";
+	}
 	if (checks.some((check) => check.status === "pending")) return "pending";
 	return "success";
 }

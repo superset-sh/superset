@@ -1,12 +1,30 @@
-import { readFile, rm } from "node:fs/promises";
-import { isAbsolute, join, normalize, sep } from "node:path";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
+import { createGitEnvResolver } from "../../../runtime/git";
+import { createUserSimpleGit } from "../../../runtime/git/simple-git";
+import type { HostServiceContext } from "../../../types";
+import { getHostWorkerPool } from "../../../workers/host-worker-pool";
+import {
+	gitCommitFilesTask,
+	gitCommitTask,
+	gitDiffBulkTask,
+	gitDiffPatchTask,
+	gitDiffSideBlobTask,
+	gitFetchBaseRefTask,
+	gitPushTask,
+	gitStagePathsTask,
+	gitStatusPartialTask,
+	gitStatusSnapshotTask,
+} from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { rethrowWorkerTaskAbort } from "../../worker-abort";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
+	ChangedFile,
 	CheckConclusionState,
 	CheckRun,
 	CheckStatusState,
@@ -17,41 +35,212 @@ import type {
 	PullRequestReviewThread,
 	PullRequestState,
 } from "./types";
+import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
+import { rethrowEnvironmentalGitError } from "./utils/classify-git-error";
 import { gitConfigWrite } from "./utils/config-write";
 import {
-	getChangedFilesForDiff,
+	assertSafeRelativePath,
 	getDefaultBranchName,
+	loadFileDiffContent,
 	resolveBaseComparison,
+	resolveDiffCategoryRefs,
 } from "./utils/git-helpers";
-import { getGitStatusSnapshot } from "./utils/git-status";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
+import { gitStatusStore } from "./utils/git-status-store";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
 	REVIEW_THREADS_QUERY,
 } from "./utils/graphql";
+import { replyToReviewComment } from "./utils/reply-to-review-comment";
 import { resolveWorktreePath } from "./utils/resolve-worktree";
+import { attachSpawnFailureDiagnostics } from "./utils/spawn-failure-diagnostics";
 
-function assertSafeRelativePath(filePath: string): void {
-	if (isAbsolute(filePath)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Absolute paths are not allowed",
-		});
+// Front-door cap for commit-file diffs. Statuses are admitted by
+// gitStatusRefreshLimiter; without a cap here, a burst of distinct-commit
+// diffs could occupy every pool worker ahead of limiter-admitted statuses.
+const MAX_CONCURRENT_COMMIT_FILE_TASKS = 2;
+let activeCommitFileTasks = 0;
+const commitFileWaiters: (() => void)[] = [];
+async function withCommitFilesSlot<T>(fn: () => Promise<T>): Promise<T> {
+	if (activeCommitFileTasks >= MAX_CONCURRENT_COMMIT_FILE_TASKS) {
+		await new Promise<void>((resolve) => commitFileWaiters.push(resolve));
 	}
-	const normalized = normalize(filePath);
-	if (normalized.split(sep).includes("..")) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Path traversal is not allowed",
-		});
+	activeCommitFileTasks++;
+	try {
+		return await fn();
+	} finally {
+		activeCommitFileTasks--;
+		commitFileWaiters.shift()?.();
 	}
-	if (normalized === "" || normalized === ".") {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Cannot target worktree root",
-		});
+}
+
+// Identical requests share one slot AND one task — deduping outside the
+// semaphore keeps same-commit bursts from consuming both cap slots or
+// re-running a task that finished while they waited for a slot.
+const inFlightCommitFiles = new Map<string, Promise<ChangedFile[]>>();
+function runCommitFilesDeduped(
+	key: string,
+	fn: () => Promise<ChangedFile[]>,
+): Promise<ChangedFile[]> {
+	const existing = inFlightCommitFiles.get(key);
+	if (existing) return existing;
+	const task = withCommitFilesSlot(fn).finally(() => {
+		inFlightCommitFiles.delete(key);
+	});
+	inFlightCommitFiles.set(key, task);
+	return task;
+}
+
+/** Credential env for a worker git task, resolved in-process (the provider
+ * can't cross the thread boundary) and passed to the worker as plain data. */
+function resolveGitTaskEnv(
+	ctx: Pick<HostServiceContext, "credentials">,
+	worktreePath: string,
+): Promise<Record<string, string>> {
+	return createGitEnvResolver(ctx.credentials)(worktreePath);
+}
+
+/** Delete for a discard. Recursive because an untracked or staged-as-added
+ * path can be a directory (an embedded git repository is reported as one
+ * entry, never expanded into files), and confined to the worktree because
+ * assertSafeRelativePath runs on the caller-relative path first. */
+async function removeFromWorktree(
+	worktreePath: string,
+	relativePath: string,
+): Promise<void> {
+	assertSafeRelativePath(relativePath);
+	await rm(join(worktreePath, relativePath), { recursive: true, force: true });
+}
+
+/** Upper bound for one getDiffStatsByWorkspaces call — a page's host rarely
+ * has more than a few dozen workspaces; anything larger is a runaway caller. */
+export const MAX_DIFF_STATS_BATCH = 500;
+
+/** Limiter-admitted status snapshot; shared by getStatus and the batched
+ * diff-stats query so both see identical numbers for a workspace. */
+/**
+ * A mutation that rewrites the index or refs returns before the `.git/`
+ * watcher event flushes, and the client refetches status immediately. Mark
+ * the workspace for a full walk so that refetch cannot be served from cache.
+ */
+function invalidateStatus(workspaceId: string): void {
+	gitStatusStore.recordChange(workspaceId, undefined);
+}
+
+function runStatusSnapshot(
+	ctx: Parameters<typeof resolveWorktreePath>[0] &
+		Pick<HostServiceContext, "credentials">,
+	input: {
+		workspaceId: string;
+		baseBranch?: string;
+		priority?: "foreground" | "background";
+	},
+) {
+	const requestKey = JSON.stringify({ baseBranch: input.baseBranch ?? null });
+	return gitStatusRefreshLimiter.run({
+		workspaceId: input.workspaceId,
+		requestKey,
+		priority: input.priority,
+		run: async () => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const workerPool = getHostWorkerPool();
+
+			const computeFull = async () => {
+				const result = await workerPool.run(
+					gitStatusSnapshotTask,
+					{ worktreePath, baseBranch: input.baseBranch, gitEnv },
+					{ timeoutMs: 15_000 },
+				);
+				if (result.baseRefFetchTarget) {
+					const target = result.baseRefFetchTarget;
+					const coordinatorGit = createUserSimpleGit(worktreePath).env(gitEnv);
+					// The coordinator maps live in this process, not in individual
+					// workers, so worktrees sharing one common Git dir share one TTL
+					// and in-flight fetch. The network fetch itself remains off-loop.
+					scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
+						workerPool.run(
+							gitFetchBaseRefTask,
+							{ worktreePath, target, gitEnv },
+							{
+								timeoutMs: 30_000,
+								strategy: "coalesce",
+								dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+							},
+						),
+					);
+				}
+				return result.snapshot;
+			};
+
+			return gitStatusStore.read({
+				workspaceId: input.workspaceId,
+				baseBranch: input.baseBranch ?? null,
+				computeFull,
+				computePartial: (paths) =>
+					workerPool.run(
+						gitStatusPartialTask,
+						{ worktreePath, paths, gitEnv },
+						{ timeoutMs: 15_000 },
+					),
+			});
+		},
+	});
+}
+
+/** Same union the desktop Changes tab renders: staged/unstaged override the
+ * against-base entry for a path, so totals match what the workspace shows. */
+function sumSnapshotDiffStats(snapshot: {
+	againstBase: ChangedFile[];
+	staged: ChangedFile[];
+	unstaged: ChangedFile[];
+}): { additions: number; deletions: number; fileCount: number } {
+	const byPath = new Map<string, ChangedFile>();
+	for (const file of snapshot.againstBase) byPath.set(file.path, file);
+	for (const file of snapshot.staged) byPath.set(file.path, file);
+	for (const file of snapshot.unstaged) byPath.set(file.path, file);
+	let additions = 0;
+	let deletions = 0;
+	for (const file of byPath.values()) {
+		additions += file.additions ?? 0;
+		deletions += file.deletions ?? 0;
 	}
+	return { additions, deletions, fileCount: byPath.size };
+}
+
+const getDiffInputShape = z.object({
+	workspaceId: z.string(),
+	path: z.string(),
+	category: z.enum(["against-base", "staged", "unstaged", "commit"]),
+	baseBranch: z.string().optional(),
+	commitHash: z.string().optional(),
+	fromHash: z.string().optional(),
+});
+
+/** Upper bound on one getDiffBulk call — generous headroom over the largest
+ * changeset we expect the Changes pane to render, while still bounding a
+ * runaway/malicious request. */
+const MAX_DIFF_BULK_PATHS = 2000;
+const DIFF_SIDE_FILE_MAX_BYTES = 10 * 1024 * 1024;
+
+// A rename is two index entries (delete of `oldPath`, add of `filePath`);
+// staging or unstaging only one end would split it into a delete plus an add.
+const stagingTargetInput = z.object({
+	workspaceId: z.string(),
+	filePath: z.string(),
+	oldPath: z.string().optional(),
+});
+
+function resolveStagingTargetPaths(
+	input: z.infer<typeof stagingTargetInput>,
+): string[] {
+	assertSafeRelativePath(input.filePath);
+	if (input.oldPath == null || input.oldPath === input.filePath) {
+		return [input.filePath];
+	}
+	assertSafeRelativePath(input.oldPath);
+	return [input.filePath, input.oldPath];
 }
 
 export const gitRouter = router({
@@ -100,23 +289,71 @@ export const gitRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const requestKey = JSON.stringify({
-				baseBranch: input.baseBranch ?? null,
-			});
-			return gitStatusRefreshLimiter.run({
-				workspaceId: input.workspaceId,
-				requestKey,
-				priority: input.priority,
-				run: async () => {
-					const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-					const git = await ctx.git(worktreePath);
-					return getGitStatusSnapshot({
-						git,
-						worktreePath,
-						baseBranch: input.baseBranch,
-					});
+			try {
+				return await runStatusSnapshot(ctx, input);
+			} catch (error) {
+				// A pane closing mid-request aborts the task; that is the client
+				// leaving, not a status failure.
+				rethrowWorkerTaskAbort(error);
+				// The worker boundary strips prototypes, so a simple-git failure
+				// arrives as a plain error — classify it by message here. The
+				// worktree can vanish between resolveWorktreePath's existsSync
+				// check and the git spawn.
+				rethrowEnvironmentalGitError(error);
+				// A spawn that never produced a process reports with no
+				// first-party frame and no reason; record the descriptor table
+				// while we are still standing in the failure.
+				attachSpawnFailureDiagnostics(error);
+				throw error;
+			}
+		}),
+
+	// One request per host for list/board surfaces — totals only, so a
+	// 30-workspace page never fans out 30 getStatus calls from the client.
+	// The batch is bounded so one RPC can't queue unbounded background work;
+	// callers slice to this cap (see useAccessibleV2Workspaces).
+	getDiffStatsByWorkspaces: queryProcedure
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({ workspaceIds: z.array(z.string()).max(MAX_DIFF_STATS_BATCH) }),
+		)
+		.query(async ({ ctx, input }) => {
+			const queue = [...input.workspaceIds];
+			const workspaces: {
+				workspaceId: string;
+				additions: number;
+				deletions: number;
+				fileCount: number;
+			}[] = [];
+			// Small local cap; each status is additionally admitted by
+			// gitStatusRefreshLimiter at background priority, so this batch can
+			// never crowd out a foreground Changes-tab refresh.
+			const workers = Array.from(
+				{ length: Math.min(4, queue.length) },
+				async () => {
+					for (
+						let workspaceId = queue.shift();
+						workspaceId !== undefined;
+						workspaceId = queue.shift()
+					) {
+						try {
+							const snapshot = await runStatusSnapshot(ctx, {
+								workspaceId,
+								priority: "background",
+							});
+							workspaces.push({
+								workspaceId,
+								...sumSnapshotDiffStats(snapshot),
+							});
+						} catch {
+							// Missing worktree, wedged repo, etc. — omit the row rather
+							// than failing the whole batch.
+						}
+					}
 				},
-			});
+			);
+			await Promise.all(workers);
+			return { workspaces };
 		}),
 
 	listCommits: queryProcedure
@@ -139,16 +376,18 @@ export const gitRouter = router({
 				const raw = await git.raw([
 					"log",
 					`${baseRef}..HEAD`,
-					"--format=%H\t%h\t%s\t%an\t%aI",
+					"--format=%H\t%h\t%s\t%an\t%ae\t%aI",
 				]);
 				for (const line of raw.trim().split("\n")) {
 					if (!line) continue;
-					const [hash, shortHash, message, author, date] = line.split("\t");
+					const [hash, shortHash, message, author, authorEmail, date] =
+						line.split("\t");
 					commits.push({
 						hash: hash ?? "",
 						shortHash: shortHash ?? "",
 						message: message ?? "",
 						author: author ?? "",
+						authorEmail: authorEmail ?? "",
 						date: date ?? "",
 					});
 				}
@@ -168,10 +407,24 @@ export const gitRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-
-			const from = input.fromHash ? input.fromHash : `${input.commitHash}^`;
-			const files = await getChangedFilesForDiff(git, [from, input.commitHash]);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const dedupeKey = `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`;
+			const files = await runCommitFilesDeduped(dedupeKey, () =>
+				getHostWorkerPool().run(
+					gitCommitFilesTask,
+					{
+						worktreePath,
+						commitHash: input.commitHash,
+						fromHash: input.fromHash,
+						gitEnv,
+					},
+					{
+						timeoutMs: 15_000,
+						strategy: "coalesce",
+						dedupeKey,
+					},
+				),
+			);
 
 			return { files };
 		}),
@@ -262,6 +515,7 @@ export const gitRouter = router({
 			}
 
 			await git.raw(["branch", "-m", input.oldName, input.newName]);
+			invalidateStatus(input.workspaceId);
 			return { name: input.newName };
 		}),
 
@@ -279,10 +533,11 @@ export const gitRouter = router({
 			const status = await git.status();
 			const isUntracked = status.not_added.includes(input.filePath);
 			if (isUntracked) {
-				await rm(join(worktreePath, input.filePath), { force: true });
+				await removeFromWorktree(worktreePath, input.filePath);
 			} else {
 				await git.raw(["checkout", "HEAD", "--", input.filePath]);
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -293,6 +548,7 @@ export const gitRouter = router({
 			const git = await ctx.git(worktreePath);
 			await git.raw(["checkout", "--", "."]);
 			await git.raw(["clean", "-fd"]);
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -343,9 +599,42 @@ export const gitRouter = router({
 				await git.raw(["checkout", "HEAD", "--", ...checkoutHeadPaths]);
 			}
 			for (const filePath of deletePaths) {
-				await rm(join(worktreePath, filePath), { force: true });
+				await removeFromWorktree(worktreePath, filePath);
 			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
+		}),
+
+	stageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "stage",
+				gitEnv,
+			});
+			invalidateStatus(input.workspaceId);
+			return result;
+		}),
+
+	unstageFile: protectedProcedure
+		.input(stagingTargetInput)
+		.mutation(async ({ ctx, input }) => {
+			const paths = resolveStagingTargetPaths(input);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(gitStagePathsTask, {
+				worktreePath,
+				paths,
+				action: "unstage",
+				gitEnv,
+			});
+			invalidateStatus(input.workspaceId);
+			return result;
 		}),
 
 	stageAll: protectedProcedure
@@ -354,6 +643,7 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["add", "-A"]);
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
@@ -363,15 +653,165 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const git = await ctx.git(worktreePath);
 			await git.raw(["reset", "HEAD"]);
+			invalidateStatus(input.workspaceId);
+			return { success: true };
+		}),
+
+	commit: protectedProcedure
+		// Commit hooks (lint-staged etc.) run here and can be slow.
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				message: z.string().trim().min(1),
+				stageAll: z.boolean().default(true),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(
+				gitCommitTask,
+				{
+					worktreePath,
+					message: input.message,
+					stageAll: input.stageAll,
+					gitEnv,
+				},
+				{ timeoutMs: 60_000 },
+			);
+			if (!result.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Nothing to commit",
+				});
+			}
+			invalidateStatus(input.workspaceId);
+			return { success: true, hash: result.hash };
+		}),
+
+	push: protectedProcedure
+		.meta({ timeoutMs: 120_000 })
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			// The linked PR lookup stays on-loop (sync db reads); the git work
+			// itself — upstream resolution and the push — runs in the pool.
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			const linkedPr = workspace?.pullRequestId
+				? ctx.db.query.pullRequests
+						.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+						.sync()
+				: null;
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool()
+				.run(
+					gitPushTask,
+					{
+						worktreePath,
+						linkedPrHeadBranch: linkedPr?.headBranch ?? null,
+						gitEnv,
+					},
+					{ timeoutMs: 120_000 },
+				)
+				.catch((error: unknown) => {
+					// A push the user's hook or the remote refused arrives from the
+					// worker as a plain error carrying git's refusal text; the
+					// desktop shows that text as-is, so only the classification
+					// changes here.
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				});
+			if (!result.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						result.reason === "detached-head"
+							? "Cannot push with a detached HEAD"
+							: "No git remote to push to",
+				});
+			}
+			invalidateStatus(input.workspaceId);
 			return { success: true };
 		}),
 
 	getDiff: queryProcedure
 		.meta({ timeoutMs: 30_000 })
+		.input(getDiffInputShape)
+		.query(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.path);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const refs = await resolveDiffCategoryRefs(git, input.category, input);
+			return loadFileDiffContent(
+				git,
+				worktreePath,
+				input.category,
+				input.path,
+				refs,
+			);
+		}),
+
+	// One side of a binary file's diff, read from the git object the text
+	// diff would compare (index, HEAD, merge-base or a commit) so an image or
+	// PDF preview shows the same "before" and "after" as the hunks around it.
+	// The unstaged "new" side is the working tree and is not served here;
+	// callers read it through `filesystem.readFile`.
+	readDiffSideFile: queryProcedure
+		.meta({ timeoutMs: 30_000 })
+		.input(
+			getDiffInputShape.extend({
+				side: z.enum(["old", "new"]),
+				maxBytes: z
+					.number()
+					.int()
+					.positive()
+					.max(DIFF_SIDE_FILE_MAX_BYTES)
+					.optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.path);
+			if (input.category === "unstaged" && input.side === "new") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"The unstaged new side is the working tree, not a git object",
+				});
+			}
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool().run(
+				gitDiffSideBlobTask,
+				{
+					worktreePath,
+					category: input.category,
+					side: input.side,
+					path: input.path,
+					maxBytes: input.maxBytes ?? DIFF_SIDE_FILE_MAX_BYTES,
+					baseBranch: input.baseBranch,
+					commitHash: input.commitHash,
+					fromHash: input.fromHash,
+					gitEnv,
+				},
+				{ timeoutMs: 30_000 },
+			);
+		}),
+
+	// Bulk sibling of `getDiff` for callers (the Changes pane) that need every
+	// changed file's diff at once. One network round trip instead of one per
+	// file, and the shared ref resolution (merge-base, etc.) below runs once
+	// for the whole batch instead of once per file. Concurrency is bounded so
+	// a several-hundred-file changeset doesn't spawn hundreds of simultaneous
+	// `git show` processes.
+	getDiffBulk: queryProcedure
+		.meta({ timeoutMs: 60_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
-				path: z.string(),
+				paths: z.array(z.string()).min(1).max(MAX_DIFF_BULK_PATHS),
 				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				baseBranch: z.string().optional(),
 				commitHash: z.string().optional(),
@@ -379,70 +819,69 @@ export const gitRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			for (const path of input.paths) assertSafeRelativePath(path);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			// Ref resolution and every file's `git show` pair run inside the
+			// worker task, off the host-service event loop — see
+			// no-main-loop-blocking.test.ts.
+			return getHostWorkerPool().run(
+				gitDiffBulkTask,
+				{
+					worktreePath,
+					paths: input.paths,
+					category: input.category,
+					baseBranch: input.baseBranch,
+					commitHash: input.commitHash,
+					fromHash: input.fromHash,
+					gitEnv,
+				},
+				{ timeoutMs: 60_000 },
+			);
+		}),
 
-			let originalContent = "";
-			let modifiedContent = "";
-
-			if (input.category === "against-base") {
-				const base = await resolveBaseComparison(git, input.baseBranch);
-				const baseRef = base?.baseRef ?? "HEAD";
-				// Use the merge base so the diff excludes unrelated changes
-				// landed on the base branch after we forked — matches what the
-				// file list (3-dot diff) is already filtered by.
-				const originRef = await git
-					.raw(["merge-base", baseRef, "HEAD"])
-					.then((s) => s.trim())
-					.catch(() => baseRef);
-				try {
-					originalContent = await git.show([`${originRef}:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([`HEAD:${input.path}`]);
-				} catch {}
-			} else if (input.category === "staged") {
-				try {
-					originalContent = await git.show([`HEAD:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([`:0:${input.path}`]);
-				} catch {}
-			} else if (input.category === "commit") {
-				if (!input.commitHash) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "commitHash is required for commit diffs",
-					});
-				}
-				const from = input.fromHash ?? `${input.commitHash}^`;
-				try {
-					originalContent = await git.show([`${from}:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([
-						`${input.commitHash}:${input.path}`,
-					]);
-				} catch {}
-			} else {
-				// Unstaged: compare index (staged version) against working tree
-				// If file isn't in index (untracked), originalContent stays empty = "new file"
-				try {
-					originalContent = await git.show([`:0:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await readFile(
-						`${worktreePath}/${input.path}`,
-						"utf-8",
-					);
-				} catch {}
-			}
-
-			const fileName = input.path.split("/").pop() ?? input.path;
-			return {
-				oldFile: { name: fileName, contents: originalContent },
-				newFile: { name: fileName, contents: modifiedContent },
-			};
+	// Patch-shaped sibling of `getDiff`: one `git diff` for a whole category
+	// instead of two `git show` blobs per file. The renderer parses it into
+	// per-file metadata and calls `getDiff` later, only for the files somebody
+	// expands or edits — so an untouched changeset never moves whole files.
+	getDiffPatch: queryProcedure
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
+				paths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
+				untrackedPaths: z.array(z.string()).max(MAX_DIFF_BULK_PATHS).optional(),
+				baseBranch: z.string().optional(),
+				commitHash: z.string().optional(),
+				fromHash: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			for (const path of input.paths ?? []) assertSafeRelativePath(path);
+			for (const path of input.untrackedPaths ?? [])
+				assertSafeRelativePath(path);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			return getHostWorkerPool()
+				.run(
+					gitDiffPatchTask,
+					{
+						worktreePath,
+						category: input.category,
+						paths: input.paths,
+						untrackedPaths: input.untrackedPaths,
+						baseBranch: input.baseBranch,
+						commitHash: input.commitHash,
+						fromHash: input.fromHash,
+						gitEnv,
+					},
+					{ timeoutMs: 60_000 },
+				)
+				.catch((error: unknown) => {
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				});
 		}),
 
 	getBranchSyncStatus: queryProcedure
@@ -572,6 +1011,56 @@ export const gitRouter = router({
 			};
 		}),
 
+	getCheckJobLogs: queryProcedure
+		.meta({ timeoutMs: 30_000 })
+		.input(z.object({ workspaceId: z.string(), detailsUrl: z.string() }))
+		.query(async ({ ctx, input }) => {
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			if (!workspace?.pullRequestId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace has no associated pull request",
+				});
+			}
+
+			const pr = ctx.db.query.pullRequests
+				.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+				.sync();
+			if (!pr) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Pull request ${workspace.pullRequestId} not found in database`,
+				});
+			}
+
+			// GitHub Actions check details URLs look like
+			// https://github.com/<owner>/<repo>/actions/runs/<run_id>/job/<job_id>
+			const isGithubUrl =
+				URL.canParse(input.detailsUrl) &&
+				new URL(input.detailsUrl).hostname === "github.com";
+			const jobId = isGithubUrl
+				? input.detailsUrl.match(/\/job\/(\d+)/)?.[1]
+				: undefined;
+			if (!jobId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Check is not a GitHub Actions job with downloadable logs",
+				});
+			}
+
+			const octokit = await ctx.github();
+			const { data } = await octokit.rest.actions.downloadJobLogsForWorkflowRun(
+				{
+					owner: pr.repoOwner,
+					repo: pr.repoName,
+					job_id: Number(jobId),
+				},
+			);
+			return { logs: typeof data === "string" ? data : String(data) };
+		}),
+
 	getPullRequestThreads: queryProcedure
 		.meta({ timeoutMs: 30_000 })
 		.input(z.object({ workspaceId: z.string() }))
@@ -599,6 +1088,10 @@ export const gitRouter = router({
 				});
 			}
 
+			// Session workspaces (null projectId) have no GitHub remote.
+			if (workspace.projectId === null) {
+				return { reviewThreads: [], conversationComments: [] };
+			}
 			let repo: { owner: string; name: string };
 			try {
 				repo = await resolveGithubRepo(ctx, workspace.projectId);
@@ -712,5 +1205,52 @@ export const gitRouter = router({
 			}
 
 			return { threadId: input.threadId, isResolved: input.resolved };
+		}),
+
+	/**
+	 * Replies into a review thread on the workspace's linked PR. Threads onto
+	 * `commentId` — a REST databaseId from getPullRequestThreads — which
+	 * GitHub accepts for any comment already in the thread.
+	 */
+	replyToReviewThread: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				commentId: z.number().int().positive(),
+				body: z.string().trim().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			if (!workspace?.pullRequestId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace has no associated pull request",
+				});
+			}
+
+			const pr = ctx.db.query.pullRequests
+				.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+				.sync();
+			if (!pr) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Pull request ${workspace.pullRequestId} not found in database`,
+				});
+			}
+
+			// The PR row already names the repo the PR lives in, so there's no
+			// remote to parse (resolveGithubRepo). A comment id from some other
+			// PR 404s rather than landing somewhere unexpected.
+			const octokit = await ctx.github();
+			return replyToReviewComment(octokit, {
+				owner: pr.repoOwner,
+				repo: pr.repoName,
+				prNumber: pr.prNumber,
+				commentId: input.commentId,
+				body: input.body,
+			});
 		}),
 });

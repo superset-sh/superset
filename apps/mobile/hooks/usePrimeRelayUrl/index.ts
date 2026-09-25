@@ -1,0 +1,1 @@
+export { usePrimeRelayUrl } from "./usePrimeRelayUrl";

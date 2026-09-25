@@ -55,6 +55,39 @@ export function toRelativeWorkspacePath(
 	return filePath;
 }
 
+/** Collapse `.` and `..` segments so `/repo/../outside` can't pass a
+ * `/repo` prefix check. Operates on an already-normalizeComparablePath'd
+ * string; leading root ("" segment) is preserved and never popped. */
+function collapseDotSegments(normalizedPath: string): string {
+	const out: string[] = [];
+	for (const segment of normalizedPath.split("/")) {
+		if (segment === ".") continue;
+		if (segment === "..") {
+			if (out.length > 1 || (out.length === 1 && out[0] !== "")) {
+				out.pop();
+			}
+			continue;
+		}
+		out.push(segment);
+	}
+	const joined = out.join("/");
+	return joined === "" && normalizedPath.startsWith("/") ? "/" : joined;
+}
+
+export function isWithinWorkspacePath(
+	worktreePath: string,
+	path: string,
+): boolean {
+	const normalizedRoot = collapseDotSegments(
+		normalizeComparablePath(worktreePath),
+	);
+	const normalizedPath = collapseDotSegments(normalizeComparablePath(path));
+	return (
+		normalizedPath === normalizedRoot ||
+		normalizedPath.startsWith(`${normalizedRoot}/`)
+	);
+}
+
 export function getPathBaseName(path: string): string {
 	const normalizedPath = path.replace(/[\\/]+$/, "");
 	if (!normalizedPath) {
@@ -63,6 +96,18 @@ export function getPathBaseName(path: string): string {
 
 	const segments = normalizedPath.split(/[\\/]/);
 	return segments[segments.length - 1] || path;
+}
+
+export function getPathDirectory(path: string): string {
+	const normalizedPath = path.replace(/[\\/]+$/, "");
+	const index = Math.max(
+		normalizedPath.lastIndexOf("/"),
+		normalizedPath.lastIndexOf("\\"),
+	);
+	if (index === -1) return "";
+	return index === 0
+		? normalizedPath.slice(0, 1)
+		: normalizedPath.slice(0, index);
 }
 
 export function normalizeComparablePath(path: string): string {

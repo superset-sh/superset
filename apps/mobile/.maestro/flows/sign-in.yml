@@ -1,0 +1,15 @@
+# Needs a dev-client build on the simulator and Metro on :8081. launchApp would
+# stop at the dev launcher, so the bundle is opened by link instead.
+appId: sh.superset.mobile
+---
+- openLink: "superset://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+- extendedWaitUntil:
+    visible:
+      id: "dev-sign-in-button"
+    timeout: 120000
+- tapOn:
+    id: "dev-sign-in-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "dev-sign-in-button"
+    timeout: 60000

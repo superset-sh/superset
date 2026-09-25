@@ -1,0 +1,2513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ACP vs Claude SDK — as implemented</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #faf9f7; --tx: #1c1c1c; --mut: #6e6a64; --guide: rgba(0,0,0,.16);
+    --acp: #2563eb; --sdk: #d97706; --sh: #6e6a64; --dif: #b12f88;
+    --card-acp: rgba(37,99,235,.06); --card-sdk: rgba(217,119,6,.07); --card-sh: rgba(0,0,0,.04);
+    --edge-acp: rgba(37,99,235,.25); --edge-sdk: rgba(217,119,6,.3); --edge-sh: rgba(0,0,0,.13);
+    --card-dif: rgba(177,47,136,.06); --edge-dif: rgba(177,47,136,.35);
+    --k:#0550ae; --s:#116329; --n:#8250df; --c:#8a857e; --b:#bc4c00; --m:#953800;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a; --tx: #e8e6e2; --mut: #97928b; --guide: rgba(255,255,255,.17);
+      --acp: #7aa8ff; --sdk: #ffb257; --sh: #97928b; --dif: #f291d4;
+      --card-acp: rgba(122,168,255,.08); --card-sdk: rgba(255,178,87,.08); --card-sh: rgba(255,255,255,.05);
+      --edge-acp: rgba(122,168,255,.3); --edge-sdk: rgba(255,178,87,.32); --edge-sh: rgba(255,255,255,.16);
+      --card-dif: rgba(242,145,212,.08); --edge-dif: rgba(242,145,212,.38);
+      --k:#79b8ff; --s:#7ee2a8; --n:#d2a8ff; --c:#767065; --b:#ffab70; --m:#ffa657;
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #faf9f7; --tx: #1c1c1c; --mut: #6e6a64; --guide: rgba(0,0,0,.16);
+    --acp: #2563eb; --sdk: #d97706; --sh: #6e6a64; --dif: #b12f88;
+    --card-acp: rgba(37,99,235,.06); --card-sdk: rgba(217,119,6,.07); --card-sh: rgba(0,0,0,.04);
+    --edge-acp: rgba(37,99,235,.25); --edge-sdk: rgba(217,119,6,.3); --edge-sh: rgba(0,0,0,.13);
+    --card-dif: rgba(177,47,136,.06); --edge-dif: rgba(177,47,136,.35);
+    --k:#0550ae; --s:#116329; --n:#8250df; --c:#8a857e; --b:#bc4c00; --m:#953800;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #16171a; --tx: #e8e6e2; --mut: #97928b; --guide: rgba(255,255,255,.17);
+    --acp: #7aa8ff; --sdk: #ffb257; --sh: #97928b; --dif: #f291d4;
+    --card-acp: rgba(122,168,255,.08); --card-sdk: rgba(255,178,87,.08); --card-sh: rgba(255,255,255,.05);
+    --edge-acp: rgba(122,168,255,.3); --edge-sdk: rgba(255,178,87,.32); --edge-sh: rgba(255,255,255,.16);
+    --card-dif: rgba(242,145,212,.08); --edge-dif: rgba(242,145,212,.38);
+    --k:#79b8ff; --s:#7ee2a8; --n:#d2a8ff; --c:#767065; --b:#ffab70; --m:#ffa657;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--tx);
+         font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  .wrap { max-width: 1720px; margin: 0 auto; padding: 30px 26px 100px; }
+  .prose { max-width: 1000px; }
+  a { color: inherit; }
+
+  /* ---------- header ---------- */
+  header.page { padding: 8px 0 16px; margin-bottom: 8px; }
+  .eyebrow { font: 600 10.5px/1 ui-monospace, monospace; letter-spacing: .14em;
+             text-transform: uppercase; color: var(--mut); margin: 0 0 10px; }
+  h1 { font: 650 25px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+       letter-spacing: -.01em; margin: 0 0 10px; text-wrap: balance; }
+  h1 .vs { color: var(--mut); font-weight: 430; }
+  h1 .id-acp { color: var(--acp); } h1 .id-sdk { color: var(--sdk); }
+  .subtitle { color: var(--mut); margin: 0 0 8px; max-width: 88ch; }
+  .subtitle code { font: 500 12.5px/1 ui-monospace, monospace; }
+  .pins { font: 430 11.5px/1.7 ui-monospace, monospace; color: var(--mut); margin: 0; }
+  .pins b { font-weight: 600; color: var(--tx); }
+
+  section { margin: 54px 0 0; }
+  h2 { font: 650 18px/1.3 ui-monospace, monospace; letter-spacing: -.01em; margin: 0 0 6px; text-wrap: balance; }
+  h2 .sno { color: var(--mut); font-weight: 430; margin-right: 10px; }
+  .sec-note { color: var(--mut); margin: 0 0 20px; max-width: 96ch; }
+
+  /* ---------- §1 difference index ---------- */
+  .difflist { display: flex; flex-direction: column; gap: 24px; max-width: 1080px; }
+  .drow .dh { margin: 0 0 5px; font-size: 14.5px; font-weight: 700; line-height: 1.4; }
+  .drow .dh .dn { font: 700 12px/1 ui-monospace, monospace; color: var(--dif); margin-right: 2px; }
+  .drow.crit .dh::after { content: "critical"; font: 700 9.5px/1 ui-monospace, monospace;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--dif); margin-left: 10px;
+    position: relative; top: -1px; }
+  .drow p { margin: 3px 0; font-size: 13.5px; max-width: 104ch; }
+  .drow p .tag { font: 700 11.5px/1.7 ui-monospace, monospace; margin-right: 4px; }
+  .drow p.la .tag { color: var(--acp); }
+  .drow p.lo .tag { color: var(--sdk); }
+  .drow p.dnote { color: var(--mut); font-size: 12.5px; }
+  .drow .go { font: 600 11px/1 ui-monospace, monospace; color: var(--mut);
+              text-decoration: none; white-space: nowrap; margin-left: 10px; }
+  .drow .go:hover, .drow .go:focus-visible { color: var(--dif); }
+  .dhint { margin: 14px 2px 0; font-size: 12.5px; color: var(--mut); max-width: 96ch; }
+  .dhint .dchip { vertical-align: 1px; }
+  .dchip { display: inline-block; font: 700 9.5px/1 ui-monospace, monospace; letter-spacing: .06em;
+           color: var(--dif); outline: 1px solid var(--edge-dif); background: var(--card-dif);
+           padding: 3px 6px; border-radius: 5px; text-transform: uppercase; }
+
+  /* ---------- §2 scoreboard ---------- */
+  table.score { border-collapse: collapse; width: 100%; max-width: 960px; font-variant-numeric: tabular-nums; }
+  table.score th, table.score td { text-align: left; padding: 7px 14px; vertical-align: top; }
+  table.score tbody tr { box-shadow: 0 1px 0 var(--card-sh); }
+  table.score thead th { font: 600 10.5px/1 ui-monospace, monospace; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--mut); padding-bottom: 10px; box-shadow: 0 1px 0 var(--guide); }
+  table.score thead th.col-acp, table.score thead th.col-sdk, table.score thead th.col-d { text-align: right; }
+  table.score thead th.col-acp { color: var(--acp); }
+  table.score thead th.col-sdk { color: var(--sdk); }
+  table.score td.num { font: 430 13px/1.5 ui-monospace, monospace; text-align: right; white-space: nowrap; }
+  table.score td.d { font: 430 11.5px/1.6 ui-monospace, monospace; text-align: right; color: var(--mut); white-space: nowrap; }
+  table.score td.metric code { font: 430 12px/1.5 ui-monospace, monospace; }
+  table.score td.sub { padding-left: 34px; color: var(--mut); }
+  table.score tr.xrow td { color: var(--mut); }
+  .fine { font-size: 12.5px; color: var(--mut); max-width: 105ch; margin-top: 14px; }
+
+  .verdict { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 26px 0 0; max-width: 1380px; }
+  @media (max-width: 980px) { .verdict { grid-template-columns: 1fr; } }
+  .v-card { border-radius: 10px; padding: 13px 16px; background: var(--card-sh); outline: 1px solid var(--edge-sh); }
+  .v-card h4 { margin: 0 0 6px; font: 650 13px/1.4 ui-monospace, monospace; }
+  .v-card p { margin: 0; font-size: 13px; line-height: 1.55; }
+  .v-card code { font: 430 11.5px/1.4 ui-monospace, monospace; }
+  .v-acp { background: var(--card-acp); outline-color: var(--edge-acp); }
+  .v-acp h4 { color: var(--acp); }
+  .v-sdk { background: var(--card-sdk); outline-color: var(--edge-sdk); }
+  .v-sdk h4 { color: var(--sdk); }
+
+  /* ---------- residency strip ---------- */
+  .residency { display: grid; grid-template-columns: 1.05fr 1.25fr 1fr 1.15fr; gap: 12px; margin: 0 0 18px; }
+  @media (max-width: 1100px) { .residency { grid-template-columns: 1fr 1fr; } }
+  .res { border-radius: 10px; background: var(--card-sh); outline: 1px solid var(--edge-sh); padding: 10px 14px 12px; }
+  .res h4 { margin: 0 0 4px; font: 650 12px/1.4 ui-monospace, monospace; }
+  .res p { margin: 0 0 4px; font-size: 12px; line-height: 1.55; color: var(--mut); }
+  .res p b { color: var(--tx); font-weight: 600; }
+  .res code { font: 430 10.5px/1.5 ui-monospace, monospace; }
+  .res pre { margin: 4px 0 0; font: 430 10.5px/1.55 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .res .who-acp { color: var(--acp); font-weight: 600; }
+  .res .who-sdk { color: var(--sdk); font-weight: 600; }
+
+  /* ---------- diagram ---------- */
+  .diagram { min-width: 1180px; counter-reset: hop; padding-bottom: 40px; }
+  .dscroll { }
+  @media (max-width: 1279px) {
+    .dscroll { overflow-x: auto; }
+    .diagram .top { position: static; }
+  }
+
+  .top { position: sticky; top: 0; z-index: 5; background: var(--bg); box-shadow: 0 1px 0 var(--guide); }
+  .bar { display: flex; align-items: center; gap: 18px; padding: 10px 20px 8px; flex-wrap: wrap; }
+  .bar .sub { color: var(--mut); font-size: 12.5px; }
+  .modes { display: flex; gap: 0; outline: 1px solid var(--guide); border-radius: 8px; overflow: hidden; }
+  .modes button { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; padding: 7px 14px; border: 0; cursor: pointer;
+                  background: transparent; color: var(--mut); }
+  .modes button.on { background: var(--tx); color: var(--bg); }
+  .modes button:focus-visible { outline: 2px solid var(--acp); outline-offset: -2px; }
+  .modes.fmode button[data-f="diff"].on { background: var(--dif); color: #fff; }
+  .bar .spacer { margin-left: auto; }
+  .actors { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 0 10px; }
+  .actors b { text-align: center; font-size: 13px; letter-spacing: .04em; }
+  .actors b i { display: block; font-style: normal; font-weight: 400; font-size: 11px; color: var(--mut); }
+
+  .ix { position: relative; padding: 6px 0 26px; }
+  .ix .guides { position: absolute; inset: 0; pointer-events: none; }
+  .ix .guides i { position: absolute; top: 0; bottom: 0; width: 1px;
+    background: repeating-linear-gradient(180deg, var(--guide) 0 5px, transparent 5px 11px); }
+  .ix h2 { position: relative; font-size: 13px; font-weight: 650; color: var(--mut);
+           text-transform: uppercase; letter-spacing: .08em; margin: 18px 20px 0;
+           background: var(--bg); display: inline-block; padding: 2px 8px 2px 0;
+           scroll-margin-top: 130px; }
+  .ix .pnote { position: relative; margin: 0 20px 2px; font-size: 12.5px; color: var(--mut);
+               max-width: 110ch; background: var(--bg); }
+
+  .hop { position: relative; margin-top: 4px; }
+
+  .ar { position: relative; height: 40px; }
+  .ar .ln { position: absolute; top: 26px;
+            left: calc(var(--l) * 25% + 12.5%); width: calc((var(--r) - var(--l)) * 25%);
+            border-top: 2px solid var(--ac); }
+  .ar.dash .ln { border-top-style: dashed; }
+  .ar.dirR .ln::after { content: ""; position: absolute; right: -1px; top: -5px;
+    border-left: 8px solid var(--ac); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+  .ar.dirL .ln::after { content: ""; position: absolute; left: -1px; top: -5px;
+    border-right: 8px solid var(--ac); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+  .ar .al { position: absolute; top: 8px; left: calc(var(--l) * 25% + 12.5%);
+            width: calc((var(--r) - var(--l)) * 25%); text-align: center; }
+  .ar .al span { background: var(--bg); padding: 0 9px; font-size: 12.5px; font-weight: 600; color: var(--tx); white-space: nowrap; }
+  .ar .al .who { color: var(--mut); font-weight: 400; }
+  .no::before { counter-increment: hop; content: counter(hop, decimal-leading-zero); }
+  .ar .no, .self .no { position: absolute; top: 18px; left: calc(var(--l) * 25% + 12.5% - 11px);
+    width: 22px; height: 17px; border-radius: 9px; background: var(--tx); color: var(--bg);
+    font: 700 10px/17px ui-monospace, monospace; text-align: center; z-index: 1; }
+  .ar.dirL .no { left: calc(var(--r) * 25% + 12.5% - 11px); }
+
+  .self { position: relative; height: 40px; }
+  .self .dot { position: absolute; top: 23px; left: calc(var(--l) * 25% + 12.5% - 4px);
+    width: 8px; height: 8px; border-radius: 50%; background: var(--ac); }
+  .self .al { position: absolute; top: 19px; left: calc(var(--l) * 25% + 12.5% + 12px);
+    font-size: 12.5px; font-weight: 600; }
+  .self .no { top: 15px; left: calc(var(--l) * 25% + 12.5% - 36px); }
+
+  .ac-acp { --ac: var(--acp); } .ac-sdk { --ac: var(--sdk); } .ac-sh { --ac: var(--sh); }
+
+  /* divergence marking */
+  .hop.diff .no { background: var(--dif); color: #fff; }
+  .why { position: relative; text-align: center; margin: -2px 14px 2px; }
+  .why span { background: var(--bg); padding: 1px 10px; font-size: 12px; color: var(--dif);
+              font-weight: 550; border-radius: 6px; }
+  .why span b { font-weight: 750; letter-spacing: .04em; }
+  .same-note { display: none; position: relative; margin: 8px 20px 0; font-size: 12.5px;
+               color: var(--mut); background: var(--bg); max-width: 110ch; }
+
+  .cells { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 18px;
+           padding: 0 14px; align-items: start; position: relative; }
+  .cells > div { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .c1 { grid-column: 1; } .c2 { grid-column: 2; } .c3 { grid-column: 3; } .c4 { grid-column: 4; }
+
+  .pl { border-radius: 10px; padding: 8px 11px 9px; }
+  .pl.acp { background: var(--card-acp); outline: 1px solid var(--edge-acp); }
+  .pl.sdk { background: var(--card-sdk); outline: 1px solid var(--edge-sdk); }
+  .pl.sh  { background: var(--card-sh);  outline: 1px solid var(--edge-sh); }
+  .pl .hd { display: flex; gap: 8px; align-items: baseline; margin-bottom: 5px; flex-wrap: wrap; }
+  .chip { font: 700 9.5px/1 ui-monospace, monospace; letter-spacing: .06em; padding: 3px 6px;
+          border-radius: 5px; text-transform: uppercase; }
+  .chip.acp { color: var(--acp); outline: 1px solid var(--edge-acp); }
+  .chip.sdk { color: var(--sdk); outline: 1px solid var(--edge-sdk); }
+  .chip.sh  { color: var(--mut); outline: 1px solid var(--edge-sh); }
+  .pl .cap { font-size: 11px; color: var(--mut); }
+  .pl .ft { margin: 6px 0 0; font-size: 11px; line-height: 1.55; color: var(--mut); }
+  .pl .ft b { color: var(--tx); font-weight: 600; }
+  pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere;
+        font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .k { color: var(--k); } .s { color: var(--s); } .n { color: var(--n); }
+  .c { color: var(--c); font-style: italic; } .b { color: var(--b); } .m { color: var(--m); font-weight: 700; }
+
+  /* toggles: hide one side / hide non-diff hops — page only gets shorter, hops renumber */
+  [data-mode="acp"] .sdk-only, [data-mode="sdk"] .acp-only { display: none; }
+  [data-filter="diff"] .hop:not(.diff) { display: none; }
+  [data-filter="diff"] .same-note { display: block; }
+
+  /* ---------- §4 types / §5 folding ---------- */
+  .layer { margin: 32px 0 0; }
+  .layer-title { font: 650 13.5px/1.4 ui-monospace, monospace; margin: 0 0 2px; }
+  .layer-note { font-size: 12.5px; color: var(--mut); margin: 0 0 12px; max-width: 105ch; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; max-width: 1380px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .code-card { border-radius: 10px; overflow: hidden; }
+  .code-card .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+                   padding: 8px 12px 0; font: 600 11.5px/1.3 ui-monospace, monospace; }
+  .code-card .hd .file { color: var(--mut); font-weight: 430; font-size: 10.5px; text-align: right; }
+  .code-card .hd .impl { text-transform: uppercase; letter-spacing: .08em; white-space: nowrap; }
+  .code-card.c-acp { background: var(--card-acp); outline: 1px solid var(--edge-acp); }
+  .code-card.c-acp .hd .impl { color: var(--acp); }
+  .code-card.c-sdk { background: var(--card-sdk); outline: 1px solid var(--edge-sdk); }
+  .code-card.c-sdk .hd .impl { color: var(--sdk); }
+  .code-card.c-both { background: var(--card-sh); outline: 1px solid var(--edge-sh); }
+  .code-card.c-both .hd .impl { color: var(--mut); }
+  .code-card pre { padding: 8px 14px 12px; font-size: 12px; }
+  .refline { font: 430 12px/1.6 ui-monospace, monospace; color: var(--mut); margin: 8px 2px 0; max-width: 1380px; }
+  .refline b { color: var(--tx); font-weight: 600; }
+  .refline .impl { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .refline .impl.ia { color: var(--acp); } .refline .impl.is { color: var(--sdk); }
+
+  .contract { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; max-width: 1380px; }
+  @media (max-width: 900px) { .contract { grid-template-columns: 1fr; } }
+  dl.facts { margin: 0; padding: 13px 16px 15px; border-radius: 10px; }
+  dl.facts.f-acp { background: var(--card-acp); outline: 1px solid var(--edge-acp); }
+  dl.facts.f-sdk { background: var(--card-sdk); outline: 1px solid var(--edge-sdk); }
+  .facts-h { font: 700 11.5px/1 ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
+  .f-acp .facts-h { color: var(--acp); }
+  .f-sdk .facts-h { color: var(--sdk); }
+  dl.facts dt { font: 650 10.5px/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--mut); margin: 13px 0 4px; }
+  dl.facts dd { margin: 0; font-size: 13px; line-height: 1.55; }
+  dl.facts code { font: 430 11.5px/1.4 ui-monospace, monospace; }
+
+  footer.caveats { margin-top: 60px; box-shadow: 0 -1px 0 var(--guide); padding-top: 16px; }
+  footer.caveats p { font-size: 12.5px; color: var(--mut); max-width: 110ch; margin: 0 0 8px; }
+  footer.caveats b { color: var(--tx); font-weight: 600; }
+
+  /* ---------- provenance badge + §6 fidelity matrix (added with phases ⑩–⑮) ---------- */
+  .prov { display: inline-block; font: 700 9.5px/1.4 ui-monospace, monospace; letter-spacing: .06em;
+          color: var(--mut); outline: 1px dashed var(--edge-sh); background: var(--card-sh);
+          padding: 3px 6px; border-radius: 5px; text-transform: uppercase; margin-right: 6px; }
+  .fidwrap { overflow-x: auto; }
+  table.fid { border-collapse: collapse; width: 100%; max-width: 1500px; min-width: 1000px; --cdx: #0f766e; }
+  @media (prefers-color-scheme: dark) { table.fid { --cdx: #5eead4; } }
+  :root[data-theme="light"] table.fid { --cdx: #0f766e; }
+  :root[data-theme="dark"] table.fid { --cdx: #5eead4; }
+  table.fid th, table.fid td { text-align: left; padding: 9px 12px; vertical-align: top;
+    font-size: 12.5px; line-height: 1.5; }
+  table.fid tbody tr { box-shadow: 0 1px 0 var(--card-sh); }
+  table.fid thead th { font: 600 10.5px/1.4 ui-monospace, monospace; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--mut); padding-bottom: 10px; box-shadow: 0 1px 0 var(--guide); }
+  table.fid thead th.h-nc { color: var(--sdk); }
+  table.fid thead th.h-ca { color: var(--acp); }
+  table.fid thead th.h-xc { color: var(--cdx); }
+  table.fid thead th.h-xa { color: var(--acp); }
+  table.fid td.metric { font: 650 12px/1.5 ui-monospace, monospace; white-space: nowrap; color: var(--tx); }
+  table.fid code { font: 430 11px/1.4 ui-monospace, monospace; }
+  table.fid .lost { color: var(--dif); font-weight: 600; font-style: normal; }
+  table.fid .unv { color: var(--mut); font-size: 11px; }
+
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="page">
+  <p class="eyebrow">Current ACP implementation compared with the direct Claude SDK design · complex interactions reconstructed from source</p>
+  <h1><span class="id-acp">ACP-aligned protocol</span> <span class="vs">vs</span> <span class="id-sdk">Claude SDK harness</span></h1>
+  <p class="subtitle">Both trees implement the same architecture — a seq-stamped envelope journal on the host, one WebSocket
+  replayed with <code>?since=</code>, and a pure client-side fold into timeline items. What differs is the vocabulary riding
+  inside the envelope, and who does the interpretive work. UI code is excluded from every number below.</p>
+  <p class="pins"><b>ACP</b> = current PR implementation · claude-agent-acp 0.56.0 child process · @agentclientprotocol/sdk 1.2.0 &nbsp;·&nbsp;
+  <b>Claude SDK</b> = archived direct-SDK design · @anthropic-ai/claude-agent-sdk 0.3.202 in-process</p>
+  <p class="pins"><b>fidelity sources (⑩–⑮, §6)</b> = claude-agent-acp 0.56.0 dist · @anthropic-ai/claude-agent-sdk 0.3.201 types
+  (this tree) · @agentclientprotocol/codex-acp 1.1.2 npm tarball, source-inspected</p>
+</header>
+
+<section id="diffs" class="prose" style="max-width:1120px">
+  <h2><span class="sno">1</span>Where they actually differ</h2>
+  <p class="sec-note">Seven divergences (D1–D7) carry the wire-protocol signal; everything else in phases ①–⑨ is the same machine
+  twice. Ranked, roughly, by how much they should weigh on the decision. D8–D10 are a different species: not “who does the work”
+  but “can the vocabulary even say it” — covered in phases ⑩–⑮ and the §6 fidelity matrix.</p>
+  <div class="difflist">
+    <div class="drow crit">
+      <h3 class="dh"><span class="dn">D1</span> — Where history lives <a class="go" href="#ph-attach">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> host SQLite keeps the public session → native ACP session binding. A restarted
+      host lists the row as offline and resurrects it on demand with <code>session/load</code>. The adapter replays its native
+      on-disk transcript into a fresh, bounded 5,000-frame journal.</p>
+      <p class="lo"><span class="tag">SDK:</span> the journal is only a delivery buffer; truth is Claude's native JSONL transcript
+      on disk — survives restarts, powers <code>retry()</code> epochs.</p>
+      <p class="dnote">Both sides recover completed history from Claude's native store. The ACP host owns registry metadata, not
+      a durable transcript. <code>getMessages</code> still pages the bounded ring, so content older than that retained window is
+      unavailable; disk-backed paging is required follow-up work. In-flight turns die with the host on both sides.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D2</span> — Stream vocabulary <a class="go" href="#ph-stream">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> streams too — one <code>agent_message_chunk</code> per text delta, live during
+      the turn; chunks accumulate into one message and are <b>never replaced</b> (the adapter diffs the SDK's consolidated
+      message against what already streamed and forwards only any un-streamed tail). Tool calls arrive as UI-ready
+      <code>tool_call</code> frames (title/kind/status on the wire).</p>
+      <p class="lo"><span class="tag">SDK:</span> journals the raw model stream verbatim (<code>message_start</code>,
+      <code>content_block_delta</code>, …) <b>and then</b> a complete assistant message that supersedes the accumulated deltas
+      at fold time — ~10× the journal rows, interpretation deferred to the client fold.</p>
+      <p class="dnote">Both sides stream token-by-token. The divergence is the vocabulary (semantic chunks vs raw stream events)
+      and whether a later authoritative message replaces what streamed — ACP: no; SDK: yes.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D3</span> — Permission contract <a class="go" href="#ph-perm">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> ships the options on the wire; the client taps an optionId back — zero decision
+      logic on the device.</p>
+      <p class="lo"><span class="tag">SDK:</span> ships raw input + rule suggestions; the client must build a full
+      <code>PermissionResult</code> and invent the Allow / Always / Deny UX.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D4</span> — Questions (AskUserQuestion) <a class="go" href="#ph-ask">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the host converts the elicitation form into ordinary permission cards — mobile
+      has zero question code.</p>
+      <p class="lo"><span class="tag">SDK:</span> the host forwards the raw tool input and mobile special-cases it — the host has
+      zero question code; carries <b>3 parallel interaction channels</b> vs ACP's 1.</p>
+      <p class="dnote">Same tool, opposite ends do the work.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D5</span> — Process model <a class="go" href="#ph-create">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> boots a child process per session and needs 3 stdio round-trips
+      (initialize → session/new → set_mode) before it's usable.</p>
+      <p class="lo"><span class="tag">SDK:</span> one in-process <code>query()</code> call whose options carry cwd, mode and
+      model; its callbacks never cross a process boundary.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D6</span> — Sending a prompt <a class="go" href="#ph-prompt">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> takes plain ContentBlocks, allows mid-turn sends, and the host echoes your
+      bubble into the journal instantly.</p>
+      <p class="lo"><span class="tag">SDK:</span> needs a client-built <code>SDKUserMessage</code>, only accepts when idle, and
+      your bubble waits for the CLI's echo.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D7</span> — Turn end <a class="go" href="#ph-end">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> turn-end is host-internal — a stopReason answering a parked RPC; devices only
+      ever see the state snapshot.</p>
+      <p class="lo"><span class="tag">SDK:</span> journals an explicit <code>result</code> frame with duration, cost and usage —
+      billing telemetry for free.</p>
+    </div>
+    <div class="drow crit">
+      <h3 class="dh"><span class="dn">D8</span> — Subagents <a class="go" href="#ph-subagents">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the spawn becomes a generic <code>think</code> tool call, subagent <b>prose is
+      deliberately dropped</b>, and the tree survives only via the non-standard <code>_meta.claudeCode.parentToolUseId</code>
+      our fold happens to know about.</p>
+      <p class="lo"><span class="tag">SDK:</span> a typed spawn (<code>subagent_type</code>, model, isolation), every subagent
+      message tagged with <code>parent_tool_use_id</code>, transcript readable later by (sessionId, agentId).</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D9</span> — Task graph → flat checklist <a class="go" href="#ph-tasks">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the four Task tools are suppressed; each mutation re-emits one flat
+      <code>plan</code> — content + status only, <code>priority</code> invented as <code>"medium"</code>, everything else
+      dropped on the adapter floor.</p>
+      <p class="lo"><span class="tag">SDK:</span> ID-addressed tasks with dependencies (<code>blocks</code>/<code>blockedBy</code>),
+      owner, metadata — a queryable graph.</p>
+    </div>
+    <div class="drow">
+      <h3 class="dh"><span class="dn">D10</span> — Workflows &amp; goals don't cross <a class="go" href="#ph-workflow">hops ↓</a></h3>
+      <p class="la"><span class="tag">ACP:</span> the workflow crosses as one opaque <code>kind:"other"</code> tool call; goals
+      don't cross at all — the adapter has no mapping for them.</p>
+      <p class="lo"><span class="tag">SDK:</span> a first-class <code>Workflow</code> tool (resumable runs, taskId/runId,
+      transcript dir) and an <code>active_goal</code> message type.</p>
+    </div>
+  </div>
+  <p class="dhint">In the diagram below every diverging hop wears a magenta number — <span class="dchip">≠</span> — with a one-line
+  “why it matters”. The <b>Differences</b> filter in the sticky bar hides every hop where the two sides are the same machine.</p>
+</section>
+
+<section id="scoreboard" class="prose">
+  <h2><span class="sno">2</span>Scoreboard</h2>
+  <p class="sec-note">Added lines vs each tree's base (git diff + untracked), production code only; UI and tests counted separately.</p>
+  <table class="score">
+    <thead><tr><th>metric</th><th class="col-acp">ACP (main)</th><th class="col-sdk">Claude SDK</th><th class="col-d">Δ sdk vs acp</th></tr></thead>
+    <tbody>
+      <tr><td class="metric">LOC added, non-UI production</td><td class="num">3,012</td><td class="num">4,428</td><td class="d">+47%</td></tr>
+      <tr><td class="sub">protocol / envelope package</td><td class="num">254</td><td class="num">687</td><td class="d">+170%</td></tr>
+      <tr><td class="sub">host session harness</td><td class="num">1,363</td><td class="num">1,722</td><td class="d">+26%</td></tr>
+      <tr><td class="sub">journal (in-memory ring)</td><td class="num">99</td><td class="num">92</td><td class="d">−7%</td></tr>
+      <tr><td class="sub">client bindings (fold, stream, hooks)</td><td class="num">1,296</td><td class="num">1,927</td><td class="d">+49%</td></tr>
+      <tr><td class="metric"><code>if (</code> added (non-UI)</td><td class="num">135</td><td class="num">201</td><td class="d">+49%</td></tr>
+      <tr><td class="metric">ternaries added</td><td class="num">~31</td><td class="num">~48</td><td class="d">+55%</td></tr>
+      <tr><td class="metric">switch / case clauses</td><td class="num">3 / 22</td><td class="num">4 / 24</td><td class="d">≈</td></tr>
+      <tr><td class="metric">deepest nesting (both: WS stream route)</td><td class="num">10</td><td class="num">9</td><td class="d">≈</td></tr>
+      <tr><td class="metric">new exported symbols (non-UI)</td><td class="num">~65</td><td class="num">~120</td><td class="d">+85%</td></tr>
+      <tr><td class="metric">wire frame kinds / interaction channels</td><td class="num">6 / 1</td><td class="num">9 / 3</td><td class="d"></td></tr>
+      <tr class="xrow"><td class="metric">UI (excluded from comparison)</td><td class="num">1,419</td><td class="num">1,296</td><td class="d">−9%</td></tr>
+      <tr class="xrow"><td class="metric">tests (excluded)</td><td class="num">1,751</td><td class="num">3,759</td><td class="d">+115%</td></tr>
+    </tbody>
+  </table>
+  <p class="fine">Method: ACP = staged + unstaged + untracked on main vs HEAD; SDK = uncommitted work in the worktree (its committed
+  base is upstream sync only). Untracked files counted whole. “UI” = presentational screens/components; fold, stream and hook logic
+  count as client bindings even when they live in .tsx. Lockfiles, plan docs, E2E scripts and packaging tooling excluded everywhere.
+  Caveat: the ACP tree has had more UI iteration; the SDK tree carries heavier excluded infra (978-line relay E2E script,
+  packaged-host validation, 7 Maestro flows).</p>
+
+  <div class="verdict">
+    <div class="v-card">
+      <h4>Same skeleton grew on both sides</h4>
+      <p>Envelope <code>{seq, sessionId, ts, frame}</code>, append-only ring journal (cap 5,000), WS replay from a cursor,
+      admission-ack sends, parked-promise permissions, full-snapshot <code>state</code> frames, pure fold reducer.
+      The protocol choice didn't change the architecture — it changed the vocabulary, and who does the interpretive work.</p>
+    </div>
+    <div class="v-card v-acp">
+      <h4>ACP ships UI-ready events</h4>
+      <p>Semantic update variants: <code>tool_call</code> / <code>tool_call_update</code> with patch-merge, titles and statuses
+      born at the protocol layer, permission <b>options carried on the wire</b>, one interaction channel (AskUserQuestion mapped
+      onto it via elicitation). Small client vocabulary; the fold does chunk-merge, patches, subagent tree.</p>
+    </div>
+    <div class="v-card v-sdk">
+      <h4>SDK ships the raw model stream</h4>
+      <p>Verbatim <code>SDKMessage</code>s: partial deltas superseded by authoritative messages, uuid identity, tool results as
+      user-role messages, <b>three parallel interaction channels</b>, client-built <code>PermissionResult</code>.
+      Buys native-transcript history, retry epochs, catalog, usage/cost — costs +47% non-UI LOC and +49% ifs.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sequence">
+  <h2><span class="sno">3</span>Every packet, end to end</h2>
+  <p class="sec-note">create → attach → prompt → stream → permission → question → two devices → turn end → reset —
+  then the complex interactions: <a href="#ph-subagents">⑩ subagents</a> · <a href="#ph-tasks">⑪ task graphs</a> ·
+  <a href="#ph-planmode">⑫ plan mode</a> · <a href="#ph-terminal">⑬ terminal / background Bash</a> ·
+  <a href="#ph-workflow">⑭ workflows</a> · <a href="#ph-goal">⑮ goals</a>.
+  One numbered arrow per hop; payloads sit under the actor that sends them. Blue is ACP-only, amber is SDK-only, grey exists on
+  both sides; dashed arrows are in-process calls that never touch a wire. Hops renumber automatically as you filter.
+  Phases ①–⑨ are captured traffic; ⑩–⑮ are reconstructed from adapter/SDK source and badged as such.</p>
+
+  <div class="residency">
+    <div class="res">
+      <h4>Devices — derived state only</h4>
+      <p><code>envelopes[]</code> (deduped by seq) → <code>fold()</code> → <code>FoldedTimeline { items, meta, state, lastSeq }</code>.</p>
+      <p>The thread renders from <b>items</b>; status chip, composer gate and pending cards render from <b>state</b>.
+      Everything here is disposable — refolded from scratch on any resync.</p>
+    </div>
+    <div class="res">
+      <h4>Host — the only authority</h4>
+      <p><code>SessionScopedState</code> mutates <b>only here</b>; every mutation is journaled as a full-snapshot
+      <code>state</code> frame — clients receive status, never compute it.</p>
+      <p><code>SessionJournal</code>: per-session in-memory catch-up ring, gapless within one runtime incarnation, cap 5,000.
+      Every append fans out to every subscribed socket in the same call.</p>
+      <p>Parked asks: <span class="who-acp">ACP</span> <code>Map&lt;requestId, resolve&gt;</code> of unanswered JSON-RPC requests ·
+      <span class="who-sdk">SDK</span> three Deferred maps (permissions / dialogs / elicitations).</p>
+    </div>
+    <div class="res">
+      <h4>Agent — conversation truth</h4>
+      <p><span class="who-acp">ACP</span>: one <code>claude-agent-acp</code> child process per active session; its embedded SDK
+      persists the native transcript. Host SQLite stores the lookup key, and <code>session/load</code> restores completed history.</p>
+      <p><span class="who-sdk">SDK</span>: in-process <code>query()</code> handle over a claude subprocess; history truth is
+      Claude's <b>native JSONL transcript</b> on disk, which outlives the journal.</p>
+    </div>
+    <div class="res">
+      <h4>The fold — pure, rerunnable</h4>
+      <pre>for (env of envelopes) {
+  if (env.seq &lt;= lastSeq) continue    // dedupe
+  update|sdk  → append / merge an item
+  *_requested → attach a card to its tool
+  *_resolved  → flip that card in place
+  state       → replace timeline.state
+  reset       → stop; full resync
+}</pre>
+    </div>
+  </div>
+
+  <div class="dscroll">
+  <div class="diagram" id="d" data-mode="both" data-filter="all">
+
+    <div class="top">
+      <div class="bar">
+        <div class="modes" role="group" aria-label="Show payloads for">
+          <button type="button" data-m="acp" aria-pressed="false">ACP</button><button type="button" data-m="both" class="on" aria-pressed="true">Both</button><button type="button" data-m="sdk" aria-pressed="false">SDK</button>
+        </div>
+        <div class="modes fmode" role="group" aria-label="Filter hops">
+          <button type="button" data-f="all" class="on" aria-pressed="true">All steps</button><button type="button" data-f="diff" aria-pressed="false">Differences</button>
+        </div>
+        <span class="sub spacer">magenta number = the sides diverge here</span>
+      </div>
+      <div class="actors">
+        <b>Mobile UI<i>apps/mobile</i></b>
+        <b>Relay<i>tunnel by routingKey</i></b>
+        <b>Host<i>host-service · journal + state owner</i></b>
+        <b>Agent<i>claude-agent-acp / claude CLI</i></b>
+      </div>
+    </div>
+
+    <!-- ══════════ ① CREATE ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-create">① Start a new session</h2>
+      <p class="pnote">Device mints the public uuid; create is idempotent on it. The host boots the agent — this is divergence
+      <b>D5</b>: a child process and a 3-RPC handshake vs one in-process call.</p>
+
+      <div class="hop">
+        <div class="self ac-sh" style="--l:0"><span class="no"></span><span class="dot"></span><span class="al">user taps “New chat” — mobile mints the id</span></div>
+        <div class="cells"><div class="c1">
+          <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">create is idempotent on this id</span></div>
+<pre>sessionId = randomUUID()
+// acp example: "7d1e4a02-9c1f-4f7e-b1de-2f6d1a0c55aa"
+// sdk example: "6f0d1c2e-4b7a-4c8e-9f21-3d5a7b9c1e0f"</pre></div>
+        </div></div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:0;--r:1"><span class="no"></span><span class="al"><span>HTTPS POST create <span class="who">— superjson body, Bearer JWT</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">lib/host/client.ts:60</span></div>
+<pre>POST {relay}/hosts/org_01J8…%3Amac-mini-m2/trpc/acpSessions.create
+authorization: Bearer &lt;host JWT&gt;
+
+{ "json": {
+    "sessionId": "7d1e4a02-9c1f-4f7e-b1de-2f6d1a0c55aa",
+    "workspaceId": "a34e11f8-24c1-47c3-9d0e-88f2b1c9a771"
+} }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>POST {relay}/hosts/org_01J8…%3Amac-mini-m2/trpc/sessions.create
+authorization: Bearer &lt;host JWT&gt;
+
+{ "json": {
+    "sessionId": "6f0d1c2e-4b7a-4c8e-9f21-3d5a7b9c1e0f",
+    "workspaceId": "9a8b7c6d-5e4f-4a3b-8c1d-2e0f9a8b7c6d",
+    "permissionMode": "default"
+} }</pre></div>
+          </div>
+          <div class="c2">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">relay never parses the body — elided from here on</span></div>
+<pre>// looks up the host tunnel by routingKey
+// "org_01J8…:mac-mini-m2", forwards opaquely
+→ POST /trpc/acpSessions.create   // acp
+→ POST /trpc/sessions.create      // sdk</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:1;--r:2"><span class="no"></span><span class="al"><span>forwarded tRPC call</span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">trpc/router/acp-sessions.ts:64</span></div>
+<pre>// gate: PRECONDITION_FAILED unless SUPERSET_ACP_SESSIONS=1
+await runtime.acpSessions.create({ sessionId, workspaceId })
+// idempotent — same id returns the existing session</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">trpc/router/sessions.ts</span></div>
+<pre>await runtime.sessions.create({ sessionId, workspaceId,
+  permissionMode: "default" })
+// env from login-shell snapshot, resolves system `claude` binary</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>spawn adapter + <b>initialize</b> <span class="who">— JSON-RPC over stdio</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D5</b> — one child process per session; 3 stdio round-trips before it's usable</span></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">runtime/acp-sessions.ts:508,571</span></div>
+<pre>spawn(process.execPath, [claude-agent-acp entry],
+  { cwd, env: { …process.env, ELECTRON_RUN_AS_NODE: "1" } })
+
+{ "jsonrpc": "2.0", "id": 1, "method": "initialize",
+  "params": {
+    "protocolVersion": 1,
+    "clientInfo": { "name": "superset-host", "version": "1" },
+    "clientCapabilities": {
+      "fs": { "readTextFile": false, "writeTextFile": false },
+      "terminal": false,
+      "elicitation": { "form": {} }  // re-enables AskUserQuestion
+    } } }</pre>
+              <p class="ft">⤷ <b>elicitation.form</b> is the load-bearing line: without it the adapter disallows Claude Code's
+              built-in AskUserQuestion tool — see phase ⑥.</p></div>
+          </div>
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">response (abbreviated)</span></div>
+<pre>{ "id": 1, "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": { … } } }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirR dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>query() <span class="who">— in-process, no wire hop; the SDK spawns the CLI itself</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D5</b> — cwd, mode, model, callbacks all ride one function call; nothing to handshake</span></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">runtime/sessions.ts:506</span></div>
+<pre>query({
+  prompt: asyncInputQueue,       // user turns pushed later
+  options: {
+    cwd: "/Users/kirill/.superset/worktrees/…",
+    sessionId: "c1a2d3e4-…",     // native Claude session uuid
+    permissionMode: "default",
+    includePartialMessages: true,
+    persistSession: true,
+    canUseTool, onUserDialog, onElicitation  // 3 host-local callbacks
+  } })
+// catalog = await q.initializationResult()</pre>
+              <p class="ft">⤷ the three callbacks are <b>host-local functions</b> — an interaction never crosses a process
+              boundary until the host journals it.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/new</b></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 2, "method": "session/new",
+  "params": {
+    "cwd": "/Users/kirill/.superset/worktrees/…",
+    "mcpServers": []
+  } }</pre></div>
+          </div>
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">the acp id never leaves the host</span></div>
+<pre>{ "id": 2, "result": {
+    "sessionId": "sess_9f3k…",   // adapter-internal
+    "modes": {
+      "currentModeId": "bypassPermissions",
+      "availableModes": [
+        { "id": "default", … }, { "id": "acceptEdits", … }, …
+      ] } } }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/set_mode</b> <span class="who">— adapter boots in bypassPermissions; host forces default</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">D14-c</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 3, "method": "session/set_mode",
+  "params": { "sessionId": "sess_9f3k…", "modeId": "default" } }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="self ac-sh" style="--l:2"><span class="no"></span><span class="dot"></span><span class="al">journal seq 1 — state frame</span></div>
+        <div class="cells"><div class="c3">
+          <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">in-memory ring, cap 5 000</span></div>
+<pre>journal.append({ kind: "state", state: { …, "status": "idle",
+  "lastSeq": 1 } })   // → envelope { seq: 1, sessionId, ts, frame }</pre></div>
+        </div></div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>200 — full SessionScopedState</span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "result": { "data": { "json": {
+  "sessionId": "7d1e4a02-…",
+  "workspaceId": "a34e11f8-…",
+  "harness": "claude-agent-acp",
+  "status": "idle",
+  "currentMode": {
+    "currentModeId": "default",
+    "availableModes": [ … ] },
+  "configOptions": [ … ],
+  "pendingPermissions": [],
+  "cwd": "/Users/kirill/.superset/worktrees/…",
+  "lastSeq": 1,
+  "lastStopReason": null,
+  "lastError": null } } } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">3 pending arrays instead of 1</span></div>
+<pre>{ "result": { "data": { "json": {
+  "sessionId": "6f0d1c2e-…",
+  "claudeSessionId": "c1a2d3e4-…",
+  "workspaceId": "9a8b7c6d-…",
+  "harness": "claude",
+  "status": "idle",
+  "model": "claude-sonnet-5",
+  "permissionMode": "default",
+  "effort": null,
+  "pendingPermissions": [],
+  "pendingUserDialogs": [],
+  "pendingElicitations": [],
+  "cwd": "/Users/kirill/.superset/worktrees/…",
+  "lastSeq": 1,
+  "lastError": null } } } }</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ② ATTACH ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-attach">② Open an existing session — state, history, stream</h2>
+      <p class="pnote">Every cold attach, every resync, and a second device's join are the same triple: read state, read a history
+      page, dial the WS from a cursor. Hop two is divergence <b>D1</b> — the single most consequential difference.</p>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>GET state snapshot <span class="who">— tRPC query = GET + ?input=</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>GET …/trpc/acpSessions.get?input=%7B%22json%22%3A…
+// decoded: { "json": { "sessionId": "7d1e4a02-…" } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>GET …/trpc/sessions.get?input=…
+// decoded: { "json": { "sessionId": "6f0d1c2e-…" } }</pre></div>
+          </div>
+          <div class="c3">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span></div>
+<pre>← 200 SessionScopedState
+// same shape as ①'s "200 — full SessionScopedState";
+// this object IS the session's top-level state: status chip,
+// composer gate and pending cards all render from it</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>GET history page <span class="who">— newest first, cursor walks backward</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D1 · critical</b> — ACP currently pages its bounded ring; an offline session first rebuilds
+        that ring through a full session/load replay. The direct SDK design pages Claude's native JSONL transcript.</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>GET …/trpc/acpSessions.getMessages?input=…
+// { "json": { "sessionId": "7d1e4a02-…", "limit": 200 } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>GET …/trpc/sessions.getMessages?input=…
+// { "json": { "sessionId": "6f0d1c2e-…", "limit": 200 } }</pre></div>
+          </div>
+          <div class="c3">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">journal page — rows ARE envelopes</span></div>
+<pre>{ "result": { "data": { "json": {
+  "items": [
+    { "seq": 38, "sessionId": "7d1e…", "ts": 1752107660102,
+      "frame": { "kind": "update", "update": {
+        "sessionUpdate": "user_message_chunk",
+        "content": { "type": "text",
+                     "text": "Create hello.txt…" } } } },
+    …  // timeline frame kinds only — state/reset excluded
+  ],
+  "nextCursor": "s38"   // older page: pass cursor "s38"
+} } } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">native transcript — no seq on rows</span></div>
+<pre>{ "result": { "data": { "json": {
+  "items": [
+    { "type": "user", "uuid": "b4e2…",
+      "session_id": "c1a2d3e4-…",
+      "message": { "role": "user", "content": [
+        { "type": "text", "text": "List the files…" } ] },
+      "parent_tool_use_id": null,
+      "parent_agent_id": null },
+    …  // Claude's own JSONL rows, 200/page
+  ],
+  "nextCursor": "1kf3z"  // base36, cycle-guarded
+} } } }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>WS attach with cursor</span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>WSS {relay}/hosts/org_01J8…%3Amac-mini-m2
+    /acp-sessions/7d1e4a02-…/stream?token=&lt;JWT&gt;&amp;since=51
+// since = folded.lastSeq (fallback state.lastSeq)</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>WSS …/sessions/6f0d1c2e-…/stream?token=&lt;JWT&gt;&amp;since=57
+// since = state.lastSeq — emitState stamps its own seq
+// into state.lastSeq so resume lands right after it</pre></div>
+          </div>
+          <div class="c3">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">runtime subscribe()</span></div>
+<pre>subscribe({ sessionId, since, onEnvelope })
+// journal.after(since) = (since, latest] replayed
+// synchronously before live attach → no gap window</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>replay, then live <span class="who">— one envelope per WS message</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span></div>
+<pre>// envelopes (since, latest], then live — shapes as in the
+// phases below. Client rules make delivery exactly-once:
+//   seq &lt;= lastSeq       → drop (at-least-once dedupe)
+//   seq == lastSeq + 1    → fold (the only accept path)
+//   seq &gt;  lastSeq + 1    → gap → reconnect from cursor</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="self ac-sh" style="--l:0"><span class="no"></span><span class="dot"></span><span class="al">fold from scratch → timeline (pure, derived, disposable)</span></div>
+        <div class="why"><span><b>≠ D1</b> — ACP refolds one source; SDK merges two: transcript rows at seq 0 (uuid-keyed), live envelopes on top</span></div>
+        <div class="cells"><div class="c1">
+          <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">session-protocol/fold.ts</span></div>
+<pre>foldTimeline(journalPages)
+→ { "items": [ MessageItem | ToolCallItem | PlanItem ],
+    "meta": { "title", "usage", "currentMode", … },
+    "state": { … }, "lastSeq": 51 }</pre></div>
+          <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>timelineFromSessionMessages(history)  // transcript → seq-0 items
+fold(bufferedEnvelopes)               // live rows on top
+→ { "items": [ Message | ToolCall | UserDialog | Elicitation ],
+    "meta": { "model", "permissionMode", "lastResult", … },
+    "state": { … }, "lastSeq": 57 }
+// same uuid live+transcript → upsert, not duplicate</pre></div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- ══════════ ③ PROMPT ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-prompt">③ Send a prompt</h2>
+      <p class="pnote">Sends are admission-acks on both sides — a turn can block for hours on a human, so the RPC returns the moment
+      the host accepts; completion only ever arrives on the stream. Divergence <b>D6</b> lives in the payload shape, the send gate,
+      and who echoes your bubble.</p>
+
+      <div class="hop diff">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>POST prompt <span class="who">— reply is an admission ack only</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D6</b> — plain blocks + mid-turn sends allowed vs client-built SDKUserMessage + idle-only gate</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">acpSessions.prompt</span></div>
+<pre>{ "json": {
+    "sessionId": "7d1e4a02-…",
+    "prompt": [ { "type": "text",
+        "text": "Implement exponential retry for webhook delivery." } ]
+} }
+// ← { "accepted": true }</pre>
+              <p class="ft">⤷ mid-turn sends are allowed — prompts queue on the adapter.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sessions.sendMessage · createUserMessage()</span></div>
+<pre>{ "json": {
+    "sessionId": "6f0d1c2e-…",
+    "message": {
+      "type": "user",
+      "message": { "role": "user", "content": [ { "type": "text",
+          "text": "Implement exponential retry for webhook delivery." } ] },
+      "parent_tool_use_id": null
+    }
+} }
+// ← { "accepted": true }</pre>
+              <p class="ft">⤷ requires status <b>"idle"</b> — mid-turn sends throw PRECONDITION_FAILED. The wire shape is the
+              SDK's own message type, built client-side.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/prompt</b> <span class="who">— stays unanswered until the turn ends (phase ⑧)</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-sessions.ts:296</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 10, "method": "session/prompt",
+  "params": {
+    "sessionId": "sess_9f3k…",
+    "prompt": [ { "type": "text",
+        "text": "Implement exponential retry for webhook delivery." } ]
+} }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirR dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>input.push(message) <span class="who">— the prompt iterable yields; no wire packet</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">AsyncInputQueue</span></div>
+<pre class="ts">input.push(message)   // AsyncInputQueue&lt;SDKUserMessage&gt;
+// the SDK's for-await loop consumes it and the subprocess
+// begins the turn; turn end is detected from the stream
+// (a `result` frame), not from any RPC response</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>user bubble echo <span class="who">— journaled BEFORE forwarding, fanned out</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D6</b> — the adapter never echoes prompts, so the ACP host journals your bubble instantly;
+        the SDK bubble waits for the CLI's echo (phase ④)</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 2 · one row per prompt block</span></div>
+<pre>{ "seq": 2, "sessionId": "7d1e4a02-…", "ts": 1752107660001,
+  "frame": {
+    "kind": "update",
+    "update": {
+      "sessionUpdate": "user_message_chunk",
+      "content": { "type": "text",
+        "text": "Implement exponential retry for webhook delivery." }
+    } } }</pre>
+              <p class="ft">⤷ fold: <b>appendChunk</b> → new user MessageItem <code>{ id: "user:2" }</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>state → running <span class="who">— snapshot journaled, fanned out</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 3 · composer stays enabled</span></div>
+<pre>{ "kind": "state",
+  "state": {
+    "sessionId": "7d1e4a02-…", "harness": "claude-agent-acp",
+    "status": "running", "title": null,
+    "pendingPermissions": [], "lastError": null,
+    "currentMode": { "currentModeId": "default" },
+    "lastSeq": 3, … } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 2 · composer disables (status ≠ idle)</span></div>
+<pre>{ "kind": "state",
+  "state": {
+    "sessionId": "6f0d1c2e-…", "status": "running",
+    "model": "claude-sonnet-5", "permissionMode": "default",
+    "pendingPermissions": [], "pendingUserDialogs": [],
+    "pendingElicitations": [], "lastSeq": 2, … } }</pre></div>
+          </div>
+          <div class="c3">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">the state-update mechanism</span></div>
+<pre>// host mutates SessionScopedState, then journals the WHOLE
+// snapshot. Fold: not a timeline item —
+// timeline.state = frame.state  (replace, never merge)</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ④ STREAM ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-stream">④ Text streams back</h2>
+      <p class="pnote">Divergence <b>D2</b>, in the flesh. Agent → host → journal → every socket, one call. Both sides stream
+      live, token by token; ACP's rows are semantic chunks that are never replaced, the SDK's are the raw model stream, later
+      superseded by an authoritative message.</p>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>agent_message_chunk <span class="who">— journaled at host, fanned out same call</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D2</b> — streamed live, one row per text delta; chunks accumulate and are never replaced</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 4 · session/update notification, verbatim</span></div>
+<pre>{ "seq": 4, "sessionId": "7d1e4a02-…", "ts": 1752107663210,
+  "frame": { "kind": "update", "update": {
+    "sessionUpdate": "agent_message_chunk",
+    "content": { "type": "text",
+      "text": "I'll inspect the delivery path and existing tests." }
+} } }</pre>
+              <p class="ft">⤷ fold <b>appendChunk</b>: last item is an agent message → <code>blocks[last].text += chunk</code> —
+              merged in place, no new item. <b>agent_thought_chunk</b> is identical, folds to role "thought".
+              The SDK's consolidated assistant message never crosses: the adapter diffs it against the already-streamed blocks
+              (acp-agent.js:658) and forwards only an un-streamed tail.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>stream_event delta <span class="who">— one journal row PER delta</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D2</b> — every delta burns a seq; the journal grows ~10× faster for the same conversation</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 3…5 · raw Anthropic stream event, verbatim</span></div>
+<pre>{ "seq": 3, "sessionId": "6f0d1c2e-…", "ts": 1752191830123,
+  "frame": { "kind": "sdk", "message": {
+    "type": "stream_event",
+    "uuid": "3c9d41aa-…", "session_id": "c1a2d3e4-…",
+    "event": {
+      "type": "content_block_delta", "index": 0,
+      "delta": { "type": "text_delta", "text": "I'll inspect the " }
+    },
+    "parent_tool_use_id": null
+} } }</pre>
+              <p class="ft">⤷ fold <b>appendPartialBlock</b>: accrete into
+              <code>MessageItem{ partial: true, id: "message:assistant:3c9d…:0" }</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>authoritative assistant message <span class="who">— replaces the partial</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 6 · complete message, same uuid</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "assistant", "uuid": "3c9d41aa-…",
+    "message": {
+      "role": "assistant",
+      "content": [
+        { "type": "text",
+          "text": "I'll inspect the delivery path and existing tests." },
+        { "type": "tool_use", "id": "toolu_01AbCdEfGh", "name": "Write",
+          "input": { "file_path": "src/retry.ts", "content": "…" } }
+      ] }
+} }</pre>
+              <p class="ft">⤷ fold: same uuid → <b>replace the partial wholesale</b> (<code>partial: false</code>); the embedded
+              <b>tool_use</b> spawns <code>ToolCallItem{ status: "pending" }</code>. The SDK user prompt also echoes back here
+              as an <code>sdk</code> user frame — that echo is what lands in the timeline.</p></div>
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp side</span></div>
+<pre>// no replacement pass exists on ACP: chunks were already
+// final, and the tool call arrives as its own frame (next)</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑤ PERMISSION ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-perm">⑤ Tool call needs permission</h2>
+      <p class="pnote">The parked-promise pattern both sides share: the agent asks, the host parks the ask + journals two rows
+      (request, then state snapshot), the answer RPC resolves the parked promise back into the agent. Divergence <b>D3</b> is
+      what rides the wire and who constructs the decision.<br><span class="prov">observed in the current real-adapter lane:
+      Claude can emit two Bash tool uses in parallel, but claude-agent-acp 0.56.0 exposes their permission callbacks to the
+      client one at a time. Superset supports a true multi-request stack; the deterministic ACP adapter pins that case.</span></p>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>tool_call frame <span class="who">— UI-ready at birth</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D2/D3</b> — title, kind, status born at the protocol layer; on SDK they're derived at fold time</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 5</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01XyZaBcDe",
+    "title": "Write src/retry.ts",
+    "kind": "edit",
+    "status": "pending",
+    "rawInput": { "file_path": "src/retry.ts", "content": "…" }
+} }</pre>
+              <p class="ft">⤷ fold <b>upsertToolCall</b> → new ToolCallItem. Later <b>tool_call_update</b> frames are
+              <b>patches</b>: present fields replace, absent keep — merged only at fold time, each patch its own row.</p></div>
+            <div class="pl sh"><div class="hd"><span class="chip sh">sdk side</span></div>
+<pre>// the tool call already rode inside the authoritative
+// assistant message in ④ — no separate tool-call frame</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/request_permission</b> <span class="who">— JSON-RPC REQUEST, parks at the host</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-sessions.ts:731</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 7,
+  "method": "session/request_permission",
+  "params": {
+    "sessionId": "sess_9f3k…",
+    "toolCall": { "toolCallId": "toolu_01XyZaBcDe",
+      "title": "Write src/retry.ts", "kind": "edit", "status": "pending" },
+    "options": [
+      { "optionId": "allow",  "name": "Allow",  "kind": "allow_once" },
+      { "optionId": "reject", "name": "Reject", "kind": "reject_once" }
+    ] } }</pre>
+              <p class="ft">⤷ host parks the response promise in <code>pendingResolvers</code> keyed by the JSON-RPC id
+              (<b>"7"</b>) and pushes onto <code>state.pendingPermissions</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>canUseTool() <span class="who">— in-process callback; a promise the host doesn't resolve yet</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sessions.ts:482</span></div>
+<pre class="ts">canUseTool("Write",
+  { file_path: "src/retry.ts", content: "…" },
+  { requestId: "req_011CNxT9aB",
+    toolUseID: "toolu_01AbCdEfGh",
+    suggestions: [ /* addRules … */ ],
+    signal })          // ← parkPermission stores a Deferred
+                       //    keyed by the SDK's own requestId</pre>
+              <p class="ft">⤷ same parking pattern, no wire: the Deferred sits in one of <b>three</b> pending maps
+              (permissions / dialogs / elicitations), each with its own frames and RPC.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>permission_requested + state <span class="who">— 2 rows journaled, fanned out</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D3</b> — ACP: the options ride the wire, client renders and never decides · SDK: raw input +
+        suggestions, client invents the Allow/Always/Deny UX</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 6, then seq 7 state</span></div>
+<pre>{ "kind": "permission_requested",
+  "pending": {
+    "requestId": "7",
+    "toolCall": { "toolCallId": "toolu_01XyZaBcDe",
+      "title": "Write src/retry.ts", "kind": "edit", "status": "pending" },
+    "options": [
+      { "optionId": "allow",  "name": "Allow",  "kind": "allow_once" },
+      { "optionId": "reject", "name": "Reject", "kind": "reject_once" }
+    ],
+    "requestedAt": 1752107665004 } }
+
+{ "kind": "state", "state": {
+    "status": "awaiting_permission",
+    "pendingPermissions": [ { "requestId": "7", … } ],
+    "lastSeq": 7, … } }</pre>
+              <p class="ft">⤷ the UI acts on the <b>state</b> copy: PermissionStack renders from
+              <code>state.pendingPermissions</code>. The timeline copy attaches a PermissionView to its ToolCallItem —
+              for the record.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 7, then seq 8 state</span></div>
+<pre>{ "kind": "permission_requested",
+  "request": {
+    "requestId": "req_011CNxT9aB",
+    "toolUseID": "toolu_01AbCdEfGh",
+    "toolName": "Write",
+    "input": { "file_path": "src/retry.ts", "content": "…" },
+    "suggestions": [ { "type": "addRules", "behavior": "allow",
+        "rules": [ { "toolName": "Write",
+                     "ruleContent": "src/retry.ts" } ],
+        "destination": "localSettings" } ],
+    "requestedAt": 1752191835001 } }
+
+{ "kind": "state", "state": {
+    "status": "requires_action",
+    "pendingPermissions": [ { "requestId": "req_011CNxT9aB", … } ],
+    "lastSeq": 8, … } }</pre>
+              <p class="ft">⤷ PendingActions renders every card from the three pending arrays in <b>state</b> — never from
+              the timeline.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>answer — respondToPermission</span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D3</b> — an optionId tap vs a client-constructed PermissionResult</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "json": {
+    "sessionId": "7d1e4a02-…",
+    "requestId": "7",
+    "outcome": { "outcome": "selected", "optionId": "allow" }
+} }
+// ← { "status": "resolved" }</pre>
+              <p class="ft">⤷ the client sends back an <b>optionId it was given</b> — zero decision logic on the device.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre>{ "json": {
+    "sessionId": "6f0d1c2e-…",
+    "requestId": "req_011CNxT9aB",
+    "response": {
+      "behavior": "allow",
+      "updatedInput": { "file_path": "src/retry.ts", "content": "…" },
+      "toolUseID": "toolu_01AbCdEfGh",
+      "decisionClassification": "user_temporary"
+    }
+} }
+// ← { "status": "resolved" }</pre>
+              <p class="ft">⤷ the client builds a full <b>PermissionResult</b>: echo (or edit) the input, classify the decision;
+              “Always allow” sends <code>updatedPermissions: suggestions</code>. <b>bypassPermissions</b> is stripped at this
+              boundary.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>unpark <span class="who">— the parked JSON-RPC request finally gets its response</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 7,
+  "result": { "outcome": { "outcome": "selected", "optionId": "allow" } } }</pre>
+              <p class="ft">⤷ turn-cancel or adapter death settles unanswered asks as <code>{ "outcome": "cancelled" }</code>
+              via the request's AbortSignal — nothing leaks.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirR dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>Deferred resolves <span class="who">— canUseTool returns in-process</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span></div>
+<pre class="ts">// settlePermission(requestId).resolve(…) → canUseTool returns:
+{ behavior: "allow",
+  updatedInput: { file_path: "src/retry.ts", content: "…" },
+  toolUseID: "toolu_01AbCdEfGh",
+  decisionClassification: "user_temporary" }</pre>
+              <p class="ft">⤷ the SDK runs the tool with <b>updatedInput</b> — which is also exactly how question answers
+              travel, next phase.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>permission_resolved + state → running <span class="who">— 2 rows, fanned out</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">same two-row pattern both sides</span></div>
+<pre>{ "kind": "permission_resolved", "requestId": …,
+  "outcome"/"response": { … } }        // resolution edge
+
+{ "kind": "state", "state": { "status": "running",
+    "pendingPermissions": [], … } }    // pending card disappears
+// SDK: status returns to "running" only once ALL THREE
+// pending maps are empty</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑥ QUESTION ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-ask">⑥ The agent asks a question — AskUserQuestion</h2>
+      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0 with an authenticated Sonnet/low real-adapter run</span><br>
+      Claude asks: “Which failures should retry?” The turn stays parked — answering does <b>not</b> create a new
+      prompt. Divergence <b>D4</b>: the interpretive work happens at opposite ends.</p>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>elicitation/create</b> (mode form) <span class="who">— parks like a permission</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D4</b> — rides the unstable elicitation.form capability advertised at initialize (phase ①)</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-sessions.ts:777</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 41, "method": "elicitation/create",
+  "params": {
+    "mode": "form",
+    "sessionId": "sess_9f3k…",
+    "toolCallId": "toolu_question_01",
+    "message": "Which failures should retry?",
+    "requestedSchema": {
+      "type": "object",
+      "properties": {
+        "question_0": {
+          "type": "string",
+          "oneOf": [
+            { "const": "429 + 5xx" },
+            { "const": "Also network failures" }
+          ] },
+        "question_0_custom": { "type": "string" }
+      } } } }</pre>
+              <p class="ft">⤷ <b>extractElicitationQuestions()</b> keeps only <code>question_&lt;n&gt;</code> fields
+              (<code>*_custom</code> ignored — mobile is tap-only); non-form modes → cancel; no recognizable questions → decline.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>canUseTool("AskUserQuestion") <span class="who">— a question is just a tool asking permission</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sessions.ts:482</span></div>
+<pre class="ts">canUseTool("AskUserQuestion",
+  { questions: [ {
+      header: "Retry scope",
+      question: "Which failures should retry?",
+      multiSelect: false,
+      options: [
+        { label: "429 + 5xx" },
+        { label: "Also network failures" } ] } ] },
+  { requestId: "req_011CQq2xYz",
+    toolUseID: "toolu_question_01", signal })</pre>
+              <p class="ft">⤷ parked in the same permissions map as any Write or Bash — <b>the host doesn't know questions
+              exist</b>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>host mints a question card <span class="who">— one per question_&lt;n&gt;, one at a time</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D4</b> — the question becomes an ordinary permission card; mobile has zero question-specific code</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 10 + state seq 11</span></div>
+<pre>{ "kind": "permission_requested",
+  "pending": {
+    "requestId": "q-3f7c9d2e-…",          // randomUUID, host-minted
+    "toolCall": { "toolCallId": "toolu_question_01",
+      "title": "Which failures should retry?",
+      "kind": "other", "status": "pending" },
+    "options": [
+      { "optionId": "option-0", "name": "429 + 5xx",
+        "kind": "allow_once" },
+      { "optionId": "option-1", "name": "Also network failures",
+        "kind": "allow_once" },
+      { "optionId": "skip", "name": "Skip", "kind": "reject_once" }
+    ],
+    "requestedAt": 1752107668210 } }
+// + { "kind": "state", "state": { "status": "awaiting_permission", … } }</pre>
+              <p class="ft">⤷ options = enum labels + Skip; card title = the question. Mobile renders and resolves this
+              exactly like the Write ask in ⑤.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>question forwarded raw <span class="who">— client special-cases it</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D4</b> — parseAskUserQuestions() sniffs toolName client-side; the host has zero question-specific code</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 11 + state seq 12</span></div>
+<pre>{ "kind": "permission_requested",
+  "request": {
+    "requestId": "req_011CQq2xYz",
+    "toolUseID": "toolu_question_01",
+    "toolName": "AskUserQuestion",
+    "input": { "questions": [ {
+        "header": "Retry scope",
+        "question": "Which failures should retry?",
+        "multiSelect": false,
+        "options": [ { "label": "429 + 5xx" },
+                     { "label": "Also network failures" } ] } ] },
+    "suggestions": [],
+    "requestedAt": 1752191841007 } }
+// + { "kind": "state", "state": { "status": "requires_action", … } }</pre>
+              <p class="ft">⤷ UI: <b>parseAskUserQuestions(request)</b> matches <code>toolName === "AskUserQuestion"</code> and
+              strictly validates <code>input.questions</code> — match → multi-question QuestionCard; mismatch → plain
+              permission card.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>answer the question <span class="who">— same respondToPermission RPC</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D4</b> — ACP: card <i>n</i> resolved mints card <i>n+1</i> until the form is done ·
+        SDK: one RPC carries every answer</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "json": {
+    "sessionId": "7d1e4a02-…",
+    "requestId": "q-3f7c9d2e-…",
+    "outcome": { "outcome": "selected", "optionId": "option-0" }
+} }
+// ← { "status": "resolved" }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">buildQuestionAnswers()</span></div>
+<pre>{ "json": {
+    "sessionId": "6f0d1c2e-…",
+    "requestId": "req_011CQq2xYz",
+    "response": {
+      "behavior": "allow",
+      "updatedInput": {
+        "questions": [ …input echoed… ],
+        "answers": { "Which failures should retry?": "429 + 5xx" }
+      },
+      "toolUseID": "toolu_question_01",
+      "decisionClassification": "user_temporary"
+    }
+} }
+// ← { "status": "resolved" }</pre>
+              <p class="ft">⤷ tapped chips + free text merged per question (deduped, comma-joined), keyed by question text.
+              Declining sends <code>behavior: "deny"</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>answer reaches the agent <span class="who">— the turn was never interrupted; no new prompt exists</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">host aggregates cards → answers the parked id 41</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 41,
+  "result": {
+    "action": "accept",
+    "content": { "question_0": "429 + 5xx" }
+} }</pre>
+              <p class="ft">⤷ Skip → field omitted; cancel mid-form → <code>action: "cancel"</code> aborts the tool.
+              The adapter converts this into its own inner canUseTool result.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">in-process</span></div>
+<pre class="ts">// canUseTool("AskUserQuestion", …) resolves to:
+{ behavior: "allow",
+  updatedInput: { questions: […],
+    answers: { "Which failures should retry?": "429 + 5xx" } },
+  toolUseID: "toolu_question_01",
+  decisionClassification: "user_temporary" }</pre>
+              <p class="ft">⤷ one hop instead of ACP's three (question → cards → aggregate), because host and agent share
+              a process.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑦ RACE ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-race">⑦ Two devices — the answer race</h2>
+      <p class="pnote">Second phone, same account. It cold-attaches with the phase-② triple; the fetched state already carries the
+      pending card, so it renders the question before a single WS frame arrives. Then both devices answer.</p>
+      <div class="same-note">— no divergence in this phase: identical race semantics on both sides (first answer wins, the
+      second RPC returns already_resolved, the loser's card clears via the state frame). Switch the filter back to
+      <b>All steps</b> to see the packets.</div>
+
+      <div class="hop">
+        <div class="self ac-sh" style="--l:2"><span class="no"></span><span class="dot"></span><span class="al">second subscriber attached — nothing was “sent” to it</span></div>
+        <div class="cells"><div class="c3">
+          <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">devices never talk to each other</span></div>
+<pre>// Device B ran the phase-② triple: get + getMessages + WSS
+// The fetched state already contained
+//   pendingPermissions: [ the question card ]
+// From here every journal append fans out to BOTH sockets
+// in the same call.</pre></div>
+        </div></div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>both answer — first wins <span class="who">— the second RPC is a no-op, not an error</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span><span class="cap">settled by the parked promise</span></div>
+<pre>// Device B's respondToPermission → { "status": "resolved" }
+// Device A answers the same requestId a moment later:
+POST …/respondToPermission { "requestId": "q-3f7c9d2e-…", … }
+// ← { "status": "already_resolved" }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>convergence <span class="who">— resolution + state fan out ×2 sockets</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span></div>
+<pre>{ "kind": "permission_resolved", "requestId": "q-3f7c9d2e-…", … }
+{ "kind": "state", "state": { "status": "running",
+    "pendingPermissions": [], … } }
+// A's card clears because the state frame REPLACED its
+// sessionState — not because A was told it lost a race.
+// Any number of devices stay consistent by this one rule.</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑧ TURN END ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-end">⑧ Tool result &amp; turn end</h2>
+      <p class="pnote">The tool finishes, then the turn closes — divergence <b>D7</b>: ACP's turn-end never appears on the device
+      wire; the SDK journals an explicit result with usage and cost.</p>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>tool completes <span class="who">— journaled, fanned out</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 14 · the same patch shape, now with output</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call_update",
+    "toolCallId": "toolu_01XyZaBcDe",
+    "status": "completed",
+    "content": [ { "type": "content",
+        "content": { "type": "text", "text": "Wrote src/retry.ts" } } ]
+} }</pre>
+              <p class="ft">⤷ fold: patch-merge onto the ToolCallItem → completed, content attached.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 15 · result arrives as a user-role message (API convention)</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "user",
+    "message": { "role": "user", "content": [
+      { "type": "tool_result",
+        "tool_use_id": "toolu_01AbCdEfGh",
+        "content": [ { "type": "text", "text": "Wrote src/retry.ts" } ],
+        "is_error": false } ] }
+} }</pre>
+              <p class="ft">⤷ fold: match <b>tool_use_id</b> → flip the ToolCallItem to completed / error in place.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>turn ends <span class="who">— the prompt RPC from ③ finally returns; host-internal only</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D7</b> — never journaled; devices only ever see the state snapshot two hops down.
+        A failed prompt journals prompt_rejected instead (fold retro-marks the user bubble failed)</span></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 10,
+  "result": { "stopReason": "end_turn" } }</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>result frame <span class="who">— explicit, journaled turn end</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D7</b> — duration, num_turns, cost and usage journaled for free; fold keeps it as meta.lastResult</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 16 · sessions.ts:591</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "result", "subtype": "success",
+    "duration_ms": 41230, "num_turns": 3,
+    "total_cost_usd": 0.084,
+    "result": "Done. Retry with backoff implemented.",
+    "usage": { … }
+} }</pre>
+              <p class="ft">⤷ host rule: a <b>result</b> with zero pending callbacks is the authoritative turn end — the CLI
+              doesn't reliably emit session_state_changed(idle).</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>state → idle <span class="who">— the closing snapshot; composer re-enables</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">seq 15</span></div>
+<pre>{ "kind": "state", "state": {
+    "status": "idle", "lastStopReason": "end_turn",
+    "title": "Webhook retry with backoff",
+    "pendingPermissions": [], "lastSeq": 15, … } }</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">seq 17</span></div>
+<pre>{ "kind": "state", "state": {
+    "status": "idle",
+    "pendingPermissions": [], "pendingUserDialogs": [],
+    "pendingElicitations": [], "lastSeq": 17, … } }</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑨ RESET ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-reset">⑨ Reconnect, gaps, reset</h2>
+      <p class="pnote">Both sides use cursor replay inside one journal incarnation. The divergence is the history source used
+      for a full rebuild — <b>D1</b> again, and where it bites hardest.</p>
+
+      <div class="hop">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>redial after background <span class="who">— exponential backoff 250ms → 10s</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sh"><div class="hd"><span class="chip sh">acp · sdk</span></div>
+<pre>WSS …/stream ?since=15        // lastSeq the device has folded
+// dedupe / gap rules as in ② — “exactly once, in order” is
+// enforced by the CLIENT with two integer comparisons;
+// the server just replays. The current ACP client performs only
+// a shallow envelope check; full runtime parsing remains TODO.</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirL ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>terminal reset <span class="who">— seq 0, then the socket closes (1000)</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D1</b> — same shape, but the SDK adds latestSeq and a whole epoch mechanism (retry(), cursor_ahead)</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">cursor evicted from the ring</span></div>
+<pre>{ "seq": 0, "sessionId": "7d1e4a02-…", "ts": …,
+  "frame": { "kind": "reset",
+             "reason": "journal_evicted" } }
+// also: invalid_since, session_not_found, session_load_failed
+// not journaled — seq 0 is out-of-band by construction</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">ring evicted / host restarted / retry epoch</span></div>
+<pre>{ "seq": 0, "sessionId": "6f0d1c2e-…", "ts": …,
+  "frame": { "kind": "reset",
+             "reason": "cursor_unavailable",
+             "latestSeq": 57 } }
+// also fired when the cursor is AHEAD of the journal.
+// retry() starts a new epoch: fresh journal, seq restarts
+// at 1, old subscribers get reset("session_restarted")</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="ar dirR ac-sh" style="--l:0;--r:2"><span class="no"></span><span class="al"><span>full resync</span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D1 · critical</b> — after a host restart ACP resurrects from a registry row plus a full
+        session/load replay into a fresh ring; the direct SDK design reads pages from the JSONL transcript.</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">useAcpSession.ts:113 — same reads as ②</span></div>
+<pre>GET  …/acpSessions.get             // fresh SessionScopedState
+GET  …/acpSessions.getMessages     // newest journal page
+// refold from scratch (pure) → resubscribe ?since=folded.lastSeq
+// older pages on demand via cursor "s&lt;seq&gt;"</pre>
+              <p class="ft">⤷ the session lists as <b>"offline"</b> from its SQLite registry row. The first live call
+              (prompt / getMessages / stream attach) runs <code>session/load</code> and rebuilds a fresh journal. Numeric seqs
+              restart at 1; because the cursor has no incarnation id, an overlapping pre-restart cursor is not always detected.
+              Epoch-aware cursors are required follow-up work.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">useClaudeSessionThread.ts:178</span></div>
+<pre>GET  …/sessions.get                     // state, incl. lastSeq
+WSS  …/stream ?since=state.lastSeq      // open FIRST, buffer
+GET  …/sessions.getMessages ×N          // drain full transcript
+// timelineFromSessionMessages(history)
+// → fold buffered envelopes on top → hydrated</pre>
+              <p class="ft">⤷ transcript rows fold at seq 0 (uuid-keyed), buffered live envelopes land after — the overlap
+              upserts instead of duplicating. More moving parts; history survives.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑩ SUBAGENTS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-subagents">⑩ Subagents</h2>
+      <p class="pnote"><span class="prov">captured against claude-agent-acp 0.56.0; the current acceptance fixture runs a named five-agent Sonnet Workflow to completion with real token and tool usage; lifecycle details cross-checked against sdk 0.3.201 types</span><br>
+      Native: the <code>Agent</code> tool is a first-class spawn — the subagent has an id, a type, its own transcript file, and
+      every message it produces is tagged with the spawning tool_use. Over ACP: the adapter renames the spawn to a generic
+      <code>think</code> tool call, <b>deliberately drops subagent prose</b>, and tags nested tool calls with non-standard
+      <code>_meta</code> that our fold happens to understand — <b>D8</b>.</p>
+
+      <div class="hop diff">
+        <div class="ar dirL ac-sh" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>the spawn <span class="who">— Agent (a.k.a. Task) tool_use</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D8</b> — SDK: a typed spawn with subagent_type / model / isolation on the wire ·
+        ACP: a generic think call; the spawn options survive only because rawInput echoes the input</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js:19 — case "Agent"/"Task" → kind "think"</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01TaskAa",
+    "title": "Audit retry edge cases",     // = input.description
+    "kind": "think",                       // ← a SPAWN, labelled a thought
+    "status": "pending",
+    "content": [ { "type": "content", "content": {
+        "type": "text", "text": "Find every call site that retries webhook delivery…" } } ],
+    "rawInput": { "description": "Audit retry edge cases",
+      "prompt": "Find every call site that retries webhook delivery…",
+      "subagent_type": "Explore", "model": "haiku" },
+    "_meta": { "claudeCode": { "toolName": "Task" } }
+} }</pre>
+              <p class="ft">⤷ <code>subagent_type</code> / <code>model</code> / <code>isolation</code> are not protocol fields —
+              no ACP client can rely on them; they ride only inside the untyped <code>rawInput</code> echo.</p></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">AgentInput — sdk-tools.d.ts:410</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "assistant", "uuid": "9e2f61bb-…",
+    "message": { "role": "assistant", "content": [
+      { "type": "tool_use", "id": "toolu_01TaskAa", "name": "Agent",
+        "input": {
+          "description": "Audit retry edge cases",
+          "prompt": "Find every call site that retries webhook delivery…",
+          "subagent_type": "Explore",
+          "model": "haiku",
+          "name": "recon-retries",
+          "run_in_background": false,
+          "isolation": "worktree"
+        } } ] }
+} }</pre>
+              <p class="ft">⤷ the input is a <b>typed spawn</b>: subagent_type · model · name · run_in_background · mode ·
+              isolation ("worktree"/"remote"). The client sees exactly what was launched, and with what powers.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>subagent stream <span class="who">— every message tagged with the spawning tool_use</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">parent_tool_use_id — first-class on every SDKMessage</span></div>
+<pre>{ "kind": "sdk", "message": {
+    "type": "assistant", "uuid": "b7c31d9a-…",
+    "session_id": "c1a2d3e4-…",
+    "parent_tool_use_id": "toolu_01TaskAa",   // ← the spawn
+    "message": { "role": "assistant", "content": [
+      { "type": "text", "text": "Scanning delivery/ for retry loops…" },
+      { "type": "tool_use", "id": "toolu_02Grep", "name": "Grep",
+        "input": { "pattern": "retry", "path": "src/delivery" } }
+    ] }
+} }</pre>
+              <p class="ft">⤷ prose AND tool calls arrive, all tagged. Identity outlives the stream:
+              <code>listSubagents(sessionId)</code> → <code>getSubagentMessages(sessionId, agentId)</code> replays the
+              subagent's own JSONL transcript (<code>…/&lt;sessionId&gt;/subagents/agent-&lt;agentId&gt;.jsonl</code>);
+              SubagentStart/SubagentStop hooks carry <code>agent_id</code> + <code>agent_type</code>.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter drops subagent prose — by design</span></div>
+        <div class="why"><span><b>≠ D8 · critical</b> — text/thinking from a subagent never reaches ANY ACP client; there is no
+        frame for “subagent said something”</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:1729 — comment is verbatim from source</span></div>
+<pre class="ts">// subagent assistant message (parent_tool_use_id !== null):
+// "It is never streamed live and its text/thinking is internal
+//  to the tool call — keep dropping it so subagent prose
+//  doesn't leak into the top-level feed."
+content = message.message.content.filter(
+  (item) =&gt; item.type !== "text" &amp;&amp; item.type !== "thinking");</pre>
+              <p class="ft">⤷ only the tool_use blocks survive the filter and continue to the next hop.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>nested tool_call <span class="who">— nesting rides non-standard _meta</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:4085 — parentToolUseId stamped on every subagent-born update</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_02Grep",
+    "title": "grep \"retry\" src/delivery",
+    "kind": "search", "status": "pending",
+    "rawInput": { "pattern": "retry", "path": "src/delivery" },
+    "_meta": { "claudeCode": {
+        "toolName": "Grep",
+        "parentToolUseId": "toolu_01TaskAa" } }   // ← the whole tree
+} }</pre>
+              <p class="ft">⤷ <code>_meta</code> is ACP's sanctioned extension point, but nothing about this key is standard:
+              a generic ACP client renders this call <b>flat</b>, as a sibling of the Task it belongs to.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop diff">
+        <div class="self ac-sh" style="--l:0"><span class="no"></span><span class="dot"></span><span class="al">who can rebuild — and later re-read — the subagent</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp acp-only"><div class="hd"><span class="chip acp">acp</span><span class="cap">session-protocol fold.ts — upsertToolCall re-homing</span></div>
+<pre class="ts">// OUR fold knows the adapter's private key:
+claudeParentToolUseId(src) =&gt;
+  src._meta?.claudeCode?.parentToolUseId ?? null
+// a tagged frame re-homes the item under its Task — splice
+// from top level, re-insert as ToolCallItem.children[]
+// Different adapter → different key. Standard client → no tree.
+// session/load can rebuild retained tree frames from native history;
+// frames older than the host ring remain unavailable.</pre></div>
+            <div class="pl sdk sdk-only"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk.d.ts:760 — any time later</span></div>
+<pre class="ts">// by (sessionId, agentId), long after the stream:
+getSubagentMessages("c1a2d3e4-…", "3f2b…")
+// → the subagent's full message history from its own
+//   transcript file; survives host restarts</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑪ TASK GRAPH ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-tasks">⑪ Native tasks — graph in, checklist out</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      Native: an ID-addressed task graph (TaskCreate / TaskUpdate / TaskList / TaskGet) with dependencies, owner and metadata.
+      Over ACP: the four tools are suppressed and each mutation re-emits <b>one flat <code>plan</code> snapshot</b> —
+      content + status only — <b>D9</b>.</p>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>TaskCreate / TaskUpdate <span class="who">— building the graph, on the wire verbatim</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk-tools.d.ts:2381 — TaskCreateInput / TaskUpdateInput</span></div>
+<pre>{ "type": "tool_use", "name": "TaskCreate",
+  "input": { "subject": "Add retry queue",
+    "description": "Durable queue with exponential backoff",
+    "activeForm": "Adding retry queue",
+    "metadata": { "epic": "webhooks" } } }
+// → tool_result: { "task": { "id": "task-1", … } }   ← addressable
+
+{ "type": "tool_use", "name": "TaskUpdate",
+  "input": { "taskId": "task-2", "status": "in_progress",
+    "addBlockedBy": [ "task-1" ],          // dependency edges
+    "owner": "recon-retries" } }           // who's on it
+
+// TaskGet  → { task: { id, subject, description, status,
+//                      blocks: [], blockedBy: ["task-1"] } }
+// TaskList → { tasks: [ { id, subject, status, owner,
+//                         blockedBy: [] }, … ] }</pre>
+              <p class="ft">⤷ ids, dependency edges (<code>blocks</code>/<code>blockedBy</code>), owner, metadata — a real graph,
+              queryable mid-run. TodoWrite (content/status/activeForm) still exists alongside as the lightweight form.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter: suppress the tools, accumulate private state</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:3797 · tools.js:598</span></div>
+<pre class="ts">// no tool_call frame is ever emitted for these:
+shouldEmitToolCall = toolName !== "TodoWrite"
+                     &amp;&amp; !isTaskTool(toolName)   // TaskCreate/Update/List/Get
+// at tool_result, mutate an in-adapter Map instead:
+applyTaskCreate(state, input, output)  // keeps subject, status,
+applyTaskUpdate(state, input)          // activeForm, description
+// TaskList / TaskGet: invisible — reads never cross</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>one flat plan frame <span class="who">— re-emitted whole after every mutation</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D9</b> — ID-addressed graph in, flat checklist out; every entry's priority is invented
+        as "medium" by construction</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js:629 — taskStateToPlanEntries</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "plan",
+    "entries": [
+      { "content": "Add retry queue",
+        "status": "in_progress", "priority": "medium" },
+      { "content": "Wire dead-letter alerts",
+        "status": "pending",     "priority": "medium" }
+    ] } }</pre>
+              <p class="ft">⤷ entries carry <b>content + status only</b>; <code>priority</code> is hardcoded "medium".
+              Dropped on the adapter floor: <span style="color:var(--dif);font-weight:600">taskId · description · activeForm ·
+              blocks/blockedBy · owner · metadata</span>. TodoWrite takes the same door (tools.js:553) and loses its
+              activeForm too. Fold: PlanItem is replaced wholesale per frame — no diffing possible without ids.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑫ PLAN MODE ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-planmode">⑫ Plan mode — enter, plan, exit</h2>
+      <p class="pnote"><span class="prov">observed in the ACP spike · recorded in plans/done/20260710-session-harness-acp.md · shapes matched to adapter source 0.56.0</span><br>
+      The one complex interaction ACP handles <i>better</i> than raw: plan-exit crosses as an ordinary permission request wearing
+      <code>kind:"switch_mode"</code>, with the plan document as content and the target permission modes as tappable options.</p>
+
+      <div class="hop acp-only">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span><b>session/set_mode</b> <span class="who">— entering plan mode; echoed back as a notification</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">same RPC as phase ①'s third round-trip</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 12, "method": "session/set_mode",
+  "params": { "sessionId": "sess_9f3k…", "modeId": "plan" } }
+// ← { "id": 12, "result": {} }
+// then, as its own session/update notification:
+{ "sessionUpdate": "current_mode_update",
+  "currentModeId": "plan" }
+// → journaled inside the next state snapshot (currentMode)</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>plan exit <span class="who">— a permission request wearing kind "switch_mode"</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — the adapter turns ExitPlanMode into a ready-made mode-switch decision: optionIds ARE
+        permission modes, the plan document rides as ordinary content</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:2195 — options filtered by availableModes</span></div>
+<pre>{ "jsonrpc": "2.0", "id": 19, "method": "session/request_permission",
+  "params": {
+    "sessionId": "sess_9f3k…",
+    "toolCall": {
+      "toolCallId": "toolu_01ExitPlan",
+      "title": "Ready to code?",
+      "kind": "switch_mode",
+      "content": [ { "type": "content", "content": {
+          "type": "text", "text": "## Plan\n1. Add retry queue…" } } ],
+      "rawInput": { "plan": "## Plan\n1. Add retry queue…" }
+    },
+    "options": [
+      { "optionId": "auto",        "name": "Yes, and use \"auto\" mode",       "kind": "allow_always" },
+      { "optionId": "acceptEdits", "name": "Yes, and auto-accept edits",      "kind": "allow_always" },
+      { "optionId": "default",     "name": "Yes, and manually approve edits", "kind": "allow_once"    },
+      { "optionId": "plan",        "name": "No, keep planning",               "kind": "reject_once"   }
+    ] } }</pre>
+              <p class="ft">⤷ crosses to devices via the exact phase-⑤ machinery: <code>permission_requested</code> row + state
+              snapshot; mobile renders option buttons it already knows how to render. A bypassPermissions option is prepended
+              only when the adapter allows bypass.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only">
+        <div class="ar dirR ac-acp" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>accept <span class="who">— the mode actually changes, atomically with the answer</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:2195 — accept path</span></div>
+<pre>{ "id": 19, "result": { "outcome": {
+    "outcome": "selected", "optionId": "acceptEdits" } } }
+// adapter reacts: emits
+{ "sessionUpdate": "current_mode_update",
+  "currentModeId": "acceptEdits" }
+// and resolves ExitPlanMode inside the SDK as
+//   { behavior: "allow", updatedInput, updatedPermissions:
+//     [ { type: "setMode", mode: "acceptEdits",
+//         destination: "session" } ] }
+// tapping "plan" instead → deny:
+//   "User rejected request to exit plan mode."</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL dash ac-sdk" style="--l:2;--r:3"><span class="no"></span><span class="al"><span>canUseTool("ExitPlanMode") <span class="who">— same tool, zero interpretation</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — the SDK forwards a plain permission ask; that accepting should ALSO flip
+        permissionMode is semantics the client must know by itself</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">journaled as phase ⑤'s permission_requested shape</span></div>
+<pre class="ts">canUseTool("ExitPlanMode",
+  { plan: "## Plan\n1. Add retry queue…" },
+  { requestId, toolUseID,
+    suggestions: [ /* setMode … */ ] })
+// the wire says "a tool wants permission" — nothing more.
+// Building "Ready to code?" UX, offering target modes, and
+// flipping permissionMode on accept is all client code.</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑬ TERMINAL / BACKGROUND BASH ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-terminal">⑬ Terminal &amp; background Bash</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      ACP the spec has client-owned terminals (<code>terminal/create</code>, <code>terminal/output</code>, …) gated on
+      <code>clientCapabilities.terminal</code>. Our host says <b>false</b> — and this adapter wouldn't call them anyway:
+      it never invokes <code>terminal/*</code> and gates Bash output streaming on a <i>non-standard</i> <code>_meta</code>
+      capability instead.</p>
+
+      <div class="hop acp-only">
+        <div class="self ac-acp" style="--l:2"><span class="no"></span><span class="dot"></span><span class="al">what our host advertised back in phase ①</span></div>
+        <div class="cells">
+          <div class="c3">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-sessions.ts:612 — initialize</span></div>
+<pre>"clientCapabilities": {
+  "fs": { "readTextFile": false, "writeTextFile": false },
+  "terminal": false,          // ← no client-owned terminals
+  "elicitation": { "form": {} }
+}
+// and no _meta["terminal_output"] either — see below</pre>
+              <p class="ft">⤷ grep the adapter dist for <code>terminal/create</code>: zero calls. Standard ACP terminals are
+              simply not implemented by claude-agent-acp; its only terminal integration is its own <code>_meta</code> extension.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>Bash on the wire <span class="who">— adapter-owned "execute", output only at the end</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠</b> — long-running commands show a heartbeat, not output; stdout arrives in one lump at
+        completion. The SDK side can poll incremental output on demand</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js — case "Bash" → kind "execute" · acp-agent.js:1751 tool_progress</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01Bash",
+    "title": "bun test --watch=false",
+    "kind": "execute", "status": "pending",
+    "content": [ { "type": "content", "content": {
+        "type": "text", "text": "Run the test suite" } } ],
+    "rawInput": { "command": "bun test --watch=false",
+      "description": "Run the test suite",
+      "run_in_background": true },
+    "_meta": { "claudeCode": { "toolName": "Bash" } } } }
+
+// long-running: heartbeat patches, NOT output
+{ "sessionUpdate": "tool_call_update",
+  "toolCallId": "toolu_01Bash", "status": "in_progress",
+  "_meta": { "claudeCode": { "toolResponse":
+      { "elapsedTimeSeconds": 45 } } } }
+
+// completion — stdout lands once, in one piece
+{ "sessionUpdate": "tool_call_update",
+  "toolCallId": "toolu_01Bash", "status": "completed",
+  "content": [ /* full output as text */ ], "rawOutput": { … } }</pre>
+              <p class="ft">⤷ a client that advertises <code>_meta["terminal_output"] = true</code> unlocks the adapter's own
+              lifecycle (<code>_meta.terminal_info / terminal_output / terminal_exit</code> on these same frames) — still
+              adapter-owned, still not ACP's <code>terminal/*</code> methods.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>native background shell <span class="who">— spawn, poll, kill — all addressable</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">BashInput.run_in_background — sdk-tools.d.ts:430 · TaskStop :2628</span></div>
+<pre>{ "type": "tool_use", "name": "Bash",
+  "input": { "command": "bun test --watch=false",
+             "run_in_background": true } }
+// → tool_result names the background task; from then on:
+//    TaskOutput { task_id }   — incremental output, on demand
+//    TaskStop   { task_id }   — kill it
+// result frames enumerate background_tasks:
+//    { id, type: "shell", command, status, … }</pre>
+              <p class="ft">⤷ over ACP those follow-ups have no special case in the adapter switch — TaskOutput / TaskStop
+              surface as generic <code>kind:"other"</code> tool calls (tools.js default arm).</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑭ WORKFLOWS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-workflow">⑭ Workflows</h2>
+      <p class="pnote"><span class="prov">reconstructed from adapter source — claude-agent-acp 0.56.0 dist + sdk 0.3.201 types · not a captured run</span><br>
+      Native: a first-class <code>Workflow</code> tool runs a multi-agent <i>program</i> — <code>agent()</code> /
+      <code>parallel()</code> / <code>pipeline()</code> / <code>phase()</code> — with a run id and a resume path.
+      Over ACP: one opaque tool call — <b>D10</b>.</p>
+
+      <div class="hop sdk-only diff">
+        <div class="ar dirL ac-sdk" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>Workflow tool_use <span class="who">— a resumable multi-agent program</span></span></span><i class="ln"></i></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">WorkflowInput — sdk-tools.d.ts:2462 · WorkflowOutput :3443</span></div>
+<pre>{ "type": "tool_use", "name": "Workflow",
+  "input": {
+    "script": "export const meta = { name: \"triage\", … }
+       const findings = await parallel([
+         agent(\"scan delivery/\"), agent(\"scan api/\") ])
+       await phase(\"fix\", () =&gt; pipeline(…))",
+    "args": { "area": "webhooks" } } }
+// → tool_result (WorkflowOutput):
+{ "status": "async_launched",
+  "taskId": "task-9", "taskType": "local_workflow",
+  "workflowName": "triage",
+  "runId": "run-01H…",              // ← resumeFromRunId target
+  "transcriptDir": "…/subagents/",
+  "scriptPath": "…/workflows/triage.ts" }</pre>
+              <p class="ft">⤷ the run is addressable (taskId/runId), its transcripts land on disk, and a re-run with
+              <code>resumeFromRunId</code> replays completed <code>agent()</code> calls from cache instead of re-executing.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="ar dirL ac-acp" style="--l:0;--r:3"><span class="no"></span><span class="al"><span>the same thing over ACP <span class="who">— one opaque tool call</span></span></span><i class="ln"></i></div>
+        <div class="why"><span><b>≠ D10</b> — a resumable multi-agent program crosses as kind "other"; its lifecycle
+        events don't cross at all</span></div>
+        <div class="cells">
+          <div class="c1">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">tools.js default arm — no "Workflow" case exists</span></div>
+<pre>{ "kind": "update", "update": {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "toolu_01Wf",
+    "title": "Workflow",            // default: title = tool name
+    "kind": "other", "status": "pending",
+    "rawInput": { "script": "export const meta = …", "args": { … } },
+    "_meta": { "claudeCode": { "toolName": "Workflow" } } } }
+// …then a single "completed" patch carrying the
+// WorkflowOutput as rawOutput. That's the whole story:
+// task_started / task_summary system frames → no case in the
+// adapter's system-subtype switch → dropped. Sub-run activity
+// crosses only as whatever agent() spawns emit (phase ⑩ rules).</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ⑮ GOALS ══════════ -->
+    <section class="ix">
+      <div class="guides"><i style="left:12.5%"></i><i style="left:37.5%"></i><i style="left:62.5%"></i><i style="left:87.5%"></i></div>
+      <h2 id="ph-goal">⑮ Goal setting</h2>
+      <p class="pnote"><span class="prov">verified at type/dist level only — no captured frames exist for this one</span><br>
+      Goals exist in the SDK as a streamed message type — not a tool — and the ACP adapter has no mapping for them.
+      This is the cleanest example of <b>D10</b>: a capability that simply does not cross the wire.</p>
+
+      <div class="hop sdk-only">
+        <div class="self ac-sdk" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">active_goal — plumbed through the SDK stream</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sdk"><div class="hd"><span class="chip sdk">sdk</span><span class="cap">sdk.mjs (0.3.201) · StdoutMessage union, sdk.d.ts:6406</span></div>
+<pre class="ts">// bundled sdk.mjs forwards it into the message stream:
+if (e.type === "active_goal") { this.inputStream.enqueue(e) }
+// StdoutMessage names coreTypes.SDKActiveGoalMessage
+// (alongside SDKTaskSummaryMessage, SDKPostTurnSummaryMessage)
+// — but 0.3.201 exports no shape for it and ships no Goal
+// tool in ToolInputSchemas: plumbing, not yet public API.</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop acp-only diff">
+        <div class="self ac-acp" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">adapter: no mapping — goals do not cross</span></div>
+        <div class="why"><span><b>≠ D10</b> — zero mentions of "goal" in claude-agent-acp 0.56.0; an active_goal message
+        falls through to the loop's catch-all</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl acp"><div class="hd"><span class="chip acp">acp</span><span class="cap">acp-agent.js:1787 message loop · utils.js:69 unreachable()</span></div>
+<pre class="ts">// known-but-ignored types get an explicit `break`:
+//   tool_use_summary · auth_status · prompt_suggestion ·
+//   conversation_reset · control_request_progress
+// anything else — active_goal included — hits:
+default: unreachable(message)   // logged, dropped, never emitted</pre></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hop">
+        <div class="self ac-sh" style="--l:3"><span class="no"></span><span class="dot"></span><span class="al">aside — codex-acp DOES map goals… via _meta again</span></div>
+        <div class="cells">
+          <div class="c4">
+            <div class="pl sh"><div class="hd"><span class="chip sh">codex-acp 1.1.2</span><span class="cap">dist/index.js — createCodexSessionInfoUpdate</span></div>
+<pre>// thread/goal/updated crosses as:
+{ "sessionUpdate": "session_info_update",
+  "_meta": { "codex": { "goal": {
+      "objective": "…", "status": "…", "tokenBudget": … } } } }
+// thread/goal/cleared → _meta.codex.goal: null
+// standard ACP field? no — the extension point, again.
+// Two adapters, two private _meta dialects for the same idea.</pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  </div>
+</section>
+
+<section id="types">
+  <h2><span class="sno">4</span>Types per layer</h2>
+  <p class="sec-note">The four load-bearing shapes, trimmed to essentials. Where the two sides are identical, the shape is shown once.<br>
+  <b>Current ACP validation status:</b> the shared TypeScript surface is strict, but the runtime boundary is not fully Zod-checked.
+  tRPC scalar inputs are parsed; ACP content uses shallow checks; relay outputs, nested WS frames, adapter responses and SQLite
+  rows are still trusted after partial checks. The exact boundary matrix lives in <code>packages/host-service/docs/acp-sessions.md</code>.</p>
+
+  <div class="layer">
+    <p class="layer-title">L1 · wire envelope — what travels mobile ↔ host</p>
+    <p class="layer-note">Same wrapper on both sides. The difference is the frame union: 6 kinds vs 9 — three interaction channels instead of one.</p>
+    <div class="cols">
+      <div class="code-card c-acp">
+        <div class="hd"><span class="impl">ACP</span><span class="file">packages/session-protocol/src/envelope.ts:4</span></div>
+<pre class="ts">export type SessionUpdateFrame =
+  | { kind: "update"; update: SessionUpdate }   // ACP session/update, verbatim
+  | { kind: "permission_requested"; pending: PendingPermission }
+  | { kind: "permission_resolved"; requestId: string;
+      outcome: RequestPermissionOutcome }
+  | { kind: "prompt_rejected"; reason: string; promptStartSeq: number }
+  | { kind: "state"; state: SessionScopedState }  // full snapshot on every change
+  | { kind: "reset"; reason: string };            // cursor unservable — resync
+
+export interface SessionUpdateEnvelope {
+  seq: number;        // per-session, monotonic from 1, gapless
+  sessionId: string;
+  ts: number;
+  frame: SessionUpdateFrame;
+}</pre>
+      </div>
+      <div class="code-card c-sdk">
+        <div class="hd"><span class="impl">Claude SDK</span><span class="file">packages/session-protocol/src/events.ts:25</span></div>
+<pre class="ts">export type SessionEventFrame =
+  | { kind: "sdk"; message: SDKMessage }          // raw SDK frame, verbatim
+  | { kind: "permission_requested"; request: PendingPermissionRequest }
+  | { kind: "permission_resolved"; requestId: string;
+      response: SessionPermissionResult }
+  | { kind: "user_dialog_requested"; request: PendingUserDialogRequest }
+  | { kind: "user_dialog_resolved"; requestId: string;
+      response: UserDialogResult }
+  | { kind: "elicitation_requested"; request: PendingElicitationRequest }
+  | { kind: "elicitation_resolved"; requestId: string;
+      response: ElicitationResult }
+  | { kind: "state"; state: SessionScopedState }
+  | { kind: "reset"; reason: string; latestSeq?: number };
+
+export interface SessionEventEnvelope {
+  seq: number; sessionId: string; ts: number;
+  frame: SessionEventFrame;
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <p class="layer-title">L2 · journal row — what the host stores</p>
+    <p class="layer-note">The journal row IS the envelope on both sides, and the append is the same idea character for character.</p>
+    <div class="code-card c-both" style="max-width:1380px">
+      <div class="hd"><span class="impl">Both — identical mechanism</span><span class="file">host-service …/journal.ts · 99 vs 92 LOC</span></div>
+<pre class="ts">append(sessionId: string, frame: Frame): Envelope {
+  const envelope = { seq: this.nextSeq, sessionId, ts: Date.now(), frame };
+  this.nextSeq += 1;
+  this.entries.push(envelope);
+  if (this.entries.length &gt; this.capacity) this.entries.shift(); // in-memory ring, cap 5,000
+  return envelope;  // fanned out to WS subscribers in the same call
+}</pre>
+    </div>
+    <p class="refline"><span class="impl ia">ACP</span> — the bounded journal currently serves <b>both catch-up and history</b>:
+    getMessages pages retained rows backwards (cursor <code>s&lt;seq&gt;</code>, message-frame kinds only). A restart uses the SQLite
+    registry and session/load to rebuild a fresh ring, but rows beyond the cap remain unavailable. ·
+    <span class="impl is">Claude SDK</span> — the journal is <b>only a live-delivery buffer</b>: history truth is Claude's native
+    JSONL transcript; <code>retry()</code> opens a new journal epoch (seq restarts at 1).</p>
+  </div>
+
+  <div class="layer">
+    <p class="layer-title">L3 · host session surface — the harness wrapping the agent</p>
+    <p class="layer-note">One manager class each, same lifecycle verbs. ACP wraps a child process spoken to over JSON-RPC/stdio;
+    the SDK holds an in-process query() handle whose callbacks are host-local.</p>
+    <div class="cols">
+      <div class="code-card c-acp">
+        <div class="hd"><span class="impl">ACP</span><span class="file">…/acp-sessions/acp-sessions.ts:166 · 978 LOC</span></div>
+<pre class="ts">export class AcpSessionManager {
+  create({ sessionId, workspaceId })            // idempotent
+  prompt({ sessionId, prompt })                 // ContentBlock[] → accepted
+  respondToPermission({ sessionId, requestId, outcome })
+  cancel · setMode · setConfigOption
+  get · list · getMessages({ beforeSeq })       // pages the journal
+  subscribe({ sessionId, since, onEnvelope })   // sync replay + live
+}
+// per session: claude-agent-acp CHILD PROCESS (ACP JSON-RPC over
+// stdio), journal, subscribers, parked permission resolvers
+// (Map&lt;requestId, resolve&gt;)</pre>
+      </div>
+      <div class="code-card c-sdk">
+        <div class="hd"><span class="impl">Claude SDK</span><span class="file">…/sessions/sessions.ts:123 · 965 LOC</span></div>
+<pre class="ts">export class ClaudeSessionManager {
+  create(input)                                 // starts query(); idempotent
+  retry(input)                                  // NEW Query + native transcript
+  sendMessage(input)                            // requires status "idle"
+  respondToPermission · respondToUserDialog · respondToElicitation
+  interrupt · setModel · setPermissionMode · getCatalog
+  get · list · getMessages(input)               // native JSONL transcript
+  subscribe({ sessionId, since, onEnvelope })
+}
+// per session: IN-PROCESS query() handle (canUseTool / onUserDialog /
+// onElicitation callbacks), AsyncInputQueue, journal, 3 pending maps
+// + claude-runtime.ts: executable resolution, trusted-shell env (228 LOC)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <p class="layer-title">L4 · client timeline item — what the fold produces for the UI</p>
+    <p class="layer-note">ACP nests subagents as a tree and has first-class plans; the SDK tracks partial-stream state and gives
+    dialogs/elicitations their own timeline kinds.</p>
+    <div class="cols">
+      <div class="code-card c-acp">
+        <div class="hd"><span class="impl">ACP</span><span class="file">session-protocol/src/fold/fold.ts:24 · 595 LOC</span></div>
+<pre class="ts">export type TimelineItem = MessageItem | ToolCallItem | PlanItem;
+
+interface MessageItem  { kind: "message"; role: "user" | "agent" | "thought";
+                         blocks: ContentBlock[]; failed: boolean }
+interface ToolCallItem { kind: "tool_call"; id: string;      // toolCallId
+                         call: ToolCall;                     // merged patches
+                         permissions: PermissionView[];
+                         children: TimelineItem[] }     // subagent TREE (Task)
+interface PlanItem     { kind: "plan"; entries: PlanEntry[]; removed: boolean }
+// every item carries startSeq / endSeq</pre>
+      </div>
+      <div class="code-card c-sdk">
+        <div class="hd"><span class="impl">Claude SDK</span><span class="file">session-protocol/src/fold/fold.ts:28 · 704 LOC</span></div>
+<pre class="ts">export type TimelineItem =
+  MessageItem | ToolCallItem | UserDialogItem | ElicitationItem;
+
+interface MessageItem  { kind: "message"; role: "user" | "assistant" | "system";
+                         blocks: TimelineContentBlock[];
+                         partial: boolean }       // delta-accretion state
+interface ToolCallItem { kind: "tool_call"; id: string;      // toolUseID
+                         name: string; input: unknown; result: unknown | null;
+                         status: "pending" | "completed" | "error" | "denied";
+                         permissions: { request; response }[] }
+// + UserDialogItem / ElicitationItem: { request, response | null }
+// every item carries startSeq / endSeq</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="journal">
+  <h2><span class="sno">5</span>Seq journal &amp; UI folding — the lower-level contract</h2>
+  <p class="sec-note">Where the two sides converged exactly, and where the SDK fold earns its extra 109 lines.</p>
+
+  <div class="contract">
+    <dl class="facts f-acp">
+      <p class="facts-h">ACP</p>
+      <dt>seq assignment</dt>
+      <dd>Host only, per-session, gapless from 1. Append and WS fan-out happen in the same call — no gap window.</dd>
+      <dt>row granularity</dt>
+      <dd>One row per semantic event: every chunk, every tool_call / patch, every permission edge, every state snapshot. No write-time coalescing.</dd>
+      <dt>append vs update</dt>
+      <dd>Rows are immutable — everything appends. All merging is client-side at fold time: chunk concat, patch merge, resolution attach.</dd>
+      <dt>history source</dt>
+      <dd>Claude's native store survives; the host reaches it only through full <code>session/load</code> replay. <code>getMessages</code> then walks the bounded ring backwards (cursor <code>s&lt;seq&gt;</code>; state/reset frames excluded), so this is not complete disk-backed pagination yet.</dd>
+      <dt>replay &amp; dedupe</dt>
+      <dd>Server replays <code>(since, latest]</code>; client drops <code>seq ≤ lastSeq</code>, treats <code>seq &gt; lastSeq+1</code> as a gap (reconnect from cursor), treats reset as stop-and-resync. Backoff 250ms → 10s.</dd>
+      <dt>fold hot spots</dt>
+      <dd>Consecutive-chunk merge · ACP patch semantics · subagent tree re-homing via <code>_meta.claudeCode.parentToolUseId</code> · placeholder tool item when a permission's tool_call fell off the loaded page.</dd>
+    </dl>
+    <dl class="facts f-sdk">
+      <p class="facts-h">Claude SDK</p>
+      <dt>seq assignment</dt>
+      <dd>Same — host, per-session, gapless from 1. Plus epochs: <code>retry()</code> creates a fresh journal restarting at 1 and pushes reset("session_restarted") to old subscribers.</dd>
+      <dt>row granularity</dt>
+      <dd>One row per SDKMessage — every stream delta is its own row — plus interaction lifecycle edges and state snapshots.</dd>
+      <dt>append vs update</dt>
+      <dd>Same append-only journal. The fold replaces partial messages with the authoritative assistant message and flips tool / dialog items in place.</dd>
+      <dt>history source</dt>
+      <dd>The journal is only a recovery buffer. Truth = Claude's native JSONL transcript; transcript rows have no seq (folded at seq 0, uuid-keyed so live re-delivery upserts instead of duplicating).</dd>
+      <dt>replay &amp; dedupe</dt>
+      <dd>Same semantics, plus <code>cursor_ahead</code> detection (first replayed seq below the cursor after a restart) and zod validation of every frame — an invalid frame forces a reconnect.</dd>
+      <dt>fold hot spots</dt>
+      <dd>Delta accretion + authoritative replacement (uuid identity) · tool linkage via <code>toolUseID</code> with a placeholder when the permission wins the race · tool results arriving as user-role messages · transcript-vs-live merge at seq 0.</dd>
+    </dl>
+  </div>
+
+  <div class="layer">
+    <p class="layer-title">Worked example · raw journal rows → folded timeline</p>
+    <p class="layer-note">Six rows in on both sides. ACP folds to three items; the SDK folds to two — its text and tool call ride the same assistant message.</p>
+    <div class="cols">
+      <div class="code-card c-acp">
+        <div class="hd"><span class="impl">ACP</span><span class="file">fold.ts semantics, per fold tests</span></div>
+<pre class="ts">seq 10  update  user_message_chunk   "write hello.txt"
+seq 11  update  tool_call            tc-1 "Write hello.txt" pending
+seq 12  permission_requested         req 7 → tc-1, options [allow, reject]
+seq 13  permission_resolved          req 7 → selected "allow"
+seq 14  update  tool_call_update     tc-1 completed, content "done"
+seq 15  update  agent_message_chunk  "Created hello.txt"
+// ────────────────────── folds to ──────────────────────
+MessageItem  { role: "user", blocks: ["write hello.txt"] }         // 10
+ToolCallItem { id: "tc-1", status: "completed",                    // 11–14
+               permissions: [{ req 7, resolution: allow }] }
+MessageItem  { role: "agent", blocks: ["Created hello.txt"] }      // 15</pre>
+      </div>
+      <div class="code-card c-sdk">
+        <div class="hd"><span class="impl">Claude SDK</span><span class="file">fold.ts semantics, per fold tests</span></div>
+<pre class="ts">seq 41  sdk  stream_event  content_block_start "I'll run"     (uuid A)
+seq 42  sdk  stream_event  content_block_delta " ls for you." (uuid A)
+seq 43  sdk  assistant (A) [text "I'll run ls for you.",
+                            tool_use toolu_9 Bash {command: "ls"}]
+seq 44  permission_requested  req_7 → toolu_9 Bash
+seq 45  permission_resolved   req_7 → { behavior: "allow" }
+seq 46  sdk  user  [tool_result toolu_9 "README.md\nsrc"]
+// ────────────────────── folds to ──────────────────────
+MessageItem  { role: "assistant", partial: false,                  // 41–43
+               blocks: ["I'll run ls for you."] }
+               // deltas built it partial; 43 replaced it authoritative
+ToolCallItem { id: "toolu_9", name: "Bash", status: "completed",   // 43–46
+               permissions: [{ req_7, response: allow }] }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fidelity" class="prose">
+  <h2><span class="sno">6</span>Capability fidelity — four stacks, one matrix</h2>
+  <p class="sec-note">What each capability looks like natively, and what's left of it after crossing an ACP adapter.
+  Claude columns are verified against claude-agent-acp 0.56.0 dist + sdk 0.3.201 types in this tree; Codex columns against the
+  @agentclientprotocol/codex-acp 1.1.2 npm tarball (source-inspected). <span style="color:var(--dif);font-weight:600">Magenta</span>
+  marks fidelity lost in translation.</p>
+  <div class="fidwrap">
+  <table class="fid">
+    <thead><tr>
+      <th>capability</th>
+      <th class="h-nc">native claude sdk</th>
+      <th class="h-ca">claude → acp</th>
+      <th class="h-xc">native codex app-server</th>
+      <th class="h-xa">codex → acp</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td class="metric">conversation</td>
+        <td>session (uuid) + JSONL transcript on disk; resume, fork, retry epochs</td>
+        <td>conversation survives through native transcript + host registry + session/load; host paging is limited to the rebuilt ring (D1)</td>
+        <td>thread → turns → items; persisted, resumable, listable</td>
+        <td>full fidelity — resume / list / close / delete all advertised</td>
+      </tr>
+      <tr>
+        <td class="metric">plan</td>
+        <td>ExitPlanMode plan document + TodoWrite entries (content/status/activeForm)</td>
+        <td>flat <code>plan</code> entries; <span class="lost">activeForm dropped, priority invented "medium"</span>; plan doc rides the switch_mode permission (⑫)</td>
+        <td>turn plan items with step + status per step</td>
+        <td>flat <code>plan</code>; <span class="lost">every entry forced priority "medium"</span> (updatePlan maps status + step only)</td>
+      </tr>
+      <tr>
+        <td class="metric">workflow</td>
+        <td>first-class <code>Workflow</code> tool — script, taskId/runId, transcript dir, resumable (⑭)</td>
+        <td><span class="lost">one opaque kind:"other" tool call; lifecycle frames dropped</span></td>
+        <td>no equivalent first-class workflow entity</td>
+        <td>n/a — nothing to map</td>
+      </tr>
+      <tr>
+        <td class="metric">subagent identity</td>
+        <td>agent id + subagent_type + own transcript, readable by (sessionId, agentId) (⑩)</td>
+        <td><span class="lost">mostly lost</span> — a kind:"think" call; identity = the tool_use id; type only in untyped rawInput</td>
+        <td>child threads with collab-agent items carrying sender/receiver thread ids</td>
+        <td><span class="lost">not exposed</span> — child threads excluded from session/list (sourceKinds filter), fork not advertised; thread ids only inside rawInput</td>
+      </tr>
+      <tr>
+        <td class="metric">subagent activity</td>
+        <td>full message stream tagged parent_tool_use_id — prose + tools + hooks</td>
+        <td><span class="lost">prose deliberately dropped</span>; nested tool calls only via private <code>_meta.claudeCode</code></td>
+        <td>collaboration items + subAgentActivity events on the thread</td>
+        <td>collab calls become <code>kind:"other"</code>; <span class="lost">subAgentActivity explicitly ignored</span> (under the dist's "//ignored types" arm)</td>
+      </tr>
+      <tr>
+        <td class="metric">dependencies + owners</td>
+        <td>tasks carry blocks/blockedBy edges, owner, metadata (⑪)</td>
+        <td><span class="lost">all dropped</span> — the adapter never reads those fields</td>
+        <td>not represented in the item model</td>
+        <td>not represented</td>
+      </tr>
+      <tr>
+        <td class="metric">parallel execution</td>
+        <td><code>parallel()</code> in workflows, background agents/shells, task graph as coordination</td>
+        <td><span class="lost">opaque</span> — concurrent tool calls interleave with no grouping construct</td>
+        <td>agent collaboration primitives (spawn/send across threads)</td>
+        <td><span class="lost">opaque</span> — generic tool calls, relationships live only in rawInput</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="fine">ACP itself has no standard model for any row below "plan": no workflow entity, no task graph, no subagent
+  addressing — <code>_meta</code> is the protocol's sanctioned extension point, and both adapters lean on it in mutually
+  incompatible dialects (<code>_meta.claudeCode.parentToolUseId</code> vs <code>_meta.codex.goal</code>). Codex "native" cells
+  describe the app-server protocol as consumed by codex-acp's own handlers; we have not run a Codex app-server directly.</p>
+
+  <div class="verdict">
+    <div class="v-card">
+      <h4>ACP has no model for the hard rows</h4>
+      <p>Conversation, permissions, modes, plans: standardized. Workflows, task graphs, subagent identity: <b>not in the
+      protocol at all</b> — every adapter invents a private <code>_meta</code> dialect or silently flattens. The spike doc said
+      it early: “<code>_meta</code> fields are the sanctioned extension point on every type.”</p>
+    </div>
+    <div class="v-card v-acp">
+      <h4>Good chat plane, not a workflow plane</h4>
+      <p>As a common <b>chat/control plane</b> ACP earns its keep — one client vocabulary, permission options on the wire,
+      plan checklists for free. As a <b>portable workflow/multi-agent model</b> it isn't one: the richest capabilities of both
+      agents either flatten (tasks → checklist), go opaque (workflows), or vanish (subagent prose, goals).</p>
+    </div>
+    <div class="v-card v-sdk">
+      <h4>What a rich Superset UI would need</h4>
+      <p>Either <b>agent-specific <code>_meta</code> contracts</b> (we already parse <code>claudeCode.parentToolUseId</code>;
+      we'd add <code>codex.goal</code>, and re-do it per agent) or a <b>Superset-owned normalized layer</b> above the adapters —
+      native SDK/app-server in, one internal schema out. The waterfall above is the inventory of what that layer must preserve.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="caveats">
+  <p><b>Read the numbers with this in mind:</b> the ACP tree has had more UI iteration (plus an already-deleted MCP-bridge detour);
+  the SDK tree carries heavier supporting infrastructure — a 978-line relay E2E script, packaged-host validation, 7 Maestro flows —
+  all excluded above. Both are dev-gated. The ACP implementation persists a SQLite session registry and resurrects offline
+  sessions on demand through <code>session/load</code>; the direct design reads the same native transcript through SDK helpers.
+  In-flight turns still die with the host on both sides.</p>
+  <p>Sources: the current ACP PR implementation and the archived direct-SDK design. Payloads are reconstructed from the actual type definitions and handlers at the
+  cited file:line locations; seq numbers are illustrative but consistent within each side. The adapter's initialize/session-new
+  responses were never captured on the wire and are marked abbreviated rather than invented.</p>
+  <p><b>Phases ⑩–⑮ and §6</b> were added after the original capture and are <b>reconstructed from source, not from runs</b>
+  (each phase carries its own provenance badge): claude-agent-acp 0.56.0 dist + @anthropic-ai/claude-agent-sdk 0.3.201 types as
+  vendored in this tree, and the @agentclientprotocol/codex-acp 1.1.2 npm tarball. Exception: phase ⑫'s plan-mode shapes were
+  observed live in the ACP spike recorded in <code>plans/done/20260710-session-harness-acp.md</code>. Goal setting (⑮) is plumbing-level in sdk 0.3.201 —
+  a stream message type with no published shape — and has no adapter mapping; we state only what the dist shows.</p>
+</footer>
+</div>
+
+<script>
+  const d = document.getElementById("d");
+  document.querySelectorAll(".modes button[data-m]").forEach(b => b.onclick = () => {
+    d.dataset.mode = b.dataset.m;
+    document.querySelectorAll(".modes button[data-m]").forEach(x => {
+      const selected = x === b;
+      x.classList.toggle("on", selected);
+      x.setAttribute("aria-pressed", String(selected));
+    });
+  });
+  document.querySelectorAll(".modes button[data-f]").forEach(b => b.onclick = () => {
+    d.dataset.filter = b.dataset.f;
+    document.querySelectorAll(".modes button[data-f]").forEach(x => {
+      const selected = x === b;
+      x.classList.toggle("on", selected);
+      x.setAttribute("aria-pressed", String(selected));
+    });
+  });
+
+  // tiny highlighter — json-ish default, ts for pre.ts
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hlJson(src) {
+    return esc(src).replace(
+      /(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\b\d+(?:\.\d+)?\b)|(^|\n)(POST|GET|WSS|spawn|query|await|journal\.append|subscribe|foldTimeline|fold|timelineFromSessionMessages|canUseTool|input\.push|sessionId = randomUUID\(\))/g,
+      (m, com, str, colon, kw, num, nl, verb) => {
+        if (com) return '<span class="c">' + com + '</span>';
+        if (str) return '<span class="' + (colon ? 'k' : 's') + '">' + str + '</span>' + (colon || '');
+        if (kw) return '<span class="n">' + kw + '</span>';
+        if (num) return '<span class="n">' + num + '</span>';
+        if (verb !== undefined) return nl + '<span class="m">' + verb + '</span>';
+        return m;
+      });
+  }
+  const TS_KW = /\b(export|import|from|type|interface|extends|class|enum|const|let|function|return|new|async|await|readonly|if|else|switch|case|for|while|throw|try|catch|in|of|as|keyof|typeof|null|undefined|void|never|unknown|any|string|number|boolean|true|false)\b/g;
+  function hlTs(src) {
+    const saved = [];
+    let rest = esc(src);
+    rest = rest.replace(/(\/\/[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, (m, cm) => {
+      saved.push('<span class="' + (cm ? "c" : "s") + '">' + m + '</span>');
+      return "\x00" + (saved.length - 1) + "\x00";
+    });
+    rest = rest.replace(TS_KW, '<span class="b">$&</span>');
+    rest = rest.replace(/\b([A-Z][A-Za-z0-9_]*)\b/g, '<span class="m">$1</span>');
+    rest = rest.replace(/\x00(\d+)\x00/g, (_, i) => saved[+i]);
+    return rest;
+  }
+  document.querySelectorAll("pre").forEach(pre => {
+    pre.innerHTML = pre.classList.contains("ts") ? hlTs(pre.textContent) : hlJson(pre.textContent);
+  });
+</script>
+</body>
+</html>

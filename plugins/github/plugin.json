@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "github",
+	"version": "1.0.1",
+	"description": "Work with issues, pull requests, and CI across your repositories.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["github", "issues", "pull-requests", "ci", "code-review"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "GitHub",
+				"category": "Developer tools",
+				"icon": "github"
+			},
+			"connector": {
+				"slug": "github"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://api.githubcopilot.com/mcp/"
+			}
+		}
+	}
+}

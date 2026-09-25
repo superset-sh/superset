@@ -1,53 +1,69 @@
-// Tracks terminal-mode state (kitty keyboard, bracketed paste, focus, mouse,
-// app cursor, …) by feeding every PTY-output chunk through a headless
-// xterm.js. `buildPreamble()` returns the byte sequence that brings a freshly
-// reattached renderer xterm back to the modes the running program already
-// believes are active.
-//
-// Live programs typically set these modes ONCE at startup (e.g. codex emits
-// `\x1b[>7u` to enable kitty keyboard). Those bytes are broadcast straight to
-// the live socket and never enter the FIFO replay, so a renderer reload
-// reattaches a fresh xterm with default modes — Shift+Enter starts submitting
-// instead of inserting newline, paste arrives as keystrokes, etc.
-//
-// Pattern adapted from VSCode's XtermSerializer
-// (src/vs/platform/terminal/node/ptyService.ts).
-
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const { Terminal: HeadlessTerminal } =
-	require("@xterm/headless") as typeof import("@xterm/headless");
+import {
+	TerminalModes,
+	type TerminalModesSnapshot,
+} from "@superset/pty-daemon/terminal-modes";
+import { HeadlessTerminal } from "./headless-xterm.ts";
 
 export interface ModeTracker {
 	feed(bytes: Uint8Array): void;
+	restoreModes(snapshot: TerminalModesSnapshot): void;
 	resize(cols: number, rows: number): void;
 	buildPreamble(): Uint8Array | null;
+	isBracketedPasteActive(): boolean;
+	isFocusReportingActive(): boolean;
+	/** Current cursor position on the mirrored screen, 0-based viewport coords. */
+	cursorPosition(): { x: number; y: number };
+	snapshot(maxLines?: number): TerminalSnapshot;
 	dispose(): void;
 }
 
-// Reaches into private xterm internals: synchronous parsing and kitty
-// keyboard flags aren't on the public API, but @xterm/headless and
-// @xterm/xterm share the same engine, so the shape is stable. Used the same
-// way by xterm's own SerializeAddon.
+export interface ModeTrackerOptions {
+	/**
+	 * Called with disarm bytes when a shell prompt marker (OSC 777) flows
+	 * through the stream while TUI-only input-reporting modes (kitty keyboard,
+	 * mouse tracking, focus reporting) are still armed — the signature of a TUI
+	 * killed uncleanly (#4949's host-side surface). Without this, the tracker
+	 * believes the dead TUI's modes are live forever, so every attach preamble
+	 * re-arms fresh renderers and each scroll/keypress sprays reports into the
+	 * shell prompt as garbage. The callback should deliver the bytes into the
+	 * session's output stream (which also feeds them back to this tracker).
+	 */
+	onLeakedInputModeDisarm?: (bytes: Uint8Array) => void;
+}
+
+export interface TerminalSnapshot {
+	cols: number;
+	rows: number;
+	/** Plain text of the emulator buffer (alt-screen for TUI agents). */
+	text: string;
+}
+
+// Headless xterm exposes neither synchronous parsing nor kitty enablement
+// through its public API.
 type HeadlessInternals = {
 	_core?: {
 		_writeBuffer?: { writeSync(data: string | Uint8Array): void };
-		coreService?: { kittyKeyboard?: { flags: number } };
 		optionsService?: {
 			rawOptions: { vtExtensions?: { kittyKeyboard?: boolean } };
 		};
 	};
 };
 
-export function createModeTracker(cols: number, rows: number): ModeTracker {
+export function createModeTracker(
+	cols: number,
+	rows: number,
+	options: ModeTrackerOptions = {},
+): ModeTracker {
 	const term = new HeadlessTerminal({
 		cols,
 		rows,
-		// Tracker reads modes, never cells — keep scrollback minimal.
-		scrollback: 1,
+		// Retains recent scrollback so `snapshot()` can serve line-mode history,
+		// not just the visible screen. Irrelevant to alt-screen TUIs (no
+		// scrollback), but cheap insurance for plain shell output.
+		scrollback: 1000,
 		allowProposedApi: true,
 	});
+	const modes = new TerminalModes();
 	const internals = term as unknown as HeadlessInternals;
 
 	// Validate the private surface up front so a future @xterm/headless
@@ -69,65 +85,60 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	// no-op. Set it on rawOptions directly.
 	optionsRaw.vtExtensions = { kittyKeyboard: true };
 
-	// `Terminal.write` is async-buffered, so `term.modes` lags behind feeds.
-	// Pump synchronously through the internal WriteBuffer so the preamble can
-	// be built immediately after a feed in the WS-attach hot path.
+	let disposed = false;
 
-	const buildPreamble = (): Uint8Array | null => {
-		const m = term.modes;
-		const parts: string[] = [];
+	let flushScheduled = false;
 
-		if (m.applicationCursorKeysMode) parts.push("\x1b[?1h");
-		if (m.applicationKeypadMode) parts.push("\x1b[?66h");
-		if (m.bracketedPasteMode) parts.push("\x1b[?2004h");
-		if (m.insertMode) parts.push("\x1b[4h");
-		if (m.originMode) parts.push("\x1b[?6h");
-		if (m.reverseWraparoundMode) parts.push("\x1b[?45h");
-		if (m.sendFocusMode) parts.push("\x1b[?1004h");
-		// Inverted: defaults true, only emit when explicitly disabled.
-		if (!m.showCursor) parts.push("\x1b[?25l");
-		if (!m.wraparoundMode) parts.push("\x1b[?7l");
-		// synchronizedOutputMode intentionally omitted — re-asserting it on
-		// attach would suspend rendering until the next end-marker.
+	const buildPreamble = () => modes.buildPreamble();
 
-		switch (m.mouseTrackingMode) {
-			case "x10":
-				parts.push("\x1b[?9h");
-				break;
-			case "vt200":
-				parts.push("\x1b[?1000h");
-				break;
-			case "drag":
-				parts.push("\x1b[?1002h");
-				break;
-			case "any":
-				parts.push("\x1b[?1003h");
-				break;
-			case "none":
-				break;
+	const snapshot = (maxLines?: number): TerminalSnapshot => {
+		const buffer = term.buffer.active;
+		const total = buffer.length;
+		const start = maxLines && maxLines > 0 ? Math.max(0, total - maxLines) : 0;
+		const lines: string[] = [];
+		for (let y = start; y < total; y++) {
+			lines.push(buffer.getLine(y)?.translateToString(true) ?? "");
 		}
-
-		const kittyFlags = internals._core?.coreService?.kittyKeyboard?.flags ?? 0;
-		if (kittyFlags > 0) {
-			// `=N;1u` sets flags directly — restoring effective state to a
-			// fresh peer, not modeling the program's push/pop stack.
-			parts.push(`\x1b[=${kittyFlags};1u`);
-		}
-
-		if (parts.length === 0) return null;
-		return new TextEncoder().encode(parts.join(""));
+		// Trim trailing blank rows so the snapshot ends at real content.
+		while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+		return { cols: term.cols, rows: term.rows, text: lines.join("\n") };
 	};
 
 	return {
+		restoreModes(snapshot) {
+			modes.restore(snapshot);
+		},
 		feed(bytes) {
+			modes.feed(bytes);
 			writeBuffer.writeSync(bytes);
+			if (options.onLeakedInputModeDisarm && !flushScheduled) {
+				flushScheduled = true;
+				queueMicrotask(() => {
+					flushScheduled = false;
+					if (disposed) return;
+					const disarm = modes.collectDisarm();
+					if (disarm) options.onLeakedInputModeDisarm?.(disarm);
+				});
+			}
 		},
 		resize(nextCols, nextRows) {
 			if (term.cols === nextCols && term.rows === nextRows) return;
 			term.resize(nextCols, nextRows);
 		},
 		buildPreamble,
+		isBracketedPasteActive() {
+			return modes.isEnabled(2004);
+		},
+		isFocusReportingActive() {
+			return modes.isEnabled(1004);
+		},
+		cursorPosition() {
+			const buffer = term.buffer.active;
+			return { x: buffer.cursorX, y: buffer.cursorY };
+		},
+		snapshot,
 		dispose() {
+			disposed = true;
 			term.dispose();
 		},
 	};

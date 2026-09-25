@@ -1,11 +1,20 @@
 import { db } from "@superset/db/client";
-import { members, users } from "@superset/db/schema";
+import {
+	members,
+	oauthAccessTokens,
+	oauthRefreshTokens,
+	sessions,
+	users,
+} from "@superset/db/schema";
+import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { findOrganizationSolelyOwnedBy } from "../../lib/account-purge";
+import { emitAppFirstOpened } from "../../lib/activation-events";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 
 export const userRouter = {
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
@@ -52,12 +61,98 @@ export const userRouter = {
 			return updatedUser;
 		}),
 
+	/** Grace-period deletion: marks the account and revokes every live
+	 * credential (sessions + issued OAuth tokens). Orgs and billing are left
+	 * untouched so reactivation within the window restores everything; the
+	 * daily purge-expired-deletions job in apps/api purges once the window
+	 * has passed. */
+	deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+		const userId = ctx.session.user.id;
+
+		if (await findOrganizationSolelyOwnedBy(userId)) {
+			throw userError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"You are the only owner of an organization that has other members. Transfer ownership or delete the organization first.",
+				i18nKey: "serverError.user.youAreTheOnlyOwner",
+			});
+		}
+
+		await db
+			.update(users)
+			.set({ deletionRequestedAt: new Date() })
+			.where(eq(users.id, userId));
+		await db.delete(sessions).where(eq(sessions.userId, userId));
+		await db
+			.delete(oauthAccessTokens)
+			.where(eq(oauthAccessTokens.userId, userId));
+		await db
+			.delete(oauthRefreshTokens)
+			.where(eq(oauthRefreshTokens.userId, userId));
+		return { success: true };
+	}),
+
+	// Preferred UI language, written through from clients so async surfaces
+	// (web SSR, email) can render in it; null = auto-detect on each device.
+	updateLocale: protectedProcedure
+		.input(
+			z.object({
+				locale: z
+					.string()
+					.regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/, "Invalid locale tag")
+					.nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await db
+				.update(users)
+				.set({ locale: input.locale })
+				.where(eq(users.id, ctx.session.user.id));
+			return { success: true };
+		}),
+
+	reactivateAccount: protectedProcedure.mutation(async ({ ctx }) => {
+		const userId = ctx.session.user.id;
+
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { deletionRequestedAt: true },
+		});
+		if (!user?.deletionRequestedAt) return { success: true };
+
+		const graceMs = ACCOUNT_DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000;
+		if (Date.now() - user.deletionRequestedAt.getTime() > graceMs) {
+			throw userError({
+				code: "FORBIDDEN",
+				message: "The recovery period has ended. Contact support@superset.sh.",
+				i18nKey: "serverError.user.theRecoveryPeriodHasEndedContact",
+			});
+		}
+
+		await db
+			.update(users)
+			.set({ deletionRequestedAt: null })
+			.where(eq(users.id, userId));
+		return { success: true };
+	}),
+
 	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+		const userId = ctx.session.user.id;
+		const existing = await db.query.users.findFirst({
+			columns: { email: true, createdAt: true, onboardedAt: true },
+			where: eq(users.id, userId),
+		});
 		const [updatedUser] = await db
 			.update(users)
 			.set({ onboardedAt: new Date() })
-			.where(eq(users.id, ctx.session.user.id))
+			.where(eq(users.id, userId))
 			.returning();
+		// Onboarding completes inside the installed app, which makes it the
+		// broadest first-opened signal (~84% of signups vs ~5% via v2 host
+		// registration); only the first completion counts.
+		if (existing && !existing.onboardedAt) {
+			await emitAppFirstOpened(existing, userId, "user.completeOnboarding");
+		}
 		return updatedUser;
 	}),
 
@@ -77,21 +172,20 @@ export const userRouter = {
 			});
 
 			if (!user) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "User not found",
+					i18nKey: "serverError.user.userNotFound",
 				});
 			}
 
 			const pathname = generateImagePathname({
 				prefix: `user/${userId}/avatar`,
-				mimeType: input.mimeType,
 			});
 
 			try {
 				const url = await uploadImage({
 					fileData: input.fileData,
-					mimeType: input.mimeType,
 					pathname,
 					existingUrl: user.image,
 				});
@@ -106,9 +200,10 @@ export const userRouter = {
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				console.error("[user/uploadAvatar] Upload failed:", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to upload avatar",
+					i18nKey: "serverError.user.failedToUploadAvatar",
 				});
 			}
 		}),

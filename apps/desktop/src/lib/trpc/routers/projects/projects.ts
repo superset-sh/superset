@@ -1,6 +1,8 @@
 import { existsSync, statSync } from "node:fs";
 import { access, mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import {
 	BRANCH_PREFIX_MODES,
 	EXTERNAL_APPS,
@@ -44,6 +46,7 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../workspaces/utils/git-errors";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
@@ -563,7 +566,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 				const result = await dialog.showOpenDialog(window, {
 					properties: ["openDirectory", "createDirectory"],
-					title: "Select Directory",
+					title: i18n._(
+						msg({
+							message: "Select Directory",
+						}),
+					),
 					defaultPath: input.defaultPath,
 				});
 				if (result.canceled || result.filePaths.length === 0) {
@@ -593,7 +600,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -749,7 +759,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -766,7 +779,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						hasOrigin = remotes.some((r) => r.name === "origin");
 					} catch {}
 
-					const branchSummary = await git.branch(["-a"]);
+					const branchSummary = await git
+						.branch(["-a"])
+						.catch((error: unknown) => {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error instanceof Error ? error.message : String(error),
+							});
+						});
 
 					const localBranchSet = new Set<string>();
 					const remoteBranchSet = new Set<string>();
@@ -943,7 +963,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -1068,7 +1091,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory", "multiSelections"],
-				title: "Open Project",
+				title: i18n._(
+					msg({
+						message: "Open Project",
+					}),
+				),
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
@@ -1171,7 +1198,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const { defaultBranch } = await initGitRepo(input.path);
+				let defaultBranch: string;
+				try {
+					({ defaultBranch } = await initGitRepo(input.path));
+				} catch (error) {
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				}
 
 				const project = upsertProject(input.path, defaultBranch);
 				await ensureMainWorkspace(project);
@@ -1224,7 +1257,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 						const result = await dialog.showOpenDialog(window, {
 							properties: ["openDirectory", "createDirectory"],
-							title: "Select Clone Destination",
+							title: i18n._(
+								msg({
+									message: "Select Clone Destination",
+								}),
+							),
 						});
 
 						// User canceled - return canceled state (not an error)

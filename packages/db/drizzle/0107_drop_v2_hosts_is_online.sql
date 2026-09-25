@@ -1,0 +1,1 @@
+ALTER TABLE "v2_hosts" DROP COLUMN "is_online";

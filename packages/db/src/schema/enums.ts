@@ -1,3 +1,4 @@
+import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { z } from "zod";
 
 export const taskStatusEnumValues = [
@@ -23,13 +24,19 @@ export const taskPriorityValues = [
 export const taskPriorityEnum = z.enum(taskPriorityValues);
 export type TaskPriority = z.infer<typeof taskPriorityEnum>;
 
-export const integrationProviderValues = ["linear", "github", "slack"] as const;
+export const integrationProviderValues = [
+	"linear",
+	"github",
+	"slack",
+	// Added ahead of their connection flows so every provider agent branches
+	// off one migration rather than each generating its own.
+	"sentry",
+	"microsoft_teams",
+	"google",
+	"notion",
+] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
-
-export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
-export const deviceTypeEnum = z.enum(deviceTypeValues);
-export type DeviceType = z.infer<typeof deviceTypeEnum>;
 
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
@@ -48,21 +55,27 @@ export const commandStatusValues = [
 export const commandStatusEnum = z.enum(commandStatusValues);
 export type CommandStatus = z.infer<typeof commandStatusEnum>;
 
-export const sandboxStatusValues = [
-	"pending",
-	"spawning",
-	"connecting",
-	"warming",
-	"syncing",
+/**
+ * No sleep/wake states: the provider wakes a sandbox on the first inbound
+ * connection, so "asleep" is invisible to callers and could only ever be
+ * reported stale. `ready` means addressable, awake or not.
+ */
+export const cloudWorkspaceStatusValues = [
+	"provisioning",
 	"ready",
-	"running",
-	"stale",
-	"snapshotting",
-	"stopped",
 	"failed",
+	"deleted",
 ] as const;
-export const sandboxStatusEnum = z.enum(sandboxStatusValues);
-export type SandboxStatus = z.infer<typeof sandboxStatusEnum>;
+export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
+export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
+
+/** Who can see and use an environment: everyone in its organization, or its creator alone. */
+export const environmentScopeValues = ["organization", "personal"] as const;
+export type EnvironmentScope = (typeof environmentScopeValues)[number];
+
+export const environmentSourceKindValues = ["image", "fork"] as const;
+export const environmentSourceKindEnum = z.enum(environmentSourceKindValues);
+export type EnvironmentSourceKind = z.infer<typeof environmentSourceKindEnum>;
 
 export const workspaceTypeValues = ["local", "cloud"] as const;
 export const workspaceTypeEnum = z.enum(workspaceTypeValues);
@@ -77,9 +90,27 @@ export const automationRunStatusValues = [
 	"dispatched",
 	"skipped_offline",
 	"dispatch_failed",
+	"debounced",
+	"rejected",
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
+
+/**
+ * Why a run failed, in a form a client can branch on. `error` stays the
+ * detail; this is the part that decides which guidance to render, so it must
+ * never be derived from that text — the clients used to grep the English
+ * message, which stops working the moment it is translated. Null means
+ * unclassified: show `error` alone.
+ */
+export const automationRunErrorCodeValues = [
+	"no_instructions",
+	"host_offline",
+	"agent_not_found",
+	"workspace_not_found",
+] as const;
+export const automationRunErrorCodeEnum = z.enum(automationRunErrorCodeValues);
+export type AutomationRunErrorCode = z.infer<typeof automationRunErrorCodeEnum>;
 
 export const automationSessionKindValues = ["chat", "terminal"] as const;
 export const automationSessionKindEnum = z.enum(automationSessionKindValues);
@@ -92,3 +123,86 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+/**
+ * Must list exactly the config kinds in `@superset/shared/automation-triggers`
+ * — the `satisfies` below and the `_EveryKindHasEnumValue` check make either
+ * direction of drift a compile error instead of a runtime cast.
+ */
+export const automationTriggerKindValues = [
+	"schedule",
+	"webhook",
+	"github",
+	"slack",
+	"linear",
+	"sentry",
+	// Same reason as integrationProviderValues: one additive migration up
+	// front, then every provider is a code-only change on top of it.
+	"microsoft_teams",
+	// Retired with the Calendar integration; Postgres cannot drop an enum
+	// value, so it stays in the type. No trigger ever had it.
+	"google_calendar",
+	"gmail",
+	"notion",
+] as const;
+
+export type _EveryKindHasEnumValue = [
+	Exclude<
+		TriggerConfigInput["kind"],
+		(typeof automationTriggerKindValues)[number]
+	>,
+] extends [never]
+	? true
+	: never;
+
+export const automationTriggerKindEnum = z.enum(automationTriggerKindValues);
+export type AutomationTriggerKind = z.infer<typeof automationTriggerKindEnum>;
+
+// pgEnum columns; the wire/validation zod lives in @superset/shared/desktop-notices.
+// platforms/channels are stored as text[] (no enum needed).
+export const desktopNoticeSeverityValues = [
+	"info",
+	"warning",
+	"blocking",
+] as const;
+export const desktopNoticeTriggerValues = [
+	"immediate",
+	"pre-update",
+	"post-update",
+] as const;
+export const desktopNoticeCtaActionValues = [
+	"install-update",
+	"open-url",
+] as const;
+
+export const pageVisibilityValues = ["just_me", "org", "everyone"] as const;
+export const pageVisibilityEnum = z.enum(pageVisibilityValues);
+export type PageVisibility = z.infer<typeof pageVisibilityEnum>;
+
+export const pageCommentAnchorKindValues = ["element", "text", "page"] as const;
+export const pageCommentAnchorKindEnum = z.enum(pageCommentAnchorKindValues);
+export type PageCommentAnchorKind = z.infer<typeof pageCommentAnchorKindEnum>;
+
+export const pageCommentAuthorKindValues = ["human", "agent"] as const;
+export const pageCommentAuthorKindEnum = z.enum(pageCommentAuthorKindValues);
+export type PageCommentAuthorKind = z.infer<typeof pageCommentAuthorKindEnum>;
+
+export const pageCommentIntentValues = ["delete", "approve"] as const;
+export const pageCommentIntentEnum = z.enum(pageCommentIntentValues);
+export type PageCommentIntent = z.infer<typeof pageCommentIntentEnum>;
+
+export const leaderboardVisibilityValues = ["public", "hidden"] as const;
+export const leaderboardVisibilityEnum = z.enum(leaderboardVisibilityValues);
+export type LeaderboardVisibility = z.infer<typeof leaderboardVisibilityEnum>;
+
+export const handleOwnerTypeValues = [
+	"user",
+	"organization",
+	"reserved",
+] as const;
+export const handleOwnerTypeEnum = z.enum(handleOwnerTypeValues);
+export type HandleOwnerType = z.infer<typeof handleOwnerTypeEnum>;
+
+/** How a person signed their agent in: a subscription token, or a provider API key. */
+export const agentCredentialKindValues = ["subscription", "api_key"] as const;
+export type AgentCredentialKind = (typeof agentCredentialKindValues)[number];

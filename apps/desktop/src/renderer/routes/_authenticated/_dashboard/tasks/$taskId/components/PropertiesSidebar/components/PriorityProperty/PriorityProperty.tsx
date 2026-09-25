@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { TaskPriority } from "@superset/db/enums";
 import {
 	DropdownMenu,
@@ -6,25 +7,35 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { PriorityIcon } from "../../../../../components/TasksView/components/shared/PriorityIcon";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { ALL_PRIORITIES } from "../../../../../components/TasksView/utils/sorting";
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-	none: "No priority",
-	urgent: "Urgent",
-	high: "High",
-	medium: "Medium",
-	low: "Low",
-};
 
 interface PriorityPropertyProps {
 	task: TaskWithStatus;
 }
 
 export function PriorityProperty({ task }: PriorityPropertyProps) {
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { t } = useLingui();
+	const priorityLabels: Record<TaskPriority, string> = {
+		none: t({
+			message: "No priority",
+		}),
+		urgent: t({
+			message: "Urgent",
+		}),
+		high: t({
+			message: "High",
+		}),
+		medium: t({
+			message: "Medium",
+		}),
+		low: t({
+			message: "Low",
+		}),
+	};
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const currentPriority = task.priority;
@@ -51,7 +62,7 @@ export function PriorityProperty({ task }: PriorityPropertyProps) {
 				>
 					<PriorityIcon priority={currentPriority} statusType={statusType} />
 					<span className="text-sm capitalize">
-						{PRIORITY_LABELS[currentPriority]}
+						{priorityLabels[currentPriority]}
 					</span>
 				</button>
 			</DropdownMenuTrigger>
@@ -63,7 +74,7 @@ export function PriorityProperty({ task }: PriorityPropertyProps) {
 						className="flex items-center gap-3 px-3 py-2"
 					>
 						<PriorityIcon priority={priority} statusType={statusType} />
-						<span className="text-sm flex-1">{PRIORITY_LABELS[priority]}</span>
+						<span className="text-sm flex-1">{priorityLabels[priority]}</span>
 						{priority === currentPriority && <span className="text-sm">✓</span>}
 					</DropdownMenuItem>
 				))}

@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# The desktop entrypoint, run as the sandbox user by superset-boot, detached.
+# One X display served by TigerVNC on loopback with no auth, bridged to the
+# desktop pane by websockify on its own published port (the gate's ticket is
+# the wall), an Xfce session on top, the dock kept alive by a respawn loop.
+# Each phase waits on its own precondition, logs, and dumps diagnostics on
+# failure; a broken desktop costs the pane, never the workspace. Stays
+# resident so its process tree is the desktop's.
+set -uo pipefail
+. /etc/superset/contract.sh
+: "${SUPERSET_SANDBOX_WORKSPACE_ID:=$(hostname)}"
+
+LOG="${SUPERSET_LOG_DIR}/desktop.log"
+log() { printf '%s desktop %s\n' "$(date +%s%3N)" "$*"; }
+export DISPLAY="$SUPERSET_DISPLAY"
+export HOME="${HOME:-$SUPERSET_HOME_DIR}"
+# No GPU: OpenGL through llvmpipe, WebGL through SwiftShader (the wrapper).
+export LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe
+export BROWSER=/usr/local/bin/google-chrome
+export SUPERSET_WORKSPACE_PATH="$SUPERSET_WORKSPACE_DIR"
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
+geometry="${SUPERSET_DISPLAY_WIDTH}x${SUPERSET_DISPLAY_HEIGHT}"
+display_number="${SUPERSET_DISPLAY#:}"
+
+log "start user=$(id -un) display=${DISPLAY} ${geometry}@${SUPERSET_DISPLAY_DPI}"
+
+# System D-Bus: xfce4-session, xfconf, Chrome and Electron all look for it.
+if [ ! -S /run/dbus/system_bus_socket ]; then
+	sudo install -d /run/dbus && sudo dbus-daemon --system --fork >/dev/null 2>&1 && log "system dbus started"
+fi
+# A resumed session restores the previous session's lock and socket files
+# but none of its processes; the stale ones would keep the server from starting.
+sudo rm -rf "/tmp/.X${display_number}-lock" "/tmp/.X11-unix/X${display_number}"
+sudo install -d -m 1777 /tmp/.X11-unix
+# Chrome's profile lock names the previous session's hostname and pid; woken,
+# it reads as "in use on another computer". Nothing runs yet, so drop it.
+for profile in google-chrome-visible google-chrome-playwright; do
+	rm -f "$HOME/.config/$profile/SingletonLock" "$HOME/.config/$profile/SingletonSocket" "$HOME/.config/$profile/SingletonCookie"
+done
+# The VM mounts a 64 MB /dev/shm; Chromium composites in software and backs
+# every window's tiles there. A third 1920x1200 window runs it dry.
+sudo mount -o remount,size=50% /dev/shm 2>/dev/null || true
+sudo sysctl -w kernel.core_pattern="/tmp/core.%e.%p" >/dev/null 2>&1 || true
+
+# The X server + VNC server in one process, loopback only, every client shared.
+Xvnc "$DISPLAY" -geometry "$geometry" -depth "$SUPERSET_DISPLAY_DEPTH" -dpi "$SUPERSET_DISPLAY_DPI" \
+	-rfbport "$SUPERSET_VNC_PORT" -localhost -SecurityTypes None -AlwaysShared \
+	-BlacklistThreshold 1000000 -desktop superset >"${SUPERSET_LOG_DIR}/xvnc.log" 2>&1 &
+xvnc_pid=$!
+for _ in $(seq 1 120); do xdpyinfo -display "$DISPLAY" >/dev/null 2>&1 && break; sleep 0.25; done
+if xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+	touch "${SUPERSET_RUN_DIR}/display.ready"; log "X ready pid=${xvnc_pid}"
+else
+	log "X NOT ready after 30s"; tail -n 20 "${SUPERSET_LOG_DIR}/xvnc.log" 2>/dev/null; exit 1
+fi
+
+# The stream to the pane: websockify bridging to the VNC socket, on loopback
+# because nothing here checks a credential — the pane reaches it through
+# host-service's /desktop/websockify, which does. No --web: the renderer
+# brings its own noVNC client.
+websockify 127.0.0.1:"$SUPERSET_DESKTOP_PORT" "127.0.0.1:${SUPERSET_VNC_PORT}" \
+	>"${SUPERSET_LOG_DIR}/websockify.log" 2>&1 &
+log "websockify on ${SUPERSET_DESKTOP_PORT} pid=$!"
+
+# The wallpaper, chosen once per workspace by its id so a box looks the same
+# on every wake and differs from the next. Written before the session starts:
+# xfdesktop reads the channel file on launch.
+if [ -d "$SUPERSET_BACKGROUNDS_DIR" ]; then
+	count="$(find "$SUPERSET_BACKGROUNDS_DIR" -name '*.jpg' | wc -l)"
+	if [ "$count" -gt 0 ]; then
+		seed="$(printf '%s' "$SUPERSET_SANDBOX_WORKSPACE_ID" | cksum | cut -d' ' -f1)"
+		wallpaper="${SUPERSET_BACKGROUNDS_DIR}/$((seed % count)).jpg"
+		xml="$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+		mkdir -p "$xml"
+		sed "s|@WALLPAPER@|${wallpaper}|g" "${SUPERSET_DESKTOP_TEMPLATES}/xfce4-desktop.xml" > "$xml/xfce4-desktop.xml"
+		log "wallpaper ${wallpaper}"
+	fi
+fi
+
+# The session bus first, so its address can be handed to every terminal a
+# person opens later (a GUI app launched from a shell must find this bus,
+# not spawn its own); then the session: panel, window manager, desktop,
+# Thunar, the autostart entries.
+eval "$(dbus-launch --sh-syntax --exit-with-session)"
+export DBUS_SESSION_BUS_ADDRESS
+printf 'export DISPLAY=%q DBUS_SESSION_BUS_ADDRESS=%q\n' "$DISPLAY" "$DBUS_SESSION_BUS_ADDRESS" > "${SUPERSET_RUN_DIR}/desktop.env"
+xfce4-session >"${SUPERSET_LOG_DIR}/xfce4-session.log" 2>&1 &
+session_pid=$!
+for _ in $(seq 1 120); do
+	xprop -root _NET_SUPPORTING_WM_CHECK -display "$DISPLAY" 2>/dev/null | grep -q "window id" && break
+	sleep 0.25
+done
+if xprop -root _NET_SUPPORTING_WM_CHECK -display "$DISPLAY" 2>/dev/null | grep -q "window id"; then
+	log "window manager ready session=${session_pid}"
+else
+	log "window manager NOT ready after 30s"; tail -n 20 "${SUPERSET_LOG_DIR}/xfce4-session.log" 2>/dev/null
+fi
+log "ready"
+
+# Stay resident as the desktop's parent; exit when the X server does.
+wait "$xvnc_pid"
+log "X server exited"

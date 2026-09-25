@@ -10,7 +10,7 @@ export function SidebarControl() {
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 
 	return (
-		<Tooltip>
+		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>
 				<Button
 					variant="ghost"
@@ -29,8 +29,8 @@ export function SidebarControl() {
 					<span className="text-xs">Code</span>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
-				<HotkeyLabel label="Open Code Sidebar" id="TOGGLE_SIDEBAR" />
+			<TooltipContent side="bottom">
+				<HotkeyLabel fallbackLabel="Open Code Sidebar" id="TOGGLE_SIDEBAR" />
 			</TooltipContent>
 		</Tooltip>
 	);

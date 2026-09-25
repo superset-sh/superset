@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -16,6 +17,7 @@ import {
 	navigateToWorkspace,
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import { useFrameStackStore } from "../../core/frames";
 import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
 
@@ -98,7 +100,9 @@ function V1WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans>No workspaces found.</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => (
@@ -133,6 +137,7 @@ function V1WorkspaceList({ query }: { query: string }) {
 }
 
 function V2WorkspaceList({ query }: { query: string }) {
+	const { t } = useLingui();
 	const { all: workspaces } = useAccessibleV2Workspaces({
 		searchQuery: query,
 	});
@@ -142,7 +147,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 
 	const projectGroups = useMemo(() => {
 		const grouped = new Map<
-			string,
+			string | null,
 			{ projectName: string; workspaces: typeof workspaces }
 		>();
 
@@ -152,7 +157,11 @@ function V2WorkspaceList({ query }: { query: string }) {
 				group.workspaces.push(workspace);
 			} else {
 				grouped.set(workspace.projectId, {
-					projectName: workspace.projectName,
+					projectName:
+						workspace.projectName ??
+						t({
+							message: "Sessions",
+						}),
 					workspaces: [workspace],
 				});
 			}
@@ -162,7 +171,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 			projectId,
 			...group,
 		}));
-	}, [workspaces]);
+	}, [workspaces, t]);
 
 	const handleSelect = (workspaceId: string) => {
 		void navigateToV2Workspace(workspaceId, navigate);
@@ -171,13 +180,15 @@ function V2WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans>No workspaces found.</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => {
 						const HostIcon =
 							workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
-						const displayName = workspace.name || workspace.branch;
+						const displayName = getV2WorkspaceDisplayName(workspace);
 						return (
 							<CommandItem
 								key={workspace.id}

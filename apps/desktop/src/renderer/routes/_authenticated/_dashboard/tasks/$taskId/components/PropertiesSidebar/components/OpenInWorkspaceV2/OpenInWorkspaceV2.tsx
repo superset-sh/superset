@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -6,28 +7,23 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { env } from "renderer/env.renderer";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
-import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
-import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
-import { MOCK_ORG_ID } from "shared/constants";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskAgent";
 const NONE = "none" as const;
@@ -50,15 +46,11 @@ function readStoredAgent(): SelectedAgent {
 }
 
 export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
-	const collections = useCollections();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
 
 	const { submit } = useWorkspaceCreates();
 	const lastProjectId = useV2WorkspaceCreateDefaultsStore(
@@ -78,46 +70,19 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		lastHostId ?? machineId ?? null,
 	);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId ?? ""),
-				)
-				.select(({ projects }) => ({ ...projects })),
-		[collections, activeOrganizationId],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
 	const setUpProjectIds = useSelectedHostProjectIds(hostId);
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
-				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				iconUrl: project.iconUrl ?? null,
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
 				needsSetup:
 					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
-			};
-		});
-	}, [v2Projects, githubRepositories, setUpProjectIds]);
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
 
 	const launchHostUrl = useHostUrl(hostId);
 	const { agents: v2Agents, isFetched: v2AgentsFetched } =
@@ -174,29 +139,50 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	};
 
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!selectedProjectId) return "Select a project";
-		if (!hostId) return "No active host";
+		if (!selectedProjectId)
+			return t({
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				message: "No active host",
+			});
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				message: "Host service is not running",
+			});
 		}
 		// While the host's project list is still loading, needsSetup is null —
 		// block until we know whether the project is actually set up on the
 		// chosen host, otherwise the server-side guard becomes the only check.
-		if (setUpProjectIds === null) return "Checking host…";
+		if (setUpProjectIds === null)
+			return t({
+				message: "Checking host…",
+			});
 		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
+			return t({
+				message: "Project not set up on this host",
+			});
 		}
 		// Agent UUIDs are host-scoped. Right after a host switch the stored id
 		// from the previous host is still in selectedAgent until the agent
 		// query resolves and the corrective effect runs — block submission so
 		// we don't send an id this host doesn't recognize.
 		if (selectedAgent !== NONE) {
-			if (!v2AgentsFetched) return "Checking agents…";
+			if (!v2AgentsFetched)
+				return t({
+					message: "Checking agents…",
+				});
 			if (!validAgentIds.has(selectedAgent)) {
-				return "Selected agent is not available on this host";
+				return t({
+					message: "Selected agent is not available on this host",
+				});
 			}
 		}
 		return null;
@@ -211,13 +197,14 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		machineId,
 		otherHosts,
 		activeHostUrl,
+		t,
 	]);
 
 	const handleOpen = () => {
 		if (submitBlocker) {
 			if (hostId === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "open the task in a workspace",
+					action: "openTaskInWorkspace",
 				});
 			} else {
 				toast.error(submitBlocker);
@@ -227,7 +214,12 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		if (!selectedProjectId || !hostId) return;
 
 		const snapshotId = crypto.randomUUID();
-		const branch = deriveBranchName({ slug: task.slug, title: task.title });
+		const providerBranch = !!task.branch?.trim();
+		const branch = deriveBranchName({
+			slug: task.slug,
+			title: task.title,
+			branch: task.branch,
+		});
 		const agents =
 			selectedAgent === NONE
 				? undefined
@@ -254,6 +246,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				projectId: selectedProjectId,
 				name: task.title,
 				branch,
+				skipBranchPrefix: providerBranch || undefined,
 				taskId: task.id,
 				agents,
 			},
@@ -273,7 +266,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-xs text-muted-foreground">Open in workspace</span>
+			<span className="text-xs text-muted-foreground">
+				<Trans>Open in workspace</Trans>
+			</span>
 			<DevicePicker
 				hostId={hostId}
 				onSelectHostId={(next) => {
@@ -301,7 +296,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 										<span className="truncate">{selectedProject.name}</span>
 									</>
 								) : (
-									<span className="text-muted-foreground">Select project</span>
+									<span className="text-muted-foreground">
+										<Trans>Select project</Trans>
+									</span>
 								)}
 							</span>
 							<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -312,7 +309,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 						className="w-[--radix-dropdown-menu-trigger-width]"
 					>
 						{recentProjects.length === 0 ? (
-							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
+							<DropdownMenuItem disabled>
+								<Trans>No projects found</Trans>
+							</DropdownMenuItem>
 						) : (
 							recentProjects.map((project) => (
 								<DropdownMenuItem
@@ -328,7 +327,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (
 										<span className="text-[10px] text-amber-500 shrink-0">
-											not set up
+											<Trans>not set up</Trans>
 										</span>
 									)}
 								</DropdownMenuItem>
@@ -338,7 +337,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				</DropdownMenu>
 				<Button
 					size="icon"
-					aria-label="Open in workspace"
+					aria-label={t({
+						message: "Open in workspace",
+					})}
 					className="h-8 w-8 shrink-0"
 					disabled={!!submitBlocker}
 					onClick={handleOpen}
@@ -349,11 +350,15 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 			<AgentSelect<SelectedAgent>
 				agents={v2Agents}
 				value={selectedAgent}
-				placeholder="Select agent"
+				placeholder={t({
+					message: "Select agent",
+				})}
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
 				allowNone
-				noneLabel="No agent"
+				noneLabel={t({
+					message: "No agent",
+				})}
 				noneValue={NONE}
 			/>
 		</div>

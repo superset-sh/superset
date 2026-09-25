@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trans } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
@@ -111,7 +112,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 
 				{createdDate && (
 					<span className="text-[10px] text-muted-foreground ml-auto">
-						Created {createdDate}
+						<Trans>Created {createdDate}</Trans>
 					</span>
 				)}
 			</div>

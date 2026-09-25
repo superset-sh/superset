@@ -7,15 +7,21 @@ export type { ActivePaneStatus } from "shared/tabs-types";
 /** Lookup object for status indicator styling - avoids if/else chains */
 const STATUS_CONFIG = {
 	permission: {
-		pingColor: "bg-red-400",
-		dotColor: "bg-red-500",
+		pingColor: "bg-yellow-400",
+		dotColor: "bg-yellow-500",
 		pulse: true,
 		tooltip: "Needs input",
 	},
-	working: {
-		pingColor: "bg-amber-400",
-		dotColor: "bg-amber-500",
+	failed: {
+		pingColor: "bg-red-400",
+		dotColor: "bg-red-500",
 		pulse: true,
+		tooltip: "Agent failed",
+	},
+	working: {
+		pingColor: "",
+		dotColor: "bg-amber-500",
+		pulse: false,
 		tooltip: "Agent working",
 	},
 	review: {
@@ -36,15 +42,16 @@ interface StatusIndicatorProps {
 
 /**
  * Visual indicator for pane/workspace status.
- * - Red pulsing: needs user input (permission)
- * - Amber pulsing: agent working
+ * - Yellow pulsing: needs user input (permission)
+ * - Red pulsing: agent failed
+ * - Amber static: agent working
  * - Green static: ready for review
  */
 export function StatusIndicator({ status, className }: StatusIndicatorProps) {
 	const config = STATUS_CONFIG[status];
 
 	return (
-		<span className={cn("relative flex size-2 shrink-0", className)}>
+		<span className={cn("relative flex size-1.5 shrink-0", className)}>
 			{config.pulse && (
 				<span
 					className={cn(
@@ -55,7 +62,7 @@ export function StatusIndicator({ status, className }: StatusIndicatorProps) {
 			)}
 			<span
 				className={cn(
-					"relative inline-flex size-2 rounded-full",
+					"relative inline-flex size-full rounded-full",
 					config.dotColor,
 				)}
 			/>

@@ -19,13 +19,7 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 
 ## Port Labels
 
-Add friendly names to automatically detected ports with a workspace
-configuration file. Useful for:
-
-- Providing meaningful labels for your team
-- Making common dev-server ports easier to scan in the UI
-
-Create `.superset/ports.json` in your repository:
+Label detected ports by creating `.superset/ports.json` in your repository:
 
 ```json
 {
@@ -42,26 +36,40 @@ Create `.superset/ports.json` in your repository:
 - `label` - Display text shown in tooltip
 
 **Behavior:**
-- Dynamic port discovery is still authoritative
-- `ports.json` only labels ports that Superset already detects as listening
+- Labels apply only to ports detected as listening
 - Ports without a matching label still appear
-- Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports can be opened at `localhost:PORT` from the browser action
+- Ports can be opened at `localhost:PORT` from the browser action (remote workspace ports are [forwarded to your machine](#remote-access) first)
 
 **Error Handling:**
 
-If `ports.json` is malformed:
-- Labels from that file are ignored until fixed
-- Detected ports still appear without those labels
+If `ports.json` is malformed, detected ports still appear without labels until you fix the file.
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
-- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in project lifecycle setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+
+## Remote Access
+
+The desktop app forwards detected ports from the selected remote workspace to your machine. If a local port is busy, choose **Use another port** from its row. See [remote port forwarding](/remote-access#ports-on-a-remote-host) for requirements and behavior, or forward a port yourself below.
+
+### Forward a port yourself
+
+**SSH**: forward the port, then open `http://localhost:3000` locally:
+
+```bash
+ssh -N -L 3000:localhost:3000 user@remote-host
+```
+
+**[Tailscale](https://tailscale.com)**: on the host, expose the port to your tailnet and open the URL it prints:
+
+```bash
+tailscale serve 3000
+```
+
+Both work for servers that only listen on loopback. If the server binds `0.0.0.0`, you can skip the tunnel and hit the host's Tailscale name directly (`http://remote-host:3000`).
 
 ## Discovery and Updates
 
-Port discovery runs in each host server, not in the desktop renderer. The host server watches terminal process trees, scans for listening ports, resolves any matching port label, and publishes `port:changed` events when ports appear or disappear.
-
-The desktop sidebar keeps one ports query per online host. It patches that cached host snapshot from port events, batching bursts so updates stay responsive without refetching every time a port changes. A slower fallback refetch still runs so the UI recovers if an event is missed during reconnect.
+The port list updates as workspace processes start and stop listening.

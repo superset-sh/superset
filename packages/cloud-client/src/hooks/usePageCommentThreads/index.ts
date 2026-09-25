@@ -1,0 +1,1 @@
+export { usePageCommentThreads } from "./usePageCommentThreads";

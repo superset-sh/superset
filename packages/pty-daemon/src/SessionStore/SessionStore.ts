@@ -1,11 +1,13 @@
 import type { Pty } from "../Pty/index.ts";
 import type { SessionInfo } from "../protocol/index.ts";
+import { TerminalModes } from "../TerminalModes/index.ts";
 
 const DEFAULT_BUFFER_BYTES = 64 * 1024;
 
 export interface Session {
 	id: string;
 	pty: Pty;
+	modes: TerminalModes;
 	/** ring buffer for replay-on-attach; in-memory only, never persisted. */
 	buffer: Buffer[];
 	bufferBytes: number;
@@ -32,6 +34,11 @@ export class SessionStore {
 	private readonly sessions = new Map<string, Session>();
 	private readonly bufferCap: number;
 
+	/** Retention this store was configured with, for handoff to a successor. */
+	get bufferCapBytes(): number {
+		return this.bufferCap;
+	}
+
 	constructor(opts: SessionStoreOptions = {}) {
 		this.bufferCap = opts.bufferCap ?? DEFAULT_BUFFER_BYTES;
 	}
@@ -43,6 +50,7 @@ export class SessionStore {
 		const session: Session = {
 			id,
 			pty,
+			modes: new TerminalModes(),
 			buffer: [],
 			bufferBytes: 0,
 			bufferCap: this.bufferCap,
@@ -86,6 +94,7 @@ export class SessionStore {
 
 	/** Append output to a session's ring buffer; evict oldest chunks past the cap. */
 	appendOutput(session: Session, chunk: Buffer): void {
+		session.modes.feed(chunk);
 		session.buffer.push(chunk);
 		session.bufferBytes += chunk.byteLength;
 		while (

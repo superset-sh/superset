@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"types": ["bun"],
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"target": "esnext",
+		"lib": ["esnext"],
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true
+	},
+	"include": ["*.ts"]
+}

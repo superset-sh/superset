@@ -3,8 +3,8 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+	--font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+	--font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
 @theme inline {
@@ -19,11 +19,61 @@
 	--brand-dark: #9e400a;
 }
 
+/* The site is always dark; the shared muted grey reads too dim for body copy here */
+.dark {
+	--muted-foreground: oklch(0.8 0 0);
+}
+
 @layer base {
+	/* Linear-style Inter: optical sizing (Display cut at large sizes) +
+	   alternate glyphs. Feature settings are ignored by the mono/pixel fonts. */
+	body {
+		font-optical-sizing: auto;
+		font-feature-settings: "cv01", "ss03";
+	}
+
 	button:not(:disabled),
 	[role="button"]:not([aria-disabled="true"]) {
 		cursor: pointer;
 	}
+
+	::selection {
+		background-color: var(--brand);
+		color: #000;
+	}
+}
+
+/* Cyber HUD frame: four L-shaped corner brackets drawn as background strips
+   (two strips per corner). Sized in em so it scales with the text. */
+@utility corner-brackets {
+	background-image:
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand));
+	background-repeat: no-repeat;
+	background-size:
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em;
+	background-position:
+		0 0,
+		0 0,
+		100% 0,
+		100% 0,
+		0 100%,
+		0 100%,
+		100% 100%,
+		100% 100%;
 }
 
 @utility scrollbar-hide {
@@ -33,7 +83,6 @@
 		display: none;
 	}
 }
-
 /* Blog prose styles */
 .prose {
 	--tw-prose-body: rgb(255 255 255 / 0.7);
@@ -74,7 +123,7 @@
 	scroll-margin-top: 6rem;
 }
 
-.prose p {
+.prose p:not(.not-prose *) {
 	margin-top: 1.25rem;
 	margin-bottom: 1.25rem;
 	line-height: 1.75;
@@ -87,19 +136,27 @@
 	padding-left: 1.5rem;
 }
 
+.prose ul {
+	list-style: disc;
+}
+
+.prose ol {
+	list-style: decimal;
+}
+
 .prose li {
 	margin-top: 0.5rem;
 	margin-bottom: 0.5rem;
 }
 
-.prose a {
+.prose a:not(.not-prose, .not-prose *) {
 	text-decoration: underline;
 	text-decoration-color: rgb(255 255 255 / 0.3);
 	text-underline-offset: 2px;
 	transition: text-decoration-color 0.15s;
 }
 
-.prose a:hover {
+.prose a:not(.not-prose, .not-prose *):hover {
 	text-decoration-color: rgb(255 255 255 / 0.6);
 }
 
@@ -109,7 +166,7 @@
 	border-radius: 0.25rem;
 	font-size: 0.875em;
 	color: rgb(255 255 255 / 0.9);
-	font-family: var(--font-family-mono);
+	font-family: var(--font-mono);
 }
 
 .prose code::before,
@@ -124,7 +181,7 @@
 	padding: 1rem;
 	overflow-x: auto;
 	color: rgb(255 255 255 / 0.85);
-	font-family: var(--font-family-mono);
+	font-family: var(--font-mono);
 	font-size: 0.875rem;
 	line-height: 1.7;
 }
@@ -193,4 +250,46 @@
 
 .blog-code-block .hidden.dark\:block {
 	display: block;
+}
+
+@theme {
+	--animate-belt-march: belt-march 900ms linear infinite;
+	--animate-rail-extend: rail-extend 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	--animate-station-pulse: station-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes belt-march {
+	from {
+		background-position-x: 0;
+	}
+	to {
+		background-position-x: 17px;
+	}
+}
+
+@keyframes rail-extend {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@keyframes station-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-belt-march,
+	.animate-rail-extend,
+	.animate-station-pulse {
+		animation: none;
+	}
 }

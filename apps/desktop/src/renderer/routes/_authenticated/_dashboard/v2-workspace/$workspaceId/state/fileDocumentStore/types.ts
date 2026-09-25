@@ -39,6 +39,7 @@ export interface SharedFileDocument {
 
 	setContent(next: string): void;
 	save(opts?: { force?: boolean }): Promise<SaveResult>;
+	compareWithDisk(): Promise<void>;
 	reload(): Promise<void>;
 	loadUnlimited(): Promise<void>;
 	resolveConflict(choice: ConflictResolution): Promise<void>;

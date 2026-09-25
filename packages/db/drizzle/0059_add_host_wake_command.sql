@@ -1,0 +1,1 @@
+ALTER TABLE "v2_hosts" ADD COLUMN "wake_command" text;

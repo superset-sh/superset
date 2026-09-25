@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { WorkspaceStore } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import {
@@ -38,8 +40,7 @@ import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import {
 	BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS,
 	getAttachedTerminalIdsKey,
-	getBackgroundTerminalCountRefetchInterval,
-	getBackgroundTerminalListRefetchInterval,
+	getBackgroundTerminalRefetchInterval,
 	getBackgroundTerminalSessions,
 	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
@@ -61,6 +62,7 @@ export const BackgroundTerminalsButton = memo(
 		workspaceId,
 		store,
 	}: BackgroundTerminalsButtonProps) {
+		const { t } = useLingui();
 		const [isOpen, setIsOpen] = useState(false);
 		const attachedTerminalIdsKey = useStore(store, (s) =>
 			getAttachedTerminalIdsKey(s.tabs),
@@ -95,37 +97,26 @@ export const BackgroundTerminalsButton = memo(
 			[backgroundMarkerIds, attachedTerminalIds],
 		);
 		const optimisticBackgroundCount = optimisticBackgroundTerminalIds.length;
-		const backgroundCountInput = useMemo(
-			() => ({
-				workspaceId,
-				attachedTerminalIds: debouncedAttachedTerminalIds,
-			}),
-			[workspaceId, debouncedAttachedTerminalIds],
-		);
 		const sessionsInput = useMemo(() => ({ workspaceId }), [workspaceId]);
 		const utils = workspaceTrpc.useUtils();
 		const killSession = workspaceTrpc.terminal.killSession.useMutation();
-		const backgroundCountQuery =
-			workspaceTrpc.terminal.countBackgroundSessions.useQuery(
-				backgroundCountInput,
-				{
-					enabled: !isOpen,
-					notifyOnChangeProps: ["data", "dataUpdatedAt"],
-					refetchInterval: getBackgroundTerminalCountRefetchInterval(isOpen),
-					refetchOnWindowFocus: false,
-					staleTime: 5_000,
-				},
-			);
-		const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
-			sessionsInput,
-			{
-				enabled: isOpen,
-				notifyOnChangeProps: ["data", "isLoading"],
-				refetchInterval: getBackgroundTerminalListRefetchInterval(isOpen),
-				refetchOnWindowFocus: isOpen,
-				staleTime: 1_000,
-			},
-		);
+		const sessionsQuery = workspaceTrpc.terminal.list.useQuery(sessionsInput, {
+			notifyOnChangeProps: ["data", "dataUpdatedAt", "isLoading"],
+			refetchInterval: getBackgroundTerminalRefetchInterval(isOpen),
+			refetchOnWindowFocus: isOpen,
+			staleTime: isOpen ? 1_000 : 5_000,
+		});
+		// The settled count mirrors the server-side background count the closed
+		// state used to poll: computed against the debounced attachment set so a
+		// pane mid-drag doesn't flap the badge. null until the first fetch lands.
+		const settledBackgroundCount = useMemo(() => {
+			const sessions = sessionsQuery.data?.sessions;
+			if (!sessions) return null;
+			return getBackgroundTerminalSessions(
+				sessions,
+				debouncedAttachedTerminalIds,
+			).length;
+		}, [sessionsQuery.data?.sessions, debouncedAttachedTerminalIds]);
 
 		useRenderStressInstrumentation("BackgroundTerminalsButton", {
 			warnAt: 35,
@@ -133,7 +124,7 @@ export const BackgroundTerminalsButton = memo(
 				isOpen,
 				attachedTerminalCount: attachedTerminalIds.length,
 				optimisticBackgroundCount,
-				closedCount: backgroundCountQuery.data?.count ?? null,
+				closedCount: settledBackgroundCount,
 			}),
 		});
 
@@ -168,8 +159,8 @@ export const BackgroundTerminalsButton = memo(
 		useEffect(() => {
 			if (isOpen || optimisticBackgroundTerminalIds.length === 0) return;
 			if (debouncedAttachedTerminalIdsKey !== attachedTerminalIdsKey) return;
-			if (backgroundCountQuery.data?.count !== 0) return;
-			if (backgroundCountQuery.dataUpdatedAt <= markerObservedAtRef.current) {
+			if (settledBackgroundCount !== 0) return;
+			if (sessionsQuery.dataUpdatedAt <= markerObservedAtRef.current) {
 				return;
 			}
 
@@ -178,8 +169,8 @@ export const BackgroundTerminalsButton = memo(
 			}
 		}, [
 			attachedTerminalIdsKey,
-			backgroundCountQuery.data?.count,
-			backgroundCountQuery.dataUpdatedAt,
+			settledBackgroundCount,
+			sessionsQuery.dataUpdatedAt,
 			debouncedAttachedTerminalIdsKey,
 			isOpen,
 			optimisticBackgroundTerminalIds,
@@ -189,22 +180,21 @@ export const BackgroundTerminalsButton = memo(
 		const backgroundCount =
 			isOpen && sessionsQuery.data
 				? backgroundSessions.length
-				: Math.max(
-						backgroundCountQuery.data?.count ?? 0,
-						optimisticBackgroundCount,
-					);
+				: Math.max(settledBackgroundCount ?? 0, optimisticBackgroundCount);
 
 		if (!isOpen && backgroundCount === 0) return null;
 
-		const label = `${backgroundCount} background terminal session${
-			backgroundCount === 1 ? "" : "s"
-		}`;
+		const label = t({
+			message: plural(backgroundCount, {
+				one: "# background terminal session",
+				other: "# background terminal sessions",
+			}),
+		});
 
 		const handleAdopt = (terminalId: string) => {
 			clearTerminalBackgroundMarker(workspaceId, terminalId);
 			const result = focusOrAddTerminalPane(store, terminalId);
-			void utils.terminal.listSessions.invalidate({ workspaceId });
-			void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
+			void utils.terminal.list.invalidate({ workspaceId });
 			logStressEvent("background-terminals.adopt", { result, workspaceId });
 			setIsOpen(false);
 		};
@@ -218,10 +208,13 @@ export const BackgroundTerminalsButton = memo(
 					"[BackgroundTerminalsButton] Failed to kill session:",
 					error,
 				);
-				toast.error("Failed to close terminal session");
+				toast.error(
+					t({
+						message: "Failed to close terminal session",
+					}),
+				);
 			} finally {
-				void utils.terminal.listSessions.invalidate({ workspaceId });
-				void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
+				void utils.terminal.list.invalidate({ workspaceId });
 			}
 		};
 
@@ -241,18 +234,18 @@ export const BackgroundTerminalsButton = memo(
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-80">
 					<DropdownMenuLabel className="text-xs">
-						Background terminal sessions
+						<Trans>Background terminal sessions</Trans>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<div className="max-h-80 overflow-y-auto">
 						{sessionsQuery.isLoading && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								Loading sessions…
+								<Trans>Loading sessions…</Trans>
 							</div>
 						)}
 						{!sessionsQuery.isLoading && backgroundSessions.length === 0 && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								No background terminal sessions
+								<Trans>No background terminal sessions</Trans>
 							</div>
 						)}
 						{backgroundSessions.map((session) => (
@@ -263,7 +256,10 @@ export const BackgroundTerminalsButton = memo(
 							>
 								<Archive className="size-3.5 shrink-0 text-muted-foreground" />
 								<span className="min-w-0 flex-1 truncate text-xs">
-									{session.title ?? "Terminal"}
+									{session.title ??
+										t({
+											message: "Terminal",
+										})}
 								</span>
 								{session.createdAt > 0 && (
 									<span className="shrink-0 text-xs text-muted-foreground/70">
@@ -272,8 +268,12 @@ export const BackgroundTerminalsButton = memo(
 								)}
 								<button
 									type="button"
-									aria-label="Close terminal session"
-									title="Close terminal session"
+									aria-label={t({
+										message: "Close terminal session",
+									})}
+									title={t({
+										message: "Close terminal session",
+									})}
 									disabled={
 										killSession.isPending &&
 										killSession.variables?.terminalId === session.terminalId

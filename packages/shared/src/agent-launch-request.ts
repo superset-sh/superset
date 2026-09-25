@@ -9,6 +9,10 @@ import {
 	renderTaskPromptTemplate,
 	type TerminalResolvedAgentConfig,
 } from "./agent-settings";
+import {
+	assignAttachmentFileName,
+	WORKSPACE_ATTACHMENTS_DIR,
+} from "./workspace-attachments";
 
 function getRequiredAgentConfig(
 	configsById: ReadonlyMap<AgentDefinitionId, ResolvedAgentConfig>,
@@ -40,7 +44,6 @@ export function buildPromptAgentLaunchRequest({
 	selectedAgent,
 	prompt,
 	initialFiles,
-	taskSlug,
 	configsById,
 }: {
 	workspaceId: string;
@@ -52,77 +55,27 @@ export function buildPromptAgentLaunchRequest({
 		mediaType: string;
 		filename?: string;
 	}>;
-	taskSlug?: string;
 	configsById: ReadonlyMap<AgentDefinitionId, ResolvedAgentConfig>;
 }): AgentLaunchRequest | null {
 	if (selectedAgent === "none") return null;
 
 	const config = getRequiredAgentConfig(configsById, selectedAgent);
 
-	if (config.kind === "chat") {
-		return {
-			kind: "chat",
-			workspaceId,
-			agentType: config.id,
-			source,
-			chat: {
-				initialPrompt: prompt || undefined,
-				initialFiles: initialFiles?.length ? initialFiles : undefined,
-				model: config.model,
-				taskSlug,
-			},
-		};
-	}
-
-	// For terminal agents with files, append file information to the prompt
-	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
+	// For terminal agents with files, append file information to the prompt.
+	// The writer (terminal-adapter.ts) runs the same assignment over the same
+	// list, so the rendered paths match the files on disk.
 	let enhancedPrompt = prompt;
 	if (initialFiles?.length) {
-		// Track all used filenames to prevent collisions (same logic as terminal-adapter.ts)
 		const usedFilenames = new Set<string>();
 
 		const fileList = initialFiles
 			.map((file, index) => {
-				let filename: string;
-
-				if (!file.filename) {
-					// Generated names: find next available attachment_N
-					let counter = index + 1;
-					do {
-						filename = `attachment_${counter}`;
-						counter++;
-					} while (usedFilenames.has(filename));
-				} else {
-					// Sanitize filename
-					const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-					// Handle empty sanitized filename (e.g., "!!!" becomes "")
-					if (!sanitized.trim()) {
-						let counter = index + 1;
-						do {
-							filename = `attachment_${counter}`;
-							counter++;
-						} while (usedFilenames.has(filename));
-					} else if (usedFilenames.has(sanitized)) {
-						// Find unique name by appending _1, _2, etc. if needed
-						const parts = sanitized.split(".");
-						const ext = parts.length > 1 ? parts.pop() : undefined;
-						const base = parts.join(".");
-
-						let counter = 1;
-						do {
-							filename = ext
-								? `${base}_${counter}.${ext}`
-								: `${sanitized}_${counter}`;
-							counter++;
-						} while (usedFilenames.has(filename));
-					} else {
-						filename = sanitized;
-					}
-				}
-
-				usedFilenames.add(filename);
-				return `- .superset/attachments/${filename}`;
+				const filename = assignAttachmentFileName({
+					rawName: file.filename,
+					index,
+					used: usedFilenames,
+				});
+				return `- ${WORKSPACE_ATTACHMENTS_DIR}/${filename}`;
 			})
 			.join("\n");
 		// If prompt exists, prepend it; otherwise just use file list
@@ -172,25 +125,6 @@ export function buildTaskAgentLaunchRequest({
 	if (selectedAgent === "none") return null;
 
 	const config = getRequiredAgentConfig(configsById, selectedAgent);
-
-	if (config.kind === "chat") {
-		return {
-			kind: "chat",
-			workspaceId,
-			agentType: config.id,
-			source,
-			chat: {
-				initialPrompt: renderTaskPromptTemplate(
-					config.taskPromptTemplate,
-					task,
-				),
-				model: config.model,
-				retryCount: 1,
-				autoExecute: autoRun,
-				taskSlug: task.slug,
-			},
-		};
-	}
 
 	const terminalConfig = requireTerminalConfig(config);
 	const renderedPrompt = renderTaskPromptTemplate(

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
@@ -14,7 +15,7 @@ import {
 	OpenInExternalDropdownItems,
 } from "renderer/components/OpenInExternalDropdown";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useHotkeyDisplay } from "renderer/hotkeys";
+import { HotkeyLabel, useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores";
 
@@ -34,6 +35,7 @@ export function OpenInButton({
 	showShortcuts = false,
 	projectId,
 }: OpenInButtonProps) {
+	const { t } = useLingui();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
@@ -83,7 +85,7 @@ export function OpenInButton({
 	return (
 		<ButtonGroup>
 			{label && currentApp && (
-				<Tooltip>
+				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<Button
 							variant="outline"
@@ -100,10 +102,19 @@ export function OpenInButton({
 							<span className="font-medium">{label}</span>
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{`Open in ${currentApp.displayLabel ?? currentApp.label}${
-							showOpenInShortcut ? ` (${openInShortcut})` : ""
-						}`}
+					<TooltipContent side="bottom">
+						{showOpenInShortcut ? (
+							<HotkeyLabel
+								label={t({
+									message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+								})}
+								id="OPEN_IN_APP"
+							/>
+						) : (
+							t({
+								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+							})
+						)}
 					</TooltipContent>
 				</Tooltip>
 			)}
@@ -115,7 +126,9 @@ export function OpenInButton({
 						className="gap-1"
 						disabled={!path}
 					>
-						<span>Open</span>
+						<span>
+							<Trans>Open</Trans>
+						</span>
 						<HiChevronDown className="size-3" />
 					</Button>
 				</DropdownMenuTrigger>

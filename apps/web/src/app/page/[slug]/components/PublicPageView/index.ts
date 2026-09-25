@@ -1,0 +1,1 @@
+export { PublicPageView } from "./PublicPageView";

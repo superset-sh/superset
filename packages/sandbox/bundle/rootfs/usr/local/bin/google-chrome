@@ -1,0 +1,11 @@
+#!/bin/sh
+# What xdg-open, x-www-browser, $BROWSER and the dock run. The flags: no
+# GPU (SwiftShader WebGL, no /dev/shm tiles), no first-run or crash-restore
+# bubbles (a stopped sandbox kills Chrome mid-session), the debugging port
+# an agent drives the visible browser through, and --no-sandbox, which this
+# VM needs regardless of user (--test-type hides the bar that flag adds).
+# Chrome 136+ refuses remote debugging on its default profile directory, so
+# the visible instance lives in its own; the private automation profile is
+# google-chrome-playwright beside it.
+. /etc/superset/contract.sh 2>/dev/null || { SUPERSET_CHROME_DEBUG_PORT=9222; SUPERSET_HOME_DIR="$HOME"; }
+exec /usr/bin/google-chrome-stable --no-sandbox --test-type --no-first-run --no-default-browser-check --disable-dev-shm-usage --password-store=basic --start-maximized --disable-session-crashed-bubble --hide-crash-restore-bubble "--user-data-dir=${SUPERSET_HOME_DIR}/.config/google-chrome-visible" "--remote-debugging-port=${SUPERSET_CHROME_DEBUG_PORT}" --use-angle=swiftshader-webgl --enable-unsafe-swiftshader "$@"

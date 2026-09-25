@@ -1,33 +1,65 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/chat/server/desktop";
+import { SUPERSET_USER_ID_HEADER } from "@superset/shared/host-routing";
+import { SANDBOX_PORTS } from "@superset/shared/sandbox-contract";
+
+/** One frame of a 1920x1200 display is ~9 MB; this is a stalled reader, not a burst. */
+const MAX_DISPLAY_BUFFER_BYTES = 32 * 1024 * 1024;
+const MAX_DISPLAY_PENDING = 64;
+
+import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
+import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
+import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
+import { registerForwardMuxRoute } from "./ports/forward-mux-route";
+import { portManager } from "./ports/port-manager";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
-import { ChatRuntimeManager } from "./runtime/chat";
+import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
+import { registerBrowserCdpRoute } from "./runtime/browser-bridge/browser-cdp-route";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
-import { createGitFactory } from "./runtime/git";
-import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
+import { createGitEnvResolver, createGitFactory } from "./runtime/git";
+import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
-import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
+import {
+	launchSandboxAgentOnce,
+	readSandboxIdentity,
+	runSandboxSelfSeed,
+} from "./runtime/sandbox-self-seed";
+import {
+	isAgentTerminalAlive,
+	registerWorkspaceTerminalRoute,
+	sendAgentMessage,
+} from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
+import { gitStatusStore } from "./trpc/router/git/utils/git-status-store";
+import {
+	resumeCrashedAgentSessions,
+	resumeSessionDepsFor,
+} from "./trpc/router/terminal-agents/terminal-agents";
+import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
-import type { ApiClient } from "./types";
+import type {
+	ApiClient,
+	BrowserBridgeConfig,
+	HostServiceContext,
+} from "./types";
+import { getHostWorkerPool } from "./workers/host-worker-pool";
+import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
 export interface CreateAppOptions {
 	config: {
@@ -35,28 +67,32 @@ export interface CreateAppOptions {
 		dbPath: string;
 		cloudApiUrl: string;
 		migrationsFolder: string;
-		allowedOrigins: string[];
+		/**
+		 * Origins the renderer may call from. A sandbox answers `*`: its URL
+		 * is reached directly from the desktop, whose origin differs per
+		 * install, and the bearer token — never a cookie — is what gates it,
+		 * so a wildcard grants no ambient authority.
+		 */
+		allowedOrigins: string | string[];
+		/** Loopback surface for driving desktop browser panes; desktop-only. */
+		browserBridge?: BrowserBridgeConfig;
 	};
 	providers: {
 		auth: ApiAuthProvider;
 		hostAuth: HostAuthProvider;
 		credentials: GitCredentialProvider;
-		modelResolver: ModelProviderRuntimeResolver;
 	};
 	/**
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
-	 * `chatService` are overridden to keep tests off the network and out of
-	 * mastra storage.
+	 * prod uses it on bundled Node). `api` and `github` are overridden to
+	 * keep tests off the network.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatRuntime?: ChatRuntimeManager;
-	chatService?: ChatService;
 }
 
 export interface CreateAppResult {
@@ -64,6 +100,15 @@ export interface CreateAppResult {
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
 	db: HostDb;
+	eventBus: EventBus;
+	/**
+	 * In a sandbox, runs the agent the workspace was created with. Call once
+	 * the server is listening; a no-op everywhere else and on every boot after
+	 * the first.
+	 */
+	launchSandboxAgent: () => Promise<void>;
+	resumeCrashedAgents: () => Promise<void>;
+	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;
 }
 
@@ -74,15 +119,28 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	// A sandbox is provisioned for exactly one workspace, and the env says
+	// which. Seeding it here rather than from the API keeps the schema in one
+	// place and leaves provisioning with nothing to orchestrate.
+	const sandboxIdentity = readSandboxIdentity();
+	if (sandboxIdentity) runSandboxSelfSeed(db, sandboxIdentity);
 	const git = createGitFactory(providers.credentials);
 	const github =
 		options.github ??
 		(async () => {
 			const token = await providers.credentials.getToken("github.com");
 			if (!token) {
-				throw new Error(
-					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-				);
+				// Expected precondition failure (user has no GitHub auth), not an
+				// internal error — every procedure calling ctx.github() inherits
+				// this classification.
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: providers.credentials.credentialRemedy(
+						"github.com",
+						"missing",
+					),
+					cause: { kind: "NO_GITHUB_TOKEN" },
+				});
 			}
 			return new Octokit({ auth: token });
 		});
@@ -92,33 +150,46 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// GitWatcher is the single source of truth for `.git/` and worktree fs
 	// activity per workspace. Both EventBus (broadcasts to clients) and the
 	// pull-requests runtime (event-driven branch sync) subscribe to it.
-	const gitWatcher = new GitWatcher(db, filesystem);
+	const gitWatcher = new GitWatcher(db, filesystem, (workspaceId, watched) => {
+		if (watched) gitStatusStore.attach(workspaceId);
+		else gitStatusStore.drop(workspaceId);
+	});
+	gitWatcher.onChanged((event) => {
+		gitStatusStore.recordChange(event.workspaceId, event.paths);
+	});
 	gitWatcher.start();
+	// Per-workspace branch/HEAD/upstream reads run in the worker pool: the
+	// PR-sync loop fires them for every workspace on each watcher event and
+	// 5-min sweep, which would otherwise spawn+drain git on the event loop.
+	const resolveGitEnv = createGitEnvResolver(providers.credentials);
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
 		git,
 		github,
 		gitWatcher,
+		readWorkspaceRefs: async (worktreePath) => {
+			const gitEnv = await resolveGitEnv(worktreePath);
+			return getHostWorkerPool().run(
+				gitWorkspaceRefsTask,
+				{ worktreePath, gitEnv },
+				{
+					timeoutMs: 15_000,
+					strategy: "coalesce",
+					dedupeKey: `${worktreePath}:workspace-refs`,
+				},
+			);
+		},
 	});
 	pullRequestRuntime.start();
-	const chatRuntime =
-		options.chatRuntime ??
-		new ChatRuntimeManager({
-			db,
-			runtimeResolver: providers.modelResolver,
-		});
-	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
-	// auth storage; the `host.auth.*` router proxies to it.
-	const chatService = options.chatService ?? new ChatService();
 
-	const runtime = {
-		auth: chatService,
-		chat: chatRuntime,
-		filesystem,
-		pullRequests: pullRequestRuntime,
-	};
+	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
+	// the routes sit behind the same auth as every other host route, and the
+	// runtime is built on first request, so chat.db is never created on a host
+	// nobody chats with. Exposure is a client concern — the renderer gates the
+	// pane on the `chat-v3` PostHog flag.
+	const chatV3 = createChatV3Mount({ db, dbPath: config.dbPath });
+
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
@@ -131,12 +202,17 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				"Authorization",
 				"trpc-accept",
 				"x-superset-client-machine-id",
+				SUPERSET_USER_ID_HEADER,
 			],
 		}),
 	);
 
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
+	// Post-construction wiring (pullRequestRuntime is built before the
+	// EventBus): newly created workspaces get their first branch/upstream sync
+	// + PR link immediately instead of waiting for the 5-min safety net.
+	pullRequestRuntime.subscribeToWorkspaceEvents(eventBus);
 
 	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
 		db,
@@ -144,26 +220,108 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// Hygiene only — reads hide defunct bindings via the session-liveness
 	// join regardless, so a failure here must not block startup.
 	try {
-		terminalAgentPersistence.deleteDefunct();
+		terminalAgentPersistence.sweepDefunct();
 	} catch (error) {
 		console.warn(
-			"[terminal-agents] failed to prune defunct binding rows",
+			"[terminal-agents] failed to sweep defunct binding rows",
 			error,
 		);
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
-	// Backfill `kind='main'` v2 workspaces for projects already set up before
-	// this column shipped. Idempotent; runs in the background so it doesn't
-	// block server startup.
-	void runMainWorkspaceSweep({
-		api,
-		db,
-		git,
-		organizationId: config.organizationId,
-	}).catch((err) => {
-		console.warn("[host-service] main-workspace sweep failed:", err);
+	const pageWatch = new PageWatchManager({
+		api: {
+			listThreads: (pageId) => api.pageComment.list.query({ pageId }),
+			claimWatch: (input) => api.page.claimWatch.mutate(input),
+			renewWatch: (input) => api.page.renewWatch.mutate(input),
+			releaseWatch: (input) => api.page.releaseWatch.mutate(input),
+			reserveWatchDelivery: (input) =>
+				api.page.reserveWatchDelivery.mutate(input),
+			finishWatchDelivery: (input) =>
+				api.page.finishWatchDelivery.mutate(input),
+		},
+		sendToTerminal: async ({
+			workspaceId,
+			terminalId,
+			expectedAgent,
+			acquireDelivery,
+			text,
+			signal,
+		}) => {
+			const result = await sendAgentMessage({
+				terminalId,
+				workspaceId,
+				text,
+				submit: true,
+				expectedAgent,
+				acquireDelivery,
+				signal,
+				terminalAgentStore,
+				db,
+				eventBus,
+			});
+			if ("error" in result) {
+				if (result.inputStaged) return { inputStaged: true } as const;
+				throw new Error(result.error);
+			}
+		},
+		isTerminalAlive: (terminalId, workspaceId) =>
+			isAgentTerminalAlive({ terminalId, workspaceId, db, eventBus }),
+		isAgentBusy: (terminalId) =>
+			agentIsBusy(terminalAgentStore.get(terminalId)?.lastEventType),
+		getAgent: (terminalId) => {
+			const binding = terminalAgentStore.get(terminalId);
+			return binding?.endedAt === undefined ? binding : undefined;
+		},
 	});
+	pageWatch.subscribeToTerminalEvents(eventBus);
+
+	const runtime = {
+		filesystem,
+		pullRequests: pullRequestRuntime,
+		pageWatch,
+	};
+
+	// Startup sweeps run in the background so they don't block server
+	// startup.
+	//
+	// None of them run in a sandbox. Every one repairs state a long-lived
+	// machine accumulates — rows that predate a column, a delete a previous
+	// process crashed out of — and a sandbox is provisioned fresh with exactly
+	// one project and one workspace, seeded by us, that no earlier build ever
+	// touched. There is nothing to recover, so the sweeps can only invent.
+	void (async () => {
+		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
+		await runProjectBackfill({
+			db,
+			eventBus,
+		}).catch((err) => {
+			console.warn("[host-service] project backfill failed:", err);
+		});
+		// Finish any delete the previous process crashed out of (archived row
+		// whose worktree still exists).
+		await runArchivedWorkspaceReconcile({
+			git,
+			credentials: providers.credentials,
+			github,
+			execGh,
+			api,
+			db,
+			runtime,
+			eventBus,
+			terminalAgentStore,
+			organizationId: config.organizationId,
+			isAuthenticated: true,
+		}).catch((err) => {
+			console.warn("[host-service] archived-workspace reconcile failed:", err);
+		});
+		// Re-share the default account's Claude/Codex config into the selected
+		// provider profiles. Last: it touches no host state the sweeps above
+		// repair, and a slow filesystem must not delay them.
+		await provisionSelectedAccounts(db).catch((err) => {
+			console.warn("[host-service] account provisioning failed:", err);
+		});
+	})();
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
 		const token = c.req.query("token");
@@ -175,19 +333,91 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	app.use("/chat-v3/*", wsAuth);
+	app.use("/browser/*", wsAuth);
+	app.use("/desktop/*", wsAuth);
+	app.use("/fwd", wsAuth);
+
+	// websockify listens on loopback with no credential of its own, so the
+	// check that admits a pane is this route's. Sandboxes only: on a laptop
+	// this would forward a caller's bytes to whatever holds port 6080.
+	app.get(
+		"/desktop/websockify",
+		async (c, next) => {
+			if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
+				return c.json({ error: "Not found" }, 404);
+			}
+			return next();
+		},
+		upgradeWebSocket(() => {
+			let upstream: WebSocket | null = null;
+			const pending: (string | ArrayBuffer)[] = [];
+			return {
+				onOpen: (_event, ws) => {
+					upstream = new WebSocket(
+						`ws://127.0.0.1:${SANDBOX_PORTS.desktop}/websockify`,
+						["binary"],
+					);
+					upstream.binaryType = "arraybuffer";
+					upstream.onopen = () => {
+						for (const message of pending.splice(0)) upstream?.send(message);
+					};
+					upstream.onmessage = (event) => {
+						// A pane that stopped reading (a laptop asleep, a stalled
+						// renderer) would otherwise grow this buffer without limit.
+						const raw = ws.raw as { bufferedAmount?: number } | undefined;
+						if ((raw?.bufferedAmount ?? 0) > MAX_DISPLAY_BUFFER_BYTES) {
+							ws.close(1013, "display backlog");
+							return;
+						}
+						ws.send(event.data as string | ArrayBuffer);
+					};
+					upstream.onclose = () => ws.close();
+					upstream.onerror = () => ws.close(1011, "display unreachable");
+				},
+				onMessage: (event) => {
+					const data = event.data as string | ArrayBuffer;
+					if (upstream?.readyState === WebSocket.OPEN) upstream.send(data);
+					else if (pending.length < MAX_DISPLAY_PENDING) pending.push(data);
+				},
+				onClose: () => upstream?.close(),
+				onError: () => upstream?.close(),
+			};
+		}),
+	);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
+	registerBrowserCdpRoute({
+		app,
+		upgradeWebSocket,
+		getBridge: () => config.browserBridge,
+	});
+	registerForwardMuxRoute({
+		app,
+		upgradeWebSocket,
+		getPortsByWorkspace: (workspaceId) =>
+			portManager.getPortsByWorkspace(workspaceId),
+	});
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
 		eventBus,
 		upgradeWebSocket,
 	});
+	registerChatV3Routes({ app, db, mount: chatV3, upgradeWebSocket });
 
 	app.use(
 		"/trpc/*",
 		trpcServer({
 			router: appRouter,
+			// Renderer clients send every request (including queries) as POST —
+			// see createHostServiceLinks in @superset/workspace-client —
+			// so a query with a large input (e.g. git.getDiffBulk's file-path
+			// list, or a same-tick batch across many workspaces) doesn't produce
+			// a GET URL long enough to blow past the header-size limit. Without
+			// this flag trpc's default HTTP-method map rejects those POSTs with
+			// METHOD_NOT_SUPPORTED before the query ever runs.
+			allowMethodOverride: true,
 			createContext: async (_opts, c) => {
 				const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
 				return {
@@ -204,6 +434,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					isAuthenticated,
 					clientMachineId:
 						c.req.header("x-superset-client-machine-id") ?? undefined,
+					userId: c.req.header(SUPERSET_USER_ID_HEADER)?.trim() || undefined,
+					browserBridge: config.browserBridge,
 				} as Record<string, unknown>;
 			},
 		}),
@@ -218,6 +450,26 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			pageWatch.stop();
+		} catch (err) {
+			console.warn("[host-service] pageWatch.stop failed:", err);
+		}
+		try {
+			await chatV3.dispose();
+		} catch (err) {
+			console.warn("[host-service] chatV3.dispose failed:", err);
+		}
+		// Retire the host-worker threads (and reap their in-flight git
+		// children) here rather than leaving them to process.exit(): exit joins
+		// every Worker, and a worker wedged in native code hangs that join
+		// forever. The desktop entry point bounds this dispose with a deadline
+		// and hard-exits past it.
+		try {
+			await getHostWorkerPool().dispose();
+		} catch (err) {
+			console.warn("[host-service] hostWorkerPool.dispose failed:", err);
 		}
 		try {
 			eventBus.close();
@@ -238,5 +490,55 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, db, dispose };
+	const launchSandboxAgent = async () => {
+		if (!sandboxIdentity?.launch) return;
+		await launchSandboxAgentOnce(
+			{
+				git,
+				credentials: providers.credentials,
+				github,
+				execGh,
+				api,
+				db,
+				runtime,
+				eventBus,
+				terminalAgentStore,
+				organizationId: config.organizationId,
+				isAuthenticated: true,
+				browserBridge: config.browserBridge,
+			} as HostServiceContext,
+			sandboxIdentity,
+		);
+	};
+
+	/** Same context the launcher above builds: a resume runs an agent. */
+	const resumeCrashedAgents = async () => {
+		const ctx = {
+			git,
+			credentials: providers.credentials,
+			github,
+			execGh,
+			api,
+			db,
+			runtime,
+			eventBus,
+			terminalAgentStore,
+			organizationId: config.organizationId,
+			isAuthenticated: true,
+			browserBridge: config.browserBridge,
+		} as HostServiceContext;
+		await resumeCrashedAgentSessions(resumeSessionDepsFor(ctx));
+	};
+
+	return {
+		app,
+		injectWebSocket,
+		api,
+		db,
+		eventBus,
+		launchSandboxAgent,
+		resumeCrashedAgents,
+		terminalAgentStore,
+		dispose,
+	};
 }

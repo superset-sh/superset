@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
@@ -15,7 +17,9 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
+import { BRANCH_PREFIX_MODE_MESSAGES } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -28,6 +32,8 @@ interface GitSettingsProps {
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
 		visibleItems,
@@ -123,9 +129,11 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & worktrees</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans>Git & worktrees</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure git branch and worktree behavior
+					<Trans>Configure git branch and worktree behavior</Trans>
 				</p>
 			</div>
 
@@ -137,11 +145,21 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								htmlFor="delete-local-branch"
 								className="text-sm font-medium"
 							>
-								Delete local branch on workspace removal
+								<HighlightText
+									text={t({
+										message: "Delete local branch on workspace removal",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Also delete the local git branch when deleting a worktree
-								workspace
+								<HighlightText
+									text={t({
+										message:
+											"Also delete the local git branch when deleting a worktree workspace",
+									})}
+									query={searchQuery}
+								/>
 							</p>
 						</div>
 						<Switch
@@ -156,9 +174,16 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch prefix</Label>
+							<Label className="text-sm font-medium">
+								<HighlightText
+									text={t({
+										message: "Branch prefix",
+									})}
+									query={searchQuery}
+								/>
+							</Label>
 							<p className="text-xs text-muted-foreground">
-								Group new branches under a folder.{" "}
+								<Trans>Group new branches under a folder.</Trans>{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`
@@ -179,20 +204,21 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								</SelectTrigger>
 								<SelectContent>
 									{(
-										Object.entries(BRANCH_PREFIX_MODE_LABELS) as [
-											BranchPrefixMode,
-											string,
-										][]
-									).map(([value, label]) => (
+										Object.keys(
+											BRANCH_PREFIX_MODE_MESSAGES,
+										) as BranchPrefixMode[]
+									).map((value) => (
 										<SelectItem key={value} value={value}>
-											{label}
+											{i18n._(BRANCH_PREFIX_MODE_MESSAGES[value])}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 							{branchPrefix?.mode === "custom" && (
 								<Input
-									placeholder="Prefix"
+									placeholder={t({
+										message: "Prefix",
+									})}
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}

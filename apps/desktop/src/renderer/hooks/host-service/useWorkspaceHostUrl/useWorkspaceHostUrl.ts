@@ -1,58 +1,71 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 
 export type WorkspaceHostTarget =
 	| { status: "loading" }
 	| { status: "not-found" }
 	| { status: "local-starting"; hostId: string }
-	| { status: "ready"; kind: "local" | "remote"; hostId: string; url: string };
+	| {
+			status: "ready";
+			kind: "local" | "remote";
+			hostId: string;
+			url: string;
+	  }
+	| {
+			status: "ready";
+			kind: "sandbox";
+			hostId: string;
+			url: string;
+			/** The desktop stream's gate address; the pane connects here, not to host-service. */
+			desktopUrl: string;
+	  };
 
 /**
- * Resolves a workspace ID to its owning host-service target.
- *
- * The status union lets callers distinguish "still loading the collection"
- * from "local host hasn't booted yet" from "workspace doesn't exist on this
- * client" — three states the previous `string | null` API collapsed into one.
+ * Resolves a workspace ID to its owning host-service target: a cloud
+ * workspace's sandbox gate address once its sandbox is awake, this machine's
+ * host-service, or another host through the relay.
  */
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
 ): WorkspaceHostTarget {
-	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
+	const { workspaces, isReady } = useHostWorkspaces();
+	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
-	const { data: workspaceRows = [], isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.id, workspaceId ?? ""))
-				.select(({ workspaces }) => ({
-					organizationId: workspaces.organizationId,
-					hostId: workspaces.hostId,
-				})),
-		[collections, workspaceId],
-	);
-
-	const match = workspaceId ? (workspaceRows[0] ?? null) : null;
+	const match = workspaces.find((w) => w.id === workspaceId) ?? null;
+	const sandbox =
+		sandboxes.find((target) => target.workspaceId === workspaceId) ?? null;
 
 	return useMemo(() => {
-		if (!workspaceId || (!isReady && !match)) return { status: "loading" };
-		if (!match) return { status: "not-found" };
+		if (!workspaceId) return { status: "loading" };
+		if (sandbox) {
+			return {
+				status: "ready",
+				kind: "sandbox",
+				hostId: workspaceId,
+				url: sandbox.url,
+				desktopUrl: sandbox.desktopUrl,
+			};
+		}
+		if (!match) {
+			return isReady && sandboxesReady
+				? { status: "not-found" }
+				: { status: "loading" };
+		}
 		if (machineId && match.hostId === machineId) {
-			if (activeHostUrl) {
-				return {
-					status: "ready",
-					kind: "local",
-					hostId: match.hostId,
-					url: activeHostUrl,
-				};
-			}
-			return { status: "local-starting", hostId: match.hostId };
+			return activeHostUrl
+				? {
+						status: "ready",
+						kind: "local",
+						hostId: match.hostId,
+						url: activeHostUrl,
+					}
+				: { status: "local-starting", hostId: match.hostId };
 		}
 		const routingKey = buildHostRoutingKey(match.organizationId, match.hostId);
 		return {
@@ -61,13 +74,19 @@ export function useWorkspaceHostTarget(
 			hostId: match.hostId,
 			url: `${relayUrl}/hosts/${routingKey}`,
 		};
-	}, [workspaceId, isReady, match, machineId, activeHostUrl, relayUrl]);
+	}, [
+		workspaceId,
+		sandbox,
+		match,
+		isReady,
+		sandboxesReady,
+		machineId,
+		activeHostUrl,
+		relayUrl,
+	]);
 }
 
-/**
- * Backwards-compatible URL-only form for existing callers. Returns null
- * for any non-`ready` status (loading, local-starting, not-found).
- */
+/** URL-only form: null for any non-`ready` status. */
 export function useWorkspaceHostUrl(workspaceId: string | null): string | null {
 	const target = useWorkspaceHostTarget(workspaceId);
 	return target.status === "ready" ? target.url : null;

@@ -45,6 +45,8 @@ function isResultWithMessage(result: unknown): result is { message: string } {
 }
 
 function extractIds(data: unknown): string {
+	if (isPaginatedEnvelope(data)) return extractIds(data.items);
+
 	if (Array.isArray(data)) {
 		return data
 			.map((item) => {
@@ -63,6 +65,38 @@ function extractIds(data: unknown): string {
 	return JSON.stringify(data);
 }
 
+function isPaginatedEnvelope(data: unknown): data is { items: unknown[] } {
+	return (
+		typeof data === "object" &&
+		data !== null &&
+		"items" in data &&
+		"nextCursor" in data &&
+		Array.isArray((data as { items: unknown }).items)
+	);
+}
+
+const URL_CELL = /^https?:\/\/\S+$/;
+
+const supportsHyperlinks = () =>
+	process.stdout.isTTY === true && process.env.TERM !== "dumb";
+
+/**
+ * OSC 8 hyperlink, for terminals that honour it. A terminal that does not
+ * falls back to detecting links in the text it can see, which is why a URL
+ * cell is never truncated: the visible text has to stand on its own.
+ */
+function hyperlink(url: string, label: string): string {
+	if (!supportsHyperlinks()) return label;
+	return `\x1b]8;;${url}\x07${label}\x1b]8;;\x07`;
+}
+
+interface Cell {
+	/** What the reader sees, and what the column is measured against. */
+	text: string;
+	/** Full target when `text` is a possibly-truncated URL. */
+	link?: string;
+}
+
 // Table utility — commands can use this in their display function
 export function table(
 	data: Record<string, unknown>[],
@@ -77,26 +111,31 @@ export function table(
 	);
 	const hdrs = headers ?? columns.map((c) => c.toUpperCase());
 	const rows = data.map((row) =>
-		columns.map((col, i) => {
+		columns.map((col, i): Cell => {
 			const val = getNestedValue(row, col);
 			const str = val === null || val === undefined ? "—" : String(val);
 			const cap = caps[i]!;
-			return str.length > cap ? `${str.slice(0, cap - 1)}…` : str;
+			if (URL_CELL.test(str)) return { text: str, link: str };
+			return { text: str.length > cap ? `${str.slice(0, cap - 1)}…` : str };
 		}),
 	);
 
-	// Calculate column widths (capped by terminal width heuristic)
+	// Cells are already capped; a URL is not, and its column widens to fit it.
 	const widths = hdrs.map((h, i) =>
-		Math.min(
-			caps[i]!,
-			Math.max(h.length, ...rows.map((r) => r[i]?.length ?? 0)),
-		),
+		Math.max(h.length, ...rows.map((r) => r[i]?.text.length ?? 0)),
 	);
 
-	// Render
+	// Render. Padding sits outside the escape sequence so the clickable region
+	// stops at the URL rather than running to the column edge.
 	const headerLine = hdrs.map((h, i) => h.padEnd(widths[i]!)).join("  ");
 	const bodyLines = rows.map((r) =>
-		r.map((cell, i) => cell.padEnd(widths[i]!)).join("  "),
+		r
+			.map((cell, i) => {
+				const padding = " ".repeat(Math.max(0, widths[i]! - cell.text.length));
+				const body = cell.link ? hyperlink(cell.link, cell.text) : cell.text;
+				return body + padding;
+			})
+			.join("  "),
 	);
 
 	return [headerLine, ...bodyLines].join("\n");

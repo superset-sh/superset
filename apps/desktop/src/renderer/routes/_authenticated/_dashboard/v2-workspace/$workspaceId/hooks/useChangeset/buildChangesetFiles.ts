@@ -5,8 +5,8 @@ interface GitChangedFile {
 	path: string;
 	oldPath?: string;
 	status: string;
-	additions: number;
-	deletions: number;
+	additions: number | null;
+	deletions: number | null;
 	isBinary?: boolean;
 }
 

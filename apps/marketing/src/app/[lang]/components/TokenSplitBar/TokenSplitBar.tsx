@@ -1,0 +1,88 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { formatTokens } from "../../utils/formatUsage";
+import { MeterBar } from "../MeterBar";
+
+interface Segment {
+	id: string;
+	label: MessageDescriptor;
+	tokens: number;
+	color: string;
+}
+
+export function TokenSplitBar({
+	split,
+}: {
+	split: {
+		uncachedInput: string;
+		cachedInput: string;
+		cacheWrite5m: string;
+		cacheWrite1h: string;
+		output: string;
+		reasoningOutput: string;
+	};
+}) {
+	const { t, i18n } = useLingui();
+	const segments: Segment[] = [
+		{
+			id: "input",
+			label: msg({ message: "Input" }),
+			tokens: Number(split.uncachedInput),
+			color: "#d25611",
+		},
+		{
+			id: "output",
+			label: msg({ message: "Output" }),
+			tokens: Number(split.output),
+			color: "#c19a5b",
+		},
+		{
+			id: "cacheRead",
+			label: msg({
+				message: "Cache read",
+			}),
+			tokens: Number(split.cachedInput),
+			color: "#6b8ca3",
+		},
+		{
+			id: "cacheWrite",
+			label: msg({
+				message: "Cache write",
+			}),
+			tokens: Number(split.cacheWrite5m) + Number(split.cacheWrite1h),
+			color: "#7a9e7e",
+		},
+	];
+
+	const total = segments.reduce((sum, segment) => sum + segment.tokens, 0);
+	if (total === 0) {
+		return (
+			<p className="text-sm text-muted-foreground">
+				<Trans>No usage in this range.</Trans>
+			</p>
+		);
+	}
+
+	return (
+		<div className="space-y-4">
+			{segments.map((segment) => {
+				const percent = (segment.tokens / total) * 100;
+				return (
+					<div key={segment.id}>
+						<div className="flex items-baseline justify-between gap-4 mb-1.5">
+							<span className="text-sm text-foreground">
+								{t(segment.label)}
+							</span>
+							<span className="font-mono text-xs text-muted-foreground">
+								{formatTokens(segment.tokens, i18n.locale)} ·{" "}
+								{percent.toFixed(0)}%
+							</span>
+						</div>
+						<MeterBar value={percent / 100} color={segment.color} />
+					</div>
+				);
+			})}
+		</div>
+	);
+}

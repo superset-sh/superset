@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -46,6 +47,7 @@ export function GitHubIssueLinkCommand({
 	projectId,
 	anchorRef,
 }: GitHubIssueLinkCommandProps) {
+	const { t } = useLingui();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
@@ -121,7 +123,9 @@ export function GitHubIssueLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search issues..."
+						placeholder={t({
+							message: "Search issues...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -135,17 +139,19 @@ export function GitHubIssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans>Show closed</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[280px]">
 						{searchResults.length === 0 && (
 							<CommandEmpty>
-								{isLoading
-									? "Loading issues..."
-									: showClosed
-										? "No issues found."
-										: "No open issues found."}
+								{isLoading ? (
+									<Trans>Loading issues...</Trans>
+								) : showClosed ? (
+									<Trans>No issues found.</Trans>
+								) : (
+									<Trans>No open issues found.</Trans>
+								)}
 							</CommandEmpty>
 						)}
 						{searchResults.length > 0 && (
@@ -176,7 +182,7 @@ export function GitHubIssueLinkCommand({
 											{issue.title}
 										</span>
 										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											Link ↵
+											<Trans>Link ↵</Trans>
 										</span>
 									</CommandItem>
 								))}

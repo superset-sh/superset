@@ -1,0 +1,1 @@
+export { SortableCollapsedWorkspaceItem } from "./SortableCollapsedWorkspaceItem";

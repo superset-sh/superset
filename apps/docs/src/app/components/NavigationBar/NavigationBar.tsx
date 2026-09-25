@@ -1,8 +1,11 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
+import { LanguageSwitcher } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
-import { Menu } from "lucide-react";
+import { Languages, Menu } from "lucide-react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { MobileSearchIcon } from "@/app/(docs)/[[...slug]]/components/DocsPageLayout/components/PageClient/components/MobileSearchIcon";
 import {
 	NavigationMobile,
@@ -29,11 +32,14 @@ function SupersetLogo() {
 
 function SidebarTrigger() {
 	const { toggleNavbar } = useNavbarMobile();
+	const { t } = useLingui();
 
 	return (
 		<button
 			type="button"
-			aria-label="Toggle sidebar"
+			aria-label={t({
+				message: "Toggle sidebar",
+			})}
 			className="navbar:hidden flex items-center justify-center p-2"
 			onClick={toggleNavbar}
 		>
@@ -43,23 +49,37 @@ function SidebarTrigger() {
 }
 
 export default function NavigationBar() {
+	const { t } = useLingui();
+
 	return (
 		<div className="flex flex-col sticky top-0 bg-background backdrop-blur-md z-30">
-			<nav className="md:grid grid-cols-12 border-b flex items-center justify-between">
+			<div
+				aria-hidden
+				className="pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b from-background to-transparent"
+			/>
+			<nav className="md:grid grid-cols-12 flex items-center justify-between">
 				<a
 					href={COMPANY.MARKETING_URL}
-					className="min-navbar:border-r md:px-5 px-2.5 py-4 text-foreground md:col-span-2 shrink-0 transition-colors md:w-[268px] lg:w-[286px]"
+					className="md:px-5 px-2.5 py-4 text-foreground md:col-span-2 shrink-0 transition-colors md:w-[268px] lg:w-[286px]"
 				>
 					<SupersetLogo />
 				</a>
 				<div className="md:col-span-10 flex items-center justify-end relative px-4 gap-4">
 					<MobileSearchIcon />
 					<SidebarTrigger />
-					<ul className="navbar:flex items-center gap-6 hidden shrink-0">
+					<ul className="navbar:flex items-center gap-2 hidden shrink-0">
+						<NavLink href={COMPANY.CHANGELOG_URL} external>
+							<Trans>Changelog</Trans>
+						</NavLink>
+						<NavLink href={COMPANY.MARKETING_URL} external>
+							<Trans>Website</Trans>
+						</NavLink>
 						<NavLink
 							href="https://github.com/superset-sh/superset"
 							external
-							aria-label="View Superset repository on GitHub"
+							aria-label={t({
+								message: "View Superset repository on GitHub",
+							})}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -74,6 +94,29 @@ export default function NavigationBar() {
 								></path>
 							</svg>
 						</NavLink>
+						{/* Icon-only: the navbar is tight, so the trigger is just the
+						    translation glyph; the real select sits on top invisibly,
+						    keeping the native accessible menu. */}
+						<li className="relative flex items-center px-1 text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
+							<Languages aria-hidden className="size-[1.35em]" />
+							<LanguageSwitcher
+								label={t({ message: "Language" })}
+								className="absolute inset-0 cursor-pointer opacity-0"
+								onChange={(next, current) =>
+									posthog.capture("language_switched", {
+										from: current,
+										to: next,
+										surface: "docs-nav",
+									})
+								}
+							/>
+						</li>
+						<a
+							href={`${COMPANY.MARKETING_URL}/download`}
+							className="ml-2 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-85"
+						>
+							<Trans>Download</Trans>
+						</a>
 					</ul>
 				</div>
 			</nav>

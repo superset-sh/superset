@@ -4,6 +4,8 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { useSettings } from "renderer/stores/settings";
 
+export type DeferredDiffReason = "deferred" | "loading" | "error";
+
 export interface DiffThreadComment {
 	id: string;
 	authorLogin: string;
@@ -19,6 +21,9 @@ export interface DiffCommentThread {
 	isOutdated: boolean;
 	url?: string;
 	sourceLine?: number;
+	/** REST databaseId of the thread's first comment — replies thread onto
+	 *  it. Unset only if GitHub ever returns a thread with zero comments. */
+	replyToCommentId?: number;
 }
 
 /** Local-only metadata for a draft composer pinned to the end of a selection. */
@@ -33,7 +38,8 @@ export interface DiffAgentComposer {
 export type DiffAnnotationMetadata =
 	| ({ kind: "thread" } & DiffCommentThread)
 	| ({ kind: "composer" } & DiffAgentComposer)
-	| { kind: "binary-placeholder" };
+	| { kind: "binary-placeholder" }
+	| { kind: "deferred-placeholder"; reason: DeferredDiffReason };
 
 interface UseDiffAnnotationsByPathOptions {
 	workspaceId: string;
@@ -115,6 +121,7 @@ export function useDiffAnnotationsByPath({
 					isResolved: thread.isResolved,
 					isOutdated: thread.isOutdated,
 					...(url ? { url } : {}),
+					...(firstDbId != null ? { replyToCommentId: firstDbId } : {}),
 					comments: thread.comments.map((c) => {
 						const createdAt = parseTimestamp(c.createdAt);
 						return {

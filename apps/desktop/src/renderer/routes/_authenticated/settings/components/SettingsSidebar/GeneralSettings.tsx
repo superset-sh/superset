@@ -1,15 +1,24 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import {
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
+	HiOutlineChartBar,
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
+	HiOutlineCube,
+	HiOutlineDevicePhoneMobile,
 	HiOutlineFolder,
+	HiOutlineGlobeAlt,
 	HiOutlineKey,
 	HiOutlineLink,
 	HiOutlineLockClosed,
@@ -20,29 +29,35 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuGitBranch, LuKeyboard, LuKeyRound, LuLink } from "react-icons/lu";
+import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHostsNeedingUpdate";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 import { getAllowedSectionsForVariant } from "../../utils/settings-search";
+import { settingsListItemClass } from "../SettingsListSidebar";
 
 interface GeneralSettingsProps {
 	matchCounts: Partial<Record<SettingsSection, number>> | null;
 }
 
 type SettingsRoute =
+	| "/settings/mobile"
 	| "/settings/account"
+	| "/settings/connections"
 	| "/settings/organization"
 	| "/settings/teams"
 	| "/settings/appearance"
 	| "/settings/ringtones"
+	| "/settings/usage"
 	| "/settings/keyboard"
 	| "/settings/behavior"
+	| "/settings/browser"
 	| "/settings/git"
 	| "/settings/agents"
 	| "/settings/terminal"
 	| "/settings/links"
-	| "/settings/models"
+	| "/settings/agent-accounts"
 	| "/settings/experimental"
 	| "/settings/integrations"
 	| "/settings/billing"
@@ -50,173 +65,289 @@ type SettingsRoute =
 	| "/settings/security"
 	| "/settings/permissions"
 	| "/settings/projects"
-	| "/settings/hosts";
+	| "/settings/hosts"
+	| "/settings/environments";
 
 interface SectionItem {
 	id: SettingsRoute;
 	section: SettingsSection;
-	label: string;
+	label: MessageDescriptor;
 	icon: React.ReactNode;
 	macOnly?: boolean;
+	/** Content wants the full pane width instead of the default centered max-w-4xl column. */
+	fullWidth?: boolean;
 }
 
 interface SectionGroup {
-	label: string;
+	label: MessageDescriptor;
 	items: SectionItem[];
 }
 
 const SECTION_GROUPS: SectionGroup[] = [
 	{
-		label: "Personal",
+		label: msg({
+			message: "Personal",
+		}),
 		items: [
 			{
 				id: "/settings/account",
 				section: "account",
-				label: "Account",
+				label: msg({
+					message: "Account",
+				}),
 				icon: <HiOutlineUser className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/connections",
+				section: "connections",
+				label: msg({
+					message: "Connections",
+				}),
+				icon: <LuLink className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/appearance",
 				section: "appearance",
-				label: "Appearance",
+				label: msg({
+					message: "Appearance",
+				}),
 				icon: <HiOutlinePaintBrush className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/ringtones",
 				section: "ringtones",
-				label: "Notifications",
+				label: msg({
+					message: "Notifications",
+				}),
 				icon: <HiOutlineBell className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/usage",
+				section: "usage",
+				label: msg({
+					message: "Usage",
+				}),
+				icon: <HiOutlineChartBar className="h-4 w-4" />,
+				fullWidth: true,
+			},
+			{
+				id: "/settings/mobile",
+				section: "mobile",
+				label: msg({ message: "Mobile" }),
+				icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "Editor & Workflow",
+		label: msg({
+			message: "Editor & Workflow",
+		}),
 		items: [
 			{
 				id: "/settings/behavior",
 				section: "behavior",
-				label: "General",
+				label: msg({
+					message: "General",
+				}),
 				icon: <HiOutlineSparkles className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/keyboard",
 				section: "keyboard",
-				label: "Keyboard",
+				label: msg({
+					message: "Keyboard",
+				}),
 				icon: <LuKeyboard className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/git",
 				section: "git",
-				label: "Git & Worktrees",
+				label: msg({
+					message: "Git & Worktrees",
+				}),
 				icon: <LuGitBranch className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/agents",
 				section: "agents",
-				label: "Agents",
+				label: msg({
+					message: "Agent commands",
+				}),
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/terminal",
 				section: "terminal",
-				label: "Terminal",
+				label: msg({
+					message: "Terminal",
+				}),
 				icon: <HiOutlineCommandLine className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/links",
 				section: "links",
-				label: "Links",
+				label: msg({
+					message: "Links",
+				}),
 				icon: <HiOutlineLink className="h-4 w-4" />,
 			},
 			{
-				id: "/settings/models",
-				section: "models",
-				label: "Models",
-				icon: <LuBrain className="h-4 w-4" />,
+				id: "/settings/browser",
+				section: "browser",
+				label: msg({
+					message: "Browser",
+				}),
+				icon: <HiOutlineGlobeAlt className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "Organization",
+		label: msg({
+			message: "Cloud",
+		}),
+		items: [
+			{
+				id: "/settings/environments",
+				section: "environments",
+				label: msg({
+					message: "Environments",
+				}),
+				icon: <HiOutlineCube className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/agent-accounts",
+				section: "agentAccounts",
+				label: msg({
+					message: "Agents",
+				}),
+				icon: <LuKeyRound className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		label: msg({
+			message: "Organization",
+		}),
 		items: [
 			{
 				id: "/settings/organization",
 				section: "organization",
-				label: "Organization",
+				label: msg({
+					message: "Organization",
+				}),
 				icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/teams",
 				section: "teams",
-				label: "Teams",
+				label: msg({
+					message: "Teams",
+				}),
 				icon: <HiOutlineUserGroup className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/projects",
 				section: "project",
-				label: "Projects",
+				label: msg({
+					message: "Projects",
+				}),
 				icon: <HiOutlineFolder className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/hosts",
 				section: "hosts",
-				label: "Hosts",
+				label: msg({
+					message: "Hosts",
+				}),
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/integrations",
 				section: "integrations",
-				label: "Integrations",
+				label: msg({
+					message: "Integrations",
+				}),
 				icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/billing",
 				section: "billing",
-				label: "Billing",
+				label: msg({
+					message: "Billing",
+				}),
 				icon: <HiOutlineCreditCard className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/api-keys",
 				section: "apikeys",
-				label: "API Keys",
+				label: msg({
+					message: "API Keys",
+				}),
 				icon: <HiOutlineKey className="h-4 w-4" />,
 			},
 		],
 	},
 	{
-		label: "System",
+		label: msg({
+			message: "System",
+		}),
 		items: [
 			{
 				id: "/settings/security",
 				section: "security",
-				label: "Security",
+				label: msg({
+					message: "Remote Access",
+				}),
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/permissions",
 				section: "permissions",
-				label: "Permissions",
+				label: msg({
+					message: "Permissions",
+				}),
 				icon: <HiOutlineShieldCheck className="h-4 w-4" />,
 				macOnly: true,
 			},
 			{
 				id: "/settings/experimental",
 				section: "experimental",
-				label: "Experimental",
+				label: msg({
+					message: "Experimental",
+				}),
 				icon: <HiOutlineBeaker className="h-4 w-4" />,
 			},
 		],
 	},
 ];
 
+/**
+ * Settings sections whose content wants the full pane width instead of the
+ * default centered max-w-4xl column — read by the Settings layout so a new
+ * full-width section only needs to be marked here, not also in a second,
+ * disconnected path list.
+ */
+export const FULL_WIDTH_SECTION_PATHS: readonly string[] =
+	SECTION_GROUPS.flatMap((group) =>
+		group.items.filter((item) => item.fullWidth).map((item) => item.id),
+	);
+
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
+	const mobileEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH);
 	const matchRoute = useMatchRoute();
+	const hostsNeedingUpdate = useHostsNeedingUpdateCount();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const cloudWorkspacesEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const allowedSections = useMemo(
-		() => getAllowedSectionsForVariant(isV2CloudEnabled),
-		[isV2CloudEnabled],
+		() =>
+			getAllowedSectionsForVariant(isV2CloudEnabled, cloudWorkspacesEnabled),
+		[isV2CloudEnabled, cloudWorkspacesEnabled],
 	);
 
 	return (
@@ -224,7 +355,9 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 			{SECTION_GROUPS.map((group, groupIndex) => {
 				const platformItems = group.items.filter(
 					(item) =>
-						(!item.macOnly || isMac) && allowedSections.has(item.section),
+						(!item.macOnly || isMac) &&
+						(item.section !== "mobile" || mobileEnabled === true) &&
+						allowedSections.has(item.section),
 				);
 				const filteredItems = matchCounts
 					? platformItems.filter((item) => (matchCounts[item.section] ?? 0) > 0)
@@ -233,9 +366,9 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 				if (filteredItems.length === 0) return null;
 
 				return (
-					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
-						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
-							{group.label}
+					<div key={group.label.id} className={cn(groupIndex > 0 && "mt-4")}>
+						<h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.075em] px-3 mb-1">
+							{i18n._(group.label)}
 						</h2>
 						<nav className="flex flex-col">
 							{filteredItems.map((section) => {
@@ -249,20 +382,38 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 									<Link
 										key={section.id}
 										to={section.id}
-										className={cn(
-											"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
-											isActive
-												? "bg-accent text-accent-foreground"
-												: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+										className={settingsListItemClass(
+											isActive,
+											"gap-2 px-3 text-left",
 										)}
 									>
 										{section.icon}
-										<span className="flex-1">{section.label}</span>
+										<span className="flex-1">{i18n._(section.label)}</span>
 										{count !== undefined && count > 0 && (
 											<span className="text-xs text-muted-foreground bg-accent/50 px-1.5 py-0.5 rounded">
 												{count}
 											</span>
 										)}
+										{!matchCounts &&
+											section.section === "hosts" &&
+											hostsNeedingUpdate > 0 && (
+												<span
+													className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-amber-700 ring-1 ring-inset ring-amber-500/35 dark:text-amber-300"
+													title={i18n._({
+														...msg({
+															message:
+																"{count} hosts run an older host service than this app",
+														}),
+														values: { count: hostsNeedingUpdate },
+													})}
+												>
+													<span
+														aria-hidden="true"
+														className="size-1.5 rounded-full bg-amber-500"
+													/>
+													{hostsNeedingUpdate}
+												</span>
+											)}
 									</Link>
 								);
 							})}

@@ -291,12 +291,40 @@ export interface IpcSuccessResponse {
 /**
  * Error response format (daemon -> client)
  */
+/**
+ * Why createOrAttach could not bring a PTY up, as a value rather than prose.
+ *
+ * SHELL_EXITED: the PTY opened and the shell process ended before it was
+ * ready — the user's shell, rc files, or preset command. The other kinds
+ * mean the PTY helper subprocess itself failed and are the host's problem.
+ */
+export type TerminalSpawnFailureCause =
+	| {
+			kind: "SHELL_EXITED";
+			shell: string;
+			args: string[];
+			exitCode: number;
+			signal?: number;
+			/** First characters the process wrote before exiting; shells print why they died here. */
+			outputHead: string;
+	  }
+	| {
+			kind: "PTY_SPAWN_FAILED";
+			shell: string;
+			/** Exit code of the helper subprocess, or null if it is still running. */
+			exitCode: number | null;
+			/** The helper's own report (pty.spawn threw, or the subprocess could not start). */
+			error?: string;
+	  }
+	| { kind: "PTY_SPAWN_TIMEOUT"; shell: string };
+
 export interface IpcErrorResponse {
 	id: string;
 	ok: false;
 	error: {
 		code: string;
 		message: string;
+		cause?: TerminalSpawnFailureCause;
 	};
 }
 

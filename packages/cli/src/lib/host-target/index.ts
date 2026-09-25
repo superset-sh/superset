@@ -1,3 +1,4 @@
+export { resolveCloudWorkspaceTarget } from "./resolveCloudWorkspaceTarget";
 export {
 	type HostFlags,
 	requireHostTarget,
@@ -5,6 +6,7 @@ export {
 } from "./resolveHostFlags";
 export {
 	type HostServiceClient,
+	type HostWsEndpoint,
 	type ResolvedHostTarget,
 	resolveHostTarget,
 } from "./resolveHostTarget";

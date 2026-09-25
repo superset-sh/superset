@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 export type PortKillResult = { success: boolean; error?: string };
@@ -40,7 +42,11 @@ export async function killPortTarget(
 		if (!localKill) {
 			return {
 				success: false,
-				error: "No host is available for this port",
+				error: i18n._(
+					msg({
+						message: "No host is available for this port",
+					}),
+				),
 			};
 		}
 

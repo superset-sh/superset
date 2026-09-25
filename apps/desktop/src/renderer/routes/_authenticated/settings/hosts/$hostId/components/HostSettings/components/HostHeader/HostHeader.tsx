@@ -1,7 +1,8 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LuPencil } from "react-icons/lu";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 
 interface HostHeaderProps {
 	name: string;
@@ -16,7 +17,8 @@ export function HostHeader({
 	machineId,
 	canRename,
 }: HostHeaderProps) {
-	const { v2Hosts: hostActions } = useOptimisticCollectionActions();
+	const { t } = useLingui();
+	const { v2Hosts: hostActions } = useOptimisticActions();
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(name);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +75,9 @@ export function HostHeader({
 						</span>
 						<input
 							ref={inputRef}
-							aria-label="Host name"
+							aria-label={t({
+								message: "Host name",
+							})}
 							size={1}
 							className="col-start-1 row-start-1 bg-transparent border-b border-border outline-none focus:border-foreground w-full p-0"
 							value={draft}
@@ -96,7 +100,9 @@ export function HostHeader({
 						type="button"
 						onClick={() => setIsEditing(true)}
 						className="flex items-center gap-2 text-left hover:text-foreground"
-						title="Rename host"
+						title={t({
+							message: "Rename host",
+						})}
 					>
 						<h2 className="text-xl font-semibold">{name}</h2>
 						<LuPencil className="size-4 text-muted-foreground" />
@@ -106,7 +112,7 @@ export function HostHeader({
 				)}
 			</div>
 			<p className="text-sm text-muted-foreground mt-1">
-				{isOnline ? "Online" : "Offline"} ·{" "}
+				{isOnline ? <Trans>Online</Trans> : <Trans>Offline</Trans>} ·{" "}
 				<span className="font-mono">{machineId}</span>
 			</p>
 		</div>

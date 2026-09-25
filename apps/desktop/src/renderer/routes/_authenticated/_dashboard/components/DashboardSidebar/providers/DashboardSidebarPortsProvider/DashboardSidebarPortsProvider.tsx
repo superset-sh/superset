@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 import {
 	type DashboardSidebarPortGroup,
 	useDashboardSidebarPortsData,
-} from "../../components/DashboardSidebarPortsList/hooks/useDashboardSidebarPortsData";
+} from "../../hooks/useDashboardSidebarPortsData";
 
 interface DashboardSidebarPortsContextValue {
 	workspacePortGroups: DashboardSidebarPortGroup[];
@@ -13,13 +13,23 @@ interface DashboardSidebarPortsContextValue {
 const DashboardSidebarPortsContext =
 	createContext<DashboardSidebarPortsContextValue | null>(null);
 
-function DashboardSidebarPortsProviderInner({
+export function DashboardSidebarPortsProvider({
+	enabled = true,
 	children,
 }: {
+	// Port data drives per-host queries, polling, and `port:changed`
+	// subscriptions. Skip all of it when nothing will render ports (e.g. the
+	// collapsed sidebar) — the flag is forwarded into the data hook rather than
+	// branching the rendered element type here. This provider now wraps the
+	// whole dashboard body (not just the sidebar), so switching between a bare
+	// fragment and this component on `enabled` changes would remount
+	// everything below it — including the routed workspace content — on every
+	// sidebar collapse/expand.
+	enabled?: boolean;
 	children: ReactNode;
 }) {
 	const { workspacePortGroups, totalPortCount } =
-		useDashboardSidebarPortsData();
+		useDashboardSidebarPortsData(enabled);
 
 	const value = useMemo<DashboardSidebarPortsContextValue>(
 		() => ({
@@ -39,27 +49,6 @@ function DashboardSidebarPortsProviderInner({
 	);
 }
 
-export function DashboardSidebarPortsProvider({
-	enabled = true,
-	children,
-}: {
-	// Port data drives per-host queries, polling, and `port:changed`
-	// subscriptions. Skip all of it when nothing will render ports (e.g. the
-	// collapsed sidebar). Consumers then read empty defaults, which is correct —
-	// there is intentionally no provider in that state.
-	enabled?: boolean;
-	children: ReactNode;
-}) {
-	if (!enabled) {
-		return <>{children}</>;
-	}
-	return (
-		<DashboardSidebarPortsProviderInner>
-			{children}
-		</DashboardSidebarPortsProviderInner>
-	);
-}
-
 function useDashboardSidebarPortsContext(): DashboardSidebarPortsContextValue {
 	const context = useContext(DashboardSidebarPortsContext);
 	if (!context) {
@@ -72,7 +61,7 @@ function useDashboardSidebarPortsContext(): DashboardSidebarPortsContextValue {
 	return context;
 }
 
-/** All port groups + total count, for the consolidated bottom panel. */
+/** All port groups + total count, for the top-bar ports dropdown. */
 export function useDashboardSidebarAllPorts(): {
 	workspacePortGroups: DashboardSidebarPortGroup[];
 	totalPortCount: number;

@@ -1,0 +1,15 @@
+[Configuration]
+FontName=@TERMINAL_FONT@
+MiscAlwaysShowTabs=FALSE
+MiscBell=FALSE
+MiscCursorBlinks=FALSE
+MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
+MiscDefaultGeometry=110x30
+MiscMenubarDefault=FALSE
+MiscToolbarDefault=FALSE
+MiscHighlightUrls=TRUE
+ScrollingBar=TERMINAL_SCROLLBAR_NONE
+ColorForeground=#e6e1dc
+ColorBackground=#151110
+ColorCursor=#e6e1dc
+ColorPalette=#1c1a19;#f07178;#c3e88d;#ffcb6b;#82aaff;#c792ea;#89ddff;#d6d0ca;#5c5552;#ff8b92;#ddffa7;#ffe585;#9cc4ff;#e1acff;#a3f7ff;#ffffff

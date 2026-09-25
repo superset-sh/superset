@@ -1,13 +1,15 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { resolveWorkspaceHost } from "../../../lib/cloud-workspaces";
 import { command } from "../../../lib/command";
-import { resolveHostFilter, resolveHostTarget } from "../../../lib/host-target";
+import { resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
-	description: "Delete workspaces by ID",
+	description:
+		"Delete workspaces by ID: cloud workspaces by default if your account has them (tearing down the sandbox stops its billing), else on this machine; --local or --host picks a host",
 	args: [positional("ids").required().variadic().desc("Workspace IDs")],
 	options: {
-		host: string().desc("Skip the cloud lookup and target this host directly"),
-		local: boolean().desc("Skip the cloud lookup and target this machine"),
+		host: string().desc("Host the workspaces live on"),
+		local: boolean().desc("The workspaces are on this machine"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
@@ -16,32 +18,45 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const explicitHostId = resolveHostFilter({
-			host: options.host ?? undefined,
-			local: options.local ?? undefined,
+		const hostId = await resolveWorkspaceHost(
+			{ host: options.host, local: options.local },
+			ctx.api,
+			organizationId,
+		);
+		if (!hostId) {
+			const deleted: string[] = [];
+			const missing: string[] = [];
+			for (const id of ids) {
+				const result = await ctx.api.cloudWorkspace.delete.mutate({ id });
+				(result.deleted ? deleted : missing).push(id);
+			}
+			if (missing.length > 0) {
+				const alsoDeleted =
+					deleted.length > 0 ? ` (deleted: ${deleted.join(", ")})` : "";
+				throw new CLIError(
+					`No cloud workspace in this organization: ${missing.join(", ")}${alsoDeleted}`,
+					"Pass --local or --host <id> if it lives on a machine",
+				);
+			}
+			return {
+				data: { deleted },
+				message:
+					deleted.length === 1
+						? `Deleted cloud workspace ${deleted[0]}`
+						: `Deleted ${deleted.length} cloud workspaces`,
+			};
+		}
+
+		const target = await resolveHostTarget({
+			requestedHostId: hostId,
+			organizationId,
+			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const deleted: string[] = [];
 		const warnings: string[] = [];
 		for (const id of ids) {
-			let hostId = explicitHostId;
-			if (!hostId) {
-				const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
-					organizationId,
-					id,
-				});
-				if (!cloudWorkspace) {
-					throw new CLIError(`Workspace not found: ${id}`);
-				}
-				hostId = cloudWorkspace.hostId;
-			}
-
-			const target = resolveHostTarget({
-				requestedHostId: hostId,
-				organizationId,
-				userJwt: ctx.bearer,
-			});
-
 			const result = await target.client.workspace.delete.mutate({ id });
 			deleted.push(id);
 			for (const warning of result.warnings ?? []) {

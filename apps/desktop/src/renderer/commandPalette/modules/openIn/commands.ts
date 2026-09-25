@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
+import { errorMessage } from "@superset/i18n/errors";
 import type { ExternalApp } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { ArrowUpRightIcon } from "lucide-react";
@@ -24,7 +27,7 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 				hostServiceStatus: context.hostServiceStatus,
 				machineId: context.localMachineId,
 			},
-			{ action: "resolve the workspace path" },
+			{ action: "resolveWorkspacePath" },
 		);
 		return null;
 	}
@@ -34,13 +37,26 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 			context.activeHostUrl,
 		).workspace.get.query({ id: context.workspace.id });
 		if (!workspace?.worktreePath) {
-			toast.error("Workspace path is not available");
+			toast.error(
+				i18n._(
+					msg({
+						message: "Workspace path is not available",
+					}),
+				),
+			);
 			return null;
 		}
 		return workspace.worktreePath;
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		toast.error(`Failed to resolve workspace path: ${message}`);
+		const message = errorMessage(error);
+		toast.error(
+			i18n._({
+				...msg({
+					message: "Failed to resolve workspace path: {message}",
+				}),
+				values: { message },
+			}),
+		);
 		return null;
 	}
 }
@@ -63,8 +79,15 @@ async function openIn(
 			});
 		}
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		toast.error(`Failed to open in ${app}: ${message}`);
+		const message = errorMessage(error);
+		toast.error(
+			i18n._({
+				...msg({
+					message: "Failed to open in {app}: {message}",
+				}),
+				values: { app, message },
+			}),
+		);
 	}
 }
 
@@ -88,7 +111,10 @@ export const openInProvider: CommandProvider = {
 
 		const submenuChildren: Command[] = APP_OPTIONS.map((option) => ({
 			id: `openIn.${option.id}`,
-			title: option.label,
+			title: {
+				id: `commandPalette.openIn.app.${option.id}`,
+				message: option.label,
+			},
 			section: "workspace",
 			iconUrl: option.darkIcon,
 			keywords: ["editor", option.id, option.label],
@@ -108,7 +134,12 @@ export const openInProvider: CommandProvider = {
 		if (preferredOption) {
 			commands.push({
 				id: `openIn.preferred:${preferredOption.id}`,
-				title: `Open in ${preferredOption.label}`,
+				title: {
+					...msg({
+						message: "Open in {app}",
+					}),
+					values: { app: preferredOption.label },
+				},
 				section: "workspace",
 				iconUrl: preferredOption.darkIcon,
 				hotkeyId: "OPEN_IN_APP",
@@ -119,7 +150,7 @@ export const openInProvider: CommandProvider = {
 
 		commands.push({
 			id: "openIn.menu",
-			title: "Open in…",
+			title: msg({ message: "Open in…" }),
 			section: "workspace",
 			icon: ArrowUpRightIcon,
 			keywords: ["editor", "finder", "cursor", "vscode"],

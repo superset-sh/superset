@@ -165,8 +165,6 @@ class MockTerminalHostClient extends EventEmitter {
 }
 
 let mockClient = new MockTerminalHostClient();
-let unregisteredDaemonSessions: string[] = [];
-let closedHistoryWriters: string[] = [];
 
 mock.module("../../terminal-host/client", () => ({
 	getTerminalHostClient: () => mockClient,
@@ -204,9 +202,7 @@ mock.module("@superset/local-db", () => ({
 mock.module("../port-manager", () => ({
 	portManager: {
 		upsertSession: () => {},
-		unregisterSession: (paneId: string) => {
-			unregisteredDaemonSessions.push(paneId);
-		},
+		unregisterSession: () => {},
 		checkOutputForHint: () => {},
 	},
 }));
@@ -231,9 +227,7 @@ mock.module("./history-manager", () => ({
 
 		writeToHistory() {}
 
-		closeHistoryWriter(paneId: string) {
-			closedHistoryWriters.push(paneId);
-		}
+		closeHistoryWriter() {}
 
 		closeAllSync() {}
 
@@ -248,8 +242,6 @@ const { DaemonTerminalManager } = await import("./daemon-manager");
 describe("DaemonTerminalManager kill tracking", () => {
 	beforeEach(() => {
 		mockClient = new MockTerminalHostClient();
-		unregisteredDaemonSessions = [];
-		closedHistoryWriters = [];
 	});
 
 	afterAll(() => {
@@ -311,36 +303,6 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		mockClient.emit("exit", paneId, 0, 15);
 		expect(exitReason).toBe("exited");
-	});
-
-	it("releases daemon state for sessions already marked dead on disconnect", () => {
-		const manager = new DaemonTerminalManager();
-		const paneId = "pane-already-dead";
-		const sessions = (
-			manager as unknown as { sessions: Map<string, SessionInfo> }
-		).sessions;
-		sessions.set(paneId, {
-			paneId,
-			workspaceId: "ws-1",
-			isAlive: false,
-			lastActive: Date.now(),
-			cwd: "",
-			pid: 123,
-			cols: 80,
-			rows: 24,
-		});
-
-		let disconnectEmits = 0;
-		manager.on(`disconnect:${paneId}`, () => {
-			disconnectEmits++;
-		});
-
-		mockClient.emit("disconnected");
-
-		expect(sessions.get(paneId)).toMatchObject({ isAlive: false, pid: null });
-		expect(unregisteredDaemonSessions).toEqual([paneId]);
-		expect(closedHistoryWriters).toEqual([paneId]);
-		expect(disconnectEmits).toBe(0);
 	});
 
 	it("supersedes older createOrAttach requests for the same pane", async () => {

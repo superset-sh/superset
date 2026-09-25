@@ -2,12 +2,12 @@ import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
 import { env } from "../../env";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 
 function subtractMonthsClamped(date: Date, months: number) {
 	const result = new Date(date);
@@ -33,9 +33,10 @@ async function requireOwnerWithCustomer(ctx: {
 }) {
 	const activeOrgId = ctx.activeOrganizationId;
 	if (!activeOrgId) {
-		throw new TRPCError({
+		throw userError({
 			code: "BAD_REQUEST",
 			message: "No active organization",
+			i18nKey: "serverError.billing.noActiveOrganization",
 		});
 	}
 
@@ -53,19 +54,79 @@ async function requireOwnerWithCustomer(ctx: {
 	]);
 
 	if (!member || member.role !== "owner") {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Only owners can manage billing",
+			i18nKey: "serverError.billing.onlyOwnersCanManageBilling",
 		});
 	}
 
 	return organization?.stripeCustomerId ?? null;
 }
 
+const EMPTY_ACTIVE_PLAN = {
+	plan: "free" as const,
+	status: null,
+	cancelAt: null,
+	periodStart: null,
+	periodEnd: null,
+	billingInterval: null,
+	/**
+	 * Free because a subscription ended, not because there never was one. The
+	 * distinction has to be made here, from rows we already read: the caller
+	 * uses it to decide whether to ask Stripe about an unpaid invoice, and
+	 * doing that for every free organization would put a Stripe round-trip on
+	 * every app load for everyone who ever paid us.
+	 */
+	lapsed: false,
+};
+
+function isUnpaid(invoice: Stripe.Invoice): boolean {
+	return invoice.status === "open" || invoice.status === "uncollectible";
+}
+
+/**
+ * Drafts are not owed yet and voided invoices never will be; everything else
+ * — paid, open, uncollectible — is part of the customer's billing history.
+ */
+function isBillableInvoice(invoice: Stripe.Invoice): boolean {
+	return invoice.status === "paid" || isUnpaid(invoice);
+}
+
+function toInvoiceSummary(
+	invoice: Stripe.Invoice,
+	options: { includeHostedUrl?: boolean } = {},
+) {
+	return {
+		id: invoice.id,
+		date: invoice.created,
+		status: invoice.status,
+		isUnpaid: isUnpaid(invoice),
+		amountPaid: invoice.amount_paid,
+		// amount_due is frozen at finalization; amount_remaining is what is
+		// still owed after any partial payment through the hosted invoice.
+		amountDue: invoice.amount_remaining ?? invoice.amount_due,
+		currency: invoice.currency,
+		hostedInvoiceUrl:
+			options.includeHostedUrl === false ? null : invoice.hosted_invoice_url,
+		dueDate: invoice.due_date,
+	};
+}
+
+async function isBillingOwner(userId: string, organizationId: string) {
+	const member = await db.query.members.findFirst({
+		where: and(
+			eq(members.userId, userId),
+			eq(members.organizationId, organizationId),
+		),
+	});
+	return member?.role === "owner";
+}
+
 export const billingRouter = {
 	activePlan: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
-		if (!activeOrgId) return { plan: "free" as const, status: null };
+		if (!activeOrgId) return { ...EMPTY_ACTIVE_PLAN, organizationId: null };
 
 		const subscription = await db.query.subscriptions.findFirst({
 			where: and(
@@ -76,18 +137,43 @@ export const billingRouter = {
 		});
 
 		if (!subscription) {
-			return { plan: "free" as const, status: null };
+			const previous = await db.query.subscriptions.findFirst({
+				where: eq(subscriptions.referenceId, activeOrgId),
+				orderBy: desc(subscriptions.createdAt),
+				columns: { status: true },
+			});
+
+			// `unpaid` as well as `canceled`: which one Stripe lands on after it
+			// stops retrying is a dashboard setting, and checking only for
+			// `canceled` would make this silently stop working if that changed.
+			// `incomplete` is excluded on purpose — that subscription never began.
+			return {
+				...EMPTY_ACTIVE_PLAN,
+				organizationId: activeOrgId,
+				lapsed:
+					previous?.status === "canceled" || previous?.status === "unpaid",
+			};
 		}
 
-		return { plan: subscription.plan, status: subscription.status };
+		return {
+			organizationId: activeOrgId,
+			plan: subscription.plan,
+			status: subscription.status,
+			cancelAt: subscription.cancelAt,
+			periodStart: subscription.periodStart,
+			periodEnd: subscription.periodEnd,
+			billingInterval: subscription.billingInterval,
+			lapsed: false,
+		};
 	}),
 
 	invoices: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) {
-			throw new TRPCError({
+			throw userError({
 				code: "BAD_REQUEST",
 				message: "No active organization",
+				i18nKey: "serverError.billing.noActiveOrganization",
 			});
 		}
 
@@ -105,19 +191,52 @@ export const billingRouter = {
 		const invoiceList = await stripeClient.invoices.list({
 			customer: organization.stripeCustomerId,
 			limit: 100,
-			status: "paid",
 			created: { gte: Math.floor(twelveMonthsAgo.getTime() / 1000) },
 		});
 
 		return invoiceList.data
+			.filter(isBillableInvoice)
 			.sort((a, b) => b.created - a.created)
-			.map((invoice) => ({
-				id: invoice.id,
-				date: invoice.created,
-				amount: invoice.amount_paid,
-				currency: invoice.currency,
-				hostedInvoiceUrl: invoice.hosted_invoice_url,
-			}));
+			.map((invoice) => toInvoiceSummary(invoice));
+	}),
+
+	/**
+	 * The invoice a failed payment is about. Drives the amount and the direct
+	 * "Pay now" link on the payment-failure surfaces, which otherwise can only
+	 * say that something failed.
+	 */
+	outstandingInvoice: protectedProcedure.query(async ({ ctx }) => {
+		const activeOrgId = ctx.activeOrganizationId;
+		if (!activeOrgId) {
+			throw userError({
+				code: "BAD_REQUEST",
+				message: "No active organization",
+				i18nKey: "serverError.billing.noActiveOrganization",
+			});
+		}
+
+		const organization = await db.query.organizations.findFirst({
+			where: eq(organizations.id, activeOrgId),
+			columns: { stripeCustomerId: true },
+		});
+
+		if (!organization?.stripeCustomerId) {
+			return null;
+		}
+
+		const invoiceList = await stripeClient.invoices.list({
+			customer: organization.stripeCustomerId,
+			limit: 20,
+		});
+
+		const unpaid = invoiceList.data
+			.filter(isUnpaid)
+			.sort((a, b) => b.created - a.created)[0];
+
+		if (!unpaid) return null;
+
+		const isOwner = await isBillingOwner(ctx.session.user.id, activeOrgId);
+		return toInvoiceSummary(unpaid, { includeHostedUrl: isOwner });
 	}),
 
 	details: protectedProcedure.query(async ({ ctx }) => {
@@ -191,9 +310,10 @@ export const billingRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const stripeCustomerId = await requireOwnerWithCustomer(ctx);
 			if (!stripeCustomerId) {
-				throw new TRPCError({
+				throw userError({
 					code: "BAD_REQUEST",
 					message: "No Stripe customer found",
+					i18nKey: "serverError.billing.noStripeCustomerFound",
 				});
 			}
 

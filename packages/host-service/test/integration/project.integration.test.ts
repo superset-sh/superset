@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { TRPCClientError } from "@trpc/client";
-import { cloudOk } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
 import { createProjectScenario } from "../helpers/scenarios";
@@ -61,6 +60,49 @@ describe("project router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
+	test("setIcon persists a custom icon and clears it with null", async () => {
+		const scenario = await createProjectScenario();
+		dispose = scenario.dispose;
+
+		const dataUri = "data:image/png;base64,iVBORw0KGgo=";
+		await scenario.host.trpc.project.setIcon.mutate({
+			projectId: scenario.projectId,
+			icon: dataUri,
+		});
+		let got = await scenario.host.trpc.project.get.query({
+			projectId: scenario.projectId,
+		});
+		expect(got?.icon).toBe(dataUri);
+
+		await scenario.host.trpc.project.setIcon.mutate({
+			projectId: scenario.projectId,
+			icon: null,
+		});
+		got = await scenario.host.trpc.project.get.query({
+			projectId: scenario.projectId,
+		});
+		expect(got?.icon).toBeNull();
+	});
+
+	test("setIcon rejects a non-image string and a missing project", async () => {
+		const scenario = await createProjectScenario();
+		dispose = scenario.dispose;
+
+		await expect(
+			scenario.host.trpc.project.setIcon.mutate({
+				projectId: scenario.projectId,
+				icon: "https://example.com/not-a-data-uri.png",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+
+		await expect(
+			scenario.host.trpc.project.setIcon.mutate({
+				projectId: randomUUID(),
+				icon: "data:image/png;base64,iVBORw0KGgo=",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+	});
+
 	test("findBackfillConflict always returns conflict: null", async () => {
 		const scenario = await createProjectScenario();
 		dispose = scenario.dispose;
@@ -111,15 +153,8 @@ describe("project router integration", () => {
 		expect(result.candidates).toEqual([]);
 	});
 
-	test("findByPath falls back to cloud when no local project + parseable remote", async () => {
-		const host = await createTestHost({
-			apiOverrides: {
-				"v2Project.findByGitHubRemote.query":
-					cloudOk.v2ProjectFindByGitHubRemote([
-						{ id: "cloud-project-id", name: "octocat/hello" },
-					]),
-			},
-		});
+	test("findByPath never consults the cloud — unknown repo means create fresh", async () => {
+		const host = await createTestHost();
 		const repo = await createGitFixture();
 		await repo.git.addRemote("origin", "https://github.com/octocat/hello.git");
 		dispose = async () => {
@@ -130,15 +165,11 @@ describe("project router integration", () => {
 		const result = await host.trpc.project.findByPath.query({
 			repoPath: repo.repoPath,
 		});
-		expect(result.candidates).toHaveLength(1);
-		expect(result.candidates[0]).toMatchObject({
-			id: "cloud-project-id",
-			name: "octocat/hello",
-		});
+		expect(result.candidates).toEqual([]);
 		expect(
 			host.apiCalls.some(
 				(c) => c.path === "v2Project.findByGitHubRemote.query",
 			),
-		).toBe(true);
+		).toBe(false);
 	});
 });

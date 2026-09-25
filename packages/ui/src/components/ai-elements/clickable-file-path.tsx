@@ -1,5 +1,7 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
+
 export type ClickableFilePathProps = {
 	/** Full file path, used for the aria-label. */
 	path: string;
@@ -23,6 +25,7 @@ export function ClickableFilePath({
 	onOpen,
 	className,
 }: ClickableFilePathProps) {
+	const { t } = useLingui();
 	const label =
 		display ?? (path.includes("/") ? path.split("/").pop() || path : path);
 
@@ -35,7 +38,9 @@ export function ClickableFilePath({
 		<span
 			role="button"
 			tabIndex={0}
-			aria-label={`Open ${path} in file pane`}
+			aria-label={t({
+				message: `Open ${path} in file pane`,
+			})}
 			className={`cursor-pointer underline-offset-2 transition-colors hover:text-foreground hover:underline ${className ?? ""}`}
 			onClick={(e) => {
 				e.stopPropagation();

@@ -1,20 +1,19 @@
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useCommandWatcher } from "./hooks/useCommandWatcher";
+import { useCliTerminalScriptImport } from "./hooks/useCliTerminalScriptImport";
 import { useDefaultV2TerminalPresets } from "./hooks/useDefaultV2TerminalPresets";
-import { useDevicePresence } from "./hooks/useDevicePresence";
-import { usePlaceLocalWorktreesInSidebar } from "./hooks/usePlaceLocalWorktreesInSidebar";
+import { usePlaceProjectsInSidebar } from "./hooks/usePlaceProjectsInSidebar";
+import { usePlaceWorktreesInSidebar } from "./hooks/usePlaceWorktreesInSidebar";
 
 /**
  * Component that runs agent-related hooks requiring CollectionsProvider context.
- * useCommandWatcher uses useCollections which must be inside the provider.
  */
 export function AgentHooks() {
-	const { activeHostUrl } = useLocalHostService();
-	useDevicePresence();
-	useCommandWatcher();
+	const { activeHostUrl, activeOrganizationId } = useLocalHostService();
 	// Seeds the default v2 terminal presets and warms the local host's agent
 	// config cache for Settings.
 	useDefaultV2TerminalPresets(activeHostUrl);
-	usePlaceLocalWorktreesInSidebar();
+	useCliTerminalScriptImport(activeOrganizationId);
+	usePlaceProjectsInSidebar();
+	usePlaceWorktreesInSidebar();
 	return null;
 }

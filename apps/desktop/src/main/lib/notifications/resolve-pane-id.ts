@@ -15,7 +15,6 @@ export function resolvePaneIdFromTabsState(
 	paneId: string | undefined,
 	tabId: string | undefined,
 	workspaceId: string | undefined,
-	sessionId: string | undefined,
 ): string | undefined {
 	if (paneId) {
 		return paneId;
@@ -40,16 +39,6 @@ export function resolvePaneIdFromTabsState(
 		}
 	}
 
-	if (sessionId) {
-		for (const [existingPaneId, pane] of Object.entries(
-			tabsState.panes ?? {},
-		)) {
-			if (pane.chat?.sessionId === sessionId) {
-				return existingPaneId;
-			}
-		}
-	}
-
 	return undefined;
 }
 
@@ -62,7 +51,6 @@ export function resolvePaneId(
 	paneId: string | undefined,
 	tabId: string | undefined,
 	workspaceId: string | undefined,
-	sessionId: string | undefined,
 ): string | undefined {
 	if (paneId) {
 		return paneId;
@@ -74,7 +62,6 @@ export function resolvePaneId(
 			undefined,
 			tabId,
 			workspaceId,
-			sessionId,
 		);
 	} catch {
 		// App state not initialized yet, ignore
