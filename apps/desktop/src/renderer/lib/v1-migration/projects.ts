@@ -1,7 +1,7 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import { getBaseName } from "renderer/lib/pathBasename";
 
-export interface V1ProjectLike {
+interface V1ProjectLike {
 	id: string;
 	name: string;
 	mainRepoPath: string;
@@ -24,7 +24,7 @@ export type ProjectImportOutcome =
 	  }
 	| { kind: "needs-relocate"; v2ProjectId: string; message: string };
 
-export type UnmigratableRepoReason = "repo-path-missing" | "not-a-git-repo";
+type UnmigratableRepoReason = "repo-path-missing" | "not-a-git-repo";
 
 export type ProjectImportDecision =
 	| { kind: "already-imported"; v2ProjectId: string }
@@ -106,7 +106,7 @@ export function classifyUnmigratableRepoError(
 	return null;
 }
 
-export function isAlreadySetUpElsewhereError(err: unknown): boolean {
+function isAlreadySetUpElsewhereError(err: unknown): boolean {
 	if (!(err instanceof Error)) return false;
 	return err.message.includes("Project is already set up on this device at");
 }

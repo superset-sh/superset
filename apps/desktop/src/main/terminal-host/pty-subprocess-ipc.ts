@@ -15,7 +15,7 @@ export enum PtySubprocessIpcType {
 	Error = 105,
 }
 
-export interface PtySubprocessFrame {
+interface PtySubprocessFrame {
 	type: PtySubprocessIpcType;
 	payload: Buffer;
 }

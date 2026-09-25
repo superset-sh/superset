@@ -1,1 +1,0 @@
-export { PostHogSurfaceTagger } from "./PostHogSurfaceTagger";

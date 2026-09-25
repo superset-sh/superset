@@ -1,57 +1,54 @@
 import { plural } from "@lingui/core/macro";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
-import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
-import {
-	type AgentDefinitionId,
-	getEnabledAgentConfigs,
-	getFallbackAgentId,
-	indexResolvedAgentConfigs,
-} from "@superset/shared/agent-settings";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
-import { Label } from "@superset/ui/label";
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
-import { Spinner } from "@superset/ui/spinner";
-import { Switch } from "@superset/ui/switch";
 import { ChevronDownIcon } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
-import { HiCheck, HiMiniPlay, HiXMark } from "react-icons/hi2";
-import { LuCircle } from "react-icons/lu";
+import { useEffect, useMemo, useState } from "react";
+import { HiCheck, HiMiniPlay } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
-import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
+import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
+import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
-import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { useWorkspaceCreateDefaultsStore } from "renderer/stores/workspace-create-defaults";
+import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 
-type TaskStatus = "pending" | "creating" | "done" | "failed";
-type TaskLaunchAgent = AgentDefinitionId | "none";
-
-function BatchStatusIcon({ status }: { status: TaskStatus }) {
-	switch (status) {
-		case "pending":
-			return <LuCircle className="size-3 text-muted-foreground" />;
-		case "creating":
-			return <Spinner className="size-3" />;
-		case "done":
-			return <HiCheck className="size-3 text-green-500" />;
-		case "failed":
-			return <HiXMark className="size-3 text-destructive" />;
-	}
-}
+const AGENT_STORAGE_KEY = "lastSelectedV2TaskBatchAgent";
+const NONE = "none" as const;
+type SelectedAgent = string | typeof NONE;
 
 interface RunInWorkspacePopoverProps {
 	tasks: TaskWithStatus[];
 	onComplete: () => void;
+}
+
+function synthesizeTaskPrompt(task: TaskWithStatus): string {
+	const header = `${task.slug}: ${task.title}`;
+	const body = task.description?.trim();
+	return body ? `${header}\n\n${body}` : header;
+}
+
+function readStoredAgent(): SelectedAgent {
+	if (typeof window === "undefined") return NONE;
+	const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
+	return stored ? (stored as SelectedAgent) : NONE;
 }
 
 export function RunInWorkspacePopover({
@@ -59,208 +56,231 @@ export function RunInWorkspacePopover({
 	onComplete,
 }: RunInWorkspacePopoverProps) {
 	const { t } = useLingui();
-	const { data: recentProjects = [] } =
-		electronTrpc.projects.getRecents.useQuery();
-	const createWorkspace = useCreateWorkspace({ skipNavigation: true });
-	const terminalCreateOrAttach =
-		electronTrpc.terminal.createOrAttach.useMutation();
-	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
-	const agentPresets = agentPresetsQuery.data ?? [];
-	const enabledAgentPresets = useMemo(
-		() => getEnabledAgentConfigs(agentPresets),
-		[agentPresets],
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
+	const { otherHosts } = useWorkspaceHostOptions();
+	const { submit } = useWorkspaceCreates();
+
+	const lastHostId = useWorkspaceCreateDefaultsStore(
+		(state) => state.lastHostId,
 	);
-	const agentConfigsById = useMemo(
-		() => indexResolvedAgentConfigs(agentPresets),
-		[agentPresets],
+	const setLastHostId = useWorkspaceCreateDefaultsStore(
+		(state) => state.setLastHostId,
 	);
-	const fallbackAgentId = useMemo(
-		() => getFallbackAgentId(agentPresets),
-		[agentPresets],
+	const lastProjectId = useWorkspaceCreateDefaultsStore(
+		(state) => state.lastProjectId,
 	);
-	const selectableAgents = useMemo(
-		() => enabledAgentPresets.map((preset) => preset.id),
-		[enabledAgentPresets],
+	const setLastProjectId = useWorkspaceCreateDefaultsStore(
+		(state) => state.setLastProjectId,
 	);
+
+	const [hostId, setHostId] = useState<string | null>(
+		lastHostId ?? machineId ?? null,
+	);
+
+	const launchHostUrl = useHostUrl(hostId);
+	const setUpProjectIds = useSelectedHostProjectIds(hostId);
+
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
+				needsSetup:
+					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
+
+	const seededProjectId =
+		lastProjectId &&
+		recentProjects.some((project) => project.id === lastProjectId)
+			? lastProjectId
+			: (recentProjects[0]?.id ?? null);
+	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+		seededProjectId,
+	);
+	useEffect(() => {
+		if (
+			selectedProjectId &&
+			recentProjects.some((project) => project.id === selectedProjectId)
+		) {
+			return;
+		}
+		setSelectedProjectId(seededProjectId);
+	}, [seededProjectId, selectedProjectId, recentProjects]);
+	const selectedProject = recentProjects.find(
+		(project) => project.id === selectedProjectId,
+	);
+
+	const { agents: agentConfigs, isFetched: agentsFetched } =
+		useAgentChoices(launchHostUrl);
+	const validAgentIds = useMemo(
+		() => new Set(agentConfigs.map((agent) => agent.id)),
+		[agentConfigs],
+	);
+
+	const [selectedAgent, setSelectedAgentState] =
+		useState<SelectedAgent>(readStoredAgent);
+	useEffect(() => {
+		if (!agentsFetched) return;
+		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
+		const stored = readStoredAgent();
+		if (stored !== NONE && validAgentIds.has(stored)) {
+			setSelectedAgentState(stored);
+		} else if (selectedAgent !== NONE) {
+			setSelectedAgentState(NONE);
+		}
+	}, [agentsFetched, validAgentIds, selectedAgent]);
+	const setSelectedAgent = (next: SelectedAgent) => {
+		setSelectedAgentState(next);
+		if (typeof window !== "undefined") {
+			window.localStorage.setItem(AGENT_STORAGE_KEY, next);
+		}
+	};
 
 	const [open, setOpen] = useState(false);
-	const [isRunning, setIsRunning] = useState(false);
-	const [taskStatuses, setTaskStatuses] = useState<Map<string, TaskStatus>>(
-		new Map(),
-	);
-	const {
-		autoRun,
-		effectiveProjectId,
+	const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+
+	const submitBlocker = useMemo<string | null>(() => {
+		if (!selectedProjectId)
+			return t({
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				message: "No active host",
+			});
+		if (hostId !== machineId) {
+			const remote = otherHosts.find((host) => host.id === hostId);
+			if (!remote?.isOnline)
+				return t({
+					message: "Host is offline",
+				});
+		} else if (!activeHostUrl) {
+			return t({
+				message: "Host service is not running",
+			});
+		}
+		// Block while the host's project list is still loading — otherwise users
+		// can submit before we know whether the project is set up there.
+		if (setUpProjectIds === null)
+			return t({
+				message: "Checking host…",
+			});
+		if (selectedProject?.needsSetup === true) {
+			return t({
+				message: "Project not set up on this host",
+			});
+		}
+		// Agent UUIDs are host-scoped; block until the host-specific config
+		// query resolves and the selection is verified to exist there.
+		if (selectedAgent !== NONE) {
+			if (!agentsFetched)
+				return t({
+					message: "Checking agents…",
+				});
+			if (!validAgentIds.has(selectedAgent)) {
+				return t({
+					message: "Selected agent is not available on this host",
+				});
+			}
+		}
+		return null;
+	}, [
+		selectedProjectId,
+		selectedProject?.needsSetup,
+		setUpProjectIds,
 		selectedAgent,
-		setAutoRun,
-		setSelectedAgent,
-		setSelectedProjectId,
-	} = useAgentLaunchPreferences<TaskLaunchAgent>({
-		agentStorageKey: "lastSelectedAgent",
-		defaultAgent: fallbackAgentId ?? "none",
-		fallbackAgent: fallbackAgentId ?? "none",
-		validAgents: ["none", ...selectableAgents],
-		agentsReady: agentPresetsQuery.isFetched,
-		projectStorageKey: "lastOpenedInProjectId",
-		recentProjects,
-		autoRunStorageKey: "agentAutoRun",
-	});
+		agentsFetched,
+		validAgentIds,
+		hostId,
+		machineId,
+		otherHosts,
+		activeHostUrl,
+		t,
+	]);
 
-	const abortRef = useRef(false);
-	const selectedProject = recentProjects.find(
-		(p) => p.id === effectiveProjectId,
-	);
-
-	const buildLaunchRequest = (
-		task: TaskWithStatus,
-		workspaceId: string,
-	): AgentLaunchRequest | null =>
-		buildTaskAgentLaunchRequest({
-			task: {
-				id: task.id,
-				slug: task.slug,
-				title: task.title,
-				description: task.description,
-				priority: task.priority,
-				statusName: task.status.name,
-				labels: task.labels,
-			},
-			workspaceId,
-			selectedAgent,
-			source: "open-in-workspace",
-			autoRun,
-			configsById: agentConfigsById,
-		});
-
-	const handleRun = async () => {
-		if (!effectiveProjectId) return;
-		if (
-			selectedAgent !== "none" &&
-			!agentConfigsById.get(selectedAgent)?.enabled
-		) {
-			toast.error(
-				t({
-					message: "Enable an agent in Settings > Agents first",
-				}),
-			);
+	const handleRun = () => {
+		if (!selectedProjectId || !hostId) return;
+		if (submitBlocker) {
+			if (hostId === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "runTasksInWorkspaces",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
 			return;
 		}
 
-		abortRef.current = false;
-		setIsRunning(true);
+		const handles = tasks.map((task) =>
+			submit({
+				hostId,
+				snapshot: {
+					id: crypto.randomUUID(),
+					projectId: selectedProjectId,
+					name: task.title,
+					branch: deriveBranchName({
+						slug: task.slug,
+						title: task.title,
+						branch: task.branch,
+					}),
+					skipBranchPrefix: task.branch?.trim() ? true : undefined,
+					taskId: task.id,
+					agents:
+						selectedAgent === NONE
+							? undefined
+							: [
+									{
+										agent: selectedAgent,
+										prompt: synthesizeTaskPrompt(task),
+									},
+								],
+				},
+			}),
+		);
 
-		const initial = new Map<string, TaskStatus>();
-		for (const task of tasks) {
-			initial.set(task.id, "pending");
-		}
-		setTaskStatuses(initial);
-
-		let successCount = 0;
-		let failCount = 0;
-
-		for (const task of tasks) {
-			if (abortRef.current) break;
-
-			setTaskStatuses((prev) => {
-				const next = new Map(prev);
-				next.set(task.id, "creating");
-				return next;
-			});
-
-			try {
-				const branchName = deriveBranchName({
-					slug: task.slug,
-					title: task.title,
-					branch: task.branch,
-				});
-				const launchRequestTemplate = buildLaunchRequest(
-					task,
-					"pending-workspace",
-				);
-
-				const result = await createWorkspace.mutateAsyncWithPendingSetup(
-					{
-						projectId: effectiveProjectId,
-						name: task.title,
-						branchName,
-					},
-					{ agentLaunchRequest: launchRequestTemplate ?? undefined },
-				);
-
-				if (result.wasExisting && launchRequestTemplate) {
-					const launchRequest: AgentLaunchRequest = {
-						...launchRequestTemplate,
-						workspaceId: result.workspace.id,
-					};
-					const launchResult = await launchAgentSession(launchRequest, {
-						source: "open-in-workspace",
-						createOrAttach: (input) =>
-							terminalCreateOrAttach.mutateAsync(input),
-						write: (input) => terminalWrite.mutateAsync(input),
-					});
-					if (launchResult.status === "failed") {
-						throw new Error(
-							launchResult.error ?? "Failed to start agent session",
-						);
-					}
+		const promise = Promise.all(handles.map((handle) => handle.completed)).then(
+			(outcomes) => {
+				const failed = outcomes.filter((outcome) => !outcome.ok).length;
+				if (failed > 0) {
+					const firstFailure = outcomes.find((outcome) => !outcome.ok);
+					const details =
+						firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
+					throw new Error(
+						`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
+					);
 				}
+				return outcomes.length;
+			},
+		);
 
-				setTaskStatuses((prev) => {
-					const next = new Map(prev);
-					next.set(task.id, "done");
-					return next;
-				});
-				successCount++;
-			} catch (err) {
-				console.error(
-					`[RunInWorkspacePopover] Failed to create workspace for task ${task.slug}:`,
-					err,
-				);
-				setTaskStatuses((prev) => {
-					const next = new Map(prev);
-					next.set(task.id, "failed");
-					return next;
-				});
-				failCount++;
-			}
-		}
-
-		setIsRunning(false);
-
-		if (failCount === 0) {
-			toast.success(
+		toast.promise(promise, {
+			loading: t({
+				message: plural(tasks.length, {
+					one: "Creating # workspace...",
+					other: "Creating # workspaces...",
+				}),
+			}),
+			success: (count) =>
 				t({
-					message: plural(successCount, {
+					message: plural(count, {
 						one: "Created # workspace",
 						other: "Created # workspaces",
 					}),
 				}),
-			);
-		} else {
-			toast.warning(
-				t({
-					message: plural(successCount, {
-						one: `Created # workspace, ${failCount} failed`,
-						other: `Created # workspaces, ${failCount} failed`,
-					}),
-				}),
-			);
-		}
+			error: (err) => errorMessage(err),
+		});
 
 		setOpen(false);
-		setTaskStatuses(new Map());
 		onComplete();
 	};
 
 	return (
-		<Popover
-			open={open}
-			onOpenChange={(next) => {
-				if (isRunning) return;
-				setOpen(next);
-			}}
-		>
+		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
@@ -271,34 +291,29 @@ export function RunInWorkspacePopover({
 					<Trans>Run in Workspace</Trans>
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent
-				align="start"
-				className="w-64 p-0"
-				onPointerDownOutside={(e) => {
-					if (isRunning) e.preventDefault();
-				}}
-				onEscapeKeyDown={(e) => {
-					if (isRunning) e.preventDefault();
-				}}
-			>
+			<PopoverContent align="start" className="w-72 p-0">
 				<div className="flex flex-col gap-2 p-2">
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
+					<DevicePicker
+						hostId={hostId}
+						onSelectHostId={(next) => {
+							setHostId(next);
+							setLastHostId(next);
+						}}
+						className="w-full max-w-none"
+					/>
+
+					<Popover open={projectPickerOpen} onOpenChange={setProjectPickerOpen}>
+						<PopoverTrigger asChild>
 							<Button
 								variant="ghost"
 								size="sm"
 								className="w-full justify-between font-normal h-8 min-w-0 bg-muted/50 rounded-md"
-								disabled={isRunning}
 							>
 								<span className="flex items-center gap-2 truncate">
 									{selectedProject ? (
 										<>
 											<ProjectThumbnail
-												projectId={selectedProject.id}
 												projectName={selectedProject.name}
-												projectColor={selectedProject.color}
-												githubOwner={selectedProject.githubOwner}
-												hideImage={selectedProject.hideImage ?? undefined}
 												iconUrl={selectedProject.iconUrl}
 												className="size-4"
 											/>
@@ -312,110 +327,80 @@ export function RunInWorkspacePopover({
 								</span>
 								<ChevronDownIcon className="size-4 opacity-50 shrink-0" />
 							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="start"
-							className="w-[--radix-dropdown-menu-trigger-width]"
-						>
-							{recentProjects.length === 0 ? (
-								<DropdownMenuItem disabled>
-									<Trans>No projects found</Trans>
-								</DropdownMenuItem>
-							) : (
-								recentProjects
-									.filter((p) => p.id)
-									.map((project) => (
-										<DropdownMenuItem
-											key={project.id}
-											onClick={() => {
-												setSelectedProjectId(project.id);
-											}}
-											className="flex items-center gap-2"
-										>
-											<ProjectThumbnail
-												projectId={project.id}
-												projectName={project.name}
-												projectColor={project.color}
-												githubOwner={project.githubOwner}
-												hideImage={project.hideImage ?? undefined}
-												iconUrl={project.iconUrl}
-												className="size-4"
-											/>
-											{project.name}
-										</DropdownMenuItem>
-									))
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
+						</PopoverTrigger>
+						<PopoverContent align="start" className="w-60 p-0">
+							<Command>
+								<CommandInput
+									placeholder={t({
+										message: "Search projects...",
+									})}
+								/>
+								<CommandList>
+									<CommandEmpty>
+										<Trans>No projects found.</Trans>
+									</CommandEmpty>
+									<CommandGroup>
+										{recentProjects.map((project) => (
+											<CommandItem
+												key={project.id}
+												value={project.name}
+												onSelect={() => {
+													setSelectedProjectId(project.id);
+													setLastProjectId(project.id);
+													setProjectPickerOpen(false);
+												}}
+											>
+												<ProjectThumbnail
+													projectName={project.name}
+													iconUrl={project.iconUrl}
+													className="size-4"
+												/>
+												<span className="flex-1 truncate">{project.name}</span>
+												{project.needsSetup === true && (
+													<span className="text-[10px] text-amber-500">
+														<Trans>not set up</Trans>
+													</span>
+												)}
+												{project.id === selectedProjectId && (
+													<HiCheck className="size-3.5 shrink-0" />
+												)}
+											</CommandItem>
+										))}
+									</CommandGroup>
+								</CommandList>
+							</Command>
+						</PopoverContent>
+					</Popover>
 
-					<AgentSelect<TaskLaunchAgent>
-						agents={enabledAgentPresets}
+					<AgentSelect<SelectedAgent>
+						agents={agentConfigs}
 						value={selectedAgent}
 						placeholder={t({
 							message: "Select agent",
 						})}
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
-						disabled={isRunning}
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
 						allowNone
 						noneLabel={t({
 							message: "No agent",
 						})}
-						noneValue="none"
+						noneValue={NONE}
 					/>
-
-					<div className="flex items-center justify-between px-1">
-						<Label
-							htmlFor="batch-auto-run-toggle"
-							className="text-xs font-normal"
-						>
-							<Trans>Auto-run command</Trans>
-						</Label>
-						<Switch
-							id="batch-auto-run-toggle"
-							checked={autoRun}
-							onCheckedChange={setAutoRun}
-							disabled={isRunning}
-						/>
-					</div>
-
-					{isRunning && tasks.length > 0 && (
-						<div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-							{tasks.map((task) => (
-								<div
-									key={task.id}
-									className="flex items-center gap-2 text-xs text-muted-foreground"
-								>
-									<BatchStatusIcon
-										status={taskStatuses.get(task.id) ?? "pending"}
-									/>
-									<span className="truncate">{task.slug}</span>
-								</div>
-							))}
-						</div>
-					)}
 				</div>
 
 				<div className="border-t border-border p-2">
 					<Button
 						size="sm"
 						className="w-full h-8"
-						disabled={!effectiveProjectId || isRunning}
+						disabled={!!submitBlocker}
 						onClick={handleRun}
 					>
-						{isRunning ? (
-							<>
-								<Spinner className="size-3" />
-								<Trans>Creating...</Trans>
-							</>
-						) : (
-							<Plural
-								value={tasks.length}
-								one="Run # Workspace"
-								other="Run # Workspaces"
-							/>
-						)}
+						<Plural
+							value={tasks.length}
+							one="Run # Workspace"
+							other="Run # Workspaces"
+						/>
 					</Button>
 				</div>
 			</PopoverContent>

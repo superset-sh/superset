@@ -14,7 +14,7 @@ import type { HotkeyId } from "../registry";
  * Native menu accelerators and document actions (copy, paste, find, undo,
  * reload, …) keep their existing handling instead of being replayed here.
  */
-export const FORWARDED_HOTKEYS: ReadonlySet<HotkeyId> = new Set<HotkeyId>([
+const FORWARDED_HOTKEYS: ReadonlySet<HotkeyId> = new Set<HotkeyId>([
 	"ZOOM_IN",
 	"ZOOM_OUT",
 	"ZOOM_RESET",

@@ -31,7 +31,7 @@ export interface ProcessSnapshot {
 	childrenOf: Map<number, number[]>;
 }
 
-export interface SubtreeResources {
+interface SubtreeResources {
 	cpu: number;
 	memory: number;
 	pids: number[];

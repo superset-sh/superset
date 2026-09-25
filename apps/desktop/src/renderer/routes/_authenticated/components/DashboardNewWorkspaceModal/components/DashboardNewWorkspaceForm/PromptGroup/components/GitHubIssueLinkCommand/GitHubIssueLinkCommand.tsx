@@ -28,7 +28,7 @@ const MAX_RESULTS = 30;
 const normalizeIssueState = (state: string): IssueState =>
 	state.toLowerCase() === "closed" ? "closed" : "open";
 
-export interface SelectedIssue {
+interface SelectedIssue {
 	issueNumber: number;
 	title: string;
 	url: string;

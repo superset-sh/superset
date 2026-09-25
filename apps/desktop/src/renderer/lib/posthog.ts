@@ -24,6 +24,9 @@ export function initPostHog() {
 
 	posthogFull.register({
 		app_name: "desktop",
+		// Saved insights still split desktop traffic on `surface`; v1 is gone,
+		// so every event now carries the one remaining value.
+		surface: "v2",
 		// Event-level version (person-profile desktop_version reflects the
 		// current install, not the build that emitted a given event).
 		app_version: window.App?.appVersion,

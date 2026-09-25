@@ -3,7 +3,7 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
-import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/V2AgentsSettings/components/AgentIcon";
+import { AgentIcon } from "renderer/routes/_authenticated/settings/agents/components/AgentsSettings/components/AgentIcon";
 import {
 	isConfigured,
 	useAgentCredential,

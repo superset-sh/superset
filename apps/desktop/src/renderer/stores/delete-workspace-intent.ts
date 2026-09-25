@@ -1,12 +1,12 @@
 import { create } from "zustand";
 
-export interface DeleteWorkspaceTarget {
+interface DeleteWorkspaceTarget {
 	workspaceId: string;
 	workspaceName: string;
 }
 
 /**
- * Drives the single globally-mounted v2 delete dialog (DeleteWorkspaceMount).
+ * Drives the single globally-mounted delete dialog (DeleteWorkspaceMount).
  * The destroy pipeline archives the row FIRST, so any dialog mounted under a
  * workspace row unmounts the moment the destroy starts — every delete entry
  * point requests through this store instead. `open` is tracked separately

@@ -4,28 +4,23 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
-import { Redirect } from "renderer/components/Redirect";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { useQuickCreateWorkspace } from "renderer/hooks/useQuickCreateWorkspace";
 import { useHotkey } from "renderer/hotkeys";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { PortForwardsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
-import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
+import { useDevSeedSidebar } from "renderer/routes/_authenticated/hooks/useDevSeedSidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
-import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
+import { useNotificationStore } from "renderer/stores/notifications";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
-import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
@@ -34,7 +29,6 @@ import {
 } from "renderer/stores/workspace-sidebar-state";
 import { ContentBoundary } from "../components/ContentBoundary";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
-import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
 import { RemotePortForwarder } from "./components/RemotePortForwarder";
 import { TopBar } from "./components/TopBar";
 
@@ -42,23 +36,14 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
 });
 
-/** v1 only — v2 deletes go through the globally-mounted DeleteWorkspaceMount
- * (see delete-workspace-intent store). */
-type DeleteTarget = {
-	workspaceId: string;
-	workspaceName: string;
-	workspaceType: "worktree" | "branch";
-};
-
 function DashboardLayout() {
 	const navigate = useNavigate();
 
 	const openNewWorkspace = useOpenNewWorkspace();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const quickCreateWorkspace = useQuickCreateWorkspace();
-	useDevSeedV2Sidebar();
+	useDevSeedSidebar();
 	useEffect(() => {
 		const stopWorkspaceSidebarSync = syncPersistedStoreAcrossWindows(
 			useWorkspaceSidebarStore,
@@ -66,9 +51,8 @@ function DashboardLayout() {
 		const stopSectionCollapseSync = syncPersistedStoreAcrossWindows(
 			useSidebarSectionsCollapseStore,
 		);
-		const stopAgentStateSync = syncPersistedStoreAcrossWindows(
-			useV2NotificationStore,
-		);
+		const stopAgentStateSync =
+			syncPersistedStoreAcrossWindows(useNotificationStore);
 
 		return () => {
 			stopWorkspaceSidebarSync();
@@ -76,22 +60,14 @@ function DashboardLayout() {
 			stopAgentStateSync();
 		};
 	}, []);
-	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
-	const currentWorkspaceMatch = matchRoute({
+	const workspaceMatch = matchRoute({
 		to: "/workspace/$workspaceId",
 		fuzzy: true,
 	});
 	const currentWorkspaceId =
-		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
-	const v2WorkspaceMatch = matchRoute({
-		to: "/v2-workspace/$workspaceId",
-		fuzzy: true,
-	});
-	const currentV2WorkspaceId =
-		v2WorkspaceMatch !== false ? v2WorkspaceMatch.workspaceId : null;
-	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
-	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
+	const onWorkspaceRoute = workspaceMatch !== false;
 	const onNewWorkspaceRoute = matchRoute({ to: "/new-workspace" }) !== false;
 	const onDashboardViewRoute =
 		matchRoute({ to: "/automations", fuzzy: true }) !== false ||
@@ -99,24 +75,16 @@ function DashboardLayout() {
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
 		matchRoute({ to: "/plugins", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pages", fuzzy: true }) !== false ||
-		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
-	const versionMismatch =
-		(isV2CloudEnabled && onV1WorkspaceRoute) ||
-		(!isV2CloudEnabled && onV2WorkspaceRoute);
+		matchRoute({ to: "/workspaces", fuzzy: true }) !== false;
 
-	const { data: currentWorkspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: currentWorkspaceId ?? "" },
-		{ enabled: !!currentWorkspaceId },
-	);
-
-	const currentV2Workspace = useMemo(
+	const currentWorkspace = useMemo(
 		() =>
-			currentV2WorkspaceId != null
+			currentWorkspaceId != null
 				? (hostWorkspaces.find(
-						(workspace) => workspace.id === currentV2WorkspaceId,
+						(workspace) => workspace.id === currentWorkspaceId,
 					) ?? null)
 				: null,
-		[hostWorkspaces, currentV2WorkspaceId],
+		[hostWorkspaces, currentWorkspaceId],
 	);
 	const { machineId: localMachineId } = useLocalHostService();
 	// Forwarding needs port data only for a workspace on another machine;
@@ -125,9 +93,9 @@ function DashboardLayout() {
 	// rather than switching on cross-host polling for a workspace that may
 	// not be remote at all.
 	const selectedWorkspaceIsRemote =
-		currentV2Workspace != null &&
+		currentWorkspace != null &&
 		localMachineId !== "" &&
-		currentV2Workspace.hostId !== localMachineId;
+		currentWorkspace.hostId !== localMachineId;
 
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -151,54 +119,31 @@ function DashboardLayout() {
 		}
 	});
 	useHotkey("NEW_WORKSPACE", () =>
-		openNewWorkspace(
-			currentWorkspace?.projectId ?? currentV2Workspace?.projectId ?? undefined,
-		),
+		openNewWorkspace(currentWorkspace?.projectId ?? undefined),
 	);
-	useHotkey(
-		"QUICK_CREATE_WORKSPACE",
-		() => quickCreateWorkspace(currentV2Workspace?.projectId ?? null),
-		{ enabled: isV2CloudEnabled },
+	useHotkey("QUICK_CREATE_WORKSPACE", () =>
+		quickCreateWorkspace(currentWorkspace?.projectId ?? null),
 	);
-
-	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
 	useHotkey(
 		"CLOSE_WORKSPACE",
 		() => {
 			if (currentWorkspaceId && currentWorkspace) {
-				setDeleteTarget({
-					workspaceId: currentWorkspaceId,
-					workspaceName: currentWorkspace.name,
-					workspaceType: currentWorkspace.type,
-				});
-				return;
-			}
-
-			if (currentV2WorkspaceId && currentV2Workspace) {
 				useDeleteWorkspaceIntent.getState().request({
-					workspaceId: currentV2WorkspaceId,
-					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
+					workspaceId: currentWorkspaceId,
+					workspaceName: currentWorkspace.name || currentWorkspace.branch,
 				});
 			}
 		},
-		{
-			enabled:
-				(!!currentWorkspaceId && !!currentWorkspace) ||
-				(!!currentV2WorkspaceId && !!currentV2Workspace),
-		},
+		{ enabled: !!currentWorkspaceId && !!currentWorkspace },
 	);
 
-	// Collapsed rail on the v2 workspace route: the rail's headroom strip
+	// Collapsed rail on the workspace route: the rail's headroom strip
 	// continues the pane tab bar, so the panel must not draw its own
 	// full-height border — the sidebar's inner border (which stops below the
 	// strip) is the only divider.
 	const railContinuesTabBar =
-		isV2CloudEnabled &&
-		onV2WorkspaceRoute &&
-		!versionMismatch &&
-		isWorkspaceSidebarOpen &&
-		isWorkspaceSidebarCollapsed();
+		onWorkspaceRoute && isWorkspaceSidebarOpen && isWorkspaceSidebarCollapsed();
 
 	const sidebarPanel = isWorkspaceSidebarOpen && (
 		<ResizablePanel
@@ -215,26 +160,16 @@ function DashboardLayout() {
 				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
 			}
 		>
-			{isV2CloudEnabled ? (
-				<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
-			) : (
-				<WorkspaceSidebar
-					isCollapsed={isWorkspaceSidebarCollapsed()}
-					activeProjectId={currentWorkspace?.projectId ?? null}
-					activeProjectName={currentWorkspace?.project?.name ?? null}
-				/>
-			)}
+			<DashboardSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
 		</ResizablePanel>
 	);
 
-	// Only lift the sidebar out of the TopBar column when v2 + expanded.
+	// Only lift the sidebar out of the TopBar column when expanded.
 	// Collapsed/closed sidebars stay inside so the TopBar runs full-width.
 	const sidebarOutsideColumn =
-		isV2CloudEnabled &&
-		isWorkspaceSidebarOpen &&
-		!isWorkspaceSidebarCollapsed();
+		isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed();
 
-	// On the v2 workspace route with an open sidebar the TopBar row is merged
+	// On the workspace route with an open sidebar the TopBar row is merged
 	// into the pane tab bar (which provides the drag region and hosts the
 	// right-sidebar toggle). Expanded sidebars host the traffic-light pad in
 	// their header; collapsed rails host it via their headroom spacer plus the
@@ -245,10 +180,7 @@ function DashboardLayout() {
 	// so they hide the TopBar whenever the expanded sidebar sits outside the
 	// column — otherwise it renders as an empty strip above their headers.
 	const hideTopBar =
-		(onV2WorkspaceRoute &&
-			!versionMismatch &&
-			isV2CloudEnabled &&
-			isWorkspaceSidebarOpen) ||
+		(onWorkspaceRoute && isWorkspaceSidebarOpen) ||
 		((onNewWorkspaceRoute || onDashboardViewRoute) && sidebarOutsideColumn);
 
 	return (
@@ -257,16 +189,15 @@ function DashboardLayout() {
 		// subtrees that remount on workspace navigation (TopBar / the workspace
 		// tab bar) — the data must survive those remounts or the pill blinks out
 		// for the first empty-data frames. The inline chip in the sidebar reads
-		// the same context; polling stays off when nothing renders ports (v1, or
-		// a collapsed/closed sidebar in inline mode).
+		// the same context; polling stays off when nothing renders ports (a
+		// collapsed/closed sidebar in inline mode).
 		<DashboardSidebarPortsProvider
 			enabled={
-				isV2CloudEnabled &&
-				(portsDisplayMode === "topbar" ||
-					(isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed()) ||
-					// Port forwarding follows the selected remote workspace and
-					// needs its port list even when no ports UI is on screen.
-					selectedWorkspaceIsRemote)
+				portsDisplayMode === "topbar" ||
+				(isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed()) ||
+				// Port forwarding follows the selected remote workspace and
+				// needs its port list even when no ports UI is on screen.
+				selectedWorkspaceIsRemote
 			}
 		>
 			<PortForwardsProvider>
@@ -279,21 +210,9 @@ function DashboardLayout() {
 						<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 							{!sidebarOutsideColumn && sidebarPanel}
 							<div className="relative flex flex-1 min-h-0 min-w-0">
-								{versionMismatch ? (
-									// A v2 user on a stale v1 workspace route has nothing to go
-									// back to, so send them somewhere actionable instead of a
-									// dead-end "pick a workspace" screen. v1 users keep the
-									// static state — /new-workspace is a v2-only surface.
-									isV2CloudEnabled ? (
-										<Redirect to="/new-workspace" replace />
-									) : (
-										<CrossVersionMismatchState />
-									)
-								) : (
-									<ContentBoundary>
-										<Outlet />
-									</ContentBoundary>
-								)}
+								<ContentBoundary>
+									<Outlet />
+								</ContentBoundary>
 							</div>
 						</div>
 					</div>
@@ -302,17 +221,6 @@ function DashboardLayout() {
 						className="flex h-full shrink-0"
 					/>
 					<AddRepositoryModals />
-					{deleteTarget && (
-						<DeleteWorkspaceDialog
-							workspaceId={deleteTarget.workspaceId}
-							workspaceName={deleteTarget.workspaceName}
-							workspaceType={deleteTarget.workspaceType}
-							open={true}
-							onOpenChange={(open) => {
-								if (!open) setDeleteTarget(null);
-							}}
-						/>
-					)}
 				</div>
 			</PortForwardsProvider>
 		</DashboardSidebarPortsProvider>

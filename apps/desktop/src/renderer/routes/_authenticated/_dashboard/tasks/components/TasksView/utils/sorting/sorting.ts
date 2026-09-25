@@ -112,9 +112,3 @@ export function compareStatusesForDropdown(
  * Sort order: urgent → high → medium → low → none
  * (Same order as task sorting)
  */
-export function comparePrioritiesForDropdown(
-	a: "urgent" | "high" | "medium" | "low" | "none",
-	b: "urgent" | "high" | "medium" | "low" | "none",
-): number {
-	return getPriorityOrder(a) - getPriorityOrder(b);
-}

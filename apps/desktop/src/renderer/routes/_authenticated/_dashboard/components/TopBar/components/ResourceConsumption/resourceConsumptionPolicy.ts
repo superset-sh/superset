@@ -1,4 +1,4 @@
-export const RESOURCE_MONITOR_REFETCH_INTERVAL_MS = 2_000;
+const RESOURCE_MONITOR_REFETCH_INTERVAL_MS = 2_000;
 
 export function shouldQueryResourceMonitor({
 	enabled,

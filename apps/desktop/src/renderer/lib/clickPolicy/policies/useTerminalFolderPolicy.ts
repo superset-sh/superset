@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import type { ModifierEvent } from "../types";
 import {
 	type FolderIntent,
@@ -14,7 +14,7 @@ export interface FolderClickPolicy {
 
 /** Settings-driven click policy for folder links in terminal output. */
 export function useTerminalFolderPolicy(): FolderClickPolicy {
-	const { preferences } = useV2UserPreferences();
+	const { preferences } = useUserPreferences();
 	const map = preferences.folderLinks;
 	const getIntent = useCallback(
 		(event: ModifierEvent) => folderIntentForMap(event, map),

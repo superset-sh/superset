@@ -17,7 +17,7 @@ export interface DesignModePageContext {
 }
 
 /** Accessibility metadata for the selected element. */
-export interface DesignModeAccessibility {
+interface DesignModeAccessibility {
 	role: string | null;
 	accessibleName: string | null;
 	ariaLabel: string | null;

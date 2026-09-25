@@ -1,4 +1,4 @@
-export type ProjectForPlacement = {
+type ProjectForPlacement = {
 	projectKey: string;
 	/** Hosts that serve this project. */
 	hostIds: readonly string[];

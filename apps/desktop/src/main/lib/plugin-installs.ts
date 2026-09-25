@@ -58,7 +58,7 @@ async function runPluginCli(args: string[]): Promise<void> {
 	}
 }
 
-export function getInstalledPlugins(): InstalledPlugin[] {
+function getInstalledPlugins(): InstalledPlugin[] {
 	return localDb.select().from(settings).get()?.installedPlugins ?? [];
 }
 

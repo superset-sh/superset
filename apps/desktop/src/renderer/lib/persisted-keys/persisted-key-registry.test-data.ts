@@ -37,12 +37,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	[
 		"src/renderer/lib/v1-migration/completion.ts",
-		[
-			"v1-migration-complete-*",
-			"v1-migration-continuity-pending-*",
-			"v1-migration-welcome-pending-*",
-			"v1-migration-followup-pending-*",
-		],
+		["v1-migration-complete-*", "v1-migration-followup-pending-*"],
 	],
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
@@ -50,20 +45,18 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["router-history"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache/paneScrollStateCache.ts",
+		"src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/state/paneScrollStateCache/paneScrollStateCache.ts",
 		["v2-pane-scroll-state-v1"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts",
+		"src/renderer/routes/_authenticated/_dashboard/workspaces/stores/workspacesFilterStore/workspacesFilterStore.ts",
 		["v2-workspaces-view"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
+		"src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
 		["chat-v3-draft:*"],
 	],
-	["src/renderer/stores/changes/store.ts", ["changes-store"]],
 	["src/renderer/stores/prompt-history.ts", ["prompt-history"]],
-	["src/renderer/stores/tabs/store.ts", ["tabs-storage"]],
 	[
 		"src/renderer/stores/theme/store.ts",
 		["theme-storage", "theme-terminal", "theme-id", "theme-type"],
@@ -74,10 +67,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/stores/markdown-preferences/store.ts",
 		["markdown-preferences"],
 	],
-	["src/renderer/stores/file-explorer.ts", ["file-explorer-store"]],
 	["src/renderer/stores/ports/store.ts", ["ports-store"]],
-	["src/renderer/stores/search-dialog-state.ts", ["search-dialog-store"]],
-	["src/renderer/stores/sidebar-state.ts", ["sidebar-store"]],
 	["src/renderer/stores/new-workspace-width.ts", ["new-workspace-width"]],
 	[
 		"src/renderer/stores/workspace-sidebar-state.ts",
@@ -88,20 +78,16 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["sidebar-workspaces-collapse"],
 	],
 	[
-		"src/renderer/stores/last-active-v2-workspace.ts",
+		"src/renderer/stores/last-active-workspace.ts",
 		["last-active-v2-workspace"],
 	],
-	["src/renderer/stores/v2-local-override.ts", ["v2-local-override-v2"]],
 	[
-		"src/renderer/stores/v2-workspace-create-defaults.ts",
+		"src/renderer/stores/workspace-create-defaults.ts",
 		["v2-workspace-create-defaults"],
 	],
-	["src/renderer/stores/v2-project-local-meta.ts", ["v2-project-local-meta"]],
-	[
-		"src/renderer/stores/v2-changes-sections/store.ts",
-		["v2-changes-sections-v1"],
-	],
-	["src/renderer/stores/v2-notifications/store.ts", ["v2-notifications-v1"]],
+	["src/renderer/stores/project-local-meta.ts", ["v2-project-local-meta"]],
+	["src/renderer/stores/changes-sections/store.ts", ["v2-changes-sections-v1"]],
+	["src/renderer/stores/notifications/store.ts", ["v2-notifications-v1"]],
 	["src/renderer/stores/hiring-banner/store.ts", ["hiring-banner-v1"]],
 	["src/renderer/stores/star-nag/store.ts", ["star-nag-v1"]],
 	[
@@ -182,10 +168,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/routes/_authenticated/layout.tsx", ["lastViewedWorkspaceId"]],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/utils/workspace-navigation.ts",
-		["lastViewedWorkspaceId"],
-	],
-	[
 		"src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx",
 		["lastViewedWorkspaceId"],
 	],
@@ -194,18 +176,18 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["lastViewedWorkspaceId"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/richInputOpenStore.ts",
+		"src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/richInputOpenStore.ts",
 		["superset.terminalRichInputOpen"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget/useDiffCommentTarget.ts",
+		"src/renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget/useDiffCommentTarget.ts",
 		[
 			"lastSelectedDiffCommentNewAgentConfigId",
 			"lastSelectedDiffCommentPlacement",
 		],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/PropertiesSidebar/components/OpenInWorkspaceV2/OpenInWorkspaceV2.tsx",
+		"src/renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/PropertiesSidebar/components/OpenInWorkspace/OpenInWorkspace.tsx",
 		["lastSelectedV2TaskAgent"],
 	],
 	[
@@ -213,7 +195,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["lastSelectedV2IssueBatchAgent"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/components/RunInWorkspacePopoverV2/RunInWorkspacePopoverV2.tsx",
+		"src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/components/RunInWorkspacePopover/RunInWorkspacePopover.tsx",
 		["lastSelectedV2TaskBatchAgent"],
 	],
 	[
@@ -221,7 +203,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["daemon-update-dismissed-failure-*"],
 	],
 	[
-		"src/renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar/useDevSeedV2Sidebar.ts",
+		"src/renderer/routes/_authenticated/hooks/useDevSeedSidebar/useDevSeedSidebar.ts",
 		["superset:dev:v2-sidebar-seeded"],
 	],
 	["src/renderer/routes/sign-in/page.tsx", ["superset-last-auth-method"]],

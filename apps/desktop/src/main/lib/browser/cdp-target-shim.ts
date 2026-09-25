@@ -28,14 +28,14 @@ export function shimIds(paneId: string): ShimIds {
 	};
 }
 
-export interface TargetInfoInput {
+interface TargetInfoInput {
 	ids: ShimIds;
 	url: string;
 	title: string;
 	attached: boolean;
 }
 
-export function syntheticTargetInfo(i: TargetInfoInput) {
+function syntheticTargetInfo(i: TargetInfoInput) {
 	return {
 		targetId: i.ids.targetId,
 		type: "page",
@@ -55,7 +55,7 @@ export interface TargetCommandContext {
 	autoAttachEmitted: boolean;
 }
 
-export interface TargetCommandResult {
+interface TargetCommandResult {
 	/** Events to emit before the reply (e.g. a synthesized attachedToTarget). */
 	events: Array<Record<string, unknown>>;
 	/** The result payload for the command's reply. */

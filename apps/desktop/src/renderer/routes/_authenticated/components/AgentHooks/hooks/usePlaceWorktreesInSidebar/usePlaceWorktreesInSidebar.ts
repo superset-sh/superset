@@ -25,7 +25,7 @@ import {
  * other people's workspaces are not placed — see `selectWorktreesToPlace` for
  * the host and creator gates.
  *
- * "Placed once, then respected": a present `v2WorkspaceLocalState` row means
+ * "Placed once, then respected": a present `workspaceLocalState` row means
  * "already seen". Hiding a worktree keeps a hidden tombstone row, and removing
  * its project keeps the row while dropping the project record — so neither is
  * ever re-placed. Only a genuinely new (row-less) worktree is added.
@@ -62,7 +62,7 @@ export function usePlaceWorktreesInSidebar(): void {
 	const { data: localStateRows = [], isReady: localStateReady } = useLiveQuery(
 		(query) =>
 			query
-				.from({ state: collections.v2WorkspaceLocalState })
+				.from({ state: collections.workspaceLocalState })
 				.select(({ state }) => ({ workspaceId: state.workspaceId })),
 		[collections],
 	);

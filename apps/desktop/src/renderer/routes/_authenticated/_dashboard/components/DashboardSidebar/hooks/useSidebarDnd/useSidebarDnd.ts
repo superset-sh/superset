@@ -60,9 +60,9 @@ const WS = "ws::";
 const SEC = "sec::";
 const DROP_ZONE = "dropzone::";
 
-export const wsId = (id: string) => `${WS}${id}`;
-export const secId = (id: string) => `${SEC}${id}`;
-export const isSec = (id: UniqueIdentifier) => String(id).startsWith(SEC);
+const wsId = (id: string) => `${WS}${id}`;
+const secId = (id: string) => `${SEC}${id}`;
+const isSec = (id: UniqueIdentifier) => String(id).startsWith(SEC);
 
 export const parseId = (id: UniqueIdentifier) => {
 	const s = String(id);
@@ -152,7 +152,7 @@ function withContainerList(
 
 // ── Measuring config ─────────────────────────────────────────────────
 
-export const measuring = {
+const measuring = {
 	droppable: { strategy: MeasuringStrategy.Always as const },
 };
 
@@ -300,7 +300,7 @@ function parseFlatItems(
 
 // ── Context ──────────────────────────────────────────────────────────
 
-export type SidebarDndActiveItem =
+type SidebarDndActiveItem =
 	| { type: "project"; project: DashboardSidebarProject }
 	| { type: "workspace"; workspace: DashboardSidebarWorkspace }
 	| { type: "section"; section: DashboardSidebarSection };
@@ -313,7 +313,7 @@ export type SidebarDndActiveItem =
  * `useDroppable().isOver` locally; the predicted accent renders on the
  * DragOverlay ghost instead of the in-list row.
  */
-export interface DashboardSidebarDndValue {
+interface DashboardSidebarDndValue {
 	pinnedItems: UniqueIdentifier[];
 	sessionItems: UniqueIdentifier[];
 	projectItems: Record<string, UniqueIdentifier[]>;

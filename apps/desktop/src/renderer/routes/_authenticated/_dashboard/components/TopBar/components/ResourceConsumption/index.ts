@@ -1,1 +1,0 @@
-export { ResourceConsumption } from "./ResourceConsumption";

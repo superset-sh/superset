@@ -1,1 +1,1 @@
-export { PullRequestRow, type PullRequestRowData } from "./PullRequestRow";
+export { PullRequestRow } from "./PullRequestRow";

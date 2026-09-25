@@ -1,0 +1,209 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export const DEVICE_FILTER_THIS_DEVICE = "this-device";
+export const DEVICE_FILTER_ALL_DEVICES = "all-devices";
+/** Sentinel for project-less "session" workspaces in the project filter. */
+export const PROJECT_FILTER_SESSIONS = "__sessions__";
+
+export type WorkspacesDeviceFilter = string;
+
+// Self-contained unions (not imported from useAccessibleWorkspaces) — the
+// hook imports this store's constants, so the reverse import would cycle.
+export const V2_WORKSPACES_PR_STATE_FILTERS = [
+	"open",
+	"draft",
+	"queued",
+	"merged",
+	"closed",
+] as const;
+export type WorkspacesPrStateFilter =
+	(typeof V2_WORKSPACES_PR_STATE_FILTERS)[number];
+
+export const V2_WORKSPACES_AGENT_STATUS_FILTERS = [
+	"idle",
+	"working",
+	"permission",
+	"review",
+	"failed",
+] as const;
+export type WorkspacesAgentStatusFilter =
+	(typeof V2_WORKSPACES_AGENT_STATUS_FILTERS)[number];
+
+/** Shared by the Agent filter dropdown and the list rows' Agent cell. */
+export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
+	WorkspacesAgentStatusFilter,
+	MessageDescriptor
+> = {
+	idle: msg({ message: "Idle" }),
+	working: msg({
+		message: "Working",
+	}),
+	permission: msg({
+		message: "Needs permission",
+	}),
+	review: msg({
+		message: "Ready for review",
+	}),
+	failed: msg({
+		message: "Failed",
+	}),
+};
+
+export const V2_WORKSPACES_PIN_FILTERS = ["all", "pinned", "unpinned"] as const;
+export type WorkspacesPinFilter = (typeof V2_WORKSPACES_PIN_FILTERS)[number];
+
+export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
+	WorkspacesPinFilter,
+	MessageDescriptor
+> = {
+	all: msg({
+		message: "All workspaces",
+	}),
+	pinned: msg({
+		message: "Shown",
+	}),
+	unpinned: msg({
+		message: "Hidden",
+	}),
+};
+
+export type WorkspacesViewMode = "list" | "board";
+
+export const V2_WORKSPACES_SORT_MODES = [
+	"activity",
+	"created",
+	"churn",
+	"name",
+] as const;
+export type WorkspacesSortMode = (typeof V2_WORKSPACES_SORT_MODES)[number];
+
+export const V2_WORKSPACES_SORT_LABELS: Record<
+	WorkspacesSortMode,
+	MessageDescriptor
+> = {
+	activity: msg({
+		message: "Last activity",
+	}),
+	created: msg({
+		message: "Created",
+	}),
+	churn: msg({
+		message: "Diff size",
+	}),
+	name: msg({ message: "Name" }),
+};
+
+export const V2_WORKSPACES_ARCHIVED_WINDOWS = [
+	"none",
+	"week",
+	"month",
+	"all",
+] as const;
+export type WorkspacesArchivedWindow =
+	(typeof V2_WORKSPACES_ARCHIVED_WINDOWS)[number];
+
+// Mirrors BoardColumnKey; self-contained to avoid the store → deriveBoardColumn
+// → useAccessibleWorkspaces → store import cycle.
+export const V2_WORKSPACES_BOARD_LANES = [
+	"idle",
+	"working",
+	"attention",
+	"review",
+	"merged",
+	"deleted",
+] as const;
+type WorkspacesBoardLane = (typeof V2_WORKSPACES_BOARD_LANES)[number];
+
+interface WorkspacesFilterState {
+	searchQuery: string;
+	deviceFilter: WorkspacesDeviceFilter;
+	/** Empty = all projects. May contain PROJECT_FILTER_SESSIONS. */
+	projectFilters: string[];
+	/** Empty = any PR state (including no PR). */
+	prStateFilters: WorkspacesPrStateFilter[];
+	/** Empty = any agent status. */
+	agentStatusFilters: WorkspacesAgentStatusFilter[];
+	/** Creator user ids; empty = any creator. */
+	creatorFilters: string[];
+	/** Sidebar visibility: shown, hidden, or both ("all"). */
+	pinFilter: WorkspacesPinFilter;
+	viewMode: WorkspacesViewMode;
+	/** Row order inside status groups (both views). */
+	sortMode: WorkspacesSortMode;
+	/** How far back archived tombstones render (both views). */
+	archivedWindow: WorkspacesArchivedWindow;
+	/** Board lanes the user unchecked in Display; empty = all lanes. */
+	hiddenLanes: WorkspacesBoardLane[];
+	setSearchQuery: (searchQuery: string) => void;
+	setDeviceFilter: (deviceFilter: WorkspacesDeviceFilter) => void;
+	setProjectFilters: (projectFilters: string[]) => void;
+	setPrStateFilters: (prStateFilters: WorkspacesPrStateFilter[]) => void;
+	setAgentStatusFilters: (
+		agentStatusFilters: WorkspacesAgentStatusFilter[],
+	) => void;
+	setCreatorFilters: (creatorFilters: string[]) => void;
+	setPinFilter: (pinFilter: WorkspacesPinFilter) => void;
+	setViewMode: (viewMode: WorkspacesViewMode) => void;
+	setSortMode: (sortMode: WorkspacesSortMode) => void;
+	setArchivedWindow: (archivedWindow: WorkspacesArchivedWindow) => void;
+	toggleLane: (lane: WorkspacesBoardLane) => void;
+	/** Clears filters (incl. archived window) — view mode and sort persist. */
+	reset: () => void;
+}
+
+export const useWorkspacesFilterStore = create<WorkspacesFilterState>()(
+	persist(
+		(set) => ({
+			searchQuery: "",
+			deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+			projectFilters: [],
+			prStateFilters: [],
+			agentStatusFilters: [],
+			creatorFilters: [],
+			pinFilter: "all",
+			viewMode: "board",
+			sortMode: "activity",
+			archivedWindow: "none",
+			hiddenLanes: [],
+			setSearchQuery: (searchQuery) => set({ searchQuery }),
+			setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
+			setProjectFilters: (projectFilters) => set({ projectFilters }),
+			setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
+			setAgentStatusFilters: (agentStatusFilters) =>
+				set({ agentStatusFilters }),
+			setCreatorFilters: (creatorFilters) => set({ creatorFilters }),
+			setPinFilter: (pinFilter) => set({ pinFilter }),
+			setViewMode: (viewMode) => set({ viewMode }),
+			setSortMode: (sortMode) => set({ sortMode }),
+			setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
+			toggleLane: (lane) =>
+				set((state) => ({
+					hiddenLanes: state.hiddenLanes.includes(lane)
+						? state.hiddenLanes.filter((hidden) => hidden !== lane)
+						: [...state.hiddenLanes, lane],
+				})),
+			reset: () =>
+				set({
+					searchQuery: "",
+					deviceFilter: DEVICE_FILTER_THIS_DEVICE,
+					projectFilters: [],
+					prStateFilters: [],
+					agentStatusFilters: [],
+					creatorFilters: [],
+					pinFilter: "all",
+					archivedWindow: "none",
+					hiddenLanes: [],
+				}),
+		}),
+		{
+			name: "v2-workspaces-view",
+			// Fixed-size singleton: only the list/board choice survives reloads.
+			// Filters and search stay per-visit (a `?view=` deep link still wins
+			// — the page hydrates URL params over the rehydrated value on mount).
+			partialize: (state) => ({ viewMode: state.viewMode }),
+		},
+	),
+);

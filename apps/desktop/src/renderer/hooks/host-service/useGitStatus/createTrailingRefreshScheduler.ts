@@ -1,4 +1,4 @@
-export interface TrailingRefreshScheduler {
+interface TrailingRefreshScheduler {
 	dispose: () => void;
 	request: () => Promise<void>;
 }

@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import { buildPageAgentPrompt } from "renderer/routes/_authenticated/_dashboard/utils/pageAgentPrompt";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -13,7 +13,7 @@ export function useCreatePageWithAgent() {
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl, hostServiceStatus } = useLocalHostService();
 	const { agents: agentChoices, isFetched: agentsFetched } =
-		useV2AgentChoices(activeHostUrl);
+		useAgentChoices(activeHostUrl);
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
 	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
 	const isReady =
@@ -53,7 +53,7 @@ export function useCreatePageWithAgent() {
 		// just re-arms the button if the user navigates back.
 		void completed.finally(() => setCreatingWithAgent(false));
 		navigate({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId },
 		}).catch((error) => {
 			console.error("[CreatePageWithAgent] failed to open workspace", error);

@@ -193,8 +193,6 @@ interface BuildV2TerminalEnvParams {
 	workspacePath: string;
 	rootPath: string;
 	supersetEnv: "development" | "production";
-	agentHookPort: string;
-	agentHookVersion: string;
 	/**
 	 * tRPC URL for the host-service notifications.hook mutation.
 	 * Endpoint is unauthenticated by design — it broadcasts chimes and
@@ -223,8 +221,6 @@ export function buildV2TerminalEnv(
 		workspacePath,
 		rootPath,
 		supersetEnv,
-		agentHookPort,
-		agentHookVersion,
 		hostAgentHookUrl,
 	} = params;
 
@@ -275,8 +271,6 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_WORKSPACE_PATH = workspacePath;
 	env.SUPERSET_ROOT_PATH = rootPath;
 	env.SUPERSET_ENV = supersetEnv;
-	env.SUPERSET_AGENT_HOOK_PORT = agentHookPort;
-	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
 	// v2 — agent posts to host-service so the renderer can play the sound
 	// client-side. No auth token: the endpoint is unauthenticated by design
 	// (chimes plus an idempotent linked-task In Progress nudge). The

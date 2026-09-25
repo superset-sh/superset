@@ -144,10 +144,6 @@
 			"types": "./src/themes/utils.ts",
 			"default": "./src/themes/utils.ts"
 		},
-		"./v2-only-user": {
-			"types": "./src/v2-only-user.ts",
-			"default": "./src/v2-only-user.ts"
-		},
 		"./names": {
 			"types": "./src/names/index.ts",
 			"default": "./src/names/index.ts"

@@ -14,7 +14,7 @@ import {
 } from "react-icons/lu";
 import { useSettings } from "renderer/stores/settings";
 
-export interface DiffViewToolbarCommentNav {
+interface DiffViewToolbarCommentNav {
 	/** Index into the ordered thread list, or null before any navigation. */
 	focusedIndex: number | null;
 	total: number;
@@ -22,7 +22,7 @@ export interface DiffViewToolbarCommentNav {
 	onNext: () => void;
 }
 
-export interface DiffViewToolbarTreeToggle {
+interface DiffViewToolbarTreeToggle {
 	fileCount: number;
 	isCollapsed: boolean;
 	onToggle: () => void;
@@ -41,7 +41,7 @@ interface DiffViewToolbarProps {
 }
 
 /**
- * Toolbar row above a card-styled diff (the PR Code tab and the v2-workspace
+ * Toolbar row above a card-styled diff (the PR Code tab and the workspace
  * DiffPane): optional file-tree toggle + collapse/expand-all on the left,
  * comment navigation + unified/split on the right. The unified/split toggles
  * read/write the persisted app setting directly — the same one every diff

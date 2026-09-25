@@ -15,8 +15,8 @@ import {
 
 const CONFIGURE_AGENTS_VALUE = "__configure_agents__";
 
-// v1 callers' `id` doubles as the icon key. v2 ids are UUIDs, so v2 callers
-// pass `iconId: presetId` to keep the preset-keyed icon lookup working.
+// Agent ids are UUIDs, so callers pass `iconId: presetId` to keep the
+// preset-keyed icon lookup working.
 export interface AgentSelectAgent {
 	id: string;
 	label: string;

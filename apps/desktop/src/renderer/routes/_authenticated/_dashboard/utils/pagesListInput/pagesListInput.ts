@@ -1,6 +1,6 @@
 import type { PageListScope } from "@superset/trpc/page-schema";
 
-export const PAGES_PER_BATCH = 48;
+const PAGES_PER_BATCH = 48;
 
 export interface PagesListFilter {
 	workspaceId?: string;

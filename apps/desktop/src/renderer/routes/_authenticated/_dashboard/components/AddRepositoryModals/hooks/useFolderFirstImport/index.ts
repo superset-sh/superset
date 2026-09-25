@@ -1,4 +1,1 @@
-export {
-	type UseFolderFirstImportResult,
-	useFolderFirstImport,
-} from "./useFolderFirstImport";
+export { useFolderFirstImport } from "./useFolderFirstImport";

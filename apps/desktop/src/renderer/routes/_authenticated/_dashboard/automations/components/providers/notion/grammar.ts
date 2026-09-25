@@ -15,7 +15,7 @@ export type NotionConfig = Extract<TriggerConfigInput, { kind: "notion" }>;
 
 export type Slot = "dataSources" | "pages" | "actor" | "mentionedUser";
 
-export type SentencePart = { text: string } | { slot: Slot };
+type SentencePart = { text: string } | { slot: Slot };
 
 export const NOTION_SENTENCES: Record<NotionTriggerEvent, SentencePart[]> = {
 	"data_source.content_updated": [
@@ -69,7 +69,7 @@ function leaf(label: MessageDescriptor, event: NotionTriggerEvent) {
  * A new trigger of this event: the data source still to be chosen, every
  * optional filter wide open.
  */
-export function createNotionConfig(event: NotionTriggerEvent): NotionConfig {
+function createNotionConfig(event: NotionTriggerEvent): NotionConfig {
 	// An empty list matches nothing, so an unfinished trigger cannot fire on
 	// every data source; the form refuses to save until one is chosen.
 	const base = {

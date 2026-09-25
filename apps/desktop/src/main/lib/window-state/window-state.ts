@@ -93,7 +93,7 @@ const WINDOWS_STATE_PATH = join(
  * first restored window adopts it so an existing user's tabs survive the
  * upgrade, and every window created afterwards starts from its own record.
  */
-export const LEGACY_WINDOW_KEY = "legacy-single-window";
+const LEGACY_WINDOW_KEY = "legacy-single-window";
 
 export interface PersistedWindow {
 	/**

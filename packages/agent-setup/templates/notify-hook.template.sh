@@ -200,15 +200,6 @@ fi
 
 debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
 
-V1_EVENT_TYPE="$EVENT_TYPE"
-case "$V1_EVENT_TYPE" in
-  Attached|attached|SessionStart|sessionStart|session_start)
-    V1_EVENT_TYPE="Start"
-    ;;
-  Detached|detached|SessionEnd|sessionEnd|session_end)
-    V1_EVENT_TYPE="Stop"
-    ;;
-esac
 
 PREVIEW_FIELD=""
 PREVIEW_KEYS="last_assistant_message last-assistant-message message"
@@ -267,49 +258,6 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.
   [ "$HOOK_DELIVERED_2XX" = "1" ] && exit 0
-fi
-
-# v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
-[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
-
-# rawEventType keeps the un-collapsed event (SessionStart/SessionEnd survive)
-# so the app can tell an agent's own goodbye from a turn Stop — the v1 pane
-# agent-session capture needs that to mirror v2 resume-candidate detection.
-if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$AGENT_ID" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    -o /dev/null -w "%{http_code}" 2>/dev/null)
-  echo "[notify-hook] v1 dispatched status=$STATUS_CODE" >&2
-  debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-else
-  debug_log "v1 dispatch port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-  curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "rawEventType=$EVENT_TYPE" \
-    --data-urlencode "agentId=$AGENT_ID" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    > /dev/null 2>&1
 fi
 
 exit 0

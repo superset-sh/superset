@@ -35,7 +35,7 @@ describe("sweepDeadPersistedKeys", () => {
 			"notification-center-store": "{}",
 			"v2-section-local-meta": "{}",
 			"v2-workspace-local-state-org-a": "{}",
-			"changes-store": "{}",
+			"prompt-history": "[]",
 			ph_project_posthog: "{}",
 			outlit_session: "{}",
 		});
@@ -49,7 +49,7 @@ describe("sweepDeadPersistedKeys", () => {
 		expect(storage.getItem("notification-center-store")).toBeNull();
 		expect(storage.getItem("v2-section-local-meta")).toBeNull();
 		expect(storage.getItem("v2-workspace-local-state-org-a")).toBe("{}");
-		expect(storage.getItem("changes-store")).toBe("{}");
+		expect(storage.getItem("prompt-history")).toBe("[]");
 		expect(storage.getItem("ph_project_posthog")).toBe("{}");
 		expect(storage.getItem("outlit_session")).toBeNull();
 	});

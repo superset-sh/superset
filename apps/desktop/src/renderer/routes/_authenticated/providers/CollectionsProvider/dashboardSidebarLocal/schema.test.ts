@@ -4,27 +4,25 @@ import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
 	dashboardSidebarSectionSchema,
-	healV2UserPreferences,
+	healUserPreferences,
 	healWorkspaceLocalState,
 	sanitizePaneLayout,
-	v2UserPreferencesSchema,
+	userPreferencesSchema,
 	workspaceLocalStateSchema,
 } from "./schema";
 
 type PaneLayout = WorkspaceState<unknown>;
 
-describe("healV2UserPreferences", () => {
+describe("healUserPreferences", () => {
 	it("returns full defaults for empty/non-object input", () => {
-		expect(healV2UserPreferences({})).toEqual(DEFAULT_V2_USER_PREFERENCES);
-		expect(healV2UserPreferences(null)).toEqual(DEFAULT_V2_USER_PREFERENCES);
-		expect(healV2UserPreferences(undefined)).toEqual(
-			DEFAULT_V2_USER_PREFERENCES,
-		);
+		expect(healUserPreferences({})).toEqual(DEFAULT_V2_USER_PREFERENCES);
+		expect(healUserPreferences(null)).toEqual(DEFAULT_V2_USER_PREFERENCES);
+		expect(healUserPreferences(undefined)).toEqual(DEFAULT_V2_USER_PREFERENCES);
 	});
 
 	it("preserves stored top-level fields and fills missing ones", () => {
 		const stored = { rightSidebarOpen: false, rightSidebarWidth: 500 };
-		const healed = healV2UserPreferences(stored);
+		const healed = healUserPreferences(stored);
 		expect(healed.rightSidebarOpen).toBe(false);
 		expect(healed.rightSidebarWidth).toBe(500);
 		expect(healed.terminalPresetsInitialized).toBe(false);
@@ -36,13 +34,13 @@ describe("healV2UserPreferences", () => {
 
 	it("keeps the user's changes view mode and defaults rows written before it existed", () => {
 		expect(
-			healV2UserPreferences({ changesViewMode: "tree" }).changesViewMode,
+			healUserPreferences({ changesViewMode: "tree" }).changesViewMode,
 		).toBe("tree");
-		expect(healV2UserPreferences({}).changesViewMode).toBe("folders");
+		expect(healUserPreferences({}).changesViewMode).toBe("folders");
 	});
 
 	it("preserves the terminal presets initialization sentinel", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			terminalPresetsInitialized: true,
 		});
 
@@ -60,7 +58,7 @@ describe("healV2UserPreferences", () => {
 			rightSidebarWidth: 340,
 			deleteLocalBranch: false,
 		};
-		const healed = healV2UserPreferences(stored);
+		const healed = healUserPreferences(stored);
 		expect(healed.sidebarFileLinks).toEqual(
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
 		);
@@ -74,7 +72,7 @@ describe("healV2UserPreferences", () => {
 		const stored = {
 			sidebarFileLinks: { plain: "pane", meta: "external" },
 		};
-		const healed = healV2UserPreferences(stored);
+		const healed = healUserPreferences(stored);
 		expect(healed.sidebarFileLinks.plain).toBe("pane");
 		expect(healed.sidebarFileLinks.meta).toBe("external");
 		// Tiers absent from the stored row fall back to defaults.
@@ -87,7 +85,7 @@ describe("healV2UserPreferences", () => {
 	});
 
 	it("migrates the legacy sidebar file link default to the current default", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			sidebarFileLinks: {
 				plain: "pane",
 				shift: "newTab",
@@ -102,7 +100,7 @@ describe("healV2UserPreferences", () => {
 	});
 
 	it("migrates the legacy url link default to the current default", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			urlLinks: {
 				plain: null,
 				shift: null,
@@ -122,20 +120,20 @@ describe("healV2UserPreferences", () => {
 			meta: "pane",
 			metaShift: "external",
 		} as const;
-		const healed = healV2UserPreferences({ urlLinks: customized });
+		const healed = healUserPreferences({ urlLinks: customized });
 
 		expect(healed.urlLinks).toEqual(customized);
 	});
 });
 
-describe("healV2UserPreferences sidebarProjectSortMode", () => {
+describe("healUserPreferences sidebarProjectSortMode", () => {
 	it("defaults to manual on rows written before the field existed", () => {
-		expect(healV2UserPreferences({}).sidebarProjectSortMode).toBe("manual");
+		expect(healUserPreferences({}).sidebarProjectSortMode).toBe("manual");
 	});
 
 	it("preserves a valid stored mode", () => {
 		expect(
-			healV2UserPreferences({ sidebarProjectSortMode: "active" })
+			healUserPreferences({ sidebarProjectSortMode: "active" })
 				.sidebarProjectSortMode,
 		).toBe("active");
 	});
@@ -143,7 +141,7 @@ describe("healV2UserPreferences sidebarProjectSortMode", () => {
 	it("degrades a retired mode to manual instead of dropping the row", () => {
 		// #5956 persisted "updated" before its revert; an unknown value must
 		// heal to the default, and the rest of the row must survive.
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			sidebarProjectSortMode: "updated",
 			rightSidebarWidth: 500,
 		});
@@ -152,7 +150,7 @@ describe("healV2UserPreferences sidebarProjectSortMode", () => {
 	});
 
 	it("degrades a retired mode on the write-path schema too", () => {
-		const parsed = v2UserPreferencesSchema.parse({
+		const parsed = userPreferencesSchema.parse({
 			id: "preferences",
 			sidebarProjectSortMode: "updated",
 		});
@@ -160,20 +158,20 @@ describe("healV2UserPreferences sidebarProjectSortMode", () => {
 	});
 });
 
-describe("healV2UserPreferences favoritePageIds", () => {
+describe("healUserPreferences favoritePageIds", () => {
 	it("defaults to an empty list on rows written before the field existed", () => {
-		expect(healV2UserPreferences({}).favoritePageIds).toEqual([]);
+		expect(healUserPreferences({}).favoritePageIds).toEqual([]);
 	});
 
 	it("preserves stored ids in order", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			favoritePageIds: ["page-b", "page-a"],
 		});
 		expect(healed.favoritePageIds).toEqual(["page-b", "page-a"]);
 	});
 
 	it("drops non-string and empty entries", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			favoritePageIds: ["page-a", "", null, 7, "page-b"],
 		});
 		expect(healed.favoritePageIds).toEqual(["page-a", "page-b"]);
@@ -181,7 +179,7 @@ describe("healV2UserPreferences favoritePageIds", () => {
 
 	it("recovers from a non-array value", () => {
 		expect(
-			healV2UserPreferences({ favoritePageIds: "page-a" }).favoritePageIds,
+			healUserPreferences({ favoritePageIds: "page-a" }).favoritePageIds,
 		).toEqual([]);
 	});
 });

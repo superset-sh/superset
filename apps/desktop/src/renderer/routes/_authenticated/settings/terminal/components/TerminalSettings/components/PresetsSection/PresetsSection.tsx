@@ -1,27 +1,38 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	type ExecutionMode,
 	normalizeExecutionMode,
 	type TerminalPreset,
 } from "@superset/local-db";
+import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { usePresets } from "renderer/react-query/presets";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useAgentConfigs } from "renderer/hooks/useAgentConfigs";
+import { getAgentCommandText } from "renderer/lib/agent-launch-command";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { PresetEditorDialog } from "./components/PresetEditorDialog";
+
 import { PresetsTable } from "./components/PresetsTable";
 import {
 	type QuickAddAgentPill,
 	QuickAddPresets,
 } from "./components/QuickAddPresets";
-import { type AutoApplyField, PRESET_TEMPLATES } from "./constants";
+import type { AutoApplyField } from "./constants";
 import type { PresetProjectOption } from "./preset-project-options";
+
+const DESCRIPTION_BY_PRESET_ID = new Map<string, string>(
+	HOST_AGENT_PRESETS.map((preset) => [preset.presetId, preset.description]),
+);
 
 interface PresetsSectionProps {
 	showPresets: boolean;
@@ -32,6 +43,12 @@ interface PresetsSectionProps {
 	onPendingCreateProjectIdChange?: (projectId: string | null) => void;
 }
 
+/**
+ * Presets section wired to the renderer-side terminalPresets
+ * collection. Reuses PresetsTable / PresetEditorDialog / QuickAddPresets from
+ * the v1 directory (they're prop-driven renderers). When v1 is deprecated,
+ * delete PresetsSection and move the shared sub-components here.
+ */
 export function PresetsSection({
 	showPresets,
 	showQuickAdd,
@@ -43,17 +60,38 @@ export function PresetsSection({
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const isDark = useIsDarkTheme();
-	const { data: groupedProjects = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
-	const {
-		presets: serverPresets,
-		isLoading: isLoadingPresets,
-		createPreset,
-		updatePreset,
-		deletePreset,
-		setPresetAutoApply,
-		reorderPresets,
-	} = usePresets();
+	const collections = useCollections();
+
+	// Read host agent configs from the host service — this is the same
+	// data source the /settings/agents page reads and writes, so edits
+	// there propagate here. The query is invalidated by those mutations.
+	const { activeHostUrl } = useLocalHostService();
+	const { data: agents = [] } = useAgentConfigs(activeHostUrl);
+
+	const { data: presetRows = [] } = useLiveQuery(
+		(query) =>
+			query
+				.from({ terminalPresets: collections.terminalPresets })
+				.orderBy(({ terminalPresets }) => terminalPresets.tabOrder),
+		[collections],
+	);
+
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const projectChoices = useMemo(
+		() =>
+			[...hostProjects]
+				.sort((a, b) => a.name.localeCompare(b.name))
+				.map((project) => ({ id: project.projectKey, name: project.name })),
+		[hostProjects],
+	);
+
+	// TerminalPresetRow is a superset of TerminalPreset — safe to cast
+	// for the prop-driven sub-components.
+	const serverPresets = useMemo<TerminalPreset[]>(
+		() => presetRows as unknown as TerminalPreset[],
+		[presetRows],
+	);
 
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
@@ -71,13 +109,14 @@ export function PresetsSection({
 
 	const projectOptions = useMemo<PresetProjectOption[]>(
 		() =>
-			groupedProjects.map((group) => ({
-				id: group.project.id,
-				name: group.project.name,
-				color: group.project.color,
-				mainRepoPath: group.project.mainRepoPath,
+			projectChoices.map((project) => ({
+				id: project.id,
+				name: project.name,
+				// host project schema has no color/mainRepoPath; degrade gracefully.
+				color: "",
+				mainRepoPath: "",
 			})),
-		[groupedProjects],
+		[projectChoices],
 	);
 	const projectOptionsById = useMemo(
 		() => new Map(projectOptions.map((project) => [project.id, project])),
@@ -147,25 +186,154 @@ export function PresetsSection({
 		}
 	}, [editingPresetId, localPresets, setEditingPreset]);
 
-	const existingPresetNames = useMemo(
-		() => new Set(serverPresets.map((preset) => preset.name)),
+	const existingAgentIds = useMemo(
+		() =>
+			new Set(
+				serverPresets
+					.map((preset) => (preset as TerminalPresetRow).agentId)
+					.filter((id): id is string => !!id),
+			),
 		[serverPresets],
 	);
 
-	const quickAddPills = useMemo<QuickAddAgentPill[]>(
-		() =>
-			PRESET_TEMPLATES.map((template) => ({
-				agentId: template.name,
-				label: template.preset.name,
-				description: template.preset.description,
-				commands: template.preset.commands,
-			})),
-		[],
-	);
+	// One pill per host-agent config — agent.id is unique, so multiple
+	// Claude/Codex configs each get their own pill.
+	const quickAddPills = useMemo<QuickAddAgentPill[]>(() => {
+		const pills: QuickAddAgentPill[] = [];
+		for (const agent of agents) {
+			if (agent.command.trim().length === 0) {
+				continue;
+			}
+			pills.push({
+				agentId: agent.id,
+				iconId: agent.iconId ?? agent.presetId,
+				label: agent.label,
+				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
+				commands: [getAgentCommandText(agent)],
+			});
+		}
+		return pills;
+	}, [agents]);
 
 	const isPillAdded = useCallback(
-		(pill: QuickAddAgentPill) => existingPresetNames.has(pill.label),
-		[existingPresetNames],
+		(pill: QuickAddAgentPill) => existingAgentIds.has(pill.agentId),
+		[existingAgentIds],
+	);
+
+	const insertPreset = useCallback(
+		(input: {
+			name: string;
+			description?: string;
+			cwd: string;
+			commands: string[];
+			projectIds?: string[] | null;
+			pinnedToBar?: boolean;
+			useAsWorkspaceRun?: boolean;
+			executionMode?: ExecutionMode;
+			agentId?: string;
+		}) => {
+			const maxTabOrder = presetRows.reduce(
+				(max, preset) => Math.max(max, preset.tabOrder),
+				-1,
+			);
+			collections.terminalPresets.insert({
+				id: crypto.randomUUID(),
+				name: input.name,
+				description: input.description,
+				cwd: input.cwd,
+				commands: input.commands,
+				projectIds: input.projectIds ?? null,
+				pinnedToBar: input.pinnedToBar,
+				useAsWorkspaceRun: input.useAsWorkspaceRun,
+				executionMode: input.executionMode ?? "new-tab",
+				tabOrder: maxTabOrder + 1,
+				createdAt: new Date(),
+				agentId: input.agentId,
+			});
+		},
+		[collections.terminalPresets, presetRows],
+	);
+
+	const updatePreset = useCallback(
+		(id: string, patch: Partial<TerminalPresetRow>) => {
+			collections.terminalPresets.update(id, (draft) => {
+				for (const [key, value] of Object.entries(patch) as Array<
+					[keyof TerminalPresetRow, unknown]
+				>) {
+					// biome-ignore lint/suspicious/noExplicitAny: narrow assignment across union
+					(draft as any)[key] = value;
+				}
+			});
+		},
+		[collections.terminalPresets],
+	);
+
+	// Migrate legacy rows whose agentId still holds a presetId. Skip when the
+	// presetId resolves to multiple configs — we can't pick one safely.
+	useEffect(() => {
+		if (agents.length === 0 || serverPresets.length === 0) return;
+
+		for (const preset of serverPresets) {
+			const row = preset as TerminalPresetRow;
+			if (!row.agentId) continue;
+			if (agents.some((agent) => agent.id === row.agentId)) continue;
+
+			const legacyMatches = agents.filter(
+				(agent) => agent.presetId === row.agentId,
+			);
+			if (legacyMatches.length !== 1) continue;
+			const legacyMatch = legacyMatches[0];
+			if (!legacyMatch) continue;
+
+			updatePreset(row.id, { agentId: legacyMatch.id });
+		}
+	}, [agents, serverPresets, updatePreset]);
+
+	const deletePreset = useCallback(
+		(id: string) => {
+			collections.terminalPresets.delete(id);
+		},
+		[collections.terminalPresets],
+	);
+
+	// The stored `commands` array is the launch fallback used whenever the
+	// agent config isn't loaded, so it must track the edited agent command —
+	// otherwise launches can silently run the command from preset-creation time.
+	const syncLinkedPresetSnapshots = useCallback(
+		(updated: HostAgentConfig) => {
+			const commandText = getAgentCommandText(updated);
+			if (commandText.trim().length === 0) return;
+			for (const preset of serverPresetsRef.current) {
+				const row = preset as TerminalPresetRow;
+				if (row.agentId !== updated.id && row.agentId !== updated.presetId) {
+					continue;
+				}
+				if (row.commands.length === 1 && row.commands[0] === commandText) {
+					continue;
+				}
+				updatePreset(row.id, { commands: [commandText] });
+			}
+		},
+		[updatePreset],
+	);
+
+	const reorderPresets = useCallback(
+		(presetId: string, targetIndex: number) => {
+			const orderedIds = presetRows.map((preset) => preset.id);
+			const currentIndex = orderedIds.indexOf(presetId);
+			if (currentIndex === -1) return;
+			if (targetIndex < 0 || targetIndex >= orderedIds.length) return;
+
+			const [moved] = orderedIds.splice(currentIndex, 1);
+			orderedIds.splice(targetIndex, 0, moved);
+
+			for (const [index, id] of orderedIds.entries()) {
+				collections.terminalPresets.update(id, (draft) => {
+					draft.tabOrder = index;
+				});
+			}
+		},
+		[collections.terminalPresets, presetRows],
 	);
 
 	const handleCellChange = useCallback(
@@ -190,10 +358,7 @@ export function PresetsSection({
 				if (!serverPreset) return currentLocal;
 				if (preset[column] === serverPreset[column]) return currentLocal;
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { [column]: preset[column] },
-				});
+				updatePreset(preset.id, { [column]: preset[column] });
 				return currentLocal;
 			});
 		},
@@ -210,10 +375,7 @@ export function PresetsSection({
 				);
 
 				if (isDelete && preset) {
-					updatePreset.mutate({
-						id: preset.id,
-						patch: { commands },
-					});
+					updatePreset(preset.id, { commands });
 				}
 				return newPresets;
 			});
@@ -237,10 +399,7 @@ export function PresetsSection({
 					return currentLocal;
 				}
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { commands: preset.commands },
-				});
+				updatePreset(preset.id, { commands: preset.commands });
 				return currentLocal;
 			});
 		},
@@ -259,10 +418,7 @@ export function PresetsSection({
 						: presetItem,
 				);
 
-				updatePreset.mutate({
-					id: preset.id,
-					patch: { executionMode: mode },
-				});
+				updatePreset(preset.id, { executionMode: mode });
 
 				return newPresets;
 			});
@@ -273,7 +429,7 @@ export function PresetsSection({
 	const handleAddRow = useCallback(
 		(projectIds?: string[] | null) => {
 			shouldOpenNewPresetEditorRef.current = true;
-			createPreset.mutate({
+			insertPreset({
 				name: "",
 				cwd: "",
 				commands: [""],
@@ -281,20 +437,21 @@ export function PresetsSection({
 				executionMode: "new-tab",
 			});
 		},
-		[createPreset],
+		[insertPreset],
 	);
 
 	const handleAddPill = useCallback(
 		(pill: QuickAddAgentPill) => {
-			if (existingPresetNames.has(pill.label)) return;
-			createPreset.mutate({
+			if (existingAgentIds.has(pill.agentId)) return;
+			insertPreset({
 				name: pill.label,
 				description: pill.description,
 				cwd: "",
 				commands: pill.commands,
+				agentId: pill.agentId,
 			});
 		},
-		[createPreset, existingPresetNames],
+		[existingAgentIds, insertPreset],
 	);
 
 	useEffect(() => {
@@ -317,7 +474,7 @@ export function PresetsSection({
 			setLocalPresets((currentLocal) => {
 				const preset = currentLocal[rowIndex];
 				if (preset) {
-					deletePreset.mutate({ id: preset.id });
+					deletePreset(preset.id);
 				}
 				return currentLocal;
 			});
@@ -327,27 +484,21 @@ export function PresetsSection({
 
 	const handleToggleAutoApply = useCallback(
 		(presetId: string, field: AutoApplyField, enabled: boolean) => {
-			setPresetAutoApply.mutate({ id: presetId, field, enabled });
+			updatePreset(presetId, { [field]: enabled ? true : undefined });
 		},
-		[setPresetAutoApply],
+		[updatePreset],
 	);
 
 	const handleToggleWorkspaceRun = useCallback(
 		(presetId: string, enabled: boolean) => {
-			updatePreset.mutate({
-				id: presetId,
-				patch: { useAsWorkspaceRun: enabled },
-			});
+			updatePreset(presetId, { useAsWorkspaceRun: enabled });
 		},
 		[updatePreset],
 	);
 
 	const handleToggleVisibility = useCallback(
 		(presetId: string, visible: boolean) => {
-			updatePreset.mutate({
-				id: presetId,
-				patch: { pinnedToBar: visible },
-			});
+			updatePreset(presetId, { pinnedToBar: visible });
 		},
 		[updatePreset],
 	);
@@ -366,7 +517,7 @@ export function PresetsSection({
 
 	const handlePersistReorder = useCallback(
 		(presetId: string, targetIndex: number) => {
-			reorderPresets.mutate({ presetId, targetIndex });
+			reorderPresets(presetId, targetIndex);
 		},
 		[reorderPresets],
 	);
@@ -418,10 +569,7 @@ export function PresetsSection({
 				),
 			);
 
-			updatePreset.mutate({
-				id: editingPreset.id,
-				patch: { cwd: value },
-			});
+			updatePreset(editingPreset.id, { cwd: value });
 		},
 		[editingPreset, editingRowIndex, updatePreset],
 	);
@@ -436,10 +584,7 @@ export function PresetsSection({
 				),
 			);
 
-			updatePreset.mutate({
-				id: editingPreset.id,
-				patch: { projectIds },
-			});
+			updatePreset(editingPreset.id, { projectIds });
 		},
 		[editingPreset, editingRowIndex, updatePreset],
 	);
@@ -482,68 +627,66 @@ export function PresetsSection({
 	);
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-center justify-between">
-				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">
-						<HighlightText
-							text={t({
-								message: "Terminal Scripts",
-							})}
-							query={searchQuery}
-						/>
-					</Label>
-					<p className="text-xs text-muted-foreground">
-						<Trans>
-							Reusable commands that launch in terminals. Project setup, run,
-							and teardown commands are configured as lifecycle scripts.
-						</Trans>
-					</p>
+		<div>
+			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+				<div className="flex items-start justify-between gap-3 p-4">
+					<div className="min-w-0">
+						<h3 className="text-sm font-medium">
+							<HighlightText
+								text={t({
+									message: "Terminal scripts",
+								})}
+								query={searchQuery}
+							/>
+						</h3>
+						<p className="text-xs text-muted-foreground mt-0.5">
+							<Trans>
+								Reusable terminal launches. Click a script to edit or drag to
+								reorder. Project setup, run, and teardown commands are lifecycle
+								scripts.
+							</Trans>
+						</p>
+					</div>
+					<div className="flex shrink-0 items-center gap-2">
+						{showQuickAdd && (
+							<QuickAddPresets
+								pills={quickAddPills}
+								isDark={isDark}
+								keepOpenOnAdd
+								isPillAdded={isPillAdded}
+								onAddPill={handleAddPill}
+							/>
+						)}
+						{showPresets && (
+							<Button size="sm" onClick={() => handleAddRow()}>
+								<HiOutlinePlus className="size-4" />
+								<Trans>Add script</Trans>
+							</Button>
+						)}
+					</div>
 				</div>
+
 				{showPresets && (
-					<Button
-						variant="default"
-						size="sm"
-						className="gap-2"
-						onClick={() => handleAddRow()}
-					>
-						<HiOutlinePlus className="h-4 w-4" />
-						<Trans>Add Script</Trans>
-					</Button>
-				)}
-			</div>
-
-			{showQuickAdd && (
-				<QuickAddPresets
-					pills={quickAddPills}
-					isDark={isDark}
-					isAddDisabled={createPreset.isPending}
-					isPillAdded={isPillAdded}
-					onAddPill={handleAddPill}
-				/>
-			)}
-
-			{showPresets && (
-				<>
 					<PresetsTable
 						presets={localPresets}
-						isLoading={isLoadingPresets}
+						isLoading={false}
 						projectOptionsById={projectOptionsById}
+						agents={agents}
 						presetsContainerRef={presetsContainerRef}
 						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
 						onToggleVisibility={handleToggleVisibility}
+						bordered={false}
 					/>
-					<p className="text-xs text-muted-foreground">
-						<Trans>Click a terminal script to edit its details.</Trans>
-					</p>
-				</>
-			)}
+				)}
+			</div>
 
 			<PresetEditorDialog
 				preset={editingPreset}
 				projects={projectOptions}
+				agents={agents}
+				onLinkedAgentSaved={syncLinkedPresetSnapshots}
 				open={!!editingPreset}
 				onOpenChange={(open) => !open && handleCloseEditor()}
 				onDeletePreset={handleDeleteEditingPreset}

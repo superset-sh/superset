@@ -1,5 +1,1 @@
-export {
-	getTerminalResumedSuccessorQueryKey,
-	type TerminalResumedSuccessor,
-	useTerminalResumedSuccessor,
-} from "./useTerminalResumedSuccessor";
+export { useTerminalResumedSuccessor } from "./useTerminalResumedSuccessor";

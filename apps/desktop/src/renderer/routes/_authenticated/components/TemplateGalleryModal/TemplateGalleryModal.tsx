@@ -8,14 +8,10 @@ import {
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import {
-	useCreateV1Project,
-	useFinalizeProjectSetup,
-} from "renderer/react-query/projects";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { TemplateCard } from "./components/TemplateCard";
 import { PROJECT_TEMPLATES, type ProjectTemplate } from "./templates";
@@ -43,11 +39,9 @@ export function TemplateGalleryModal({
 	onCreated,
 	onError,
 }: TemplateGalleryModalProps) {
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
-	const createV1Project = useCreateV1Project();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const parentDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [cloningId, setCloningId] = useState<string | null>(null);
@@ -63,26 +57,19 @@ export function TemplateGalleryModal({
 		setCloningId(template.id);
 		let createdProjectId: string | null = null;
 		try {
-			if (isV2CloudEnabled) {
-				if (!activeHostUrl) {
-					showHostServiceUnavailableToast(hostService, {
-						action: "createProject",
-					});
-					return;
-				}
-				const client = getHostServiceClientByUrl(activeHostUrl);
-				const result = await client.project.create.mutate({
-					name: deriveProjectNameFromUrl(template.repo),
-					mode: { kind: "template", parentDir, url: template.repo },
+			if (!activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "createProject",
 				});
-				finalizeSetup(activeHostUrl, result);
-				createdProjectId = result.projectId;
-			} else {
-				createdProjectId = await createV1Project.createFromTemplate({
-					repoUrl: template.repo,
-					parentDir,
-				});
+				return;
 			}
+			const client = getHostServiceClientByUrl(activeHostUrl);
+			const result = await client.project.create.mutate({
+				name: deriveProjectNameFromUrl(template.repo),
+				mode: { kind: "template", parentDir, url: template.repo },
+			});
+			finalizeSetup(activeHostUrl, result);
+			createdProjectId = result.projectId;
 		} catch (err) {
 			const message = errorMessage(err);
 			if (onError) onError(message);

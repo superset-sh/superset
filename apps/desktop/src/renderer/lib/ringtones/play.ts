@@ -6,7 +6,7 @@ import {
 import { electronTrpcClient } from "../trpc-client";
 import { builtInRingtoneUrls } from "./urls";
 
-export interface PlayRingtoneOptions {
+interface PlayRingtoneOptions {
 	ringtoneId: string;
 	/** 0..100 — matches the existing `notificationVolume` setting shape. */
 	volume: number;

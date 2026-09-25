@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { SESSIONS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import { useCallback, useEffect, useState } from "react";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
@@ -45,7 +45,7 @@ export function SortableSectionHeader({
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(section.name);
 
-	const { setTagFolderHidden } = useV2UserPreferences();
+	const { setTagFolderHidden } = useUserPreferences();
 	const folderKey = parseSidebarFolderKey(section.id);
 	// Hiding is a per-project preference; the Sessions lane has no such
 	// setting, so its folders offer no hide action.

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { buildHint } from "../hint";
 import { tierFor } from "../tiers";
 import type {
@@ -41,23 +41,6 @@ function tierForActionIn(
  * Build a memoized policy from a tier map. Centralized so every policy hook
  * (sidebar / terminal / inline) shares identical semantics.
  */
-export function buildPolicy(
-	map: LinkTierMap,
-	surface: Surface,
-	mode: TierMode,
-): ClickPolicy {
-	const resolve = (event: ModifierEvent): ResolvedClick => {
-		const tier = tierFor(event, mode);
-		return { tier, action: map[tier] };
-	};
-	return {
-		resolve,
-		getAction: (event) => resolve(event).action,
-		tierForAction: (action) => tierForActionIn(map, action),
-		hint: buildHint(map, surface, mode),
-		map,
-	};
-}
 
 type MapKey = "fileLinks" | "urlLinks" | "sidebarFileLinks";
 
@@ -66,7 +49,7 @@ export function usePolicy(
 	surface: Surface,
 	mode: TierMode,
 ): ClickPolicy {
-	const { preferences } = useV2UserPreferences();
+	const { preferences } = useUserPreferences();
 	const map = preferences[key];
 	const resolve = useCallback(
 		(event: ModifierEvent): ResolvedClick => {

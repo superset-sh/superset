@@ -18,7 +18,7 @@ import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { HotkeyLabel } from "renderer/hotkeys";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
@@ -214,7 +214,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												workspaceId: workspace.id,
 												prNumber: pullRequest.number,
 											});
-											void navigateToV2Workspace(workspace.id, navigate);
+											void navigateToWorkspace(workspace.id, navigate);
 										}}
 										onKeyDown={(event) => {
 											if (event.key === "Enter" || event.key === " ") {

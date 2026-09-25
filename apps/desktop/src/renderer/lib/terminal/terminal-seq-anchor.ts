@@ -8,7 +8,7 @@ import { TERMINAL_SEQ_KEY_PREFIX } from "./terminal-buffer-gc";
  * duplication or resets. Bounded by the buffer snapshot's own lifecycle —
  * always written/cleared alongside it and swept by the same GC.
  */
-export interface TerminalSeqAnchor {
+interface TerminalSeqAnchor {
 	epoch: string;
 	seq: number;
 }

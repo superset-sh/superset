@@ -165,7 +165,7 @@ export function EnvironmentEditorDialog({
 			);
 			await finish();
 			void navigate({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 				params: { workspaceId: created.id },
 			});
 		} catch (error) {

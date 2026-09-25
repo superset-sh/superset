@@ -14,7 +14,7 @@ import {
 	type WorkspaceHostTarget,
 } from "../useWorkspaceHostUrl";
 
-export interface DestroyWorkspaceInput {
+interface DestroyWorkspaceInput {
 	deleteBranch?: boolean;
 	/** Git-destructive consent only (skips the dirty-worktree preflight).
 	 * Does NOT skip the teardown script. */
@@ -61,13 +61,13 @@ export type DestroyWorkspaceError =
 	| { kind: "host-unavailable"; reason: WorkspaceHostTarget["status"] }
 	| { kind: "unknown"; message: string };
 
-export interface UseDestroyWorkspace {
+interface UseDestroyWorkspace {
 	hostTarget: WorkspaceHostTarget;
 	destroy: (input?: DestroyWorkspaceInput) => Promise<DestroyWorkspaceSuccess>;
 	inspect: () => Promise<DestroyWorkspacePreview>;
 }
 
-export interface DestroyWorkspaceHostTarget {
+interface DestroyWorkspaceHostTarget {
 	workspaceId: string;
 	hostUrl: string | null;
 	hostStatus: WorkspaceHostTarget["status"];
@@ -204,9 +204,7 @@ function getReadyClient(
 	return getHostServiceClientByUrl(hostUrl);
 }
 
-export function normalizeDestroyWorkspaceError(
-	err: unknown,
-): DestroyWorkspaceError {
+function normalizeDestroyWorkspaceError(err: unknown): DestroyWorkspaceError {
 	if (isDestroyWorkspaceError(err)) return err;
 	if (err instanceof TRPCClientError) {
 		const data = err.data as

@@ -1,4 +1,1 @@
-export {
-	type AutomationFailuresState,
-	useAutomationFailuresStore,
-} from "./store";
+export { useAutomationFailuresStore } from "./store";

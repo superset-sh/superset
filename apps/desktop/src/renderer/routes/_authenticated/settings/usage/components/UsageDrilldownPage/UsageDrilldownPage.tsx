@@ -23,7 +23,7 @@ import {
 	formatUsd,
 } from "../UsageHistorySection/utils/formatUsage";
 
-export type DrilldownKind = "workspace" | "model";
+type DrilldownKind = "workspace" | "model";
 
 /**
  * One entity's page — a workspace or a model — with its own daily series

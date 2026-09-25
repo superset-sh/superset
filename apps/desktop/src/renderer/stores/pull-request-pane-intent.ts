@@ -6,7 +6,7 @@ import { create } from "zustand";
  * page-pane intent: the requester navigates to the workspace, and the
  * workspace page consumes the intent on arrival.
  */
-export interface PullRequestPaneIntent {
+interface PullRequestPaneIntent {
 	workspaceId: string;
 	prNumber: number;
 }

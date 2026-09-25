@@ -10,7 +10,7 @@ interface PresetsTableProps {
 	presets: TerminalPreset[];
 	isLoading: boolean;
 	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
-	/** v2 host-agent configs, used by PresetRow to resolve the linked-agent icon. */
+	/** host-agent configs, used by PresetRow to resolve the linked-agent icon. */
 	agents?: HostAgentConfig[];
 	presetsContainerRef: RefObject<HTMLDivElement | null>;
 	onEdit: (presetId: string) => void;

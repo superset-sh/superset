@@ -72,7 +72,7 @@ function PluginDetailPage() {
 
 	if (env.NODE_ENV !== "development") {
 		if (isEnabled === undefined) return null;
-		if (!isEnabled) return <Redirect to="/v2-workspaces" />;
+		if (!isEnabled) return <Redirect to="/workspaces" />;
 	}
 	if (isLoading) return null;
 	if (!plugin) return <Redirect to="/plugins" />;

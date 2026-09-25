@@ -20,17 +20,13 @@
 export const DEV_EXIT_DEADLINE_MS = 5_000;
 export const DEV_PARENT_POLL_MS = 1_000;
 
-export type DevExitReason =
-	| "SIGTERM"
-	| "SIGINT"
-	| "parent-exit"
-	| "stdio-closed";
+type DevExitReason = "SIGTERM" | "SIGINT" | "parent-exit" | "stdio-closed";
 
 interface ErrorSource {
 	on(event: "error", listener: (error: NodeJS.ErrnoException) => void): unknown;
 }
 
-export interface DevRunnerExitDeps {
+interface DevRunnerExitDeps {
 	parentPid: number;
 	stdio: ErrorSource[];
 	subscribeSignal: (signal: "SIGTERM" | "SIGINT", handler: () => void) => void;

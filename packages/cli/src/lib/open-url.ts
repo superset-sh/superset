@@ -19,7 +19,7 @@ export function desktopWorkspaceLink(
 	params?: Record<string, string>,
 ): string {
 	const search = params ? `?${new URLSearchParams(params)}` : "";
-	return `superset://v2-workspace/${workspaceId}${search}`;
+	return `superset://workspace/${workspaceId}${search}`;
 }
 
 export function openUrl(url: string): Promise<void> {

@@ -1,13 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { errorMessage } from "@superset/i18n/errors";
-import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
-import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
-import {
-	type AgentDefinitionId,
-	getEnabledAgentConfigs,
-	getFallbackAgentId,
-	indexResolvedAgentConfigs,
-} from "@superset/shared/agent-settings";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -15,172 +6,262 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
-import { Switch } from "@superset/ui/switch";
-import { useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
-import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
+import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
+import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
+import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
+import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
-import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { useWorkspaceCreateDefaultsStore } from "renderer/stores/workspace-create-defaults";
+import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
-type TaskLaunchAgent = AgentDefinitionId | "none";
+const AGENT_STORAGE_KEY = "lastSelectedV2TaskAgent";
+const NONE = "none" as const;
+type SelectedAgent = string | typeof NONE;
 
-interface OpenInWorkspaceProps {
+interface OpenInWorkspaceV2Props {
 	task: TaskWithStatus;
 }
 
-export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+function synthesizeTaskPrompt(task: TaskWithStatus): string {
+	const header = `${task.slug}: ${task.title}`;
+	const body = task.description?.trim();
+	return body ? `${header}\n\n${body}` : header;
+}
+
+function readStoredAgent(): SelectedAgent {
+	if (typeof window === "undefined") return NONE;
+	const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
+	return stored ? (stored as SelectedAgent) : NONE;
+}
+
+export function OpenInWorkspace({ task }: OpenInWorkspaceV2Props) {
 	const { t } = useLingui();
-	const { data: recentProjects = [] } =
-		electronTrpc.projects.getRecents.useQuery();
-	const createWorkspace = useCreateWorkspace();
-	const terminalCreateOrAttach =
-		electronTrpc.terminal.createOrAttach.useMutation();
-	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const agentPresetsQuery = electronTrpc.settings.getAgentPresets.useQuery();
-	const agentPresets = agentPresetsQuery.data ?? [];
-	const enabledAgentPresets = useMemo(
-		() => getEnabledAgentConfigs(agentPresets),
-		[agentPresets],
-	);
-	const agentConfigsById = useMemo(
-		() => indexResolvedAgentConfigs(agentPresets),
-		[agentPresets],
-	);
-	const fallbackAgentId = useMemo(
-		() => getFallbackAgentId(agentPresets),
-		[agentPresets],
-	);
-	const selectableAgents = useMemo(
-		() => enabledAgentPresets.map((preset) => preset.id),
-		[enabledAgentPresets],
-	);
-	const {
-		autoRun,
-		effectiveProjectId,
-		selectedAgent,
-		setAutoRun,
-		setSelectedAgent,
-		setSelectedProjectId,
-	} = useAgentLaunchPreferences<TaskLaunchAgent>({
-		agentStorageKey: "lastSelectedAgent",
-		defaultAgent: fallbackAgentId ?? "none",
-		fallbackAgent: fallbackAgentId ?? "none",
-		validAgents: ["none", ...selectableAgents],
-		agentsReady: agentPresetsQuery.isFetched,
-		projectStorageKey: "lastOpenedInProjectId",
-		recentProjects,
-		autoRunStorageKey: "agentAutoRun",
-	});
+	const navigate = useNavigate();
+	const hostService = useLocalHostService();
+	const { machineId, activeHostUrl } = hostService;
+	const { otherHosts } = useWorkspaceHostOptions();
 
-	const selectedProject = recentProjects.find(
-		(p) => p.id === effectiveProjectId,
+	const { submit } = useWorkspaceCreates();
+	const lastProjectId = useWorkspaceCreateDefaultsStore(
+		(state) => state.lastProjectId,
+	);
+	const setLastProjectId = useWorkspaceCreateDefaultsStore(
+		(state) => state.setLastProjectId,
+	);
+	const lastHostId = useWorkspaceCreateDefaultsStore(
+		(state) => state.lastHostId,
+	);
+	const setLastHostId = useWorkspaceCreateDefaultsStore(
+		(state) => state.setLastHostId,
 	);
 
-	const handleOpen = async () => {
-		if (!effectiveProjectId) return;
+	const [hostId, setHostId] = useState<string | null>(
+		lastHostId ?? machineId ?? null,
+	);
+
+	const setUpProjectIds = useSelectedHostProjectIds(hostId);
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
+				needsSetup:
+					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
+
+	const launchHostUrl = useHostUrl(hostId);
+	const { agents: agentConfigs, isFetched: agentsFetched } =
+		useAgentChoices(launchHostUrl);
+	const validAgentIds = useMemo(
+		() => new Set(agentConfigs.map((agent) => agent.id)),
+		[agentConfigs],
+	);
+
+	const seededProjectId =
+		lastProjectId &&
+		recentProjects.some((project) => project.id === lastProjectId)
+			? lastProjectId
+			: (recentProjects[0]?.id ?? null);
+	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+		seededProjectId,
+	);
+	useEffect(() => {
 		if (
-			selectedAgent !== "none" &&
-			!agentConfigsById.get(selectedAgent)?.enabled
+			selectedProjectId &&
+			recentProjects.some((project) => project.id === selectedProjectId)
 		) {
-			toast.error(
-				t({
-					message: "Enable an agent in Settings > Agents first",
-				}),
-			);
 			return;
 		}
-		await handleSelectProject(effectiveProjectId);
+		setSelectedProjectId(seededProjectId);
+	}, [seededProjectId, selectedProjectId, recentProjects]);
+
+	const [selectedAgent, setSelectedAgentState] =
+		useState<SelectedAgent>(readStoredAgent);
+	useEffect(() => {
+		if (!agentsFetched) return;
+		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
+		const stored = readStoredAgent();
+		if (stored !== NONE && validAgentIds.has(stored)) {
+			setSelectedAgentState(stored);
+		} else if (selectedAgent !== NONE) {
+			setSelectedAgentState(NONE);
+		}
+	}, [agentsFetched, validAgentIds, selectedAgent]);
+	const setSelectedAgent = (next: SelectedAgent) => {
+		setSelectedAgentState(next);
+		if (typeof window !== "undefined") {
+			window.localStorage.setItem(AGENT_STORAGE_KEY, next);
+		}
 	};
 
-	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest | null =>
-		buildTaskAgentLaunchRequest({
-			task: {
-				id: task.id,
-				slug: task.slug,
-				title: task.title,
-				description: task.description,
-				priority: task.priority,
-				statusName: task.status.name,
-				labels: task.labels,
-			},
-			workspaceId,
-			selectedAgent,
-			source: "open-in-workspace",
-			autoRun,
-			configsById: agentConfigsById,
-		});
+	const selectedProject = recentProjects.find(
+		(project) => project.id === selectedProjectId,
+	);
 
-	const handleSelectProject = async (projectId: string) => {
-		const branchName = deriveBranchName({
+	const handleSelectProject = (projectId: string) => {
+		setSelectedProjectId(projectId);
+		setLastProjectId(projectId);
+	};
+
+	const submitBlocker = useMemo<string | null>(() => {
+		if (!selectedProjectId)
+			return t({
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				message: "No active host",
+			});
+		if (hostId !== machineId) {
+			const remote = otherHosts.find((host) => host.id === hostId);
+			if (!remote?.isOnline)
+				return t({
+					message: "Host is offline",
+				});
+		} else if (!activeHostUrl) {
+			return t({
+				message: "Host service is not running",
+			});
+		}
+		// While the host's project list is still loading, needsSetup is null —
+		// block until we know whether the project is actually set up on the
+		// chosen host, otherwise the server-side guard becomes the only check.
+		if (setUpProjectIds === null)
+			return t({
+				message: "Checking host…",
+			});
+		if (selectedProject?.needsSetup === true) {
+			return t({
+				message: "Project not set up on this host",
+			});
+		}
+		// Agent UUIDs are host-scoped. Right after a host switch the stored id
+		// from the previous host is still in selectedAgent until the agent
+		// query resolves and the corrective effect runs — block submission so
+		// we don't send an id this host doesn't recognize.
+		if (selectedAgent !== NONE) {
+			if (!agentsFetched)
+				return t({
+					message: "Checking agents…",
+				});
+			if (!validAgentIds.has(selectedAgent)) {
+				return t({
+					message: "Selected agent is not available on this host",
+				});
+			}
+		}
+		return null;
+	}, [
+		selectedProjectId,
+		selectedProject?.needsSetup,
+		setUpProjectIds,
+		selectedAgent,
+		agentsFetched,
+		validAgentIds,
+		hostId,
+		machineId,
+		otherHosts,
+		activeHostUrl,
+		t,
+	]);
+
+	const handleOpen = () => {
+		if (submitBlocker) {
+			if (hostId === machineId && !activeHostUrl) {
+				showHostServiceUnavailableToast(hostService, {
+					action: "openTaskInWorkspace",
+				});
+			} else {
+				toast.error(submitBlocker);
+			}
+			return;
+		}
+		if (!selectedProjectId || !hostId) return;
+
+		const snapshotId = crypto.randomUUID();
+		const providerBranch = !!task.branch?.trim();
+		const branch = deriveBranchName({
 			slug: task.slug,
 			title: task.title,
 			branch: task.branch,
 		});
-
-		try {
-			const launchRequestTemplate = buildLaunchRequest("pending-workspace");
-			const result = await createWorkspace.mutateAsyncWithPendingSetup(
-				{
-					projectId,
-					name: task.title,
-					branchName,
-				},
-				{ agentLaunchRequest: launchRequestTemplate ?? undefined },
-			);
-
-			if (result.wasExisting && launchRequestTemplate) {
-				const launchRequest: AgentLaunchRequest = {
-					...launchRequestTemplate,
-					workspaceId: result.workspace.id,
-				};
-				const launchResult = await launchAgentSession(launchRequest, {
-					source: "open-in-workspace",
-					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
-					write: (input) => terminalWrite.mutateAsync(input),
-				});
-				if (launchResult.status === "failed") {
-					toast.error(
-						t({
-							message: "Failed to start agent",
-						}),
+		const agents =
+			selectedAgent === NONE
+				? undefined
+				: [
 						{
-							description:
-								launchResult.error ??
-								t({
-									message: "Failed to start agent session.",
-								}),
+							agent: selectedAgent,
+							prompt: synthesizeTaskPrompt(task),
 						},
-					);
-					return;
-				}
-			}
+					];
 
-			toast.success(
-				result.wasExisting
-					? t({
-							message: "Opened existing workspace",
-						})
-					: t({
-							message: "Workspace created",
-						}),
-			);
-		} catch (err) {
-			toast.error(
-				errorMessage(
-					err,
-					t({
-						message: "Failed to create workspace",
-					}),
-				),
-			);
-		}
+		// Navigate optimistically — the host service uses our supplied id for new
+		// workspaces, so the route is correct in the common case. If the server
+		// found an existing workspace under a different id, the success handler
+		// replaces the URL.
+		void navigate({
+			to: "/workspace/$workspaceId",
+			params: { workspaceId: snapshotId },
+		});
+
+		const { completed } = submit({
+			hostId,
+			snapshot: {
+				id: snapshotId,
+				projectId: selectedProjectId,
+				name: task.title,
+				branch,
+				skipBranchPrefix: providerBranch || undefined,
+				taskId: task.id,
+				agents,
+			},
+		});
+
+		void completed.then((outcome) => {
+			if (!outcome.ok) return;
+			if (outcome.workspaceId !== snapshotId) {
+				void navigate({
+					to: "/workspace/$workspaceId",
+					params: { workspaceId: outcome.workspaceId },
+					replace: true,
+				});
+			}
+		});
 	};
 
 	return (
@@ -188,6 +269,14 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			<span className="text-xs text-muted-foreground">
 				<Trans>Open in workspace</Trans>
 			</span>
+			<DevicePicker
+				hostId={hostId}
+				onSelectHostId={(next) => {
+					setHostId(next);
+					setLastHostId(next);
+				}}
+				className="w-full max-w-none h-8"
+			/>
 			<div className="flex gap-1.5">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -200,11 +289,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 								{selectedProject ? (
 									<>
 										<ProjectThumbnail
-											projectId={selectedProject.id}
 											projectName={selectedProject.name}
-											projectColor={selectedProject.color}
-											githubOwner={selectedProject.githubOwner}
-											hideImage={selectedProject.hideImage ?? undefined}
 											iconUrl={selectedProject.iconUrl}
 											className="size-4"
 										/>
@@ -228,42 +313,42 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 								<Trans>No projects found</Trans>
 							</DropdownMenuItem>
 						) : (
-							recentProjects
-								.filter((p) => p.id)
-								.map((project) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() => {
-											setSelectedProjectId(project.id);
-										}}
-										className="flex items-center gap-2"
-									>
-										<ProjectThumbnail
-											projectId={project.id}
-											projectName={project.name}
-											projectColor={project.color}
-											githubOwner={project.githubOwner}
-											hideImage={project.hideImage ?? undefined}
-											iconUrl={project.iconUrl}
-											className="size-4"
-										/>
-										{project.name}
-									</DropdownMenuItem>
-								))
+							recentProjects.map((project) => (
+								<DropdownMenuItem
+									key={project.id}
+									onClick={() => handleSelectProject(project.id)}
+									className="flex items-center gap-2"
+								>
+									<ProjectThumbnail
+										projectName={project.name}
+										iconUrl={project.iconUrl}
+										className="size-4"
+									/>
+									<span className="flex-1 truncate">{project.name}</span>
+									{project.needsSetup === true && (
+										<span className="text-[10px] text-amber-500 shrink-0">
+											<Trans>not set up</Trans>
+										</span>
+									)}
+								</DropdownMenuItem>
+							))
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 				<Button
 					size="icon"
+					aria-label={t({
+						message: "Open in workspace",
+					})}
 					className="h-8 w-8 shrink-0"
-					disabled={!effectiveProjectId || createWorkspace.isPending}
+					disabled={!!submitBlocker}
 					onClick={handleOpen}
 				>
 					<HiArrowRight className="w-3.5 h-3.5" />
 				</Button>
 			</div>
-			<AgentSelect<TaskLaunchAgent>
-				agents={enabledAgentPresets}
+			<AgentSelect<SelectedAgent>
+				agents={agentConfigs}
 				value={selectedAgent}
 				placeholder={t({
 					message: "Select agent",
@@ -274,18 +359,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				noneLabel={t({
 					message: "No agent",
 				})}
-				noneValue="none"
+				noneValue={NONE}
 			/>
-			<div className="flex items-center justify-between">
-				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
-					<Trans>Auto-run command</Trans>
-				</Label>
-				<Switch
-					id="auto-run-toggle"
-					checked={autoRun}
-					onCheckedChange={setAutoRun}
-				/>
-			</div>
 		</div>
 	);
 }

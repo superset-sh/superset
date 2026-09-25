@@ -8,7 +8,7 @@ const RENDERER_ROOT = import.meta.dir.split("/").slice(0, -3).join("/");
 
 // Ctrl+C is a keystroke, not text.
 const KEYSTROKE_WRITERS = [
-	"routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useV2WorkspaceRun/useV2WorkspaceRun.ts",
+	"routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/useWorkspaceRun/useWorkspaceRun.ts",
 ];
 
 const RAW_WRITE =

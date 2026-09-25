@@ -3,7 +3,7 @@
  * `StatusIndicator` (changes tab). `@pierre/trees`' own enum is narrower; see
  * `FILE_STATUS_TO_PIERRE`.
  */
-export type FileStatus =
+type FileStatus =
 	| "added"
 	| "changed"
 	| "copied"

@@ -1,1 +1,1 @@
-export { selectServingHostId, useProjectHost } from "./useProjectHost";
+export { useProjectHost } from "./useProjectHost";

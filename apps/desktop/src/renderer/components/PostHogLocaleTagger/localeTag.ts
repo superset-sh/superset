@@ -1,4 +1,4 @@
-export interface LocaleTag {
+interface LocaleTag {
 	app_locale: string;
 	app_locale_source: "setting" | "system";
 }

@@ -1,1 +1,0 @@
-export { resolveEffectiveWorkspaceBaseBranch } from "./workspaceBaseBranch";

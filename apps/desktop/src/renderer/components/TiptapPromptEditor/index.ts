@@ -1,4 +1,1 @@
-export {
-	TiptapPromptEditor,
-	type TiptapPromptEditorProps,
-} from "./TiptapPromptEditor";
+export { TiptapPromptEditor } from "./TiptapPromptEditor";

@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import {
 	actionLabel,
 	type FolderTierMap,
@@ -44,7 +44,7 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		setFolderLinks,
 		setPortOpenAction,
 		setPageOpenAction,
-	} = useV2UserPreferences();
+	} = useUserPreferences();
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
 	const showFolder = isItemVisible(SETTING_ITEM_ID.LINKS_FOLDER, visibleItems);

@@ -1,8 +1,6 @@
-import { createTRPCReact } from "@trpc/react-query";
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
-import type { AppRouter } from "./routers";
 
 function structuredCause(cause: unknown): Record<string, unknown> | undefined {
 	if (
@@ -75,6 +73,4 @@ const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
 });
 
 export const router = t.router;
-export const mergeRouters = t.mergeRouters;
 export const publicProcedure = t.procedure.use(sentryMiddleware);
-export const trpc = createTRPCReact<AppRouter>();

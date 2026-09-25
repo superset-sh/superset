@@ -1,13 +1,13 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { DashboardSidebarWorkspaceHostType } from "../../types";
 
-export interface PullRequestQueryHostRow {
+interface PullRequestQueryHostRow {
 	organizationId: string;
 	machineId: string;
 	isOnline: boolean;
 }
 
-export interface PullRequestQueryWorkspaceRow {
+interface PullRequestQueryWorkspaceRow {
 	id: string;
 	hostId: string;
 }

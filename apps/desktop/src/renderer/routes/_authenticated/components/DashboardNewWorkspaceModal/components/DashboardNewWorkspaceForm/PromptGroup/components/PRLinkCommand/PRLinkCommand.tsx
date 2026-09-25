@@ -22,7 +22,8 @@ import {
 	PRIcon,
 	type PRState,
 } from "renderer/screens/main/components/PRIcon/PRIcon";
-export interface SelectedPR {
+
+interface SelectedPR {
 	prNumber: number;
 	title: string;
 	url: string;

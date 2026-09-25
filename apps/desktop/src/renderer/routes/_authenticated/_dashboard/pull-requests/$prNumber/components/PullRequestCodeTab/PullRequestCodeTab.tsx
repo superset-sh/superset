@@ -25,8 +25,8 @@ import {
 	type PierreGitStatus,
 } from "renderer/lib/pierreTree";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
-import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
-import { useDiffCardCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
+import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
+import { useDiffCardCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
 import { DiffFileCollapseButton } from "renderer/screens/main/components/DiffFileCollapseButton";
 import { DiffFileHeaderName } from "renderer/screens/main/components/DiffFileHeaderName";
 import { DiffViewToolbar } from "renderer/screens/main/components/DiffViewToolbar";
@@ -183,7 +183,7 @@ export function PullRequestCodeTab({
 	// Card look (rounded header/body pairs, gap between files, PR-row
 	// additions/deletions colors, app background instead of the terminal
 	// theme's) comes from the shared card theme hook — the same one the
-	// v2-workspace DiffPane renders with.
+	// workspace DiffPane renders with.
 	const { options, style: codeViewStyle } = useDiffCardCodeViewTheme();
 	const codeViewRef = useRef<CodeViewHandle<PrAnnotationMetadata>>(null);
 	const [initialTreeExpansion] = useState<"open" | "closed">(() =>
@@ -723,7 +723,7 @@ export function PullRequestCodeTab({
 				// non-null onGutterUtilityClick (InteractionManager's
 				// startGutterSelectionFromPointerDown early-returns otherwise)
 				// — the real open logic lives in onLineSelectionEnd, which also
-				// fires on gutter clicks. Mirrors the v2-workspace DiffPane's
+				// fires on gutter clicks. Mirrors the workspace DiffPane's
 				// identical stub for the same reason.
 				onGutterUtilityClick: () => {},
 				onLineSelectionEnd: (

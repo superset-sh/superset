@@ -16,8 +16,6 @@ const params = {
 	workspacePath: "/workspace",
 	rootPath: "/workspace",
 	supersetEnv: "production" as const,
-	agentHookPort: "51741",
-	agentHookVersion: "2",
 };
 
 describe("terminal env in a sandbox", () => {

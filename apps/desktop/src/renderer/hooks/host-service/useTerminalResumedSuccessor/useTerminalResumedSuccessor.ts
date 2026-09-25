@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
-export interface TerminalResumedSuccessor {
+interface TerminalResumedSuccessor {
 	terminalId: string;
 	label: string;
 }
 
-export function getTerminalResumedSuccessorQueryKey(
+function getTerminalResumedSuccessorQueryKey(
 	workspaceId: string,
 	terminalId: string,
 ) {

@@ -7,7 +7,7 @@ import { devtools, persist } from "zustand/middleware";
  * newer run fails. The failure count itself is DERIVED from run data (see
  * `useFailedAutomations`); the only fact stored here is the user's seen mark.
  */
-export interface AutomationFailuresState {
+interface AutomationFailuresState {
 	/**
 	 * createdAt (ms) of the newest failed run the user has acknowledged. This is
 	 * the run's DB timestamp (a single server clock), so it's comparable across

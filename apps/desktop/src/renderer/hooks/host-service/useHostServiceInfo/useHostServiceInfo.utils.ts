@@ -4,7 +4,7 @@ import {
 } from "@superset/shared/host-version";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 
-export interface HostServiceInfo {
+interface HostServiceInfo {
 	version: string;
 	installSource: HostInstallSource;
 	updatable: boolean;

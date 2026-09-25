@@ -1,1 +1,0 @@
-export { PaneTitle } from "./PaneTitle";

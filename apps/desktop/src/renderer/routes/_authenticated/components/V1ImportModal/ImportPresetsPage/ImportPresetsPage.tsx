@@ -4,7 +4,7 @@ import type { TerminalPreset } from "@superset/local-db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
 import { LuTerminal } from "react-icons/lu";
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { useAgentConfigs } from "renderer/hooks/useAgentConfigs";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	buildV2TerminalPresetRow,
@@ -12,7 +12,7 @@ import {
 	resolvePresetImport,
 } from "renderer/lib/v1-migration";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
@@ -28,10 +28,10 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 	const presetsQuery = electronTrpc.settings.getTerminalPresets.useQuery();
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const { activeHostUrl } = useLocalHostService();
-	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
+	const { data: agents = [] } = useAgentConfigs(activeHostUrl);
 
 	const { data: v2Presets = [] } = useLiveQuery(
-		(query) => query.from({ v2TerminalPresets: collections.v2TerminalPresets }),
+		(query) => query.from({ terminalPresets: collections.terminalPresets }),
 		[collections],
 	);
 
@@ -104,12 +104,12 @@ function PresetRow({
 		setRunning(true);
 		setErrorMessage(null);
 		try {
-			const row: V2TerminalPresetRow = buildV2TerminalPresetRow(
+			const row: TerminalPresetRow = buildV2TerminalPresetRow(
 				preset,
 				tabOrder,
 				{ v2Name, linkedAgentId },
 			);
-			collections.v2TerminalPresets.insert(row);
+			collections.terminalPresets.insert(row);
 			recordV1MigrationOutcome(organizationId, {
 				v1Id: preset.id,
 				kind: "preset",

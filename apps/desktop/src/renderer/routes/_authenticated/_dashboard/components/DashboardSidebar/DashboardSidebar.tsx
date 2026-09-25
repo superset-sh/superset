@@ -18,7 +18,7 @@ import {
 	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -37,7 +37,7 @@ import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSid
 import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { useGettingStartedCard } from "./components/GettingStartedCard";
-import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
+import { useSetupScriptCard } from "./components/SetupScriptCard";
 import {
 	getBlockedDragProps,
 	useBlockedDragNotice,
@@ -169,12 +169,14 @@ export function DashboardSidebar({
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;
 	const isSettingsOpen = !!matchRoute({ to: "/settings", fuzzy: true });
 	const { activeHostUrl } = useLocalHostService();
-	const v2RouteMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
-	const activeV2WorkspaceId = v2RouteMatch ? v2RouteMatch.workspaceId : null;
+	const workspaceRouteMatch = matchRoute({ to: "/workspace/$workspaceId" });
+	const activeWorkspaceId = workspaceRouteMatch
+		? workspaceRouteMatch.workspaceId
+		: null;
 	const workspacesListCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.workspaces,
 	);
-	const { preferences, setSidebarProjectSortMode } = useV2UserPreferences();
+	const { preferences, setSidebarProjectSortMode } = useUserPreferences();
 	const sortMode = preferences.sidebarProjectSortMode;
 	const [projectFilterQuery, setProjectFilterQuery] = useState("");
 	// The icon rail hides the Projects header (and its filter input); a
@@ -287,12 +289,12 @@ export function DashboardSidebar({
 		return [...byId.values()];
 	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups]);
 
-	const activeV2Project = useMemo(() => {
-		if (!activeV2WorkspaceId) return null;
+	const activeProject = useMemo(() => {
+		if (!activeWorkspaceId) return null;
 		// A pinned active workspace renders outside its project group, so
 		// resolve its project by id instead.
 		const pinned = pinnedWorkspaces.find(
-			(workspace) => workspace.id === activeV2WorkspaceId,
+			(workspace) => workspace.id === activeWorkspaceId,
 		);
 		if (pinned) {
 			return groups.find((project) => project.id === pinned.projectId) ?? null;
@@ -301,27 +303,27 @@ export function DashboardSidebar({
 			for (const child of project.children) {
 				if (
 					child.type === "workspace" &&
-					child.workspace.id === activeV2WorkspaceId
+					child.workspace.id === activeWorkspaceId
 				) {
 					return project;
 				}
 				if (child.type === "section") {
 					for (const ws of child.section.workspaces) {
-						if (ws.id === activeV2WorkspaceId) return project;
+						if (ws.id === activeWorkspaceId) return project;
 					}
 				}
 			}
 		}
 		return null;
-	}, [groups, pinnedWorkspaces, activeV2WorkspaceId]);
+	}, [groups, pinnedWorkspaces, activeWorkspaceId]);
 
 	// Ordered by priority for the single card slot below — blocking first,
 	// then actionable, then nags.
 	const paymentFailedCard = usePaymentFailedCard({ surface: "v2" });
-	const setupScriptCard = useV2SetupScriptCard({
+	const setupScriptCard = useSetupScriptCard({
 		hostUrl: activeHostUrl,
-		projectId: activeV2Project?.id ?? null,
-		projectName: activeV2Project?.name ?? null,
+		projectId: activeProject?.id ?? null,
+		projectName: activeProject?.name ?? null,
 	});
 	const gettingStartedCard = useGettingStartedCard();
 	const starNagCard = useStarNagCard({ isCollapsed });
@@ -338,14 +340,14 @@ export function DashboardSidebar({
 	return (
 		<DashboardSidebarSelectionProvider
 			availableWorkspaceIds={selectableWorkspaceIds}
-			activeWorkspaceId={activeV2WorkspaceId}
+			activeWorkspaceId={activeWorkspaceId}
 		>
 			<DashboardSidebarBulkDeleteMount />
 			<DashboardSidebarSectionRenameProvider>
 				<DashboardSidebarHoverProvider>
 					<DashboardSidebarWorkspaceStatusProvider
 						workspaces={statusWorkspaces}
-						activeWorkspaceId={activeV2WorkspaceId}
+						activeWorkspaceId={activeWorkspaceId}
 					>
 						{/* Port data comes from the single DashboardSidebarPortsProvider in the
 						    dashboard layout, which wraps this sidebar. */}

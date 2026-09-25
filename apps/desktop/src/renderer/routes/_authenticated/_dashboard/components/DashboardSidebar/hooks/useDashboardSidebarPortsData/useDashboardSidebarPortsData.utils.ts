@@ -38,7 +38,7 @@ type HostPortsMetadata = Pick<
 	"hostId" | "hostType" | "hostUrl"
 >;
 
-export interface HostPortsQueryTarget {
+interface HostPortsQueryTarget {
 	organizationId: string;
 	machineId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -46,13 +46,13 @@ export interface HostPortsQueryTarget {
 	workspaceIds: string[];
 }
 
-export interface DashboardSidebarHostRow {
+interface DashboardSidebarHostRow {
 	organizationId: string;
 	machineId: string;
 	isOnline: boolean;
 }
 
-export interface DashboardSidebarWorkspaceRow {
+interface DashboardSidebarWorkspaceRow {
 	id: string;
 	name: string;
 	hostId: string;
@@ -179,9 +179,9 @@ export function deriveHostPortQueryTargets({
 		];
 	});
 
-	// v1 asked the local port manager for every tracked port. Keep v2's host
-	// fan-out for remote ports, but make the active local host tolerant of
-	// stale/missing Electric host mappings by allowing every known workspace id.
+	// Keep the host fan-out for remote ports, but make the active local host
+	// tolerant of stale/missing host mappings by allowing every known
+	// workspace id.
 	if (machineId && activeHostUrl && allWorkspaceIds.length > 0) {
 		const localTargetIndex = targets.findIndex(
 			(target) => target.machineId === machineId,

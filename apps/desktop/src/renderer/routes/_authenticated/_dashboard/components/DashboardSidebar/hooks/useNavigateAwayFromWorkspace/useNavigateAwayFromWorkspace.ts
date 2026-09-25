@@ -1,11 +1,11 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useTagFolderContext } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
-import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
+import { getFlattenedWorkspaceIds } from "../../utils/getFlattenedWorkspaceIds";
 import { resolveWorkspaceRemovalNavigationTarget } from "./navigationTarget";
 
 function reportRemovalNavigationError(error: unknown) {
@@ -35,7 +35,7 @@ export function useNavigateAwayFromWorkspace() {
 			additionalDeletingWorkspaceIds?: ReadonlySet<string>,
 		) => {
 			const workspaceMatch = matchRoute({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 				fuzzy: true,
 			});
 			const activeWorkspaceId =
@@ -43,7 +43,7 @@ export function useNavigateAwayFromWorkspace() {
 			const target = resolveWorkspaceRemovalNavigationTarget({
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
-				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(
+				orderedWorkspaceIds: getFlattenedWorkspaceIds(
 					collections,
 					workspaces,
 					tagFolderContext,
@@ -62,12 +62,12 @@ export function useNavigateAwayFromWorkspace() {
 
 			if (!target) return;
 			if (target.kind === "workspace") {
-				void navigateToV2Workspace(target.workspaceId, navigate, {
+				void navigateToWorkspace(target.workspaceId, navigate, {
 					replace: true,
 				}).catch(reportRemovalNavigationError);
 				return;
 			}
-			// Straight to the v2 empty state — "/" detours through the v1
+			// Straight to the empty state — "/" detours through the v1
 			// workspace index, which can restore stale pre-migration state
 			// (SUPER-1814).
 			void navigate({ to: "/new-workspace", replace: true }).catch(

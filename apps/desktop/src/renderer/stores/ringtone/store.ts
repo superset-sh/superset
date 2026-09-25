@@ -16,7 +16,6 @@ import { electronTrpcClient } from "../../lib/trpc-client";
 // Re-export shared types and data for convenience
 export type Ringtone = RingtoneData;
 export const AVAILABLE_RINGTONES = RINGTONES;
-export { DEFAULT_RINGTONE_ID };
 
 interface RingtoneState {
 	/** Current selected ringtone ID */

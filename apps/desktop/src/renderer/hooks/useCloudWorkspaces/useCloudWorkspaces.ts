@@ -13,7 +13,7 @@ export type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
  */
 const PROVISIONING_POLL_MS = 1_000;
 
-export interface CloudWorkspacesValue {
+interface CloudWorkspacesValue {
 	/** Undefined until the list has been fetched; empty when it never will be. */
 	workspaces: CloudWorkspaceRow[] | undefined;
 	organizationId: string | null;

@@ -15,7 +15,7 @@ import { app } from "electron";
 export const BUNDLED_CLI_SHIM_MARKER = "# Superset bundled CLI shim v1";
 const SHIM_HEADER_BYTES = 2048;
 
-export type BundledCliInstallStatus = "installed" | "missing" | "skipped";
+type BundledCliInstallStatus = "installed" | "missing" | "skipped";
 
 interface InstallBundledCliShimOptions {
 	binDir?: string;

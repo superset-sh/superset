@@ -6,7 +6,7 @@ export const TASK_LOOKUP_LIMIT = 200;
 type TaskListRow = RouterOutputs["task"]["listPage"]["items"][number];
 type TaskStatusRow = RouterOutputs["task"]["statuses"]["list"][number];
 
-export interface RecentTaskEntry {
+interface RecentTaskEntry {
 	id: string;
 	slug: string;
 	title: string;

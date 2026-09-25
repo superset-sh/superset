@@ -25,7 +25,7 @@ export type PersistableTransaction = {
 	};
 };
 
-interface V2WorkspacePatch {
+interface WorkspacePatch {
 	name?: string;
 	branch?: string;
 	taskId?: string | null;
@@ -296,7 +296,7 @@ export function useOptimisticActions() {
 		const trackedWorkspaceWrite = (
 			failureTitle: string,
 			workspaceId: string,
-			patch: V2WorkspacePatch,
+			patch: WorkspacePatch,
 		) => {
 			const transaction = runWorkspaceMutation(failureTitle, () => {
 				const workspace = hostWorkspaces.find(
@@ -413,7 +413,7 @@ export function useOptimisticActions() {
 				// Workspace records are host-owned: the write goes to the owning
 				// host, the cache is patched optimistically, and the host's
 				// workspace:changed broadcast (or a rollback refetch) converges it.
-				updateWorkspace: (workspaceId: string, patch: V2WorkspacePatch) =>
+				updateWorkspace: (workspaceId: string, patch: WorkspacePatch) =>
 					trackedWorkspaceWrite(
 						"Failed to update workspace",
 						workspaceId,

@@ -1,4 +1,4 @@
-export type V2SurfacePass = "full" | "groups-only";
+type V2SurfacePass = "full" | "groups-only";
 
 /**
  * Which pass a boot on the v2 surface owes. A machine can land on v2 without

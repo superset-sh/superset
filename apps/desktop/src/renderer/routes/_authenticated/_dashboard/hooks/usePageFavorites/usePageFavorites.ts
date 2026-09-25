@@ -8,7 +8,7 @@ import {
 	V2_USER_PREFERENCES_ID,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 
-export interface PageFavoritesApi {
+interface PageFavoritesApi {
 	favoritePageIds: string[];
 	favoritePageIdSet: ReadonlySet<string>;
 	isFavorite: (pageId: string) => boolean;
@@ -22,7 +22,7 @@ export function usePageFavorites(): PageFavoritesApi {
 	const { data: rows = [] } = useLiveQuery(
 		(query) =>
 			query
-				.from({ prefs: collections.v2UserPreferences })
+				.from({ prefs: collections.userPreferences })
 				.where(({ prefs }) => eq(prefs.id, V2_USER_PREFERENCES_ID)),
 		[collections],
 	);
@@ -38,9 +38,7 @@ export function usePageFavorites(): PageFavoritesApi {
 	const setFavorite = useCallback(
 		(pageId: string, favorite: boolean) => {
 			if (!pageId) return;
-			const existing = collections.v2UserPreferences.get(
-				V2_USER_PREFERENCES_ID,
-			);
+			const existing = collections.userPreferences.get(V2_USER_PREFERENCES_ID);
 			const prev =
 				existing?.favoritePageIds ??
 				DEFAULT_V2_USER_PREFERENCES.favoritePageIds;
@@ -51,13 +49,13 @@ export function usePageFavorites(): PageFavoritesApi {
 				: prev.filter((id) => id !== pageId);
 			if (next === prev) return;
 			if (!existing) {
-				collections.v2UserPreferences.insert({
+				collections.userPreferences.insert({
 					...DEFAULT_V2_USER_PREFERENCES,
 					favoritePageIds: next,
 				});
 				return;
 			}
-			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+			collections.userPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
 				draft.favoritePageIds = next;
 			});
 		},
@@ -71,9 +69,7 @@ export function usePageFavorites(): PageFavoritesApi {
 
 	const toggleFavorite = useCallback(
 		(pageId: string) => {
-			const existing = collections.v2UserPreferences.get(
-				V2_USER_PREFERENCES_ID,
-			);
+			const existing = collections.userPreferences.get(V2_USER_PREFERENCES_ID);
 			const prev =
 				existing?.favoritePageIds ??
 				DEFAULT_V2_USER_PREFERENCES.favoritePageIds;

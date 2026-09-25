@@ -68,10 +68,10 @@ function createRecordingApiStub() {
 	const calls: string[] = [];
 	const api = {
 		analytics: { captureEvent: { mutate: async () => {} } },
-		v2Project: {
+		project: {
 			findByGitHubRemote: {
 				query: async () => {
-					calls.push("v2Project.findByGitHubRemote");
+					calls.push("project.findByGitHubRemote");
 					return { candidates: [] };
 				},
 			},
@@ -139,7 +139,7 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 		});
 
 		expect(result.candidates).toHaveLength(0);
-		expect(calls).toContain("v2Project.findByGitHubRemote");
+		expect(calls).toContain("project.findByGitHubRemote");
 	});
 });
 

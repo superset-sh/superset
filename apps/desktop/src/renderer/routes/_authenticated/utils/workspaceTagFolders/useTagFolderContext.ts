@@ -4,7 +4,7 @@ import {
 	mergeHostTagFoldersWithLegacy,
 	useHostTagFolders,
 } from "renderer/hooks/host-projects/useHostTagFolders";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import type { TagFolderContext } from "./workspaceTagFolders";
 
 /**
@@ -16,7 +16,7 @@ import type { TagFolderContext } from "./workspaceTagFolders";
 export function useTagFolderContext(): TagFolderContext {
 	const { hostResults: tagFolderHostResults } = useHostTagFolders();
 	const { hostResults: projectHostResults } = useHostProjects();
-	const { preferences } = useV2UserPreferences();
+	const { preferences } = useUserPreferences();
 	const hiddenTagFolders = preferences.hiddenTagFolders;
 	return useMemo(
 		() => ({

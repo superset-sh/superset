@@ -7,13 +7,6 @@ export interface UsageValues {
 	memory: number;
 }
 
-export interface UsageClasses {
-	rowClass: string;
-	hoverClass: string;
-	labelClass: string;
-	metricClass: string;
-}
-
 export interface SessionMetrics extends UsageValues {
 	sessionId: string;
 	paneId: string;

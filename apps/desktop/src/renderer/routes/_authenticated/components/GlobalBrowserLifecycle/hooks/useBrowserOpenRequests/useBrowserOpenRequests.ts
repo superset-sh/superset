@@ -1,9 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
-import type { BrowserPaneData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
+import type { BrowserPaneData } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { writeWorkspacePaneLayout } from "renderer/stores/workspace-creates/writeWorkspacePaneLayout";
 import { openBackgroundBrowser } from "./utils/openBackgroundBrowser";
@@ -29,7 +29,7 @@ export function useBrowserOpenRequests() {
 				onData: (request: BrowserOpenRequest) => {
 					if (!request.show) {
 						try {
-							if (!collections.v2WorkspaceLocalState.get(request.workspaceId)) {
+							if (!collections.workspaceLocalState.get(request.workspaceId)) {
 								writeWorkspacePaneLayout(
 									collections,
 									{
@@ -46,11 +46,9 @@ export function useBrowserOpenRequests() {
 								request.url,
 								request.workspaceId,
 								(state) => {
-									if (
-										!collections.v2WorkspaceLocalState.get(request.workspaceId)
-									)
+									if (!collections.workspaceLocalState.get(request.workspaceId))
 										return;
-									collections.v2WorkspaceLocalState.update(
+									collections.workspaceLocalState.update(
 										request.workspaceId,
 										(draft) => {
 											for (const tab of draft.paneLayout.tabs) {
@@ -73,7 +71,7 @@ export function useBrowserOpenRequests() {
 						}
 						return;
 					}
-					navigateToV2Workspace(request.workspaceId, navigate, {
+					navigateToWorkspace(request.workspaceId, navigate, {
 						search: {
 							openUrl: request.url,
 							openUrlTarget: request.target,

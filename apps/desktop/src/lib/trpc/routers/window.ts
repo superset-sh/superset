@@ -199,5 +199,3 @@ export const createWindowRouter = () => {
 		}),
 	});
 };
-
-export type WindowRouter = ReturnType<typeof createWindowRouter>;

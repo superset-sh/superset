@@ -1,1 +1,0 @@
-export { RenameInput } from "./RenameInput";

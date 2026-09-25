@@ -7,7 +7,7 @@ export interface WorkspaceSessionEntry {
 
 export type WorkspaceSessionMap = Map<string, WorkspaceSessionEntry[]>;
 
-interface V2ResourceSessionPayload {
+interface ResourceSessionPayload {
 	terminalId: unknown;
 	workspaceId: unknown;
 	pid: unknown;
@@ -27,7 +27,7 @@ export function normalizeOptionalTitle(value: unknown): string | null {
 	return title.length > 0 ? title : null;
 }
 
-export function parseV2ResourceSessions(payload: unknown): WorkspaceSessionMap {
+export function parseResourceSessions(payload: unknown): WorkspaceSessionMap {
 	const workspaceSessionMap: WorkspaceSessionMap = new Map();
 	const rawSessions =
 		payload &&
@@ -38,7 +38,7 @@ export function parseV2ResourceSessions(payload: unknown): WorkspaceSessionMap {
 
 	for (const rawSession of rawSessions) {
 		if (!rawSession || typeof rawSession !== "object") continue;
-		const session = rawSession as V2ResourceSessionPayload;
+		const session = rawSession as ResourceSessionPayload;
 		if (typeof session.terminalId !== "string" || !session.terminalId) {
 			continue;
 		}

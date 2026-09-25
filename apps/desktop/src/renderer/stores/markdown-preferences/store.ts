@@ -8,7 +8,7 @@ interface MarkdownPreferencesState {
 	setStyle: (style: MarkdownStyle) => void;
 }
 
-export const useMarkdownPreferencesStore = create<MarkdownPreferencesState>()(
+const useMarkdownPreferencesStore = create<MarkdownPreferencesState>()(
 	devtools(
 		persist(
 			(set) => ({

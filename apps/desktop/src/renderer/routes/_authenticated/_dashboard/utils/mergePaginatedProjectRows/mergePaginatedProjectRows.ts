@@ -1,4 +1,4 @@
-export interface PaginatedProjectRows<T> {
+interface PaginatedProjectRows<T> {
 	page: number;
 	isPending: boolean;
 	rows: readonly T[];

@@ -16,7 +16,7 @@ function PluginsPage() {
 	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS);
 	if (env.NODE_ENV === "development") return <PluginsView />;
 	if (isEnabled === undefined) return null;
-	if (!isEnabled) return <Redirect to="/v2-workspaces" />;
+	if (!isEnabled) return <Redirect to="/workspaces" />;
 
 	return <PluginsView />;
 }

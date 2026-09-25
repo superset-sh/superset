@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useFontSettingsMutation } from "renderer/hooks/useFontSettingsMutation";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
+import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { resolveZoomTarget } from "./resolveZoomTarget";
 import {
 	stepTerminalFontSize,

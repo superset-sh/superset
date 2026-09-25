@@ -35,24 +35,3 @@ export type WorkerTaskResponseMessage =
 			ok: false;
 			error: SerializedWorkerError;
 	  };
-
-export function serializeWorkerError(error: unknown): SerializedWorkerError {
-	if (error instanceof Error) {
-		const serialized: SerializedWorkerError = {
-			name: error.name,
-			message: error.message,
-			stack: error.stack,
-		};
-
-		if ("code" in error && typeof error.code === "string") {
-			serialized.code = error.code;
-		}
-
-		return serialized;
-	}
-
-	return {
-		name: "Error",
-		message: String(error),
-	};
-}

@@ -1,1 +1,0 @@
-export { loadStaticPorts } from "./loader";

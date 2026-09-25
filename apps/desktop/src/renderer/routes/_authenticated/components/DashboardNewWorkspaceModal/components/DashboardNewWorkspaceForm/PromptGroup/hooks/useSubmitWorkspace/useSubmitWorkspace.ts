@@ -186,7 +186,7 @@ export function useSubmitWorkspace(
 					rows ? [created, ...rows] : [created],
 				);
 				void navigate({
-					to: "/v2-workspace/$workspaceId",
+					to: "/workspace/$workspaceId",
 					params: { workspaceId: created.id },
 				}).catch((error) => {
 					console.error(
@@ -303,7 +303,7 @@ export function useSubmitWorkspace(
 		closeAndResetDraft();
 		const { completed } = submit({ hostId, snapshot });
 		void navigate({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId },
 		}).catch((error) => {
 			console.error("[useSubmitWorkspace] failed to open workspace", error);
@@ -311,7 +311,7 @@ export function useSubmitWorkspace(
 
 		const isViewingOptimisticWorkspace = () => {
 			const workspaceMatch = matchRoute({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 			});
 			return (
 				workspaceMatch !== false && workspaceMatch.workspaceId === workspaceId
@@ -326,7 +326,7 @@ export function useSubmitWorkspace(
 			if (outcome.workspaceId === workspaceId) return;
 			if (!isViewingOptimisticWorkspace()) return;
 			void navigate({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 				params: { workspaceId: outcome.workspaceId },
 				replace: true,
 			}).catch((error) => {

@@ -83,6 +83,36 @@ afterAll(() => {
 });
 
 describe("createPersistentHashHistory", () => {
+	it("lands a restart on the dashboard when the last page was a v1 route", () => {
+		storage.set(
+			"router-history",
+			JSON.stringify({
+				entries: ["/workspace/abc", "/project/p1", "/workspace?tab=1"],
+				index: 2,
+			}),
+		);
+		const history = createPersistentHashHistory();
+		expect(history.location.pathname).toBe("/");
+		history.back();
+		expect(history.location.pathname).toBe("/");
+		history.back();
+		expect(history.location.pathname).toBe("/workspace/abc");
+	});
+
+	it("rewrites entries persisted under the old v2-workspace routes", () => {
+		storage.set(
+			"router-history",
+			JSON.stringify({
+				entries: ["/", "/v2-workspace/abc", "/v2-workspaces"],
+				index: 2,
+			}),
+		);
+		const history = createPersistentHashHistory();
+		expect(history.location.pathname).toBe("/workspaces");
+		history.back();
+		expect(history.location.pathname).toBe("/workspace/abc");
+	});
+
 	describe("push", () => {
 		it("advances index and adds entries", () => {
 			const history = createPersistentHashHistory();

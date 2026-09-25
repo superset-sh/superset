@@ -9,7 +9,7 @@ import {
 const SEARCH_DEBOUNCE_MS = 150;
 let nextHighlightInstanceId = 0;
 
-export interface UseTextSearchOptions {
+interface UseTextSearchOptions {
 	containerRef: RefObject<HTMLDivElement | null>;
 	highlightPrefix: string;
 	getSearchRoots?: (container: HTMLDivElement) => Array<Node & ParentNode>;

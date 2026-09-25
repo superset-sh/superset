@@ -3,7 +3,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { LuRadioTower } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useDashboardSidebarAllPorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
@@ -15,7 +14,7 @@ import { TopBarPortsGroup } from "./components/TopBarPortsGroup";
  * the live port count, opening a dropdown that lists every detected port
  * across all visible workspaces and hosts.
  *
- * Also mounted in the v2 workspace tab bar's trailing slot, which replaces
+ * Also mounted in the workspace tab bar's trailing slot, which replaces
  * the top bar on that route. Port data comes from the
  * DashboardSidebarPortsProvider instance in the dashboard layout — this
  * component remounts on workspace navigation, so it must not own the data
@@ -29,16 +28,11 @@ export function TopBarPortsDropdown({
 	align = "end",
 }: TopBarPortsDropdownProps) {
 	const { t } = useLingui();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const [open, setOpen] = useState(false);
 	const { workspacePortGroups, totalPortCount } = useDashboardSidebarAllPorts();
 
-	if (
-		!isV2CloudEnabled ||
-		portsDisplayMode !== "topbar" ||
-		totalPortCount === 0
-	) {
+	if (portsDisplayMode !== "topbar" || totalPortCount === 0) {
 		return null;
 	}
 

@@ -18,7 +18,6 @@ import {
 	HiOutlineChevronRight,
 } from "react-icons/hi2";
 import { LuRefreshCw } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { UsageSeverityBadge } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption/components/UsageSeverityBadge";
 import { useResourceNavigation } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption/hooks/useResourceNavigation";
 import { useResourceSnapshot } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption/hooks/useResourceSnapshot";
@@ -255,8 +254,6 @@ function toggleSetMember(previous: Set<string>, member: string): Set<string> {
 
 export function UsageResourcesPage() {
 	const { t } = useLingui();
-	const isV2 = useIsV2CloudEnabled();
-	const surface = isV2 ? "v2" : "v1";
 	const [sortOption, setSortOption] = useState<SortOption>("memory");
 	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
 		new Set(),
@@ -271,10 +268,10 @@ export function UsageResourcesPage() {
 		isFetching,
 		sidebarProjectOrder,
 		sidebarWorkspaceOrder,
-	} = useResourceSnapshot(surface);
+	} = useResourceSnapshot();
 
 	const { getPaneName, navigateToWorkspace, navigateToPane } =
-		useResourceNavigation({ surface, onNavigate: () => {} });
+		useResourceNavigation({ onNavigate: () => {} });
 
 	const samples = useResourceSampleBuffer(snapshot);
 

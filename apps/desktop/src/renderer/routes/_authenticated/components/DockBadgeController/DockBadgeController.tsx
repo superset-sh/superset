@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useV2AttentionWorkspaceCount } from "renderer/hooks/host-service/useV2NotificationStatus";
+import { useAttentionWorkspaceCount } from "renderer/hooks/host-service/useNotificationStatus";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 /**
@@ -8,7 +8,7 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
  * never lingers on the app icon.
  */
 export function DockBadgeController() {
-	const count = useV2AttentionWorkspaceCount();
+	const count = useAttentionWorkspaceCount();
 
 	useEffect(() => {
 		void electronTrpcClient.notifications.setDockBadge.mutate({ count });

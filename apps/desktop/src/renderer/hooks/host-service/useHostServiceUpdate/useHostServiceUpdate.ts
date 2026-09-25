@@ -19,7 +19,7 @@ export type HostUpdateStage =
 	| "updated"
 	| "failed";
 
-export interface HostUpdateProgress {
+interface HostUpdateProgress {
 	stage: HostUpdateStage;
 	target: string | null;
 	error: string | null;

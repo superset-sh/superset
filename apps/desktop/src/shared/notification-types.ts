@@ -3,23 +3,11 @@
  * Kept in shared/ to avoid cross-boundary imports.
  */
 
-export interface NotificationIds {
-	paneId?: string;
-	tabId?: string;
-	workspaceId?: string;
-	sessionId?: string;
-	terminalId?: string;
-}
-
-export interface AgentLifecycleEvent extends NotificationIds {
-	eventType: "Start" | "Stop" | "PermissionRequest" | "PendingQuestion";
-}
-
-export type V2NotificationSource =
+export type NotificationSource =
 	| { type: "terminal"; id: string }
 	| { type: "chat"; id: string };
 
-export interface V2NotificationSourceFocusTarget {
+export interface NotificationSourceFocusTarget {
 	workspaceId: string;
-	source: V2NotificationSource;
+	source: NotificationSource;
 }

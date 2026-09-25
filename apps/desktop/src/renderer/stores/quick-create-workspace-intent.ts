@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface QuickCreateWorkspaceTarget {
+interface QuickCreateWorkspaceTarget {
 	projectId: string | null;
 	tick: number;
 }

@@ -19,15 +19,6 @@ export function actionLabel(action: LinkAction, surface: Surface): string {
 	return i18n._(surface === "file" ? FILE_LABELS[action] : URL_LABELS[action]);
 }
 
-export function actionLabelOrNone(
-	action: LinkAction | null,
-	surface: Surface,
-): string {
-	return action === null
-		? i18n._(msg({ message: "Do nothing" }))
-		: actionLabel(action, surface);
-}
-
 /** Short verb form used inside the per-row hint tooltip. */
 const SHORT_FILE_LABELS: Record<LinkAction, MessageDescriptor> = {
 	pane: msg({ message: "open" }),

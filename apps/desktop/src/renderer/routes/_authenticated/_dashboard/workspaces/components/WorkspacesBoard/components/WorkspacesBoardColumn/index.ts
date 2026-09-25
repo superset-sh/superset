@@ -1,0 +1,1 @@
+export { WorkspacesBoardColumn } from "./WorkspacesBoardColumn";

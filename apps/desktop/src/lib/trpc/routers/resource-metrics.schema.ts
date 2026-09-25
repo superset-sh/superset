@@ -48,9 +48,7 @@ export const resourceMetricsSnapshotSchema = zod.object({
 	collectedAt: zod.number().int().min(0),
 });
 
-export type ResourceMetricsSnapshot = z.infer<
-	typeof resourceMetricsSnapshotSchema
->;
+type ResourceMetricsSnapshot = z.infer<typeof resourceMetricsSnapshotSchema>;
 
 function safeSystemNumber(getValue: () => number): number {
 	try {

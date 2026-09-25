@@ -218,11 +218,3 @@ export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
  * Plays the notification sound based on the selected ringtone.
  * This is used by the notification system.
  */
-export function playNotificationRingtone(ringtoneId: string): void {
-	const soundPath = getRingtoneSoundPath(ringtoneId);
-	if (!soundPath) {
-		return;
-	}
-
-	playSoundFile(soundPath);
-}

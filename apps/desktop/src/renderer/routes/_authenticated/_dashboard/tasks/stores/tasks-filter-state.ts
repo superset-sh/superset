@@ -7,8 +7,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ViewMode = "table" | "board";
-export type TypeTab = "tasks" | "issues";
-export type FilterTab =
+type TypeTab = "tasks" | "issues";
+type FilterTab =
 	| "all"
 	| "active"
 	| "backlog"
@@ -130,7 +130,7 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 	),
 );
 
-export interface TasksFilters {
+interface TasksFilters {
 	tab: FilterTab;
 	assignee: string | null;
 	search: string;

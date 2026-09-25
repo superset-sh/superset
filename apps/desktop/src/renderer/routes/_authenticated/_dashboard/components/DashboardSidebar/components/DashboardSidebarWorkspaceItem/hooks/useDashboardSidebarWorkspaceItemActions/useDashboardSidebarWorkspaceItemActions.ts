@@ -23,8 +23,8 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { applyFolderTagChange } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
+import { useNotificationStore } from "renderer/stores/notifications";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
-import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
@@ -62,8 +62,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const { copyToClipboard } = useCopyToClipboard();
 	const { v2Workspaces: workspaceActions } = useOptimisticActions();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
-	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
-	const clearManualUnread = useV2NotificationStore((s) => s.clearManualUnread);
+	const setManualUnread = useNotificationStore((s) => s.setManualUnread);
+	const clearManualUnread = useNotificationStore((s) => s.clearManualUnread);
 	const markWorkspaceTerminalsSeen =
 		useMarkSidebarWorkspaceTerminalsSeen(workspaceId);
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
@@ -108,7 +108,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	}
 
 	const isActive = !!matchRoute({
-		to: "/v2-workspace/$workspaceId",
+		to: "/workspace/$workspaceId",
 		params: { workspaceId },
 		fuzzy: true,
 	});
@@ -117,7 +117,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		if (isRenaming) return;
 		clearWorkspaceAttention();
 		navigate({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId },
 		});
 	};

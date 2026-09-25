@@ -68,7 +68,7 @@ export interface TerminalManagement {
  * Core terminal session operations.
  * These are the backend-agnostic operations that any terminal backend must support.
  */
-export interface TerminalSessionOperations {
+interface TerminalSessionOperations {
 	/**
 	 * Create a new session or attach to an existing one.
 	 * Reuses identical requests, can join a currently pending attach, and lets
@@ -116,7 +116,7 @@ export interface TerminalSessionOperations {
  * Workspace-scoped terminal operations.
  * These operate on all sessions within a workspace.
  */
-export interface TerminalWorkspaceOperations {
+interface TerminalWorkspaceOperations {
 	/** Kill all sessions for a workspace */
 	killByWorkspaceId(
 		workspaceId: string,
@@ -145,7 +145,7 @@ export interface TerminalWorkspaceOperations {
  * CRITICAL INVARIANT: Subscriptions MUST NOT complete on exit.
  * Exit is a state transition, not stream completion.
  */
-export interface TerminalEventSource extends EventEmitter {
+interface TerminalEventSource extends EventEmitter {
 	/** Remove all terminal-specific listeners */
 	detachAllListeners(): void;
 }

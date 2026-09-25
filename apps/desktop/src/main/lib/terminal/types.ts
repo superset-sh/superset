@@ -28,20 +28,6 @@ export interface TerminalSession {
 
 export type TerminalExitReason = "killed" | "exited" | "error";
 
-export interface TerminalDataEvent {
-	type: "data";
-	data: string;
-}
-
-export interface TerminalExitEvent {
-	type: "exit";
-	exitCode: number;
-	signal?: number;
-	reason?: TerminalExitReason;
-}
-
-export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
-
 export interface SessionResult {
 	isNew: boolean;
 	/**
@@ -110,9 +96,4 @@ export interface CreateSessionParams {
 	/** Allow restarting a session that was explicitly killed */
 	allowKilled?: boolean;
 	themeType?: "dark" | "light";
-}
-
-export interface InternalCreateSessionParams extends CreateSessionParams {
-	existingScrollback: string | null;
-	useFallbackShell?: boolean;
 }

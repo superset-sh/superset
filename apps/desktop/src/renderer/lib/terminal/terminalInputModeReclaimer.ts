@@ -9,7 +9,7 @@ import type { IDisposable, Terminal } from "@xterm/xterm";
  * Renderer adapter that wires xterm's parser to the shared leaked-input-mode
  * reclaimer (#4949).
  *
- * v2 workspace terminals stream PTY output straight to this xterm and never route
+ * workspace terminals stream PTY output straight to this xterm and never route
  * through the terminal-host daemon's HeadlessEmulator, so the host-side foreground
  * reclaim never runs for them. A TUI (mastracode/pi-tui, Claude Code) that arms
  * the kitty keyboard protocol / mouse / focus reporting and is killed while

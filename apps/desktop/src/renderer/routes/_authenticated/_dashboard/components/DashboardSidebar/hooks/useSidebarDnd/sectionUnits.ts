@@ -13,7 +13,7 @@ import type { SortingStrategy } from "@dnd-kit/sortable";
  * so nothing shifts at pickup — the strategy below just moves every row of a
  * unit by the same amount.
  */
-export interface TopLevelUnit {
+interface TopLevelUnit {
 	/** The section header's flat id, or the ungrouped row's flat id. */
 	key: UniqueIdentifier;
 	/** Header first, then its member rows (or the single ungrouped row). */

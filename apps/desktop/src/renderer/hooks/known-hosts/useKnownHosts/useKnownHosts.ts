@@ -8,7 +8,7 @@ import { getHostEventBus } from "renderer/lib/host-event-bus";
 
 type HostRow = RouterOutputs["host"]["roster"][number];
 
-export type KnownHostRow = HostRow & { isOnline: boolean };
+type KnownHostRow = HostRow & { isOnline: boolean };
 
 const NO_ROWS: HostRow[] = [];
 

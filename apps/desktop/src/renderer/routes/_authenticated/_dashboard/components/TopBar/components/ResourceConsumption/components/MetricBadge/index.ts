@@ -1,1 +1,0 @@
-export { MetricBadge } from "./MetricBadge";

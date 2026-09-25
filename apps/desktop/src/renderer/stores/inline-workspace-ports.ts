@@ -10,7 +10,7 @@ import { devtools, persist } from "zustand/middleware";
  *
  * - "inline": ports render as a chip under each workspace item.
  * - "topbar": ports render as a dropdown from the top bar (and the workspace
- *   tab bar, which replaces the top bar on the v2 workspace route); the
+ *   tab bar, which replaces the top bar on the workspace route); the
  *   sidebar shows no ports at all.
  *
  * A third mode, "panel" (a consolidated list at the bottom of the sidebar),
@@ -22,7 +22,7 @@ import { devtools, persist } from "zustand/middleware";
  *   2. The mode select in `ExperimentalSettings` and its `settings-search`
  *      entry (`EXPERIMENTAL_INLINE_WORKSPACE_PORTS`).
  *   3. The mode branches in `DashboardSidebarWorkspaceChips` (the inline
- *      ports chip), `TopBar`, and the v2 workspace page's tab-bar trailing
+ *      ports chip), `TopBar`, and the workspace page's tab-bar trailing
  *      slot (`TopBarPortsDropdown`), plus the ports-provider gating in the
  *      dashboard layout.
  *   4. The components belonging to the losing layout:
@@ -33,7 +33,7 @@ import { devtools, persist } from "zustand/middleware";
  * Both layouts read port data from the single `DashboardSidebarPortsProvider`
  * mounted in the dashboard layout.
  */
-export type PortsDisplayMode = "inline" | "topbar";
+type PortsDisplayMode = "inline" | "topbar";
 
 interface InlineWorkspacePortsState {
 	mode: PortsDisplayMode;

@@ -14,7 +14,7 @@ export function SetPreferredOpenInAppMount() {
 		if (!target || target.tick === lastTickRef.current) return;
 		lastTickRef.current = target.tick;
 		ensureProjectInSidebar(target.projectId);
-		collections.v2SidebarProjects.update(target.projectId, (draft) => {
+		collections.sidebarProjects.update(target.projectId, (draft) => {
 			draft.defaultOpenInApp = target.app;
 		});
 		clear();

@@ -52,7 +52,7 @@ export function isTerminalSpawnFailedError(
 
 const FIRST_LINE_MAX_CHARS = 200;
 
-export function describeTerminalSpawnFailure(
+function describeTerminalSpawnFailure(
 	cause: TerminalSpawnFailureCause,
 ): string {
 	switch (cause.kind) {

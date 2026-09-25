@@ -3,32 +3,6 @@ import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { reloadThemeStateFromDisk } from "main/lib/app-state";
-import { NOTIFICATION_EVENTS } from "shared/constants";
-import { env } from "shared/env.shared";
-import type { AgentLifecycleEvent } from "shared/notification-types";
-import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
-import { mapEventType } from "./map-event-type";
-import { resolvePaneId } from "./resolve-pane-id";
-import { recordV1AgentHookEvent } from "./v1-agent-sessions";
-
-// Re-export types for backwards compatibility
-export type {
-	AgentLifecycleEvent,
-	NotificationIds,
-} from "shared/notification-types";
-export { resolvePaneId } from "./resolve-pane-id";
-
-/**
- * The environment this server is running in.
- * Used to validate incoming hook requests and detect cross-environment issues.
- */
-const SERVER_ENV =
-	env.NODE_ENV === "development" ? "development" : "production";
-const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
-const DEBUG_HOOKS_ENABLED =
-	debugHooksOverride === undefined
-		? SERVER_ENV === "development"
-		: !/^(0|false)$/i.test(debugHooksOverride);
 
 /**
  * Broadcasts normalized agent lifecycle events from the local hook server.
@@ -48,105 +22,6 @@ app.use((req, res, next) => {
 		return res.status(200).end();
 	}
 	next();
-});
-
-// Agent lifecycle hook
-app.get("/hook/complete", (req, res) => {
-	const {
-		paneId,
-		tabId,
-		workspaceId,
-		sessionId,
-		terminalId,
-		hookSessionId,
-		resourceId,
-		eventType,
-		rawEventType,
-		agentId,
-		env: clientEnv,
-		version,
-	} = req.query;
-
-	// Environment validation: detect dev/prod cross-talk
-	// We still return success to not block the agent, but log a warning
-	if (clientEnv && clientEnv !== SERVER_ENV) {
-		console.warn(
-			`[notifications] Environment mismatch: received ${clientEnv} request on ${SERVER_ENV} server. ` +
-				`This may indicate a stale hook or misconfigured terminal. Ignoring request.`,
-		);
-		return res.json({ success: true, ignored: true, reason: "env_mismatch" });
-	}
-
-	// Log version for debugging (helpful when troubleshooting hook issues)
-	if (version && version !== HOOK_PROTOCOL_VERSION) {
-		console.log(
-			`[notifications] Received hook v${version} request (server expects v${HOOK_PROTOCOL_VERSION})`,
-		);
-	}
-
-	const mappedEventType = mapEventType(eventType as string | undefined);
-
-	// Unknown or missing eventType: return success but don't process
-	// This ensures forward compatibility and doesn't block the agent
-	if (!mappedEventType) {
-		if (eventType) {
-			console.log("[notifications] Ignoring unknown eventType:", eventType);
-		}
-		return res.json({ success: true, ignored: true });
-	}
-
-	const resolvedPaneId = resolvePaneId(
-		paneId as string | undefined,
-		tabId as string | undefined,
-		workspaceId as string | undefined,
-	);
-
-	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.
-	// Needs the un-collapsed event (SessionEnd vs Stop) — only v7+ hook
-	// scripts send it, so absence just means no capture.
-	if (
-		resolvedPaneId &&
-		typeof rawEventType === "string" &&
-		rawEventType.length > 0 &&
-		typeof agentId === "string" &&
-		agentId.length > 0
-	) {
-		recordV1AgentHookEvent(resolvedPaneId, {
-			rawEventType,
-			agentId,
-			...(typeof sessionId === "string" && sessionId.length > 0
-				? { agentSessionId: sessionId }
-				: {}),
-			at: Date.now(),
-		});
-	}
-
-	const event: AgentLifecycleEvent = {
-		paneId: resolvedPaneId,
-		tabId: tabId as string | undefined,
-		workspaceId: workspaceId as string | undefined,
-		terminalId: terminalId as string | undefined,
-		eventType: mappedEventType,
-	};
-
-	if (DEBUG_HOOKS_ENABLED) {
-		console.log("[notifications] hook event received", {
-			eventType,
-			mappedEventType,
-			paneId: paneId as string | undefined,
-			tabId: tabId as string | undefined,
-			workspaceId: workspaceId as string | undefined,
-			sessionId: sessionId as string | undefined,
-			terminalId: terminalId as string | undefined,
-			hookSessionId: hookSessionId as string | undefined,
-			resourceId: resourceId as string | undefined,
-			resolvedPaneId,
-		});
-	}
-
-	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
-
-	res.json({ success: true, paneId: resolvedPaneId, tabId });
 });
 
 // Health check

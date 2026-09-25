@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { applyCliTerminalScriptEdit } from "./applyCliTerminalScriptEdit";
 
 describe("applyCliTerminalScriptEdit", () => {
 	test("overwrites CLI-editable fields and keeps app-owned ones", () => {
 		const createdAt = new Date("2026-01-01T00:00:00Z");
-		const draft: V2TerminalPresetRow = {
+		const draft: TerminalPresetRow = {
 			id: "script-a",
 			name: "Old",
 			description: "old description",

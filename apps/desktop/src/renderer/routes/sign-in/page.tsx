@@ -27,7 +27,7 @@ export const Route = createFileRoute("/sign-in/")({
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
 
-const workspaceRedirect = <Redirect to="/workspace" replace />;
+const workspaceRedirect = <Redirect to="/new-workspace" replace />;
 
 const SESSION_PENDING_TIMEOUT_MS = 15_000;
 
@@ -138,7 +138,7 @@ function SignInPage() {
 			).toISOString();
 			await persistToken.mutateAsync({ token, expiresAt });
 			setAuthToken(token);
-			await navigate({ to: "/workspace", replace: true });
+			await navigate({ to: "/new-workspace", replace: true });
 		} catch (error) {
 			setDevError(
 				error instanceof Error ? error.message : "Dev sign-in failed",

@@ -133,9 +133,7 @@ describe("project router integration", () => {
 		expect(result.candidates).toHaveLength(1);
 		expect(result.candidates[0]).toMatchObject({ id, name: "local-name" });
 		expect(
-			host.apiCalls.some(
-				(c) => c.path === "v2Project.findByGitHubRemote.query",
-			),
+			host.apiCalls.some((c) => c.path === "project.findByGitHubRemote.query"),
 		).toBe(false);
 	});
 
@@ -167,9 +165,7 @@ describe("project router integration", () => {
 		});
 		expect(result.candidates).toEqual([]);
 		expect(
-			host.apiCalls.some(
-				(c) => c.path === "v2Project.findByGitHubRemote.query",
-			),
+			host.apiCalls.some((c) => c.path === "project.findByGitHubRemote.query"),
 		).toBe(false);
 	});
 });

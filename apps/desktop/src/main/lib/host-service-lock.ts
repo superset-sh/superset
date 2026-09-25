@@ -21,13 +21,13 @@ import { isProcessAlive, manifestDir } from "./host-service-manifest";
  * The lock records the *app instance's* pid (Electron main), not the child's —
  * its liveness tracks the spawner so a crashed instance's lock can be stolen.
  */
-export interface SpawnLock {
+interface SpawnLock {
 	ownerPid: number;
 	machineId: string;
 	acquiredAt: number;
 }
 
-export interface SpawnLockHandle {
+interface SpawnLockHandle {
 	release(): void;
 }
 

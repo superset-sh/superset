@@ -3,7 +3,6 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
-// Temporarily hidden: import { HistoryDropdown } from "./components/HistoryDropdown";
 
 export function NavigationControls() {
 	const router = useRouter();
@@ -63,8 +62,6 @@ export function NavigationControls() {
 					<HotkeyLabel fallbackLabel="Go forward" id="NAVIGATE_FORWARD" />
 				</TooltipContent>
 			</Tooltip>
-
-			{/* Temporarily hidden: <HistoryDropdown /> */}
 		</div>
 	);
 }

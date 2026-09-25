@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface PagePaneIntent {
+interface PagePaneIntent {
 	workspaceId: string;
 	pageId?: string;
 	slug: string;

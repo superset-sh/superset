@@ -1,5 +1,1 @@
-export {
-	getTerminalResumeCandidateQueryKey,
-	type TerminalResumeCandidate,
-	useTerminalResumeCandidate,
-} from "./useTerminalResumeCandidate";
+export { useTerminalResumeCandidate } from "./useTerminalResumeCandidate";

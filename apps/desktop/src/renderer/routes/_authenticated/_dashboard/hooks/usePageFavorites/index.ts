@@ -1,1 +1,1 @@
-export { type PageFavoritesApi, usePageFavorites } from "./usePageFavorites";
+export { usePageFavorites } from "./usePageFavorites";

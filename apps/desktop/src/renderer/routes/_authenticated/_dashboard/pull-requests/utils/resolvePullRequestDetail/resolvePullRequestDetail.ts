@@ -3,14 +3,14 @@ import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import type { PullRequestDetail } from "../../hooks/usePullRequestDetail";
 
-export interface PullRequestDetailFallback {
+interface PullRequestDetailFallback {
 	message: string;
 	isLoading?: boolean;
 	isError?: boolean;
 	onRetry?: () => void;
 }
 
-export type ResolvedPullRequestDetail =
+type ResolvedPullRequestDetail =
 	| {
 			status: "ready";
 			data: PullRequestDetail;

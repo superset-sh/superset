@@ -2,15 +2,6 @@
  * Types for the git changes/diff viewer feature
  */
 
-/** File status from git, matching short format codes */
-export type FileStatus =
-	| "added"
-	| "modified"
-	| "deleted"
-	| "renamed"
-	| "copied"
-	| "untracked";
-
 /** Change categories for organizing the sidebar */
 export type ChangeCategory =
 	| "against-base"
@@ -18,101 +9,8 @@ export type ChangeCategory =
 	| "staged"
 	| "unstaged";
 
-/** A changed file entry */
-export interface ChangedFile {
-	path: string; // Relative path from repo root
-	oldPath?: string; // Original path for renames/copies
-	status: FileStatus;
-	additions: number;
-	deletions: number;
-	isBinary?: boolean;
-}
-
-/** A commit summary for the committed changes section */
-export interface CommitInfo {
-	hash: string;
-	shortHash: string; // Short hash (7 chars)
-	message: string; // Commit message (first line)
-	author: string;
-	date: Date;
-	files: ChangedFile[];
-}
-
-/** Full git changes status for a worktree */
-export interface GitChangesStatus {
-	branch: string;
-	defaultBranch: string; // Default branch (main/master)
-	againstBase: ChangedFile[]; // All files changed vs base branch
-	commits: CommitInfo[]; // Individual commits on branch (not on default), capped for display
-	totalCommitCount: number; // True number of commits on branch, even beyond the display cap
-	staged: ChangedFile[];
-	unstaged: ChangedFile[];
-	untracked: ChangedFile[];
-	ahead: number; // Commits ahead of default branch
-	behind: number; // Commits behind default branch
-	// Tracking branch status (for push/pull)
-	pushCount: number; // Commits to push to tracking branch
-	pullCount: number; // Commits to pull from tracking branch
-	hasUpstream: boolean; // Whether branch has an upstream tracking branch
-}
-
-/** Security codes for path validation failures (attached as PATH_VALIDATION causes) */
-export type PathValidationCode =
-	| "ABSOLUTE_PATH"
-	| "PATH_TRAVERSAL"
-	| "UNREGISTERED_WORKTREE"
-	| "INVALID_TARGET"
-	| "SYMLINK_ESCAPE";
-
-/**
- * Machine-readable causes attached to git/changes TRPCErrors. Serialized to
- * the renderer via the errorFormatter in lib/trpc; renderer narrows with
- * isGitChangesErrorCause instead of parsing error messages.
- */
-export type GitChangesErrorCause =
-	| { kind: "WORKTREE_MISSING"; worktreePath?: string }
-	| { kind: "NOT_GIT_REPO" }
-	| { kind: "GIT_ENVIRONMENT" }
-	| { kind: "PATH_VALIDATION"; code: PathValidationCode };
-
-const GIT_CHANGES_CAUSE_KINDS = new Set([
-	"WORKTREE_MISSING",
-	"NOT_GIT_REPO",
-	"GIT_ENVIRONMENT",
-	"PATH_VALIDATION",
-]);
-
-export function isGitChangesErrorCause(
-	value: unknown,
-): value is GitChangesErrorCause {
-	return (
-		!!value &&
-		typeof value === "object" &&
-		typeof (value as { kind?: unknown }).kind === "string" &&
-		GIT_CHANGES_CAUSE_KINDS.has((value as { kind: string }).kind)
-	);
-}
-
-/** Whether a file status represents a brand-new file (no previous version to diff against) */
-export function isNewFile(status: FileStatus): boolean {
-	return status === "added" || status === "untracked";
-}
-
-/** Whether a diff category supports editing (saving changes back to disk) */
-export function isDiffEditable(category: ChangeCategory): boolean {
-	return category === "staged" || category === "unstaged";
-}
-
 /** Diff view mode toggle */
 export type DiffViewMode = "side-by-side" | "inline";
-
-/** Input for getting file diff */
-export interface FileDiffInput {
-	worktreePath: string;
-	filePath: string;
-	category: ChangeCategory;
-	commitHash?: string; // For committed category: which commit to show
-}
 
 /** File contents for diff viewer */
 export interface FileContents {

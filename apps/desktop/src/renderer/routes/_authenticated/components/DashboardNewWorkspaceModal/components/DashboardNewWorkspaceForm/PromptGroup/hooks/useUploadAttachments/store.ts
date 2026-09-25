@@ -3,7 +3,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
-export type UploadState =
+type UploadState =
 	| { kind: "pending" }
 	| { kind: "ready"; attachmentId: string }
 	| { kind: "error"; message: string };
@@ -14,7 +14,7 @@ interface UploadStoreState {
 	entries: Record<string, Record<string, UploadState>>;
 }
 
-export const useAttachmentUploadsStore = create<UploadStoreState>(() => ({
+const useAttachmentUploadsStore = create<UploadStoreState>(() => ({
 	entries: {},
 }));
 
@@ -79,7 +79,7 @@ function setEntry(fileId: string, hostUrl: string, state: UploadState): void {
 	}));
 }
 
-export interface StartUploadInput {
+interface StartUploadInput {
 	id: string;
 	url: string;
 	mediaType: string;

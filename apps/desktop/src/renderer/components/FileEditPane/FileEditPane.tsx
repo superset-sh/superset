@@ -2,17 +2,17 @@ import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { useCallback, useState } from "react";
-import { ErrorState } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/ErrorState";
-import { FileViewToggle } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/FileViewToggle";
-import { LoadingState } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/LoadingState";
-import { SaveErrorBanner } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/SaveErrorBanner";
+import { ErrorState } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/ErrorState";
+import { FileViewToggle } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/FileViewToggle";
+import { LoadingState } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/LoadingState";
+import { SaveErrorBanner } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/SaveErrorBanner";
 import {
 	orderForToggle,
 	resolveActivePaneView,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry";
-import { splitFrontMatter } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry/views/MarkdownPreviewView/splitFrontMatter";
-import type { SharedFileDocument } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/fileDocumentStore";
-import type { FilePaneData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+} from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry";
+import { splitFrontMatter } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry/views/MarkdownPreviewView/splitFrontMatter";
+import type { SharedFileDocument } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/state/fileDocumentStore";
+import type { FilePaneData } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/types";
 
 interface FileEditPaneProps {
 	document: SharedFileDocument;

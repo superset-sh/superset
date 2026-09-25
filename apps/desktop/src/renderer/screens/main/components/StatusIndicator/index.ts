@@ -1,5 +1,1 @@
-export {
-	type ActivePaneStatus,
-	getStatusTooltip,
-	StatusIndicator,
-} from "./StatusIndicator";
+export { getStatusTooltip, StatusIndicator } from "./StatusIndicator";

@@ -8,7 +8,7 @@ const INVALID = {
 	error: "Please upload a valid .env file.",
 };
 
-export interface EnvEntry {
+interface EnvEntry {
 	key: string;
 	value: string;
 }

@@ -1,1 +1,0 @@
-export { brandIcon } from "./BrandIcon";

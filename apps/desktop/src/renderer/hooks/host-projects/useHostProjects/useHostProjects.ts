@@ -21,15 +21,9 @@ import {
 	saveHostProjectsSnapshot,
 } from "./useHostProjects.utils";
 
-export type {
-	HostProjectItem,
-	HostProjectRow,
-	HostProjectRowsResult,
-} from "./useHostProjects.utils";
-
 const PROJECTS_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
 
-export interface UseHostProjectsResult {
+interface UseHostProjectsResult {
 	projects: HostProjectItem[];
 	/** Unmerged per-host rows for compatibility adapters. */
 	hostResults: HostProjectRowsResult[];

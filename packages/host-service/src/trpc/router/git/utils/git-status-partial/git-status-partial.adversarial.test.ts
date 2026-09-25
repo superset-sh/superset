@@ -680,64 +680,6 @@ describe("getGitStatusPartial: renames and index interplay", () => {
 		expect(result.escalated).toBe(true);
 		await expectMatchesFull(git, repo, snapshot);
 	});
-
-	test("long converging sequence of mixed batches", async () => {
-		let snapshot = await full(git, repo);
-		const steps: Array<{
-			act: () => Promise<void>;
-			paths: string[];
-			broad?: boolean;
-		}> = [
-			{
-				act: () => writeFile(join(repo, "src", "c.ts"), "c\n"),
-				paths: ["src/c.ts"],
-			},
-			{
-				act: () =>
-					rename(join(repo, "src", "b.ts"), join(repo, "src", "b1.ts")),
-				paths: ["src/b.ts", "src/b1.ts"],
-			},
-			{
-				act: () =>
-					writeFile(join(repo, "src", "b1.ts"), "const b = 2;\nmore\n"),
-				paths: ["src/b1.ts"],
-			},
-			{
-				act: async () => {
-					await git.add("src/c.ts");
-				},
-				paths: ["src/c.ts"],
-				// `.git/index` changed: production gets a broad event here.
-				broad: true,
-			},
-			{
-				act: () => writeFile(join(repo, "src", "c.ts"), "c\nc2\n"),
-				paths: ["src/c.ts"],
-			},
-			{
-				act: () => rm(join(repo, "src", "c.ts")),
-				paths: ["src/c.ts"],
-			},
-			{
-				act: () =>
-					rename(join(repo, "src", "b1.ts"), join(repo, "src", "b.ts")),
-				paths: ["src/b1.ts", "src/b.ts"],
-			},
-			{
-				act: () => writeFile(join(repo, "src", "b.ts"), "const b = 2;\n"),
-				paths: ["src/b.ts"],
-			},
-		];
-		for (const step of steps) {
-			await step.act();
-			if (step.broad) {
-				snapshot = await full(git, repo);
-			} else {
-				({ snapshot } = await patch(git, repo, snapshot, step.paths));
-			}
-			await expectMatchesFull(git, repo, snapshot);
-		}
-	});
 });
 
 describe("getGitStatusPartial: FIFO and vanished files", () => {

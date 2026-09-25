@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { usePortForward } from "../../providers/PortForwardsProvider";
 import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
@@ -23,7 +23,7 @@ export function usePortOpenActions(
 ): UsePortOpenActionsResult {
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
-	const { preferences } = useV2UserPreferences();
+	const { preferences } = useUserPreferences();
 	// A remote port opens like a local one once the main process forwards it
 	// to this machine; the local port number may differ from the remote one.
 	const forward = usePortForward(port);
@@ -40,7 +40,7 @@ export function usePortOpenActions(
 
 	const openInApp = (target: "new-tab" | "current-tab") => {
 		if (!canOpenInBrowser) return;
-		void navigateToV2Workspace(port.workspaceId, navigate, {
+		void navigateToWorkspace(port.workspaceId, navigate, {
 			search: {
 				openUrl: portUrl,
 				openUrlTarget: target,
@@ -62,7 +62,7 @@ export function usePortOpenActions(
 	};
 
 	const openWorkspace = () => {
-		void navigateToV2Workspace(port.workspaceId, navigate, {
+		void navigateToWorkspace(port.workspaceId, navigate, {
 			search: {
 				terminalId: port.terminalId,
 				focusRequestId: crypto.randomUUID(),

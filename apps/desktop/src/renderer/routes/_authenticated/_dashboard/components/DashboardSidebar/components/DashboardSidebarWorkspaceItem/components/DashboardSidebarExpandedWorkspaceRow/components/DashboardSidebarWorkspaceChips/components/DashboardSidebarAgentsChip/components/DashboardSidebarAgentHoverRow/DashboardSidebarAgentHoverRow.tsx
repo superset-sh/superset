@@ -3,7 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	buildSubagentSearch,
-	navigateToV2Workspace,
+	navigateToWorkspace,
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
 import type {
@@ -34,7 +34,7 @@ export function DashboardSidebarAgentHoverRow({
 	const navigate = useNavigate();
 
 	const handleOpen = () => {
-		void navigateToV2Workspace(workspaceId, navigate, {
+		void navigateToWorkspace(workspaceId, navigate, {
 			search: {
 				terminalId: agent.terminalId,
 				focusRequestId: crypto.randomUUID(),
@@ -44,7 +44,7 @@ export function DashboardSidebarAgentHoverRow({
 
 	/** Opens the child's live transcript as a pane in the workspace. */
 	const handleOpenSubagent = (subagent: DashboardSidebarRunningSubagent) => {
-		void navigateToV2Workspace(workspaceId, navigate, {
+		void navigateToWorkspace(workspaceId, navigate, {
 			search: {
 				...buildSubagentSearch({
 					terminalId: agent.terminalId,

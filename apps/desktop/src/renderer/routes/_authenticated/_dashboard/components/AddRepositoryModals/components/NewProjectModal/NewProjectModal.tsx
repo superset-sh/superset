@@ -14,14 +14,10 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import {
-	useCreateV1Project,
-	useFinalizeProjectSetup,
-} from "renderer/react-query/projects";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { GitHubRepositoryPicker } from "./components/GitHubRepositoryPicker";
 
@@ -49,11 +45,9 @@ export function NewProjectModal({
 	onError,
 }: NewProjectModalProps) {
 	const { t } = useLingui();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
-	const createV1Project = useCreateV1Project();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -128,17 +122,6 @@ export function NewProjectModal({
 
 		setWorking(true);
 		try {
-			if (!isV2CloudEnabled) {
-				const projectId = await createV1Project.cloneFromUrl({
-					url: trimmedUrl,
-					parentDir: trimmedParent,
-				});
-				if (!projectId) return;
-				onSuccess?.({ projectId });
-				reset();
-				onOpenChange(false);
-				return;
-			}
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
 					action: "cloneRepository",
@@ -203,19 +186,17 @@ export function NewProjectModal({
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
-					{isV2CloudEnabled && (
-						<GitHubRepositoryPicker
-							disabled={working}
-							hostUrl={activeHostUrl}
-							onSelect={(repository) => {
-								setUrl(repository.cloneUrl);
-								setName(deriveProjectNameFromUrl(repository.cloneUrl));
-								setNameTouched(false);
-								setSelectedRepository(repository.fullName);
-							}}
-							selectedFullName={selectedRepository}
-						/>
-					)}
+					<GitHubRepositoryPicker
+						disabled={working}
+						hostUrl={activeHostUrl}
+						onSelect={(repository) => {
+							setUrl(repository.cloneUrl);
+							setName(deriveProjectNameFromUrl(repository.cloneUrl));
+							setNameTouched(false);
+							setSelectedRepository(repository.fullName);
+						}}
+						selectedFullName={selectedRepository}
+					/>
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="clone-url" className="text-xs">
@@ -241,23 +222,21 @@ export function NewProjectModal({
 						/>
 					</div>
 
-					{isV2CloudEnabled && (
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="project-name" className="text-xs">
-								<Trans>Project name</Trans>
-							</Label>
-							<Input
-								id="project-name"
-								value={name}
-								onChange={(e) => {
-									setName(e.target.value);
-									setNameTouched(true);
-								}}
-								placeholder="my-project"
-								disabled={working}
-							/>
-						</div>
-					)}
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="project-name" className="text-xs">
+							<Trans>Project name</Trans>
+						</Label>
+						<Input
+							id="project-name"
+							value={name}
+							onChange={(e) => {
+								setName(e.target.value);
+								setNameTouched(true);
+							}}
+							placeholder="my-project"
+							disabled={working}
+						/>
+					</div>
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="project-path" className="text-xs">

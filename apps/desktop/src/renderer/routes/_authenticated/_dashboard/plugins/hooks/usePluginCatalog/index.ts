@@ -1,5 +1,2 @@
-export type {
-	CatalogPlugin,
-	PluginSkill,
-} from "./usePluginCatalog";
+export type { CatalogPlugin } from "./usePluginCatalog";
 export { usePluginCatalog } from "./usePluginCatalog";

@@ -1,1 +1,0 @@
-export { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";

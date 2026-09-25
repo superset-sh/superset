@@ -1,5 +1,1 @@
-export {
-	type FileStatus,
-	type UseGitStatusMapResult,
-	useGitStatusMap,
-} from "./useGitStatusMap";
+export { type FileStatus, useGitStatusMap } from "./useGitStatusMap";

@@ -17,7 +17,7 @@ const CHROME_EPOCH_OFFSET_MS = 11_644_473_600_000;
 /** Cap a single import so a huge profile can't stall the transaction. */
 const MAX_HISTORY_ROWS = 10_000;
 
-export interface ImportedHistoryEntry {
+interface ImportedHistoryEntry {
 	url: string;
 	title: string;
 	visitCount: number;
@@ -112,7 +112,7 @@ export async function readHistoryFromProfile(
 	}
 }
 
-export interface ChromeImportSource {
+interface ChromeImportSource {
 	/** Absolute profile directory path; also used as the opaque source id. */
 	id: string;
 	/** Stable browser key, e.g. "chrome", "comet". */

@@ -74,7 +74,3 @@ export const PROJECT_COLORS = [
 ] as const;
 
 export const PROJECT_CUSTOM_COLORS = PROJECT_COLORS;
-
-export const PROJECT_COLOR_VALUES: string[] = PROJECT_COLORS.map(
-	(color) => color.value,
-);

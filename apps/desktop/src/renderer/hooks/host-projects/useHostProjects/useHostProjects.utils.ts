@@ -1,6 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { ProjectSnapshotPayload } from "@superset/workspace-client";
-import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+import { get as idbGet, set as idbSet } from "idb-keyval";
 
 /** A project row as served by a host (`project.list`). */
 /** One tag folder's host-side presentation row. */
@@ -73,7 +73,7 @@ export interface HostProjectRowsResult {
 	reachable: boolean;
 }
 
-export interface HostRowForTargets {
+interface HostRowForTargets {
 	organizationId: string;
 	machineId: string;
 	isOnline: boolean;
@@ -195,14 +195,6 @@ export function saveHostProjectsSnapshot(
 ): void {
 	if (!organizationId) return;
 	void idbSet(snapshotKey(organizationId, machineId), rows).catch(() => {});
-}
-
-export function clearHostProjectsSnapshot(
-	organizationId: string,
-	machineId: string,
-): void {
-	if (!organizationId) return;
-	void idbDel(snapshotKey(organizationId, machineId)).catch(() => {});
 }
 
 // Serialize read-modify-write per snapshot key so rapid deletes can't

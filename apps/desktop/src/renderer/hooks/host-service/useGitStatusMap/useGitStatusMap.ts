@@ -6,7 +6,7 @@ type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
 type ChangedFile = GitStatusData["againstBase"][number];
 export type FileStatus = ChangedFile["status"];
 
-export interface UseGitStatusMapResult {
+interface UseGitStatusMapResult {
 	/** Changed files keyed by repo-relative POSIX path. */
 	fileStatusByPath: Map<string, FileStatus>;
 	/**

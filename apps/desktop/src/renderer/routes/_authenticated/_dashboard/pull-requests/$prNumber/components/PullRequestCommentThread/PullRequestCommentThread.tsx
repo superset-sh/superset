@@ -45,7 +45,7 @@ interface PullRequestCommentThreadProps {
 	focusTick?: number;
 }
 
-// A decoupled twin of the v2-workspace DiffPane's CommentThread: same
+// A decoupled twin of the workspace DiffPane's CommentThread: same
 // visuals, but the resolve mutation is injected via a prop instead of
 // wired to that component's workspaceId-scoped git.setReviewThreadResolution
 // call, since this one's callers (the PR list/detail Code tab) browse a PR

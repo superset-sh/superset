@@ -1,24 +1,21 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { useLastActiveV2Workspace } from "renderer/stores/last-active-v2-workspace";
+import { useLastActiveWorkspace } from "renderer/stores/last-active-workspace";
 import { usePagePaneIntent } from "renderer/stores/page-pane-intent";
 
-export interface OpenPageTarget {
+interface OpenPageTarget {
 	id?: string;
 	slug: string;
 	title?: string;
 }
 
-export interface OpenPageOptions {
+interface OpenPageOptions {
 	inPane?: boolean;
 }
 
-export type OpenPage = (
-	page: OpenPageTarget,
-	options?: OpenPageOptions,
-) => void;
+type OpenPage = (page: OpenPageTarget, options?: OpenPageOptions) => void;
 
 export function isPaneModifier(
 	event: Pick<MouseEvent, "metaKey" | "ctrlKey">,
@@ -30,11 +27,11 @@ export function useOpenPage(): OpenPage {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const { workspaces } = useHostWorkspaces();
-	const lastActiveWorkspaceId = useLastActiveV2Workspace((s) => s.workspaceId);
-	const { preferences } = useV2UserPreferences();
+	const lastActiveWorkspaceId = useLastActiveWorkspace((s) => s.workspaceId);
+	const { preferences } = useUserPreferences();
 
 	const routeMatch = matchRoute({
-		to: "/v2-workspace/$workspaceId",
+		to: "/workspace/$workspaceId",
 		fuzzy: true,
 	});
 	const activeWorkspaceId =
@@ -57,7 +54,7 @@ export function useOpenPage(): OpenPage {
 						title: page.title,
 					});
 					navigate({
-						to: "/v2-workspace/$workspaceId",
+						to: "/workspace/$workspaceId",
 						params: { workspaceId: targetWorkspaceId },
 					});
 					return;

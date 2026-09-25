@@ -1,1 +1,0 @@
-export { CategoryHeader } from "./CategoryHeader";

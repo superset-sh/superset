@@ -4,11 +4,7 @@ export interface PullRequestCheck {
 	url: string | null;
 }
 
-export type PullRequestChecksStatus =
-	| "success"
-	| "failure"
-	| "pending"
-	| "none";
+type PullRequestChecksStatus = "success" | "failure" | "pending" | "none";
 
 export function summarizePullRequestChecks(checks: PullRequestCheck[]) {
 	const relevantChecks = checks.filter(

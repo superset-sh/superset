@@ -79,7 +79,7 @@ function clampToWorkArea(bounds: Rectangle): { width: number; height: number } {
 	};
 }
 
-export interface InitialWindowBounds {
+interface InitialWindowBounds {
 	x?: number;
 	y?: number;
 	width: number;

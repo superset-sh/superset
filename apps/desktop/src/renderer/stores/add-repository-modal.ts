@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export interface NewProjectResult {
+interface NewProjectResult {
 	projectId: string;
 }
 

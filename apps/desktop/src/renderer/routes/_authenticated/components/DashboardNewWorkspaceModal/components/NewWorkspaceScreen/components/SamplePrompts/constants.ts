@@ -15,7 +15,7 @@ export interface SamplePrompt {
  * Every prompt we can show. Order here carries no meaning — the tier lists
  * below decide what appears and in what order.
  */
-export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
+const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 	"set-up-project": {
 		id: "set-up-project",
 		label: msg({

@@ -11,7 +11,7 @@ export interface BulkWorkspaceDeleteFailure {
  * Where a bulk delete request is: awaiting confirmation, destroying in the
  * background, or showing what could not be deleted.
  */
-export type BulkDeleteWorkspacesPhase = "confirm" | "running" | "failed";
+type BulkDeleteWorkspacesPhase = "confirm" | "running" | "failed";
 
 /**
  * Drives the single sidebar-level bulk delete dialog

@@ -89,7 +89,7 @@ if (env.NODE_ENV === "development" && process.env.RENDERER_REMOTE_DEBUG_PORT) {
 	);
 }
 
-// Each xterm pane holds one WebGL context. v2 parking keeps panes alive
+// Each xterm pane holds one WebGL context. parking keeps panes alive
 // across workspace switches, so cumulative contexts can reach the low
 // hundreds — past Chromium's default cap of 16, Blink force-evicts the
 // oldest context and the terminal blanks out. 256 covers the parking load

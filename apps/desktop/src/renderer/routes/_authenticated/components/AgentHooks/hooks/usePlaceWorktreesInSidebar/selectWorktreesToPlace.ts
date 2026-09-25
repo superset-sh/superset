@@ -17,7 +17,7 @@ export type WorkspaceForPlacement = {
 	createdByUserId: string | null;
 };
 
-export type PlacementContext = {
+type PlacementContext = {
 	/** This device's host; null until the local host service reports it. */
 	machineId: string | null;
 	/** Org hosts currently online per cloud + relay presence (`useKnownHosts`). */

@@ -2,7 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import type { SortOption, WorkspaceMetrics } from "../types";
 
-export interface ProjectResourceGroup {
+interface ProjectResourceGroup {
 	projectId: string;
 	projectName: string;
 	cpu: number;

@@ -12,7 +12,7 @@ import type { IBuffer, IBufferLine, IBufferRange } from "@xterm/xterm";
  * A simplified IRange representation (1-based columns, 1-based lines) matching
  * the shape VSCode feeds into convertLinkRangeToBuffer.
  */
-export interface IRange {
+interface IRange {
 	startColumn: number;
 	startLineNumber: number;
 	endColumn: number;

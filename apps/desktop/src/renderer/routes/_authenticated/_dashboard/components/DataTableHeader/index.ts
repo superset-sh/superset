@@ -1,1 +1,1 @@
-export { DATA_TABLE_HEAD_CELL, DataTableHeader } from "./DataTableHeader";
+export { DATA_TABLE_HEAD_CELL } from "./DataTableHeader";

@@ -1,1 +1,0 @@
-export { CellWithIcon } from "./CellWithIcon";

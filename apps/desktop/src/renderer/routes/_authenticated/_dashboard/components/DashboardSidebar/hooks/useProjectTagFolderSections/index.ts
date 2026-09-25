@@ -1,4 +1,1 @@
-export {
-	type ProjectTagFolderSection,
-	useProjectTagFolderSections,
-} from "./useProjectTagFolderSections";
+export { useProjectTagFolderSections } from "./useProjectTagFolderSections";

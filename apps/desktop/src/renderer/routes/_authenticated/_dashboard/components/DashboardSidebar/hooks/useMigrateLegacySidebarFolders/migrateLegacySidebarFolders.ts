@@ -61,7 +61,7 @@ export interface LegacyFolderMigrationIo {
 	clearLocalSectionId(workspaceId: string, legacySectionId: string): void;
 }
 
-export interface LegacyFolderMigrationResult {
+interface LegacyFolderMigrationResult {
 	converted: string[];
 	parked: string[];
 	deferred: string[];

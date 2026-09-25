@@ -15,13 +15,6 @@ export interface ScheduleState {
 	customRrule: string;
 }
 
-export const PRESET_OPTIONS: { value: PresetKind; label: string }[] = [
-	{ value: "hourly", label: "Hourly" },
-	{ value: "daily", label: "Daily" },
-	{ value: "weekly", label: "Weekly" },
-	{ value: "custom", label: "Custom" },
-];
-
 export const DAY_OPTIONS: { value: Weekday; label: string }[] = [
 	{ value: "SU", label: "Sunday" },
 	{ value: "MO", label: "Monday" },

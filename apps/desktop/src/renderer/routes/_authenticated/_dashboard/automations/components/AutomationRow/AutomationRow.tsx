@@ -163,7 +163,7 @@ export function AutomationRow({
 		if (!lastRun?.v2WorkspaceId) return;
 		localStorage.setItem("lastViewedWorkspaceId", lastRun.v2WorkspaceId);
 		navigate({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId: lastRun.v2WorkspaceId },
 			search: {
 				terminalId: lastRun.terminalSessionId ?? undefined,

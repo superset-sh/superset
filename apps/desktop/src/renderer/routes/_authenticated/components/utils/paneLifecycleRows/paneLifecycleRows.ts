@@ -5,7 +5,7 @@ export interface PaneLifecycleRow {
 	paneLayout: unknown;
 }
 
-export interface RemovedPaneLocation {
+interface RemovedPaneLocation {
 	id: string;
 	workspaceId: string;
 }

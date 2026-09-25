@@ -1,4 +1,4 @@
-export type ZoomTarget =
+type ZoomTarget =
 	| { kind: "terminal" }
 	| { kind: "browser"; paneId: string }
 	| { kind: "app" };

@@ -1,80 +1,143 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
-import { Label } from "@superset/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useState } from "react";
+import { LuFolderOpen, LuRotateCcw } from "react-icons/lu";
+import { RemotePathPicker } from "renderer/components/RemotePathPicker";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface WorktreeLocationPickerProps {
 	currentPath: string | null | undefined;
-	defaultPathLabel: string;
-	dialogTitle?: string;
-	defaultBrowsePath?: string | null;
+	fallbackPath: string | null | undefined;
+	hostUrl: string | null;
+	hostName: string;
+	isRemoteTarget: boolean;
 	disabled?: boolean;
-	onSelect: (path: string) => void;
-	onReset: () => void;
-}
-
-export function useDefaultWorktreePath() {
-	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
-	return homeDir ? `${homeDir}/.superset/worktrees` : "~/.superset/worktrees";
+	browseTitle?: string;
+	browseDescription?: string;
+	onSelect: (path: string) => void | Promise<void>;
+	onReset: () => void | Promise<void>;
 }
 
 export function WorktreeLocationPicker({
 	currentPath,
-	defaultPathLabel,
-	dialogTitle,
-	defaultBrowsePath,
+	fallbackPath,
+	hostUrl,
+	hostName,
+	isRemoteTarget,
 	disabled,
+	browseTitle,
+	browseDescription,
 	onSelect,
 	onReset,
 }: WorktreeLocationPickerProps) {
 	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
-	const resolvedDialogTitle =
-		dialogTitle ??
+	const [remoteBrowseOpen, setRemoteBrowseOpen] = useState(false);
+	const resolvedBrowseTitle =
+		browseTitle ??
 		t({
 			message: "Select worktree location",
 		});
 
+	const displayPath =
+		currentPath ??
+		fallbackPath ??
+		t({
+			message: "Host unavailable",
+		});
+	const isBusy = disabled || selectDirectory.isPending;
+
 	const handleBrowse = async () => {
+		if (isBusy) return;
+		if (isRemoteTarget) {
+			setRemoteBrowseOpen(true);
+			return;
+		}
 		const result = await selectDirectory.mutateAsync({
-			title: resolvedDialogTitle,
-			defaultPath: defaultBrowsePath ?? undefined,
+			title: resolvedBrowseTitle,
+			defaultPath: currentPath ?? fallbackPath ?? undefined,
 		});
 		if (!result.canceled && result.path) {
-			onSelect(result.path);
+			await onSelect(result.path);
 		}
 	};
 
 	return (
-		<div className="flex items-center justify-between">
-			<div className="space-y-0.5">
-				<Label className="text-sm font-medium">
-					<Trans>Directory</Trans>
-				</Label>
-				<code className="text-xs bg-muted px-1.5 py-0.5 rounded text-foreground block mt-1">
-					{currentPath ?? defaultPathLabel}
-				</code>
-			</div>
-			<div className="flex items-center gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={handleBrowse}
-					disabled={disabled || selectDirectory.isPending}
-				>
-					<Trans>Browse...</Trans>
-				</Button>
-				{currentPath && (
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={onReset}
-						disabled={disabled}
+		<>
+			<div className="flex w-[28rem] max-w-full items-center gap-2">
+				<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
+					<span
+						className="font-mono text-sm text-foreground"
+						title={displayPath}
 					>
-						<Trans>Reset</Trans>
-					</Button>
-				)}
+						{displayPath}
+					</span>
+				</div>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							type="button"
+							variant="outline"
+							size="icon"
+							className="size-9 shrink-0"
+							onClick={handleBrowse}
+							disabled={isBusy || !hostUrl}
+							aria-label={t({
+								message: "Change worktree location",
+							})}
+						>
+							<LuFolderOpen className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<Trans>Change location</Trans>
+					</TooltipContent>
+				</Tooltip>
+				{currentPath ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								className="size-9 shrink-0"
+								onClick={onReset}
+								disabled={disabled}
+								aria-label={t({
+									message: "Reset worktree location",
+								})}
+							>
+								<LuRotateCcw className="size-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<Trans>Reset location</Trans>
+						</TooltipContent>
+					</Tooltip>
+				) : null}
 			</div>
-		</div>
+
+			<RemotePathPicker
+				open={remoteBrowseOpen}
+				onOpenChange={setRemoteBrowseOpen}
+				hostUrl={hostUrl}
+				hostName={hostName}
+				initialPath={currentPath ?? fallbackPath}
+				title={resolvedBrowseTitle}
+				description={
+					browseDescription ??
+					t({
+						message: `Pick the worktree folder on ${hostName}.`,
+					})
+				}
+				confirmLabel={t({
+					message: "Use this folder",
+				})}
+				onPick={(path) => {
+					void onSelect(path);
+				}}
+			/>
+		</>
 	);
 }

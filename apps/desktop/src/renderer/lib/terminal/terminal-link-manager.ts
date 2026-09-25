@@ -29,7 +29,7 @@ export type LinkHoverInfo =
 	| { kind: "url"; url: string };
 
 /**
- * Link handler callbacks for the v2 terminal.
+ * Link handler callbacks for the terminal.
  */
 export interface TerminalLinkHandlers {
 	/** Called when a file path link is activated (Cmd/Ctrl+click). */

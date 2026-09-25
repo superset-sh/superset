@@ -759,10 +759,4 @@ if (import.meta.hot) {
 	import.meta.hot.data.registry = terminalRuntimeRegistry;
 }
 
-export type {
-	ConnectionState,
-	LinkHoverInfo,
-	TerminalFailureClassification,
-	TerminalLinkHandlers,
-	TerminalLogEntry,
-};
+export type { ConnectionState, LinkHoverInfo, TerminalLogEntry };

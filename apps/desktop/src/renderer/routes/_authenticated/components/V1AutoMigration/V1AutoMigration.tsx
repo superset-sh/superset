@@ -1,8 +1,5 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { useAgentConfigs } from "renderer/hooks/useAgentConfigs";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { posthog } from "renderer/lib/posthog";
@@ -33,16 +30,12 @@ import { buildSidebarFolderKey } from "renderer/routes/_authenticated/utils/work
 import { appendPendingMigratedTerminals } from "renderer/stores/workspace-creates/appendPendingMigratedTerminals";
 
 /**
- * Headless v1→v2 auto-migration (migrate-then-flip). On the v1 surface it
- * runs one pass per boot once the preconditions hold, records everything in
- * the ledger, and marks the org complete when the flip gate (projects +
- * workspaces) is satisfied — the NEXT launch then lands on v2 with data
- * already in place. On the v2 surface the full pass runs while there is
- * outstanding work: best-effort kinds (settings/presets/terminals) that
- * were still failing when the gate completed (D4), or everything on
- * machines that reached v2 with unmigrated v1 data (see planV2SurfacePass).
- * Completed v2 migrations still run the ledger-guarded group backfill, since
- * older passes omitted groups entirely.
+ * Headless import of legacy v1 data (local SQLite) into this machine's host
+ * service. Runs one pass per boot while there is outstanding work: machines
+ * that still hold unmigrated v1 rows, or best-effort kinds
+ * (settings/presets/terminals) that were still failing when the gate
+ * completed. Completed migrations still run the ledger-guarded group
+ * backfill, since older passes omitted groups entirely.
  * Cross-instance single-flight via a main-process lock file. A pass that
  * throws, or leaves the gate open only for transient reasons (network,
  * host-service down), re-arms itself on a short backoff within the session;
@@ -68,18 +61,11 @@ async function listGatingFailureReasons(
 
 export function V1AutoMigration() {
 	const { data: session } = authClient.useSession();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { activeHostUrl } = useLocalHostService();
 	const collections = useCollections();
 	const finalizeSetup = useFinalizeProjectSetup();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
-	const agentsQuery = useV2AgentConfigs(activeHostUrl);
-	// Rollout pacing: percentage ramp + high-profile org exclusions. Only
-	// gates NEW migrations (v1 surface) — post-flip catch-up must always run.
-	// undefined (flags not loaded / offline) counts as off: stay on v1.
-	const migrationFlagEnabled = useFeatureFlagEnabled(
-		FEATURE_FLAGS.V1_AUTO_MIGRATION,
-	);
+	const agentsQuery = useAgentConfigs(activeHostUrl);
 	const startedOrgsRef = useRef<Set<string>>(new Set());
 	const retryAttemptsRef = useRef<Map<string, number>>(new Map());
 	const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,12 +94,10 @@ export function V1AutoMigration() {
 		if (!organizationId || !onboarded || !activeHostUrl || !agentsSettled) {
 			return;
 		}
-		if (!isV2CloudEnabled && migrationFlagEnabled !== true) return;
 		if (startedOrgsRef.current.has(organizationId)) return;
 		startedOrgsRef.current.add(organizationId);
 
 		const hostUrl = activeHostUrl;
-		const trigger = isV2CloudEnabled ? "v2-followup" : "v1-surface";
 		const scheduleRetry = (reasons: string[]) => {
 			if (retryTimerRef.current || retryOrgRef.current !== organizationId) {
 				return;
@@ -123,7 +107,6 @@ export function V1AutoMigration() {
 			if (delayMs === null) return;
 			retryAttemptsRef.current.set(organizationId, attempt);
 			posthog.capture("v1_auto_migration_retry_scheduled", {
-				trigger,
 				attempt,
 				delay_ms: delayMs,
 				reasons: reasons.slice(0, 5),
@@ -142,30 +125,27 @@ export function V1AutoMigration() {
 				if (!lock.acquired) return;
 				locked = true;
 
-				let groupsOnly = false;
-				if (isV2CloudEnabled) {
-					const followUpPending = isV1FollowUpPending(organizationId);
-					const migrationComplete = isV1MigrationComplete(organizationId);
-					let hasV1Data = false;
-					if (!followUpPending && !migrationComplete) {
-						const [v1Projects, v1Workspaces] = await Promise.all([
-							electronV1MigrationIpc.readV1Projects(),
-							electronV1MigrationIpc.readV1Workspaces(),
-						]);
-						hasV1Data = v1Projects.length + v1Workspaces.length > 0;
-					}
-					groupsOnly =
-						planV2SurfacePass({
-							followUpPending,
-							migrationComplete,
-							hasV1Data,
-						}) === "groups-only";
+				const followUpPending = isV1FollowUpPending(organizationId);
+				const migrationComplete = isV1MigrationComplete(organizationId);
+				let hasV1Data = false;
+				if (!followUpPending && !migrationComplete) {
+					const [v1Projects, v1Workspaces] = await Promise.all([
+						electronV1MigrationIpc.readV1Projects(),
+						electronV1MigrationIpc.readV1Workspaces(),
+					]);
+					hasV1Data = v1Projects.length + v1Workspaces.length > 0;
 				}
+				const groupsOnly =
+					planV2SurfacePass({
+						followUpPending,
+						migrationComplete,
+						hasV1Data,
+					}) === "groups-only";
 
 				const groupTarget: V1GroupTarget = (group, projectId, tag) => {
 					const sectionId = buildSidebarFolderKey(projectId, tag);
-					if (collections.v2SidebarSections.get(sectionId)) return;
-					collections.v2SidebarSections.insert({
+					if (collections.sidebarSections.get(sectionId)) return;
+					collections.sidebarSections.insert({
 						sectionId,
 						projectId,
 						tag,
@@ -177,7 +157,7 @@ export function V1AutoMigration() {
 					});
 				};
 				// Older completed migrations never imported v1 groups. Backfill on
-				// v2 boots too; the ledger preserves later v2 customizations.
+				// every boot; the ledger preserves later customizations.
 				if (groupsOnly) {
 					await migrateV1Groups({
 						groupTarget,
@@ -193,13 +173,12 @@ export function V1AutoMigration() {
 					organizationId,
 					hostClient: getHostServiceClientByUrl(hostUrl),
 					ipc: electronV1MigrationIpc,
-					reconcileWithHost: !isV2CloudEnabled,
 					presetTarget: {
 						agents,
 						existing: Array.from(
-							collections.v2TerminalPresets.state.values(),
+							collections.terminalPresets.state.values(),
 						).map((p) => ({ name: p.name, agentId: p.agentId })),
-						insert: (row) => collections.v2TerminalPresets.insert(row),
+						insert: (row) => collections.terminalPresets.insert(row),
 					},
 					terminalTarget: {
 						appendPending: (workspace, terminals) =>
@@ -233,11 +212,7 @@ export function V1AutoMigration() {
 				let firstCompletion = false;
 				if (summary.gateComplete) {
 					firstCompletion = !isV1MigrationComplete(organizationId);
-					// Already on v2: no flip happens, so no welcome card or
-					// continuity restore to hand off to the next launch.
-					markV1MigrationComplete(organizationId, {
-						armFlipHandoff: !isV2CloudEnabled,
-					});
+					markV1MigrationComplete(organizationId);
 					const bestEffortClean =
 						summary.settings.failed +
 							summary.settings.deferred +
@@ -246,14 +221,7 @@ export function V1AutoMigration() {
 							summary.terminals.failed +
 							summary.terminals.deferred ===
 						0;
-					// First completion always arms a catch-up pass: the user keeps
-					// working on v1 for the REST of this session (the pass ran at
-					// boot), so the first v2 boot must re-sync that tail before the
-					// flag can clear.
-					setV1FollowUpPending(
-						organizationId,
-						(firstCompletion && !isV2CloudEnabled) || !bestEffortClean,
-					);
+					setV1FollowUpPending(organizationId, !bestEffortClean);
 				}
 
 				// Failure and skip reasons come from the ledger (the summary only
@@ -287,7 +255,6 @@ export function V1AutoMigration() {
 				}
 				posthog.capture("v1_auto_migration_completed", {
 					...v1MigrationEventProps(summary),
-					trigger,
 					first_completion: firstCompletion,
 					duration_ms: Date.now() - startedAt,
 					failure_reasons: failureReasons,
@@ -297,7 +264,6 @@ export function V1AutoMigration() {
 				// Retries next boot; the ledger holds whatever progress landed.
 				console.error("[v1-migration] auto pass failed", err);
 				posthog.capture("v1_auto_migration_failed", {
-					trigger,
 					duration_ms: Date.now() - startedAt,
 					error: err instanceof Error ? err.message : String(err),
 				});
@@ -314,8 +280,6 @@ export function V1AutoMigration() {
 		organizationId,
 		onboarded,
 		activeHostUrl,
-		isV2CloudEnabled,
-		migrationFlagEnabled,
 		agentsSettled,
 		agents,
 		collections,

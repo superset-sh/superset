@@ -78,7 +78,7 @@ function isPointInsideCardCone(
 	return isPointInTriangle(point, apex, cornerA, cornerB);
 }
 
-export interface DashboardSidebarHoverPayload {
+interface DashboardSidebarHoverPayload {
 	workspace: DashboardSidebarWorkspace;
 	onEditBranchClick: (branchName: string) => void;
 }

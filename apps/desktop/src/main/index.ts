@@ -23,7 +23,7 @@ import {
 	loadToken,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
-import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-env";
+import { applyShellEnvToProcess } from "lib/trpc/routers/utils/shell-env";
 import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
@@ -159,7 +159,11 @@ async function processDeepLink(url: string): Promise<void> {
 
 	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
-	const path = `/${url.split("://")[1]}`;
+	// Links minted before the route rename (older CLIs, published pages).
+	const path = `/${url.split("://")[1]}`.replace(
+		/^\/v2-workspace(s)?\b/,
+		"/workspace$1",
+	);
 	focusMainWindow();
 
 	const target = getFocusedOrLastWindow();

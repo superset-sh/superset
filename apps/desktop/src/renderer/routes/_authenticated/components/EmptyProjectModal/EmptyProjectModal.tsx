@@ -15,14 +15,10 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import {
-	useCreateV1Project,
-	useFinalizeProjectSetup,
-} from "renderer/react-query/projects";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface EmptyProjectModalProps {
@@ -40,10 +36,8 @@ export function EmptyProjectModal({
 }: EmptyProjectModalProps) {
 	const { _: translate } = useTranslation();
 
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const finalizeSetup = useFinalizeProjectSetup();
-	const createV1Project = useCreateV1Project();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 
@@ -95,19 +89,6 @@ export function EmptyProjectModal({
 
 		setWorking(true);
 		try {
-			if (!isV2CloudEnabled) {
-				const projectId = await createV1Project.createEmpty({
-					name: trimmedName,
-					parentDir: trimmedParent,
-					onError,
-				});
-				if (!projectId) return;
-				onSuccess?.({ projectId });
-				reset();
-				onOpenChange(false);
-				return;
-			}
-
 			const activeHostUrl = await hostService.waitForHostReady();
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {

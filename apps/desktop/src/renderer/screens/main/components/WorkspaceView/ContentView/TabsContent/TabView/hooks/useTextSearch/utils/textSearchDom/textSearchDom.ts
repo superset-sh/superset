@@ -134,7 +134,7 @@ export function findTextRanges({
 	return ranges;
 }
 
-export function getHighlightStyleContainers(
+function getHighlightStyleContainers(
 	searchRoots: Array<Node & ParentNode>,
 	document: Document,
 ): Array<HTMLHeadElement | ShadowRoot> {

@@ -1,5 +1,5 @@
 import { publicProcedure, router } from "..";
-import { execWithShellEnv } from "./workspaces/utils/shell-env";
+import { execWithShellEnv } from "./utils/shell-env";
 
 interface GhDetectResult {
 	installed: boolean;
@@ -75,5 +75,3 @@ export const createSystemRouter = () => {
 		detectBrew: publicProcedure.query(detectBrew),
 	});
 };
-
-export type SystemRouter = ReturnType<typeof createSystemRouter>;

@@ -1,7 +1,7 @@
 import type { ExternalApp } from "@superset/local-db";
 import { create } from "zustand";
 
-export interface SetPreferredOpenInAppTarget {
+interface SetPreferredOpenInAppTarget {
 	projectId: string;
 	app: ExternalApp;
 	tick: number;

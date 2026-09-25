@@ -1,1 +1,1 @@
-export { PageViewer, type ResolvedPage } from "./PageViewer";
+export { PageViewer } from "./PageViewer";

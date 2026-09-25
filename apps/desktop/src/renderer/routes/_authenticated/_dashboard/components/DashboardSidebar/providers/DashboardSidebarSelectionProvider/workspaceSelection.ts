@@ -4,9 +4,9 @@ export interface WorkspaceSelectionState {
 	anchorId: string | null;
 }
 
-export type WorkspaceSelectionMode = "toggle" | "range" | "add-range";
+type WorkspaceSelectionMode = "toggle" | "range" | "add-range";
 
-export interface ApplyWorkspaceSelectionOptions {
+interface ApplyWorkspaceSelectionOptions {
 	workspaceId: string;
 	projectId: string;
 	orderedWorkspaceIds: string[];

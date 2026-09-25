@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export type PromptContextBody = { text: string };
 
-export type PromptContextEntry =
+type PromptContextEntry =
 	| { state: "loading"; promise: Promise<PromptContextBody | null> }
 	| { state: "ready"; body: PromptContextBody }
 	| { state: "failed" };

@@ -1,12 +1,6 @@
-export type {
-	Awarded,
-	LeaderboardFactoryDay,
-	LeaderboardPayload,
-	LeaderboardPayloadDay,
-} from "./publishUsage";
+export type { Awarded } from "./publishUsage";
 export {
 	buildPayload,
-	chunkRows,
 	launchBackfillDays,
 	PREVIEW_DAYS,
 	publishPayload,

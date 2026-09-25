@@ -6,5 +6,5 @@ export const Route = createFileRoute("/")({
 });
 
 function RootIndexPage() {
-	return <Redirect to="/workspace" replace />;
+	return <Redirect to="/new-workspace" replace />;
 }

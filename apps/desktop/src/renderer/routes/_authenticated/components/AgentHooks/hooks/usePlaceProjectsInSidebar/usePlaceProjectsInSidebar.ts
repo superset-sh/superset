@@ -23,7 +23,7 @@ export function usePlaceProjectsInSidebar(): void {
 	const { data: placementRows = [], isReady: placementReady } = useLiveQuery(
 		(query) =>
 			query
-				.from({ row: collections.v2SidebarProjects })
+				.from({ row: collections.sidebarProjects })
 				.select(({ row }) => ({ projectId: row.projectId })),
 		[collections],
 	);

@@ -16,7 +16,7 @@ export interface PageWatcherRow {
 	hostId: string;
 }
 
-export function getHostPageWatchersQueryKey(hostUrl: string) {
+function getHostPageWatchersQueryKey(hostUrl: string) {
 	return ["page-watchers-by-host", hostUrl] as const;
 }
 

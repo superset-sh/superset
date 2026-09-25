@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { parseV2ResourceSessions } from "./session-normalization";
+import { parseResourceSessions } from "./session-normalization";
 
-describe("parseV2ResourceSessions", () => {
+describe("parseResourceSessions", () => {
 	test("groups valid v2 sessions and normalizes titles", () => {
-		const sessions = parseV2ResourceSessions({
+		const sessions = parseResourceSessions({
 			sessions: [
 				{
 					terminalId: "terminal-1",
@@ -37,7 +37,7 @@ describe("parseV2ResourceSessions", () => {
 	});
 
 	test("rejects invalid v2 session identifiers and fractional PIDs", () => {
-		const sessions = parseV2ResourceSessions({
+		const sessions = parseResourceSessions({
 			sessions: [
 				{
 					terminalId: "fractional",

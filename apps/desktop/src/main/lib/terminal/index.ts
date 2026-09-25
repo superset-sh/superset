@@ -4,13 +4,6 @@ import { DaemonTerminalManager, getDaemonTerminalManager } from "./daemon";
 import { prewarmTerminalEnv } from "./env";
 
 export { DaemonTerminalManager, getDaemonTerminalManager };
-export type {
-	CreateSessionParams,
-	SessionResult,
-	TerminalDataEvent,
-	TerminalEvent,
-	TerminalExitEvent,
-} from "./types";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 let prewarmInFlight: Promise<void> | null = null;

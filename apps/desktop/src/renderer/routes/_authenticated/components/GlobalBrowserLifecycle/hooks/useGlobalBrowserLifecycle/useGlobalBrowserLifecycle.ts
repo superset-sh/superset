@@ -1,7 +1,7 @@
 import type { WorkspaceState } from "@superset/panes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef } from "react";
-import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
+import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	extractPaneLocations,
@@ -47,7 +47,7 @@ export function useGlobalBrowserLifecycle() {
 	const { data: allWorkspaceRows = [] } = useLiveQuery(
 		(query) =>
 			query.from({
-				v2WorkspaceLocalState: collections.v2WorkspaceLocalState,
+				workspaceLocalState: collections.workspaceLocalState,
 			}),
 		[collections],
 	);
@@ -92,7 +92,7 @@ export function useGlobalBrowserLifecycle() {
 
 			const timer = setTimeout(() => {
 				const freshRows = Array.from(
-					collections.v2WorkspaceLocalState.state.values(),
+					collections.workspaceLocalState.state.values(),
 				) as PaneLifecycleRow[];
 				const freshLocations = extractBrowserLocations(freshRows);
 				const freshWorkspaceIds = extractWorkspaceIds(freshRows);

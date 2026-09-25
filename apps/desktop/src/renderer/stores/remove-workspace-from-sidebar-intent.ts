@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface RemoveFromSidebarTarget {
+interface RemoveFromSidebarTarget {
 	workspaceId: string;
 	workspaceName: string;
 	/** Null for project-less "session" workspaces. */

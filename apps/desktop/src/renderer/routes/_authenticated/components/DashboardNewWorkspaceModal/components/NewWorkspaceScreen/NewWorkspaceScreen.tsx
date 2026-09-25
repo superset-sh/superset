@@ -40,14 +40,14 @@ import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
+import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useAgentChoices/cloud-agent-choices";
 import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
-import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -62,7 +62,7 @@ import {
 	NEW_WORKSPACE_SCREEN_MIN_WIDTH,
 	useNewWorkspaceWidthStore,
 } from "renderer/stores/new-workspace-width";
-import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
+import { useWorkspaceCreateDefaultsStore } from "renderer/stores/workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import {
 	type PromptCardsVariant,
@@ -128,7 +128,7 @@ interface NewWorkspaceScreenProps {
 }
 
 /**
- * The v2 workspace-creation surface: heading, sample prompts, and a minimal
+ * The workspace-creation surface: heading, sample prompts, and a minimal
  * composer, filling the window rather than a dialog.
  */
 export function NewWorkspaceScreen({
@@ -176,16 +176,16 @@ export function NewWorkspaceScreen({
 				}
 			: null;
 	}, [draft.hostId, selectedEnvironment]);
-	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
+	const setLastProjectId = useWorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
-	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
+	const setLastHostId = useWorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
 	);
-	const samplePromptsDismissed = useV2WorkspaceCreateDefaultsStore(
+	const samplePromptsDismissed = useWorkspaceCreateDefaultsStore(
 		(state) => state.samplePromptsDismissed,
 	);
-	const setSamplePromptsDismissed = useV2WorkspaceCreateDefaultsStore(
+	const setSamplePromptsDismissed = useWorkspaceCreateDefaultsStore(
 		(state) => state.setSamplePromptsDismissed,
 	);
 
@@ -282,7 +282,7 @@ export function NewWorkspaceScreen({
 		preSelectedSession,
 		selectedProjectId: draft.selectedProjectId,
 		isSession: draft.isSession,
-		lastProjectId: useV2WorkspaceCreateDefaultsStore.getState().lastProjectId,
+		lastProjectId: useWorkspaceCreateDefaultsStore.getState().lastProjectId,
 		selectProject,
 		selectSession,
 		updateDraft,
@@ -365,7 +365,7 @@ export function NewWorkspaceScreen({
 		if (appliedPersistedHostRef.current) return;
 		appliedPersistedHostRef.current = true;
 		const persistedHostId =
-			useV2WorkspaceCreateDefaultsStore.getState().lastHostId;
+			useWorkspaceCreateDefaultsStore.getState().lastHostId;
 		if (typeof persistedHostId === "string") {
 			updateDraft({ hostId: persistedHostId });
 		}
@@ -374,14 +374,13 @@ export function NewWorkspaceScreen({
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project — the draft store is global, so a
 	// stale branch from another project would otherwise ride into the create.
-	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
-		(state) =>
-			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
+	const persistedBaseBranchDefault = useWorkspaceCreateDefaultsStore((state) =>
+		projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
 	);
-	const setBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
+	const setBaseBranchDefault = useWorkspaceCreateDefaultsStore(
 		(state) => state.setBaseBranchDefault,
 	);
-	const clearBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
+	const clearBaseBranchDefault = useWorkspaceCreateDefaultsStore(
 		(state) => state.clearBaseBranchDefault,
 	);
 	const previousProjectIdRef = useRef(projectId);
@@ -444,14 +443,14 @@ export function NewWorkspaceScreen({
 	}, [promptLayout, setSamplePromptsDismissed]);
 
 	const { agents: hostAgents, isFetched: hostAgentsFetched } =
-		useV2AgentChoices(launchHostUrl);
+		useAgentChoices(launchHostUrl);
 	// Under Cloud the built-in presets stand in for a host's agent list.
-	const v2Agents =
+	const agentConfigs =
 		draft.hostId === CLOUD_HOST_ID ? CLOUD_AGENT_CHOICES : hostAgents;
-	const v2AgentsFetched = draft.hostId === CLOUD_HOST_ID || hostAgentsFetched;
+	const agentsFetched = draft.hostId === CLOUD_HOST_ID || hostAgentsFetched;
 	const selectableAgentIds = useMemo(
-		() => v2Agents.map((agent) => agent.id),
-		[v2Agents],
+		() => agentConfigs.map((agent) => agent.id),
+		[agentConfigs],
 	);
 	const { selectedAgent, setSelectedAgent } =
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
@@ -459,13 +458,15 @@ export function NewWorkspaceScreen({
 			defaultAgent: selectableAgentIds[0] ?? "none",
 			fallbackAgent: selectableAgentIds[0] ?? "none",
 			validAgents: ["none", ...selectableAgentIds],
-			agentsReady: v2AgentsFetched,
+			agentsReady: agentsFetched,
 		});
 
 	const selectedPresetId = useMemo(() => {
-		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
+		const agent = agentConfigs.find(
+			(candidate) => candidate.id === selectedAgent,
+		);
 		return agent?.launchPresetId ?? agent?.presetId ?? agent?.iconId ?? null;
-	}, [v2Agents, selectedAgent]);
+	}, [agentConfigs, selectedAgent]);
 	const modelSupport = selectedPresetId
 		? getAgentModelSupport(selectedPresetId)
 		: undefined;
@@ -871,7 +872,7 @@ export function NewWorkspaceScreen({
 						<PromptInputFooter>
 							<PromptInputTools className="gap-1.5">
 								<AgentSelect<WorkspaceCreateAgent>
-									agents={v2Agents}
+									agents={agentConfigs}
 									value={selectedAgent}
 									placeholder={t({
 										message: "No agent",

@@ -1,1 +1,0 @@
-export { CommandPaletteTrigger } from "./CommandPaletteTrigger";

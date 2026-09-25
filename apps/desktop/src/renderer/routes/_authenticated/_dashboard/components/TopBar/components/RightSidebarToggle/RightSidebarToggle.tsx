@@ -4,11 +4,11 @@ import {
 	LuPanelRightClose,
 	LuPanelRightOpen,
 } from "react-icons/lu";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
 
 export function RightSidebarToggle() {
-	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
+	const { preferences, setRightSidebarOpen } = useUserPreferences();
 	const isOpen = preferences.rightSidebarOpen;
 
 	const toggle = () => setRightSidebarOpen((prev) => !prev);

@@ -1,0 +1,1 @@
+export { WorkspaceTitle } from "./WorkspaceTitle";

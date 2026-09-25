@@ -17,7 +17,7 @@ export function providerLabelText(label: TriggerProvider["label"]): string {
  * can show the path — "GitHub › PR review submitted › Approved" is what tells
  * Approved apart from the other three review outcomes.
  */
-export type TriggerMenuLeaf = {
+type TriggerMenuLeaf = {
 	path: string[];
 	icon: IconType;
 	create: () => TriggerConfigInput;

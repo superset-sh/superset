@@ -13,7 +13,7 @@ import { LuTriangleAlert } from "react-icons/lu";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
@@ -121,7 +121,7 @@ export function AutomationBody({
 	const hostId = draft.targetHostId ?? localHostId ?? null;
 	const hostUrl = useHostUrl(hostId);
 	const { agents: hostAgents, isFetched: hostAgentsFetched } =
-		useV2AgentChoices(hostUrl);
+		useAgentChoices(hostUrl);
 	// Only warn once the host's terminal configs have loaded — the Superset
 	// chat entry is flag-gated, so list length alone can't tell "not loaded
 	// yet / host unreachable" apart from "agent missing".

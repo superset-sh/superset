@@ -2,10 +2,10 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
-	useSetV2WorktreeBaseDir,
-	useV2WorktreeLocationSettings,
-	V2WorktreeLocationPicker,
-} from "../../../../../../components/V2WorktreeLocationPicker";
+	useSetWorktreeBaseDir,
+	useWorktreeLocationSettings,
+	WorktreeLocationPicker,
+} from "../../../../../../components/WorktreeLocationPicker";
 
 interface WorktreeLocationSectionProps {
 	hostUrl: string | null;
@@ -24,10 +24,10 @@ export function WorktreeLocationSection({
 }: WorktreeLocationSectionProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
-	const settingsQuery = useV2WorktreeLocationSettings(hostUrl, {
+	const settingsQuery = useWorktreeLocationSettings(hostUrl, {
 		enabled: isOnline,
 	});
-	const setLocation = useSetV2WorktreeBaseDir(hostUrl);
+	const setLocation = useSetWorktreeBaseDir(hostUrl);
 
 	const disabled =
 		!canEdit ||
@@ -53,7 +53,7 @@ export function WorktreeLocationSection({
 					</Trans>
 				</p>
 			</div>
-			<V2WorktreeLocationPicker
+			<WorktreeLocationPicker
 				currentPath={settingsQuery.data?.worktreeBaseDir ?? null}
 				fallbackPath={settingsQuery.data?.defaultWorktreeBaseDir ?? null}
 				hostUrl={hostUrl}

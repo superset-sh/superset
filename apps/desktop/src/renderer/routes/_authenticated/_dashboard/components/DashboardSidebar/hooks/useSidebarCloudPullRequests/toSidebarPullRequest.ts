@@ -4,7 +4,7 @@ import type {
 	DashboardSidebarWorkspacePullRequestCheck,
 } from "../../types";
 
-export type CloudPullRequestRow =
+type CloudPullRequestRow =
 	RouterOutputs["integration"]["github"]["getByBranches"]["pullRequests"][number];
 
 function toCheckStatus(check: {

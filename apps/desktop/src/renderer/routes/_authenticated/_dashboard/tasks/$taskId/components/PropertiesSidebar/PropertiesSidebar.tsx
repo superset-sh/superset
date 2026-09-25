@@ -1,11 +1,9 @@
 import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { ScrollArea } from "@superset/ui/scroll-area";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { AssigneeProperty } from "./components/AssigneeProperty";
 import { OpenInWorkspace } from "./components/OpenInWorkspace";
-import { OpenInWorkspaceV2 } from "./components/OpenInWorkspaceV2";
 import { PriorityProperty } from "./components/PriorityProperty";
 import { StatusProperty } from "./components/StatusProperty";
 
@@ -15,7 +13,6 @@ interface PropertiesSidebarProps {
 
 export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 	const labels = task.labels ?? [];
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	return (
 		<div className="w-64 border-l border-border shrink-0">
@@ -51,11 +48,7 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 						)}
 					</div>
 
-					{isV2CloudEnabled ? (
-						<OpenInWorkspaceV2 task={task} />
-					) : (
-						<OpenInWorkspace task={task} />
-					)}
+					<OpenInWorkspace task={task} />
 				</div>
 			</ScrollArea>
 		</div>

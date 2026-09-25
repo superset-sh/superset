@@ -23,7 +23,7 @@ interface WorkItemRow {
 	updatedAt: string | null;
 }
 
-export type AttributedWorkItemRow<TRow> = TRow & {
+type AttributedWorkItemRow<TRow> = TRow & {
 	projectName: string;
 	hostId: string | null;
 	hostUrl: string | null;

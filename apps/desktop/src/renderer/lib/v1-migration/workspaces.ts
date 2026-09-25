@@ -1,6 +1,6 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 
-export interface V1WorkspaceLike {
+interface V1WorkspaceLike {
 	id: string;
 	projectId: string;
 	worktreeId: string | null;
@@ -14,7 +14,7 @@ export interface V1WorktreeLike {
 	baseBranch: string | null;
 }
 
-export interface HostWorkspaceLike {
+interface HostWorkspaceLike {
 	id: string;
 	/** Null for project-less "session" workspaces (never adoption targets). */
 	projectId: string | null;
@@ -22,7 +22,7 @@ export interface HostWorkspaceLike {
 	type?: "local" | "worktree" | "session";
 }
 
-export interface AdoptPlanEntry {
+interface AdoptPlanEntry {
 	v1WorkspaceId: string;
 	v1ProjectId: string;
 	v2ProjectId: string;
@@ -32,7 +32,7 @@ export interface AdoptPlanEntry {
 	baseBranch: string | null;
 }
 
-export interface WorkspacePlan {
+interface WorkspacePlan {
 	toAdopt: AdoptPlanEntry[];
 	alreadyAdopted: Array<{
 		v1WorkspaceId: string;

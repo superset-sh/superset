@@ -544,11 +544,12 @@ export const projectRouter = router({
 			const cloudErrors: { url: string; message: string }[] = [];
 			for (const parsed of urlsToQuery.values()) {
 				try {
-					const { candidates } =
-						await ctx.api.v2Project.findByGitHubRemote.query({
+					const { candidates } = await ctx.api.project.findByGitHubRemote.query(
+						{
 							organizationId: ctx.organizationId,
 							repoCloneUrl: parsed.url,
-						});
+						},
+					);
 					for (const c of candidates) {
 						const existing = byId.get(c.id);
 						if (existing) {

@@ -18,7 +18,7 @@ import {
 /**
  * The result of resolving a link path against the filesystem.
  */
-export interface ResolvedLink {
+interface ResolvedLink {
 	/** The absolute, resolved path. */
 	path: string;
 	/** Whether the path points to a directory. */
@@ -46,7 +46,7 @@ interface CacheEntry {
 
 const DEFAULT_CACHE_TTL_MS = 10_000;
 
-export interface TerminalLinkResolverConfig {
+interface TerminalLinkResolverConfig {
 	cacheTtlMs?: number;
 }
 

@@ -102,5 +102,3 @@ try {
 }
 
 console.log("[local-db] Migrations complete");
-
-export type LocalDb = typeof localDb;

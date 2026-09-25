@@ -13,7 +13,7 @@ import type { BrowserWindow } from "electron";
  * compile time) and never calls into Electron at runtime, so it can be unit
  * tested with plain stub objects exposing `id` and `isDestroyed()`.
  */
-export interface WindowEntry {
+interface WindowEntry {
 	window: BrowserWindow;
 	orgId: string | null;
 	/**
@@ -54,11 +54,6 @@ export function registerWindow({
 /** The persisted identity of a window, or null if it is not registered. */
 export function getKey(windowId: number): string | null {
 	return registry.get(windowId)?.key ?? null;
-}
-
-/** Every registered window's key — the set persisted state may keep. */
-export function getAllKeys(): string[] {
-	return [...registry.values()].map((entry) => entry.key);
 }
 
 export function unregisterWindow(windowId: number): void {

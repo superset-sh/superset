@@ -1,0 +1,123 @@
+import { Trans } from "@lingui/react/macro";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import { Button } from "@superset/ui/button";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
+import { useEffect, useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
+import { HiMiniCommandLine } from "react-icons/hi2";
+import type { HotkeyId } from "renderer/hotkeys";
+import { HotkeyTooltip } from "renderer/hotkeys";
+import { resolvePresetIcon } from "renderer/lib/preset-icon";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+
+const V2_PRESET_BAR_ITEM_TYPE = "V2_PRESET_BAR_ITEM";
+
+interface PresetBarItemProps {
+	preset: TerminalPresetRow;
+	visibleIndex: number;
+	hotkeyId?: HotkeyId;
+	isDark: boolean;
+	agents: HostAgentConfig[] | undefined;
+	onExecutePreset: (preset: TerminalPresetRow) => void;
+	onEdit: (preset: TerminalPresetRow) => void;
+	onLocalReorder: (fromIndex: number, toIndex: number) => void;
+	onPersistReorder: (presetId: string, targetVisibleIndex: number) => void;
+}
+
+export function PresetBarItem({
+	preset,
+	visibleIndex,
+	hotkeyId,
+	isDark,
+	agents,
+	onExecutePreset,
+	onEdit,
+	onLocalReorder,
+	onPersistReorder,
+}: PresetBarItemProps) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const icon = resolvePresetIcon(preset, agents, isDark);
+
+	const [{ isDragging }, drag] = useDrag(
+		() => ({
+			type: V2_PRESET_BAR_ITEM_TYPE,
+			item: {
+				id: preset.id,
+				index: visibleIndex,
+				originalIndex: visibleIndex,
+			},
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[preset.id, visibleIndex],
+	);
+
+	const [, drop] = useDrop({
+		accept: V2_PRESET_BAR_ITEM_TYPE,
+		hover: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.index !== visibleIndex) {
+				onLocalReorder(item.index, visibleIndex);
+				item.index = visibleIndex;
+			}
+		},
+		drop: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.originalIndex !== item.index) {
+				onPersistReorder(item.id, item.index);
+			}
+		},
+	});
+
+	useEffect(() => {
+		drag(drop(containerRef));
+	}, [drag, drop]);
+
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<div
+					ref={containerRef}
+					className={isDragging ? "opacity-40" : undefined}
+					style={{ cursor: isDragging ? "grabbing" : "grab" }}
+				>
+					<HotkeyTooltip id={hotkeyId}>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-6 max-w-32 min-w-0 shrink-0 gap-2 rounded-md px-2 text-xs font-normal text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+							onClick={() => onExecutePreset(preset)}
+						>
+							{icon ? (
+								<img
+									src={icon}
+									alt=""
+									className="size-3.5 shrink-0 object-contain opacity-90"
+								/>
+							) : (
+								<HiMiniCommandLine className="size-3.5 shrink-0" />
+							)}
+							<span className="min-w-0 truncate">
+								{preset.name || "default"}
+							</span>
+						</Button>
+					</HotkeyTooltip>
+				</div>
+			</ContextMenuTrigger>
+			<ContextMenuContent>
+				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
+					<Trans>Run script</Trans>
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				<ContextMenuItem onSelect={() => onEdit(preset)}>
+					<Trans>Edit script</Trans>
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
+	);
+}

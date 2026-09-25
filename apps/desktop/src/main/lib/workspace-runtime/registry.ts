@@ -83,6 +83,3 @@ export function getWorkspaceRuntimeRegistry(): WorkspaceRuntimeRegistry {
  * Reset the registry (for testing only).
  * This should not be called in production code.
  */
-export function resetWorkspaceRuntimeRegistry(): void {
-	registryInstance = null;
-}

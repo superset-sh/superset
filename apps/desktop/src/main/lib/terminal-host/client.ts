@@ -170,16 +170,6 @@ export class TerminalHostClientDisposedError extends Error {
 	}
 }
 
-export interface TerminalHostClientEvents {
-	data: (sessionId: string, data: string) => void;
-	exit: (sessionId: string, exitCode: number, signal?: number) => void;
-	/** Terminal-specific error (e.g., write queue full - paste dropped) */
-	terminalError: (sessionId: string, error: string, code?: string) => void;
-	connected: () => void;
-	disconnected: () => void;
-	error: (error: Error) => void;
-}
-
 /**
  * Client for communicating with the terminal host daemon.
  * Emits events for terminal data and exit.

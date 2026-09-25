@@ -78,9 +78,7 @@ export function safeStorageServiceFor(browserKey: string): string | null {
  * first read for a given app triggers a Keychain authorization prompt. Returns
  * null off macOS, on denial, or when the item is missing.
  */
-export async function readSafeStorageKey(
-	browserKey: string,
-): Promise<string | null> {
+async function readSafeStorageKey(browserKey: string): Promise<string | null> {
 	if (process.platform !== "darwin") return null;
 	const service = safeStorageServiceFor(browserKey);
 	if (!service) return null;
@@ -230,7 +228,7 @@ export function mapCookieRow(
  * `Cookies` DB while running, so we read a copy. Returns an empty array when the
  * DB or the Keychain key is unavailable.
  */
-export async function readCookiesFromProfile(
+async function readCookiesFromProfile(
 	profileDir: string,
 	browserKey: string,
 ): Promise<ImportedCookie[]> {
@@ -274,7 +272,7 @@ export async function readCookiesFromProfile(
 	}
 }
 
-export interface CookieImportResult {
+interface CookieImportResult {
 	imported: number;
 	skipped: number;
 	/** True when no cookies could be read — usually the Keychain key was denied. */

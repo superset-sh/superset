@@ -8,7 +8,7 @@ import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { parseSupersetPageUrl } from "renderer/lib/parseSupersetPageUrl";
 import { useOpenPage } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
-import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/types";
 import { getPullRequestTarget } from "./utils/getPullRequestTarget";
 
 export function OpenBrowserPageInAppButton({

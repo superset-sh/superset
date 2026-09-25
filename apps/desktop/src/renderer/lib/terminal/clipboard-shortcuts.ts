@@ -1,4 +1,4 @@
-export interface ClipboardShortcutEvent {
+interface ClipboardShortcutEvent {
 	code: string;
 	metaKey: boolean;
 	ctrlKey: boolean;
@@ -6,7 +6,7 @@ export interface ClipboardShortcutEvent {
 	shiftKey: boolean;
 }
 
-export interface ClipboardShortcutOptions {
+interface ClipboardShortcutOptions {
 	isMac: boolean;
 	isWindows: boolean;
 	hasSelection: boolean;

@@ -57,7 +57,7 @@ function filterChildren(
  * (pruned to the matches; a matching folder keeps all its members). Surviving
  * projects and matched folders come back expanded so the matches are actually
  * visible; the persisted collapse state is never written. Branch names are
- * deliberately not searched: v2 names are branch-derived, and matching hidden
+ * deliberately not searched: names are branch-derived, and matching hidden
  * text would surface rows whose visible label doesn't contain the query.
  */
 export function filterDashboardSidebarProjects(

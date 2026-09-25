@@ -362,7 +362,7 @@ function toUint8(data: Buffer | ArrayBuffer | Buffer[]): Uint8Array {
 	return new Uint8Array(data);
 }
 
-export function describeUpgradeFailure(status: number | undefined): string {
+function describeUpgradeFailure(status: number | undefined): string {
 	switch (status) {
 		case 401:
 			return "Session expired, sign in again";

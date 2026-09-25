@@ -1,10 +1,6 @@
 export { HotkeyLabel } from "./components/HotkeyLabel";
 export { HotkeyTooltip } from "./components/HotkeyTooltip";
-export { formatHotkeyDisplay } from "./display";
 export {
-	getBinding,
-	getDispatchChord,
-	useBinding,
 	useFormatBinding,
 	useHotkey,
 	useHotkeyDisplay,
@@ -15,26 +11,9 @@ export {
 	useHotkeyOverridesStore,
 	useKeyboardPreferencesStore,
 } from "./stores";
-export type {
-	BindingMode,
-	HotkeyCategory,
-	HotkeyDefinition,
-	HotkeyDisplay,
-	ParsedBinding,
-	Platform,
-	ShortcutBinding,
-} from "./types";
+export type { HotkeyCategory, ShortcutBinding } from "./types";
+export { resolveHotkeyFromEvent } from "./utils";
 export {
-	bindingsEqual,
-	defaultModeForChord,
-	isTerminalReservedEvent,
-	matchesChord,
-	parseBinding,
-	resolveHotkeyFromEvent,
-	serializeBinding,
-} from "./utils";
-export {
-	FORWARDED_HOTKEYS,
 	getForwardableChords,
 	replayForwardedKey,
 } from "./utils/forwardedHotkeys";

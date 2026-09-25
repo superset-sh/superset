@@ -5,7 +5,7 @@ export const DEFAULT_WORKSPACE_SIDEBAR_WIDTH = 280;
 export const COLLAPSED_WORKSPACE_SIDEBAR_WIDTH = 52;
 const MIN_WORKSPACE_SIDEBAR_WIDTH = 225;
 export const MAX_WORKSPACE_SIDEBAR_WIDTH = 400;
-export const WORKSPACE_SIDEBAR_STORAGE_KEY = "workspace-sidebar-store";
+const WORKSPACE_SIDEBAR_STORAGE_KEY = "workspace-sidebar-store";
 
 // Threshold for snapping to collapsed state
 const COLLAPSE_THRESHOLD = 120;

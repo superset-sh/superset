@@ -31,9 +31,7 @@ export type GmailSlot =
 	| "labels"
 	| "hasAttachment";
 
-export type SentencePart<Slot extends string> =
-	| { text: string }
-	| { slot: Slot };
+type SentencePart<Slot extends string> = { text: string } | { slot: Slot };
 
 export const CALENDAR_SENTENCES: Record<
 	GoogleCalendarTriggerEvent,
@@ -221,7 +219,7 @@ function leaf(label: MessageDescriptor, event: GoogleCalendarTriggerEvent) {
  * matches nothing, and the form refuses to save until one is picked), every
  * optional narrowing wide open.
  */
-export function createCalendarConfig(
+function createCalendarConfig(
 	event: GoogleCalendarTriggerEvent,
 ): GoogleCalendarConfig {
 	const base = {
@@ -248,7 +246,7 @@ export function createCalendarConfig(
  * The sender is the primary scope and starts unchosen for the same reason a
  * GitHub repository does; the rest default to "any".
  */
-export function createGmailConfig(): GmailConfig {
+function createGmailConfig(): GmailConfig {
 	return {
 		kind: "gmail",
 		event: "message.received",

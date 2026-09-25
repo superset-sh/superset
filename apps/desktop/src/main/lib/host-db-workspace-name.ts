@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 /** Minimal readonly handle satisfied by both better-sqlite3 and bun:sqlite. */
-export interface ReadonlySqlite {
+interface ReadonlySqlite {
 	prepare(sql: string): {
 		get(...params: unknown[]): unknown;
 		all(...params: unknown[]): unknown[];
@@ -11,7 +11,7 @@ export interface ReadonlySqlite {
 	close(): void;
 }
 
-export const DEFAULT_HOST_DB_ROOT = join(homedir(), ".superset", "host");
+const DEFAULT_HOST_DB_ROOT = join(homedir(), ".superset", "host");
 
 function canonicalPath(path: string): string | undefined {
 	try {

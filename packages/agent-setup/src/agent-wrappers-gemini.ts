@@ -7,7 +7,7 @@ import {
 	isSupersetManagedHookCommand,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
-import { getTemplatePath, getV1NotificationsPort } from "./config";
+import { getTemplatePath } from "./config";
 import {
 	ensureManagedJsonHooks,
 	getManagedJsonHooksContent,
@@ -19,7 +19,7 @@ import { getHooksDir } from "./paths";
 export const GEMINI_HOOK_SCRIPT_NAME = "gemini-hook.sh";
 
 const GEMINI_HOOK_SIGNATURE = "# Superset gemini hook";
-const GEMINI_HOOK_VERSION = "v7";
+const GEMINI_HOOK_VERSION = "v8";
 export const GEMINI_HOOK_MARKER = `${GEMINI_HOOK_SIGNATURE} ${GEMINI_HOOK_VERSION}`;
 
 interface GeminiHookDefinition {
@@ -42,9 +42,7 @@ export function getGeminiHookScriptContent(): string {
 		getTemplatePath("gemini-hook.template.sh"),
 		"utf-8",
 	);
-	return template
-		.replace("{{MARKER}}", GEMINI_HOOK_MARKER)
-		.replaceAll("{{DEFAULT_PORT}}", String(getV1NotificationsPort()));
+	return template.replace("{{MARKER}}", GEMINI_HOOK_MARKER);
 }
 
 // HookEventName values from gemini-cli's packages/core/src/hooks/types.ts.

@@ -139,12 +139,12 @@ export function DashboardSidebarWorkspaceItem({
 		[pendingName, workspace],
 	);
 
-	const { v2Workspaces: v2WorkspaceActions } = useOptimisticActions();
+	const { v2Workspaces: workspaceActions } = useOptimisticActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
 		null,
 	);
 	const handleAfterBranchRename = (newBranchName: string) => {
-		v2WorkspaceActions.updateWorkspace(id, { branch: newBranchName });
+		workspaceActions.updateWorkspace(id, { branch: newBranchName });
 	};
 	const isPending = pendingTransaction?.type === "insert";
 

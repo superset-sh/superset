@@ -19,7 +19,7 @@ export const Route = createFileRoute(
 });
 
 /**
- * The v2 create surface. It is a real route, not a dialog — every "new
+ * The create surface. It is a real route, not a dialog — every "new
  * workspace" entry point navigates here via `useOpenNewWorkspace`.
  */
 function NewWorkspacePage() {

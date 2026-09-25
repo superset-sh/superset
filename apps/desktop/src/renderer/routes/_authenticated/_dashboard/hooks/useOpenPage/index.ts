@@ -1,7 +1,1 @@
-export {
-	isPaneModifier,
-	type OpenPage,
-	type OpenPageOptions,
-	type OpenPageTarget,
-	useOpenPage,
-} from "./useOpenPage";
+export { isPaneModifier, useOpenPage } from "./useOpenPage";

@@ -17,7 +17,7 @@ import type {
 
 type PickerProps = React.ComponentProps<typeof CompareBaseBranchPicker>;
 
-export interface UseBranchPickerControllerArgs {
+interface UseBranchPickerControllerArgs {
 	projectId: string | null;
 	hostId: string | null;
 	/** Cloud only: the primary repository whose branches are offered. */
@@ -117,13 +117,13 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 				},
 			});
 			void navigate({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 				params: { workspaceId },
 			});
 			void completed.then((outcome) => {
 				if (outcome.ok && outcome.workspaceId !== workspaceId) {
 					void navigate({
-						to: "/v2-workspace/$workspaceId",
+						to: "/workspace/$workspaceId",
 						params: { workspaceId: outcome.workspaceId },
 						replace: true,
 					});

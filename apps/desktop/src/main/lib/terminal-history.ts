@@ -51,7 +51,7 @@ export function truncateUtf8ToLastBytes(
 // Types
 // =============================================================================
 
-export interface SessionMetadata {
+interface SessionMetadata {
 	cwd: string;
 	cols: number;
 	rows: number;
@@ -66,7 +66,7 @@ export interface SessionMetadata {
 
 const TERMINAL_HISTORY_DIR_NAME = "terminal-history";
 
-export function getTerminalHistoryRootDir(): string {
+function getTerminalHistoryRootDir(): string {
 	return join(homedir(), SUPERSET_DIR_NAME, TERMINAL_HISTORY_DIR_NAME);
 }
 
