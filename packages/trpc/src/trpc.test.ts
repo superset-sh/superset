@@ -1,8 +1,32 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { oauthAccessTokenClaims } from "@superset/auth/oauth-access-token-claims";
 import { isFirstPartyOAuthClient } from "@superset/shared/auth";
-import { assertMember } from "./lib/cloud-guards";
-import { resolveActiveOrganizationId } from "./trpc";
+
+// The two functions under test are pure, but the modules they live in import
+// the database client, which calls `neon()` at import and so needs a
+// DATABASE_URL — which CI has not got. Stand in for it only when there is no
+// database to reach, because `mock.module` is process-wide: the real client
+// also loads the repo's root `.env` on import, and other test files in this
+// process read what that puts in `process.env`. Stubbing it unconditionally
+// took that away from them. `@superset/db/src/env.ts` decides the same way,
+// so this is in sync with when the real import would have worked.
+const rootEnvFile = new URL("../../../.env", import.meta.url);
+if (!process.env.DATABASE_URL && !existsSync(rootEnvFile)) {
+	// Process-wide, so every export the real module has must be here: another
+	// file's import of `dbWs` resolves against this stub too.
+	mock.module("@superset/db/client", () => ({
+		db: {
+			query: {},
+		},
+		dbWs: {
+			transaction: () => Promise.reject(new Error("dbWs is stubbed in tests")),
+		},
+	}));
+}
+
+const { assertMember } = await import("./lib/cloud-guards");
+const { resolveActiveOrganizationId } = await import("./trpc");
 
 const CONSENTED_ORG = "0f5b85fd-c324-421e-9f80-badc24eb1298";
 const OTHER_ORG = "851c181e-7f0a-41cb-84fe-c5288bf6c3eb";
