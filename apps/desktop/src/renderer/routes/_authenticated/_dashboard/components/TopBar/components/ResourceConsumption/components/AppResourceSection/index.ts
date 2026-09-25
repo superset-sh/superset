@@ -1,1 +1,0 @@
-export { AppResourceSection } from "./AppResourceSection";

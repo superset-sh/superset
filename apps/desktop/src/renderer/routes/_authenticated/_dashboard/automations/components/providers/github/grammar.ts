@@ -26,7 +26,7 @@ export type Slot =
 	| "assignee"
 	| "commentFilter";
 
-export type SentencePart = { text: string } | { slot: Slot };
+type SentencePart = { text: string } | { slot: Slot };
 
 export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 	draft_opened: [

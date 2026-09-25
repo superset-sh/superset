@@ -29,7 +29,7 @@ import {
 // reordering at compare time.
 const MODIFIER_ORDER = ["meta", "ctrl", "alt", "shift"] as const;
 
-export interface CapturedHotkey {
+interface CapturedHotkey {
 	/** Modifiers + canonical(event.code). Always meaningful. */
 	codeChord: string;
 	/** Modifiers + lowercased event.key for printable letters/digits/punctuation;

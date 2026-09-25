@@ -9,7 +9,7 @@ import {
 	type DestroyWorkspaceError,
 	useDestroyWorkspace,
 } from "renderer/hooks/host-service/useDestroyWorkspace";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
+import { useUserPreferences } from "renderer/hooks/useUserPreferences/useUserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -42,7 +42,7 @@ export function useDestroyDialogState({
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
-		useV2UserPreferences();
+		useUserPreferences();
 	const deleteBranch = preferences.deleteLocalBranch;
 
 	const [inspectState, setInspectState] = useState<InspectState>({

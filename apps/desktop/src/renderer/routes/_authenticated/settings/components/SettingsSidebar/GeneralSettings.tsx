@@ -31,10 +31,9 @@ import {
 } from "react-icons/hi2";
 import { LuGitBranch, LuKeyboard, LuKeyRound, LuLink } from "react-icons/lu";
 import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHostsNeedingUpdate";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
-import { getAllowedSectionsForVariant } from "../../utils/settings-search";
+import { getOfferedSections } from "../../utils/settings-search";
 import { settingsListItemClass } from "../SettingsListSidebar";
 
 interface GeneralSettingsProps {
@@ -341,13 +340,11 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const hostsNeedingUpdate = useHostsNeedingUpdateCount();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 	const allowedSections = useMemo(
-		() =>
-			getAllowedSectionsForVariant(isV2CloudEnabled, cloudWorkspacesEnabled),
-		[isV2CloudEnabled, cloudWorkspacesEnabled],
+		() => getOfferedSections(cloudWorkspacesEnabled),
+		[cloudWorkspacesEnabled],
 	);
 
 	return (

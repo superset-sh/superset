@@ -34,7 +34,7 @@ interface PaneRegistration {
 	workspaceId: string | null;
 }
 
-export interface BrowserPaneInfo {
+interface BrowserPaneInfo {
 	paneId: string;
 	workspaceId: string | null;
 	url: string;
@@ -51,7 +51,7 @@ export interface BrowserOpenRequest {
 	requestId: string;
 }
 
-export interface CdpSession {
+interface CdpSession {
 	send: (rawMessage: string) => void;
 	detach: () => void;
 }
@@ -130,7 +130,7 @@ function isAllowedGuestUrl(url: string): boolean {
 	return protocol !== null && ALLOWED_GUEST_SCHEMES.has(protocol);
 }
 
-export function isDeepLinkUrl(url: string): boolean {
+function isDeepLinkUrl(url: string): boolean {
 	const protocol = protocolOf(url);
 	return protocol !== null && DEEP_LINK_SCHEMES.has(protocol);
 }

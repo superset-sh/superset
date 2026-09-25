@@ -88,7 +88,7 @@ function getCommandIconKey(
 	return iconKeys.size === 1 ? iconKeys.values().next().value : undefined;
 }
 
-export function resolveV2PresetIconKey(
+export function resolvePresetIconKey(
 	preset: PresetIconSource,
 	agents: HostAgentConfig[] | undefined,
 ): string | undefined {

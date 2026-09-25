@@ -12,7 +12,7 @@ import type { ChangeCategory } from "./changes-types";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType =
+type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
@@ -84,25 +84,21 @@ export function getHighestPriorityStatus(
  * - "working"    → unchanged (persists until agent stops)
  * - "idle"       → unchanged
  */
-export function acknowledgedStatus(status: PaneStatus | undefined): PaneStatus {
-	if (status === "review") return "idle";
-	return status ?? "idle";
-}
 
 /**
  * File viewer display modes
  */
-export type FileViewerMode = "rendered" | "raw" | "diff";
+type FileViewerMode = "rendered" | "raw" | "diff";
 
 /**
  * Diff layout options for file viewer
  */
-export type DiffLayout = "inline" | "side-by-side";
+type DiffLayout = "inline" | "side-by-side";
 
 /**
  * File viewer pane-specific properties
  */
-export interface FileViewerState {
+interface FileViewerState {
 	/** Canonical absolute file path (or remote URL for attachments) */
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
@@ -151,12 +147,10 @@ export interface Pane {
 	};
 }
 
-export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
-
 /**
  * Single entry in the browser pane's navigation history
  */
-export interface BrowserHistoryEntry {
+interface BrowserHistoryEntry {
 	url: string;
 	title: string;
 	timestamp: number;
@@ -166,7 +160,7 @@ export interface BrowserHistoryEntry {
 /**
  * Named viewport size preset for responsive testing
  */
-export interface ViewportPreset {
+interface ViewportPreset {
 	name: string;
 	width: number;
 	height: number;
@@ -181,7 +175,7 @@ export interface BrowserLoadError {
 	url: string;
 }
 
-export interface BrowserPaneState {
+interface BrowserPaneState {
 	currentUrl: string;
 	history: BrowserHistoryEntry[];
 	historyIndex: number;
@@ -193,7 +187,7 @@ export interface BrowserPaneState {
 /**
  * DevTools pane-specific properties
  */
-export interface DevToolsPaneState {
+interface DevToolsPaneState {
 	/** The pane ID of the browser pane being inspected */
 	targetPaneId: string;
 }
@@ -201,7 +195,7 @@ export interface DevToolsPaneState {
 /**
  * Comment pane-specific properties (PR review / conversation comment viewer)
  */
-export interface CommentPaneState {
+interface CommentPaneState {
 	commentId: string;
 	authorLogin: string;
 	avatarUrl?: string;

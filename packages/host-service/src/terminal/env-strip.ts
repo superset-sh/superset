@@ -36,11 +36,7 @@ const STRIP_PREFIXES = [
 	"HOST_",
 ];
 
-const SUPERSET_KEEP_KEYS = new Set([
-	"SUPERSET_HOME_DIR",
-	"SUPERSET_AGENT_HOOK_PORT",
-	"SUPERSET_AGENT_HOOK_VERSION",
-]);
+const SUPERSET_KEEP_KEYS = new Set(["SUPERSET_HOME_DIR"]);
 
 /**
  * Auth secrets that must never leak from host-service into spawned PTYs.

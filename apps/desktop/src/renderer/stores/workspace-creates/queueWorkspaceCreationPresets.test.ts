@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { selectWorkspaceCreationPresetIds } from "./queueWorkspaceCreationPresets";
 
 function preset(
 	id: string,
-	overrides: Partial<V2TerminalPresetRow> = {},
-): V2TerminalPresetRow {
+	overrides: Partial<TerminalPresetRow> = {},
+): TerminalPresetRow {
 	return {
 		id,
 		name: id,

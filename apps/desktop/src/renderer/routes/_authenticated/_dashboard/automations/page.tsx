@@ -50,9 +50,9 @@ import {
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import { useCreateAgentSession } from "renderer/hooks/useCreateAgentSession";
 import { useNow } from "renderer/hooks/useNow";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -454,7 +454,7 @@ function AutomationsPage() {
 
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
-	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
+	const { agents: agentChoices } = useAgentChoices(activeHostUrl);
 	const { createSession, isPending: creatingWithAgent } =
 		useCreateAgentSession();
 	// Automations are Pro. Creating, running, and resuming go through the

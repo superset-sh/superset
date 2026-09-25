@@ -1,7 +1,7 @@
 import { publicProcedure, router } from "../..";
-import { execWithShellEnv } from "../workspaces/utils/shell-env";
+import { execWithShellEnv } from "../utils/shell-env";
 
-export type GithubStarState = "starred" | "not_starred" | "unknown";
+type GithubStarState = "starred" | "not_starred" | "unknown";
 
 const STARRED_REPO_PATH = "user/starred/superset-sh/superset";
 // A hung `gh` process must not leave the query/mutation pending forever —
@@ -58,5 +58,3 @@ export const createGithubStarRouter = () => {
 		star: publicProcedure.mutation(() => starGithubRepo()),
 	});
 };
-
-export type GithubStarRouter = ReturnType<typeof createGithubStarRouter>;

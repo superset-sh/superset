@@ -7,11 +7,11 @@ import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 type ResumeCandidateClient = ReturnType<
 	typeof getHostServiceClientByUrl
 >["terminalAgents"]["resumeCandidate"];
-export type TerminalResumeCandidate = NonNullable<
+type TerminalResumeCandidate = NonNullable<
 	Awaited<ReturnType<ResumeCandidateClient["query"]>>
 >;
 
-export function getTerminalResumeCandidateQueryKey(
+function getTerminalResumeCandidateQueryKey(
 	workspaceId: string,
 	terminalId: string,
 ) {

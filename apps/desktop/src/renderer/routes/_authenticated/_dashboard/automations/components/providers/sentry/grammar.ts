@@ -16,7 +16,7 @@ export type SentryConfig = Extract<TriggerConfigInput, { kind: "sentry" }>;
 
 export type Slot = "projects" | "level";
 
-export type SentencePart = { text: string } | { slot: Slot };
+type SentencePart = { text: string } | { slot: Slot };
 
 function sentence(opening: string): SentencePart[] {
 	return [
@@ -79,45 +79,11 @@ function leaf(label: MessageDescriptor, event: SentryTriggerEvent) {
 	return { label, create: () => createSentryConfig(event) };
 }
 
-/** Sentry's fixed severity levels; the ids are what the webhook payload carries. */
-export const SENTRY_LEVELS: { id: string; label: MessageDescriptor }[] = [
-	{
-		id: "fatal",
-		label: msg({
-			message: "Fatal",
-		}),
-	},
-	{
-		id: "error",
-		label: msg({
-			message: "Error",
-		}),
-	},
-	{
-		id: "warning",
-		label: msg({
-			message: "Warning",
-		}),
-	},
-	{
-		id: "info",
-		label: msg({
-			message: "Info",
-		}),
-	},
-	{
-		id: "debug",
-		label: msg({
-			message: "Debug",
-		}),
-	},
-];
-
 /**
  * A new trigger of this event: the project still to be chosen, the level
  * filter wide open.
  */
-export function createSentryConfig(event: SentryTriggerEvent): SentryConfig {
+function createSentryConfig(event: SentryTriggerEvent): SentryConfig {
 	return {
 		kind: "sentry",
 		event,

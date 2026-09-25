@@ -1,9 +1,6 @@
-import { workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
 import { appState } from "main/lib/app-state";
-import { localDb } from "main/lib/local-db";
 import { restartDaemon as restartDaemonShared } from "main/lib/terminal";
 import {
 	isTerminalAttachCanceledError,
@@ -19,9 +16,8 @@ import {
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { resolveTerminalThemeType } from "./theme-type";
-import { getWorkspaceTerminalContext, resolveCwd } from "./utils";
+import { resolveCwd } from "./utils";
 import { toTerminalSpawnError } from "./utils/terminal-spawn-error";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
@@ -117,18 +113,12 @@ export const createTerminalRouter = () => {
 					themeType,
 				} = input;
 
-				const { workspace, workspacePath, rootPath } =
-					getWorkspaceTerminalContext(workspaceId);
-				if (workspace?.type === "worktree") {
-					assertWorkspaceUsable(workspaceId, workspacePath);
-				}
-				const cwd = resolveCwd(cwdOverride, workspacePath);
+				const cwd = resolveCwd(cwdOverride, undefined);
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {
 						paneId,
 						workspaceId,
-						workspacePath,
 						cwdOverride,
 						resolvedCwd: cwd,
 						cols,
@@ -148,9 +138,6 @@ export const createTerminalRouter = () => {
 						joinPending,
 						tabId,
 						workspaceId,
-						workspaceName: workspace?.name,
-						workspacePath,
-						rootPath,
 						cwd,
 						cols,
 						rows,
@@ -454,30 +441,6 @@ export const createTerminalRouter = () => {
 			.input(z.string())
 			.query(async ({ input: paneId }) => {
 				return terminal.getSession(paneId);
-			}),
-
-		getWorkspaceCwd: terminalProcedure
-			.input(z.string())
-			.query(({ input: workspaceId }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, workspaceId))
-					.get();
-				if (!workspace) {
-					return null;
-				}
-
-				if (!workspace.worktreeId) {
-					return null;
-				}
-
-				const worktree = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.id, workspace.worktreeId))
-					.get();
-				return worktree?.path ?? null;
 			}),
 
 		stream: terminalProcedure

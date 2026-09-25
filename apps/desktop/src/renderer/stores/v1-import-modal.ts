@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type V1ImportPage =
-	| "welcome"
-	| "intro"
-	| "projects"
-	| "workspaces"
-	| "presets";
+type V1ImportPage = "welcome" | "intro" | "projects" | "workspaces" | "presets";
 
 export const V1_IMPORT_PAGE_ORDER: V1ImportPage[] = [
 	"welcome",
@@ -43,8 +38,6 @@ export const useV1ImportModalStore = create<V1ImportModalState>()(
 	),
 );
 
-export const useV1ImportModalOpen = () =>
-	useV1ImportModalStore((state) => state.isOpen);
 export const useOpenV1ImportModal = () =>
 	useV1ImportModalStore((state) => state.openModal);
 export const useCloseV1ImportModal = () =>

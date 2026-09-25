@@ -2,7 +2,7 @@ import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+} from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/types";
 
 const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 	version: 1,

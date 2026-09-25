@@ -12,19 +12,13 @@ import {
 	LuLayoutTemplate,
 } from "react-icons/lu";
 import { showStarNagOnboardingToast } from "renderer/components/StarNagToast";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import {
-	useCreateV1Project,
-	useFinalizeProjectSetup,
-	useOpenProject,
-} from "renderer/react-query/projects";
-import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
+import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
@@ -68,7 +62,6 @@ function toCloneError(err: unknown): CloneError {
 
 function OnboardingProjectPage() {
 	const navigate = useNavigate();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
 	const { waitForHostReady } = useLocalHostService();
 	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
@@ -85,10 +78,6 @@ function OnboardingProjectPage() {
 		onError: (message) => toast.error(message),
 	});
 	const finalizeSetup = useFinalizeProjectSetup();
-	const openProject = useOpenProject();
-	const createV1Project = useCreateV1Project();
-	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
-	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 
 	// Adding a project finishes onboarding: mark onboarded, then hand off to the
 	// dashboard's new-workspace modal pre-selected to the project just added.
@@ -98,7 +87,7 @@ function OnboardingProjectPage() {
 			await apiTrpcClient.user.completeOnboarding.mutate();
 			// Reactive refetch (not imperative getSession) so the layout guards'
 			// useSession() sees onboardedAt before we navigate — otherwise the
-			// _authenticated guard bounces /v2-workspaces back to /onboarding.
+			// _authenticated guard bounces /workspaces back to /onboarding.
 			await refetchSession({ query: { disableCookieCache: true } });
 		} catch (error) {
 			console.error("[onboarding] completeOnboarding failed", error);
@@ -108,43 +97,18 @@ function OnboardingProjectPage() {
 		// Fires at most once, and only if the user isn't already muted/in
 		// cooldown — see useStarNagStore.isEligible().
 		showStarNagOnboardingToast();
-		if (isV2CloudEnabled) {
-			// Land on the dashboard first, then open the modal. Opening it in the
-			// same tick as navigate mounts the Dialog mid-route-transition, which
-			// thrashes Radix's ref composition into a "Maximum update depth" loop.
-			await navigate({ to: "/v2-workspaces", replace: true });
-			openNewWorkspace(projectId);
-			return;
-		}
-		try {
-			await openMainRepoWorkspace.mutateAsync({ projectId });
-		} catch (error) {
-			console.error("[onboarding] open main workspace failed", error);
-			await navigate({ to: "/workspaces", replace: true });
-		}
+		// Land on the dashboard first, then open the modal. Opening it in the
+		// same tick as navigate mounts the Dialog mid-route-transition, which
+		// thrashes Radix's ref composition into a "Maximum update depth" loop.
+		await navigate({ to: "/workspaces", replace: true });
+		openNewWorkspace(projectId);
 	};
 
 	const handleOpenFolder = async () => {
-		if (isV2CloudEnabled) {
-			setBusy(true);
-			try {
-				const result = await folderImport.start();
-				if (result) await finish(result.projectId);
-			} finally {
-				setBusy(false);
-			}
-			return;
-		}
 		setBusy(true);
 		try {
-			const picked = await selectDirectory.mutateAsync({
-				title: "Open a folder",
-			});
-			if (picked.canceled || !picked.path) return;
-			const project = await openProject.openFromPath(picked.path);
-			if (project) await finish(project.id);
-		} catch (err) {
-			toast.error(errorMessage(err, "Failed to open folder"));
+			const result = await folderImport.start();
+			if (result) await finish(result.projectId);
 		} finally {
 			setBusy(false);
 		}
@@ -157,43 +121,29 @@ function OnboardingProjectPage() {
 		setBusy(true);
 		setCloneError(null);
 		try {
-			if (isV2CloudEnabled) {
-				const activeHostUrl = await waitForHostReady();
-				if (!activeHostUrl) {
-					setCloneError({
-						message: "Local host service isn't ready yet. Please try again.",
-						needsGhAuth: false,
-					});
-					return;
-				}
-				const hostService = getHostServiceClientByUrl(activeHostUrl);
-				let created: Awaited<
-					ReturnType<typeof hostService.project.create.mutate>
-				>;
-				try {
-					created = await hostService.project.create.mutate({
-						name: repoNameFromUrl(trimmed),
-						mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
-					});
-				} catch (err) {
-					setCloneError(toCloneError(err));
-					return;
-				}
-				finalizeSetup(activeHostUrl, created);
-				await finish(created.projectId);
-			} else {
-				let projectId: string | null;
-				try {
-					projectId = await createV1Project.cloneFromUrl({
-						url: trimmed,
-						parentDir: cloneTargetDir,
-					});
-				} catch (err) {
-					setCloneError(toCloneError(err));
-					return;
-				}
-				if (projectId) await finish(projectId);
+			const activeHostUrl = await waitForHostReady();
+			if (!activeHostUrl) {
+				setCloneError({
+					message: "Local host service isn't ready yet. Please try again.",
+					needsGhAuth: false,
+				});
+				return;
 			}
+			const hostService = getHostServiceClientByUrl(activeHostUrl);
+			let created: Awaited<
+				ReturnType<typeof hostService.project.create.mutate>
+			>;
+			try {
+				created = await hostService.project.create.mutate({
+					name: repoNameFromUrl(trimmed),
+					mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
+				});
+			} catch (err) {
+				setCloneError(toCloneError(err));
+				return;
+			}
+			finalizeSetup(activeHostUrl, created);
+			await finish(created.projectId);
 		} catch (err) {
 			// Non-clone failures (setup, navigation) get the raw message, no gh advice.
 			setCloneError({

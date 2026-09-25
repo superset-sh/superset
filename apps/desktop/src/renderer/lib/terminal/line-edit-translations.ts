@@ -1,4 +1,4 @@
-export interface LineEditChordOptions {
+interface LineEditChordOptions {
 	isMac: boolean;
 	isWindows: boolean;
 }

@@ -32,7 +32,7 @@ interface CustomRingtoneMetadata {
 	importedAt?: number;
 }
 
-export interface CustomRingtoneInfo {
+interface CustomRingtoneInfo {
 	id: string;
 	name: string;
 	description: string;
@@ -133,7 +133,7 @@ function writeCustomRingtoneMetadata(name: string): void {
 	}
 }
 
-export function ensureCustomRingtonesDir(): void {
+function ensureCustomRingtonesDir(): void {
 	if (!existsSync(RINGTONES_ASSETS_DIR)) {
 		mkdirSync(RINGTONES_ASSETS_DIR, {
 			recursive: true,

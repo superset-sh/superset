@@ -18,12 +18,12 @@ import {
 	dashboardSidebarSectionSchema,
 	type FailedWorkspaceCreateRow,
 	failedWorkspaceCreateSchema,
-	healV2UserPreferences,
+	healUserPreferences,
 	healWorkspaceLocalState,
-	type V2TerminalPresetRow,
-	type V2UserPreferencesRow,
-	v2TerminalPresetSchema,
-	v2UserPreferencesSchema,
+	type TerminalPresetRow,
+	terminalPresetSchema,
+	type UserPreferencesRow,
+	userPreferencesSchema,
 	type WorkspaceLocalStateRow,
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
@@ -81,41 +81,41 @@ const hardenLocalCollection = <T>(
 		},
 	);
 
-export interface OrgCollections {
-	v2SidebarProjects: Collection<
+interface OrgCollections {
+	sidebarProjects: Collection<
 		DashboardSidebarProjectRow,
 		string,
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarProjectSchema,
 		z.input<typeof dashboardSidebarProjectSchema>
 	>;
-	v2WorkspaceLocalState: Collection<
+	workspaceLocalState: Collection<
 		WorkspaceLocalStateRow,
 		string,
 		LocalStorageCollectionUtils,
 		typeof workspaceLocalStateSchema,
 		z.input<typeof workspaceLocalStateSchema>
 	>;
-	v2SidebarSections: Collection<
+	sidebarSections: Collection<
 		DashboardSidebarSectionRow,
 		string,
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarSectionSchema,
 		z.input<typeof dashboardSidebarSectionSchema>
 	>;
-	v2TerminalPresets: Collection<
-		V2TerminalPresetRow,
+	terminalPresets: Collection<
+		TerminalPresetRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof v2TerminalPresetSchema,
-		z.input<typeof v2TerminalPresetSchema>
+		typeof terminalPresetSchema,
+		z.input<typeof terminalPresetSchema>
 	>;
-	v2UserPreferences: Collection<
-		V2UserPreferencesRow,
+	userPreferences: Collection<
+		UserPreferencesRow,
 		string,
 		LocalStorageCollectionUtils,
-		typeof v2UserPreferencesSchema,
-		z.input<typeof v2UserPreferencesSchema>
+		typeof userPreferencesSchema,
+		z.input<typeof userPreferencesSchema>
 	>;
 	failedWorkspaceCreates: Collection<
 		FailedWorkspaceCreateRow,
@@ -134,7 +134,7 @@ function getCollectionsCacheKey(organizationId: string): string {
 }
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	const v2SidebarProjects = createIndexedCollection(
+	const sidebarProjects = createIndexedCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection({
 				id: `v2_sidebar_projects-${organizationId}`,
@@ -147,12 +147,12 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			}),
 		),
 	);
-	v2SidebarProjects.createIndex(
+	sidebarProjects.createIndex(
 		(sidebarProject) => sidebarProject.tabOrder,
 		basicIndexConfig,
 	);
 
-	const v2WorkspaceLocalState = createIndexedCollection(
+	const workspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection(
 				{
@@ -167,20 +167,20 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			),
 		),
 	);
-	v2WorkspaceLocalState.createIndex(
+	workspaceLocalState.createIndex(
 		(localState) => localState.sidebarState.projectId,
 		basicIndexConfig,
 	);
-	v2WorkspaceLocalState.createIndex(
+	workspaceLocalState.createIndex(
 		(localState) => localState.sidebarState.sectionId,
 		basicIndexConfig,
 	);
-	v2WorkspaceLocalState.createIndex(
+	workspaceLocalState.createIndex(
 		(localState) => localState.sidebarState.tabOrder,
 		basicIndexConfig,
 	);
 
-	const v2SidebarSections = createIndexedCollection(
+	const sidebarSections = createIndexedCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection({
 				id: `v2_sidebar_sections-${organizationId}`,
@@ -190,40 +190,34 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			}),
 		),
 	);
-	v2SidebarSections.createIndex(
-		(section) => section.projectId,
-		basicIndexConfig,
-	);
-	v2SidebarSections.createIndex(
-		(section) => section.tabOrder,
-		basicIndexConfig,
-	);
+	sidebarSections.createIndex((section) => section.projectId, basicIndexConfig);
+	sidebarSections.createIndex((section) => section.tabOrder, basicIndexConfig);
 
-	const v2TerminalPresets = createIndexedCollection(
+	const terminalPresets = createIndexedCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection({
 				id: `v2_terminal_presets-${organizationId}`,
 				storageKey: `v2-terminal-presets-${organizationId}`,
-				schema: v2TerminalPresetSchema,
-				getKey: (item: V2TerminalPresetRow) => item.id,
+				schema: terminalPresetSchema,
+				getKey: (item: TerminalPresetRow) => item.id,
 			}),
 		),
 	);
 
-	const v2UserPreferences = createCollection(
+	const userPreferences = createCollection(
 		localStorageCollectionOptions(
 			hardenLocalCollection(
 				{
 					id: `v2_user_preferences-${organizationId}`,
 					storageKey: `v2-user-preferences-${organizationId}`,
-					schema: v2UserPreferencesSchema,
+					schema: userPreferencesSchema,
 					// Cast widens the inferred literal "preferences" key to string so
 					// the collection slots into the shared OrgCollections.{...<TKey=string>}
-					// shape alongside the other v2 collections. Explicit `item` type so
+					// shape alongside the other collections. Explicit `item` type so
 					// `withReadHeal`'s passthrough generic keeps schema/getKey linkage.
-					getKey: (item: V2UserPreferencesRow) => item.id as string,
+					getKey: (item: UserPreferencesRow) => item.id as string,
 				},
-				healV2UserPreferences,
+				healUserPreferences,
 			),
 		),
 	);
@@ -240,11 +234,11 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	return {
-		v2SidebarProjects,
-		v2WorkspaceLocalState,
-		v2SidebarSections,
-		v2TerminalPresets,
-		v2UserPreferences,
+		sidebarProjects,
+		workspaceLocalState,
+		sidebarSections,
+		terminalPresets,
+		userPreferences,
 		failedWorkspaceCreates,
 	};
 }

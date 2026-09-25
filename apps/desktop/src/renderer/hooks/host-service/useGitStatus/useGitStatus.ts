@@ -9,7 +9,7 @@ import { createTrailingRefreshScheduler } from "./createTrailingRefreshScheduler
 const GIT_STATUS_STALE_TIME_MS = 5_000;
 // Status snapshots scale with changed-file count, so keep revisits warm without
 // retaining large inactive workspaces for the global 30-minute default.
-export const GIT_STATUS_GC_TIME_MS = 10 * 60_000;
+const GIT_STATUS_GC_TIME_MS = 10 * 60_000;
 
 /**
  * Fetches workspace git status and keeps it live against server events.

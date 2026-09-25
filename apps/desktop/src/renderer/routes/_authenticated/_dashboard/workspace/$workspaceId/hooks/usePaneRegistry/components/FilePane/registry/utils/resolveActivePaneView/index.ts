@@ -1,0 +1,1 @@
+export { resolveActivePaneView } from "./resolveActivePaneView";

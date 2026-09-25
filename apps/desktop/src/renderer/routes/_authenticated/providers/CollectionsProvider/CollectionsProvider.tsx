@@ -56,7 +56,7 @@ type CollectionsContextType = ReturnType<typeof getCollections> & {
 
 const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
-export function preloadActiveOrganizationCollections(
+function preloadActiveOrganizationCollections(
 	activeOrganizationId: string | null | undefined,
 ): void {
 	if (!activeOrganizationId) return;

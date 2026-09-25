@@ -1,4 +1,4 @@
-export type WorkspaceRowContextMenuPlan =
+type WorkspaceRowContextMenuPlan =
 	| { menu: "bulk" }
 	| { menu: "single"; clearSelectionFirst: boolean };
 

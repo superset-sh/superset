@@ -1,12 +1,5 @@
 import type { SlashCommand as SharedSlashCommand } from "@superset/shared/slash-commands";
 
-export type {
-	SlashCommandEntryKind,
-	SlashCommandIdentity,
-	SlashCommandKind,
-	SlashCommandSource,
-	SlashCommandTrigger,
-} from "@superset/shared/slash-commands";
 export {
 	findSlashCommandByNameOrAlias,
 	getCommandMatchRank,
@@ -20,7 +13,7 @@ export interface ModelOption {
 	provider: string;
 }
 
-export type SlashCommandActionType =
+type SlashCommandActionType =
 	| "new_session"
 	| "set_model"
 	| "stop_stream"

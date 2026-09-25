@@ -1,3 +1,9 @@
+// TODO(2026-10-24): once PostHog shows no v1_auto_migration_completed with
+// first_completion for a month, delete the importer: this router,
+// V1AutoMigration, V1ImportModal, renderer/lib/v1-migration, and the v1
+// tables in @superset/local-db (projects, workspaces, worktrees,
+// workspaceSections, v1MigrationState, users, organizationMembers, tasks)
+// through a drizzle migration. The settings and presets tables stay.
 import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {

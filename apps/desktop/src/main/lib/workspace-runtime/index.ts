@@ -13,19 +13,4 @@
  * ```
  */
 
-export { LocalWorkspaceRuntime } from "./local";
-export {
-	getWorkspaceRuntimeRegistry,
-	resetWorkspaceRuntimeRegistry,
-} from "./registry";
-export type {
-	TerminalCapabilities,
-	TerminalEventSource,
-	TerminalManagement,
-	TerminalRuntime,
-	TerminalSessionOperations,
-	TerminalWorkspaceOperations,
-	WorkspaceRuntime,
-	WorkspaceRuntimeId,
-	WorkspaceRuntimeRegistry,
-} from "./types";
+export { getWorkspaceRuntimeRegistry } from "./registry";

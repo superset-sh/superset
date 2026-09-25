@@ -21,7 +21,7 @@ export type Slot =
 	| "messageFilter"
 	| "completionReaction";
 
-export type SentencePart = { text: string } | { slot: Slot };
+type SentencePart = { text: string } | { slot: Slot };
 
 export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
 	// The filter chip is the subject — "[Any message] from [Anyone] in [#x]" —
@@ -81,7 +81,7 @@ function leaf(label: MessageDescriptor, event: SlackTriggerEvent) {
  * A new trigger of this event: the channel still to be chosen, every optional
  * filter wide open.
  */
-export function createSlackConfig(event: SlackTriggerEvent): SlackConfig {
+function createSlackConfig(event: SlackTriggerEvent): SlackConfig {
 	return {
 		kind: "slack",
 		event,

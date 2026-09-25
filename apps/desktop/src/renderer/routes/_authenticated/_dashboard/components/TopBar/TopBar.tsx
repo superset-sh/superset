@@ -1,9 +1,8 @@
 import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
-import { useMatchRoute, useParams } from "@tanstack/react-router";
+import { useMatchRoute } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { ZoomStable } from "renderer/components/ZoomStable";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -12,42 +11,33 @@ import { AppMenuButton } from "../AppMenuButton";
 import { NavigationControls } from "../NavigationControls";
 import { SidebarToggle } from "../SidebarToggle";
 import { WindowControlsInset } from "../WindowControlsInset";
-import { OpenInMenuButton } from "./components/OpenInMenuButton";
-import { OrganizationDropdown } from "./components/OrganizationDropdown";
-import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
 import { TopBarPortsDropdown } from "./components/TopBarPortsDropdown";
-import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
+import { WorkspaceTitle } from "./components/WorkspaceTitle";
 
 export function TopBar() {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
-	const { workspaceId } = useParams({ strict: false });
-	const v2Match = matchRoute({
-		to: "/v2-workspace/$workspaceId",
+	const workspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
 		fuzzy: true,
 	});
-	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
-	const isV2WorkspaceRoute = v2WorkspaceId !== null;
-	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: workspaceId ?? "" },
-		{ enabled: !!workspaceId && !isV2WorkspaceRoute },
-	);
+	const routeWorkspaceId =
+		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
+	const isWorkspaceRoute = routeWorkspaceId !== null;
 	const isOnline = useOnlineStatus();
 	const zoomFactor = useZoomFactor();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
 	const isPullRequestsRoute =
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false;
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
-	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
+	// The expanded sidebar lives outside the TopBar column, so the TopBar
 	// starts to the right of it and the sidebar header hosts the traffic-light
 	// pad + SidebarToggle. When the sidebar is closed or collapsed (too narrow
 	// for the pad), bring the toggle and pad back into the TopBar.
-	const sidebarHostsChrome =
-		isV2CloudEnabled && isSidebarOpen && !isSidebarCollapsed;
+	const sidebarHostsChrome = isSidebarOpen && !isSidebarCollapsed;
 
 	// Counter-scale the inset and bar height so both stay a constant physical
 	// size under page zoom, keeping the fixed macOS traffic lights aligned.
@@ -79,14 +69,13 @@ export function TopBar() {
 						{!isMac && <AppMenuButton />}
 						<SidebarToggle />
 						<NavigationControls />
-						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
 					</ZoomStable>
 				)}
 			</div>
 
 			<div className="drag flex h-full min-w-0 flex-1 items-center justify-start">
-				{isV2WorkspaceRoute && v2WorkspaceId && (
-					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
+				{isWorkspaceRoute && routeWorkspaceId && (
+					<WorkspaceTitle workspaceId={routeWorkspaceId} />
 				)}
 			</div>
 
@@ -102,15 +91,7 @@ export function TopBar() {
 						</span>
 					</div>
 				)}
-				{!isV2WorkspaceRoute && workspace?.worktreePath ? (
-					<OpenInMenuButton
-						worktreePath={workspace.worktreePath}
-						branch={workspace.worktree?.branch}
-						projectId={workspace.project?.id}
-					/>
-				) : null}
-				{!isV2CloudEnabled && <OrganizationDropdown />}
-				{isV2WorkspaceRoute && <RightSidebarToggle />}
+				{isWorkspaceRoute && <RightSidebarToggle />}
 				{!isMac && <WindowControlsInset />}
 			</div>
 		</div>

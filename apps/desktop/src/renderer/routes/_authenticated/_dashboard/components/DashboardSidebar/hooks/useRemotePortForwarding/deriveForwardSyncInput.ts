@@ -1,6 +1,6 @@
 import type { DashboardSidebarPortGroup } from "../useDashboardSidebarPortsData";
 
-export interface ForwardSyncInput {
+interface ForwardSyncInput {
 	hostUrl: string;
 	workspaceId: string;
 	ports: number[];

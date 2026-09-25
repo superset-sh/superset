@@ -1,1 +1,1 @@
-export { type AutomationDraft, useAutomationDraft } from "./useAutomationDraft";
+export { useAutomationDraft } from "./useAutomationDraft";

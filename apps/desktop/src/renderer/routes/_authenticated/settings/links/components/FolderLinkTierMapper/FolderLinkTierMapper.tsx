@@ -31,7 +31,7 @@ function fromSlot(slot: SlotValue): FolderLinkAction | null {
 	return slot === "none" ? null : slot;
 }
 
-export interface FolderLinkTierMapperProps {
+interface FolderLinkTierMapperProps {
 	title: string;
 	description: string;
 	value: FolderTierMap;

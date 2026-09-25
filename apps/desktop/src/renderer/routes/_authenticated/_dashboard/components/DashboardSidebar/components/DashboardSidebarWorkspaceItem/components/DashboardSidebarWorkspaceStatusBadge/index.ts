@@ -1,1 +1,0 @@
-export { DashboardSidebarWorkspaceStatusBadge } from "./DashboardSidebarWorkspaceStatusBadge";

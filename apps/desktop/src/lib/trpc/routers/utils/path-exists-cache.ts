@@ -27,7 +27,3 @@ export function pathExistsCached(path: string): boolean {
 	});
 	return exists;
 }
-
-export function clearPathExistsCache(): void {
-	pathExistsCache.clear();
-}

@@ -225,14 +225,6 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 /**
  * Zustand storage adapter for tabs state using tRPC
  */
-export const trpcTabsStorage = createJSONStorage(() =>
-	createTrpcStorageAdapter({
-		get: () => electronTrpcClient.uiState.tabs.get.query(),
-		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
-		set: (input) => electronTrpcClient.uiState.tabs.set.mutate(input as any),
-		writeDebounceMs: 300,
-	}),
-);
 
 /**
  * Zustand storage adapter for theme state using tRPC
@@ -249,18 +241,3 @@ export const trpcThemeStorage = createJSONStorage(() =>
  * Zustand storage adapter for ringtone state using tRPC.
  * Only the selectedRingtoneId is persisted.
  */
-export const trpcRingtoneStorage = createJSONStorage(() =>
-	createTrpcStorageAdapter({
-		get: async () => {
-			const ringtoneId =
-				await electronTrpcClient.settings.getSelectedRingtoneId.query();
-			return { selectedRingtoneId: ringtoneId };
-		},
-		set: async (input) => {
-			const state = input as { selectedRingtoneId: string };
-			await electronTrpcClient.settings.setSelectedRingtoneId.mutate({
-				ringtoneId: state.selectedRingtoneId,
-			});
-		},
-	}),
-);

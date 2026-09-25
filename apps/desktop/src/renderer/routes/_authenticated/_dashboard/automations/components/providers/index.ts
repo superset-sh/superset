@@ -11,9 +11,7 @@ import type { TriggerProvider } from "./types";
 import { webhookProvider } from "./webhook/webhook";
 
 export type {
-	OptionGroupState,
 	ProviderOptions,
-	SentenceContext,
 	TriggerMenuEntry,
 	TriggerProvider,
 } from "./types";

@@ -5,7 +5,7 @@ import {
 } from "@superset/shared/automation-triggers";
 import { useMemo, useState } from "react";
 
-export interface AutomationDraft {
+interface AutomationDraft {
 	name: string;
 	prompt: string;
 	agent: string;

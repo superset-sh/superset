@@ -12,7 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { LuChevronRight, LuLoaderCircle, LuX } from "react-icons/lu";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPortGroup } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import { usePortsStore } from "renderer/stores/ports";
 import { TopBarPortRow } from "../TopBarPortRow";
@@ -38,7 +38,7 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 	const toggleCollapsed = usePortsStore((s) => s.toggleWorkspaceCollapsed);
 
 	const handleWorkspaceClick = () => {
-		void navigateToV2Workspace(group.workspaceId, navigate);
+		void navigateToWorkspace(group.workspaceId, navigate);
 		onNavigate();
 	};
 

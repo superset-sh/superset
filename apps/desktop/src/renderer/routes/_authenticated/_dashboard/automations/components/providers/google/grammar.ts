@@ -16,9 +16,7 @@ export type GmailSlot =
 	| "labels"
 	| "hasAttachment";
 
-export type SentencePart<Slot extends string> =
-	| { text: string }
-	| { slot: Slot };
+type SentencePart<Slot extends string> = { text: string } | { slot: Slot };
 
 export const GMAIL_SENTENCE: SentencePart<GmailSlot>[] = [
 	{ text: "Email received from" },
@@ -62,7 +60,7 @@ export const GMAIL_MENU: TriggerMenuEntry<GmailConfig>[] = [
  * The sender is the primary scope and starts unchosen for the same reason a
  * GitHub repository does; the rest default to "any".
  */
-export function createGmailConfig(): GmailConfig {
+function createGmailConfig(): GmailConfig {
 	return {
 		kind: "gmail",
 		event: "message.received",

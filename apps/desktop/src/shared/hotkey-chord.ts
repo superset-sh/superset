@@ -24,7 +24,7 @@ const CODE_ALIASES: Record<string, string> = {
 	ControlRight: "ctrl",
 };
 
-export const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
+const MODIFIERS = new Set(["meta", "ctrl", "control", "alt", "shift"]);
 
 // Lock keys must never commit a binding on their own.
 const LOCK_KEYS = new Set(["capslock", "numlock", "scrolllock"]);

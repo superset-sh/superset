@@ -1,4 +1,1 @@
-export {
-	type AttributedWorkItemRow,
-	useWorkItemsList,
-} from "./useWorkItemsList";
+export { useWorkItemsList } from "./useWorkItemsList";

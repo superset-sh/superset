@@ -11,7 +11,6 @@ import {
 	HiXMark,
 } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
 import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
@@ -23,7 +22,6 @@ import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
 import { LinearProjectFilter } from "./components/LinearProjectFilter";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
-import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
 import { RunIssuesInWorkspacePopover } from "./components/RunIssuesInWorkspacePopover";
 import { StatusFilter } from "./components/StatusFilter";
 
@@ -109,7 +107,6 @@ export function TasksTopBar({
 			? (selectedIssueProjectIds.values().next().value ?? null)
 			: null;
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const hasSelection = selectedCount > 0;
 
@@ -144,11 +141,6 @@ export function TasksTopBar({
 										issues={selectedIssues}
 										projectFilter={selectedIssueProject}
 										onComplete={onClearIssueSelection ?? (() => {})}
-									/>
-								) : isV2CloudEnabled ? (
-									<RunInWorkspacePopoverV2
-										tasks={selectedTasks}
-										onComplete={onClearSelection ?? (() => {})}
 									/>
 								) : (
 									<RunInWorkspacePopover

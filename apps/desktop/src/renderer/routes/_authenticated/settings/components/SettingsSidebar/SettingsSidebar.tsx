@@ -8,7 +8,6 @@ import {
 	HiMagnifyingGlass,
 	HiXMark,
 } from "react-icons/hi2";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
@@ -22,7 +21,6 @@ export function SettingsSidebar() {
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const mobileEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
@@ -31,7 +29,6 @@ export function SettingsSidebar() {
 	const matchCounts = normalizedSearchQuery
 		? getVisibleMatchCountBySection(
 				normalizedSearchQuery,
-				isV2CloudEnabled,
 				cloudWorkspacesEnabled,
 				mobileEnabled,
 			)

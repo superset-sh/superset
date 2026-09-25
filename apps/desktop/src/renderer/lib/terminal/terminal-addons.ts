@@ -9,7 +9,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
 import { FocusAwareClipboardProvider } from "./clipboard-provider";
 
-export interface LoadAddonsResult {
+interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
 	setLigaturesEnabled: (enabled: boolean) => void;

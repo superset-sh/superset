@@ -11,7 +11,7 @@ const UPDATER_PATH_MARKERS = ["-updater", "shipit"];
 // Staging an update downloads a ~600MB archive into the user's cache directory
 // and unpacks it alongside itself, so a volume with less than this free cannot
 // hold one however we behave.
-export const UPDATE_STAGING_MIN_FREE_BYTES = 1024 * 1024 * 1024;
+const UPDATE_STAGING_MIN_FREE_BYTES = 1024 * 1024 * 1024;
 
 // Failures that are ours no matter what the disk looks like: we served a bad
 // artifact, signed it wrong, or published an unreadable feed. A full volume

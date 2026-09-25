@@ -16,7 +16,7 @@ interface ForwardEntry {
 	sockets: Set<net.Socket>;
 }
 
-export interface PortForwardManagerOptions {
+interface PortForwardManagerOptions {
 	transport: ForwardTransport;
 	/** Local ports the desktop's own port scanner attributes to a workspace. */
 	getLocalPorts: () => DetectedPort[];

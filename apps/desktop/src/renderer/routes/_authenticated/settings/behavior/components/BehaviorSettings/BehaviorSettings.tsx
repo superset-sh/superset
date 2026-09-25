@@ -1,5 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { FileOpenMode } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -31,20 +30,12 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
 	);
-	const showFileOpenMode = isItemVisible(
-		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
-		visibleItems,
-	);
 	const showChangesOpenTarget = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET,
 		visibleItems,
 	);
 	const showResourceMonitor = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
-		visibleItems,
-	);
-	const showOpenLinksInApp = isItemVisible(
-		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
 	const showStarGithub = isItemVisible(
@@ -79,25 +70,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setConfirmOnQuit.mutate({ enabled });
 	};
 
-	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
-		electronTrpc.settings.getFileOpenMode.useQuery();
-	const setFileOpenMode = electronTrpc.settings.setFileOpenMode.useMutation({
-		onMutate: async ({ mode }) => {
-			await utils.settings.getFileOpenMode.cancel();
-			const previous = utils.settings.getFileOpenMode.getData();
-			utils.settings.getFileOpenMode.setData(undefined, mode);
-			return { previous };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getFileOpenMode.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getFileOpenMode.invalidate();
-		},
-	});
-
 	const { data: resourceMonitorEnabled, isLoading: isResourceMonitorLoading } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
 	const setShowResourceMonitor =
@@ -120,27 +92,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				utils.settings.getShowResourceMonitor.invalidate();
 			},
 		});
-
-	const { data: openLinksInApp, isLoading: isOpenLinksInAppLoading } =
-		electronTrpc.settings.getOpenLinksInApp.useQuery();
-	const setOpenLinksInApp = electronTrpc.settings.setOpenLinksInApp.useMutation(
-		{
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getOpenLinksInApp.cancel();
-				const previous = utils.settings.getOpenLinksInApp.getData();
-				utils.settings.getOpenLinksInApp.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getOpenLinksInApp.setData(undefined, context.previous);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getOpenLinksInApp.invalidate();
-			},
-		},
-	);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -175,43 +126,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							onCheckedChange={handleConfirmToggle}
 							disabled={isConfirmLoading || setConfirmOnQuit.isPending}
 						/>
-					</div>
-				)}
-
-				{showFileOpenMode && (
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label htmlFor="file-open-mode" className="text-sm font-medium">
-								<HighlightText
-									text={t({
-										message: "File open mode",
-									})}
-									query={searchQuery}
-								/>
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								<Trans>Choose how files open when no preview pane exists</Trans>
-							</p>
-						</div>
-						<Select
-							value={fileOpenMode ?? "split-pane"}
-							onValueChange={(value) =>
-								setFileOpenMode.mutate({ mode: value as FileOpenMode })
-							}
-							disabled={isFileOpenModeLoading || setFileOpenMode.isPending}
-						>
-							<SelectTrigger id="file-open-mode" className="w-[180px]">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="split-pane">
-									<Trans>Split pane</Trans>
-								</SelectItem>
-								<SelectItem value="new-tab">
-									<Trans>New tab</Trans>
-								</SelectItem>
-							</SelectContent>
-						</Select>
 					</div>
 				)}
 
@@ -280,38 +194,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
 							}
-						/>
-					</div>
-				)}
-
-				{showOpenLinksInApp && (
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label
-								htmlFor="open-links-in-app"
-								className="text-sm font-medium"
-							>
-								<HighlightText
-									text={t({
-										message: "Open links in the in-app browser",
-									})}
-									query={searchQuery}
-								/>
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								<Trans>
-									Open links from chat and terminal in the in-app browser
-									instead of your default browser
-								</Trans>
-							</p>
-						</div>
-						<Switch
-							id="open-links-in-app"
-							checked={openLinksInApp ?? false}
-							onCheckedChange={(enabled) =>
-								setOpenLinksInApp.mutate({ enabled })
-							}
-							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
 						/>
 					</div>
 				)}

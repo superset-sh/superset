@@ -1,4 +1,4 @@
-export type BulkWorkspaceSectionMenuState = "populated" | "loading" | "empty";
+type BulkWorkspaceSectionMenuState = "populated" | "loading" | "empty";
 
 /**
  * Preserves cached section rows while the live query settles and only exposes

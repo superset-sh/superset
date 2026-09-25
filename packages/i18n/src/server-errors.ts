@@ -741,12 +741,6 @@ export const serverErrorMessages: Record<
 				message: "Failed to send feedback",
 			}),
 		),
-	"serverError.support.failedToSendMigrationReport": () =>
-		i18n._(
-			msg({
-				message: "Failed to send migration report",
-			}),
-		),
 	"serverError.support.feedbackRateLimitingIsNotConfigured": () =>
 		i18n._(
 			msg({
@@ -759,12 +753,6 @@ export const serverErrorMessages: Record<
 				message: "Submit prompt rate limiting is not configured",
 			}),
 		),
-	"serverError.support.supportRateLimitingIsNotConfigured": () =>
-		i18n._(
-			msg({
-				message: "Support rate limiting is not configured",
-			}),
-		),
 	"serverError.support.tooManyFeedbackSubmissionsTryAgain": () =>
 		i18n._(
 			msg({
@@ -775,12 +763,6 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "Too many prompt submissions. Try again later.",
-			}),
-		),
-	"serverError.support.tooManySupportReportsTryAgain": () =>
-		i18n._(
-			msg({
-				message: "Too many support reports. Try again later.",
 			}),
 		),
 	"serverError.task.failedToGenerateAUniqueTask": () =>

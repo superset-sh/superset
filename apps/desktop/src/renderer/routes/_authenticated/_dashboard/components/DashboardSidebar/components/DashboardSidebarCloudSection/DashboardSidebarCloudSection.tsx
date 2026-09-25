@@ -63,7 +63,7 @@ export function DashboardSidebarCloudSection({
 	const { data: localStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ local: collections.v2WorkspaceLocalState })
+				.from({ local: collections.workspaceLocalState })
 				.select(({ local }) => ({
 					workspaceId: local.workspaceId,
 					isHidden: local.sidebarState.isHidden,

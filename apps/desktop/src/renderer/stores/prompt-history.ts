@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-export interface PromptHistoryEntry {
+interface PromptHistoryEntry {
 	id: string;
 	prompt: string;
 	submittedAt: number;

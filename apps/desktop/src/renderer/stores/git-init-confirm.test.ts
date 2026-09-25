@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { useGitInitConfirmStore } from "./git-init-confirm";
 
 // Regression test for #6666: on routes that never mounted GitInitConfirmDialog
-// (v2 onboarding, File→Open Folder outside the dashboard), request() pended
+// (onboarding, File→Open Folder outside the dashboard), request() pended
 // forever and left the caller's busy state locked.
 describe("useGitInitConfirmStore", () => {
 	it("resolves false instead of pending forever when no dialog is mounted", async () => {

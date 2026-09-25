@@ -1,6 +1,6 @@
 import { DIFFS_TAG_NAME } from "@pierre/diffs";
 
-export function getDiffShadowRoots(container: HTMLElement): ShadowRoot[] {
+function getDiffShadowRoots(container: HTMLElement): ShadowRoot[] {
 	return Array.from(container.querySelectorAll<HTMLElement>(DIFFS_TAG_NAME))
 		.map((diffContainer) => diffContainer.shadowRoot)
 		.filter((shadowRoot): shadowRoot is ShadowRoot => shadowRoot !== null);

@@ -1,20 +1,16 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 
-type ExecWithShellEnv =
-	typeof import("../workspaces/utils/shell-env").execWithShellEnv;
+type ExecWithShellEnv = typeof import("../utils/shell-env").execWithShellEnv;
 
 describe("checkGithubStarred / starGithubRepo", () => {
 	let checkGithubStarred: typeof import("./index").checkGithubStarred;
 	let starGithubRepo: typeof import("./index").starGithubRepo;
 	let execMock: ReturnType<
-		typeof spyOn<
-			typeof import("../workspaces/utils/shell-env"),
-			"execWithShellEnv"
-		>
+		typeof spyOn<typeof import("../utils/shell-env"), "execWithShellEnv">
 	>;
 
 	beforeEach(async () => {
-		const shellEnvModule = await import("../workspaces/utils/shell-env");
+		const shellEnvModule = await import("../utils/shell-env");
 		execMock = spyOn(shellEnvModule, "execWithShellEnv");
 
 		const mod = await import("./index");

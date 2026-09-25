@@ -1,6 +1,6 @@
 import type { DashboardSidebarGithubStatus } from "../../types";
 
-export interface GithubStatusEntry {
+interface GithubStatusEntry {
 	machineId: string;
 	/** Undefined from a host older than the field; null when the sweep is healthy. */
 	status: DashboardSidebarGithubStatus | null | undefined;

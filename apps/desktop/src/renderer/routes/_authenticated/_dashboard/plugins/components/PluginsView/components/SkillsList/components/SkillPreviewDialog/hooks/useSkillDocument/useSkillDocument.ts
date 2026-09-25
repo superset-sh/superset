@@ -4,7 +4,7 @@ import type {
 	ContentState,
 	SaveResult,
 	SharedFileDocument,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/fileDocumentStore";
+} from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/state/fileDocumentStore";
 
 interface UseSkillDocumentParams {
 	name: string;

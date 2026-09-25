@@ -23,5 +23,3 @@ export interface AutoUpdateStatusEvent {
 	error?: string;
 	progress?: AutoUpdateProgress;
 }
-
-export const RELEASES_URL = "https://github.com/superset-sh/superset/releases";

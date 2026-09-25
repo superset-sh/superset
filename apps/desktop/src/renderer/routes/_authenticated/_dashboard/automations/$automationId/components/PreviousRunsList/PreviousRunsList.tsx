@@ -60,7 +60,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 		if (!run.v2WorkspaceId) return;
 		localStorage.setItem("lastViewedWorkspaceId", run.v2WorkspaceId);
 		navigate({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId: run.v2WorkspaceId },
 			search: {
 				terminalId: run.terminalSessionId ?? undefined,

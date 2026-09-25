@@ -18,13 +18,13 @@
  */
 
 /** The slice of `Storage` the library actually calls. */
-export interface QuotaGuardStorage {
+interface QuotaGuardStorage {
 	getItem(key: string): string | null;
 	setItem(key: string, value: string): void;
 	removeItem(key: string): void;
 }
 
-export interface QuotaGuardHandlers {
+interface QuotaGuardHandlers {
 	/** Frees space and reports how many keys it removed; 0 skips the retry. */
 	reclaim: () => number;
 	/** Called when a write is abandoned, once the retry has also failed. */
@@ -81,7 +81,7 @@ function guardStorage(
 
 type StorageEventListener = (event: StorageEvent) => void;
 
-export interface QuotaGuardStorageEventApi {
+interface QuotaGuardStorageEventApi {
 	addEventListener(type: string, listener: StorageEventListener): void;
 	removeEventListener(type: string, listener: StorageEventListener): void;
 }

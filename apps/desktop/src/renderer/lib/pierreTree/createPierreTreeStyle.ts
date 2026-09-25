@@ -72,7 +72,7 @@ export function createPierreTreeStyle({
 	return {
 		// Layout. Hover/selected backgrounds paint on the row element, which sits
 		// inside the scroll container's `padding-inline`; zero the outer padding
-		// so highlights bleed edge-to-edge. Padding/gap/icon size match the v2
+		// so highlights bleed edge-to-edge. Padding/gap/icon size match the
 		// ChangesFileList FileRow chrome (pl-3 pr-3, gap-1.5, size-3.5).
 		"--trees-row-height-override": `${rowHeight}px`,
 		"--trees-level-gap-override": `${levelIndent}px`,
@@ -87,13 +87,13 @@ export function createPierreTreeStyle({
 		"--trees-bg-override": "var(--background)",
 		"--trees-fg-override": "var(--foreground)",
 		"--trees-fg-muted-override": "var(--muted-foreground)",
-		// Match v2 FileRow's `hover:bg-accent/50` — translucent accent, not solid muted.
+		// Match FileRow's `hover:bg-accent/50` — translucent accent, not solid muted.
 		"--trees-bg-muted-override":
 			"color-mix(in oklab, var(--accent) 50%, transparent)",
 		"--trees-accent-override": "var(--accent)",
 		"--trees-border-color-override": "var(--border)",
 
-		// Selected row matches v2's `bg-accent` / `text-accent-foreground` rows
+		// Selected row matches the `bg-accent` / `text-accent-foreground` rows
 		"--trees-selected-bg-override": "var(--accent)",
 		"--trees-selected-fg-override": "var(--accent-foreground)",
 		"--trees-selected-focused-border-color-override": "var(--ring)",
@@ -104,7 +104,7 @@ export function createPierreTreeStyle({
 
 		// Git status row tint — the green / yellow / red / blue Tailwind palette,
 		// so a 'modified' file in the tree reads the same color as a 'modified'
-		// badge elsewhere in the v2 chrome.
+		// badge elsewhere in the chrome.
 		"--trees-status-added-override": "oklch(0.627 0.194 149.214)",
 		"--trees-status-untracked-override": "oklch(0.627 0.194 149.214)",
 		"--trees-status-modified-override": "oklch(0.681 0.162 75.834)",

@@ -9,9 +9,9 @@ type GetAllClient = ReturnType<
 	typeof getHostServiceClientByUrl
 >["pageWatch"]["getAll"];
 type PageWatchers = Awaited<ReturnType<GetAllClient["query"]>>;
-export type PageWatcher = PageWatchers[number];
+type PageWatcher = PageWatchers[number];
 
-export function getPageWatchersQueryKey(workspaceId: string) {
+function getPageWatchersQueryKey(workspaceId: string) {
 	return ["page-watchers", workspaceId] as const;
 }
 

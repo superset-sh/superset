@@ -1,7 +1,4 @@
-export {
-	type UseHostTagFoldersResult,
-	useHostTagFolders,
-} from "./useHostTagFolders";
+export { useHostTagFolders } from "./useHostTagFolders";
 export type {
 	HostTagFolderSetting,
 	HostTagFoldersResult,

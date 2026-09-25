@@ -21,12 +21,10 @@ type PublishResult = RouterOutputs["leaderboard"]["publish"];
 
 export type Awarded = PublishResult["awarded"];
 
-export type LeaderboardPayloadDay = PublishInput["days"][number];
-export type LeaderboardFactoryDay = NonNullable<
-	PublishInput["factoryDays"]
->[number];
+type LeaderboardPayloadDay = PublishInput["days"][number];
+type LeaderboardFactoryDay = NonNullable<PublishInput["factoryDays"]>[number];
 
-export interface LeaderboardPayload {
+interface LeaderboardPayload {
 	days: LeaderboardPayloadDay[];
 	factoryDays: LeaderboardFactoryDay[];
 }

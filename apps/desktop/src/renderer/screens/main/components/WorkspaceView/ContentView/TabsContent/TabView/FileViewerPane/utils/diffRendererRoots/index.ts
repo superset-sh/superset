@@ -1,1 +1,1 @@
-export { getDiffSearchRoots, getDiffShadowRoots } from "./diffRendererRoots";
+export { getDiffSearchRoots } from "./diffRendererRoots";

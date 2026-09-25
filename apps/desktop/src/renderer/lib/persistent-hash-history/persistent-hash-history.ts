@@ -14,7 +14,7 @@ interface PersistedState {
 	index: number;
 }
 
-export interface HistoryEntry {
+interface HistoryEntry {
 	path: string;
 	timestamp: number;
 }
@@ -34,7 +34,8 @@ function loadPersistedState(): PersistedState {
 					Math.max(parsed.index, 0),
 					parsed.entries.length - 1,
 				);
-				return { entries: parsed.entries, index };
+				const entries = parsed.entries.map(restoreEntry);
+				return { entries, index };
 			}
 		}
 	} catch {}
@@ -103,8 +104,17 @@ function parseHref(href: string, state: LocationState): HistoryLocation {
 	};
 }
 
-export interface PersistentHashHistory extends RouterHistory {
+interface PersistentHashHistory extends RouterHistory {
 	getEntries: () => HistoryEntry[];
+}
+
+// TODO(2026-10-24): drop with the v1 importer (lib/trpc/routers/migration).
+// A profile re-saves its entries rewritten after one boot on this build.
+const RETIRED_V1_ROUTE = /^\/(?:project(?:\/|$|\?)|workspace(?:$|\?))/;
+
+function restoreEntry(entry: string): string {
+	if (RETIRED_V1_ROUTE.test(entry)) return "/";
+	return entry.replace(/^\/v2-workspace(s)?\b/, "/workspace$1");
 }
 
 export function createPersistentHashHistory(): PersistentHashHistory {

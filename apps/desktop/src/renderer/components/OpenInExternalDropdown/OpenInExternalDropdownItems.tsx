@@ -22,7 +22,7 @@ import {
 	VSCODE_OPTIONS,
 } from "./constants";
 
-export type OpenInExternalAppGroup =
+type OpenInExternalAppGroup =
 	| "finder"
 	| "ide"
 	| "terminal"

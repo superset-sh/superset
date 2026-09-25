@@ -1,5 +1,1 @@
-export {
-	getPageWatchersQueryKey,
-	type PageWatcher,
-	usePageWatchers,
-} from "./usePageWatchers";
+export { usePageWatchers } from "./usePageWatchers";

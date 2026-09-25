@@ -1,6 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
@@ -16,13 +15,12 @@ export function AddRepositoryModals() {
 	const active = useAddRepositoryModalActive();
 	const close = useCloseAddRepositoryModal();
 	const resolveNewProject = useResolveNewProjectModal();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const openNewWorkspace = useOpenNewWorkspaceForLocalProject();
 
 	const handleProjectCreated = (result: { projectId: string }) => {
 		toast.success(t({ message: "Project created." }));
 		resolveNewProject(result);
-		if (isV2CloudEnabled) openNewWorkspace(result.projectId);
+		openNewWorkspace(result.projectId);
 	};
 
 	return (

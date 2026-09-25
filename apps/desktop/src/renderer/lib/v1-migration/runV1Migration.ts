@@ -1,5 +1,5 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
-import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { migrateV1Groups, type V1GroupTarget } from "./groups";
 import type { V1MigrationIpc } from "./ipc";
 import {
@@ -34,9 +34,7 @@ import {
 	type V1WorktreeLike,
 } from "./workspaces";
 
-export { computeGateComplete, type KindSummary } from "./summary";
-
-export interface V1MigrationSummary {
+interface V1MigrationSummary {
 	projects: KindSummary;
 	workspaces: KindSummary;
 	presets: KindSummary;
@@ -46,7 +44,7 @@ export interface V1MigrationSummary {
 	gateComplete: boolean;
 }
 
-export interface RunV1MigrationDeps {
+interface RunV1MigrationDeps {
 	groupTarget?: V1GroupTarget;
 	organizationId: string;
 	hostClient: HostServiceClient;
@@ -66,7 +64,7 @@ export interface RunV1MigrationDeps {
 	presetTarget?: {
 		agents: AgentConfigLike[];
 		existing: V2PresetLike[];
-		insert: (row: V2TerminalPresetRow) => void;
+		insert: (row: TerminalPresetRow) => void;
 	};
 	onProjectImported?: (result: {
 		v2ProjectId: string;
@@ -304,7 +302,7 @@ async function migrateWorkspaces(
 		);
 	});
 
-	const mappedV2ProjectIds = new Set(
+	const mappedProjectIds = new Set(
 		pendingWorkspaces
 			.map((w) => v2ProjectIdByV1ProjectId.get(w.projectId))
 			.filter((id): id is string => !!id),
@@ -312,7 +310,7 @@ async function migrateWorkspaces(
 	const onDiskBranchesByV2ProjectId = new Map<string, Set<string>>();
 	const mainBranchByV2ProjectId = new Map<string, string>();
 	await Promise.all(
-		Array.from(mappedV2ProjectIds, async (v2ProjectId) => {
+		Array.from(mappedProjectIds, async (v2ProjectId) => {
 			try {
 				const result =
 					await deps.hostClient.workspaceCreation.listProjectWorktrees.query({

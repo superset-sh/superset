@@ -1,4 +1,4 @@
-export interface LocalImageBase {
+interface LocalImageBase {
 	/** Directory of the markdown file; relative sources resolve against it. */
 	documentDirectory: string;
 	/**

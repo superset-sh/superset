@@ -21,12 +21,13 @@ import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
 import { pluginsRouter } from "./router/plugins";
+import { projectRouter } from "./router/project";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
 import { userRouter } from "./router/user";
-import { v2ProjectRouter } from "./router/v2-project";
-import { v2WorkspaceRouter } from "./router/v2-workspace";
+import { workspaceRouter } from "./router/workspace";
+import { legacyWorkspaceRouter } from "./router/workspace/legacy";
 import { createCallerFactory, createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -65,8 +66,11 @@ export const appRouter = createTRPCRouter({
 		removeMember: hostManagementRouter.removeMember,
 		setMemberRole: hostManagementRouter.setMemberRole,
 	},
-	v2Project: v2ProjectRouter,
-	v2Workspace: v2WorkspaceRouter,
+	project: projectRouter,
+	workspace: workspaceRouter,
+	// TODO(2026-10-24): drop; host-services before 1.31 call these names.
+	v2Project: projectRouter,
+	v2Workspace: { ...workspaceRouter, ...legacyWorkspaceRouter },
 });
 
 export type AppRouter = typeof appRouter;

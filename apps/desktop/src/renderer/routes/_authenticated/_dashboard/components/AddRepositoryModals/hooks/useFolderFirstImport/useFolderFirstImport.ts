@@ -11,7 +11,7 @@ import {
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useRequestGitInitConfirm } from "renderer/stores/git-init-confirm";
 
-export interface UseFolderFirstImportResult {
+interface UseFolderFirstImportResult {
 	start: () => Promise<ProjectSetupResult | null>;
 }
 

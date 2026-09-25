@@ -45,15 +45,3 @@ export function getBundledPluginDir(): string {
 	);
 	return fs.existsSync(path.join(repoPlugin, "skills")) ? repoPlugin : bundled;
 }
-
-/**
- * Default port of the desktop's v1 localhost notifications server, baked into
- * hook scripts as the v1 fallback endpoint. Kept overridable via the same env
- * var the desktop uses so dev workspaces stay isolated.
- */
-export function getV1NotificationsPort(): number {
-	const parsed = Number(process.env.DESKTOP_NOTIFICATIONS_PORT);
-	return Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535
-		? parsed
-		: 51741;
-}

@@ -702,12 +702,6 @@ describe("env", () => {
 				expect(result.LANG).toContain("UTF-8");
 			});
 
-			it("should include SUPERSET_PORT", () => {
-				const result = buildTerminalEnv(baseParams);
-				expect(result.SUPERSET_PORT).toBeDefined();
-				expect(typeof result.SUPERSET_PORT).toBe("string");
-			});
-
 			it("should preserve SUPERSET_HOME_DIR for app-launched hooks", () => {
 				process.env.SUPERSET_HOME_DIR = "/tmp/superset-home";
 				const result = buildTerminalEnv(baseParams);
@@ -719,12 +713,6 @@ describe("env", () => {
 			const result = buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_ENV).toBeDefined();
 			expect(["development", "production"]).toContain(result.SUPERSET_ENV);
-		});
-
-		it("should include SUPERSET_HOOK_VERSION for protocol versioning", () => {
-			const result = buildTerminalEnv(baseParams);
-			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
-			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
 		});
 
 		describe("SSL_CERT_FILE fallback on macOS", () => {

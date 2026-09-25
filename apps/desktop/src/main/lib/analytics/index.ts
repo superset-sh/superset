@@ -3,7 +3,7 @@ import { env } from "main/env.main";
 import { PostHog } from "posthog-node";
 import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
 
-export let posthog: PostHog | null = null;
+let posthog: PostHog | null = null;
 let userId: string | null = null;
 
 function getClient(): PostHog | null {
@@ -19,14 +19,6 @@ function getClient(): PostHog | null {
 		});
 	}
 	return posthog;
-}
-
-export function getPosthogClient(): PostHog | null {
-	return getClient();
-}
-
-export function getUserId(): string | null {
-	return userId;
 }
 
 function isTelemetryEnabled(): boolean {

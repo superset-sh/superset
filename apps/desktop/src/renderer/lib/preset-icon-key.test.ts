@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { HostAgentConfig } from "@superset/host-service/settings";
-import { resolveV2PresetIconKey } from "./preset-icon-key";
+import { resolvePresetIconKey } from "./preset-icon-key";
 
 function createAgent(
 	overrides: Partial<HostAgentConfig> &
@@ -24,10 +24,10 @@ function createAgent(
 	};
 }
 
-describe("resolveV2PresetIconKey", () => {
+describe("resolvePresetIconKey", () => {
 	it("resolves linked host-agent config ids", () => {
 		expect(
-			resolveV2PresetIconKey({ agentId: "claude-config" }, [
+			resolvePresetIconKey({ agentId: "claude-config" }, [
 				createAgent({ id: "claude-config", presetId: "claude" }),
 			]),
 		).toBe("claude");
@@ -35,7 +35,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("prefers linked host-agent icon overrides", () => {
 		expect(
-			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+			resolvePresetIconKey({ agentId: "custom-config" }, [
 				createAgent({
 					id: "custom-config",
 					presetId: "custom",
@@ -49,7 +49,7 @@ describe("resolveV2PresetIconKey", () => {
 		const dataUri = "data:image/png;base64,abc123";
 
 		expect(
-			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+			resolvePresetIconKey({ agentId: "custom-config" }, [
 				createAgent({
 					id: "custom-config",
 					presetId: "custom",
@@ -60,12 +60,12 @@ describe("resolveV2PresetIconKey", () => {
 	});
 
 	it("keeps supporting legacy rows whose agentId is already a preset id", () => {
-		expect(resolveV2PresetIconKey({ agentId: "codex" }, [])).toBe("codex");
+		expect(resolvePresetIconKey({ agentId: "codex" }, [])).toBe("codex");
 	});
 
 	it("does not apply icon overrides to legacy rows whose agentId is already a preset id", () => {
 		expect(
-			resolveV2PresetIconKey({ agentId: "codex" }, [
+			resolvePresetIconKey({ agentId: "codex" }, [
 				createAgent({
 					id: "custom-codex-config",
 					presetId: "codex",
@@ -77,7 +77,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("infers the icon from stored commands when the agent link is stale", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					agentId: "deleted-config-id",
 					commands: ["opencode"],
@@ -89,7 +89,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("infers the icon from command paths for unlinked presets", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					commands: ["/opt/homebrew/bin/cursor-agent"],
 				},
@@ -100,7 +100,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("prefers matching agent icon overrides when inferring from commands", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					commands: ["custom-agent"],
 				},
@@ -118,7 +118,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("falls back to a shared preset id when command matches have different icon overrides", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					commands: ["codex"],
 				},
@@ -142,7 +142,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("does not infer from editable preset names", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					commands: ["echo claude"],
 				},
@@ -153,7 +153,7 @@ describe("resolveV2PresetIconKey", () => {
 
 	it("does not infer an icon when commands point at multiple agents", () => {
 		expect(
-			resolveV2PresetIconKey(
+			resolvePresetIconKey(
 				{
 					commands: ["claude", "codex"],
 				},

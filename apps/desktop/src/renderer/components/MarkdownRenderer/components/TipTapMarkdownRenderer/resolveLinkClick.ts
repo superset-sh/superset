@@ -4,12 +4,12 @@ import type {
 	ModifierEvent,
 } from "renderer/lib/clickPolicy";
 
-export interface LinkClickEvent extends ModifierEvent {
+interface LinkClickEvent extends ModifierEvent {
 	button: number;
 	target: EventTarget | null;
 }
 
-export type ResolvedLinkClick =
+type ResolvedLinkClick =
 	| { kind: "none" }
 	| { kind: "unbound" }
 	| { kind: "open"; url: string; action: LinkAction };

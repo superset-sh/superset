@@ -7,7 +7,7 @@ import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { compareTasks } from "../../utils/sorting";
 import { useHybridSearch } from "../useHybridSearch";
 
-export const TASK_PAGE_SIZE = 100;
+const TASK_PAGE_SIZE = 100;
 
 /**
  * Shared by every picker that only needs a recent window of tasks so they hit

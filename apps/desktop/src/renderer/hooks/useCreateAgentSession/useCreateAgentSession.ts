@@ -3,7 +3,7 @@ import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -12,7 +12,7 @@ export function useCreateAgentSession() {
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
-	const { agents } = useV2AgentChoices(activeHostUrl);
+	const { agents } = useAgentChoices(activeHostUrl);
 	const { submit } = useWorkspaceCreates();
 	const busy = useRef(false);
 	const [isPending, setIsPending] = useState(false);
@@ -46,7 +46,7 @@ export function useCreateAgentSession() {
 				},
 			});
 			void navigate({
-				to: "/v2-workspace/$workspaceId",
+				to: "/workspace/$workspaceId",
 				params: { workspaceId },
 			}).catch((error) => toast.error(errorMessage(error)));
 			const result = await completed;

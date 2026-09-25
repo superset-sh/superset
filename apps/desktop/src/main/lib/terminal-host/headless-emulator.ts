@@ -53,7 +53,7 @@ const MODE_MAP: Record<number, keyof TerminalModes> = {
 // Headless Emulator Class
 // =============================================================================
 
-export interface HeadlessEmulatorOptions {
+interface HeadlessEmulatorOptions {
 	cols?: number;
 	rows?: number;
 	scrollback?: number;
@@ -599,16 +599,6 @@ function escapeRegex(str: string): string {
 /**
  * Apply a snapshot to a headless emulator (for testing round-trip)
  */
-export function applySnapshot(
-	emulator: HeadlessEmulator,
-	snapshot: TerminalSnapshot,
-): void {
-	// First, write the rehydrate sequences to restore mode state
-	emulator.write(snapshot.rehydrateSequences);
-
-	// Then write the serialized screen content
-	emulator.write(snapshot.snapshotAnsi);
-}
 
 /**
  * Compare two mode states for equality

@@ -9,7 +9,7 @@ import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
-export interface PageHeaderTarget {
+interface PageHeaderTarget {
 	slug: string;
 	pageId?: string;
 	title?: string;

@@ -1,4 +1,1 @@
-export {
-	type UseResourceSnapshotResult,
-	useResourceSnapshot,
-} from "./useResourceSnapshot";
+export { useResourceSnapshot } from "./useResourceSnapshot";

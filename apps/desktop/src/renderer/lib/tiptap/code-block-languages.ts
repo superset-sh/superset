@@ -1,4 +1,4 @@
-export interface CodeBlockLanguageOption {
+interface CodeBlockLanguageOption {
 	value: string;
 	label: string;
 }

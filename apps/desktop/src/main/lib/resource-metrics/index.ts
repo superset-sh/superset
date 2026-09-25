@@ -12,7 +12,6 @@ import { normalizeOptionalTitle } from "./session-normalization";
 import {
 	collectWorkspaceSessionMap,
 	getWorkspaceMetadata,
-	type ResourceMetricsSurface,
 } from "./session-sources";
 
 interface ProcessMetrics {
@@ -54,7 +53,7 @@ interface HostMetrics {
 	loadAverage1m: number;
 }
 
-export interface ResourceMetricsSnapshot {
+interface ResourceMetricsSnapshot {
 	app: AppMetrics;
 	workspaces: WorkspaceMetrics[];
 	host: HostMetrics;
@@ -67,7 +66,6 @@ type SnapshotMode = "interactive" | "idle";
 interface CollectResourceMetricsOptions {
 	mode?: SnapshotMode;
 	force?: boolean;
-	surface?: ResourceMetricsSurface;
 	organizationId?: string;
 }
 
@@ -193,9 +191,8 @@ export async function collectResourceMetrics(
 	options: CollectResourceMetricsOptions = {},
 ): Promise<ResourceMetricsSnapshot> {
 	const mode = options.mode ?? "interactive";
-	const surface = options.surface ?? "v1";
 	const maxAgeMs = getSnapshotMaxAge(mode);
-	const cacheKey = `${surface}:${options.organizationId ?? "all"}`;
+	const cacheKey = options.organizationId ?? "all";
 
 	const cachedSnapshot = cachedSnapshots.get(cacheKey) ?? null;
 	if (!options.force && cachedSnapshot) {
@@ -212,7 +209,6 @@ export async function collectResourceMetrics(
 	}
 
 	const collection = collectResourceMetricsNow({
-		surface,
 		organizationId: options.organizationId,
 	})
 		.catch((error) => {
@@ -255,16 +251,11 @@ async function enrichSnapshotCpu(
 }
 
 async function collectResourceMetricsNow({
-	surface,
 	organizationId,
 }: {
-	surface: ResourceMetricsSurface;
 	organizationId?: string;
 }): Promise<ResourceMetricsSnapshot> {
-	const workspaceSessionMap = await collectWorkspaceSessionMap({
-		surface,
-		organizationId,
-	});
+	const workspaceSessionMap = await collectWorkspaceSessionMap(organizationId);
 	const allEntries = [...workspaceSessionMap.values()].flat();
 
 	// Single atomic snapshot: tree structure + resource data from one `ps`
@@ -338,10 +329,7 @@ async function collectResourceMetricsNow({
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
 		if (!workspaceMetaCache.has(workspaceId)) {
-			workspaceMetaCache.set(
-				workspaceId,
-				getWorkspaceMetadata(surface, workspaceId),
-			);
+			workspaceMetaCache.set(workspaceId, getWorkspaceMetadata(workspaceId));
 		}
 
 		const sessionMetrics: SessionMetrics[] = [];

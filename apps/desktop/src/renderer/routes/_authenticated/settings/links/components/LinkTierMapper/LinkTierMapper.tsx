@@ -32,7 +32,7 @@ function fromSlot(slot: SlotValue): LinkAction | null {
 	return slot === "none" ? null : slot;
 }
 
-export interface LinkTierMapperProps {
+interface LinkTierMapperProps {
 	title: string;
 	description: string;
 	value: LinkTierMap;

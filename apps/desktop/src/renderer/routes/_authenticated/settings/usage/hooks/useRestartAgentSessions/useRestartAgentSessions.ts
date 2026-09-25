@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
-export type RestartableUsageAgent = "claude" | "codex";
+type RestartableUsageAgent = "claude" | "codex";
 
 /**
  * The account-switch restart flow. `countRestartCandidates` sizes the ask

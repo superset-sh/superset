@@ -26,7 +26,7 @@ const styleConfigs = {
 	tufte: tufteConfig,
 } as const;
 
-export interface MarkdownEditorAdapter {
+interface MarkdownEditorAdapter {
 	focus(): void;
 	getValue(): string;
 	setValue(value: string): void;

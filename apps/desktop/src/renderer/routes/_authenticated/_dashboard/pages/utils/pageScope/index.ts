@@ -1,6 +1,1 @@
-export {
-	isPageScope,
-	PAGE_SCOPES,
-	type PageScope,
-	serverScope,
-} from "./pageScope";
+export { isPageScope, type PageScope, serverScope } from "./pageScope";

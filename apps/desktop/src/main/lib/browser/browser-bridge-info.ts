@@ -5,7 +5,7 @@
  * transitive `electron.shell` import — into unit tests.
  */
 
-export interface BrowserBridgeInfo {
+interface BrowserBridgeInfo {
 	endpoint: string;
 	secret: string;
 }

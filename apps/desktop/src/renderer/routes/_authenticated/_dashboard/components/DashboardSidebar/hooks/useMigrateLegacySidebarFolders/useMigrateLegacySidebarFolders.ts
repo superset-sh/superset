@@ -40,7 +40,7 @@ export function useMigrateLegacySidebarFolders(): void {
 	// settings take precedence over the same values.
 	useEffect(() => {
 		if (!isReady) return;
-		for (const section of collections.v2SidebarSections.state.values()) {
+		for (const section of collections.sidebarSections.state.values()) {
 			const tag = section.tag;
 			if (tag == null) continue;
 			const hasCustomColor = section.color != null;
@@ -79,7 +79,7 @@ export function useMigrateLegacySidebarFolders(): void {
 
 	useEffect(() => {
 		if (!isReady || runningRef.current) return;
-		const sections = Array.from(collections.v2SidebarSections.state.values());
+		const sections = Array.from(collections.sidebarSections.state.values());
 		if (!sections.some((section) => section.tag == null)) return;
 
 		const hostRowsById = new Map<string, MigrationHostRow>(
@@ -101,7 +101,7 @@ export function useMigrateLegacySidebarFolders(): void {
 			{
 				sections,
 				localRows: Array.from(
-					collections.v2WorkspaceLocalState.state.values(),
+					collections.workspaceLocalState.state.values(),
 				).map((row) => ({
 					workspaceId: row.workspaceId,
 					sectionId: row.sidebarState.sectionId,
@@ -128,17 +128,17 @@ export function useMigrateLegacySidebarFolders(): void {
 					});
 				},
 				insertSection: (row) => {
-					if (collections.v2SidebarSections.get(row.sectionId)) return;
-					collections.v2SidebarSections.insert(row);
+					if (collections.sidebarSections.get(row.sectionId)) return;
+					collections.sidebarSections.insert(row);
 				},
 				deleteSection: (sectionId) => {
-					if (!collections.v2SidebarSections.get(sectionId)) return;
-					collections.v2SidebarSections.delete(sectionId);
+					if (!collections.sidebarSections.get(sectionId)) return;
+					collections.sidebarSections.delete(sectionId);
 				},
 				clearLocalSectionId: (workspaceId, legacySectionId) => {
-					const row = collections.v2WorkspaceLocalState.get(workspaceId);
+					const row = collections.workspaceLocalState.get(workspaceId);
 					if (row?.sidebarState.sectionId !== legacySectionId) return;
-					collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					collections.workspaceLocalState.update(workspaceId, (draft) => {
 						draft.sidebarState.sectionId = null;
 					});
 				},

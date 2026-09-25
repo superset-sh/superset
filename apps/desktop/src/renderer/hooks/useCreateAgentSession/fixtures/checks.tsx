@@ -14,8 +14,8 @@ const submit = mock((_args: unknown) => ({
 const navigate = mock(() => Promise.resolve());
 const showError = mock(() => {});
 
-mock.module("renderer/hooks/useV2AgentChoices", () => ({
-	useV2AgentChoices: () => ({ agents }),
+mock.module("renderer/hooks/useAgentChoices", () => ({
+	useAgentChoices: () => ({ agents }),
 }));
 mock.module(
 	"renderer/routes/_authenticated/providers/LocalHostServiceProvider",
@@ -69,7 +69,7 @@ describe("useCreateAgentSession", () => {
 			},
 		});
 		expect(navigate).toHaveBeenCalledWith({
-			to: "/v2-workspace/$workspaceId",
+			to: "/workspace/$workspaceId",
 			params: { workspaceId: "session-1" },
 		});
 	});

@@ -1,1 +1,0 @@
-export { WorkspaceResourceSection } from "./WorkspaceResourceSection";

@@ -18,15 +18,15 @@ import { HiCheck, HiMiniPlay } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
-import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
+import { useWorkspaceCreateDefaultsStore } from "renderer/stores/workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { SelectedIssue } from "../../../GitHubIssuesContent";
 
@@ -65,13 +65,13 @@ export function RunIssuesInWorkspacePopover({
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { submit } = useWorkspaceCreates();
 
-	const lastHostId = useV2WorkspaceCreateDefaultsStore(
+	const lastHostId = useWorkspaceCreateDefaultsStore(
 		(state) => state.lastHostId,
 	);
-	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
+	const setLastHostId = useWorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
 	);
-	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
+	const setLastProjectId = useWorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
 
@@ -116,17 +116,17 @@ export function RunIssuesInWorkspacePopover({
 		(project) => project.id === selectedProjectId,
 	);
 
-	const { agents: v2Agents, isFetched: v2AgentsFetched } =
-		useV2AgentChoices(launchHostUrl);
+	const { agents: agentConfigs, isFetched: agentsFetched } =
+		useAgentChoices(launchHostUrl);
 	const validAgentIds = useMemo(
-		() => new Set(v2Agents.map((agent) => agent.id)),
-		[v2Agents],
+		() => new Set(agentConfigs.map((agent) => agent.id)),
+		[agentConfigs],
 	);
 
 	const [selectedAgent, setSelectedAgentState] =
 		useState<SelectedAgent>(readStoredAgent);
 	useEffect(() => {
-		if (!v2AgentsFetched) return;
+		if (!agentsFetched) return;
 		if (selectedAgent !== NONE && validAgentIds.has(selectedAgent)) return;
 		const stored = readStoredAgent();
 		if (stored !== NONE && validAgentIds.has(stored)) {
@@ -134,7 +134,7 @@ export function RunIssuesInWorkspacePopover({
 		} else if (selectedAgent !== NONE) {
 			setSelectedAgentState(NONE);
 		}
-	}, [v2AgentsFetched, validAgentIds, selectedAgent]);
+	}, [agentsFetched, validAgentIds, selectedAgent]);
 	const setSelectedAgent = (next: SelectedAgent) => {
 		setSelectedAgentState(next);
 		if (typeof window !== "undefined") {
@@ -190,7 +190,7 @@ export function RunIssuesInWorkspacePopover({
 			});
 		}
 		if (selectedAgent !== NONE) {
-			if (!v2AgentsFetched)
+			if (!agentsFetched)
 				return t({
 					message: "Checking agents…",
 				});
@@ -207,7 +207,7 @@ export function RunIssuesInWorkspacePopover({
 		selectedProject?.needsSetup,
 		setUpProjectIds,
 		selectedAgent,
-		v2AgentsFetched,
+		agentsFetched,
 		validAgentIds,
 		hostId,
 		machineId,
@@ -385,7 +385,7 @@ export function RunIssuesInWorkspacePopover({
 					</Popover>
 
 					<AgentSelect<SelectedAgent>
-						agents={v2Agents}
+						agents={agentConfigs}
 						value={selectedAgent}
 						placeholder={t({
 							message: "Select agent",

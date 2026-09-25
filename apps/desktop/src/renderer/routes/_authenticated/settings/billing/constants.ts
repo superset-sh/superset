@@ -1,10 +1,10 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
-import { PLAN_TIERS, type PlanTier } from "@superset/shared/billing";
+import type { PlanTier } from "@superset/shared/billing";
 
-export { PLAN_TIERS, type PlanTier };
+export type { PlanTier };
 
-export interface PlanFeature {
+interface PlanFeature {
 	id: string;
 	name: string;
 	description?: string;
@@ -12,7 +12,7 @@ export interface PlanFeature {
 	limit?: string;
 }
 
-export interface Plan {
+interface Plan {
 	id: PlanTier;
 	name: MessageDescriptor;
 	description: MessageDescriptor;
@@ -116,30 +116,5 @@ export const PLANS: Record<PlanTier, Plan> = {
 			{ id: "custom", name: "Custom integrations", included: true },
 		],
 		cta: { text: "Contact sales", action: "contact" },
-	},
-};
-
-export interface BillingInfo {
-	organizationId: string;
-	currentPlan: PlanTier;
-	seats: number;
-	usage: {
-		users: number;
-		workspaces: number;
-	};
-	billing?: {
-		stripeCustomerId: string;
-		nextBillingDate: string;
-		amount: number;
-	};
-}
-
-export const MOCK_BILLING_INFO: BillingInfo = {
-	organizationId: "mock-org",
-	currentPlan: "free",
-	seats: 1,
-	usage: {
-		users: 1,
-		workspaces: 3,
 	},
 };

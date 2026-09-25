@@ -1,5 +1,4 @@
 export {
-	type DashboardSidebarHoverPayload,
 	DashboardSidebarHoverProvider,
 	useDashboardSidebarHover,
 	useDashboardSidebarHoverActions,

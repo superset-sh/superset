@@ -1,79 +1,428 @@
-import { Trans } from "@lingui/react/macro";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { Trans, useLingui } from "@lingui/react/macro";
+import type { HostAgentConfig } from "@superset/host-service/settings";
+import { errorMessage } from "@superset/i18n/errors";
 import {
-	isItemVisible,
-	SETTING_ITEM_ID,
-	type SettingItemId,
-} from "../../../utils/settings-search";
-import { V2AgentsSettings } from "../V2AgentsSettings";
-import { AgentCard } from "./components/AgentCard";
+	HOST_AGENT_PRESETS,
+	type HostAgentPreset,
+} from "@superset/shared/host-agent-presets";
+import { Skeleton } from "@superset/ui/skeleton";
+import { toast } from "@superset/ui/sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Bot } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
+	useAgentConfigs,
+} from "renderer/hooks/useAgentConfigs";
+import {
+	findLinkedAgent,
+	getAgentCommandText,
+} from "renderer/lib/agent-launch-command";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useScrollReset } from "renderer/routes/_authenticated/settings/hooks/useScrollReset";
+import { AgentDetail } from "./components/AgentDetail";
+import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
+import {
+	type CreateCustomAgentInput,
+	NewCustomAgentDetail,
+} from "./components/NewCustomAgentDetail";
+
+const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
+	...preset,
+	args: [...preset.args],
+	promptArgs: [...preset.promptArgs],
+	resumeArgs: [...preset.resumeArgs],
+	forkArgs: [...preset.forkArgs],
+	env: { ...preset.env },
+}));
+
+const DESCRIPTION_BY_PRESET_ID = new Map(
+	KNOWN_PRESETS.map((preset) => [preset.presetId, preset.description]),
+);
+
+/** Auto-creates a linked terminal preset for a newly added agent config
+ * (same row shape as the Settings → Terminal "Import agent" flow). */
+function insertLinkedTerminalPreset(
+	collections: ReturnType<typeof useCollections>,
+	agent: HostAgentConfig,
+): void {
+	if (agent.command.trim().length === 0) return;
+	const presets = [...collections.terminalPresets.values()];
+	if (presets.some((preset) => preset.agentId === agent.id)) return;
+	const maxTabOrder = presets.reduce(
+		(max, preset) => Math.max(max, preset.tabOrder),
+		-1,
+	);
+	collections.terminalPresets.insert({
+		id: crypto.randomUUID(),
+		name: agent.label,
+		description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId),
+		cwd: "",
+		commands: [getAgentCommandText(agent)],
+		projectIds: null,
+		executionMode: "new-tab",
+		tabOrder: maxTabOrder + 1,
+		createdAt: new Date(),
+		agentId: agent.id,
+	});
+}
 
 interface AgentsSettingsProps {
-	visibleItems?: SettingItemId[] | null;
-	/** Config UUID or built-in preset id to select in v2. Ignored in v1. */
+	/** Config UUID or built-in preset id to select from the current route. */
 	initialAgentId?: string | null;
 }
 
-export function AgentsSettings({
-	visibleItems,
-	initialAgentId,
-}: AgentsSettingsProps) {
-	const isV2CloudEnabled = useIsV2CloudEnabled();
-	if (isV2CloudEnabled) {
-		return <V2AgentsSettings initialAgentId={initialAgentId} />;
+export function AgentsSettings({ initialAgentId }: AgentsSettingsProps = {}) {
+	const { t } = useLingui();
+	const hostService = useLocalHostService();
+	const { activeHostUrl } = hostService;
+	const queryClient = useQueryClient();
+	const navigate = useNavigate();
+
+	const configsQuery = useAgentConfigs(activeHostUrl);
+	const queryKey = [...QUERY_KEY, activeHostUrl] as const;
+	const queryFamily = { queryKey: QUERY_KEY };
+
+	const invalidate = () => {
+		void queryClient.invalidateQueries(queryFamily);
+		void queryClient.refetchQueries(queryFamily);
+	};
+
+	const updateCachedConfig = (updated: HostAgentConfig) => {
+		queryClient.setQueriesData<HostAgentConfig[]>(queryFamily, (current) =>
+			current?.map((config) =>
+				config.id === updated.id ? { ...config, ...updated } : config,
+			),
+		);
+	};
+
+	// Linked terminal presets keep a `commands` snapshot as the launch fallback
+	// for when the agent config isn't loaded; refresh it so an edited agent
+	// command can't resurface stale via that fallback.
+	const syncLinkedPresetSnapshots = (updated: HostAgentConfig) => {
+		const commandText = getAgentCommandText(updated);
+		if (commandText.trim().length === 0) return;
+		for (const preset of collections.terminalPresets.values()) {
+			if (
+				preset.agentId !== updated.id &&
+				preset.agentId !== updated.presetId
+			) {
+				continue;
+			}
+			if (preset.commands.length === 1 && preset.commands[0] === commandText) {
+				continue;
+			}
+			collections.terminalPresets.update(preset.id, (draft) => {
+				draft.commands = [commandText];
+			});
+		}
+	};
+
+	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
+	const collections = useCollections();
+
+	const addMutation = useMutation({
+		mutationFn: async (preset: HostAgentPreset) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "addAgent",
+					}),
+				);
+			}
+			const { description: _description, ...body } = preset;
+			const added =
+				await getHostServiceClientByUrl(
+					activeHostUrl,
+				).settings.agentConfigs.add.mutate(body);
+			// Safety net: re-run wrapper/hook setup so Add guarantees the hooks
+			// are wired even if boot setup failed or the wrapper was wiped.
+			setupAgentMutation.mutate(
+				{ agentId: preset.presetId },
+				{
+					onError: (err) =>
+						console.warn(
+							`[agents] setupAgent failed for ${preset.presetId}`,
+							err,
+						),
+				},
+			);
+			return added;
+		},
+		onSuccess: (added) => {
+			setIsCreating(false);
+			invalidate();
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
+		},
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to add agent",
+					}),
+				),
+			),
+	});
+
+	const addCustomMutation = useMutation({
+		mutationFn: async (input: CreateCustomAgentInput) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "addAgent",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.add.mutate(input);
+		},
+		onSuccess: (added) => {
+			setIsCreating(false);
+			invalidate();
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
+		},
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to add agent",
+					}),
+				),
+			),
+	});
+
+	const reorderMutation = useMutation({
+		mutationFn: (ids: string[]) => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "reorderAgents",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.reorder.mutate({ ids });
+		},
+		onMutate: async (ids) => {
+			await queryClient.cancelQueries({
+				queryKey: [...QUERY_KEY, activeHostUrl],
+			});
+			const previous = queryClient.getQueryData<HostAgentConfig[]>(queryKey);
+			if (previous) {
+				const byId = new Map(previous.map((row) => [row.id, row]));
+				const next = ids
+					.map((id, index) => {
+						const row = byId.get(id);
+						return row ? { ...row, order: index } : null;
+					})
+					.filter((row): row is HostAgentConfig => row !== null);
+				queryClient.setQueryData(queryKey, next);
+			}
+			return { previous };
+		},
+		onError: (err, _ids, ctx) => {
+			if (ctx?.previous) {
+				queryClient.setQueryData(queryKey, ctx.previous);
+			}
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to reorder",
+					}),
+				),
+			);
+		},
+		onSettled: () => invalidate(),
+	});
+
+	const resetMutation = useMutation({
+		mutationFn: () => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "resetAgents",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.resetToDefaults.mutate();
+		},
+		onSuccess: () => {
+			setIsCreating(false);
+			setSelectedAgentId(null);
+			void navigate({ to: "/settings/agents" });
+			invalidate();
+		},
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						message: "Failed to reset",
+					}),
+				),
+			),
+	});
+
+	const configs = configsQuery.data ?? [];
+	const installedPresetIds = new Set(configs.map((row) => row.presetId));
+	const addablePresets = KNOWN_PRESETS.filter(
+		(preset) => !installedPresetIds.has(preset.presetId),
+	);
+	const hostServiceUnavailableMessage = getHostServiceUnavailableMessage(
+		hostService,
+		{ action: "loadAgentSettings" },
+	);
+
+	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
+	const detailRef = useScrollReset<HTMLDivElement>(
+		isCreating ? "new" : selectedAgentId,
+	);
+	const consumedInitialAgentIdRef = useRef<string | null>(null);
+
+	// Auto-select first agent when none selected, and clear selection when the
+	// selected agent disappears. If `initialAgentId` is provided, prefer
+	// the matching config whenever the route target changes. Route targets may
+	// be either a unique config id or a built-in preset id.
+	useEffect(() => {
+		if (configs.length === 0) {
+			if (selectedAgentId !== null) setSelectedAgentId(null);
+			return;
+		}
+		if (!initialAgentId) {
+			consumedInitialAgentIdRef.current = null;
+		} else if (consumedInitialAgentIdRef.current !== initialAgentId) {
+			const match = findLinkedAgent(configs, initialAgentId);
+			if (match) {
+				consumedInitialAgentIdRef.current = initialAgentId;
+				setSelectedAgentId(match.id);
+				return;
+			}
+		}
+		const stillExists = configs.some((c) => c.id === selectedAgentId);
+		if (!stillExists) setSelectedAgentId(configs[0].id);
+	}, [configs, selectedAgentId, initialAgentId]);
+
+	const selectedAgent = configs.find((c) => c.id === selectedAgentId) ?? null;
+
+	if (configsQuery.isError) {
+		return (
+			<div className="p-6 text-sm text-destructive">
+				<Trans>
+					Couldn't load agent settings:{" "}
+					{configsQuery.error instanceof Error
+						? configsQuery.error.message
+						: hostServiceUnavailableMessage}
+				</Trans>
+			</div>
+		);
 	}
-	return <V1AgentsSettings visibleItems={visibleItems} />;
-}
-
-function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
-	const { data: presets = [], isLoading } =
-		electronTrpc.settings.getAgentPresets.useQuery();
-
-	const showEnabled = isItemVisible(
-		SETTING_ITEM_ID.AGENTS_ENABLED,
-		visibleItems,
-	);
-	const showCommands = isItemVisible(
-		SETTING_ITEM_ID.AGENTS_COMMANDS,
-		visibleItems,
-	);
-	const showTaskPrompts = isItemVisible(
-		SETTING_ITEM_ID.AGENTS_TASK_PROMPTS,
-		visibleItems,
-	);
 
 	return (
-		<div className="p-6 max-w-5xl w-full mx-auto">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">
-					<Trans>Agents</Trans>
-				</h2>
-				<p className="text-sm text-muted-foreground mt-1">
-					<Trans>
-						Configure which agents appear in launchers and how their launches
-						are built.
-					</Trans>
+		<div className="flex h-full w-full">
+			{configsQuery.isLoading ? (
+				<SidebarSkeleton />
+			) : (
+				<AgentsSettingsSidebar
+					configs={configs}
+					presets={addablePresets}
+					selectedAgentId={selectedAgentId}
+					onSelectAgent={(id) => {
+						setSelectedAgentId(id);
+						setIsCreating(false);
+						void navigate({
+							to: "/settings/agents/$agentId",
+							params: { agentId: id },
+						});
+					}}
+					onAddAgent={(preset) => addMutation.mutate(preset)}
+					onCreateCustomAgent={() => setIsCreating(true)}
+					onReorder={(ids) => reorderMutation.mutate(ids)}
+					onResetToDefaults={() => resetMutation.mutate()}
+					isAdding={addMutation.isPending}
+					isResetting={resetMutation.isPending}
+				/>
+			)}
+			<div ref={detailRef} className="flex-1 overflow-y-auto">
+				{isCreating ? (
+					<NewCustomAgentDetail
+						onCreate={(input) => addCustomMutation.mutate(input)}
+						onCancel={() => setIsCreating(false)}
+						isSubmitting={addCustomMutation.isPending}
+					/>
+				) : selectedAgent ? (
+					<AgentDetail
+						key={selectedAgent.id}
+						config={selectedAgent}
+						description={
+							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
+							t({
+								message: "Terminal agent launch configuration",
+							})
+						}
+						onChanged={(updated) => {
+							updateCachedConfig(updated);
+							syncLinkedPresetSnapshots(updated);
+							invalidate();
+						}}
+						onDeleted={() => {
+							setSelectedAgentId(null);
+							void navigate({ to: "/settings/agents" });
+							invalidate();
+						}}
+					/>
+				) : (
+					<EmptyState />
+				)}
+			</div>
+		</div>
+	);
+}
+
+function SidebarSkeleton() {
+	return (
+		<div className="w-64 shrink-0 border-r p-3 space-y-3">
+			<Skeleton className="h-8 w-full" />
+			{[0, 1, 2, 3].map((i) => (
+				<Skeleton key={i} className="h-7 w-full" />
+			))}
+		</div>
+	);
+}
+
+function EmptyState() {
+	return (
+		<div className="flex h-full items-center justify-center p-6">
+			<div className="text-center">
+				<Bot
+					aria-hidden="true"
+					className="mx-auto size-10 text-muted-foreground/60"
+				/>
+				<h3 className="mt-3 text-sm font-medium">
+					<Trans>No agents yet</Trans>
+				</h3>
+				<p className="mt-1 text-xs text-muted-foreground">
+					<Trans>Add one from the menu in the sidebar to get started.</Trans>
 				</p>
 			</div>
-
-			{isLoading ? (
-				<p className="text-sm text-muted-foreground">
-					<Trans>Loading agent settings...</Trans>
-				</p>
-			) : (
-				<div className="space-y-4">
-					{presets.map((preset) => (
-						<AgentCard
-							key={preset.id}
-							preset={preset}
-							showEnabled={showEnabled}
-							showCommands={showCommands}
-							showTaskPrompts={showTaskPrompts}
-						/>
-					))}
-				</div>
-			)}
 		</div>
 	);
 }

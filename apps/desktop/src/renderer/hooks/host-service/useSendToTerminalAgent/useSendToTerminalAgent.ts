@@ -9,7 +9,7 @@ import { getTerminalAgentBindingsQueryKey } from "../useTerminalAgentBindings/us
 
 export type AgentPromptFileSide = "additions" | "deletions" | "mixed";
 
-export interface AgentPromptFileContext {
+interface AgentPromptFileContext {
 	path: string;
 	startLine: number;
 	endLine: number;
@@ -48,7 +48,7 @@ export function formatAgentPromptWithFileContext({
 	return `In ${file.path}:${range}${sideSuffix}: ${comment}`;
 }
 
-export interface SendToTerminalAgentInput {
+interface SendToTerminalAgentInput {
 	workspaceId: string;
 	terminalId: string;
 	/** Already-formatted prompt body. The host submits it with Enter. */

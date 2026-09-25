@@ -14,7 +14,7 @@ import { LuCpu, LuSettings } from "react-icons/lu";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAgentChoices } from "renderer/hooks/useAgentChoices";
 import {
 	matchAgentChoice,
 	portableAgentValue,
@@ -43,7 +43,7 @@ export function AgentPicker({
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const hostUrl = useHostUrl(hostId);
-	const { agents } = useV2AgentChoices(hostUrl);
+	const { agents } = useAgentChoices(hostUrl);
 	const isDark = useIsDarkTheme();
 	const hostMatch = matchAgentChoice(agents, value);
 	const presetMatch = hostMatch ? null : getPresetById(value);

@@ -13,7 +13,6 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -35,12 +34,10 @@ export function RenameBranchDialog({
 }: RenameBranchDialogProps) {
 	const [value, setValue] = useState(currentBranchName);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const electronUtils = electronTrpc.useUtils();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
-	// Workspace records are host-owned: a v2 workspace resolves to its owning
-	// host (which may be remote, via relay). v1 workspaces aren't in the host
-	// collection and fall back to the local host-service.
+	// Workspace records are host-owned: a workspace resolves to its owning
+	// host (which may be remote, via relay).
 	const hostTarget = useWorkspaceHostTarget(workspaceId);
 	const workspaceHostUrl =
 		hostTarget.status === "ready" ? hostTarget.url : activeHostUrl;
@@ -79,11 +76,6 @@ export function RenameBranchDialog({
 		try {
 			await renamePromise;
 			onAfterRename?.(trimmed);
-			void electronUtils.workspaces.getWorktreeInfo.invalidate({
-				workspaceId,
-			});
-			void electronUtils.workspaces.get.invalidate({ id: workspaceId });
-			void electronUtils.workspaces.getAllGrouped.invalidate();
 			onOpenChange(false);
 		} catch {
 			// toast.promise surfaced the error to the user

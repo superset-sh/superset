@@ -3,7 +3,7 @@ import type { ForwardTarget } from "shared/types";
 import { MuxSession } from "./mux-session";
 import type { ForwardTransport } from "./types";
 
-export interface RelayForwardTransportOptions {
+interface RelayForwardTransportOptions {
 	getToken: () => string | null;
 }
 

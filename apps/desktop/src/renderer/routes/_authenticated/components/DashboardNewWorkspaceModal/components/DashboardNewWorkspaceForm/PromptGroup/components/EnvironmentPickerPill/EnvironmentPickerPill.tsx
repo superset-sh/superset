@@ -13,7 +13,7 @@ import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuLayers } from "react-icons/lu";
 import { FormPickerTrigger } from "../FormPickerTrigger";
 
-export interface EnvironmentOption {
+interface EnvironmentOption {
 	id: string;
 	name: string;
 }

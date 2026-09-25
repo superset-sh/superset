@@ -11,7 +11,7 @@ import {
 	DESIGN_MODE_STYLE_PROPERTIES,
 } from "shared/browser-design-mode";
 
-export type DesignModeScriptAction = "arm" | "awaitClick" | "teardown";
+type DesignModeScriptAction = "arm" | "awaitClick" | "teardown";
 
 export function buildDesignModeScript(action: DesignModeScriptAction): string {
 	switch (action) {

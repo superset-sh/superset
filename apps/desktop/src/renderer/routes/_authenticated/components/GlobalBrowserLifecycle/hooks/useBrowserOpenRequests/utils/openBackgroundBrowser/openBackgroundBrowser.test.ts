@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
-import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/types";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { openBackgroundBrowser } from "./openBackgroundBrowser";
 
@@ -20,7 +20,7 @@ function fixture() {
 		["user", { paneLayout: structuredClone(initial) }],
 	]);
 	const collections = {
-		v2WorkspaceLocalState: {
+		workspaceLocalState: {
 			get: (id: string) => rows.get(id),
 			update: (
 				id: string,
@@ -30,7 +30,7 @@ function fixture() {
 				if (row) update(row);
 			},
 		},
-	} as unknown as Pick<AppCollections, "v2WorkspaceLocalState">;
+	} as unknown as Pick<AppCollections, "workspaceLocalState">;
 	return { collections, rows, initial };
 }
 

@@ -14,7 +14,7 @@ interface AutoApplyPresetLike {
 /**
  * Presets tagged with `field` for a project. Presets targeted at the project
  * win outright; all-project presets only apply when no targeted preset is
- * tagged. Shared by the v1 settings router and the v2 renderer so both
+ * tagged. Shared by the settings router and the renderer so both
  * triggers resolve the same way on both surfaces.
  */
 export function getPresetsForTriggerField<T extends AutoApplyPresetLike>(

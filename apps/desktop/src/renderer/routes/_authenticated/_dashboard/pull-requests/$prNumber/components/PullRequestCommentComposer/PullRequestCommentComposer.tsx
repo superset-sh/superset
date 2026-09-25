@@ -4,14 +4,12 @@ import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuLoaderCircle } from "react-icons/lu";
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { AgentPickerSelect } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/components/AgentPickerSelect";
+import { useAgentConfigs } from "renderer/hooks/useAgentConfigs";
+import { AgentPickerSelect } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/components/AgentPickerSelect";
 import {
 	type AgentTarget,
 	useDiffCommentTarget,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
-
-export type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
+} from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget";
 
 interface PullRequestCommentComposerProps {
 	/** Short description of what the comment is anchored to ("Line 42"),
@@ -31,7 +29,7 @@ interface PullRequestCommentComposerProps {
 	}) => void | Promise<void>;
 }
 
-// A twin of the v2-workspace DiffPane's AgentCommentComposer: same popover
+// A twin of the workspace DiffPane's AgentCommentComposer: same popover
 // chrome, agent-target picker, esc-to-dismiss, ⌘/Ctrl+Enter to submit — the
 // PR Code tab has no fixed workspaceId to source sessions from (a PR may not
 // have an open workspace at all yet), so `linkedWorkspaceId` is nullable and
@@ -54,7 +52,7 @@ export function PullRequestCommentComposer({
 			),
 		[bindings],
 	);
-	const { data: configs = [] } = useV2AgentConfigs(hostUrl);
+	const { data: configs = [] } = useAgentConfigs(hostUrl);
 	const { value, resolved, onValueChange } = useDiffCommentTarget({
 		sessions,
 		configs,

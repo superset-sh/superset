@@ -5,7 +5,7 @@
 // a zero-width-space suffix: visually identical, but a distinct tree path.
 const COLLISION_MARKER = "\u200b";
 
-export interface CollisionSafeTreePaths {
+interface CollisionSafeTreePaths {
 	/** Paths safe to hand to `@pierre/trees`; same order as the input. */
 	treePaths: string[];
 	/** Real changeset path → tree path. Only remapped entries are present. */

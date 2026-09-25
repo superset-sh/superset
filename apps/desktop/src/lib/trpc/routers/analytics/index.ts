@@ -11,5 +11,3 @@ export const createAnalyticsRouter = () => {
 			}),
 	});
 };
-
-export type AnalyticsRouter = ReturnType<typeof createAnalyticsRouter>;

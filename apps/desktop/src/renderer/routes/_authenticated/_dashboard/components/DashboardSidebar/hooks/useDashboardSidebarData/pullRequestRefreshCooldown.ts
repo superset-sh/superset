@@ -5,7 +5,7 @@
  */
 export const PULL_REQUEST_REFRESH_COOLDOWN_MS = 45_000;
 
-export interface PullRequestRefreshGate {
+interface PullRequestRefreshGate {
 	/**
 	 * True when `workspaceId` has not been refreshed within the cool-down.
 	 * A `true` result records `now` as the workspace's last refresh, so

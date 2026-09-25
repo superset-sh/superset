@@ -1,5 +1,1 @@
-export {
-	type PullRequestDetailFallback,
-	type ResolvedPullRequestDetail,
-	resolvePullRequestDetail,
-} from "./resolvePullRequestDetail";
+export { resolvePullRequestDetail } from "./resolvePullRequestDetail";

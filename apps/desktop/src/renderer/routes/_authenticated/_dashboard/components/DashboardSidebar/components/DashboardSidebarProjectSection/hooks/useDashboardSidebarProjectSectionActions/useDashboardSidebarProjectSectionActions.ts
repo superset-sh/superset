@@ -68,7 +68,7 @@ export function useDashboardSidebarProjectSectionActions({
 	// pointing at a workspace the sidebar no longer shows (or that no longer
 	// exists), so both land on the workspaces list first.
 	const matchRoute = useMatchRoute();
-	const activeWorkspaceMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
+	const activeWorkspaceMatch = matchRoute({ to: "/workspace/$workspaceId" });
 	const activeWorkspaceId = activeWorkspaceMatch
 		? activeWorkspaceMatch.workspaceId
 		: null;
@@ -79,7 +79,7 @@ export function useDashboardSidebarProjectSectionActions({
 			(workspace) => workspace.id === activeWorkspaceId,
 		);
 		if (active?.projectId === project.id) {
-			navigate({ to: "/v2-workspaces" });
+			navigate({ to: "/workspaces" });
 		}
 	};
 

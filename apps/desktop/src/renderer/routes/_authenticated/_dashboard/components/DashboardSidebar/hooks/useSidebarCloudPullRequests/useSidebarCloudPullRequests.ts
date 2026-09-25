@@ -17,7 +17,7 @@ export function cloudPullRequestRefKey(ref: CloudPullRequestRef): string {
 	return `${ref.repoFullName.toLowerCase()}\n${ref.headBranch}`;
 }
 
-export interface SidebarCloudPullRequests {
+interface SidebarCloudPullRequests {
 	/** Chip per ref key (see cloudPullRequestRefKey); absent = no PR known. */
 	byRef: Map<string, DashboardSidebarWorkspacePullRequest>;
 	/**

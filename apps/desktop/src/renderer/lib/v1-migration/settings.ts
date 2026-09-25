@@ -8,12 +8,12 @@ import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 // prefix (host-wide) and the per-project worktree-dir / branch-prefix
 // overrides — all in host.db, all keep-v2 on conflict.
 
-export interface BranchPrefixValue {
+interface BranchPrefixValue {
 	mode: BranchPrefixMode | null;
 	customPrefix: string | null;
 }
 
-export type HostBranchPrefixPlan =
+type HostBranchPrefixPlan =
 	| { action: "set"; mode: BranchPrefixMode; customPrefix: string | null }
 	| { action: "keep-v2" }
 	| { action: "nothing" };
@@ -38,19 +38,19 @@ export function planHostBranchPrefix(
 	};
 }
 
-export interface V1ProjectPrefs {
+interface V1ProjectPrefs {
 	worktreeBaseDir: string | null;
 	branchPrefixMode: BranchPrefixMode | null;
 	branchPrefixCustom: string | null;
 }
 
-export interface V2ProjectPrefs {
+interface V2ProjectPrefs {
 	worktreeBaseDir: string | null;
 	branchPrefixMode: BranchPrefixMode | null;
 	branchPrefixCustom: string | null;
 }
 
-export interface ProjectPrefsPlan {
+interface ProjectPrefsPlan {
 	setWorktreeBaseDir: string | null;
 	setBranchPrefix: {
 		mode: BranchPrefixMode;

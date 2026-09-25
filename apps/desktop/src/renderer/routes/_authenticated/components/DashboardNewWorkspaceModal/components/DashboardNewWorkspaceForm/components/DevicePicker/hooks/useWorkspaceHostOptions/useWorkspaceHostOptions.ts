@@ -11,7 +11,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
-export interface WorkspaceHostOption {
+interface WorkspaceHostOption {
 	id: string;
 	name: string;
 	isOnline: boolean;

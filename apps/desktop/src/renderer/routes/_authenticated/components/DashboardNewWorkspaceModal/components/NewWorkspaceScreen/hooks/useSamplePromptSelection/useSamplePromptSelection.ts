@@ -30,7 +30,7 @@ export function useSamplePromptSelection(
 ): SamplePromptSelection {
 	const canCheckSetup = Boolean(hostUrl && projectId);
 
-	// Same query the v2 sidebar setup card uses.
+	// Same query the sidebar setup card uses.
 	const { data: needsSetupScripts, isPending } = useQuery({
 		queryKey: ["host-config", "shouldShowSetupCard", hostUrl, projectId],
 		queryFn: () =>

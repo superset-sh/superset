@@ -1,1 +1,1 @@
-export { getStepProgress, StepProgress } from "./StepProgress";
+export { StepProgress } from "./StepProgress";

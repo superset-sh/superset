@@ -20,9 +20,9 @@ import { clearAllTerminalState } from "renderer/lib/terminal/terminal-buffer-gc"
  *   The only option that can actually free space, and the only one that costs
  *   the user something visible.
  */
-export type QuotaNoticeMode = "silent" | "notify" | "offer-reclaim";
+type QuotaNoticeMode = "silent" | "notify" | "offer-reclaim";
 
-export const QUOTA_NOTICE_MODE: QuotaNoticeMode = "offer-reclaim";
+const QUOTA_NOTICE_MODE: QuotaNoticeMode = "offer-reclaim";
 
 const TOAST_ID = "localstorage-quota-exhausted";
 

@@ -7,11 +7,9 @@ import {
 
 import { readHostServiceInfo } from "./useHostServiceInfo.utils";
 
-export type { HostServiceInfo } from "./useHostServiceInfo.utils";
+const HOST_SERVICE_INFO_STALE_MS = 30_000;
 
-export const HOST_SERVICE_INFO_STALE_MS = 30_000;
-
-export async function fetchHostServiceInfo(hostUrl: string) {
+async function fetchHostServiceInfo(hostUrl: string) {
 	return readHostServiceInfo(getHostServiceClientByUrl(hostUrl));
 }
 

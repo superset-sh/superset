@@ -13,10 +13,9 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/new-workspace",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/plugins",
-	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/project",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks",
-	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspaces",
 	"apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal",
 	// settings — everything except `project/` ($projectId), the v1 counterpart
 	// of v2-project that dies with the v1 sunset.
@@ -44,14 +43,12 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/routes/_authenticated/settings/projects",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/ringtones",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/security",
-	"apps/desktop/src/renderer/routes/_authenticated/settings/team",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/teams",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/terminal",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/usage",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/utils",
-	"apps/desktop/src/renderer/routes/_authenticated/settings/v2-project",
 	// batch 3: v2-workspace, shared renderer components, palette, auth routes
-	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/workspace",
 	"apps/desktop/src/renderer/commandPalette",
 	"apps/desktop/src/renderer/components",
 	"apps/desktop/src/renderer/react-query",

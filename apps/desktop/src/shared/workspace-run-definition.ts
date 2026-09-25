@@ -18,7 +18,7 @@ export type WorkspaceRunDefinition =
 			cwd?: string;
 	  };
 
-export interface WorkspaceRunPresetLike {
+interface WorkspaceRunPresetLike {
 	id: string;
 	name: string;
 	commands: string[];
@@ -36,7 +36,7 @@ function normalizeCwd(cwd: string | undefined): string | undefined {
 	return trimmed ? trimmed : undefined;
 }
 
-export function configRunToWorkspaceRun({
+function configRunToWorkspaceRun({
 	projectId,
 	commands,
 	cwd,
@@ -55,7 +55,7 @@ export function configRunToWorkspaceRun({
 	};
 }
 
-export function presetToWorkspaceRun(
+function presetToWorkspaceRun(
 	preset: WorkspaceRunPresetLike,
 ): WorkspaceRunDefinition | null {
 	if (!preset.useAsWorkspaceRun) return null;

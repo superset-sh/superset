@@ -1,4 +1,5 @@
 export {
-	useDefaultWorktreePath,
-	WorktreeLocationPicker,
-} from "./WorktreeLocationPicker";
+	useSetWorktreeBaseDir,
+	useWorktreeLocationSettings,
+} from "./useWorktreeLocationSettings";
+export { WorktreeLocationPicker } from "./WorktreeLocationPicker";

@@ -15,7 +15,7 @@ export function canReachDesktop(): boolean {
 }
 
 export function desktopWorkspaceLink(workspaceId: string): string {
-	return `superset://v2-workspace/${workspaceId}`;
+	return `superset://workspace/${workspaceId}`;
 }
 
 export function openUrl(url: string): Promise<void> {

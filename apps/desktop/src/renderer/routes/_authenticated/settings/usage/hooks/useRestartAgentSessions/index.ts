@@ -1,4 +1,1 @@
-export {
-	type RestartableUsageAgent,
-	useRestartAgentSessions,
-} from "./useRestartAgentSessions";
+export { useRestartAgentSessions } from "./useRestartAgentSessions";

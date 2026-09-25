@@ -3,7 +3,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 /**
- * The single mount for the v2 delete dialog, shared by every entry point
+ * The single mount for the delete dialog, shared by every entry point
  * (sidebar rows, board cards, command palette, close-workspace hotkey,
  * missing-worktree screen). The destroy pipeline archives the row first, so
  * the row — and anything mounted under it — unmounts the instant the destroy

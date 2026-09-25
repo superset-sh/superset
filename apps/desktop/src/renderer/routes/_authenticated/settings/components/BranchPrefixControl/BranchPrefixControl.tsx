@@ -22,7 +22,7 @@ import {
 const DEFAULT_VALUE = "default";
 
 /** Mode communicated by the control. `null` only appears when `showDefault`. */
-export type BranchPrefixControlMode = BranchPrefixMode | null;
+type BranchPrefixControlMode = BranchPrefixMode | null;
 
 interface BranchPrefixControlProps {
 	mode: BranchPrefixControlMode;
@@ -40,8 +40,8 @@ interface BranchPrefixControlProps {
 }
 
 /**
- * Shared select+input for the v2 branch-prefix setting. Used by the host-wide
- * default (`V2GitSettings`) and the per-project override (`BranchPrefixSection`).
+ * Shared select+input for the branch-prefix setting. Used by the host-wide
+ * default (`GitSettings`) and the per-project override (`BranchPrefixSection`).
  * Sanitizes the custom prefix on blur. Empty custom on blur is treated as
  * "user is still typing": the input clears but no mutation fires.
  */

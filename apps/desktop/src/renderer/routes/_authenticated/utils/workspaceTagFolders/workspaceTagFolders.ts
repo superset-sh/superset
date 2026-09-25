@@ -91,13 +91,13 @@ export const EMPTY_TAG_FOLDER_CONTEXT: TagFolderContext = {
 	hiddenTagsByProject: new Map(),
 };
 
-export interface TagFolderSection extends TagFolderSectionInput {
+interface TagFolderSection extends TagFolderSectionInput {
 	tag: string | null;
 	/** True when no stored presentation row exists — the tag alone made it. */
 	isDerived: boolean;
 }
 
-export interface SessionTagFolder {
+interface SessionTagFolder {
 	tag: string;
 	name: string;
 	color: string | null;

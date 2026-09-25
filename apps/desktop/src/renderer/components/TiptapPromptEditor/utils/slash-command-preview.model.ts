@@ -6,16 +6,16 @@ import {
 	parseNamedSlashArgumentToken,
 } from "./slash-command-named-arguments";
 
-export type NamedArgEntry = ParsedNamedSlashArgument;
+type NamedArgEntry = ParsedNamedSlashArgument;
 
-export interface ParsedSlashInput {
+interface ParsedSlashInput {
 	commandName: string;
 	commandToken: string;
 	positionalTokens: string[];
 	namedEntries: NamedArgEntry[];
 }
 
-export interface ParamField {
+interface ParamField {
 	id: string;
 	kind: "named" | "positional";
 	label: string;
@@ -24,7 +24,7 @@ export interface ParamField {
 	positionalIndex?: number;
 }
 
-export interface SlashCommandDefinition {
+interface SlashCommandDefinition {
 	name: string;
 	aliases: string[];
 	description: string;
@@ -258,25 +258,6 @@ export function buildNextSlashInput(
 	return [parsed.commandToken, ...argumentTokens].join(" ");
 }
 
-export function extractUnresolvedNamedPlaceholders(prompt: string): string[] {
-	const matches = prompt.matchAll(
-		/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g,
-	);
-	const placeholders: string[] = [];
-	const seen = new Set<string>();
-
-	for (const match of matches) {
-		const name = (match[1] ?? match[2] ?? "").toUpperCase();
-		if (!name) continue;
-		if (name === "ARGUMENTS" || name === "COMMAND" || name === "CWD") continue;
-		if (seen.has(name)) continue;
-		seen.add(name);
-		placeholders.push(name);
-	}
-
-	return placeholders;
-}
-
 export function buildParamFields(args: {
 	argumentHint: string;
 	unresolvedFieldKeys: string[];
@@ -296,25 +277,4 @@ export function resolveSlashCommandDefinition(
 	commandName: string,
 ): SlashCommandDefinition | null {
 	return findSlashCommandByNameOrAlias(commands, commandName);
-}
-
-export function getNamedValueMap(
-	parsed: ParsedSlashInput | null,
-): Map<string, string> {
-	if (!parsed) return new Map();
-	const map = new Map<string, string>();
-	for (const entry of parsed.namedEntries) {
-		map.set(entry.keyUpper, entry.value);
-	}
-	return map;
-}
-
-export function getPositionalValueMap(
-	parsed: ParsedSlashInput | null,
-): Map<number, string> {
-	const map = new Map<number, string>();
-	for (const [index, value] of parsed?.positionalTokens.entries() ?? []) {
-		map.set(index, value);
-	}
-	return map;
 }

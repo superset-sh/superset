@@ -1,7 +1,7 @@
 import type { RouterOutputs } from "@superset/trpc";
 import type { DashboardSidebarWorkspacePullRequest } from "../../types";
 
-export type CloudPullRequestRow =
+type CloudPullRequestRow =
 	RouterOutputs["integration"]["github"]["getByBranches"]["pullRequests"][number];
 
 /** The host's chip shape; `queued` (merge queue) is host-only, so it shows as open here. */

@@ -58,7 +58,7 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	archiveReason?: "merged" | "deleted" | null;
 }
 
-export interface HostWorkspacesQueryTarget {
+interface HostWorkspacesQueryTarget {
 	machineId: string;
 	organizationId: string;
 	/** Null when the host is known but unreachable (offline remote). */
@@ -72,7 +72,7 @@ export interface HostWorkspacesQueryTarget {
 	isSandbox?: boolean;
 }
 
-export interface HostRowForTargets {
+interface HostRowForTargets {
 	organizationId: string;
 	machineId: string;
 	isOnline: boolean;

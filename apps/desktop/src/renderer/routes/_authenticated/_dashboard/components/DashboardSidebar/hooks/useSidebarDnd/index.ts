@@ -1,15 +1,9 @@
 export {
-	type DashboardSidebarDndValue,
 	dropZoneId,
-	isSec,
-	measuring,
 	PINNED_CONTAINER,
 	parseId,
 	SESSIONS_CONTAINER,
-	type SidebarDndActiveItem,
 	SidebarDndContextProvider,
-	secId,
 	useDashboardSidebarDnd,
 	useSidebarDnd,
-	wsId,
 } from "./useSidebarDnd";

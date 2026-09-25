@@ -5,7 +5,7 @@ import type { BaseTabsState } from "shared/tabs-types";
 import type { Theme } from "shared/themes";
 
 // Re-export for convenience
-export type { BaseTabsState as TabsState, Pane } from "shared/tabs-types";
+export type { BaseTabsState as TabsState } from "shared/tabs-types";
 
 export interface ThemeState {
 	activeThemeId: string;

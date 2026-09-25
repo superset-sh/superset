@@ -95,16 +95,9 @@ describe("Tasks and pull requests navigation", () => {
 			readComponent(
 				"../../../components/DashboardSidebar/components/DashboardSidebarHeader/DashboardSidebarHeader.tsx",
 			),
-			readComponent(
-				"../../../../../../screens/main/components/WorkspaceSidebar/WorkspaceSidebarHeader/WorkspaceSidebarHeader.tsx",
-			),
 		];
 
-		// v2's labels go through Lingui (`message: "Tasks"`); v1 still has the
-		// literal aria-label. Accept either so this keeps asserting the routes
-		// stay separate rather than how their labels are authored.
 		const labelled = (source: string, label: string) =>
-			source.includes(`aria-label="${label}"`) ||
 			source.includes(`message: "${label}"`);
 
 		for (const source of sidebarSources) {

@@ -130,8 +130,6 @@ export default defineConfig({
 					"terminal-host": resolve("src/main/terminal-host/index.ts"),
 					// PTY subprocess - spawned by terminal-host for each terminal
 					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
-					// Worker-thread entrypoint for heavy git/status computations
-					"git-task-worker": resolve("src/main/git-task-worker.ts"),
 					// Workspace service - local HTTP/tRPC server per org
 					"host-service": resolve("src/main/host-service/index.ts"),
 					// pty-daemon - long-lived per-org Unix-socket server that owns PTYs.

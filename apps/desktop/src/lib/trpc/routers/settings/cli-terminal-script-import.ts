@@ -2,7 +2,7 @@ import type { TerminalPreset } from "@superset/local-db";
 
 /**
  * A row the CLI flagged for this organization: either a new/edited script to
- * copy into v2 (cliImportPending) or a tombstone whose v2 copy must go
+ * copy into the app (cliImportPending) or a tombstone whose in-app copy must go
  * (cliDeletePending).
  */
 export function isPendingCliTerminalScript(
@@ -16,10 +16,10 @@ export function isPendingCliTerminalScript(
 }
 
 /**
- * Settle the one-shot CLI markers once v2 has applied them. Imported rows
+ * Settle the one-shot CLI markers once the app has applied them. Imported rows
  * stay in the legacy store (v1 keeps showing them, same as presets brought
  * over by the v1 import modal); only the marker goes, so a script deleted in
- * v2 is never re-imported. Tombstones are dropped entirely: the user deleted
+ * the app is never re-imported. Tombstones are dropped entirely: the user deleted
  * the script, and `superset scripts list` reads this store.
  */
 export function acknowledgeCliTerminalScripts({

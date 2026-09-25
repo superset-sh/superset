@@ -1,4 +1,1 @@
-export {
-	type PageHeaderTarget,
-	usePageHeaderData,
-} from "./usePageHeaderData";
+export { usePageHeaderData } from "./usePageHeaderData";

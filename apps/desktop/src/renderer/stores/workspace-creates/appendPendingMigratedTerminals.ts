@@ -13,10 +13,10 @@ export function appendPendingMigratedTerminals(
 	terminals: PendingMigratedTerminal[],
 ): void {
 	if (terminals.length === 0) return;
-	if (!collections.v2WorkspaceLocalState.get(workspace.id)) {
+	if (!collections.workspaceLocalState.get(workspace.id)) {
 		writeWorkspacePaneLayout(collections, workspace, [], []);
 	}
-	collections.v2WorkspaceLocalState.update(workspace.id, (draft) => {
+	collections.workspaceLocalState.update(workspace.id, (draft) => {
 		const existing = draft.pendingMigratedTerminals ?? [];
 		const seen = new Set(existing.map((t) => t.terminalId));
 		draft.pendingMigratedTerminals = [

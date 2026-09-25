@@ -14,25 +14,9 @@ export const SUPERSET_DIR_NAME = workspace
 export const PROTOCOL_SCHEME = workspace
 	? `superset-${workspace}`
 	: PROTOCOL_SCHEMES.PROD;
-// Project-level directory name (always .superset, not conditional)
-export const PROJECT_SUPERSET_DIR_NAME = ".superset";
-export const WORKTREES_DIR_NAME = "worktrees";
-export const PROJECTS_DIR_NAME = "projects";
-export const CONFIG_FILE_NAME = "config.json";
-export const LOCAL_CONFIG_FILE_NAME = "config.local.json";
-export const PORTS_FILE_NAME = "ports.json";
-
-export const CONFIG_TEMPLATE = `{
-  "setup": [],
-  "teardown": [],
-  "run": []
-}`;
 
 export const NOTIFICATION_EVENTS = {
-	AGENT_LIFECYCLE: "agent-lifecycle",
-	FOCUS_TAB: "focus-tab",
-	FOCUS_V2_NOTIFICATION_SOURCE: "focus-v2-notification-source",
-	TERMINAL_EXIT: "terminal-exit",
+	FOCUS_NOTIFICATION_SOURCE: "focus-notification-source",
 	SETTINGS_EXTERNAL_CHANGE: "settings-external-change",
 } as const;
 
@@ -56,20 +40,9 @@ export const MAX_TERMINAL_PARKED_RUNTIME_CAP =
 
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;
-export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "file-viewer" as const;
 export const DEFAULT_TERMINAL_COPY_ON_SELECT = false;
-export const DEFAULT_FILE_OPEN_MODE = "split-pane" as const;
-export const DEFAULT_AUTO_APPLY_DEFAULT_PRESET = true;
 export const DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT = false;
-export const DEFAULT_SHOW_PRESETS_BAR = true;
-export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;
 export const DEFAULT_SHOW_RESOURCE_MONITOR = true;
 export const DEFAULT_SHOW_USAGE_IN_SIDEBAR = false;
-export const DEFAULT_OPEN_LINKS_IN_APP = false;
 export const DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY = false;
-
-// External links (documentation, help resources, etc.)
-export const EXTERNAL_LINKS = {
-	SETUP_TEARDOWN_SCRIPTS: `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`,
-} as const;

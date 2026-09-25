@@ -15,7 +15,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 
 const DEFAULT_FONT_LOAD_TIMEOUT_MS = 2000;
 
-export interface FontReadyTarget {
+interface FontReadyTarget {
 	fontFamily: string;
 	fontSize: number;
 	timeoutMs?: number;

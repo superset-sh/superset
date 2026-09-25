@@ -5,7 +5,7 @@ export type BulkWorkspaceInspectionState =
 	| { status: "ready"; preview: DestroyWorkspacePreview }
 	| { status: "error" };
 
-export interface BulkWorkspaceInspectionItem {
+interface BulkWorkspaceInspectionItem {
 	workspaceId: string;
 	workspaceName: string;
 	status: "loading" | "error" | "blocked" | "ready";

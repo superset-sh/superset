@@ -30,7 +30,7 @@ interface LaunchCommandInPaneOptions {
 	waitForMountedSession?: boolean;
 }
 
-export function normalizeTerminalCommand(command: string): string {
+function normalizeTerminalCommand(command: string): string {
 	return command.endsWith("\n") ? command : `${command}\n`;
 }
 
@@ -54,7 +54,7 @@ export function buildTerminalCommand(
 	return commands.join(" && ");
 }
 
-export async function writeCommandInPane({
+async function writeCommandInPane({
 	paneId,
 	command,
 	write,
@@ -106,7 +106,7 @@ export async function launchCommandInPane({
 	await writeCommandInPane({ paneId, command, write, noExecute });
 }
 
-export async function ensureTerminalAttached({
+async function ensureTerminalAttached({
 	paneId,
 	tabId,
 	workspaceId,

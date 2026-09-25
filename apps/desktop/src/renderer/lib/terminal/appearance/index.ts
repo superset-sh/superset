@@ -20,7 +20,7 @@ export interface TerminalAppearance {
 	cursorBlink: boolean;
 }
 
-export interface TerminalFontSettings {
+interface TerminalFontSettings {
 	terminalFontFamily?: string | null;
 	terminalFontSize?: number | null;
 	terminalLineHeight?: number | null;
@@ -32,8 +32,7 @@ export interface TerminalFontSettings {
 	terminalCursorBlink?: boolean | null;
 }
 
-export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
-	"--superset-terminal-font-family";
+const TERMINAL_FONT_FAMILY_CSS_VARIABLE = "--superset-terminal-font-family";
 
 export function applyTerminalFontFamilyCssVariable(
 	element: HTMLElement,
@@ -89,7 +88,7 @@ export const NERD_FONT_FALLBACK_FAMILIES = [
 	"Symbols Nerd Font",
 ] as const;
 
-export const DEFAULT_TERMINAL_FONT_FAMILIES = [
+const DEFAULT_TERMINAL_FONT_FAMILIES = [
 	"JetBrains Mono",
 	...NERD_FONT_FALLBACK_FAMILIES,
 	"Menlo",
@@ -104,10 +103,10 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 export const DEFAULT_TERMINAL_LINE_HEIGHT = 1;
-export const DEFAULT_TERMINAL_LETTER_SPACING = 0;
-export const DEFAULT_TERMINAL_FONT_WEIGHT: FontWeight = "normal";
+const DEFAULT_TERMINAL_LETTER_SPACING = 0;
+const DEFAULT_TERMINAL_FONT_WEIGHT: FontWeight = "normal";
 export const DEFAULT_TERMINAL_LIGATURES = true;
-export const DEFAULT_TERMINAL_MINIMUM_CONTRAST = 1;
+const DEFAULT_TERMINAL_MINIMUM_CONTRAST = 1;
 export const DEFAULT_TERMINAL_CURSOR_STYLE = "block" as const;
 export const DEFAULT_TERMINAL_CURSOR_BLINK = true;
 

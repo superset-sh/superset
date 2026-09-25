@@ -141,18 +141,18 @@ export function DashboardSidebarHeader({
 	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
 	const { gateFeature, hasAccess } = usePaywall();
-	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
-	const v2WorkspaceMatch = matchRoute({
-		to: "/v2-workspace/$workspaceId",
+	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
+	const workspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
 		fuzzy: true,
 	});
-	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+	const onWorkspaceRoute = workspaceMatch !== false;
 	// Pre-select the viewed workspace's project in the new-workspace modal.
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const activeProjectId =
-		v2WorkspaceMatch !== false
+		workspaceMatch !== false
 			? (hostWorkspaces.find(
-					(workspace) => workspace.id === v2WorkspaceMatch.workspaceId,
+					(workspace) => workspace.id === workspaceMatch.workspaceId,
 				)?.projectId ?? undefined)
 			: undefined;
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
@@ -190,7 +190,7 @@ export function DashboardSidebarHeader({
 	} = usePullRequestsFilterStore();
 
 	const handleWorkspacesClick = () => {
-		navigate({ to: "/v2-workspaces" });
+		navigate({ to: "/workspaces" });
 	};
 
 	// Automations are Pro, but an org that already has some (a downgrade) can
@@ -267,11 +267,11 @@ export function DashboardSidebarHeader({
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col">
-				{/* On the v2 workspace route the TopBar is hidden and the pane tab
+				{/* On the workspace route the TopBar is hidden and the pane tab
 				    bar is the only top row, so the rail continues that bar across
 				    its own width: same height, background, and bottom border as the
 				    tab bar, doubling as traffic-light headroom and a drag region. */}
-				{onV2WorkspaceRoute && (
+				{onWorkspaceRoute && (
 					<div
 						// w +1px: overlaps the container's border-r so the sidebar's
 						// vertical border starts below the bar, not inside it. The fill

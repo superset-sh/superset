@@ -65,7 +65,7 @@ type MentionState = {
 	clientRect: (() => DOMRect | null) | null;
 };
 
-export interface TiptapPromptEditorProps {
+interface TiptapPromptEditorProps {
 	cwd: string;
 	searchFiles: SearchFilesFn;
 	previewSlashCommand?: PreviewSlashCommandFn;

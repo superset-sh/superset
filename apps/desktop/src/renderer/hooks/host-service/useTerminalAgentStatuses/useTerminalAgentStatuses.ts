@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useV2NotificationStore } from "renderer/stores/v2-notifications";
+import { useNotificationStore } from "renderer/stores/notifications";
 import type { PaneStatus } from "shared/tabs-types";
 import { useTerminalAgentBindings } from "../useTerminalAgentBindings";
 import { deriveTerminalAgentStatus } from "./deriveTerminalAgentStatus";
@@ -15,9 +15,7 @@ export function useTerminalAgentStatuses(
 	options?: { enabled?: boolean },
 ): Map<string, PaneStatus> {
 	const bindings = useTerminalAgentBindings(workspaceId, options);
-	const terminalSeenAt = useV2NotificationStore(
-		(state) => state.terminalSeenAt,
-	);
+	const terminalSeenAt = useNotificationStore((state) => state.terminalSeenAt);
 
 	return useMemo(() => {
 		const map = new Map<string, PaneStatus>();

@@ -1,4 +1,1 @@
-export {
-	getProjectChildrenSections,
-	getProjectChildrenWorkspaces,
-} from "./projectChildren";
+export { getProjectChildrenWorkspaces } from "./projectChildren";

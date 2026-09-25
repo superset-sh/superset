@@ -24,7 +24,7 @@ export function getSoundPath(filename: string): string {
  * In preview mode, uses __dirname (dist/main) to reliably resolve to dist/resources/sounds,
  * avoiding dependency on app.getAppPath() or process.cwd() which may vary.
  */
-export function getSoundsDirectory(): string {
+function getSoundsDirectory(): string {
 	if (app.isPackaged) {
 		// Production: unpacked from asar for external audio players
 		return join(process.resourcesPath, "app.asar.unpacked/resources/sounds");

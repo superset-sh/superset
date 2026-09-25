@@ -109,8 +109,8 @@ export function resolveDevWorkspaceName(
 	const workspaceNameFromPath =
 		deriveWorkspaceNameFromWorktreeSegments(segments);
 	const worktreePath = getWorktreePathFromSegments(segments);
-	// v2 workspaces (and their AI/manual renames) live in host.db; the
-	// local.db lookups below serve worktrees created by the v1 desktop.
+	// Workspaces (and their AI/manual renames) live in host.db; the local.db
+	// lookups below serve worktrees created by the legacy v1 desktop.
 	const workspaceNameFromDb = worktreePath
 		? (getWorkspaceNameFromHostDbs(
 				worktreePath,

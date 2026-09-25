@@ -1,5 +1,1 @@
-export {
-	getWorkspaceActivityTime,
-	sortDashboardSidebarProjectChildren,
-	sortDashboardSidebarProjects,
-} from "./sortDashboardSidebarProjects";
+export { sortDashboardSidebarProjects } from "./sortDashboardSidebarProjects";

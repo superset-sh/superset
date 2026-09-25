@@ -14,7 +14,7 @@ import type { FileMentionResult, FileMentionSearchFn } from "./types";
 
 const fileMentionSuggestionKey = new PluginKey("markdownEditorFileMention");
 
-export interface FileMentionSuggestionOptions {
+interface FileMentionSuggestionOptions {
 	searchFiles: FileMentionSearchFn | null;
 }
 

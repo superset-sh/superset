@@ -19,6 +19,7 @@ export function PostHogUserIdentifier() {
 			email: user.email,
 			name: user.name,
 			desktop_version: window.App.appVersion,
+			surface: "v2",
 			...(createdAt ? { created_at: createdAt } : {}),
 		});
 		if (createdAt) {

@@ -128,5 +128,3 @@ export const createAuthRouter = () => {
 		}),
 	});
 };
-
-export type AuthRouter = ReturnType<typeof createAuthRouter>;

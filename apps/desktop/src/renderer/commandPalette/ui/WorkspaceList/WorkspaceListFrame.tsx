@@ -9,136 +9,20 @@ import { cn } from "@superset/ui/utils";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { CgLaptop } from "react-icons/cg";
-import { LuGitBranch, LuLaptop, LuMonitor } from "react-icons/lu";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	navigateToV2Workspace,
-	navigateToWorkspace,
-} from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { useAccessibleV2Workspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
-import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
+import { LuLaptop, LuMonitor } from "react-icons/lu";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useAccessibleWorkspaces } from "renderer/routes/_authenticated/_dashboard/workspaces/hooks/useAccessibleWorkspaces";
+import { getWorkspaceDisplayName } from "renderer/utils/getWorkspaceDisplayName";
 import { useFrameStackStore } from "../../core/frames";
 import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
-
-interface V1WorkspaceItem {
-	id: string;
-	name: string;
-	branch: string;
-	projectName: string;
-	projectColor: string;
-}
-
-interface V1ProjectGroup {
-	projectId: string;
-	projectName: string;
-	workspaces: V1WorkspaceItem[];
-}
 
 const ROW_CLASS =
 	"gap-2.5 !py-2.5 text-sm [&_svg]:!size-4 [&_svg]:stroke-[1.5]";
 
-function matchesQuery(
-	workspace: Pick<V1WorkspaceItem, "name" | "branch" | "projectName">,
-	query: string,
-): boolean {
-	if (!query) return true;
-	const normalized = query.toLowerCase();
-	return (
-		workspace.name.toLowerCase().includes(normalized) ||
-		workspace.branch.toLowerCase().includes(normalized) ||
-		workspace.projectName.toLowerCase().includes(normalized)
-	);
-}
-
 export function WorkspaceListFrame() {
-	const rawQuery = useCommandPaletteQuery();
-	const query = rawQuery.trim();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
-
-	return isV2CloudEnabled ? (
-		<V2WorkspaceList query={query} />
-	) : (
-		<V1WorkspaceList query={query} />
-	);
-}
-
-function V1WorkspaceList({ query }: { query: string }) {
-	const { data: groups = [] } =
-		electronTrpc.workspaces.getAllGrouped.useQuery();
-	const currentPath = useLocation({ select: (loc) => loc.pathname });
-	const navigate = useNavigate();
-	const setOpen = useFrameStackStore((s) => s.setOpen);
-
-	const projectGroups = useMemo<V1ProjectGroup[]>(() => {
-		return groups.flatMap((group) => {
-			const workspaces = group.workspaces
-				.map((workspace) => ({
-					id: workspace.id,
-					name: workspace.name,
-					branch: workspace.branch ?? workspace.name,
-					projectName: group.project.name,
-					projectColor: group.project.color,
-				}))
-				.filter((workspace) => matchesQuery(workspace, query));
-
-			if (workspaces.length === 0) return [];
-			return [
-				{
-					projectId: group.project.id,
-					projectName: group.project.name,
-					workspaces,
-				},
-			];
-		});
-	}, [groups, query]);
-
-	const handleSelect = (workspaceId: string) => {
-		void navigateToWorkspace(workspaceId, navigate);
-		setOpen(false);
-	};
-
-	return (
-		<CommandList>
-			<CommandEmpty>
-				<Trans>No workspaces found.</Trans>
-			</CommandEmpty>
-			{projectGroups.map((group) => (
-				<CommandGroup key={group.projectId} heading={group.projectName}>
-					{group.workspaces.map((workspace) => (
-						<CommandItem
-							key={workspace.id}
-							value={`workspace ${workspace.id} ${workspace.projectName} ${workspace.name} ${workspace.branch}`}
-							onSelect={() => handleSelect(workspace.id)}
-							className={cn(
-								ROW_CLASS,
-								currentPath === `/workspace/${workspace.id}` && "bg-accent/50",
-							)}
-						>
-							<span className="flex w-4 shrink-0 items-center justify-center">
-								<span
-									className="size-2 rounded-full"
-									style={{ background: workspace.projectColor }}
-								/>
-							</span>
-							<span className="min-w-0 flex-1 truncate font-normal">
-								{workspace.name}
-							</span>
-							<span className="flex min-w-0 max-w-48 items-center gap-1 text-muted-foreground text-xs">
-								<LuGitBranch className="!size-3 shrink-0" />
-								<span className="truncate">{workspace.branch}</span>
-							</span>
-						</CommandItem>
-					))}
-				</CommandGroup>
-			))}
-		</CommandList>
-	);
-}
-
-function V2WorkspaceList({ query }: { query: string }) {
 	const { t } = useLingui();
-	const { all: workspaces } = useAccessibleV2Workspaces({
+	const query = useCommandPaletteQuery().trim();
+	const { all: workspaces } = useAccessibleWorkspaces({
 		searchQuery: query,
 	});
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
@@ -174,7 +58,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 	}, [workspaces, t]);
 
 	const handleSelect = (workspaceId: string) => {
-		void navigateToV2Workspace(workspaceId, navigate);
+		void navigateToWorkspace(workspaceId, navigate);
 		setOpen(false);
 	};
 
@@ -188,7 +72,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 					{group.workspaces.map((workspace) => {
 						const HostIcon =
 							workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
-						const displayName = getV2WorkspaceDisplayName(workspace);
+						const displayName = getWorkspaceDisplayName(workspace);
 						return (
 							<CommandItem
 								key={workspace.id}
@@ -196,7 +80,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 								onSelect={() => handleSelect(workspace.id)}
 								className={cn(
 									ROW_CLASS,
-									currentPath === `/v2-workspace/${workspace.id}` &&
+									currentPath === `/workspace/${workspace.id}` &&
 										"bg-accent/50",
 								)}
 							>

@@ -6,7 +6,7 @@ import { failureDiagnostic } from "../../lib/failure-diagnostic/failure-diagnost
 import { reportRendererError } from "../../lib/report-renderer-error";
 import { FailureLayout } from "../FailureLayout";
 
-export interface RendererErrorBoundaryProps {
+interface RendererErrorBoundaryProps {
 	children: ReactNode;
 }
 

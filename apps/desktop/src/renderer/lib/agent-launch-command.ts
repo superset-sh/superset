@@ -1,7 +1,7 @@
 import { parse } from "shell-quote";
 import { joinCommandArgsWithEnv, parseLaunchCommandString } from "./argv";
 
-export interface AgentLaunchConfig {
+interface AgentLaunchConfig {
 	id?: string;
 	presetId?: string;
 	command: string;
@@ -9,7 +9,7 @@ export interface AgentLaunchConfig {
 	env?: Record<string, string>;
 }
 
-export interface AgentCommandPatch {
+interface AgentCommandPatch {
 	command: string;
 	args: string[];
 	env: Record<string, string>;

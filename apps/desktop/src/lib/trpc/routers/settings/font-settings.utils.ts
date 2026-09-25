@@ -69,7 +69,7 @@ export const setFontSettingsSchema = z.object({
 	editorLigatures: z.boolean().nullable().optional(),
 });
 
-export type SetFontSettingsInput = z.infer<typeof setFontSettingsSchema>;
+type SetFontSettingsInput = z.infer<typeof setFontSettingsSchema>;
 
 export function transformFontSettings(
 	input: SetFontSettingsInput,

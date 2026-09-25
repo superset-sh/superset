@@ -44,7 +44,7 @@ function getTerminalTitleOverrides(
 	return overrides;
 }
 
-export interface UseResourceSnapshotResult {
+interface UseResourceSnapshotResult {
 	snapshot: ResourceMetricsSnapshot | null;
 	refetch: () => void;
 	isFetching: boolean;
@@ -54,21 +54,18 @@ export interface UseResourceSnapshotResult {
 
 /**
  * Polls the resource-metrics snapshot (2s interval) while mounted and
- * normalizes it, enriching v2 rows with project/workspace names and terminal
+ * normalizes it, enriching rows with project/workspace names and terminal
  * title overrides. Only mount this while a resource view is visible — the
  * polling stops when the consumer unmounts.
  */
-export function useResourceSnapshot(
-	surface: "v1" | "v2",
-): UseResourceSnapshotResult {
+export function useResourceSnapshot(): UseResourceSnapshotResult {
 	const collections = useCollections();
-	const isV2 = surface === "v2";
 	const organizationId = useActiveOrganizationId() ?? undefined;
 
 	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ sp: collections.v2SidebarProjects })
+				.from({ sp: collections.sidebarProjects })
 				.orderBy(({ sp }) => sp.tabOrder, "asc")
 				.select(({ sp }) => ({ projectId: sp.projectId })),
 		[collections],
@@ -77,7 +74,7 @@ export function useResourceSnapshot(
 	const { data: rawSidebarWorkspaces = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ ws: collections.v2WorkspaceLocalState })
+				.from({ ws: collections.workspaceLocalState })
 				.orderBy(({ ws }) => ws.sidebarState.tabOrder, "asc")
 				.select(({ ws }) => ({
 					workspaceId: ws.workspaceId,
@@ -107,7 +104,7 @@ export function useResourceSnapshot(
 
 	// Projects are fully local — identity comes from the host fan-out.
 	const { projects: hostProjects } = useHostProjects();
-	const rawV2Projects = useMemo(
+	const rawProjects = useMemo(
 		() =>
 			hostProjects.map((project) => ({
 				id: project.projectKey,
@@ -116,7 +113,7 @@ export function useResourceSnapshot(
 		[hostProjects],
 	);
 
-	const { workspaces: rawV2Workspaces } = useHostWorkspaces();
+	const { workspaces: rawWorkspaces } = useHostWorkspaces();
 
 	const shouldQueryMetrics = shouldQueryResourceMonitor({
 		enabled: true,
@@ -130,7 +127,6 @@ export function useResourceSnapshot(
 	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(
 		{
 			mode: "interactive",
-			surface,
 			organizationId,
 		},
 		{
@@ -141,31 +137,31 @@ export function useResourceSnapshot(
 
 	useEffect(() => {
 		if (!isFetching) return;
-		logStressEvent("resource-monitor.fetch", { surface });
-	}, [isFetching, surface]);
+		logStressEvent("resource-monitor.fetch");
+	}, [isFetching]);
 
 	const normalizedSnapshot = useMemo(() => {
 		const normalized = normalizeResourceMetricsSnapshot(snapshot);
-		if (!normalized || !isV2) return normalized;
+		if (!normalized) return normalized;
 
 		const projectById = new Map(
-			rawV2Projects.map((project) => [project.id, project]),
+			rawProjects.map((project) => [project.id, project]),
 		);
 		const workspaceById = new Map(
-			rawV2Workspaces.map((workspace) => [workspace.id, workspace]),
+			rawWorkspaces.map((workspace) => [workspace.id, workspace]),
 		);
 
 		return {
 			...normalized,
 			workspaces: normalized.workspaces.map((workspace) => {
-				const v2Workspace = workspaceById.get(workspace.workspaceId);
-				const projectId = v2Workspace?.projectId ?? workspace.projectId;
+				const hostWorkspace = workspaceById.get(workspace.workspaceId);
+				const projectId = hostWorkspace?.projectId ?? workspace.projectId;
 				const project = projectById.get(projectId);
 				return {
 					...workspace,
 					projectId,
 					projectName: project?.name ?? workspace.projectName,
-					workspaceName: v2Workspace?.name ?? workspace.workspaceName,
+					workspaceName: hostWorkspace?.name ?? workspace.workspaceName,
 					sessions: workspace.sessions.map((session) => ({
 						...session,
 						title:
@@ -176,7 +172,7 @@ export function useResourceSnapshot(
 				};
 			}),
 		};
-	}, [snapshot, isV2, rawV2Projects, rawV2Workspaces, terminalTitleOverrides]);
+	}, [snapshot, rawProjects, rawWorkspaces, terminalTitleOverrides]);
 
 	return {
 		snapshot: normalizedSnapshot,

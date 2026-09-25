@@ -1,6 +1,6 @@
 import type { AgentModelOption } from "@superset/shared/agent-models";
 
-export interface AgentModelOptionGroup {
+interface AgentModelOptionGroup {
 	/** null renders the options with no header, as one leading block. */
 	label: string | null;
 	options: AgentModelOption[];

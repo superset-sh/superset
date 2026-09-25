@@ -39,13 +39,6 @@ function startLocaleProbe(): void {
 	);
 }
 
-/**
- * Current hook protocol version.
- * Increment when making breaking changes to the hook protocol.
- * The server logs this for debugging version mismatches.
- */
-export const HOOK_PROTOCOL_VERSION = "2";
-
 export const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
 export const SHELL_CRASH_THRESHOLD_MS = 1000;
 
@@ -486,11 +479,8 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
-		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
-		// Hook protocol version for forward compatibility
-		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 	};
 
 	delete terminalEnv.GOOGLE_API_KEY;

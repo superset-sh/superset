@@ -5,11 +5,11 @@ import {
 } from "@tanstack/react-db";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
-	healV2UserPreferences,
+	healUserPreferences,
 	healWorkspaceLocalState,
+	type UserPreferencesRow,
+	userPreferencesSchema,
 	V2_USER_PREFERENCES_ID,
-	type V2UserPreferencesRow,
-	v2UserPreferencesSchema,
 	type WorkspaceLocalStateRow,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
@@ -111,7 +111,7 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 	it("exposes healed rows when storage holds a pre-schema-add shape", async () => {
 		const { store, api: storage } = makeMapStorage();
 		// Pre-populate storage with the exact shape that crashed buildHint:
-		// a v2-user-preferences row missing `sidebarFileLinks`.
+		// a user-preferences row missing `sidebarFileLinks`.
 		const stale = {
 			id: "preferences",
 			fileLinks: { plain: null, shift: null, meta: "pane", metaShift: null },
@@ -134,12 +134,12 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 					{
 						id: "test-prefs",
 						storageKey: "test-prefs",
-						schema: v2UserPreferencesSchema,
-						getKey: (item: V2UserPreferencesRow) => item.id as string,
+						schema: userPreferencesSchema,
+						getKey: (item: UserPreferencesRow) => item.id as string,
 						storage,
 						storageEventApi: noopEvents,
 					},
-					healV2UserPreferences,
+					healUserPreferences,
 				),
 			),
 		);
@@ -177,7 +177,7 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 			localStorageCollectionOptions({
 				id: "test-prefs-naked",
 				storageKey: "test-prefs-naked",
-				schema: v2UserPreferencesSchema,
+				schema: userPreferencesSchema,
 				getKey: (item) => item.id as string,
 				storage,
 				storageEventApi: noopEvents,
@@ -289,9 +289,9 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 	});
 });
 
-describe("healV2UserPreferences hiddenBuiltinPresetIds pruning", () => {
+describe("healUserPreferences hiddenBuiltinPresetIds pruning", () => {
 	it("drops ids that are not known built-in presets", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			id: "preferences",
 			hiddenBuiltinPresetIds: ["superset-cli", "retired-preset"],
 		});
@@ -299,7 +299,7 @@ describe("healV2UserPreferences hiddenBuiltinPresetIds pruning", () => {
 	});
 
 	it("defaults a malformed value to an empty array", () => {
-		const healed = healV2UserPreferences({
+		const healed = healUserPreferences({
 			id: "preferences",
 			hiddenBuiltinPresetIds: "superset-cli",
 		});

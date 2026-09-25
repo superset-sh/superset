@@ -19,9 +19,9 @@ export class WorkerTaskError extends Error {
 }
 
 /** Why the runner gave up on a task on purpose; none of these is a worker failure. */
-export type WorkerTaskAbortKind = "disposed" | "superseded" | "cancelled";
+type WorkerTaskAbortKind = "disposed" | "superseded" | "cancelled";
 
-export class WorkerTaskAbortedError extends Error {
+class WorkerTaskAbortedError extends Error {
 	public readonly kind: WorkerTaskAbortKind;
 
 	constructor(kind: WorkerTaskAbortKind, message = "Worker task aborted") {
@@ -526,5 +526,3 @@ export class WorkerTaskRunner {
 		return this.tasks.size > 0 || this.queue.length > 0;
 	}
 }
-
-export type { WorkerTaskOptions };

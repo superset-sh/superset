@@ -2,7 +2,6 @@ import { cn } from "@superset/ui/utils";
 import type { ActivePaneStatus } from "shared/tabs-types";
 
 // Re-export for consumers
-export type { ActivePaneStatus } from "shared/tabs-types";
 
 /** Lookup object for status indicator styling - avoids if/else chains */
 const STATUS_CONFIG = {

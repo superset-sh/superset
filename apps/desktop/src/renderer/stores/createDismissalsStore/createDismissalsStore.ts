@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-export interface DismissalsStore {
+interface DismissalsStore {
 	/** Map of id → epoch ms when it was dismissed. */
 	dismissedAt: Record<string, number>;
 	dismiss: (id: string) => void;

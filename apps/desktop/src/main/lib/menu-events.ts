@@ -13,10 +13,6 @@ export interface OpenSettingsEvent {
 	section?: SettingsSection;
 }
 
-export interface OpenWorkspaceEvent {
-	workspaceId: string;
-}
-
 const SUBSCRIBERS_PER_WINDOW = 5;
 const WINDOW_CEILING = 20;
 

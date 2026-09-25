@@ -1,1 +1,0 @@
-export { WorkspaceSidebar } from "./WorkspaceSidebar";

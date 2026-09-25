@@ -9,7 +9,6 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CheckResourcesHotkeyMount } from "renderer/commandPalette";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type SettingsSection,
@@ -113,7 +112,6 @@ const NON_ROUTABLE_ESCAPE_PARENTS = new Set([
 
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const mobileEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
@@ -128,14 +126,13 @@ function SettingsLayout() {
 	const contentRef = useScrollReset<HTMLDivElement>(location.pathname);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
-	// Variant-filtered like the sidebar's per-section counts, so hidden
-	// v1-/v2-only items are never reported as matches.
+	// Filtered like the sidebar's per-section counts, so hidden items are
+	// never reported as matches.
 	const matchCounts = useMemo(
 		() =>
 			isSearchActive
 				? getVisibleMatchCountBySection(
 						normalizedSearchQuery,
-						isV2CloudEnabled,
 						cloudWorkspacesEnabled,
 						mobileEnabled,
 					)
@@ -143,7 +140,6 @@ function SettingsLayout() {
 		[
 			isSearchActive,
 			normalizedSearchQuery,
-			isV2CloudEnabled,
 			cloudWorkspacesEnabled,
 			mobileEnabled,
 		],

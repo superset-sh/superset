@@ -10,7 +10,6 @@ const getSnapshotInputSchema = z
 	.object({
 		mode: z.enum(["interactive", "idle"]).optional(),
 		force: z.boolean().optional(),
-		surface: z.enum(["v1", "v2"]).optional(),
 		organizationId: z.string().optional(),
 	})
 	.optional();
@@ -24,7 +23,6 @@ export const createResourceMetricsRouter = () => {
 				const snapshot = await collectResourceMetrics({
 					mode: input?.mode,
 					force: input?.force,
-					surface: input?.surface,
 					organizationId: input?.organizationId,
 				});
 				const validation = validateResourceMetricsSnapshot(snapshot);

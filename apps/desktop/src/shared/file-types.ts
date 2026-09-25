@@ -7,7 +7,7 @@ import { getFileExtension, isVideoFile } from "@superset/shared/media-files";
 
 // Re-exported so renderer/main code can keep importing extension helpers from
 // `shared/file-types`; the canonical definitions live in `@superset/shared`.
-export { getFileExtension, isVideoFile };
+export { isVideoFile };
 
 /** Supported image extensions */
 const IMAGE_EXTENSIONS = new Set([
@@ -153,6 +153,3 @@ export function isMarkdownFile(filePath: string): boolean {
 /**
  * Checks if a file supports rendered preview (markdown or image)
  */
-export function hasRenderedPreview(filePath: string): boolean {
-	return isMarkdownFile(filePath) || isImageFile(filePath);
-}

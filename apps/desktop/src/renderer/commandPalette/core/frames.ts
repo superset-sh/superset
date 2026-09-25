@@ -2,7 +2,7 @@ import { track } from "renderer/lib/analytics";
 import { create } from "zustand";
 import type { Command } from "./types";
 
-export interface Frame {
+interface Frame {
 	command: Command;
 }
 

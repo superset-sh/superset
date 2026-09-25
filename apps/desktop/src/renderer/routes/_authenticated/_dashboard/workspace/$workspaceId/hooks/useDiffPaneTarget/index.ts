@@ -1,0 +1,1 @@
+export { useDiffPaneTarget } from "./useDiffPaneTarget";

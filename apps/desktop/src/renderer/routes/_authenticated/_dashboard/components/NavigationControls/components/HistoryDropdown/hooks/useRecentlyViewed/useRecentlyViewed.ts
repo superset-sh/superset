@@ -4,7 +4,7 @@ import { persistentHistory } from "renderer/lib/persistent-hash-history";
 
 export interface RecentlyViewedEntry {
 	path: string;
-	type: "workspace" | "v2-workspace" | "task" | "automation";
+	type: "workspace" | "task" | "automation";
 	entityId: string;
 	timestamp: number;
 }
@@ -22,14 +22,6 @@ function parseResourceEntry(entry: {
 }): RecentlyViewedEntry | null {
 	const pathname = pathnameOf(entry.path);
 
-	const v2WsMatch = pathname.match(/^\/v2-workspace\/([^/]+)/);
-	if (v2WsMatch?.[1])
-		return {
-			path: `/v2-workspace/${v2WsMatch[1]}`,
-			type: "v2-workspace",
-			entityId: v2WsMatch[1],
-			timestamp: entry.timestamp,
-		};
 	const wsMatch = pathname.match(/^\/workspace\/([^/]+)/);
 	if (wsMatch?.[1])
 		return {

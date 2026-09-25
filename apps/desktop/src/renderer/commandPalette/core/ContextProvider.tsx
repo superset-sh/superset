@@ -13,13 +13,12 @@ import {
 	useContext,
 	useMemo,
 } from "react";
-import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
+import { getWorkspaceDisplayName } from "renderer/utils/getWorkspaceDisplayName";
 import type { CommandContext } from "./types";
 
 const Context = createContext<CommandContext | null>(null);
@@ -29,7 +28,6 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const matchRoute = useMatchRoute();
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const openNewWorkspace = useOpenNewWorkspace();
 	const {
 		activeHostUrl,
@@ -46,28 +44,32 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		[navigate],
 	);
 
-	const v2Match = matchRoute({ to: "/v2-workspace/$workspaceId", fuzzy: true });
-	const v2WorkspaceId = v2Match !== false ? v2Match.workspaceId : null;
+	const workspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const routeWorkspaceId =
+		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
 
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const v2Workspace = useMemo(() => {
-		if (!v2WorkspaceId) return null;
-		const workspace = hostWorkspaces.find((w) => w.id === v2WorkspaceId);
+	const hostWorkspace = useMemo(() => {
+		if (!routeWorkspaceId) return null;
+		const workspace = hostWorkspaces.find((w) => w.id === routeWorkspaceId);
 		if (!workspace) return null;
 		return {
 			id: workspace.id,
-			name: getV2WorkspaceDisplayName(workspace),
+			name: getWorkspaceDisplayName(workspace),
 			projectId: workspace.projectId,
 			type: workspace.type,
 			hostId: workspace.hostId,
 		};
-	}, [hostWorkspaces, v2WorkspaceId]);
-	const projectId = v2Workspace?.projectId ?? null;
+	}, [hostWorkspaces, routeWorkspaceId]);
+	const projectId = hostWorkspace?.projectId ?? null;
 
 	const { data: preferredAppRows = [] } = useLiveQuery(
 		(q) =>
 			q
-				.from({ sp: collections.v2SidebarProjects })
+				.from({ sp: collections.sidebarProjects })
 				.where(({ sp }) => eq(sp.projectId, projectId ?? ""))
 				.select(({ sp }) => ({ defaultOpenInApp: sp.defaultOpenInApp })),
 		[collections, projectId],
@@ -82,13 +84,13 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 	const context = useMemo<CommandContext>(
 		() => ({
 			route: { pathname: location.pathname, params: {} },
-			workspace: v2Workspace
+			workspace: hostWorkspace
 				? {
-						id: v2Workspace.id,
-						name: v2Workspace.name,
-						projectId: v2Workspace.projectId ?? undefined,
-						workspaceType: v2Workspace.type,
-						hostId: v2Workspace.hostId ?? undefined,
+						id: hostWorkspace.id,
+						name: hostWorkspace.name,
+						projectId: hostWorkspace.projectId ?? undefined,
+						workspaceType: hostWorkspace.type,
+						hostId: hostWorkspace.hostId ?? undefined,
 						preferredOpenInApp,
 					}
 				: null,
@@ -98,13 +100,12 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			hostServiceStatus,
 			localMachineId: machineId ?? null,
 			notificationSoundsMuted,
-			isV2CloudEnabled,
 			navigate: navigateTo,
 			openNewWorkspace,
 		}),
 		[
 			location.pathname,
-			v2Workspace,
+			hostWorkspace,
 			preferredOpenInApp,
 			activeHostUrl,
 			activeOrganizationId,
@@ -112,7 +113,6 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			hostServiceStatus,
 			machineId,
 			notificationSoundsMuted,
-			isV2CloudEnabled,
 			navigateTo,
 			openNewWorkspace,
 		],

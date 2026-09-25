@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { FakeApiOverrides } from "./fakes";
 
 /**
@@ -7,44 +6,12 @@ import type { FakeApiOverrides } from "./fakes";
  * are the building blocks; `cloudFlows.*` bundles them for whole flows.
  */
 
-interface CloudWorkspace {
-	id: string;
-	projectId: string;
-	branch: string;
-	name: string;
-	type?: "main" | "feature";
-}
-
 export const cloudOk = {
 	hostEnsure:
 		(machineId = "test-machine-1") =>
 		() => ({ machineId }),
 
-	/** Echoes branch/name back with a fresh UUID id per call so repeated
-	 * invocations never collide on the PK. */
-	workspaceCreate:
-		(overrides: Partial<CloudWorkspace> = {}) =>
-		(input: unknown): CloudWorkspace => {
-			const i = input as { branch: string; name: string; projectId: string };
-			return {
-				id: randomUUID(),
-				projectId: i.projectId,
-				branch: i.branch,
-				name: i.name,
-				...overrides,
-			};
-		},
-
-	workspaceDelete: () => () => ({ success: true }),
-
-	/** Returns a feature workspace by default; override `type: "main"` to
-	 *  exercise the main-workspace guard paths. */
-	workspaceGetFromHost:
-		(workspace: { type?: "main" | "feature" } = { type: "feature" }) =>
-		() =>
-			workspace,
-
-	v2ProjectFindByGitHubRemote:
+	projectFindByGitHubRemote:
 		(candidates: Array<{ id: string; name: string }> = []) =>
 		() => ({ candidates }),
 };
@@ -55,19 +22,11 @@ export const cloudOk = {
  * each procedure mock.
  */
 export const cloudFlows = {
-	workspaceCreateOk(overrides: Partial<CloudWorkspace> = {}): FakeApiOverrides {
-		return {
-			"host.ensure.mutate": cloudOk.hostEnsure(),
-			"v2Workspace.create.mutate": cloudOk.workspaceCreate(overrides),
-		};
+	workspaceCreateOk(): FakeApiOverrides {
+		return { "host.ensure.mutate": cloudOk.hostEnsure() };
 	},
 
-	workspaceDeleteOk(
-		options: { type?: "main" | "feature" } = { type: "feature" },
-	): FakeApiOverrides {
-		return {
-			"v2Workspace.getFromHost.query": cloudOk.workspaceGetFromHost(options),
-			"v2Workspace.delete.mutate": cloudOk.workspaceDelete(),
-		};
+	workspaceDeleteOk(): FakeApiOverrides {
+		return {};
 	},
 };

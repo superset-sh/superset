@@ -13,7 +13,7 @@ export type PresetWithUnknownMode = Omit<
 	isDefault?: unknown;
 };
 
-export function normalizeTerminalPreset(
+function normalizeTerminalPreset(
 	preset: PresetWithUnknownMode,
 ): TerminalPreset {
 	const {

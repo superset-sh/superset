@@ -18,7 +18,7 @@ export const workspaceProvider: CommandProvider = {
 	id: "workspace",
 	provide: (context) => {
 		// Not gated on context.workspace — quick-create should work from any
-		// v2 dashboard view (e.g. the workspaces list), not just an open one.
+		// dashboard view (e.g. the workspaces list), not just an open one.
 		const quickCreate: Command = {
 			id: "workspace.quickCreate",
 			title: msg({
@@ -28,7 +28,6 @@ export const workspaceProvider: CommandProvider = {
 			icon: ZapIcon,
 			hotkeyId: "QUICK_CREATE_WORKSPACE",
 			keywords: ["new", "fast"],
-			when: (ctx) => ctx.isV2CloudEnabled,
 			run: (ctx) =>
 				useQuickCreateWorkspaceIntent
 					.getState()

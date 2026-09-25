@@ -84,9 +84,3 @@ export function updateThemeClass(type: "dark" | "light"): void {
 /**
  * Remove all theme CSS variables (reset to stylesheet defaults)
  */
-export function clearThemeVariables(): void {
-	const root = document.documentElement;
-	for (const cssVar of Object.values(UI_COLOR_TO_CSS_VAR)) {
-		root.style.removeProperty(cssVar);
-	}
-}

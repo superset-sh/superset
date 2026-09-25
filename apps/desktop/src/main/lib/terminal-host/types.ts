@@ -367,11 +367,6 @@ export interface TerminalErrorEvent {
 	code?: "WRITE_QUEUE_FULL" | "SUBPROCESS_ERROR" | "WRITE_FAILED" | "UNKNOWN";
 }
 
-export type TerminalEvent =
-	| TerminalDataEvent
-	| TerminalExitEvent
-	| TerminalErrorEvent;
-
 // =============================================================================
 // Request/Response Type Map
 // =============================================================================
@@ -380,24 +375,3 @@ export type TerminalEvent =
 export interface EmptyResponse {
 	success: true;
 }
-
-export type RequestTypeMap = {
-	hello: { request: HelloRequest; response: HelloResponse };
-	createOrAttach: {
-		request: CreateOrAttachRequest;
-		response: CreateOrAttachResponse;
-	};
-	cancelCreateOrAttach: {
-		request: CancelCreateOrAttachRequest;
-		response: EmptyResponse;
-	};
-	write: { request: WriteRequest; response: EmptyResponse };
-	resize: { request: ResizeRequest; response: EmptyResponse };
-	detach: { request: DetachRequest; response: EmptyResponse };
-	signal: { request: SignalRequest; response: EmptyResponse };
-	kill: { request: KillRequest; response: EmptyResponse };
-	killAll: { request: KillAllRequest; response: EmptyResponse };
-	listSessions: { request: undefined; response: ListSessionsResponse };
-	clearScrollback: { request: ClearScrollbackRequest; response: EmptyResponse };
-	shutdown: { request: ShutdownRequest; response: EmptyResponse };
-};

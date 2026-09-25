@@ -1,5 +1,4 @@
 export { DaemonTerminalManager } from "./daemon-manager";
-export type { ColdRestoreInfo, SessionInfo } from "./types";
 
 import { DaemonTerminalManager } from "./daemon-manager";
 

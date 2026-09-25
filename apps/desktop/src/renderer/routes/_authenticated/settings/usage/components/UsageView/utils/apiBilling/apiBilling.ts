@@ -9,7 +9,7 @@ export type AccountCredentialKind = "subscription" | "api_key";
  * keeps a Codex home out of the Claude dot-dir scan (host-service
  * usage/profiles.ts).
  */
-export const API_BILLING_MARKER = ".superset-api-billing";
+const API_BILLING_MARKER = ".superset-api-billing";
 
 /** Where each provider shows API spend, since no quota endpoint exists. */
 export const API_BILLING_LINKS: Record<ManagedAgent, { usage: string }> = {

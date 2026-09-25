@@ -8,8 +8,7 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 /**
  * Experimental toggle for the wait-for-setup agent gate. Self-contained
  * (owns its query and mutation) so it can be moved or removed as a unit —
- * the launch-side gating lives in `buildSetupPaneLaunchRequest` (v1) and the
- * host `workspaces.create` chaining (v2).
+ * the launch-side gating lives in the host `workspaces.create` chaining.
  */
 export function WaitForSetupBeforeAgentSetting() {
 	const { t } = useLingui();
