@@ -17,7 +17,7 @@ export async function generateCloudWorkspaceName(
 	prompt: string,
 ): Promise<string | null> {
 	const cleaned = prompt.replace(/\s+/g, " ").trim();
-	if (!cleaned) return null;
+	if (!cleaned || !env.ANTHROPIC_API_KEY) return null;
 
 	try {
 		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });

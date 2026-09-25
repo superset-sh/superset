@@ -1,5 +1,4 @@
 export {
-	getAgentEnvOverlay,
 	getManagedEnv,
 	hasManagedEnv,
 	resetManagedEnvForTests,

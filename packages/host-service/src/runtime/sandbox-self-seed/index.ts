@@ -1,5 +1,4 @@
 export {
-	answerClaudeApiKeyPrompt,
 	getStartHookState,
 	launchSandboxAgentOnce,
 	readSandboxIdentity,

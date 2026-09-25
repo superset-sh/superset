@@ -44,29 +44,23 @@ closed.
 environment's. Fixed (2026-09-25).** A sandbox's Anthropic or OpenAI credential
 comes from the creator's sign-in (Settings › Agents, per user,
 `agent_credentials`), brokered at the firewall by a rule that fires only on the
-placeholder the agent presents. An environment variable of the same name is the
-app's: it enters the box as itself, its requests pass the firewall untouched,
-and it never becomes an agent credential. When the app's key holds the plain
-name, the sign-in's placeholder reaches the launched agent through the
-`SUPERSET_AGENT_ENV_` overlay, and the box seed answers Claude Code's "use this
-key?" prompt with no for the app's key and yes for the placeholder. Verified against Claude Code 2.1.282 with bogus
-credentials (2026-09-25): with both variables set it picks the API key by
-default, the interactive prompt defaults to "No (recommended)" and stores the
-answer as the key's last 20 characters exactly as the seed writes it, and after
-"No" requests go out with the OAuth token. The answer governs the interactive
-CLI only: `claude -p` and the SDK use an API key in the environment regardless,
-so a headless call a person starts on such a box runs on the app's key. What
-this leaves: a headless `claude -p`, an SDK call, or `codex` typed by hand on a
-box whose environment carries the provider's key runs on that key, the team's
-own app key, because those clients take an environment key without asking; a
-hand-typed `claude` is fine for a subscription sign-in (the terminal carries the
-OAuth placeholder) and asks the person to log in only when their sign-in is an
-API key whose name the app's key already holds; and **Open:** nothing at workspace creation checks that the chosen agent has a
-sign-in, so a person without one gets a box whose agent sits on a login prompt,
-and an automation-created box does the same silently. Rotation of a person's
-credential reaches a running box within one keepalive: the firewall policy is
-live-updatable and every wake and `access` keepalive re-derives and re-applies
-it.
+placeholder the agent presents. An environment variable by one of those names
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`) is ignored:
+it never reaches the box, so nothing that runs there, a launched agent, a
+hand-typed `claude`, a headless `claude -p`, `codex`, the app itself, can bill
+it; the environment sheet and `secrets set` say so. Measured on Claude Code
+2.1.282: with a key beside an OAuth token it takes the key, so leaving the key
+out is the only way a terminal stays on the person's subscription. What this
+costs: an app that needs a provider key cannot get it from the environment in
+a cloud workspace; with an API-key sign-in the app's requests carry the
+placeholder and run on the person's key, with a subscription they fail. Our
+own API tolerates the missing key (workspace naming falls back, the Slack
+agent is off). **Open:** nothing at workspace creation checks that the chosen
+agent has a sign-in, so a person without one gets a box whose agent sits on a
+login prompt, and an automation-created box does the same silently. Rotation
+of a person's credential reaches a running box within one keepalive: the
+firewall policy is live-updatable and every wake and `access` keepalive
+re-derives and re-applies it.
 
 **The GitHub token outlives the clone. Fixed (v2 layout, 2026-09-13).**
 `git clone` with the token in the URL wrote it into `.git/config`, so a

@@ -1644,10 +1644,6 @@ msgstr "Agenci kończą rutynowe zgłoszenia bez interwencji w trakcie zadania."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agenci ładują własny podgląd, sterują interfejsem i dołączają zrzuty ekranu jako dowód, zanim oznaczą pracę jako gotową do przeglądu."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Agenci nigdy nie odczytują {0} tutaj; logują się w Ustawienia › Agenci. Uruchomienie claude -p lub codex bez interfejsu w przestrzeni roboczej nadal obciąża ten klucz."
-
 msgid "Agents running at once"
 msgstr "Agentów uruchomionych naraz"
 
@@ -3486,6 +3482,9 @@ msgstr "Piaskownice w chmurze nie są włączone dla {account}. Poproś zespół
 
 msgid "Cloud workspace"
 msgstr "Obszar roboczy w chmurze"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Chmurowe przestrzenie robocze ignorują tę zmienną. Agenci logują się zamiast tego w Ustawienia › Agenci."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Współzałożyciel i CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Oszczędź 25%"
 
 msgid "Save All"
 msgstr "Zapisz wszystko"
-
-msgid "Save anyway"
-msgstr "Zapisz mimo to"
 
 msgid "Save as environment"
 msgstr "Zapisz jako środowisko"

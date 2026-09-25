@@ -1644,10 +1644,6 @@ msgstr "智能体无需中途干预即可完成常规工单。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "智能体自己加载预览、操作界面，并在标记为待审查之前附上截图证据。"
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "智能体不会读取此处的 {0}；它们在「设置 › 智能体」中登录。在工作区中无界面运行 claude -p 或 codex 仍会计入此密钥的费用。"
-
 msgid "Agents running at once"
 msgstr "同时运行的智能体数"
 
@@ -3486,6 +3482,9 @@ msgstr "{account} 尚未启用云端沙箱。请向 Superset 团队申请访问�
 
 msgid "Cloud workspace"
 msgstr "云端工作区"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "云工作区会忽略此变量。智能体改为在「设置 › 智能体」中登录。"
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "联合创始人兼 CTO，TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "省25%"
 
 msgid "Save All"
 msgstr "全部保存"
-
-msgid "Save anyway"
-msgstr "仍然保存"
 
 msgid "Save as environment"
 msgstr "保存为环境"

@@ -1644,10 +1644,6 @@ msgstr "Agenti dokončí rutinní tickety bez zásahu uprostřed úkolu."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agenti si sami načtou náhled, proklikají UI a přiloží snímky jako důkaz, než práci označí za připravenou k revizi."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Agenti {0} zde nikdy nečtou; přihlašují se v Nastavení › Agenti. Bezobslužné spuštění claude -p nebo codex v pracovním prostoru se přesto účtuje na tento klíč."
-
 msgid "Agents running at once"
 msgstr "Agentů běžících najednou"
 
@@ -3486,6 +3482,9 @@ msgstr "Cloudové sandboxy nejsou pro {account} povoleny. Požádejte tým Super
 
 msgid "Cloud workspace"
 msgstr "Cloudový pracovní prostor"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Cloudové pracovní prostory tuto proměnnou ignorují. Agenti se místo toho přihlašují v Nastavení › Agenti."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Spoluzakladatel a CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Ušetřete 25 %"
 
 msgid "Save All"
 msgstr "Uložit vše"
-
-msgid "Save anyway"
-msgstr "Přesto uložit"
 
 msgid "Save as environment"
 msgstr "Uložit jako prostředí"

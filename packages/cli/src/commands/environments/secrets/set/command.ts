@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
-import { isAgentCredentialEnvName } from "@superset/shared/agent-credentials";
+import { isCloudWorkspaceIgnoredEnvName } from "@superset/shared/agent-credentials";
 import { parseEnvContent } from "@superset/shared/env-file";
 import { command } from "../../../../lib/command";
 import { resolveEnvironment } from "../../../../lib/environments";
@@ -78,12 +78,12 @@ export default command({
 			});
 		}
 		const keys = entries.map((entry) => entry.key);
-		const agentKeys = keys.filter(isAgentCredentialEnvName);
+		const agentKeys = keys.filter(isCloudWorkspaceIgnoredEnvName);
 		const warnings =
 			agentKeys.length === 0
 				? []
 				: [
-						`Agents never read ${agentKeys.join(", ")} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key.`,
+						`Cloud workspaces ignore ${agentKeys.join(", ")}. Agents sign in under Settings › Agents instead.`,
 					];
 		const set =
 			keys.length === 1

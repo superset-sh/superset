@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/react/macro";
-import { isAgentCredentialEnvName } from "@superset/shared/agent-credentials";
+import { isCloudWorkspaceIgnoredEnvName } from "@superset/shared/agent-credentials";
 import {
 	validateSecretKey,
 	validateSecretValue,
@@ -22,6 +22,7 @@ import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiOutlineArrowDownTray,
+	HiOutlineExclamationTriangle,
 	HiOutlineQuestionMarkCircle,
 	HiOutlineTrash,
 	HiPlus,
@@ -73,7 +74,6 @@ export function AddSecretSheet({
 	const [entries, setEntries] = useState<SecretEntry[]>([createEmptyEntry()]);
 	const [sensitive, setSensitive] = useState(true);
 	const [isSaving, setIsSaving] = useState(false);
-	const [warnedKeys, setWarnedKeys] = useState<string[]>([]);
 	const [entryErrors, setEntryErrors] = useState<Record<string, string>>({});
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +104,6 @@ export function AddSecretSheet({
 		if (open) {
 			setEntries([createEmptyEntry()]);
 			setSensitive(true);
-			setWarnedKeys([]);
 		}
 	}, [open]);
 
@@ -242,13 +241,6 @@ export function AddSecretSheet({
 			);
 			return;
 		}
-		const agentKeys = validEntries
-			.map((entry) => entry.key.trim())
-			.filter(isAgentCredentialEnvName);
-		if (agentKeys.length > 0 && warnedKeys.length === 0) {
-			setWarnedKeys(agentKeys);
-			return;
-		}
 
 		setIsSaving(true);
 		try {
@@ -331,7 +323,7 @@ export function AddSecretSheet({
 										className={`flex-1 font-mono text-sm mt-[1px] ${
 											entryErrors[entry.id]
 												? "border-destructive focus-visible:ring-destructive"
-												: warnedKeys.includes(entry.key.trim())
+												: isCloudWorkspaceIgnoredEnvName(entry.key.trim())
 													? "border-warning focus-visible:ring-warning"
 													: ""
 										}`}
@@ -362,19 +354,17 @@ export function AddSecretSheet({
 									<p className="text-xs text-destructive pl-1">
 										{entryErrors[entry.id]}
 									</p>
+								) : isCloudWorkspaceIgnoredEnvName(entry.key.trim()) ? (
+									<p className="flex items-start gap-1.5 text-xs text-warning pl-1">
+										<HiOutlineExclamationTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+										<Trans>
+											Cloud workspaces ignore this variable. Agents sign in
+											under Settings › Agents instead.
+										</Trans>
+									</p>
 								) : null}
 							</div>
 						))}
-
-						{warnedKeys.length > 0 ? (
-							<p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-warning">
-								<Trans>
-									Agents never read {warnedKeys.join(", ")} here; they sign in
-									under Settings › Agents. A headless claude -p or codex run on
-									a workspace still bills this key.
-								</Trans>
-							</p>
-						) : null}
 
 						<Button
 							variant="ghost"
@@ -428,13 +418,7 @@ export function AddSecretSheet({
 						/>
 					</div>
 					<Button onClick={handleSave} disabled={isSaving || !hasValidEntries}>
-						{isSaving ? (
-							"Saving..."
-						) : warnedKeys.length > 0 ? (
-							<Trans>Save anyway</Trans>
-						) : (
-							"Save"
-						)}
+						{isSaving ? "Saving..." : "Save"}
 					</Button>
 				</div>
 			</SheetContent>

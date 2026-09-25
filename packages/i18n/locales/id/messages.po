@@ -1644,10 +1644,6 @@ msgstr "Agen menyelesaikan tiket rutin tanpa intervensi di tengah tugas."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukti tangkapan layar sebelum menandai pekerjaan siap direview."
 
-#. placeholder {0}: warnedKeys.join(", ")
-msgid "Agents never read {0} here; they sign in under Settings › Agents. A headless claude -p or codex run on a workspace still bills this key."
-msgstr "Agen tidak pernah membaca {0} di sini; agen masuk melalui Pengaturan › Agen. Menjalankan claude -p atau codex tanpa antarmuka di workspace tetap ditagihkan ke kunci ini."
-
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 
@@ -3486,6 +3482,9 @@ msgstr "Sandbox cloud belum diaktifkan untuk {account}. Minta akses kepada tim S
 
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
+
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Workspace cloud mengabaikan variabel ini. Agen masuk melalui Pengaturan › Agen sebagai gantinya."
 
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Pendiri bersama & CTO, TrainLoop (YC W25)"
@@ -12798,9 +12797,6 @@ msgstr "Hemat 25%"
 
 msgid "Save All"
 msgstr "Simpan Semua"
-
-msgid "Save anyway"
-msgstr "Tetap simpan"
 
 msgid "Save as environment"
 msgstr "Simpan sebagai environment"
