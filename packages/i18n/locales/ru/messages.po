@@ -1644,6 +1644,9 @@ msgstr "Агенты закрывают рутинные тикеты без в�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Агенты сами открывают свой предпросмотр, управляют интерфейсом и прикладывают скриншоты как доказательство, прежде чем отметить работу готовой к ревью."
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "Агенты никогда не читают эту переменную здесь; они входят в систему в разделе «Настройки › Агенты»."
+
 msgid "Agents running at once"
 msgstr "Агентов запущено одновременно"
 
@@ -17195,9 +17198,6 @@ msgstr "Вашим аккаунтом управляет ваша организ
 
 msgid "Your Agents, Your Accounts"
 msgstr "Ваши агенты, ваши аккаунты"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "Эту переменную читает ваше приложение. Агенты входят в систему в разделе «Настройки › Агенты» и никогда не используют переменную, заданную здесь."
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Ваш браузер не сообщает, какой у вас чип, поэтому это сборка для Apple Silicon. Если у вас Mac на Intel, лучше <0>скачайте сборку для Intel</0>."

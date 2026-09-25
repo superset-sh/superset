@@ -1644,6 +1644,9 @@ msgstr "Agen menyelesaikan tiket rutin tanpa intervensi di tengah tugas."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukti tangkapan layar sebelum menandai pekerjaan siap direview."
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "Agen tidak pernah membaca variabel ini di sini; agen masuk melalui Pengaturan › Agen."
+
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 
@@ -17195,9 +17198,6 @@ msgstr "Akun Anda dikelola oleh organisasi Anda. Hubungi admin Anda untuk membua
 
 msgid "Your Agents, Your Accounts"
 msgstr "Agen Anda, Akun Anda"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "Aplikasi Anda membaca variabel ini. Agen masuk melalui Pengaturan › Agen dan tidak pernah memakai variabel yang diatur di sini."
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Browser Anda tidak melaporkan chip yang Anda gunakan, jadi ini adalah build Apple Silicon. Pada Mac dengan Intel, <0>ambil build Intel</0> sebagai gantinya."

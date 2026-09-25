@@ -1644,6 +1644,9 @@ msgstr "エージェントが定型チケットを途中の介入なしに完了
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "エージェントが自らプレビューを開き、UIを操作し、レビュー待ちにする前にスクリーンショットの証拠を添付します。"
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "エージェントはここの変数を読み取りません。サインインは「設定 › エージェント」で行います。"
+
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
 
@@ -17195,9 +17198,6 @@ msgstr "アカウントは組織によって管理されています。新しい
 
 msgid "Your Agents, Your Accounts"
 msgstr "エージェントもアカウントも、あなたのもの"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "この変数はアプリが読み取ります。エージェントは「設定 › エージェント」でサインインし、ここで設定した変数は使いません。"
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "お使いのブラウザはチップの種類を報告しないため、これはApple Silicon版です。IntelのMacをお使いの場合は、代わりに<0>Intel版を入手</0>してください。"

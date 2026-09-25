@@ -1644,6 +1644,9 @@ msgstr "Agenten erledigen Routine-Tickets ohne Eingriff mitten in der Aufgabe."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agenten laden ihre eigene Vorschau, bedienen die Oberfläche und hängen Screenshots als Beleg an, bevor sie Arbeit als bereit für Review markieren."
 
+msgid "Agents never read this here; they sign in under Settings › Agents."
+msgstr "Agenten lesen diese Variable hier nie; sie melden sich unter Einstellungen › Agenten an."
+
 msgid "Agents running at once"
 msgstr "Gleichzeitig laufende Agenten"
 
@@ -17195,9 +17198,6 @@ msgstr "Dein Konto wird von deiner Organisation verwaltet. Wende dich an deinen 
 
 msgid "Your Agents, Your Accounts"
 msgstr "Deine Agenten, deine Konten"
-
-msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
-msgstr "Diese Variable liest deine App. Agenten melden sich unter Einstellungen › Agenten an und verwenden nie eine hier gesetzte Variable."
 
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Dein Browser meldet nicht, welchen Chip du hast, daher ist dies der Apple-Silicon-Build. Auf einem Intel-Mac solltest du stattdessen <0>den Intel-Build laden</0>."

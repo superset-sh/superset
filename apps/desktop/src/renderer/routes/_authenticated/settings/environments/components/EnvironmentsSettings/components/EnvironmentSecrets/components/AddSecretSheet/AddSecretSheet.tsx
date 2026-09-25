@@ -354,8 +354,8 @@ export function AddSecretSheet({
 								) : isAgentCredentialEnvName(entry.key.trim()) ? (
 									<p className="text-xs text-muted-foreground pl-1">
 										<Trans>
-											Your app reads this. Agents sign in under Settings ›
-											Agents and never use a variable set here.
+											Agents never read this here; they sign in under Settings ›
+											Agents.
 										</Trans>
 									</p>
 								) : null}
