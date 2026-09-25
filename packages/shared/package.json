@@ -28,6 +28,10 @@
 			"types": "./src/automation-matching/index.ts",
 			"default": "./src/automation-matching/index.ts"
 		},
+		"./env-file": {
+			"types": "./src/env-file.ts",
+			"default": "./src/env-file.ts"
+		},
 		"./environment-secrets": {
 			"types": "./src/environment-secrets.ts",
 			"default": "./src/environment-secrets.ts"
