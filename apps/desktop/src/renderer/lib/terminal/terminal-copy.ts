@@ -1,4 +1,4 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { IBufferLine, Terminal as XTerm } from "@xterm/xterm";
 import { writeTerminalClipboard } from "./terminal-clipboard";
 
 type SelectionTerminal = Pick<
@@ -6,58 +6,97 @@ type SelectionTerminal = Pick<
 	"getSelection" | "getSelectionPosition" | "buffer"
 >;
 
-const XTERM_LINEAR_SELECTION_MODES = {
-	normal: 0,
-	word: 1,
-	line: 2,
-} as const;
-
-function hasLinearSelection(terminal: SelectionTerminal): boolean {
-	// xterm exposes bounds publicly, but the selection mode is private in our
-	// pinned version. Preserve raw text if that internal contract changes.
-	const internal = terminal as SelectionTerminal & {
-		_core?: { _selectionService?: { _activeSelectionMode?: number } };
-	};
-	const mode = internal._core?._selectionService?._activeSelectionMode;
-	return (
-		mode === XTERM_LINEAR_SELECTION_MODES.normal ||
-		mode === XTERM_LINEAR_SELECTION_MODES.word ||
-		mode === XTERM_LINEAR_SELECTION_MODES.line
+function isWideWrapSpacer(
+	line: IBufferLine | undefined,
+	nextLine: IBufferLine | undefined,
+	x: number,
+): boolean {
+	// xterm represents Ghostty's spacer_head as an empty cell before a wide glyph.
+	return !!(
+		line &&
+		x === line.length - 1 &&
+		!line.getCell(x)?.getChars() &&
+		nextLine?.isWrapped &&
+		nextLine.getCell(0)?.getWidth() === 2
 	);
 }
 
-export function trimTerminalSelection(
-	selection: string,
-	{ preserveLastLine = false }: { preserveLastLine?: boolean } = {},
-): string {
-	if (!/[^ \t\r\n]/.test(selection)) return selection;
-	const parts = selection.split(/(\r\n|\n)/);
-	return parts
-		.map((part, index) =>
-			index % 2 === 0 && (!preserveLastLine || index < parts.length - 1)
-				? part.replace(/ +$/, "")
-				: part,
-		)
-		.join("");
+export function trimTerminalSelection(selection: string): string {
+	return selection.replace(/ +(?=\r?\n|$)/g, "").replace(/(?:\r?\n)+$/, "");
 }
 
 export function getTerminalSelectionForCopy(
 	terminal: SelectionTerminal,
 ): string {
 	const selection = terminal.getSelection();
-	if (!selection.includes("\n")) return selection;
-	if (!hasLinearSelection(terminal)) return selection;
+	const position = terminal.getSelectionPosition?.();
+	if (!position) return trimTerminalSelection(selection);
 
-	const position = terminal.getSelectionPosition();
-	if (!position || position.start.y === position.end.y) return selection;
+	// xterm only exposes rectangular selection mode through this private field.
+	const internal = terminal as SelectionTerminal & {
+		_core?: { _selectionService?: { _activeSelectionMode?: number } };
+	};
+	const mode = internal._core?._selectionService?._activeSelectionMode;
+	if (mode === undefined || mode < 0 || mode > 3) {
+		return trimTerminalSelection(selection);
+	}
+	const rectangle = mode === 3;
+	const { start } = position;
+	let { end } = position;
 	const buffer = terminal.buffer.active;
-	const endLine = buffer.getLine(position.end.y);
-	if (!endLine) return selection;
-	const remainder = endLine.translateToString(false, position.end.x);
-	const continues = buffer.getLine(position.end.y + 1)?.isWrapped ?? false;
-	return trimTerminalSelection(selection, {
-		preserveLastLine: continues || /[^ ]/.test(remainder),
-	});
+	if (
+		!rectangle &&
+		isWideWrapSpacer(
+			buffer.getLine(end.y),
+			buffer.getLine(end.y + 1),
+			end.x - 1,
+		)
+	) {
+		end = { x: 1, y: end.y + 1 };
+	}
+	let result = "";
+	let blankRows = 0;
+	let blankCells = 0;
+	for (let y = start.y; y <= end.y; y++) {
+		const line = buffer.getLine(y);
+		if (!line?.getCell) return trimTerminalSelection(selection);
+		let startX = rectangle
+			? Math.min(start.x, end.x)
+			: y === start.y
+				? start.x
+				: 0;
+		const endX = rectangle
+			? Math.max(start.x, end.x)
+			: y === end.y
+				? end.x
+				: line.length;
+		if (startX >= endX) continue;
+		if (startX > 0 && line.getCell(startX)?.getWidth() === 0) startX--;
+		const cells: string[] = [];
+		for (let x = startX; x < endX; x++) {
+			const cell = line.getCell(x);
+			if (!cell || cell.getWidth() === 0) continue;
+			if (isWideWrapSpacer(line, buffer.getLine(y + 1), x)) continue;
+			cells.push(cell.getChars());
+		}
+		if (cells.length === 0) continue;
+		if (!cells.some((cell) => cell !== "")) {
+			blankRows++;
+			continue;
+		}
+		result += "\n".repeat(blankRows);
+		blankRows = !buffer.getLine(y + 1)?.isWrapped ? 1 : 0;
+		if (!line.isWrapped) blankCells = 0;
+		for (const cell of cells) {
+			if (cell === "" || cell === " ") {
+				blankCells++;
+			} else {
+				result += " ".repeat(blankCells) + cell;
+				blankCells = 0;
+			}
+		}
+	}
+	return result;
 }
 
 export function installTerminalCopyHandler(
@@ -69,7 +108,8 @@ export function installTerminalCopyHandler(
 
 	const handleCopy = (event: ClipboardEvent) => {
 		const text = getTerminalSelectionForCopy(terminal);
-		if (!text) return;
+		if (!text && !(terminal.hasSelection?.() ?? !!terminal.getSelection()))
+			return;
 		event.preventDefault();
 		if (event.clipboardData) {
 			try {

@@ -537,7 +537,7 @@ describe("terminal replacement history", () => {
 });
 
 describe("terminalRuntimeRegistry copy selection", () => {
-	test("uses the same copy policy without treating selected spaces as no selection", () => {
+	test("uses the same Ghostty whitespace policy", () => {
 		const entries = (
 			terminalRuntimeRegistry as unknown as { entries: Map<string, unknown> }
 		).entries;
@@ -572,7 +572,7 @@ describe("terminalRuntimeRegistry copy selection", () => {
 			);
 			selection = "   ";
 			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
-				"   ",
+				"",
 			);
 		} finally {
 			entries.delete(key);
