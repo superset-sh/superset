@@ -1644,9 +1644,6 @@ msgstr "エージェントが定型チケットを途中の介入なしに完了
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "エージェントが自らプレビューを開き、UIを操作し、レビュー待ちにする前にスクリーンショットの証拠を添付します。"
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "エージェントはここの変数を読み取りません。サインインは「設定 › エージェント」で行います。"
-
 msgid "Agents running at once"
 msgstr "同時に動かしているエージェント数"
 

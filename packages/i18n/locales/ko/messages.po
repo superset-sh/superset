@@ -1644,9 +1644,6 @@ msgstr "에이전트가 작업 중간 개입 없이 일상적인 티켓을 완�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, 리뷰 준비 표시를 하기 전에 스크린샷 증거를 첨부합니다."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "에이전트는 여기의 변수를 읽지 않습니다. 로그인은 설정 › 에이전트에서 합니다."
-
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
 

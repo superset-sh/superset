@@ -1644,9 +1644,6 @@ msgstr "智能体无需中途干预即可完成常规工单。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "智能体自己加载预览、操作界面，并在标记为待审查之前附上截图证据。"
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "智能体不会读取此处的变量；它们在「设置 › 智能体」中登录。"
-
 msgid "Agents running at once"
 msgstr "同时运行的智能体数"
 

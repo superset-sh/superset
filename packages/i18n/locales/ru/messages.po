@@ -1644,9 +1644,6 @@ msgstr "Агенты закрывают рутинные тикеты без в�
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Агенты сами открывают свой предпросмотр, управляют интерфейсом и прикладывают скриншоты как доказательство, прежде чем отметить работу готовой к ревью."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Агенты никогда не читают эту переменную здесь; они входят в систему в разделе «Настройки › Агенты»."
-
 msgid "Agents running at once"
 msgstr "Агентов запущено одновременно"
 

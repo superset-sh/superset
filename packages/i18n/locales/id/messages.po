@@ -1644,9 +1644,6 @@ msgstr "Agen menyelesaikan tiket rutin tanpa intervensi di tengah tugas."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukti tangkapan layar sebelum menandai pekerjaan siap direview."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Agen tidak pernah membaca variabel ini di sini; agen masuk melalui Pengaturan › Agen."
-
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 

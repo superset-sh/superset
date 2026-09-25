@@ -1644,9 +1644,6 @@ msgstr "代理程式無需中途干預即可完成常規工單。"
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查之前附上截圖證據。"
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "代理程式不會讀取此處的變數；它們在「設定 › 代理程式」中登入。"
-
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
 

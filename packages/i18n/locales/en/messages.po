@@ -1644,9 +1644,6 @@ msgstr "Agents complete routine tickets with no mid-task intervention."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Agents never read this here; they sign in under Settings › Agents."
-
 msgid "Agents running at once"
 msgstr "Agents running at once"
 

@@ -1644,9 +1644,6 @@ msgstr "Agents voltooien routinetickets zonder tussentijds ingrijpen."
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewijs toe voordat ze werk klaarzetten voor review."
 
-msgid "Agents never read this here; they sign in under Settings › Agents."
-msgstr "Agents lezen deze variabele hier nooit; ze melden zich aan via Instellingen › Agents."
-
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
 
