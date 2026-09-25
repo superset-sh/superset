@@ -411,7 +411,7 @@ describe("readHarnessTranscript", () => {
 		expect(
 			readHarnessTranscript(
 				{
-					agentId: "codex",
+					agentId: "grok",
 					sessionId,
 					worktreePath,
 				},

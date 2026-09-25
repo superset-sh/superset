@@ -10,8 +10,8 @@ native fork (`claude --resume <id> --fork-session`) and never reads a transcript
 
 | Order | Source | Used when | Quality |
 |---|---|---|---|
-| 1 | Harness store (`readHarnessTranscript`) | Claude, while its session is still bound to the terminal | Every user and assistant turn, no tool output |
-| 2 | PTY stream replay | Every other agent, or no Claude file found | Whatever the 2 MB output ring still holds. A Claude TUI fills it in well under a minute |
+| 1 | Harness store (`readHarnessTranscript`) | Claude or Codex, while its session is still bound to the terminal | Every user and assistant turn, no tool output |
+| 2 | PTY stream replay | Every other agent, or no session file found | Whatever the 2 MB output ring still holds. A Claude TUI fills it in well under a minute |
 | 3 | Visible screen | Nothing retained | One screen |
 
 The result is capped at `TERMINAL_HANDOFF_MAX_CHARS` (36,000, taken from Orca) and marked
@@ -103,8 +103,19 @@ Write `harness-sessions/<harness>.ts` exporting a `HarnessSessionStore` and regi
 
 If the harness's hook payload carries `transcript_path`, the notify hook already forwards it.
 
+### Codex
+
+Codex's hooks send `session_id` (the rollout id) and `transcript_path` like Claude's. Without a
+reported path, `files.locate` walks `<CODEX_HOME or ~/.codex>/sessions/YYYY/MM/DD/` newest first
+for `rollout-<timestamp>-<id>.jsonl`, then the default `~/.codex`, stopping at 2,000 directories.
+`parseTurns` reads `message` items, wrapped in `response_item` or bare as in 2025 rollouts, and
+skips the setup Codex sends as user messages: the rendered AGENTS.md, `<environment_context>`,
+`<recommended_plugins>`, `<skill>` and `<user_instructions>`.
+
 ## Not covered
 
-- Only Claude has `parseTurns`. Codex, OpenCode, pi and the rest hand off from the PTY stream.
+- Only Claude and Codex have `parseTurns`. OpenCode, pi and the rest hand off from the PTY stream.
+- A compressed Codex rollout (`.jsonl.zst`) counts as the session for resume and fork, but is not
+  read for a handoff.
 - Handing over a conversation longer than the 36,000-character cap would need the transcript
   written to a file for the new agent to read, rather than passed inline.
