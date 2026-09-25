@@ -1,14 +1,13 @@
-import { execFile } from "node:child_process";
-import { existsSync, type FSWatcher, watch } from "node:fs";
-import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db/index.ts";
 import { workspaces } from "../db/schema.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
-import { listGitIgnoredDirs } from "../runtime/git/index.ts";
-
-const execFileAsync = promisify(execFile);
+import {
+	scanGitIgnoredDirectories as listGitIgnoredDirs,
+	resolveGitDirectory,
+} from "../runtime/filesystem/watcher-scans.ts";
+import { GitDirectoryWatcher } from "./git-directory-watcher.ts";
 
 const RESCAN_INTERVAL_MS = 30_000;
 
@@ -201,10 +200,11 @@ interface PendingBatch {
 }
 
 interface WatchedWorkspace {
+	controller: AbortController;
 	workspaceId: string;
 	worktreePath: string;
 	gitDir: string;
-	watcher: FSWatcher;
+	watcher: { close: () => void };
 	disposeWorktreeWatch: () => void;
 }
 
@@ -256,10 +256,12 @@ interface IgnoredDirsState {
  * purposes — no separate client-side debounce over `fs:events`.
  */
 export class GitWatcher {
+	private readonly directoryWatcher = new GitDirectoryWatcher();
 	private readonly db: HostDb;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private readonly listeners = new Set<GitChangedListener>();
 	private readonly watched = new Map<string, WatchedWorkspace>();
+	private readonly attaching = new Map<string, AbortController>();
 	/** Refcount of active interest per workspace; watched iff count > 0. */
 	private readonly interest = new Map<string, number>();
 	private readonly debounceTimers = new Map<
@@ -363,8 +365,11 @@ export class GitWatcher {
 	}
 
 	private stopWatching(workspaceId: string): void {
+		this.attaching.get(workspaceId)?.abort();
+		this.attaching.delete(workspaceId);
 		const entry = this.watched.get(workspaceId);
 		if (entry) {
+			entry.controller.abort();
 			entry.watcher.close();
 			entry.disposeWorktreeWatch();
 			this.watched.delete(workspaceId);
@@ -376,6 +381,8 @@ export class GitWatcher {
 
 	close(): void {
 		this.closed = true;
+		for (const controller of this.attaching.values()) controller.abort();
+		this.attaching.clear();
 		if (this.rescanTimer) {
 			clearInterval(this.rescanTimer);
 			this.rescanTimer = null;
@@ -384,10 +391,12 @@ export class GitWatcher {
 			this.discardBatch(workspaceId);
 		}
 		for (const entry of this.watched.values()) {
+			entry.controller.abort();
 			entry.watcher.close();
 			entry.disposeWorktreeWatch();
 			this.notifyWatchState(entry.workspaceId, false);
 		}
+		this.directoryWatcher.close();
 		this.watched.clear();
 		this.ignoredDirs.clear();
 		this.interest.clear();
@@ -435,7 +444,7 @@ export class GitWatcher {
 		state.refreshing = true;
 		const rulesChanged = state.rulesChanged;
 		state.rulesChanged = false;
-		void listGitIgnoredDirs(worktreePath)
+		void listGitIgnoredDirs(worktreePath, entry.controller.signal)
 			.then(async (dirs) => {
 				if (!stillCurrent()) return;
 				state.dirs = new Set(dirs);
@@ -461,6 +470,7 @@ export class GitWatcher {
 				}
 			})
 			.catch((error) => {
+				if (!stillCurrent()) return;
 				console.error("[git-watcher] ignored-dir refresh failed", {
 					workspaceId,
 					error,
@@ -676,32 +686,43 @@ export class GitWatcher {
 		workspaceId: string,
 		worktreePath: string,
 	): Promise<void> {
-		if (this.closed) return;
-
-		// Deleted-out-from-under worktree: skip the exec attempt; the 30s
-		// rescan re-probes and picks the workspace up when the dir returns.
-		if (!existsSync(worktreePath)) return;
-
-		if (this.filesystem.isWatchAttachBackingOff(worktreePath)) return;
-
-		let gitDir: string;
-		try {
-			const { stdout } = await execFileAsync(
-				"git",
-				["rev-parse", "--git-dir"],
-				{ cwd: worktreePath },
-			);
-			gitDir = stdout.trim();
-			// If relative, resolve against worktree path
-			if (!gitDir.startsWith("/")) {
-				gitDir = `${worktreePath}/${gitDir}`;
-			}
-		} catch {
-			// Not a git repo or path doesn't exist — skip
+		if (
+			this.closed ||
+			this.attaching.has(workspaceId) ||
+			this.filesystem.isWatchAttachBackingOff(worktreePath) ||
+			!this.interest.has(workspaceId)
+		)
 			return;
+		const controller = new AbortController();
+		this.attaching.set(workspaceId, controller);
+		try {
+			await this.initializeWatcher(workspaceId, worktreePath, controller);
+		} catch (error) {
+			if (!controller.signal.aborted)
+				console.error("[git-watcher] initialization failed", {
+					workspaceId,
+					error,
+				});
+		} finally {
+			if (this.attaching.get(workspaceId) === controller)
+				this.attaching.delete(workspaceId);
 		}
+	}
 
-		if (this.closed || this.watched.has(workspaceId)) return;
+	private async initializeWatcher(
+		workspaceId: string,
+		worktreePath: string,
+		controller: AbortController,
+	): Promise<void> {
+		const gitDir = await resolveGitDirectory(worktreePath, controller.signal);
+		if (
+			!gitDir ||
+			controller.signal.aborted ||
+			this.closed ||
+			this.watched.has(workspaceId) ||
+			!this.interest.has(workspaceId)
+		)
+			return;
 
 		// Start the worktree watch first so we have a dispose handle to capture
 		// in the .git watcher's error handler closure. This avoids a race where
@@ -719,26 +740,20 @@ export class GitWatcher {
 			},
 		);
 
-		let watcher: FSWatcher;
+		let watcher: { close: () => void };
 		try {
-			watcher = watch(gitDir, { recursive: true }, (_event, filename) => {
-				this.handleGitDirEvent(workspaceId, filename);
-			});
+			watcher = this.directoryWatcher.watch(
+				gitDir,
+				(filename) => this.handleGitDirEvent(workspaceId, filename),
+				() => {
+					if (this.watched.get(workspaceId)?.watcher !== watcher) return;
+					this.stopWatching(workspaceId);
+				},
+			);
 		} catch {
-			// fs.watch failed (e.g. directory doesn't exist)
 			disposeWorktreeWatch();
 			return;
 		}
-
-		watcher.on("error", () => {
-			// Watcher died — clean up so rescan can re-add. Identity-checked: an
-			// error queued on a watcher that unwatch→rewatch already replaced
-			// must not evict the live entry (its resources were released by
-			// stopWatching; closing again is harmless).
-			watcher.close();
-			if (this.watched.get(workspaceId)?.watcher !== watcher) return;
-			this.stopWatching(workspaceId);
-		});
 
 		// Recheck interest: watchWorkspace()/unwatchWorkspace() can flip the
 		// refcount to zero while the DB lookup + `git rev-parse` subprocess
@@ -757,6 +772,7 @@ export class GitWatcher {
 		}
 
 		this.watched.set(workspaceId, {
+			controller,
 			workspaceId,
 			worktreePath,
 			gitDir,
