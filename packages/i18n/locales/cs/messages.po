@@ -189,14 +189,6 @@ msgstr "{0, plural, one {# výsledek na tomto hostu} few {# výsledky na tomto h
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# výsledek} few {# výsledky} many {# výsledku} other {# výsledků}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {# běžící agent — skrýt podrobnosti} few {# běžící agenti — skrýt podrobnosti} many {# běžícího agenta — skrýt podrobnosti} other {# běžících agentů — skrýt podrobnosti}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {# běžící agent — zobrazit podrobnosti} few {# běžící agenti — zobrazit podrobnosti} many {# běžícího agenta — zobrazit podrobnosti} other {# běžících agentů — zobrazit podrobnosti}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {běží # relace} few {běží # relace} many {běží # relace} other {běží # relací}}"
@@ -903,9 +895,6 @@ msgstr "{starCount} hvězd a přibývá"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} hvězd · {perDay}/den tento týden · {peakPerDay}/den ve špičce"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, one {# subagent běží} few {# subagenti běží} many {# subagenta běží} other {# subagentů běží}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Vytvořen # pracovní prostor, {failCount} selhalo} few {Vytvořeny # pracovní prostory, {failCount} selhalo} many {Vytvořeno # pracovního prostoru, {failCount} selhalo} other {Vytvořeno # pracovních prostorů, {failCount} selhalo}}"
@@ -13682,9 +13671,6 @@ msgstr "Zobrazit vyřešené ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Zobrazit komentáře z revize"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "Zobrazovat běžící agenty pod každým pracovním prostorem v postranním panelu, včetně jejich aktuálního stavu."
-
 msgid "Show Scripts Bar"
 msgstr "Zobrazit lištu skriptů"
 
@@ -16943,9 +16929,6 @@ msgstr "Výběr akcentní barvy pracovního prostoru"
 
 msgid "Workspace actions"
 msgstr "Akce pracovního prostoru"
-
-msgid "Workspace agents"
-msgstr "Agenti pracovního prostoru"
 
 msgid "Workspace created"
 msgstr "Pracovní prostor vytvořen"

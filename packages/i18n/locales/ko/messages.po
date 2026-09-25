@@ -189,14 +189,6 @@ msgstr "{0, plural, one {이 호스트에서 결과 #개} other {이 호스트�
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {결과 #개} other {결과 #개}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {실행 중인 에이전트 #개 — 세부 정보 숨기기} other {실행 중인 에이전트 #개 — 세부 정보 숨기기}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {실행 중인 에이전트 #개 — 세부 정보 표시} other {실행 중인 에이전트 #개 — 세부 정보 표시}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {세션 #개 실행 중} other {세션 #개 실행 중}}"
@@ -903,9 +895,6 @@ msgstr "스타 {starCount}개, 계속 늘어나는 중"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "스타 {stars}개 · 이번 주 {perDay}/일 · 최고 {peakPerDay}/일"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다} other {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다}}"
@@ -13682,9 +13671,6 @@ msgstr "해결된 항목 표시 ({resolvedCount})"
 msgid "Show review comments"
 msgstr "리뷰 코멘트 표시"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "사이드바의 워크스페이스마다 실행 중인 에이전트와 실시간 상태를 표시합니다."
-
 msgid "Show Scripts Bar"
 msgstr "스크립트 바 표시"
 
@@ -16943,9 +16929,6 @@ msgstr "워크스페이스 강조 색상 선택기"
 
 msgid "Workspace actions"
 msgstr "워크스페이스 동작"
-
-msgid "Workspace agents"
-msgstr "워크스페이스 에이전트"
 
 msgid "Workspace created"
 msgstr "워크스페이스를 만들었습니다"

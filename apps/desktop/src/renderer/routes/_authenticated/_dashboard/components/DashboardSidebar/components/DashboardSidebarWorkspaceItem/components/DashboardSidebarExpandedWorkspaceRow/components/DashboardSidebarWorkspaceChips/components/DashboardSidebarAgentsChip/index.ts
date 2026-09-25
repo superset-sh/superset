@@ -1,1 +1,0 @@
-export { DashboardSidebarAgentsChip } from "./DashboardSidebarAgentsChip";

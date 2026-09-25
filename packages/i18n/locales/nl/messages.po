@@ -189,14 +189,6 @@ msgstr "{0, plural, one {# resultaat op deze host} other {# resultaten op deze h
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# resultaat} other {# resultaten}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {# actieve agent — details verbergen} other {# actieve agents — details verbergen}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {# actieve agent — details tonen} other {# actieve agents — details tonen}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# sessie actief} other {# sessies actief}}"
@@ -903,9 +895,6 @@ msgstr "{starCount} sterren en het worden er meer"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} sterren · {perDay}/dag deze week · {peakPerDay}/dag op de piek"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, one {# subagent actief} other {# subagents actief}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# werkruimte aangemaakt, {failCount} mislukt} other {# werkruimtes aangemaakt, {failCount} mislukt}}"
@@ -13682,9 +13671,6 @@ msgstr "Opgeloste tonen ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Reviewopmerkingen tonen"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "Toon draaiende agents onder elke werkruimte in de zijbalk, met hun actuele status."
-
 msgid "Show Scripts Bar"
 msgstr "Scriptsbalk tonen"
 
@@ -16943,9 +16929,6 @@ msgstr "Kiezer voor de accentkleur van een werkruimte"
 
 msgid "Workspace actions"
 msgstr "Werkruimte-acties"
-
-msgid "Workspace agents"
-msgstr "Werkruimte-agents"
 
 msgid "Workspace created"
 msgstr "Werkruimte aangemaakt"

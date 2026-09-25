@@ -189,14 +189,6 @@ msgstr "{0, plural, one {此主机上#个结果} other {此主机上#个结果}}
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {#个结果} other {#个结果}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {#个运行中的智能体，隐藏详情} other {#个运行中的智能体，隐藏详情}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {#个运行中的智能体，显示详情} other {#个运行中的智能体，显示详情}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {#个会话运行中} other {#个会话运行中}}"
@@ -903,9 +895,6 @@ msgstr "{starCount}个星标，还在增长"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars}个星标 · 本周{perDay}/天 · 峰值{peakPerDay}/天"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已创建#个工作区，{failCount}个失败} other {已创建#个工作区，{failCount}个失败}}"
@@ -13682,9 +13671,6 @@ msgstr "显示已解决 ({resolvedCount})"
 msgid "Show review comments"
 msgstr "显示评审评论"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "在侧边栏每个工作区下显示正在运行的智能体及其实时状态。"
-
 msgid "Show Scripts Bar"
 msgstr "显示脚本栏"
 
@@ -16943,9 +16929,6 @@ msgstr "工作区强调色选择器"
 
 msgid "Workspace actions"
 msgstr "工作区操作"
-
-msgid "Workspace agents"
-msgstr "工作区智能体"
 
 msgid "Workspace created"
 msgstr "工作区已创建"

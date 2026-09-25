@@ -8,34 +8,23 @@ const { cleanup, fireEvent, render } = await import("@testing-library/react");
 mock.module("renderer/stores/inline-workspace-ports", () => ({
 	useInlineWorkspacePortsEnabled: () => true,
 }));
-mock.module("renderer/stores/workspace-agents-row", () => ({
-	useWorkspaceAgentsRowEnabled: () => true,
-}));
 mock.module(
 	"renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider",
 	() => ({
 		useDashboardSidebarWorkspacePorts: () => ({ ports: [{ port: 3000 }] }),
 	}),
 );
-mock.module("../hooks/useDashboardSidebarWorkspaceRunningAgents", () => ({
-	useDashboardSidebarWorkspaceRunningAgents: () => [
-		{ subagents: [] },
-		{ subagents: [] },
-	],
-}));
-mock.module("../components/DashboardSidebarAgentsChip", () => ({
-	DashboardSidebarAgentsChip: () => (
-		<button type="button">
-			<span>Agents</span>
-			{createPortal(<span>Agent details</span>, document.body)}
-		</button>
-	),
-}));
 mock.module("../components/DashboardSidebarPortsChip", () => ({
 	DashboardSidebarPortsChip: () => (
-		<button type="button" disabled>
-			<span>Ports</span>
-		</button>
+		<>
+			<button type="button">
+				<span>Ports</span>
+				{createPortal(<span>Port details</span>, document.body)}
+			</button>
+			<button type="button" disabled>
+				<span>Busy ports</span>
+			</button>
+		</>
 	),
 }));
 const { DashboardSidebarWorkspaceChips } = await import(
@@ -71,11 +60,11 @@ for (const eventType of ["mouseDown", "touchStart"] as const) {
 
 	test(`${eventType} inside a pill's portaled details does not start dragging`, () => {
 		const { getByText, dragStart } = setup();
-		fireEvent[eventType](getByText("Agent details"));
+		fireEvent[eventType](getByText("Port details"));
 		expect(dragStart).not.toHaveBeenCalled();
 	});
 
-	for (const label of ["Agents", "Ports"]) {
+	for (const label of ["Ports", "Busy ports"]) {
 		test(`${eventType} on ${label} content does not start dragging`, () => {
 			const { getByText, dragStart } = setup();
 			fireEvent[eventType](getByText(label));
@@ -99,6 +88,6 @@ test("empty space still selects the workspace", () => {
 
 test("pill content does not select the workspace", () => {
 	const { getByText, rowClick } = setup();
-	fireEvent.click(getByText("Agents"));
+	fireEvent.click(getByText("Ports"));
 	expect(rowClick).not.toHaveBeenCalled();
 });

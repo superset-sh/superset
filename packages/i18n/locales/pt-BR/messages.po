@@ -189,14 +189,6 @@ msgstr "{0, plural, one {# resultado neste host} other {# resultados neste host}
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# resultado} other {# resultados}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {# agente em execução — ocultar detalhes} other {# agentes em execução — ocultar detalhes}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {# agente em execução — mostrar detalhes} other {# agentes em execução — mostrar detalhes}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# sessão em execução} other {# sessões em execução}}"
@@ -903,9 +895,6 @@ msgstr "{starCount} estrelas e subindo"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} estrelas · {perDay}/dia nesta semana · {peakPerDay}/dia no pico"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, one {# subagente em execução} other {# subagentes em execução}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# área de trabalho criada, {failCount} falharam} other {# áreas de trabalho criadas, {failCount} falharam}}"
@@ -13682,9 +13671,6 @@ msgstr "Mostrar os resolvidos ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Mostrar os comentários de revisão"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "Mostra os agentes em execução sob cada área de trabalho na barra lateral, com o status ao vivo."
-
 msgid "Show Scripts Bar"
 msgstr "Mostrar a barra de scripts"
 
@@ -16943,9 +16929,6 @@ msgstr "Seletor de cor de destaque da área de trabalho"
 
 msgid "Workspace actions"
 msgstr "Ações da área de trabalho"
-
-msgid "Workspace agents"
-msgstr "Agentes da área de trabalho"
 
 msgid "Workspace created"
 msgstr "Área de trabalho criada"

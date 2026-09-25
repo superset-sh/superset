@@ -189,14 +189,6 @@ msgstr "{0, plural, one {Bu host'ta # sonuç} other {Bu host'ta # sonuç}}"
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# sonuç} other {# sonuç}}"
 
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
-msgstr "{0, plural, one {# çalışan ajan — ayrıntıları gizle} other {# çalışan ajan — ayrıntıları gizle}}"
-
-#. placeholder {0}: agents.length
-msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
-msgstr "{0, plural, one {# çalışan ajan — ayrıntıları göster} other {# çalışan ajan — ayrıntıları göster}}"
-
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# oturum çalışıyor} other {# oturum çalışıyor}}"
@@ -903,9 +895,6 @@ msgstr "{starCount} yıldız ve artıyor"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} yıldız · bu hafta {perDay}/gün · zirvede {peakPerDay}/gün"
-
-msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
-msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# çalışma alanı oluşturuldu, {failCount} başarısız} other {# çalışma alanı oluşturuldu, {failCount} başarısız}}"
@@ -13682,9 +13671,6 @@ msgstr "Çözülenleri göster ({resolvedCount})"
 msgid "Show review comments"
 msgstr "İnceleme yorumlarını göster"
 
-msgid "Show running agents under each workspace in the sidebar, with their live status."
-msgstr "Kenar çubuğunda her çalışma alanının altında çalışan ajanları canlı durumlarıyla göster."
-
 msgid "Show Scripts Bar"
 msgstr "Betikler çubuğunu göster"
 
@@ -16943,9 +16929,6 @@ msgstr "Çalışma alanı vurgu rengi seçici"
 
 msgid "Workspace actions"
 msgstr "Çalışma alanı eylemleri"
-
-msgid "Workspace agents"
-msgstr "Çalışma alanı ajanları"
 
 msgid "Workspace created"
 msgstr "Çalışma alanı oluşturuldu"
