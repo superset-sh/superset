@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { isAgentCredentialEnvName } from "@superset/shared/agent-credentials";
 import {
 	validateSecretKey,
 	validateSecretValue,
@@ -348,6 +350,13 @@ export function AddSecretSheet({
 								{entryErrors[entry.id] ? (
 									<p className="text-xs text-destructive pl-1">
 										{entryErrors[entry.id]}
+									</p>
+								) : isAgentCredentialEnvName(entry.key.trim()) ? (
+									<p className="text-xs text-muted-foreground pl-1">
+										<Trans>
+											Your app reads this. Agents sign in under Settings ›
+											Agents and never use a variable set here.
+										</Trans>
 									</p>
 								) : null}
 							</div>

@@ -17196,6 +17196,9 @@ msgstr "Hesabınız kuruluşunuz tarafından yönetiliyor. Yeni bir kuruluş olu
 msgid "Your Agents, Your Accounts"
 msgstr "Sizin ajanlarınız, sizin hesaplarınız"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "Bu değişkeni uygulamanız okur. Ajanlar Ayarlar › Ajanlar bölümünden oturum açar ve burada ayarlanan bir değişkeni asla kullanmaz."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Tarayıcınız hangi yongaya sahip olduğunuzu bildirmediğinden bu, Apple Silicon derlemesidir. Intel Mac kullanıyorsanız bunun yerine <0>Intel derlemesini indirin</0>."
 

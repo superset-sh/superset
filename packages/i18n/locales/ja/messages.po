@@ -17196,6 +17196,9 @@ msgstr "アカウントは組織によって管理されています。新しい
 msgid "Your Agents, Your Accounts"
 msgstr "エージェントもアカウントも、あなたのもの"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "この変数はアプリが読み取ります。エージェントは「設定 › エージェント」でサインインし、ここで設定した変数は使いません。"
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "お使いのブラウザはチップの種類を報告しないため、これはApple Silicon版です。IntelのMacをお使いの場合は、代わりに<0>Intel版を入手</0>してください。"
 

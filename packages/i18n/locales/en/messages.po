@@ -17196,6 +17196,9 @@ msgstr "Your account is managed by your organization. Contact your admin to crea
 msgid "Your Agents, Your Accounts"
 msgstr "Your Agents, Your Accounts"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 

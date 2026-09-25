@@ -17196,6 +17196,9 @@ msgstr "Váš účet spravuje vaše organizace. O vytvoření nové organizace p
 msgid "Your Agents, Your Accounts"
 msgstr "Vaši agenti, vaše účty"
 
+msgid "Your app reads this. Agents sign in under Settings › Agents and never use a variable set here."
+msgstr "Tuto proměnnou čte vaše aplikace. Agenti se přihlašují v Nastavení › Agenti a proměnnou nastavenou zde nikdy nepoužijí."
+
 msgid "Your browser doesn't report which chip you have, so this is the Apple Silicon build. On an Intel Mac, <0>get the Intel build</0> instead."
 msgstr "Váš prohlížeč neuvádí, jaký máte čip, takže toto je build pro Apple Silicon. Na Macu s procesorem Intel si místo toho <0>stáhněte build pro Intel</0>."
 
