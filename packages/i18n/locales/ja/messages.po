@@ -14463,6 +14463,9 @@ msgstr "チームのためのSuperset"
 msgid "Superset has a free tier. The source code is available on GitHub under Elastic License 2.0 (ELv2), so you can inspect and self-host it subject to the license terms."
 msgstr "Supersetには無料プランがあります。ソースコードはElastic License 2.0(ELv2)のもとGitHubで公開されており、ライセンス条件の範囲で内容を確認したりセルフホストしたりできます。"
 
+msgid "Superset has now hired its first founding engineer, Harshith Mullapudi, a YC S23 founder who built two open-source AI products, Tegon and CORE (4k GitHub stars combined), after engineering roles at Airbyte and HackerRank. At CORE he had independently built remote orchestration for Claude Code and Codex, and he is joining Superset to build the platform where teams run software factories that autonomously ship code."
+msgstr "Superset は、初のファウンディングエンジニアとして Harshith Mullapudi を迎えました。Harshith は YC S23 の創業者で、Airbyte と HackerRank でエンジニアを務めた後、2 つのオープンソース AI プロダクト Tegon と CORE（GitHub スター合計 4,000）を開発しました。CORE では Claude Code と Codex のリモートオーケストレーションを独自に構築しており、Superset では、チームが自律的にコードを出荷するソフトウェアファクトリーを運用するためのプラットフォームを開発します。"
+
 msgid "Superset hit an unexpected error. Reload to try again."
 msgstr "Supersetで予期しないエラーが発生しました。再読み込みしてお試しください。"
 

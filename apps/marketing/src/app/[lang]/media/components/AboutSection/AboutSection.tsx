@@ -22,6 +22,17 @@ export function AboutSection() {
 					Product Hunt, and recently launched full Japanese language support.
 				</Trans>
 			</p>
+			<p className="mt-6 text-foreground text-lg leading-relaxed">
+				<Trans>
+					Superset has now hired its first founding engineer, Harshith
+					Mullapudi, a YC S23 founder who built two open-source AI products,
+					Tegon and CORE (4k GitHub stars combined), after engineering roles at
+					Airbyte and HackerRank. At CORE he had independently built remote
+					orchestration for Claude Code and Codex, and he is joining Superset to
+					build the platform where teams run software factories that
+					autonomously ship code.
+				</Trans>
+			</p>
 		</section>
 	);
 }
