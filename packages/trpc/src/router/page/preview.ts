@@ -39,9 +39,10 @@ export interface PreviewReader {
 }
 
 export async function previewAccess(
-	page: Pick<SelectPage, "visibility" | "createdByUserId">,
+	page: Pick<SelectPage, "visibility" | "createdByUserId" | "takenDownAt">,
 	reader: PreviewReader | undefined,
 ): Promise<PagePreviewResult["status"]> {
+	if (page.takenDownAt) return "missing";
 	if (page.visibility === "everyone") return "readable";
 	if (!reader) return "needs_user";
 	if (!(await reader.isMember())) return "missing";

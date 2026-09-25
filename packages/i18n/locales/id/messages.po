@@ -2026,6 +2026,9 @@ msgstr "Siapa saja yang memiliki tautan"
 msgid "anything"
 msgstr "apa saja"
 
+msgid "Anything else? (optional)"
+msgstr "Ada lagi? (opsional)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "Salin kunci Anda sekarang — Anda tidak akan bisa melihatnya lagi."
 
 msgid "Copying configuration"
 msgstr "Menyalin konfigurasi"
+
+msgid "Copyright or trademark"
+msgstr "Hak cipta atau merek dagang"
 
 msgid "Cost"
 msgstr "Biaya"
@@ -7516,6 +7522,9 @@ msgstr "Idle · branch sudah di-push"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Kalau sejauh ini Anda menikmati Superset, satu star GitHub membantu developer lain menemukannya."
 
+msgid "Illegal content"
+msgstr "Konten ilegal"
+
 msgid "Image"
 msgstr "Gambar"
 
@@ -7538,6 +7547,9 @@ msgstr "Pratinjau gambar {0}. Zoom dengan plus dan minus, geser dengan tombol pa
 
 msgid "Images"
 msgstr "Gambar"
+
+msgid "Impersonates someone"
+msgstr "Menyamar sebagai orang lain"
 
 msgid "Import"
 msgstr "Impor"
@@ -8647,6 +8659,9 @@ msgstr "Jadikan gaya chip sebagai bawaan TooltipContent"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Membuat tombol Run menjalankan skrip terminal ini untuk proyek yang cocok."
+
+msgid "Malware or phishing"
+msgstr "Malware atau phishing"
 
 msgid "Manage"
 msgstr "Kelola"
@@ -10893,6 +10908,9 @@ msgstr "Halaman tidak ditemukan"
 msgid "Page Not Found"
 msgstr "Halaman Tidak Ditemukan"
 
+msgid "Page report rate limiting is not configured"
+msgstr "Batas laju pelaporan halaman belum dikonfigurasi"
+
 msgid "Page title"
 msgstr "Judul halaman"
 
@@ -11106,6 +11124,9 @@ msgstr "Pilih direktori induk"
 
 msgid "Pick a project location"
 msgstr "Pilih lokasi proyek"
+
+msgid "Pick a reason"
+msgstr "Pilih alasan"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Pilih suara atau tambahkan milik Anda sendiri. Audio kustom mendukung .mp3, .wav, dan .ogg."
@@ -12228,8 +12249,20 @@ msgstr "Membalas {replyingTo}"
 msgid "repo"
 msgstr "repo"
 
+msgid "Report"
+msgstr "Laporkan"
+
 msgid "Report Issue"
 msgstr "Laporkan Masalah"
+
+msgid "Report not found"
+msgstr "Laporan tidak ditemukan"
+
+msgid "Report this page"
+msgstr "Laporkan halaman ini"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "Pelaporan sedang tidak tersedia sesaat. Coba lagi sebentar lagi."
 
 msgid "Repos"
 msgstr "Repo"
@@ -13327,6 +13360,9 @@ msgstr "Kirim pesan"
 msgid "Send reply"
 msgstr "Kirim balasan"
 
+msgid "Send report"
+msgstr "Kirim laporan"
+
 msgid "Send review"
 msgstr "Kirim review"
 
@@ -13492,6 +13528,9 @@ msgstr "Setup"
 
 msgid "Setup script"
 msgstr "Skrip setup"
+
+msgid "Sexual content"
+msgstr "Konten seksual"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "Resep tooltip shadcn/ui"
@@ -13966,6 +14005,12 @@ msgstr "Sebagian pemicu perlu konfigurasi tambahan"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Orang lain sudah menerbitkan {entryPath} dari workspace ini. Terbitkan dengan id halaman yang eksplisit untuk menambahkan versi ke halaman mereka, atau pindahkan berkasnya."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Seseorang dari tim Superset akan meninjau halaman ini. Kami hanya menghubungi Anda jika perlu informasi tambahan."
+
+msgid "Something else"
+msgstr "Hal lain"
+
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
 
@@ -14013,6 +14058,9 @@ msgstr "Path sumber (bukan impor)"
 
 msgid "Sources"
 msgstr "Sumber"
+
+msgid "Spam or a scam"
+msgstr "Spam atau penipuan"
 
 msgid "Sparse checkout"
 msgstr "Sparse checkout"
@@ -14882,6 +14930,9 @@ msgstr "Teardown kehabisan waktu setelah {seconds}d"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Minta agen mana pun memakai CLI <0>superset</0> untuk menjalankan workspace, run tugas, atau mengelola otomatisasi."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "Beri tahu kami apa yang salah. Melaporkan saja tidak menghapus halaman ini."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "Sepuluh alur kerja paralel berjalan, masing-masing menghasilkan pekerjaan yang digabungkan"
 
@@ -14974,6 +15025,9 @@ msgstr "Textarea"
 
 msgid "Thanks for reaching out"
 msgstr "Terima kasih sudah menghubungi"
+
+msgid "Thanks, we got it"
+msgstr "Terima kasih, laporan diterima"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Tautan masuk {plugin} itu telah kedaluwarsa. Coba hubungkan lagi."
@@ -15495,6 +15549,12 @@ msgstr "Halaman ini tidak ada di sini"
 msgid "This page no longer exists"
 msgstr "Halaman ini sudah tidak ada"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "Halaman ini diterbitkan oleh pengguna Superset. Isinya belum diverifikasi."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "Halaman ini telah ditarik dan tidak bisa diubah lagi"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Path ini ada, tapi bukan direktori."
 
@@ -15768,6 +15828,9 @@ msgstr "Terlalu banyak orang yang melihat sekaligus. Coba lagi sebentar lagi."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Terlalu banyak prompt yang dikirim. Coba lagi nanti."
+
+msgid "Too many reports. Try again later."
+msgstr "Terlalu banyak laporan. Coba lagi nanti."
 
 msgid "Too many requests. Please try again later."
 msgstr "Terlalu banyak permintaan. Silakan coba lagi nanti."
@@ -16532,6 +16595,9 @@ msgstr "Lihat repositori Superset di GitHub"
 msgid "View usage"
 msgstr "Lihat penggunaan"
 
+msgid "Violence or harassment"
+msgstr "Kekerasan atau pelecehan"
+
 msgid "Visitors"
 msgstr "Pengunjung"
 
@@ -16742,6 +16808,9 @@ msgstr "Selamat datang di Superset baru"
 msgid "What builders say about Superset"
 msgstr "Apa kata builder tentang Superset"
 
+msgid "What did you see on the page?"
+msgstr "Apa yang Anda lihat di halaman ini?"
+
 msgid "What do you want to do?"
 msgstr "Apa yang ingin Anda lakukan?"
 
@@ -16759,6 +16828,9 @@ msgstr "Apa itu workspace?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Apa itu Superset Enterprise?"
+
+msgid "What is wrong?"
+msgstr "Apa masalahnya?"
 
 msgid "What platforms does Superset run on?"
 msgstr "Superset berjalan di platform apa saja?"
@@ -17212,6 +17284,9 @@ msgstr "Anda sudah memakai versi terbaru!"
 msgid "You've been invited to join {organization}"
 msgstr "Anda diundang bergabung ke {organization}"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "Akun Anda dinonaktifkan dan akan segera dihapus permanen. Aktifkan kembali untuk memulihkannya persis seperti yang Anda tinggalkan."
 
@@ -17235,6 +17310,9 @@ msgstr "Kode Anda tetap lokal secara bawaan, dengan kendali eksplisit atas layan
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Unduhan Anda dimulai otomatis. Jika tidak, ambil di sini."
+
+msgid "Your email (optional)"
+msgstr "Email Anda (opsional)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Akun GitHub Anda tidak dapat menjangkau repositori di environment ini"

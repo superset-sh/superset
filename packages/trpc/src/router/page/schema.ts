@@ -1,3 +1,7 @@
+import {
+	pageReportReasonValues,
+	pageReportStatusValues,
+} from "@superset/db/schema";
 import { z } from "zod";
 
 export const OFFERED_VISIBILITIES = ["just_me", "org", "everyone"] as const;
@@ -194,6 +198,30 @@ export const setSharedVersionSchema = z.object({
 export const deletePageSchema = z.object({
 	id: pageFields.id,
 	onlyIfEmpty: z.boolean().optional(),
+});
+
+export const reportPageSchema = z.object({
+	slug: pageFields.slug,
+	reason: z.enum(pageReportReasonValues),
+	details: z.string().max(4000).optional(),
+	reporterEmail: z.string().email().max(320).optional(),
+});
+
+export const listPageReportsSchema = z.object({
+	status: z.enum(pageReportStatusValues).optional(),
+	limit: z.number().int().positive().max(200).default(50),
+	cursor: z.string().optional(),
+});
+
+export const reviewPageReportSchema = z.object({
+	id: pageFields.id,
+	status: z.enum(["upheld", "dismissed"]),
+	note: z.string().max(2000).optional(),
+});
+
+export const takedownPageSchema = z.object({
+	id: pageFields.id,
+	note: z.string().max(2000).optional(),
 });
 
 export const pullPageSchema = pageRefFieldsSchema

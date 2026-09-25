@@ -2026,6 +2026,9 @@ msgstr "링크가 있는 모든 사용자"
 msgid "anything"
 msgstr "모든 내용"
 
+msgid "Anything else? (optional)"
+msgstr "그 밖에 알려줄 내용이 있나요? (선택)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "지금 키를 복사하세요 — 다시 볼 수 없습니다."
 
 msgid "Copying configuration"
 msgstr "설정 복사 중"
+
+msgid "Copyright or trademark"
+msgstr "저작권 또는 상표"
 
 msgid "Cost"
 msgstr "비용"
@@ -7516,6 +7522,9 @@ msgstr "유휴 · 브랜치 푸시됨"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "지금까지 Superset이 마음에 드셨다면 GitHub 스타가 다른 개발자들이 Superset을 발견하는 데 도움이 됩니다."
 
+msgid "Illegal content"
+msgstr "불법 콘텐츠"
+
 msgid "Image"
 msgstr "이미지"
 
@@ -7538,6 +7547,9 @@ msgstr "{0}의 이미지 미리 보기입니다. 플러스와 마이너스로 �
 
 msgid "Images"
 msgstr "이미지"
+
+msgid "Impersonates someone"
+msgstr "타인 사칭"
 
 msgid "Import"
 msgstr "가져오기"
@@ -8647,6 +8659,9 @@ msgstr "칩 스타일을 TooltipContent 기본값으로 만들기"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "해당하는 프로젝트에서 실행 버튼이 이 터미널 스크립트를 실행하도록 합니다."
+
+msgid "Malware or phishing"
+msgstr "악성코드 또는 피싱"
 
 msgid "Manage"
 msgstr "관리"
@@ -10893,6 +10908,9 @@ msgstr "페이지를 찾을 수 없습니다"
 msgid "Page Not Found"
 msgstr "페이지를 찾을 수 없음"
 
+msgid "Page report rate limiting is not configured"
+msgstr "페이지 신고 속도 제한이 설정되지 않았습니다"
+
 msgid "Page title"
 msgstr "페이지 제목"
 
@@ -11106,6 +11124,9 @@ msgstr "상위 디렉터리를 선택하세요"
 
 msgid "Pick a project location"
 msgstr "프로젝트 위치를 선택하세요"
+
+msgid "Pick a reason"
+msgstr "사유를 선택하세요"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "소리를 고르거나 직접 추가하세요. 사용자 지정 오디오는 .mp3, .wav, .ogg를 지원합니다."
@@ -12228,8 +12249,20 @@ msgstr "{replyingTo}님에게 답글 작성 중"
 msgid "repo"
 msgstr "리포"
 
+msgid "Report"
+msgstr "신고"
+
 msgid "Report Issue"
 msgstr "문제 신고"
+
+msgid "Report not found"
+msgstr "신고를 찾을 수 없습니다"
+
+msgid "Report this page"
+msgstr "이 페이지 신고"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "신고 기능을 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."
 
 msgid "Repos"
 msgstr "리포"
@@ -13327,6 +13360,9 @@ msgstr "메시지 보내기"
 msgid "Send reply"
 msgstr "답글 보내기"
 
+msgid "Send report"
+msgstr "신고 보내기"
+
 msgid "Send review"
 msgstr "리뷰 보내기"
 
@@ -13492,6 +13528,9 @@ msgstr "설정"
 
 msgid "Setup script"
 msgstr "설정 스크립트"
+
+msgid "Sexual content"
+msgstr "성적인 콘텐츠"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui 툴팁 레시피"
@@ -13966,6 +14005,12 @@ msgstr "일부 트리거에는 추가 설정이 필요합니다"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "다른 사람이 이 워크스페이스의 {entryPath}를 이미 게시했습니다. 페이지 ID를 명시해 그 페이지에 버전을 추가하거나 파일을 옮기세요."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Superset 팀이 이 페이지를 검토합니다. 추가 정보가 필요할 때만 연락드립니다."
+
+msgid "Something else"
+msgstr "기타"
+
 msgid "Something went wrong"
 msgstr "문제가 발생했습니다"
 
@@ -14013,6 +14058,9 @@ msgstr "소스 경로 (임포트 아님)"
 
 msgid "Sources"
 msgstr "출처"
+
+msgid "Spam or a scam"
+msgstr "스팸 또는 사기"
 
 msgid "Sparse checkout"
 msgstr "스파스 체크아웃"
@@ -14882,6 +14930,9 @@ msgstr "정리 스크립트가 {seconds}초 후 시간 초과되었습니다"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "어떤 에이전트에게든 <0>superset</0> CLI로 워크스페이스를 띄우거나 작업을 실행하거나 자동화를 관리하라고 지시하세요."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "무엇이 문제인지 알려주세요. 신고만으로 페이지가 삭제되지는 않습니다."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "10개의 병렬 작업 흐름이 각각 병합된 결과를 만듭니다"
 
@@ -14974,6 +15025,9 @@ msgstr "텍스트 영역"
 
 msgid "Thanks for reaching out"
 msgstr "연락해 주셔서 감사합니다"
+
+msgid "Thanks, we got it"
+msgstr "감사합니다. 접수되었습니다"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "해당 {plugin} 로그인 링크가 만료되었습니다. 다시 연결해 보세요."
@@ -15495,6 +15549,12 @@ msgstr "이 페이지는 여기에 없습니다"
 msgid "This page no longer exists"
 msgstr "이 페이지는 더 이상 존재하지 않습니다"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "이 페이지는 Superset 사용자가 게시했습니다. 내용은 검증되지 않았습니다."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "이 페이지는 게시가 중단되어 더 이상 변경할 수 없습니다"
+
 msgid "This path exists, but it is not a directory."
 msgstr "이 경로는 있지만 디렉터리가 아닙니다."
 
@@ -15768,6 +15828,9 @@ msgstr "동시에 보는 사람이 너무 많습니다. 잠시 후 다시 시도
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "프롬프트 제출이 너무 많습니다. 나중에 다시 시도하세요."
+
+msgid "Too many reports. Try again later."
+msgstr "신고가 너무 많습니다. 나중에 다시 시도해 주세요."
 
 msgid "Too many requests. Please try again later."
 msgstr "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
@@ -16532,6 +16595,9 @@ msgstr "GitHub에서 Superset 리포지토리 보기"
 msgid "View usage"
 msgstr "사용량 보기"
 
+msgid "Violence or harassment"
+msgstr "폭력 또는 괴롭힘"
+
 msgid "Visitors"
 msgstr "방문자"
 
@@ -16742,6 +16808,9 @@ msgstr "새로운 Superset에 오신 것을 환영합니다"
 msgid "What builders say about Superset"
 msgstr "빌더들이 말하는 Superset"
 
+msgid "What did you see on the page?"
+msgstr "페이지에서 무엇을 보셨나요?"
+
 msgid "What do you want to do?"
 msgstr "무엇을 하고 싶으신가요?"
 
@@ -16759,6 +16828,9 @@ msgstr "워크스페이스란 무엇인가요?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Superset Enterprise란 무엇인가요?"
+
+msgid "What is wrong?"
+msgstr "무엇이 문제인가요?"
 
 msgid "What platforms does Superset run on?"
 msgstr "Superset은 어떤 플랫폼에서 실행되나요?"
@@ -17212,6 +17284,9 @@ msgstr "최신 상태입니다!"
 msgid "You've been invited to join {organization}"
 msgstr "{organization}에 초대되었습니다"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "계정이 비활성화되었으며 곧 영구적으로 삭제됩니다. 다시 활성화하면 이전 상태 그대로 복원됩니다."
 
@@ -17235,6 +17310,9 @@ msgstr "코드는 기본적으로 로컬에 머물고, 연결된 서비스는 �
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "다운로드가 자동으로 시작됩니다. 시작되지 않으면 여기서 받으세요."
+
+msgid "Your email (optional)"
+msgstr "이메일 주소 (선택)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub 계정이 이 환경의 리포지토리에 접근할 수 없습니다"

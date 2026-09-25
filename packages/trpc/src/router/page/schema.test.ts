@@ -5,6 +5,8 @@ import {
 	PAGE_LIST_MAX_IDS,
 	PAGE_LIST_MAX_LIMIT,
 	publishPageSchema,
+	reportPageSchema,
+	reviewPageReportSchema,
 } from "./schema";
 
 const WORKSPACE = "00000000-0000-4000-8000-000000000001";
@@ -145,5 +147,46 @@ describe("listPagesSchema", () => {
 
 	test("refuses an authorId that is not a uuid", () => {
 		expect(listPagesSchema.safeParse({ authorId: "nope" }).success).toBe(false);
+	});
+});
+
+describe("reportPageSchema", () => {
+	const base = { slug: "sunlit-harbor-42", reason: "malware_or_phishing" };
+
+	test("a slug and a reason are enough — reporting must not need an account", () => {
+		expect(reportPageSchema.safeParse(base).success).toBe(true);
+	});
+
+	test("refuses a reason outside the offered list", () => {
+		expect(
+			reportPageSchema.safeParse({ ...base, reason: "i_dislike_it" }).success,
+		).toBe(false);
+	});
+
+	test("refuses details longer than the column expects", () => {
+		expect(
+			reportPageSchema.safeParse({ ...base, details: "x".repeat(4001) })
+				.success,
+		).toBe(false);
+	});
+
+	test("refuses a reporter email that is not an address", () => {
+		expect(
+			reportPageSchema.safeParse({ ...base, reporterEmail: "nope" }).success,
+		).toBe(false);
+	});
+});
+
+describe("reviewPageReportSchema", () => {
+	const REPORT = "00000000-0000-4000-8000-000000000004";
+
+	test("a review resolves to upheld or dismissed, never back to open", () => {
+		expect(
+			reviewPageReportSchema.safeParse({ id: REPORT, status: "upheld" })
+				.success,
+		).toBe(true);
+		expect(
+			reviewPageReportSchema.safeParse({ id: REPORT, status: "open" }).success,
+		).toBe(false);
 	});
 });

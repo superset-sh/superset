@@ -13,6 +13,13 @@ export function assertPageReadable(page: SelectPage, userId: string): void {
 
 export function assertPageWritable(page: SelectPage, userId: string): void {
 	assertPageReadable(page, userId);
+	if (page.takenDownAt) {
+		throw userError({
+			code: "FORBIDDEN",
+			message: "This page was taken down and can no longer be changed",
+			i18nKey: "serverError.page.thisPageWasTakenDown",
+		});
+	}
 	if (page.createdByUserId !== userId) {
 		throw userError({
 			code: "FORBIDDEN",

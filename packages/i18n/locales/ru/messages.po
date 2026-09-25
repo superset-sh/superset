@@ -2026,6 +2026,9 @@ msgstr "Все, у кого есть ссылка"
 msgid "anything"
 msgstr "что угодно"
 
+msgid "Anything else? (optional)"
+msgstr "Что-нибудь ещё? (необязательно)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "Скопируйте ключ сейчас — увидеть его с�
 
 msgid "Copying configuration"
 msgstr "Копирование конфигурации"
+
+msgid "Copyright or trademark"
+msgstr "Авторские права или товарный знак"
 
 msgid "Cost"
 msgstr "Стоимость"
@@ -7516,6 +7522,9 @@ msgstr "Простаивает · ветка отправлена"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Если Superset вам нравится, звезда на GitHub поможет другим разработчикам его найти."
 
+msgid "Illegal content"
+msgstr "Незаконный контент"
+
 msgid "Image"
 msgstr "Изображение"
 
@@ -7538,6 +7547,9 @@ msgstr "Предпросмотр изображения {0}. Масштаб — 
 
 msgid "Images"
 msgstr "Изображения"
+
+msgid "Impersonates someone"
+msgstr "Выдаёт себя за другого"
 
 msgid "Import"
 msgstr "Импортировать"
@@ -8647,6 +8659,9 @@ msgstr "Сделать стиль чипа значением по умолча�
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Кнопка «Запустить» будет запускать этот скрипт терминала для подходящих проектов."
+
+msgid "Malware or phishing"
+msgstr "Вредоносное ПО или фишинг"
 
 msgid "Manage"
 msgstr "Управлять"
@@ -10893,6 +10908,9 @@ msgstr "Страница не найдена"
 msgid "Page Not Found"
 msgstr "Страница не найдена"
 
+msgid "Page report rate limiting is not configured"
+msgstr "Ограничение частоты жалоб на страницы не настроено"
+
 msgid "Page title"
 msgstr "Заголовок страницы"
 
@@ -11106,6 +11124,9 @@ msgstr "Выберите родительскую папку"
 
 msgid "Pick a project location"
 msgstr "Выберите расположение проекта"
+
+msgid "Pick a reason"
+msgstr "Выберите причину"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Выберите звук или добавьте свой. Поддерживаются .mp3, .wav и .ogg."
@@ -12228,8 +12249,20 @@ msgstr "Ответ для {replyingTo}"
 msgid "repo"
 msgstr "репозиторий"
 
+msgid "Report"
+msgstr "Пожаловаться"
+
 msgid "Report Issue"
 msgstr "Сообщить о проблеме"
+
+msgid "Report not found"
+msgstr "Жалоба не найдена"
+
+msgid "Report this page"
+msgstr "Пожаловаться на эту страницу"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "Отправка жалоб временно недоступна. Повторите попытку чуть позже."
 
 msgid "Repos"
 msgstr "Репозитории"
@@ -13327,6 +13360,9 @@ msgstr "Отправить сообщение"
 msgid "Send reply"
 msgstr "Отправить ответ"
 
+msgid "Send report"
+msgstr "Отправить жалобу"
+
 msgid "Send review"
 msgstr "Отправить ревью"
 
@@ -13492,6 +13528,9 @@ msgstr "Установка"
 
 msgid "Setup script"
 msgstr "Скрипт установки"
+
+msgid "Sexual content"
+msgstr "Сексуальный контент"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "Рецепт tooltip из shadcn/ui"
@@ -13966,6 +14005,12 @@ msgstr "Некоторым триггерам нужна дополнитель�
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Кто-то другой уже опубликовал {entryPath} из этого рабочего пространства. Опубликуйте с явным идентификатором страницы, чтобы добавить версию к его странице, или переместите файл."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Команда Superset проверит эту страницу. Мы свяжемся с вами, только если понадобится что-то ещё."
+
+msgid "Something else"
+msgstr "Другое"
+
 msgid "Something went wrong"
 msgstr "Что-то пошло не так"
 
@@ -14013,6 +14058,9 @@ msgstr "Путь к исходнику (не импорт)"
 
 msgid "Sources"
 msgstr "Источники"
+
+msgid "Spam or a scam"
+msgstr "Спам или мошенничество"
 
 msgid "Sparse checkout"
 msgstr "Частичная выгрузка"
@@ -14882,6 +14930,9 @@ msgstr "Очистка не уложилась в {seconds} с"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Попросите любого агента использовать CLI <0>superset</0>, чтобы поднимать рабочие области, запускать задачи или управлять автоматизациями."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "Расскажите, что с ней не так. Сама по себе жалоба страницу не удаляет."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "Десять параллельных рабочих потоков, каждый из которых доводит работу до объединения"
 
@@ -14974,6 +15025,9 @@ msgstr "Текстовое поле"
 
 msgid "Thanks for reaching out"
 msgstr "Спасибо, что написали"
+
+msgid "Thanks, we got it"
+msgstr "Спасибо, мы получили жалобу"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Срок действия ссылки для входа в {plugin} истёк. Попробуйте подключиться снова."
@@ -15495,6 +15549,12 @@ msgstr "Этой страницы здесь нет"
 msgid "This page no longer exists"
 msgstr "Этой страницы больше нет"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "Эту страницу опубликовал пользователь Superset. Её содержимое не проверено."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "Эта страница снята с публикации и больше не может быть изменена"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Этот путь существует, но это не папка."
 
@@ -15768,6 +15828,9 @@ msgstr "Слишком много людей смотрят его одновр�
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Слишком много отправленных промптов. Попробуйте позже."
+
+msgid "Too many reports. Try again later."
+msgstr "Слишком много жалоб. Повторите попытку позже."
 
 msgid "Too many requests. Please try again later."
 msgstr "Слишком много запросов. Попробуйте позже."
@@ -16532,6 +16595,9 @@ msgstr "Открыть репозиторий Superset на GitHub"
 msgid "View usage"
 msgstr "Посмотреть использование"
 
+msgid "Violence or harassment"
+msgstr "Насилие или травля"
+
 msgid "Visitors"
 msgstr "Посетители"
 
@@ -16742,6 +16808,9 @@ msgstr "Добро пожаловать в новый Superset"
 msgid "What builders say about Superset"
 msgstr "Что разработчики говорят о Superset"
 
+msgid "What did you see on the page?"
+msgstr "Что вы увидели на странице?"
+
 msgid "What do you want to do?"
 msgstr "Что нужно сделать?"
 
@@ -16759,6 +16828,9 @@ msgstr "Что такое рабочая область?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Что такое Superset Enterprise?"
+
+msgid "What is wrong?"
+msgstr "Что не так?"
 
 msgid "What platforms does Superset run on?"
 msgstr "На каких платформах работает Superset?"
@@ -17212,6 +17284,9 @@ msgstr "У вас последняя версия!"
 msgid "You've been invited to join {organization}"
 msgstr "Вас пригласили в {organization}"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "Аккаунт деактивирован и скоро будет безвозвратно удалён. Активируйте его снова, чтобы восстановить всё в точности как было."
 
@@ -17235,6 +17310,9 @@ msgstr "Ваш код по умолчанию остаётся локальны�
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Загрузка начнётся автоматически. Если этого не произошло, скачайте здесь."
+
+msgid "Your email (optional)"
+msgstr "Ваш адрес электронной почты (необязательно)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Ваша учётная запись GitHub не может получить доступ к репозиторию этого окружения"

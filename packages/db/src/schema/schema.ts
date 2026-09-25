@@ -37,6 +37,8 @@ import {
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
 	pageCommentIntentValues,
+	pageReportReasonValues,
+	pageReportStatusValues,
 	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -99,6 +101,15 @@ export const pageCommentAuthorKind = pgEnum(
 export const pageCommentIntent = pgEnum(
 	"page_comment_intent",
 	pageCommentIntentValues,
+);
+
+export const pageReportReason = pgEnum(
+	"page_report_reason",
+	pageReportReasonValues,
+);
+export const pageReportStatus = pgEnum(
+	"page_report_status",
+	pageReportStatusValues,
 );
 
 export const taskStatuses = pgTable(
@@ -1471,6 +1482,12 @@ export const pages = pgTable(
 		description: text(),
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
+		takenDownAt: timestamp("taken_down_at", { withTimezone: true }),
+		takenDownByUserId: uuid("taken_down_by_user_id").references(
+			() => users.id,
+			{ onDelete: "set null" },
+		),
+		takenDownNote: text("taken_down_note"),
 		watchedByAgent: text("watched_by_agent"),
 		watchState: jsonb("watch_state").$type<PageWatchOwnership>(),
 		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
@@ -1527,6 +1544,46 @@ export const pageVersions = pgTable(
 
 export type InsertPageVersion = typeof pageVersions.$inferInsert;
 export type SelectPageVersion = typeof pageVersions.$inferSelect;
+
+export const pageReports = pgTable(
+	"page_reports",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		reportedVersion: integer("reported_version"),
+		reason: pageReportReason().notNull(),
+		details: text(),
+		status: pageReportStatus().notNull().default("open"),
+		reportedByUserId: uuid("reported_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		reporterEmail: text("reporter_email"),
+		// A reporter who is not signed in still has to be rate limitable and
+		// groupable across reports without us holding their address.
+		reporterIpHash: text("reporter_ip_hash"),
+		reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+		reviewNote: text("review_note"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("page_reports_status_created_at_idx").on(
+			table.status,
+			desc(table.createdAt),
+		),
+		index("page_reports_page_id_idx").on(table.pageId),
+		index("page_reports_reporter_ip_hash_idx").on(table.reporterIpHash),
+	],
+);
+
+export type InsertPageReport = typeof pageReports.$inferInsert;
+export type SelectPageReport = typeof pageReports.$inferSelect;
 
 export const workspacePages = pgTable(
 	"workspace_pages",

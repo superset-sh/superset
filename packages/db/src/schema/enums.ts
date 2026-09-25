@@ -179,6 +179,23 @@ export const pageVisibilityValues = ["just_me", "org", "everyone"] as const;
 export const pageVisibilityEnum = z.enum(pageVisibilityValues);
 export type PageVisibility = z.infer<typeof pageVisibilityEnum>;
 
+export const pageReportReasonValues = [
+	"malware_or_phishing",
+	"spam_or_scam",
+	"impersonation",
+	"sexual_content",
+	"violence_or_harassment",
+	"illegal_content",
+	"copyright",
+	"other",
+] as const;
+export const pageReportReasonEnum = z.enum(pageReportReasonValues);
+export type PageReportReason = z.infer<typeof pageReportReasonEnum>;
+
+export const pageReportStatusValues = ["open", "upheld", "dismissed"] as const;
+export const pageReportStatusEnum = z.enum(pageReportStatusValues);
+export type PageReportStatus = z.infer<typeof pageReportStatusEnum>;
+
 export const pageCommentAnchorKindValues = ["element", "text", "page"] as const;
 export const pageCommentAnchorKindEnum = z.enum(pageCommentAnchorKindValues);
 export type PageCommentAnchorKind = z.infer<typeof pageCommentAnchorKindEnum>;

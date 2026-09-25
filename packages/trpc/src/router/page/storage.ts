@@ -39,6 +39,11 @@ export async function writePageManifest(pageId: string): Promise<void> {
 		.limit(1);
 	if (!page) return;
 
+	if (page.takenDownAt) {
+		await deleteObjects([pageManifestKey(pageId)]);
+		return;
+	}
+
 	const rows = await db
 		.select({
 			id: pageVersions.id,

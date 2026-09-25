@@ -2026,6 +2026,9 @@ msgstr "Bağlantıya sahip herkes"
 msgid "anything"
 msgstr "herhangi bir şey"
 
+msgid "Anything else? (optional)"
+msgstr "Başka bir şey var mı? (isteğe bağlı)"
+
 msgid "AP"
 msgstr "AP"
 
@@ -4182,6 +4185,9 @@ msgstr "Anahtarınızı şimdi kopyalayın — bir daha göremezsiniz."
 
 msgid "Copying configuration"
 msgstr "Yapılandırma kopyalanıyor"
+
+msgid "Copyright or trademark"
+msgstr "Telif hakkı veya ticari marka"
 
 msgid "Cost"
 msgstr "Maliyet"
@@ -7516,6 +7522,9 @@ msgstr "Boşta · dal push edildi"
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Superset'ten şimdiye kadar memnunsanız, bir GitHub yıldızı diğer geliştiricilerin onu keşfetmesine yardımcı olur."
 
+msgid "Illegal content"
+msgstr "Yasa dışı içerik"
+
 msgid "Image"
 msgstr "Görsel"
 
@@ -7538,6 +7547,9 @@ msgstr "{0} görsel önizlemesi. Artı ve eksi ile yakınlaştırın, ok tuşlar
 
 msgid "Images"
 msgstr "Görseller"
+
+msgid "Impersonates someone"
+msgstr "Başkasının kimliğine bürünüyor"
 
 msgid "Import"
 msgstr "İçe aktar"
@@ -8647,6 +8659,9 @@ msgstr "Çip stilini TooltipContent varsayılanı yap"
 
 msgid "Makes the Run button launch this terminal script for matching projects."
 msgstr "Çalıştır düğmesinin, eşleşen projelerde bu terminal betiğini başlatmasını sağlar."
+
+msgid "Malware or phishing"
+msgstr "Kötü amaçlı yazılım veya kimlik avı"
 
 msgid "Manage"
 msgstr "Yönet"
@@ -10893,6 +10908,9 @@ msgstr "Sayfa bulunamadı"
 msgid "Page Not Found"
 msgstr "Sayfa bulunamadı"
 
+msgid "Page report rate limiting is not configured"
+msgstr "Sayfa bildirimi hız sınırı yapılandırılmamış"
+
 msgid "Page title"
 msgstr "Sayfa başlığı"
 
@@ -11106,6 +11124,9 @@ msgstr "Bir üst dizin seçin"
 
 msgid "Pick a project location"
 msgstr "Bir proje konumu seçin"
+
+msgid "Pick a reason"
+msgstr "Bir neden seçin"
 
 msgid "Pick a sound or add your own. Custom audio supports .mp3, .wav, and .ogg."
 msgstr "Bir ses seçin veya kendinizinkini ekleyin. Özel ses .mp3, .wav ve .ogg destekler."
@@ -12228,8 +12249,20 @@ msgstr "{replyingTo} kullanıcısına yanıt veriliyor"
 msgid "repo"
 msgstr "depo"
 
+msgid "Report"
+msgstr "Bildir"
+
 msgid "Report Issue"
 msgstr "Sorun bildir"
+
+msgid "Report not found"
+msgstr "Bildirim bulunamadı"
+
+msgid "Report this page"
+msgstr "Bu sayfayı bildir"
+
+msgid "Reporting is briefly unavailable. Try again shortly."
+msgstr "Bildirim geçici olarak kullanılamıyor. Birazdan tekrar deneyin."
 
 msgid "Repos"
 msgstr "Depolar"
@@ -13327,6 +13360,9 @@ msgstr "Mesaj gönder"
 msgid "Send reply"
 msgstr "Yanıt gönder"
 
+msgid "Send report"
+msgstr "Bildirimi gönder"
+
 msgid "Send review"
 msgstr "İncelemeyi gönder"
 
@@ -13492,6 +13528,9 @@ msgstr "Kurulum"
 
 msgid "Setup script"
 msgstr "Kurulum betiği"
+
+msgid "Sexual content"
+msgstr "Cinsel içerik"
 
 msgid "shadcn/ui tooltip recipe"
 msgstr "shadcn/ui tooltip tarifi"
@@ -13966,6 +14005,12 @@ msgstr "Bazı tetikleyiciler ek yapılandırma gerektiriyor"
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Bu çalışma alanından {entryPath} dosyasını başkası zaten yayımlamış. Onun sayfasına sürüm eklemek için açık bir sayfa kimliğiyle yayımla ya da dosyayı taşı."
 
+msgid "Someone on the Superset team will review this page. We only follow up if we need more from you."
+msgstr "Superset ekibinden biri bu sayfayı inceleyecek. Yalnızca ek bilgiye ihtiyacımız olursa sizinle iletişime geçeriz."
+
+msgid "Something else"
+msgstr "Başka bir şey"
+
 msgid "Something went wrong"
 msgstr "Bir şeyler ters gitti"
 
@@ -14013,6 +14058,9 @@ msgstr "Kaynak yolu (içe aktarma değil)"
 
 msgid "Sources"
 msgstr "Kaynaklar"
+
+msgid "Spam or a scam"
+msgstr "Spam veya dolandırıcılık"
 
 msgid "Sparse checkout"
 msgstr "Seyrek checkout"
@@ -14882,6 +14930,9 @@ msgstr "Kapatma {seconds}sn sonra zaman aşımına uğradı"
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Çalışma alanı açmak, görev çalıştırmak veya otomasyonları yönetmek için herhangi bir ajana <0>superset</0> CLI'yi kullanmasını söyleyin."
 
+msgid "Tell us what is wrong with it. Reporting does not remove the page on its own."
+msgstr "Neyin yanlış olduğunu anlatın. Bildirim tek başına sayfayı kaldırmaz."
+
 msgid "Ten parallel workstreams running, each landing merged work"
 msgstr "Her biri birleştirilmiş iş üreten on paralel iş akışı"
 
@@ -14974,6 +15025,9 @@ msgstr "Metin alanı"
 
 msgid "Thanks for reaching out"
 msgstr "Bize ulaştığınız için teşekkürler"
+
+msgid "Thanks, we got it"
+msgstr "Teşekkürler, aldık"
 
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Bu {plugin} oturum açma bağlantısının süresi doldu. Yeniden bağlanmayı deneyin."
@@ -15495,6 +15549,12 @@ msgstr "Bu sayfa burada değil"
 msgid "This page no longer exists"
 msgstr "Bu sayfa artık mevcut değil"
 
+msgid "This page was published by a Superset user. Its contents are unverified."
+msgstr "Bu sayfa bir Superset kullanıcısı tarafından yayımlandı. İçeriği doğrulanmamıştır."
+
+msgid "This page was taken down and can no longer be changed"
+msgstr "Bu sayfa yayından kaldırıldı ve artık değiştirilemez"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Bu yol mevcut, ancak bir dizin değil."
 
@@ -15768,6 +15828,9 @@ msgstr "Aynı anda çok fazla kişi bakıyor. Kısa süre sonra tekrar deneyin."
 
 msgid "Too many prompt submissions. Try again later."
 msgstr "Çok fazla istem gönderimi. Daha sonra yeniden deneyin."
+
+msgid "Too many reports. Try again later."
+msgstr "Çok fazla bildirim. Daha sonra tekrar deneyin."
 
 msgid "Too many requests. Please try again later."
 msgstr "Çok fazla istek. Lütfen daha sonra yeniden deneyin."
@@ -16532,6 +16595,9 @@ msgstr "Superset deposunu GitHub'da görüntüle"
 msgid "View usage"
 msgstr "Kullanımı görüntüle"
 
+msgid "Violence or harassment"
+msgstr "Şiddet veya taciz"
+
 msgid "Visitors"
 msgstr "Ziyaretçiler"
 
@@ -16742,6 +16808,9 @@ msgstr "Yeni Superset'e hoş geldiniz"
 msgid "What builders say about Superset"
 msgstr "Geliştiriciler Superset hakkında ne diyor"
 
+msgid "What did you see on the page?"
+msgstr "Sayfada ne gördünüz?"
+
 msgid "What do you want to do?"
 msgstr "Ne yapmak istiyorsunuz?"
 
@@ -16759,6 +16828,9 @@ msgstr "Çalışma alanı nedir?"
 
 msgid "What is Superset Enterprise?"
 msgstr "Superset Enterprise nedir?"
+
+msgid "What is wrong?"
+msgstr "Sorun nedir?"
 
 msgid "What platforms does Superset run on?"
 msgstr "Superset hangi platformlarda çalışıyor?"
@@ -17212,6 +17284,9 @@ msgstr "Her şey güncel!"
 msgid "You've been invited to join {organization}"
 msgstr "{organization} kuruluşuna katılmaya davet edildiniz"
 
+msgid "you@example.com"
+msgstr "you@example.com"
+
 msgid "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
 msgstr "Hesabınız devre dışı bırakıldı ve yakında kalıcı olarak silinecek. Bıraktığınız gibi geri yüklemek için yeniden etkinleştirin."
 
@@ -17235,6 +17310,9 @@ msgstr "Kodunuz varsayılan olarak yerelde kalır; bağlı hizmetler üzerinde a
 
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "İndirme otomatik olarak başlıyor. Başlamadıysa buradan indirin."
+
+msgid "Your email (optional)"
+msgstr "E-posta adresiniz (isteğe bağlı)"
 
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub hesabın bu ortamdaki bir depoya erişemiyor"
