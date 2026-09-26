@@ -39,7 +39,7 @@
 		"@parcel/watcher": "2.5.6",
 		"chokidar": "4.0.3",
 		"fast-glob": "3.3.3",
-		"picomatch": "4.0.3"
+		"picomatch": "4.0.4"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
