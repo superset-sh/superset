@@ -85,8 +85,15 @@ export interface LeakedInputModeReclaimer {
 	 * A shell-ready marker arrived: mark still-armed, non-shell-owned modes as
 	 * leaked and clear their shadow (in stream order). Call `collectDisarm` after
 	 * the parse settles.
+	 *
+	 * `alternateScreen` is the screen the marker landed on, which every adapter
+	 * already tracks. A shell prompt never lives on the alternate screen, so a
+	 * marker seen there came from a shell nested inside a live TUI and is
+	 * ignored — honouring it disarmed opencode/agy's mouse tracking mid-session
+	 * and every wheel event then reached them as arrow keys (#7681). The rule
+	 * lives here so the adapters cannot drift apart on it.
 	 */
-	noteShellReady(): void;
+	noteShellReady(context: { alternateScreen: boolean }): void;
 	/**
 	 * Disarm bytes for modes leaked at the last marker and not re-armed since — so
 	 * a live/suspended/racing TUI that owns the foreground keeps its modes.
@@ -133,7 +140,8 @@ export function createLeakedInputModeReclaimer(
 				s.shellOwned = false;
 			}
 		},
-		noteShellReady() {
+		noteShellReady({ alternateScreen }) {
+			if (alternateScreen) return;
 			sawMarker = true;
 			for (const s of state.values()) {
 				if (s.armed && !s.shellOwned) {
