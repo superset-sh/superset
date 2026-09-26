@@ -134,7 +134,8 @@ export function WorkspaceScreen() {
 		retrySandbox,
 		isResolving,
 	} = useWorkspaceHost(id ?? null);
-	const { terminalsByWorkspace, isReady } = useHostTerminals(host);
+	const { terminalsByWorkspace, isReady: terminalsReady } =
+		useHostTerminals(host);
 	const pullRequests = useWorkspacePullRequests(id ?? null);
 
 	// Tabs hold the arrangement the user dragged in the sessions sheet, falling
@@ -167,17 +168,29 @@ export function WorkspaceScreen() {
 		// picking the first row now attaches a stream to the wrong session and
 		// swaps it out from under the user when the remembered tab lands.
 		if (!tabsHydrated) return null;
-		for (const candidate of [
-			pickedTerminalId,
-			params.tab,
-			rememberedTerminalId,
-		]) {
+		const candidates = [pickedTerminalId, params.tab, rememberedTerminalId];
+		// Before the host has answered even once, rows is empty because
+		// nothing has loaded yet — not because the candidate is gone. Address
+		// it anyway, the way desktop mounts a workspace at its host before the
+		// host confirms: the terminal itself surfaces connecting/denied/error
+		// if the guess was wrong, and this recomputes once the real list lands.
+		if (!terminalsReady) {
+			return candidates.find((candidate) => !!candidate) ?? null;
+		}
+		for (const candidate of candidates) {
 			if (candidate && rows.some((row) => row.terminalId === candidate)) {
 				return candidate;
 			}
 		}
 		return rows[0]?.terminalId ?? null;
-	}, [tabsHydrated, pickedTerminalId, params.tab, rememberedTerminalId, rows]);
+	}, [
+		tabsHydrated,
+		terminalsReady,
+		pickedTerminalId,
+		params.tab,
+		rememberedTerminalId,
+		rows,
+	]);
 
 	// Remembered here rather than in the tab-strip handler: every route into a
 	// session ends at this value — the strip, the sessions sheet, a new
@@ -488,9 +501,9 @@ export function WorkspaceScreen() {
 
 	const killTerminal = useCallback(
 		(terminalId: string) => {
-			if (!workspace || !hostUrl) return;
+			if (!hostUrl || !id) return;
 			void getHostServiceClientByUrl(hostUrl)
-				.terminal.killSession.mutate({ terminalId, workspaceId: workspace.id })
+				.terminal.killSession.mutate({ terminalId, workspaceId: id })
 				// A kill that fails leaves the tab exactly where it was, which reads
 				// as the tap having missed. Cheap to ignore while closing was a
 				// long-press only; the strip now offers it on every selected tab and
@@ -505,7 +518,7 @@ export function WorkspaceScreen() {
 				)
 				.finally(invalidateTerminals);
 		},
-		[workspace, hostUrl, invalidateTerminals, t],
+		[id, hostUrl, invalidateTerminals, t],
 	);
 
 	// The composer reports the intent and stops there: it has no idea that
@@ -575,11 +588,11 @@ export function WorkspaceScreen() {
 	// cannot take text, and the name belongs to the host, not to the strip.
 	const renameTerminal = useCallback(
 		(terminalId: string, title: string) => {
-			if (!workspace || !hostUrl) return;
+			if (!hostUrl || !id) return;
 			void getHostServiceClientByUrl(hostUrl)
 				.terminal.rename.mutate({
 					terminalId,
-					workspaceId: workspace.id,
+					workspaceId: id,
 					title,
 				})
 				.catch((cause: unknown) =>
@@ -592,7 +605,7 @@ export function WorkspaceScreen() {
 				)
 				.finally(invalidateTerminals);
 		},
-		[workspace, hostUrl, invalidateTerminals, t],
+		[id, hostUrl, invalidateTerminals, t],
 	);
 
 	const promptRenameTerminal = useCallback(
@@ -987,13 +1000,13 @@ export function WorkspaceScreen() {
 							}}
 						/>
 					</>
-				) : cloud && !workspace ? (
+				) : cloud && !host ? (
 					<CloudWorkspaceProvisioningState
 						cloud={cloud}
 						unreachable={sandboxUnreachable}
 						onRetry={retrySandbox}
 					/>
-				) : isResolving || ((!isReady || !tabsHydrated) && host) ? (
+				) : isResolving || ((!terminalsReady || !tabsHydrated) && host) ? (
 					<Centered>
 						<ActivityIndicator />
 					</Centered>
@@ -1043,10 +1056,10 @@ export function WorkspaceScreen() {
 					workspaceId={id}
 					allowAttachments={activeRow?.agentId != null}
 					slashCommands={slashCommands}
-					// A cloud workspace exists on screen before anything serves
-					// it; the strip would offer sessions on a sandbox that is not
-					// up yet.
-					sessionTabs={cloud && !workspace ? [] : sessionTabs}
+					// A cloud workspace exists on screen before its sandbox is
+					// even addressed; the strip would offer sessions on one that
+					// isn't reachable yet.
+					sessionTabs={cloud && !host ? [] : sessionTabs}
 					onSessionTabPress={pickTerminal}
 					onSessionTabClose={confirmCloseTerminal}
 					onSessionTabRename={promptRenameTerminal}

@@ -73,7 +73,6 @@ export function useWorkspaceHost(
 	);
 	const {
 		target: sandbox,
-		isReady: sandboxReady,
 		isError: sandboxUnreachable,
 		retry: retrySandbox,
 	} = useSandboxAccess(cloud);
@@ -115,32 +114,34 @@ export function useWorkspaceHost(
 			// the workspace; the sandbox's own row is scratch that a rename
 			// never reaches. Live git state still comes from the sandbox.
 			const workspace = servedRow ? { ...servedRow, name: cloud.name } : null;
+			// Optimistic, like desktop's open workspace: the sandbox is used at
+			// its ticketed address as soon as one exists, rather than waiting on
+			// host-service to confirm the row first — terminals address the same
+			// URL and surface their own connecting/error state downstream.
+			const host: OrgHost | null = sandbox
+				? {
+						organizationId: cloud.organizationId,
+						machineId: cloud.id,
+						name: "Cloud",
+						version: null,
+						platform: null,
+						installSource: null,
+						// A sandbox is reachable or it isn't; there is no offline
+						// device behind it to report on.
+						isOnline: true,
+					}
+				: null;
 			return {
 				workspace,
-				host: workspace
-					? {
-							organizationId: cloud.organizationId,
-							machineId: cloud.id,
-							name: "Cloud",
-							version: null,
-							platform: null,
-							installSource: null,
-							// A sandbox is reachable or it isn't; there is no offline
-							// device behind it to report on.
-							isOnline: true,
-						}
-					: null,
+				host,
 				cloud,
 				sandboxUnreachable:
-					!workspace && (sandboxUnreachable || served?.isError === true),
+					!host && (sandboxUnreachable || served?.isError === true),
 				retrySandbox: () => {
 					retrySandbox();
 					void served?.refetch();
 				},
-				isResolving:
-					!workspace &&
-					cloud.status === "ready" &&
-					(!sandboxReady || served?.isLoading === true),
+				isResolving: !host && cloud.status === "ready",
 			};
 		}
 		let workspace: HostWorkspaceRow | null = null;
@@ -169,7 +170,6 @@ export function useWorkspaceHost(
 	}, [
 		cloud,
 		sandbox,
-		sandboxReady,
 		sandboxUnreachable,
 		retrySandbox,
 		targets,
