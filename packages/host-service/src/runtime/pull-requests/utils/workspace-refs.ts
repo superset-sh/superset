@@ -2,7 +2,10 @@
 // own module (not pull-requests.ts) so the worker task can import it without
 // pulling the runtime's DB/Octokit graph into the worker bundle.
 
-import { parseGitHubRemote } from "@superset/shared/github-remote";
+import {
+	parseGitLabRemoteCandidate,
+	parseRepositoryRemote,
+} from "@superset/shared/github-remote";
 import type { SimpleGit } from "simple-git";
 
 const UNBORN_HEAD_ERROR_PATTERNS = [
@@ -14,6 +17,8 @@ const UNBORN_HEAD_ERROR_PATTERNS = [
 ];
 
 export interface WorkspaceUpstream {
+	provider?: "github" | "gitlab";
+	host?: string;
 	owner: string;
 	name: string;
 	branch: string;
@@ -75,6 +80,12 @@ async function resolveRemoteValueToUrl(
 	}
 }
 
+function parseUpstreamRemote(remoteUrl: string) {
+	return (
+		parseRepositoryRemote(remoteUrl) ?? parseGitLabRemoteCandidate(remoteUrl)
+	);
+}
+
 async function resolveWorkspaceUpstream(
 	git: SimpleGit,
 	localBranch: string,
@@ -89,9 +100,11 @@ async function resolveWorkspaceUpstream(
 		const slash = pushRef.indexOf("/");
 		if (slash > 0) {
 			const url = await resolveRemoteValueToUrl(git, pushRef.slice(0, slash));
-			const parsed = url ? parseGitHubRemote(url) : null;
+			const parsed = url ? parseUpstreamRemote(url) : null;
 			if (parsed) {
 				return {
+					provider: parsed.provider,
+					host: parsed.provider === "gitlab" ? parsed.host : undefined,
 					owner: parsed.owner,
 					name: parsed.name,
 					branch: pushRef.slice(slash + 1),
@@ -114,13 +127,19 @@ async function resolveWorkspaceUpstream(
 	if (!remoteValue) return null;
 
 	const url = await resolveRemoteValueToUrl(git, remoteValue);
-	const parsed = url ? parseGitHubRemote(url) : null;
+	const parsed = url ? parseUpstreamRemote(url) : null;
 	if (!parsed) return null;
 
 	// `gh pr checkout` renames the local branch on collision (`main` →
 	// `quueli-main`) but the PR's headRefName stays `main`, so we key on the
 	// tracked remote branch, not the local name.
-	return { owner: parsed.owner, name: parsed.name, branch: trackedBranch };
+	return {
+		provider: parsed.provider,
+		host: parsed.provider === "gitlab" ? parsed.host : undefined,
+		owner: parsed.owner,
+		name: parsed.name,
+		branch: trackedBranch,
+	};
 }
 
 async function tryRaw(git: SimpleGit, args: string[]): Promise<string | null> {

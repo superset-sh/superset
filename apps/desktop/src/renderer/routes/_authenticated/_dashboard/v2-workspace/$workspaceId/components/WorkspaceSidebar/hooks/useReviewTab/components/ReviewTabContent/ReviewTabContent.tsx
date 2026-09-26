@@ -55,7 +55,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
 				<Trans>
-					Open a pull request to view review status, checks, and comments.
+					Open a pull or merge request to view review status, checks, and comments.
 				</Trans>
 			</div>
 		);
@@ -78,6 +78,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 
 			<CommentsSection
 				workspaceId={workspaceId}
+				provider={pr.provider}
 				comments={comments}
 				isLoading={isCommentsLoading}
 				onOpenComment={onOpenComment}

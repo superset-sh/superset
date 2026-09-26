@@ -1,5 +1,6 @@
 /** Normalized PR shape used by review tab UI components. */
 export interface NormalizedPR {
+	provider: "github" | "gitlab";
 	number: number;
 	url: string;
 	title: string;

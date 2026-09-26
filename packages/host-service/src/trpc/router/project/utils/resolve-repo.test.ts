@@ -92,17 +92,40 @@ describe("resolveLocalRepo", () => {
 		});
 	});
 
-	test("treats a non-GitHub origin (gitlab) as local-only", async () => {
+	test("returns origin when origin is a GitLab remote", async () => {
 		const repo = join(workRoot, "gitlab-origin");
 		const git = await initRepoAt(repo);
 		await git.addRemote("origin", "git@gitlab.com:acme/example.git");
 
 		const resolved = await resolveLocalRepo(repo);
 
-		// getGitHubRemotes filters out non-GitHub URLs, so this looks
-		// indistinguishable from a no-remote repo to v2 setup.
-		expect(resolved.remoteName).toBeNull();
-		expect(resolved.parsed).toBeNull();
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed).toEqual({
+			provider: "gitlab",
+			host: "gitlab.com",
+			owner: "acme",
+			name: "example",
+			url: "https://gitlab.com/acme/example",
+		});
+	});
+
+	test("returns origin when origin is a self-hosted GitLab remote", async () => {
+		const repo = join(workRoot, "self-hosted-gitlab-origin");
+		const git = await initRepoAt(repo);
+		await git.addRemote("origin", "git@gitlab.example.com:acme/example.git");
+
+		const resolved = await resolveLocalRepo(repo, {
+			isConfiguredGitLabHost: async (host) => host === "gitlab.example.com",
+		});
+
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed).toEqual({
+			provider: "gitlab",
+			host: "gitlab.example.com",
+			owner: "acme",
+			name: "example",
+			url: "https://gitlab.example.com/acme/example",
+		});
 	});
 
 	test("prefers origin over other GitHub remotes when both exist", async () => {
@@ -153,7 +176,7 @@ describe("resolveLocalRepo", () => {
 		expect(resolved.parsed?.name).toBe("lib");
 	});
 
-	test("falls back to first GitHub remote when origin is non-GitHub", async () => {
+	test("prefers a supported GitLab origin over another GitHub remote", async () => {
 		const repo = join(workRoot, "mixed-remote");
 		const git = await initRepoAt(repo);
 		await git.addRemote("origin", "git@gitlab.com:hidden/origin.git");
@@ -161,9 +184,10 @@ describe("resolveLocalRepo", () => {
 
 		const resolved = await resolveLocalRepo(repo);
 
-		expect(resolved.remoteName).toBe("github");
-		expect(resolved.parsed?.owner).toBe("visible");
-		expect(resolved.parsed?.name).toBe("repo");
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed?.provider).toBe("gitlab");
+		expect(resolved.parsed?.owner).toBe("hidden");
+		expect(resolved.parsed?.name).toBe("origin");
 	});
 
 	test("walks up from a subdirectory to the git toplevel", async () => {
