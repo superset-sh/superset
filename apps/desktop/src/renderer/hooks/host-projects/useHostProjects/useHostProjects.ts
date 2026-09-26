@@ -4,7 +4,7 @@ import { env } from "renderer/env.renderer";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { hostServiceQueryFn } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import {
@@ -105,26 +105,30 @@ export function useHostProjects(): UseHostProjectsResult {
 	const queries = useQueries({
 		queries: targets.map((target) => ({
 			queryKey: getHostProjectsQueryKey(target),
-			enabled: target.hostUrl !== null,
 			refetchInterval: PROJECTS_FALLBACK_REFETCH_INTERVAL_MS,
 			// See useHostWorkspaces: "online" networkMode would pause 127.0.0.1
 			// queries when navigator.onLine is false, defeating offline-first.
 			networkMode: "always" as const,
 			refetchIntervalInBackground: true,
 			retry: 1,
-			queryFn: async (): Promise<HostProjectRow[]> => {
-				if (!target.hostUrl) return [];
-				const client = getHostServiceClientByUrl(target.hostUrl);
-				// Normalize per-row: remote hosts on pre-local-first builds
-				// don't serve name/createdAt/updatedAt yet.
-				const rows = (
-					(await client.project.list.query()) as Array<
-						Partial<HostProjectRow> & { id: string; repoPath: string }
-					>
-				).map(normalizeHostProjectRow);
-				saveHostProjectsSnapshot(target.organizationId, target.machineId, rows);
-				return rows;
-			},
+			queryFn: hostServiceQueryFn(
+				target.hostUrl,
+				async (client): Promise<HostProjectRow[]> => {
+					// Normalize per-row: remote hosts on pre-local-first builds
+					// don't serve name/createdAt/updatedAt yet.
+					const rows = (
+						(await client.project.list.query()) as Array<
+							Partial<HostProjectRow> & { id: string; repoPath: string }
+						>
+					).map(normalizeHostProjectRow);
+					saveHostProjectsSnapshot(
+						target.organizationId,
+						target.machineId,
+						rows,
+					);
+					return rows;
+				},
+			),
 		})),
 	});
 

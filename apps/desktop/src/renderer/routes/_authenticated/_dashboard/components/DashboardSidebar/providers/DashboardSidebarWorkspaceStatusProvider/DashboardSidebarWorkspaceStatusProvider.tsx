@@ -22,7 +22,7 @@ import {
 } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { hostServiceQueryFn } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import {
@@ -233,15 +233,11 @@ export function DashboardSidebarWorkspaceStatusProvider({
 	const bindingRowsByIndex = useQueries({
 		queries: targets.map((target) => ({
 			queryKey: getTerminalAgentBindingsQueryKey(target.workspaceId),
-			enabled: target.hostUrl !== null,
-			queryFn: () => {
-				if (!target.hostUrl) return [] as TerminalAgentBinding[];
-				return getHostServiceClientByUrl(
-					target.hostUrl,
-				).terminalAgents.listByWorkspace.query({
+			queryFn: hostServiceQueryFn(target.hostUrl, (client) =>
+				client.terminalAgents.listByWorkspace.query({
 					workspaceId: target.workspaceId,
-				});
-			},
+				}),
+			),
 			// Lifecycle events invalidate for instant updates; the finite
 			// staleTime lets focus/remount refetches self-heal any staleness
 			// from events missed while the WS was down (host restart, sleep).

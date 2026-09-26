@@ -1,6 +1,10 @@
 import { afterAll, afterEach, expect, mock, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+	QueryClient,
+	QueryClientProvider,
+	skipToken,
+} from "@tanstack/react-query";
 
 const registered = GlobalRegistrator.isRegistered;
 if (!registered) GlobalRegistrator.register();
@@ -48,31 +52,43 @@ mock.module("../../useWorkspaceHostUrl", () => ({
 	useWorkspaceHostUrl: () => hostUrl,
 }));
 mock.module("../../useWorkspaceEvent", () => ({ useWorkspaceEvent: () => {} }));
+const getHostServiceClientByUrl = (url: string) => ({
+	pageWatch: {
+		getAll: {
+			query: async () => {
+				const host = hosts.get(url);
+				if (!host) throw new Error(`Missing host ${url}`);
+				host.reads++;
+				await host.gate;
+				return host.watchers;
+			},
+		},
+	},
+	terminalAgents: {
+		listByWorkspace: {
+			query: async () => {
+				const host = hosts.get(url);
+				if (!host) throw new Error(`Missing host ${url}`);
+				host.reads++;
+				await host.gate;
+				return host.bindings;
+			},
+		},
+	},
+});
 mock.module("renderer/lib/host-service-client", () => ({
-	getHostServiceClientByUrl: (url: string) => ({
-		pageWatch: {
-			getAll: {
-				query: async () => {
-					const host = hosts.get(url);
-					if (!host) throw new Error(`Missing host ${url}`);
-					host.reads++;
-					await host.gate;
-					return host.watchers;
-				},
-			},
-		},
-		terminalAgents: {
-			listByWorkspace: {
-				query: async () => {
-					const host = hosts.get(url);
-					if (!host) throw new Error(`Missing host ${url}`);
-					host.reads++;
-					await host.gate;
-					return host.bindings;
-				},
-			},
-		},
-	}),
+	getHostServiceClientByUrl,
+	hostServiceQueryFn: (
+		url: string | null,
+		query: (
+			client: ReturnType<typeof getHostServiceClientByUrl>,
+			context: { signal: AbortSignal },
+		) => unknown,
+	) =>
+		url === null
+			? skipToken
+			: (context: { signal: AbortSignal }) =>
+					query(getHostServiceClientByUrl(url), context),
 }));
 const { act, cleanup, render, waitFor } = await import(
 	"@testing-library/react"

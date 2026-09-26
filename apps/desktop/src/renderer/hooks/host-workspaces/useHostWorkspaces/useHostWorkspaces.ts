@@ -5,7 +5,7 @@ import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { hostServiceQueryFn } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import {
@@ -174,7 +174,6 @@ export function useHostWorkspacesSource(
 	const queries = useQueries({
 		queries: targets.map((target) => ({
 			queryKey: getHostWorkspacesQueryKey(target),
-			enabled: target.hostUrl !== null,
 			refetchInterval: WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS,
 			// The local host is reachable at 127.0.0.1 even with the machine
 			// offline — the default "online" networkMode would pause these
@@ -188,26 +187,27 @@ export function useHostWorkspacesSource(
 			// Bounded retries so an online-per-cloud but tunnel-less relay
 			// target settles into isError quickly instead of holding isReady.
 			retry: 1,
-			queryFn: async (): Promise<HostWorkspaceRow[]> => {
-				if (!target.hostUrl) return [];
-				const client = getHostServiceClientByUrl(target.hostUrl);
-				const served = (
-					(await client.workspace.list.query()) as HostWorkspaceRow[]
-				).map(normalizeServedWorkspaceRow);
-				// A sandbox reports the machine id of the container it happens to
-				// be running in, which addresses nothing from here. Restate it as
-				// the cloud workspace's id so every host-keyed lookup downstream
-				// (pull requests, agent status, diff stats) resolves.
-				const rows = target.isSandbox
-					? served.map((row) => ({ ...row, hostId: target.machineId }))
-					: served;
-				saveHostWorkspacesSnapshot(
-					target.organizationId,
-					target.machineId,
-					rows,
-				);
-				return rows;
-			},
+			queryFn: hostServiceQueryFn(
+				target.hostUrl,
+				async (client): Promise<HostWorkspaceRow[]> => {
+					const served = (
+						(await client.workspace.list.query()) as HostWorkspaceRow[]
+					).map(normalizeServedWorkspaceRow);
+					// A sandbox reports the machine id of the container it happens
+					// to be running in, which addresses nothing from here. Restate
+					// it as the cloud workspace's id so every host-keyed lookup
+					// downstream (pull requests, agent status, diff stats) resolves.
+					const rows = target.isSandbox
+						? served.map((row) => ({ ...row, hostId: target.machineId }))
+						: served;
+					saveHostWorkspacesSnapshot(
+						target.organizationId,
+						target.machineId,
+						rows,
+					);
+					return rows;
+				},
+			),
 		})),
 	});
 
@@ -222,19 +222,24 @@ export function useHostWorkspacesSource(
 				target.organizationId,
 				target.machineId,
 			] as const,
-			enabled: includeArchived && target.hostUrl !== null,
+			// `enabled` carries this caller's opt-out; the URL alone decides the
+			// skipToken. The provider observes this key with archived off, and
+			// its options land last: a skipToken from it would make the board's
+			// invalidation refetches reject instead of fetch.
+			enabled: includeArchived,
 			refetchInterval: WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS,
 			networkMode: "always" as const,
-			queryFn: async (): Promise<HostWorkspaceRow[]> => {
-				if (!target.hostUrl) return [];
-				const client = getHostServiceClientByUrl(target.hostUrl);
-				const rows = (await client.workspace.list.query({
-					includeArchived: true,
-				})) as HostWorkspaceRow[];
-				return rows
-					.filter((row) => row.archivedAt != null)
-					.map(normalizeServedWorkspaceRow);
-			},
+			queryFn: hostServiceQueryFn(
+				target.hostUrl,
+				async (client): Promise<HostWorkspaceRow[]> => {
+					const rows = (await client.workspace.list.query({
+						includeArchived: true,
+					})) as HostWorkspaceRow[];
+					return rows
+						.filter((row) => row.archivedAt != null)
+						.map(normalizeServedWorkspaceRow);
+				},
+			),
 		})),
 	});
 

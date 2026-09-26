@@ -1,6 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import {
+	type getHostServiceClientByUrl,
+	hostServiceQueryFn,
+} from "renderer/lib/host-service-client";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
@@ -41,12 +44,12 @@ export function useTerminalResumeCandidate(
 	const { data } = useQuery({
 		queryKey,
 		enabled,
-		queryFn: () => {
-			if (!hostUrl) return null;
-			return getHostServiceClientByUrl(
-				hostUrl,
-			).terminalAgents.resumeCandidate.query({ workspaceId, terminalId });
-		},
+		queryFn: hostServiceQueryFn(hostUrl, (client, { signal }) =>
+			client.terminalAgents.resumeCandidate.query(
+				{ workspaceId, terminalId },
+				{ signal },
+			),
+		),
 		staleTime: 15_000,
 	});
 

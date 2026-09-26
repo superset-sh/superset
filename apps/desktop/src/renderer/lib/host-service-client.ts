@@ -1,5 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
 import { createHostServiceLinks } from "@superset/workspace-client";
+import { type SkipToken, skipToken } from "@tanstack/react-query";
 import { createTRPCClient } from "@trpc/client";
 import { getHostServiceHeaders } from "./host-service-auth";
 import { isHostServiceConnectionError } from "./utils/isHostServiceConnectionError";
@@ -54,4 +55,31 @@ export function hostServiceQueryRetry(
 
 export function hostServiceQueryRetryDelay(attempt: number): number {
 	return HOST_SERVICE_RETRY_DELAY_MS * (attempt + 1);
+}
+
+/**
+ * The abort signal must reach the tRPC call: react-query only cancels an
+ * in-flight fetch on last-observer unmount when the queryFn consumed it, and
+ * an uncancelled read would land its old-host rows in the cache afterwards.
+ */
+export type HostServiceQueryContext = { signal: AbortSignal };
+
+/**
+ * `skipToken` rather than `enabled: false` for an unreachable host: `enabled`
+ * leaves a retry already scheduled by hostServiceQueryRetry running, and it
+ * would resolve empty over the cached snapshot once the URL goes null.
+ *
+ * That retry reaching the skipped fn is what react-query dev builds log as
+ * "Attempted to invoke queryFn when set to skipToken" — the handover working,
+ * not a misconfiguration.
+ */
+export function hostServiceQueryFn<T>(
+	hostUrl: string | null,
+	query: (
+		client: HostServiceClient,
+		context: HostServiceQueryContext,
+	) => Promise<T>,
+): ((context: HostServiceQueryContext) => Promise<T>) | SkipToken {
+	if (hostUrl === null) return skipToken;
+	return (context) => query(getHostServiceClientByUrl(hostUrl), context);
 }

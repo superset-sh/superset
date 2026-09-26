@@ -5,7 +5,10 @@ import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProje
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import {
+	getHostServiceClientByUrl,
+	hostServiceQueryFn,
+} from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -431,16 +434,11 @@ export function useDashboardSidebarData() {
 		queries: pullRequestQueryTargets.map((target) => ({
 			queryKey: getDashboardSidebarPullRequestQueryKey(target),
 			refetchInterval: 10_000,
-			// Unreachable host: keep the query mounted so cached chips stay
-			// rendered through the outage; fetches resume when the URL returns.
-			enabled: target.hostUrl !== null,
-			queryFn: async () => {
-				if (!target.hostUrl) return { workspaces: [], github: null };
-				const client = getHostServiceClientByUrl(target.hostUrl);
-				return client.pullRequests.getByWorkspaces.query({
+			queryFn: hostServiceQueryFn(target.hostUrl, (client) =>
+				client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
-				});
-			},
+				}),
+			),
 		})),
 	});
 

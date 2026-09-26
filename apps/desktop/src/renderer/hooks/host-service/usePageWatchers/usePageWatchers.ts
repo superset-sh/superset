@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import {
+	type getHostServiceClientByUrl,
+	hostServiceQueryFn,
+} from "renderer/lib/host-service-client";
 import { useWorkspaceConnectionRefresh } from "../useWorkspaceConnectionRefresh";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
@@ -32,15 +35,9 @@ export function usePageWatchers(
 		queryKey,
 		enabled,
 		staleTime: 30_000,
-		queryFn: async ({ signal }) => {
-			if (!hostUrl) return [] as PageWatchers;
-			return await getHostServiceClientByUrl(hostUrl).pageWatch.getAll.query(
-				{
-					workspaceId,
-				},
-				{ signal },
-			);
-		},
+		queryFn: hostServiceQueryFn(hostUrl, (client, { signal }) =>
+			client.pageWatch.getAll.query({ workspaceId }, { signal }),
+		),
 	});
 
 	const invalidate = useWorkspaceConnectionRefresh(
