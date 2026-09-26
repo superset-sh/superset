@@ -10,6 +10,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	LuBuilding2,
 	LuEye,
 	LuEyeOff,
 	LuFolderInput,
@@ -21,6 +22,11 @@ import {
 } from "react-icons/lu";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 
+export interface ProjectMoveTargetOrganization {
+	id: string;
+	name: string;
+}
+
 interface DashboardSidebarProjectContextMenuProps {
 	projectId: string;
 	onCreateSection: () => void;
@@ -31,6 +37,10 @@ interface DashboardSidebarProjectContextMenuProps {
 	/** Null when the user cannot delete (not an organization owner). */
 	onDelete: (() => void) | null;
 	onRename: () => void;
+	/** Organizations the user belongs to, excluding the active one. */
+	moveTargetOrganizations: ProjectMoveTargetOrganization[];
+	onMoveToOrganization: (organizationId: string) => void;
+	isMovingToOrganization: boolean;
 	children: React.ReactNode;
 }
 
@@ -43,6 +53,9 @@ export function DashboardSidebarProjectContextMenu({
 	onHide,
 	onDelete,
 	onRename,
+	moveTargetOrganizations,
+	onMoveToOrganization,
+	isMovingToOrganization,
 	children,
 }: DashboardSidebarProjectContextMenuProps) {
 	const { preferences, setTagFolderHidden } = useV2UserPreferences();
@@ -68,6 +81,32 @@ export function DashboardSidebarProjectContextMenu({
 					<LuFolderPlus className="size-4 mr-2" />
 					<Trans>New group</Trans>
 				</ContextMenuItem>
+				{moveTargetOrganizations.length > 0 && (
+					<>
+						<ContextMenuSeparator />
+						<ContextMenuSub>
+							<ContextMenuSubTrigger
+								disabled={isMovingToOrganization}
+								className="data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+							>
+								<LuBuilding2 className="size-4 mr-2" />
+								<Trans id="dashboard.sidebar.projectMenu.moveToOrganization">
+									Move to organization
+								</Trans>
+							</ContextMenuSubTrigger>
+							<ContextMenuSubContent className="max-h-80 w-52 overflow-y-auto">
+								{moveTargetOrganizations.map((organization) => (
+									<ContextMenuItem
+										key={organization.id}
+										onSelect={() => onMoveToOrganization(organization.id)}
+									>
+										<span className="truncate">{organization.name}</span>
+									</ContextMenuItem>
+								))}
+							</ContextMenuSubContent>
+						</ContextMenuSub>
+					</>
+				)}
 				{hiddenTags.length > 0 ? (
 					<ContextMenuSub>
 						<ContextMenuSubTrigger>
