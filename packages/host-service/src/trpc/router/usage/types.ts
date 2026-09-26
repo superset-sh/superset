@@ -16,7 +16,8 @@ export type UsageAgent =
 	| "omp"
 	| "fx"
 	| "muse"
-	| "devin";
+	| "devin"
+	| "typesafe";
 
 /** The subset of agents with quota accounts. Claude and Codex logins are
  * also switchable; OpenCode's are the Anthropic/OpenAI subscriptions it is
