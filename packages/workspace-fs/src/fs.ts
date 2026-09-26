@@ -924,7 +924,10 @@ export async function movePath({
 	});
 
 	await fs.access(destinationPath).then(
-		() => {
+		async () => {
+			if (await isCaseOnlyRenameOfSameEntry(sourcePath, destinationPath)) {
+				return;
+			}
 			throw new Error(`Destination already exists: ${destinationPath}`);
 		},
 		(error: NodeJS.ErrnoException) => {
@@ -936,6 +939,23 @@ export async function movePath({
 
 	await fs.rename(sourcePath, destinationPath);
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
+}
+
+// On a case-insensitive volume, `Foo.ts` -> `foo.ts` finds the source itself
+// at the destination. The directory then lists a single entry under the
+// source's name; two hard links on a case-sensitive volume list both names,
+// and renaming one onto the other is a silent no-op in POSIX.
+async function isCaseOnlyRenameOfSameEntry(
+	sourcePath: string,
+	destinationPath: string,
+): Promise<boolean> {
+	if (sourcePath === destinationPath) return false;
+	if (sourcePath.toLowerCase() !== destinationPath.toLowerCase()) return false;
+	const names = await fs.readdir(path.dirname(destinationPath));
+	return (
+		names.includes(path.basename(sourcePath)) &&
+		!names.includes(path.basename(destinationPath))
+	);
 }
 
 export async function copyPath({

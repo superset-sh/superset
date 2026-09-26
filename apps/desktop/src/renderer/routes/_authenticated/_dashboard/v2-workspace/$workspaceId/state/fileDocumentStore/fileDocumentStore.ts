@@ -213,6 +213,23 @@ async function fetchCurrentDiskContent(
 	}
 }
 
+// A rename onto an open document is either the watcher's copy of a move the
+// document already followed, or a real replacement such as an atomic save.
+// Only the disk content tells them apart.
+async function reconcileRenameOnto(entry: DocumentEntry): Promise<void> {
+	const generation = entry.loadGeneration;
+	const diskContent = await fetchCurrentDiskContent(entry);
+	if (generation !== entry.loadGeneration) return;
+	if (diskContent !== null && diskContent === entry.savedContentText) return;
+	if (computeDirty(entry)) {
+		entry.loadGeneration += 1;
+		entry.hasExternalChange = true;
+		notify(entry);
+	} else {
+		void loadEntry(entry);
+	}
+}
+
 function createHandle(entry: DocumentEntry): SharedFileDocument {
 	return {
 		get id() {
@@ -447,35 +464,44 @@ export function dispatchFsEvent(
 	// mid-iteration, which would revisit the same entry and loop forever.
 	for (const entry of Array.from(entries.values())) {
 		if (entry.workspaceId !== workspaceId) continue;
+		const renamedSource =
+			event.kind === "rename" &&
+			event.oldAbsolutePath !== undefined &&
+			(entry.absolutePath === event.oldAbsolutePath ||
+				(event.isDirectory === true &&
+					entry.absolutePath.startsWith(`${event.oldAbsolutePath}/`)));
+		if (renamedSource && event.oldAbsolutePath) {
+			entry.loadGeneration += 1;
+			const oldKey = key(entry.workspaceId, entry.absolutePath);
+			entries.delete(oldKey);
+			entry.absolutePath =
+				event.absolutePath +
+				entry.absolutePath.slice(event.oldAbsolutePath.length);
+			entries.set(key(entry.workspaceId, entry.absolutePath), entry);
+			entry.orphaned = false;
+			if (!computeDirty(entry)) void loadEntry(entry);
+			notify(entry);
+			continue;
+		}
 		const affects =
 			event.kind === "overflow" ||
 			entry.absolutePath === event.absolutePath ||
-			(event.kind === "rename" && event.oldAbsolutePath === entry.absolutePath);
+			renamedSource;
 		if (!affects) continue;
+		if (event.kind === "rename") {
+			if (entry.orphaned) entry.orphaned = false;
+			void reconcileRenameOnto(entry);
+			continue;
+		}
 
 		const isContentMutation =
 			event.kind === "create" ||
 			event.kind === "update" ||
-			event.kind === "overflow" ||
-			(event.kind === "rename" && event.absolutePath === entry.absolutePath);
+			event.kind === "overflow";
 
 		if (event.kind === "delete") {
 			entry.loadGeneration += 1;
 			entry.orphaned = true;
-			notify(entry);
-			continue;
-		}
-
-		if (
-			event.kind === "rename" &&
-			event.oldAbsolutePath === entry.absolutePath
-		) {
-			entry.loadGeneration += 1;
-			const oldKey = key(entry.workspaceId, entry.absolutePath);
-			entries.delete(oldKey);
-			entry.absolutePath = event.absolutePath;
-			entries.set(key(entry.workspaceId, entry.absolutePath), entry);
-			if (!computeDirty(entry)) void loadEntry(entry);
 			notify(entry);
 			continue;
 		}

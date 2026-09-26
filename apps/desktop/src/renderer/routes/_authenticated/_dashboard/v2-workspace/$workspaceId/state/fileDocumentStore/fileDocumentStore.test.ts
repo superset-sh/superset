@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import {
 	acquireDocument,
 	dispatchFsEvent,
+	getDocument,
 	releaseDocument,
 } from "./fileDocumentStore";
 
@@ -295,3 +296,115 @@ for (const action of ["save", "reload"] as const) {
 		await f.cleanup();
 	});
 }
+
+test("directory rename preserves a dirty descendant document", async () => {
+	const workspaceId = crypto.randomUUID();
+	const doc = acquireDocument(workspaceId, "/workspace/src/file.txt", {
+		filesystem: {
+			readFile: {
+				query: async () => ({
+					kind: "text",
+					content: "original",
+					revision: "r1",
+					byteLength: 8,
+				}),
+			},
+		},
+	} as unknown as Parameters<typeof acquireDocument>[2]);
+	await Promise.resolve();
+	doc.setContent("unsaved");
+	dispatchFsEvent(workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/src",
+		absolutePath: "/workspace/dest",
+		isDirectory: true,
+	});
+	expect(doc.absolutePath).toBe("/workspace/dest/file.txt");
+	expect(doc.content).toMatchObject({ value: "unsaved" });
+	expect(getDocument(workspaceId, "/workspace/dest/file.txt")?.id).toBe(doc.id);
+	doc.setContent("original");
+	releaseDocument(workspaceId, doc.absolutePath);
+});
+
+test("duplicate rename events do not reload the already-moved document", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	const event = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, event);
+	dispatchFsEvent(f.workspaceId, event);
+	expect(f.reads).toHaveLength(3);
+	await f.resolve(1, "renamed");
+	await f.resolve(2, "renamed");
+	expect(f.reads).toHaveLength(3);
+	expect(f.doc.content).toMatchObject({ value: "renamed" });
+	expect(f.doc.absolutePath).toBe("/workspace/.env.local");
+	await f.cleanup();
+});
+
+test("an atomic save renamed over an open clean document reloads it", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	dispatchFsEvent(f.workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/.env.tmp",
+		absolutePath: "/workspace/.env",
+	});
+	await f.resolve(1, "saved elsewhere");
+	expect(f.reads).toHaveLength(3);
+	await f.resolve(2, "saved elsewhere");
+	expect(f.doc.content).toMatchObject({ value: "saved elsewhere" });
+	await f.cleanup();
+});
+
+test("an atomic save renamed over an open dirty document flags the external change", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	dispatchFsEvent(f.workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/.env.tmp",
+		absolutePath: "/workspace/.env",
+	});
+	await f.resolve(1, "saved elsewhere");
+	expect(f.doc.hasExternalChange).toBe(true);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
+	await f.cleanup();
+});
+
+test("the watcher echo of a move keeps a dirty buffer free of external-change flags", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	const event = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, event);
+	dispatchFsEvent(f.workspaceId, event);
+	await f.resolve(1, "original");
+	expect(f.doc.hasExternalChange).toBe(false);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
+	await f.cleanup();
+});
+
+test("a replacement arriving from the old path after a move is still detected", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	const move = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, move);
+	dispatchFsEvent(f.workspaceId, move);
+	await f.resolve(1, "replacement written at the old path");
+	expect(f.doc.hasExternalChange).toBe(true);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
+	await f.cleanup();
+});
