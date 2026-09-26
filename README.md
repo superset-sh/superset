@@ -14,6 +14,10 @@ Run Claude Code, Codex, or another CLI agent with terminals, code review, and br
 
 </div>
 
+### Documentation for agents
+
+The docs are available as [a Markdown index](https://docs.superset.sh/llms.txt) linking to individual pages, or [one full-text file](https://docs.superset.sh/llms-full.txt).
+
 ## Install
 
 Download the desktop app:

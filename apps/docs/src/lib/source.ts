@@ -21,7 +21,12 @@ export function getPageImage(page: InferPageType<typeof source>) {
 export async function getLLMText(page: InferPageType<typeof source>) {
 	const processed = await page.data.getText("processed");
 
-	return `# ${page.data.title}
-
-${processed}`;
+	return [
+		`# ${page.data.title}`,
+		`Source: https://docs.superset.sh${page.url}`,
+		page.data.description,
+		processed,
+	]
+		.filter(Boolean)
+		.join("\n\n");
 }

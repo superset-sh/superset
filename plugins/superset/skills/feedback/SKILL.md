@@ -2,12 +2,12 @@
 name: feedback
 description: Collect and submit feedback about Superset (bug reports, feature requests, or general feedback) privately to the Superset team or as a public GitHub issue. Use when the user wants to report a Superset bug, request a feature, or send feedback about Superset.
 argument-hint: describe the bug, request, or feedback
-allowed-tools: Bash(superset:*) Bash(gh:*) Bash(uname:*)
+allowed-tools: Bash(superset:*) Bash(gh:*) Bash(uname:*) WebFetch WebSearch
 ---
 
 # Superset Feedback
 
-Turn the user's feedback about Superset into a short, scannable report and submit it where they choose. Treat whatever they wrote after the command as the seed.
+Check Superset's documentation for an existing answer first. When feedback still needs reporting, turn it into a short, scannable report and submit it where the user chooses. Treat whatever they wrote after the command as the seed.
 
 The reader is a Superset engineer triaging dozens of reports. They should get the point from the title, the full picture from the summary bullets, and only read further when they need detail. Cut everything that doesn't help them reproduce or decide.
 
@@ -18,6 +18,14 @@ Every private submission CCs the reporter, so they already have a copy in their 
 If the seed reads like a continuation ("follow-up", "again", "still happening", "update on", "retraction", "root cause", "I already sent", "third time"), or the user filed something on this topic earlier in the session, ask whether they already sent a report about it. If they did, tell them to reply to that email with the new information and stop here. Only file fresh when they confirm it's a different issue.
 
 Never title a report "Follow-up:", "ROOT CAUSE:", or "RETRACTION"; those belong in a reply.
+
+### Check the knowledge base before gathering report details
+
+Search the Superset documentation for the user's question, symptom, or requested capability. Use `docs_search` with relevant keywords, then `docs_read` on promising results when the Superset docs MCP tools are available. Otherwise fetch `https://docs.superset.sh/llms.txt` and read the relevant linked pages, or use web search restricted to `docs.superset.sh`. Use generic product terms and error messages; keep private paths, account details, and logs out of search queries.
+
+Read the actual page before treating a result as an answer. Check that it applies to the user's platform, version, and circumstances. If it does, answer directly with the relevant steps and a link to the source. For a requested feature that already exists, explain how to use it. For a bug, offer the documented fix and verify the outcome before treating it as resolved. A related article or workaround alone does not mean the issue is resolved.
+
+If the answer resolves the request and the user has not asked to file anyway, stop without drafting a report. If it does not help, or the user still wants to send feedback, continue below and include the relevant article and what was tried in the draft. Do not make them repeat troubleshooting already covered in the conversation. If the docs are unavailable or no answer matches, continue with the report; do not block submission or claim no answer exists when the lookup failed.
 
 ## 1. Gather context (best effort, never block)
 
