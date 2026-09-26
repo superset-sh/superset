@@ -455,6 +455,11 @@ msgstr "{0}件実行中"
 msgid "{0} Running"
 msgstr "{0}件実行中"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} 実行中 · 最終アクティブ {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "{0}件のセッションを終了しました"
@@ -4354,6 +4359,10 @@ msgstr "このコメントを解決できませんでした"
 
 msgid "Could not restart the host service"
 msgstr "ホストサービスを再起動できませんでした"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "{0} を再開できませんでした"
 
 msgid "Could not send"
 msgstr "送信できませんでした"
@@ -12492,6 +12501,11 @@ msgstr "結果"
 
 msgid "Resume"
 msgstr "再開"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "{0} を再開 · 最終アクティブ {1}"
 
 msgid "Resume args"
 msgstr "再開時の引数"

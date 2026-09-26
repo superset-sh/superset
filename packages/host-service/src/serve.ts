@@ -85,6 +85,7 @@ async function main(): Promise<void> {
 		launchSandboxAgent,
 		resumeCrashedAgents,
 		terminalAgentStore,
+		resumeLostAgents,
 	} = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
@@ -155,6 +156,7 @@ async function main(): Promise<void> {
 		// A stop keeps the disk and drops every process, so nothing else on the
 		// box will notice that its agents are gone.
 		if (env.SUPERSET_HOST_RUN_MODE === "sandbox") void resumeCrashedAgents();
+		else void resumeLostAgents();
 		const sandboxWorkspaceId = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
 		if (env.SUPERSET_HOST_RUN_MODE === "sandbox" && sandboxWorkspaceId) {
 			startSandboxCredentialRefresh({

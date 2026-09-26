@@ -455,6 +455,11 @@ msgstr "{0} çalışıyor"
 msgid "{0} Running"
 msgstr "{0} çalışıyor"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} çalışıyor · son etkinlik {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "{0} oturum sonlandırıldı"
@@ -4354,6 +4359,10 @@ msgstr "Bu yorum çözülemedi"
 
 msgid "Could not restart the host service"
 msgstr "Ana makine hizmeti yeniden başlatılamadı"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "{0} sürdürülemedi"
 
 msgid "Could not send"
 msgstr "Gönderilemedi"
@@ -12492,6 +12501,11 @@ msgstr "Sonuçlar"
 
 msgid "Resume"
 msgstr "Sürdür"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "{0} sürdür · son etkinlik {1}"
 
 msgid "Resume args"
 msgstr "Sürdürme argümanları"

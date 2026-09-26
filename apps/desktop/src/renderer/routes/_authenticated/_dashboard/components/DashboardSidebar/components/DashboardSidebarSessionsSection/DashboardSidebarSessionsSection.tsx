@@ -10,6 +10,7 @@ import {
 } from "../../hooks/useSidebarDnd";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarExpandedProjectContent } from "../DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent";
+import { DashboardSidebarRecentSessions } from "../DashboardSidebarRecentSessions";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 import { SidebarDropZone } from "../SidebarDropZone";
@@ -107,6 +108,7 @@ export function DashboardSidebarSessionsSection({
 					</TooltipContent>
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
+			{!isSectionCollapsed && <DashboardSidebarRecentSessions />}
 			<DashboardSidebarExpandedProjectContent
 				containerId={SESSIONS_CONTAINER}
 				projectId={null}

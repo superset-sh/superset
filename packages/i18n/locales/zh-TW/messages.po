@@ -455,6 +455,11 @@ msgstr "{0}個執行中"
 msgid "{0} Running"
 msgstr "{0}項執行中"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} 執行中 · 最後活動 {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "已終止{0}個會話"
@@ -4354,6 +4359,10 @@ msgstr "無法解決此留言"
 
 msgid "Could not restart the host service"
 msgstr "無法重新啟動主機服務"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "無法恢復 {0}"
 
 msgid "Could not send"
 msgstr "無法傳送"
@@ -12492,6 +12501,11 @@ msgstr "結果"
 
 msgid "Resume"
 msgstr "恢復"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "恢復 {0} · 最後活動 {1}"
 
 msgid "Resume args"
 msgstr "恢復引數"
