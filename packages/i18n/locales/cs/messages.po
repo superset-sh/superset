@@ -808,9 +808,6 @@ msgstr "{noun, select, person {Zadejte alespoň jednu osobu, nebo zvolte {choice
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Zadejte alespoň jeden repozitář.} channel {Zadejte alespoň jeden kanál.} reaction {Zadejte alespoň jednu reakci.} dataSource {Zadejte alespoň jeden zdroj dat.} team {Zadejte alespoň jeden tým.} project {Zadejte alespoň jeden projekt.} calendar {Zadejte alespoň jeden kalendář.} other {Zadejte alespoň jednu položku.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# zařízení je offline a ponechá si svou kopii.} few {# zařízení jsou offline a ponechají si svou kopii.} many {# zařízení je offline a ponechá si svou kopii.} other {# zařízení je offline a ponechá si svou kopii.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} otevřených"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: host není dostupný"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown selhal"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Tím se projekt a jeho # pracovní prostor odstraní ze všech dostupných zařízení a tento worktree se smaže z disku.} few {Tím se projekt a jeho # pracovní prostory odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.} many {Tím se projekt a jeho # pracovního prostoru odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.} other {Tím se projekt a jeho # pracovních prostorů odstraní ze všech dostupných zařízení a jejich worktree se smažou z disku.}}"
 
 msgid "{years}y ago"
 msgstr "před {years} r."
@@ -5095,9 +5089,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "„{projectName}“ smazán"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "„{projectName}“ smazán z {0} z {1} zařízení — nedostupná zařízení si kopii ponechala"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "Projekt „{projectName}“ byl smazán z {0} z {1} vybraných zařízení. Zařízení, na kterých smazání selhalo, si ponechají své kopie."
 
 msgid "Deleted {name}"
 msgstr "{name} smazán"
@@ -5234,6 +5228,9 @@ msgstr "Vývojové sestavení"
 
 msgid "Device: {selectedLabel}"
 msgstr "Zařízení: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Zařízení"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10231,11 +10228,11 @@ msgstr "Toto umístění mohou měnit jen vlastníci hosta."
 msgid "Only host owners can delete this host"
 msgstr "Tohoto hosta mohou smazat jen jeho vlastníci"
 
-msgid "Only organization owners can delete this project."
-msgstr "Tento projekt mohou smazat jen vlastníci organizace."
-
 msgid "Only organization owners can modify these settings."
 msgstr "Toto nastavení mohou měnit jen vlastníci organizace."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "Tento projekt mohou smazat pouze vlastníci organizace nebo zařízení."
 
 msgid "Only owners can change membership."
 msgstr "Členství mohou měnit jen vlastníci."
@@ -10877,6 +10874,9 @@ msgstr "Vlastník: {0} — upravovat tuto automatizaci může jen vlastník."
 
 msgid "Owner"
 msgstr "Vlastník"
+
+msgid "Owner access required"
+msgstr "Vyžadován přístup vlastníka"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Vlastní každou PTY relaci a přežije restart aplikace."
@@ -15549,8 +15549,8 @@ msgstr "Tímto se z disku odstraní každý vybraný worktree a smaže se zázna
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Tímto se odstraní host, přístup k němu i jeho pracovní prostory. Soubory na počítači zůstanou. Běžící host se může znovu objevit. Nelze vrátit zpět."
 
-msgid "This removes the project from every reachable device."
-msgstr "Tím se projekt odstraní ze všech dostupných zařízení."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Projekt a jeho pracovní prostory budou odstraněny z vybraných zařízení pro všechny jejich uživatele. Pracovní stromy budou smazány z disku."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Tím se worktree odstraní z disku a pracovní prostor se zavře."
@@ -16164,6 +16164,9 @@ msgstr "Nevyřešeno"
 
 msgid "Unsaved changes"
 msgstr "Neuložené změny"
+
+msgid "Unselected devices keep their copy."
+msgstr "Nevybraná zařízení si ponechají své kopie."
 
 msgid "Unstage all"
 msgstr "Zrušit přípravu u všech"

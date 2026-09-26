@@ -808,9 +808,6 @@ msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, ho�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.} other {# thiết bị đang ngoại tuyến và sẽ giữ lại bản sao của mình.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} còn mở"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: host không khả dụng"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown thất bại"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa worktree đó khỏi ổ đĩa.} other {Thao tác này sẽ gỡ dự án và # workspace của nó khỏi mọi thiết bị có thể kết nối, đồng thời xóa các worktree đó khỏi ổ đĩa.}}"
 
 msgid "{years}y ago"
 msgstr "{years} năm trước"
@@ -5095,9 +5089,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "Đã xóa \"{projectName}\""
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "Đã xóa \"{projectName}\" trên {0}/{1} thiết bị — các thiết bị không kết nối được vẫn giữ bản sao"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "Đã xóa \"{projectName}\" khỏi {0} trong số {1} thiết bị đã chọn. Các thiết bị xóa không thành công vẫn giữ bản sao của mình."
 
 msgid "Deleted {name}"
 msgstr "Đã xóa {name}"
@@ -5234,6 +5228,9 @@ msgstr "Bản dựng phát triển"
 
 msgid "Device: {selectedLabel}"
 msgstr "Thiết bị: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Thiết bị"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10231,11 +10228,11 @@ msgstr "Chỉ chủ sở hữu host mới đổi được vị trí này."
 msgid "Only host owners can delete this host"
 msgstr "Chỉ chủ sở hữu host mới xóa được host này"
 
-msgid "Only organization owners can delete this project."
-msgstr "Chỉ chủ sở hữu tổ chức mới xóa được dự án này."
-
 msgid "Only organization owners can modify these settings."
 msgstr "Chỉ chủ sở hữu tổ chức mới sửa được các cài đặt này."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "Chỉ chủ sở hữu tổ chức hoặc chủ sở hữu thiết bị mới có thể xóa dự án này."
 
 msgid "Only owners can change membership."
 msgstr "Chỉ chủ sở hữu mới thay đổi được thành viên."
@@ -10877,6 +10874,9 @@ msgstr "Thuộc sở hữu của {0} — chỉ họ mới sửa được tự đ
 
 msgid "Owner"
 msgstr "Chủ sở hữu"
+
+msgid "Owner access required"
+msgstr "Cần quyền chủ sở hữu"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Sở hữu mọi phiên PTY và tồn tại qua các lần khởi động lại ứng dụng."
@@ -15549,8 +15549,8 @@ msgstr "Thao tác này xóa mọi worktree đã chọn khỏi đĩa và xóa b�
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của nó. Tệp trên máy vẫn giữ nguyên. Host đang chạy có thể xuất hiện lại. Không thể hoàn tác."
 
-msgid "This removes the project from every reachable device."
-msgstr "Thao tác này sẽ gỡ dự án khỏi mọi thiết bị có thể kết nối."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Thao tác này xóa dự án và các không gian làm việc khỏi các thiết bị đã chọn đối với tất cả người dùng trên các thiết bị đó. Các worktree sẽ bị xóa khỏi ổ đĩa."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Thao tác này xóa worktree khỏi ổ đĩa và đóng workspace."
@@ -16164,6 +16164,9 @@ msgstr "Chưa giải quyết"
 
 msgid "Unsaved changes"
 msgstr "Thay đổi chưa lưu"
+
+msgid "Unselected devices keep their copy."
+msgstr "Các thiết bị không được chọn vẫn giữ bản sao của mình."
 
 msgid "Unstage all"
 msgstr "Bỏ stage tất cả"

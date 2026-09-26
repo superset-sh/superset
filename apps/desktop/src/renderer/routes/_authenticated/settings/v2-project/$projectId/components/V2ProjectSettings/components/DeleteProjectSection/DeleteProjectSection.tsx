@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { DeleteProjectDialog } from "renderer/routes/_authenticated/components/DeleteProjectDialog";
-import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
 
 interface DeleteProjectSectionProps {
 	projectId: string;
@@ -19,7 +19,7 @@ export function DeleteProjectSection({
 	hostIds,
 }: DeleteProjectSectionProps) {
 	const navigate = useNavigate();
-	const isOwner = useIsOrganizationOwner();
+	const canDelete = useProjectDeletionHosts(hostIds).hostIds.length > 0;
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -29,7 +29,7 @@ export function DeleteProjectSection({
 					<Trans>Delete project</Trans>
 				</div>
 			</div>
-			{!isOwner ? (
+			{!canDelete ? (
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span>
@@ -45,7 +45,9 @@ export function DeleteProjectSection({
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="left">
-						<Trans>Only organization owners can delete this project.</Trans>
+						<Trans>
+							Only organization owners or device owners can delete this project.
+						</Trans>
 					</TooltipContent>
 				</Tooltip>
 			) : (

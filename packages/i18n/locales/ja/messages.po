@@ -808,9 +808,6 @@ msgstr "{noun, select, person {人を1人以上指定するか、{choice}を選�
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {リポジトリを1つ以上指定してください。} channel {チャンネルを1つ以上指定してください。} reaction {リアクションを1つ以上指定してください。} dataSource {データソースを1つ以上指定してください。} team {チームを1つ以上指定してください。} project {プロジェクトを1つ以上指定してください。} calendar {カレンダーを1つ以上指定してください。} other {項目を1つ以上指定してください。}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {#台のデバイスがオフラインのため、そのコピーは残ります。} other {#台のデバイスがオフラインのため、そのコピーは残ります。}}"
-
 msgid "{openCount} open"
 msgstr "{openCount}件通過"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: ホストが利用できません"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: ティアダウンに失敗しました"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。} other {到達可能なすべてのデバイスからプロジェクトと#件のワークスペースを削除し、それらのワークツリーをディスクから削除します。}}"
 
 msgid "{years}y ago"
 msgstr "{years}年前"
@@ -5095,9 +5089,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "「{projectName}」を削除しました"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "「{projectName}」を{1}台中{0}台のデバイスから削除しました — 到達できないデバイスにはコピーが残ります"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "選択した{1}台のデバイスのうち{0}台から「{projectName}」を削除しました。失敗したデバイスにはコピーが残ります。"
 
 msgid "Deleted {name}"
 msgstr "{name}を削除しました"
@@ -5234,6 +5228,9 @@ msgstr "開発ビルド"
 
 msgid "Device: {selectedLabel}"
 msgstr "デバイス: {selectedLabel}"
+
+msgid "Devices"
+msgstr "デバイス"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10231,11 +10228,11 @@ msgstr "この場所を変更できるのはホストのオーナーのみです
 msgid "Only host owners can delete this host"
 msgstr "このホストを削除できるのはホストのオーナーのみです"
 
-msgid "Only organization owners can delete this project."
-msgstr "このプロジェクトを削除できるのは組織のオーナーのみです。"
-
 msgid "Only organization owners can modify these settings."
 msgstr "これらの設定を変更できるのは組織のオーナーのみです。"
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "このプロジェクトを削除できるのは、組織のオーナーまたはデバイスの所有者のみです。"
 
 msgid "Only owners can change membership."
 msgstr "メンバーシップを変更できるのはオーナーのみです。"
@@ -10877,6 +10874,9 @@ msgstr "{0} が所有 — このオートメーションを編集できるのは
 
 msgid "Owner"
 msgstr "オーナー"
+
+msgid "Owner access required"
+msgstr "オーナー権限が必要"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "すべてのPTYセッションを保持し、アプリの再起動後も動き続けます。"
@@ -15549,8 +15549,8 @@ msgstr "選択したすべてのワークツリーをディスクから削除し
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "ホストとそのアクセス権、ワークスペースを削除します。マシン上のファイルは残ります。稼働中のホストは再表示されることがあります。この操作は元に戻せません。"
 
-msgid "This removes the project from every reachable device."
-msgstr "到達可能なすべてのデバイスからプロジェクトを削除します。"
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "選択したデバイスからプロジェクトとそのワークスペースを削除します。これらのデバイスを使用する全員に影響します。ワークツリーはディスクから削除されます。"
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "ワークツリーをディスクから削除し、ワークスペースを閉じます。"
@@ -16164,6 +16164,9 @@ msgstr "未解決"
 
 msgid "Unsaved changes"
 msgstr "未保存の変更"
+
+msgid "Unselected devices keep their copy."
+msgstr "選択していないデバイスにはコピーが残ります。"
 
 msgid "Unstage all"
 msgstr "すべてステージ解除"

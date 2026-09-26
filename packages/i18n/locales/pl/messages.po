@@ -808,9 +808,6 @@ msgstr "{noun, select, person {Podaj co najmniej jedną osobę lub wybierz {choi
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Podaj co najmniej jedno repozytorium.} channel {Podaj co najmniej jeden kanał.} reaction {Podaj co najmniej jedną reakcję.} dataSource {Podaj co najmniej jedno źródło danych.} team {Podaj co najmniej jeden zespół.} project {Podaj co najmniej jeden projekt.} calendar {Podaj co najmniej jeden kalendarz.} other {Podaj co najmniej jedną pozycję.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# urządzenie jest offline i zachowa swoją kopię.} few {# urządzenia są offline i zachowają swoje kopie.} many {# urządzeń jest offline i zachowa swoje kopie.} other {# urządzenia jest offline i zachowa swoje kopie.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} otwartych"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: host jest niedostępny"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: sprzątanie nie powiodło się"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie tego worktree z dysku.} few {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} many {Spowoduje to usunięcie projektu i jego # obszarów roboczych z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.} other {Spowoduje to usunięcie projektu i jego # obszaru roboczego z każdego dostępnego urządzenia oraz skasowanie ich worktree z dysku.}}"
 
 msgid "{years}y ago"
 msgstr "{years} lat temu"
@@ -5095,9 +5089,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "Usunięto „{projectName}”"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "Usunięto „{projectName}” z {0} z {1} urządzeń — nieosiągalne urządzenia zachowują swoją kopię"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "Usunięto „{projectName}” z {0} spośród {1} wybranych urządzeń. Urządzenia, na których usuwanie się nie powiodło, zachowają swoje kopie."
 
 msgid "Deleted {name}"
 msgstr "Usunięto {name}"
@@ -5234,6 +5228,9 @@ msgstr "Kompilacja deweloperska"
 
 msgid "Device: {selectedLabel}"
 msgstr "Urządzenie: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Urządzenia"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10231,11 +10228,11 @@ msgstr "Tylko właściciele hosta mogą zmienić tę lokalizację."
 msgid "Only host owners can delete this host"
 msgstr "Tylko właściciele hosta mogą usunąć tego hosta"
 
-msgid "Only organization owners can delete this project."
-msgstr "Tylko właściciele organizacji mogą usunąć ten projekt."
-
 msgid "Only organization owners can modify these settings."
 msgstr "Tylko właściciele organizacji mogą zmieniać te ustawienia."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "Tylko właściciele organizacji lub urządzeń mogą usunąć ten projekt."
 
 msgid "Only owners can change membership."
 msgstr "Tylko właściciele mogą zmieniać dostęp."
@@ -10877,6 +10874,9 @@ msgstr "Właściciel: {0} — tylko ta osoba może edytować tę automatyzację.
 
 msgid "Owner"
 msgstr "Właściciel"
+
+msgid "Owner access required"
+msgstr "Wymagane uprawnienia właściciela"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Jest właścicielem każdej sesji PTY i przeżywa restarty aplikacji."
@@ -15549,8 +15549,8 @@ msgstr "Usuwa z dysku każdy zaznaczony worktree i kasuje jego wpis obszaru robo
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Usuwa hosta, dostęp do niego i jego obszary robocze. Pliki na maszynie zostają. Działający host może pojawić się ponownie. Tej operacji nie można cofnąć."
 
-msgid "This removes the project from every reachable device."
-msgstr "Spowoduje to usunięcie projektu z każdego dostępnego urządzenia."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Projekt i jego obszary robocze zostaną usunięte z wybranych urządzeń dla wszystkich ich użytkowników. Drzewa robocze zostaną usunięte z dysku."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Spowoduje to usunięcie worktree z dysku i zamknięcie obszaru roboczego."
@@ -16164,6 +16164,9 @@ msgstr "Nierozwiązany"
 
 msgid "Unsaved changes"
 msgstr "Niezapisane zmiany"
+
+msgid "Unselected devices keep their copy."
+msgstr "Niewybrane urządzenia zachowają swoje kopie."
 
 msgid "Unstage all"
 msgstr "Usuń wszystko z indeksu"

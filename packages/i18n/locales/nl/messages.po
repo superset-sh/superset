@@ -808,9 +808,6 @@ msgstr "{noun, select, person {Geef minstens één persoon op, of kies {choice}.
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Geef minstens één repository op.} channel {Geef minstens één kanaal op.} reaction {Geef minstens één reactie op.} dataSource {Geef minstens één gegevensbron op.} team {Geef minstens één team op.} project {Geef minstens één project op.} calendar {Geef minstens één agenda op.} other {Geef minstens één item op.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# apparaat is offline en behoudt zijn kopie.} other {# apparaten zijn offline en behouden hun kopie.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -966,9 +963,6 @@ msgstr "{workspaceName}: host is niet beschikbaar"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown mislukt"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Dit verwijdert het project en zijn # werkruimte van elk bereikbaar apparaat en wist die worktree van de schijf.} other {Dit verwijdert het project en zijn # werkruimten van elk bereikbaar apparaat en wist hun worktrees van de schijf.}}"
 
 msgid "{years}y ago"
 msgstr "{years}j geleden"
@@ -5095,9 +5089,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "\"{projectName}\" verwijderd"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "\"{projectName}\" verwijderd van {0} van {1} apparaten — onbereikbare apparaten houden hun kopie"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "\"{projectName}\" is verwijderd van {0} van de {1} geselecteerde apparaten. Apparaten waarop het verwijderen is mislukt, behouden hun kopie."
 
 msgid "Deleted {name}"
 msgstr "{name} verwijderd"
@@ -5234,6 +5228,9 @@ msgstr "Ontwikkelbuild"
 
 msgid "Device: {selectedLabel}"
 msgstr "Apparaat: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Apparaten"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -10231,11 +10228,11 @@ msgstr "Alleen eigenaren van de host kunnen deze locatie wijzigen."
 msgid "Only host owners can delete this host"
 msgstr "Alleen eigenaren van de host kunnen deze host verwijderen"
 
-msgid "Only organization owners can delete this project."
-msgstr "Alleen eigenaren van de organisatie kunnen dit project verwijderen."
-
 msgid "Only organization owners can modify these settings."
 msgstr "Alleen eigenaren van de organisatie kunnen deze instellingen wijzigen."
+
+msgid "Only organization owners or device owners can delete this project."
+msgstr "Alleen eigenaren van de organisatie of apparaten kunnen dit project verwijderen."
 
 msgid "Only owners can change membership."
 msgstr "Alleen eigenaren kunnen het lidmaatschap wijzigen."
@@ -10877,6 +10874,9 @@ msgstr "Eigendom van {0} — alleen die persoon kan deze automatisering bewerken
 
 msgid "Owner"
 msgstr "Eigenaar"
+
+msgid "Owner access required"
+msgstr "Eigenaarstoegang vereist"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Bezit elke PTY-sessie en overleeft herstarts van de app."
@@ -15549,8 +15549,8 @@ msgstr "Hiermee wordt elke geselecteerde worktree van schijf gehaald en het bijb
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Hiermee worden de host, de toegang en de werkruimtes verwijderd. Bestanden op de machine blijven staan. Een draaiende host kan weer verschijnen. Dit kan niet ongedaan worden gemaakt."
 
-msgid "This removes the project from every reachable device."
-msgstr "Dit verwijdert het project van elk bereikbaar apparaat."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Dit verwijdert het project en de werkruimten van de geselecteerde apparaten voor iedereen die ze gebruikt. Worktrees worden van de schijf verwijderd."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Hiermee verwijder je de worktree van de schijf en sluit je de werkruimte."
@@ -16164,6 +16164,9 @@ msgstr "Onopgelost"
 
 msgid "Unsaved changes"
 msgstr "Niet-opgeslagen wijzigingen"
+
+msgid "Unselected devices keep their copy."
+msgstr "Niet-geselecteerde apparaten behouden hun kopie."
 
 msgid "Unstage all"
 msgstr "Alles unstagen"
