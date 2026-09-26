@@ -2632,6 +2632,9 @@ msgstr "Không có tên nhánh"
 msgid "Branch names cannot end with a space."
 msgstr "Tên nhánh không được kết thúc bằng dấu cách."
 
+msgid "Branch naming"
+msgstr "Đặt tên nhánh"
+
 msgid "Branch prefix"
 msgstr "Tiền tố nhánh"
 
@@ -4794,6 +4797,9 @@ msgstr "Tùy chỉnh"
 
 msgid "Custom agent…"
 msgstr "Agent tùy chỉnh…"
+
+msgid "Custom branch name"
+msgstr "Tên nhánh tùy chỉnh"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Component tùy chỉnh ngoài bộ shadcn"
@@ -13571,6 +13577,9 @@ msgstr "Phím tắt đã được dùng"
 msgid "Show"
 msgstr "Hiện"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Hiển thị ô tên nhánh phía trên lời nhắc tạo không gian làm việc"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Hiện hộp thoại xác nhận khi thoát ứng dụng"
 
@@ -13597,6 +13606,9 @@ msgstr "Hiện issue đã đóng"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Hiện mức dùng CPU và bộ nhớ trên thanh trên cùng"
+
+msgid "Show custom branch name input"
+msgstr "Hiển thị ô nhập tên nhánh tùy chỉnh"
 
 msgid "Show details"
 msgstr "Hiện chi tiết"

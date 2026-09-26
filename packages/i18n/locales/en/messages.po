@@ -2632,6 +2632,9 @@ msgstr "Branch name is not available"
 msgid "Branch names cannot end with a space."
 msgstr "Branch names cannot end with a space."
 
+msgid "Branch naming"
+msgstr "Branch naming"
+
 msgid "Branch prefix"
 msgstr "Branch prefix"
 
@@ -4794,6 +4797,9 @@ msgstr "Custom"
 
 msgid "Custom agent…"
 msgstr "Custom agent…"
+
+msgid "Custom branch name"
+msgstr "Custom branch name"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Custom components beyond the shadcn set"
@@ -13571,6 +13577,9 @@ msgstr "Shortcut already in use"
 msgid "Show"
 msgstr "Show"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Show a branch name field above the workspace creation prompt"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Show a confirmation dialog when quitting the app"
 
@@ -13597,6 +13606,9 @@ msgstr "Show closed"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Show CPU and memory usage in the top bar"
+
+msgid "Show custom branch name input"
+msgstr "Show custom branch name input"
 
 msgid "Show details"
 msgstr "Show details"

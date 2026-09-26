@@ -25,9 +25,16 @@ import {
 	V2WorktreeLocationPicker,
 } from "../../../components/V2WorktreeLocationPicker";
 import { useDefaultWorktreePath } from "../../../components/WorktreeLocationPicker";
+import {
+	isItemVisible,
+	SETTING_ITEM_ID,
+	type SettingItemId,
+} from "../../../utils/settings-search";
+import { BranchNameInputSection } from "./components/BranchNameInputSection";
 
 interface V2GitSettingsProps {
 	hostId: string | null;
+	visibleItems?: SettingItemId[] | null;
 }
 
 /**
@@ -35,8 +42,20 @@ interface V2GitSettingsProps {
  * picker has selected. Per-host setting; the dropdown only appears when the
  * user has 2+ devices in this org.
  */
-export function V2GitSettings({ hostId }: V2GitSettingsProps) {
+export function V2GitSettings({ hostId, visibleItems }: V2GitSettingsProps) {
 	const { t } = useLingui();
+	const showBranchPrefix = isItemVisible(
+		SETTING_ITEM_ID.GIT_BRANCH_PREFIX,
+		visibleItems,
+	);
+	const showBranchNameInput = isItemVisible(
+		SETTING_ITEM_ID.GIT_BRANCH_NAME_INPUT,
+		visibleItems,
+	);
+	const showWorktreeLocation = isItemVisible(
+		SETTING_ITEM_ID.GIT_WORKTREE_LOCATION,
+		visibleItems,
+	);
 	const navigate = useNavigate();
 	const hostService = useLocalHostService();
 	const { machineId } = hostService;
@@ -201,60 +220,73 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			</header>
 
 			<section>
-				<SettingsRow
-					label={t({
-						message: "Branch prefix",
-					})}
-					hint={
-						<>
-							<Trans>Group new branches under a folder.</Trans>{" "}
-							<code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
-								{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
-							</code>
-						</>
-					}
-				>
-					<BranchPrefixControl
-						mode={mode}
-						customPrefix={customPrefix}
-						disabled={controlsDisabled}
-						onChange={(next) =>
-							setMutation.mutate({
-								mode: next.mode ?? "none",
-								customPrefix: next.customPrefix,
-							})
-						}
-					/>
-				</SettingsRow>
-				<SettingsRow
-					label={t({
-						message: "Worktree location",
-					})}
-					hint={t({
-						message: `Base directory for new worktrees on ${selectedHostName}.`,
-					})}
-				>
-					<V2WorktreeLocationPicker
-						currentPath={worktreeQuery.data?.worktreeBaseDir ?? null}
-						fallbackPath={
-							worktreeQuery.data?.defaultWorktreeBaseDir ?? defaultWorktreePath
-						}
-						hostUrl={targetHostUrl}
-						hostName={selectedHostName}
-						isRemoteTarget={isRemoteTarget}
-						disabled={
-							!targetHostUrl ||
-							!isHostOnline ||
-							worktreeQuery.isLoading ||
-							setWorktreeBaseDir.isPending
-						}
-						browseTitle={t({
-							message: "Select default worktree location",
+				{(showBranchPrefix || showBranchNameInput) && (
+					<h3 className="mb-2 text-sm font-medium">
+						<Trans>Branch naming</Trans>
+					</h3>
+				)}
+				{showBranchPrefix && (
+					<SettingsRow
+						label={t({
+							message: "Branch prefix",
 						})}
-						onSelect={(path) => setWorktreeBaseDir.mutate(path)}
-						onReset={() => setWorktreeBaseDir.mutate(null)}
-					/>
-				</SettingsRow>
+						hint={
+							<>
+								<Trans>Group new branches under a folder.</Trans>{" "}
+								<code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+									{previewPrefix
+										? `${previewPrefix}/branch-name`
+										: "branch-name"}
+								</code>
+							</>
+						}
+					>
+						<BranchPrefixControl
+							mode={mode}
+							customPrefix={customPrefix}
+							disabled={controlsDisabled}
+							onChange={(next) =>
+								setMutation.mutate({
+									mode: next.mode ?? "none",
+									customPrefix: next.customPrefix,
+								})
+							}
+						/>
+					</SettingsRow>
+				)}
+				{showBranchNameInput && <BranchNameInputSection />}
+				{showWorktreeLocation && (
+					<SettingsRow
+						label={t({
+							message: "Worktree location",
+						})}
+						hint={t({
+							message: `Base directory for new worktrees on ${selectedHostName}.`,
+						})}
+					>
+						<V2WorktreeLocationPicker
+							currentPath={worktreeQuery.data?.worktreeBaseDir ?? null}
+							fallbackPath={
+								worktreeQuery.data?.defaultWorktreeBaseDir ??
+								defaultWorktreePath
+							}
+							hostUrl={targetHostUrl}
+							hostName={selectedHostName}
+							isRemoteTarget={isRemoteTarget}
+							disabled={
+								!targetHostUrl ||
+								!isHostOnline ||
+								worktreeQuery.isLoading ||
+								setWorktreeBaseDir.isPending
+							}
+							browseTitle={t({
+								message: "Select default worktree location",
+							})}
+							onSelect={(path) => setWorktreeBaseDir.mutate(path)}
+							onReset={() => setWorktreeBaseDir.mutate(null)}
+						/>
+					</SettingsRow>
+				)}
 			</section>
 		</div>
 	);

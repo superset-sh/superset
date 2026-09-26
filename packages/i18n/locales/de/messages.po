@@ -2632,6 +2632,9 @@ msgstr "Branch-Name ist nicht verfügbar"
 msgid "Branch names cannot end with a space."
 msgstr "Branch-Namen dürfen nicht mit einem Leerzeichen enden."
 
+msgid "Branch naming"
+msgstr "Branch-Benennung"
+
 msgid "Branch prefix"
 msgstr "Branch-Präfix"
 
@@ -4794,6 +4797,9 @@ msgstr "Benutzerdefiniert"
 
 msgid "Custom agent…"
 msgstr "Eigener Agent…"
+
+msgid "Custom branch name"
+msgstr "Benutzerdefinierter Branchname"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Eigene Komponenten jenseits des shadcn-Sets"
@@ -13571,6 +13577,9 @@ msgstr "Kürzel bereits belegt"
 msgid "Show"
 msgstr "Anzeigen"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Ein Feld für den Branchnamen über dem Prompt zur Workspace-Erstellung anzeigen"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Beim Beenden der App einen Bestätigungsdialog anzeigen"
 
@@ -13597,6 +13606,9 @@ msgstr "Geschlossene anzeigen"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "CPU- und Speichernutzung in der oberen Leiste anzeigen"
+
+msgid "Show custom branch name input"
+msgstr "Eingabefeld für benutzerdefinierten Branchnamen anzeigen"
 
 msgid "Show details"
 msgstr "Details anzeigen"

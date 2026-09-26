@@ -2632,6 +2632,9 @@ msgstr "分支名不可用"
 msgid "Branch names cannot end with a space."
 msgstr "分支名不能以空格结尾。"
 
+msgid "Branch naming"
+msgstr "分支命名"
+
 msgid "Branch prefix"
 msgstr "分支前缀"
 
@@ -4794,6 +4797,9 @@ msgstr "自定义"
 
 msgid "Custom agent…"
 msgstr "自定义智能体…"
+
+msgid "Custom branch name"
+msgstr "自定义分支名称"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "shadcn组件集之外的自定义组件"
@@ -13571,6 +13577,9 @@ msgstr "快捷键已被使用"
 msgid "Show"
 msgstr "显示"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "在工作区创建提示词上方显示分支名称字段"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "退出应用时显示确认对话框"
 
@@ -13597,6 +13606,9 @@ msgstr "显示已关闭"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "在顶栏显示CPU和内存用量"
+
+msgid "Show custom branch name input"
+msgstr "显示自定义分支名称输入框"
 
 msgid "Show details"
 msgstr "显示详情"

@@ -2632,6 +2632,9 @@ msgstr "Název větve není dostupný"
 msgid "Branch names cannot end with a space."
 msgstr "Názvy větví nesmí končit mezerou."
 
+msgid "Branch naming"
+msgstr "Pojmenování větví"
+
 msgid "Branch prefix"
 msgstr "Prefix větve"
 
@@ -4794,6 +4797,9 @@ msgstr "Vlastní"
 
 msgid "Custom agent…"
 msgstr "Vlastní agent…"
+
+msgid "Custom branch name"
+msgstr "Vlastní název větve"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Vlastní komponenty nad rámec sady shadcn"
@@ -13571,6 +13577,9 @@ msgstr "Zkratka se už používá"
 msgid "Show"
 msgstr "Zobrazit"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Zobrazit pole názvu větve nad zadáním pro vytvoření pracovního prostoru"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Zobrazit před ukončením aplikace potvrzovací dialog"
 
@@ -13597,6 +13606,9 @@ msgstr "Zobrazit uzavřené"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Zobrazovat využití CPU a paměti v horní liště"
+
+msgid "Show custom branch name input"
+msgstr "Zobrazit pole vlastního názvu větve"
 
 msgid "Show details"
 msgstr "Zobrazit podrobnosti"

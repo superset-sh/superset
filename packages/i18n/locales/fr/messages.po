@@ -2632,6 +2632,9 @@ msgstr "Le nom de la branche n'est pas disponible"
 msgid "Branch names cannot end with a space."
 msgstr "Les noms de branche ne peuvent pas se terminer par un espace."
 
+msgid "Branch naming"
+msgstr "Nommage des branches"
+
 msgid "Branch prefix"
 msgstr "Préfixe de branche"
 
@@ -4794,6 +4797,9 @@ msgstr "Personnalisé"
 
 msgid "Custom agent…"
 msgstr "Agent personnalisé…"
+
+msgid "Custom branch name"
+msgstr "Nom de branche personnalisé"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Composants personnalisés au-delà de l'ensemble shadcn"
@@ -13571,6 +13577,9 @@ msgstr "Raccourci déjà utilisé"
 msgid "Show"
 msgstr "Afficher"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Afficher un champ de nom de branche au-dessus du prompt de création de l’espace de travail"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Afficher une boîte de dialogue de confirmation à la fermeture de l'application"
 
@@ -13597,6 +13606,9 @@ msgstr "Afficher les fermées"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Afficher l'utilisation du processeur et de la mémoire dans la barre supérieure"
+
+msgid "Show custom branch name input"
+msgstr "Afficher le champ du nom de branche personnalisé"
 
 msgid "Show details"
 msgstr "Afficher les détails"

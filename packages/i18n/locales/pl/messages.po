@@ -2632,6 +2632,9 @@ msgstr "Nazwa gałęzi jest niedostępna"
 msgid "Branch names cannot end with a space."
 msgstr "Nazwy gałęzi nie mogą kończyć się spacją."
 
+msgid "Branch naming"
+msgstr "Nazewnictwo gałęzi"
+
 msgid "Branch prefix"
 msgstr "Prefiks gałęzi"
 
@@ -4794,6 +4797,9 @@ msgstr "Własny"
 
 msgid "Custom agent…"
 msgstr "Własny agent…"
+
+msgid "Custom branch name"
+msgstr "Własna nazwa gałęzi"
 
 msgid "Custom components beyond the shadcn set"
 msgstr "Własne komponenty poza zestawem shadcn"
@@ -13571,6 +13577,9 @@ msgstr "Skrót jest już używany"
 msgid "Show"
 msgstr "Pokaż"
 
+msgid "Show a branch name field above the workspace creation prompt"
+msgstr "Pokaż pole nazwy gałęzi nad promptem tworzenia obszaru roboczego"
+
 msgid "Show a confirmation dialog when quitting the app"
 msgstr "Pokaż okno potwierdzenia przy zamykaniu aplikacji"
 
@@ -13597,6 +13606,9 @@ msgstr "Pokaż zamknięte"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Pokazuj zużycie CPU i pamięci na górnym pasku"
+
+msgid "Show custom branch name input"
+msgstr "Pokaż pole własnej nazwy gałęzi"
 
 msgid "Show details"
 msgstr "Pokaż szczegóły"
