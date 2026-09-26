@@ -74,6 +74,13 @@ describe("resolveInitialCommand", () => {
 		expect(resolve()).toEqual({ initialCommand: "bun install" });
 	});
 
+	it("passes a multi-line setup entry through intact", () => {
+		const script =
+			"# install deps\nif [ -f bun.lock ]; then\n  bun install\nfi";
+		writeConfig(sandbox.repoPath, { setup: [script] });
+		expect(resolve()).toEqual({ initialCommand: script });
+	});
+
 	it("falls back to bash <repoPath>/.superset/setup.sh when config is empty", () => {
 		writeConfig(sandbox.repoPath, { setup: [], teardown: [] });
 		writeFallbackScript(sandbox.repoPath);
