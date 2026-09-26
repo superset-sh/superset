@@ -28,7 +28,6 @@ interface DocumentEntry {
 	refCount: number;
 	version: number;
 	loadGeneration: number;
-	movedFromAbsolutePath: string | null;
 	subscribers: Set<() => void>;
 }
 
@@ -185,6 +184,23 @@ async function fetchCurrentDiskContent(
 		return result.content;
 	} catch {
 		return null;
+	}
+}
+
+// A rename onto an open document is either the watcher's copy of a move the
+// document already followed, or a real replacement such as an atomic save.
+// Only the disk content tells them apart.
+async function reconcileRenameOnto(entry: DocumentEntry): Promise<void> {
+	const generation = entry.loadGeneration;
+	const diskContent = await fetchCurrentDiskContent(entry);
+	if (generation !== entry.loadGeneration) return;
+	if (diskContent !== null && diskContent === entry.savedContentText) return;
+	if (computeDirty(entry)) {
+		entry.loadGeneration += 1;
+		entry.hasExternalChange = true;
+		notify(entry);
+	} else {
+		void loadEntry(entry);
 	}
 }
 
@@ -365,7 +381,6 @@ export function acquireDocument(
 			refCount: 0,
 			version: 0,
 			loadGeneration: 0,
-			movedFromAbsolutePath: null,
 			subscribers: new Set(),
 		};
 		entries.set(k, entry);
@@ -425,7 +440,6 @@ export function dispatchFsEvent(
 			entry.loadGeneration += 1;
 			const oldKey = key(entry.workspaceId, entry.absolutePath);
 			entries.delete(oldKey);
-			entry.movedFromAbsolutePath = entry.absolutePath;
 			entry.absolutePath =
 				event.absolutePath +
 				entry.absolutePath.slice(event.oldAbsolutePath.length);
@@ -440,17 +454,16 @@ export function dispatchFsEvent(
 			entry.absolutePath === event.absolutePath ||
 			renamedSource;
 		if (!affects) continue;
-		const isEchoOfAppliedMove =
-			event.kind === "rename" &&
-			event.oldAbsolutePath === entry.movedFromAbsolutePath;
-		entry.movedFromAbsolutePath = null;
-		if (isEchoOfAppliedMove) continue;
+		if (event.kind === "rename") {
+			if (entry.orphaned) entry.orphaned = false;
+			void reconcileRenameOnto(entry);
+			continue;
+		}
 
 		const isContentMutation =
 			event.kind === "create" ||
 			event.kind === "update" ||
-			event.kind === "overflow" ||
-			(event.kind === "rename" && event.absolutePath === entry.absolutePath);
+			event.kind === "overflow";
 
 		if (event.kind === "delete") {
 			entry.loadGeneration += 1;

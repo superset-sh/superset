@@ -336,8 +336,11 @@ test("duplicate rename events do not reload the already-moved document", async (
 	};
 	dispatchFsEvent(f.workspaceId, event);
 	dispatchFsEvent(f.workspaceId, event);
-	expect(f.reads).toHaveLength(2);
+	expect(f.reads).toHaveLength(3);
 	await f.resolve(1, "renamed");
+	await f.resolve(2, "renamed");
+	expect(f.reads).toHaveLength(3);
+	expect(f.doc.content).toMatchObject({ value: "renamed" });
 	expect(f.doc.absolutePath).toBe("/workspace/.env.local");
 	await f.cleanup();
 });
@@ -350,8 +353,9 @@ test("an atomic save renamed over an open clean document reloads it", async () =
 		oldAbsolutePath: "/workspace/.env.tmp",
 		absolutePath: "/workspace/.env",
 	});
-	expect(f.reads).toHaveLength(2);
 	await f.resolve(1, "saved elsewhere");
+	expect(f.reads).toHaveLength(3);
+	await f.resolve(2, "saved elsewhere");
 	expect(f.doc.content).toMatchObject({ value: "saved elsewhere" });
 	await f.cleanup();
 });
@@ -365,6 +369,7 @@ test("an atomic save renamed over an open dirty document flags the external chan
 		oldAbsolutePath: "/workspace/.env.tmp",
 		absolutePath: "/workspace/.env",
 	});
+	await f.resolve(1, "saved elsewhere");
 	expect(f.doc.hasExternalChange).toBe(true);
 	expect(f.doc.content).toMatchObject({ value: "edited" });
 	await f.cleanup();
@@ -381,7 +386,25 @@ test("the watcher echo of a move keeps a dirty buffer free of external-change fl
 	};
 	dispatchFsEvent(f.workspaceId, event);
 	dispatchFsEvent(f.workspaceId, event);
+	await f.resolve(1, "original");
 	expect(f.doc.hasExternalChange).toBe(false);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
+	await f.cleanup();
+});
+
+test("a replacement arriving from the old path after a move is still detected", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	const move = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, move);
+	dispatchFsEvent(f.workspaceId, move);
+	await f.resolve(1, "replacement written at the old path");
+	expect(f.doc.hasExternalChange).toBe(true);
 	expect(f.doc.content).toMatchObject({ value: "edited" });
 	await f.cleanup();
 });
