@@ -217,6 +217,25 @@ export function rateLimitWaitMs(
 	return Math.min(wait, RATE_LIMIT_MAX_WAIT_MS);
 }
 
+/**
+ * Web search splits one paragraph into several text blocks around its
+ * citations: the block after a cited block continues its sentence. A block
+ * after an uncited one (a preamble before a search) is a new paragraph.
+ */
+function joinText(content: Anthropic.ContentBlock[]): string {
+	return content
+		.filter((block): block is Anthropic.TextBlock => block.type === "text")
+		.reduce(
+			(joined, block, i, blocks) =>
+				i === 0
+					? block.text
+					: joined +
+						(blocks[i - 1]?.citations?.length ? "" : "\n\n") +
+						block.text,
+			"",
+		);
+}
+
 export interface SlackAgentResult {
 	text: string;
 	actions: AgentAction[];
@@ -904,10 +923,9 @@ ${agentContext}`;
 			return anthropic.messages.create(
 				{
 					model,
-					// A Slack turn is a short reply or a tool call. 8192 non-streamed
-					// tokens took longer than the 120s request timeout and burned the
-					// whole budget on a retry of the same generation.
-					max_tokens: 4096,
+					// Thinking counts against this. 4096 cut off a plain ticket list;
+					// a timed-out generation is not retried, so 8192 is safe again.
+					max_tokens: 8192,
 					system: [
 						{
 							type: "text",
@@ -1118,29 +1136,21 @@ ${agentContext}`;
 		// Never report an unfinished tool plan or truncated text as completed work.
 		// Preserve completed actions so the handler can still report their links.
 		if (response.stop_reason !== "end_turn") {
+			// A truncated answer is still an answer: post what there is, then say
+			// it was cut off, rather than replacing it with the notice.
+			const partial =
+				response.stop_reason === "max_tokens" ? joinText(response.content) : "";
 			const text =
 				response.stop_reason === "refusal"
 					? AGENT_COPY.refusal
 					: response.stop_reason === "max_tokens"
-						? AGENT_COPY.truncated
+						? partial
+							? `${partial}\n\n_${AGENT_COPY.truncated}_`
+							: AGENT_COPY.truncated
 						: AGENT_COPY.turnLimit;
 			return { text, actions, unconnectedPlugins };
 		}
-		// Web search splits one paragraph into several text blocks around its
-		// citations: the block after a cited block continues its sentence.
-		// A block after an uncited one (a preamble before a search) is a
-		// new paragraph.
-		const text = response.content
-			.filter((block): block is Anthropic.TextBlock => block.type === "text")
-			.reduce(
-				(joined, block, i, blocks) =>
-					i === 0
-						? block.text
-						: joined +
-							(blocks[i - 1]?.citations?.length ? "" : "\n\n") +
-							block.text,
-				"",
-			);
+		const text = joinText(response.content);
 		return { text: text || AGENT_COPY.empty, actions, unconnectedPlugins };
 	} catch (error) {
 		console.error("[slack-agent] Agent request failed", error);

@@ -428,6 +428,18 @@ describe("agent loop", () => {
 		expect(result.actions).toHaveLength(1);
 	});
 
+	test("a truncated answer is posted with a cut-off note, not replaced by it", async () => {
+		create.mockImplementationOnce(async () => ({
+			stop_reason: "max_tokens",
+			content: [
+				{ type: "text", text: "• SUPER-1 first\n• SUPER-2 sec", citations: [] },
+			],
+		}));
+		const result = await runSlackAgent(params);
+		expect(result.text).toStartWith("• SUPER-1 first");
+		expect(result.text).toContain("cut off");
+	});
+
 	test("text split around citations comes back as one paragraph", async () => {
 		create.mockImplementationOnce(async () => ({
 			stop_reason: "end_turn",
