@@ -1,0 +1,36 @@
+name: Close inactive PRs
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629
+        with:
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          days-before-pr-stale: 53
+          days-before-pr-close: 7
+          stale-pr-label: stale
+          exempt-pr-labels: keep-open
+          remove-stale-when-updated: true
+          delete-branch: false
+          stale-pr-message: >-
+            This PR has had no activity for 53 days and will close
+            in 7 days unless there is new activity.
+            Please leave a comment if you would like to keep it open.
+            If it closes, you are welcome to reopen it when you are ready
+            to continue. Thank you for contributing!
+          close-pr-message: >-
+            This PR was automatically closed due to inactivity to help
+            keep the review queue manageable. This does not mean the
+            contribution was rejected. You are welcome to reopen it
+            when you are ready to continue, or leave a comment asking
+            a maintainer to reopen it. Thank you for contributing!
