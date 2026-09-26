@@ -58,6 +58,7 @@ export interface TerminalRuntime {
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
+	_resetRenderer: (() => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
 	_disposeCopyHandler: (() => void) | null;
@@ -217,7 +218,7 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 function measureAndResize(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
-	options: { forceNotify?: boolean } = {},
+	options: { forceNotify?: boolean; resetRenderer?: boolean } = {},
 ): void {
 	if (!hostIsVisible(runtime.container)) return;
 	const { terminal } = runtime;
@@ -244,13 +245,18 @@ function measureAndResize(
 			}
 		}
 
-		terminal.refresh(0, Math.max(0, terminal.rows - 1));
+		const dimensionsChanged =
+			terminal.cols !== prevCols || terminal.rows !== prevRows;
+		// A dimension change repaints through the renderer's own resize path,
+		// which already invalidates its cached model; only an unchanged-size
+		// repaint needs the explicit reset.
+		if (options.resetRenderer && !dimensionsChanged) {
+			runtime._resetRenderer?.();
+		} else {
+			terminal.refresh(0, Math.max(0, terminal.rows - 1));
+		}
 
-		if (
-			options.forceNotify ||
-			terminal.cols !== prevCols ||
-			terminal.rows !== prevRows
-		) {
+		if (options.forceNotify || dimensionsChanged) {
 			onResize?.();
 		}
 	});
@@ -364,6 +370,7 @@ export function createRuntime(
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
+		_resetRenderer: addonsResult.resetRenderer,
 		ligaturesEnabled: appearance.ligatures,
 		_disposeImagePasteFallback: null,
 		_disposeCopyHandler: disposeCopyHandler,
@@ -395,9 +402,14 @@ export function attachToContainer(
 		return;
 	}
 
+	// Parked wrappers can come back with stale glyphs painted over correct
+	// cells, and the renderer's cached model makes a plain refresh a no-op for
+	// them — see resetTerminalRenderer.
+	const wasParked = runtime.container === null;
+
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	measureAndResize(runtime, onResize);
+	measureAndResize(runtime, onResize, { resetRenderer: wasParked });
 	scheduleFontSettleRefit(
 		runtime.terminal,
 		() => hostIsVisible(runtime.container),
@@ -501,6 +513,7 @@ export function disposeRuntime(
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._setLigaturesEnabled = null;
+	runtime._resetRenderer = null;
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
