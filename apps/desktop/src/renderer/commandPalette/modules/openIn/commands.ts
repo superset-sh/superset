@@ -6,6 +6,7 @@ import { toast } from "@superset/ui/sonner";
 import { ArrowUpRightIcon } from "lucide-react";
 import {
 	APP_OPTIONS,
+	filterAvailableAppOptions,
 	type OpenInExternalAppOption,
 } from "renderer/components/OpenInExternalDropdown/constants";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -109,7 +110,11 @@ export const openInProvider: CommandProvider = {
 		const preferredApp = context.workspace.preferredOpenInApp ?? "finder";
 		const preferredOption = findOption(preferredApp);
 
-		const submenuChildren: Command[] = APP_OPTIONS.map((option) => ({
+		const submenuOptions = filterAvailableAppOptions(
+			APP_OPTIONS,
+			context.availableExternalApps,
+		);
+		const submenuChildren: Command[] = submenuOptions.map((option) => ({
 			id: `openIn.${option.id}`,
 			title: {
 				id: `commandPalette.openIn.app.${option.id}`,

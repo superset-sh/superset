@@ -4,11 +4,25 @@ import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
+	getMacOSAppProbes,
 	pathIsMissing,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	stripPathWrappers,
 } from "./helpers";
+
+describe("getMacOSAppProbes", () => {
+	test("returns the name and bundle ID probes used by launching", () => {
+		expect(getMacOSAppProbes("vscode")).toEqual([
+			{ type: "appName", value: "Visual Studio Code" },
+		]);
+		expect(getMacOSAppProbes("finder")).toEqual([]);
+		expect(getMacOSAppProbes("intellij")).toEqual([
+			{ type: "bundleId", value: "com.jetbrains.intellij" },
+			{ type: "bundleId", value: "com.jetbrains.intellij.ce" },
+		]);
+	});
+});
 
 describe("getAppCommand", () => {
 	const originalPlatform = process.platform;

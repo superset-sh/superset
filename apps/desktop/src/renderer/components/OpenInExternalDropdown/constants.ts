@@ -188,3 +188,11 @@ export const getAppOption = (
 	id: ExternalApp,
 ): OpenInExternalAppOption | undefined =>
 	ALL_APP_OPTIONS.find((app) => app.id === id);
+
+export const filterAvailableAppOptions = (
+	options: OpenInExternalAppOption[],
+	availableApps?: ExternalApp[] | null,
+): OpenInExternalAppOption[] =>
+	availableApps
+		? options.filter(({ id }) => id === "finder" || availableApps.includes(id))
+		: options;

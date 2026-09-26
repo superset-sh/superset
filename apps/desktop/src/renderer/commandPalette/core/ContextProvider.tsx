@@ -78,6 +78,10 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 
 	const { data: notificationSoundsMuted = false } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const { data: availableExternalApps } =
+		electronTrpc.external.availableApps.useQuery(undefined, {
+			staleTime: Number.POSITIVE_INFINITY,
+		});
 
 	const context = useMemo<CommandContext>(
 		() => ({
@@ -98,6 +102,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			hostServiceStatus,
 			localMachineId: machineId ?? null,
 			notificationSoundsMuted,
+			availableExternalApps,
 			isV2CloudEnabled,
 			navigate: navigateTo,
 			openNewWorkspace,
@@ -112,6 +117,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 			hostServiceStatus,
 			machineId,
 			notificationSoundsMuted,
+			availableExternalApps,
 			isV2CloudEnabled,
 			navigateTo,
 			openNewWorkspace,
