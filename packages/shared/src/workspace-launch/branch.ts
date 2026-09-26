@@ -169,11 +169,13 @@ export function sanitizeUserBranchName(
 ): string {
 	const cleaned = name
 		.trim()
-		.replace(/\.\./g, ".") // no ..
 		.replace(/[~^:?*[\]\\]/g, "") // no ~^:?*[\]
 		// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
 		.replace(/[\x00-\x1f\x7f]/g, "") // no control chars
 		.replace(/@\{/g, "@") // no @{
+		// Collapse dot runs AFTER stripping forbidden chars, so removals that
+		// push two dots together (e.g. "a.^.b") can't leave an invalid "..".
+		.replace(/\.{2,}/g, ".") // no ..
 		.replace(/\.lock$/g, "") // no trailing .lock
 		.replace(/^-/, "") // no leading -
 		.replace(/\/+/g, "/") // collapse slashes

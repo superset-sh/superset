@@ -5,6 +5,7 @@ import {
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
 	sanitizeSegment,
+	sanitizeUserBranchName,
 	truncateBranchName,
 } from "./branch";
 
@@ -183,6 +184,39 @@ describe("sanitizeBranchNameWithMaxLength", () => {
 				preserveFirstSegmentCase: true,
 			}),
 		).toBe("Fix_Bug");
+	});
+});
+
+describe("sanitizeUserBranchName", () => {
+	test("preserves user-typed case and slashes", () => {
+		expect(sanitizeUserBranchName("Fix/CamelCase")).toBe("Fix/CamelCase");
+	});
+
+	test("collapses a single '..' sequence", () => {
+		// git forbids '..' anywhere in a ref name
+		expect(sanitizeUserBranchName("fix..bug")).toBe("fix.bug");
+	});
+
+	// Reproduces #5610 (workspace/worktree creation tracker): git rejects any
+	// ref name containing "..", but the single-pass collapse leaves it behind
+	// for runs of 3+ dots.
+	test("collapses runs of 3+ consecutive dots", () => {
+		expect(sanitizeUserBranchName("feat/a...b")).toBe("feat/a.b");
+		expect(sanitizeUserBranchName("a....b")).toBe("a.b");
+	});
+
+	// Forbidden characters are stripped, which can push two dots together and
+	// recreate an invalid "..".
+	test("does not recreate '..' after stripping forbidden characters", () => {
+		expect(sanitizeUserBranchName("feat/a.^.b")).toBe("feat/a.b");
+		expect(sanitizeUserBranchName("fix.:.bug")).toBe("fix.bug");
+		expect(sanitizeUserBranchName("a.*.b")).toBe("a.b");
+	});
+
+	test("never returns a name containing '..'", () => {
+		for (const input of ["feat/a...b", "a....b", "feat/a.^.b", "fix.:.bug"]) {
+			expect(sanitizeUserBranchName(input)).not.toContain("..");
+		}
 	});
 });
 
