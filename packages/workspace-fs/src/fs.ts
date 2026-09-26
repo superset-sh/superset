@@ -913,7 +913,10 @@ export async function movePath({
 	});
 
 	await fs.access(destinationPath).then(
-		() => {
+		async () => {
+			if (await isCaseOnlyRenameOfSameEntry(sourcePath, destinationPath)) {
+				return;
+			}
 			throw new Error(`Destination already exists: ${destinationPath}`);
 		},
 		(error: NodeJS.ErrnoException) => {
@@ -925,6 +928,22 @@ export async function movePath({
 
 	await fs.rename(sourcePath, destinationPath);
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
+}
+
+// On a case-insensitive volume, `Foo.ts` -> `foo.ts` finds the source itself
+// at the destination. Hard links share an inode too, so the names must also
+// match case-insensitively.
+async function isCaseOnlyRenameOfSameEntry(
+	sourcePath: string,
+	destinationPath: string,
+): Promise<boolean> {
+	if (sourcePath === destinationPath) return false;
+	if (sourcePath.toLowerCase() !== destinationPath.toLowerCase()) return false;
+	const [source, destination] = await Promise.all([
+		fs.lstat(sourcePath),
+		fs.lstat(destinationPath),
+	]);
+	return source.dev === destination.dev && source.ino === destination.ino;
 }
 
 export async function copyPath({

@@ -685,4 +685,29 @@ describe("movePath", () => {
 		expect(didThrow).toEqual(true);
 		expect((await fs.stat(sourceAbsolutePath)).isDirectory()).toEqual(true);
 	});
+
+	it("renames a file to a different case of its own name", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "beta.txt");
+		const destinationAbsolutePath = path.join(rootPath, "Beta.txt");
+		await fs.writeFile(sourceAbsolutePath, "beta");
+
+		await movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath });
+
+		expect(await fs.readdir(rootPath)).toEqual(["Beta.txt"]);
+		expect(await fs.readFile(destinationAbsolutePath, "utf8")).toEqual("beta");
+	});
+
+	it("rejects a destination that is a hard link to the source", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "a.txt");
+		const destinationAbsolutePath = path.join(rootPath, "b.txt");
+		await fs.writeFile(sourceAbsolutePath, "shared");
+		await fs.link(sourceAbsolutePath, destinationAbsolutePath);
+
+		await expect(
+			movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath }),
+		).rejects.toThrow("Destination already exists");
+		expect((await fs.readdir(rootPath)).sort()).toEqual(["a.txt", "b.txt"]);
+	});
 });
