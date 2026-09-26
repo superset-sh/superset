@@ -10300,6 +10300,9 @@ msgstr "建立拉取請求後即可檢視評審狀態、檢查和評論。"
 msgid "Open actions menu"
 msgstr "開啟操作選單"
 
+msgid "Open all PRs in browser"
+msgstr "在瀏覽器中開啟所有 PR"
+
 msgid "Open an existing project folder"
 msgstr "開啟已有的專案資料夾"
 

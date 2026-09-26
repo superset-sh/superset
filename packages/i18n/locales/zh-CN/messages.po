@@ -10300,6 +10300,9 @@ msgstr "创建拉取请求后即可查看评审状态、检查和评论。"
 msgid "Open actions menu"
 msgstr "打开操作菜单"
 
+msgid "Open all PRs in browser"
+msgstr "在浏览器中打开所有 PR"
+
 msgid "Open an existing project folder"
 msgstr "打开已有的项目文件夹"
 

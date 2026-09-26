@@ -10300,6 +10300,9 @@ msgstr "プルリクエストを開くと、レビュー状態、チェック、
 msgid "Open actions menu"
 msgstr "アクションメニューを開く"
 
+msgid "Open all PRs in browser"
+msgstr "すべてのPRをブラウザーで開く"
+
 msgid "Open an existing project folder"
 msgstr "既存のプロジェクトフォルダを開く"
 

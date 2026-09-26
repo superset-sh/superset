@@ -10300,6 +10300,9 @@ msgstr "Otevřete pull request a uvidíte stav revize, kontroly a komentáře."
 msgid "Open actions menu"
 msgstr "Otevřít nabídku akcí"
 
+msgid "Open all PRs in browser"
+msgstr "Otevřít všechny PR v prohlížeči"
+
 msgid "Open an existing project folder"
 msgstr "Otevřít existující složku projektu"
 

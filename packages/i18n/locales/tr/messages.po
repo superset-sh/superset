@@ -10300,6 +10300,9 @@ msgstr "İnceleme durumunu, kontrolleri ve yorumları görmek için bir pull req
 msgid "Open actions menu"
 msgstr "Eylemler menüsünü aç"
 
+msgid "Open all PRs in browser"
+msgstr "Tüm PR’ları tarayıcıda aç"
+
 msgid "Open an existing project folder"
 msgstr "Mevcut bir proje klasörünü aç"
 

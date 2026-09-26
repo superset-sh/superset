@@ -10300,6 +10300,9 @@ msgstr "리뷰 상태, 검사, 코멘트를 보려면 풀 리퀘스트를 여세
 msgid "Open actions menu"
 msgstr "작업 메뉴 열기"
 
+msgid "Open all PRs in browser"
+msgstr "브라우저에서 모든 PR 열기"
+
 msgid "Open an existing project folder"
 msgstr "기존 프로젝트 폴더를 엽니다"
 

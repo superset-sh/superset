@@ -10300,6 +10300,9 @@ msgstr "Hãy mở một pull request để xem trạng thái review, check và b
 msgid "Open actions menu"
 msgstr "Mở menu hành động"
 
+msgid "Open all PRs in browser"
+msgstr "Mở tất cả PR trong trình duyệt"
+
 msgid "Open an existing project folder"
 msgstr "Mở một thư mục dự án có sẵn"
 

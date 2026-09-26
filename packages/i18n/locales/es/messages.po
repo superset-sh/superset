@@ -10300,6 +10300,9 @@ msgstr "Abre una pull request para ver el estado de la revisión, las comprobaci
 msgid "Open actions menu"
 msgstr "Abrir el menú de acciones"
 
+msgid "Open all PRs in browser"
+msgstr "Abrir todas las PR en el navegador"
+
 msgid "Open an existing project folder"
 msgstr "Abrir una carpeta de proyecto existente"
 

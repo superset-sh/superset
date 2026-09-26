@@ -10300,6 +10300,9 @@ msgstr "Buka sebuah pull request untuk melihat status review, check, dan komenta
 msgid "Open actions menu"
 msgstr "Buka menu aksi"
 
+msgid "Open all PRs in browser"
+msgstr "Buka semua PR di browser"
+
 msgid "Open an existing project folder"
 msgstr "Buka folder proyek yang sudah ada"
 
