@@ -1,5 +1,9 @@
 import type { projects } from "@superset/local-db";
 import { settings } from "@superset/local-db";
+import {
+	branchPrefixCollides,
+	sanitizeCustomBranchPrefix,
+} from "@superset/shared/workspace-launch";
 import { localDb } from "main/lib/local-db";
 import { getBranchPrefix, sanitizeAuthorPrefix } from "./git";
 
@@ -33,15 +37,16 @@ export async function resolveBranchPrefix(
 		mode: prefixMode,
 		customPrefix,
 	});
-	// Normalize empty strings to undefined (sanitizeAuthorPrefix can return "")
+	// Normalize empty strings to undefined (sanitizing can return "")
 	const sanitizedPrefix = rawPrefix
-		? sanitizeAuthorPrefix(rawPrefix) || undefined
+		? (prefixMode === "custom"
+				? sanitizeCustomBranchPrefix(rawPrefix)
+				: sanitizeAuthorPrefix(rawPrefix)) || undefined
 		: undefined;
 
 	// Check if prefix would collide with an existing branch name
-	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 	const prefixWouldCollide =
-		sanitizedPrefix && existingSet.has(sanitizedPrefix.toLowerCase());
+		sanitizedPrefix && branchPrefixCollides(sanitizedPrefix, existingBranches);
 
 	return prefixWouldCollide ? undefined : sanitizedPrefix;
 }
