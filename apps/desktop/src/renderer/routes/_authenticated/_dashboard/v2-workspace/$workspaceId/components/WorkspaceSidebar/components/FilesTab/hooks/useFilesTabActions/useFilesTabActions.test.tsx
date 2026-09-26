@@ -83,20 +83,20 @@ test("same-parent and root no-ops do not persist or refresh", async () => {
 	await actions.handleMove(drop(["root.txt"], null));
 	expect(move).not.toHaveBeenCalled();
 	expect(bridge.doRefresh).not.toHaveBeenCalled();
-	expect(actions.canSelectFile("src/file.txt")).toBe(true);
+	expect(bridge.knownPaths.has("src/file.txt")).toBe(true);
 });
 
-test("a pending or failed move never makes its nonexistent destination selectable", async () => {
+test("a pending or failed move never records its nonexistent destination", async () => {
 	const pending = Promise.withResolvers<unknown>();
 	persist = () => pending.promise;
 	const { actions, bridge, onFileMove } = setup(["src/file.txt"]);
 	const moving = actions.handleMove(drop(["src/file.txt"], "dest/"));
-	expect(actions.canSelectFile("src/file.txt")).toBe(true);
-	expect(actions.canSelectFile("dest/file.txt")).toBe(false);
+	expect(bridge.knownPaths.has("src/file.txt")).toBe(true);
+	expect(bridge.knownPaths.has("dest/file.txt")).toBe(false);
 	pending.reject(new Error("EACCES"));
 	await moving;
-	expect(actions.canSelectFile("src/file.txt")).toBe(true);
-	expect(actions.canSelectFile("dest/file.txt")).toBe(false);
+	expect(bridge.knownPaths.has("src/file.txt")).toBe(true);
+	expect(bridge.knownPaths.has("dest/file.txt")).toBe(false);
 	expect(bridge.doRefresh).toHaveBeenCalledTimes(1);
 	expect(showError).toHaveBeenCalled();
 	expect(onFileMove).not.toHaveBeenCalled();

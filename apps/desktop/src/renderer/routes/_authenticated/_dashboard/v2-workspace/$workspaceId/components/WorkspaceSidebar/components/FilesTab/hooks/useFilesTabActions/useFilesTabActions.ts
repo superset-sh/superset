@@ -41,7 +41,6 @@ interface UseFilesTabActionsOptions {
 }
 
 export interface FilesTabActions {
-	canSelectFile(treePath: string): boolean;
 	/** Expand every ancestor directory of `absolutePath` then scroll the row into view. */
 	reveal(absolutePath: string, isDirectory: boolean): Promise<void>;
 	/** Create a file/folder on disk, then open the inline rename on it. */
@@ -600,7 +599,6 @@ export function useFilesTabActions({
 	}, [model, bridge.knownPaths]);
 
 	return {
-		canSelectFile: (treePath) => bridge.knownPaths.has(treePath),
 		reveal,
 		startCreating,
 		handleRename,

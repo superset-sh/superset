@@ -105,17 +105,11 @@ export function FilesTab({
 		buildPierreGitStatus(fileStatusByPath, folderStatusByPath, ignoredPaths),
 	);
 
-	// Selection feedback loop guard: when the parent re-renders after we
-	// fired onSelectFile, syncing selectedFilePath back into the model would
-	// retrigger our onSelectionChange. Skip the next selection echo.
-	const lastSelectedFromUserRef = useRef<string | null>(null);
-
 	// `useFileTree` constructs the model once and never re-reads its options,
 	// so any callback we pass directly would close over stale state. Route
 	// every callback through a ref so we can update it on each render while
 	// keeping a stable function identity for Pierre.
 	const handlersRef = useRef({
-		onSelect(_path: string) {},
 		onRename(_event: FileTreeRenameEvent) {},
 		onMove(_event: FileTreeDropResult) {},
 		onMoveError(_message: string) {},
@@ -145,20 +139,11 @@ export function FilesTab({
 		itemHeight: FILE_EXPLORER_ROW_HEIGHT,
 		overscan: FILE_EXPLORER_OVERSCAN,
 		stickyFolders: true,
-		onSelectionChange: (paths) => {
-			const last = paths[paths.length - 1];
-			if (!last) return;
-			// Pierre uses trailing-slash paths for directories; we only fire
-			// onSelectFile for files (clicking a folder toggles expansion).
-			if (last.endsWith("/")) return;
-			handlersRef.current.onSelect(last);
-		},
 		renderRowDecoration: (ctx) => handlersRef.current.renderRowDecoration(ctx),
 	});
 
 	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
 	const {
-		canSelectFile,
 		reveal,
 		startCreating,
 		handleRename,
@@ -216,10 +201,6 @@ export function FilesTab({
 	// Reflect external selection changes (e.g. tab switch) back into the model.
 	useEffect(() => {
 		if (!selectedFilePath || !rootPath) return;
-		if (lastSelectedFromUserRef.current === selectedFilePath) {
-			lastSelectedFromUserRef.current = null;
-			return;
-		}
 		const rel = toRel(rootPath, selectedFilePath);
 		if (!bridge.knownPaths.has(rel)) return;
 		model.focusPath(rel);
@@ -236,19 +217,6 @@ export function FilesTab({
 	handlersRef.current.onRenameError = (message) => handleRenameError(message);
 	handlersRef.current.onMove = (event) => void handleMove(event);
 	handlersRef.current.onMoveError = (message) => toast.error(message);
-	handlersRef.current.onSelect = (treePath) => {
-		if (!canSelectFile(treePath)) return;
-		const abs = toAbs(rootPath, treePath);
-		// Skip the reveal-induced echo. The reveal flow programmatically
-		// selects the just-opened file's row, which fires onSelectionChange
-		// synchronously. Without this guard, the echo re-enters onSelectFile
-		// → openFilePaneFromTreeClick, which sees active === target and
-		// pins the pane we just opened. Real keyboard nav (selection moves
-		// to a different file) still gets through.
-		if (selectedFilePath === abs) return;
-		lastSelectedFromUserRef.current = abs;
-		onSelectFile(abs);
-	};
 	// No-op: Pierre's setGitStatus already renders its own per-row status
 	// indicator (and tints the row text), so a custom decoration here would
 	// duplicate it. Kept the wiring in place in case we want to layer
