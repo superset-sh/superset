@@ -73,6 +73,7 @@ export function WorkspacesListView() {
 					createdAt: ws.createdAt,
 					isUnread: ws.isUnread,
 					isOpen: true,
+					createdBySuperset: ws.createdBySuperset,
 				});
 			}
 		}
@@ -102,6 +103,7 @@ export function WorkspacesListView() {
 					createdAt: wt.createdAt,
 					isUnread: false,
 					isOpen: false,
+					createdBySuperset: wt.createdBySuperset,
 				});
 			}
 		}
