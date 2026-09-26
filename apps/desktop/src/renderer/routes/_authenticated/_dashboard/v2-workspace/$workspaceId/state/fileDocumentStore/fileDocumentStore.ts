@@ -28,6 +28,7 @@ interface DocumentEntry {
 	refCount: number;
 	version: number;
 	loadGeneration: number;
+	movedFromAbsolutePath: string | null;
 	subscribers: Set<() => void>;
 }
 
@@ -364,6 +365,7 @@ export function acquireDocument(
 			refCount: 0,
 			version: 0,
 			loadGeneration: 0,
+			movedFromAbsolutePath: null,
 			subscribers: new Set(),
 		};
 		entries.set(k, entry);
@@ -423,6 +425,7 @@ export function dispatchFsEvent(
 			entry.loadGeneration += 1;
 			const oldKey = key(entry.workspaceId, entry.absolutePath);
 			entries.delete(oldKey);
+			entry.movedFromAbsolutePath = entry.absolutePath;
 			entry.absolutePath =
 				event.absolutePath +
 				entry.absolutePath.slice(event.oldAbsolutePath.length);
@@ -432,13 +435,16 @@ export function dispatchFsEvent(
 			notify(entry);
 			continue;
 		}
-		if (event.kind === "rename" && entry.absolutePath === event.absolutePath)
-			continue;
 		const affects =
 			event.kind === "overflow" ||
 			entry.absolutePath === event.absolutePath ||
 			renamedSource;
 		if (!affects) continue;
+		const isEchoOfAppliedMove =
+			event.kind === "rename" &&
+			event.oldAbsolutePath === entry.movedFromAbsolutePath;
+		entry.movedFromAbsolutePath = null;
+		if (isEchoOfAppliedMove) continue;
 
 		const isContentMutation =
 			event.kind === "create" ||

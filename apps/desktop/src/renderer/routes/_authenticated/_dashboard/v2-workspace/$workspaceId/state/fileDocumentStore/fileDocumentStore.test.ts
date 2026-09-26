@@ -299,22 +299,18 @@ for (const action of ["save", "reload"] as const) {
 
 test("directory rename preserves a dirty descendant document", async () => {
 	const workspaceId = crypto.randomUUID();
-	const doc = acquireDocument(
-		workspaceId,
-		"/workspace/src/file.txt",
-		{
-			filesystem: {
-				readFile: {
-					query: async () => ({
-						kind: "text",
-						content: "original",
-						revision: "r1",
-						byteLength: 8,
-					}),
-				},
+	const doc = acquireDocument(workspaceId, "/workspace/src/file.txt", {
+		filesystem: {
+			readFile: {
+				query: async () => ({
+					kind: "text",
+					content: "original",
+					revision: "r1",
+					byteLength: 8,
+				}),
 			},
-		} as Parameters<typeof acquireDocument>[2],
-	);
+		},
+	} as unknown as Parameters<typeof acquireDocument>[2]);
 	await Promise.resolve();
 	doc.setContent("unsaved");
 	dispatchFsEvent(workspaceId, {
@@ -343,5 +339,49 @@ test("duplicate rename events do not reload the already-moved document", async (
 	expect(f.reads).toHaveLength(2);
 	await f.resolve(1, "renamed");
 	expect(f.doc.absolutePath).toBe("/workspace/.env.local");
+	await f.cleanup();
+});
+
+test("an atomic save renamed over an open clean document reloads it", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	dispatchFsEvent(f.workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/.env.tmp",
+		absolutePath: "/workspace/.env",
+	});
+	expect(f.reads).toHaveLength(2);
+	await f.resolve(1, "saved elsewhere");
+	expect(f.doc.content).toMatchObject({ value: "saved elsewhere" });
+	await f.cleanup();
+});
+
+test("an atomic save renamed over an open dirty document flags the external change", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	dispatchFsEvent(f.workspaceId, {
+		kind: "rename",
+		oldAbsolutePath: "/workspace/.env.tmp",
+		absolutePath: "/workspace/.env",
+	});
+	expect(f.doc.hasExternalChange).toBe(true);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
+	await f.cleanup();
+});
+
+test("the watcher echo of a move keeps a dirty buffer free of external-change flags", async () => {
+	const f = createReloadFixture();
+	await f.resolve(0, "original");
+	f.doc.setContent("edited");
+	const event = {
+		kind: "rename" as const,
+		oldAbsolutePath: "/workspace/.env",
+		absolutePath: "/workspace/.env.local",
+	};
+	dispatchFsEvent(f.workspaceId, event);
+	dispatchFsEvent(f.workspaceId, event);
+	expect(f.doc.hasExternalChange).toBe(false);
+	expect(f.doc.content).toMatchObject({ value: "edited" });
 	await f.cleanup();
 });
