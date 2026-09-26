@@ -166,7 +166,6 @@ export function usePaneRegistry({
 	const host = useWorkspaceHostTarget(workspaceId);
 	const desktopUrl =
 		host.status === "ready" && host.kind === "sandbox" ? host.desktopUrl : null;
-	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
 	const scrollToBottomShortcut = useHotkeyDisplay("SCROLL_TO_BOTTOM").text;
@@ -785,7 +784,7 @@ export function usePaneRegistry({
 				getIcon: () => <GitPullRequest className="size-3.5" />,
 				getTitle: (pane) => {
 					const data = pane.data as PullRequestPaneData;
-					return t({ message: `Pull request #${data.prNumber}` });
+					return t({ message: `Pull request #${data.number}` });
 				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<PullRequestPane
@@ -830,50 +829,46 @@ export function usePaneRegistry({
 					/>
 				),
 			},
-			...(isPagesEnabled
-				? {
-						page: {
-							getIcon: () => <FileText className="size-3.5" />,
-							getTitle: (pane) => pagePaneLabel(pane.data as PagePaneData),
-							renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-								<PagePaneTitle
-									data={ctx.pane.data as PagePaneData}
-									paneId={ctx.pane.id}
-									onClose={() => ctx.actions.close()}
-								/>
-							),
-							renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
-								<PagePaneHeaderExtras
-									data={ctx.pane.data as PagePaneData}
-									paneId={ctx.pane.id}
-									workspaceId={workspaceId}
-								/>
-							),
-							renderPane: (ctx: RendererContext<PaneViewerData>) => (
-								<PagePane
-									store={ctx.store}
-									data={ctx.pane.data as PagePaneData}
-									paneId={ctx.pane.id}
-									onDataChange={(data) =>
-										ctx.actions.updateData(data as PaneViewerData)
-									}
-									onFocus={ctx.actions.focus}
-								/>
-							),
-							contextMenuActions: (_ctx, defaults) =>
-								defaults.map((d) =>
-									d.key === "close-pane"
-										? {
-												...d,
-												label: t({
-													message: "Close Page",
-												}),
-											}
-										: d,
-								),
-						},
-					}
-				: {}),
+			page: {
+				getIcon: () => <FileText className="size-3.5" />,
+				getTitle: (pane) => pagePaneLabel(pane.data as PagePaneData),
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<PagePaneTitle
+						data={ctx.pane.data as PagePaneData}
+						paneId={ctx.pane.id}
+						onClose={() => ctx.actions.close()}
+					/>
+				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+					<PagePaneHeaderExtras
+						data={ctx.pane.data as PagePaneData}
+						paneId={ctx.pane.id}
+						workspaceId={workspaceId}
+					/>
+				),
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<PagePane
+						store={ctx.store}
+						data={ctx.pane.data as PagePaneData}
+						paneId={ctx.pane.id}
+						onDataChange={(data) =>
+							ctx.actions.updateData(data as PaneViewerData)
+						}
+						onFocus={ctx.actions.focus}
+					/>
+				),
+				contextMenuActions: (_ctx, defaults) =>
+					defaults.map((d) =>
+						d.key === "close-pane"
+							? {
+									...d,
+									label: t({
+										message: "Close Page",
+									}),
+								}
+							: d,
+					),
+			},
 			devtools: {
 				getTitle: () =>
 					t({
@@ -893,7 +888,6 @@ export function usePaneRegistry({
 			store,
 			workspaceId,
 			isChatV3Enabled,
-			isPagesEnabled,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,

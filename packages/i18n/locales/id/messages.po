@@ -47,13 +47,13 @@ msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at a
 msgstr "\"{0}\" akan ditandai ditutup di GitHub. Anda bisa membukanya lagi dari sini kapan saja."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. Checks haven't passed yet — this overrides them. This can't be undone from here."
 msgstr "\"{0}\" akan di-merge ke {1} lewat {2}. Check-nya belum lulus — ini menimpanya. Ini tidak bisa dibatalkan dari sini."
 
 #. placeholder {0}: data.title
-#. placeholder {1}: data.baseBranch
+#. placeholder {1}: data.base.ref
 #. placeholder {2}: mergeMethodLabels[pendingAction.method].toLowerCase()
 msgid "\"{0}\" will be merged into {1} via {2}. This can't be undone from here."
 msgstr "\"{0}\" akan di-merge ke {1} lewat {2}. Ini tidak bisa dibatalkan dari sini."
@@ -226,6 +226,10 @@ msgstr "{0, plural, one {# workspace} other {# workspace}}"
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.} other {# agen yang sedang berjalan masih memakai akun sebelumnya — pergantian hanya berlaku untuk peluncuran baru.}}"
 
+#. placeholder {0}: Math.max(watchers.length, 1)
+msgid "{0, plural, one {Comments go to this agent} other {Comments go to these agents}}"
+msgstr "{0, plural, one {Komentar masuk ke agen ini} other {Komentar masuk ke agen-agen ini}}"
+
 #. placeholder {0}: failures.length
 #. placeholder {0}: nextFailures.length
 msgid "{0, plural, one {Couldn’t delete # workspace} other {Couldn’t delete # workspaces}}"
@@ -366,6 +370,10 @@ msgstr "{0} terpasang"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} sudah ditetapkan untuk \"{1}\"."
+
+#. placeholder {0}: params?.repoFullName
+msgid "{0} is not a repository the GitHub App is installed on"
+msgstr "{0} bukan repositori tempat GitHub App terpasang"
 
 #. placeholder {0}: host.name
 msgid "{0} is offline"
@@ -779,9 +787,6 @@ msgstr "{months}bln"
 msgid "{months}mo ago"
 msgstr "{months}bln lalu"
 
-msgid "{myFailedCount} of your automations failed their last run"
-msgstr "{myFailedCount} otomatisasi Anda gagal pada run terakhirnya"
-
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} bawaan dan tidak dapat dihapus"
@@ -1132,14 +1137,8 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — lupakan situs ini"
 
-msgid "1 hour"
-msgstr "1 jam"
-
 msgid "1 user"
 msgstr "1 pengguna"
-
-msgid "10 minutes"
-msgstr "10 menit"
 
 msgid "10+ concurrent workstreams without dropped state"
 msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
@@ -1147,17 +1146,11 @@ msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
 msgid "100% (retain everything)"
 msgstr "100% (mempertahankan semua)"
 
-msgid "15 minutes"
-msgstr "15 menit"
-
 msgid "1d ago"
 msgstr "1h lalu"
 
 msgid "2 agents · 14 files changed"
 msgstr "2 agen · 14 file berubah"
-
-msgid "2 hours"
-msgstr "2 jam"
 
 msgid "2021 to 2023"
 msgstr "2021 sampai 2023"
@@ -1183,9 +1176,6 @@ msgstr "3 file berubah, 2 tes lulus"
 msgid "3+ concurrent workstreams per engineer"
 msgstr "3+ alur kerja bersamaan per engineer"
 
-msgid "30 minutes"
-msgstr "30 menit"
-
 msgid "30D"
 msgstr "30H"
 
@@ -1200,9 +1190,6 @@ msgstr "42ms"
 
 msgid "45 files · +82 −172"
 msgstr "45 file · +82 −172"
-
-msgid "5 minutes"
-msgstr "5 menit"
 
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
@@ -1390,10 +1377,6 @@ msgstr "Aktivasi, seberapa banyak dipakai setelah masuk, dan apakah mereka kemba
 
 msgid "Active"
 msgstr "Aktif"
-
-#. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-msgid "active {0}"
-msgstr "aktif {0}"
 
 msgid "Active agent sessions."
 msgstr "Sesi agen yang aktif."
@@ -1667,6 +1650,9 @@ msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukt
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
 
+msgid "Agents watching this page for comments"
+msgstr "Agen yang memantau halaman ini untuk komentar"
+
 msgid "Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for."
 msgstr "Agregat penggunaan agen dari seluruh developer di papan peringkat Superset — token, biaya, perilaku cache, dan model yang benar-benar dipakai orang."
 
@@ -1916,6 +1902,10 @@ msgstr "Juga: @superset/ui/spinner"
 msgid "Always know which agent needs you, with notifications that deep-link straight to the blocked agent."
 msgstr "Selalu tahu agen mana yang membutuhkan Anda, dengan notifikasi yang langsung menuju agen yang terhambat."
 
+msgctxt "page watcher with no known name"
+msgid "An agent"
+msgstr "Agen"
+
 msgid "An agent completes multi-file changes end to end."
 msgstr "Agen menyelesaikan perubahan lintas file dari awal sampai akhir."
 
@@ -1982,9 +1972,6 @@ msgstr "Anthropic menolak kunci API ini."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic menolak token ini."
 
-msgid "Any calendar"
-msgstr "Kalender mana pun"
-
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -2029,9 +2016,6 @@ msgstr "Tim mana pun"
 
 msgid "Any thread event"
 msgstr "Event thread apa pun"
-
-msgid "anyone"
-msgstr "siapa pun"
 
 msgid "Anyone"
 msgstr "Siapa pun"
@@ -2086,6 +2070,9 @@ msgstr "Bahasa tampilan aplikasi"
 
 msgid "App display language. Auto follows your system language."
 msgstr "Bahasa tampilan aplikasi. Otomatis mengikuti bahasa sistem Anda."
+
+msgid "App icon"
+msgstr "Ikon aplikasi"
 
 msgid "Appearance"
 msgstr "Tampilan"
@@ -2382,17 +2369,11 @@ msgstr "Judul otomatisasi"
 msgid "Automations"
 msgstr "Otomatisasi"
 
-msgid "Automations ({myFailedCount} failing)"
-msgstr "Otomatisasi ({myFailedCount} gagal)"
-
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
 msgid "Automations require the Pro plan."
 msgstr "Otomatisasi memerlukan paket Pro."
-
-msgid "Automations, {myFailedCount} failing"
-msgstr "Otomatisasi, {myFailedCount} gagal"
 
 msgid "Autonomous"
 msgstr "Otonom"
@@ -2621,9 +2602,6 @@ msgstr "Chip bergaris adalah bawaannya (gaya preset/HotkeyTooltip); panah bersif
 msgid "Borrowed from how self-driving cars are graded, applied to how software gets built. The interesting jump is F3 to F4: from agents you delegate to, to a factory you direct."
 msgstr "Dipinjam dari cara mobil swakemudi dinilai, diterapkan pada cara perangkat lunak dibangun. Lompatan yang menarik adalah F3 ke F4: dari agen yang Anda beri delegasi, menjadi pabrik yang Anda arahkan."
 
-msgid "Both Calendar and Gmail access are required. Please allow both when asked."
-msgstr "Akses Calendar dan Gmail keduanya diperlukan. Izinkan keduanya saat diminta."
-
 msgid "Bottom drawer, swipe-friendly on touch devices."
 msgstr "Laci bawah, ramah geser di perangkat sentuh."
 
@@ -2632,6 +2610,9 @@ msgstr "Pentalan"
 
 msgid "Box"
 msgstr "Box"
+
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "Box berjalan di tempat environment dibuat; snapshot hanya ada di regionnya."
 
 msgid "Branch"
 msgstr "Branch"
@@ -2681,6 +2662,9 @@ msgstr "Branch..."
 
 msgid "brand"
 msgstr "merek"
+
+msgid "Brand assets"
+msgstr "Aset merek"
 
 msgid "breadcrumb"
 msgstr "breadcrumb"
@@ -3172,9 +3156,6 @@ msgstr "Pilih apa yang ingin dibersihkan dari browser dalam aplikasi."
 msgid "Choose when Superset pings you."
 msgstr "Pilih kapan Superset memberi tahu Anda."
 
-msgid "Choose which agent watches this page for comments"
-msgstr "Pilih agen yang memantau komentar di halaman ini"
-
 msgid "Churn"
 msgstr "Churn"
 
@@ -3511,6 +3492,12 @@ msgstr "Sandbox cloud belum diaktifkan untuk {account}. Minta akses kepada tim S
 msgid "Cloud workspace"
 msgstr "Workspace cloud"
 
+msgid "Cloud workspaces ignore this variable. Agents sign in under Settings › Agents instead."
+msgstr "Workspace cloud mengabaikan variabel ini. Agen masuk melalui Pengaturan › Agen sebagai gantinya."
+
+msgid "Cloud workspaces will stop running {agentLabel} with it."
+msgstr "Workspace cloud tidak lagi menjalankan {agentLabel} dengannya."
+
 msgid "Co-founder & CTO, TrainLoop (YC W25)"
 msgstr "Pendiri bersama & CTO, TrainLoop (YC W25)"
 
@@ -3644,9 +3631,6 @@ msgstr "Komentar"
 msgid "Comments could not be loaded"
 msgstr "Komentar tidak bisa dimuat"
 
-msgid "Comments go to this agent"
-msgstr "Komentar masuk ke agen ini"
-
 msgid "Commit"
 msgstr "Commit"
 
@@ -3680,6 +3664,9 @@ msgstr "Ukuran komunitas dari undangan publik, diperbarui setiap setengah jam."
 
 msgid "Company"
 msgstr "Perusahaan"
+
+msgid "Company boilerplate, latest news, brand assets, and press contact for Superset."
+msgstr "Profil perusahaan, berita terbaru, aset merek, dan kontak pers Superset."
 
 msgid "Company email"
 msgstr "Email perusahaan"
@@ -3771,8 +3758,8 @@ msgstr "Hubungkan {name}"
 msgid "Connect a device"
 msgstr "Hubungkan perangkat"
 
-msgid "Connect a Google account. Its calendars and mailbox are read-only, and triggers run for the person who connected it."
-msgstr "Hubungkan sebuah akun Google. Kalender dan kotak suratnya bersifat baca-saja, dan pemicunya berjalan atas nama orang yang menghubungkannya."
+msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
+msgstr "Hubungkan akun Google. Kotak suratnya hanya-baca, dan pemicu berjalan untuk orang yang menghubungkannya."
 
 msgid "Connect a microphone to use dictation"
 msgstr "Hubungkan mikrofon untuk memakai dikte"
@@ -3976,6 +3963,9 @@ msgstr "Lanjutkan"
 msgid "Continue or fork session"
 msgstr "Lanjutkan atau fork sesi"
 
+msgid "Continue the same workspace from your iPhone"
+msgstr "Lanjutkan workspace yang sama dari iPhone Anda"
+
 msgid "Continue the session the last run left"
 msgstr "Lanjutkan sesi yang ditinggalkan proses terakhir"
 
@@ -4077,6 +4067,9 @@ msgstr "Salin ID sesi agen"
 
 msgid "Copy all"
 msgstr "Salin semua"
+
+msgid "Copy as Markdown"
+msgstr "Salin sebagai Markdown"
 
 msgid "Copy Branch Name"
 msgstr "Salin Nama Branch"
@@ -4259,6 +4252,9 @@ msgstr "Tidak bisa menghapus file"
 msgid "Could not delete this page"
 msgstr "Tidak bisa menghapus halaman ini"
 
+msgid "Could not disconnect."
+msgstr "Tidak dapat memutuskan."
+
 msgid "Could not forget {domain}"
 msgstr "Tidak bisa melupakan {domain}"
 
@@ -4413,9 +4409,6 @@ msgstr "Tidak bisa memperbarui branch"
 #. js-lingui-explicit-id
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Tidak dapat memverifikasi kredensial: {reason}"
-
-msgid "Could not watch this page"
-msgstr "Tidak bisa memantau halaman ini"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
@@ -4990,6 +4983,7 @@ msgid "Delete “{title}”?"
 msgstr "Hapus “{title}”?"
 
 #. placeholder {0}: organization.name
+#. placeholder {0}: secret.key
 msgid "Delete {0}?"
 msgstr "Hapus {0}?"
 
@@ -5350,6 +5344,9 @@ msgstr "Dibuang — tidak akan ditanya lagi"
 msgid "Disconnect"
 msgstr "Putuskan"
 
+msgid "Disconnect {credential}?"
+msgstr "Putuskan {credential}?"
+
 msgid "Disconnect GitHub?"
 msgstr "Putuskan GitHub?"
 
@@ -5495,6 +5492,9 @@ msgstr "Unduh gambar"
 
 msgid "Download Manually"
 msgstr "Unduh Manual"
+
+msgid "Download our logos and product images for use in coverage of Superset."
+msgstr "Unduh logo dan gambar produk kami untuk digunakan dalam liputan tentang Superset."
 
 msgid "Download starter"
 msgstr "Unduh starter"
@@ -5862,23 +5862,8 @@ msgstr "esc untuk menutup"
 msgid "esc to exit"
 msgstr "esc untuk keluar"
 
-msgid "Event cancelled"
-msgstr "Acara dibatalkan"
-
-msgid "Event created"
-msgstr "Acara dibuat"
-
-msgid "Event ended"
-msgstr "Acara berakhir"
-
-msgid "Event starting soon"
-msgstr "Acara segera dimulai"
-
 msgid "Event triggered"
 msgstr "Dipicu event"
-
-msgid "Event updated"
-msgstr "Acara diperbarui"
 
 msgid "Every {day}"
 msgstr "Setiap {day}"
@@ -5886,8 +5871,8 @@ msgstr "Setiap {day}"
 msgid "Every {day} at {time}"
 msgstr "Setiap {day} pukul {time}"
 
-msgid "Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window."
-msgstr "Tiap agen berjalan di worktree Git-nya sendiri, jadi sepuluh agen bisa bekerja di sepuluh branch dari satu repo tanpa konflik. Anda mengawasi, mereview, dan me-merge semuanya dari satu jendela."
+msgid "Every agent runs in its own Git worktree and branch, keeping working files separate. Changes can still conflict when merged. You watch, review, and merge them all from one window."
+msgstr "Setiap agen berjalan di worktree dan cabang Git masing-masing, sehingga file kerja tetap terpisah. Konflik masih dapat terjadi saat perubahan digabungkan. Anda memantau, meninjau, dan menggabungkan semuanya dari satu jendela."
 
 msgid "Every axis is carrying its weight for the next tier. Hold it and the tier follows."
 msgstr "Setiap sumbu sudah menopang untuk tingkat berikutnya. Pertahankan, tingkatnya akan menyusul."
@@ -5940,8 +5925,11 @@ msgstr "Semuanya bisa diskrip. Buat workspace dan agen dari CLI, sambungkan Supe
 msgid "Everything we built on top of the primitives — Superset originals, the"
 msgstr "Semua yang kami bangun di atas primitif — orisinal Superset, suite"
 
-msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine — only your past ranking is lost."
-msgstr "Semua yang Anda publikasikan dihapus, bukan disembunyikan. Anda bisa bergabung lagi nanti dan datanya akan dibangun ulang dari transkrip yang masih ada di mesin ini — hanya peringkat lama Anda yang hilang."
+msgid "Everything you need to write about Superset: our company description, latest news, logos, product images, and who to contact."
+msgstr "Semua yang Anda perlukan untuk menulis tentang Superset: profil perusahaan, berita terbaru, logo, gambar produk, dan kontak."
+
+msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
+msgstr "Semua yang Anda publikasikan dihapus, bukan disembunyikan. Anda bisa bergabung lagi nanti dan datanya akan dibangun ulang dari transkrip yang masih ada di mesin ini."
 
 msgid "Existing repo path"
 msgstr "Path repo yang sudah ada"
@@ -6640,6 +6628,9 @@ msgstr "Filter menurut review"
 msgid "Filter by state"
 msgstr "Filter menurut status"
 
+msgid "Filter by workspace: {label}"
+msgstr "Filter menurut workspace: {label}"
+
 msgid "Filter hosts"
 msgstr "Filter host"
 
@@ -6802,6 +6793,9 @@ msgstr "Folder yang di-checkout ke worktree baru, satu per baris, relatif terhad
 msgid "FOLLOW ON X"
 msgstr "IKUTI DI X"
 
+msgid "Follow terminal sessions live"
+msgstr "Ikuti sesi terminal secara langsung"
+
 msgid "FOLLOW US"
 msgstr "IKUTI KAMI"
 
@@ -6831,6 +6825,9 @@ msgstr "Untuk perorangan yang baru memulai"
 
 msgid "For organizations with advanced needs"
 msgstr "Untuk organisasi dengan kebutuhan tingkat lanjut"
+
+msgid "For press inquiries and interview requests, email us."
+msgstr "Untuk pertanyaan pers dan permintaan wawancara, kirimi kami email."
 
 msgid "For questions about billing, <0>contact us</0>."
 msgstr "Untuk pertanyaan soal penagihan, <0>hubungi kami</0>."
@@ -7114,6 +7111,9 @@ msgstr "Beri nama deskriptif agar Anda ingat kunci ini dipakai di mana."
 msgid "Globe"
 msgstr "Globe"
 
+msgid "Gmail access is required. Please allow it when asked."
+msgstr "Akses Gmail diperlukan. Izinkan saat diminta."
+
 msgid "Go back"
 msgstr "Kembali"
 
@@ -7184,6 +7184,9 @@ msgid "GTM & AI Automation Architect, Mistral AI"
 msgstr "Arsitek GTM & Otomatisasi AI, Mistral AI"
 
 msgid "Guide"
+msgstr "Panduan"
+
+msgid "Guides"
 msgstr "Panduan"
 
 msgid "Guides AI-generated workspace and branch names for this project. Empty uses the default naming."
@@ -8189,6 +8192,9 @@ msgstr "Terbaru"
 msgid "Latest (v{latestVersion})"
 msgstr "Terbaru (v{latestVersion})"
 
+msgid "Latest news"
+msgstr "Berita terbaru"
+
 msgid "Launch"
 msgstr "Peluncuran"
 
@@ -8597,6 +8603,15 @@ msgstr "Retensi logo — bulanan"
 msgid "Logo updated"
 msgstr "Logo diperbarui"
 
+msgid "Logo, light"
+msgstr "Logo, terang"
+
+msgid "Logos"
+msgstr "Logo"
+
+msgid "Logos, product images, and press contact."
+msgstr "Logo, gambar produk, dan kontak pers."
+
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Keandalan jangka panjang melewati ambang batas. Pekerjaan yang diberikan jam 6 sore cukup sering bisa di-merge jam 9 pagi sehingga tidak menjadwalkan shift malam terasa seperti membiarkan pabrik menganggur."
 
@@ -8778,6 +8793,9 @@ msgstr "Mengukur penggunaan sumber daya…"
 #. placeholder {0}: selectedConfig.label
 msgid "Measuring the context to send to {0}…"
 msgstr "Mengukur konteks yang akan dikirim ke {0}…"
+
+msgid "Media kit"
+msgstr "Media kit"
 
 msgid "Median ticket-to-production time under one day for routine work."
 msgstr "Waktu median dari tiket ke produksi di bawah satu hari untuk pekerjaan rutin."
@@ -9035,6 +9053,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More options"
+msgstr "Opsi lainnya"
+
 msgid "More pages"
 msgstr "Halaman lainnya"
 
@@ -9136,6 +9157,9 @@ msgstr "Navigasi"
 
 msgid "Navigation Menu"
 msgstr "Menu Navigasi"
+
+msgid "Nearest to you."
+msgstr "Terdekat dengan Anda."
 
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Butuh perangkaian di level aplikasi (state form, data grafik, app shell)"
@@ -9417,9 +9441,6 @@ msgstr "Tidak ada agen yang dikonfigurasi di mesin ini"
 
 msgid "No agents match \"{q}\"."
 msgstr "Tidak ada agen yang cocok dengan \"{q}\"."
-
-msgid "No agents running here"
-msgstr "Tidak ada agen yang berjalan di sini"
 
 msgid "No agents yet"
 msgstr "Belum ada agen"
@@ -10029,9 +10050,6 @@ msgstr "Belum ada yang terpasang."
 msgid "Nothing is running. Remove it and create a new one."
 msgstr "Tidak ada yang berjalan. Hapus dan buat yang baru."
 
-msgid "Nothing is watching this page"
-msgstr "Tidak ada yang memantau halaman ini"
-
 msgid "Nothing lives at {pathname}."
 msgstr "Tidak ada apa pun di {pathname}."
 
@@ -10125,6 +10143,9 @@ msgstr "Lebih lama"
 
 msgid "on {offScopeHostName} — won't run here"
 msgstr "di {offScopeHostName} — tidak akan berjalan di sini"
+
+msgid "On a host you can't reach"
+msgstr "Di host yang tidak bisa kamu jangkau"
 
 msgid "On click"
 msgstr "Saat diklik"
@@ -11341,6 +11362,9 @@ msgstr "Tekan ⌘I di terminal mana pun dan tulis di editor sungguhan, dengan pr
 msgid "Press a key…"
 msgstr "Tekan sebuah tombol…"
 
+msgid "Press contact"
+msgstr "Kontak pers"
+
 msgid "Preview"
 msgstr "Pratinjau"
 
@@ -11458,6 +11482,9 @@ msgstr "Memproses..."
 msgid "Product"
 msgstr "Produk"
 
+msgid "Product images"
+msgstr "Gambar produk"
+
 msgid "Production run"
 msgstr "Proses produksi"
 
@@ -11549,6 +11576,9 @@ msgstr "Prompt"
 msgid "Prompt a coding agent to build what you want to see in Superset. If we like your prompt, we'll run it and merge the result."
 msgstr "Beri prompt ke agen coding untuk membangun apa yang ingin Anda lihat di Superset. Kalau kami suka prompt Anda, kami akan menjalankannya dan me-merge hasilnya."
 
+msgid "Prompt agents and answer their questions"
+msgstr "Kirim prompt ke agen dan jawab pertanyaan mereka"
+
 msgid "Prompt command is only available for terminal agents."
 msgstr "Perintah prompt hanya tersedia untuk agen terminal."
 
@@ -11626,7 +11656,7 @@ msgstr "Dipublikasikan sebagai <0>{handle}</0>. Hanya jumlah token dan nama mode
 msgid "Pull request"
 msgstr "Pull request"
 
-#. placeholder {0}: data.prNumber
+#. placeholder {0}: data.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
@@ -11939,6 +11969,9 @@ msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
 msgid "Refreshes when OpenCode next runs."
 msgstr "Diperbarui saat OpenCode berikutnya dijalankan."
 
+msgid "Region"
+msgstr "Region"
+
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Daftarkan agen CLI apa pun bersama agen bawaan, masing-masing dengan nama, ikon, dan perintah peluncurannya sendiri."
 
@@ -12092,6 +12125,9 @@ msgstr "Hapus workspace"
 
 msgid "Remove…"
 msgstr "Hapus…"
+
+msgid "Removed {credential} for {agentLabel}."
+msgstr "{credential} untuk {agentLabel} dihapus."
 
 msgid "Removed {removedLabel}."
 msgstr "Menghapus {removedLabel}."
@@ -12411,6 +12447,9 @@ msgstr "Mulai ulang terminal"
 msgid "Restart to use the latest version of Superset."
 msgstr "Mulai ulang untuk menggunakan versi terbaru Superset."
 
+msgid "Restart workspaces to pick up new agent credentials."
+msgstr "Mulai ulang workspace untuk memakai kredensial agen yang baru."
+
 msgid "Restarted {restartedOrgCount} host services"
 msgstr "Memulai ulang {restartedOrgCount} layanan host"
 
@@ -12576,6 +12615,9 @@ msgstr "Review diminta"
 msgid "Review required"
 msgstr "Review diperlukan"
 
+msgid "Review syntax-highlighted diffs"
+msgstr "Tinjau diff dengan penyorotan sintaks"
+
 msgid "Review the result."
 msgstr "Review hasilnya."
 
@@ -12663,6 +12705,9 @@ msgstr "Jalankan {0} sekarang"
 
 msgid "Run {runNumber}"
 msgstr "Run {runNumber}"
+
+msgid "Run <0>{tokenCommand}</0><1><2/></1> in a terminal and paste the token here."
+msgstr "Jalankan <0>{tokenCommand}</0><1><2/></1> di terminal lalu tempel tokennya di sini."
 
 msgid "Run 01"
 msgstr "Run 01"
@@ -13186,9 +13231,6 @@ msgstr "Pilih branch"
 msgid "Select branch..."
 msgstr "Pilih branch..."
 
-msgid "Select calendars"
-msgstr "Pilih kalender"
-
 msgid "Select channels"
 msgstr "Pilih channel"
 
@@ -13490,8 +13532,8 @@ msgstr "Bagikan desain dan laporan. Biarkan agen Anda menangani masukan."
 msgid "Share page"
 msgstr "Bagikan halaman"
 
-msgid "Share settings"
-msgstr "Pengaturan berbagi"
+msgid "Share page (public)"
+msgstr "Bagikan halaman (publik)"
 
 msgid "Share this page"
 msgstr "Bagikan halaman ini"
@@ -13740,9 +13782,6 @@ msgstr "Masuk dengan GitHub"
 msgid "Sign in with Google"
 msgstr "Masuk dengan Google"
 
-msgid "Sign in with your Claude account, or run <0>claude setup-token</0><1><2/></1> in a terminal and paste the token here."
-msgstr "Masuk dengan akun Claude Anda, atau jalankan <0>claude setup-token</0><1><2/></1> di terminal lalu tempel tokennya di sini."
-
 msgid "Sign out"
 msgstr "Keluar"
 
@@ -13781,14 +13820,8 @@ msgstr "Gagal masuk"
 msgid "Sign-in failed ({reason}). Please try again."
 msgstr "Gagal masuk ({reason}). Silakan coba lagi."
 
-msgid "Signed in as {accountLabel}"
-msgstr "Masuk sebagai {accountLabel}"
-
 msgid "Signed in as <0>{userName}</0>"
 msgstr "Masuk sebagai <0>{userName}</0>"
-
-msgid "Signed in. The token is stored encrypted and is never shown again."
-msgstr "Sudah masuk. Token disimpan terenkripsi dan tidak pernah ditampilkan lagi."
 
 msgid "Signed out"
 msgstr "Sudah keluar"
@@ -13798,9 +13831,6 @@ msgstr "Situs yang sedang masuk"
 
 msgid "Signing in..."
 msgstr "Sedang masuk..."
-
-msgid "Signs in the way the Codex CLI does. Or run <0>codex login</0> in a terminal and paste its token here."
-msgstr "Masuk dengan cara yang sama seperti Codex CLI. Atau jalankan <0>codex login</0> di terminal lalu tempel tokennya di sini."
 
 msgid "signup → paid ≤30d"
 msgstr "daftar → berbayar ≤30h"
@@ -13959,9 +13989,6 @@ msgstr "Sebagian pemicu perlu konfigurasi tambahan"
 #. js-lingui-explicit-id
 msgid "serverError.page.entryPathHeldByColleague"
 msgstr "Orang lain sudah menerbitkan {entryPath} dari workspace ini. Terbitkan dengan id halaman yang eksplisit untuk menambahkan versi ke halaman mereka, atau pindahkan berkasnya."
-
-msgid "someone external"
-msgstr "seseorang dari luar"
 
 msgid "Something went wrong"
 msgstr "Terjadi kesalahan"
@@ -14374,6 +14401,9 @@ msgstr "BERLANGGANAN"
 msgid "Subscribe on YouTube"
 msgstr "Berlangganan di YouTube"
 
+msgid "subscription"
+msgstr "langganan"
+
 msgid "Subscription"
 msgstr "Langganan"
 
@@ -14416,6 +14446,9 @@ msgstr "superset"
 msgid "Superset"
 msgstr "Superset"
 
+msgid "Superset (YC S26) is the open-source IDE for the AI agents era, where engineers run hundreds of coding agents like Claude Code and Codex in parallel. In under a year, more than 130,000 developers across 176 countries have run Superset and created over 1.5 million agent workspaces. Japan is its second-largest market after the US, with over 12,000 developers adopting it before it was even available in Japanese, and Asia as a whole now accounts for more users than the US. Superset is used by engineers at Netflix, Microsoft, NVIDIA, DoorDash, Wix, and Mistral AI globally, and across Asia at ByteDance, Toss, Kakao, Grab, LINE, and Rakuten. It has 14k+ GitHub stars, hit #1 on Product Hunt, and recently launched full Japanese language support."
+msgstr "Superset (YC S26) adalah IDE sumber terbuka untuk era agen AI, tempat para engineer menjalankan ratusan agen coding seperti Claude Code dan Codex secara paralel. Dalam waktu kurang dari setahun, lebih dari 130.000 developer di 176 negara telah menjalankan Superset dan membuat lebih dari 1,5 juta workspace agen. Jepang adalah pasar terbesar kedua setelah AS, dengan lebih dari 12.000 developer yang mengadopsinya bahkan sebelum tersedia dalam bahasa Jepang, dan Asia secara keseluruhan kini memiliki lebih banyak pengguna daripada AS. Superset digunakan oleh engineer di Netflix, Microsoft, NVIDIA, DoorDash, Wix, dan Mistral AI secara global, serta di Asia oleh ByteDance, Toss, Kakao, Grab, LINE, dan Rakuten. Superset memiliki lebih dari 14k bintang GitHub, meraih peringkat #1 di Product Hunt, dan baru saja meluncurkan dukungan penuh bahasa Jepang."
+
 msgid "Superset | Company Dashboard"
 msgstr "Superset | Dasbor perusahaan"
 
@@ -14452,11 +14485,20 @@ msgstr "CPU Superset · 5 menit terakhir"
 msgid "Superset Design System"
 msgstr "Design System Superset"
 
+msgid "Superset desktop app"
+msgstr "Aplikasi desktop Superset"
+
 msgid "Superset Enterprise is Superset for teams. Reach out to learn more about what's included and how it can work for your organization."
 msgstr "Superset Enterprise adalah Superset untuk tim. Hubungi kami untuk tahu lebih banyak soal apa saja yang termasuk dan bagaimana cocoknya untuk organisasi Anda."
 
 msgid "Superset for iPhone"
 msgstr "Superset untuk iPhone"
+
+msgid "Superset for iPhone page"
+msgstr "Halaman Superset untuk iPhone"
+
+msgid "Superset for press"
+msgstr "Superset untuk pers"
 
 msgid "Superset for your team"
 msgstr "Superset untuk tim Anda"
@@ -14512,6 +14554,9 @@ msgstr "Memori Superset"
 msgid "Superset memory · last 5 min"
 msgstr "Memori Superset · 5 menit terakhir"
 
+msgid "Superset Mobile code diff on iPhone"
+msgstr "Diff kode Superset Mobile di iPhone"
+
 msgid "Superset mobile gives me the power of my desktop anywhere I go."
 msgstr "Superset mobile memberi saya kekuatan desktop ke mana pun saya pergi."
 
@@ -14521,8 +14566,17 @@ msgstr "Superset Mobile telah hadir"
 msgid "Superset Mobile is part of Pro"
 msgstr "Superset Mobile termasuk dalam Pro"
 
+msgid "Superset Mobile launches on iPhone"
+msgstr "Superset Mobile hadir di iPhone"
+
+msgid "Superset Mobile lets developers continue the Superset workspaces they already use on their computer from an iPhone."
+msgstr "Superset Mobile memungkinkan developer melanjutkan workspace Superset yang sudah mereka gunakan di komputer dari iPhone."
+
 msgid "Superset Mobile runs agents on the computers you connect."
 msgstr "Superset Mobile menjalankan agen di komputer yang Anda hubungkan."
+
+msgid "Superset Mobile terminal on iPhone"
+msgstr "Terminal Superset Mobile di iPhone"
 
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, workspace cloud, otomatisasi, dan dukungan prioritas."
@@ -14656,6 +14710,9 @@ msgstr "Beralih ke Workspace 8"
 
 msgid "Switch to Workspace 9"
 msgstr "Beralih ke Workspace 9"
+
+msgid "Symbol, light"
+msgstr "Simbol, terang"
 
 msgid "Sync"
 msgstr "Sinkronkan"
@@ -14978,6 +15035,9 @@ msgstr "Agen memegang tugas dari tiket sampai diff. Manusia mereview hasilnya, b
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "Agen yang disetel untuk menjalankan otomatisasi ini sudah tidak ada di host-nya — agen host itu mungkin telah direset atau dihapus. Pilih ulang agen di pengaturan otomatisasi."
 
+msgid "The app is free to download. It requires iOS 26 or later and Superset Pro. Android is next."
+msgstr "Aplikasi ini gratis untuk diunduh. Memerlukan iOS 26 atau lebih baru dan Superset Pro. Android menyusul berikutnya."
+
 msgid "The app is on {appVersion} but attached to a host service started by something else, likely an older CLI or another Superset build. Restarting replaces it with this app's copy."
 msgstr "Aplikasi berada di {appVersion} tetapi terhubung ke layanan host yang dimulai oleh hal lain, kemungkinan CLI lama atau build Superset lain. Memulai ulang akan menggantinya dengan salinan dari aplikasi ini."
 
@@ -14986,9 +15046,6 @@ msgstr "Perangkat terkait tidak bisa dijangkau saat ini"
 
 msgid "The best agent will change.<0/>Your workflow shouldn't."
 msgstr "Agen terbaik akan berganti.<0/>Alur kerja Anda tidak perlu."
-
-msgid "The Codex sign-in"
-msgstr "Sesi masuk Codex"
 
 msgid "The config repository must be one of the environment's repositories"
 msgstr "Repositori konfigurasi harus salah satu repositori environment"
@@ -15345,6 +15402,9 @@ msgstr "Ini menutup workspace yang dipilih beserta terminalnya. File dan branch 
 msgid "This closes the workspace and its terminals. The project's files, branches and other workspaces stay as they are."
 msgstr "Ini menutup workspace beserta terminalnya. File, branch, dan workspace lain dari proyek tetap seperti semula."
 
+msgid "This cloud workspace is waking up, which can take up to 30 seconds after it has been idle."
+msgstr "Workspace cloud ini sedang dibangunkan, yang bisa memakan waktu hingga 30 detik setelah tidak aktif."
+
 msgid "This deletes the saved scrollback used for reboot/crash recovery."
 msgstr "Ini menghapus scrollback tersimpan yang dipakai untuk pemulihan setelah reboot/crash."
 
@@ -15452,10 +15512,6 @@ msgstr "Halaman ini sedang dipublikasikan dari tempat lain — coba lagi"
 
 msgid "This page is in another organization"
 msgstr "Halaman ini ada di organisasi lain"
-
-#. placeholder {0}: url.replace(/^https?:\/\//, "")
-msgid "This page is live at <0>{0}</0>"
-msgstr "Halaman ini aktif di <0>{0}</0>"
 
 msgid "This page isn't here"
 msgstr "Halaman ini tidak ada di sini"
@@ -15632,9 +15688,6 @@ msgstr "Rentang waktu"
 msgid "Title"
 msgstr "Judul"
 
-msgid "Title contains..."
-msgstr "Judul mengandung..."
-
 msgid "To"
 msgstr "Ke"
 
@@ -15697,6 +15750,9 @@ msgstr "Alihkan visibilitas nilai"
 
 msgid "Toggle Workspaces Sidebar"
 msgstr "Alihkan Sidebar Workspace"
+
+msgid "Token"
+msgstr "Token"
 
 msgid "Token breakdown"
 msgstr "Rincian token"
@@ -15824,11 +15880,11 @@ msgstr "mentriase 12 issue baru…"
 msgid "Trigger alert()"
 msgstr "Picu alert()"
 
-msgid "Trigger automations from Google Calendar and Gmail: events created, updated, cancelled, starting soon or ended, and email arriving in the connected inbox."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail: acara dibuat, diperbarui, dibatalkan, segera dimulai atau berakhir, dan email yang masuk ke kotak masuk yang terhubung."
+msgid "Trigger automations from Gmail: email arriving in the connected inbox."
+msgstr "Picu otomatisasi dari Gmail: email yang masuk ke kotak masuk yang terhubung."
 
-msgid "Trigger automations from Google Calendar and Gmail."
-msgstr "Picu otomatisasi dari Google Calendar dan Gmail."
+msgid "Trigger automations from Gmail."
+msgstr "Picu otomatisasi dari Gmail."
 
 msgid "Trigger automations from Teams channel messages."
 msgstr "Picu otomatisasi dari pesan channel Teams."
@@ -15902,9 +15958,6 @@ msgstr "Ketik pesan..."
 
 msgid "Type a task for Claude…"
 msgstr "Ketik tugas untuk Claude…"
-
-msgid "Type an email, press Enter"
-msgstr "Ketik email, tekan Enter"
 
 msgid "Type here to send to the terminal"
 msgstr "Ketik di sini untuk mengirim ke terminal"
@@ -16067,6 +16120,9 @@ msgstr "Variabel tidak dikenal: {unknownVariables}"
 
 msgid "Unknown Welder"
 msgstr "Tukang Las Tak Dikenal"
+
+msgid "Unknown workspace"
+msgstr "Workspace tidak dikenal"
 
 msgid "Unlimited"
 msgstr "Tanpa batas"
@@ -16476,6 +16532,9 @@ msgstr "Lihat di GitHub"
 msgid "VIEW ON GITHUB"
 msgstr "LIHAT DI GITHUB"
 
+msgid "View on the App Store"
+msgstr "Lihat di App Store"
+
 msgid "View open roles"
 msgstr "Lihat lowongan"
 
@@ -16854,6 +16913,12 @@ msgstr "dengan atau tanpa lampiran"
 msgid "With the Superset mobile app, I can address production issues from anywhere."
 msgstr "Dengan aplikasi seluler Superset, saya bisa menangani masalah produksi dari mana saja."
 
+msgid "Wordmark, black"
+msgstr "Wordmark, hitam"
+
+msgid "Wordmark, white"
+msgstr "Wordmark, putih"
+
 msgid "Work email"
 msgstr "Email kerja"
 
@@ -16968,6 +17033,9 @@ msgstr "Workspace yang dibuat per pengguna dalam 7 hari terakhir, menurut persen
 
 msgid "Workspaces on this device will show up here."
 msgstr "Workspace di perangkat ini akan muncul di sini."
+
+msgid "Workspaces started from this environment will stop receiving it."
+msgstr "Workspace yang dimulai dari environment ini tidak akan menerimanya lagi."
 
 msgid "worktree"
 msgstr "worktree"

@@ -2,7 +2,7 @@
 title: "Superset vs Buzz (2026): Agent Workspace vs Block's Human-Agent Collaboration Platform"
 description: "Compare Superset and Buzz by Block. See how a parallel coding-agent workspace differs from a Nostr-based collaboration platform where humans and AI agents share rooms."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - buzz
@@ -23,14 +23,14 @@ Superset and Buzz both put AI agents to work alongside developers, but they answ
 
 | | **Superset** | **Buzz** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | A shared workspace (channels, threads, repos, workflows) where humans and agents collaborate |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | A shared workspace (channels, threads, repos, workflows) where humans and agents collaborate |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Collaboration platform for human-agent teams, built on Nostr |
 | **Core unit** | Workspace (worktree + terminals + review) | Community on a relay (channels, threads, git events) |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Agent-agnostic via ACP/MCP (goose, Codex, Claude Code); agents hold their own Nostr keys |
-| **Isolation** | Automatic Git worktree per task | Single local clone per project; no per-task worktrees |
+| **Isolation** | Git worktrees for local branch-based workspaces | Single local clone per project; no per-task worktrees |
 | **Code review** | Built-in diff/file editor per worktree | Patches (NIP-34 events) reviewed in channels; Git integration self-described as early |
 | **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | YAML workflows with message/reaction/schedule/webhook triggers |
-| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Linux, Windows alpha), hosted beta at buzz.xyz, self-host; mobile in development |
+| **Platform** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | Desktop (macOS, Linux, Windows alpha), hosted beta at buzz.xyz, self-host; mobile in development |
 | **License** | Source-available (ELv2) | Open source (Apache-2.0) |
 
 ---
@@ -51,7 +51,7 @@ Superset is where the coding work happens: agents run in terminals inside isolat
 
 ### Isolation and Parallelism
 
-Superset creates a Git worktree per task automatically, so a dozen agents can work the same repo on separate branches without collisions, each with persistent terminals and reviewable diffs. Buzz projects work against a single local clone, and its desktop terminal button opens your OS terminal at the checkout rather than orchestrating embedded sessions. You can run many agents behind Buzz at the protocol level, but coordination is channel-centric and its Git integration is, in Block's own words, still early.
+Superset creates Git worktrees for new local branch-based workspaces, so independent tasks can work the same repo on separate branches in separate working directories, each with persistent terminals and reviewable diffs. Buzz projects work against a single local clone, and its desktop terminal button opens your OS terminal at the checkout rather than orchestrating embedded sessions. You can run many agents behind Buzz at the protocol level, but coordination is channel-centric and its Git integration is, in Block's own words, still early. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ### Identity and Decentralization
 

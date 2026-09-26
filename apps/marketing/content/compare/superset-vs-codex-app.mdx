@@ -2,7 +2,7 @@
 title: "Superset vs Codex App (2026): Agent-Agnostic Workspace vs OpenAI's Coding Surface"
 description: "Compare Superset and the OpenAI Codex app for parallel AI coding. See how an agent-agnostic worktree workspace differs from Codex inside the ChatGPT desktop app."
 date: 2026-07-13
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - codex-app
@@ -26,11 +26,11 @@ For the terminal-focused comparison, see [Superset vs Codex CLI](/compare/supers
 | | **Superset** | **Codex App** |
 |---|---|---|
 | **Category** | Local-first agent orchestration workspace | OpenAI's coding surface in the ChatGPT desktop app |
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, and browser | Runs parallel Codex chats in local worktrees plus cloud task environments |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, review, and browser | Runs parallel Codex chats in local worktrees plus cloud task environments |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | OpenAI Codex (GPT-5.6 Sol, Terra, Luna) |
-| **Isolation** | Automatic local Git worktree per task | Worktree mode per chat (Codex-managed checkouts) or per-task cloud environments |
+| **Isolation** | Automatic local Git worktrees for local branch-based workspaces | Worktree mode per chat (Codex-managed checkouts) or per-task cloud environments |
 | **Where code runs** | Your local machine (and your own remote/cloud hosts) | Your machine, or OpenAI-managed cloud sandboxes |
-| **Platforms** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS and Windows desktop, CLI, IDE extensions, web |
+| **Platforms** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | macOS and Windows desktop, CLI, IDE extensions, web |
 | **Scheduling** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Scheduled tasks on background worktrees or in cloud |
 | **Pricing** | Free tier + Pro $20/seat/mo | Included with all ChatGPT plans (Free and up); usage scales by tier |
 | **License** | Source-available (ELv2) | Proprietary (Codex CLI is open source) |

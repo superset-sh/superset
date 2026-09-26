@@ -28,7 +28,6 @@ function createHarness(overrides: Partial<QuitCleanupDeps> = {}): Harness {
 		stopHostServices,
 		teardownTerminalHost,
 		disposeTerminalHostClient,
-		shutdownPersistence: () => {},
 		disposeTray: () => {},
 		forceExit,
 		scheduleTimer: (callback, delayMs) => {

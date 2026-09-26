@@ -418,14 +418,17 @@ export function PullRequestDetailHeader({
 						<span className="flex shrink-0 items-center gap-1.5">
 							<Avatar className="size-5 rounded-full">
 								<AvatarImage
-									src={`https://github.com/${data.author}.png?size=64`}
-									alt={data.author}
+									src={
+										data.author.avatarUrl ??
+										`https://github.com/${data.author.login}.png?size=64`
+									}
+									alt={data.author.login}
 								/>
 								<AvatarFallback className="text-[9px]">
-									{data.author.slice(0, 1).toUpperCase()}
+									{data.author.login.slice(0, 1).toUpperCase()}
 								</AvatarFallback>
 							</Avatar>
-							{data.author}
+							{data.author.login}
 						</span>
 					)}
 					<span className="inline-flex shrink-0 items-center gap-2">
@@ -439,14 +442,14 @@ export function PullRequestDetailHeader({
 								<button
 									type="button"
 									onClick={() => {
-										copyBranch(data.branch)
+										copyBranch(data.head.ref)
 											.then(() => {
 												toast.success(
 													t({
 														message: "Branch copied",
 													}),
 													{
-														description: data.branch,
+														description: data.head.ref,
 														icon: (
 															<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
 																<LuCheck
@@ -470,7 +473,7 @@ export function PullRequestDetailHeader({
 								>
 									<LuGitBranch className="size-3 shrink-0" />
 									<span className="truncate hover:underline">
-										{data.branch}
+										{data.head.ref}
 									</span>
 								</button>
 							</TooltipTrigger>
@@ -524,14 +527,14 @@ export function PullRequestDetailHeader({
 									</Trans>
 								) : pendingAction?.kind === "merge" && pendingAction.force ? (
 									<Trans>
-										"{data.title}" will be merged into {data.baseBranch} via{" "}
+										"{data.title}" will be merged into {data.base.ref} via{" "}
 										{mergeMethodLabels[pendingAction.method].toLowerCase()}.
 										Checks haven't passed yet — this overrides them. This can't
 										be undone from here.
 									</Trans>
 								) : pendingAction?.kind === "merge" ? (
 									<Trans>
-										"{data.title}" will be merged into {data.baseBranch} via{" "}
+										"{data.title}" will be merged into {data.base.ref} via{" "}
 										{mergeMethodLabels[pendingAction.method].toLowerCase()}.
 										This can't be undone from here.
 									</Trans>

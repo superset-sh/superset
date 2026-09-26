@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
 	getSubagentHarness,
-	isTrustedTranscriptPath,
 	readSubagentTranscript,
 } from "./subagent-harnesses";
 
@@ -178,29 +177,5 @@ describe("defineSubagentHarness defaults", () => {
 		expect(harness.isStopEvent("SubagentStop")).toBe(true);
 		expect(harness.isStopEvent("PostToolUse")).toBe(false);
 		expect(harness.readDescription("/x.jsonl")).toBeUndefined();
-	});
-});
-
-describe("isTrustedTranscriptPath", () => {
-	it("keeps absolute .jsonl paths under home and drops the rest", () => {
-		const home = "/home/u";
-		expect(
-			isTrustedTranscriptPath(
-				"/home/u/.claude/projects/p/s/subagents/agent-a.jsonl",
-				home,
-			),
-		).toBe(true);
-		expect(
-			isTrustedTranscriptPath(
-				"/home/u/.codex/sessions/2026/09/06/rollout-x.jsonl",
-				home,
-			),
-		).toBe(true);
-		expect(isTrustedTranscriptPath("/etc/passwd", home)).toBe(false);
-		expect(isTrustedTranscriptPath("/home/u/../root/x.jsonl", home)).toBe(
-			false,
-		);
-		expect(isTrustedTranscriptPath("relative/x.jsonl", home)).toBe(false);
-		expect(isTrustedTranscriptPath("/home/u/notes.txt", home)).toBe(false);
 	});
 });

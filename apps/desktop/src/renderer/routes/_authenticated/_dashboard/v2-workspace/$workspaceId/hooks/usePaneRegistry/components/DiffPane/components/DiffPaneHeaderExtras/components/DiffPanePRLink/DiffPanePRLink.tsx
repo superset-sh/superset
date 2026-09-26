@@ -3,6 +3,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { LuArrowRight } from "react-icons/lu";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
 import type { StoreApi } from "zustand/vanilla";
@@ -18,7 +19,7 @@ interface DiffPanePRLinkProps {
  * Opens the workspace's linked pull request as a pane beside the diff — its
  * summary, checks, and merge actions, without leaving the workspace for
  * the Pull requests screen. Hidden when no PR is linked, and for session
- * workspaces (null projectId): the PR content query is project-scoped and
+ * workspaces: the PR content query is project-scoped and
  * can't resolve a repo without one.
  */
 export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
@@ -31,8 +32,7 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 		{ enabled: !!workspaceId, staleTime: 10_000 },
 	);
 	const pr = prQuery.data;
-	const projectId = workspace.projectId;
-	if (!pr || projectId == null) return null;
+	if (!pr || workspace.type === "session") return null;
 
 	// Same state derivation as PRStatusGroup's linkState.
 	const state: PRState = pr.isDraft
@@ -51,7 +51,14 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={() => openPullRequestPaneInStore(store, pr.number)}
+						onClick={() => {
+							const ref = pullRequestRefFromUrl(pr.url);
+							if (!ref) {
+								window.open(pr.url, "_blank");
+								return;
+							}
+							openPullRequestPaneInStore(store, ref);
+						}}
 						aria-label={t({
 							message: `Open pull request #${pr.number}`,
 						})}

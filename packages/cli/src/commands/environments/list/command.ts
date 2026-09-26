@@ -25,6 +25,7 @@ export default command({
 						[
 							row.id,
 							row.name,
+							row.region,
 							row.repositories.map((repo) => repo.fullName).join(", ") ||
 								"no repositories — cannot start a workspace",
 							startable.has(row.id) ? "" : "(unusable)",

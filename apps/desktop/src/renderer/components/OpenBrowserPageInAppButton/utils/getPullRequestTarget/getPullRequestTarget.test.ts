@@ -5,6 +5,7 @@ const projects = [
 	{ projectKey: "other", repoOwner: "other", repoName: "repo" },
 	{ projectKey: "matching", repoOwner: "superset-sh", repoName: "superset" },
 ];
+const ref = { repoFullName: "superset-sh/superset", number: 42 };
 
 describe("getPullRequestTarget", () => {
 	it.each([
@@ -20,16 +21,19 @@ describe("getPullRequestTarget", () => {
 				`https://github.com/superset-sh/superset/pull/42${suffix}`,
 				projects,
 			),
-		).toEqual({ projectId: "matching", prNumber: "42" });
+		).toEqual({ ref, projectId: "matching" });
 	});
 
-	it("matches repository names case-insensitively", () => {
+	it("matches the project case-insensitively and keeps the URL's spelling", () => {
 		expect(
 			getPullRequestTarget(
-				"https://www.github.com/SUPERSET-SH/Superset/pull/42",
+				"https://github.com/SUPERSET-SH/Superset/pull/42",
 				projects,
 			),
-		).toEqual({ projectId: "matching", prNumber: "42" });
+		).toEqual({
+			ref: { repoFullName: "SUPERSET-SH/Superset", number: 42 },
+			projectId: "matching",
+		});
 	});
 
 	it.each([
@@ -37,22 +41,28 @@ describe("getPullRequestTarget", () => {
 		"https://github.com/superset-sh/superset/issues/42",
 		"https://github.com/superset-sh/superset/pulls",
 		"https://github.com/superset-sh/superset/pull/new",
-		"https://github.com/superset-sh/superset/pull/0",
 		"https://github.com/superset-sh/superset/pull/42oops",
-		"https://github.com/superset-sh/superset/pull/9007199254740992",
 		"https://github.com.evil.com/superset-sh/superset/pull/42",
 		"https://example.com/superset-sh/superset/pull/42",
-		"https://github.com/untracked/repo/pull/42",
-	])("does not offer an incorrect destination: %s", (url) => {
+	])("is not a pull request: %s", (url) => {
 		expect(getPullRequestTarget(url, projects)).toBeNull();
 	});
 
-	it("waits for matching projects to be available", () => {
+	it("names the pull request even when no project has its repository", () => {
+		expect(
+			getPullRequestTarget(
+				"https://github.com/untracked/repo/pull/42",
+				projects,
+			),
+		).toEqual({
+			ref: { repoFullName: "untracked/repo", number: 42 },
+			projectId: null,
+		});
 		expect(
 			getPullRequestTarget(
 				"https://github.com/superset-sh/superset/pull/42",
 				[],
 			),
-		).toBeNull();
+		).toEqual({ ref, projectId: null });
 	});
 });

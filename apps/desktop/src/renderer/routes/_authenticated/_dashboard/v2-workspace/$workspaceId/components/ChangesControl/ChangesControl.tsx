@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { GitCompareArrows } from "lucide-react";
 import { memo, useMemo } from "react";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
 import { changesPillStats } from "./changesPillStats";
 import { PRStatusGroup } from "./components/PRStatusGroup";
@@ -15,7 +16,7 @@ interface ChangesControlProps {
 	/** Close the visible Changes pane, or open/focus one when none shows. */
 	onToggleChanges: () => void;
 	/** Open or focus the pane showing the linked PR's summary. */
-	onOpenPullRequest: (prNumber: number) => void;
+	onOpenPullRequest: (ref: PullRequestRef) => void;
 }
 
 /**

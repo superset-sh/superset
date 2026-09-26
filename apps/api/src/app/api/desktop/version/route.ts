@@ -1,7 +1,7 @@
 import { db } from "@superset/db";
 import type { DesktopNotice } from "@superset/shared/desktop-notices";
 
-const MINIMUM_DESKTOP_VERSION = "1.5.0";
+const MINIMUM_DESKTOP_VERSION = "1.29.0";
 
 /**
  * Version gate + server-driven notices for the desktop app.

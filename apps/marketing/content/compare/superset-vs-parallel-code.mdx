@@ -2,7 +2,7 @@
 title: "Superset vs Parallel Code (2026): Two Takes on Worktree-Based Agent Dispatch"
 description: "Compare Superset and Parallel Code (the open-source app) for running coding agents in parallel worktrees. Scope, platforms, licensing, and when each fits."
 date: 2026-08-17
-lastUpdated: 2026-08-17
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - parallel-code
@@ -23,7 +23,7 @@ Superset and Parallel Code agree on the core idea: give every coding agent its o
 
 | | **Superset** | **Parallel Code** |
 |---|---|---|
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, plus review, automations, and orchestration APIs | Dispatches agents into worktrees with diff review and one-key merge back to main |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, plus review, automations, and orchestration APIs | Dispatches agents into worktrees with diff review and one-key merge back to main |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Gemini, Copilot, more) | Claude Code, Codex CLI, Gemini CLI, Copilot CLI, Antigravity CLI |
 | **License** | Source-available (Elastic License 2.0), code on GitHub | Open source, MIT |
 | **Automations** | Scheduled recurring agent runs built in | Not documented |
@@ -106,7 +106,7 @@ Yes, MIT-licensed on GitHub with active releases. Superset's code is public on G
 
 ### Do both tools use Git worktrees the same way?
 
-Essentially yes. Both create a branch and worktree per task and keep agents isolated until merge. Parallel Code also symlinks `node_modules` and similar directories into new worktrees; Superset manages worktree lifecycle as part of its workspace model.
+Essentially yes. Both support worktree-backed tasks. Superset creates a branch and worktree for each new local branch-based workspace; worktrees do not sandbox processes or prevent merge conflicts. Parallel Code also symlinks `node_modules` and similar directories into new worktrees; Superset manages worktree lifecycle as part of its workspace model.
 
 ### Does Parallel Code work on Windows?
 

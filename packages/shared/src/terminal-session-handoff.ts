@@ -90,11 +90,18 @@ export function boundTranscriptText(text: string, maxChars: number): string {
 	// A budget too small to hold the notice cannot afford to announce itself,
 	// and must not overrun what the caller asked for to do it.
 	const budget = maxChars - TRANSCRIPT_TRUNCATION_NOTICE.length - 1;
-	if (budget < 1) return text.slice(-maxChars);
+	if (budget < 1) return withoutSplitPair(text.slice(-maxChars));
 	const tail = text.slice(-budget);
 	const firstBreak = tail.indexOf("\n");
-	const whole = firstBreak >= 0 ? tail.slice(firstBreak + 1) : tail;
+	const whole =
+		firstBreak >= 0 ? tail.slice(firstBreak + 1) : withoutSplitPair(tail);
 	return `${TRANSCRIPT_TRUNCATION_NOTICE}\n${whole}`;
+}
+
+/** A slice that opens on the second half of an emoji drops that half. */
+function withoutSplitPair(text: string): string {
+	const first = text.charCodeAt(0);
+	return first >= 0xdc00 && first <= 0xdfff ? text.slice(1) : text;
 }
 
 function markdownFenceFor(value: string): string {

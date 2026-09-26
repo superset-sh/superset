@@ -66,8 +66,8 @@ export interface CommentPaneData {
 }
 
 export interface PullRequestPaneData {
-	prNumber: number;
-	projectId?: string;
+	repoFullName: string;
+	number: number;
 }
 
 export interface PagePaneData {
@@ -106,9 +106,7 @@ export type WorkspaceSearchKey =
 	| "subagentType"
 	| "openUrl"
 	| "openUrlTarget"
-	| "openUrlRequestId"
-	| "pageId"
-	| "pageSlug";
+	| "openUrlRequestId";
 
 /**
  * Drops the search params a deep link arrived with, once the hook that owns

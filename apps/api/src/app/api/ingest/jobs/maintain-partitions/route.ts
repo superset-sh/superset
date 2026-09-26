@@ -8,8 +8,17 @@ export const dynamic = "force-dynamic";
 /** Runway. Long enough that a few days of failed runs cannot strand inserts. */
 const DAYS_AHEAD = 14;
 
-/** Matches the payload window the ingest pruner uses. */
-const RETAIN_DAYS = 7;
+/**
+ * The shortest window a day partition allows: today's and yesterday's bodies,
+ * so every body is kept at least a day.
+ *
+ * A weekday writes ~35 GB of bodies, so each day held is another 35 GB carried
+ * and paid for. Nothing reads one after its delivery is processed except the
+ * retry paths, and the latest of those is the Linear abandoned-delivery sweep
+ * at 75 minutes — so this is orders of magnitude more than anything needs, and
+ * bounded by the partition granularity rather than by a requirement.
+ */
+const RETAIN_DAYS = 1;
 
 /**
  * Keeps ingest.webhook_payloads partitioned ahead of the writes and drops what

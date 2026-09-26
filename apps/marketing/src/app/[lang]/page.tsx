@@ -1,3 +1,4 @@
+import { getI18nInstance } from "@superset/i18n/server";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { localizedAlternates } from "@/app/[lang]/metadata";
@@ -7,7 +8,7 @@ import {
 	HomeWebPageJsonLd,
 	ServiceJsonLd,
 } from "@/components/JsonLd";
-import { FAQ_ITEMS, faqSourceText } from "./components/FAQSection";
+import { FAQ_ITEMS } from "./components/FAQSection";
 import { HeroSection } from "./components/HeroSection";
 import { WebMcpTools } from "./components/WebMcpTools";
 
@@ -42,14 +43,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-	await initServerI18n();
+	const locale = await initServerI18n();
+	const i18n = getI18nInstance(locale);
 
 	return (
 		<main className="flex flex-col bg-background">
 			<FAQPageJsonLd
 				items={FAQ_ITEMS.map((item) => ({
-					question: faqSourceText(item.question),
-					answer: faqSourceText(item.answer),
+					question: i18n._(item.question),
+					answer: i18n._(item.answer),
 				}))}
 			/>
 			<HomeWebPageJsonLd />

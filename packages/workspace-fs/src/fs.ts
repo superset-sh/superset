@@ -335,6 +335,16 @@ async function withPathLock<T>(
 	}
 }
 
+async function resolveWriteTarget(absolutePath: string): Promise<string> {
+	try {
+		return await fs.realpath(absolutePath);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT" && code !== "ELOOP") throw error;
+		return absolutePath;
+	}
+}
+
 async function writeAtomically({
 	rootPath,
 	absolutePath,
@@ -346,12 +356,13 @@ async function writeAtomically({
 	content: string | Uint8Array;
 	encoding?: string;
 }): Promise<void> {
-	const tempPath = `${absolutePath}.superset-tmp-${randomUUID()}`;
+	const targetPath = await resolveWriteTarget(absolutePath);
+	const tempPath = `${targetPath}.superset-tmp-${randomUUID()}`;
 	await assertParentWithinRoot(rootPath, tempPath);
 
 	let sourceMode: number | undefined;
 	try {
-		const currentStats = await fs.stat(absolutePath);
+		const currentStats = await fs.stat(targetPath);
 		sourceMode = currentStats.mode;
 	} catch (error) {
 		if (!isEnoent(error)) {
@@ -366,7 +377,7 @@ async function writeAtomically({
 		if (sourceMode !== undefined) {
 			await fs.chmod(tempPath, sourceMode);
 		}
-		await fs.rename(tempPath, absolutePath);
+		await fs.rename(tempPath, targetPath);
 	} finally {
 		await fs.rm(tempPath, { force: true });
 	}
@@ -562,7 +573,7 @@ export async function writeFile({
 	const execute = async (): Promise<FsWriteResult> => {
 		if (precondition?.ifMatch !== undefined) {
 			try {
-				const stats = await fs.lstat(targetPath);
+				const stats = await fs.stat(targetPath);
 				const currentRevision = toRevision(stats);
 				if (currentRevision !== precondition.ifMatch) {
 					return { ok: false, reason: "conflict", currentRevision };

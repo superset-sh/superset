@@ -2,7 +2,7 @@
 title: "Superset vs Claude Squad (2026): Desktop Workspace vs Terminal Multiplexer"
 description: "Compare Superset and Claude Squad for running multiple coding agents in Git worktrees. See how a desktop agent workspace differs from a terminal TUI."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - claude-squad
@@ -24,13 +24,13 @@ Superset and Claude Squad both run multiple coding agents in parallel, each in i
 | | **Superset** | **Claude Squad** |
 |---|---|---|
 | **Category** | Desktop agent orchestration workspace | Terminal TUI for managing agents |
-| **What it does** | Runs 100+ agents in parallel with worktree isolation, review, and browser | Runs multiple agent sessions in isolated worktrees via tmux |
-| **Isolation** | Automatic Git worktree per task | Git worktree per agent + tmux sessions |
+| **What it does** | Runs multiple agents in parallel with worktree isolation, review, and browser | Runs multiple agent sessions in isolated worktrees via tmux |
+| **Isolation** | Git worktrees for local branch-based workspaces | Git worktree per agent + tmux sessions |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Agent-agnostic (Claude Code, Codex, Gemini, Aider, OpenCode, Amp, custom) |
 | **Interface** | Graphical desktop app with panes and diff review | Terminal TUI |
 | **Review tooling** | Built-in diff/file editor, staging, commit | Terminal-native; review in the agent or your editor |
 | **Remote / cloud** | Remote and cloud workspaces across your network devices | Local |
-| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | CLI (macOS, Linux) |
+| **Platform** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | CLI (macOS, Linux) |
 | **License** | Source-available (ELv2) | Open source (AGPL-3.0) |
 
 ---
@@ -47,7 +47,7 @@ Claude Squad is an open-source terminal app that manages multiple AI coding agen
 
 ### Terminal TUI vs Desktop Workspace
 
-Claude Squad lives entirely in the terminal. It is fast, keyboard-driven, and pairs worktrees with tmux to keep sessions isolated. Superset is a graphical desktop workspace: the same worktree-per-task isolation, but with panes, a built-in diff and file editor, an in-app browser for docs and dev servers, and one-click handoff into your IDE. Which you prefer comes down to whether you want a lean terminal tool or a full workspace UI.
+Claude Squad lives entirely in the terminal. It is fast, keyboard-driven, and pairs worktrees with tmux to keep sessions isolated. Superset is a graphical desktop workspace: the same local branch-based worktree isolation, but with panes, a built-in diff and file editor, an in-app browser for docs and dev servers, and one-click handoff into your IDE. Which you prefer comes down to whether you want a lean terminal tool or a full workspace UI.
 
 ### Review and Extras
 
@@ -76,7 +76,7 @@ Superset offers a free tier and Pro at $20/seat/month. Claude Squad is free and 
 - Want a graphical workspace with built-in review and browser
 - Need remote, cloud, CLI, or MCP surfaces
 - Prefer a full workspace over assembling terminal tooling yourself
-- Work on more than macOS and Linux, or plan to
+- Want a desktop workspace on macOS or experimental Linux
 
 **Choose Claude Squad if you:**
 
@@ -93,7 +93,7 @@ Superset offers a free tier and Pro at $20/seat/month. Claude Squad is free and 
 
 ### Do Superset and Claude Squad both use Git worktrees?
 
-Yes. Both isolate each agent in its own Git worktree and branch. Claude Squad adds tmux for terminal sessions; Superset adds a desktop UI, review, and browser around the same model.
+Yes. Both support worktree-backed tasks. Superset creates a worktree and branch for each new local branch-based workspace. Claude Squad adds tmux for terminal sessions; Superset adds a desktop UI, review, and browser around the same model.
 
 ### Is Claude Squad only for Claude Code?
 

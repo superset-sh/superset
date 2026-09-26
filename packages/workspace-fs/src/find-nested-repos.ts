@@ -10,6 +10,7 @@ const DEFAULT_MAX_QUEUED_DIRS = 50_000;
 const DEFAULT_MAX_ROOTS = 5_000;
 
 export interface FindNestedRepoRootsOptions {
+	signal?: AbortSignal;
 	/** Directory basenames to skip while traversing (node_modules, .git, …). */
 	pruneDirNames: ReadonlySet<string>;
 	/**
@@ -73,6 +74,7 @@ export async function findNestedRepoRoots(
 	let truncated = false;
 
 	while (head < queue.length) {
+		options.signal?.throwIfAborted();
 		if (roots.length >= maxRoots || (deadline !== null && now() >= deadline)) {
 			return { roots, truncated: true };
 		}

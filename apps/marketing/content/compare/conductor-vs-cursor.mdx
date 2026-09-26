@@ -2,7 +2,7 @@
 title: "Conductor vs Cursor (2026): Which Should You Use?"
 description: "Compare Conductor and Cursor for AI coding. See how a Mac app for parallel agents differs from an AI-first editor, and where Superset fits as an alternative."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - conductor
@@ -28,9 +28,9 @@ If you want an agent-agnostic workspace that does parallel worktrees but is not 
 |---|---|---|---|
 | **Category** | Mac app for parallel agents | AI-first code editor | Agent orchestration workspace |
 | **Agents** | Claude Code, Codex, Cursor | Cursor's own agent and models | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) |
-| **Parallel agents** | Yes, worktree per task | Yes, up to 8 in local worktrees | Yes, 100+ with worktree per task |
+| **Parallel agents** | Yes, worktree per task | Yes, up to 8 in local worktrees | Yes, separate local branch-based worktrees |
 | **Primary use** | Orchestrate and review agents | Write and edit code with AI | Orchestrate, review, and hand off across agents |
-| **Platform** | macOS only | macOS, Windows, Linux | macOS now; Windows and Linux coming |
+| **Platform** | macOS only | macOS, Windows, Linux | macOS; experimental Linux AppImage; Windows unavailable |
 | **Pricing** | Free, bring your own subscription | Free tier; Pro $20/mo, higher tiers to $200 | Free tier + Pro $20/seat/mo |
 
 ---
@@ -79,7 +79,7 @@ Yes. Conductor runs Claude Code, Codex, and Cursor agents in parallel, each in i
 
 ### Do Conductor and Cursor both use Git worktrees?
 
-Yes. Conductor uses a worktree per task, and Cursor 2.0 runs its parallel agents in local Git worktrees too. Superset also uses a worktree per task.
+Yes. Conductor uses a worktree per task, and Cursor 2.0 runs its parallel agents in local Git worktrees too. Superset uses Git worktrees for new local branch-based workspaces.
 
 ### Which is better for parallel agents?
 

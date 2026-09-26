@@ -1,1 +1,5 @@
-export { generateConnectUrl } from "./generate-connect-url";
+export {
+	type ConnectPayload,
+	generateConnectUrl,
+	type PendingUnfurl,
+} from "./generate-connect-url";

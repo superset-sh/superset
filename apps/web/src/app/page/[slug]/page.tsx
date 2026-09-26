@@ -1,6 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { pageCommentUser } from "@superset/shared/page-comments";
 import {
+	PAGE_THUMBNAIL_HEIGHT,
+	PAGE_THUMBNAIL_WIDTH,
+} from "@superset/shared/usercontent";
+import {
 	AllCommentsButton,
 	CommentsPanel,
 	PageCommentsView,
@@ -16,7 +20,7 @@ import { PageHeaderBar } from "./components/PageHeaderBar";
 import { PageUnavailable } from "./components/PageUnavailable";
 import { PublicPageView } from "./components/PublicPageView";
 import { WrongOrganization } from "./components/WrongOrganization";
-import { getPagesAccess } from "./utils/getPagesAccess";
+import { getSession } from "./utils/getSession";
 import { allowPublicRead } from "./utils/publicReadLimit";
 import { isForbidden, isNotFound } from "./utils/trpcErrors";
 
@@ -67,7 +71,14 @@ export async function generateMetadata({
 	if (shared) {
 		const description = shared.description ?? undefined;
 		const images = shared.thumbnailUrl
-			? [{ url: shared.thumbnailUrl, width: 1280, height: 880 }]
+			? [
+					{
+						url: shared.thumbnailUrl,
+						width: PAGE_THUMBNAIL_WIDTH,
+						height: PAGE_THUMBNAIL_HEIGHT,
+						alt: shared.title,
+					},
+				]
 			: undefined;
 		return {
 			title: shared.title,
@@ -90,8 +101,7 @@ export async function generateMetadata({
 		};
 	}
 
-	const { hasPagesAccess } = await getPagesAccess();
-	if (hasPagesAccess) {
+	if (await getSession()) {
 		const page = await pullPage(slug, requestedVersion).catch(() => null);
 		if (page) {
 			return {
@@ -118,7 +128,7 @@ export default async function PublishedPage({
 	const { slug } = await params;
 	const requestedVersion = previewVersionOf((await searchParams).v);
 
-	const { hasPagesAccess, session } = await getPagesAccess();
+	const session = await getSession();
 
 	const publicView = async () => {
 		const shared = await pullPublicPage(slug);
@@ -132,11 +142,8 @@ export default async function PublishedPage({
 		) : null;
 	};
 
-	if (!hasPagesAccess) {
-		const view = await publicView();
-		if (view) return view;
-		if (session) notFound();
-		return <PageUnavailable slug={slug} />;
+	if (!session) {
+		return (await publicView()) ?? <PageUnavailable slug={slug} />;
 	}
 
 	let page: Awaited<ReturnType<typeof pullPage>>;
@@ -183,7 +190,7 @@ export default async function PublishedPage({
 						servedVersion: page.servedVersion,
 					}}
 					versions={versions}
-					currentUserId={session?.user.id}
+					currentUserId={session.user.id}
 					slug={slug}
 					watching={page.watch.watching}
 					watchAgentId={page.watch.agentId}

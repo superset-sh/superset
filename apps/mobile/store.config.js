@@ -1,8 +1,14 @@
-// Dynamic so the demo-account credentials never enter the repo:
-// set APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD when running `eas metadata:push`.
+// Dynamic so the demo-account credentials never enter the repo: they come from
+// APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD in the root .env (or the shell).
 // Optionally set APP_REVIEW_VIDEO_URL to a short screen recording of the
 // sign-in and review flow; reviewers reliably follow a video where they skim text.
 // Submission checklist and what to do on rejection or delay: see RELEASE.md.
+
+const path = require("node:path");
+require("dotenv").config({
+	path: path.resolve(__dirname, "../../.env"),
+	quiet: true,
+});
 
 const reviewVideoUrl = process.env.APP_REVIEW_VIDEO_URL ?? "";
 
@@ -22,7 +28,7 @@ const reviewNotes = [
 		: null,
 	"",
 	"GUIDELINES WE EXPECT YOU TO CHECK",
-	"Payments (3.1): Superset is sold to organizations. A Pro plan is purchased by the organization on the web and unlocks Superset Mobile for every member. The app sells nothing, has no purchase buttons, and does not link to a purchase page. Free accounts see an informational screen that explains Pro is required and offers a Refresh button.",
+	"Payments (3.1): Superset is sold to organizations. A Pro plan is purchased by the organization on the web and unlocks Superset Mobile for every member. The app sells nothing and has no purchase buttons. Free accounts see an informational screen that explains Pro is required.",
 	"Sign-in (4.8): Sign in with Apple is offered alongside GitHub, Google, and email. Any of them creates a free account instantly, which lands on the Pro-required screen described above; the demo account is the one with a paid workspace.",
 	"Account deletion (5.1.1 v): Settings > Danger Zone > Delete account, in-app, no email or web visit required.",
 	"Code execution (2.5.2): No user or project code is downloaded or executed on the device. The terminal tab renders output streamed from the user's own session and sends keystrokes to it; the agents themselves run on the user's computer or in their cloud workspace.",
@@ -37,27 +43,29 @@ const reviewNotes = [
 module.exports = {
 	configVersion: 0,
 	apple: {
-		version: "1.1.1",
+		version: "1.1.2",
 		copyright: "2026 Superset",
 		categories: ["DEVELOPER_TOOLS", "PRODUCTIVITY"],
 		info: {
 			"en-US": {
 				title: "Superset: 100+ Coding Agents",
-				subtitle: "Superset desktop companion",
+				subtitle: "Manage AI agents on the go",
 				promoText:
-					"Your agents don't stop when you leave your desk. Start work, follow it live, and review the diff from your phone.",
+					"Your agents keep working when you leave your desk. Start a task, follow it live, and review the diff from your phone.",
 				description:
-					"Superset Mobile is the official companion app for Superset, the desktop app where developers run AI coding agents on their own machines. Start a task, follow the agent while it works, chat with it, and review the diff, all from your phone.\n\nHOW IT WORKS\nSign in with the same account you use on the desktop app. Every machine you have connected shows up on your phone with its workspaces and agent sessions. Your agents, shells, and code stay on your computer or in your Superset cloud workspace; the phone only shows what they are doing and sends your input back.\n\nSTART WORK FROM ANYWHERE\nLaunch an agent on any connected machine the moment an idea lands. Every session runs in its own isolated workspace, so nothing touches your main branch until you decide it should.\n\nFOLLOW EVERY SESSION\nWatch agents work in real time. Read their reasoning, see the commands they run, and step in with a follow-up or a photo the moment they need direction. Dictate a message when typing is a chore.\n\nREVIEW BEFORE YOU MERGE\nRead the full diff on your phone, file by file with syntax highlighting, and open a terminal to the session when you need the raw output.\n\nWORKS WITH THE AGENTS YOU ALREADY USE\nClaude Code, Codex, Gemini CLI, Cursor Agent, Copilot, OpenCode, Amp, and other terminal agents. Superset is not affiliated with their makers.\n\nBUILT FOR TEAMS\nTrack workspaces across your organization, switch between projects, and stay in sync with what your team's agents are doing.\n\nSuperset Mobile pairs with the Superset desktop app (https://superset.sh) and is included with Superset Pro for organizations.",
+					"Meet Superset, the phone app for the coding agents running on your computer. Start a task, watch the agent work, answer its questions, and review the diff before anything merges, without opening your laptop.\n\nAI CODING AGENTS ON YOUR PHONE\nStart work the moment an idea lands. Pick a project and branch, choose an agent and model, and send the task. Every session runs in its own isolated workspace, so nothing touches your main branch until you decide it should.\n\nFOLLOW EVERY SESSION LIVE\nSee what your agents are doing as they do it. Read their output, watch the commands they run, and know at a glance which sessions are working, which need your permission, and which are finished and waiting for you. Open the terminal when you want the raw output.\n\nCODE REVIEW ON THE GO\nRead every change file by file with syntax highlighting. Comment on specific lines, then send your review back to the agent in one step so it can make the fixes. Open the pull request, check its status, and merge it from your phone.\n\nNO TYPING NEEDED\nDictate instructions when typing on a phone is a chore. Snap a whiteboard sketch or attach a screenshot of a bug, and the agent gets it with your message.\n\nWORKS WITH THE AGENTS YOU ALREADY USE\nClaude Code, Codex, Gemini CLI, Cursor Agent, GitHub Copilot, OpenCode, Amp, and more terminal agents. Superset is not affiliated with their makers.\n\nYOUR CODE STAYS ON YOUR MACHINE\nYour agents, shells, and code run on your own computer. The phone shows what they are doing and sends your input back. Nothing is downloaded or run on your device.\n\nSuperset helps you:\n▶ Start agent tasks on your own computer from anywhere\n▶ See which sessions need you and which are done\n▶ Review diffs and leave line-by-line comments\n▶ Send review feedback straight back to the agent\n▶ Merge pull requests without opening your laptop\n▶ Dictate instructions and attach photos and screenshots\n▶ Keep up with your team's workspaces across projects\n\nGET STARTED\nSuperset Mobile pairs with the Superset desktop app. Install it on your computer from superset.sh, sign in with the same account on your phone, and your machines appear with their workspaces and sessions. Superset Mobile is included with Superset Pro for organizations.",
 				keywords: [
-					"coding agent",
-					"ai",
-					"developer tools",
-					"pair programming",
-					"automation",
 					"code review",
-					"git",
-					"remote",
+					"pull request",
+					"diff",
 					"terminal",
+					"git",
+					"developer",
+					"programming",
+					"remote",
+					"vibe coding",
+					"llm",
+					"assistant",
 				],
 				marketingUrl: "https://superset.sh",
 				supportUrl: "https://superset.sh",
@@ -68,7 +76,7 @@ module.exports = {
 			firstName: "Satya",
 			lastName: "Patel",
 			email: "support@superset.sh",
-			phone: "+1 510 519 1602",
+			phone: "+1 949 836 1199",
 			demoRequired: true,
 			demoUsername: process.env.APP_REVIEW_EMAIL ?? "",
 			demoPassword: process.env.APP_REVIEW_PASSWORD ?? "",

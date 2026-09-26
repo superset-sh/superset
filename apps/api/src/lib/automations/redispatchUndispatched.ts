@@ -6,17 +6,10 @@ import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
 /** Long enough that an in-flight delivery is not mistaken for a stuck one. */
 const GRACE_MS = 60_000;
 /**
- * How far back the sweep looks. Two reasons it is bounded.
- *
- * Rows recorded before #6635 (2026-08-18) with nothing to dispatch were never
- * marked, so about 1.2M of them sit at the left edge of the undispatched
- * index forever. An unbounded sweep walks all of them, cold, on every tick
- * before it reaches a row it can act on; in production that took four minutes
- * a run and stacked two dozen runs deep. The bound turns the scan into a
- * range that starts after them.
- *
- * It is also the retry ceiling. The sweep exists to retry a handoff that
- * failed minutes ago; a run fired for a day-old event is worse than no run.
+ * How far back the sweep looks: the retry ceiling. The sweep exists to retry
+ * a handoff that failed minutes ago; a run fired for a day-old event is worse
+ * than no run. It is also what keeps the scan a bounded range rather than a
+ * walk from the left edge of the undispatched index.
  */
 const LOOKBACK_MS = 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 200;

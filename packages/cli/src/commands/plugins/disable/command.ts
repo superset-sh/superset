@@ -4,6 +4,7 @@ import { resolvePluginRef } from "../../../lib/plugins/host";
 import { setPluginEnabled } from "../../../lib/plugins/install";
 
 export default command({
+	sandbox: false,
 	description: "Disable an installed plugin without dropping it",
 	args: [
 		positional("plugin")

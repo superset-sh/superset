@@ -18,12 +18,14 @@ import {
 	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkActions";
 import { DashboardSidebarBulkDeleteMount } from "./components/DashboardSidebarBulkDeleteMount";
 import { DashboardSidebarCloudSection } from "./components/DashboardSidebarCloudSection";
@@ -235,7 +237,7 @@ export function DashboardSidebar({
 		sortedGroups,
 		sessionWorkspaces,
 		sessionChildren,
-		{ revealCollapsed: !isFilterActive },
+		{ revealCollapsed: !isFilterActive, pinnedWorkspaces },
 	);
 	// Scoped to what the filter actually shows — select-all and range-select
 	// must not reach rows the filter is hiding.
@@ -271,6 +273,20 @@ export function DashboardSidebar({
 	// the status provider fans out bindings queries and event subscriptions for
 	// these once, instead of per row. Deliberately unfiltered so subscriptions
 	// don't churn per keystroke.
+	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const pruneWorkspaceSeen = useV2NotificationStore(
+		(state) => state.pruneWorkspaceSeen,
+	);
+	useEffect(() => {
+		if (!cloudWorkspaces) return;
+		const live = new Set(cloudWorkspaces.map((cloud) => cloud.id));
+		for (const id of Object.keys(
+			useV2NotificationStore.getState().workspaceSeenAt,
+		)) {
+			if (!live.has(id)) pruneWorkspaceSeen(id);
+		}
+	}, [cloudWorkspaces, pruneWorkspaceSeen]);
+
 	const statusWorkspaces = useMemo<SidebarStatusWorkspaceRef[]>(() => {
 		const byId = new Map<string, SidebarStatusWorkspaceRef>();
 		for (const workspace of pinnedWorkspaces) {
@@ -284,8 +300,16 @@ export function DashboardSidebar({
 				byId.set(workspace.id, { id: workspace.id, hostId: workspace.hostId });
 			}
 		}
+		for (const cloud of cloudWorkspaces ?? []) {
+			byId.set(cloud.id, {
+				id: cloud.id,
+				hostId: cloud.id,
+				reportedStatus: cloud.agentStatus ?? null,
+				reportedAt: cloud.agentStatusAt?.getTime() ?? null,
+			});
+		}
 		return [...byId.values()];
-	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups]);
+	}, [pinnedWorkspaces, sessionWorkspaces, orderedGroups, cloudWorkspaces]);
 
 	const activeV2Project = useMemo(() => {
 		if (!activeV2WorkspaceId) return null;

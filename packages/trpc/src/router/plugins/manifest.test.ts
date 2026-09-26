@@ -1,6 +1,7 @@
 // biome-ignore-all lint/suspicious/noTemplateCurlyInString: ${config.*} and ${inputs.*} are the manifest placeholder syntax, not template literals
 import { describe, expect, test } from "bun:test";
 import {
+	installConnector,
 	resolveTemplate,
 	resolveTemplateDeep,
 	resolveUrlTemplate,
@@ -105,5 +106,29 @@ describe("resolveUrlTemplate", () => {
 				secrets,
 			),
 		).toThrow(/host or path/);
+	});
+});
+
+describe("installConnector", () => {
+	const stale = {
+		marketplace: "superset",
+		pluginName: "notion",
+		manifest: {
+			name: "notion",
+			version: "1.0.2",
+			extensions: { superset: { connector: { slug: "notion" } } },
+		},
+	};
+
+	test("a first-party install follows the published manifest, not its copy", () => {
+		expect(installConnector(stale)).toBe("notion_mcp");
+	});
+
+	test("a third-party install keeps the connector it was installed with", () => {
+		expect(installConnector({ ...stale, marketplace: "acme" })).toBe("notion");
+	});
+
+	test("an unpublished first-party name falls back to the stored copy", () => {
+		expect(installConnector({ ...stale, pluginName: "gone" })).toBe("notion");
 	});
 });

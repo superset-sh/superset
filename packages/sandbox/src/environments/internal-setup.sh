@@ -26,6 +26,11 @@ log "shell tooling installed"
 # the same way .superset/setup.sh does on a laptop.
 sudo npm install -g neonctl@2 >/dev/null 2>&1 && log "neonctl $(neonctl --version 2>/dev/null) installed" || { log "neonctl install failed"; exit 1; }
 
+# vercel, wrangler, eas: day-to-day deploy/build CLIs (Vercel projects,
+# Cloudflare Workers apps, Expo mobile) an engineer reaches for directly
+# instead of waiting on CI.
+sudo npm install -g vercel wrangler eas-cli >/dev/null 2>&1 && log "vercel $(vercel --version 2>/dev/null), wrangler $(wrangler --version 2>/dev/null), eas $(eas --version 2>/dev/null) installed" || { log "vercel/wrangler/eas-cli install failed"; exit 1; }
+
 # The dev stack and the workspace's database are the repository's own
 # .superset/setup.cloud.sh and .superset/dev-stack.cloud.sh, run by the start
 # hook. This environment only adds what is not in the repository: the shell

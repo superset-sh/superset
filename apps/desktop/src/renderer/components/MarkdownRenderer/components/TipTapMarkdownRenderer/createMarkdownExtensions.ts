@@ -277,7 +277,7 @@ export function createMarkdownExtensions({
 			// Keep raw HTML disabled until the TipTap path has an explicit sanitizer.
 			html: ENABLE_RAW_MARKDOWN_HTML,
 			transformPastedText: true,
-			transformCopiedText: true,
+			transformCopiedText: false,
 		}),
 		TableClipboardMarkdown,
 		TaskListTightness,

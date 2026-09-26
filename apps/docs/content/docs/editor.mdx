@@ -3,7 +3,7 @@ title: Editor & Files
 description: File explorer, built-in editor, and cross-workspace search
 ---
 
-You don't have to leave Superset to look at or fix a file. Each workspace has a file tree, a fast built-in editor, and search that spans workspaces.
+Each workspace has a file tree, a built-in editor, and search across workspaces.
 
 ## File Explorer
 
@@ -19,8 +19,6 @@ Browse and manage your workspace's files from the sidebar:
 
 ## Built-in Editor
 
-The editor is CodeMirror-based: small, fast to load, and light on memory, built for quick fixes between agent runs, not to replace your IDE.
-
 ![The built-in editor](/images/codemirror.png)
 
 Ways in:
@@ -30,9 +28,23 @@ Ways in:
 
 For longer editing sessions, **⌘O** opens the workspace in your IDE ([IDE Integration](/use-with-ide)).
 
+## Save and Review External Changes
+
+Use **Save** or **⌘S** to write your edits. If an agent or script changes the file while you have unsaved edits, the editor keeps your buffer and shows an external-change banner. Click **Compare** to review the disk and local versions side by side. Saving a conflicted file opens the same review.
+
+- **Keep editing** preserves your unsaved edits without writing to disk.
+- **Reload from disk** replaces your buffer with the disk version. It is unavailable if the file cannot be read.
+- **Overwrite file** replaces the disk version with your edits.
+
+The editor does not autosave or merge simultaneous edits.
+
+## Markdown Links
+
+Web links in Markdown previews follow **Settings → Links**. By default, Shift-click opens a new tab, Cmd/Ctrl-click opens a split browser pane, and Cmd/Ctrl+Shift-click opens the system browser. A plain click keeps you editing.
+
 ## Cross-Workspace Search
 
-The search bar can search across all open workspaces, not just the active one, useful when you're running parallel workstreams and can't remember which branch has the thing.
+The search bar searches across all open workspaces.
 
 ![Cross-workspace search](/images/search-bar.png)
 
@@ -47,4 +59,4 @@ Images open fitted to the pane, with standard viewer navigation:
 
 ## Tabs, Splits, and Panes
 
-The whole workspace shell is composable: **Tab → Split → Pane** with drag-and-drop everywhere. Drop a pane onto the tab strip to spawn a new tab; mix terminals, files, diffs, and browser panes in one layout. The browser pane keeps its state when you switch workspaces.
+Drop a pane onto the tab strip to create a new tab; mix terminals, files, diffs, and browser panes in one layout. The browser pane keeps its state when you switch workspaces.

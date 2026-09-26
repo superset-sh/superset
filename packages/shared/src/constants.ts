@@ -201,7 +201,6 @@ export const FEATURE_FLAGS = {
 	 * desktop-local; the flag controls visibility, not capability.
 	 */
 	PLUGINS: "plugins",
-	PAGES: "pages",
 	/**
 	 * Lock Screen / Dynamic Island agent card on iOS. Off by default while the
 	 * card is still being worked on; the flag's release conditions decide who
@@ -224,7 +223,6 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"sentry",
 	"notion",
 	"microsoft_teams",
-	"google_calendar",
 	"gmail",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 

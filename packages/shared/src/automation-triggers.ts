@@ -337,55 +337,6 @@ export const microsoftTeamsTriggerConfigSchema = z.object({
 	messageFilter: textFilterSchema.nullable().default(null),
 });
 
-/**
- * Google Calendar events carry different filters, so the config is a union on
- * the event: a change carries the external-attendee narrowing, a starting-soon
- * fire carries how far ahead it fires, and a cancellation carries neither.
- */
-export const googleCalendarTriggerEventValues = [
-	"event.created",
-	"event.updated",
-	"event.cancelled",
-	"event.starting_soon",
-	"event.ended",
-] as const;
-export type GoogleCalendarTriggerEvent =
-	(typeof googleCalendarTriggerEventValues)[number];
-
-const googleCalendarCommon = {
-	kind: z.literal("google_calendar"),
-	calendars: triggerScopeSchema,
-	// Anyone on the event: organizer, creator or invitee. Ids are email
-	// addresses, since that is what a calendar event names people by.
-	attendee: triggerScopeSchema,
-	titleFilter: textFilterSchema.nullable().default(null),
-};
-
-const googleCalendarChangeEvent = z.object({
-	...googleCalendarCommon,
-	event: z.enum(["event.created", "event.updated"]),
-	// A boolean rather than a scope: false is "do not narrow", true requires
-	// someone from outside the connected account's domain to be on the event.
-	hasExternalAttendee: z.boolean().default(false),
-});
-
-const googleCalendarStartingSoonEvent = z.object({
-	...googleCalendarCommon,
-	event: z.literal("event.starting_soon"),
-	minutesBefore: z.number().int().min(1).max(1440).default(15),
-});
-
-const googleCalendarSimpleEvent = z.object({
-	...googleCalendarCommon,
-	event: z.enum(["event.cancelled", "event.ended"]),
-});
-
-export const googleCalendarTriggerConfigSchema = z.union([
-	googleCalendarChangeEvent,
-	googleCalendarStartingSoonEvent,
-	googleCalendarSimpleEvent,
-]);
-
 export const gmailTriggerEventValues = ["message.received"] as const;
 export type GmailTriggerEvent = (typeof gmailTriggerEventValues)[number];
 
@@ -420,7 +371,6 @@ export const draftTriggerSchema = z.object({
 		sentryTriggerConfigSchema,
 		notionTriggerConfigSchema,
 		microsoftTeamsTriggerConfigSchema,
-		googleCalendarTriggerConfigSchema,
 		gmailTriggerConfigSchema,
 	]),
 });
@@ -464,7 +414,6 @@ type ScopeNoun =
 	| "dataSource"
 	| "team"
 	| "project"
-	| "calendar"
 	| "sender";
 
 type ScopeChoice = "anyone" | "anySender";
@@ -551,10 +500,6 @@ const REQUIREMENTS: Partial<
 		person("actor"),
 	],
 	sentry: [{ field: "projects", noun: "project" }],
-	google_calendar: [
-		{ field: "calendars", noun: "calendar" },
-		person("attendee"),
-	],
 	// The sender is the primary scope, as the repository is for GitHub: a
 	// mailbox-wide trigger has to be chosen ("Any sender"), never arrived at by
 	// leaving the chip empty.

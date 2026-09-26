@@ -66,8 +66,7 @@ export function PagePane({
 						(!click.metaKey && !click.ctrlKey && !click.shiftKey
 							? "pane"
 							: null));
-				if (action)
-					runUrlLinkAction({ store, isPagesEnabled: true }, click.url, action);
+				if (action) runUrlLinkAction({ store }, click.url, action);
 			}}
 			onExitPreview={() => setPreviewVersion(null)}
 		/>

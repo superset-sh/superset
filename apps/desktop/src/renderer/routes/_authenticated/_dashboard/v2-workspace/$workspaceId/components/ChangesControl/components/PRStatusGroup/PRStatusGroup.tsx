@@ -23,6 +23,10 @@ import {
 	VscGitPullRequest,
 	VscLoading,
 } from "react-icons/vsc";
+import {
+	type PullRequestRef,
+	pullRequestRefFromUrl,
+} from "renderer/lib/github/pullRequestRef";
 import { computeChecksRollup } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/computeChecksStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
@@ -44,7 +48,7 @@ interface PRStatusGroupProps {
 	 */
 	onToggleChanges?: () => void;
 	/** Opens the PR's summary pane in the workspace (the menu's "Open pull request"). */
-	onOpenPullRequest: (prNumber: number) => void;
+	onOpenPullRequest: (ref: PullRequestRef) => void;
 }
 
 /**
@@ -52,7 +56,7 @@ interface PRStatusGroupProps {
  * with a dropdown for merge actions (open, non-draft PRs), marking a draft
  * ready for review, the PR summary pane, and a GitHub link.
  * Clicking the badge toggles the Changes pane; the PR pane lives in the
- * menu (hidden for session workspaces — null projectId — since the PR
+ * menu (hidden for session workspaces, since the PR
  * content query is project-scoped). Hovering surfaces a rich detail popover (title,
  * branch, CI summary, last activity).
  *
@@ -70,7 +74,7 @@ export function PRStatusGroup({
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
 	const { workspace } = useWorkspace();
-	const projectId = workspace.projectId;
+	const isSession = workspace.type === "session";
 	const pr =
 		state.kind === "pr-exists"
 			? state.pr
@@ -338,10 +342,14 @@ export function PRStatusGroup({
 							<DropdownMenuSeparator />
 						</>
 					)}
-					{projectId != null && (
+					{!isSession && (
 						<DropdownMenuItem
 							className="text-xs"
-							onClick={() => onOpenPullRequest(pr.number)}
+							onClick={() => {
+								const ref = pullRequestRefFromUrl(pr.url);
+								if (ref) onOpenPullRequest(ref);
+								else window.open(pr.url, "_blank");
+							}}
 						>
 							<VscGitPullRequest className="size-3.5" />
 							<Trans>Open pull request</Trans>

@@ -18,7 +18,6 @@ import type { StoreApi } from "zustand/vanilla";
  */
 export interface TerminalLinkActionDeps {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
-	isPagesEnabled: boolean;
 	onOpenFile: OpenFile;
 	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 	openInExternalEditor: (
@@ -31,7 +30,7 @@ export interface TerminalLinkActionDeps {
 }
 
 export function runUrlLinkAction(
-	deps: Pick<TerminalLinkActionDeps, "store" | "isPagesEnabled">,
+	deps: Pick<TerminalLinkActionDeps, "store">,
 	url: string,
 	action: LinkAction,
 ): void {
@@ -41,9 +40,7 @@ export function runUrlLinkAction(
 		});
 		return;
 	}
-	const pageSlug = deps.isPagesEnabled
-		? parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL)
-		: null;
+	const pageSlug = parseSupersetPageUrl(url, env.NEXT_PUBLIC_WEB_URL);
 	if (pageSlug) {
 		openPagePaneInStore(
 			deps.store,

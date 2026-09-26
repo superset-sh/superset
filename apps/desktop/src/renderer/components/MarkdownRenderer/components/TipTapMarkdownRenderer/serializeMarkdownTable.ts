@@ -191,7 +191,9 @@ export function sliceToPlainText(slice: Slice): string {
  * - whole-table `CellSelection` -> GFM markdown table
  * - any other selection touching a table (partial cells, text within a cell, or
  *   a range crossing the table boundary) -> plain text
- * - selection outside any table -> normal markdown (preserves copy-as-markdown)
+ * - every other selection -> visible plain text for the clipboard's
+ *   `text/plain` payload; Markdown remains available through the explicit
+ *   "Copy as Markdown" context-menu action
  */
 export function serializeSelectionForClipboard(
 	selection: Selection,
@@ -209,5 +211,5 @@ export function serializeSelectionForClipboard(
 		return sliceToPlainText(slice);
 	}
 
-	return serializeMarkdown(slice.content);
+	return sliceToPlainText(slice);
 }

@@ -21,6 +21,7 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
@@ -45,7 +46,7 @@ interface ShipControlProps {
  * first when the branch is unpublished or ahead), then Push. Compact mode
  * (diff stats own the face) folds the same actions into the chevron menu.
  *
- * Session workspaces (null projectId) can't create PRs — the PR route and
+ * Session workspaces can't create PRs — the PR route and
  * repo resolution are project-scoped — so they only ever see Commit/Push.
  */
 export function ShipControl({
@@ -58,8 +59,7 @@ export function ShipControl({
 	const navigate = useNavigate();
 	const { workspace } = useWorkspace();
 	const status = useWorkspaceGitStatus();
-	const projectId = workspace.projectId;
-	const canCreatePr = projectId != null;
+	const canCreatePr = workspace.type !== "session";
 
 	const needsCommit = sync.hasUncommitted;
 	const needsPush = !sync.hasUpstream || sync.pushCount > 0;
@@ -258,9 +258,14 @@ export function ShipControl({
 						// workspaces by the time they click. A workspace-scoped intent
 						// plus navigation lands the pane in the right store either way.
 						onClick: () => {
+							const ref = pullRequestRefFromUrl(created.url);
+							if (!ref) {
+								window.open(created.url, "_blank");
+								return;
+							}
 							usePullRequestPaneIntent.getState().request({
 								workspaceId,
-								prNumber: created.number,
+								...ref,
 							});
 							void navigateToV2Workspace(workspaceId, navigate);
 						},

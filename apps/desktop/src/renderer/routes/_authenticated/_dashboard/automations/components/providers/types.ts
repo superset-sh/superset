@@ -27,8 +27,8 @@ export type TriggerProvider<
 	icon: IconType;
 	/**
 	 * Overrides the connector slug this trigger needs connected, which defaults
-	 * to `kind`. A string where they diverge (Calendar and Gmail share one
-	 * `google` connection), `null` where no connection is needed at all. Read
+	 * to `kind`. A string where they diverge (Gmail reads the `google`
+	 * connection), `null` where no connection is needed at all. Read
 	 * through `connectorFor`, never directly.
 	 */
 	connectionProvider?: string | null;
@@ -43,7 +43,7 @@ export type TriggerProvider<
 	 * The key this provider's pickable lists live under (`options.slack`),
 	 * fetched from `integration.triggerOptions` when a row of this kind is on
 	 * screen. Absent for providers with nothing to fetch (Scheduled, Webhook).
-	 * Two kinds can share one group — Calendar and Gmail both read `google`.
+	 * Two kinds can share one group when they share a connection.
 	 */
 	optionGroup?: string;
 	/**

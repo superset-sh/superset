@@ -3,14 +3,17 @@ import {
 	agentCredentialKindValues,
 	agentCredentials,
 } from "@superset/db/schema";
-import { agentCredentialToEnv } from "@superset/shared/agent-credentials";
+import {
+	agentCredentialToEnv,
+	gatewayBaseUrl,
+} from "@superset/shared/agent-credentials";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { jwtProcedure, userError } from "../../trpc";
 import { decryptAgentCredential, encryptAgentCredential } from "./utils/crypto";
 import { checkPublicEndpoint } from "./utils/public-endpoint";
-import { GATEWAY_BASE_URL, validateAgentCredential } from "./utils/validate";
+import { validateAgentCredential } from "./utils/validate";
 
 const agentId = z.string().min(1).max(64);
 
@@ -65,7 +68,9 @@ export const agentCredentialRouter = {
 
 			const baseUrl =
 				input.baseUrl ??
-				(input.provider === "gateway" ? GATEWAY_BASE_URL : undefined);
+				(input.provider === "gateway"
+					? (gatewayBaseUrl(input.agent) ?? undefined)
+					: undefined);
 			if (baseUrl) {
 				const endpoint = await checkPublicEndpoint(baseUrl);
 				if (!endpoint.ok) {
@@ -181,6 +186,7 @@ export async function resolveAgentCredentialEnv(args: {
 					agent: row.agent,
 				}),
 				baseUrl: row.baseUrl,
+				provider: row.provider,
 			}),
 		),
 	);

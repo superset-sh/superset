@@ -131,6 +131,9 @@ export function resolveHostWorkerScriptPath(): string | null {
 	);
 	if (existsSync(workspaceDist)) return workspaceDist;
 
+	const source = path.resolve(here, "host-worker.ts");
+	if (process.versions.bun && existsSync(source)) return source;
+
 	return null;
 }
 

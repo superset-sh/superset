@@ -15,8 +15,8 @@ import {
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { CommandTerminal } from "renderer/routes/_authenticated/components/CommandTerminal";
 import stripAnsi from "strip-ansi";
-import { GhAuthTerminal } from "./GhAuthTerminal";
 
 const GH_AUTH_COMMAND =
 	"gh auth login --hostname github.com --git-protocol https --web";
@@ -246,7 +246,7 @@ export function GhAuthDialog({
 							)}
 						>
 							{open && (
-								<GhAuthTerminal
+								<CommandTerminal
 									key={attempt}
 									command={isInstall ? GH_INSTALL_COMMAND : GH_AUTH_COMMAND}
 									onExit={handleTerminalExit}

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../src/db";
 import { workspaces } from "../../src/db/schema";
+import { GitDirectoryWatcher } from "../../src/events/git-directory-watcher";
 import { GIT_DIR_DEBOUNCE_MS, GitWatcher } from "../../src/events/git-watcher";
 import { WorkspaceFilesystemManager } from "../../src/runtime/filesystem";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
@@ -400,11 +401,24 @@ describe("GitWatcher lazy registration (regression coverage for #6729)", () => {
 		const id = scenario.workspaceIds[0] as string;
 		const watchedEntry = () => internals(scenario.gitWatcher).watched.get(id);
 
+		const watchGitDirectory = GitDirectoryWatcher.prototype.watch;
+		const failures = new Map<unknown, () => void>();
+		const watchSpy = spyOn(
+			GitDirectoryWatcher.prototype,
+			"watch",
+		).mockImplementation(function (
+			this: GitDirectoryWatcher,
+			path,
+			onChange,
+			onError,
+		) {
+			const handle = watchGitDirectory.call(this, path, onChange, onError);
+			failures.set(handle, onError);
+			return handle;
+		});
 		scenario.gitWatcher.watchWorkspace(id);
 		await waitFor(() => watchedEntry() !== undefined, { timeoutMs: 10_000 });
-		const stale = watchedEntry()?.watcher as {
-			emit: (event: string, ...args: unknown[]) => boolean;
-		};
+		const stale = watchedEntry()?.watcher;
 
 		// Replace the watcher: unwatch tears the first one down, rewatch
 		// attaches a fresh one for the same workspace id.
@@ -416,7 +430,10 @@ describe("GitWatcher lazy registration (regression coverage for #6729)", () => {
 		// An error the old native watcher had queued lands now. Keyed only by
 		// workspace id, its cleanup used to delete the new entry and strand a
 		// live native watcher with nothing tracking it.
-		stale.emit("error", new Error("stale watcher error"));
+		const failStale = failures.get(stale);
+		watchSpy.mockRestore();
+		expect(failStale).toBeDefined();
+		failStale?.();
 
 		expect(watchedEntry()).toBeDefined();
 		expect(watchedEntry()?.watcher).not.toBe(stale);

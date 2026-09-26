@@ -48,6 +48,7 @@ async function runPluginCli(args: string[]): Promise<void> {
 	try {
 		await execFileAsync(cli, ["plugins", ...args, "--json"], {
 			timeout: 60_000,
+			env: { ...process.env, SUPERSET_CLI_AUDIENCE: "internal" },
 		});
 	} catch (error) {
 		log.warn(

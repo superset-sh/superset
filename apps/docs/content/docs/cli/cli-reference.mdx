@@ -845,7 +845,7 @@ superset workspaces get --field branch   # inside a workspace
 	output="Workspace"
 >
 Update a workspace on its host (default: this machine). `--tag` replaces the
-whole tag set — tagging is how workspaces group into sidebar folders, so
+whole tag set: tagging is how workspaces group into sidebar folders, so
 retagging moves the workspace between folders.
 
 ```bash
@@ -982,13 +982,38 @@ superset agents create --workspace ws_… --agent codex --prompt "Review this di
 superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
 
+</Command>
+
+<Command
+	name="superset agents read"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace ID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal ID, returned as sessionId by agents create." },
+		{ flag: "--host <id>", description: "Target host. Mutually exclusive with --local." },
+		{ flag: "--local", description: "Read from this machine." },
+	]}
+>
+Read the agent's saved transcript, beyond the visible screen returned by
+`terminals read`. Without `--host` or `--local`, the target defaults to cloud
+when your account has cloud workspaces, otherwise this machine. The command
+fails if Superset cannot read a transcript for that terminal.
+
+```bash
+superset agents read --local --workspace <workspace-id> --terminal <terminal-id>
+```
+
+<CommandReturns>
+The transcript object in JSON mode, or its text in human-readable mode.
+</CommandReturns>
+</Command>
+
 #### Agent models
 
 Model is an explicit override for one launch. If you omit `--model`, Superset
 passes no model flag and the agent uses its own configured default. Ids match
 the desktop model picker: Claude takes a family alias (`fable`, `opus`,
 `sonnet`, `haiku`) that tracks the newest release, or a pinned id such as
-`claude-opus-4-8`. The host rejects an unknown id before launching the agent,
+`claude-opus-5-5`. Codex includes `gpt-6-sol` and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
 and the error names every id that agent accepts. Agents without a model
 picker, including Superset chat, reject an explicit model override.
 
@@ -1002,14 +1027,15 @@ The host rejects unsupported values before launching the agent.
 | --- | --- |
 | Claude | `low`, `medium`, `high`, `xhigh`, `max` |
 | Amp | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
-| Codex | `low`, `medium`, `high`, `xhigh` |
+| Codex | `low`, `medium`, `high`, `xhigh`; `max` and `ultra` depend on the selected model |
 | Mastracode | `off`, `low`, `medium`, `high`, `xhigh` |
 | Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
 | Copilot | `low`, `medium`, `high`, `xhigh` |
 
+GPT-6 Sol supports `max` and `ultra`; GPT-6 Luna supports `max`.
+
 Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
-</Command>
 
 ---
 
@@ -1110,7 +1136,7 @@ screenshot, read console, evaluate JavaScript, and get a raw Chrome DevTools
 Protocol endpoint for click/type/scroll automation. Every operation runs in the
 pane the user sees, against the browser's real session. Browser panes live in
 the desktop app, so a standalone host with no desktop attached has no panes and
-these commands error. A `paneId` is scoped to its workspace — pass the same
+these commands error. A `paneId` is scoped to its workspace; pass the same
 `--workspace` it was opened under. See the [`browser` skill](/skills) for the
 agent-facing protocol.
 
@@ -1185,7 +1211,7 @@ Capture a PNG screenshot of the pane's page.
 	]}
 	output={`{ result: unknown }`}
 >
-Evaluate JavaScript in the page and return the result — the ergonomic path for
+Evaluate JavaScript in the page and return the result for
 reading or nudging the DOM.
 
 ```bash
@@ -1218,7 +1244,123 @@ Read the pane's captured console output.
 >
 Print a raw Chrome DevTools Protocol WebSocket endpoint for the pane, for
 browser-use / Playwright-class tools (mouse, keyboard, scroll, DOM, network).
-The URL embeds an auth token — treat it as a secret.
+The URL embeds an auth token; treat it as a secret.
+</Command>
+
+---
+
+### pages
+
+Publish and manage [Pages](/pages) in the active organization.
+
+<Command
+	name="superset pages list"
+	options={[
+		{ flag: "--workspace <name|id>", description: "Scope to a workspace. Defaults to SUPERSET_WORKSPACE_ID; pass an empty string for the whole organization." },
+		{ flag: "--search <text>, -q <text>", description: "Search titles, slugs, and descriptions." },
+		{ flag: "--limit <n>", description: "Fetch one batch of 1–200 pages." },
+		{ flag: "--cursor <cursor>", description: "Continue from the previous nextCursor." },
+	]}
+>
+Without `--limit` or `--cursor`, fetches all matching pages and returns a plain
+array. Either pagination flag selects one batch and returns
+`{ items, nextCursor }`; `nextCursor` is null at the end. A cursor without a
+limit uses 50 rows per batch. Pages are ordered newest-created first.
+`--quiet` prints page IDs in either mode. Linked workspaces appear in the
+WORKSPACE column and in each row's `workspaceLinks`.
+
+```bash
+superset pages list --workspace '' --search onboarding --json
+superset pages list --workspace '' --limit 20 --json
+superset pages list --workspace '' --limit 20 --cursor '<nextCursor>' --json
+```
+</Command>
+
+<Command
+	name="superset pages publish <path>"
+	args={[
+		{ name: "path", required: true, description: "HTML file, or directory containing index.html and its assets." },
+	]}
+	options={[
+		{ flag: "--title <text>", description: "Page title; defaults to the file or directory name." },
+		{ flag: "--description <text>", description: "Short description." },
+		{ flag: "--label <text>, -l <text>", description: "What changed in this version." },
+		{ flag: "--visibility <value>", description: "just_me, org, or everyone. New pages default to org." },
+		{ flag: "--page <id>", description: "Add a version to this existing page." },
+		{ flag: "--workspace <name|id>", description: "Workspace link; defaults to SUPERSET_WORKSPACE_ID. Optional." },
+		{ flag: "--no-watch", description: "Do not register this terminal to receive new page comments." },
+	]}
+>
+Publishing the same entry path from the same workspace adds a version to the
+existing page. Without a workspace, keep the returned ID and pass `--page` on
+later publishes to avoid creating another page. Existing visibility is
+preserved unless explicitly supplied.
+
+The first version published from a workspace attempts to open in the desktop,
+following **Settings → Links → Pages**. This is skipped over SSH or in a cloud
+sandbox. An opening failure does not fail the publish; the result includes an
+`openNote`. Later versions do not reopen.
+
+```bash
+superset pages publish report.html --title "Weekly report" --visibility everyone
+superset pages publish report.html --page <page-id> --label "Addressed feedback"
+```
+
+<CommandReturns>
+Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
+`watching`, and asset upload/reuse counts. Unlinked publishes include a
+`republish` command; watch and opening notes appear when applicable.
+</CommandReturns>
+</Command>
+
+<Command
+	name="superset pages delete <page>"
+	args={[
+		{ name: "page", required: true, description: "Page ID or slug." },
+	]}
+	options={[
+		{ flag: "--yes", description: "Skip the interactive confirmation." },
+	]}
+	output="{ id: string }"
+>
+Delete a page and every version. Interactive terminals ask for confirmation
+unless `--yes` is passed; non-interactive input does not prompt.
+</Command>
+
+### mcp
+
+Use tools from connected plugins. This is separate from the
+[Superset MCP server](/mcp-server), which exposes Superset itself to agents.
+
+<Command
+	name="superset mcp tools"
+	options={[
+		{ flag: "--plugin <name>", required: true, description: "Plugin name from superset plugins list." },
+	]}
+	output="Array<{ plugin: string; tool: string; description: string }>"
+>
+List the tools a connected plugin exposes. Use the returned names and
+descriptions before calling a tool.
+</Command>
+
+<Command
+	name="superset mcp call-tool <tool> [arguments]"
+	args={[
+		{ name: "tool", required: true, description: "Tool name from mcp tools." },
+		{ name: "arguments", description: "JSON arguments; defaults to {}. Pass - to read stdin." },
+	]}
+	options={[
+		{ flag: "--plugin <name>", required: true, description: "Connected plugin name." },
+	]}
+>
+Call a plugin tool and return its MCP result, including the content array.
+Credentials are attached by Superset's API. `--connection` and `--plugin-id`
+are deprecated aliases for `--plugin`; they take a plugin name, not a connection ID.
+
+```bash
+superset mcp tools --plugin notion
+superset mcp call-tool notion-fetch --plugin notion '{"id":"<page-id>"}'
+```
 </Command>
 
 ---

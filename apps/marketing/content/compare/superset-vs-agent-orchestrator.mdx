@@ -2,7 +2,7 @@
 title: "Superset vs Agent Orchestrator (2026): Two Agent IDEs for Parallel Fleets"
 description: "Compare Superset and Agent Orchestrator (AO) for running fleets of AI coding agents: worktree workspaces, CI-failure loops, review routing, and automation surfaces."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - agent-orchestrator
@@ -23,10 +23,10 @@ Superset and Agent Orchestrator (AO, from Untrivial AI) are two of the closest h
 
 | | **Superset** | **Agent Orchestrator (AO)** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Supervises parallel agents in worktrees with automatic CI/review/conflict feedback loops |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Supervises parallel agents in worktrees with automatic CI/review/conflict feedback loops |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Open-source agent IDE with an orchestrator agent |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | 23 harnesses (Claude Code, Codex, aider, OpenCode, Cursor, Copilot, Goose, and more) |
-| **Isolation** | Automatic Git worktree per task | Worktree per session (or full clone); tmux/process runtimes |
+| **Isolation** | Git worktrees for local branch-based workspaces | Worktree per session (or full clone); tmux/process runtimes |
 | **Signature feature** | Full workspace + automations/SDK/MCP surfaces | Reactions: CI-failed, changes-requested, agent-stuck, approved-and-green |
 | **Forges** | GitHub, plus Linear integration | GitHub and GitLab (polling via gh/glab); Linear tracker plugin |
 | **Remote / cloud** | Remote and cloud workspaces across your network devices | Local-only; DIY reverse proxy, dashboard has no built-in auth |
@@ -93,7 +93,7 @@ Superset offers a free tier and Pro at $20/seat/month. Agent Orchestrator is fre
 
 ### Do Superset and Agent Orchestrator both use Git worktrees?
 
-Yes. Superset creates a worktree per task automatically; AO creates one per session, with a full-clone option for tooling that dislikes shared `.git` directories.
+Yes. Superset creates a worktree for each new local branch-based workspace; AO creates one per session, with a full-clone option for tooling that dislikes shared `.git` directories.
 
 ### What are AO's "reactions"?
 

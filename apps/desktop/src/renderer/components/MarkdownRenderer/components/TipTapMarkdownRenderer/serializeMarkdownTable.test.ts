@@ -254,7 +254,7 @@ describe("serializeSelectionForClipboard", () => {
 		expect(result).not.toContain("|");
 	});
 
-	it("keeps markdown for a selection outside any table", () => {
+	it("copies visible text for a selection outside any table", () => {
 		const selection = TextSelection.create(testDoc, boldFrom, boldTo);
 		const result = serializeSelectionForClipboard(
 			selection,
@@ -262,7 +262,10 @@ describe("serializeSelectionForClipboard", () => {
 			serializeMarkdown,
 		);
 
-		expect(result).toContain("**hi**");
+		expect(result).toBe("hi");
+		// Markdown remains available through the explicit context-menu action,
+		// not through Cmd/Ctrl+C's text/plain payload.
+		expect(serializeMarkdown(selection.content().content)).toContain("**hi**");
 	});
 
 	it("copies a selection crossing the table boundary as plain text", () => {
