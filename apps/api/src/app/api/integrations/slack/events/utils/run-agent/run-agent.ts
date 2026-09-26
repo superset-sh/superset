@@ -842,8 +842,8 @@ export async function runSlackAgent(
 
 		const threadState = params.threadQuiet
 			? params.threadQuiet.quiet
-				? "\n- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false. People can also type !unmute."
-				: "\n- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true. People can also type !mute."
+				? "\n- This thread is quiet: only replies that mention you reach you. If asked to respond without mentions again, call slack_thread_quiet with quiet=false. People can also type !unmute, and !stop ends a turn that is still running."
+				: "\n- This thread is open: every reply in it reaches you without a mention. If asked to only respond when mentioned, call slack_thread_quiet with quiet=true. People can also type !mute, and !stop ends a turn that is still running."
 			: "";
 		const integrationLines = SLACK_PLUGINS.flatMap((plugin) => {
 			if (curatedPluginTools.get(plugin.name)?.length) {
@@ -1126,6 +1126,9 @@ ${agentContext}`;
 						: AGENT_COPY.turnLimit;
 			return { text, actions, unconnectedPlugins };
 		}
+		// A stop that landed while the last model call was in flight has had
+		// no step to be seen at; honour it before the answer is posted.
+		await stopIfRequested();
 		// Web search splits one paragraph into several text blocks around its
 		// citations: the block after a cited block continues its sentence.
 		// A block after an uncited one (a preamble before a search) is a

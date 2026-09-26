@@ -428,6 +428,23 @@ describe("agent loop", () => {
 		expect(result.actions).toHaveLength(1);
 	});
 
+	test("a stop that lands during the final model call still stops the reply", async () => {
+		let stop = false;
+		create.mockImplementationOnce(async () => {
+			stop = true;
+			return {
+				stop_reason: "end_turn",
+				content: [{ type: "text", text: "Here's a cat", citations: [] }],
+			};
+		});
+		const result = await runSlackAgent({
+			...params,
+			shouldStop: async () => stop,
+		});
+		expect(result.text).toContain("Stopped");
+		expect(result.text).not.toContain("cat");
+	});
+
 	test("text split around citations comes back as one paragraph", async () => {
 		create.mockImplementationOnce(async () => ({
 			stop_reason: "end_turn",
