@@ -4388,6 +4388,9 @@ msgstr "Tidak bisa mengirim prompt. Coba lagi."
 msgid "Could not take a screenshot"
 msgstr "Tidak bisa mengambil tangkapan layar"
 
+msgid "Could not update pin"
+msgstr "Tidak dapat memperbarui sematan"
+
 msgid "Could not update plugin"
 msgstr "Tidak bisa memperbarui plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "token input, cache, dan output"
 msgid "Inputs"
 msgstr "Input"
 
+msgid "Insert into prompt"
+msgstr "Sisipkan ke prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Wawasan dari tim Superset tentang agen coding paralel dan produktivitas developer."
 
@@ -8010,6 +8016,9 @@ msgstr "Lompat ke editor favorit Anda dengan satu klik. VS Code, Cursor, Xcode, 
 
 msgid "Jump to file"
 msgstr "Lompat ke file"
+
+msgid "Jump to message"
+msgstr "Lompat ke pesan"
 
 msgid "Jump to user message {position}"
 msgstr "Lompat ke pesan pengguna {position}"
@@ -11155,6 +11164,9 @@ msgstr "Sematkan"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Sematkan ruang kerja untuk melanjutkan sesi agennya antar proses"
 
+msgid "Pin message"
+msgstr "Sematkan pesan"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Sematkan workspace di atas proyek Anda, lalu ⌘-klik sekumpulan untuk memindahkan, mengelompokkan, atau menghapus semuanya sekaligus."
 
@@ -11751,6 +11763,9 @@ msgstr "Keluar dari Superset Sepenuhnya"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Tutup dulu browser sumbernya agar login-nya tersimpan ke disk. Anda akan diminta mengizinkan akses Keychain."
+
+msgid "Quote"
+msgstr "Kutip"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16125,6 +16140,9 @@ msgid "Unpaid"
 msgstr "Belum dibayar"
 
 msgid "Unpin"
+msgstr "Lepas sematan"
+
+msgid "Unpin message"
 msgstr "Lepas sematan"
 
 msgctxt "github release action"

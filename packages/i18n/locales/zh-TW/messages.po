@@ -4388,6 +4388,9 @@ msgstr "無法提交提示詞。請重試。"
 msgid "Could not take a screenshot"
 msgstr "無法截圖"
 
+msgid "Could not update pin"
+msgstr "無法更新置頂"
+
 msgid "Could not update plugin"
 msgstr "無法更新外掛"
 
@@ -7721,6 +7724,9 @@ msgstr "輸入、快取和輸出token"
 msgid "Inputs"
 msgstr "輸入"
 
+msgid "Insert into prompt"
+msgstr "插入到輸入框"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "來自Superset團隊的洞見，關於並行編碼代理程式與開發者效率。"
 
@@ -8010,6 +8016,9 @@ msgstr "一鍵跳進你喜歡的編輯器。VS Code、Cursor、Xcode、JetBrains
 
 msgid "Jump to file"
 msgstr "跳轉到檔案"
+
+msgid "Jump to message"
+msgstr "跳至訊息"
 
 msgid "Jump to user message {position}"
 msgstr "跳轉到使用者訊息{position}"
@@ -11155,6 +11164,9 @@ msgstr "固定"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "釘選一個工作區，以便在多次執行之間繼續其代理程式工作階段"
 
+msgid "Pin message"
+msgstr "置頂訊息"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "把工作區固定在專案上方，再⌘點選批次選中，一次性移動、分組或刪除。"
 
@@ -11751,6 +11763,9 @@ msgstr "完全退出Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "請先退出源瀏覽器，讓它把登入資訊寫入磁碟。系統會請求你允許存取鑰匙圈。"
+
+msgid "Quote"
+msgstr "引用"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "未支付"
 
 msgid "Unpin"
 msgstr "取消固定"
+
+msgid "Unpin message"
+msgstr "取消置頂"
 
 msgctxt "github release action"
 msgid "Unpublished"

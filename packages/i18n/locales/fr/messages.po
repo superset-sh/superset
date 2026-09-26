@@ -4388,6 +4388,9 @@ msgstr "Impossible de soumettre le prompt. Réessayez."
 msgid "Could not take a screenshot"
 msgstr "Impossible de prendre une capture d'écran"
 
+msgid "Could not update pin"
+msgstr "Impossible de mettre à jour l'épingle"
+
 msgid "Could not update plugin"
 msgstr "Impossible de mettre à jour le plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "tokens d'entrée, de cache et de sortie"
 msgid "Inputs"
 msgstr "Champs de saisie"
 
+msgid "Insert into prompt"
+msgstr "Insérer dans le prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Le point de vue de l'équipe Superset sur les agents de code parallèles et la productivité des développeurs."
 
@@ -8010,6 +8016,9 @@ msgstr "Ouvrez votre éditeur favori en un clic. VS Code, Cursor, Xcode, les IDE
 
 msgid "Jump to file"
 msgstr "Aller au fichier"
+
+msgid "Jump to message"
+msgstr "Aller au message"
 
 msgid "Jump to user message {position}"
 msgstr "Aller au message utilisateur {position}"
@@ -11155,6 +11164,9 @@ msgstr "Épingler"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Épinglez un espace de travail pour continuer sa session d'agent entre les exécutions"
 
+msgid "Pin message"
+msgstr "Épingler le message"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Épinglez des espaces de travail au-dessus de vos projets, puis sélectionnez-en un lot avec ⌘ + clic pour les déplacer, les grouper ou les supprimer d'un coup."
 
@@ -11751,6 +11763,9 @@ msgstr "Quitter complètement Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Quittez d'abord le navigateur source pour que ses identifiants soient enregistrés sur le disque. Vous devrez autoriser l'accès au trousseau."
+
+msgid "Quote"
+msgstr "Citer"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Impayée"
 
 msgid "Unpin"
 msgstr "Désépingler"
+
+msgid "Unpin message"
+msgstr "Retirer l'épingle"
 
 msgctxt "github release action"
 msgid "Unpublished"

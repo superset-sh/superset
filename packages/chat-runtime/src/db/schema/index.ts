@@ -1,2 +1,7 @@
-export type { ChatSessionRow, JournalRow } from "./schema";
-export { CHAT_DB_FILENAME, chatJournal, chatSessionsLocal } from "./schema";
+export type { ChatPinRow, ChatSessionRow, JournalRow } from "./schema";
+export {
+	CHAT_DB_FILENAME,
+	chatJournal,
+	chatPins,
+	chatSessionsLocal,
+} from "./schema";

@@ -4388,6 +4388,9 @@ msgstr "Не удалось отправить промпт. Повторите.
 msgid "Could not take a screenshot"
 msgstr "Не удалось сделать скриншот"
 
+msgid "Could not update pin"
+msgstr "Не удалось обновить закрепление"
+
 msgid "Could not update plugin"
 msgstr "Не удалось обновить плагин"
 
@@ -7721,6 +7724,9 @@ msgstr "токены ввода, кеша и вывода"
 msgid "Inputs"
 msgstr "Поля ввода"
 
+msgid "Insert into prompt"
+msgstr "Вставить в промпт"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Мысли команды Superset о параллельных кодовых агентах и продуктивности разработчиков."
 
@@ -8010,6 +8016,9 @@ msgstr "Переходите в любимый редактор одним кл�
 
 msgid "Jump to file"
 msgstr "Перейти к файлу"
+
+msgid "Jump to message"
+msgstr "Перейти к сообщению"
 
 msgid "Jump to user message {position}"
 msgstr "Перейти к сообщению пользователя {position}"
@@ -11155,6 +11164,9 @@ msgstr "Закрепить"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Закрепите рабочее пространство, чтобы продолжать его сессию агента между запусками"
 
+msgid "Pin message"
+msgstr "Закрепить сообщение"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Закрепляйте рабочие области над проектами, затем выделяйте пачку через ⌘-клик, чтобы переместить, сгруппировать или удалить всё сразу."
 
@@ -11751,6 +11763,9 @@ msgstr "Полностью выйти из Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Сначала закройте исходный браузер, чтобы его логины сохранились на диск. Потребуется разрешить доступ к Keychain."
+
+msgid "Quote"
+msgstr "Цитировать"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Не оплачен"
 
 msgid "Unpin"
 msgstr "Открепить"
+
+msgid "Unpin message"
+msgstr "Открепить сообщение"
 
 msgctxt "github release action"
 msgid "Unpublished"

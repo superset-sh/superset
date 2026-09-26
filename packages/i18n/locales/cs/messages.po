@@ -4388,6 +4388,9 @@ msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
 msgid "Could not take a screenshot"
 msgstr "Nepodařilo se pořídit snímek obrazovky"
 
+msgid "Could not update pin"
+msgstr "Připnutí se nepodařilo aktualizovat"
+
 msgid "Could not update plugin"
 msgstr "Plugin se nepodařilo aktualizovat"
 
@@ -7721,6 +7724,9 @@ msgstr "vstupní tokeny, tokeny cache a výstupní tokeny"
 msgid "Inputs"
 msgstr "Vstupy"
 
+msgid "Insert into prompt"
+msgstr "Vložit do promptu"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Postřehy týmu Superset o paralelních kódovacích agentech a produktivitě vývojářů."
 
@@ -8010,6 +8016,9 @@ msgstr "Skočte do svého oblíbeného editoru jedním kliknutím. VS Code, Curs
 
 msgid "Jump to file"
 msgstr "Přejít na soubor"
+
+msgid "Jump to message"
+msgstr "Přejít na zprávu"
 
 msgid "Jump to user message {position}"
 msgstr "Přejít na zprávu uživatele {position}"
@@ -11155,6 +11164,9 @@ msgstr "Připnout"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Připněte pracovní prostor, aby jeho relace agenta pokračovala mezi spuštěními"
 
+msgid "Pin message"
+msgstr "Připnout zprávu"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Připněte si pracovní prostory nad projekty a pak ⌘-kliknutím vyberte skupinu, kterou přesunete, seskupíte nebo smažete naráz."
 
@@ -11751,6 +11763,9 @@ msgstr "Úplně ukončit Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Nejprve zdrojový prohlížeč ukončete, aby se jeho přihlášení uložila na disk. Budete požádáni o povolení přístupu ke Klíčence."
+
+msgid "Quote"
+msgstr "Citovat"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Nezaplacená"
 
 msgid "Unpin"
 msgstr "Odepnout"
+
+msgid "Unpin message"
+msgstr "Odepnout zprávu"
 
 msgctxt "github release action"
 msgid "Unpublished"

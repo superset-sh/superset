@@ -4388,6 +4388,9 @@ msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 msgid "Could not take a screenshot"
 msgstr "Kan geen screenshot maken"
 
+msgid "Could not update pin"
+msgstr "Kon vastzetting niet bijwerken"
+
 msgid "Could not update plugin"
 msgstr "Kan plugin niet bijwerken"
 
@@ -7721,6 +7724,9 @@ msgstr "input-, cache- en outputtokens"
 msgid "Inputs"
 msgstr "Invoervelden"
 
+msgid "Insert into prompt"
+msgstr "Invoegen in prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Inzichten van het Superset-team over parallelle coding agents en productiviteit van ontwikkelaars."
 
@@ -8010,6 +8016,9 @@ msgstr "Spring met één klik in je favoriete editor. VS Code, Cursor, Xcode, Je
 
 msgid "Jump to file"
 msgstr "Naar bestand springen"
+
+msgid "Jump to message"
+msgstr "Ga naar bericht"
 
 msgid "Jump to user message {position}"
 msgstr "Naar gebruikersbericht {position}"
@@ -11155,6 +11164,9 @@ msgstr "Vastzetten"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Zet een workspace vast om de agentsessie tussen runs voort te zetten"
 
+msgid "Pin message"
+msgstr "Bericht vastzetten"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Zet werkruimtes vast boven je projecten en ⌘-klik daarna een reeks om ze in één keer te verplaatsen, groeperen of verwijderen."
 
@@ -11751,6 +11763,9 @@ msgstr "Superset volledig afsluiten"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Sluit eerst de bronbrowser af zodat de logins naar schijf worden weggeschreven. Er wordt om toegang tot de Sleutelhanger gevraagd."
+
+msgid "Quote"
+msgstr "Citeren"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Onbetaald"
 
 msgid "Unpin"
 msgstr "Losmaken"
+
+msgid "Unpin message"
+msgstr "Bericht losmaken"
 
 msgctxt "github release action"
 msgid "Unpublished"

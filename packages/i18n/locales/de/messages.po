@@ -4388,6 +4388,9 @@ msgstr "Prompt konnte nicht eingereicht werden. Versuche es erneut."
 msgid "Could not take a screenshot"
 msgstr "Es konnte kein Screenshot erstellt werden"
 
+msgid "Could not update pin"
+msgstr "Pin konnte nicht aktualisiert werden"
+
 msgid "Could not update plugin"
 msgstr "Plugin konnte nicht aktualisiert werden"
 
@@ -7721,6 +7724,9 @@ msgstr "Eingabe-, Cache- und Ausgabe-Tokens"
 msgid "Inputs"
 msgstr "Eingaben"
 
+msgid "Insert into prompt"
+msgstr "In den Prompt einfügen"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Einblicke vom Superset-Team zu parallelen Coding-Agenten und Entwicklerproduktivität."
 
@@ -8010,6 +8016,9 @@ msgstr "Spring mit einem Klick in deinen Lieblingseditor. VS Code, Cursor, Xcode
 
 msgid "Jump to file"
 msgstr "Zu Datei springen"
+
+msgid "Jump to message"
+msgstr "Zur Nachricht springen"
 
 msgid "Jump to user message {position}"
 msgstr "Zu Nutzernachricht {position} springen"
@@ -11155,6 +11164,9 @@ msgstr "Anheften"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Hefte einen Workspace an, um seine Agent-Sitzung über Läufe hinweg fortzusetzen"
 
+msgid "Pin message"
+msgstr "Nachricht anheften"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Hefte Arbeitsbereiche über deine Projekte, dann per ⌘-Klick eine Auswahl treffen und alle auf einmal verschieben, gruppieren oder löschen."
 
@@ -11751,6 +11763,9 @@ msgstr "Superset vollständig beenden"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Beende zuerst den Quellbrowser, damit seine Logins auf die Festplatte geschrieben werden. Du wirst um Zugriff auf den Schlüsselbund gebeten."
+
+msgid "Quote"
+msgstr "Zitieren"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Unbezahlt"
 
 msgid "Unpin"
 msgstr "Lösen"
+
+msgid "Unpin message"
+msgstr "Anheftung aufheben"
 
 msgctxt "github release action"
 msgid "Unpublished"

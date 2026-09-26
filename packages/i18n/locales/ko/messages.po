@@ -4388,6 +4388,9 @@ msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 msgid "Could not take a screenshot"
 msgstr "스크린샷을 찍을 수 없습니다"
 
+msgid "Could not update pin"
+msgstr "고정을 업데이트할 수 없습니다"
+
 msgid "Could not update plugin"
 msgstr "플러그인을 업데이트할 수 없습니다"
 
@@ -7721,6 +7724,9 @@ msgstr "입력, 캐시, 출력 토큰"
 msgid "Inputs"
 msgstr "입력"
 
+msgid "Insert into prompt"
+msgstr "프롬프트에 삽입"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "병렬 코딩 에이전트와 개발자 생산성에 대한 Superset 팀의 인사이트."
 
@@ -8010,6 +8016,9 @@ msgstr "클릭 한 번으로 즐겨 쓰는 에디터로 이동하세요. VS Code
 
 msgid "Jump to file"
 msgstr "파일로 이동"
+
+msgid "Jump to message"
+msgstr "메시지로 이동"
 
 msgid "Jump to user message {position}"
 msgstr "사용자 메시지 {position}(으)로 이동"
@@ -11155,6 +11164,9 @@ msgstr "고정"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "실행 간에 에이전트 세션을 계속하려면 워크스페이스를 고정하세요"
 
+msgid "Pin message"
+msgstr "메시지 고정"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "워크스페이스를 프로젝트 위에 고정하고, ⌘ 클릭으로 여러 개를 골라 한 번에 옮기거나, 묶거나, 삭제하세요."
 
@@ -11751,6 +11763,9 @@ msgstr "Superset 완전히 종료"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "로그인 정보가 디스크에 저장되도록 원본 브라우저를 먼저 종료하세요. 키체인 접근 허용을 요청받게 됩니다."
+
+msgid "Quote"
+msgstr "인용"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16125,6 +16140,9 @@ msgid "Unpaid"
 msgstr "미결제"
 
 msgid "Unpin"
+msgstr "고정 해제"
+
+msgid "Unpin message"
 msgstr "고정 해제"
 
 msgctxt "github release action"

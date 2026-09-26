@@ -4388,6 +4388,9 @@ msgstr "Không thể gửi prompt. Hãy thử lại."
 msgid "Could not take a screenshot"
 msgstr "Không thể chụp màn hình"
 
+msgid "Could not update pin"
+msgstr "Không thể cập nhật ghim"
+
 msgid "Could not update plugin"
 msgstr "Không thể cập nhật plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "token đầu vào, cache và đầu ra"
 msgid "Inputs"
 msgstr "Đầu vào"
 
+msgid "Insert into prompt"
+msgstr "Chèn vào prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Góc nhìn từ đội ngũ Superset về coding agent chạy song song và năng suất của lập trình viên."
 
@@ -8010,6 +8016,9 @@ msgstr "Nhảy vào editor yêu thích chỉ với một cú nhấp. VS Code, Cu
 
 msgid "Jump to file"
 msgstr "Nhảy tới tệp"
+
+msgid "Jump to message"
+msgstr "Đi tới tin nhắn"
 
 msgid "Jump to user message {position}"
 msgstr "Nhảy tới tin nhắn người dùng {position}"
@@ -11155,6 +11164,9 @@ msgstr "Ghim"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Ghim một workspace để tiếp tục phiên agent giữa các lần chạy"
 
+msgid "Pin message"
+msgstr "Ghim tin nhắn"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Ghim workspace lên trên các dự án, rồi ⌘-nhấp một loạt để chuyển, gom nhóm hoặc xóa tất cả cùng lúc."
 
@@ -11751,6 +11763,9 @@ msgstr "Thoát hẳn Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Thoát trình duyệt nguồn trước để thông tin đăng nhập được lưu xuống đĩa. Bạn sẽ được hỏi cho phép truy cập Keychain."
+
+msgid "Quote"
+msgstr "Trích dẫn"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Chưa thanh toán"
 
 msgid "Unpin"
 msgstr "Bỏ ghim"
+
+msgid "Unpin message"
+msgstr "Bỏ ghim tin nhắn"
 
 msgctxt "github release action"
 msgid "Unpublished"

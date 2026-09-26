@@ -4388,6 +4388,9 @@ msgstr "プロンプトを送信できませんでした。もう一度お試し
 msgid "Could not take a screenshot"
 msgstr "スクリーンショットを撮れませんでした"
 
+msgid "Could not update pin"
+msgstr "ピンを更新できませんでした"
+
 msgid "Could not update plugin"
 msgstr "プラグインを更新できませんでした"
 
@@ -7721,6 +7724,9 @@ msgstr "入力・キャッシュ・出力トークン"
 msgid "Inputs"
 msgstr "入力"
 
+msgid "Insert into prompt"
+msgstr "プロンプトに挿入"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "並列コーディングエージェントと開発者の生産性について、Supersetチームからの知見。"
 
@@ -8010,6 +8016,9 @@ msgstr "ワンクリックでお気に入りのエディタに移動できます
 
 msgid "Jump to file"
 msgstr "ファイルへジャンプ"
+
+msgid "Jump to message"
+msgstr "メッセージへ移動"
 
 msgid "Jump to user message {position}"
 msgstr "ユーザーメッセージ{position}に移動"
@@ -11155,6 +11164,9 @@ msgstr "ピン留め"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "実行間でエージェントセッションを継続するには、ワークスペースをピン留めしてください"
 
+msgid "Pin message"
+msgstr "メッセージをピン留めする"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "ワークスペースをプロジェクトの上にピン留めし、⌘クリックでまとめて選んで移動、グループ化、削除ができます。"
 
@@ -11751,6 +11763,9 @@ msgstr "Supersetを完全に終了"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "ログイン情報をディスクに保存させるため、先に元のブラウザを終了してください。キーチェーンへのアクセス許可を求められます。"
+
+msgid "Quote"
+msgstr "引用"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "未払い"
 
 msgid "Unpin"
 msgstr "ピン留めを解除"
+
+msgid "Unpin message"
+msgstr "ピン留めを外す"
 
 msgctxt "github release action"
 msgid "Unpublished"

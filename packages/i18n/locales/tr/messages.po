@@ -4388,6 +4388,9 @@ msgstr "İstem gönderilemedi. Yeniden deneyin."
 msgid "Could not take a screenshot"
 msgstr "Ekran görüntüsü alınamadı"
 
+msgid "Could not update pin"
+msgstr "Sabitleme güncellenemedi"
+
 msgid "Could not update plugin"
 msgstr "Eklenti güncellenemedi"
 
@@ -7721,6 +7724,9 @@ msgstr "girdi, önbellek ve çıktı token'ları"
 msgid "Inputs"
 msgstr "Girişler"
 
+msgid "Insert into prompt"
+msgstr "İsteme ekle"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Superset ekibinden paralel kodlama ajanları ve geliştirici verimliliği üzerine görüşler."
 
@@ -8010,6 +8016,9 @@ msgstr "Tek tıkla en sevdiğiniz düzenleyiciye atlayın. VS Code, Cursor, Xcod
 
 msgid "Jump to file"
 msgstr "Dosyaya git"
+
+msgid "Jump to message"
+msgstr "Mesaja git"
 
 msgid "Jump to user message {position}"
 msgstr "{position} numaralı kullanıcı mesajına git"
@@ -11155,6 +11164,9 @@ msgstr "Sabitle"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Çalıştırmalar arasında aracı oturumunu sürdürmek için bir çalışma alanı sabitleyin"
 
+msgid "Pin message"
+msgstr "Mesajı sabitle"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Çalışma alanlarını projelerinizin üstüne sabitleyin, sonra ⌘ ile bir grup seçip hepsini birden taşıyın, gruplayın veya silin."
 
@@ -11751,6 +11763,9 @@ msgstr "Superset'ten tamamen çık"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Oturum bilgilerinin diske kaydedilmesi için önce kaynak tarayıcıdan çıkın. Anahtar Zinciri erişimine izin vermeniz istenecek."
+
+msgid "Quote"
+msgstr "Alıntıla"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16125,6 +16140,9 @@ msgid "Unpaid"
 msgstr "Ödenmemiş"
 
 msgid "Unpin"
+msgstr "Sabitlemeyi kaldır"
+
+msgid "Unpin message"
 msgstr "Sabitlemeyi kaldır"
 
 msgctxt "github release action"

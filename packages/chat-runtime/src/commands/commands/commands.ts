@@ -1,25 +1,35 @@
 import { randomUUID } from "node:crypto";
 import type {
+	AddPinInput,
 	CancelTurnInput,
 	Cursor,
 	GetItemsInput,
 	GetSessionInput,
+	ListPinsInput,
 	PromptInput,
+	RemovePinInput,
+	RenamePinInput,
 	RespondToApprovalInput,
 	SetModeInput,
 } from "@superset/chat/protocol";
 import {
+	addPinInputSchema,
 	cancelTurnInputSchema,
 	createSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
+	listPinsInputSchema,
 	listSessionsInputSchema,
 	promptInputSchema,
+	removePinInputSchema,
+	renamePinInputSchema,
 	respondToApprovalInputSchema,
 	setModeInputSchema,
 } from "@superset/chat/protocol";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import type { ChatDb, ChatSessionRow } from "../../db";
+import type { ChatDb, ChatPinRow, ChatSessionRow } from "../../db";
+import { chatPins } from "../../db";
 import type { ChatJournal } from "../../journal";
 import type { ChatSessionStore } from "../../projection";
 import type { PageResult } from "../../replay";
@@ -59,6 +69,10 @@ export type ChatCommands = {
 	getSession(input: GetSessionInput): GetSessionResult;
 	listSessions(input: ListSessionsCommandInput): ChatSessionRow[];
 	getItems(input: z.input<typeof getItemsInputSchema>): PageResult;
+	addPin(input: AddPinInput): ChatPinRow;
+	removePin(input: RemovePinInput): void;
+	renamePin(input: RenamePinInput): ChatPinRow | null;
+	listPins(input: ListPinsInput): ChatPinRow[];
 };
 
 export type CommandsOptions = {
@@ -166,6 +180,94 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				before: parsed.before,
 				limit: parsed.limit,
 			});
+		},
+
+		addPin(input) {
+			const parsed: AddPinInput = addPinInputSchema.parse(input);
+			return options.dedupe.run(`addPin:${parsed.commandId}`, () => {
+				options.db
+					.insert(chatPins)
+					.values({
+						sessionId: parsed.sessionId,
+						itemId: parsed.itemId,
+						label: parsed.label,
+						snapshotText: parsed.snapshotText,
+						createdAt: Date.now(),
+					})
+					.onConflictDoUpdate({
+						target: [chatPins.sessionId, chatPins.itemId],
+						set: {
+							label: parsed.label,
+							snapshotText: parsed.snapshotText,
+						},
+					})
+					.run();
+				const row = options.db
+					.select()
+					.from(chatPins)
+					.where(
+						and(
+							eq(chatPins.sessionId, parsed.sessionId),
+							eq(chatPins.itemId, parsed.itemId),
+						),
+					)
+					.get();
+				if (!row) throw new Error("pin not found after insert");
+				return row;
+			});
+		},
+
+		removePin(input) {
+			const parsed: RemovePinInput = removePinInputSchema.parse(input);
+			options.dedupe.run(`removePin:${parsed.commandId}`, () => {
+				options.db
+					.delete(chatPins)
+					.where(
+						and(
+							eq(chatPins.sessionId, parsed.sessionId),
+							eq(chatPins.itemId, parsed.itemId),
+						),
+					)
+					.run();
+			});
+		},
+
+		renamePin(input) {
+			const parsed: RenamePinInput = renamePinInputSchema.parse(input);
+			return options.dedupe.run(`renamePin:${parsed.commandId}`, () => {
+				options.db
+					.update(chatPins)
+					.set({ label: parsed.label })
+					.where(
+						and(
+							eq(chatPins.sessionId, parsed.sessionId),
+							eq(chatPins.itemId, parsed.itemId),
+						),
+					)
+					.run();
+				return (
+					options.db
+						.select()
+						.from(chatPins)
+						.where(
+							and(
+								eq(chatPins.sessionId, parsed.sessionId),
+								eq(chatPins.itemId, parsed.itemId),
+							),
+						)
+						.get() ?? null
+				);
+			});
+		},
+
+		listPins(input) {
+			const parsed: ListPinsInput = listPinsInputSchema.parse(input);
+			return options.db
+				.select()
+				.from(chatPins)
+				.where(eq(chatPins.sessionId, parsed.sessionId))
+				.orderBy(asc(chatPins.createdAt))
+				.all();
 		},
 	};
 }

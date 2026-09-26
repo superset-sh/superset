@@ -4388,6 +4388,9 @@ msgstr "Nie udało się wysłać promptu. Spróbuj ponownie."
 msgid "Could not take a screenshot"
 msgstr "Nie udało się zrobić zrzutu ekranu"
 
+msgid "Could not update pin"
+msgstr "Nie można zaktualizować przypięcia"
+
 msgid "Could not update plugin"
 msgstr "Nie udało się zaktualizować wtyczki"
 
@@ -7721,6 +7724,9 @@ msgstr "tokeny wejściowe, cache i wyjściowe"
 msgid "Inputs"
 msgstr "Pola wejściowe"
 
+msgid "Insert into prompt"
+msgstr "Wstaw do promptu"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Spostrzeżenia zespołu Superset o równoległych agentach kodujących i produktywności programistów."
 
@@ -8010,6 +8016,9 @@ msgstr "Przeskocz do ulubionego edytora jednym kliknięciem. VS Code, Cursor, Xc
 
 msgid "Jump to file"
 msgstr "Przejdź do pliku"
+
+msgid "Jump to message"
+msgstr "Przejdź do wiadomości"
 
 msgid "Jump to user message {position}"
 msgstr "Przejdź do wiadomości użytkownika {position}"
@@ -11155,6 +11164,9 @@ msgstr "Przypnij"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Przypnij obszar roboczy, aby kontynuować jego sesję agenta między uruchomieniami"
 
+msgid "Pin message"
+msgstr "Przypnij wiadomość"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Przypnij obszary robocze nad projektami, a potem ⌘-kliknij grupę, aby przenieść, pogrupować lub usunąć je naraz."
 
@@ -11751,6 +11763,9 @@ msgstr "Zakończ Superset całkowicie"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Najpierw zamknij źródłową przeglądarkę, aby jej dane logowania zapisały się na dysku. Pojawi się prośba o dostęp do Keychain."
+
+msgid "Quote"
+msgstr "Cytuj"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Nieopłacona"
 
 msgid "Unpin"
 msgstr "Odepnij"
+
+msgid "Unpin message"
+msgstr "Odepnij wiadomość"
 
 msgctxt "github release action"
 msgid "Unpublished"

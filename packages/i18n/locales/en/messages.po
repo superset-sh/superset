@@ -4388,6 +4388,9 @@ msgstr "Could not submit prompt. Try again."
 msgid "Could not take a screenshot"
 msgstr "Could not take a screenshot"
 
+msgid "Could not update pin"
+msgstr "Could not update pin"
+
 msgid "Could not update plugin"
 msgstr "Could not update plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "input, cache and output tokens"
 msgid "Inputs"
 msgstr "Inputs"
 
+msgid "Insert into prompt"
+msgstr "Insert into prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Insights from the Superset team about parallel coding agents and developer productivity."
 
@@ -8010,6 +8016,9 @@ msgstr "Jump into your favorite editor with one click. VS Code, Cursor, Xcode, J
 
 msgid "Jump to file"
 msgstr "Jump to file"
+
+msgid "Jump to message"
+msgstr "Jump to message"
 
 msgid "Jump to user message {position}"
 msgstr "Jump to user message {position}"
@@ -11155,6 +11164,9 @@ msgstr "Pin"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Pin a workspace to continue its agent session between runs"
 
+msgid "Pin message"
+msgstr "Pin message"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 
@@ -11751,6 +11763,9 @@ msgstr "Quit Superset Completely"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
+
+msgid "Quote"
+msgstr "Quote"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Unpaid"
 
 msgid "Unpin"
 msgstr "Unpin"
+
+msgid "Unpin message"
+msgstr "Unpin message"
 
 msgctxt "github release action"
 msgid "Unpublished"

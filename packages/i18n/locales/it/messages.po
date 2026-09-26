@@ -4388,6 +4388,9 @@ msgstr "Impossibile inviare il prompt. Riprova."
 msgid "Could not take a screenshot"
 msgstr "Impossibile fare uno screenshot"
 
+msgid "Could not update pin"
+msgstr "Impossibile aggiornare il fissaggio"
+
 msgid "Could not update plugin"
 msgstr "Impossibile aggiornare il plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "token di input, cache e output"
 msgid "Inputs"
 msgstr "Input"
 
+msgid "Insert into prompt"
+msgstr "Inserisci nel prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Approfondimenti del team Superset su agenti di programmazione in parallelo e produttività degli sviluppatori."
 
@@ -8010,6 +8016,9 @@ msgstr "Salta nel tuo editor preferito con un clic. VS Code, Cursor, Xcode, gli 
 
 msgid "Jump to file"
 msgstr "Vai al file"
+
+msgid "Jump to message"
+msgstr "Vai al messaggio"
 
 msgid "Jump to user message {position}"
 msgstr "Vai al messaggio utente {position}"
@@ -11155,6 +11164,9 @@ msgstr "Fissa"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Fissa un workspace per continuare la sessione dell'agente tra le esecuzioni"
 
+msgid "Pin message"
+msgstr "Fissa il messaggio"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fissa i workspace sopra i tuoi progetti, poi seleziona un gruppo con ⌘-clic per spostarli, raggrupparli o eliminarli tutti insieme."
 
@@ -11751,6 +11763,9 @@ msgstr "Esci completamente da Superset"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Chiudi prima il browser di origine, così i suoi accessi vengono salvati su disco. Ti verrà chiesto di consentire l'accesso al Portachiavi."
+
+msgid "Quote"
+msgstr "Cita"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16125,6 +16140,9 @@ msgid "Unpaid"
 msgstr "Non pagata"
 
 msgid "Unpin"
+msgstr "Rimuovi dai fissati"
+
+msgid "Unpin message"
 msgstr "Rimuovi dai fissati"
 
 msgctxt "github release action"

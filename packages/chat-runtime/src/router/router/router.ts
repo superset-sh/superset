@@ -1,10 +1,14 @@
 import {
+	addPinInputSchema,
 	cancelTurnInputSchema,
 	createSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
+	listPinsInputSchema,
 	listSessionsInputSchema,
 	promptInputSchema,
+	removePinInputSchema,
+	renamePinInputSchema,
 	respondToApprovalInputSchema,
 	setModeInputSchema,
 } from "@superset/chat/protocol";
@@ -109,6 +113,22 @@ export function createChatRouter(
 		getItems: t.procedure
 			.input(getItemsInputSchema)
 			.query(({ input }) => runtime.commands.getItems(input)),
+
+		addPin: t.procedure
+			.input(addPinInputSchema)
+			.mutation(({ input }) => runtime.commands.addPin(input)),
+
+		removePin: t.procedure
+			.input(removePinInputSchema)
+			.mutation(({ input }) => runtime.commands.removePin(input)),
+
+		renamePin: t.procedure
+			.input(renamePinInputSchema)
+			.mutation(({ input }) => runtime.commands.renamePin(input)),
+
+		listPins: t.procedure
+			.input(listPinsInputSchema)
+			.query(({ input }) => runtime.commands.listPins(input)),
 	});
 }
 

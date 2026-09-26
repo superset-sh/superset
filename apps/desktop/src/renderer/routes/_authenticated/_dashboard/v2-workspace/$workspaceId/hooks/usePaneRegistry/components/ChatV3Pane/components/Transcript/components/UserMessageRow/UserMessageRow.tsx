@@ -1,9 +1,22 @@
 import { Trans } from "@lingui/react/macro";
-import type { UserMessage } from "@superset/chat/protocol";
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import type { Item, UserMessage } from "@superset/chat/protocol";
+import {
+	Message,
+	MessageActions,
+	MessageContent,
+} from "@superset/ui/ai-elements/message";
 import { Badge } from "@superset/ui/badge";
+import { MessagePinAction } from "../MessagePinAction";
 
-export function UserMessageRow({ item }: { item: UserMessage }) {
+export function UserMessageRow({
+	isPinned,
+	item,
+	onTogglePin,
+}: {
+	item: UserMessage;
+	isPinned: boolean;
+	onTogglePin: (item: Item) => void;
+}) {
 	const text = item.content
 		.filter((content) => content.type === "text")
 		.map((content) => content.text)
@@ -30,6 +43,18 @@ export function UserMessageRow({ item }: { item: UserMessage }) {
 					</Badge>
 				)}
 			</MessageContent>
+			<MessageActions
+				className={`mr-1 h-7 self-end transition-opacity ${
+					isPinned
+						? "opacity-100"
+						: "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+				}`}
+			>
+				<MessagePinAction
+					isPinned={isPinned}
+					onToggle={() => onTogglePin(item)}
+				/>
+			</MessageActions>
 		</Message>
 	);
 }

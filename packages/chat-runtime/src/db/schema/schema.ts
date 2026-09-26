@@ -40,3 +40,20 @@ export const chatSessionsLocal = sqliteTable(
 
 export type JournalRow = typeof chatJournal.$inferSelect;
 export type ChatSessionRow = typeof chatSessionsLocal.$inferSelect;
+
+export const chatPins = sqliteTable(
+	"chat_pins",
+	{
+		sessionId: text("session_id").notNull(),
+		itemId: text("item_id").notNull(),
+		label: text().notNull(),
+		snapshotText: text("snapshot_text").notNull(),
+		createdAt: integer("created_at").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.sessionId, table.itemId] }),
+		index("chat_pins_session_id_idx").on(table.sessionId),
+	],
+);
+
+export type ChatPinRow = typeof chatPins.$inferSelect;

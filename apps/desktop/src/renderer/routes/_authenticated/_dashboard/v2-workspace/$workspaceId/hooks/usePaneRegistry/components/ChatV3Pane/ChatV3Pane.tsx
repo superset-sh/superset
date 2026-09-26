@@ -64,6 +64,7 @@ export function ChatV3Pane({
 			onFirstPromptSent={() => setPendingFirstPrompt(null)}
 			pendingFirstPrompt={pendingFirstPrompt}
 			sessionId={sessionId}
+			transport={wiring.transport}
 		/>
 	);
 }

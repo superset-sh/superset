@@ -4388,6 +4388,9 @@ msgstr "No se pudo enviar el prompt. Inténtalo de nuevo."
 msgid "Could not take a screenshot"
 msgstr "No se pudo hacer la captura"
 
+msgid "Could not update pin"
+msgstr "No se pudo actualizar la fijación"
+
 msgid "Could not update plugin"
 msgstr "No se pudo actualizar el plugin"
 
@@ -7721,6 +7724,9 @@ msgstr "tokens de entrada, caché y salida"
 msgid "Inputs"
 msgstr "Entradas"
 
+msgid "Insert into prompt"
+msgstr "Insertar en el prompt"
+
 msgid "Insights from the Superset team about parallel coding agents and developer productivity."
 msgstr "Análisis del equipo de Superset sobre agentes de código en paralelo y productividad de desarrollo."
 
@@ -8010,6 +8016,9 @@ msgstr "Salta a tu editor favorito con un clic. VS Code, Cursor, Xcode, los IDE 
 
 msgid "Jump to file"
 msgstr "Ir al archivo"
+
+msgid "Jump to message"
+msgstr "Ir al mensaje"
 
 msgid "Jump to user message {position}"
 msgstr "Ir al mensaje de usuario {position}"
@@ -11155,6 +11164,9 @@ msgstr "Fijar"
 msgid "Pin a workspace to continue its agent session between runs"
 msgstr "Fija un espacio de trabajo para continuar su sesión de agente entre ejecuciones"
 
+msgid "Pin message"
+msgstr "Fijar mensaje"
+
 msgid "Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once."
 msgstr "Fija espacios de trabajo por encima de tus proyectos y luego haz ⌘-clic en varios para moverlos, agruparlos o eliminarlos de una vez."
 
@@ -11751,6 +11763,9 @@ msgstr "Salir de Superset por completo"
 
 msgid "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 msgstr "Cerrar primero el navegador de origen para que sus inicios de sesión se guarden en disco. Se pedirá permiso para acceder al Llavero."
+
+msgid "Quote"
+msgstr "Citar"
 
 msgid "Radix Primitives"
 msgstr "Radix Primitives"
@@ -16126,6 +16141,9 @@ msgstr "Sin pagar"
 
 msgid "Unpin"
 msgstr "Desfijar"
+
+msgid "Unpin message"
+msgstr "Desfijar mensaje"
 
 msgctxt "github release action"
 msgid "Unpublished"
