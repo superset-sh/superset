@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { CLIError } from "@superset/cli-framework";
 import {
 	assertInstallable,
@@ -171,6 +174,62 @@ describe("buildSetupScript", () => {
 		expect(last).toContain("status --json");
 		expect(last).not.toContain("1>&2");
 		for (const line of lines.slice(0, -1)) expect(line).toContain("1>&2");
+	});
+});
+
+describe("the probe classifies machine-id the way getHostId does", () => {
+	// getHostId() reads /etc/machine-id and only falls back to the dbus file
+	// when that read throws, so an empty-but-readable /etc/machine-id yields ""
+	// and the colliding host id. Probing the dbus file on *empty* would report a
+	// colliding box as fine — which is what a real container did.
+	async function classify(files: Record<string, string | null>) {
+		const dir = mkdtempSync(join(tmpdir(), "machine-id-"));
+		for (const [name, content] of Object.entries(files)) {
+			if (content === null) continue;
+			writeFileSync(join(dir, name), content);
+		}
+		// Same branch shape as the generated script, against real files.
+		const script = `
+content=''
+readable=no
+if [ -r ${dir}/etc ]; then
+  content="$(cat ${dir}/etc 2>/dev/null || true)"
+  readable=yes
+elif [ -r ${dir}/dbus ]; then
+  content="$(cat ${dir}/dbus 2>/dev/null || true)"
+  readable=yes
+fi
+if [ "$readable" = no ]; then echo present
+elif [ -z "$content" ]; then echo empty
+else echo present
+fi`;
+		const proc = Bun.spawn(["sh", "-s"], {
+			stdin: new TextEncoder().encode(script),
+			stdout: "pipe",
+		});
+		const out = (await new Response(proc.stdout).text()).trim();
+		rmSync(dir, { recursive: true, force: true });
+		return out;
+	}
+
+	test("empty /etc/machine-id is the collision even when a dbus id exists", async () => {
+		expect(
+			await classify({ etc: "", dbus: "c8ae84e02c7b6cca68c4a9036ab7f14d" }),
+		).toBe("empty");
+	});
+
+	test("a populated /etc/machine-id is machine-specific", async () => {
+		expect(await classify({ etc: "c8ae84e02c7b6cca68c4a9036ab7f14d" })).toBe(
+			"present",
+		);
+	});
+
+	test("no /etc/machine-id falls through to the dbus id", async () => {
+		expect(await classify({ etc: null, dbus: "aa11bb22" })).toBe("present");
+	});
+
+	test("neither file readable is the hostname fallback, not a collision", async () => {
+		expect(await classify({ etc: null, dbus: null })).toBe("present");
 	});
 });
 

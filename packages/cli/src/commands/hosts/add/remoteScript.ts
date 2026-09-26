@@ -10,8 +10,9 @@ export interface RemoteProbe {
 	version: string | null;
 	hasCurl: boolean;
 	/**
-	 * Linux only. "empty" means every host id derived on this box collides
-	 * with every other box whose /etc/machine-id is empty.
+	 * Classified by what getHostId() would derive, not by which files exist:
+	 * "empty" means this box derives the colliding host id, "present" means a
+	 * machine-specific one, "unknown" means not Linux (macOS uses ioreg).
 	 */
 	machineId: "empty" | "present" | "unknown";
 }
@@ -50,14 +51,32 @@ printf 'version=%s\\n' "$version"
 
 if command -v curl >/dev/null 2>&1; then printf 'curl=yes\\n'; else printf 'curl=no\\n'; fi
 
+# Mirrors getHostId(), which reads /etc/machine-id and falls back to the dbus
+# file only when that read THROWS. An /etc/machine-id that exists but is empty
+# therefore yields "" and the colliding host id — it does NOT fall through. So
+# the fallback here is on unreadable, never on empty: the dbus package ships a
+# populated /var/lib/dbus/machine-id, and consulting it on empty would report a
+# colliding box as fine.
 machine_id=unknown
 if [ "$(uname -s 2>/dev/null)" = "Linux" ]; then
   content=''
-  if [ -r /etc/machine-id ]; then content="$(cat /etc/machine-id 2>/dev/null || true)"; fi
-  if [ -z "$content" ] && [ -r /var/lib/dbus/machine-id ]; then
+  readable=no
+  if [ -r /etc/machine-id ]; then
+    content="$(cat /etc/machine-id 2>/dev/null || true)"
+    readable=yes
+  elif [ -r /var/lib/dbus/machine-id ]; then
     content="$(cat /var/lib/dbus/machine-id 2>/dev/null || true)"
+    readable=yes
   fi
-  if [ -z "$content" ]; then machine_id=empty; else machine_id=present; fi
+  if [ "$readable" = no ]; then
+    # Neither file readable: getHostId falls back to a hostname-derived id,
+    # which is machine-specific and does not collide.
+    machine_id=present
+  elif [ -z "$content" ]; then
+    machine_id=empty
+  else
+    machine_id=present
+  fi
 fi
 printf 'machine_id=%s\\n' "$machine_id"
 `;
