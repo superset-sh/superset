@@ -3,6 +3,7 @@ import type { ServerThread } from "@superset/cloud-client";
 import { formatDate } from "@superset/i18n/format";
 import { getInitials } from "@superset/shared/names";
 import { commentAuthor } from "@superset/shared/page-comments";
+import { Image } from "expo-image";
 import { Bot } from "lucide-react-native";
 import { Pressable, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -51,7 +52,22 @@ export function CommentRow({
 						{formatDate(comment.createdAt)}
 					</Text>
 				</View>
-				<Text className="text-[15px] leading-5">{comment.body}</Text>
+				{comment.body ? (
+					<Text className="text-[15px] leading-5">{comment.body}</Text>
+				) : null}
+				{comment.attachments?.length ? (
+					<View className="flex-row flex-wrap gap-1.5 pt-1">
+						{comment.attachments.map((attachment) => (
+							<Image
+								key={attachment.fileId}
+								source={{ uri: attachment.url }}
+								accessibilityLabel={attachment.name}
+								contentFit="cover"
+								style={{ width: 96, height: 96, borderRadius: 8 }}
+							/>
+						))}
+					</View>
+				) : null}
 				{onReply || onToggleResolved ? (
 					<View className="flex-row items-center gap-4 pt-0.5">
 						{onReply ? (

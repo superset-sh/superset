@@ -2204,6 +2204,9 @@ msgstr "Adını verebileceğimiz en az bir takım, bizimki de dahil, tam bir çe
 msgid "at once"
 msgstr "aynı anda"
 
+msgid "Attach image"
+msgstr "Görsel ekle"
+
 msgid "Attached"
 msgstr "Bağlı"
 
@@ -4545,6 +4548,10 @@ msgstr "Pull request güncellenemedi"
 
 msgid "Couldn't update thread"
 msgstr "Konu güncellenemedi"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "{0} yüklenemedi"
 
 msgid "Couldn’t verify"
 msgstr "Doğrulanamadı"
@@ -7535,6 +7542,9 @@ msgstr "Görsel engellendi: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "Görsel çok büyük (en fazla 10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Görsel bulunamadı — önce yükleyin"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "{0} görsel önizlemesi. Artı ve eksi ile yakınlaştırın, ok tuşlarıyla kaydırın, sıfırlamak için 0 tuşuna basın."
@@ -10216,6 +10226,9 @@ msgstr "Bu konumu yalnızca host sahipleri değiştirebilir."
 msgid "Only host owners can delete this host"
 msgstr "Bu host'u yalnızca host sahipleri silebilir"
 
+msgid "Only images can be attached to a comment"
+msgstr "Bir yoruma yalnızca görsel eklenebilir"
+
 msgid "Only organization owners can delete this project."
 msgstr "Bu projeyi yalnızca kuruluş sahipleri silebilir."
 
@@ -12062,6 +12075,9 @@ msgstr "Kenar çubuğundan kaldır"
 
 msgid "Remove icon"
 msgstr "Simgeyi kaldır"
+
+msgid "Remove image"
+msgstr "Görseli kaldır"
 
 msgid "Remove linked issue"
 msgstr "Bağlı issue'yu kaldır"
@@ -15135,6 +15151,9 @@ msgstr "Ana makine önceki derlemesine geri döndü."
 msgid "The human reads every line before it merges."
 msgstr "İnsan, birleştirilmeden önce her satırı okur."
 
+msgid "The image upload expired — attach it again"
+msgstr "Görsel yüklemesinin süresi doldu — yeniden ekleyin"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "İş tanımı değişir. Mühendisler zevk sahibi daktilocular olmayı bırakıp zevk sahibi dağıtıcılar olur: işi parçalara ayırır, filolara yönlendirir ve aynı modüle dokunan iki ajan arasındaki çakışmalara hakemlik eder."
 
@@ -16482,6 +16501,10 @@ msgstr "Görüntüle"
 msgctxt "menu"
 msgid "View"
 msgstr "Görüntüle"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "{0} görüntüle"
 
 msgid "View {count} pull requests"
 msgstr "{count} pull request görüntüle"

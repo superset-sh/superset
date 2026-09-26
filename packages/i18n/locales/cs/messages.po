@@ -2204,6 +2204,9 @@ msgstr "Alespoň jeden tým, který umíme jmenovat — včetně toho našeho �
 msgid "at once"
 msgstr "najednou"
 
+msgid "Attach image"
+msgstr "Připojit obrázek"
+
 msgid "Attached"
 msgstr "Připojeno"
 
@@ -4545,6 +4548,10 @@ msgstr "Pull request se nepodařilo aktualizovat"
 
 msgid "Couldn't update thread"
 msgstr "Nepodařilo se aktualizovat vlákno"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "{0} se nepodařilo nahrát"
 
 msgid "Couldn’t verify"
 msgstr "Nelze ověřit"
@@ -7535,6 +7542,9 @@ msgstr "Obrázek zablokován: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "Obrázek je příliš velký (max. 10 MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Obrázek nenalezen — nejprve ho nahrajte"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Náhled obrázku {0}. Přibližujte klávesami plus a minus, posouvejte šipkami, stiskem 0 vše obnovíte."
@@ -10216,6 +10226,9 @@ msgstr "Toto umístění mohou měnit jen vlastníci hosta."
 msgid "Only host owners can delete this host"
 msgstr "Tohoto hosta mohou smazat jen jeho vlastníci"
 
+msgid "Only images can be attached to a comment"
+msgstr "Ke komentáři lze připojit pouze obrázky"
+
 msgid "Only organization owners can delete this project."
 msgstr "Tento projekt mohou smazat jen vlastníci organizace."
 
@@ -12062,6 +12075,9 @@ msgstr "Odebrat z postranního panelu"
 
 msgid "Remove icon"
 msgstr "Odebrat ikonu"
+
+msgid "Remove image"
+msgstr "Odebrat obrázek"
 
 msgid "Remove linked issue"
 msgstr "Odebrat propojenou issue"
@@ -15135,6 +15151,9 @@ msgstr "Hostitel se vrátil k předchozímu sestavení."
 msgid "The human reads every line before it merges."
 msgstr "Člověk přečte každý řádek, než se sloučí."
 
+msgid "The image upload expired — attach it again"
+msgstr "Platnost nahrání obrázku vypršela — připojte ho znovu"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Popis práce se posouvá. Z inženýrů přestávají být písaři s vkusem a stávají se dispečery s vkusem: rozkládají práci, směrují ji flotilám a rozsuzují konflikty mezi agenty, kteří sáhli na stejný modul."
 
@@ -16482,6 +16501,10 @@ msgstr "Zobrazit"
 msgctxt "menu"
 msgid "View"
 msgstr "Zobrazit"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "Zobrazit {0}"
 
 msgid "View {count} pull requests"
 msgstr "Zobrazit {count} pull requestů"

@@ -2204,6 +2204,9 @@ msgstr "Almeno un team di cui possiamo fare il nome, incluso il nostro, supera t
 msgid "at once"
 msgstr "in parallelo"
 
+msgid "Attach image"
+msgstr "Allega immagine"
+
 msgid "Attached"
 msgstr "Collegata"
 
@@ -4545,6 +4548,10 @@ msgstr "Impossibile aggiornare la pull request"
 
 msgid "Couldn't update thread"
 msgstr "Impossibile aggiornare il thread"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "Impossibile caricare {0}"
 
 msgid "Couldn’t verify"
 msgstr "Impossibile verificare"
@@ -7535,6 +7542,9 @@ msgstr "Immagine bloccata: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "L'immagine è troppo grande (max 10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Immagine non trovata — caricala prima"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Anteprima dell'immagine di {0}. Zoom con più e meno, sposta con i tasti freccia, premi 0 per reimpostare."
@@ -10216,6 +10226,9 @@ msgstr "Solo i proprietari dell'host possono cambiare questa posizione."
 msgid "Only host owners can delete this host"
 msgstr "Solo i proprietari dell'host possono eliminarlo"
 
+msgid "Only images can be attached to a comment"
+msgstr "A un commento si possono allegare solo immagini"
+
 msgid "Only organization owners can delete this project."
 msgstr "Solo i proprietari dell'organizzazione possono eliminare questo progetto."
 
@@ -12062,6 +12075,9 @@ msgstr "Rimuovi dalla barra laterale"
 
 msgid "Remove icon"
 msgstr "Rimuovi l'icona"
+
+msgid "Remove image"
+msgstr "Rimuovi immagine"
 
 msgid "Remove linked issue"
 msgstr "Rimuovi la issue collegata"
@@ -15135,6 +15151,9 @@ msgstr "L'host è tornato alla build precedente."
 msgid "The human reads every line before it merges."
 msgstr "L'umano legge ogni riga prima del merge."
 
+msgid "The image upload expired — attach it again"
+msgstr "Il caricamento dell'immagine è scaduto — allegala di nuovo"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "La descrizione del lavoro cambia. Gli ingegneri smettono di essere dattilografi con gusto e diventano dispatcher con gusto: scompongono il lavoro, lo instradano alle flotte, arbitrano i conflitti tra agenti che hanno toccato lo stesso modulo."
 
@@ -16482,6 +16501,10 @@ msgstr "Visualizza"
 msgctxt "menu"
 msgid "View"
 msgstr "Visualizza"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "Visualizza {0}"
 
 msgid "View {count} pull requests"
 msgstr "Vedi {count} pull request"

@@ -1,7 +1,10 @@
 "use client";
 
 import { Plural } from "@lingui/react/macro";
-import { isOptimisticId } from "@superset/shared/page-comments";
+import {
+	type ComposedImage,
+	isOptimisticId,
+} from "@superset/shared/page-comments";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../lib/utils";
 import { Button } from "../../../../../ui/button";
@@ -16,7 +19,7 @@ interface PanelThreadProps {
 	active: boolean;
 	servedVersion: number | null;
 	onSelect: () => void;
-	onReply: (body: string) => void | Promise<void>;
+	onReply: (body: string, attachments: ComposedImage[]) => void | Promise<void>;
 	onEdit?: (commentId: string, body: string) => void | Promise<void>;
 	onToggleResolved?: () => void;
 	onDelete?: () => void;

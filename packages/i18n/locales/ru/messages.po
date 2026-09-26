@@ -2204,6 +2204,9 @@ msgstr "Хотя бы одна команда, которую мы можем н
 msgid "at once"
 msgstr "одновременно"
 
+msgid "Attach image"
+msgstr "Прикрепить изображение"
+
 msgid "Attached"
 msgstr "Подключена"
 
@@ -4545,6 +4548,10 @@ msgstr "Не удалось обновить пул-реквест"
 
 msgid "Couldn't update thread"
 msgstr "Не удалось обновить ветку обсуждения"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "Не удалось загрузить {0}"
 
 msgid "Couldn’t verify"
 msgstr "Не удалось проверить"
@@ -7535,6 +7542,9 @@ msgstr "Изображение заблокировано: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "Изображение слишком большое (макс. 10 МБ)"
 
+msgid "Image not found — upload it first"
+msgstr "Изображение не найдено — сначала загрузите его"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Предпросмотр изображения {0}. Масштаб — плюс и минус, панорама — стрелками, 0 — сброс."
@@ -10216,6 +10226,9 @@ msgstr "Изменять это расположение могут только
 msgid "Only host owners can delete this host"
 msgstr "Удалить этот хост могут только владельцы хоста"
 
+msgid "Only images can be attached to a comment"
+msgstr "К комментарию можно прикреплять только изображения"
+
 msgid "Only organization owners can delete this project."
 msgstr "Удалить этот проект могут только владельцы организации."
 
@@ -12062,6 +12075,9 @@ msgstr "Убрать из боковой панели"
 
 msgid "Remove icon"
 msgstr "Удалить иконку"
+
+msgid "Remove image"
+msgstr "Убрать изображение"
 
 msgid "Remove linked issue"
 msgstr "Отвязать задачу"
@@ -15135,6 +15151,9 @@ msgstr "Хост вернулся к предыдущей сборке."
 msgid "The human reads every line before it merges."
 msgstr "Человек читает каждую строку перед слиянием."
 
+msgid "The image upload expired — attach it again"
+msgstr "Срок загрузки изображения истёк — прикрепите его снова"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Описание работы меняется. Инженеры перестают быть машинистками со вкусом и становятся диспетчерами со вкусом: декомпозируют работу, раздают её флотам, разрешают конфликты между агентами, которые оба тронули один модуль."
 
@@ -16482,6 +16501,10 @@ msgstr "Просмотреть"
 msgctxt "menu"
 msgid "View"
 msgstr "Вид"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "Открыть {0}"
 
 msgid "View {count} pull requests"
 msgstr "Смотреть {count} пул-реквестов"

@@ -612,6 +612,24 @@ export const serverErrorMessages: Record<
 				message: "Failed to post reply",
 			}),
 		),
+	"serverError.pageComment.imageExpired": () =>
+		i18n._(
+			msg({
+				message: "The image upload expired — attach it again",
+			}),
+		),
+	"serverError.pageComment.imageNotFound": () =>
+		i18n._(
+			msg({
+				message: "Image not found — upload it first",
+			}),
+		),
+	"serverError.pageComment.onlyImages": () =>
+		i18n._(
+			msg({
+				message: "Only images can be attached to a comment",
+			}),
+		),
 	"serverError.pageComment.onlyTheAuthorCanEdit": () =>
 		i18n._(
 			msg({

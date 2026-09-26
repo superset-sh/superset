@@ -2204,6 +2204,9 @@ msgstr "Setidaknya satu tim yang bisa kami sebut namanya, termasuk tim kami, mel
 msgid "at once"
 msgstr "sekaligus"
 
+msgid "Attach image"
+msgstr "Lampirkan gambar"
+
 msgid "Attached"
 msgstr "Terhubung"
 
@@ -4545,6 +4548,10 @@ msgstr "Tidak bisa memperbarui pull request"
 
 msgid "Couldn't update thread"
 msgstr "Tidak bisa memperbarui thread"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "Tidak dapat mengunggah {0}"
 
 msgid "Couldn’t verify"
 msgstr "Tidak bisa memverifikasi"
@@ -7535,6 +7542,9 @@ msgstr "Gambar diblokir: {0}"
 msgid "Image is too large (max 10MB)"
 msgstr "Gambar terlalu besar (maks 10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Gambar tidak ditemukan — unggah terlebih dahulu"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Pratinjau gambar {0}. Zoom dengan plus dan minus, geser dengan tombol panah, tekan 0 untuk reset."
@@ -10216,6 +10226,9 @@ msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 msgid "Only host owners can delete this host"
 msgstr "Hanya pemilik host yang bisa menghapus host ini"
 
+msgid "Only images can be attached to a comment"
+msgstr "Hanya gambar yang dapat dilampirkan ke komentar"
+
 msgid "Only organization owners can delete this project."
 msgstr "Hanya pemilik organisasi yang bisa menghapus proyek ini."
 
@@ -12062,6 +12075,9 @@ msgstr "Hapus dari Sidebar"
 
 msgid "Remove icon"
 msgstr "Hapus ikon"
+
+msgid "Remove image"
+msgstr "Hapus gambar"
 
 msgid "Remove linked issue"
 msgstr "Hapus issue yang ditautkan"
@@ -15135,6 +15151,9 @@ msgstr "Host kembali ke build sebelumnya."
 msgid "The human reads every line before it merges."
 msgstr "Manusia membaca tiap baris sebelum di-merge."
 
+msgid "The image upload expired — attach it again"
+msgstr "Unggahan gambar kedaluwarsa — lampirkan lagi"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Deskripsi pekerjaannya bergeser. Engineer berhenti menjadi juru ketik berselera dan menjadi pengatur lalu lintas berselera: memecah pekerjaan, mengarahkannya ke armada agen, menengahi konflik antara agen yang sama-sama menyentuh modul yang sama."
 
@@ -16482,6 +16501,10 @@ msgstr "Lihat"
 msgctxt "menu"
 msgid "View"
 msgstr "Tampilan"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "Lihat {0}"
 
 msgid "View {count} pull requests"
 msgstr "Lihat {count} pull request"

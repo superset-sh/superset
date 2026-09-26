@@ -373,6 +373,7 @@ step_write_env() {
     write_env_var "REALTIME_NUDGE_SECRET" "fake-realtime-nudge-secret"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
+    write_env_var "MEDIA_URL" "http://media.usercontent.localhost:$USERCONTENT_DEV_PORT"
     write_env_var "SANDBOX_GATE_ORIGIN" "http://127.0.0.1:$SANDBOX_GATE_DEV_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"

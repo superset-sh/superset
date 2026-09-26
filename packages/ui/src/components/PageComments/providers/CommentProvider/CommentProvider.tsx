@@ -187,7 +187,13 @@ export function CommentProvider({
 			try {
 				await store.createThread(input);
 			} catch (error) {
-				if (composing) setDraft({ ...composing, body: input.body });
+				if (composing) {
+					setDraft({
+						...composing,
+						body: input.body,
+						attachments: input.attachments,
+					});
+				}
 				throw error;
 			}
 		},
@@ -195,9 +201,9 @@ export function CommentProvider({
 	);
 
 	const addReply = useCallback<CommentStore["addReply"]>(
-		async (threadId, body) => {
+		async (threadId, body, attachments) => {
 			if (isOptimisticId(threadId)) return;
-			await store.addReply(threadId, body);
+			await store.addReply(threadId, body, attachments);
 		},
 		[store],
 	);
@@ -274,6 +280,7 @@ export function CommentProvider({
 			createThread,
 			setResolved,
 			deleteThread,
+			uploadImage: store.uploadImage,
 			submitting,
 			busyThreadId,
 			framePointerDownAt,
@@ -304,6 +311,7 @@ export function CommentProvider({
 			createThread,
 			setResolved,
 			deleteThread,
+			store.uploadImage,
 			submitting,
 			busyThreadId,
 			framePointerDownAt,

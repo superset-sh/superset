@@ -1,5 +1,6 @@
 import {
 	type CommentIntent,
+	type ComposedImage,
 	optimisticId,
 	type PageCommentUser,
 } from "@superset/shared/page-comments";
@@ -12,9 +13,11 @@ import type {
 export function optimisticComment({
 	body,
 	user,
+	attachments,
 }: {
 	body: string;
 	user: PageCommentUser;
+	attachments?: ComposedImage[];
 }): ServerComment {
 	return {
 		id: optimisticId(),
@@ -24,6 +27,14 @@ export function optimisticComment({
 		authorName: user.name,
 		authorImage: user.image,
 		agentLabel: null,
+		// The local preview stands in for the served URL until the server
+		// answers with the real one.
+		attachments: (attachments ?? []).map((attachment) => ({
+			fileId: attachment.fileId,
+			name: attachment.name,
+			contentType: attachment.contentType,
+			url: attachment.previewUrl,
+		})),
 		createdAt: new Date(),
 	};
 }
@@ -38,6 +49,7 @@ export function optimisticThread({
 		anchorText?: string | null;
 		body: string;
 		intent?: CommentIntent | null;
+		attachments?: ComposedImage[];
 	};
 	user: PageCommentUser;
 	version: number;
@@ -52,6 +64,12 @@ export function optimisticThread({
 		createdAt: new Date(),
 		version,
 		createdByUserId: user.id,
-		comments: [optimisticComment({ body: input.body, user })],
+		comments: [
+			optimisticComment({
+				body: input.body,
+				user,
+				attachments: input.attachments,
+			}),
+		],
 	};
 }

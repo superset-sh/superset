@@ -4,6 +4,11 @@ export {
 	commentAuthor,
 } from "./commentAuthor";
 export {
+	COMMENT_IMAGE_CONTENT_TYPES,
+	MAX_COMMENT_IMAGE_BYTES,
+	MAX_COMMENT_IMAGES,
+} from "./limits";
+export {
 	isOptimisticId,
 	OPTIMISTIC_ID_PREFIX,
 	optimisticId,
@@ -16,9 +21,12 @@ export {
 } from "./popoverLayout";
 export type {
 	CommentDraft,
+	CommentImage,
+	CommentImageUpload,
 	CommentIntent,
 	CommentStore,
 	CommentThread,
+	ComposedImage,
 	CreateThreadInput,
 	PageComment,
 	PageCommentUser,
