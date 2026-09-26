@@ -228,7 +228,7 @@ const WALLPAPERS = [
 	"Tj Holowaychuk.jpg",
 	"Martin Adams.jpg",
 	"Morskie Oko.jpg",
-	"Sunset by the Pier.jpg",
+	"Canazei Granite Ridges.jpg",
 	"Photo by SpaceX.jpg",
 	"Ashim DSilva.jpg",
 	"Viktor Forgacs.jpg",

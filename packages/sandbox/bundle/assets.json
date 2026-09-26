@@ -172,11 +172,11 @@
 		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Morskie%20Oko.jpg"
 	},
 	"wallpaper-3": {
-		"sha256": "d852325538f48c27c80fe703d113d11f8d5bfbeb77aa3d70a167b174474547e5",
+		"sha256": "5525dd3a76c138716ce28d5138f2815594807ef2412cd6cf5c241ec80d662999",
 		"suffix": ".jpg",
 		"dest": "/usr/share/backgrounds/superset/3.jpg",
 		"mode": "0644",
-		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Sunset%20by%20the%20Pier.jpg"
+		"source": "https://raw.githubusercontent.com/elementary/wallpapers/b198df190adeffe8562e67d28370c91442f7dd77/backgrounds/Canazei%20Granite%20Ridges.jpg"
 	},
 	"wallpaper-4": {
 		"sha256": "e8834c5e8544c6670e4301fc1c30d61617c858d8ce5b7e3c3e9517d6d59d01b4",
