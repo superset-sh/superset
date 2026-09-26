@@ -455,6 +455,11 @@ msgstr "{0} běží"
 msgid "{0} Running"
 msgstr "Běží {0}"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} běží · naposledy aktivní {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "Ukončeno relací: {0}"
@@ -4354,6 +4359,10 @@ msgstr "Tento komentář se nepodařilo vyřešit"
 
 msgid "Could not restart the host service"
 msgstr "Službu hostitele se nepodařilo restartovat"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Nepodařilo se obnovit {0}"
 
 msgid "Could not send"
 msgstr "Nepodařilo se odeslat"
@@ -12492,6 +12501,11 @@ msgstr "Výsledky"
 
 msgid "Resume"
 msgstr "Pokračovat"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "Obnovit {0} · naposledy aktivní {1}"
 
 msgid "Resume args"
 msgstr "Argumenty pro pokračování"

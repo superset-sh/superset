@@ -702,7 +702,7 @@ const sessions = new Map<string, TerminalSession>();
  * (still respawning, or gone for good). Read via the supervisor rather than
  * the client singleton so a rebuilt connection isn't required.
  */
-async function listDaemonAliveSessionIds(): Promise<Set<string> | null> {
+export async function listDaemonAliveSessionIds(): Promise<Set<string> | null> {
 	const organizationId = process.env.ORGANIZATION_ID;
 	if (!organizationId) return null;
 	const list = await getSupervisor().listSessions(organizationId);

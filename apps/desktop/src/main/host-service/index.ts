@@ -101,24 +101,25 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api, db, dispose } = createApp({
-		config: {
-			organizationId: env.ORGANIZATION_ID,
-			dbPath: env.HOST_DB_PATH,
-			cloudApiUrl: env.SUPERSET_API_URL,
-			migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
-			allowedOrigins: [
-				`http://localhost:${env.DESKTOP_VITE_PORT}`,
-				`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
-			],
-			browserBridge: resolveBrowserBridgeFromEnv(env),
-		},
-		providers: {
-			auth: authProvider,
-			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
-			credentials: new LocalGitCredentialProvider(),
-		},
-	});
+	const { app, injectWebSocket, api, db, dispose, resumeLostAgents } =
+		createApp({
+			config: {
+				organizationId: env.ORGANIZATION_ID,
+				dbPath: env.HOST_DB_PATH,
+				cloudApiUrl: env.SUPERSET_API_URL,
+				migrationsFolder: env.HOST_MIGRATIONS_FOLDER,
+				allowedOrigins: [
+					`http://localhost:${env.DESKTOP_VITE_PORT}`,
+					`http://127.0.0.1:${env.DESKTOP_VITE_PORT}`,
+				],
+				browserBridge: resolveBrowserBridgeFromEnv(env),
+			},
+			providers: {
+				auth: authProvider,
+				hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
+				credentials: new LocalGitCredentialProvider(),
+			},
+		});
 	disposeRef.current = dispose;
 
 	const startedAt = Date.now();
@@ -131,6 +132,10 @@ async function main(): Promise<void> {
 
 			// Orphan reaping + port detection for terminals no renderer has attached.
 			startTerminalReaper(db);
+
+			// A reboot or daemon death takes every pty with it; bring the
+			// agents that were running back into fresh terminals.
+			void resumeLostAgents();
 
 			if (env.ORGANIZATION_ID) {
 				const manifest: HostServiceManifest = {

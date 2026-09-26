@@ -455,6 +455,11 @@ msgstr "{0} выполняется"
 msgid "{0} Running"
 msgstr "Выполняется: {0}"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} работает · последняя активность {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "Завершено сессий: {0}"
@@ -4354,6 +4359,10 @@ msgstr "Не удалось закрыть этот комментарий"
 
 msgid "Could not restart the host service"
 msgstr "Не удалось перезапустить службу хоста"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Не удалось возобновить {0}"
 
 msgid "Could not send"
 msgstr "Не удалось отправить"
@@ -12492,6 +12501,11 @@ msgstr "Результаты"
 
 msgid "Resume"
 msgstr "Возобновить"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "Возобновить {0} · последняя активность {1}"
 
 msgid "Resume args"
 msgstr "Аргументы возобновления"

@@ -455,6 +455,11 @@ msgstr "{0} berjalan"
 msgid "{0} Running"
 msgstr "{0} Berjalan"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} berjalan · terakhir aktif {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "{0} sesi dihentikan"
@@ -4354,6 +4359,10 @@ msgstr "Tidak dapat menyelesaikan komentar ini"
 
 msgid "Could not restart the host service"
 msgstr "Tidak dapat memulai ulang layanan host"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Tidak dapat melanjutkan {0}"
 
 msgid "Could not send"
 msgstr "Tidak bisa mengirim"
@@ -12492,6 +12501,11 @@ msgstr "Hasil"
 
 msgid "Resume"
 msgstr "Lanjutkan"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "Lanjutkan {0} · terakhir aktif {1}"
 
 msgid "Resume args"
 msgstr "Argumen resume"

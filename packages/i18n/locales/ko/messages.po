@@ -455,6 +455,11 @@ msgstr "{0} 실행 중"
 msgid "{0} Running"
 msgstr "{0}개 실행 중"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} 실행 중 · 마지막 활동 {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "세션 {0}개를 종료했습니다"
@@ -4354,6 +4359,10 @@ msgstr "이 댓글을 해결하지 못했습니다"
 
 msgid "Could not restart the host service"
 msgstr "호스트 서비스를 다시 시작할 수 없습니다"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "{0}을(를) 재개할 수 없습니다"
 
 msgid "Could not send"
 msgstr "보낼 수 없습니다"
@@ -12492,6 +12501,11 @@ msgstr "결과"
 
 msgid "Resume"
 msgstr "재개"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "{0} 재개 · 마지막 활동 {1}"
 
 msgid "Resume args"
 msgstr "재개 인수"

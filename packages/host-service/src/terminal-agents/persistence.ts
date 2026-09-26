@@ -182,6 +182,54 @@ export function listResumeCandidateBindings(
 		.map(rowToBinding);
 }
 
+/**
+ * The most recently active agent conversations on this host, live or dead,
+ * one row per conversation. A session that was resumed appears once, under
+ * the terminal now hosting it, because a resume carries the agent's session
+ * id across to its successor and the older binding is the same conversation.
+ */
+export function listRecentSessionBindings(
+	db: HostDb,
+	limit: number,
+): TerminalAgentBinding[] {
+	const seen = new Set<string>();
+	const out: TerminalAgentBinding[] = [];
+	const rows = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(isNotNull(terminalAgentBindings.agentSessionId))
+		.orderBy(desc(terminalAgentBindings.lastEventAt))
+		.all();
+	for (const row of rows) {
+		const binding = rowToBinding(row);
+		if (!binding.agentSessionId || seen.has(binding.agentSessionId)) continue;
+		seen.add(binding.agentSessionId);
+		out.push(binding);
+		if (out.length >= limit) break;
+	}
+	return out;
+}
+
+/**
+ * Bindings still marked live that hold an agent session id, most recently
+ * active first. At boot these are the agents that were running when the host
+ * last stopped, whether or not their terminal survived.
+ */
+export function listUnendedSessionBindings(db: HostDb): TerminalAgentBinding[] {
+	return db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(
+			and(
+				isNull(terminalAgentBindings.endedAt),
+				isNotNull(terminalAgentBindings.agentSessionId),
+			),
+		)
+		.orderBy(desc(terminalAgentBindings.lastEventAt))
+		.all()
+		.map(rowToBinding);
+}
+
 /** The ended binding a dead terminal can be resumed from, if any. */
 export function findResumeCandidateBinding(
 	db: HostDb,

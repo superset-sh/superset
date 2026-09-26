@@ -53,6 +53,7 @@ import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigra
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { useDiffPaneTarget } from "./hooks/useDiffPaneTarget";
+import { useOpenRequestedSession } from "./hooks/useOpenRequestedSession";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { usePullRequestPaneIntentOpener } from "./hooks/usePullRequestPaneIntentOpener";
@@ -227,6 +228,7 @@ function V2WorkspaceContent() {
 		resolvePresetCommands,
 	});
 	useAutoAdoptBackgroundSessions({ store, workspaceId, isLayoutReady });
+	useOpenRequestedSession({ store, workspaceId, isLayoutReady });
 	useConsumeOpenUrlRequest({
 		store,
 		url: openUrl,

@@ -455,6 +455,11 @@ msgstr "{0} bezig"
 msgid "{0} Running"
 msgstr "{0} bezig"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} actief · laatst actief {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "{0} sessies beëindigd"
@@ -4354,6 +4359,10 @@ msgstr "Deze reactie kon niet worden opgelost"
 
 msgid "Could not restart the host service"
 msgstr "Kon de hostservice niet opnieuw starten"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Kan {0} niet hervatten"
 
 msgid "Could not send"
 msgstr "Versturen mislukt"
@@ -12492,6 +12501,11 @@ msgstr "Resultaten"
 
 msgid "Resume"
 msgstr "Hervatten"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "{0} hervatten · laatst actief {1}"
 
 msgid "Resume args"
 msgstr "Resume-argumenten"

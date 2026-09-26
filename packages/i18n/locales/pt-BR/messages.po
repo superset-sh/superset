@@ -455,6 +455,11 @@ msgstr "{0} em execução"
 msgid "{0} Running"
 msgstr "{0} em execução"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} em execução · última atividade {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "{0} sessões encerradas"
@@ -4354,6 +4359,10 @@ msgstr "Não foi possível resolver este comentário"
 
 msgid "Could not restart the host service"
 msgstr "Não foi possível reiniciar o serviço de host"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Não foi possível retomar {0}"
 
 msgid "Could not send"
 msgstr "Não foi possível enviar"
@@ -12492,6 +12501,11 @@ msgstr "Resultados"
 
 msgid "Resume"
 msgstr "Retomar"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "Retomar {0} · última atividade {1}"
 
 msgid "Resume args"
 msgstr "Argumentos de retomada"

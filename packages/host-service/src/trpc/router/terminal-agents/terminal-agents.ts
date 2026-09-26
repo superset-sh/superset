@@ -4,8 +4,10 @@ import {
 } from "@superset/shared/agent-catalog";
 import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
+import { projects, workspaces } from "../../../db/schema";
 import type { EventBus } from "../../../events";
 import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
@@ -19,15 +21,21 @@ import type {
 } from "../../../terminal-agents";
 import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
 import { terminalHarnessSession } from "../../../terminal-agents/harness-session-ref";
-import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
+import {
+	hasHarnessSession,
+	readHarnessSessionTitle,
+} from "../../../terminal-agents/harness-sessions";
 import { readHarnessTranscriptOffLoop } from "../../../terminal-agents/harness-sessions/read-off-loop";
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
 	findResumedSuccessorTerminalId,
 	getTerminalAgentBinding,
+	listRecentSessionBindings,
 	listResumeCandidateBindings,
+	listUnendedSessionBindings,
 	markResumeCandidateResumedInto,
+	markTerminalAgentBindingEnded,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -82,6 +90,17 @@ const MAX_BOOT_RESUMES = 8;
  * was reopened; one that died with the box was ended by the sweep moments ago.
  */
 const RESUMABLE_WINDOW_MS = 5 * 60_000;
+const MAX_LOCAL_BOOT_RESUMES = 10;
+/**
+ * A binding stays unended when nothing ever marked it: a daemon that died
+ * unobserved leaves rows that look live for days. So "was running when the
+ * host stopped" is read as "active recently", not merely "never ended" —
+ * without it a reboot revives conversations the person left behind midweek.
+ */
+const LOCAL_RESUME_ACTIVITY_WINDOW_MS = 12 * 60 * 60_000;
+/** The desktop starts the pty-daemon alongside the host; give it time to answer. */
+const DAEMON_PROBE_ATTEMPTS = 10;
+const DAEMON_PROBE_DELAY_MS = 2_000;
 
 /**
  * Whether the harness behind `binding` still holds its conversation, read
@@ -282,6 +301,74 @@ export async function resumeCrashedAgentSessions(
 }
 
 /**
+ * Desktop counterpart of {@link resumeCrashedAgentSessions}: after a reboot
+ * or daemon death, bring back the agents that were running when the host
+ * last stopped. PTYs outlive app restarts through the pty-daemon, so a
+ * binding only counts as lost once a live daemon confirms it no longer owns
+ * the terminal. With no daemon answer nothing is touched: a resume on top of
+ * a surviving agent would run two copies of one conversation.
+ */
+export async function resumeAgentsLostWithDaemon(
+	deps: ResumeSessionDeps,
+	listAliveSessionIds: () => Promise<Set<string> | null>,
+	options: {
+		limit?: number;
+		attempts?: number;
+		delayMs?: number;
+		maxAgeMs?: number;
+	} = {},
+): Promise<{ resumedTerminalIds: string[] }> {
+	const limit = options.limit ?? MAX_LOCAL_BOOT_RESUMES;
+	const attempts = options.attempts ?? DAEMON_PROBE_ATTEMPTS;
+	const delayMs = options.delayMs ?? DAEMON_PROBE_DELAY_MS;
+	const maxAgeMs = options.maxAgeMs ?? LOCAL_RESUME_ACTIVITY_WINDOW_MS;
+
+	const activeSince = Date.now() - maxAgeMs;
+	const unended = listUnendedSessionBindings(deps.db).filter(
+		(binding) => binding.lastEventAt >= activeSince,
+	);
+	if (unended.length === 0) return { resumedTerminalIds: [] };
+
+	let alive: Set<string> | null = null;
+	for (let attempt = 0; attempt < attempts && alive === null; attempt++) {
+		if (attempt > 0) await new Promise((r) => setTimeout(r, delayMs));
+		alive = await listAliveSessionIds().catch(() => null);
+	}
+	if (alive === null) {
+		console.warn("[terminal-agents] no daemon answered; skipping boot resume");
+		return { resumedTerminalIds: [] };
+	}
+
+	const lost = unended.filter((binding) => !alive.has(binding.terminalId));
+	const endedAt = Date.now();
+	for (const binding of lost) {
+		markTerminalAgentBindingEnded(
+			deps.db,
+			binding.terminalId,
+			"terminal-exited",
+			endedAt,
+		);
+	}
+
+	const resumedTerminalIds: string[] = [];
+	for (const binding of lost.slice(0, limit)) {
+		try {
+			const result = await resumeTerminalAgentSession(deps, {
+				workspaceId: binding.workspaceId,
+				terminalId: binding.terminalId,
+			});
+			if (result.resumed) resumedTerminalIds.push(result.terminalId);
+		} catch (error) {
+			console.warn("[terminal-agents] boot resume failed", {
+				terminalId: binding.terminalId,
+				error,
+			});
+		}
+	}
+	return { resumedTerminalIds };
+}
+
+/**
  * Relaunch every live `provider` agent onto the current default account,
  * without waiting for a pane to notice. Each candidate is killed, then
  * resumed here on the host through {@link resumeTerminalAgentSession}: same
@@ -427,6 +514,61 @@ export const terminalAgentsRouter = router({
 				) ?? null
 			);
 		}),
+
+	/**
+	 * The agent conversations worked on most recently across every workspace
+	 * on this host, newest first, for the sidebar's Sessions list. `isLive`
+	 * separates an agent still running from one a resume would bring back; a
+	 * binding whose workspace is gone is dropped, since there is nothing to
+	 * open.
+	 */
+	listRecentSessions: protectedProcedure
+		.input(z.object({ limit: z.number().int().min(1).max(50).default(10) }))
+		.query(({ ctx, input }) =>
+			listRecentSessionBindings(ctx.db, input.limit).flatMap((binding) => {
+				const workspace = ctx.db
+					.select({
+						name: workspaces.name,
+						worktreePath: workspaces.worktreePath,
+						projectId: workspaces.projectId,
+					})
+					.from(workspaces)
+					.where(eq(workspaces.id, binding.workspaceId))
+					.get();
+				if (!workspace) return [];
+				// Several workspaces share a name ("Local"); the project is what
+				// tells one person's six of them apart in a flat list.
+				const projectName = workspace.projectId
+					? (ctx.db
+							.select({ name: projects.name })
+							.from(projects)
+							.where(eq(projects.id, workspace.projectId))
+							.get()?.name ?? null)
+					: null;
+				const config = resolveHostAgentConfig(
+					ctx.db,
+					binding.definitionId ?? binding.agentId,
+				);
+				// The same ref the transcript path builds, so a reported path
+				// is honoured however the harness lays out its store.
+				const harness = terminalHarnessSession(ctx.db, binding.terminalId);
+				return [
+					{
+						terminalId: binding.terminalId,
+						workspaceId: binding.workspaceId,
+						title: harness ? readHarnessSessionTitle(harness.ref) : null,
+						workspaceName: workspace.name,
+						projectName,
+						worktreePath: workspace.worktreePath,
+						agentId: binding.agentId,
+						agentLabel: config?.label ?? binding.agentId,
+						lastEventAt: binding.lastEventAt,
+						isLive: binding.endedAt === undefined,
+						resumeSupported: (config?.resumeArgs.length ?? 0) > 0,
+					},
+				];
+			}),
+		),
 
 	/**
 	 * The resumable agent session behind a dead terminal, if any: the binding
