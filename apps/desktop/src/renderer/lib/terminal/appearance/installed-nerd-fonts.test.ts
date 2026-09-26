@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	detectInstalledNerdFontFamilies,
 	isNerdFontFamily,
+	isNerdFontMonoVariant,
 } from "./installed-nerd-fonts";
 
 describe("isNerdFontFamily", () => {
@@ -19,6 +20,19 @@ describe("isNerdFontFamily", () => {
 		expect(isNerdFontFamily("JetBrains Mono")).toBe(false);
 		expect(isNerdFontFamily("Menlo")).toBe(false);
 		expect(isNerdFontFamily("Inter")).toBe(false);
+	});
+});
+
+describe("isNerdFontMonoVariant", () => {
+	test("matches Mono variants, long and abbreviated", () => {
+		expect(isNerdFontMonoVariant("D2CodingLigature Nerd Font Mono")).toBe(true);
+		expect(isNerdFontMonoVariant("Hack NFM")).toBe(true);
+		expect(isNerdFontMonoVariant("Symbols Nerd Font Mono")).toBe(true);
+	});
+
+	test("rejects non-Mono variants", () => {
+		expect(isNerdFontMonoVariant("D2CodingLigature Nerd Font")).toBe(false);
+		expect(isNerdFontMonoVariant("Hack NF")).toBe(false);
 	});
 });
 
