@@ -25,6 +25,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
+import { syncWorkflowStates } from "../jobs/initial-sync/syncWorkflowStates";
 import { connectionEventId, deliveryEventId } from "./deliveryIds";
 import {
 	type LinearDelivery,
@@ -280,6 +281,44 @@ async function fetchIssueBranchName(
 	}
 }
 
+function findLinearStatus(organizationId: string, stateId: string) {
+	return db.query.taskStatuses.findFirst({
+		where: and(
+			eq(taskStatuses.organizationId, organizationId),
+			eq(taskStatuses.externalProvider, "linear"),
+			eq(taskStatuses.externalId, stateId),
+		),
+	});
+}
+
+// Workflow states are otherwise only synced when Linear is first connected, so
+// a state created or renamed later would have its moves skipped forever. One
+// resync per delivery: if the state is still unknown, the caller skips.
+async function resyncWorkflowStatus(
+	connection: SelectConnection,
+	issue: EntityWebhookPayloadWithIssueData["data"],
+) {
+	const client = await linearClientFor(connection);
+	if (!client) return undefined;
+	try {
+		await syncWorkflowStates({
+			client,
+			organizationId: connection.organizationId,
+			teamId: issue.teamId,
+		});
+	} catch (error) {
+		if (isLinearAuthError(error)) {
+			console.warn(
+				`[linear/process-delivery] auth error resyncing workflow states for team ${issue.teamId}, skipping:`,
+				error,
+			);
+			return undefined;
+		}
+		throw error;
+	}
+	return findLinearStatus(connection.organizationId, issue.state.id);
+}
+
 async function processIssueEvent(
 	payload: EntityWebhookPayloadWithIssueData,
 	connection: SelectConnection,
@@ -289,14 +328,8 @@ async function processIssueEvent(
 	if (payload.action === "create" || payload.action === "update") {
 		const externalUpdatedAt = new Date(issue.updatedAt);
 
-		const [taskStatus, existing] = await Promise.all([
-			db.query.taskStatuses.findFirst({
-				where: and(
-					eq(taskStatuses.organizationId, connection.organizationId),
-					eq(taskStatuses.externalProvider, "linear"),
-					eq(taskStatuses.externalId, issue.state.id),
-				),
-			}),
+		const [knownStatus, existing] = await Promise.all([
+			findLinearStatus(connection.organizationId, issue.state.id),
 			db.query.tasks.findFirst({
 				where: and(
 					eq(tasks.organizationId, connection.organizationId),
@@ -319,12 +352,12 @@ async function processIssueEvent(
 			return "processed";
 		}
 
+		const taskStatus =
+			knownStatus ?? (await resyncWorkflowStatus(connection, issue));
+
 		if (!taskStatus) {
-			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
-			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
-			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
 			console.warn(
-				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
+				`[webhook] Status not found for state ${issue.state.id} after resyncing workflow states, skipping update`,
 			);
 			return "skipped";
 		}
