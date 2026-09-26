@@ -5,10 +5,14 @@
 // welcome cards use), rounded corners, shadow, optional feature highlight.
 // Fully local: no network, no upload (safe for shots with internal data).
 //
-// Usage:  bun beautify-screenshot.ts <in.png> <out.png> [card|flat|tilt] [x,y,w,h] [flags]
+// Usage:  bun beautify-screenshot.ts <in.png> <out.png> [card|flat|corner|tilt] [x,y,w,h] [flags]
 //   card               the changelog default (Linear-style): flat product card
 //                      with a hairline border on a near-black backdrop, no
 //                      dither, no perspective. Pair with --bleed for heroes.
+//   corner             social-post framing (Figma-style): the window sits
+//                      top-left, oversized, and runs off the right and bottom
+//                      edges; the backdrop is whatever --bg says (glow by
+//                      default). First used for the 17-languages launch.
 //   flat / tilt        the older dithered-backdrop looks; tilt is retired for
 //                      heroes (Kiet, 2026-08-23: no slanted heroes).
 //   x,y,w,h            optional crop rectangle in source pixels — zoom into the
@@ -16,8 +20,14 @@
 //
 // Flags (all optional):
 //   --bg <preset>      backdrop palette: flame (default) | ember | moss |
-//                      indigo | violet | plain (legacy glow, no shader) |
+//                      indigo | violet | glow (the marketing hero's ember
+//                      stage lighting on near-black, no shader; default for
+//                      corner) | plain (legacy glow, no shader) |
 //                      random (seeded pick)
+//   --glow <n>         glow backdrop strength 0-1 (default 0.4)
+//   --transparent      drop the backdrop entirely and write a PNG with alpha
+//                      (window + shadow only), for compositing over video or
+//                      an animated glow. Uses the style's layout.
 //   --accent <hex>     custom shader ink color, overrides the preset hue
 //   --seed <n>         vary the dither pattern phase/placement deterministically;
 //                      same seed = same output. Use different seeds across one
@@ -55,6 +65,7 @@ for (let i = 0; i < args.length; i++) {
 }
 const [inPath, outPathArg, style = "card", cropArg] = positional;
 const isCard = style === "card";
+const isCorner = style === "corner";
 const bleed = isCard && flags.has("bleed");
 if (!inPath || !outPathArg) {
 	console.error(
@@ -69,8 +80,9 @@ const CHROME =
 const SCALE = 2;
 // Bigger frame + tighter canvas = the UI reads larger, less dead background.
 const CANVAS_W = 1600;
-const CANVAS_H = isCard ? 925 : style === "tilt" ? 1040 : 980;
-const FRAME_FRAC = isCard ? 0.84 : style === "tilt" ? 0.86 : 0.92;
+const CANVAS_H = isCard ? 925 : style === "tilt" ? 1040 : isCorner ? 925 : 980;
+// corner: wider than the canvas so the window runs off the right edge.
+const FRAME_FRAC = isCard ? 0.84 : style === "tilt" ? 0.86 : isCorner ? 1.06 : 0.92;
 const tilt =
 	style === "tilt"
 		? "perspective(2600px) rotateY(-8deg) rotateX(3deg) rotateZ(-0.6deg)"
@@ -94,12 +106,13 @@ const rand = (() => {
 		return s / 2 ** 32;
 	};
 })();
-let bgName = flags.get("bg") ?? "flame";
+let bgName = flags.get("bg") ?? (isCorner ? "glow" : "flame");
 if (bgName === "random") {
 	const names = Object.keys(PRESETS);
 	bgName = names[Math.floor(rand() * names.length)];
 }
-const usePlain = bgName === "plain" || isCard;
+const isGlow = bgName === "glow";
+const usePlain = bgName === "plain" || bgName === "glow" || isCard;
 if (!usePlain && !PRESETS[bgName]) {
 	console.error(
 		`unknown --bg "${bgName}" — use ${Object.keys(PRESETS).join("|")}|plain|random`,
@@ -107,6 +120,8 @@ if (!usePlain && !PRESETS[bgName]) {
 	process.exit(2);
 }
 const accent = flags.get("accent") ?? PRESETS[bgName] ?? PRESETS.flame;
+const glowStrength = Number(flags.get("glow") ?? "0.4") || 0.4;
+const transparent = flags.has("transparent");
 const shape = flags.get("shape") ?? "warp";
 const pxSize = Number(flags.get("px") ?? "3.5") || 3.5;
 const bgOpacity = Number(flags.get("bg-opacity") ?? "0.34") || 0.34;
@@ -157,7 +172,7 @@ if (cropArg) {
 // crops float as a bordered card on the backdrop instead of overflowing the
 // canvas and getting cut off top/bottom.
 const frameW = Math.round(
-	bleed
+	bleed || isCorner
 		? CANVAS_W * FRAME_FRAC
 		: Math.min(CANVAS_W * FRAME_FRAC, CANVAS_H * FRAME_FRAC * aspect),
 );
@@ -252,12 +267,37 @@ const html = `<!doctype html><html><head><meta charset="utf8"><style>
   .g4 { width:520px; height:520px; right:-120px; top:-160px; background:#2a2c31; opacity:.6; }
   .frame {
     position:relative; width:${frameW}px; transform:${tilt}; transform-origin:center;
-    border-radius:16px; overflow:hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,.4),
-                0 40px 80px -20px rgba(0,0,0,.75),
-                0 80px 160px -40px rgba(0,0,0,.65),
-                0 0 0 1px rgba(255,255,255,.06) inset;
+    border-radius:12px; overflow:hidden;
+    /* marketing AppMockup: hairline border-border + the hero's three-layer drop */
+    box-shadow: 0 0 0 1px rgba(255,255,255,.11),
+                0 1px 1px rgba(0,0,0,.4),
+                0 16px 40px -12px rgba(0,0,0,.6),
+                0 32px 90px -24px rgba(0,0,0,.75);
   }
+  /* edge lighting from the site: inset ring + a brighter hairline along the top */
+  .frame::before {
+    content:""; position:absolute; inset:0; border-radius:12px; pointer-events:none; z-index:2;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06),
+                inset 0 1px 0 rgba(255,255,255,.14),
+                inset 0 2px 0 rgba(255,255,255,.03);
+  }
+  /* --bg glow: the marketing ProductDemo stage lighting, ember radial on
+     near-black, no shader. */
+  body.emberstage .stage { background:#0a0a0b; }
+  body.emberstage .glow, body.emberstage .tint, body.emberstage .vignette, body.emberstage #dither { display:none; }
+  body.emberstage .ember { position:absolute; inset:-30% -25% 0; pointer-events:none; background:
+    radial-gradient(ellipse 42% 38% at 50% 34%, rgba(232,128,74,${glowStrength}), rgba(232,128,74,${(glowStrength * 0.3).toFixed(3)}) 55%, transparent 78%); }
+  body.emberstage .floor { position:absolute; inset:0; pointer-events:none; background:
+    linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,.35)); }
+  /* --transparent: no stage at all, only the window and its shadow */
+  body.transparent, body.transparent .stage { background:transparent; }
+  body.transparent .sheen, body.transparent .ember, body.transparent #dither, body.transparent .tint,
+  body.transparent .vignette, body.transparent .glow, body.transparent .floor, body.transparent .fade { display:none; }
+  /* corner: pin the window top-left and let it run off right and bottom */
+  body.corner .stage { align-items:flex-start; justify-content:flex-start; }
+  body.corner .frame { flex:none; margin-left:${Math.round(CANVAS_W * 0.065)}px; margin-top:${Math.round(CANVAS_H * 0.13)}px; }
+  body.corner .ember { inset:-20% -25% 0; background:
+    radial-gradient(ellipse 46% 40% at 44% 26%, rgba(232,128,74,${glowStrength}), rgba(232,128,74,${(glowStrength * 0.3).toFixed(3)}) 55%, transparent 78%); }
   /* card: Linear-style flat product card. Near-black stage with a faint top
      glow, hairline border, quiet shadow. --bleed pins it high and fades the
      bottom edge into the backdrop. */
@@ -286,15 +326,17 @@ const html = `<!doctype html><html><head><meta charset="utf8"><style>
                 0 0 22px 2px ${accent}66,
                 inset 0 0 14px ${accent}22;
   }
-</style></head><body class="${isCard ? "card" : ""}">
+</style></head><body class="${[isCard ? "card" : "", isCorner ? "corner" : "", isGlow ? "emberstage" : "", transparent ? "transparent" : ""].join(" ").trim()}">
   <div class="stage">
     <div class="sheen"></div>
+    <div class="ember"></div>
     <div id="dither"></div>
     <div class="tint"></div>
     <div class="vignette"></div>
     <div class="glow g1"></div><div class="glow g2"></div>
     <div class="glow g3"></div><div class="glow g4"></div>
     <div class="frame">${shot}${highlight}</div>
+    <div class="floor"></div>
     <div class="fade"></div>
   </div>
   ${shaderScript}
@@ -318,6 +360,7 @@ const proc = Bun.spawnSync(
 		"--disable-extensions",
 		"--disable-background-networking",
 		"--virtual-time-budget=4000",
+		...(transparent ? ["--default-background-color=00000000"] : []),
 		`--force-device-scale-factor=${SCALE}`,
 		`--window-size=${CANVAS_W},${CANVAS_H}`,
 		`--user-data-dir=${profile}`,
@@ -339,5 +382,5 @@ console.log(
 	outPath,
 	isCard
 		? `(card${bleed ? ", bleed" : ""})`
-		: `(bg=${usePlain ? "plain" : bgName}, seed=${seed})`,
+		: `(${style}, bg=${bgName}${usePlain ? "" : `, seed=${seed}`})`,
 );
