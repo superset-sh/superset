@@ -2475,6 +2475,10 @@ msgstr "Odznaky, avatary, karty, tabulky a seznamy"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Zapékám styl čipu do tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Uložené resety: {0}"
+
 msgid "Bar"
 msgstr "Čára"
 
@@ -9354,6 +9358,10 @@ msgstr "Další větev"
 
 msgid "Next comment"
 msgstr "Další komentář"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Nejbližší vyprší {0}"
 
 msgid "Next file"
 msgstr "Další soubor"

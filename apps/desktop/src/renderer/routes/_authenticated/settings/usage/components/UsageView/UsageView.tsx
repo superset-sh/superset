@@ -2,6 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
+import { formatDateTime } from "@superset/i18n/format";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -326,6 +327,33 @@ function AccountCard({
 					{account.statusDetail ?? <Trans>Usage unavailable.</Trans>}
 				</div>
 			)}
+			{account.agent === "codex" &&
+				account.credentialKind === "subscription" &&
+				account.resetCredits &&
+				account.resetCredits.availableCount > 0 && (
+					<div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-[11px] tabular-nums">
+						<span className="text-muted-foreground">
+							{t({
+								message: `Banked resets: ${account.resetCredits.availableCount}`,
+							})}
+						</span>
+						{account.resetCredits.nextExpiresAt && (
+							<span className="text-muted-foreground">
+								{t({
+									message: `Next expires ${formatDateTime(
+										account.resetCredits.nextExpiresAt,
+										{
+											month: "short",
+											day: "numeric",
+											hour: "numeric",
+											minute: "2-digit",
+										},
+									)}`,
+								})}
+							</span>
+						)}
+					</div>
+				)}
 			{/* The radio + accent border already mark the default when the cards
 			    read as a group; the footer label only carries it for a lone card. */}
 			{((!account.isDefault && onMakeDefault !== null) ||

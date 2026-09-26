@@ -2475,6 +2475,10 @@ msgstr "徽章、頭像、卡片、表格和列表"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "把chip樣式內建到tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "已儲存重設次數：{0}"
+
 msgid "Bar"
 msgstr "豎線"
 
@@ -9354,6 +9358,10 @@ msgstr "下一個分支"
 
 msgid "Next comment"
 msgstr "下一條評論"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "下次到期：{0}"
 
 msgid "Next file"
 msgstr "下一個檔案"

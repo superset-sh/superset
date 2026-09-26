@@ -2475,6 +2475,10 @@ msgstr "Badge, ảnh đại diện, thẻ, bảng và danh sách"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Đưa kiểu chip vào thẳng tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Lượt đặt lại đã tích lũy: {0}"
+
 msgid "Bar"
 msgstr "Thanh"
 
@@ -9354,6 +9358,10 @@ msgstr "Nhánh kế tiếp"
 
 msgid "Next comment"
 msgstr "Bình luận tiếp theo"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Lượt tiếp theo hết hạn {0}"
 
 msgid "Next file"
 msgstr "Tệp tiếp theo"

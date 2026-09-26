@@ -2475,6 +2475,10 @@ msgstr "Rozetler, avatarlar, kartlar, tablolar ve listeler"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Çip stilini tooltip.tsx içine gömme"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Birikmiş sıfırlamalar: {0}"
+
 msgid "Bar"
 msgstr "Çubuk"
 
@@ -9354,6 +9358,10 @@ msgstr "Sonraki dal"
 
 msgid "Next comment"
 msgstr "Sonraki yorum"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Sıradaki {0} tarihinde sona eriyor"
 
 msgid "Next file"
 msgstr "Sonraki dosya"

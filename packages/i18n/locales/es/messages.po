@@ -2475,6 +2475,10 @@ msgstr "Insignias, avatares, tarjetas, tablas y listas"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Integrando el estilo de chip en tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Restablecimientos acumulados: {0}"
+
 msgid "Bar"
 msgstr "Barra"
 
@@ -9354,6 +9358,10 @@ msgstr "Rama siguiente"
 
 msgid "Next comment"
 msgstr "Comentario siguiente"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "El próximo caduca el {0}"
 
 msgid "Next file"
 msgstr "Archivo siguiente"

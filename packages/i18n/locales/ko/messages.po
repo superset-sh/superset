@@ -2475,6 +2475,10 @@ msgstr "배지, 아바타, 카드, 테이블, 목록"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "칩 스타일을 tooltip.tsx에 반영"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "보유한 재설정 횟수: {0}"
+
 msgid "Bar"
 msgstr "막대"
 
@@ -9354,6 +9358,10 @@ msgstr "다음 브랜치"
 
 msgid "Next comment"
 msgstr "다음 코멘트"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "다음 만료: {0}"
 
 msgid "Next file"
 msgstr "다음 파일"

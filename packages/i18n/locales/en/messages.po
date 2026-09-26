@@ -2475,6 +2475,10 @@ msgstr "Badges, avatars, cards, tables, and lists"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Baking the chip style into tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Banked resets: {0}"
+
 msgid "Bar"
 msgstr "Bar"
 
@@ -9354,6 +9358,10 @@ msgstr "Next branch"
 
 msgid "Next comment"
 msgstr "Next comment"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Next expires {0}"
 
 msgid "Next file"
 msgstr "Next file"

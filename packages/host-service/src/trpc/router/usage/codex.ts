@@ -15,7 +15,10 @@ import type {
 } from "./types";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const CODEX_RESET_CREDITS_URL =
+	"https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
 const FETCH_TIMEOUT_MS = 10_000;
+const RESET_CREDITS_TIMEOUT_MS = 3_000;
 
 interface CodexAuthFile {
 	tokens?: {
@@ -45,6 +48,41 @@ interface CodexUsageResponse {
 		rate_limit?: CodexRateLimit;
 	}>;
 	credits?: { balance?: string };
+	rate_limit_reset_credits?: { available_count?: number } | null;
+}
+
+interface CodexResetCreditsResponse {
+	available_count?: number;
+	credits?: Array<{ status?: string; expires_at?: string | null }>;
+}
+
+async function nextResetExpiry(
+	headers: Record<string, string>,
+	availableCount: number,
+): Promise<Date | null> {
+	try {
+		const response = await fetch(CODEX_RESET_CREDITS_URL, {
+			headers,
+			signal: AbortSignal.timeout(RESET_CREDITS_TIMEOUT_MS),
+		});
+		if (!response.ok) return null;
+		const details = (await response.json()) as CodexResetCreditsResponse;
+		const available = details.credits?.filter(
+			(credit) => credit.status === "available",
+		);
+		if (
+			details.available_count !== availableCount ||
+			!available ||
+			available.length < availableCount
+		)
+			return null;
+		const expiries = available
+			.map((credit) => Date.parse(credit.expires_at ?? ""))
+			.filter((time) => Number.isFinite(time) && time > Date.now());
+		return expiries.length ? new Date(Math.min(...expiries)) : null;
+	} catch {
+		return null;
+	}
 }
 
 function windowLabel(limitWindowSeconds: number | undefined): string {
@@ -131,6 +169,7 @@ export interface CodexSubscriptionQuota {
 	statusDetail: string | null;
 	windows: UsageQuotaWindow[];
 	creditsBalance: number | null;
+	resetCredits?: { availableCount: number; nextExpiresAt: Date | null };
 }
 
 export const CODEX_EXPIRED_TOKEN_DETAIL =
@@ -143,6 +182,7 @@ export const CODEX_EXPIRED_TOKEN_DETAIL =
 export async function fetchCodexSubscriptionQuota(
 	accessToken: string,
 	accountId?: string,
+	includeResetCredits = false,
 ): Promise<CodexSubscriptionQuota> {
 	const empty = { email: null, plan: null, windows: [], creditsBalance: null };
 	try {
@@ -173,6 +213,18 @@ export async function fetchCodexSubscriptionQuota(
 		const usage = (await response.json()) as CodexUsageResponse;
 		const windows = mapWindows(usage);
 		const balance = Number.parseFloat(usage.credits?.balance ?? "");
+		const count = usage.rate_limit_reset_credits?.available_count;
+		const resetCredits =
+			includeResetCredits &&
+			typeof count === "number" &&
+			Number.isSafeInteger(count) &&
+			count >= 0
+				? {
+						availableCount: count,
+						nextExpiresAt:
+							count > 0 ? await nextResetExpiry(headers, count) : null,
+					}
+				: undefined;
 		return {
 			email: usage.email ?? null,
 			plan: usage.plan_type ?? null,
@@ -181,6 +233,7 @@ export async function fetchCodexSubscriptionQuota(
 				windows.length > 0 ? null : "No quota data returned for this plan.",
 			windows,
 			creditsBalance: Number.isFinite(balance) ? balance : null,
+			resetCredits,
 		};
 	} catch (error) {
 		return {
@@ -239,6 +292,7 @@ async function fetchCodexAccountForHome(
 	const quota = await fetchCodexSubscriptionQuota(
 		accessToken,
 		auth.tokens?.account_id,
+		true,
 	);
 	return [{ ...base, ...quota }];
 }

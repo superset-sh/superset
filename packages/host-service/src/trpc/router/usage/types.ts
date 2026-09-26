@@ -90,6 +90,7 @@ export interface UsageAccount {
 	windows: UsageQuotaWindow[];
 	/** Codex prepaid credits balance, when present. */
 	creditsBalance: number | null;
+	resetCredits?: { availableCount: number; nextExpiresAt: Date | null };
 	/** Claude extra-usage spend, in cents, when present. */
 	extraUsage: { usedCents: number; limitCents: number } | null;
 	/** Profile dir to inject into agent launches (CLAUDE_CONFIG_DIR /
