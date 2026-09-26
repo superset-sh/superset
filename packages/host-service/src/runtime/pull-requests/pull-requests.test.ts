@@ -9,7 +9,10 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../db";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
-import type { WorkspaceChangedMessage } from "../../events/types";
+import type {
+	AgentLifecycleMessage,
+	WorkspaceChangedMessage,
+} from "../../events/types";
 import { PullRequestRuntimeManager } from "./pull-requests";
 import { GitHubAvailabilityGate } from "./utils/github-availability";
 import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
@@ -56,6 +59,7 @@ function seedWorkspace(
 		upstreamRepo?: string | null;
 		upstreamBranch?: string | null;
 		pullRequestId?: string | null;
+		suppressedPullRequestId?: string | null;
 		worktreePath?: string;
 	},
 ) {
@@ -71,6 +75,7 @@ function seedWorkspace(
 			upstreamRepo: w.upstreamRepo ?? null,
 			upstreamBranch: w.upstreamBranch ?? null,
 			pullRequestId: w.pullRequestId ?? null,
+			suppressedPullRequestId: w.suppressedPullRequestId ?? null,
 		})
 		.run();
 }
@@ -1622,18 +1627,29 @@ describe("default-branch guard", () => {
 });
 
 type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
+type AgentLifecycleEvent = Omit<AgentLifecycleMessage, "type">;
 
-// Minimal in-process stand-in for EventBus.onWorkspaceChanged.
+// Minimal in-process stand-in for EventBus.onWorkspaceChanged /
+// onAgentLifecycle.
 function createFakeWorkspaceEventBus() {
 	const listeners = new Set<(event: WorkspaceChangedEvent) => void>();
+	const agentListeners = new Set<(event: AgentLifecycleEvent) => void>();
 	return {
 		listeners,
+		agentListeners,
 		onWorkspaceChanged(listener: (event: WorkspaceChangedEvent) => void) {
 			listeners.add(listener);
 			return () => listeners.delete(listener);
 		},
+		onAgentLifecycle(listener: (event: AgentLifecycleEvent) => void) {
+			agentListeners.add(listener);
+			return () => agentListeners.delete(listener);
+		},
 		emit(event: WorkspaceChangedEvent) {
 			for (const listener of listeners) listener(event);
+		},
+		emitAgentLifecycle(event: AgentLifecycleEvent) {
+			for (const listener of agentListeners) listener(event);
 		},
 	};
 }
@@ -1725,6 +1741,206 @@ describe("workspace-created event trigger", () => {
 
 		expect(refsReads()).toBe(0);
 		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
+	});
+});
+
+// A PR opened from the terminal (`gh pr create`, by any agent) writes nothing
+// under `.git/`, so the watcher never fires for it; the agent's turn-end Stop
+// hook is the only signal every harness emits after the PR exists.
+describe("agent Stop trigger", () => {
+	const stopEvent: AgentLifecycleEvent = {
+		workspaceId: "ws-pushed",
+		eventType: "Stop",
+		terminalId: "term-1",
+		occurredAt: 1,
+	};
+	const refs: WorkspaceRefsSnapshot = {
+		branch: "feat/omp",
+		headSha: "sha-omp",
+		upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/omp" },
+	};
+	const node = makePrNode({
+		number: 7679,
+		headRef: "feat/omp",
+		headSha: "sha-omp",
+	});
+
+	function seedPushedWorkspace(db: HostDb, pullRequestId: string | null) {
+		seedWorkspace(db, {
+			id: "ws-pushed",
+			branch: "feat/omp",
+			headSha: "sha-omp",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feat/omp",
+			pullRequestId,
+		});
+	}
+
+	test("links a PR created after the push-time sync cached a miss", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPushedWorkspace(db, null);
+		let prOnGitHub = false;
+		const manager = createManager(db, {
+			execGh: (args) => routeGh(prOnGitHub ? { "feat/omp": node } : {})(args),
+			readWorkspaceRefs: async () => refs,
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		// The push fires a sync while the PR does not exist yet.
+		await manager.refreshPullRequestsByWorkspaces(["ws-pushed"]);
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBeNull();
+
+		prOnGitHub = true;
+		bus.emitAgentLifecycle(stopEvent);
+		await waitFor(() => Boolean(getWorkspace(db, "ws-pushed")?.pullRequestId));
+
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBe(
+			getPrByNumber(db, 7679)?.id,
+		);
+		manager.stop();
+		expect(bus.agentListeners.size).toBe(0);
+	});
+
+	test("a Stop in a workspace that already has a PR spawns no GitHub lookups", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-omp",
+			prNumber: 7679,
+			headBranch: "feat/omp",
+			headSha: "sha-omp",
+		});
+		seedPushedWorkspace(db, "pr-omp");
+		let ghCalls = 0;
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: async () => {
+				ghCalls += 1;
+				return [];
+			},
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return refs;
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emitAgentLifecycle(stopEvent);
+		bus.emitAgentLifecycle({ ...stopEvent, eventType: "Start" });
+		await waitFor(() => refsReads > 0, 100);
+
+		expect(refsReads).toBe(0);
+		expect(ghCalls).toBe(0);
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBe("pr-omp");
+	});
+
+	test("skips a workspace whose PR link the user removed", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPullRequest(db, {
+			id: "pr-omp",
+			prNumber: 7679,
+			headBranch: "feat/omp",
+			headSha: "sha-omp",
+		});
+		seedWorkspace(db, {
+			id: "ws-pushed",
+			branch: "feat/omp",
+			headSha: "sha-omp",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feat/omp",
+			pullRequestId: null,
+			suppressedPullRequestId: "pr-omp",
+		});
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({ "feat/omp": node }),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return refs;
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emitAgentLifecycle(stopEvent);
+		await waitFor(() => refsReads > 0, 100);
+
+		expect(refsReads).toBe(0);
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBeNull();
+	});
+
+	test("skips a workspace that was never pushed", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-pushed", branch: "feat/omp" });
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({ "feat/omp": node }),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return refs;
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emitAgentLifecycle(stopEvent);
+		await waitFor(() => refsReads > 0, 100);
+
+		expect(refsReads).toBe(0);
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBeNull();
+	});
+
+	test("probes GitHub at most once per cooldown per workspace", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPushedWorkspace(db, null);
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return refs;
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emitAgentLifecycle(stopEvent);
+		await waitFor(() => refsReads === 1);
+		bus.emitAgentLifecycle(stopEvent);
+		bus.emitAgentLifecycle({ ...stopEvent, occurredAt: 2 });
+		await waitFor(() => refsReads > 1, 100);
+
+		expect(refsReads).toBe(1);
+	});
+
+	test("ignores Start events for an unlinked workspace", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedPushedWorkspace(db, null);
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({ "feat/omp": node }),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return refs;
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emitAgentLifecycle({ ...stopEvent, eventType: "Start" });
+		await waitFor(() => refsReads > 0, 100);
+
+		expect(refsReads).toBe(0);
+		expect(getWorkspace(db, "ws-pushed")?.pullRequestId).toBeNull();
 	});
 });
 
