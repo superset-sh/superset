@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import {
 	authClient,
@@ -7,11 +8,13 @@ import {
 } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
+import { resolveStoredToken } from "./utils/resolveStoredToken";
 
 const HYDRATION_TIMEOUT_MS = 15_000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
+	const queryClient = useQueryClient();
 	const { refetch: refetchSession } = authClient.useSession();
 
 	const { data: storedToken, isSuccess } =
@@ -47,19 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 
 		async function hydrate() {
-			if (storedToken?.token && storedToken?.expiresAt) {
-				const isExpired = new Date(storedToken.expiresAt) < new Date();
-				if (!isExpired) {
-					setAuthToken(storedToken.token);
-					// A hung session fetch must not hold boot on the splash forever —
-					// proceed after a bound; the routes show session-pending UI (#5729).
-					await Promise.race([
-						fetchSessionAndJwt(storedToken.token),
-						new Promise((resolve) =>
-							window.setTimeout(resolve, HYDRATION_TIMEOUT_MS),
-						),
-					]);
-				}
+			const token = resolveStoredToken(storedToken);
+			if (token) {
+				setAuthToken(token);
+				// A hung session fetch must not hold boot on the splash forever —
+				// proceed after a bound; the routes show session-pending UI (#5729).
+				await Promise.race([
+					fetchSessionAndJwt(token),
+					new Promise((resolve) =>
+						window.setTimeout(resolve, HYDRATION_TIMEOUT_MS),
+					),
+				]);
 			}
 			if (!cancelled) {
 				setIsHydrated(true);
@@ -92,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			} else if (data === null) {
 				setAuthToken(null);
 				setJwt(null);
+				// Cached reads belong to the account that made them, and every
+				// window hears this event, not only the one that signed out.
+				queryClient.clear();
 				try {
 					await refetchSession();
 				} catch (err) {
