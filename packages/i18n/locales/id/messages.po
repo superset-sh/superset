@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# hasil di host ini} other {# hasil di host ini}}"
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# hasil} other {# hasil}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# agen berjalan — sembunyikan detail} other {# agen berjalan — sembunyikan detail}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# agen berjalan — tampilkan detail} other {# agen berjalan — tampilkan detail}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# sesi berjalan} other {# sesi berjalan}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} star dan terus bertambah"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} star · {perDay}/hari minggu ini · {peakPerDay}/hari saat puncak"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, other {# subagen berjalan}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Membuat # workspace, {failCount} gagal} other {Membuat # workspace, {failCount} gagal}}"
@@ -13671,6 +13682,9 @@ msgstr "Tampilkan yang terselesaikan ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Tampilkan komentar review"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Tampilkan agen yang berjalan di bawah tiap workspace di sidebar, lengkap dengan status langsungnya."
+
 msgid "Show Scripts Bar"
 msgstr "Tampilkan Bilah Skrip"
 
@@ -16929,6 +16943,9 @@ msgstr "Pemilih warna aksen workspace"
 
 msgid "Workspace actions"
 msgstr "Aksi workspace"
+
+msgid "Workspace agents"
+msgstr "Agen workspace"
 
 msgid "Workspace created"
 msgstr "Workspace dibuat"

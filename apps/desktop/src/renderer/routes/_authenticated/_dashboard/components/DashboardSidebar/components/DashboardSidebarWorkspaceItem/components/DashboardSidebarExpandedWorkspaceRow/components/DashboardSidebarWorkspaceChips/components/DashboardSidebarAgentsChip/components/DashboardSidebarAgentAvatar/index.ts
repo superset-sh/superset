@@ -1,0 +1,1 @@
+export { DashboardSidebarAgentAvatar } from "./DashboardSidebarAgentAvatar";

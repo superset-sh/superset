@@ -72,6 +72,7 @@ export const SETTING_ITEM_ID = {
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
+	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
 	EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT:
 		"experimental-wait-for-setup-before-agent",
 
@@ -223,6 +224,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
 	// Gates both the v1 renderer launch and the v2 host-side launch.
 	[SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
@@ -1366,6 +1368,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspace",
 			"workspaces",
 			"dev server",
+			"toggle",
+			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		section: "experimental",
+		title: "Workspace agents",
+		description:
+			"Show running agents under each workspace in the sidebar, with their live status",
+		keywords: [
+			"experimental",
+			"agents",
+			"agent",
+			"running",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"status",
 			"toggle",
 			"switch",
 		],

@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# resultado en este host} other {# resultados en este h
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# resultado} other {# resultados}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# agente en ejecución: ocultar detalles} other {# agentes en ejecución: ocultar detalles}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# agente en ejecución: mostrar detalles} other {# agentes en ejecución: mostrar detalles}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# sesión en marcha} other {# sesiones en marcha}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} estrellas y subiendo"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} estrellas · {perDay}/día esta semana · {peakPerDay}/día en el pico"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# subagente en ejecución} other {# subagentes en ejecución}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# espacio de trabajo creado, {failCount} con error} other {# espacios de trabajo creados, {failCount} con error}}"
@@ -13671,6 +13682,9 @@ msgstr "Mostrar los resueltos ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Mostrar los comentarios de revisión"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Muestra los agentes en ejecución bajo cada espacio de trabajo en la barra lateral, con su estado en vivo."
+
 msgid "Show Scripts Bar"
 msgstr "Mostrar la barra de scripts"
 
@@ -16929,6 +16943,9 @@ msgstr "Selector del color de acento del espacio de trabajo"
 
 msgid "Workspace actions"
 msgstr "Acciones del espacio de trabajo"
+
+msgid "Workspace agents"
+msgstr "Agentes del espacio de trabajo"
 
 msgid "Workspace created"
 msgstr "Espacio de trabajo creado"

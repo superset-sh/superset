@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# Ergebnis auf diesem Host} other {# Ergebnisse auf die
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# Ergebnis} other {# Ergebnisse}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# laufender Agent — Details ausblenden} other {# laufende Agenten — Details ausblenden}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# laufender Agent — Details anzeigen} other {# laufende Agenten — Details anzeigen}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# Sitzung aktiv} other {# Sitzungen aktiv}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} Stars und es werden mehr"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} Stars · {perDay}/Tag diese Woche · {peakPerDay}/Tag im Hoch"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# Subagent läuft} other {# Subagenten laufen}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# Arbeitsbereich erstellt, {failCount} fehlgeschlagen} other {# Arbeitsbereiche erstellt, {failCount} fehlgeschlagen}}"
@@ -13671,6 +13682,9 @@ msgstr "Aufgelöste anzeigen ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Review-Kommentare anzeigen"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Laufende Agenten mit ihrem Live-Status unter jedem Arbeitsbereich in der Seitenleiste anzeigen."
+
 msgid "Show Scripts Bar"
 msgstr "Skriptleiste anzeigen"
 
@@ -16929,6 +16943,9 @@ msgstr "Auswahl der Akzentfarbe eines Arbeitsbereichs"
 
 msgid "Workspace actions"
 msgstr "Arbeitsbereich-Aktionen"
+
+msgid "Workspace agents"
+msgstr "Arbeitsbereich-Agenten"
 
 msgid "Workspace created"
 msgstr "Arbeitsbereich erstellt"

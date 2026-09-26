@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# wynik na tym hoście} few {# wyniki na tym hoście} m
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# wynik} few {# wyniki} many {# wyników} other {# wyniku}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# działający agent — ukryj szczegóły} few {# działający agenci — ukryj szczegóły} many {# działających agentów — ukryj szczegóły} other {# działającego agenta — ukryj szczegóły}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# działający agent — pokaż szczegóły} few {# działający agenci — pokaż szczegóły} many {# działających agentów — pokaż szczegóły} other {# działającego agenta — pokaż szczegóły}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# sesja działa} few {# sesje działają} many {# sesji działa} other {# sesji działa}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} gwiazdek i rośnie"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} gwiazdek · {perDay}/dzień w tym tygodniu · {peakPerDay}/dzień w szczycie"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# subagent działa} few {# subagenty działają} many {# subagentów działa} other {# subagenta działa}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Utworzono # obszar roboczy, {failCount} nieudanych} few {Utworzono # obszary robocze, {failCount} nieudanych} many {Utworzono # obszarów roboczych, {failCount} nieudanych} other {Utworzono # obszaru roboczego, {failCount} nieudanych}}"
@@ -13671,6 +13682,9 @@ msgstr "Pokaż rozwiązane ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Pokaż komentarze przeglądu"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Pokazuj działających agentów pod każdym obszarem roboczym na pasku bocznym, wraz z ich statusem na żywo."
+
 msgid "Show Scripts Bar"
 msgstr "Pokaż pasek skryptów"
 
@@ -16929,6 +16943,9 @@ msgstr "Wybór koloru akcentu obszaru roboczego"
 
 msgid "Workspace actions"
 msgstr "Akcje obszaru roboczego"
+
+msgid "Workspace agents"
+msgstr "Agenci obszaru roboczego"
 
 msgid "Workspace created"
 msgstr "Obszar roboczy utworzony"

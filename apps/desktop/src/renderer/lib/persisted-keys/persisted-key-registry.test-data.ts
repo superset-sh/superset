@@ -116,6 +116,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 			"browser-import-banner-dismissals-v1",
 		],
 	],
+	["src/renderer/stores/workspace-agents-row.ts", ["workspace-agents-row"]],
 	[
 		"src/renderer/routes/_authenticated/settings/usage/utils/usageLastSection/usageLastSection.ts",
 		["usage-last-section-v1"],

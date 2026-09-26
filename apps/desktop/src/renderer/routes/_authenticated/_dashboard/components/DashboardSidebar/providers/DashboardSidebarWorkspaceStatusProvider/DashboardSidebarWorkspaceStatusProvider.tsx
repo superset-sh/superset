@@ -38,6 +38,8 @@ export interface SidebarWorkspaceStatusEntry {
 	isUnread: boolean;
 	/** `terminalId → host agent binding` (source rows for mark-seen). */
 	bindings: ReadonlyMap<string, TerminalAgentBinding>;
+	/** `terminalId → derived agent status` (drives the agents chip). */
+	statuses: ReadonlyMap<string, PaneStatus>;
 	/** Populated only for the active workspace — the only row that shows it. */
 	diffStats: DiffStats | null;
 	/** When the host reported `status`, for mark-seen; null when derived from bindings. */
@@ -48,6 +50,7 @@ const EMPTY_ENTRY: SidebarWorkspaceStatusEntry = {
 	status: null,
 	isUnread: false,
 	bindings: new Map(),
+	statuses: new Map(),
 	diffStats: null,
 	reportedAt: null,
 };
@@ -151,7 +154,8 @@ function entriesEqual(
 				right.diffStats !== null &&
 				left.diffStats.additions === right.diffStats.additions &&
 				left.diffStats.deletions === right.diffStats.deletions)) &&
-		mapsShallowEqual(left.bindings, right.bindings)
+		mapsShallowEqual(left.bindings, right.bindings) &&
+		mapsShallowEqual(left.statuses, right.statuses)
 	);
 }
 
@@ -373,6 +377,7 @@ export function DashboardSidebarWorkspaceStatusProvider({
 					reported === "review" ||
 					reported === "failed",
 				bindings,
+				statuses,
 				diffStats:
 					target.workspaceId === activeWorkspaceId ? activeDiffStats : null,
 				reportedAt: report?.at ?? null,

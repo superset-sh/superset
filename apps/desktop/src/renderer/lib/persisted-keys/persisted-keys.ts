@@ -46,8 +46,6 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "last-active-v2-workspace", match: "exact" },
 	// Sidebar automations failure badge removed; it polled for every window
 	{ key: "automation-failures-v1", match: "exact" },
-	// Sidebar workspace agents chip removed along with its experiment toggle
-	{ key: "workspace-agents-row", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

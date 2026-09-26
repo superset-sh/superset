@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# result on this host} other {# results on this host}}"
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# result} other {# results}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# session running} other {# sessions running}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} stars and counting"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
@@ -13671,6 +13682,9 @@ msgstr "Show resolved ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Show review comments"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Show running agents under each workspace in the sidebar, with their live status."
+
 msgid "Show Scripts Bar"
 msgstr "Show Scripts Bar"
 
@@ -16929,6 +16943,9 @@ msgstr "Workspace accent-color picker"
 
 msgid "Workspace actions"
 msgstr "Workspace actions"
+
+msgid "Workspace agents"
+msgstr "Workspace agents"
 
 msgid "Workspace created"
 msgstr "Workspace created"

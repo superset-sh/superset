@@ -17,6 +17,10 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
+	useWorkspaceAgentsRowEnabled,
+	useWorkspaceAgentsRowStore,
+} from "renderer/stores/workspace-agents-row";
+import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -44,6 +48,10 @@ export function ExperimentalSettings({
 		SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
 		visibleItems,
 	);
+	const showWorkspaceAgents = isItemVisible(
+		SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		visibleItems,
+	);
 	const showWaitForSetupBeforeAgent = isItemVisible(
 		SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
 		visibleItems,
@@ -56,6 +64,10 @@ export function ExperimentalSettings({
 	const portsDisplayMode = usePortsDisplayMode();
 	const setPortsDisplayMode = useInlineWorkspacePortsStore(
 		(state) => state.setMode,
+	);
+	const workspaceAgentsEnabled = useWorkspaceAgentsRowEnabled();
+	const setWorkspaceAgentsEnabled = useWorkspaceAgentsRowStore(
+		(state) => state.setEnabled,
 	);
 
 	return (
@@ -176,6 +188,34 @@ export function ExperimentalSettings({
 							onCheckedChange={(checked) =>
 								setPortsDisplayMode(checked ? "topbar" : "inline")
 							}
+						/>
+					</div>
+				)}
+				{showWorkspaceAgents && (
+					<div className="flex items-center justify-between gap-6">
+						<div className="min-w-0 flex-1 space-y-0.5">
+							<Label htmlFor="workspace-agents" className="text-sm font-medium">
+								<HighlightText
+									text={t({
+										message: "Workspace agents",
+									})}
+									query={searchQuery}
+								/>
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								<HighlightText
+									text={t({
+										message:
+											"Show running agents under each workspace in the sidebar, with their live status.",
+									})}
+									query={searchQuery}
+								/>
+							</p>
+						</div>
+						<Switch
+							id="workspace-agents"
+							checked={workspaceAgentsEnabled}
+							onCheckedChange={setWorkspaceAgentsEnabled}
 						/>
 					</div>
 				)}

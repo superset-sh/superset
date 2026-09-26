@@ -189,6 +189,14 @@ msgstr "{0, plural, one {# kết quả trên host này} other {# kết quả tr�
 msgid "{0, plural, one {# result} other {# results}}"
 msgstr "{0, plural, one {# kết quả} other {# kết quả}}"
 
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — hide details} other {# running agents — hide details}}"
+msgstr "{0, plural, one {# agent đang chạy — ẩn chi tiết} other {# agent đang chạy — ẩn chi tiết}}"
+
+#. placeholder {0}: agents.length
+msgid "{0, plural, one {# running agent — show details} other {# running agents — show details}}"
+msgstr "{0, plural, one {# agent đang chạy — hiện chi tiết} other {# agent đang chạy — hiện chi tiết}}"
+
 #. placeholder {0}: aliveCount ?? 0
 msgid "{0, plural, one {# session running} other {# sessions running}}"
 msgstr "{0, plural, one {# phiên đang chạy} other {# phiên đang chạy}}"
@@ -895,6 +903,9 @@ msgstr "{starCount} star và còn tăng"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} star · {perDay}/ngày tuần này · {peakPerDay}/ngày lúc cao nhất"
+
+msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
+msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
 
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Đã tạo # workspace, {failCount} thất bại} other {Đã tạo # workspace, {failCount} thất bại}}"
@@ -13671,6 +13682,9 @@ msgstr "Hiện các mục đã xử lý ({resolvedCount})"
 msgid "Show review comments"
 msgstr "Hiện bình luận review"
 
+msgid "Show running agents under each workspace in the sidebar, with their live status."
+msgstr "Hiện các agent đang chạy dưới mỗi workspace ở thanh bên, kèm trạng thái trực tiếp."
+
 msgid "Show Scripts Bar"
 msgstr "Hiện thanh script"
 
@@ -16929,6 +16943,9 @@ msgstr "Bộ chọn màu nhấn cho workspace"
 
 msgid "Workspace actions"
 msgstr "Hành động workspace"
+
+msgid "Workspace agents"
+msgstr "Agent của workspace"
 
 msgid "Workspace created"
 msgstr "Đã tạo workspace"
