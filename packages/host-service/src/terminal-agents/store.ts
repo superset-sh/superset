@@ -2,11 +2,11 @@ import { EventEmitter } from "node:events";
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
 import {
 	getSubagentHarness,
-	isTrustedTranscriptPath,
 	readSubagentTranscript,
 	type SubagentTranscriptHint,
 } from "./subagent-harnesses";
 import type { SubagentTranscript } from "./subagent-transcript";
+import { isTrustedTranscriptPath } from "./transcript-path";
 import type {
 	TerminalAgentBinding,
 	TerminalAgentEndReason,

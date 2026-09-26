@@ -8,11 +8,16 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
-import { terminalSessions, workspaces } from "../../../db/schema";
+import {
+	terminalAgentBindings,
+	terminalSessions,
+	workspaces,
+} from "../../../db/schema";
 import type { AgentLifecycleEventType } from "../../../events";
 import type { WorkspaceChangedMessage } from "../../../events/types";
 import { TerminalAgentStore } from "../../../terminal-agents";
 import { issueAttributionToken } from "../../../terminal-agents/attribution-token";
+import { SqliteTerminalAgentBindingPersistence } from "../../../terminal-agents/persistence";
 import type { HostServiceContext } from "../../../types";
 import {
 	getLocalWorkspace,
@@ -554,6 +559,53 @@ it("broadcasts a bounded preview with the lifecycle event", async () => {
 	expect(broadcastAgentLifecycle.mock.calls[0]?.[0].preview).toBe(
 		"x".repeat(4000),
 	);
+});
+
+describe("reported transcript path", () => {
+	function createPersistedContext() {
+		const context = createDbContext({
+			terminalId: "terminal-1",
+			workspaceId: "workspace-1",
+		});
+		context.ctx.terminalAgentStore = new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(context.db),
+		);
+		return context;
+	}
+
+	function storedPath(db: HostDb) {
+		return db
+			.select({ path: terminalAgentBindings.transcriptPath })
+			.from(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, "terminal-1"))
+			.get()?.path;
+	}
+
+	it("keeps the main session's transcript path on its binding", async () => {
+		const { ctx, db } = createPersistedContext();
+		const transcriptPath = resolve(
+			homedir(),
+			".claude/projects/-tmp-workspace-1/s-1.jsonl",
+		);
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "claude", sessionId: "s-1" },
+			transcriptPath,
+		});
+		expect(storedPath(db)).toBe(transcriptPath);
+	});
+
+	it("drops a path the unauthenticated hook could use to point outside home", async () => {
+		const { ctx, db } = createPersistedContext();
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "Stop",
+			agent: { agentId: "claude", sessionId: "s-1" },
+			transcriptPath: "/etc/s-1.jsonl",
+		});
+		expect(storedPath(db)).toBeNull();
+	});
 });
 
 describe("login attribution authentication", () => {

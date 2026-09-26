@@ -19,111 +19,26 @@ import {
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { hostAgentConfigs, workspaces } from "../../../db/schema";
-import { hasHarnessSession } from "../../../terminal/harness-transcript";
+import { workspaces } from "../../../db/schema";
 import {
 	createTerminalSessionInternal,
 	sendAgentMessage,
 } from "../../../terminal/terminal";
 import type { TerminalAgentStore } from "../../../terminal-agents";
+import {
+	agentLaunchEnv,
+	type ResolvedHostAgentConfig,
+	resolveHostAgentConfig,
+} from "../../../terminal-agents/agent-config";
+import { hasHarnessSession } from "../../../terminal-agents/harness-sessions";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { toTerminalSessionError } from "../terminal/errors";
-import { resolveDefaultAccountEnv } from "../usage/default-account";
 import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
-
-interface ResolvedHostAgentConfig {
-	id: string;
-	presetId: string;
-	label: string;
-	command: string;
-	args: string[];
-	promptTransport: "argv" | "stdin";
-	promptArgs: string[];
-	resumeArgs: string[];
-	forkArgs: string[];
-	env: Record<string, string>;
-}
-
-function parseArgv(value: string): string[] {
-	try {
-		const parsed = JSON.parse(value);
-		if (
-			!Array.isArray(parsed) ||
-			parsed.some((entry) => typeof entry !== "string")
-		) {
-			return [];
-		}
-		return parsed as string[];
-	} catch {
-		return [];
-	}
-}
-
-function parseEnv(value: string): Record<string, string> {
-	try {
-		const parsed = JSON.parse(value);
-		if (
-			parsed === null ||
-			typeof parsed !== "object" ||
-			Array.isArray(parsed) ||
-			Object.values(parsed).some((entry) => typeof entry !== "string")
-		) {
-			return {};
-		}
-		return parsed as Record<string, string>;
-	} catch {
-		return {};
-	}
-}
-
-function rowToConfig(
-	row: typeof hostAgentConfigs.$inferSelect,
-): ResolvedHostAgentConfig {
-	return {
-		id: row.id,
-		presetId: row.presetId,
-		label: row.label,
-		command: row.command,
-		args: parseArgv(row.argsJson),
-		promptTransport: row.promptTransport as "argv" | "stdin",
-		promptArgs: parseArgv(row.promptArgsJson),
-		resumeArgs: parseArgv(row.resumeArgsJson),
-		forkArgs: parseArgv(row.forkArgsJson),
-		env: parseEnv(row.envJson),
-	};
-}
-
-/**
- * Look up a HostAgentConfig by its instance id first, then fall back to the
- * lowest-`order` row matching by presetId. Preset ids are short slugs;
- * instance ids are UUIDs — they don't collide.
- */
-export function resolveHostAgentConfig(
-	db: HostDb,
-	agent: string,
-): ResolvedHostAgentConfig | null {
-	const byId = db
-		.select()
-		.from(hostAgentConfigs)
-		.where(eq(hostAgentConfigs.id, agent))
-		.get();
-	if (byId) return rowToConfig(byId);
-
-	const byPreset = db
-		.select()
-		.from(hostAgentConfigs)
-		.where(eq(hostAgentConfigs.presetId, agent))
-		.orderBy(asc(hostAgentConfigs.displayOrder))
-		.get();
-	if (byPreset) return rowToConfig(byPreset);
-
-	return null;
-}
 
 /**
  * Build a shell command string that runs the resolved agent config with the
@@ -407,15 +322,11 @@ function validateForkSessionIsResolvable(
 	// The same env the launch will run under: an agent pinned to its own
 	// provider account keeps its sessions in that account's directory, and
 	// looking in the default one would refuse a fork that would have worked.
-	const launchEnv = {
-		...resolveDefaultAccountEnv(db, config.presetId),
-		...config.env,
-	};
 	const resolvable = hasHarnessSession({
 		agentId: config.presetId,
 		sessionId: input.forkSessionId,
 		worktreePath,
-		env: launchEnv,
+		env: agentLaunchEnv(db, config),
 	});
 	if (resolvable === false) {
 		throw new TRPCError({
@@ -534,11 +445,8 @@ export function buildTerminalAgentLaunch(
 		},
 	);
 	const modelEnv = buildAgentModelEnv(launchPresetId, input.model);
-	// Host-default provider account (Usage tab switcher). Per-agent env wins,
-	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
-	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...agentLaunchEnv(db, config), ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }

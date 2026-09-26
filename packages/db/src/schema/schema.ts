@@ -646,6 +646,8 @@ export const environments = pgTable(
 		provider: text().notNull().default("vercel"),
 		sourceKind: environmentSourceKind("source_kind").notNull(),
 		sourceRef: text("source_ref").notNull(),
+		/** Where its golden lives and every box forked from it runs; a snapshot only exists in its region. */
+		region: text().notNull().default("sfo1"),
 		/** The sandbox bundle every workspace of this environment boots on; null keeps the image's own. */
 		bundleSha: text("bundle_sha"),
 		/**

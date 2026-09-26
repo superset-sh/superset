@@ -2605,6 +2605,9 @@ msgstr "Thoát"
 msgid "Box"
 msgstr "Box"
 
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "Box chạy ở nơi environment được tạo; snapshot chỉ tồn tại trong region của nó."
+
 msgid "Branch"
 msgstr "Nhánh"
 
@@ -9146,6 +9149,9 @@ msgstr "Điều hướng"
 msgid "Navigation Menu"
 msgstr "Navigation Menu"
 
+msgid "Nearest to you."
+msgstr "Gần bạn nhất."
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "Cần đấu nối ở tầng ứng dụng (trạng thái form, dữ liệu biểu đồ, app shell)"
 
@@ -11947,6 +11953,9 @@ msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Làm mới khi OpenCode chạy lần tiếp theo."
+
+msgid "Region"
+msgstr "Region"
 
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "Đăng ký bất kỳ agent CLI nào bên cạnh các agent có sẵn, mỗi agent có tên, biểu tượng và lệnh khởi chạy riêng."

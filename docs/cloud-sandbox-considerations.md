@@ -239,14 +239,22 @@ the image repository live in the team's `sandboxes` project, reached with a
 token that is not the deploy token. A second region is a per-sandbox
 `region` choice, not a second project.
 
-**Region is one setting for everyone.** `VERCEL_SANDBOX_REGION` (sfo1) is
-where image-created sandboxes and released goldens live, and forks inherit the
-golden's region. Snapshots are region-bound — a golden in iad1 cannot be
-forked into sfo1, and failover regions do not replicate it — so routing each
-user to the nearest region means a golden per region and a region column on
-the environment. Worth it: a request to a sandbox in sfo1 answers in ~23 ms
-from San Francisco against ~190 ms to iad1, and the desktop pane pays that on
-every frame.
+**An environment has a region, and every box of it runs there. Done
+(2026-09-25).** Snapshots are region-bound and cannot move, so a golden built
+in sfo1 only forks in sfo1, and a promoted environment cannot be reproduced
+elsewhere at all (its golden is a snapshot of a hand-shaped box, not a recipe).
+`environments.region` records it: chosen in the New environment dialog, which
+defaults to the region nearest the person from the coordinates Vercel stamps
+on the request (`x-vercel-ip-latitude/longitude`), `sfo1` when they are
+missing; the internal release builds in `DEFAULT_SANDBOX_REGION`; promote
+records the source box's region. Image creates use it, forks inherit the
+golden's. `VERCEL_SANDBOX_REGION` is gone. **Open:** the internal golden in
+more than one region so a first box anywhere starts fast (an
+`environment_goldens` table keyed by region, the release building the fixed
+list in parallel), and a region change on an image-backed environment. Worth
+it: a request to a sandbox in sfo1 answers in ~23 ms from San Francisco
+against ~190 ms to iad1, and the desktop pane pays that on every frame;
+terminals through the edge gate are fine from a far region.
 
 **The sandbox domain is the only ingress.** No relay hop, which is why
 WebSockets work and there is no relay on the critical path — but it also means

@@ -2605,6 +2605,9 @@ msgstr "이탈"
 msgid "Box"
 msgstr "박스"
 
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "박스는 환경이 만들어진 곳에서 실행됩니다. 스냅샷은 해당 리전에만 존재합니다."
+
 msgid "Branch"
 msgstr "브랜치"
 
@@ -9146,6 +9149,9 @@ msgstr "탐색"
 msgid "Navigation Menu"
 msgstr "탐색 메뉴"
 
+msgid "Nearest to you."
+msgstr "가장 가까운 리전입니다."
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "앱 수준 연결이 필요합니다(폼 상태, 차트 데이터, 앱 셸)"
 
@@ -11947,6 +11953,9 @@ msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "다음에 OpenCode를 실행하면 갱신됩니다."
+
+msgid "Region"
+msgstr "리전"
 
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "기본 제공 에이전트 옆에 어떤 CLI 에이전트든 이름, 아이콘, 실행 명령과 함께 등록하세요."

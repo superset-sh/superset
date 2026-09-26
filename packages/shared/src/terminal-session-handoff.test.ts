@@ -1,9 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
+	boundTranscriptText,
 	buildBoundedTerminalSessionTranscript,
 	buildTerminalSessionHandoffPrompt,
 	TERMINAL_HANDOFF_MAX_CHARS,
 } from "./terminal-session-handoff";
+
+const LONE_SURROGATE =
+	/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
 describe("buildBoundedTerminalSessionTranscript", () => {
 	it("strips terminal escape sequences and control characters", () => {
@@ -70,6 +74,15 @@ describe("buildBoundedTerminalSessionTranscript", () => {
 		expect(transcript?.length).toBeLessThanOrEqual(120);
 	});
 
+	it("never opens on half of a character when the cut lands in one long line", () => {
+		const emoji = "\u{1F600}";
+		for (const budget of [100, 101]) {
+			const result = boundTranscriptText(emoji.repeat(500), budget);
+			expect(result.length).toBeLessThanOrEqual(budget);
+			expect(LONE_SURROGATE.test(result)).toBe(false);
+		}
+	});
+
 	it("returns null for empty terminal output", () => {
 		expect(buildBoundedTerminalSessionTranscript("\u001b[0m")).toBeNull();
 	});
@@ -97,6 +110,16 @@ describe("buildTerminalSessionHandoffPrompt", () => {
 		});
 		expect(prompt).toContain("````terminal-session-context");
 		expect(prompt.trimEnd().endsWith("````")).toBe(true);
+	});
+
+	it("stays under Linux's 128 KiB per-argument limit at the widest UTF-8", () => {
+		// Most agents take the prompt as one argv value. The budget counts
+		// UTF-16 units, and no unit encodes to more than 3 bytes (CJK).
+		const prompt = buildTerminalSessionHandoffPrompt({
+			transcript: `${"中".repeat(99)}\n`.repeat(1_000),
+			sourceTerminalId: "terminal-1",
+		});
+		expect(new TextEncoder().encode(prompt).length).toBeLessThan(128 * 1024);
 	});
 
 	it("omits the source harness when the terminal has no agent binding", () => {

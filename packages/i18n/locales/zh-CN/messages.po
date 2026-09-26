@@ -2605,6 +2605,9 @@ msgstr "跳出"
 msgid "Box"
 msgstr "Box"
 
+msgid "Boxes run where the environment was made; a snapshot only exists in its region."
+msgstr "沙盒在环境创建的位置运行；快照只存在于其所在区域。"
+
 msgid "Branch"
 msgstr "分支"
 
@@ -9146,6 +9149,9 @@ msgstr "导航"
 msgid "Navigation Menu"
 msgstr "导航菜单"
 
+msgid "Nearest to you."
+msgstr "离你最近的区域。"
+
 msgid "Need app-level wiring (form state, chart data, app shell)"
 msgstr "需要应用层的接线（表单状态、图表数据、应用外壳）"
 
@@ -11947,6 +11953,9 @@ msgstr "下次运行 Claude Code 时刷新。"
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "下次运行 OpenCode 时刷新。"
+
+msgid "Region"
+msgstr "区域"
 
 msgid "Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command."
 msgstr "在内置智能体之外注册任意CLI智能体，各自拥有名称、图标和启动命令。"

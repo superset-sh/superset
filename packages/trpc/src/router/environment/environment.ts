@@ -10,6 +10,12 @@ import {
 	SANDBOX_IMAGE_NAME,
 	SHARED_ENVIRONMENT_ORGANIZATION_ID,
 } from "@superset/shared/constants";
+import {
+	DEFAULT_SANDBOX_REGION,
+	nearestSandboxRegion,
+	SANDBOX_REGION_IDS,
+	type SandboxRegionId,
+} from "@superset/shared/sandbox-regions";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
@@ -171,8 +177,24 @@ async function setEnvironmentRepositories(args: {
 		.where(eq(environments.id, args.environmentId));
 }
 
+/**
+ * The region nearest the caller, from the coordinates Vercel stamps on the
+ * request; the default when they are missing (local dev, a proxy).
+ */
+function regionForRequest(headers: Headers): SandboxRegionId {
+	const lat = Number(headers.get("x-vercel-ip-latitude"));
+	const lng = Number(headers.get("x-vercel-ip-longitude"));
+	return Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)
+		? nearestSandboxRegion(lat, lng)
+		: DEFAULT_SANDBOX_REGION;
+}
+
 export const environmentRouter = {
 	secrets: secretsRouter,
+
+	suggestRegion: jwtProcedure.query(({ ctx }) => ({
+		region: regionForRequest(ctx.headers),
+	})),
 
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
@@ -220,6 +242,8 @@ export const environmentRouter = {
 				/** Which repository's `.superset/config.json` the box acts on. */
 				hooksRepositoryId: z.string().uuid().nullable().optional(),
 				scope: z.enum(environmentScopeValues).default("organization"),
+				/** Where its boxes run; the region nearest the caller when omitted. */
+				region: z.enum(SANDBOX_REGION_IDS).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -233,6 +257,7 @@ export const environmentRouter = {
 					provider: "vercel",
 					sourceKind: "image",
 					sourceRef: SANDBOX_IMAGE_NAME,
+					region: input.region ?? regionForRequest(ctx.headers),
 					scope: input.scope,
 					createdByUserId: ctx.userId,
 				})
@@ -293,7 +318,7 @@ export const environmentRouter = {
 			const environmentId = crypto.randomUUID();
 			const goldenName = `env-${environmentId.replaceAll("-", "").slice(0, 24)}`;
 			const { claim } = await buildSandboxClaim({ row: workspace });
-			await promoteSandboxToEnvironment({
+			const golden = await promoteSandboxToEnvironment({
 				sourceSandbox: workspace.providerSandboxId,
 				goldenName,
 				claim,
@@ -308,6 +333,7 @@ export const environmentRouter = {
 					provider: workspace.provider,
 					sourceKind: "fork",
 					sourceRef: goldenName,
+					region: golden.region,
 					bundleSha: source?.bundleSha ?? null,
 					scope: source?.scope ?? "organization",
 					createdByUserId: ctx.userId,

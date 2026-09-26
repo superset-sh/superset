@@ -4,6 +4,8 @@ import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
+import { recordTerminalAgentTranscriptPath } from "../../../terminal-agents/persistence";
+import { isTrustedTranscriptPath } from "../../../terminal-agents/transcript-path";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
@@ -45,6 +47,7 @@ const hookInput = z.object({
 	accountProfile: z.string().max(4096).optional(),
 	apiKey: z.boolean().optional(),
 	attributionToken: z.string().max(128).optional(),
+	transcriptPath: z.string().max(4096).optional(),
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -196,6 +199,18 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
 		});
+		const transcriptPath = trimOrUndefined(input.transcriptPath);
+		if (
+			agent?.sessionId &&
+			transcriptPath &&
+			isTrustedTranscriptPath(transcriptPath)
+		) {
+			recordTerminalAgentTranscriptPath(ctx.db, {
+				terminalId: input.terminalId,
+				agentSessionId: agent.sessionId,
+				transcriptPath,
+			});
+		}
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
