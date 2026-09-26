@@ -6,7 +6,6 @@ import {
 	makeWorkspace,
 } from "../testProjectFixtures";
 import {
-	getWorkspaceActivityTime,
 	sortDashboardSidebarProjectChildren,
 	sortDashboardSidebarProjects,
 } from "./sortDashboardSidebarProjects";
@@ -16,39 +15,8 @@ const at = (iso: string) => new Date(iso).getTime();
 const childIds = (children: DashboardSidebarProjectChild[]) =>
 	children.map((c) => (c.type === "workspace" ? c.workspace.id : c.section.id));
 
-describe("getWorkspaceActivityTime", () => {
-	it("ranks by lastActivityAt alone once the host has stamped it", () => {
-		// A rename bumped updatedAt well past the last agent event; the agent
-		// event still wins because housekeeping is not activity.
-		const workspace = makeWorkspace({
-			id: "w",
-			name: "w",
-			updatedAt: new Date("2026-08-01"),
-			lastActivityAt: at("2026-03-01"),
-		});
-		expect(getWorkspaceActivityTime(workspace)).toBe(at("2026-03-01"));
-	});
-
-	it("falls back to updatedAt for rows from a host that predates the column", () => {
-		const workspace = makeWorkspace({
-			id: "w",
-			name: "w",
-			updatedAt: new Date("2026-05-01"),
-			lastActivityAt: null,
-		});
-		expect(getWorkspaceActivityTime(workspace)).toBe(at("2026-05-01"));
-	});
-
-	it("treats a NaN lastActivityAt like a missing one", () => {
-		const workspace = makeWorkspace({
-			id: "w",
-			name: "w",
-			updatedAt: new Date("2026-05-01"),
-			lastActivityAt: Number.NaN,
-		});
-		expect(getWorkspaceActivityTime(workspace)).toBe(at("2026-05-01"));
-	});
-});
+// getWorkspaceActivityTime's own unit tests live with its implementation:
+// packages/shared/src/workspace-activity.test.ts.
 
 describe("sortDashboardSidebarProjects", () => {
 	const older = makeProject({
