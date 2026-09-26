@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { isRasterImageFile } from "@superset/shared/media-files";
 import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -10,29 +11,44 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { type DiffSide, useDiffSideImage } from "../hooks/useDiffSideImage";
 import type { ChangesetSource } from "../hooks/useWorkspaceChangeset";
 import { languageForPath } from "../utils/languageForPath";
+import { DiffSideImageView } from "./components/DiffSideImageView";
 
 export function FileViewerScreen() {
 	const { t } = useLingui();
-	const { id, path, source } = useLocalSearchParams<{
+	const { id, path, source, side } = useLocalSearchParams<{
 		id: string;
 		path: string;
 		source?: string;
+		side?: string;
 	}>();
-	const { host } = useWorkspaceHost(id ?? null);
+	const { host, workspace } = useWorkspaceHost(id ?? null);
 	const hostUrl =
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 
 	const category = (source ?? "unstaged") as ChangesetSource;
+	const fileSide: DiffSide = side === "old" ? "old" : "new";
+	const isImage = isRasterImageFile(path ?? "");
+
+	const image = useDiffSideImage({
+		hostUrl,
+		workspaceId: id ?? null,
+		worktreePath: workspace?.worktreePath ?? null,
+		category,
+		path: path ?? "",
+		side: fileSide,
+		enabled: isImage,
+	});
 
 	const query = useQuery({
 		// Distinct from the files-changed screen's diff-row cache: same procedure,
 		// different cached shape (raw file pair vs computed rows).
 		queryKey: ["workspace-file-contents", id ?? null, category, path] as const,
-		enabled: hostUrl !== null && !!id && !!path,
+		enabled: !isImage && hostUrl !== null && !!id && !!path,
 		staleTime: 15_000,
 		retry: 1,
 		networkMode: "always" as const,
@@ -44,7 +60,10 @@ export function FileViewerScreen() {
 			}),
 	});
 
-	const contents = query.data?.newFile.contents ?? "";
+	const contents =
+		(fileSide === "old"
+			? query.data?.oldFile.contents
+			: query.data?.newFile.contents) ?? "";
 	const fileName = path?.split("/").pop() ?? t({ message: "File" });
 	const directory = path?.includes("/")
 		? path.slice(0, path.lastIndexOf("/"))
@@ -93,42 +112,51 @@ export function FileViewerScreen() {
 						</Stack.Toolbar.MenuAction>
 						<Stack.Toolbar.MenuAction
 							icon="square.and.arrow.up"
-							onPress={() => void Share.share({ message: contents })}
+							onPress={() => {
+								if (!isImage) void Share.share({ message: contents });
+								else if (image.kind === "ready") {
+									void Share.share({ url: image.uri });
+								}
+							}}
 						>
 							{t({ message: "Share via…" })}
 						</Stack.Toolbar.MenuAction>
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
 			</Stack.Screen>
-			<ScrollView
-				className="bg-background flex-1"
-				contentInsetAdjustmentBehavior="automatic"
-				contentContainerStyle={{ paddingBottom: 48 }}
-			>
-				{query.isLoading ? (
-					<View className="items-center py-20">
-						<ActivityIndicator />
-					</View>
-				) : query.isError ? (
-					<View className="items-center px-10 py-20">
-						<Text className="text-muted-foreground text-center text-sm">
-							<Trans>Could not load this file.</Trans>
-						</Text>
-					</View>
-				) : contents.length === 0 ? (
-					<View className="items-center px-10 py-20">
-						<Text className="text-muted-foreground text-center text-sm">
-							<Trans>This file is empty or was deleted.</Trans>
-						</Text>
-					</View>
-				) : (
-					<CodeBlockContent
-						code={contents}
-						language={languageForPath(path ?? "")}
-						showLineNumbers
-					/>
-				)}
-			</ScrollView>
+			{isImage ? (
+				<DiffSideImageView image={image} accessibilityLabel={fileName} />
+			) : (
+				<ScrollView
+					className="bg-background flex-1"
+					contentInsetAdjustmentBehavior="automatic"
+					contentContainerStyle={{ paddingBottom: 48 }}
+				>
+					{query.isLoading ? (
+						<View className="items-center py-20">
+							<ActivityIndicator />
+						</View>
+					) : query.isError ? (
+						<View className="items-center px-10 py-20">
+							<Text className="text-muted-foreground text-center text-sm">
+								<Trans>Could not load this file.</Trans>
+							</Text>
+						</View>
+					) : contents.length === 0 ? (
+						<View className="items-center px-10 py-20">
+							<Text className="text-muted-foreground text-center text-sm">
+								<Trans>This file is empty or was deleted.</Trans>
+							</Text>
+						</View>
+					) : (
+						<CodeBlockContent
+							code={contents}
+							language={languageForPath(path ?? "")}
+							showLineNumbers
+						/>
+					)}
+				</ScrollView>
+			)}
 		</>
 	);
 }

@@ -1,4 +1,8 @@
-import type { ChangesetFile } from "../../../hooks/useWorkspaceChangeset";
+import type { DiffSide } from "../../../hooks/useDiffSideImage";
+import type {
+	ChangesetFile,
+	ChangesetSource,
+} from "../../../hooks/useWorkspaceChangeset";
 import type { ExpandedRange } from "../../../stores/diffViewStore";
 import type { DraftComment } from "../../../stores/draftCommentsStore";
 import { buildDisplayRows } from "../buildDisplayRows";
@@ -35,6 +39,14 @@ export type ListItem =
 			comment: DraftComment;
 			stale: boolean;
 			orphaned: boolean;
+	  }
+	| {
+			kind: "image";
+			key: string;
+			path: string;
+			oldPath: string;
+			source: ChangesetSource;
+			sides: DiffSide[];
 	  }
 	| {
 			kind: "note";

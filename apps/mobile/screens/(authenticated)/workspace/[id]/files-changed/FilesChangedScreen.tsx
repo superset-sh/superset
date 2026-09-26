@@ -26,7 +26,12 @@ import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import {
+	type DiffSide,
+	getDiffSideImageQueryKey,
+} from "../hooks/useDiffSideImage";
+import {
 	type ChangesetFile,
+	type ChangesetSource,
 	useWorkspaceChangeset,
 } from "../hooks/useWorkspaceChangeset";
 import { useWorkspacePullRequest } from "../hooks/useWorkspacePullRequest";
@@ -46,6 +51,7 @@ import { CommentCardRow } from "./components/CommentCardRow";
 import { ExpanderRow } from "./components/ExpanderRow";
 import { FileHeaderRow } from "./components/FileHeaderRow";
 import { HunkSegmentCell } from "./components/HunkSegmentCell";
+import { ImageDiffRow } from "./components/ImageDiffRow";
 import { ReviewOverlay } from "./components/ReviewOverlay";
 import { useChangesetListItems } from "./hooks/useChangesetListItems";
 import { useViewedFilesStore } from "./stores/viewedFilesStore";
@@ -86,6 +92,7 @@ export function FilesChangedScreen() {
 
 	const changeset = useWorkspaceChangeset(workspaceId);
 	const { workspace } = useWorkspaceHost(workspaceId);
+	const worktreePath = workspace?.worktreePath ?? null;
 	const pullRequest = useWorkspacePullRequest(workspaceId);
 
 	const [collapsedToggles, setCollapsedToggles] = useState<ReadonlySet<string>>(
@@ -441,17 +448,22 @@ export function FilesChangedScreen() {
 		void Clipboard.setStringAsync(file.path);
 	}, []);
 
-	const viewFile = useCallback(
-		(file: ChangesetFile) => {
+	const openFileViewer = useCallback(
+		(path: string, source: ChangesetSource, side: DiffSide) => {
 			posthog.capture("file_viewed", {
 				workspace_id: workspaceId,
-				extension: file.path.split(".").pop()?.toLowerCase() ?? null,
+				extension: path.split(".").pop()?.toLowerCase() ?? null,
 			});
 			router.push(
-				`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(file.path)}&source=${file.source}`,
+				`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(path)}&source=${source}&side=${side}`,
 			);
 		},
 		[router, workspaceId],
+	);
+
+	const viewFile = useCallback(
+		(file: ChangesetFile) => openFileViewer(file.path, file.source, "new"),
+		[openFileViewer],
 	);
 
 	const addFileComment = useCallback(
@@ -509,6 +521,9 @@ export function FilesChangedScreen() {
 				queryClient.invalidateQueries({
 					queryKey: ["workspace-file-diff-data", workspaceId],
 				}),
+				queryClient.invalidateQueries({
+					queryKey: getDiffSideImageQueryKey(workspaceId),
+				}),
 			]);
 		} finally {
 			setRefreshing(false);
@@ -565,6 +580,16 @@ export function FilesChangedScreen() {
 							</Text>
 						</View>
 					);
+				case "image":
+					return (
+						<ImageDiffRow
+							item={item}
+							hostUrl={changeset.hostUrl}
+							workspaceId={workspaceId}
+							worktreePath={worktreePath}
+							onOpenSide={openFileViewer}
+						/>
+					);
 				case "comment":
 					return (
 						<CommentCardRow
@@ -611,6 +636,9 @@ export function FilesChangedScreen() {
 			openLineComposer,
 			addExpansion,
 			onCommentMenu,
+			changeset.hostUrl,
+			worktreePath,
+			openFileViewer,
 			t,
 		],
 	);
