@@ -340,6 +340,7 @@ struct ComposerRootView: View {
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
           action: { surfaceFrame = $0 }
       }
+      .padding(.bottom, model.keyboardInset)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     // The caret and every glyph drawn without a colour of its own take the
