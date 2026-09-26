@@ -931,19 +931,20 @@ export async function movePath({
 }
 
 // On a case-insensitive volume, `Foo.ts` -> `foo.ts` finds the source itself
-// at the destination. Hard links share an inode too, so the names must also
-// match case-insensitively.
+// at the destination. The directory then lists a single entry under the
+// source's name; two hard links on a case-sensitive volume list both names,
+// and renaming one onto the other is a silent no-op in POSIX.
 async function isCaseOnlyRenameOfSameEntry(
 	sourcePath: string,
 	destinationPath: string,
 ): Promise<boolean> {
 	if (sourcePath === destinationPath) return false;
 	if (sourcePath.toLowerCase() !== destinationPath.toLowerCase()) return false;
-	const [source, destination] = await Promise.all([
-		fs.lstat(sourcePath),
-		fs.lstat(destinationPath),
-	]);
-	return source.dev === destination.dev && source.ino === destination.ino;
+	const names = await fs.readdir(path.dirname(destinationPath));
+	return (
+		names.includes(path.basename(sourcePath)) &&
+		!names.includes(path.basename(destinationPath))
+	);
 }
 
 export async function copyPath({

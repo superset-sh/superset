@@ -710,4 +710,27 @@ describe("movePath", () => {
 		).rejects.toThrow("Destination already exists");
 		expect((await fs.readdir(rootPath)).sort()).toEqual(["a.txt", "b.txt"]);
 	});
+
+	it("rejects a hard link whose name differs from the source only by case", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "beta.txt");
+		const destinationAbsolutePath = path.join(rootPath, "Beta.txt");
+		await fs.writeFile(sourceAbsolutePath, "shared");
+		const linked = await fs
+			.link(sourceAbsolutePath, destinationAbsolutePath)
+			.then(() => true)
+			.catch((error: NodeJS.ErrnoException) => {
+				if (error.code === "EEXIST") return false;
+				throw error;
+			});
+		if (!linked) return;
+
+		await expect(
+			movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath }),
+		).rejects.toThrow("Destination already exists");
+		expect((await fs.readdir(rootPath)).sort()).toEqual([
+			"Beta.txt",
+			"beta.txt",
+		]);
+	});
 });
