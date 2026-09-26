@@ -454,6 +454,7 @@ export const Terminal = memo(function Terminal({
 		>
 			<TerminalSearch
 				searchAddon={searchAddonRef.current}
+				terminal={xtermInstance}
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
