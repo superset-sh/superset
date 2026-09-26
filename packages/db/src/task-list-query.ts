@@ -103,6 +103,9 @@ export function buildTaskListConditions(
 	if (filters.search) {
 		const pattern = `%${escapeLikePattern(filters.search)}%`;
 		const searchCondition = or(
+			// The issue key is how people name a task out loud and the first
+			// thing they type into a picker, so it has to be searchable.
+			ilike(tasks.slug, pattern),
 			ilike(tasks.title, pattern),
 			ilike(tasks.description, pattern),
 		);

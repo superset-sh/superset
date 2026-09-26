@@ -47,6 +47,15 @@ describe("buildTaskListConditions", () => {
 		expect(sql.toLowerCase()).toContain("description");
 	});
 
+	// The issue key is how people refer to a task ("SUPER-2390"); searching
+	// without it sends the picker back to whatever happens to be loaded.
+	test("search matches the issue key in slug", () => {
+		const { sql } = render(
+			buildTaskListConditions({ organizationId: ORG, search: "SUPER-2390" }),
+		);
+		expect(sql.toLowerCase()).toContain("slug");
+	});
+
 	test("externalProjectName is an escaped case-insensitive prefix match", () => {
 		const { sql, params } = render(
 			buildTaskListConditions({
