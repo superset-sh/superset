@@ -14,6 +14,7 @@ async function readStdin(): Promise<string> {
 }
 
 export default command({
+	sandbox: false,
 	description:
 		"Set a variable on an environment, from --body, stdin, or a .env file",
 	args: [

@@ -3,6 +3,7 @@ import { command } from "../../../../lib/command";
 import { resolveEnvironment } from "../../../../lib/environments";
 
 export default command({
+	sandbox: false,
 	description: "Delete a variable from an environment",
 	args: [positional("name").required().desc("Variable name")],
 	options: {

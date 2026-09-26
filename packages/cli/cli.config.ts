@@ -24,7 +24,8 @@ export default defineConfig({
 			.desc("Use a Superset API key (sk_live_…) instead of OAuth login"),
 	},
 	audiences: () =>
-		process.env.SUPERSET_CLI_AUDIENCE === "internal"
+		process.env.SUPERSET_CLI_AUDIENCE === "internal" ||
+		process.env.SUPERSET_SANDBOX_WORKSPACE_ID
 			? ["internal", "public"]
 			: ["public"],
 	sandbox: () => Boolean(process.env.SUPERSET_SANDBOX_WORKSPACE_ID),
