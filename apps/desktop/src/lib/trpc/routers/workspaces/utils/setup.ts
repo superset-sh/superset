@@ -1,6 +1,6 @@
 import { cpSync, existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join, relative } from "node:path";
 import {
 	CONFIG_FILE_NAME,
 	LOCAL_CONFIG_FILE_NAME,
@@ -10,26 +10,95 @@ import {
 } from "shared/constants";
 import type { LocalSetupConfig, SetupConfig } from "shared/types";
 
+const CREDENTIAL_FILE_NAMES = new Set([
+	"credentials.json",
+	".credentials.json",
+	".netrc",
+]);
+
+const CREDENTIAL_FILE_SUFFIXES = [".pem", ".key", ".p12", ".pfx"];
+
+/** Dotenv names that are checked-in templates, not real credentials. */
+const DOTENV_TEMPLATE_SUFFIXES = [".example", ".sample", ".template"];
+
+function isDotenvFile(name: string): boolean {
+	return name === ".env" || name.startsWith(".env.") || name.endsWith(".env");
+}
+
+/**
+ * Files whose contents are credentials rather than project configuration.
+ *
+ * Deliberately conservative: `.npmrc` is left out because it doubles as
+ * registry configuration that installs inside the worktree may need.
+ */
+function isCredentialFile(name: string): boolean {
+	const lower = name.toLowerCase();
+
+	if (isDotenvFile(lower)) {
+		return !DOTENV_TEMPLATE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+	}
+
+	return (
+		CREDENTIAL_FILE_NAMES.has(lower) ||
+		CREDENTIAL_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix))
+	);
+}
+
+export interface WorktreeConfigCopyResult {
+	/** Whether a `.superset` directory was written into the worktree. */
+	copied: boolean;
+	/** `.superset`-relative paths of credential files left behind. */
+	skippedSecretFiles: string[];
+}
+
 /**
  * Worktrees don't include gitignored files, so copy .superset from main repo
  * if it's missing — ensures setup scripts like "./.superset/setup.sh" work.
+ *
+ * Credential files are excluded. This copy runs once, at worktree creation, and
+ * is never refreshed, so a snapshotted secret outlives every later rotation:
+ * the main checkout picks up the new value while the worktree keeps serving the
+ * old one (superset-sh/superset#5945). Setup scripts should read secrets from
+ * the main checkout at run time — `$SUPERSET_ROOT_PATH/.superset/.env` — which
+ * always resolves the current value.
  */
 export function copySupersetConfigToWorktree(
 	mainRepoPath: string,
 	worktreePath: string,
-): void {
+): WorktreeConfigCopyResult {
 	const mainSupersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
 	const worktreeSupersetDir = join(worktreePath, PROJECT_SUPERSET_DIR_NAME);
 
-	if (existsSync(mainSupersetDir) && !existsSync(worktreeSupersetDir)) {
-		try {
-			cpSync(mainSupersetDir, worktreeSupersetDir, { recursive: true });
-		} catch (error) {
-			console.error(
-				`Failed to copy ${PROJECT_SUPERSET_DIR_NAME} to worktree: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		}
+	if (!existsSync(mainSupersetDir) || existsSync(worktreeSupersetDir)) {
+		return { copied: false, skippedSecretFiles: [] };
 	}
+
+	const skippedSecretFiles: string[] = [];
+
+	try {
+		cpSync(mainSupersetDir, worktreeSupersetDir, {
+			recursive: true,
+			filter: (source) => {
+				if (!isCredentialFile(basename(source))) return true;
+				skippedSecretFiles.push(relative(mainSupersetDir, source));
+				return false;
+			},
+		});
+	} catch (error) {
+		console.error(
+			`Failed to copy ${PROJECT_SUPERSET_DIR_NAME} to worktree: ${error instanceof Error ? error.message : String(error)}`,
+		);
+		return { copied: false, skippedSecretFiles };
+	}
+
+	if (skippedSecretFiles.length > 0) {
+		console.warn(
+			`Did not copy credential files into ${worktreePath}: ${skippedSecretFiles.join(", ")}. ` +
+				`Read them from $SUPERSET_ROOT_PATH/${PROJECT_SUPERSET_DIR_NAME} in your setup script so rotated values stay current.`,
+		);
+	}
+
+	return { copied: true, skippedSecretFiles };
 }
 
 function readConfigFile(configPath: string): SetupConfig | null {
