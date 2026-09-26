@@ -107,6 +107,11 @@ export function PullRequestsContent({
 			enabled: !!target.hostUrl,
 			staleTime: 30_000,
 			gcTime: 10 * 60_000,
+			// The Electron focus manager fires on every window focus, and each
+			// stale page here costs a GitHub search plus a check-rollup query
+			// per repo target — alt-tabbing back burned real API quota
+			// (GH #7578). Filter changes and manual refresh still refetch.
+			refetchOnWindowFocus: false,
 		}),
 		getRows: (data) => data.pullRequests,
 		getRowKey: (pullRequest) =>
