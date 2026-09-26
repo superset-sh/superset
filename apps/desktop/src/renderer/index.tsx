@@ -1,3 +1,5 @@
+import "./globals.css";
+import "./styles/bundled-fonts.css";
 import { initSentry } from "./lib/sentry";
 
 initSentry();
@@ -19,9 +21,6 @@ import { pruneExpiredTerminalState } from "./lib/terminal/terminal-buffer-gc";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
-
-import "./globals.css";
-import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
