@@ -298,6 +298,20 @@ describe("env", () => {
 				expect(result.BASH_ENV).toBe("/Users/test/.superset-dev/bash/rcfile");
 			});
 
+			// Repro for #2738 (tracked in #5603): Wayland clipboard tools inside
+			// the terminal (wl-paste, xclip, Claude Code image paste) fail silently
+			// because WAYLAND_DISPLAY is stripped from the PTY subprocess env.
+			it("should include WAYLAND_DISPLAY (Wayland clipboard access)", () => {
+				const env = {
+					DISPLAY: ":0",
+					WAYLAND_DISPLAY: "wayland-0",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.DISPLAY).toBe(":0");
+				expect(result.WAYLAND_DISPLAY).toBe("wayland-0");
+			});
+
 			it("should include proxy vars (both cases)", () => {
 				const env = {
 					HTTP_PROXY: "http://proxy:8080",
