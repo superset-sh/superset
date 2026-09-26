@@ -92,6 +92,15 @@ describe("agentConfigsRouter", () => {
 			expect(codex?.args).not.toContain("--ask-for-approval");
 		});
 
+		it("seeds Prime Agent with exact session resume and fork commands", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+			const prime = result.find((row) => row.presetId === "prime-agent");
+			expect(prime?.command).toBe("prime-agent");
+			expect(prime?.resumeArgs).toEqual(["--resume"]);
+			expect(prime?.forkArgs).toEqual(["--fork", "{sessionId}"]);
+		});
+
 		it("seeds resume args for agents with an id-based resume", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
