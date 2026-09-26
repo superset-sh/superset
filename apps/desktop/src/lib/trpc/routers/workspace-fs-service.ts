@@ -6,6 +6,7 @@ import {
 } from "@superset/workspace-fs/host";
 import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
+import { assertRegisteredWorktree } from "./changes/security/path-validation";
 import { getWorkspace } from "./workspaces/utils/db-helpers";
 import { execWithShellEnv } from "./workspaces/utils/shell-env";
 import { getWorkspacePath } from "./workspaces/utils/worktree";
@@ -74,6 +75,7 @@ export function toRegisteredWorktreeRelativePath(
 	worktreePath: string,
 	absolutePath: string,
 ): string {
+	assertRegisteredWorktree(worktreePath);
 	const normalizedWorktreePath = path.resolve(worktreePath);
 	const normalizedAbsolutePath = path.resolve(absolutePath);
 	const relativePath = path.relative(

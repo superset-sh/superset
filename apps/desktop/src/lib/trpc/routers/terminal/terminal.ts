@@ -242,7 +242,7 @@ export const createTerminalRouter = () => {
 		write: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 					data: z.string(),
 					throwOnError: z.boolean().optional(),
 				}),
@@ -281,7 +281,7 @@ export const createTerminalRouter = () => {
 			}),
 
 		ackColdRestore: terminalProcedure
-			.input(z.object({ paneId: z.string() }))
+			.input(z.object({ paneId: SAFE_ID }))
 			.mutation(({ input }) => {
 				terminal.ackColdRestore(input.paneId);
 			}),
@@ -289,7 +289,7 @@ export const createTerminalRouter = () => {
 		resize: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 					cols: z.number(),
 					rows: z.number(),
 					seq: z.number().optional(),
@@ -302,7 +302,7 @@ export const createTerminalRouter = () => {
 		signal: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 					signal: z.string().optional(),
 				}),
 			)
@@ -313,7 +313,7 @@ export const createTerminalRouter = () => {
 		kill: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -323,7 +323,7 @@ export const createTerminalRouter = () => {
 		detach: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -333,7 +333,7 @@ export const createTerminalRouter = () => {
 		clearScrollback: terminalProcedure
 			.input(
 				z.object({
-					paneId: z.string(),
+					paneId: SAFE_ID,
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -451,7 +451,7 @@ export const createTerminalRouter = () => {
 		}),
 
 		getSession: terminalProcedure
-			.input(z.string())
+			.input(SAFE_ID)
 			.query(async ({ input: paneId }) => {
 				return terminal.getSession(paneId);
 			}),
@@ -481,7 +481,7 @@ export const createTerminalRouter = () => {
 			}),
 
 		stream: terminalProcedure
-			.input(z.string())
+			.input(SAFE_ID)
 			.subscription(({ input: paneId }) => {
 				return observable<
 					| { type: "data"; data: string }
