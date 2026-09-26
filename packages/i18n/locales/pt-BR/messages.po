@@ -3108,6 +3108,9 @@ msgstr "As verificações falharam"
 msgid "Checks passed"
 msgstr "As verificações passaram"
 
+msgid "Checks running"
+msgstr "Verificações em andamento"
+
 msgid "Checks Skipped"
 msgstr "Verificações ignoradas"
 

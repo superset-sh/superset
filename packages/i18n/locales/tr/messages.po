@@ -3108,6 +3108,9 @@ msgstr "Kontroller başarısız"
 msgid "Checks passed"
 msgstr "Kontroller geçti"
 
+msgid "Checks running"
+msgstr "Kontroller çalışıyor"
+
 msgid "Checks Skipped"
 msgstr "Kontroller atlandı"
 

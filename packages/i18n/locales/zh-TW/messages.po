@@ -3108,6 +3108,9 @@ msgstr "檢查失敗"
 msgid "Checks passed"
 msgstr "檢查通過"
 
+msgid "Checks running"
+msgstr "檢查進行中"
+
 msgid "Checks Skipped"
 msgstr "檢查已跳過"
 

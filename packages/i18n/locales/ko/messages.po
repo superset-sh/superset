@@ -3108,6 +3108,9 @@ msgstr "검사 실패"
 msgid "Checks passed"
 msgstr "검사 통과"
 
+msgid "Checks running"
+msgstr "검사 실행 중"
+
 msgid "Checks Skipped"
 msgstr "검사 건너뜀"
 

@@ -3108,6 +3108,9 @@ msgstr "Checks mislukt"
 msgid "Checks passed"
 msgstr "Checks geslaagd"
 
+msgid "Checks running"
+msgstr "Controles worden uitgevoerd"
+
 msgid "Checks Skipped"
 msgstr "Checks overgeslagen"
 

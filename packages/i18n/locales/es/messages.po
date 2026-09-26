@@ -3108,6 +3108,9 @@ msgstr "Comprobaciones fallidas"
 msgid "Checks passed"
 msgstr "Comprobaciones superadas"
 
+msgid "Checks running"
+msgstr "Comprobaciones en curso"
+
 msgid "Checks Skipped"
 msgstr "Comprobaciones omitidas"
 

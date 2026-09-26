@@ -3108,6 +3108,9 @@ msgstr "Проверки не пройдены"
 msgid "Checks passed"
 msgstr "Проверки пройдены"
 
+msgid "Checks running"
+msgstr "Проверки выполняются"
+
 msgid "Checks Skipped"
 msgstr "Проверки пропущены"
 

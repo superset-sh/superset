@@ -3108,6 +3108,9 @@ msgstr "Check thất bại"
 msgid "Checks passed"
 msgstr "Check đã qua"
 
+msgid "Checks running"
+msgstr "Đang chạy kiểm tra"
+
 msgid "Checks Skipped"
 msgstr "Check đã bỏ qua"
 

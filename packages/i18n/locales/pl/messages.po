@@ -3108,6 +3108,9 @@ msgstr "Kontrole nie przeszły"
 msgid "Checks passed"
 msgstr "Kontrole przeszły"
 
+msgid "Checks running"
+msgstr "Trwają kontrole"
+
 msgid "Checks Skipped"
 msgstr "Kontrole pominięte"
 

@@ -3108,6 +3108,9 @@ msgstr "Prüfungen fehlgeschlagen"
 msgid "Checks passed"
 msgstr "Prüfungen bestanden"
 
+msgid "Checks running"
+msgstr "Prüfungen laufen"
+
 msgid "Checks Skipped"
 msgstr "Prüfungen übersprungen"
 

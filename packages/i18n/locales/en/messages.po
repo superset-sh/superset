@@ -3108,6 +3108,9 @@ msgstr "Checks failed"
 msgid "Checks passed"
 msgstr "Checks passed"
 
+msgid "Checks running"
+msgstr "Checks running"
+
 msgid "Checks Skipped"
 msgstr "Checks Skipped"
 
