@@ -609,9 +609,83 @@ superset projects setup 47c31b04-… --local --import ~/code/my-app
 
 ### hosts
 
-Discover hosts registered to the active organization. To control the
+Set up and discover hosts registered to the active organization. To control the
 host server running on this machine, use [`start`](#start),
 [`stop`](#stop), and [`status`](#status).
+
+<Command
+	name="superset hosts add <target>"
+	args={[
+		{ name: "target", required: true, description: "SSH destination: `[user@]host[:port]`, including bracketed IPv6 (`user@[::1]:22`)." },
+	]}
+	options={[
+		{ flag: "--org <id>", description: "Organization to register the host under (id, slug, or name). Required when you belong to more than one and there is no TTY to prompt on." },
+		{ flag: "--identity <path>", description: "SSH private key to authenticate with (`ssh -i`)." },
+		{ flag: "--port <number>", description: "SSH port. Overrides a `:port` in the target." },
+		{ flag: "--version <version>", description: "CLI version to install, e.g. `1.30.2`. Default: the latest release." },
+		{ flag: "--reinstall", description: "Reinstall even if Superset is already present on the machine." },
+		{ flag: "--allow-shared-machine-id", description: "Proceed on a machine whose `/etc/machine-id` is empty, accepting host id collisions." },
+		{ flag: "--timeout <seconds>", description: "How long to wait for the host to come online. Default: 90." },
+		{ flag: "--yes", description: "Skip the confirmation prompt. Required when there is no TTY." },
+	]}
+>
+Set up another machine over SSH and connect it as a host. Installs the CLI
+there if it is missing, stores a freshly minted API key scoped to that device,
+starts the host server, and waits until the cloud reports the host online.
+
+Requires SSH access to the target and `curl` on it. Linux and macOS, x64 and
+arm64 — the platforms [the installer](/docs/cli/getting-started) publishes.
+Nothing has to be done at the far end, and nothing needs the desktop app: a
+host claims itself the moment its relay tunnel opens.
+
+```bash
+superset hosts add ubuntu@devbox --org acme --yes
+superset hosts add ubuntu@devbox:2222 --identity ~/.ssh/id_devbox
+```
+
+The machine stays registered across reboots, but the host server itself does
+not come back on its own — `--daemon` survives the SSH session closing, not a
+restart. Run it under a supervisor (systemd with `Restart=on-failure`, or
+launchd) for a box that must always be reachable.
+
+<Callout type="warn">
+	A Linux machine with an empty `/etc/machine-id` — common in containers with
+	no systemd, and in VMs cloned from a template — derives the same host id as
+	every other such machine, and they evict each other's relay tunnel in a
+	loop. This command refuses those by default; give the machine its own id
+	with `systemd-machine-id-setup` instead of forcing past it.
+</Callout>
+
+<CommandReturns>
+The new host's id, and whether the cloud has seen it come online yet.
+
+<HumanOutput>
+```text
+┌  superset hosts add (Acme)
+│
+◇  devbox: Linux x86_64, Superset not installed
+│
+◇  Host service running on devbox
+│
+◇  acme-devbox is online
+│
+└  acme-devbox is ready — it shows up in the app and in hosts list.
+```
+</HumanOutput>
+
+<JsonOutput>
+```ts
+{
+  hostId: string;
+  hostName?: string;       // present once the host is online
+  organizationId: string;
+  online: boolean;         // false if the wait timed out
+  installed?: boolean;     // whether this run installed the CLI
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
 
 <Command
 	name="superset hosts list"
@@ -626,9 +700,9 @@ host server running on this machine, use [`start`](#start),
 	humanColumns={["NAME", "ONLINE", "ID"]}
 	quiet="host IDs"
 >
-List hosts registered to the active organization. Host registration
-happens via `superset start` on each machine. There is no
-separate registration command.
+List hosts registered to the active organization. A machine registers itself
+when `superset start` runs on it, or when
+[`hosts add`](#superset-hosts-add) sets it up for you over SSH.
 
 ```bash
 superset hosts list

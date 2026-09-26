@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>superset hosts add · SSH device setup</title>
+<style>
+  :root {
+    --bg: #131312;
+    --bg-raise: #1b1b19;
+    --bg-card: #181817;
+    --line: #2b2b28;
+    --line-soft: #232321;
+    --ink: #e8e6e1;
+    --ink-mute: #a3a19a;
+    --ink-faint: #706e68;
+    --add: #34d399;
+    --del: #f87171;
+    --warn: #e3b341;
+    --chip: #22221f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 72px 28px 96px; }
+
+  .eyebrow {
+    font: 600 11px/1 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--add);
+  }
+  h1 {
+    font-size: clamp(30px, 5.4vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    font-weight: 700;
+    margin: 14px 0 18px;
+  }
+  .standfirst {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-mute);
+    max-width: 62ch;
+    margin: 0 0 28px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 10px;
+    font: 12px/1 var(--mono);
+    color: var(--ink-mute);
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .meta span {
+    background: var(--chip);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+  .meta .add { color: var(--add); }
+  .meta .warn { color: var(--warn); }
+
+  section { margin-top: 64px; }
+  .sec-num {
+    font: 600 12px/1 var(--mono);
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 10px;
+  }
+  h2 {
+    font-size: 25px;
+    letter-spacing: -0.015em;
+    margin: 0 0 14px;
+  }
+  p { max-width: 68ch; margin: 0 0 16px; color: var(--ink); }
+  p.mute, li.mute { color: var(--ink-mute); }
+  code {
+    font: 0.86em var(--mono);
+    background: var(--chip);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+  a { color: var(--add); text-decoration: none; border-bottom: 1px solid rgba(52,211,153,.35); }
+
+  pre {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 22px 0 0;
+    font: 13px/1.7 var(--mono);
+    color: var(--ink);
+  }
+  pre code {
+    background: none; border: 0; padding: 0; font-size: inherit; white-space: pre;
+  }
+  pre .c { color: var(--ink-faint); }
+  pre .f { color: var(--add); }
+
+  figure { margin: 26px 0 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font: 12px/1.6 var(--mono);
+    color: var(--ink-faint);
+    margin-top: 10px;
+  }
+
+  .map { margin-top: 24px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .map-row { display: grid; grid-template-columns: 1.1fr 1.4fr; border-top: 1px solid var(--line-soft); }
+  .map-row:first-child { border-top: 0; background: var(--bg-raise); }
+  .map-row > div { padding: 12px 18px; font-size: 13.5px; }
+  .map-row > div:first-child { font-family: var(--mono); font-size: 12.5px; border-right: 1px solid var(--line-soft); }
+  .map-row:first-child > div { font: 600 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+  .map-row > div:last-child { color: var(--ink-mute); }
+  .map .name { color: var(--ink); }
+  @media (max-width: 640px) {
+    .map-row { grid-template-columns: 1fr; }
+    .map-row > div:first-child { border-right: 0; padding-bottom: 2px; }
+    .map-row > div:last-child { padding-top: 2px; }
+  }
+
+  .finding { border-left: 2px solid var(--line); padding: 2px 0 2px 20px; margin-top: 30px; }
+  .finding h3 { margin: 0 0 8px; font-size: 16.5px; }
+  .finding h3 .k { color: var(--ink-faint); font: 600 12px var(--mono); margin-right: 10px; }
+  .finding p { font-size: 14.5px; color: var(--ink-mute); margin-bottom: 8px; }
+  .finding .fix { color: var(--ink); font-size: 14.5px; max-width: 68ch; }
+  .finding .fix::before {
+    content: "handled"; font: 600 10px/1 var(--mono); letter-spacing: .14em;
+    text-transform: uppercase; color: var(--add); margin-right: 8px;
+  }
+
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; max-width: 66ch; }
+
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font: 600 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+  td:first-child { font-family: var(--mono); font-size: 12.5px; }
+  .yes { color: var(--add); font: 600 12px var(--mono); white-space: nowrap; }
+  .no { color: var(--warn); font: 600 12px var(--mono); white-space: nowrap; }
+
+  .ask {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--warn);
+    border-radius: 0 10px 10px 0;
+    padding: 20px 22px;
+    margin-top: 22px;
+  }
+  .ask h3 { margin: 0 0 8px; font-size: 16px; }
+  .ask p { font-size: 14.5px; color: var(--ink-mute); margin: 0 0 10px; }
+  .ask p:last-child { margin-bottom: 0; }
+  .ask .q { color: var(--ink); }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line-soft);
+    font: 12px/1.8 var(--mono);
+    color: var(--ink-faint);
+  }
+</style>
+</head>
+<body class="dark">
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Superset · CLI review</div>
+    <h1>One command turns a bare box into a&nbsp;host</h1>
+    <p class="standfirst">
+      <code>superset hosts add user@host</code> probes a machine over SSH, installs the CLI only
+      if it is missing, mints a device-scoped API key, starts the host service, and waits for the
+      cloud to confirm the host is online. Nobody has to sit at the far end.
+    </p>
+    <div class="meta">
+      <span>new command <b>hosts add</b></span>
+      <span>6 files · <b class="add">+1045</b></span>
+      <span>667 src · 378 test</span>
+      <span><b class="add">62 tests pass</b></span>
+      <span class="warn">uncommitted · not yet a PR</span>
+      <span>2026-09-25</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="sec-num">01</span>
+    <h2>What it does</h2>
+    <p>
+      Nothing in the repo took an SSH target before this. Hosts were onboarded either by someone
+      sitting at the machine with the desktop app, or by hand over SSH —
+      <code>apps/review-host/</code> is that second path written out longhand for exactly one VM.
+      This generalises it into the CLI, next to the <code>hosts list · wake · set-wake</code> that
+      already existed.
+    </p>
+    <pre><code><span class="c"># the whole flow, unattended</span>
+superset hosts add ubuntu@devbox <span class="f">--org</span> acme <span class="f">--yes</span>
+
+<span class="c"># a box behind a non-standard port, with a specific key and a pinned version</span>
+superset hosts add ubuntu@devbox:2222 <span class="f">--identity</span> ~/.ssh/id_devbox <span class="f">--version</span> 1.30.2</code></pre>
+    <p class="mute" style="margin-top:18px">
+      Registration needs no second step: <code>host.ensure</code> inserts the owner row itself on
+      first connect, so a box that reaches the relay is already claimed by the key's user. That was
+      established end-to-end in <code>plans/20260710-headless-host-registration-fixes.md</code>;
+      this command relies on it rather than re-implementing a pairing handshake.
+    </p>
+  </section>
+
+  <section>
+    <span class="sec-num">02</span>
+    <h2>Two SSH round trips, then a poll</h2>
+    <figure aria-label="Flow of superset hosts add across the local CLI, the remote box, and the cloud">
+      <svg viewBox="0 0 880 610" role="img" aria-label="Flow diagram: the local CLI makes two SSH round trips to the remote box, then polls the cloud until the host reports online" font-family="ui-monospace, SF Mono, Menlo, monospace">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#706e68"/>
+          </marker>
+          <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+          </marker>
+        </defs>
+
+        <!-- lane bands -->
+        <rect x="8" y="8" width="250" height="594" rx="10" fill="#161615" stroke="#232321"/>
+        <rect x="315" y="8" width="250" height="594" rx="10" fill="#161615" stroke="#232321"/>
+        <rect x="622" y="8" width="250" height="594" rx="10" fill="#161615" stroke="#232321"/>
+
+        <!-- lane headers -->
+        <rect x="8" y="8" width="250" height="34" rx="10" fill="#1b1b19"/>
+        <rect x="8" y="30" width="250" height="12" fill="#1b1b19"/>
+        <rect x="315" y="8" width="250" height="34" rx="10" fill="#1b1b19"/>
+        <rect x="315" y="30" width="250" height="12" fill="#1b1b19"/>
+        <rect x="622" y="8" width="250" height="34" rx="10" fill="#1b1b19"/>
+        <rect x="622" y="30" width="250" height="12" fill="#1b1b19"/>
+        <line x1="8" y1="42" x2="258" y2="42" stroke="#232321"/>
+        <line x1="315" y1="42" x2="565" y2="42" stroke="#232321"/>
+        <line x1="622" y1="42" x2="872" y2="42" stroke="#232321"/>
+        <text x="24" y="30" font-size="11" fill="#a3a19a" letter-spacing="1.4">YOUR MACHINE</text>
+        <text x="331" y="30" font-size="11" fill="#a3a19a" letter-spacing="1.4">THE NEW DEVICE</text>
+        <text x="638" y="30" font-size="11" fill="#a3a19a" letter-spacing="1.4">CLOUD / RELAY</text>
+
+        <!-- step 1 -->
+        <rect x="24" y="62" width="218" height="52" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="38" y="82" font-size="11.5" fill="#e8e6e1">parse target · resolve org</text>
+        <text x="38" y="100" font-size="10.5" fill="#706e68">never falls back to active org</text>
+
+        <!-- arrow: probe out -->
+        <line x1="242" y1="140" x2="331" y2="140" stroke="#706e68" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="248" y="133" font-size="10" fill="#a3a19a">ssh #1</text>
+        <text x="248" y="156" font-size="9.5" fill="#706e68">probe on stdin</text>
+
+        <!-- probe box -->
+        <rect x="331" y="128" width="218" height="96" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="345" y="148" font-size="11.5" fill="#e8e6e1">sh -s · read-only probe</text>
+        <text x="345" y="168" font-size="10.5" fill="#a3a19a">uname -s / -m</text>
+        <text x="345" y="185" font-size="10.5" fill="#a3a19a">find superset (4 dirs, then PATH)</text>
+        <text x="345" y="202" font-size="10.5" fill="#a3a19a">curl? · /etc/machine-id?</text>
+        <text x="345" y="217" font-size="10" fill="#706e68">changes nothing on the box</text>
+
+        <!-- arrow: probe back -->
+        <line x1="331" y1="250" x2="242" y2="250" stroke="#706e68" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="252" y="243" font-size="9.5" fill="#706e68">key=value lines</text>
+
+        <!-- guards -->
+        <rect x="24" y="268" width="218" height="86" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="38" y="288" font-size="11.5" fill="#e8e6e1">refuse early, or confirm</text>
+        <text x="38" y="308" font-size="10.5" fill="#e3b341">unsupported platform → stop</text>
+        <text x="38" y="325" font-size="10.5" fill="#e3b341">no curl → stop</text>
+        <text x="38" y="342" font-size="10.5" fill="#e3b341">empty machine-id → stop</text>
+
+        <!-- mint key -->
+        <line x1="242" y1="382" x2="638" y2="382" stroke="#706e68" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="300" y="375" font-size="10" fill="#a3a19a">mint API key scoped to this device</text>
+        <rect x="638" y="364" width="218" height="36" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="652" y="387" font-size="11" fill="#e8e6e1">apiKey.create → sk_live_…</text>
+
+        <!-- arrow: setup out -->
+        <line x1="242" y1="430" x2="331" y2="430" stroke="#34d399" stroke-width="1.3" marker-end="url(#arg)"/>
+        <text x="248" y="423" font-size="10" fill="#34d399">ssh #2</text>
+        <text x="248" y="446" font-size="9.5" fill="#706e68">setup on stdin</text>
+
+        <!-- setup box -->
+        <rect x="331" y="416" width="218" height="112" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="345" y="436" font-size="11.5" fill="#e8e6e1">sh -s · the only writes</text>
+        <text x="345" y="456" font-size="10.5" fill="#a3a19a">install.sh  <tspan fill="#706e68">(only if missing)</tspan></text>
+        <text x="345" y="473" font-size="10.5" fill="#a3a19a">auth login --api-key</text>
+        <text x="345" y="490" font-size="10.5" fill="#a3a19a">start --daemon --org</text>
+        <text x="345" y="507" font-size="10.5" fill="#a3a19a">status --json  <tspan fill="#706e68">→ stdout</tspan></text>
+        <text x="345" y="522" font-size="10" fill="#706e68">all else to stderr</text>
+
+        <!-- arrow: hostId back -->
+        <line x1="331" y1="552" x2="242" y2="552" stroke="#706e68" stroke-width="1.3" marker-end="url(#ar)"/>
+        <text x="256" y="545" font-size="9.5" fill="#706e68">hostId</text>
+
+        <!-- relay self-registration -->
+        <line x1="549" y1="470" x2="638" y2="470" stroke="#34d399" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#arg)"/>
+        <rect x="638" y="446" width="218" height="48" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="652" y="466" font-size="11" fill="#e8e6e1">host.ensure claims itself</text>
+        <text x="652" y="483" font-size="10" fill="#706e68">no desktop step needed</text>
+
+        <!-- poll -->
+        <line x1="242" y1="572" x2="638" y2="572" stroke="#706e68" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+        <text x="300" y="565" font-size="10" fill="#a3a19a">poll host.list every 2s, up to 90s</text>
+        <rect x="638" y="554" width="218" height="36" rx="7" fill="#1b1b19" stroke="#2b2b28"/>
+        <text x="652" y="577" font-size="11" fill="#34d399">online: yes → done</text>
+      </svg>
+      <figcaption>
+        Two <code>ssh</code> invocations, never more. The first only reads; every write to the box
+        happens in the second. Both scripts arrive on stdin via <code>sh -s</code>.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">03</span>
+    <h2>Five traps, each handled in code</h2>
+    <p>
+      These are not hypotheticals. Each one is either documented in this repo as something that
+      already went wrong, or verifiable on a shell in thirty seconds — and each would have made
+      "connects automatically" false in a different way.
+    </p>
+
+    <div class="finding">
+      <h3><span class="k">01</span>PATH is a lie right after installing</h3>
+      <p>
+        The installer appends its <code>export PATH</code> to <code>.zshrc</code> or
+        <code>.bashrc</code>, but <code>ssh host 'cmd'</code> runs a <em>non-interactive</em>
+        shell that never reads them — zsh sources only <code>.zshenv</code>, and Ubuntu's stock
+        <code>.bashrc</code> returns early when non-interactive. I confirmed both on a shell. So a
+        CLI installed one line earlier is invisible to <code>command -v</code> on the next.
+      </p>
+      <p class="fix">
+        The probe checks <code>$SUPERSET_HOME/bin</code>, <code>~/superset/bin</code>,
+        <code>~/.local/bin</code> and <code>/usr/local/bin</code> <em>before</em> PATH, and the
+        setup script always invokes <code>"$BIN"</code> by absolute path. A test asserts the script
+        never calls <code>superset</code> by bare name.
+      </p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">02</span>The wrong org is silently unreachable</h3>
+      <p>
+        Registering a host under the wrong organization gets it rejected by the relay with an
+        opaque <code>1008 Forbidden</code> — hours of debugging, per the headless-registration
+        plan. <code>start</code> already refuses to guess between multiple memberships.
+      </p>
+      <p class="fix">
+        Org is resolved explicitly through <code>resolveOrganization</code> with no active-org
+        fallback, matching <code>start</code>. Non-interactive with several memberships and no
+        <code>--org</code> is an error listing them, never a guess.
+      </p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">03</span>Cloned machines collide on host id</h3>
+      <p>
+        <code>getHostId()</code> is an HMAC of <code>/etc/machine-id</code>. Containers without
+        systemd have an empty one, so every such box derives the <em>same</em> id
+        (<code>a5b47ded…</code>) and they evict each other's relay tunnel in a loop. The review-host
+        README documents this the hard way; VM images cloned from a template have it too.
+      </p>
+      <p class="fix">
+        An empty machine-id is a hard error naming the collision and pointing at
+        <code>systemd-machine-id-setup</code>, with <code>--allow-shared-machine-id</code> as the
+        deliberate override.
+      </p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">04</span>Progress output would corrupt <code>--json</code></h3>
+      <p>
+        <code>--json</code> is auto-on under CI and agent environments, and clack draws spinners on
+        <strong>stdout</strong> — so the pretty progress would wrap the JSON result in chatter and
+        break every caller that parses it.
+      </p>
+      <p class="fix">
+        A small <code>Progress</code> seam: the real clack implementation on a TTY, a silent no-op
+        otherwise. Interactivity also decides <code>BatchMode=yes</code>, so ssh fails fast instead
+        of hanging on a password prompt no one can answer.
+      </p>
+    </div>
+
+    <div class="finding">
+      <h3><span class="k">05</span>Shell injection through ordinary values</h3>
+      <p>
+        The API key, org id and binary path are all interpolated into a script another machine
+        executes. An unlucky or hostile value is arbitrary code on someone else's box.
+      </p>
+      <p class="fix">
+        Everything interpolated goes through POSIX <code>shellQuote</code>, asserted by
+        round-tripping command substitution, backticks, embedded quotes and newlines through a
+        <em>real</em> <code>sh</code> rather than against an expected spelling.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-num">04</span>
+    <h2>Where the code lives</h2>
+    <div class="map">
+      <div class="map-row"><div>packages/cli/src/commands/hosts/add/</div><div>what it holds</div></div>
+      <div class="map-row"><div><span class="name">command.ts</span> · 257</div><div>The command. Probe, guards, confirm, mint key, install/connect, wait for online.</div></div>
+      <div class="map-row"><div><span class="name">ssh.ts</span> · 177</div><div>Target parsing, argv construction, and the script-over-stdin transport.</div></div>
+      <div class="map-row"><div><span class="name">remoteScript.ts</span> · 190</div><div>The two generated shell scripts, their parsers, and the platform guard.</div></div>
+      <div class="map-row"><div><span class="name">progress.ts</span> · 43</div><div>TTY-only progress, so stdout stays a parseable JSON document.</div></div>
+      <div class="map-row"><div><span class="name">ssh.test.ts</span> · 135</div><div>Target parsing including IPv6 and flag-injection, argv, stderr hints.</div></div>
+      <div class="map-row"><div><span class="name">remoteScript.test.ts</span> · 243</div><div>Parsers, guards, script shape, <code>sh -n</code> syntax, real-shell quoting.</div></div>
+    </div>
+    <p class="mute" style="margin-top:20px">
+      Purely additive — six new files, nothing else in the repo touched. The command registers
+      itself by directory convention, verified rendering in both
+      <code>hosts --help</code> and <code>hosts add --help</code>.
+    </p>
+  </section>
+
+  <section>
+    <span class="sec-num">05</span>
+    <h2>What I actually verified</h2>
+    <p>
+      Unit tests are the floor. For the parts where being wrong is expensive, I checked against
+      reality instead of against my own expectations.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Check</th><th>How</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>62 unit tests</td>
+            <td>Two pure modules, no mocks needed</td>
+            <td class="yes">pass</td>
+          </tr>
+          <tr>
+            <td>probe script</td>
+            <td>Piped into a real <code>sh</code> on this box</td>
+            <td class="yes">found /usr/local/bin/superset, 1.29.0</td>
+          </tr>
+          <tr>
+            <td>shellQuote</td>
+            <td><code>$(id)</code>, backticks, quotes, newlines through real <code>sh</code></td>
+            <td class="yes">round-trips unchanged</td>
+          </tr>
+          <tr>
+            <td>ssh argv</td>
+            <td>Real <code>ssh</code> against a closed port</td>
+            <td class="yes">accepted; exit 255 + usable hint</td>
+          </tr>
+          <tr>
+            <td>generated scripts</td>
+            <td><code>sh -n</code> over all four variants</td>
+            <td class="yes">parse</td>
+          </tr>
+          <tr>
+            <td>failure path</td>
+            <td>Setup script against a non-executable binary</td>
+            <td class="yes">exits 1 before touching auth</td>
+          </tr>
+          <tr>
+            <td>typecheck · lint</td>
+            <td><code>tsc --noEmit</code>, biome</td>
+            <td class="yes">clean</td>
+          </tr>
+          <tr>
+            <td>full install → register</td>
+            <td>Needs an sshd and a live API; neither is in this workspace</td>
+            <td class="no">not exercised</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mute" style="margin-top:20px">
+      Two pre-existing failures in <code>lib/settings/notify.test.ts</code> show up in the full CLI
+      suite. They are not mine: with my directory removed the baseline is still 310 pass / 2 fail,
+      and they pass in isolation — port contention in the parallel run.
+    </p>
+    <p class="mute">
+      Worth knowing how the <code>sh -n</code> tests got there: a comment I added inside the shell
+      template contained backticks, which terminated the TypeScript template literal and let the
+      formatter mangle the file into nonsense. The syntax tests exist so that class of error cannot
+      ship silently.
+    </p>
+  </section>
+
+  <section>
+    <span class="sec-num">06</span>
+    <h2>Two calls worth your eyes</h2>
+    <p>
+      Both are deliberate trade-offs rather than oversights, and both are cheap to change if you
+      read them differently.
+    </p>
+
+    <div class="ask">
+      <h3>The key is in argv for one call</h3>
+      <p>
+        It travels to the box on stdin everywhere except <code>auth login --api-key</code>, which
+        accepts a key only as a flag because it inspects <code>process.argv</code> directly. For
+        that one call the key is visible to <code>ps</code> on that machine.
+      </p>
+      <p class="q">
+        Buying: a device that stays logged in across reboots. The alternative is the daemon holding
+        the key only in its environment, gone on restart. Worth teaching <code>auth login</code> to
+        read the key from stdin instead?
+      </p>
+    </div>
+
+    <div class="ask">
+      <h3>No service unit, per your call</h3>
+      <p>
+        <code>start --daemon</code> detaches and unrefs, so the host survives the SSH session
+        closing but not a reboot. Nothing in the CLI writes a systemd unit or launchd plist —
+        <code>start</code> only prints a hint suggesting one, and
+        <code>apps/review-host</code> hand-rolls its own.
+      </p>
+      <p class="q">
+        A <code>--persist</code> flag that installs the unit is the obvious follow-up, and the
+        review-host scripts are a working template for it. Ticket, or leave it?
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    packages/cli/src/commands/hosts/add/ · 6 files · 62 tests<br>
+    branch superset/cloud-workspace-797f778c · uncommitted<br>
+    Pin a comment on anything above and I will fix it and republish.
+  </footer>
+
+</div>
+</body>
+</html>
