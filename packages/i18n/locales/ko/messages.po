@@ -17245,6 +17245,10 @@ msgstr "코드는 기본적으로 로컬에 머물고, 연결된 서비스는 �
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "다운로드가 자동으로 시작됩니다. 시작되지 않으면 여기서 받으세요."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "GitHub 계정으로 {0}에 접근할 수 없습니다. 설정에서 GitHub를 연결하거나 GitHub에서 접근 권한을 요청하세요."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "GitHub 계정이 이 환경의 리포지토리에 접근할 수 없습니다"
 

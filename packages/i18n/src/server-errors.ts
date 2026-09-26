@@ -258,6 +258,12 @@ export const serverErrorMessages: Record<
 					"Your GitHub account cannot reach a repository in this environment",
 			}),
 		),
+	"serverError.github.repositoriesOutOfReach": (params) =>
+		i18n._(
+			msg({
+				message: `Your GitHub account cannot reach ${params?.repositories}. Connect GitHub in Settings, or ask for access on GitHub.`,
+			}),
+		),
 	"serverError.environment.repositoriesFrozen": () =>
 		i18n._(
 			msg({

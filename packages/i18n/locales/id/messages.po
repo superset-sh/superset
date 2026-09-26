@@ -17245,6 +17245,10 @@ msgstr "Kode Anda tetap lokal secara bawaan, dengan kendali eksplisit atas layan
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Unduhan Anda dimulai otomatis. Jika tidak, ambil di sini."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "Akun GitHub Anda tidak dapat mengakses {0}. Hubungkan GitHub di Pengaturan, atau minta akses di GitHub."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Akun GitHub Anda tidak dapat menjangkau repositori di environment ini"
 

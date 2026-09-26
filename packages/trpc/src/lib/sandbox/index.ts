@@ -34,6 +34,7 @@ export {
 	type WorkspaceRepository,
 	workspaceBranchName,
 	workspaceRepositories,
+	workspaceRepositoryRows,
 } from "./repositories";
 export {
 	deleteSandbox,

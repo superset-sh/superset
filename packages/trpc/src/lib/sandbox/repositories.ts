@@ -25,6 +25,7 @@ import {
 } from "@superset/shared/sandbox-contract";
 import { and, eq, inArray } from "drizzle-orm";
 import { env } from "../../env";
+import { assertRepositoriesReachable } from "../github-user";
 import { installationOctokit } from "./clone-token";
 
 export type RepositoryRow = typeof githubRepositories.$inferSelect;
@@ -57,9 +58,18 @@ export function workspaceBranchName(workspace: {
 	return `superset/${slug || "workspace"}-${workspace.id.slice(0, 8)}`;
 }
 
-/** Repositories by id, in the order given, all in one installation of `organizationId`. */
+/**
+ * Repositories by id, in the order given, all in one installation of
+ * `organizationId` and all readable by `userId`.
+ *
+ * Belonging to the organization is not enough: the installation may be an
+ * owner's personal account, whose private repositories no other member is
+ * entitled to. Every caller that turns ids into repositories comes through
+ * here, so the entitlement check cannot be forgotten by a new one.
+ */
 export async function loadRepositories(args: {
 	organizationId: string;
+	userId: string;
 	repositoryIds: readonly string[];
 }): Promise<RepositoryRow[]> {
 	if (args.repositoryIds.length === 0) return [];
@@ -83,6 +93,11 @@ export async function loadRepositories(args: {
 			"Every repository of an environment must come from one GitHub installation",
 		);
 	}
+	await assertRepositoriesReachable({
+		userId: args.userId,
+		organizationId: args.organizationId,
+		repositories: rows,
+	});
 	return sortRepositories(rows);
 }
 
@@ -127,6 +142,25 @@ export async function environmentRepositoryRows(
 			eq(environmentRepositories.repositoryId, githubRepositories.id),
 		)
 		.where(eq(environmentRepositories.environmentId, environmentId));
+	return sortRepositories(rows.map((row) => row.repository));
+}
+
+/**
+ * The repositories a workspace checked out, by name. Just the rows — for the
+ * entitlement check on the paths that open an existing box, which needs to
+ * know what is on its disk and nothing about branches.
+ */
+export async function workspaceRepositoryRows(
+	cloudWorkspaceId: string,
+): Promise<RepositoryRow[]> {
+	const rows = await db
+		.select({ repository: githubRepositories })
+		.from(cloudWorkspaceRepositories)
+		.innerJoin(
+			githubRepositories,
+			eq(cloudWorkspaceRepositories.repositoryId, githubRepositories.id),
+		)
+		.where(eq(cloudWorkspaceRepositories.cloudWorkspaceId, cloudWorkspaceId));
 	return sortRepositories(rows.map((row) => row.repository));
 }
 

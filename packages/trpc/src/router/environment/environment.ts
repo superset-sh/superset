@@ -21,6 +21,10 @@ import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import {
+	assertRepositoriesReachable,
+	reachableRepositories,
+} from "../../lib/github-user";
+import {
 	buildSandboxClaim,
 	deleteSandbox,
 	loadRepositories,
@@ -84,22 +88,29 @@ function assertOwned(row: { organizationId: string }): void {
 	}
 }
 
-/** The repositories of many environments at once, the primary first then by name. */
+/**
+ * The repositories of many environments at once, the primary first then by
+ * name, narrowed to what `viewer` may read — a full name identifies a private
+ * repository, so an environment does not get to name one on its behalf.
+ */
 async function repositoriesByEnvironment(
 	environmentRows: ReadonlyArray<{
 		id: string;
 		hooksRepositoryId: string | null;
 	}>,
+	viewer: { userId: string; organizationId: string },
 ) {
 	const environmentIds = environmentRows.map((row) => row.id);
 	const hooksById = new Map(
 		environmentRows.map((row) => [row.id, row.hooksRepositoryId]),
 	);
-	const rows = environmentIds.length
+	const all = environmentIds.length
 		? await db
 				.select({
 					environmentId: environmentRepositories.environmentId,
 					id: githubRepositories.id,
+					repoId: githubRepositories.repoId,
+					isPrivate: githubRepositories.isPrivate,
 					fullName: githubRepositories.fullName,
 					owner: githubRepositories.owner,
 					name: githubRepositories.name,
@@ -112,6 +123,7 @@ async function repositoriesByEnvironment(
 				)
 				.where(inArray(environmentRepositories.environmentId, environmentIds))
 		: [];
+	const rows = await reachableRepositories({ ...viewer, repositories: all });
 	const map = new Map<
 		string,
 		Array<Omit<(typeof rows)[number], "environmentId">>
@@ -132,6 +144,7 @@ async function repositoriesByEnvironment(
 async function setEnvironmentRepositories(args: {
 	environmentId: string;
 	organizationId: string;
+	userId: string;
 	repositoryIds: readonly string[];
 	hooksRepositoryId: string | null | undefined;
 }): Promise<void> {
@@ -139,6 +152,7 @@ async function setEnvironmentRepositories(args: {
 	try {
 		repositories = await loadRepositories({
 			organizationId: args.organizationId,
+			userId: args.userId,
 			repositoryIds: args.repositoryIds,
 		});
 	} catch (error) {
@@ -216,7 +230,10 @@ export const environmentRouter = {
 					),
 				)
 				.orderBy(asc(environments.name));
-			const repos = await repositoriesByEnvironment(rows);
+			const repos = await repositoriesByEnvironment(rows, {
+				userId: ctx.userId,
+				organizationId: input.organizationId,
+			});
 			return rows.map((row) => ({
 				...row,
 				repositories: repos.get(row.id) ?? [],
@@ -228,7 +245,10 @@ export const environmentRouter = {
 		.query(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			const row = await loadEnvironment(input.id, ctx);
-			const repos = await repositoriesByEnvironment([row]);
+			const repos = await repositoriesByEnvironment([row], {
+				userId: ctx.userId,
+				organizationId: row.organizationId,
+			});
 			return { ...row, repositories: repos.get(row.id) ?? [] };
 		}),
 
@@ -272,6 +292,7 @@ export const environmentRouter = {
 			await setEnvironmentRepositories({
 				environmentId: row.id,
 				organizationId: input.organizationId,
+				userId: ctx.userId,
 				repositoryIds: input.repositoryIds,
 				hooksRepositoryId: input.hooksRepositoryId,
 			});
@@ -314,6 +335,13 @@ export const environmentRouter = {
 				hooksRepositoryId: source?.hooksRepositoryId ?? null,
 				primaryBranch: workspace.baseBranch,
 				workingBranch: workspace.branch,
+			});
+			// The golden bakes these checkouts in, and every later workspace forks
+			// it — so promoting is taking a copy of the source's repositories.
+			await assertRepositoriesReachable({
+				userId: ctx.userId,
+				organizationId: workspace.organizationId,
+				repositories: checkouts.map((entry) => entry.repository),
 			});
 			const environmentId = crypto.randomUUID();
 			const goldenName = `env-${environmentId.replaceAll("-", "").slice(0, 24)}`;
@@ -384,6 +412,7 @@ export const environmentRouter = {
 				await setEnvironmentRepositories({
 					environmentId: input.id,
 					organizationId: current.organizationId,
+					userId: ctx.userId,
 					repositoryIds: input.repositoryIds,
 					hooksRepositoryId:
 						input.hooksRepositoryId === undefined

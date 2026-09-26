@@ -17245,6 +17245,10 @@ msgstr "コードは既定でローカルに留まり、連携するサービス
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "ダウンロードは自動的に開始されます。開始されない場合はこちらから取得してください。"
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "お使いの GitHub アカウントは {0} にアクセスできません。設定で GitHub を連携するか、GitHub でアクセス権をリクエストしてください。"
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "あなたの GitHub アカウントはこの環境のリポジトリにアクセスできません"
 

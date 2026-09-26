@@ -1,9 +1,5 @@
 import { db } from "@superset/db/client";
-import {
-	githubInstallations,
-	githubPullRequests,
-	githubRepositories,
-} from "@superset/db/schema";
+import { githubInstallations, githubPullRequests } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -109,7 +105,7 @@ export const githubRouter = {
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-			return listGithubRepositories(input.organizationId);
+			return listGithubRepositories(input.organizationId, ctx.session.user.id);
 		}),
 
 	listPullRequests: protectedProcedure
@@ -123,44 +119,29 @@ export const githubRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
+			// Reachable repositories only. A pull request row carries its title,
+			// branch and author, so listing one from a repository the caller
+			// cannot read would describe that repository to them anyway.
+			const repos = await listGithubRepositories(
+				input.organizationId,
+				ctx.session.user.id,
+			);
+			const repoIds = repos
+				.filter((repo) => !input.repositoryId || repo.id === input.repositoryId)
+				.map((repo) => repo.id);
 
-			if (!installation) {
+			if (repoIds.length === 0) {
 				return [];
 			}
 
-			// Get repository IDs for this installation
-			const repos = await db.query.githubRepositories.findMany({
-				where: input.repositoryId
-					? and(
-							eq(githubRepositories.installationId, installation.id),
-							eq(githubRepositories.id, input.repositoryId),
-						)
-					: eq(githubRepositories.installationId, installation.id),
-				columns: { id: true },
-			});
-
-			if (repos.length === 0) {
-				return [];
-			}
-
-			const repoIds = repos.map((r) => r.id);
-
-			// Build query conditions
-			const conditions = [];
-			if (repoIds.length > 0) {
-				conditions.push(inArray(githubPullRequests.repositoryId, repoIds));
-			}
+			const conditions = [inArray(githubPullRequests.repositoryId, repoIds)];
 
 			if (input.state !== "all") {
 				conditions.push(eq(githubPullRequests.state, input.state));
 			}
 
 			return db.query.githubPullRequests.findMany({
-				where: conditions.length > 0 ? and(...conditions) : undefined,
+				where: and(...conditions),
 				with: {
 					repository: {
 						columns: {
@@ -181,8 +162,18 @@ export const githubRouter = {
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 
+			const repoIds = (
+				await listGithubRepositories(input.organizationId, ctx.session.user.id)
+			).map((repo) => repo.id);
+			if (repoIds.length === 0) {
+				return [];
+			}
+
 			return db.query.githubPullRequests.findMany({
-				where: eq(githubPullRequests.organizationId, input.organizationId),
+				where: and(
+					eq(githubPullRequests.organizationId, input.organizationId),
+					inArray(githubPullRequests.repositoryId, repoIds),
+				),
 				orderBy: [desc(githubPullRequests.updatedAt)],
 				limit: 100,
 			});
@@ -222,10 +213,10 @@ export const githubRouter = {
 				return { hasInstallation: true, pullRequests: [] };
 			}
 
-			const repos = await db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				columns: { id: true, fullName: true, defaultBranch: true },
-			});
+			const repos = await listGithubRepositories(
+				input.organizationId,
+				ctx.session.user.id,
+			);
 			const repoByFullName = new Map(
 				repos.map((repo) => [repo.fullName.toLowerCase(), repo]),
 			);
@@ -336,13 +327,17 @@ export const githubRouter = {
 					i18nKey: "serverError.integration.githubInstallationNotFound",
 				});
 			}
-			const repo = await db.query.githubRepositories.findFirst({
-				where: and(
-					eq(githubRepositories.installationId, installation.id),
-					sql`lower(${githubRepositories.fullName}) = ${input.repoFullName.toLowerCase()}`,
-				),
-				columns: { id: true, fullName: true },
-			});
+			// Resolved through the gated listing rather than the table: this
+			// answers with the installation's token, so a repository the caller
+			// cannot read would otherwise hand them its title, body and author.
+			// Unreachable reads as "not installed" — the refusal must not confirm
+			// that a private repository exists.
+			const repos = await listGithubRepositories(
+				input.organizationId,
+				ctx.session.user.id,
+			);
+			const wanted = input.repoFullName.toLowerCase();
+			const repo = repos.find((row) => row.fullName.toLowerCase() === wanted);
 			if (!repo) {
 				throw userError({
 					code: "NOT_FOUND",
@@ -408,10 +403,10 @@ export const githubRouter = {
 				};
 			}
 
-			const repos = await db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				columns: { id: true },
-			});
+			const repos = await listGithubRepositories(
+				input.organizationId,
+				ctx.session.user.id,
+			);
 
 			if (repos.length === 0) {
 				return {

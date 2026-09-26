@@ -17245,6 +17245,10 @@ msgstr "Twój kod domyślnie zostaje lokalnie, z jawną kontrolą nad podłączo
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Pobieranie rozpocznie się automatycznie. Jeśli nie ruszyło, pobierz tutaj."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "Twoje konto GitHub nie ma dostępu do {0}. Połącz GitHub w Ustawieniach lub poproś o dostęp na GitHubie."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Twoje konto GitHub nie ma dostępu do repozytorium w tym środowisku"
 

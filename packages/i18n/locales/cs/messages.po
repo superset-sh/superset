@@ -17245,6 +17245,10 @@ msgstr "Váš kód zůstává ve výchozím stavu lokálně a připojené služb
 msgid "Your download starts automatically. If it didn't, grab it here."
 msgstr "Stahování se spustí automaticky. Pokud ne, stáhněte si to zde."
 
+#. placeholder {0}: params?.repositories
+msgid "Your GitHub account cannot reach {0}. Connect GitHub in Settings, or ask for access on GitHub."
+msgstr "Váš účet GitHub nemá přístup k {0}. Připojte GitHub v Nastavení nebo požádejte o přístup na GitHubu."
+
 msgid "Your GitHub account cannot reach a repository in this environment"
 msgstr "Váš účet GitHub nemá přístup k repozitáři tohoto prostředí"
 
