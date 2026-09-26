@@ -67,7 +67,7 @@ export default function AuthenticatedLayout() {
 			<Stack.Screen
 				name="pages/[slug]/index"
 				options={{
-					...pageScreenOptions,
+					...glassHeaderOptions,
 					title: "",
 					headerBackTitle: t({ message: "Pages" }),
 				}}
@@ -83,13 +83,12 @@ export default function AuthenticatedLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="pages/[slug]/quick"
+				name="pages/[slug]/comment"
 				options={{
 					presentation: "formSheet",
-					title: t({ message: "Quick feedback" }),
-					sheetAllowedDetents: [0.6],
-					sheetGrabberVisible: true,
-					...glassHeaderOptions,
+					headerShown: false,
+					sheetAllowedDetents: "fitToContents",
+					sheetGrabberVisible: false,
 				}}
 			/>
 			<Stack.Screen

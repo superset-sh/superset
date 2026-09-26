@@ -402,3 +402,15 @@ bun test apps/desktop/src/pierre-trees-lookup-patch.test.ts
 **Removing:** delete the patch, the `patchedDependencies` entry and the guard
 test once @pierre/trees ships a release whose segment walk stops at a file
 node.
+
+## expo-observe (`expo-observe@<version>.patch`)
+
+**Why:** its podspec asks for `swift_version = '6.0'`, and the package keeps
+mutable global state (`Observability.swift`) that Swift 6 treats as an error
+rather than a warning. Under Xcode 26.3 that fails every local iOS build in a
+package nobody imports directly — `expo-observe` arrives as a transitive Expo
+SDK dependency. The patch drops that one line to `'5.0'`, which downgrades the
+diagnostic and changes no codegen: the package uses no Swift-6-only syntax.
+
+**Guard:** `apps/mobile/expo-observe-swift-version-patch.test.ts`. Check
+whether upstream relaxed the podspec before re-applying after an SDK bump.

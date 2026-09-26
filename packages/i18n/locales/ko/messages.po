@@ -5054,6 +5054,10 @@ msgstr "팀 삭제"
 msgid "Delete this"
 msgstr "이것을 삭제"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "이것을 삭제"
+
 msgid "Delete this workspace?"
 msgstr "이 워크스페이스를 삭제할까요?"
 
@@ -8615,6 +8619,10 @@ msgstr "설치된 브라우저를 찾는 중…"
 msgid "Looks good"
 msgstr "좋아 보입니다"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "좋아 보입니다"
+
 msgid "Low"
 msgstr "낮음"
 
@@ -11722,6 +11730,10 @@ msgstr "워크스페이스 빠른 생성"
 msgid "Quick Create Workspace"
 msgstr "워크스페이스 빠른 생성"
 
+msgid "Quick feedback"
+msgstr "빠른 피드백"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "빠른 피드백"
 

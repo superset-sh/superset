@@ -5054,6 +5054,10 @@ msgstr "Team verwijderen"
 msgid "Delete this"
 msgstr "Dit verwijderen"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Dit verwijderen"
+
 msgid "Delete this workspace?"
 msgstr "Deze werkruimte verwijderen?"
 
@@ -8615,6 +8619,10 @@ msgstr "Zoeken naar geïnstalleerde browsers…"
 msgid "Looks good"
 msgstr "Ziet er goed uit"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "Ziet er goed uit"
+
 msgid "Low"
 msgstr "Laag"
 
@@ -11722,6 +11730,10 @@ msgstr "Werkruimte snel aanmaken"
 msgid "Quick Create Workspace"
 msgstr "Werkruimte snel aanmaken"
 
+msgid "Quick feedback"
+msgstr "Snelle feedback"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Snelle feedback"
 

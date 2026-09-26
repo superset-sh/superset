@@ -36,10 +36,7 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 		}));
 
 		return (
-			<Animated.View
-				style={lift}
-				className="border-border bg-background border-t px-4 pt-2"
-			>
+			<Animated.View style={lift} className="bg-background px-3 pt-2">
 				{replyingTo ? (
 					<View className="mb-2 flex-row items-center justify-between gap-2">
 						<View className="shrink flex-row items-baseline gap-1.5">
@@ -67,13 +64,15 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 					</View>
 				) : null}
 
-				<CommentComposer
-					ref={ref}
-					autoFocus
-					placeholder={t({ message: "Add a comment…" })}
-					pending={pending}
-					onSubmit={onSubmit}
-				/>
+				<View className="bg-foreground/10 rounded-[26px] px-4 pt-3 pb-2.5">
+					<CommentComposer
+						ref={ref}
+						autoFocus
+						placeholder={t({ message: "Add a comment…" })}
+						pending={pending}
+						onSubmit={onSubmit}
+					/>
+				</View>
 			</Animated.View>
 		);
 	},

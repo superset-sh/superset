@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>One sheet for page comments</title>
+    <style>
+      :root {
+        --sp-measure: 68ch;
+        --good: #4ade80;
+        --bad: #f87171;
+        --warn: #fbbf24;
+      }
+
+      body { padding: 0; }
+
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 6rem;
+      }
+
+      header.masthead {
+        border-bottom: 1px solid var(--sp-border);
+        padding-bottom: 1.75rem;
+        margin-bottom: 3rem;
+      }
+      header.masthead h1 {
+        font-size: clamp(2rem, 5vw, 2.9rem);
+        line-height: 1.05;
+        letter-spacing: -0.022em;
+        margin: 0 0 0.6rem;
+      }
+      header.masthead p {
+        max-width: var(--sp-measure);
+        margin: 0;
+        color: var(--sp-muted);
+        font-size: 1.05rem;
+      }
+      .kicker {
+        font-family: var(--sp-font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin: 0 0 0.9rem;
+      }
+
+      section { margin: 0 0 4rem; }
+      section > h2 {
+        font-size: 1.5rem;
+        letter-spacing: -0.012em;
+        margin: 0 0 0.35rem;
+      }
+      section > h2 + p.lede {
+        max-width: var(--sp-measure);
+        color: var(--sp-muted);
+        margin: 0 0 1.75rem;
+      }
+      h3 { font-size: 1.02rem; margin: 2rem 0 0.5rem; }
+      p, li { max-width: var(--sp-measure); }
+
+      /* ══════════ iOS mockups ══════════ */
+      .stage {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+        gap: 2.25rem;
+        align-items: start;
+      }
+      figure { margin: 0; }
+
+      .phone {
+        --glass: rgba(70, 76, 88, 0.42);
+        --glass-line: rgba(255, 255, 255, 0.16);
+        width: 100%;
+        max-width: 288px;
+        aspect-ratio: 9 / 19.2;
+        background: #0a0b0d;
+        border: 8px solid #2b2e35;
+        border-radius: 44px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+          sans-serif;
+        font-size: 11px;
+        color: #f5f6f8;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+        isolation: isolate;
+      }
+      .phone * { box-sizing: border-box; }
+
+      /* the wash behind everything, so glass has something to refract */
+      .phone::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(70% 40% at 12% 8%, rgba(56, 89, 160, 0.42), transparent 70%),
+          radial-gradient(60% 34% at 92% 68%, rgba(120, 66, 150, 0.3), transparent 72%),
+          #0a0b0d;
+        z-index: 0;
+      }
+      .phone > * { position: relative; z-index: 1; }
+
+      .island {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 66px;
+        height: 19px;
+        background: #000;
+        border-radius: 999px;
+        z-index: 6;
+      }
+
+      .status {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 20px 0;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        flex: none;
+        height: 30px;
+      }
+      .status .right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .bars { display: flex; align-items: flex-end; gap: 1.5px; height: 8px; }
+      .bars i {
+        width: 2.5px;
+        background: #f5f6f8;
+        border-radius: 1px;
+      }
+      .bars i:nth-child(1) { height: 3px; }
+      .bars i:nth-child(2) { height: 5px; }
+      .bars i:nth-child(3) { height: 6.5px; }
+      .bars i:nth-child(4) { height: 8px; }
+      .batt {
+        width: 17px;
+        height: 8.5px;
+        border: 1px solid rgba(245, 246, 248, 0.5);
+        border-radius: 2.5px;
+        padding: 1px;
+        position: relative;
+      }
+      .batt::after {
+        content: "";
+        position: absolute;
+        right: -2.5px;
+        top: 2.5px;
+        width: 1.5px;
+        height: 3px;
+        background: rgba(245, 246, 248, 0.5);
+        border-radius: 0 1px 1px 0;
+      }
+      .batt i {
+        display: block;
+        height: 100%;
+        width: 72%;
+        background: #f5f6f8;
+        border-radius: 1px;
+      }
+
+      /* ---- Liquid Glass floating toolbar ---- */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 12px 10px;
+        flex: none;
+        z-index: 5;
+      }
+      .glass {
+        background: var(--glass);
+        backdrop-filter: blur(18px) saturate(180%);
+        -webkit-backdrop-filter: blur(18px) saturate(180%);
+        border: 0.5px solid var(--glass-line);
+        box-shadow:
+          inset 0 0.5px 0 rgba(255, 255, 255, 0.28),
+          0 6px 18px rgba(0, 0, 0, 0.32);
+      }
+      .cap {
+        border-radius: 999px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cap.solo { width: 30px; }
+      .cap.group { gap: 3px; padding: 0 3px; }
+      .tbtn {
+        width: 27px;
+        height: 25px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        color: #eef0f4;
+      }
+      .tbtn.on { background: rgba(255, 255, 255, 0.16); }
+
+      /* ---- page content ---- */
+      .canvas {
+        flex: 1;
+        padding: 4px 16px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow: hidden;
+        position: relative;
+      }
+      .line { height: 6px; border-radius: 3px; background: rgba(233, 238, 248, 0.14); }
+      .line.w95 { width: 95%; }
+      .line.w80 { width: 80%; }
+      .line.w60 { width: 60%; }
+      .line.w40 { width: 40%; }
+      .line.head {
+        height: 11px;
+        width: 62%;
+        background: rgba(233, 238, 248, 0.34);
+        border-radius: 3px;
+      }
+      .block {
+        border: 1.5px solid #3b82f6;
+        background: rgba(59, 130, 246, 0.14);
+        border-radius: 6px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+      }
+      .spacer { flex: 1; }
+
+      /* ---- the old floating card ---- */
+      .popover {
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        top: 86px;
+        background: rgba(38, 41, 48, 0.94);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 9px 11px 11px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        z-index: 4;
+      }
+      .row { display: flex; align-items: center; justify-content: space-between; }
+      .glyphrow { display: flex; gap: 13px; color: #a7aebb; font-size: 13px; }
+
+      /* ---- composer ---- */
+      .composer { display: flex; align-items: center; gap: 8px; }
+      .avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: linear-gradient(140deg, #0f766e, #0d9488);
+        display: grid;
+        place-items: center;
+        font-size: 9px;
+        font-weight: 600;
+        flex: none;
+      }
+      .field {
+        flex: 1;
+        border-radius: 999px;
+        padding: 6px 6px 6px 12px;
+        color: #8b929e;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 0.5px solid rgba(255, 255, 255, 0.1);
+      }
+      .field.typed { color: #f5f6f8; }
+      .send {
+        width: 19px;
+        height: 19px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        flex: none;
+        background: rgba(255, 255, 255, 0.16);
+        color: #8b929e;
+      }
+      .send.on { background: #f5f6f8; color: #0a0b0d; }
+
+      /* ---- Liquid Glass sheet, partial detent ---- */
+      .sheet {
+        flex: none;
+        margin: 0 7px 7px;
+        border-radius: 30px;
+        padding: 7px 13px 13px;
+        background: rgba(60, 66, 78, 0.5);
+        backdrop-filter: blur(26px) saturate(190%);
+        -webkit-backdrop-filter: blur(26px) saturate(190%);
+        border: 0.5px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 0.5px 0 rgba(255, 255, 255, 0.3),
+          0 -6px 30px rgba(0, 0, 0, 0.45);
+        z-index: 4;
+      }
+      .grabber {
+        width: 34px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.3);
+        margin: 0 auto 9px;
+      }
+      .quoted {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .quoted .bar {
+        width: 2px;
+        align-self: stretch;
+        border-radius: 2px;
+        background: #3b82f6;
+        flex: none;
+      }
+      .quoted span {
+        color: #b6bcc7;
+        font-size: 9.5px;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .quick { display: flex; gap: 6px; margin-bottom: 10px; }
+      .qbtn {
+        flex: 1;
+        border-radius: 15px;
+        padding: 7px 3px 6px;
+        text-align: center;
+        font-size: 8.5px;
+        line-height: 1.3;
+        color: #e9ecf1;
+        background: rgba(255, 255, 255, 0.11);
+        border: 0.5px solid rgba(255, 255, 255, 0.12);
+      }
+      .qbtn b { display: block; font-size: 13px; font-weight: 400; margin-bottom: 3px; }
+      .qbtn.more { color: #b6bcc7; }
+
+      /* ---- keyboard ---- */
+      .keyboard {
+        flex: none;
+        background: rgba(26, 29, 35, 0.86);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 7px 3px 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 4;
+      }
+      .krow { display: flex; gap: 4px; justify-content: center; padding: 0 2px; }
+      .key {
+        flex: 1;
+        height: 22px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.17);
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        color: #f5f6f8;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+      }
+      .key.dark { background: rgba(255, 255, 255, 0.08); }
+      .key.wide { flex: 1.6; }
+      .key.space { flex: 5; }
+      .key.blue { background: #0a84ff; }
+      .home {
+        width: 100px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.4);
+        margin: 5px auto 6px;
+        flex: none;
+      }
+
+      /* ---- mini phones for prior art ---- */
+      .phone.mini {
+        max-width: 214px;
+        aspect-ratio: 9 / 17;
+        border-width: 7px;
+        border-radius: 36px;
+        font-size: 10px;
+      }
+      .phone.mini .island { width: 52px; height: 15px; top: 6px; }
+      .igstory {
+        flex: 1;
+        margin: 4px 7px 0;
+        border-radius: 12px;
+        background:
+          radial-gradient(80% 60% at 30% 25%, rgba(244, 114, 182, 0.5), transparent 70%),
+          radial-gradient(70% 60% at 75% 80%, rgba(251, 146, 60, 0.45), transparent 70%),
+          #1a1118;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 8px;
+        position: relative;
+      }
+      .igstory .prog {
+        position: absolute;
+        top: 7px;
+        left: 8px;
+        right: 8px;
+        height: 2px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .igstory .prog i {
+        display: block;
+        width: 45%;
+        height: 100%;
+        background: #fff;
+        border-radius: 2px;
+      }
+      .emojirow {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 4px 9px;
+        font-size: 17px;
+      }
+      .emojirow .plus {
+        font-size: 13px;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        display: grid;
+        place-items: center;
+        align-self: center;
+      }
+      .igfield {
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        border-radius: 999px;
+        padding: 6px 12px;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 10px;
+        margin: 0 4px;
+      }
+      .bubbles { flex: 1; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+      .bubble {
+        max-width: 78%;
+        border-radius: 16px;
+        padding: 7px 11px;
+        font-size: 10px;
+        line-height: 1.35;
+      }
+      .bubble.them { background: #2c2f36; align-self: flex-start; border-bottom-left-radius: 5px; }
+      .bubble.me { background: #0a84ff; align-self: flex-end; border-bottom-right-radius: 5px; }
+      .bubble.dim { opacity: 0.32; }
+      .tapback {
+        align-self: flex-start;
+        display: flex;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        margin-bottom: -2px;
+        background: rgba(70, 76, 88, 0.5);
+        backdrop-filter: blur(18px) saturate(180%);
+        -webkit-backdrop-filter: blur(18px) saturate(180%);
+        border: 0.5px solid rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.3), 0 6px 18px rgba(0, 0, 0, 0.4);
+      }
+
+      figcaption {
+        color: var(--sp-muted);
+        font-size: 0.85rem;
+        margin-top: 0.9rem;
+        max-width: 36ch;
+        line-height: 1.5;
+      }
+      figcaption b { color: var(--sp-text); font-weight: 600; }
+
+      /* ══════════ prose furniture ══════════ */
+      ul.notes { list-style: none; padding: 0; margin: 1.25rem 0 0; }
+      ul.notes li {
+        display: flex;
+        gap: 0.7rem;
+        padding: 0.6rem 0;
+        border-top: 1px solid var(--sp-border);
+        font-size: 0.95rem;
+        max-width: none;
+      }
+      ul.notes li:last-child { border-bottom: 1px solid var(--sp-border); }
+      .mark {
+        font-family: var(--sp-font-mono);
+        font-size: 0.8rem;
+        flex: none;
+        width: 1.4rem;
+        color: var(--sp-muted);
+        padding-top: 0.15rem;
+      }
+      .mark.bad { color: var(--bad); }
+      .mark.good { color: var(--good); }
+
+      .scroll { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+      th, td {
+        text-align: left;
+        vertical-align: top;
+        padding: 0.75rem 0.9rem 0.75rem 0;
+        border-bottom: 1px solid var(--sp-border);
+      }
+      th {
+        color: var(--sp-muted);
+        font-weight: 500;
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      td p { margin: 0; max-width: 48ch; }
+      td p + p { margin-top: 0.45rem; }
+      .pick {
+        display: inline-block;
+        font-family: var(--sp-font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 1px solid var(--good);
+        color: var(--good);
+        border-radius: 999px;
+        padding: 0.1rem 0.5rem;
+        white-space: nowrap;
+      }
+      .pick.no { border-color: var(--sp-border); color: var(--sp-muted); }
+
+      .callout {
+        border-left: 2px solid var(--sp-accent);
+        background: var(--sp-surface);
+        border-radius: 0 var(--sp-radius) var(--sp-radius) 0;
+        padding: 1rem 1.2rem;
+        margin: 1.75rem 0;
+      }
+      .callout.warn { border-left-color: var(--warn); }
+      .callout p { margin: 0; max-width: none; }
+      .callout p + p { margin-top: 0.6rem; }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+        gap: 1px;
+        background: var(--sp-border);
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        overflow: hidden;
+        margin-top: 1.75rem;
+      }
+      .step { background: var(--sp-bg); padding: 1rem 1.1rem 1.2rem; }
+      .step .n {
+        font-family: var(--sp-font-mono);
+        font-size: 0.72rem;
+        color: var(--sp-muted);
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      .step strong { display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
+      .step p { margin: 0; font-size: 0.86rem; color: var(--sp-muted); }
+
+      code { font-size: 0.86em; }
+      .files code { white-space: nowrap; }
+
+      .q {
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        padding: 1.1rem 1.3rem;
+        margin-bottom: 1rem;
+      }
+      .q h4 { margin: 0 0 0.4rem; font-size: 1rem; }
+      .q p { margin: 0 0 0.5rem; font-size: 0.93rem; }
+      .q .rec { font-size: 0.87rem; color: var(--sp-muted); margin: 0; }
+      .q .rec b { color: var(--sp-text); font-weight: 600; }
+
+      .sources { font-size: 0.85rem; color: var(--sp-muted); }
+      .sources li { max-width: none; }
+    </style>
+  </head>
+  <body class="dark">
+    <main>
+      <header class="masthead">
+        <p class="kicker">apps/mobile · page comments</p>
+        <h1>One sheet, not a floating card</h1>
+        <p>
+          Replacing the anchored comment popover with a single Liquid Glass sheet
+          that carries the quick replies and the composer — built the way
+          Instagram, Snapchat and Messages build the same thing.
+        </p>
+      </header>
+
+      <section>
+        <h2>What's on screen today</h2>
+        <p class="lede">
+          Tap a block in comment mode and a card is placed beside it by
+          <code>popoverPlacement()</code>, which flips it above or below the
+          block, clamps it under the header, and subtracts the keyboard from the
+          container so it has somewhere to land. Quick feedback is a second
+          surface, pushed from inside that card.
+        </p>
+
+        <div class="stage">
+          <figure>
+            <div class="phone">
+              <div class="island"></div>
+              <div class="status">
+                <span>10:58</span>
+                <span class="right">
+                  <span class="bars"><i></i><i></i><i></i><i></i></span>
+                  <span class="batt"><i></i></span>
+                </span>
+              </div>
+              <div class="toolbar">
+                <div class="cap solo glass">‹</div>
+                <div class="cap group glass">
+                  <span class="tbtn on">◎</span>
+                  <span class="tbtn">💬</span>
+                  <span class="tbtn">↥</span>
+                </div>
+              </div>
+              <div class="canvas">
+                <div class="block">
+                  <div class="line w95"></div>
+                  <div class="line w80"></div>
+                </div>
+                <div class="line w60"></div>
+                <div class="popover">
+                  <div class="row">
+                    <div class="glyphrow"><span>🗑</span><span>⚡</span><span>👍</span></div>
+                    <div class="glyphrow"><span>✕</span></div>
+                  </div>
+                  <div class="composer" style="margin-top:9px">
+                    <div class="avatar">H</div>
+                    <div class="field"><span>Write a comment</span><span class="send">↑</span></div>
+                  </div>
+                </div>
+                <div class="spacer"></div>
+              </div>
+              <div class="keyboard">
+                <div class="krow">
+                  <i class="key">q</i><i class="key">w</i><i class="key">e</i><i class="key">r</i><i class="key">t</i><i class="key">y</i><i class="key">u</i><i class="key">i</i><i class="key">o</i><i class="key">p</i>
+                </div>
+                <div class="krow">
+                  <i class="key">a</i><i class="key">s</i><i class="key">d</i><i class="key">f</i><i class="key">g</i><i class="key">h</i><i class="key">j</i><i class="key">k</i><i class="key">l</i>
+                </div>
+                <div class="krow">
+                  <i class="key dark wide">⇧</i><i class="key">z</i><i class="key">x</i><i class="key">c</i><i class="key">v</i><i class="key">b</i><i class="key">n</i><i class="key">m</i><i class="key dark wide">⌫</i>
+                </div>
+                <div class="krow">
+                  <i class="key dark wide">123</i><i class="key space">space</i><i class="key blue wide">return</i>
+                </div>
+                <div class="home"></div>
+              </div>
+            </div>
+            <figcaption>
+              <b>Today.</b> The card is a free-floating object that has to be
+              placed. Here it flipped above the block — and covers the page it is
+              a comment about.
+            </figcaption>
+          </figure>
+
+          <div>
+            <h3 style="margin-top:0">Why the placement keeps fighting us</h3>
+            <ul class="notes">
+              <li>
+                <span class="mark bad">1</span>
+                <span>Two axes of guessing. The card starts at an assumed
+                <code>ESTIMATED_HEIGHT = 180</code>, measures itself in
+                <code>onLayout</code>, then moves — the first frame is in the
+                wrong place.</span>
+              </li>
+              <li>
+                <span class="mark bad">2</span>
+                <span>The keyboard is modelled by hand:
+                <code>keyboardWillShow</code> listeners shrink the container and a
+                Reanimated <code>withTiming(250ms)</code> approximates a curve
+                UIKit owns.</span>
+              </li>
+              <li>
+                <span class="mark bad">3</span>
+                <span>On a tall block there is nowhere good to go. The flip puts
+                the card over the selection; the clamp pins it under the glass
+                header. Both branches hide what you are commenting on.</span>
+              </li>
+              <li>
+                <span class="mark bad">4</span>
+                <span>Quick feedback is a <em>different</em> surface — ⚡ pushes
+                <code>pages/[slug]/quick</code>, a real formSheet, on top of a
+                card that is imitating one.</span>
+              </li>
+              <li>
+                <span class="mark bad">5</span>
+                <span>Dismissal is hand-built: an ✕ in the card plus a
+                <code>pointer-down</code> message from inside the WebView to catch
+                outside taps.</span>
+              </li>
+              <li>
+                <span class="mark bad">6</span>
+                <span>It is a rectangle we drew. Nothing about it is a system
+                surface, so it gets no glass, no grabber, no drag, and no
+                keyboard choreography.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>How everyone else does quick replies</h2>
+        <p class="lede">
+          Instagram, Snapchat, WhatsApp and Messages all solved this, and they
+          converged on nearly the same object. Worth copying the parts that are
+          settled rather than re-deciding them.
+        </p>
+
+        <div class="stage">
+          <figure>
+            <div class="phone mini">
+              <div class="island"></div>
+              <div class="status">
+                <span>10:58</span>
+                <span class="right">
+                  <span class="bars"><i></i><i></i><i></i><i></i></span>
+                  <span class="batt"><i></i></span>
+                </span>
+              </div>
+              <div class="igstory">
+                <div class="prog"><i></i></div>
+              </div>
+              <div style="flex:none;padding-top:9px">
+                <div class="emojirow">
+                  <span>❤️</span><span>🙌</span><span>🔥</span><span>👏</span><span>😢</span><span>😍</span>
+                  <span class="plus">⊕</span>
+                </div>
+                <div class="igfield">Send message</div>
+              </div>
+              <div class="home"></div>
+            </div>
+            <figcaption>
+              <b>Instagram story reply.</b> Six emoji in a row directly above the
+              message field. Tap one and it sends immediately to the author's DMs.
+              The ⊕ at the <em>end</em> opens the full emoji keyboard.
+            </figcaption>
+          </figure>
+
+          <figure>
+            <div class="phone mini">
+              <div class="island"></div>
+              <div class="status">
+                <span>10:58</span>
+                <span class="right">
+                  <span class="bars"><i></i><i></i><i></i><i></i></span>
+                  <span class="batt"><i></i></span>
+                </span>
+              </div>
+              <div class="bubbles">
+                <div class="bubble me dim">on it</div>
+                <div class="tapback">
+                  <span>❤️</span><span>👍</span><span>👎</span><span>😂</span><span>‼️</span><span>❓</span>
+                </div>
+                <div class="bubble them">shipped the sheet — take a look?</div>
+                <div class="bubble me dim">nice</div>
+              </div>
+              <div class="home"></div>
+            </div>
+            <figcaption>
+              <b>Messages tapbacks.</b> Long-press a bubble and six reactions
+              arrive in a floating glass capsule pinned to <em>that</em> bubble.
+              The reaction attaches to the message, not to the conversation.
+            </figcaption>
+          </figure>
+
+          <div>
+            <h3 style="margin-top:0">The five rules they agree on</h3>
+            <ul class="notes">
+              <li>
+                <span class="mark good">1</span>
+                <span><b>The row lives immediately above the input, in the same
+                container.</b> It never appears as its own screen, and it rides
+                the keyboard up rather than being replaced by it.</span>
+              </li>
+              <li>
+                <span class="mark good">2</span>
+                <span><b>One tap sends.</b> No confirm, no second step, no "are
+                you sure" — haptic, send, dismiss. The whole point is that it is
+                faster than typing.</span>
+              </li>
+              <li>
+                <span class="mark good">3</span>
+                <span><b>Six or fewer, fixed.</b> Instagram ships six emoji,
+                Messages six tapbacks, Snapchat seven Bitmoji reactions. Past
+                that it stops being scannable and becomes a menu.</span>
+              </li>
+              <li>
+                <span class="mark good">4</span>
+                <span><b>"More" goes at the end.</b> Instagram's ⊕ and WhatsApp's
+                + are the last item in the row and open the full picker.
+                The escape hatch never sits in the middle of the fast path.</span>
+              </li>
+              <li>
+                <span class="mark good">5</span>
+                <span><b>The target is quoted.</b> Instagram shows the story
+                behind the bar, Snapchat attaches the reaction under the message,
+                WhatsApp quotes the bubble. You always see what you are replying
+                to while you reply.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout">
+          <p>
+            <b>Two places our case differs, and what to do about it.</b>
+          </p>
+          <p>
+            <b>Our quick replies are actions, not emotions.</b> ❤️ needs no label
+            in any language; "ask for this to be removed" does. Glyph-only is why
+            those rows read as reaction bars rather than forms — but the current
+            trash / ⚡ / thumbs-up row is already glyph-only and already ambiguous
+            at a glance. Adopt the shape, not the bareness: SF Symbol with a
+            one-word caption under it.
+          </p>
+          <p>
+            <b>⚡ is in the wrong position.</b> It is the "more" affordance and it
+            currently sits between the two fast actions. By rule 4 it belongs
+            last: <em>Remove · Looks good · More</em>.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>The proposal</h2>
+        <p class="lede">
+          Selecting a block opens one sheet, at a detent that fits its contents.
+          On iOS 26 a partial-detent sheet is Liquid Glass by default and detaches
+          from the screen edges, so the page stays visible behind and around it —
+          which is exactly the property the floating card was trying to buy and
+          kept losing.
+        </p>
+
+        <div class="stage">
+          <figure>
+            <div class="phone">
+              <div class="island"></div>
+              <div class="status">
+                <span>10:58</span>
+                <span class="right">
+                  <span class="bars"><i></i><i></i><i></i><i></i></span>
+                  <span class="batt"><i></i></span>
+                </span>
+              </div>
+              <div class="toolbar">
+                <div class="cap solo glass">‹</div>
+                <div class="cap group glass">
+                  <span class="tbtn on">◎</span>
+                  <span class="tbtn">💬</span>
+                  <span class="tbtn">↥</span>
+                </div>
+              </div>
+              <div class="canvas">
+                <div class="line head"></div>
+                <div class="line w95"></div>
+                <div class="line w80"></div>
+                <div class="block">
+                  <div class="line w95"></div>
+                  <div class="line w60"></div>
+                </div>
+                <div class="line w80"></div>
+                <div class="line w40"></div>
+                <div class="spacer"></div>
+              </div>
+              <div class="sheet">
+                <div class="grabber"></div>
+                <div class="quoted">
+                  <span class="bar"></span>
+                  <span>The relay reconnects on a backoff capped at 30s…</span>
+                </div>
+                <div class="quick">
+                  <div class="qbtn"><b>🗑</b>Remove</div>
+                  <div class="qbtn"><b>👍</b>Looks good</div>
+                  <div class="qbtn more"><b>⋯</b>More</div>
+                </div>
+                <div class="composer">
+                  <div class="avatar">H</div>
+                  <div class="field"><span>Write a comment</span><span class="send">↑</span></div>
+                </div>
+              </div>
+              <div class="home"></div>
+            </div>
+            <figcaption>
+              <b>Resting state.</b> <code>fitToContents</code>, keyboard down,
+              glass over the page. Two quick replies are one tap; "More" is last,
+              per rule 4.
+            </figcaption>
+          </figure>
+
+          <figure>
+            <div class="phone">
+              <div class="island"></div>
+              <div class="status">
+                <span>10:58</span>
+                <span class="right">
+                  <span class="bars"><i></i><i></i><i></i><i></i></span>
+                  <span class="batt"><i></i></span>
+                </span>
+              </div>
+              <div class="toolbar">
+                <div class="cap solo glass">‹</div>
+                <div class="cap group glass">
+                  <span class="tbtn on">◎</span>
+                  <span class="tbtn">💬</span>
+                  <span class="tbtn">↥</span>
+                </div>
+              </div>
+              <div class="canvas">
+                <div class="block">
+                  <div class="line w95"></div>
+                  <div class="line w60"></div>
+                </div>
+                <div class="line w80"></div>
+                <div class="spacer"></div>
+              </div>
+              <div class="sheet" style="margin-bottom:0;border-radius:30px 30px 0 0">
+                <div class="grabber"></div>
+                <div class="quoted">
+                  <span class="bar"></span>
+                  <span>The relay reconnects on a backoff capped at 30s…</span>
+                </div>
+                <div class="quick">
+                  <div class="qbtn"><b>🗑</b>Remove</div>
+                  <div class="qbtn"><b>👍</b>Looks good</div>
+                  <div class="qbtn more"><b>⋯</b>More</div>
+                </div>
+                <div class="composer">
+                  <div class="avatar">H</div>
+                  <div class="field typed"><span>this number is stale</span><span class="send on">↑</span></div>
+                </div>
+              </div>
+              <div class="keyboard">
+                <div class="krow">
+                  <i class="key">q</i><i class="key">w</i><i class="key">e</i><i class="key">r</i><i class="key">t</i><i class="key">y</i><i class="key">u</i><i class="key">i</i><i class="key">o</i><i class="key">p</i>
+                </div>
+                <div class="krow">
+                  <i class="key">a</i><i class="key">s</i><i class="key">d</i><i class="key">f</i><i class="key">g</i><i class="key">h</i><i class="key">j</i><i class="key">k</i><i class="key">l</i>
+                </div>
+                <div class="krow">
+                  <i class="key dark wide">⇧</i><i class="key">z</i><i class="key">x</i><i class="key">c</i><i class="key">v</i><i class="key">b</i><i class="key">n</i><i class="key">m</i><i class="key dark wide">⌫</i>
+                </div>
+                <div class="krow">
+                  <i class="key dark wide">123</i><i class="key space">space</i><i class="key blue wide">return</i>
+                </div>
+                <div class="home"></div>
+              </div>
+            </div>
+            <figcaption>
+              <b>Typing.</b> UIKit lifts the sheet with the keyboard and squares
+              off its bottom corners. The quick row stays — rule 1. We scroll the
+              WebView so the highlight stays in the strip that's left.
+            </figcaption>
+          </figure>
+
+          <div>
+            <h3 style="margin-top:0">What the system gives us for free</h3>
+            <ul class="notes">
+              <li><span class="mark good">✓</span><span><b>Glass.</b> A partial-detent sheet on iOS 26 gets the material, the specular edge and the shadow with no code — the same language as the toolbar capsules already floating over this page.</span></li>
+              <li><span class="mark good">✓</span><span><b>Placement.</b> Always bottom, always full width, always a height that fits its contents.</span></li>
+              <li><span class="mark good">✓</span><span><b>Keyboard.</b> UIKit raises and lowers it on the real curve. Delete the listeners and the timing constant.</span></li>
+              <li><span class="mark good">✓</span><span><b>Dismissal.</b> Drag the grabber, tap outside, swipe — all native, all one <code>router.back()</code> that clears the selection.</span></li>
+              <li><span class="mark good">✓</span><span><b>Room to grow.</b> A thread list, an intent picker, an attachment row all have somewhere to live. The card had nowhere.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flow">
+          <div class="step">
+            <span class="n">01</span>
+            <strong>Enter comment mode</strong>
+            <p>Viewfinder button in the glass toolbar, unchanged.</p>
+          </div>
+          <div class="step">
+            <span class="n">02</span>
+            <strong>Tap a block</strong>
+            <p>Haptic, blue highlight, anchor stored via <code>setPick</code> — unchanged.</p>
+          </div>
+          <div class="step">
+            <span class="n">03</span>
+            <strong>Sheet rises</strong>
+            <p>Keyboard down. Page scrolls so the highlight clears the sheet.</p>
+          </div>
+          <div class="step">
+            <span class="n">04</span>
+            <strong>Quick reply, or type</strong>
+            <p>One tap posts and dismisses. Tapping the field raises the keyboard and the sheet with it.</p>
+          </div>
+          <div class="step">
+            <span class="n">05</span>
+            <strong>Send</strong>
+            <p>Thread created, sheet closes, selection clears, pin lands on the block.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>How to build the container</h2>
+        <p class="lede">
+          Three shapes are available, and the repo already has a precedent for
+          one: <code>workspace/[id]/line-comment</code> is this exact thing — a
+          comment composer in a formSheet route, fed its anchor through a store.
+        </p>
+
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th style="width:1%"></th><th>Shape</th><th>What it costs</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="pick">Take</span></td>
+                <td>
+                  <p><b>expo-router formSheet route</b></p>
+                  <p><code>pages/[slug]/comment</code>, <code>sheetAllowedDetents: "fitToContents"</code>, <code>sheetGrabberVisible</code>, anchor read from <code>pageCommentStore</code>.</p>
+                </td>
+                <td>
+                  <p>Matches the mobile convention and the <code>line-comment</code> precedent, and it is the only option that gets Liquid Glass from the system rather than imitating it.</p>
+                  <p>Costs a route transition and moves submit to another screen — but <code>usePageComments</code> is keyed by page and version, so the store is already the shared surface.</p>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="pick no">Skip</span></td>
+                <td><p><b>In-screen sheet</b></p><p>An absolutely positioned view with <code>useAnimatedKeyboard</code>, like <code>ReplyBar</code>.</p></td>
+                <td><p>Keeps state local and skips the transition, but re-implements detents, grabber, drag-to-dismiss and the dim layer — and would need <code>GlassView</code> to fake a material the sheet gets natively. This is the popover's problem in a new position.</p></td>
+              </tr>
+              <tr>
+                <td><span class="pick no">Skip</span></td>
+                <td><p><b>Composer overlay, no sheet</b></p><p>The native module pinned to the bottom with <code>backdrop: "dim"</code>, using its own expand behaviour.</p></td>
+                <td><p>Fewest moving parts on paper, but its expanded mode claims the whole screen. It is built for "write a prompt", not "annotate the thing you can see".</p></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p><b>The one thing the sheet doesn't solve: the block can end up underneath it.</b></p>
+          <p>
+            No protocol change needed. The host already knows the selection's rect
+            (<code>rects[PENDING_ANCHOR_ID]</code>, kept live by the
+            <code>track</code> message) and the current offset
+            (<code>scrollYRef</code>), so it can send the existing
+            <code>restore-scroll</code> with
+            <code>y = scrollY + rect.top − targetTop</code> when the sheet opens,
+            and again when the keyboard changes the visible strip.
+          </p>
+        </div>
+
+        <div class="callout warn">
+          <p><b>Known trap: the Liquid Glass flare on formSheet.</b></p>
+          <p>
+            <code>react-native-screens</code> never sets
+            <code>UISheetPresentationController.backgroundEffect</code> (iOS 26.1),
+            so a partial-detent sheet keeps the material's <em>interactive</em>
+            glass: a bright specular highlight chases your finger across the
+            sheet, and on a dark background it reads as a glowing blob. Filed
+            September 2026 against 4.26.2 / 4.27.0 — we are on 4.26.0 — and still
+            open. The reporter's patch sets a <code>UIColorEffect</code> matching
+            the sheet background. Budget for either a patch or a plainer sheet
+            background until it lands upstream.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>"Can we use native text input?"</h2>
+        <p class="lede">
+          Worth splitting: <code>TextInput</code> is already a real
+          <code>UITextView</code>. The live choice is whether comments adopt
+          <code>modules/composer</code>, the SwiftUI composer that Home, the
+          terminal and files-changed already use.
+        </p>
+
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr><th>Option</th><th>What you get</th><th>What it costs</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><p><b>Keep <code>CommentComposer</code></b></p><p>RN <code>TextInput</code> + avatar + send button.</p></td>
+                <td><p>Already themed with uniwind, already used by <code>ReplyBar</code> and the all-comments sheet, so comment input looks the same everywhere. Pure JS: iterate in seconds.</p></td>
+                <td><p>No dictation, no paste handling, no native height reporting. The quick row stays RN buttons we draw ourselves.</p></td>
+              </tr>
+              <tr>
+                <td><p><b>Adopt the <code>Composer</code> module</b></p><p><code>quickKeys</code> + <code>backdrop: "passthrough"</code>.</p></td>
+                <td><p>The quick replies become the native <code>quickKeys</code> strip — SF Symbols, <code>onQuickKeyPress</code> by id, dividers between groups. That is rules 1–4 already implemented in Swift. Plus dictation, paste, <code>isSending</code>, and <code>onHeightChange</code> to size the sheet.</p></td>
+                <td><p>Built for agent sessions: models, session tabs, slash commands and attachments all passed empty. Its expand/backdrop machinery overlaps the sheet, so <code>passthrough</code> is mandatory. <code>quickKeys</code> are glyph-only, which loses the caption rule 5 wants. And iterating means a native build (<code>-scheme Composer</code>).</p></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="margin-top:1.5rem">
+          <b>Recommendation: ship the sheet with the RN composer, then swap.</b>
+          The sheet is the change that removes the bugs; the input is a swap
+          behind two props (<code>onSubmit</code>, <code>pending</code>). Doing
+          both at once puts a pod rebuild between us and knowing whether the
+          <em>layout</em> is right. If the quick-keys strip turns out to be the
+          look you want, it lands as a second commit with nothing else moving.
+        </p>
+      </section>
+
+      <section>
+        <h2>What changes in the tree</h2>
+        <div class="scroll files">
+          <table>
+            <thead>
+              <tr><th style="width:1%">&nbsp;</th><th>Path</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>+</td><td><code>app/(authenticated)/pages/[slug]/comment.tsx</code></td><td><p>Route re-export, plus the <code>Stack.Screen</code> entry with <code>fitToContents</code> and <code>glassHeaderOptions</code>.</p></td></tr>
+              <tr><td>+</td><td><code>screens/…/pages/[slug]/comment/CommentSheet.tsx</code></td><td><p>Quoted anchor, quick row, composer. Modelled on <code>LineCommentSheet</code>.</p></td></tr>
+              <tr><td>−</td><td><code>screens/…/components/CommentPopover/</code></td><td><p>Gone: the card, the keyboard listeners, the ✕, the <code>withTiming</code> settle.</p></td></tr>
+              <tr><td>~</td><td><code>screens/…/components/ComposerActions/</code></td><td><p>Reorders to <em>Remove · Looks good · More</em> and gains captions. Still shared with whatever renders it.</p></td></tr>
+              <tr><td>−</td><td><code>packages/shared/src/page-comments/popoverLayout.ts</code></td><td><p>Mobile stops calling it. <code>packages/ui</code> still uses it for desktop so the function stays — but <code>insetTop</code> and the flip clamp exist only for mobile and can come back out.</p></td></tr>
+              <tr><td>~</td><td><code>app/(authenticated)/pages/[slug]/quick.tsx</code></td><td><p>Becomes the "More" expansion inside the sheet rather than a sheet of its own.</p></td></tr>
+              <tr><td>~</td><td><code>PageDetailScreen.tsx</code></td><td><p>Keeps selection, highlight, pins and <code>createAnchored</code>; loses the popover branch; gains the scroll-into-view call.</p></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p>
+            <b>Note on the working tree.</b> The in-flight <code>insetTop</code>
+            work — <code>popoverLayout.ts</code>, its tests, and the
+            <code>headerHeight</code> plumbing — exists to keep the floating card
+            clear of the glass header. The sheet makes that unnecessary on
+            mobile. The <code>PageFrame</code> <code>contentInset</code> fix is
+            unrelated and should stay either way.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Open questions</h2>
+        <p class="lede">Three calls worth making before anyone writes code.</p>
+
+        <div class="q">
+          <h4>1. Does the keyboard come up on open?</h4>
+          <p>
+            The popover autofocuses, and Instagram raises the keyboard with its
+            reaction row — but Instagram's sheet <em>is</em> the whole screen, so
+            it costs nothing. Ours has to leave the page visible, and autofocus
+            spends half the screen before you have decided whether to type.
+          </p>
+          <p class="rec"><b>Recommend:</b> open with the keyboard down. Quick replies are one tap; the field is one more.</p>
+        </div>
+
+        <div class="q">
+          <h4>2. Captions under the quick replies, or glyphs alone?</h4>
+          <p>
+            Glyph-only is what makes these rows feel like reaction bars, and it is
+            what the native <code>quickKeys</code> strip gives us. But 🗑 on a
+            document means "delete this comment" at least as readily as "ask for
+            this to be removed".
+          </p>
+          <p class="rec"><b>Recommend:</b> SF Symbol with a one-word caption. Revisit once the labels have earned their recognition.</p>
+        </div>
+
+        <div class="q">
+          <h4>3. Does the sheet show the thread when one already exists?</h4>
+          <p>
+            Tapping an existing pin opens the full all-comments sheet with focus.
+            With a per-anchor sheet in place, a pin could open the same sheet
+            showing that thread with a reply field — which is how every app in the
+            prior art handles it.
+          </p>
+          <p class="rec"><b>Recommend:</b> out of scope here. Get new comments onto one surface first, unify pins after.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Sources</h2>
+        <ul class="sources">
+          <li><a href="https://www.socialmediatoday.com/news/instagrams-adding-reactions-style-quick-response-emojis-to-instagram-sto/528111/">Instagram's quick-response emoji for Stories</a> — Social Media Today</li>
+          <li><a href="https://instantdm.com/blog/how-to-react-on-instagram-story">How to react on an Instagram story</a> — the six-emoji bar and the ⊕ full-keyboard escape</li>
+          <li><a href="https://www.neowin.net/news/snapchat-details-editable-messages-emoji-reactions-and-some-ai-features-to-the-platform/">Snapchat emoji reactions</a> — long-press, tap, attaches under the message</li>
+          <li><a href="https://www.makeuseof.com/use-snapchat-bitmoji-reactions/">Snapchat Bitmoji reactions</a> — the fixed set of seven</li>
+          <li><a href="https://nilcoalescing.com/blog/PresentingLiquidGlassSheetsInSwiftUI/">Presenting Liquid Glass sheets in SwiftUI on iOS 26</a> — partial detents float and use glass; large detent turns opaque</li>
+          <li><a href="https://github.com/software-mansion/react-native-screens/issues/4605">react-native-screens #4605</a> — the formSheet glass flare, still open</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

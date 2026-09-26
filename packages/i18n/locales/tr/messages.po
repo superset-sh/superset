@@ -5054,6 +5054,10 @@ msgstr "Takımı sil"
 msgid "Delete this"
 msgstr "Bunu sil"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Bunu sil"
+
 msgid "Delete this workspace?"
 msgstr "Bu çalışma alanı silinsin mi?"
 
@@ -8615,6 +8619,10 @@ msgstr "Kurulu tarayıcılar aranıyor…"
 msgid "Looks good"
 msgstr "İyi görünüyor"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "İyi görünüyor"
+
 msgid "Low"
 msgstr "Düşük"
 
@@ -11722,6 +11730,10 @@ msgstr "Hızlı çalışma alanı oluştur"
 msgid "Quick Create Workspace"
 msgstr "Hızlı çalışma alanı oluştur"
 
+msgid "Quick feedback"
+msgstr "Hızlı geri bildirim"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Hızlı geri bildirim"
 

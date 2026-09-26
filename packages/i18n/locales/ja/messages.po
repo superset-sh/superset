@@ -5054,6 +5054,10 @@ msgstr "チームを削除"
 msgid "Delete this"
 msgstr "これを削除"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "これを削除"
+
 msgid "Delete this workspace?"
 msgstr "このワークスペースを削除しますか?"
 
@@ -8615,6 +8619,10 @@ msgstr "インストール済みブラウザを検索中…"
 msgid "Looks good"
 msgstr "良さそう"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "良さそう"
+
 msgid "Low"
 msgstr "低"
 
@@ -11722,6 +11730,10 @@ msgstr "ワークスペースをクイック作成"
 msgid "Quick Create Workspace"
 msgstr "ワークスペースをクイック作成"
 
+msgid "Quick feedback"
+msgstr "クイックフィードバック"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "クイックフィードバック"
 

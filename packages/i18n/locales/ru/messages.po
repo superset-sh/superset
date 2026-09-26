@@ -5054,6 +5054,10 @@ msgstr "Удалить команду"
 msgid "Delete this"
 msgstr "Удалить это"
 
+msgctxt "quick reply button"
+msgid "Delete this"
+msgstr "Удалить это"
+
 msgid "Delete this workspace?"
 msgstr "Удалить эту рабочую область?"
 
@@ -8615,6 +8619,10 @@ msgstr "Поиск установленных браузеров…"
 msgid "Looks good"
 msgstr "Выглядит хорошо"
 
+msgctxt "quick reply button"
+msgid "Looks good"
+msgstr "Выглядит хорошо"
+
 msgid "Low"
 msgstr "Низкий"
 
@@ -11722,6 +11730,10 @@ msgstr "Быстро создать рабочую область"
 msgid "Quick Create Workspace"
 msgstr "Быстро создать рабочую область"
 
+msgid "Quick feedback"
+msgstr "Быстрый отзыв"
+
+msgctxt "quick reply button"
 msgid "Quick feedback"
 msgstr "Быстрый отзыв"
 
