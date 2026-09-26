@@ -9779,6 +9779,9 @@ msgstr "“{query}”에 대한 결과가 없습니다"
 msgid "No results found."
 msgstr "결과를 찾을 수 없습니다."
 
+msgid "No resumable agent sessions are running."
+msgstr "실행 중인 재개 가능한 에이전트 세션이 없습니다."
+
 msgid "No Reviewers Assigned"
 msgstr "지정된 리뷰어 없음"
 
@@ -12399,6 +12402,12 @@ msgstr "응답"
 msgid "Restart"
 msgstr "다시 시작"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "이 컴퓨터의 이 조직에서 재개 가능한 에이전트 세션 {count}개를 다시 시작할까요? 저장된 대화가 재개됩니다. 현재 작업은 중단됩니다."
+
+msgid "Restart all sessions"
+msgstr "모든 세션 다시 시작"
+
 msgid "Restart all terminals?"
 msgstr "모든 터미널을 다시 시작할까요?"
 
@@ -12440,6 +12449,9 @@ msgstr "호스트 서비스 {restartedOrgCount}개를 재시작했습니다"
 
 msgid "Restarted 1 host service"
 msgstr "호스트 서비스 1개를 재시작했습니다"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "다시 시작됨: {restarted}. 실패: {failed}."
 
 msgid "Restarting"
 msgstr "다시 시작 중"
@@ -13428,6 +13440,9 @@ msgstr "세션"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "세션 · 비용 상위 {0}개"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "다시 시작된 세션: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

@@ -9779,6 +9779,9 @@ msgstr "Keine Ergebnisse für „{query}“"
 msgid "No results found."
 msgstr "Keine Ergebnisse gefunden."
 
+msgid "No resumable agent sessions are running."
+msgstr "Es laufen keine fortsetzbaren Agentensitzungen."
+
 msgid "No Reviewers Assigned"
 msgstr "Keine Reviewer zugewiesen"
 
@@ -12399,6 +12402,12 @@ msgstr "Response"
 msgid "Restart"
 msgstr "Neu starten"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "{count} fortsetzbare Agentensitzungen dieser Organisation auf diesem Computer neu starten? Gespeicherte Unterhaltungen werden fortgesetzt. Laufende Arbeiten werden unterbrochen."
+
+msgid "Restart all sessions"
+msgstr "Alle Sitzungen neu starten"
+
 msgid "Restart all terminals?"
 msgstr "Alle Terminals neu starten?"
 
@@ -12440,6 +12449,9 @@ msgstr "{restartedOrgCount} Host-Dienste neu gestartet"
 
 msgid "Restarted 1 host service"
 msgstr "1 Host-Dienst neu gestartet"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "Neu gestartet: {restarted}. Fehlgeschlagen: {failed}."
 
 msgid "Restarting"
 msgstr "Wird neu gestartet"
@@ -13428,6 +13440,9 @@ msgstr "Sitzungen"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sitzungen · Top {0} nach Kosten"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Neu gestartete Sitzungen: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

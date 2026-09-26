@@ -40,6 +40,7 @@ import { terminalRouter } from "../trpc/router/terminal/terminal.ts";
 import {
 	type ResumeSessionDeps,
 	restartAccountSessions,
+	restartAgentSessions,
 } from "../trpc/router/terminal-agents/terminal-agents.ts";
 import {
 	disposeDaemonClient,
@@ -415,42 +416,42 @@ function terminalCaller() {
 	} as unknown as Parameters<typeof terminalRouter.createCaller>[0]);
 }
 
-test("account restart with real disposal preserves the conversation and launches a successor", async () => {
-	const terminalId = randomUUID();
-	const created = await createTerminalSessionInternal({
-		terminalId,
-		workspaceId,
-		db,
-	});
-	assert.ok(!("error" in created));
-	db.insert(hostAgentConfigs)
-		.values({
-			id: randomUUID(),
-			presetId: "claude",
-			label: "Claude",
-			command: "claude",
-			promptTransport: "argv",
-			resumeArgsJson: '["--resume"]',
-			displayOrder: 0,
-		})
-		.run();
-	db.insert(terminalAgentBindings)
-		.values({
+for (const provider of ["claude", "gemini"] as const) {
+	test(`${provider} restart with real disposal preserves the conversation and launches a successor`, async () => {
+		const terminalId = randomUUID();
+		const created = await createTerminalSessionInternal({
 			terminalId,
 			workspaceId,
-			agentId: "claude",
-			agentSessionId: "saved-conversation",
-			startedAt: Date.now(),
-			lastEventAt: Date.now(),
-			lastEventType: "Stop",
-		})
-		.run();
-	const launches: Parameters<ResumeSessionDeps["runAgent"]>[0][] = [];
-	const broadcasts: Parameters<
-		ResumeSessionDeps["eventBus"]["broadcastTerminalLifecycle"]
-	>[0][] = [];
-	const result = await restartAccountSessions(
-		{
+			db,
+		});
+		assert.ok(!("error" in created));
+		db.insert(hostAgentConfigs)
+			.values({
+				id: randomUUID(),
+				presetId: provider,
+				label: "Claude",
+				command: provider,
+				promptTransport: "argv",
+				resumeArgsJson: '["--resume"]',
+				displayOrder: 0,
+			})
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId,
+				workspaceId,
+				agentId: provider,
+				agentSessionId: "saved-conversation",
+				startedAt: Date.now(),
+				lastEventAt: Date.now(),
+				lastEventType: "Stop",
+			})
+			.run();
+		const launches: Parameters<ResumeSessionDeps["runAgent"]>[0][] = [];
+		const broadcasts: Parameters<
+			ResumeSessionDeps["eventBus"]["broadcastTerminalLifecycle"]
+		>[0][] = [];
+		const deps: ResumeSessionDeps = {
 			db,
 			terminalAgentStore: new TerminalAgentStore(
 				new SqliteTerminalAgentBindingPersistence(db),
@@ -464,25 +465,28 @@ test("account restart with real disposal preserves the conversation and launches
 			eventBus: {
 				broadcastTerminalLifecycle: (message) => broadcasts.push(message),
 			},
-		},
-		"claude",
-	);
-	assert.deepEqual(result.restartedTerminalIds, [terminalId]);
-	assert.equal(launches.length, 1);
-	assert.equal(launches[0]?.resumeSessionId, "saved-conversation");
-	assert.equal(broadcasts.length, 1);
-	assert.equal(
-		db.query.terminalAgentBindings
-			.findFirst({ where: eq(terminalAgentBindings.terminalId, terminalId) })
-			.sync()?.endReason,
-		"resumed",
-	);
-	assert.ok(
-		!(await (await getDaemonClient()).list()).some(
-			(session) => session.id === terminalId && session.alive,
-		),
-	);
-});
+		};
+		const result =
+			provider === "claude"
+				? await restartAccountSessions(deps, provider)
+				: await restartAgentSessions(deps, [terminalId]);
+		assert.deepEqual(result.restartedTerminalIds, [terminalId]);
+		assert.equal(launches.length, 1);
+		assert.equal(launches[0]?.resumeSessionId, "saved-conversation");
+		assert.equal(broadcasts.length, 1);
+		assert.equal(
+			db.query.terminalAgentBindings
+				.findFirst({ where: eq(terminalAgentBindings.terminalId, terminalId) })
+				.sync()?.endReason,
+			"resumed",
+		);
+		assert.ok(
+			!(await (await getDaemonClient()).list()).some(
+				(session) => session.id === terminalId && session.alive,
+			),
+		);
+	});
+}
 
 test("killSession cancels a pending create before its session row exists", async () => {
 	const terminalId = randomUUID();

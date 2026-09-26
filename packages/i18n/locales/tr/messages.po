@@ -9779,6 +9779,9 @@ msgstr "“{query}” için sonuç yok"
 msgid "No results found."
 msgstr "Sonuç bulunamadı."
 
+msgid "No resumable agent sessions are running."
+msgstr "Sürdürülebilir çalışan ajan oturumu yok."
+
 msgid "No Reviewers Assigned"
 msgstr "İnceleyici atanmadı"
 
@@ -12399,6 +12402,12 @@ msgstr "Yanıt"
 msgid "Restart"
 msgstr "Yeniden başlat"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "Bu bilgisayarda bu kuruluşa ait sürdürülebilir {count} ajan oturumu yeniden başlatılsın mı? Kaydedilen konuşmalar sürdürülecek. Mevcut çalışma kesintiye uğrayacak."
+
+msgid "Restart all sessions"
+msgstr "Tüm oturumları yeniden başlat"
+
 msgid "Restart all terminals?"
 msgstr "Tüm terminaller yeniden başlatılsın mı?"
 
@@ -12440,6 +12449,9 @@ msgstr "{restartedOrgCount} host hizmeti yeniden başlatıldı"
 
 msgid "Restarted 1 host service"
 msgstr "1 host hizmeti yeniden başlatıldı"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "Yeniden başlatılan: {restarted}. Başarısız: {failed}."
 
 msgid "Restarting"
 msgstr "Yeniden başlatılıyor"
@@ -13428,6 +13440,9 @@ msgstr "Oturumlar"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Oturumlar · maliyete göre ilk {0}"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Yeniden başlatılan oturumlar: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

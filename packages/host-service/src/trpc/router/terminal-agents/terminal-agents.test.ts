@@ -23,8 +23,10 @@ import type { AgentRunResult } from "../agents/agents";
 import {
 	findResumedSuccessor,
 	listAccountRestartCandidates,
+	listRestartCandidates,
 	type ResumeSessionDeps,
 	restartAccountSessions,
+	restartAgentSessions,
 	resumeTerminalAgentSession,
 } from "./terminal-agents";
 
@@ -654,5 +656,132 @@ describe("restartAccountSessions", () => {
 		expect(disposedTerminals).toEqual(["t1"]);
 		expect(broadcasts).toEqual([]);
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+describe("restartAgentSessions", () => {
+	it("restarts non-Claude/Codex agents with their saved conversation ids", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db, {
+			id: "gemini-config",
+			presetId: "gemini",
+			label: "Gemini",
+			command: "gemini",
+		});
+		seedLiveBinding(db, { terminalId: "gemini", agentId: "gemini" });
+		const { deps, runCalls } = createDeps(db);
+		expect(
+			listRestartCandidates(db, deps.terminalAgentStore).map(
+				(row) => row.agentLabel,
+			),
+		).toEqual(["Gemini"]);
+		expect(await restartAgentSessions(deps, ["gemini"])).toEqual({
+			restartedTerminalIds: ["gemini"],
+			failedTerminalIds: [],
+		});
+		expect(runCalls[0]).toMatchObject({
+			agent: "gemini-config",
+			resumeSessionId: "sess-gemini",
+		});
+	});
+
+	it("uses the custom definition's resume capability instead of its preset", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db, { resumeArgs: [] });
+		seedAgentConfig(db, {
+			id: "custom:reviewer",
+			label: "Reviewer",
+			resumeArgs: ["--continue-session"],
+		});
+		seedLiveBinding(db, { terminalId: "custom" });
+		db.update(terminalAgentBindings)
+			.set({ definitionId: "custom:reviewer" })
+			.run();
+		const { deps, runCalls } = createDeps(db);
+		expect(
+			listRestartCandidates(db, deps.terminalAgentStore).map(
+				(row) => row.agentLabel,
+			),
+		).toEqual(["Reviewer"]);
+		await restartAgentSessions(deps, ["custom"]);
+		expect(runCalls[0]).toMatchObject({
+			agent: "custom:reviewer",
+			resumeSessionId: "sess-custom",
+		});
+	});
+
+	it("does not kill agents without a session id, resume command, or configuration", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db, { resumeArgs: [] });
+		seedAgentConfig(db, {
+			id: CODEX_CONFIG_ID,
+			presetId: "codex",
+			resumeArgs: ["resume"],
+		});
+		seedLiveBinding(db, { terminalId: "unsupported" });
+		seedLiveBinding(db, { terminalId: "unknown", agentId: "gemini" });
+		seedLiveBinding(db, {
+			terminalId: "no-id",
+			agentId: "codex",
+			agentSessionId: null,
+		});
+		const { deps, disposedTerminals } = createDeps(db);
+		expect(listRestartCandidates(db, deps.terminalAgentStore)).toEqual([]);
+		expect(
+			await restartAgentSessions(deps, ["unsupported", "unknown", "no-id"]),
+		).toEqual({ restartedTerminalIds: [], failedTerminalIds: [] });
+		expect(disposedTerminals).toEqual([]);
+	});
+
+	it("restarts only confirmed sessions that are still live, once each", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "confirmed" });
+		seedLiveBinding(db, { terminalId: "new-session" });
+		seedLiveBinding(db, { terminalId: "closed" });
+		const { deps, runCalls } = createDeps(db);
+		deps.terminalAgentStore.markTerminalDisposed("closed");
+		expect(
+			await restartAgentSessions(deps, [
+				"confirmed",
+				"confirmed",
+				"closed",
+				"missing",
+			]),
+		).toEqual({ restartedTerminalIds: ["confirmed"], failedTerminalIds: [] });
+		expect(runCalls).toHaveLength(1);
+		expect(deps.terminalAgentStore.list().map((row) => row.terminalId)).toEqual(
+			["new-session"],
+		);
+	});
+
+	it("reports failed closes and launches while continuing with other sessions", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		for (const terminalId of ["kill-fails", "launch-fails", "ok"])
+			seedLiveBinding(db, { terminalId });
+		const { deps, runCalls } = createDeps(db, {
+			disposeSession: async (id) => ({
+				daemonCloseSucceeded: id !== "kill-fails",
+			}),
+			runAgent: async (input) => {
+				if (input.resumeSessionId === "sess-launch-fails")
+					throw new Error("spawn failed");
+				return { kind: "terminal", sessionId: "new-ok", label: "Claude" };
+			},
+		});
+		expect(
+			await restartAgentSessions(deps, ["kill-fails", "launch-fails", "ok"]),
+		).toEqual({
+			restartedTerminalIds: ["ok"],
+			failedTerminalIds: ["kill-fails", "launch-fails"],
+		});
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual([
+			"sess-launch-fails",
+			"sess-ok",
+		]);
+		expect(
+			findResumeCandidateBinding(db, "ws-1", "launch-fails"),
+		).toBeDefined();
 	});
 });

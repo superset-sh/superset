@@ -385,7 +385,10 @@ export function DashboardSidebar({
 								isChildDragDisabled={isChildDragDisabled}
 							>
 								<div className="flex h-full flex-col border-r border-border bg-sidebar dark:bg-muted/35">
-									<DashboardSidebarHeader isCollapsed={isCollapsed} />
+									<DashboardSidebarHeader
+										isCollapsed={isCollapsed}
+										restartSessionsHostUrl={activeHostUrl}
+									/>
 
 									<OverflowFadeContainer
 										fadeEdges={["top", "bottom"]}

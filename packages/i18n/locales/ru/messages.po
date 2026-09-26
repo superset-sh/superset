@@ -9779,6 +9779,9 @@ msgstr "Ничего не найдено по запросу «{query}»"
 msgid "No results found."
 msgstr "Ничего не найдено."
 
+msgid "No resumable agent sessions are running."
+msgstr "Нет запущенных сеансов агентов с поддержкой возобновления."
+
 msgid "No Reviewers Assigned"
 msgstr "Ревьюеры не назначены"
 
@@ -12399,6 +12402,12 @@ msgstr "Ответ"
 msgid "Restart"
 msgstr "Перезапустить"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "Перезапустить {count} сеансов агентов с поддержкой возобновления в этой организации на этом компьютере? Сохранённые беседы будут возобновлены. Текущая работа будет прервана."
+
+msgid "Restart all sessions"
+msgstr "Перезапустить все сеансы"
+
 msgid "Restart all terminals?"
 msgstr "Перезапустить все терминалы?"
 
@@ -12440,6 +12449,9 @@ msgstr "Перезапущено служб хоста: {restartedOrgCount}"
 
 msgid "Restarted 1 host service"
 msgstr "Перезапущена 1 служба хоста"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "Перезапущено: {restarted}. Ошибок: {failed}."
 
 msgid "Restarting"
 msgstr "Перезапуск"
@@ -13428,6 +13440,9 @@ msgstr "Сессии"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Сессии · топ {0} по стоимости"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Перезапущено сеансов: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

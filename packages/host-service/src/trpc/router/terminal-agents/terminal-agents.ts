@@ -216,6 +216,14 @@ export function listAccountRestartCandidates(
 	db: HostDb,
 	store: TerminalAgentStore,
 	provider: "claude" | "codex",
+) {
+	return listRestartCandidates(db, store, provider);
+}
+
+export function listRestartCandidates(
+	db: HostDb,
+	store: TerminalAgentStore,
+	provider?: "claude" | "codex",
 ): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
 	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
 	for (const binding of store.list()) {
@@ -224,7 +232,7 @@ export function listAccountRestartCandidates(
 			db,
 			binding.definitionId ?? binding.agentId,
 		);
-		if (!config || config.presetId !== provider) continue;
+		if (!config || (provider && config.presetId !== provider)) continue;
 		if (config.resumeArgs.length === 0) continue;
 		out.push({ binding, agentLabel: config.label });
 	}
@@ -302,6 +310,32 @@ export async function restartAccountSessions(
 		deps.terminalAgentStore,
 		provider,
 	);
+	return restartCandidates(deps, candidates);
+}
+
+export async function restartAgentSessions(
+	deps: ResumeSessionDeps,
+	terminalIds: string[],
+) {
+	const requested = new Set(terminalIds);
+	const candidates = listRestartCandidates(
+		deps.db,
+		deps.terminalAgentStore,
+	).filter(({ binding }) => requested.has(binding.terminalId));
+	const result = await restartCandidates(deps, candidates);
+	const restarted = new Set(result.restartedTerminalIds);
+	return {
+		...result,
+		failedTerminalIds: candidates
+			.map(({ binding }) => binding.terminalId)
+			.filter((terminalId) => !restarted.has(terminalId)),
+	};
+}
+
+async function restartCandidates(
+	deps: ResumeSessionDeps,
+	candidates: ReturnType<typeof listRestartCandidates>,
+) {
 	const restartedTerminalIds: string[] = [];
 	for (const { binding } of candidates) {
 		// Ended crash-style ("terminal-exited", never "disposed") so the
@@ -318,7 +352,7 @@ export async function restartAccountSessions(
 			});
 			if (!result.resumed) continue;
 		} catch (error) {
-			console.warn("[terminal-agents] account-switch restart failed", {
+			console.warn("[terminal-agents] restart failed", {
 				terminalId: binding.terminalId,
 				error,
 			});
@@ -521,6 +555,22 @@ export const terminalAgentsRouter = router({
 				workspaceId: binding.workspaceId,
 				agentLabel,
 			})),
+		),
+
+	restartCandidates: protectedProcedure.query(({ ctx }) =>
+		listRestartCandidates(ctx.db, ctx.terminalAgentStore).map(
+			({ binding, agentLabel }) => ({
+				terminalId: binding.terminalId,
+				workspaceId: binding.workspaceId,
+				agentLabel,
+			}),
+		),
+	),
+
+	restartSessions: protectedProcedure
+		.input(z.object({ terminalIds: z.array(z.string()).min(1) }))
+		.mutation(({ ctx, input }) =>
+			restartAgentSessions(resumeSessionDepsFor(ctx), input.terminalIds),
 		),
 
 	/** See {@link restartAccountSessions}. */

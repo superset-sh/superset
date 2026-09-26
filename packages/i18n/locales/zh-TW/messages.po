@@ -9779,6 +9779,9 @@ msgstr "沒有「{query}」的結果"
 msgid "No results found."
 msgstr "未找到結果。"
 
+msgid "No resumable agent sessions are running."
+msgstr "沒有正在執行且可恢復的代理工作階段。"
+
 msgid "No Reviewers Assigned"
 msgstr "未指派審查者"
 
@@ -12399,6 +12402,12 @@ msgstr "響應"
 msgid "Restart"
 msgstr "重啟"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "重新啟動此電腦上此組織中 {count} 個可恢復的代理工作階段？已儲存的對話將恢復，目前的工作將中斷。"
+
+msgid "Restart all sessions"
+msgstr "重新啟動所有工作階段"
+
 msgid "Restart all terminals?"
 msgstr "重啟所有終端？"
 
@@ -12440,6 +12449,9 @@ msgstr "已重啟{restartedOrgCount}個主機服務"
 
 msgid "Restarted 1 host service"
 msgstr "已重啟1個主機服務"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "已重新啟動：{restarted}。失敗：{failed}。"
 
 msgid "Restarting"
 msgstr "重新啟動中"
@@ -13428,6 +13440,9 @@ msgstr "會話"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "會話 · 按費用排名前{0}"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "已重新啟動的工作階段：{restarted}。"
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

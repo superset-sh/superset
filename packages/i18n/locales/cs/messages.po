@@ -9779,6 +9779,9 @@ msgstr "Žádné výsledky pro „{query}“"
 msgid "No results found."
 msgstr "Nenalezeny žádné výsledky."
 
+msgid "No resumable agent sessions are running."
+msgstr "Neběží žádné relace agentů, které lze obnovit."
+
 msgid "No Reviewers Assigned"
 msgstr "Nepřiřazeni žádní recenzenti"
 
@@ -12399,6 +12402,12 @@ msgstr "Odpověď"
 msgid "Restart"
 msgstr "Restartovat"
 
+msgid "Restart {count} resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted."
+msgstr "Restartovat {count} obnovitelných relací agentů této organizace na tomto počítači? Uložené konverzace budou obnoveny. Aktuální práce bude přerušena."
+
+msgid "Restart all sessions"
+msgstr "Restartovat všechny relace"
+
 msgid "Restart all terminals?"
 msgstr "Restartovat všechny terminály?"
 
@@ -12440,6 +12449,9 @@ msgstr "Restartováno {restartedOrgCount} host services"
 
 msgid "Restarted 1 host service"
 msgstr "Restartována 1 host service"
+
+msgid "Restarted: {restarted}. Failed: {failed}."
+msgstr "Restartováno: {restarted}. Selhalo: {failed}."
 
 msgid "Restarting"
 msgstr "Restartování"
@@ -13428,6 +13440,9 @@ msgstr "Relace"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Relace · top {0} podle nákladů"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Restartované relace: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
