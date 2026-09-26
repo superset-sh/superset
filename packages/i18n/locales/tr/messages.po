@@ -1572,6 +1572,9 @@ msgstr "Gelişmiş seçenekler"
 msgid "After"
 msgstr "Sonra"
 
+msgid "After delay (3s)"
+msgstr "Gecikmeden sonra (3 sn)"
+
 msgid "Against base"
 msgstr "Temele göre"
 
@@ -2308,6 +2311,9 @@ msgstr "Otomatik (sistem)"
 
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Otomatik, sistem dilinizi izler. Daha sonra Ayarlar'dan değiştirebilirsiniz."
+
+msgid "Auto Save"
+msgstr "Otomatik Kaydetme"
 
 msgid "auto-generated"
 msgstr "otomatik oluşturulur"
@@ -4003,6 +4009,9 @@ msgstr "Yerel makinenize dışarıdan nasıl erişileceğini kontrol edin"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Her tıklamanın — düz ya da değiştirici tuşlu — bir dosyaya veya URL'ye ne yapacağını denetleyin. Her satır bir değiştirici birleşimini bir eyleme bağlar."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Elle düzenlenen dosyaların ne zaman kaydedileceğini belirler"
 
 msgid "Conversation"
 msgstr "Konuşma"
@@ -10141,6 +10150,9 @@ msgstr "Erişemediğin bir ana makinede"
 msgid "On click"
 msgstr "Tıklandığında"
 
+msgid "On focus change"
+msgstr "Odak değiştiğinde"
+
 msgid "On our radar. Order and scope may change."
 msgstr "Radarımızda. Sıra ve kapsam değişebilir."
 
@@ -10152,6 +10164,9 @@ msgstr "Bu hızla"
 
 msgid "On this page"
 msgstr "Bu sayfada"
+
+msgid "On window change"
+msgstr "Pencere değiştiğinde"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Sizin makinenizde. Depolar, worktree'ler, terminal çıktısı ve ajan oturumları varsayılan olarak yerelde kalır; bulut eşitlemesi yalnızca hesap ve kuruluş meta verilerini kapsar. Superset hiçbir API çağrısını vekil olarak iletmez."

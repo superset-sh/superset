@@ -10,6 +10,7 @@ import {
 	decodeBase64,
 	useSharedFileDocument,
 } from "../../../../state/fileDocumentStore";
+import { fileAutoSave } from "../../../../state/fileDocumentStore/fileAutoSave";
 import type { FilePaneData, PaneViewerData } from "../../../../types";
 import { runUrlLinkAction } from "../../utils/runTerminalLinkAction";
 import { ErrorState } from "./components/ErrorState";
@@ -36,6 +37,13 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		workspaceId,
 		absolutePath: filePath,
 	});
+
+	useEffect(
+		() => () => {
+			if (context.isActive) fileAutoSave.onFocusChange(document);
+		},
+		[context.isActive, document],
+	);
 
 	// Images a markdown file points at load through the workspace
 	// filesystem, so they work for cloud sandboxes and never put a raw path
@@ -148,7 +156,14 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 	const ViewRenderer = activeView.Renderer;
 
 	return (
-		<div className="flex h-full w-full flex-col">
+		<div
+			className="flex h-full w-full flex-col"
+			onBlurCapture={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+					fileAutoSave.onFocusChange(document);
+				}
+			}}
+		>
 			<FileSaveConflictDialog
 				open={document.conflict !== null && context.isActive && isActiveTab}
 				filePath={filePath}

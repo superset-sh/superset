@@ -1572,6 +1572,9 @@ msgstr "Opções avançadas"
 msgid "After"
 msgstr "Depois"
 
+msgid "After delay (3s)"
+msgstr "Após um atraso (3s)"
+
 msgid "Against base"
 msgstr "Em relação à base"
 
@@ -2308,6 +2311,9 @@ msgstr "Automático (sistema)"
 
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Automático segue o idioma do seu sistema. Você pode mudar depois nas Configurações."
+
+msgid "Auto Save"
+msgstr "Salvamento automático"
 
 msgid "auto-generated"
 msgstr "gerado automaticamente"
@@ -4003,6 +4009,9 @@ msgstr "Controle como sua máquina local pode ser acessada de fora"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Controle o que cada clique — simples ou com modificador — faz com um arquivo ou uma URL. Cada linha liga uma combinação de modificadores a uma ação."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Controla quando arquivos editados manualmente são salvos"
 
 msgid "Conversation"
 msgstr "Conversa"
@@ -10141,6 +10150,9 @@ msgstr "Em um host que você não alcança"
 msgid "On click"
 msgstr "Ao clicar"
 
+msgid "On focus change"
+msgstr "Ao alterar o foco"
+
 msgid "On our radar. Order and scope may change."
 msgstr "No nosso radar. Ordem e escopo podem mudar."
 
@@ -10152,6 +10164,9 @@ msgstr "Neste ritmo"
 
 msgid "On this page"
 msgstr "Nesta página"
+
+msgid "On window change"
+msgstr "Ao alterar a janela"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Na sua máquina. Repositórios, worktrees, saída de terminal e sessões de agente ficam locais por padrão; a sincronização na nuvem cobre só metadados de conta e organização. O Superset não faz proxy de nenhuma chamada de API."

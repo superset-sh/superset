@@ -1572,6 +1572,9 @@ msgstr "Дополнительные параметры"
 msgid "After"
 msgstr "После"
 
+msgid "After delay (3s)"
+msgstr "После задержки (3 с)"
+
 msgid "Against base"
 msgstr "Против базовой ветки"
 
@@ -2308,6 +2311,9 @@ msgstr "Авто (система)"
 
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "Авто следует языку системы. Позже это можно изменить в настройках."
+
+msgid "Auto Save"
+msgstr "Автосохранение"
 
 msgid "auto-generated"
 msgstr "генерируется автоматически"
@@ -4003,6 +4009,9 @@ msgstr "Управляйте тем, как ваша локальная маши
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "Определите, что делает каждый клик — обычный или с модификатором — с файлом или URL. Каждая строка привязывает одну комбинацию модификаторов к действию."
+
+msgid "Controls when manually edited files are saved"
+msgstr "Определяет, когда сохраняются файлы, отредактированные вручную"
 
 msgid "Conversation"
 msgstr "Диалог"
@@ -10141,6 +10150,9 @@ msgstr "На недоступном хосте"
 msgid "On click"
 msgstr "По клику"
 
+msgid "On focus change"
+msgstr "При смене фокуса"
+
 msgid "On our radar. Order and scope may change."
 msgstr "У нас на радаре. Порядок и объём могут измениться."
 
@@ -10152,6 +10164,9 @@ msgstr "При таком темпе"
 
 msgid "On this page"
 msgstr "На этой странице"
+
+msgid "On window change"
+msgstr "При смене окна"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "На вашей машине. Репозитории, worktree, вывод терминала и сессии агентов по умолчанию остаются локальными; облачная синхронизация покрывает только метаданные аккаунта и организации. Superset не проксирует вызовы API."

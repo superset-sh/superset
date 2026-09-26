@@ -1572,6 +1572,9 @@ msgstr "進階選項"
 msgid "After"
 msgstr "變更後"
 
+msgid "After delay (3s)"
+msgstr "延遲後（3 秒）"
+
 msgid "Against base"
 msgstr "對比基準分支"
 
@@ -2308,6 +2311,9 @@ msgstr "自動（跟隨系統）"
 
 msgid "Auto follows your system language. You can change it later in Settings."
 msgstr "自動模式會跟隨你的系統語言。之後可以在設定中更改。"
+
+msgid "Auto Save"
+msgstr "自動儲存"
 
 msgid "auto-generated"
 msgstr "自動生成"
@@ -4003,6 +4009,9 @@ msgstr "控制這台機器如何從外部存取"
 
 msgid "Control what each click — plain or with a modifier — does to a file or URL. Each row binds one modifier combination to an action."
 msgstr "控制每種點選（普通點選或配合修飾鍵）對檔案或URL的行為。每一行將一種修飾鍵組合繫結到一個操作。"
+
+msgid "Controls when manually edited files are saved"
+msgstr "控制手動編輯的檔案何時儲存"
 
 msgid "Conversation"
 msgstr "對話"
@@ -10141,6 +10150,9 @@ msgstr "在你無法連線的主機上"
 msgid "On click"
 msgstr "點選時"
 
+msgid "On focus change"
+msgstr "焦點變更時"
+
 msgid "On our radar. Order and scope may change."
 msgstr "在我們的視野內。順序和範圍可能會變。"
 
@@ -10152,6 +10164,9 @@ msgstr "按此速度"
 
 msgid "On this page"
 msgstr "本頁內容"
+
+msgid "On window change"
+msgstr "視窗變更時"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "在你自己的機器上。儲存庫、worktree、終端輸出和代理程式會話預設都留在本地；雲端同步只涉及帳戶和組織的後設資料。Superset不代理任何API呼叫。"
