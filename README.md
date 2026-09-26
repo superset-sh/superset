@@ -14,6 +14,10 @@ Run Claude Code, Codex, or another CLI agent with terminals, code review, and br
 
 </div>
 
+### Documentation for agents
+
+Start with the [documentation index](https://docs.superset.sh/llms.txt), then fetch the relevant linked Markdown pages. Agents with MCP support can search and read the docs through `https://docs.superset.sh/mcp` using `docs_search` and `docs_read`, with no authentication. See [Ask an agent](https://docs.superset.sh/ask-an-agent) for examples.
+
 ## Install
 
 Download the desktop app:
