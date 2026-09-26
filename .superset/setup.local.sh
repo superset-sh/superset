@@ -158,6 +158,12 @@ local_db_up() {
 
 local_migrate() {
   echo "📜 Applying database migrations..."
+  local version_num
+  version_num="$(docker compose -p "$LOCAL_DB_PROJECT" -f "$ROOT_DIR/docker-compose.yml" exec -T postgres psql -U postgres -d main -tAc "SHOW server_version_num" 2>/dev/null | tr -d '[:space:]')"
+  if ! [[ "$version_num" =~ ^[0-9]+$ ]] || [ "$version_num" -lt 180000 ]; then
+    error "Postgres ${version_num:-unknown} detected — migrations require PG 18+ (see docker-compose.yml). Recreate the stack: ./.superset/teardown.local.sh, then re-run setup."
+    return 1
+  fi
   if ! bun run db:migrate; then
     error "db:migrate failed"
     return 1
