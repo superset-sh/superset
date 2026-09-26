@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
+import type { EventBus, TerminalLifecycleEvent } from "../events/index.ts";
 import { disposeDaemonClient } from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
 import {
@@ -28,6 +29,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	snapshotSession,
+	writeInputToSession,
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
@@ -55,6 +57,12 @@ before(async () => {
 	process.env.SUPERSET_HOME_DIR = TEST_HOME;
 	process.env.HOST_SERVICE_VERSION = "0.0.0-initcmd-e2e";
 	process.env.NODE_ENV = "development";
+	const bashDir = path.join(TEST_HOME, "bash");
+	fs.mkdirSync(bashDir, { recursive: true });
+	fs.writeFileSync(
+		path.join(bashDir, "rcfile"),
+		"PROMPT_COMMAND=\"printf '\\033]777;superset-shell-ready\\007\\033]133;A\\007'\"\nPS1='$ '\n",
+	);
 
 	__setAccountShellForTesting("/bin/sh");
 	initTerminalBaseEnv({
@@ -230,6 +238,85 @@ describe("initialCommand delivery", () => {
 		assert.ok(!snap.text.includes("superset-launch-"));
 
 		await disposeSessionAndWait(terminalId, db);
+	});
+
+	const completionEvents: TerminalLifecycleEvent[] = [];
+	const completionEventBus = {
+		broadcastTerminalLifecycle(event: TerminalLifecycleEvent) {
+			completionEvents.push(event);
+		},
+	} as unknown as EventBus;
+	const sawLifecycle = (terminalId: string, eventType: string) =>
+		completionEvents.some(
+			(event) =>
+				event.terminalId === terminalId && event.eventType === eventType,
+		);
+	const launch = async (command: string, tracked = true) => {
+		const terminalId = `e2e-completion-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			eventBus: completionEventBus,
+			initialCommand: command,
+			trackCommandCompletion: tracked,
+		});
+		assert.ok(!("error" in session));
+		return terminalId;
+	};
+
+	test("tracked commands finish on prompt return without changing ordinary terminals", async () => {
+		__setAccountShellForTesting("/bin/bash");
+		for (const command of ["true", "false"]) {
+			const terminalId = await launch(command);
+			await waitFor(() => sawLifecycle(terminalId, "command-finished"), 5_000);
+			await disposeSessionAndWait(terminalId, db);
+		}
+
+		const ordinaryTerminalId = await launch("true", false);
+		await new Promise((resolve) => setTimeout(resolve, 1_000));
+		assert.equal(sawLifecycle(ordinaryTerminalId, "command-finished"), false);
+		await disposeSessionAndWait(ordinaryTerminalId, db);
+	});
+
+	test("Ctrl+C waits for prompt return and terminal exit remains a fallback", async () => {
+		const started = path.join(TEST_HOME, `started-${randomUUID().slice(0, 8)}`);
+		const interruptId = await launch(`touch "${started}"; sleep 10`);
+		await waitFor(() => fs.existsSync(started), 5_000);
+		assert.deepEqual(
+			writeInputToSession({
+				terminalId: interruptId,
+				workspaceId,
+				data: "\u0003",
+			}),
+			{ success: true },
+		);
+		await waitFor(() => sawLifecycle(interruptId, "command-finished"), 5_000);
+		await disposeSessionAndWait(interruptId, db);
+
+		const ignoringStarted = path.join(
+			TEST_HOME,
+			`started-${randomUUID().slice(0, 8)}`,
+		);
+		const actualIgnoringId = await launch(
+			`trap '' INT; touch "${ignoringStarted}"; sleep 2`,
+		);
+		await waitFor(() => fs.existsSync(ignoringStarted), 5_000);
+		writeInputToSession({
+			terminalId: actualIgnoringId,
+			workspaceId,
+			data: "\u0003",
+		});
+		await new Promise((resolve) => setTimeout(resolve, 250));
+		assert.equal(sawLifecycle(actualIgnoringId, "command-finished"), false);
+		await waitFor(
+			() => sawLifecycle(actualIgnoringId, "command-finished"),
+			5_000,
+		);
+		await disposeSessionAndWait(actualIgnoringId, db);
+
+		const exitingId = await launch("exit 7");
+		await waitFor(() => sawLifecycle(exitingId, "exit"), 5_000);
 	});
 });
 

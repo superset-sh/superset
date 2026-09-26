@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, workspaces } from "../db/schema.ts";
+import type { EventBus, TerminalLifecycleEvent } from "../events/index.ts";
 import { disposeDaemonClient } from "./daemon-client-singleton.ts";
 import { initTerminalBaseEnv } from "./env.ts";
 import { shellLaunchExpectsReadyMarker } from "./shell-launch.ts";
@@ -334,7 +335,7 @@ describe("shell-ready evidence learning", () => {
 	);
 
 	test(
-		"late marker after the grace window flips evidence back to delivered",
+		"late startup marker updates evidence without finishing the queued command",
 		{ skip: !ZSH, timeout: 60_000 },
 		async () => {
 			// A slow-init profile delivers the marker AFTER the 2s grace fires
@@ -347,15 +348,44 @@ describe("shell-ready evidence learning", () => {
 				"precondition: previous test left zsh branded missing",
 			);
 			fs.writeFileSync(path.join(FAKE_USER_HOME, ".zshrc"), "sleep 4\n");
+			const terminalId = `e2e-ready-${randomUUID().slice(0, 8)}`;
+			const outFile = path.join(TEST_HOME, `out-${terminalId}`);
+			let finishedBeforeCommand = false;
+			const eventBus = {
+				broadcastTerminalLifecycle(event: TerminalLifecycleEvent) {
+					if (
+						event.eventType === "command-finished" &&
+						!fs.existsSync(outFile)
+					) {
+						finishedBeforeCommand = true;
+					}
+				},
+			} as unknown as EventBus;
 			try {
-				const { body } = await launchAndMeasure("date +%s");
+				const session = await createTerminalSessionInternal({
+					terminalId,
+					workspaceId,
+					db,
+					eventBus,
+					initialCommand: `sleep 1; date +%s > "${outFile}"`,
+					trackCommandCompletion: true,
+				});
+				assert.ok(
+					!("error" in session),
+					"error" in session ? session.error : "",
+				);
+				await waitFor(() => fs.existsSync(outFile), 25_000);
+				await new Promise((resolve) => setTimeout(resolve, 150));
+				const body = fs.readFileSync(outFile, "utf8").trim();
 				assert.match(
 					body,
 					/^\d{10}$/,
 					`late-marker launch produced ${JSON.stringify(body)}`,
 				);
+				assert.equal(finishedBeforeCommand, false);
 				await waitFor(() => readEvidenceFile().zsh === "delivered", 10_000);
 			} finally {
+				await disposeSessionAndWait(terminalId, db);
 				fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
 			}
 		},

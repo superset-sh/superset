@@ -589,6 +589,8 @@ interface TerminalSession {
 	 */
 	dsrCarry: Uint8Array;
 	initialCommandQueued: boolean;
+	trackCommandCompletion: boolean;
+	commandCompletionArmed: boolean;
 	/**
 	 * Basename of the launch shell. Picks the source keyword when a long
 	 * initialCommand is staged as a script (fish 4 removed `.`; sh/ksh
@@ -2333,6 +2335,15 @@ function tryTypeToPty(session: TerminalSession, data: string): boolean {
 	}
 }
 
+function submitInitialCommand(session: TerminalSession): boolean {
+	if (!tryTypeToPty(session, "\r")) return false;
+	const startupPromptCannotArriveLate =
+		session.shellReadyState !== "timed_out" || session.lateMarkerRecorded;
+	session.commandCompletionArmed =
+		session.trackCommandCompletion && startupPromptCannotArriveLate;
+	return true;
+}
+
 /**
  * Grace-window typing (learned `missing` evidence, no observed prompt): a
  * startup stdin reader can still be consuming the TTY when the grace fires —
@@ -2364,7 +2375,7 @@ async function typeInitialCommandVerifyingEcho(
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+	if (!submitInitialCommand(session)) dropStagedFiles();
 }
 
 /**
@@ -2429,13 +2440,13 @@ async function typeInitialCommandUngated(
 		);
 		if (verified) {
 			if (isDefunct()) return dropStagedFiles();
-			if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+			if (!submitInitialCommand(session)) dropStagedFiles();
 			return;
 		}
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+	if (!submitInitialCommand(session)) dropStagedFiles();
 }
 
 /**
@@ -2598,7 +2609,7 @@ function queueInitialCommand(
 			return;
 		}
 		setTimeout(() => {
-			if (isDefunct() || !tryTypeToPty(session, "\r")) {
+			if (isDefunct() || !submitInitialCommand(session)) {
 				dropStagedFiles();
 			}
 		}, INITIAL_COMMAND_ENTER_DELAY_MS);
@@ -2882,6 +2893,7 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
+	trackCommandCompletion?: boolean;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
@@ -2969,6 +2981,7 @@ async function createTerminalSessionUnlocked({
 	db,
 	eventBus,
 	initialCommand,
+	trackCommandCompletion = false,
 	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
@@ -3237,19 +3250,28 @@ async function createTerminalSessionUnlocked({
 	// bytes, but the session literal below needs the tracker — close over a
 	// ref assigned right after construction.
 	let reclaimSession: TerminalSession | null = null;
-	const modeTracker = createModeTracker(
-		cols,
-		rows,
-		daemon.supportsModeSnapshots
+	const modeTracker = createModeTracker(cols, rows, {
+		onShellReady() {
+			const s = reclaimSession;
+			if (!s || !isCurrentLiveSession(s) || !s.commandCompletionArmed) return;
+			s.commandCompletionArmed = false;
+			s.eventBus?.broadcastTerminalLifecycle({
+				workspaceId: s.workspaceId,
+				terminalId: s.terminalId,
+				eventType: "command-finished",
+				occurredAt: Date.now(),
+			});
+		},
+		...(daemon.supportsModeSnapshots
 			? {}
 			: {
-					onLeakedInputModeDisarm(bytes) {
+					onLeakedInputModeDisarm(bytes: Uint8Array) {
 						const s = reclaimSession;
 						if (!s || !isCurrentLiveSession(s)) return;
 						deliverOutput(s, bytes);
 					},
-				},
-	);
+				}),
+	});
 
 	const session: TerminalSession = {
 		terminalId,
@@ -3289,6 +3311,8 @@ async function createTerminalSessionUnlocked({
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
+		trackCommandCompletion,
+		commandCompletionArmed: false,
 		launchShellName: basename(shell),
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker,
