@@ -6,7 +6,7 @@ export async function GET() {
 	const scan = source.getPages().map(getLLMText);
 	const scanned = await Promise.all(scan);
 
-	return new Response(scanned.join("\n\n"), {
+	return new Response(scanned.join("\n\n---\n\n"), {
 		headers: {
 			"Content-Type": "text/plain",
 			"X-Robots-Tag": "noindex, nofollow",
