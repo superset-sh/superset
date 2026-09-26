@@ -400,6 +400,13 @@
       "when": 1788567930469,
       "tag": "0056_add_show_usage_in_sidebar_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1789000000000,
+      "tag": "0057_add_terminal_mac_option_is_meta_setting",
+      "breakpoints": true
     }
   ]
 }
