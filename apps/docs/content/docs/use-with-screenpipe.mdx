@@ -59,6 +59,10 @@ from the last 10 minutes. Use content_type="ocr", limit=5, and explicit
 start_time and end_time. Show the matching text and timestamps only.
 ```
 
+Screenpipe uses the legacy `ocr` content type for screen text from both
+accessibility and OCR capture. This keeps the query scoped to screen text;
+`all` would also include audio transcripts.
+
 An empty result can mean Screenpipe did not capture that text. Try a word visible
 in a recently recorded window. A connected MCP server alone does not verify that
 the underlying Screenpipe API is reachable and authenticated.
