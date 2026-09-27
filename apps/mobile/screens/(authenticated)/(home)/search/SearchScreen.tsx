@@ -90,8 +90,6 @@ export function SearchScreen() {
 		[query, projectNamesById, terminalsByWorkspace],
 	);
 
-	// Mirrors home's ranking: desktop's "last active" (lastActivityAt, falling
-	// back to updatedAt) maxed against live terminal activity.
 	const activityTs = useCallback(
 		(workspace: HostWorkspaceItem) => {
 			if (sort !== "updatedAt") return new Date(workspace[sort]).getTime();

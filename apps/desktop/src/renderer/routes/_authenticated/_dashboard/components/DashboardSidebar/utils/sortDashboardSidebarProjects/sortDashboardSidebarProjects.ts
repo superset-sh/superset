@@ -9,8 +9,6 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 
-export { getWorkspaceActivityTime };
-
 // An item with no usable timestamp sinks below everything dated. Mapping
 // NaN to -Infinity keeps the comparator a consistent total order instead of
 // interleaving unknowns by name.

@@ -88,6 +88,8 @@ export interface UseHostTerminalsResult {
 	 * states only — existing rows always render (cache-first rule).
 	 */
 	isReady: boolean;
+	/** True while the last answer from some host was a failure. */
+	isError: boolean;
 }
 
 /**
@@ -191,6 +193,7 @@ export function useHostsTerminals(
 			terminalsByWorkspace,
 			attentionByWorkspace,
 			isReady: queries.every((query) => query.isSuccess || query.isError),
+			isError: queries.some((query) => query.isError),
 		};
 	}, [queries, terminalSeenAt]);
 }

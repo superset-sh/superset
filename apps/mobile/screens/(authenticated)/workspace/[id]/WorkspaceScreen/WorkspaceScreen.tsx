@@ -131,11 +131,15 @@ export function WorkspaceScreen() {
 		host,
 		cloud,
 		sandboxUnreachable,
+		sandboxWaking,
 		retrySandbox,
 		isResolving,
 	} = useWorkspaceHost(id ?? null);
-	const { terminalsByWorkspace, isReady: terminalsReady } =
-		useHostTerminals(host);
+	const {
+		terminalsByWorkspace,
+		isReady: terminalsReady,
+		isError: terminalsFailed,
+	} = useHostTerminals(host);
 	const pullRequests = useWorkspacePullRequests(id ?? null);
 
 	// Tabs hold the arrangement the user dragged in the sessions sheet, falling
@@ -169,12 +173,8 @@ export function WorkspaceScreen() {
 		// swaps it out from under the user when the remembered tab lands.
 		if (!tabsHydrated) return null;
 		const candidates = [pickedTerminalId, params.tab, rememberedTerminalId];
-		// Before the host has answered even once, rows is empty because
-		// nothing has loaded yet — not because the candidate is gone. Address
-		// it anyway, the way desktop mounts a workspace at its host before the
-		// host confirms: the terminal itself surfaces connecting/denied/error
-		// if the guess was wrong, and this recomputes once the real list lands.
-		if (!terminalsReady) {
+		// An unanswered or failed list says nothing about whether it is gone.
+		if (!terminalsReady || terminalsFailed) {
 			return candidates.find((candidate) => !!candidate) ?? null;
 		}
 		for (const candidate of candidates) {
@@ -186,6 +186,7 @@ export function WorkspaceScreen() {
 	}, [
 		tabsHydrated,
 		terminalsReady,
+		terminalsFailed,
 		pickedTerminalId,
 		params.tab,
 		rememberedTerminalId,
@@ -720,8 +721,31 @@ export function WorkspaceScreen() {
 		});
 	}, [connectionState, id, activeTerminalId]);
 
+	const wakingMessage = t({
+		message:
+			"This cloud workspace is waking up, which can take up to 30 seconds after it has been idle.",
+	});
 	const bannerDescriptor = STATE_BANNERS[connectionState];
-	const banner = bannerDescriptor ? i18n._(bannerDescriptor) : undefined;
+	const banner =
+		sandboxWaking &&
+		(connectionState === "connecting" || connectionState === "reconnecting")
+			? wakingMessage
+			: bannerDescriptor
+				? i18n._(bannerDescriptor)
+				: undefined;
+
+	// A stopped sandbox refused everything asked of it before the wake landed.
+	const wasWaking = useRef(sandboxWaking);
+	useEffect(() => {
+		if (wasWaking.current && !sandboxWaking) {
+			invalidateTerminals();
+			void queryClient.invalidateQueries({
+				queryKey: ["host-service", "workspaces", "list"],
+			});
+			terminalRef.current?.retry();
+		}
+		wasWaking.current = sandboxWaking;
+	}, [sandboxWaking, invalidateTerminals, queryClient]);
 	const showComposer =
 		activeTerminalId !== null &&
 		host !== null &&
@@ -1006,9 +1030,18 @@ export function WorkspaceScreen() {
 						unreachable={sandboxUnreachable}
 						onRetry={retrySandbox}
 					/>
-				) : isResolving || ((!terminalsReady || !tabsHydrated) && host) ? (
+				) : isResolving ||
+					((!terminalsReady ||
+						!tabsHydrated ||
+						(cloud && terminalsFailed && rows.length === 0)) &&
+						host) ? (
 					<Centered>
 						<ActivityIndicator />
+						{sandboxWaking ? (
+							<Text className="text-muted-foreground mt-4 max-w-[280px] text-center text-[13px] leading-relaxed">
+								{wakingMessage}
+							</Text>
+						) : null}
 					</Centered>
 				) : !host ? (
 					<WorkspacePlaceholder

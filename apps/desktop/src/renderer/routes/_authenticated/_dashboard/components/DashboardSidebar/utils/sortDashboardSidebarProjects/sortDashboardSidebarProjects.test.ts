@@ -15,9 +15,6 @@ const at = (iso: string) => new Date(iso).getTime();
 const childIds = (children: DashboardSidebarProjectChild[]) =>
 	children.map((c) => (c.type === "workspace" ? c.workspace.id : c.section.id));
 
-// getWorkspaceActivityTime's own unit tests live with its implementation:
-// packages/shared/src/workspace-activity.test.ts.
-
 describe("sortDashboardSidebarProjects", () => {
 	const older = makeProject({
 		id: "p-older",

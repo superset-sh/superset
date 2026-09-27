@@ -222,10 +222,8 @@ export function HomeScreen() {
 		(state) => state.toggleProject,
 	);
 
-	// Recency ranks a workspace by its latest activity — desktop's sidebar
-	// notion of "last active" (the host's lastActivityAt, falling back to
-	// updatedAt) maxed against its terminals', since a session can be live
-	// here before the host's next lifecycle event stamps the column.
+	// Recency ranks a workspace by its latest activity — the newest of its
+	// own and its terminals'.
 	const activityTs = useCallback(
 		(workspace: HostWorkspaceItem) => {
 			if (sort !== "updatedAt") return new Date(workspace[sort]).getTime();

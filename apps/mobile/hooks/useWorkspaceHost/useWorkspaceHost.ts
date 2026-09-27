@@ -47,6 +47,8 @@ export interface WorkspaceHostResult {
 	cloud: CloudWorkspaceRow | null;
 	/** Cloud only: the API could not address or wake the sandbox. Attempts continue. */
 	sandboxUnreachable: boolean;
+	/** Cloud only: addressed, but not yet woken since it was opened. */
+	sandboxWaking: boolean;
 	retrySandbox: () => void;
 	/** True while no host has answered yet. */
 	isResolving: boolean;
@@ -74,6 +76,7 @@ export function useWorkspaceHost(
 	const {
 		target: sandbox,
 		isError: sandboxUnreachable,
+		isWaking: sandboxWaking,
 		retry: retrySandbox,
 	} = useSandboxAccess(cloud);
 
@@ -114,10 +117,6 @@ export function useWorkspaceHost(
 			// the workspace; the sandbox's own row is scratch that a rename
 			// never reaches. Live git state still comes from the sandbox.
 			const workspace = servedRow ? { ...servedRow, name: cloud.name } : null;
-			// Optimistic, like desktop's open workspace: the sandbox is used at
-			// its ticketed address as soon as one exists, rather than waiting on
-			// host-service to confirm the row first — terminals address the same
-			// URL and surface their own connecting/error state downstream.
 			const host: OrgHost | null = sandbox
 				? {
 						organizationId: cloud.organizationId,
@@ -135,8 +134,8 @@ export function useWorkspaceHost(
 				workspace,
 				host,
 				cloud,
-				sandboxUnreachable:
-					!host && (sandboxUnreachable || served?.isError === true),
+				sandboxUnreachable: !host && sandboxUnreachable,
+				sandboxWaking,
 				retrySandbox: () => {
 					retrySandbox();
 					void served?.refetch();
@@ -164,6 +163,7 @@ export function useWorkspaceHost(
 			host,
 			cloud: null,
 			sandboxUnreachable: false,
+			sandboxWaking: false,
 			retrySandbox,
 			isResolving,
 		};
@@ -171,6 +171,7 @@ export function useWorkspaceHost(
 		cloud,
 		sandbox,
 		sandboxUnreachable,
+		sandboxWaking,
 		retrySandbox,
 		targets,
 		queries,
