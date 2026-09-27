@@ -1,0 +1,111 @@
+---
+title: Screenpipe Integration
+description: Give a terminal agent context from a bug you saw on your screen
+---
+
+[Screenpipe](https://screenpipe.com) records screen text and audio locally.
+Connect its MCP server to Claude Code running in a Superset terminal to recover
+the error message or steps you saw before opening a workspace.
+
+This setup connects the terminal agent to Screenpipe. Run the Superset workspace,
+Claude Code, and Screenpipe on the same machine so the agent can reach
+Screenpipe's local API. It does not configure Superset Chat.
+
+## Prerequisites
+
+- A [local Superset workspace](/workspaces).
+- [Claude Code](https://code.claude.com/docs/en/setup) installed and signed in.
+- Node.js 18 or newer, including `npx`.
+- Screenpipe running, with some recorded activity, and its `screenpipe` CLI on
+  your `PATH`.
+
+## 1. Connect the terminal agent
+
+In a terminal inside your Superset workspace, register the published Screenpipe
+MCP server:
+
+```bash
+claude mcp add --scope local \
+  --env 'SCREENPIPE_LOCAL_API_KEY=${SCREENPIPE_LOCAL_API_KEY}' \
+  --transport stdio screenpipe -- npx -y screenpipe-mcp@0.20.0 \
+  --screenpipe-url http://127.0.0.1:3030
+```
+
+The single quotes save an environment variable reference instead of the token.
+Claude Code's `local` scope keeps the configuration private to you and this
+project. Repeat registration when using a different workspace path.
+
+Load the local API token and start Claude Code from that same terminal:
+
+```bash
+SCREENPIPE_LOCAL_API_KEY="$(screenpipe auth token)" && \
+  test -n "$SCREENPIPE_LOCAL_API_KEY" && \
+  export SCREENPIPE_LOCAL_API_KEY && \
+  claude
+```
+
+The token stays out of the command text and repository files. Load it again when
+starting Claude from a new terminal. An agent launched separately from Superset's
+agent picker will not inherit this terminal's environment.
+
+## 2. Verify the connection
+
+Inside Claude Code, run `/mcp` and check that `screenpipe` is connected. It should
+offer the `search-content` tool. Then try a narrow query:
+
+```text
+Use Screenpipe search-content to find screen text containing "localhost"
+from the last 10 minutes. Use content_type="ocr", limit=5, and explicit
+start_time and end_time. Show the matching text and timestamps only.
+```
+
+An empty result can mean Screenpipe did not capture that text. Try a word visible
+in a recently recorded window. A connected MCP server alone does not verify that
+the underlying Screenpipe API is reachable and authenticated.
+
+<Callout type="info">
+Search results become context for your coding agent and may be sent to its model
+provider. Choose the time range and content you want to share. This example reads
+screen text; the server also exposes other tools, so review tool permissions in
+Claude Code.
+</Callout>
+
+## 3. Recover a bug report
+
+After reproducing an error in your browser, ask the agent:
+
+```text
+I saw "Failed to save" in the local app a few minutes ago. Search only screen
+text from the last 10 minutes for that phrase. Return the matching timestamps,
+app/window names, and relevant error text. Use those observations and this
+repository to propose reproduction steps. Label any inferred steps. Do not
+change files or run a fix yet.
+```
+
+Screen text can recover a visible error or page title, but it does not establish
+every click that led to the bug. Review the proposed reproduction before asking
+the agent to implement a fix in the workspace.
+
+## Troubleshooting
+
+- **`npx` or `screenpipe` not found:** check the command is available in the
+  Superset terminal, not only in another shell.
+- **Connection fails on first launch:** `npx` needs network access to download the
+  package. Check the server details in `/mcp` for startup errors.
+- **Search reports an authentication error:** exit Claude, reload the token with
+  the command above, and start Claude from that terminal again.
+- **Search cannot reach Screenpipe:** keep Screenpipe running on the same machine.
+  This configuration uses `http://127.0.0.1:3030`; a remote workspace's localhost is
+  a different machine.
+
+To remove this workspace's configuration, run:
+
+```bash
+claude mcp remove --scope local screenpipe
+unset SCREENPIPE_LOCAL_API_KEY
+```
+
+See [Claude Code's MCP documentation](https://code.claude.com/docs/en/mcp) for
+configuration scopes and environment variable expansion, and the
+[Screenpipe MCP package](https://www.npmjs.com/package/screenpipe-mcp) for its
+tools and connection options.

@@ -46,6 +46,7 @@
 		"use-with-ide",
 		"use-with-linear",
 		"use-with-slack",
+		"use-with-screenpipe",
 		"providers",
 		"---Configuration---",
 		"setup-teardown-scripts",
