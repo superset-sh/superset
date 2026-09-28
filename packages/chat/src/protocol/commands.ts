@@ -86,3 +86,27 @@ export const getItemsInputSchema = z.object({
 	limit: z.number().int().positive().max(500).default(200),
 });
 export type GetItemsInput = z.infer<typeof getItemsInputSchema>;
+
+export const addPinInputSchema = z.object({
+	...commandBaseFields,
+	itemId: z.string().min(1),
+	label: z.string().min(1).max(120),
+	snapshotText: z.string().min(1).max(20000),
+});
+export type AddPinInput = z.infer<typeof addPinInputSchema>;
+
+export const removePinInputSchema = z.object({
+	...commandBaseFields,
+	itemId: z.string().min(1),
+});
+export type RemovePinInput = z.infer<typeof removePinInputSchema>;
+
+export const renamePinInputSchema = z.object({
+	...commandBaseFields,
+	itemId: z.string().min(1),
+	label: z.string().min(1).max(120),
+});
+export type RenamePinInput = z.infer<typeof renamePinInputSchema>;
+
+export const listPinsInputSchema = z.object({ sessionId: z.string().min(1) });
+export type ListPinsInput = z.infer<typeof listPinsInputSchema>;

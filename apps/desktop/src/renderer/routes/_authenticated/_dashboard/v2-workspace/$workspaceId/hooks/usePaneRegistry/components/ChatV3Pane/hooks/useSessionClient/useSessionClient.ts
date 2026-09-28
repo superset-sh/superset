@@ -37,6 +37,10 @@ export function useChatWiring(): ChatWiring {
 			getSession: (input) => client.getSession.query(input),
 			listSessions: (input) => client.listSessions.query(input),
 			getItems: (input) => client.getItems.query(input),
+			addPin: (input) => client.addPin.mutate(input),
+			removePin: (input) => client.removePin.mutate(input),
+			renamePin: (input) => client.renamePin.mutate(input),
+			listPins: (input) => client.listPins.query(input),
 		};
 		const createSocket = (url: string): StreamSocket => {
 			const wsUrl = new URL(url);

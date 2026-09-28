@@ -15,12 +15,16 @@ export type ComposerProps = {
 	placeholder?: string;
 	disabled?: boolean;
 	onCancelTurn?: (() => void) | null;
+	insertRequest?: { text: string; nonce: number } | null;
+	onInsertConsumed?: () => void;
 };
 
 export function Composer({
 	disabled,
 	draftKey,
+	insertRequest,
 	onCancelTurn,
+	onInsertConsumed,
 	onSend,
 	outbox,
 	placeholder,
@@ -29,6 +33,7 @@ export function Composer({
 	const [value, setValue] = useState(
 		() => window.localStorage.getItem(draftKey) ?? "",
 	);
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const valueRef = useRef(value);
 	valueRef.current = value;
 	const pendingRef = useRef<{ clientId: string; sentText: string } | null>(
@@ -74,12 +79,26 @@ export function Composer({
 		pendingRef.current = { clientId: entry.clientId, sentText: text };
 	};
 
+	useEffect(() => {
+		if (!insertRequest) return;
+		// setValue flows through the debounced draft write below, so the
+		// inserted text is persisted exactly like typed text.
+		setValue((previous) =>
+			previous.trim() === ""
+				? `${insertRequest.text}\n\n`
+				: `${previous.replace(/\s+$/, "")}\n\n${insertRequest.text}\n\n`,
+		);
+		onInsertConsumed?.();
+		requestAnimationFrame(() => textareaRef.current?.focus());
+	}, [insertRequest, onInsertConsumed]);
+
 	return (
 		<div className="flex items-end gap-2 border-t border-border p-3">
 			<Textarea
 				className="max-h-40 min-h-10 flex-1 resize-none"
 				disabled={disabled}
 				onChange={(event) => setValue(event.target.value)}
+				ref={textareaRef}
 				onKeyDown={(event) => {
 					if (
 						event.key === "Enter" &&

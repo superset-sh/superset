@@ -28,15 +28,21 @@ export type TurnGroupSectionProps = {
 	isEntryCollapsed: (entryKey: string, defaultCollapsed: boolean) => boolean;
 	onToggleEntry: (entryKey: string, collapsed: boolean) => void;
 	onRespond: (approvalId: string, decision: Decision) => void;
+	pinnedItemIds: ReadonlySet<string>;
+	onTogglePin: (item: Item) => void;
 };
 
 function ItemRow({
 	item,
 	onRespond,
+	onTogglePin,
+	pinnedItemIds,
 	snapshot,
 }: {
 	item: Item;
 	snapshot: SessionSnapshot;
+	pinnedItemIds: ReadonlySet<string>;
+	onTogglePin: TurnGroupSectionProps["onTogglePin"];
 	onRespond: TurnGroupSectionProps["onRespond"];
 }) {
 	if (rowKindForItem(item) === "unknown" || !isKnownItem(item)) {
@@ -44,9 +50,22 @@ function ItemRow({
 	}
 	switch (item.kind) {
 		case "user_message":
-			return <UserMessageRow item={item} />;
+			return (
+				<UserMessageRow
+					isPinned={pinnedItemIds.has(item.id)}
+					item={item}
+					onTogglePin={onTogglePin}
+				/>
+			);
 		case "agent_message":
-			return <AgentMessageRow item={item} snapshot={snapshot} />;
+			return (
+				<AgentMessageRow
+					isPinned={pinnedItemIds.has(item.id)}
+					item={item}
+					onTogglePin={onTogglePin}
+					snapshot={snapshot}
+				/>
+			);
 		case "reasoning":
 			return <ReasoningRow item={item} snapshot={snapshot} />;
 		case "tool_call":
@@ -65,7 +84,9 @@ export function TurnGroupSection({
 	isEntryCollapsed,
 	onToggleEntry,
 	onRespond,
+	onTogglePin,
 	pendingApprovalTargets,
+	pinnedItemIds,
 	snapshot,
 }: TurnGroupSectionProps) {
 	const turnSettled = group.turn !== null && group.turn.status !== "running";
@@ -82,6 +103,8 @@ export function TurnGroupSection({
 							<ItemRow
 								item={entry.item}
 								onRespond={onRespond}
+								onTogglePin={onTogglePin}
+								pinnedItemIds={pinnedItemIds}
 								snapshot={snapshot}
 							/>
 						</div>

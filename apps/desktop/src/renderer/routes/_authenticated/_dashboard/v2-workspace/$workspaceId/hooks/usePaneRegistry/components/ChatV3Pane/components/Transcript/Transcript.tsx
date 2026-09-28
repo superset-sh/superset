@@ -1,10 +1,11 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	OutboxEntry,
 	SessionSnapshot,
 	TurnGroup,
 } from "@superset/chat/core";
-import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
+import type { ApprovalRequest, Decision, Item } from "@superset/chat/protocol";
+import { TextSelectionPopover } from "@superset/ui/ai-elements/text-selection-popover";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -20,6 +21,11 @@ export type TranscriptProps = {
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onRetryPrompt: (clientId: string) => void;
 	onDiscardPrompt: (clientId: string) => void;
+	pinnedItemIds: ReadonlySet<string>;
+	onTogglePin: (item: Item) => void;
+	jumpToItemId: { itemId: string; nonce: number } | null;
+	onJumpSettled: () => void;
+	onQuoteText: (text: string) => void;
 };
 
 function latestUserItemId(groups: TurnGroup[]): string | null {
@@ -47,13 +53,19 @@ export function Transcript({
 	approvals,
 	groups,
 	hasOlder,
+	jumpToItemId,
 	onDiscardPrompt,
+	onJumpSettled,
 	onLoadOlder,
+	onQuoteText,
 	onRespond,
 	onRetryPrompt,
+	onTogglePin,
 	outbox,
+	pinnedItemIds,
 	snapshot,
 }: TranscriptProps) {
+	const { t } = useLingui();
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [entryOverrides, setEntryOverrides] = useState<
 		ReadonlyMap<string, boolean>
@@ -111,11 +123,56 @@ export function Transcript({
 			?.scrollIntoView({ block: "nearest" });
 	}, [firstPendingApprovalId]);
 
+	const jumpAttemptsRef = useRef(0);
+	const lastJumpNonceRef = useRef<number | null>(null);
+	useEffect(() => {
+		if (!jumpToItemId) return;
+		if (lastJumpNonceRef.current !== jumpToItemId.nonce) {
+			lastJumpNonceRef.current = jumpToItemId.nonce;
+			jumpAttemptsRef.current = 0;
+		}
+		const itemLoaded = groups.some((group) =>
+			group.entries.some(
+				(entry) =>
+					entry.kind === "item" && entry.item.id === jumpToItemId.itemId,
+			),
+		);
+		if (itemLoaded) {
+			const element = containerRef.current?.querySelector(
+				`[data-item-id="${CSS.escape(jumpToItemId.itemId)}"]`,
+			);
+			if (element) {
+				// Rows render with content-visibility: auto, so the first scroll
+				// can land on the estimated size — scroll again post-layout.
+				element.scrollIntoView({ block: "start" });
+				requestAnimationFrame(() => element.scrollIntoView({ block: "start" }));
+			}
+			jumpAttemptsRef.current = 0;
+			onJumpSettled();
+			return;
+		}
+		if (hasOlder && jumpAttemptsRef.current < 10) {
+			jumpAttemptsRef.current += 1;
+			onLoadOlder();
+		} else {
+			jumpAttemptsRef.current = 0;
+			onJumpSettled();
+		}
+	}, [jumpToItemId, groups, hasOlder, onJumpSettled, onLoadOlder]);
+
 	return (
 		<div
 			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
 			ref={containerRef}
 		>
+			<TextSelectionPopover
+				containerRef={containerRef}
+				onAfterAction={() => containerRef.current?.focus()}
+				primaryAction={{
+					label: t({ message: "Quote" }),
+					onClick: onQuoteText,
+				}}
+			/>
 			<div className="flex items-center gap-2">
 				{hasOlder && (
 					<Button onClick={onLoadOlder} size="sm" variant="ghost">
@@ -138,7 +195,9 @@ export function Transcript({
 					key={group.turnId}
 					onRespond={onRespond}
 					onToggleEntry={onToggleEntry}
+					onTogglePin={onTogglePin}
 					pendingApprovalTargets={pendingApprovalTargets}
+					pinnedItemIds={pinnedItemIds}
 					snapshot={snapshot}
 				/>
 			))}
