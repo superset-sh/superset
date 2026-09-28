@@ -88,7 +88,13 @@ WantedBy=multi-user.target
 ```
 
 Keep `KillMode=process`. Other kill modes stop the terminal daemon, and with
-it every terminal and agent, whenever the service stops or restarts.
+it every terminal and agent, whenever the service stops or restarts. The
+terminal daemon keeps running after the service stops, so the next start
+picks up the same terminals.
+
+This setup needs a CLI newer than 1.31.0. With older versions,
+`systemctl restart` hangs until systemd kills the CLI, and the old host
+keeps running.
 
 ```bash
 sudo systemctl daemon-reload
