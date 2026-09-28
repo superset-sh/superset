@@ -13,7 +13,7 @@ import {
 	type SpawnHostResult,
 	spawnHostService,
 } from "../../lib/host/spawn";
-import { terminateHost } from "../../lib/host/terminate";
+import { terminateProcess } from "../../lib/host/terminate";
 import { resolveOrganization } from "../../lib/resolve-org";
 
 export default command({
@@ -107,7 +107,7 @@ export default command({
 			);
 		}
 
-		await terminateHost(running.pid, { exited: running.exited });
+		await terminateProcess(running.pid, { exited: running.exited });
 		removeManifestIfOwnedBy(organization.id, running.pid);
 
 		return {

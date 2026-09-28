@@ -319,25 +319,41 @@ The running host server.
 
 Stop the local host server.
 
-<Command name="superset stop">
+<Command
+	name="superset stop"
+	options={[
+		{ flag: "--terminals", description: "Also stop the terminal daemon. This ends every terminal and agent on the machine for the organization." },
+	]}
+>
 Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive, then
 removes the manifest. If sending SIGTERM itself throws, the command errors
 and the manifest is left in place.
 
+The terminal daemon keeps running after the host server stops, so the next
+`superset start` picks up the same terminals. With `--terminals`, the command
+stops the host server first, then the terminal daemon, the same way. A daemon
+manifest whose socket no longer answers is stale: the command removes it and
+sends no signal.
+
 ```bash
 superset stop
+superset stop --terminals
 ```
 
 <CommandReturns>
-The stopped host server, if one was running.
+The processes the command stopped, if any were running.
 
 <JsonOutput>
 ```ts
-// No manifest
+// Nothing running
 { running: false }
 
-// Manifest existed
-{ pid: number; organizationId: string }
+// Something stopped
+{
+  pid: number | null;               // host server; null if none was running
+  terminalDaemonPid: number | null; // null without --terminals or if none was running
+  organizationId: string;
+}
 ```
 </JsonOutput>
 </CommandReturns>

@@ -12,6 +12,10 @@
 			"types": "./src/db/index.ts",
 			"default": "./src/db/index.ts"
 		},
+		"./daemon-manifest": {
+			"types": "./src/daemon/manifest.ts",
+			"default": "./src/daemon/manifest.ts"
+		},
 		"./events": {
 			"types": "./src/events/index.ts",
 			"default": "./src/events/index.ts"

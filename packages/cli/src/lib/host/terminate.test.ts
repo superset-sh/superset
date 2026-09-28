@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { terminateHost } from "./terminate";
+import { terminateProcess } from "./terminate";
 
 const spawned: Bun.Subprocess[] = [];
 
@@ -18,11 +18,11 @@ async function startFakeHost({ ignoreSigterm = false } = {}) {
 	return child;
 }
 
-describe("terminateHost", () => {
+describe("terminateProcess", () => {
 	test("SIGTERMs a child host and waits for it to exit", async () => {
 		const host = await startFakeHost();
 
-		await terminateHost(host.pid, { exited: host.exited, timeoutMs: 5_000 });
+		await terminateProcess(host.pid, { exited: host.exited, timeoutMs: 5_000 });
 
 		expect(host.signalCode).toBe("SIGTERM");
 	});
@@ -30,7 +30,7 @@ describe("terminateHost", () => {
 	test("escalates to SIGKILL when the host ignores SIGTERM", async () => {
 		const host = await startFakeHost({ ignoreSigterm: true });
 
-		await terminateHost(host.pid, { exited: host.exited, timeoutMs: 200 });
+		await terminateProcess(host.pid, { exited: host.exited, timeoutMs: 200 });
 
 		expect(host.signalCode).toBe("SIGKILL");
 	});
@@ -38,7 +38,7 @@ describe("terminateHost", () => {
 	test("polls a host that is not our child until it exits", async () => {
 		const host = await startFakeHost({ ignoreSigterm: true });
 
-		await terminateHost(host.pid, { timeoutMs: 200 });
+		await terminateProcess(host.pid, { timeoutMs: 200 });
 		await host.exited;
 
 		expect(host.signalCode).toBe("SIGKILL");
@@ -58,7 +58,7 @@ describe("terminateHost", () => {
 		const zombiePid = Number(new TextDecoder().decode(value).trim());
 
 		const startedAt = Date.now();
-		await terminateHost(zombiePid, { timeoutMs: 200 });
+		await terminateProcess(zombiePid, { timeoutMs: 200 });
 
 		expect(Date.now() - startedAt).toBeLessThan(2_000);
 	});
@@ -71,7 +71,7 @@ describe("terminateHost", () => {
 		spawned.push(groupLeader);
 		await groupLeader.stdout.getReader().read();
 
-		await terminateHost(-groupLeader.pid);
+		await terminateProcess(-groupLeader.pid);
 
 		expect(groupLeader.exitCode).toBeNull();
 		expect(groupLeader.signalCode).toBeNull();

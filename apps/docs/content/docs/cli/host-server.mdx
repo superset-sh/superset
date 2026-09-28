@@ -101,6 +101,15 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now superset-host
 ```
 
+To end every terminal and agent too, stop the unit first, then stop the
+terminal daemon. If you run `superset stop` while the unit is active,
+systemd starts the host again.
+
+```bash
+sudo systemctl stop superset-host
+superset stop --terminals
+```
+
 ## Getting started
 
 ### Create or adopt a project
@@ -187,6 +196,13 @@ superset workspaces create \
 
 ```bash
 superset stop
+```
+
+Your terminals and agents keep running in the terminal daemon, and the next
+`superset start` picks them up. To end them as well:
+
+```bash
+superset stop --terminals
 ```
 
 ## Shared state

@@ -30,10 +30,10 @@ async function settlesWithin(
 }
 
 /**
- * SIGTERM the host, then SIGKILL it if it is still running after `timeoutMs`.
- * Pass `exited` when the host is our child; otherwise its pid is polled.
+ * SIGTERM the process, then SIGKILL it if it is still running after `timeoutMs`.
+ * Pass `exited` when the process is our child; otherwise its pid is polled.
  */
-export async function terminateHost(
+export async function terminateProcess(
 	pid: number,
 	{
 		exited,
