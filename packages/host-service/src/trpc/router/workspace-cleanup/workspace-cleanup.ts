@@ -556,6 +556,9 @@ async function runDestroyPhases(
 					repoPath: project.repoPath,
 					worktreePath: local.worktreePath,
 					gitEnv: repoGitEnv,
+					projectId: project.id,
+					worktreeBaseDir:
+						project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx),
 				}));
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
