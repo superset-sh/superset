@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { selectWorkspaceRunDefinition } from "./workspace-run-definition";
+import {
+	planWorkspaceRunLaunch,
+	selectWorkspaceRunDefinition,
+} from "./workspace-run-definition";
 
 describe("selectWorkspaceRunDefinition", () => {
 	it("prefers a project-targeted workspace-run preset over config", () => {
@@ -82,6 +85,98 @@ describe("selectWorkspaceRunDefinition", () => {
 			presetId: "preset-global",
 			name: "Global dev",
 			commands: ["npm run dev"],
+		});
+	});
+
+	it("carries the preset's execution mode", () => {
+		const definition = selectWorkspaceRunDefinition({
+			projectId: "project-a",
+			presets: [
+				{
+					id: "preset-a",
+					name: "Dev servers",
+					commands: ["bun run backend", "bun run frontend"],
+					executionMode: "new-tab-split-pane",
+					projectIds: ["project-a"],
+					useAsWorkspaceRun: true,
+				},
+			],
+		});
+
+		expect(definition).toEqual({
+			source: "terminal-preset",
+			presetId: "preset-a",
+			name: "Dev servers",
+			commands: ["bun run backend", "bun run frontend"],
+			executionMode: "new-tab-split-pane",
+		});
+	});
+});
+
+describe("planWorkspaceRunLaunch", () => {
+	const preset = {
+		source: "terminal-preset" as const,
+		presetId: "preset-a",
+		name: "Dev servers",
+		commands: ["bun run backend", "bun run frontend"],
+	};
+
+	it("returns null without a definition or commands", () => {
+		expect(planWorkspaceRunLaunch(null)).toBeNull();
+		expect(planWorkspaceRunLaunch({ ...preset, commands: [] })).toBeNull();
+	});
+
+	it("chains project config commands in one terminal", () => {
+		expect(
+			planWorkspaceRunLaunch({
+				source: "project-config",
+				projectId: "project-a",
+				commands: ["bun install", "bun dev"],
+			}),
+		).toEqual({ layout: "single", commands: ["bun install && bun dev"] });
+	});
+
+	it("chains a sequential script in one terminal", () => {
+		expect(
+			planWorkspaceRunLaunch({ ...preset, executionMode: "sequential" }),
+		).toEqual({
+			layout: "single",
+			commands: ["bun run backend && bun run frontend"],
+		});
+	});
+
+	it("chains a script with no saved mode", () => {
+		expect(planWorkspaceRunLaunch(preset)).toEqual({
+			layout: "single",
+			commands: ["bun run backend && bun run frontend"],
+		});
+	});
+
+	it("keeps a single command in one terminal whatever the mode", () => {
+		expect(
+			planWorkspaceRunLaunch({
+				...preset,
+				commands: ["bun dev"],
+				executionMode: "new-tab-split-pane",
+			}),
+		).toEqual({ layout: "single", commands: ["bun dev"] });
+	});
+
+	it("splits panes for split-pane modes", () => {
+		for (const executionMode of ["split-pane", "new-tab-split-pane"] as const) {
+			expect(planWorkspaceRunLaunch({ ...preset, executionMode })).toEqual({
+				layout: "split-panes",
+				commands: ["bun run backend", "bun run frontend"],
+			});
+		}
+	});
+
+	it("opens a tab per command for new-tab mode", () => {
+		expect(
+			planWorkspaceRunLaunch({ ...preset, executionMode: "new-tab" }),
+		).toEqual({
+			layout: "tabs",
+			commands: ["bun run backend", "bun run frontend"],
 		});
 	});
 });

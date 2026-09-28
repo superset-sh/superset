@@ -1,3 +1,4 @@
+import type { ExecutionMode } from "@superset/local-db/schema/zod";
 import {
 	filterMatchingPresetsForProject,
 	isProjectTargetedPreset,
@@ -16,6 +17,7 @@ export type WorkspaceRunDefinition =
 			name: string;
 			commands: string[];
 			cwd?: string;
+			executionMode?: ExecutionMode;
 	  };
 
 export interface WorkspaceRunPresetLike {
@@ -23,8 +25,23 @@ export interface WorkspaceRunPresetLike {
 	name: string;
 	commands: string[];
 	cwd?: string;
+	executionMode?: ExecutionMode;
 	projectIds?: string[] | null;
 	useAsWorkspaceRun?: boolean;
+}
+
+/**
+ * How Workspace Run lays out a definition's commands.
+ * - "single": one terminal running the commands chained with `&&`.
+ * - "split-panes": one terminal per command, all in one tab.
+ * - "tabs": one terminal per command, each in its own tab.
+ */
+export type WorkspaceRunLaunchLayout = "single" | "split-panes" | "tabs";
+
+export interface WorkspaceRunLaunch {
+	layout: WorkspaceRunLaunchLayout;
+	/** One entry per terminal to create, in pane order. */
+	commands: string[];
 }
 
 function nonEmptyCommands(commands: readonly string[] | null | undefined) {
@@ -67,6 +84,34 @@ export function presetToWorkspaceRun(
 		name: preset.name,
 		commands,
 		cwd: normalizeCwd(preset.cwd),
+		...(preset.executionMode ? { executionMode: preset.executionMode } : {}),
+	};
+}
+
+/**
+ * Project config has no launch mode and a sequential script explicitly asks
+ * for one shell, so both chain their commands. Every other terminal-script
+ * mode keeps one command per terminal, the same as running the script from
+ * the scripts bar, so long-running commands start concurrently.
+ */
+export function planWorkspaceRunLaunch(
+	definition: WorkspaceRunDefinition | null | undefined,
+): WorkspaceRunLaunch | null {
+	if (!definition || definition.commands.length === 0) return null;
+	const mode =
+		definition.source === "terminal-preset"
+			? definition.executionMode
+			: undefined;
+	if (
+		definition.commands.length === 1 ||
+		mode === undefined ||
+		mode === "sequential"
+	) {
+		return { layout: "single", commands: [definition.commands.join(" && ")] };
+	}
+	return {
+		layout: mode === "new-tab" ? "tabs" : "split-panes",
+		commands: definition.commands,
 	};
 }
 
