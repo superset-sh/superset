@@ -116,3 +116,14 @@ describe("Tasks and pull requests navigation", () => {
 		}
 	});
 });
+
+describe("Linear CTA does not hide native tasks", () => {
+	test("TasksView renders the task list alongside the Linear CTA", () => {
+		const source = readComponent("TasksView.tsx");
+
+		// The CTA used to replace the whole list when Linear was not connected,
+		// so tasks created in Superset itself were never shown.
+		expect(source).toContain("{showLinearCTA && <LinearCTA />}");
+		expect(source).not.toContain("showLinearCTA ? (");
+	});
+});

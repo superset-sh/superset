@@ -360,42 +360,39 @@ export function TasksView({
 				onIncludeClosedIssuesChange={handleIncludeClosedIssuesChange}
 			/>
 
-			{showLinearCTA ? (
-				<LinearCTA />
-			) : (
-				<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-					{showTasks &&
-						(viewMode === "board" ? (
-							<BoardContent
-								filterTab={currentTab}
-								searchQuery={deferredSearchQuery}
-								assigneeFilter={assigneeFilter}
-								linearProjectFilter={linearProjectFilter}
-								onTaskClick={handleTaskClick}
-							/>
-						) : (
-							<TableContent
-								filterTab={currentTab}
-								searchQuery={deferredSearchQuery}
-								assigneeFilter={assigneeFilter}
-								linearProjectFilter={linearProjectFilter}
-								onTaskClick={handleTaskClick}
-								onSelectionChange={handleSelectionChange}
-							/>
-						))}
-					{showIssues && (
-						<GitHubIssuesContent
-							projectFilters={projectFilters}
-							projectTargets={projectTargets}
-							areProjectsReady={areProjectsReady}
-							hasProjects={v2Projects.length > 0}
-							searchQuery={searchQuery}
-							includeClosed={includeClosedIssues}
-							onSelectionChange={handleIssueSelectionChange}
+			{showLinearCTA && <LinearCTA />}
+			<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+				{showTasks &&
+					(viewMode === "board" ? (
+						<BoardContent
+							filterTab={currentTab}
+							searchQuery={deferredSearchQuery}
+							assigneeFilter={assigneeFilter}
+							linearProjectFilter={linearProjectFilter}
+							onTaskClick={handleTaskClick}
 						/>
-					)}
-				</div>
-			)}
+					) : (
+						<TableContent
+							filterTab={currentTab}
+							searchQuery={deferredSearchQuery}
+							assigneeFilter={assigneeFilter}
+							linearProjectFilter={linearProjectFilter}
+							onTaskClick={handleTaskClick}
+							onSelectionChange={handleSelectionChange}
+						/>
+					))}
+				{showIssues && (
+					<GitHubIssuesContent
+						projectFilters={projectFilters}
+						projectTargets={projectTargets}
+						areProjectsReady={areProjectsReady}
+						hasProjects={v2Projects.length > 0}
+						searchQuery={searchQuery}
+						includeClosed={includeClosedIssues}
+						onSelectionChange={handleIssueSelectionChange}
+					/>
+				)}
+			</div>
 		</div>
 	);
 }
