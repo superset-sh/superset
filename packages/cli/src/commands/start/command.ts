@@ -6,15 +6,15 @@ import { waitForUnresponsiveHost } from "../../lib/host/liveness";
 import {
 	isProcessAlive,
 	readManifest,
-	removeManifest,
+	removeManifestIfOwnedBy,
 } from "../../lib/host/manifest";
 import {
 	describeHostExit,
 	type SpawnHostResult,
 	spawnHostService,
 } from "../../lib/host/spawn";
+import { terminateHost } from "../../lib/host/terminate";
 import { resolveOrganization } from "../../lib/resolve-org";
-import { stopHost } from "./stopHost";
 
 export default command({
 	sandbox: false,
@@ -83,9 +83,6 @@ export default command({
 		}
 
 		const stopWatching = new AbortController();
-		signal.addEventListener("abort", () => stopWatching.abort(), {
-			once: true,
-		});
 		const failure = await Promise.race([
 			running.exited.then(
 				(exit) => `exited unexpectedly (${describeHostExit(exit)})`,
@@ -93,7 +90,7 @@ export default command({
 			waitForUnresponsiveHost({
 				endpoint: `http://127.0.0.1:${running.port}`,
 				authToken: running.secret,
-				signal: stopWatching.signal,
+				signal: AbortSignal.any([signal, stopWatching.signal]),
 			}).then((unresponsive) =>
 				unresponsive ? "stopped answering health checks" : null,
 			),
@@ -103,22 +100,15 @@ export default command({
 		if (failure && !signal.aborted) {
 			// A wedged event loop never runs a SIGTERM handler.
 			if (isProcessAlive(running.pid)) process.kill(running.pid, "SIGKILL");
-			if (readManifest(organization.id)?.pid === running.pid) {
-				removeManifest(organization.id);
-			}
+			removeManifestIfOwnedBy(organization.id, running.pid);
 			throw new CLIError(
 				`Host service ${failure}`,
 				"Run it under a supervisor that restarts on failure, e.g. systemd with Restart=on-failure and KillMode=process.",
 			);
 		}
 
-		if (signal.aborted) {
-			await stopHost({
-				organizationId: organization.id,
-				pid: running.pid,
-				exited: running.exited,
-			});
-		}
+		await terminateHost(running.pid, { exited: running.exited });
+		removeManifestIfOwnedBy(organization.id, running.pid);
 
 		return {
 			data: {
