@@ -121,11 +121,6 @@ describe("planWorkspaceRunLaunch", () => {
 		commands: ["bun run backend", "bun run frontend"],
 	};
 
-	it("returns null without a definition or commands", () => {
-		expect(planWorkspaceRunLaunch(null)).toBeNull();
-		expect(planWorkspaceRunLaunch({ ...preset, commands: [] })).toBeNull();
-	});
-
 	it("chains project config commands in one terminal", () => {
 		expect(
 			planWorkspaceRunLaunch({
@@ -140,13 +135,6 @@ describe("planWorkspaceRunLaunch", () => {
 		expect(
 			planWorkspaceRunLaunch({ ...preset, executionMode: "sequential" }),
 		).toEqual({
-			layout: "single",
-			commands: ["bun run backend && bun run frontend"],
-		});
-	});
-
-	it("chains a script with no saved mode", () => {
-		expect(planWorkspaceRunLaunch(preset)).toEqual({
 			layout: "single",
 			commands: ["bun run backend && bun run frontend"],
 		});

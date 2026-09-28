@@ -30,17 +30,10 @@ export interface WorkspaceRunPresetLike {
 	useAsWorkspaceRun?: boolean;
 }
 
-/**
- * How Workspace Run lays out a definition's commands.
- * - "single": one terminal running the commands chained with `&&`.
- * - "split-panes": one terminal per command, all in one tab.
- * - "tabs": one terminal per command, each in its own tab.
- */
 export type WorkspaceRunLaunchLayout = "single" | "split-panes" | "tabs";
 
 export interface WorkspaceRunLaunch {
 	layout: WorkspaceRunLaunchLayout;
-	/** One entry per terminal to create, in pane order. */
 	commands: string[];
 }
 
@@ -88,12 +81,6 @@ export function presetToWorkspaceRun(
 	};
 }
 
-/**
- * Project config has no launch mode and a sequential script explicitly asks
- * for one shell, so both chain their commands. Every other terminal-script
- * mode keeps one command per terminal, the same as running the script from
- * the scripts bar, so long-running commands start concurrently.
- */
 export function planWorkspaceRunLaunch(
 	definition: WorkspaceRunDefinition | null | undefined,
 ): WorkspaceRunLaunch | null {

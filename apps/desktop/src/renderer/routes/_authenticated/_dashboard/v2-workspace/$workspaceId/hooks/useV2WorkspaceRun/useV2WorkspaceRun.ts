@@ -70,10 +70,6 @@ function makeTerminalPane(
 	};
 }
 
-/**
- * Panes of the most recent tab still showing an earlier run, in layout order.
- * A new run swaps its terminals into them so repeated Runs don't pile up tabs.
- */
 function findPriorRunPanes(
 	state: WorkspaceStore<PaneViewerData>,
 	priorRunTerminalIds: ReadonlySet<string>,
@@ -173,8 +169,6 @@ export function useV2WorkspaceRun({
 		],
 	);
 
-	// A split-pane run is several terminals started together; Stop and Force
-	// Stop act on all of them, and the run counts as running while any is.
 	const runningStates = useMemo(
 		() =>
 			Object.values(workspaceRunTerminals)
@@ -221,8 +215,6 @@ export function useV2WorkspaceRun({
 			// we're about to create doesn't itself match.
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
 
-			// Sessions are created before any pane lands in the store so panes
-			// that never mount (background tabs) still get their PTY and command.
 			const terminalIds = await Promise.all(
 				launch.commands.map((command) =>
 					launcher.create({ command, cwd: definition.cwd }),
@@ -266,8 +258,6 @@ export function useV2WorkspaceRun({
 				return;
 			}
 
-			// Reuse the earlier run's panes in order; extra commands split off
-			// the last reused pane so the tab keeps one pane per command.
 			let lastPaneId =
 				prior.paneIds[prior.paneIds.length - 1] ?? prior.paneIds[0];
 			panes.forEach((pane, index) => {
