@@ -23,6 +23,7 @@ export interface HostProjectRow {
 	icon: string | null;
 	/** Accent color as a `#rrggbb` hex, or null for the default. */
 	color: string | null;
+	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
 	/** @deprecated Mixed-version fallback; canonical reads use tagFolders. */
@@ -50,6 +51,7 @@ export interface HostProjectItem {
 	color: string | null;
 	/** Hosts that serve this project. */
 	hostIds: string[];
+	creatorByHostId: Record<string, string | null>;
 	/** False when no serving host answered live (snapshot data only). */
 	hostReachable: boolean;
 	createdAt: number;
@@ -161,6 +163,7 @@ export function normalizeHostProjectRow(
 		worktreeBaseDir: row.worktreeBaseDir ?? null,
 		icon: row.icon ?? null,
 		color: row.color ?? null,
+		createdByUserId: row.createdByUserId ?? null,
 		createdAt: row.createdAt ?? 0,
 		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
 		tagSettings: row.tagSettings,
@@ -267,6 +270,8 @@ export function applyProjectChangedEvent(
 		worktreeBaseDir: snapshot.worktreeBaseDir,
 		icon: snapshot.icon,
 		color: snapshot.color ?? null,
+		// Older hosts' events predate creator tracking.
+		createdByUserId: snapshot.createdByUserId ?? null,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 		// Old hosts publish settings on project snapshots. New hosts may retain
@@ -309,6 +314,7 @@ export function mergeHostProjects({
 					icon: row.icon,
 					color: row.color,
 					hostIds: [result.target.machineId],
+					creatorByHostId: { [result.target.machineId]: row.createdByUserId },
 					hostReachable: result.reachable,
 					createdAt: row.createdAt,
 					updatedAt: row.updatedAt,
@@ -317,6 +323,7 @@ export function mergeHostProjects({
 				continue;
 			}
 			existing.hostIds.push(result.target.machineId);
+			existing.creatorByHostId[result.target.machineId] = row.createdByUserId;
 			existing.hostReachable = existing.hostReachable || result.reachable;
 			// Most recently updated replica wins the shared fields.
 			if (row.updatedAt > existing.updatedAt) {

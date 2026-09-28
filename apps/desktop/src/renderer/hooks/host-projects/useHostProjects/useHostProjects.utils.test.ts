@@ -44,6 +44,7 @@ describe("old-host tag settings compatibility", () => {
 					worktreeBaseDir: null,
 					icon: null,
 					color: null,
+					createdByUserId: null,
 					createdAt: 1,
 					updatedAt: 2,
 				},

@@ -4,22 +4,26 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { DeleteProjectDialog } from "renderer/routes/_authenticated/components/DeleteProjectDialog";
-import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
 
 interface DeleteProjectSectionProps {
 	projectId: string;
 	projectName: string;
 	/** Hosts serving this project — the delete fans out to each. */
 	hostIds: string[];
+	creatorByHostId: Record<string, string | null>;
 }
 
 export function DeleteProjectSection({
 	projectId,
 	projectName,
 	hostIds,
+	creatorByHostId,
 }: DeleteProjectSectionProps) {
 	const navigate = useNavigate();
-	const isOwner = useIsOrganizationOwner();
+	const canDelete =
+		useProjectDeletionHosts({ projectId, hostIds, creatorByHostId }).hostIds
+			.length > 0;
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -29,7 +33,7 @@ export function DeleteProjectSection({
 					<Trans>Delete project</Trans>
 				</div>
 			</div>
-			{!isOwner ? (
+			{!canDelete ? (
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span>
@@ -45,7 +49,10 @@ export function DeleteProjectSection({
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="left">
-						<Trans>Only organization owners can delete this project.</Trans>
+						<Trans>
+							Only an owner, or the creator while no one else is using it, can
+							delete this project.
+						</Trans>
 					</TooltipContent>
 				</Tooltip>
 			) : (
@@ -55,6 +62,7 @@ export function DeleteProjectSection({
 					projectId={projectId}
 					projectName={projectName}
 					hostIds={hostIds}
+					creatorByHostId={creatorByHostId}
 					onDeleted={() => navigate({ to: "/settings/projects" })}
 				>
 					<Button

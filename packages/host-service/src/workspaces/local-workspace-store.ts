@@ -275,8 +275,8 @@ export function insertLocalWorkspace(
 			})
 			.run();
 		if (tags.length > 0) {
-			// Adoption paths don't stamp the row's creator, but the tags are
-			// still the acting user's — never let them fall through as public.
+			// A row without a creator still carries the acting user's tags —
+			// never let them fall through as public.
 			const createdByUserId = toStoredTagCreator(
 				values.createdByUserId ?? ctx.userId,
 			);

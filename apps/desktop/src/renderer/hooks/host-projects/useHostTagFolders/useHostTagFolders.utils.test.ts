@@ -54,6 +54,7 @@ const legacyResult = (
 			worktreeBaseDir: null,
 			icon: null,
 			color: null,
+			createdByUserId: null,
 			createdAt: 0,
 			updatedAt: 0,
 			tagSettings: [

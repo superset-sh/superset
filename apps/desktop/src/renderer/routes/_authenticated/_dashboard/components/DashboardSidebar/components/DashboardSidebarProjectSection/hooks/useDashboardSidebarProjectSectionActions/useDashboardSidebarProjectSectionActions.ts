@@ -11,7 +11,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -33,11 +33,16 @@ export function useDashboardSidebarProjectSectionActions({
 	// hostIds order is arbitrary and may lead with an offline remote.
 	const { projects: hostProjects } = useHostProjects();
 	const { machineId } = useLocalHostService();
+	const hostProject = hostProjects.find(
+		(item) => item.projectKey === project.id,
+	);
 	const projectHostIds = useMemo(
-		() =>
-			hostProjects.find((item) => item.projectKey === project.id)?.hostIds ??
-			[],
-		[hostProjects, project.id],
+		() => hostProject?.hostIds ?? [],
+		[hostProject],
+	);
+	const projectCreatorByHostId = useMemo(
+		() => hostProject?.creatorByHostId ?? {},
+		[hostProject],
 	);
 	const servingHostId = useMemo(() => {
 		if (machineId && projectHostIds.includes(machineId)) return machineId;
@@ -62,7 +67,12 @@ export function useDashboardSidebarProjectSectionActions({
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
-	const canDeleteProject = useIsOrganizationOwner();
+	const canDeleteProject =
+		useProjectDeletionHosts({
+			projectId: project.id,
+			hostIds: projectHostIds,
+			creatorByHostId: projectCreatorByHostId,
+		}).hostIds.length > 0;
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	// Hiding or deleting the project you are inside would leave the view
 	// pointing at a workspace the sidebar no longer shows (or that no longer
@@ -303,6 +313,7 @@ export function useDashboardSidebarProjectSectionActions({
 		leaveProjectIfActive,
 		openDeleteDialog,
 		projectHostIds,
+		projectCreatorByHostId,
 		setIsDeleteDialogOpen,
 		handleNewSection,
 		handleNewWorkspace,

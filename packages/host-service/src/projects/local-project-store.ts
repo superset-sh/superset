@@ -28,6 +28,7 @@ export function toProjectSnapshot(
 		worktreeBaseDir: row.worktreeBaseDir,
 		icon: row.icon,
 		color: row.color,
+		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 		...(tagSettings !== undefined ? { tagSettings } : {}),

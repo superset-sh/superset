@@ -248,6 +248,10 @@ msgstr "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 
+#. placeholder {0}: target.otherUsersWorkspaceCount
+msgid "{0, plural, one {Deletes # workspace other people are using} other {Deletes # workspaces other people are using}}"
+msgstr "{0, plural, one {Deletes # workspace other people are using} other {Deletes # workspaces other people are using}}"
+
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
 msgstr "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
@@ -808,9 +812,6 @@ msgstr "{noun, select, person {Specify at least one person, or choose {choice}.}
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} open"
 
@@ -966,9 +967,6 @@ msgstr "{workspaceName}: host is unavailable"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: teardown failed"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
 
 msgid "{years}y ago"
 msgstr "{years}y ago"
@@ -5092,9 +5090,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "Deleted \"{projectName}\""
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
 
 msgid "Deleted {name}"
 msgstr "Deleted {name}"
@@ -5231,6 +5229,9 @@ msgstr "Development build"
 
 msgid "Device: {selectedLabel}"
 msgstr "Device: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Devices"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -7654,6 +7655,9 @@ msgstr "In the Superset desktop app, open <0>Settings → Appearance → Theme</
 
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
+
+msgid "In use by other people"
+msgstr "In use by other people"
 
 msgid "In-app PR merge"
 msgstr "In-app PR merge"
@@ -10213,6 +10217,9 @@ msgstr "Online Now"
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Only an organization owner can change the plan. Ask yours to upgrade."
 
+msgid "Only an owner, or the creator while no one else is using it, can delete this project."
+msgstr "Only an owner, or the creator while no one else is using it, can delete this project."
+
 msgid "Only available on macOS."
 msgstr "Only available on macOS."
 
@@ -10224,9 +10231,6 @@ msgstr "Only host owners can change this location."
 
 msgid "Only host owners can delete this host"
 msgstr "Only host owners can delete this host"
-
-msgid "Only organization owners can delete this project."
-msgstr "Only organization owners can delete this project."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Only organization owners can modify these settings."
@@ -10871,6 +10875,9 @@ msgstr "Owned by {0} — only they can edit this automation."
 
 msgid "Owner"
 msgstr "Owner"
+
+msgid "Owner access required"
+msgstr "Owner access required"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Owns every PTY session and survives app restarts."
@@ -15540,8 +15547,8 @@ msgstr "This removes every selected worktree from disk and deletes its workspace
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 
-msgid "This removes the project from every reachable device."
-msgstr "This removes the project from every reachable device."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "This removes the worktree from disk and closes the workspace."
@@ -16155,6 +16162,9 @@ msgstr "Unresolved"
 
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
+
+msgid "Unselected devices keep their copy."
+msgstr "Unselected devices keep their copy."
 
 msgid "Unstage all"
 msgstr "Unstage all"

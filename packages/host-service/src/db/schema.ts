@@ -114,6 +114,8 @@ export const projects = sqliteTable(
 		// Empty string means "not yet backfilled" — the startup sweep targets
 		// these rows (name from cloud legacy row if reachable, else basename).
 		name: text().notNull().default(""),
+		// Null for projects that predate creator tracking.
+		createdByUserId: text("created_by_user_id"),
 		// 0 means "predates local ownership"; write paths always set it.
 		updatedAt: integer("updated_at").notNull().default(0),
 		createdAt: integer("created_at")

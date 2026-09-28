@@ -382,6 +382,7 @@ export function V2ProjectSettings({
 						projectId={projectId}
 						projectName={project.name}
 						hostIds={project.hostIds}
+						creatorByHostId={project.creatorByHostId}
 					/>
 				</SettingsSection>
 			</div>

@@ -131,6 +131,7 @@ export async function adoptExistingWorktree(
 			branch,
 			name: workspaceName,
 			taskId: taskId ?? null,
+			createdByUserId: ctx.userId ?? null,
 			tags,
 		});
 		return {
@@ -209,6 +210,7 @@ export async function adoptExistingWorktree(
 			branch,
 			name: workspaceName,
 			taskId: taskId ?? null,
+			createdByUserId: ctx.userId ?? null,
 			tags,
 		});
 	} catch (err) {

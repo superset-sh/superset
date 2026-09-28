@@ -24,6 +24,7 @@ import { emitAppFirstOpened } from "../../lib/activation-events";
 import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { jwtProcedure, userError } from "../../trpc";
+import { authorizeProjectDeletion } from "./project-deletion-access";
 import { registerHost } from "./registration";
 import {
 	authorizeHostUpdate,
@@ -76,6 +77,24 @@ async function isHostOwner(
 				eq(v2UsersHosts.hostId, machineId),
 				eq(v2UsersHosts.userId, userId),
 				eq(v2UsersHosts.role, "owner"),
+			),
+		)
+		.limit(1);
+	return !!owner;
+}
+
+async function isOrganizationOwner(
+	organizationId: string,
+	userId: string,
+): Promise<boolean> {
+	const [owner] = await db
+		.select({ id: members.id })
+		.from(members)
+		.where(
+			and(
+				eq(members.organizationId, organizationId),
+				eq(members.userId, userId),
+				eq(members.role, "owner"),
 			),
 		)
 		.limit(1);
@@ -236,6 +255,15 @@ export const hostRouter = {
 	authorizeUpdate: jwtProcedure
 		.input(hostUpdateAuthorizationSchema)
 		.query(({ ctx, input }) => authorizeHostUpdate(ctx, input, isHostOwner)),
+
+	authorizeProjectDeletion: jwtProcedure
+		.input(hostUpdateAuthorizationSchema)
+		.query(({ ctx, input }) =>
+			authorizeProjectDeletion(ctx, input, {
+				isHostOwner,
+				isOrganizationOwner,
+			}),
+		),
 
 	checkAccess: jwtProcedure
 		.input(z.object({ hostId: z.string().min(1) }))

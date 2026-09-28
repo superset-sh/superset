@@ -52,6 +52,7 @@ export function DashboardSidebarProjectSection({
 		leaveProjectIfActive,
 		openDeleteDialog,
 		projectHostIds,
+		projectCreatorByHostId,
 		setIsDeleteDialogOpen,
 		handleNewWorkspace,
 		handleOpenInFinder,
@@ -79,6 +80,7 @@ export function DashboardSidebarProjectSection({
 			projectId={project.id}
 			projectName={project.name}
 			hostIds={projectHostIds}
+			creatorByHostId={projectCreatorByHostId}
 			onDeleted={leaveProjectIfActive}
 		/>
 	);

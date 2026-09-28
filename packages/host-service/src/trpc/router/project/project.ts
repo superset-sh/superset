@@ -43,6 +43,7 @@ import { listLiveLocalWorkspaces } from "./utils/create-local-workspace";
 import { getGitHubRemotes } from "./utils/git-remote";
 import { listGitHubRepositories } from "./utils/github-repositories";
 import { persistLocalProject } from "./utils/persist-project";
+import { requireProjectDeletionAccess } from "./utils/project-deletion-access";
 import {
 	cloneRepoInto,
 	type ResolvedRepo,
@@ -106,6 +107,7 @@ export const projectRouter = router({
 				worktreeBaseDir: row.worktreeBaseDir,
 				icon: row.icon,
 				color: row.color,
+				createdByUserId: row.createdByUserId,
 				createdAt: row.createdAt,
 				updatedAt: row.updatedAt || row.createdAt,
 			}));
@@ -823,10 +825,11 @@ export const projectRouter = router({
 
 	/**
 	 * Project-delete saga. Local is reality — the local deletes are the
-	 * commit point, run first, and are fully offline-capable:
+	 * commit point, run first:
 	 *
 	 *   1. Ownership check: an id this host doesn't serve is a no-op —
-	 *      never a legacy cloud delete.
+	 *      never a legacy cloud delete. The creator of an unused project
+	 *      passes offline; anyone else needs the API to confirm ownership.
 	 *
 	 *   2. Best-effort `git worktree remove` for each worktree workspace so
 	 *      subsequent worktree commands aren't confused. Local workspaces
@@ -842,12 +845,26 @@ export const projectRouter = router({
 	 * UI can offer an explicit "delete files too" follow-up.
 	 */
 	remove: machineOnlyProcedure
-		.input(z.object({ projectId: z.string().uuid() }))
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				acknowledgedOtherUsersWorkspaceCount: z
+					.number()
+					.int()
+					.nonnegative()
+					.optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
 			if (!localProject) return { success: true, repoPath: null };
+			await requireProjectDeletionAccess(
+				ctx,
+				input.projectId,
+				input.acknowledgedOtherUsersWorkspaceCount,
+			);
 
 			// The project-row delete below cascades tombstones away — removing a
 			// project intentionally drops its workspace history. Sweep worktrees

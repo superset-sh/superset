@@ -248,6 +248,10 @@ msgstr "{0, plural, one {# çalışma alanı silinsin mi?} other {# çalışma a
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {# çalışma alanı silindi} other {# çalışma alanı silindi}}"
 
+#. placeholder {0}: target.otherUsersWorkspaceCount
+msgid "{0, plural, one {Deletes # workspace other people are using} other {Deletes # workspaces other people are using}}"
+msgstr "{0, plural, one {Başkalarının kullandığı # çalışma alanını siler} other {Başkalarının kullandığı # çalışma alanını siler}}"
+
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
 msgstr "{0, plural, one {Fark kısaltıldı — host'ta # satır daha var} other {Fark kısaltıldı — host'ta # satır daha var}}"
@@ -808,9 +812,6 @@ msgstr "{noun, select, person {En az bir kişi belirtin veya {choice} seçeneği
 msgid "{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}"
 msgstr "{noun, select, repository {En az bir depo belirtin.} channel {En az bir kanal belirtin.} reaction {En az bir tepki belirtin.} dataSource {En az bir veri kaynağı belirtin.} team {En az bir takım belirtin.} project {En az bir proje belirtin.} calendar {En az bir takvim belirtin.} other {En az bir öğe belirtin.}}"
 
-msgid "{offlineHostCount, plural, one {# device is offline and keeps its copy.} other {# devices are offline and keep their copy.}}"
-msgstr "{offlineHostCount, plural, one {# cihaz çevrimdışı ve kopyasını koruyor.} other {# cihaz çevrimdışı ve kopyalarını koruyor.}}"
-
 msgid "{openCount} open"
 msgstr "{openCount} açık"
 
@@ -966,9 +967,6 @@ msgstr "{workspaceName}: host kullanılamıyor"
 
 msgid "{workspaceName}: teardown failed"
 msgstr "{workspaceName}: kapatma başarısız"
-
-msgid "{worktreeCount, plural, one {This removes the project and its # workspace from every reachable device, and deletes that worktree from disk.} other {This removes the project and its # workspaces from every reachable device, and deletes their worktrees from disk.}}"
-msgstr "{worktreeCount, plural, one {Bu, projeyi ve # çalışma alanını erişilebilir tüm cihazlardan kaldırır ve worktree'sini diskten siler.} other {Bu, projeyi ve # çalışma alanlarını erişilebilir tüm cihazlardan kaldırır ve worktree'lerini diskten siler.}}"
 
 msgid "{years}y ago"
 msgstr "{years}y önce"
@@ -5092,9 +5090,9 @@ msgid "Deleted \"{projectName}\""
 msgstr "\"{projectName}\" silindi"
 
 #. placeholder {0}: results.length - failed.length
-#. placeholder {1}: hostIds.length
-msgid "Deleted \"{projectName}\" from {0} of {1} devices — unreachable devices keep their copy"
-msgstr "\"{projectName}\", {1} cihazdan {0} tanesinden silindi — erişilemeyen cihazlar kopyalarını korur"
+#. placeholder {1}: results.length
+msgid "Deleted \"{projectName}\" from {0} of {1} selected devices. Failed devices keep their copy."
+msgstr "\"{projectName}\", seçilen {1} cihazın {0} tanesinden silindi. Silme işleminin başarısız olduğu cihazlar kopyalarını korur."
 
 msgid "Deleted {name}"
 msgstr "{name} silindi"
@@ -5231,6 +5229,9 @@ msgstr "Geliştirme derlemesi"
 
 msgid "Device: {selectedLabel}"
 msgstr "Cihaz: {selectedLabel}"
+
+msgid "Devices"
+msgstr "Cihazlar"
 
 msgid "DevTools"
 msgstr "DevTools"
@@ -7654,6 +7655,9 @@ msgstr "Superset masaüstü uygulamasında <0>Ayarlar → Görünüm → Tema</0
 
 msgid "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 msgstr "Superset masaüstü uygulamasında Ayarlar → Uzaktan erişim bölümünü açın ve “Bu cihaza röle üzerinden uzaktan erişime izin ver” seçeneğini açın."
+
+msgid "In use by other people"
+msgstr "Başkaları tarafından kullanılıyor"
 
 msgid "In-app PR merge"
 msgstr "Uygulama içi PR birleştirme"
@@ -10213,6 +10217,9 @@ msgstr "Şu an çevrimiçi"
 msgid "Only an organization owner can change the plan. Ask yours to upgrade."
 msgstr "Planı yalnızca kuruluş sahibi değiştirebilir. Yükseltme için sahibinize başvurun."
 
+msgid "Only an owner, or the creator while no one else is using it, can delete this project."
+msgstr "Bu projeyi yalnızca bir sahip veya başka kimse kullanmıyorsa oluşturan kişi silebilir."
+
 msgid "Only available on macOS."
 msgstr "Yalnızca macOS'ta kullanılabilir."
 
@@ -10224,9 +10231,6 @@ msgstr "Bu konumu yalnızca host sahipleri değiştirebilir."
 
 msgid "Only host owners can delete this host"
 msgstr "Bu host'u yalnızca host sahipleri silebilir"
-
-msgid "Only organization owners can delete this project."
-msgstr "Bu projeyi yalnızca kuruluş sahipleri silebilir."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Bu ayarları yalnızca kuruluş sahipleri değiştirebilir."
@@ -10871,6 +10875,9 @@ msgstr "Sahibi: {0} — bu otomasyonu yalnızca o düzenleyebilir."
 
 msgid "Owner"
 msgstr "Sahip"
+
+msgid "Owner access required"
+msgstr "Sahip erişimi gerekli"
 
 msgid "Owns every PTY session and survives app restarts."
 msgstr "Her PTY oturumunun sahibidir ve uygulama yeniden başlatmalarından sağ çıkar."
@@ -15540,8 +15547,8 @@ msgstr "Bu işlem, seçili her worktree'yi diskten kaldırır ve çalışma alan
 msgid "This removes the host, its access, and its workspaces. Files on the machine stay. A running host may reappear. This can’t be undone."
 msgstr "Bu işlem host'u, erişimini ve çalışma alanlarını kaldırır. Makinedeki dosyalar kalır. Çalışan bir host yeniden görünebilir. Bu geri alınamaz."
 
-msgid "This removes the project from every reachable device."
-msgstr "Bu, projeyi erişilebilir tüm cihazlardan kaldırır."
+msgid "This removes the project and its workspaces from the selected devices for everyone using those devices. Worktrees are deleted from disk."
+msgstr "Bu işlem, projeyi ve çalışma alanlarını seçilen cihazlardan bu cihazları kullanan herkes için kaldırır. Çalışma ağaçları diskten silinir."
 
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Bu, worktree'yi diskten kaldırır ve çalışma alanını kapatır."
@@ -16155,6 +16162,9 @@ msgstr "Çözülmedi"
 
 msgid "Unsaved changes"
 msgstr "Kaydedilmemiş değişiklikler"
+
+msgid "Unselected devices keep their copy."
+msgstr "Seçilmeyen cihazlar kopyalarını korur."
 
 msgid "Unstage all"
 msgstr "Tümünü hazırlıktan çıkar"

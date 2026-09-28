@@ -32,7 +32,12 @@ export function persistLocalProject(
 	};
 	ctx.db
 		.insert(projects)
-		.values({ id: projectId, ...repoFields, ...identityFields })
+		.values({
+			id: projectId,
+			...repoFields,
+			...identityFields,
+			createdByUserId: ctx.userId ?? null,
+		})
 		.onConflictDoUpdate({
 			target: projects.id,
 			set: { ...repoFields, ...identityFields },
