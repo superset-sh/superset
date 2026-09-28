@@ -7,10 +7,13 @@ function isMissingProcessError(error: unknown): boolean {
 	return (error as NodeJS.ErrnoException)?.code === "ESRCH";
 }
 
-async function pollUntilDead(pid: number): Promise<void> {
+async function pollUntilDead(pid: number, timeoutMs: number): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
 	while (isProcessAlive(pid)) {
+		if (Date.now() >= deadline) return false;
 		await new Promise((resolve) => setTimeout(resolve, EXIT_POLL_INTERVAL_MS));
 	}
+	return true;
 }
 
 async function settlesWithin(
@@ -44,10 +47,11 @@ export async function terminateHost(
 		if (isMissingProcessError(error)) return;
 		throw error;
 	}
-	const gone = exited ?? pollUntilDead(pid);
-	if (await settlesWithin(gone, timeoutMs)) return;
+	const waitForExit = () =>
+		exited ? settlesWithin(exited, timeoutMs) : pollUntilDead(pid, timeoutMs);
+	if (await waitForExit()) return;
 	try {
 		process.kill(pid, "SIGKILL");
 	} catch {}
-	await settlesWithin(gone, timeoutMs);
+	await waitForExit();
 }

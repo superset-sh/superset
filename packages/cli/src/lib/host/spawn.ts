@@ -199,7 +199,12 @@ export async function spawnHostService(
 		startedAt: Date.now(),
 		organizationId: options.organizationId,
 	};
-	writeManifest(manifest);
+	try {
+		writeManifest(manifest);
+	} catch (error) {
+		child.kill("SIGTERM");
+		throw error;
+	}
 
 	if (options.daemon) {
 		child.unref();

@@ -44,6 +44,25 @@ describe("terminateHost", () => {
 		expect(host.signalCode).toBe("SIGKILL");
 	});
 
+	test("gives up on a process that never exits", async () => {
+		const parent = Bun.spawn(
+			[
+				"perl",
+				"-e",
+				'$|=1; my $pid = fork(); exit 0 if $pid == 0; print "$pid\\n"; sleep 30',
+			],
+			{ stdout: "pipe", stderr: "ignore" },
+		);
+		spawned.push(parent);
+		const { value } = await parent.stdout.getReader().read();
+		const zombiePid = Number(new TextDecoder().decode(value).trim());
+
+		const startedAt = Date.now();
+		await terminateHost(zombiePid, { timeoutMs: 200 });
+
+		expect(Date.now() - startedAt).toBeLessThan(2_000);
+	});
+
 	test("does not signal a process group for a negative pid", async () => {
 		const groupLeader = Bun.spawn(
 			["perl", "-e", '$|=1; setpgrp(0, 0); print "ready\\n"; sleep 30'],

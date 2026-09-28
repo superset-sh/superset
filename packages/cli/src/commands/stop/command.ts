@@ -1,6 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
 import { command } from "../../lib/command";
-import { readManifest, removeManifest } from "../../lib/host/manifest";
+import { readManifest, removeManifestIfOwnedBy } from "../../lib/host/manifest";
 import { terminateHost } from "../../lib/host/terminate";
 
 export default command({
@@ -29,7 +29,7 @@ export default command({
 			);
 		}
 
-		removeManifest(organization.id);
+		removeManifestIfOwnedBy(organization.id, manifest.pid);
 
 		return {
 			data: { pid: manifest.pid, organizationId: organization.id },
