@@ -215,11 +215,28 @@ export function useV2WorkspaceRun({
 			// we're about to create doesn't itself match.
 			const priorRunTerminalIds = new Set(Object.keys(workspaceRunTerminals));
 
-			const terminalIds = await Promise.all(
+			const created = await Promise.allSettled(
 				launch.commands.map((command) =>
 					launcher.create({ command, cwd: definition.cwd }),
 				),
 			);
+			const terminalIds = created.flatMap((result) =>
+				result.status === "fulfilled" ? [result.value] : [],
+			);
+			const failed = created.find(
+				(result): result is PromiseRejectedResult =>
+					result.status === "rejected",
+			);
+			if (failed) {
+				// A partially started run would leave live processes nothing
+				// tracks; kill the ones that did start before surfacing the error.
+				await Promise.allSettled(
+					terminalIds.map((terminalId) =>
+						killSessionMutation.mutateAsync({ terminalId, workspaceId }),
+					),
+				);
+				throw failed.reason;
+			}
 			const startedAt = Date.now();
 			updateWorkspaceRunTerminals((states) => {
 				terminalIds.forEach((terminalId, index) => {
@@ -295,6 +312,7 @@ export function useV2WorkspaceRun({
 		}
 	}, [
 		definition,
+		killSessionMutation,
 		launcher,
 		store,
 		t,
