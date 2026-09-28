@@ -64,6 +64,37 @@ Verify it's healthy:
 superset status
 ```
 
+### Run it under systemd
+
+On a server, let systemd start the host server at boot and restart it on
+failure. Run `superset start` without `--daemon` so systemd tracks the
+process:
+
+```ini
+# /etc/systemd/system/superset-host.service
+[Unit]
+Description=Superset host server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=<user>
+ExecStart=/home/<user>/superset/bin/superset start
+Restart=on-failure
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Keep `KillMode=process`. Other kill modes stop the terminal daemon, and with
+it every terminal and agent, whenever the service stops or restarts.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now superset-host
+```
+
 ## Getting started
 
 ### Create or adopt a project

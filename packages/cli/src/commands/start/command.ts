@@ -14,6 +14,7 @@ import {
 	spawnHostService,
 } from "../../lib/host/spawn";
 import { resolveOrganization } from "../../lib/resolve-org";
+import { stopHost } from "./stopHost";
 
 export default command({
 	sandbox: false,
@@ -107,8 +108,16 @@ export default command({
 			}
 			throw new CLIError(
 				`Host service ${failure}`,
-				"Run it under a supervisor that restarts on failure, e.g. systemd with Restart=on-failure.",
+				"Run it under a supervisor that restarts on failure, e.g. systemd with Restart=on-failure and KillMode=process.",
 			);
+		}
+
+		if (signal.aborted) {
+			await stopHost({
+				organizationId: organization.id,
+				pid: running.pid,
+				exited: running.exited,
+			});
 		}
 
 		return {
