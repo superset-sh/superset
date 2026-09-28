@@ -2074,6 +2074,9 @@ msgstr "Uygulama görüntüleme dili. Otomatik, sistem dilinizi izler."
 msgid "App icon"
 msgstr "Uygulama simgesi"
 
+msgid "App theme"
+msgstr "Uygulama teması"
+
 msgid "Appearance"
 msgstr "Görünüm"
 
@@ -6504,6 +6507,9 @@ msgstr "Ayar güncellenemedi"
 
 msgid "Failed to update team. Please try again."
 msgstr "Takım güncellenemedi. Lütfen yeniden deneyin."
+
+msgid "Failed to update terminal theme"
+msgstr "Terminal teması güncellenemedi"
 
 msgid "Failed to update URL"
 msgstr "URL güncellenemedi"

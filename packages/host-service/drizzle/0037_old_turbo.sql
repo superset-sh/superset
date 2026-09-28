@@ -1,0 +1,1 @@
+ALTER TABLE `terminal_sessions` ADD `theme_id` text;

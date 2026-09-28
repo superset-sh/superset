@@ -29,6 +29,7 @@ export const terminalSessions = sqliteTable(
 		 * wherever a session is displayed.
 		 */
 		customTitle: text("custom_title"),
+		themeId: text("theme_id"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),

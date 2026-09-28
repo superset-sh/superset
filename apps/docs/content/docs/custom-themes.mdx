@@ -86,6 +86,16 @@ Missing values fall back to Superset defaults for the selected theme type.
 }
 ```
 
+## Per-Terminal Themes
+
+Each terminal session can use its own theme. The choice is saved with the session, so it survives tab switches, detaching, and a restart of the desktop app.
+
+1. Right-click inside the terminal.
+2. Open `Theme`.
+3. Pick a theme from `Light`, `Dark`, or `Custom`, or pick `App theme` to follow the app again.
+
+Built-in and imported themes both appear in the menu. If you remove an imported theme that a session uses, that session falls back to the app theme.
+
 ## Notes
 
 - Theme IDs must be unique and not reserved (`system`, built-in theme IDs like `dark`/`light`).

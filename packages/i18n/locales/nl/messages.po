@@ -2074,6 +2074,9 @@ msgstr "Weergavetaal van de app. Automatisch volgt je systeemtaal."
 msgid "App icon"
 msgstr "App-icoon"
 
+msgid "App theme"
+msgstr "App-thema"
+
 msgid "Appearance"
 msgstr "Uiterlijk"
 
@@ -6504,6 +6507,9 @@ msgstr "Bijwerken van instelling mislukt"
 
 msgid "Failed to update team. Please try again."
 msgstr "Bijwerken van team mislukt. Probeer het opnieuw."
+
+msgid "Failed to update terminal theme"
+msgstr "Terminalthema kon niet worden bijgewerkt"
 
 msgid "Failed to update URL"
 msgstr "Bijwerken van URL mislukt"

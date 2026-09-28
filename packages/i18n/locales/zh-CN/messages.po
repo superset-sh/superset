@@ -2074,6 +2074,9 @@ msgstr "应用显示语言。自动模式会跟随你的系统语言。"
 msgid "App icon"
 msgstr "应用图标"
 
+msgid "App theme"
+msgstr "应用主题"
+
 msgid "Appearance"
 msgstr "外观"
 
@@ -6504,6 +6507,9 @@ msgstr "更新设置失败"
 
 msgid "Failed to update team. Please try again."
 msgstr "更新团队失败。请重试。"
+
+msgid "Failed to update terminal theme"
+msgstr "无法更新终端主题"
 
 msgid "Failed to update URL"
 msgstr "更新URL失败"

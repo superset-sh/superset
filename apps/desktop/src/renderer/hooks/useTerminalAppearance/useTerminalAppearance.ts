@@ -9,11 +9,19 @@ import {
 import { detectInstalledNerdFontFamilies } from "renderer/lib/terminal/appearance/installed-nerd-fonts";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useTerminalTheme } from "renderer/stores/theme";
+import { toXtermTheme } from "renderer/stores/theme/utils";
+import { getTerminalColors, type Theme } from "shared/themes";
 
 const fallbackTheme = getDefaultTerminalAppearance().theme;
 
-export function useTerminalAppearance(): TerminalAppearance {
-	const terminalTheme = useTerminalTheme();
+export function useTerminalAppearance(
+	sessionTheme: Theme | null = null,
+): TerminalAppearance {
+	const appTerminalTheme = useTerminalTheme();
+	const sessionTerminalTheme = useMemo(
+		() => (sessionTheme ? toXtermTheme(getTerminalColors(sessionTheme)) : null),
+		[sessionTheme],
+	);
 	const { data: fontSettings } = useQuery({
 		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
@@ -29,7 +37,12 @@ export function useTerminalAppearance(): TerminalAppearance {
 	});
 
 	return useMemo(() => {
-		const theme = terminalTheme ?? fallbackTheme;
+		const theme = sessionTerminalTheme ?? appTerminalTheme ?? fallbackTheme;
 		return resolveTerminalAppearance(theme, fontSettings, installedIconFonts);
-	}, [terminalTheme, fontSettings, installedIconFonts]);
+	}, [
+		sessionTerminalTheme,
+		appTerminalTheme,
+		fontSettings,
+		installedIconFonts,
+	]);
 }

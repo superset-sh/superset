@@ -2074,6 +2074,9 @@ msgstr "App display language. Auto follows your system language."
 msgid "App icon"
 msgstr "App icon"
 
+msgid "App theme"
+msgstr "App theme"
+
 msgid "Appearance"
 msgstr "Appearance"
 
@@ -6504,6 +6507,9 @@ msgstr "Failed to update setting"
 
 msgid "Failed to update team. Please try again."
 msgstr "Failed to update team. Please try again."
+
+msgid "Failed to update terminal theme"
+msgstr "Failed to update terminal theme"
 
 msgid "Failed to update URL"
 msgstr "Failed to update URL"

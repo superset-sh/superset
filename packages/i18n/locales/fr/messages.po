@@ -2074,6 +2074,9 @@ msgstr "Langue d'affichage de l'application. Auto suit la langue de votre systè
 msgid "App icon"
 msgstr "Icône de l’app"
 
+msgid "App theme"
+msgstr "Thème de l'application"
+
 msgid "Appearance"
 msgstr "Apparence"
 
@@ -6504,6 +6507,9 @@ msgstr "Échec de la mise à jour du paramètre"
 
 msgid "Failed to update team. Please try again."
 msgstr "Échec de la mise à jour de l'équipe. Veuillez réessayer."
+
+msgid "Failed to update terminal theme"
+msgstr "Échec de la mise à jour du thème du terminal"
 
 msgid "Failed to update URL"
 msgstr "Échec de la mise à jour de l'URL"

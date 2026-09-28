@@ -2074,6 +2074,9 @@ msgstr "アプリの表示言語。自動ではシステムの言語に従いま
 msgid "App icon"
 msgstr "アプリアイコン"
 
+msgid "App theme"
+msgstr "アプリのテーマ"
+
 msgid "Appearance"
 msgstr "外観"
 
@@ -6504,6 +6507,9 @@ msgstr "設定の更新に失敗しました"
 
 msgid "Failed to update team. Please try again."
 msgstr "チームを更新できませんでした。もう一度お試しください。"
+
+msgid "Failed to update terminal theme"
+msgstr "ターミナルテーマを更新できませんでした"
 
 msgid "Failed to update URL"
 msgstr "URLの更新に失敗しました"

@@ -30,8 +30,10 @@ import {
 	LuEraser,
 	LuExternalLink,
 	LuLink,
+	LuPalette,
 	LuPower,
 } from "react-icons/lu";
+import { ThemeSwatch } from "renderer/components/ThemeSwatch";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
@@ -46,7 +48,9 @@ import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-
 import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useThemeStore } from "renderer/stores/theme";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
+import { builtInThemes, darkTheme, type Theme } from "shared/themes";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -95,6 +99,7 @@ import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/T
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 import { terminalContextMenuLinkStore } from "./components/TerminalPane/contextMenuLinkStore";
+import { findTerminalTheme } from "./utils/findTerminalTheme";
 import { openInActions } from "./utils/openInActions";
 import { pagePaneLabel } from "./utils/pagePaneLabel";
 import { replaceEndedTerminal } from "./utils/replaceEndedTerminal";
@@ -481,6 +486,90 @@ export function usePaneRegistry({
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
+					const themeActions = (
+						ctx: RendererContext<PaneViewerData>,
+					): ContextMenuActionConfig<PaneViewerData>[] => {
+						const paneData = ctx.pane.data as TerminalPaneData;
+						const { customThemes, activeTheme } = useThemeStore.getState();
+						const currentSession = workspaceTrpcUtils.terminal.list
+							.getData({ workspaceId })
+							?.sessions.find(
+								(session) => session.terminalId === paneData.terminalId,
+							);
+						const storedThemeId =
+							paneData.themeId !== undefined
+								? paneData.themeId
+								: (currentSession?.themeId ?? null);
+						const currentThemeId =
+							findTerminalTheme(storedThemeId, customThemes)?.id ?? null;
+						const chooseTheme = (themeId: string | null) => {
+							if (themeId === storedThemeId) return;
+							if (!currentSession || paneData.themeId !== undefined) {
+								ctx.actions.updateData({
+									...paneData,
+									themeId,
+								} as PaneViewerData);
+							}
+							if (!currentSession) return;
+							workspaceTrpcUtils.client.terminal.setTheme
+								.mutate({
+									terminalId: paneData.terminalId,
+									workspaceId,
+									themeId,
+								})
+								.then(
+									() =>
+										workspaceTrpcUtils.terminal.list.invalidate({
+											workspaceId,
+										}),
+									() => {
+										toast.error(
+											t({ message: "Failed to update terminal theme" }),
+										);
+									},
+								);
+						};
+						const themeChoices = (themes: Theme[]) =>
+							themes.map((theme) => ({
+								key: `terminal-theme-${theme.id}`,
+								label: theme.name,
+								icon: <ThemeSwatch theme={theme} />,
+								shortcut: currentThemeId === theme.id ? "✓" : undefined,
+								onSelect: () => chooseTheme(theme.id),
+							}));
+						const groups: ContextMenuActionConfig<PaneViewerData>[] = [
+							{
+								key: "terminal-theme-app",
+								label: t({ message: "App theme" }),
+								icon: <ThemeSwatch theme={activeTheme ?? darkTheme} />,
+								shortcut: currentThemeId === null ? "✓" : undefined,
+								onSelect: () => chooseTheme(null),
+							},
+							{ key: "sep-terminal-theme-app", type: "separator" },
+							{
+								key: "terminal-theme-light",
+								label: t({ message: "Light" }),
+								children: themeChoices(
+									builtInThemes.filter((theme) => theme.type === "light"),
+								),
+							},
+							{
+								key: "terminal-theme-dark",
+								label: t({ message: "Dark" }),
+								children: themeChoices(
+									builtInThemes.filter((theme) => theme.type === "dark"),
+								),
+							},
+						];
+						if (customThemes.length > 0) {
+							groups.push({
+								key: "terminal-theme-custom",
+								label: t({ message: "Custom" }),
+								children: themeChoices(customThemes),
+							});
+						}
+						return groups;
+					};
 					const terminalActions: ContextMenuActionConfig<PaneViewerData>[] = [
 						{
 							key: "copy",
@@ -558,6 +647,13 @@ export function usePaneRegistry({
 								const { terminalId } = ctx.pane.data as TerminalPaneData;
 								terminalRuntimeRegistry.scrollToBottom(terminalId, ctx.pane.id);
 							},
+						},
+						{ key: "sep-terminal-theme", type: "separator" },
+						{
+							key: "terminal-theme",
+							label: t({ message: "Theme" }),
+							icon: <LuPalette />,
+							children: themeActions,
 						},
 						{ key: "sep-terminal-defaults", type: "separator" },
 					];

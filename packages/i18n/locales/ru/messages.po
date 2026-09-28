@@ -2074,6 +2074,9 @@ msgstr "Язык интерфейса приложения. Авто следу�
 msgid "App icon"
 msgstr "Значок приложения"
 
+msgid "App theme"
+msgstr "Тема приложения"
+
 msgid "Appearance"
 msgstr "Внешний вид"
 
@@ -6504,6 +6507,9 @@ msgstr "Не удалось обновить настройку"
 
 msgid "Failed to update team. Please try again."
 msgstr "Не удалось обновить команду. Попробуйте ещё раз."
+
+msgid "Failed to update terminal theme"
+msgstr "Не удалось обновить тему терминала"
 
 msgid "Failed to update URL"
 msgstr "Не удалось обновить URL"

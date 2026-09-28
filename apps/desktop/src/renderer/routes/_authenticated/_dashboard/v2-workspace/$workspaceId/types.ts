@@ -29,6 +29,7 @@ export interface TerminalPaneData {
 	 * clobber a live or exited session.
 	 */
 	createOnAttach?: boolean;
+	themeId?: string | null;
 }
 
 export interface BrowserPaneData {

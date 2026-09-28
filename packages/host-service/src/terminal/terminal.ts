@@ -180,6 +180,15 @@ export function parseThemeType(
 	return value === "dark" || value === "light" ? value : undefined;
 }
 
+export const MAX_THEME_ID_LENGTH = 200;
+
+export function parseThemeId(
+	value: string | null | undefined,
+): string | undefined {
+	if (!value || value.length > MAX_THEME_ID_LENGTH) return undefined;
+	return value;
+}
+
 /**
  * Build the host-service tRPC URL for the v2 agent hook. The agent shell
  * script POSTs to this; host-service fans out on the event bus so the
@@ -553,6 +562,7 @@ interface TerminalSession {
 	 * name while the shell retitles itself underneath.
 	 */
 	customTitle: string | null;
+	themeId: string | null;
 	titleScanState: TerminalTitleScanState;
 	/**
 	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
@@ -835,6 +845,7 @@ export interface TerminalSessionSummary {
 	title: string | null;
 	/** The user's name on its own — null when the session has never been named. */
 	customTitle: string | null;
+	themeId: string | null;
 }
 
 /**
@@ -903,6 +914,7 @@ export function listTerminalSessions(
 			attached: pruneAndCountOpenSockets(session) > 0,
 			title: sessionDisplayTitle(session),
 			customTitle: session.customTitle,
+			themeId: session.themeId,
 		}));
 }
 
@@ -963,6 +975,7 @@ export async function listLiveTerminalSessions(
 			status: terminalSessions.status,
 			createdAt: terminalSessions.createdAt,
 			customTitle: terminalSessions.customTitle,
+			themeId: terminalSessions.themeId,
 			disposeRequestedAt: terminalSessions.disposeRequestedAt,
 		})
 		.from(terminalSessions)
@@ -989,6 +1002,7 @@ export async function listLiveTerminalSessions(
 			// this session's output — but the name it was given is durable.
 			title: row.customTitle,
 			customTitle: row.customTitle,
+			themeId: row.themeId,
 		});
 	}
 	return merged;
@@ -1504,6 +1518,24 @@ export function renameTerminalSession({
 	const before = sessionDisplayTitle(session);
 	session.customTitle = customTitle;
 	broadcastDisplayTitle(session, before);
+}
+
+export function setTerminalSessionTheme({
+	terminalId,
+	themeId,
+	db,
+}: {
+	terminalId: string;
+	themeId: string | null;
+	db: HostDb;
+}): void {
+	db.update(terminalSessions)
+		.set({ themeId })
+		.where(eq(terminalSessions.id, terminalId))
+		.run();
+
+	const session = sessions.get(terminalId);
+	if (session) session.themeId = themeId;
 }
 
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
@@ -2879,6 +2911,7 @@ interface CreateTerminalSessionOptions {
 	terminalId: string;
 	workspaceId: string;
 	themeType?: "dark" | "light";
+	themeId?: string | null;
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
@@ -2966,6 +2999,7 @@ async function createTerminalSessionUnlocked({
 	terminalId,
 	workspaceId,
 	themeType,
+	themeId: requestedThemeId,
 	db,
 	eventBus,
 	initialCommand,
@@ -3198,6 +3232,7 @@ async function createTerminalSessionUnlocked({
 			originWorkspaceId: workspaceId,
 			status: "active",
 			createdAt,
+			themeId: requestedThemeId ?? null,
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
@@ -3213,12 +3248,16 @@ async function createTerminalSessionUnlocked({
 	// Read back rather than default to null: relaunching into the same
 	// terminal id (adoption, an agent resume) must keep the name it was given,
 	// and the conflict update above deliberately leaves the column alone.
-	const customTitle =
-		db
-			.select({ customTitle: terminalSessions.customTitle })
-			.from(terminalSessions)
-			.where(eq(terminalSessions.id, terminalId))
-			.get()?.customTitle ?? null;
+	const persistedSession = db
+		.select({
+			customTitle: terminalSessions.customTitle,
+			themeId: terminalSessions.themeId,
+		})
+		.from(terminalSessions)
+		.where(eq(terminalSessions.id, terminalId))
+		.get();
+	const customTitle = persistedSession?.customTitle ?? null;
+	const themeId = persistedSession?.themeId ?? null;
 
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
@@ -3271,6 +3310,7 @@ async function createTerminalSessionUnlocked({
 		listed,
 		title: null,
 		customTitle,
+		themeId,
 		titleScanState: createTerminalTitleScanState(),
 		eventBus,
 		shellReadyState: shellSupportsReady
@@ -3474,6 +3514,7 @@ export function registerWorkspaceTerminalRoute({
 			terminalId: string;
 			workspaceId: string;
 			themeType?: string;
+			themeId?: string;
 			initialCommand?: string;
 			cwd?: string;
 			cols?: number;
@@ -3488,6 +3529,7 @@ export function registerWorkspaceTerminalRoute({
 			terminalId: body.terminalId,
 			workspaceId: body.workspaceId,
 			themeType: parseThemeType(body.themeType),
+			themeId: parseThemeId(body.themeId),
 			db,
 			eventBus,
 			initialCommand: body.initialCommand,
@@ -3561,6 +3603,7 @@ export function registerWorkspaceTerminalRoute({
 			// never queues behind Chromium's 6-per-origin HTTP socket pool.
 			const createRequested = c.req.query("create") === "1";
 			const requestedThemeType = parseThemeType(c.req.query("themeType"));
+			const requestedThemeId = parseThemeId(c.req.query("themeId"));
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -3639,6 +3682,7 @@ export function registerWorkspaceTerminalRoute({
 							terminalId,
 							workspaceId: requestedWorkspaceId,
 							themeType: requestedThemeType,
+							themeId: requestedThemeId,
 							db,
 							eventBus,
 						});

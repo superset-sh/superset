@@ -1,0 +1,1 @@
+export { findTerminalTheme } from "./findTerminalTheme";

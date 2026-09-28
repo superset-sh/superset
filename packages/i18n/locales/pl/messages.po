@@ -2074,6 +2074,9 @@ msgstr "Język interfejsu aplikacji. Auto podąża za językiem systemu."
 msgid "App icon"
 msgstr "Ikona aplikacji"
 
+msgid "App theme"
+msgstr "Motyw aplikacji"
+
 msgid "Appearance"
 msgstr "Wygląd"
 
@@ -6504,6 +6507,9 @@ msgstr "Nie udało się zaktualizować ustawienia"
 
 msgid "Failed to update team. Please try again."
 msgstr "Nie udało się zaktualizować zespołu. Spróbuj ponownie."
+
+msgid "Failed to update terminal theme"
+msgstr "Nie udało się zaktualizować motywu terminala"
 
 msgid "Failed to update URL"
 msgstr "Nie udało się zaktualizować adresu URL"
