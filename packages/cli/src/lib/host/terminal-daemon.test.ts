@@ -24,15 +24,36 @@ afterAll(() => {
 	rmSync(tempHome, { recursive: true, force: true });
 });
 
-async function startProcess(script: string) {
+async function startProcess(script: string, env: Record<string, string> = {}) {
 	const child = Bun.spawn([process.execPath, "-e", script], {
 		stdout: "pipe",
 		stderr: "ignore",
+		env: { ...process.env, ...env },
 	});
 	spawned.push(child);
 	await child.stdout.getReader().read();
 	return child;
 }
+
+// Answers every connection with a pty-daemon hello-ack frame:
+// [u32 total length][u32 json length][json].
+const FAKE_DAEMON = `
+const reportedPid = process.env.REPORTED_PID === "none"
+	? undefined
+	: Number(process.env.REPORTED_PID || process.pid);
+const json = Buffer.from(JSON.stringify({
+	type: "hello-ack", protocol: 1, daemonVersion: "0.0.0-test", daemonPid: reportedPid,
+}));
+const frame = Buffer.alloc(8 + json.length);
+frame.writeUInt32BE(4 + json.length, 0);
+frame.writeUInt32BE(json.length, 4);
+json.copy(frame, 8);
+require("node:net")
+	.createServer((socket) => socket.once("data", () => socket.write(frame)))
+	.listen(process.env.SOCKET_PATH, () => console.log("ready"));
+`;
+
+const SLEEPER = "setInterval(() => {}, 1000); console.log('ready');";
 
 function writeDaemonManifest(
 	organizationId: string,
@@ -49,40 +70,101 @@ function writeDaemonManifest(
 }
 
 describe("stopTerminalDaemon", () => {
-	test("SIGTERMs a daemon that answers on its socket and removes its manifest", async () => {
+	test("SIGTERMs the daemon that answers on the socket and removes its manifest", async () => {
 		const socketPath = join(tempHome, "live.sock");
-		const daemon = await startProcess(
-			`require("node:net").createServer().listen(${JSON.stringify(socketPath)}, () => console.log("ready"));`,
-		);
+		const daemon = await startProcess(FAKE_DAEMON, { SOCKET_PATH: socketPath });
 		writeDaemonManifest("org-live", daemon.pid, socketPath);
 
-		const pid = await stopTerminalDaemon("org-live");
+		const pids = await stopTerminalDaemon("org-live");
 		await daemon.exited;
 
-		expect(pid).toBe(daemon.pid);
+		expect(pids).toEqual([daemon.pid]);
 		expect(daemon.signalCode).toBe("SIGTERM");
 		expect(readPtyDaemonManifest("org-live")).toBeNull();
 	});
 
-	test("does not signal the pid of a stale manifest", async () => {
-		const unrelated = await startProcess(
-			"setInterval(() => {}, 1000); console.log('ready');",
+	test("signals the pid the daemon reports, not a recycled manifest pid", async () => {
+		const socketPath = join(tempHome, "handoff.sock");
+		const successor = await startProcess(SLEEPER);
+		const daemon = await startProcess(FAKE_DAEMON, {
+			SOCKET_PATH: socketPath,
+			REPORTED_PID: String(successor.pid),
+		});
+		const recycled = await startProcess(SLEEPER);
+		writeDaemonManifest("org-handoff", recycled.pid, socketPath);
+
+		const pids = await stopTerminalDaemon("org-handoff");
+		await successor.exited;
+
+		expect(pids).toContain(successor.pid);
+		expect(successor.signalCode).toBe("SIGTERM");
+		expect(recycled.exitCode).toBeNull();
+		expect(recycled.signalCode).toBeNull();
+		daemon.kill("SIGKILL");
+	});
+
+	test("refuses to signal a daemon that does not report its pid", async () => {
+		const socketPath = join(tempHome, "old.sock");
+		const daemon = await startProcess(FAKE_DAEMON, {
+			SOCKET_PATH: socketPath,
+			REPORTED_PID: "none",
+		});
+		writeDaemonManifest("org-old", daemon.pid, socketPath);
+
+		await expect(stopTerminalDaemon("org-old")).rejects.toThrow(
+			/does not report its pid/,
 		);
+
+		expect(daemon.exitCode).toBeNull();
+		expect(daemon.signalCode).toBeNull();
+		expect(readPtyDaemonManifest("org-old")?.pid).toBe(daemon.pid);
+	});
+
+	test("removes a stale manifest without signalling its pid", async () => {
+		const unrelated = await startProcess(SLEEPER);
 		writeDaemonManifest(
 			"org-stale",
 			unrelated.pid,
 			join(tempHome, "gone.sock"),
 		);
 
-		const pid = await stopTerminalDaemon("org-stale");
+		const pids = await stopTerminalDaemon("org-stale");
 
-		expect(pid).toBeNull();
+		expect(pids).toEqual([]);
 		expect(unrelated.exitCode).toBeNull();
 		expect(unrelated.signalCode).toBeNull();
 		expect(readPtyDaemonManifest("org-stale")).toBeNull();
 	});
 
-	test("returns null when there is no daemon manifest", async () => {
-		expect(await stopTerminalDaemon("org-none")).toBeNull();
+	test("keeps a manifest that a new daemon wrote while stopping", async () => {
+		const socketPath = join(tempHome, "replaced.sock");
+		const daemon = await startProcess(
+			`process.on("SIGTERM", () => {
+				require("node:fs").writeFileSync(process.env.MANIFEST_PATH, JSON.stringify({
+					pid: 999999, socketPath: "/nowhere.sock", protocolVersions: [1],
+					startedAt: 1, organizationId: "org-replaced",
+				}));
+				process.exit(0);
+			});
+			${FAKE_DAEMON}`,
+			{
+				SOCKET_PATH: socketPath,
+				MANIFEST_PATH: join(
+					tempHome,
+					"host",
+					"org-replaced",
+					"pty-daemon-manifest.json",
+				),
+			},
+		);
+		writeDaemonManifest("org-replaced", daemon.pid, socketPath);
+
+		await stopTerminalDaemon("org-replaced");
+
+		expect(readPtyDaemonManifest("org-replaced")?.pid).toBe(999999);
+	});
+
+	test("returns nothing when there is no daemon manifest", async () => {
+		expect(await stopTerminalDaemon("org-none")).toEqual([]);
 	});
 });

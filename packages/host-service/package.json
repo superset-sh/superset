@@ -16,6 +16,10 @@
 			"types": "./src/daemon/manifest.ts",
 			"default": "./src/daemon/manifest.ts"
 		},
+		"./daemon-probe": {
+			"types": "./src/daemon/probe.ts",
+			"default": "./src/daemon/probe.ts"
+		},
 		"./events": {
 			"types": "./src/events/index.ts",
 			"default": "./src/events/index.ts"

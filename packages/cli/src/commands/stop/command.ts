@@ -31,11 +31,20 @@ export default command({
 			removeManifestIfOwnedBy(organization.id, manifest.pid);
 		}
 
-		const terminalDaemonPid = options.terminals
-			? await stopTerminalDaemon(organization.id)
-			: null;
+		let terminalDaemonPids: number[] = [];
+		if (options.terminals) {
+			try {
+				terminalDaemonPids = await stopTerminalDaemon(organization.id);
+			} catch (error) {
+				throw new CLIError(
+					`Failed to stop the terminal daemon: ${
+						error instanceof Error ? error.message : "unknown error"
+					}`,
+				);
+			}
+		}
 
-		if (!manifest && terminalDaemonPid === null) {
+		if (!manifest && terminalDaemonPids.length === 0) {
 			return {
 				data: { running: false },
 				message: `No host service running for ${organization.name}`,
@@ -44,14 +53,14 @@ export default command({
 
 		const stopped = [
 			manifest ? "host service" : null,
-			terminalDaemonPid !== null ? "terminal daemon" : null,
+			terminalDaemonPids.length > 0 ? "terminal daemon" : null,
 		]
 			.filter(Boolean)
 			.join(" and ");
 		return {
 			data: {
 				pid: manifest?.pid ?? null,
-				terminalDaemonPid,
+				terminalDaemonPids,
 				organizationId: organization.id,
 			},
 			message: `Stopped ${stopped} for ${organization.name}`,
