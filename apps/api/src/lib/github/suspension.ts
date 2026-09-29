@@ -43,26 +43,38 @@ export async function suspendInstallation(installation: {
 }
 
 /**
- * Lifts a suspension the App placed. Asked of GitHub rather than the row,
- * because the install callback clears the row's flag while GitHub still
- * holds the suspension. A suspension the account's own admins placed has a
- * User actor, not a Bot, and is theirs to lift.
+ * Whether the App itself suspended this installation. Asked of GitHub rather
+ * than the row, because the install callback clears the row's flag while
+ * GitHub still holds the suspension. A suspension the account's own admins
+ * placed has a User actor, not a Bot, and is theirs to lift. A row marked
+ * suspended that GitHub delivers for already is corrected on the way.
  */
+export async function appPlacedSuspension(installation: {
+	id: string;
+	installationId: string;
+}): Promise<boolean> {
+	const { data: remote } = await githubApp.octokit.request(
+		"GET /app/installations/{installation_id}",
+		{ installation_id: Number(installation.installationId) },
+	);
+	if (!remote.suspended_at) {
+		await db
+			.update(githubInstallations)
+			.set({ suspended: false, suspendedAt: null })
+			.where(eq(githubInstallations.id, installation.id));
+		return false;
+	}
+	return remote.suspended_by?.type === "Bot";
+}
+
 export async function liftSuspension(installation: {
 	id: string;
 	installationId: string;
 }): Promise<boolean> {
-	const installationId = Number(installation.installationId);
-	const { data: remote } = await githubApp.octokit.request(
-		"GET /app/installations/{installation_id}",
-		{ installation_id: installationId },
-	);
-	if (!remote.suspended_at || remote.suspended_by?.type !== "Bot") {
-		return false;
-	}
+	if (!(await appPlacedSuspension(installation))) return false;
 	await githubApp.octokit.request(
 		"DELETE /app/installations/{installation_id}/suspended",
-		{ installation_id: installationId },
+		{ installation_id: Number(installation.installationId) },
 	);
 	await db
 		.update(githubInstallations)

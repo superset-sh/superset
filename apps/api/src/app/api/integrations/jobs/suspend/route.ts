@@ -5,13 +5,20 @@ import { organizationSyncs } from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { env } from "@/env";
-import { liftSuspension, suspendInstallation } from "@/lib/github/suspension";
+import {
+	appPlacedSuspension,
+	suspendInstallation,
+} from "@/lib/github/suspension";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
+
+// Under maxDuration so a long backlog ends in a summary rather than the
+// platform killing the run mid-loop; every processed row is already written.
+const RUN_BUDGET_MS = 240_000;
 
 /**
  * Hourly: bring every provider into line with `organizationSyncs`, so the
@@ -25,8 +32,9 @@ const qstash = new Client({ token: env.QSTASH_TOKEN });
  * has just paid immediately; this is what catches everyone else, such as a
  * policy that also ices idle organizations and lets them back on return.
  *
- * Each provider stops at its first rate-limit response and the next run
- * carries on; whatever is left over is still iced an hour later.
+ * Each provider stops at its first rate-limit response or at the run budget
+ * and the next run carries on; whatever is left over is still iced an hour
+ * later.
  */
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -37,10 +45,15 @@ export async function POST(request: Request) {
 	);
 	if (rejected) return rejected;
 
-	return Response.json({ github: await github(), linear: await linear() });
+	const deadline = Date.now() + RUN_BUDGET_MS;
+	const [github, linear] = await Promise.all([
+		githubPass(deadline),
+		linearPass(deadline),
+	]);
+	return Response.json({ github, linear });
 }
 
-async function github() {
+async function githubPass(deadline: number) {
 	const columns = {
 		id: githubInstallations.id,
 		installationId: githubInstallations.installationId,
@@ -69,16 +82,23 @@ async function github() {
 	]);
 
 	const outcomes = { suspended: 0, gone: 0, rate_limited: 0, failed: 0 };
+	let processed = 0;
 	for (const installation of toSuspend) {
+		if (Date.now() > deadline) break;
 		const outcome = await suspendInstallation(installation);
 		outcomes[outcome] += 1;
+		processed += 1;
 		if (outcome === "rate_limited") break;
 	}
 
+	// The backfill job lifts the suspension itself, so it is queued first: a
+	// publish that fails leaves the row suspended for the next run, rather than
+	// an installation delivering again with the gap never filled.
 	let resumed = 0;
 	for (const installation of toResume) {
+		if (Date.now() > deadline) break;
 		try {
-			if (!(await liftSuspension(installation))) continue;
+			if (!(await appPlacedSuspension(installation))) continue;
 			await qstash.publishJSON({
 				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
 				body: {
@@ -96,10 +116,15 @@ async function github() {
 		}
 	}
 
-	return { candidates: toSuspend.length, ...outcomes, resumed };
+	return {
+		candidates: toSuspend.length,
+		...outcomes,
+		deferred: toSuspend.length - processed,
+		resumed,
+	};
 }
 
-async function linear() {
+async function linearPass(deadline: number) {
 	const toRevoke = await db
 		.select()
 		.from(connections)
@@ -112,7 +137,9 @@ async function linear() {
 		);
 
 	const outcomes = { revoked: 0, rate_limited: 0, failed: 0 };
+	let processed = 0;
 	for (const connection of toRevoke) {
+		if (Date.now() > deadline) break;
 		const outcome = await revokeLinearConnection(connection).catch((error) => {
 			console.error(
 				`[integrations/suspend] linear revoke failed for connection ${connection.id}:`,
@@ -121,8 +148,13 @@ async function linear() {
 			return "failed" as const;
 		});
 		outcomes[outcome] += 1;
+		processed += 1;
 		if (outcome === "rate_limited") break;
 	}
 
-	return { candidates: toRevoke.length, ...outcomes };
+	return {
+		candidates: toRevoke.length,
+		...outcomes,
+		deferred: toRevoke.length - processed,
+	};
 }

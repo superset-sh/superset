@@ -36,6 +36,7 @@ export async function revokeLinearConnection(
 			method: "POST",
 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: new URLSearchParams({ token, token_type_hint: hint }),
+			signal: AbortSignal.timeout(10_000),
 		});
 		if (response.status === 429) return "rate_limited";
 		if (!response.ok && response.status !== 400 && response.status !== 401) {
