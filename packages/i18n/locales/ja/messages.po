@@ -7410,6 +7410,9 @@ msgstr "GitHub へのサインインが必要です"
 msgid "GitHub stars"
 msgstr "GitHubスター"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "GitHubの同期にはProプランが必要です。"
+
 msgid "GitHub unreachable"
 msgstr "GitHub に接続できません"
 

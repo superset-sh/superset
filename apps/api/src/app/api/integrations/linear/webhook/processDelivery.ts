@@ -5,23 +5,24 @@ import type {
 import { db } from "@superset/db/client";
 import type { SelectConnection } from "@superset/db/schema";
 import {
+	connections,
 	members,
 	taskStatuses,
 	tasks,
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
-import {
-	accountConnection,
-	accountConnections,
-} from "@superset/trpc/connectors";
+import { accountConnections } from "@superset/trpc/connectors";
 import {
 	isLinearAuthError,
 	linearClientFor,
 	mapPriorityFromLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, eq, sql } from "drizzle-orm";
-
+import {
+	organizationSyncs,
+	syncingOrganizationIds,
+} from "@superset/trpc/sync-policy";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
@@ -44,20 +45,33 @@ export interface DeliveryResult {
 }
 
 /**
- * Whether any Superset organization is still connected to this Linear
+ * Whether any syncing Superset organization is still connected to this Linear
  * organization.
  *
  * The accept path keeps this one indexed lookup so a delivery nobody
- * subscribes to costs what it always did — a query and nothing else. 317 of
- * the 1,661 Linear organizations on record have disconnected every one of
- * their connections, and recording their deliveries instead would start
- * writing rows and queueing work for traffic no measurement here can see.
+ * subscribes to costs what it always did — a query and nothing else. Both
+ * halves of the condition drop a large share of the traffic: a third of the
+ * Linear organizations on record have disconnected every one of their
+ * connections, and 1,320 of the 1,658 that remain belong to organizations on
+ * the free plan, where Tasks — the only consumer of this sync — is behind the
+ * paywall.
  */
 export async function hasActiveSubscriber(
 	externalOrgId: string,
 ): Promise<boolean> {
-	const subscriber = await accountConnection("linear", externalOrgId);
-	return subscriber !== null;
+	const [subscriber] = await db
+		.select({ id: connections.id })
+		.from(connections)
+		.where(
+			and(
+				eq(connections.connector, "linear"),
+				eq(connections.externalAccountId, externalOrgId),
+				isNull(connections.disconnectedAt),
+				organizationSyncs(connections.organizationId),
+			),
+		)
+		.limit(1);
+	return subscriber !== undefined;
 }
 
 /**
@@ -80,9 +94,16 @@ export async function processDelivery({
 	payload: LinearWebhookPayload;
 	deliveryId: string | null;
 }): Promise<DeliveryResult> {
-	const subscribers = await accountConnections(
-		"linear",
-		payload.organizationId,
+	const connected = await accountConnections("linear", payload.organizationId);
+	// One Linear organization fans out to every Superset organization connected
+	// to it, and they need not share a plan: the iced ones are dropped here
+	// rather than at the route, which only knows that somebody syncing is
+	// subscribed.
+	const syncing = await syncingOrganizationIds(
+		connected.map((connection) => connection.organizationId),
+	);
+	const subscribers = connected.filter((connection) =>
+		syncing.has(connection.organizationId),
 	);
 
 	if (subscribers.length === 0) {

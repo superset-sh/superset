@@ -8,6 +8,14 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./billing": {
+			"types": "./src/lib/billing/plan.ts",
+			"default": "./src/lib/billing/plan.ts"
+		},
+		"./sync-policy": {
+			"types": "./src/lib/sync-policy/syncPolicy.ts",
+			"default": "./src/lib/sync-policy/syncPolicy.ts"
+		},
 		"./connectors": {
 			"types": "./src/lib/connectors/index.ts",
 			"default": "./src/lib/connectors/index.ts"

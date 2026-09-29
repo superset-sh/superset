@@ -3,7 +3,6 @@ import {
 	automationEvents,
 	automations,
 	automationTriggers,
-	subscriptions,
 } from "@superset/db/schema";
 import { findProviderIdentity } from "@superset/db/utils";
 import {
@@ -13,14 +12,12 @@ import {
 	triggerMatches,
 } from "@superset/shared/automation-matching";
 import {
-	ACTIVE_SUBSCRIPTION_STATUSES,
-	type PlanTier,
 	planAllowsTriggerKind,
-	planTierFromSubscription,
 	requiredPlanForTriggerKind,
 } from "@superset/shared/billing";
+import { organizationPlan } from "@superset/trpc/billing";
 import { Client } from "@upstash/qstash";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 
 const qstash = new Client({
@@ -166,26 +163,6 @@ export async function dispatchMatchingTriggers(params: {
 
 	await markDispatched(params.eventId);
 	return { matched: matched.length, considered: candidates.length };
-}
-
-/**
- * The org's plan as billing.activePlan resolves it: the newest subscription
- * in a paying status, else free. Unrecognized plan names read as free — the
- * gate must fail closed on a plan string this build doesn't know.
- */
-async function organizationPlan(organizationId: string): Promise<PlanTier> {
-	const [subscription] = await db
-		.select({ plan: subscriptions.plan, status: subscriptions.status })
-		.from(subscriptions)
-		.where(
-			and(
-				eq(subscriptions.referenceId, organizationId),
-				inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
-			),
-		)
-		.orderBy(desc(subscriptions.createdAt))
-		.limit(1);
-	return planTierFromSubscription(subscription);
 }
 
 /**

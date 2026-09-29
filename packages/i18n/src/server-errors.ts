@@ -414,6 +414,12 @@ export const serverErrorMessages: Record<
 				message: "GitHub installation not found",
 			}),
 		),
+	"serverError.integration.githubSyncRequiresThePro": () =>
+		i18n._(
+			msg({
+				message: "GitHub sync requires the Pro plan.",
+			}),
+		),
 	"serverError.integration.notAMemberOfThisOrganization": () =>
 		i18n._(
 			msg({

@@ -13,12 +13,6 @@ mock.module("@linear/sdk/webhooks", () => ({
 	},
 }));
 
-// Verified as a Hookdeck delivery, which is the path that skips Linear's own
-// signature. What this file is about is what happens after verification.
-mock.module("@/lib/webhooks/hookdeck", () => ({
-	verifyHookdeckDelivery: () => "verified",
-}));
-
 let recorded: {
 	id: string;
 	status: string;
@@ -64,7 +58,7 @@ const RECEIVED_AT = new Date("2026-09-07T10:00:00.123Z");
 function request(headers: Record<string, string> = {}): Request {
 	return new Request("http://localhost/api/integrations/linear/webhook", {
 		method: "POST",
-		headers: { "x-hookdeck-signature": "sig", ...headers },
+		headers: { "linear-signature": "sig", ...headers },
 		body: JSON.stringify(PAYLOAD),
 	});
 }
@@ -160,7 +154,7 @@ describe("linear webhook acceptance", () => {
 		const response = await POST(
 			new Request("http://localhost/api/integrations/linear/webhook", {
 				method: "POST",
-				headers: { "x-hookdeck-signature": "sig" },
+				headers: { "linear-signature": "sig" },
 				body: "{not json",
 			}),
 		);

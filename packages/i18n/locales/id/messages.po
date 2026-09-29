@@ -7410,6 +7410,9 @@ msgstr "Perlu masuk ke GitHub"
 msgid "GitHub stars"
 msgstr "Star GitHub"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "Sinkronisasi GitHub memerlukan paket Pro."
+
 msgid "GitHub unreachable"
 msgstr "GitHub tidak dapat dijangkau"
 

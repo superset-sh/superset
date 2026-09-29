@@ -7410,6 +7410,9 @@ msgstr "需要登录 GitHub"
 msgid "GitHub stars"
 msgstr "GitHub 星标"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "GitHub同步需要Pro套餐。"
+
 msgid "GitHub unreachable"
 msgstr "无法连接 GitHub"
 

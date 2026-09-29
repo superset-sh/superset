@@ -7410,6 +7410,9 @@ msgstr "Je vyžadováno přihlášení ke GitHubu"
 msgid "GitHub stars"
 msgstr "Hvězdy na GitHubu"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "Synchronizace GitHubu vyžaduje tarif Pro."
+
 msgid "GitHub unreachable"
 msgstr "GitHub je nedostupný"
 

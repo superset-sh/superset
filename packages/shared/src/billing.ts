@@ -38,6 +38,9 @@ export function isPaymentFailingStatus(
 	return status === "past_due";
 }
 
+/** The paying tiers, for SQL filters; `isPaidPlanTier` is the same set in TypeScript. */
+export const PAID_PLAN_TIERS = ["pro", "enterprise"] as const;
+
 export function isPaidPlanTier(
 	plan: string | null | undefined,
 ): plan is "pro" | "enterprise" {

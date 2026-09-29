@@ -1,8 +1,8 @@
 import { db } from "@superset/db/client";
 import { githubInstallations } from "@superset/db/schema";
+import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
 import { and, eq, ne } from "drizzle-orm";
-
 import { env } from "@/env";
 import { exitOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
@@ -110,29 +110,37 @@ export async function GET(request: Request) {
 
 		// Queue initial sync job. In development the queue cannot reach
 		// localhost, so the job endpoint is called directly, as triggerSync does.
+		// A free organization gets no backfill and no webhook sync after it
+		// either; the subscription hook queues this job when it upgrades.
 		const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
 		const syncBody = {
 			installationDbId: savedInstallation.id,
 			organizationId,
 		};
-		try {
-			if (env.NODE_ENV === "development") {
-				fetch(syncUrl, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(syncBody),
-				}).catch((error) => {
-					console.error("[github/callback] Dev sync failed:", error);
-				});
-			} else {
-				await qstash.publishJSON({ url: syncUrl, body: syncBody, retries: 3 });
+		if (await organizationSyncsNow(organizationId)) {
+			try {
+				if (env.NODE_ENV === "development") {
+					fetch(syncUrl, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(syncBody),
+					}).catch((error) => {
+						console.error("[github/callback] Dev sync failed:", error);
+					});
+				} else {
+					await qstash.publishJSON({
+						url: syncUrl,
+						body: syncBody,
+						retries: 3,
+					});
+				}
+			} catch (error) {
+				console.error(
+					"[github/callback] Failed to queue initial sync job:",
+					error,
+				);
+				return exit(`${settingsUrl}?warning=sync_queue_failed`);
 			}
-		} catch (error) {
-			console.error(
-				"[github/callback] Failed to queue initial sync job:",
-				error,
-			);
-			return exit(`${settingsUrl}?warning=sync_queue_failed`);
 		}
 
 		return exit(`${settingsUrl}?success=github_installed`);

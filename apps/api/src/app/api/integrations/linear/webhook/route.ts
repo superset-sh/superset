@@ -7,7 +7,6 @@ import {
 import { env } from "@/env";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
-import { verifyHookdeckDelivery } from "@/lib/webhooks/hookdeck";
 import { deliveryRowEventId } from "./deliveryIds";
 import { hasActiveSubscriber } from "./processDelivery";
 import { enqueueLinearDelivery } from "./queue";
@@ -32,37 +31,33 @@ const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 export async function POST(request: Request) {
 	const body = await request.text();
 
-	// Both paths stay live through a cutover: traffic still arriving straight
-	// from Linear verifies as it always has, and rolling back is repointing the
-	// URL rather than shipping a deploy.
-	const hookdeck = verifyHookdeckDelivery(request, body);
-	if (hookdeck instanceof Response) return hookdeck;
+	const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
+	if (!signature) {
+		return Response.json({ error: "Missing signature" }, { status: 401 });
+	}
 
+	let webhookTimestamp: unknown;
+	try {
+		({ webhookTimestamp } = JSON.parse(body) as { webhookTimestamp?: unknown });
+	} catch {
+		return Response.json({ error: "Malformed payload" }, { status: 400 });
+	}
+
+	// The SDK only enforces Linear's ±60s replay window when handed the
+	// timestamp, and the timestamp lives inside the body being verified.
 	let payload: LinearWebhookPayload;
-	if (hookdeck === "verified") {
-		// Deliberately not re-checking Linear's signature. Hookdeck verified it
-		// at ingest, and Linear's covers a timestamp inside a ±60s replay window
-		// that Hookdeck preserves on retry — so checking it here would reject
-		// every retry, which is the delivery the gateway exists to save.
-		try {
-			payload = JSON.parse(body) as LinearWebhookPayload;
-		} catch {
-			return Response.json({ error: "Malformed payload" }, { status: 400 });
-		}
-	} else {
-		const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
-		if (!signature) {
-			return Response.json({ error: "Missing signature" }, { status: 401 });
-		}
-		try {
-			payload = parseVerifiedPayload(body, signature);
-		} catch (error) {
-			console.warn(
-				"[linear/webhook] rejected delivery:",
-				error instanceof Error ? error.message : error,
-			);
-			return Response.json({ error: "Invalid signature" }, { status: 401 });
-		}
+	try {
+		payload = webhookClient.parseData(
+			Buffer.from(body),
+			signature,
+			typeof webhookTimestamp === "number" ? webhookTimestamp : undefined,
+		);
+	} catch (error) {
+		console.warn(
+			"[linear/webhook] rejected delivery:",
+			error instanceof Error ? error.message : error,
+		);
+		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
 	// Deliveries for a Linear organization that has disconnected are dropped
@@ -113,20 +108,4 @@ export async function POST(request: Request) {
 	}
 
 	return Response.json({ success: true, status: "accepted" });
-}
-
-// The SDK only enforces Linear's ±60s replay window when handed the
-// timestamp, and the timestamp lives inside the body being verified.
-function parseVerifiedPayload(
-	body: string,
-	signature: string,
-): LinearWebhookPayload {
-	const { webhookTimestamp } = JSON.parse(body) as {
-		webhookTimestamp?: unknown;
-	};
-	return webhookClient.parseData(
-		Buffer.from(body),
-		signature,
-		typeof webhookTimestamp === "number" ? webhookTimestamp : undefined,
-	);
 }

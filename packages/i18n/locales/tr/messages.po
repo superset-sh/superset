@@ -7410,6 +7410,9 @@ msgstr "GitHub oturumu açmanız gerekiyor"
 msgid "GitHub stars"
 msgstr "GitHub yıldızları"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "GitHub eşitlemesi Pro planı gerektirir."
+
 msgid "GitHub unreachable"
 msgstr "GitHub'a ulaşılamıyor"
 

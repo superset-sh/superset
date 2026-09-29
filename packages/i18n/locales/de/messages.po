@@ -7410,6 +7410,9 @@ msgstr "GitHub-Anmeldung erforderlich"
 msgid "GitHub stars"
 msgstr "GitHub-Stars"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "Die GitHub-Synchronisierung erfordert den Pro-Plan."
+
 msgid "GitHub unreachable"
 msgstr "GitHub nicht erreichbar"
 

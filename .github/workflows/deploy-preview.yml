@@ -174,7 +174,6 @@ jobs:
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
           GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
           GH_APP_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
-          HOOKDECK_SIGNING_SECRET: ${{ secrets.HOOKDECK_SIGNING_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_URL: ${{ secrets.QSTASH_URL }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
@@ -250,7 +249,6 @@ jobs:
             --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
             --env GH_APP_CLIENT_ID="$GH_APP_CLIENT_ID" \
             --env GH_APP_CLIENT_SECRET="$GH_APP_CLIENT_SECRET" \
-            --env HOOKDECK_SIGNING_SECRET="$HOOKDECK_SIGNING_SECRET" \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_URL=$QSTASH_URL \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \

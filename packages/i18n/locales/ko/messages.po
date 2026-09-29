@@ -7410,6 +7410,9 @@ msgstr "GitHub 로그인이 필요합니다"
 msgid "GitHub stars"
 msgstr "GitHub 스타"
 
+msgid "GitHub sync requires the Pro plan."
+msgstr "GitHub 동기화에는 Pro 플랜이 필요합니다."
+
 msgid "GitHub unreachable"
 msgstr "GitHub에 연결할 수 없습니다"
 

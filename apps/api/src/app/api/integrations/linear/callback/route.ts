@@ -5,8 +5,8 @@ import {
 	upsertConnection,
 } from "@superset/trpc/connectors";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
+import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
-
 import { env } from "@/env";
 import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
@@ -82,15 +82,20 @@ export async function GET(request: Request) {
 		displayName: viewer.name,
 	});
 
-	try {
-		await qstash.publishJSON({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
-			body: { organizationId, creatorUserId: userId },
-			retries: 3,
-		});
-	} catch (error) {
-		console.error("Failed to queue initial sync job:", error);
-		return exit(`${settingsUrl}?warning=sync_queued_failed`);
+	// A free organization's issues are mirrored into a Tasks screen it cannot
+	// open, so the backfill waits until it upgrades, where the subscription
+	// hook queues this same job.
+	if (await organizationSyncsNow(organizationId)) {
+		try {
+			await qstash.publishJSON({
+				url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
+				body: { organizationId, creatorUserId: userId },
+				retries: 3,
+			});
+		} catch (error) {
+			console.error("Failed to queue initial sync job:", error);
+			return exit(`${settingsUrl}?warning=sync_queued_failed`);
+		}
 	}
 
 	return exit(settingsUrl);
