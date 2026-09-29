@@ -13776,6 +13776,9 @@ msgstr "Regels vóór de wijziging hieronder tonen"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Laat de laatste 10 runs zien van mijn Linear-triage-automatisering"
 
+msgid "Show menu bar icon"
+msgstr "Menubalkpictogram tonen"
+
 msgid "Show more"
 msgstr "Meer tonen"
 
@@ -13820,6 +13823,9 @@ msgstr "Sessies tonen"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Status tonen en meldingen sturen voor deze agent."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "Het Superset-pictogram in de macOS-menubalk tonen"
 
 msgid "Show translation"
 msgstr "Vertaling tonen"

@@ -13776,6 +13776,9 @@ msgstr "Zobrazit řádky před změnou níže"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Ukaž mi posledních 10 běhů mé automatizace na třídění v Linearu"
 
+msgid "Show menu bar icon"
+msgstr "Zobrazit ikonu v řádku nabídek"
+
 msgid "Show more"
 msgstr "Zobrazit více"
 
@@ -13820,6 +13823,9 @@ msgstr "Zobrazit relace"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Zobrazovat stav a posílat oznámení pro tohoto agenta."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "Zobrazit ikonu Superset v řádku nabídek macOS"
 
 msgid "Show translation"
 msgstr "Zobrazit překlad"

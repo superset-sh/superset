@@ -13776,6 +13776,9 @@ msgstr "Hiện các dòng trước thay đổi bên dưới"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Cho tôi xem 10 lần chạy gần nhất của tự động hóa phân loại Linear"
 
+msgid "Show menu bar icon"
+msgstr "Hiển thị biểu tượng trên thanh menu"
+
 msgid "Show more"
 msgstr "Hiện thêm"
 
@@ -13820,6 +13823,9 @@ msgstr "Hiện phiên"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "Hiển thị biểu tượng Superset trên thanh menu của macOS"
 
 msgid "Show translation"
 msgstr "Xem bản dịch"

@@ -13776,6 +13776,9 @@ msgstr "顯示下方改動之前的行"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "給我看看Linear分類自動化最近10次執行"
 
+msgid "Show menu bar icon"
+msgstr "顯示選單列圖示"
+
 msgid "Show more"
 msgstr "顯示更多"
 
@@ -13820,6 +13823,9 @@ msgstr "顯示會話"
 
 msgid "Show status and send notifications for this agent."
 msgstr "為此代理程式顯示狀態併發送通知。"
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "在 macOS 選單列中顯示 Superset 圖示"
 
 msgid "Show translation"
 msgstr "顯示譯文"

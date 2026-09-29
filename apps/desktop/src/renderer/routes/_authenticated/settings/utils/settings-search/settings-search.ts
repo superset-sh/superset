@@ -42,6 +42,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_AGENT_SESSION_PLACEMENT: "behavior-agent-session-placement",
 	BEHAVIOR_CHANGES_OPEN_TARGET: "behavior-changes-open-target",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
+	BEHAVIOR_TRAY_ICON: "behavior-tray-icon",
 	USAGE_IN_SIDEBAR: "usage-in-sidebar",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 	BEHAVIOR_STAR_GITHUB: "behavior-star-github",
@@ -193,6 +194,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	// The top-bar Changes control is a v2-only surface.
 	[SETTING_ITEM_ID.BEHAVIOR_CHANGES_OPEN_TARGET]: "v2",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_TRAY_ICON]: "shared",
 	// The home sidebar (DashboardSidebar) only renders for v2 users.
 	[SETTING_ITEM_ID.USAGE_IN_SIDEBAR]: "v2",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
@@ -894,6 +896,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"process",
 			"terminal",
 		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_TRAY_ICON,
+		section: "behavior",
+		title: "Show menu bar icon",
+		description: "Show the Superset icon in the macOS menu bar",
+		keywords: ["menu bar", "tray", "status", "icon", "macos"],
 	},
 	{
 		id: SETTING_ITEM_ID.USAGE_IN_SIDEBAR,

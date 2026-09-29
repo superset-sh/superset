@@ -13776,6 +13776,9 @@ msgstr "Mostrar as linhas antes da alteração abaixo"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Me mostre as últimas 10 execuções da minha automação de triagem do Linear"
 
+msgid "Show menu bar icon"
+msgstr "Mostrar ícone na barra de menus"
+
 msgid "Show more"
 msgstr "Mostrar mais"
 
@@ -13820,6 +13823,9 @@ msgstr "Mostrar sessões"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Mostra o status e envia notificações para este agente."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "Mostrar o ícone do Superset na barra de menus do macOS"
 
 msgid "Show translation"
 msgstr "Mostrar a tradução"

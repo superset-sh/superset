@@ -114,6 +114,14 @@ describe("settings search - usage in sidebar", () => {
 	});
 });
 
+describe("settings search - menu bar icon", () => {
+	it('searching "tray" returns the menu bar icon setting', () => {
+		const ids = getIds(searchSettings("tray"));
+
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_TRAY_ICON);
+	});
+});
+
 describe("settings search - auto save", () => {
 	it('lists Auto Save for v2 users when searching "onFocusChange"', () => {
 		const ids = getVisibleItemsForSection({

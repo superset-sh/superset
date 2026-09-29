@@ -13776,6 +13776,9 @@ msgstr "변경 앞부분의 줄을 아래에 표시"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "내 Linear 분류 자동화의 최근 실행 10건을 보여 줘"
 
+msgid "Show menu bar icon"
+msgstr "메뉴 막대 아이콘 표시"
+
 msgid "Show more"
 msgstr "더 보기"
 
@@ -13820,6 +13823,9 @@ msgstr "세션 표시"
 
 msgid "Show status and send notifications for this agent."
 msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "macOS 메뉴 막대에 Superset 아이콘 표시"
 
 msgid "Show translation"
 msgstr "번역 보기"

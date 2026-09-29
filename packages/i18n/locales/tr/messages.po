@@ -13776,6 +13776,9 @@ msgstr "Aşağıdaki değişiklikten önceki satırları göster"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Linear sınıflandırma otomasyonumun son 10 çalıştırmasını göster"
 
+msgid "Show menu bar icon"
+msgstr "Menü çubuğu simgesini göster"
+
 msgid "Show more"
 msgstr "Daha fazla göster"
 
@@ -13820,6 +13823,9 @@ msgstr "Oturumları göster"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Bu ajan için durum göster ve bildirim gönder."
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "Superset simgesini macOS menü çubuğunda göster"
 
 msgid "Show translation"
 msgstr "Çeviriyi göster"

@@ -13776,6 +13776,9 @@ msgstr "下の変更より前の行を表示"
 msgid "Show me the last 10 runs of my Linear triage automation"
 msgstr "Linearトリアージのオートメーションの直近10件の実行を見せて"
 
+msgid "Show menu bar icon"
+msgstr "メニューバーアイコンを表示"
+
 msgid "Show more"
 msgstr "もっと見る"
 
@@ -13820,6 +13823,9 @@ msgstr "セッションを表示"
 
 msgid "Show status and send notifications for this agent."
 msgstr "このエージェントのステータス表示と通知を有効にします。"
+
+msgid "Show the Superset icon in the macOS menu bar"
+msgstr "macOSのメニューバーにSupersetアイコンを表示"
 
 msgid "Show translation"
 msgstr "翻訳を表示"

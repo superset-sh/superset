@@ -256,6 +256,7 @@ export const settings = sqliteTable("settings", {
 	editorFontWeight: integer("editor_font_weight"),
 	editorLigatures: integer("editor_ligatures", { mode: "boolean" }),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
+	showTrayIcon: integer("show_tray_icon", { mode: "boolean" }),
 	showUsageInSidebar: integer("show_usage_in_sidebar", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
