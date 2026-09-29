@@ -7,13 +7,17 @@ import { calculateProgressForStates } from "./utils";
 export async function syncWorkflowStates({
 	client,
 	organizationId,
+	teamId,
 }: {
 	client: LinearClient;
 	organizationId: string;
+	teamId?: string;
 }): Promise<void> {
-	const teams = await client.teams();
+	const teams = teamId
+		? [await client.team(teamId)]
+		: (await client.teams()).nodes;
 
-	for (const team of teams.nodes) {
+	for (const team of teams) {
 		const states = await team.states();
 
 		const statesByType = new Map<string, typeof states.nodes>();
