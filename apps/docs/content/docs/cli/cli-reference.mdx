@@ -333,8 +333,10 @@ The terminal daemon keeps running after the host server stops, so the next
 `superset start` picks up the same terminals. With `--terminals`, the command
 stops the host server first, then the terminal daemon, the same way. It
 signals only the pid the daemon reports over its socket, never the pid in its
-manifest, which can be stale. A manifest whose socket no longer answers is
-removed without a signal.
+manifest, which can be stale. If the socket is missing or refuses the
+connection, the manifest is removed without a signal. If the socket accepts
+the connection but the daemon does not answer, the command errors after it
+has stopped the host server, and leaves the daemon and its manifest in place.
 
 ```bash
 superset stop
