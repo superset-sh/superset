@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { ZoomStable } from "renderer/components/ZoomStable";
 import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
@@ -178,6 +179,7 @@ function V2WorkspaceContent() {
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
+	const fileOpenMode = useFileOpenMode();
 	const { store, isLayoutReady } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
@@ -320,11 +322,11 @@ function V2WorkspaceContent() {
 	// Picking a file from Quick Open should surface the sidebar/Files tab so
 	// the reveal (expand + highlight + scroll) is actually visible.
 	const handleQuickOpenSelectFile = useCallback(
-		(filePath: string, openInNewTab?: boolean) => {
+		(filePath: string) => {
 			setRightSidebarOpen(true);
-			openFilePaneFromTreeClick(filePath, openInNewTab);
+			openFilePaneFromTreeClick(filePath, fileOpenMode === "new-tab");
 		},
-		[openFilePaneFromTreeClick, setRightSidebarOpen],
+		[fileOpenMode, openFilePaneFromTreeClick, setRightSidebarOpen],
 	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
 	const onBeforeCloseTab = useTabCloseGuard(store);
@@ -531,7 +533,21 @@ function V2WorkspaceContent() {
 								runButton={workspaceRunButton}
 								pagesMenu={pagesMenu}
 								onSelectFile={openFilePaneFromTreeClick}
-								onSelectDiffFile={openDiffPane}
+								onSelectDiffFile={(
+									filePath,
+									openInNewTab,
+									line,
+									side,
+									changeKey,
+								) =>
+									openDiffPane(
+										filePath,
+										openInNewTab || fileOpenMode === "new-tab",
+										line,
+										side,
+										changeKey,
+									)
+								}
 								onOpenComment={openCommentPane}
 								onOpenPullRequest={openPullRequestPane}
 								onSearch={handleQuickOpen}
