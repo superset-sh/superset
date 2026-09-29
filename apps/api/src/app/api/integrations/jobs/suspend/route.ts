@@ -1,7 +1,10 @@
 import { db } from "@superset/db/client";
 import { connections, githubInstallations } from "@superset/db/schema";
 import { revokeLinearConnection } from "@superset/trpc/integrations/linear";
-import { organizationSyncs } from "@superset/trpc/sync-policy";
+import {
+	organizationSyncs,
+	organizationSyncsNow,
+} from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { env } from "@/env";
@@ -140,6 +143,9 @@ async function linearPass(deadline: number) {
 	let processed = 0;
 	for (const connection of toRevoke) {
 		if (Date.now() > deadline) break;
+		// Revocation costs the org a reconnect, so an org that paid since the
+		// candidates were selected is left alone.
+		if (await organizationSyncsNow(connection.organizationId)) continue;
 		const outcome = await revokeLinearConnection(connection).catch((error) => {
 			console.error(
 				`[integrations/suspend] linear revoke failed for connection ${connection.id}:`,
