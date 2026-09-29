@@ -1230,7 +1230,7 @@ describe("PullRequestRuntimeManager refresh", () => {
 			// Past the hold and the caches: gh answers 403, Octokit answers, and
 			// that success is what resets the streak to the base window.
 			now = 61_000;
-			setSystemTime(new Date(t0 + 61_000));
+			setSystemTime(new Date(t0 + 7.5 * 60_000 + 1_000));
 			await withSilencedWarnings(() => refreshProject(PROJECT_ID));
 			expect(gate.recordFailure(offline)).toEqual({
 				reason: "unreachable",
@@ -1315,8 +1315,8 @@ describe("PullRequestRuntimeManager refresh", () => {
 			await sweep();
 			expect(attempts).toBe(4);
 
-			// Success resets the streak: the base 60s TTL applies again.
-			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 61_000));
+			// Success resets the streak: the success TTL applies again.
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 7.5 * 60_000 + 1_000));
 			await sweep();
 			expect(attempts).toBe(5);
 		} finally {
@@ -2118,6 +2118,48 @@ describe("PullRequestRuntimeManager GitHub traffic", () => {
 			statuses: 2,
 			"merge-queue": 2,
 		});
+	});
+
+	test("the next timer sweep is served from cache and the one after refetches", async () => {
+		const t0 = 1_700_000_000_000;
+		const sweepIntervalMs = 5 * 60_000;
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			seedWorkspace(db, {
+				id: "ws",
+				branch: "feature",
+				headSha: "abc123",
+				upstreamOwner: REPO.owner,
+				upstreamRepo: REPO.name,
+				upstreamBranch: "feature",
+			});
+			const counts: Record<string, number> = {};
+			const manager = createManager(db, {
+				execGh: ghAnsweringPr(
+					makePrNode({ number: 7, headRef: "feature", headSha: "abc123" }),
+					counts,
+				),
+			});
+			const refreshProject = projectRefresher(manager);
+
+			await refreshProject(PROJECT_ID);
+			expect(counts["head-lookup"]).toBe(1);
+			expect(counts.reviews).toBe(1);
+
+			setSystemTime(new Date(t0 + sweepIntervalMs + 1_000));
+			await refreshProject(PROJECT_ID);
+			expect(counts["head-lookup"]).toBe(1);
+			expect(counts.reviews).toBe(1);
+
+			setSystemTime(new Date(t0 + 2 * sweepIntervalMs + 1_000));
+			await refreshProject(PROJECT_ID);
+			expect(counts["head-lookup"]).toBe(2);
+			expect(counts.reviews).toBe(2);
+		} finally {
+			setSystemTime();
+		}
 	});
 
 	test("a new push refetches details at once and keeps one cache entry per PR", async () => {

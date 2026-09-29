@@ -65,16 +65,18 @@ import {
 const SAFETY_NET_INTERVAL_MS = 5 * 60_000;
 // Long-cadence safety net for project-level PR refresh. Steady-state
 // refreshes are triggered by `syncOneWorkspace` whenever a workspace's
-// branch/HEAD/upstream changes. The 60s repo-PR cache deduplicates across
+// branch/HEAD/upstream changes. The repo-PR cache deduplicates across
 // concurrent triggers.
 const PROJECT_REFRESH_INTERVAL_MS = 5 * 60_000;
 // Must exceed every polling interval that hits this cache (SAFETY_NET and
 // PROJECT_REFRESH). Otherwise the cache is always stale at poll time and
-// each tick fires fresh GitHub calls for the same upstream branch.
-const REPO_PULL_REQUEST_CACHE_TTL_MS = 60_000;
+// each tick fires fresh GitHub calls for the same upstream branch. The half
+// interval keeps the expiry clear of tick jitter: every other sweep fetches.
+const REPO_PULL_REQUEST_CACHE_TTL_MS = 1.5 * PROJECT_REFRESH_INTERVAL_MS;
 // A fetch that keeps failing (payload over maxBuffer, revoked auth, …) must
 // not respawn `gh` at full cadence forever: each consecutive failure doubles
 // the effective TTL of the cached rejection, capped here.
+const REPO_PULL_REQUEST_CACHE_FAILURE_TTL_MS = 60_000;
 const REPO_PULL_REQUEST_CACHE_MAX_TTL_MS = 30 * 60_000;
 // Re-probe cadence for worktrees observed missing on disk. existsSync-only —
 // cheap enough to run every tick; spawning git against a missing dir is not.
@@ -1315,10 +1317,14 @@ export class PullRequestRuntimeManager {
 				? existing
 				: undefined;
 		if (!options.bypassCache && cached) {
-			const ttl = Math.min(
-				REPO_PULL_REQUEST_CACHE_TTL_MS * 2 ** cached.consecutiveFailures,
-				REPO_PULL_REQUEST_CACHE_MAX_TTL_MS,
-			);
+			const ttl =
+				cached.consecutiveFailures === 0
+					? REPO_PULL_REQUEST_CACHE_TTL_MS
+					: Math.min(
+							REPO_PULL_REQUEST_CACHE_FAILURE_TTL_MS *
+								2 ** cached.consecutiveFailures,
+							REPO_PULL_REQUEST_CACHE_MAX_TTL_MS,
+						);
 			if (Date.now() - cached.fetchedAt < ttl) {
 				return cached.promise;
 			}
