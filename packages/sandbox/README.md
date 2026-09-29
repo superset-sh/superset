@@ -24,6 +24,12 @@ checklist is `plans/20260913-sandbox-implementation-checklist.md`.
   on every box exactly when one of them changes.
 - **Anything the box never sees** (the image build, the release scripts)
   stays under `src/`.
+- **Something one environment needs** (a variable, a repo's own limit such
+  as `TURBO_CONCURRENCY`) is not a bundle change. Set it on that environment
+  (`superset environments secrets set`); it reaches every shell in that
+  environment's boxes through the managed environment. The bundle is what
+  every customer's box runs, so a line here changes all of them on their
+  next wake.
 
 The rule of thumb: if you can answer "where is it on the box", put it there.
 
