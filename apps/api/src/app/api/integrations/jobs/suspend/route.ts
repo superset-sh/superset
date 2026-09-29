@@ -19,9 +19,12 @@ export const dynamic = "force-dynamic";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
-// Under maxDuration so a long backlog ends in a summary rather than the
-// platform killing the run mid-loop; every processed row is already written.
-const RUN_BUDGET_MS = 240_000;
+// api.superset.sh answers through Cloudflare, which returns 524 to the caller
+// once the origin has been silent for ~100s; QStash then retries and a second
+// run starts while the first is still going. The budget keeps the summary
+// inside that window; every processed row is already written, and the next
+// run takes the rest.
+const RUN_BUDGET_MS = 60_000;
 
 /**
  * Hourly: bring every provider into line with `organizationSyncs`, so the
