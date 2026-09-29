@@ -39,6 +39,7 @@ export function AllCommentsSheet() {
 	);
 	const viewportHeight = useRef(0);
 	const pendingScroll = useRef<PendingScroll | null>(null);
+	const drafts = useRef<Record<string, string>>({});
 	const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 	const [showResolved, setShowResolved] = useState(false);
 	const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
@@ -126,6 +127,7 @@ export function AllCommentsSheet() {
 			pendingScroll.current = null;
 			throw error;
 		}
+		delete drafts.current[threadId];
 		setReplyingTo((current) => (current === replyingTo ? null : current));
 	};
 
@@ -280,6 +282,10 @@ export function AllCommentsSheet() {
 			{replyingTo ? (
 				<ReplyBar
 					key={replyingTo.threadId}
+					initialBody={drafts.current[replyingTo.threadId] ?? ""}
+					onChangeBody={(body) => {
+						drafts.current[replyingTo.threadId] = body;
+					}}
 					ref={composerRef}
 					replyingTo={replyingTo.name}
 					excerpt={replyingTo.excerpt}

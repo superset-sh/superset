@@ -15,6 +15,8 @@ public final class ComposerModule: Module {
         "onLaunchOptionPress",
         "onChipPress",
         "onQuickKeyPress",
+        "onControlPress",
+        "onControlMenuSelect",
         "onSessionTabPress",
         "onSessionTabClose",
         "onSessionTabRename",
@@ -81,6 +83,10 @@ public final class ComposerModule: Module {
         placing(view.overlay.model, ComposerMetrics.growth) {
           view.overlay.model.quickKeys = keys
         }
+      }
+
+      Prop("controls") { (view: ComposerAnchorView, controls: [ComposerControl]) in
+        view.overlay.model.controls = controls
       }
 
       /// The workspace's sessions, above the keys. Same transaction rule: a
@@ -204,6 +210,8 @@ final class ComposerAnchorView: ExpoView {
   private let onLaunchOptionPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
+  private let onControlPress = EventDispatcher()
+  private let onControlMenuSelect = EventDispatcher()
   private let onSessionTabPress = EventDispatcher()
   private let onSessionTabClose = EventDispatcher()
   private let onSessionTabRename = EventDispatcher()
@@ -232,6 +240,12 @@ final class ComposerAnchorView: ExpoView {
     }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
+    }
+    overlay.model.onControlPress = { [weak self] id in
+      self?.onControlPress(["id": id])
+    }
+    overlay.model.onControlMenuSelect = { [weak self] control, item in
+      self?.onControlMenuSelect(["control": control, "item": item])
     }
     overlay.model.onSessionTabPress = { [weak self] id in
       self?.onSessionTabPress(["id": id])

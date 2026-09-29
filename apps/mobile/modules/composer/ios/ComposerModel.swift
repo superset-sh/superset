@@ -56,6 +56,8 @@ final class ComposerModel {
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []
 
+  var controls: [ComposerControl] = []
+
   /// The workspace's sessions, above the quick keys. Empty on every other
   /// surface, which is also how the strip stays off the home composer.
   var sessionTabs: [ComposerSessionTab] = []
@@ -119,6 +121,8 @@ final class ComposerModel {
   @ObservationIgnored var onLaunchOptionPress: ((String) -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  @ObservationIgnored var onControlPress: ((String) -> Void)?
+  @ObservationIgnored var onControlMenuSelect: ((String, String) -> Void)?
   /// The session strip reports by id and knows nothing else. Selecting swaps
   /// which terminal is attached, closing raises React Native's confirm before
   /// anything is killed, and copying puts the terminal id on the pasteboard

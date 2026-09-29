@@ -83,15 +83,6 @@ export default function AuthenticatedLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="pages/[slug]/comment"
-				options={{
-					presentation: "formSheet",
-					headerShown: false,
-					sheetAllowedDetents: "fitToContents",
-					sheetGrabberVisible: false,
-				}}
-			/>
-			<Stack.Screen
 				name="pages/[slug]/comments"
 				options={{
 					presentation: "formSheet",

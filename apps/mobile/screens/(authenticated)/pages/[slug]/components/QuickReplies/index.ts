@@ -1,1 +1,0 @@
-export { QuickReplies } from "./QuickReplies";

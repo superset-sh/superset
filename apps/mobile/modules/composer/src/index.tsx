@@ -19,6 +19,7 @@ interface NativeComposerViewProps {
 	launchOptions?: ComposerMenuOption[];
 	headerChips?: ComposerMenuOption[];
 	quickKeys?: ComposerQuickKey[];
+	controls?: ComposerControl[];
 	sessionTabs?: ComposerSessionTab[];
 	sessionTabLabels?: ComposerSessionTabLabels;
 	/** Null, never undefined — see the pass-through below. */
@@ -34,6 +35,10 @@ interface NativeComposerViewProps {
 	onLaunchOptionPress?: (event: { nativeEvent: { id: string } }) => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
+	onControlPress?: (event: { nativeEvent: { id: string } }) => void;
+	onControlMenuSelect?: (event: {
+		nativeEvent: { control: string; item: string };
+	}) => void;
 	onSessionTabPress?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabClose?: (event: { nativeEvent: { id: string } }) => void;
 	onSessionTabRename?: (event: { nativeEvent: { id: string } }) => void;
@@ -119,6 +124,20 @@ export interface ComposerAttachment {
  * Deliberately carries no behaviour: what a key writes into the PTY stays with
  * the terminal that owns it. The composer draws the mark and reports the id.
  */
+/**
+ * A caller's own button in the expanded composer's control row, beside `+`.
+ * With `menu` it opens a native menu and reports the chosen item instead.
+ */
+export interface ComposerControl {
+	id: string;
+	/** SF Symbol name. */
+	symbol: string;
+	/** Accessibility label. */
+	label: string;
+	menu?: ComposerMenuOption[];
+	disabled?: boolean;
+}
+
 export interface ComposerQuickKey {
 	id: string;
 	/** Monospaced label. Ignored when `symbol` is set. */
@@ -301,6 +320,8 @@ interface ComposerBaseProps {
 	 * card grew.
 	 */
 	quickKeys?: ComposerQuickKey[];
+	/** Buttons in the expanded control row, beside `+`. */
+	controls?: ComposerControl[];
 	/**
 	 * The one static control beside the quick keys. Omitted on every surface
 	 * with nothing to link to — which is all of them but the workspace
@@ -342,6 +363,8 @@ interface ComposerBaseProps {
 	onLaunchOptionPress?: (id: string) => void;
 	onChipPress?: (id: string) => void;
 	onQuickKeyPress?: (id: string) => void;
+	onControlPress?: (id: string) => void;
+	onControlMenuSelect?: (control: string, item: string) => void;
 	/** A tab was tapped — attach that session. */
 	onSessionTabPress?: (id: string) => void;
 	/**
@@ -430,6 +453,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			launchOptions,
 			headerChips,
 			quickKeys,
+			controls,
 			sessionTabs,
 			sessionTabLabels,
 			quickKeysAction,
@@ -444,6 +468,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onLaunchOptionPress,
 			onChipPress,
 			onQuickKeyPress,
+			onControlPress,
+			onControlMenuSelect,
 			onSessionTabPress,
 			onSessionTabClose,
 			onSessionTabRename,
@@ -480,6 +506,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				launchOptions={launchOptions}
 				headerChips={headerChips}
 				quickKeys={quickKeys}
+				controls={controls}
 				sessionTabs={sessionTabs}
 				sessionTabLabels={sessionTabLabels}
 				// Null rather than undefined: React Native drops undefined props
@@ -501,6 +528,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
+				onControlPress={(event) => onControlPress?.(event.nativeEvent.id)}
+				onControlMenuSelect={(event) =>
+					onControlMenuSelect?.(
+						event.nativeEvent.control,
+						event.nativeEvent.item,
+					)
+				}
 				onSessionTabPress={(event) => onSessionTabPress?.(event.nativeEvent.id)}
 				onSessionTabClose={(event) => onSessionTabClose?.(event.nativeEvent.id)}
 				onSessionTabRename={(event) =>

@@ -533,7 +533,11 @@ struct ComposerRootView: View {
         .accessibilityLabel(composerLocalized("Add attachment"))
       }
 
-      if !isExpanded {
+      if isExpanded {
+        ForEach(model.controls) { control in
+          callerControl(control)
+        }
+      } else {
         ComposerCollapsedAttachments(attachments: model.attachments)
       }
 
@@ -566,6 +570,33 @@ struct ComposerRootView: View {
     // Every mutation that moves this row opens its own transaction instead —
     // see `ComposerModel.setDraft`, `ComposerDictation.setState`, and the
     // module's prop setters.
+  }
+
+  @ViewBuilder
+  private func callerControl(_ control: ComposerControl) -> some View {
+    let glyph = Image(systemName: control.symbol)
+      .font(.system(size: 17, weight: .regular))
+    if let menu = control.menu, !menu.isEmpty {
+      Menu {
+        ForEach(menu) { item in
+          Button(item.label) { model.onControlMenuSelect?(control.id, item.id) }
+        }
+      } label: {
+        glyph
+      }
+      .buttonStyle(.composerControl)
+      .disabled(control.disabled)
+      .opacity(control.disabled ? 0.4 : 1)
+      .accessibilityLabel(control.label)
+    } else {
+      Button { model.onControlPress?(control.id) } label: {
+        glyph
+      }
+      .buttonStyle(.composerControl)
+      .disabled(control.disabled)
+      .opacity(control.disabled ? 0.4 : 1)
+      .accessibilityLabel(control.label)
+    }
   }
 
   @ViewBuilder

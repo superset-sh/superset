@@ -1,6 +1,9 @@
 import { useLingui } from "@lingui/react/macro";
-import { usePageCommentThreads } from "@superset/cloud-client";
+import { usePageComments, usePageCommentThreads } from "@superset/cloud-client";
+import { Composer, type ComposerHandle } from "@superset/composer";
+import { i18n } from "@superset/i18n";
 import { getInitials } from "@superset/shared/names";
+import type { CommentIntent } from "@superset/shared/page-comments";
 import {
 	type CommentAnchor,
 	type FrameMessage,
@@ -16,7 +19,7 @@ import {
 } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { Alert, View } from "react-native";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { errorCopy } from "@/lib/errors";
@@ -24,6 +27,8 @@ import { PressableScale } from "@/screens/(authenticated)/components/PressableSc
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
 import { PageFrame, type PageFrameHandle } from "./components/PageFrame";
+import { APPROVE_BODY, DELETE_BODY, QUICK_PRESETS } from "./constants";
+import { usePageCommentUser } from "./hooks/usePageCommentUser";
 import { usePageCommentStore } from "./stores/pageCommentStore";
 import { pinPointOf, stackPins } from "./utils/pinLayout";
 
@@ -74,17 +79,18 @@ export function PageDetailScreen({
 	const [frameEpoch, setFrameEpoch] = useState(0);
 	const [commentMode, setCommentMode] = useState(false);
 	const [selection, setSelection] = useState<Selection | null>(null);
-	const startCommentRef = useRef<(anchor: CommentAnchor) => boolean>(
-		() => false,
-	);
+	const pageLoadedRef = useRef(false);
 	const selectionRef = useRef(selection);
 	selectionRef.current = selection;
 	const [rects, setRects] = useState<Record<string, FrameRect>>({});
+	const composerRef = useRef<ComposerHandle>(null);
+	const [hasDraft, setHasDraft] = useState(false);
 
 	const page = usePageQuery(slug);
 	const pageId = page.data?.id;
 	const version = page.data?.version;
 	const viewUrl = page.data?.viewUrl;
+	pageLoadedRef.current = pageId !== undefined && version !== undefined;
 	const loaded = viewUrl !== undefined && loadedSrc === viewUrl;
 	const frameFailed = viewUrl !== undefined && failedSrc === viewUrl;
 	const offline = page.status === "pending" && page.fetchStatus === "paused";
@@ -93,11 +99,63 @@ export function PageDetailScreen({
 		pageId: pageId ?? "",
 		version: version ?? 0,
 	});
-	const setPick = usePageCommentStore((state) => state.setPick);
-	const clearPick = usePageCommentStore((state) => state.clear);
 	const setFocusThreadId = usePageCommentStore(
 		(state) => state.setFocusThreadId,
 	);
+
+	const user = usePageCommentUser();
+	const store = usePageComments({
+		pageId: pageId ?? "",
+		version: version ?? 0,
+		user,
+	});
+
+	const dismissSelection = useCallback(() => {
+		setSelection(null);
+		setHasDraft(false);
+	}, []);
+
+	const post = useCallback(
+		async (text: string, intent?: CommentIntent) => {
+			const anchor = selectionRef.current?.anchor;
+			if (!anchor || version === undefined) {
+				throw new Error(t({ message: "Try again" }));
+			}
+			await store.createThread({
+				anchor,
+				anchorText: anchor.text,
+				body: text,
+				...(intent ? { intent } : {}),
+			});
+			composerRef.current?.clear();
+			composerRef.current?.blur();
+			dismissSelection();
+		},
+		[dismissSelection, store, t, version],
+	);
+
+	const handleQuickReply = useCallback(
+		(id: string) => {
+			if (store.submitting) return;
+			const quick =
+				id === "delete"
+					? { body: DELETE_BODY, intent: "delete" as const }
+					: id === "approve"
+						? { body: APPROVE_BODY, intent: "approve" as const }
+						: null;
+			if (!quick) return;
+			void post(i18n._(quick.body), quick.intent).catch((error) =>
+				Alert.alert(t({ message: "Comment not posted" }), errorCopy(error)),
+			);
+		},
+		[post, store.submitting, t],
+	);
+
+	useEffect(() => {
+		if (!selection) return;
+		const frame = requestAnimationFrame(() => composerRef.current?.focus());
+		return () => cancelAnimationFrame(frame);
+	}, [selection]);
 
 	const unresolvedThreads = useMemo(
 		() => threads.filter((thread) => !thread.resolved),
@@ -142,9 +200,8 @@ export function PageDetailScreen({
 		useCallback(() => {
 			setFrameEpoch((epoch) => epoch + 1);
 			setSelection(null);
-			clearPick();
 			refetchComments();
-		}, [clearPick, refetchComments]),
+		}, [refetchComments]),
 	);
 
 	useEffect(() => {
@@ -167,9 +224,7 @@ export function PageDetailScreen({
 		}
 		if (message.type === "pick") {
 			if (!selectionRef.current) {
-				// Committing the selection locks the frame, so it only happens
-				// once the sheet it locks for is actually on its way.
-				if (!startCommentRef.current(message.anchor)) return;
+				if (!pageLoadedRef.current) return;
 				const next = { anchor: message.anchor, rect: message.rect };
 				selectionRef.current = next;
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -192,19 +247,6 @@ export function PageDetailScreen({
 	const pinPoints = useMemo(
 		() => new Map(pins.map((pin) => [pin.id, pin.point])),
 		[pins],
-	);
-
-	startCommentRef.current = useCallback(
-		(anchor: CommentAnchor) => {
-			if (!pageId || version === undefined) return false;
-			setPick({ pageId, version, anchor });
-			router.push({
-				pathname: "/(authenticated)/pages/[slug]/comment",
-				params: { slug },
-			});
-			return true;
-		},
-		[pageId, router, setPick, slug, version],
 	);
 
 	const openThread = useCallback(
@@ -372,6 +414,71 @@ export function PageDetailScreen({
 						</View>
 					) : null}
 				</View>
+			) : null}
+
+			{selection ? (
+				<Composer
+					ref={composerRef}
+					placeholder={t({ message: "Write a comment" })}
+					showAttachments={false}
+					isSending={store.submitting}
+					controls={[
+						{
+							id: "delete",
+							symbol: "trash",
+							disabled: hasDraft || store.submitting,
+							label: t({
+								message: "Delete this",
+								context: "quick reply button",
+							}),
+						},
+						{
+							id: "approve",
+							symbol: "hand.thumbsup",
+							disabled: hasDraft || store.submitting,
+							label: t({
+								message: "Looks good",
+								context: "quick reply button",
+							}),
+						},
+						{
+							id: "presets",
+							symbol: "ellipsis",
+							disabled: hasDraft || store.submitting,
+							label: t({
+								message: "Quick feedback",
+								context: "quick reply button",
+							}),
+							menu: QUICK_PRESETS.map((preset) => ({
+								id: preset.id,
+								label: i18n._(preset.body),
+							})),
+						},
+					]}
+					onDraftChange={(text) => setHasDraft(text.trim().length > 0)}
+					onControlPress={handleQuickReply}
+					onControlMenuSelect={(_control, item) => {
+						const preset = QUICK_PRESETS.find((entry) => entry.id === item);
+						if (!preset) return;
+						void post(i18n._(preset.body)).catch((error) =>
+							Alert.alert(
+								t({ message: "Comment not posted" }),
+								errorCopy(error),
+							),
+						);
+					}}
+					onSubmit={(text) => {
+						void post(text).catch((error) =>
+							Alert.alert(
+								t({ message: "Comment not posted" }),
+								errorCopy(error),
+							),
+						);
+					}}
+					onExpandedChange={(open) => {
+						if (!open) dismissSelection();
+					}}
+				/>
 			) : null}
 
 			{frameFailed ? (

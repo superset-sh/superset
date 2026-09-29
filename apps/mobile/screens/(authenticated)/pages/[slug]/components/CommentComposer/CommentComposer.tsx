@@ -1,13 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import { ArrowUp } from "lucide-react-native";
-import {
-	forwardRef,
-	type ReactNode,
-	useImperativeHandle,
-	useRef,
-	useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, Pressable, TextInput, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { useTheme } from "@/hooks/useTheme";
@@ -22,7 +16,8 @@ interface CommentComposerProps {
 	placeholder: string;
 	autoFocus?: boolean;
 	pending?: boolean;
-	actions?: (state: { hasDraft: boolean }) => ReactNode;
+	initialBody?: string;
+	onChangeBody?: (body: string) => void;
 	onSubmit: (body: string) => Promise<void>;
 }
 
@@ -30,14 +25,21 @@ export const CommentComposer = forwardRef<
 	CommentComposerHandle,
 	CommentComposerProps
 >(function CommentComposer(
-	{ placeholder, autoFocus = false, pending = false, actions, onSubmit },
+	{
+		placeholder,
+		autoFocus = false,
+		pending = false,
+		initialBody = "",
+		onChangeBody,
+		onSubmit,
+	},
 	ref,
 ) {
 	const { t } = useLingui();
 	const theme = useTheme();
 	const inputRef = useRef<TextInput>(null);
 	const inFlight = useRef(false);
-	const [body, setBody] = useState("");
+	const [body, setBody] = useState(initialBody);
 	const trimmed = body.trim();
 	const canSend = trimmed.length > 0 && !pending;
 
@@ -64,7 +66,10 @@ export const CommentComposer = forwardRef<
 			<TextInput
 				ref={inputRef}
 				value={body}
-				onChangeText={setBody}
+				onChangeText={(text) => {
+					setBody(text);
+					onChangeBody?.(text);
+				}}
 				autoFocus={autoFocus}
 				multiline
 				placeholder={placeholder}
@@ -73,11 +78,7 @@ export const CommentComposer = forwardRef<
 				className="text-foreground max-h-28 min-h-9 pl-3 text-[16px]"
 			/>
 
-			<View className="flex-row items-center justify-between">
-				<View className="flex-1">
-					{actions?.({ hasDraft: trimmed.length > 0 })}
-				</View>
-
+			<View className="flex-row items-center justify-end">
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel={t({ message: "Post" })}

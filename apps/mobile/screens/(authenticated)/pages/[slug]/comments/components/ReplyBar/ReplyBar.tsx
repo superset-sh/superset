@@ -19,12 +19,22 @@ interface ReplyBarProps {
 	excerpt?: string;
 	pending: boolean;
 	onCancelReply: () => void;
+	initialBody?: string;
+	onChangeBody?: (body: string) => void;
 	onSubmit: (body: string) => Promise<void>;
 }
 
 export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 	function ReplyBar(
-		{ replyingTo, excerpt, pending, onCancelReply, onSubmit },
+		{
+			replyingTo,
+			excerpt,
+			pending,
+			initialBody,
+			onChangeBody,
+			onCancelReply,
+			onSubmit,
+		},
 		ref,
 	) {
 		const { t } = useLingui();
@@ -70,6 +80,8 @@ export const ReplyBar = forwardRef<CommentComposerHandle, ReplyBarProps>(
 						autoFocus
 						placeholder={t({ message: "Add a comment…" })}
 						pending={pending}
+						initialBody={initialBody}
+						onChangeBody={onChangeBody}
 						onSubmit={onSubmit}
 					/>
 				</View>
