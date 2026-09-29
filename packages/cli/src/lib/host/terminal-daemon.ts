@@ -3,7 +3,10 @@ import {
 	readPtyDaemonManifest,
 	removePtyDaemonManifest,
 } from "@superset/host-service/daemon-manifest";
-import { probeDaemonHello } from "@superset/host-service/daemon-probe";
+import {
+	type ProbeAttemptOutcome,
+	probeDaemonHello,
+} from "@superset/host-service/daemon-probe";
 import { terminateProcess } from "./terminate";
 
 const HELLO_TIMEOUT_MS = 1_500;
@@ -22,7 +25,7 @@ function removeManifestIfUnchanged(read: PtyDaemonManifest): void {
  * Stops the terminal daemon, which ends every terminal and agent under it.
  * Signals only the pid the daemon reports over its socket: the manifest pid
  * can be stale and belong to an unrelated process by now.
- * Returns the stopped daemon pids, empty when no daemon answered.
+ * Returns the stopped daemon pids, empty when nothing listens on the socket.
  */
 export async function stopTerminalDaemon(
 	organizationId: string,
@@ -32,8 +35,18 @@ export async function stopTerminalDaemon(
 
 	const stopped: number[] = [];
 	for (let i = 0; i < MAX_DAEMONS_ON_SOCKET; i++) {
-		const hello = await probeDaemonHello(manifest.socketPath, HELLO_TIMEOUT_MS);
-		if (!hello) break;
+		const outcome: ProbeAttemptOutcome = {};
+		const hello = await probeDaemonHello(
+			manifest.socketPath,
+			HELLO_TIMEOUT_MS,
+			outcome,
+		);
+		if (!hello) {
+			if (outcome.noListener) break;
+			throw new Error(
+				"The terminal daemon did not answer on its socket, so it cannot be stopped safely. Try again.",
+			);
+		}
 		if (!hello.daemonPid) {
 			throw new Error(
 				`The terminal daemon (version ${hello.daemonVersion}) does not report its pid, so it cannot be stopped safely. Run \`superset start\` once so the host updates the daemon, then try again.`,

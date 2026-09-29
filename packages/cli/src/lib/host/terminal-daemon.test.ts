@@ -120,6 +120,23 @@ describe("stopTerminalDaemon", () => {
 		expect(readPtyDaemonManifest("org-old")?.pid).toBe(daemon.pid);
 	});
 
+	test("keeps the manifest of a daemon that accepts but does not answer", async () => {
+		const socketPath = join(tempHome, "silent.sock");
+		const daemon = await startProcess(
+			`require("node:net").createServer(() => {}).listen(process.env.SOCKET_PATH, () => console.log("ready"));`,
+			{ SOCKET_PATH: socketPath },
+		);
+		writeDaemonManifest("org-silent", daemon.pid, socketPath);
+
+		await expect(stopTerminalDaemon("org-silent")).rejects.toThrow(
+			/did not answer/,
+		);
+
+		expect(daemon.exitCode).toBeNull();
+		expect(daemon.signalCode).toBeNull();
+		expect(readPtyDaemonManifest("org-silent")?.pid).toBe(daemon.pid);
+	});
+
 	test("removes a stale manifest without signalling its pid", async () => {
 		const unrelated = await startProcess(SLEEPER);
 		writeDaemonManifest(
