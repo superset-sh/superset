@@ -67,12 +67,16 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 
+import { OpenAllPullRequestsButton } from "../OpenAllPullRequestsButton";
+
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
+	pullRequestUrls: string[];
 }
 
 export function DashboardSidebarHeader({
 	isCollapsed = false,
+	pullRequestUrls,
 }: DashboardSidebarHeaderProps) {
 	const { t } = useLingui();
 	const openNewWorkspace = useOpenNewWorkspace();
@@ -412,6 +416,7 @@ export function DashboardSidebarHeader({
 							<Trans>Pull requests</Trans>
 						</TooltipContent>
 					</Tooltip>
+					<OpenAllPullRequestsButton urls={pullRequestUrls} />
 
 					{isUsageInSidebarEnabled && (
 						<Tooltip delayDuration={300}>
@@ -482,7 +487,6 @@ export function DashboardSidebarHeader({
 							</TooltipContent>
 						</Tooltip>
 					)}
-
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -657,25 +661,28 @@ export function DashboardSidebarHeader({
 				</span>
 			</button>
 
-			<button
-				type="button"
-				onClick={handlePullRequestsClick}
-				aria-label={t({
-					message: "Pull requests",
-				})}
-				aria-current={isPullRequestsOpen ? "page" : undefined}
-				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-					isPullRequestsOpen
-						? "bg-fill-selected text-foreground"
-						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
-				)}
-			>
-				<GoGitPullRequest className="size-4 shrink-0 text-muted-foreground" />
-				<span className="flex-1 text-left">
-					<Trans>Pull requests</Trans>
-				</span>
-			</button>
+			<div className="flex items-center">
+				<button
+					type="button"
+					onClick={handlePullRequestsClick}
+					aria-label={t({
+						message: "Pull requests",
+					})}
+					aria-current={isPullRequestsOpen ? "page" : undefined}
+					className={cn(
+						"flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isPullRequestsOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<GoGitPullRequest className="size-4 shrink-0 text-muted-foreground" />
+					<span className="flex-1 text-left">
+						<Trans>Pull requests</Trans>
+					</span>
+				</button>
+				<OpenAllPullRequestsButton urls={pullRequestUrls} />
+			</div>
 
 			{isUsageInSidebarEnabled && (
 				<button
