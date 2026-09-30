@@ -108,7 +108,7 @@ export function V2WorkspaceRunButton({
 				<Icon className="size-3 shrink-0" />
 				<span>{label}</span>
 				{hotkeyText && hotkeyText !== "Unassigned" && (
-					<span className="hidden text-[10px] tracking-wide text-muted-foreground/60 sm:inline">
+					<span className="hidden text-[10px] tracking-wide text-muted-foreground/60 @min-[400px]/strip:inline">
 						{hotkeyText}
 					</span>
 				)}

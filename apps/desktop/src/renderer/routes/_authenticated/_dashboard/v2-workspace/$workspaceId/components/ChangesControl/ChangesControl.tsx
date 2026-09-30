@@ -20,7 +20,7 @@ interface ChangesControlProps {
 }
 
 /**
- * Top-bar Changes control: one bordered button with a single face covering
+ * Sidebar-strip Changes control: one bordered button with a single face covering
  * the branch's whole lifecycle. Before a PR exists the face is the diff
  * stats with the ship actions (commit → push → create PR) in the chevron —
  * or the ship action itself once the tree is clean; once a PR exists the
@@ -64,7 +64,7 @@ export const ChangesControl = memo(function ChangesControl({
 		!hasPr && stats != null && stats.fileCount > 0 ? stats : null;
 
 	return (
-		<div className="flex h-7 items-stretch divide-x divide-border/60 overflow-hidden rounded-md border border-border/60 bg-muted/30 empty:hidden">
+		<div className="flex h-6 items-stretch divide-x divide-border/60 overflow-hidden rounded-md border border-border/60 bg-muted/30 empty:hidden">
 			{visibleStats && (
 				<button
 					type="button"
@@ -73,11 +73,11 @@ export const ChangesControl = memo(function ChangesControl({
 					aria-pressed={isChangesOpen}
 					title={label}
 					className={cn(
-						"flex items-center gap-1 px-2 text-xs text-muted-foreground outline-none transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:bg-accent/60 focus-visible:text-foreground",
+						"flex min-w-0 items-center gap-1 overflow-hidden px-2 text-xs text-muted-foreground outline-none transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:bg-accent/60 focus-visible:text-foreground",
 						isChangesOpen && "bg-accent/60 text-foreground",
 					)}
 				>
-					<GitCompareArrows className="size-3.5" />
+					<GitCompareArrows className="size-3.5 shrink-0" />
 					{visibleStats.additions > 0 && (
 						<span className="tabular-nums text-emerald-600 [.dark_&]:text-[#34d399]">
 							+{visibleStats.additions}

@@ -23,10 +23,7 @@ import {
 } from "../../utils/openChangesPaneInStore";
 import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { openPullRequestPaneInStore } from "../../utils/openPullRequestPaneInStore";
-import {
-	getWorkspaceSidebarTab,
-	setWorkspaceSidebarTab,
-} from "../../utils/setWorkspaceSidebarTab";
+import { setWorkspaceSidebarTab } from "../../utils/setWorkspaceSidebarTab";
 import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
@@ -226,18 +223,10 @@ export function useWorkspacePaneOpeners({
 		openChangesPaneInStore(store, useSettings.getState().changesOpenTarget);
 	}, [store, setRightSidebarOpen, collections, workspace.id]);
 
-	// Opening brings the sidebar along on Changes, so closing takes it back
-	// down — unless the sidebar has since moved to Files or Review, where
-	// it's serving something else and stays.
 	const toggleChangesPane = useCallback(() => {
-		if (closeVisibleChangesPane(store)) {
-			if (getWorkspaceSidebarTab(collections, workspace.id) === "changes") {
-				setRightSidebarOpen(false);
-			}
-			return;
-		}
+		if (closeVisibleChangesPane(store)) return;
 		openChangesPane();
-	}, [store, openChangesPane, collections, workspace.id, setRightSidebarOpen]);
+	}, [store, openChangesPane]);
 
 	const openPagePane = useCallback(
 		(page: PagePaneData) => {

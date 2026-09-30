@@ -17,7 +17,7 @@ export interface ChangesPillStats {
 }
 
 /**
- * Unique-path totals for the top-bar pill. Working-tree entries override the
+ * Unique-path totals for the Changes control. Working-tree entries override the
  * against-base row for the same path (and unstaged overrides staged) — the
  * same precedence the host uses for workspace-list diff stats and the
  * Changes pane's tree dedupe, so a path counts once with its most current
