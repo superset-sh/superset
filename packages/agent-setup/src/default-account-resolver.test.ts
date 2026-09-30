@@ -259,6 +259,26 @@ describe("buildDefaultAccountResolver", () => {
 		).toBe(`${ambient}|${ambient}`);
 	});
 
+	it("follows a Codex system-login pin to the ambient home", () => {
+		const { home, profile } = makeHome(null);
+		const ambient = join(home, "custom-codex");
+		writeFileSync(join(home, "state", "default-codex-home"), profile);
+		const dir = join(home, "state", "workspace-accounts", "o1", "w1");
+		mkdirSync(dir, { recursive: true });
+		writeFileSync(join(dir, "default-codex-home"), "");
+		expect(
+			resolveCodexWithTwin({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+				CODEX_HOME: profile,
+				SUPERSET_DEFAULT_CODEX_HOME: profile,
+				SUPERSET_AMBIENT_CODEX_HOME: ambient,
+			}),
+		).toBe(`${ambient}|${ambient}`);
+	});
+
 	it("adopts a later Codex profile over an injected ambient default", () => {
 		const { home, profile } = makeHome(null);
 		const ambient = join(home, "custom-codex");

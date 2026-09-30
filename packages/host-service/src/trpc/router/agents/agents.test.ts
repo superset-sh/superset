@@ -19,6 +19,7 @@ import * as schema from "../../../db/schema";
 import { TerminalAgentStore } from "../../../terminal-agents";
 import { claudeProjectDirName } from "../../../terminal-agents/harness-sessions/claude";
 import {
+	resolveAccountEnv,
 	setDefaultAccountSelection,
 	syncWorkspaceAccountPins,
 } from "../usage/default-account";
@@ -665,12 +666,17 @@ describe("buildTerminalAgentLaunch default account env", () => {
 		expect(launch.fullCommand).toBe("'claude' 'hi'");
 	});
 
-	function seedProjectWorkspace(db: HostDb, claudeConfigDir: string | null) {
+	function seedProjectWorkspace(
+		db: HostDb,
+		claudeConfigDir: string | null,
+		codexHome: string | null = null,
+	) {
 		db.insert(schema.projects)
 			.values({
 				id: "22222222-2222-2222-2222-222222222222",
 				repoPath: existingDir,
 				claudeConfigDir,
+				codexHome,
 			})
 			.run();
 		db.insert(schema.workspaces)
@@ -725,6 +731,49 @@ describe("buildTerminalAgentLaunch default account env", () => {
 		expect(launch.fullCommand).toBe(
 			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
+	});
+
+	function withAmbientCodexHome(run: (ambient: string) => void) {
+		const previous = process.env.CODEX_HOME;
+		const ambient = join(supersetHome, "ambient-codex");
+		process.env.CODEX_HOME = ambient;
+		try {
+			run(ambient);
+		} finally {
+			if (previous === undefined) delete process.env.CODEX_HOME;
+			else process.env.CODEX_HOME = previous;
+		}
+	}
+
+	it("lets a project-pinned Codex home beat the host default", () => {
+		withAmbientCodexHome((ambient) => {
+			const db = createTestDb();
+			const pinnedHome = mkdtempSync(join(tmpdir(), "project-codex-"));
+			seedProjectWorkspace(db, null, pinnedHome);
+			setDefaultAccountSelection(db, "codex", existingDir);
+			expect(
+				resolveAccountEnv(db, "codex", "11111111-1111-1111-1111-111111111111"),
+			).toEqual({
+				SUPERSET_AMBIENT_CODEX_HOME: ambient,
+				CODEX_HOME: pinnedHome,
+				SUPERSET_DEFAULT_CODEX_HOME: pinnedHome,
+			});
+		});
+	});
+
+	it("points a Codex system-login pin at the ambient home", () => {
+		withAmbientCodexHome((ambient) => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, null, "");
+			setDefaultAccountSelection(db, "codex", existingDir);
+			expect(
+				resolveAccountEnv(db, "codex", "11111111-1111-1111-1111-111111111111"),
+			).toEqual({
+				SUPERSET_AMBIENT_CODEX_HOME: ambient,
+				CODEX_HOME: ambient,
+				SUPERSET_DEFAULT_CODEX_HOME: ambient,
+			});
+		});
 	});
 
 	function withOrganizationId(id: string | undefined, run: () => void) {
