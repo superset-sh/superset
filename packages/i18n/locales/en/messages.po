@@ -13404,6 +13404,9 @@ msgstr "Saved \"{0}\" as an environment"
 msgid "Saved to Downloads"
 msgstr "Saved to Downloads"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Saved, but open terminals keep their current account until reopened."
+
 msgid "Saving as an environment..."
 msgstr "Saving as an environment..."
 

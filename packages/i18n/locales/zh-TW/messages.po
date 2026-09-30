@@ -13404,6 +13404,9 @@ msgstr "已將「{0}」儲存為環境"
 msgid "Saved to Downloads"
 msgstr "已儲存到「下載」資料夾"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "已儲存，但已開啟的終端機在重新開啟前仍使用目前帳號。"
+
 msgid "Saving as an environment..."
 msgstr "正在儲存為環境..."
 

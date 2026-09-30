@@ -13404,6 +13404,9 @@ msgstr "Zapisano \"{0}\" jako środowisko"
 msgid "Saved to Downloads"
 msgstr "Zapisano w Pobranych"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Zapisano, ale otwarte terminale zachowają obecne konto do ponownego otwarcia."
+
 msgid "Saving as an environment..."
 msgstr "Zapisywanie jako środowisko..."
 

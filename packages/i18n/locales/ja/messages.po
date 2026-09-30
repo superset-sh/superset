@@ -13404,6 +13404,9 @@ msgstr "「{0}」を環境として保存しました"
 msgid "Saved to Downloads"
 msgstr "ダウンロードフォルダに保存しました"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "保存しましたが、開いているターミナルは開き直すまで現在のアカウントを使います。"
+
 msgid "Saving as an environment..."
 msgstr "環境として保存しています..."
 

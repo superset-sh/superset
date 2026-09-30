@@ -73,8 +73,16 @@ export function AgentAccountSection({
 				agent,
 				account,
 			}),
-		onSuccess: (_result, account) => {
+		onSuccess: (result, account) => {
 			onChanged();
+			if (!result.pinsPublished) {
+				toast.warning(
+					t({
+						message:
+							"Saved, but open terminals keep their current account until reopened.",
+					}),
+				);
+			}
 			void offerRestart(
 				account
 					? accounts.find(

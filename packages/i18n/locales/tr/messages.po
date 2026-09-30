@@ -13404,6 +13404,9 @@ msgstr "\"{0}\" ortam olarak kaydedildi"
 msgid "Saved to Downloads"
 msgstr "İndirilenler klasörüne kaydedildi"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Kaydedildi, ancak açık terminaller yeniden açılana kadar mevcut hesaplarını korur."
+
 msgid "Saving as an environment..."
 msgstr "Ortam olarak kaydediliyor..."
 

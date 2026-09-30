@@ -13404,6 +13404,9 @@ msgstr "\"{0}\" uloženo jako prostředí"
 msgid "Saved to Downloads"
 msgstr "Uloženo do Stažených souborů"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Uloženo, ale otevřené terminály si ponechají aktuální účet, dokud je znovu neotevřete."
+
 msgid "Saving as an environment..."
 msgstr "Ukládání jako prostředí..."
 

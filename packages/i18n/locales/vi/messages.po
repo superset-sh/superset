@@ -13404,6 +13404,9 @@ msgstr "Đã lưu \"{0}\" thành một environment"
 msgid "Saved to Downloads"
 msgstr "Đã lưu vào Downloads"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Đã lưu, nhưng các terminal đang mở vẫn dùng tài khoản hiện tại cho đến khi mở lại."
+
 msgid "Saving as an environment..."
 msgstr "Đang lưu làm môi trường..."
 

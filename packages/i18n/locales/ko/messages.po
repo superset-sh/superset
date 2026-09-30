@@ -13404,6 +13404,9 @@ msgstr "\"{0}\"을(를) 환경으로 저장했습니다"
 msgid "Saved to Downloads"
 msgstr "다운로드 폴더에 저장했습니다"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "저장했지만 열려 있는 터미널은 다시 열 때까지 현재 계정을 유지합니다."
+
 msgid "Saving as an environment..."
 msgstr "환경으로 저장하는 중..."
 

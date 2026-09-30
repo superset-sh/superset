@@ -13404,6 +13404,9 @@ msgstr "已将“{0}”保存为环境"
 msgid "Saved to Downloads"
 msgstr "已保存到“下载”文件夹"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "已保存，但已打开的终端在重新打开前仍使用当前账号。"
+
 msgid "Saving as an environment..."
 msgstr "正在保存为环境..."
 

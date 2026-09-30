@@ -13404,6 +13404,9 @@ msgstr "Se guardó \"{0}\" como entorno"
 msgid "Saved to Downloads"
 msgstr "Guardada en Descargas"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Guardado, pero los terminales abiertos mantienen su cuenta actual hasta que se vuelvan a abrir."
+
 msgid "Saving as an environment..."
 msgstr "Guardando como entorno..."
 

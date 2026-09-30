@@ -66,14 +66,16 @@ async function assertKnownAccount(
  */
 function publishWorkspaceAccountPins(
 	...args: Parameters<typeof syncWorkspaceAccountPins>
-): void {
+): boolean {
 	try {
 		syncWorkspaceAccountPins(...args);
+		return true;
 	} catch (error) {
 		console.warn(
 			"[host-service] syncing workspace account pins failed:",
 			error,
 		);
+		return false;
 	}
 }
 
@@ -304,9 +306,11 @@ export const usageRouter = router({
 					message: `Project not set up locally: ${input.projectId}`,
 				});
 			}
-			publishWorkspaceAccountPins(ctx.db, { projectId: input.projectId });
+			const pinsPublished = publishWorkspaceAccountPins(ctx.db, {
+				projectId: input.projectId,
+			});
 			await provisionSelectedAccount(input.agent, selection);
-			return { success: true as const };
+			return { success: true as const, pinsPublished };
 		}),
 
 	/**
