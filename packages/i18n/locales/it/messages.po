@@ -4625,6 +4625,9 @@ msgstr "Impossibile aggiornare il branch"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Impossibile verificare la credenziale: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Impossibile verificare la sessione di origine. Riaprila e riprova."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Impossibile chiedere una descrizione allo spazio di lavoro"
 

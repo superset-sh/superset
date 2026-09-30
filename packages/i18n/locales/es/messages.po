@@ -4625,6 +4625,9 @@ msgstr "No se pudo actualizar la rama"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "No se pudo verificar la credencial: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "No se pudo verificar la sesión de origen. Vuelve a abrirla e inténtalo de nuevo."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "No se pudo pedir una descripción al espacio de trabajo"
 

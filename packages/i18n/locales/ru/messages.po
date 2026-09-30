@@ -4625,6 +4625,9 @@ msgstr "Не удалось обновить ветку"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Не удалось проверить учётные данные: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Не удалось проверить исходную сессию. Откройте её заново и повторите попытку."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Не удалось запросить описание у рабочего пространства"
 

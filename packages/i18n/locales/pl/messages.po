@@ -4625,6 +4625,9 @@ msgstr "Nie udało się zaktualizować gałęzi"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Nie udało się zweryfikować poświadczeń: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Nie udało się zweryfikować sesji źródłowej. Otwórz ją ponownie i spróbuj jeszcze raz."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Nie udało się poprosić obszaru roboczego o opis"
 

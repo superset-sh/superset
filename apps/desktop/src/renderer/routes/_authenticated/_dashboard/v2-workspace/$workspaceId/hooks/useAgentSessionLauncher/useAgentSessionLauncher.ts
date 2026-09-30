@@ -3,6 +3,7 @@ import { errorMessage } from "@superset/i18n/errors";
 import type { WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
 import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
@@ -15,6 +16,7 @@ export interface CreateNewAgentSessionInput {
 	placement: "split-pane" | "new-tab";
 	prompt: string;
 	forkSessionId?: string;
+	forkSourceTerminalId?: string;
 }
 
 export type CreateNewAgentSession = (
@@ -49,7 +51,10 @@ export function useAgentSessionLauncher({
 					agent: input.configId,
 					prompt: input.prompt,
 					...(input.forkSessionId
-						? { forkSessionId: input.forkSessionId }
+						? {
+								forkSessionId: input.forkSessionId,
+								forkSourceTerminalId: input.forkSourceTerminalId,
+							}
 						: {}),
 				});
 				if (result.kind !== "terminal") {
@@ -74,12 +79,20 @@ export function useAgentSessionLauncher({
 				}
 				return { terminalId };
 			} catch (error) {
-				const description = errorMessage(
-					error,
-					t({
-						message: "Unknown error",
-					}),
-				);
+				const description =
+					input.forkSourceTerminalId &&
+					error instanceof TRPCClientError &&
+					error.data?.code === "CONFLICT"
+						? t({
+								message:
+									"Could not verify the source session. Reopen it and try again.",
+							})
+						: errorMessage(
+								error,
+								t({
+									message: "Unknown error",
+								}),
+							);
 				toast.error(
 					t({
 						message: "Couldn't start agent session",

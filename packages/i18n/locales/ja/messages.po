@@ -4625,6 +4625,9 @@ msgstr "ブランチを更新できませんでした"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "認証情報を確認できませんでした: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "元のセッションを確認できませんでした。開き直して、もう一度お試しください。"
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "ワークスペースに説明を依頼できませんでした"
 

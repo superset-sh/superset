@@ -49,6 +49,7 @@ export interface TerminalSubagent {
 
 export interface TerminalAgentBinding {
 	launchId?: string;
+	sessionHome?: string;
 	account?: import("../trpc/router/usage/session-account/session-account").SessionAccount;
 	terminalId: string;
 	workspaceId: string;

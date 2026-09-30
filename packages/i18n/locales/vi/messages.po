@@ -4625,6 +4625,9 @@ msgstr "Không thể cập nhật nhánh"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Không xác minh được thông tin đăng nhập: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Không thể xác minh phiên nguồn. Hãy mở lại và thử lại."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Không thể yêu cầu không gian làm việc tạo mô tả"
 

@@ -25,6 +25,7 @@ interface TerminalPaneHeaderExtrasProps {
 		placement: "split-pane" | "new-tab";
 		prompt: string;
 		forkSessionId?: string;
+		forkSourceTerminalId?: string;
 	}) => Promise<{ terminalId: string } | null>;
 	/** Open (or focus) the live transcript pane for one of this agent's subagents. */
 	onOpenSubagent: (data: SubagentPaneData) => void;

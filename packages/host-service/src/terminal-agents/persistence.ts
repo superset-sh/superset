@@ -27,6 +27,7 @@ const bindingColumns = {
 	workspaceId: terminalAgentBindings.workspaceId,
 	agentId: terminalAgentBindings.agentId,
 	agentSessionId: terminalAgentBindings.agentSessionId,
+	sessionHome: terminalAgentBindings.sessionHome,
 	definitionId: terminalAgentBindings.definitionId,
 	startedAt: terminalAgentBindings.startedAt,
 	lastEventAt: terminalAgentBindings.lastEventAt,
@@ -40,6 +41,7 @@ interface BindingRow {
 	workspaceId: string;
 	agentId: TerminalAgentId;
 	agentSessionId: string | null;
+	sessionHome: string | null;
 	definitionId: AgentDefinitionId | null;
 	startedAt: number;
 	lastEventAt: number;
@@ -54,6 +56,7 @@ function rowToBinding(row: BindingRow): TerminalAgentBinding {
 		workspaceId: row.workspaceId,
 		agentId: row.agentId,
 		...(row.agentSessionId ? { agentSessionId: row.agentSessionId } : {}),
+		...(row.sessionHome ? { sessionHome: row.sessionHome } : {}),
 		...(row.definitionId ? { definitionId: row.definitionId } : {}),
 		startedAt: row.startedAt,
 		lastEventAt: row.lastEventAt,
@@ -591,6 +594,7 @@ export class SqliteTerminalAgentBindingPersistence
 				workspaceId: binding.workspaceId,
 				agentId: binding.agentId,
 				agentSessionId: binding.agentSessionId ?? null,
+				sessionHome: binding.sessionHome ?? null,
 				definitionId: binding.definitionId ?? null,
 				startedAt: binding.startedAt,
 				lastEventAt: binding.lastEventAt,
@@ -604,6 +608,7 @@ export class SqliteTerminalAgentBindingPersistence
 					workspaceId: binding.workspaceId,
 					agentId: binding.agentId,
 					agentSessionId: binding.agentSessionId ?? null,
+					sessionHome: binding.sessionHome ?? null,
 					definitionId: binding.definitionId ?? null,
 					startedAt: binding.startedAt,
 					lastEventAt: binding.lastEventAt,

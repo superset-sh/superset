@@ -4625,6 +4625,9 @@ msgstr "Tidak bisa memperbarui branch"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Tidak dapat memverifikasi kredensial: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Sesi sumber tidak dapat diverifikasi. Buka kembali dan coba lagi."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Tidak dapat meminta deskripsi dari workspace"
 

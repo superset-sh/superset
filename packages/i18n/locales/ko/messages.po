@@ -4625,6 +4625,9 @@ msgstr "브랜치를 업데이트할 수 없습니다"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "자격 증명을 확인하지 못했습니다: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "원본 세션을 확인할 수 없습니다. 다시 열고 재시도하세요."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "워크스페이스에 설명을 요청하지 못했습니다"
 

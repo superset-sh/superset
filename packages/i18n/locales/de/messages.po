@@ -4625,6 +4625,9 @@ msgstr "Branch konnte nicht aktualisiert werden"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Die Zugangsdaten konnten nicht überprüft werden: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Die Ursprungssitzung konnte nicht überprüft werden. Öffne sie erneut und versuche es noch einmal."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Der Arbeitsbereich konnte nicht nach einer Beschreibung gefragt werden"
 

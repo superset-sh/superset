@@ -4625,6 +4625,9 @@ msgstr "無法更新分支"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "無法驗證憑證：{reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "無法驗證來源工作階段。請重新開啟後再試。"
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "無法請求工作區產生描述"
 

@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -17,6 +23,7 @@ import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
 	continuationTarget,
+	runAgentInWorkspace,
 	validateAgentEffortSelection,
 	validateAgentForkSelection,
 	validateAgentModelSelection,
@@ -285,6 +292,72 @@ describe("buildTerminalAgentLaunch", () => {
 			})
 			.run();
 	}
+
+	it.each([
+		{
+			agentId: "claude",
+			sessionId: "current-session",
+			requestedId: "stale-session",
+			reason: "stale Claude session",
+		},
+		{
+			agentId: "codex",
+			sessionId: "current-session",
+			requestedId: "stale-session",
+			reason: "stale Codex session",
+		},
+		{
+			agentId: "codex",
+			sessionId: undefined,
+			requestedId: "requested-session",
+			reason: "missing recorded Codex session",
+		},
+		{
+			agentId: "codex",
+			sessionId: "current-session",
+			requestedId: "current-session",
+			reason: "missing source home",
+		},
+	] as const)("rejects a fork with $reason", async ({
+		agentId,
+		sessionId,
+		requestedId,
+	}) => {
+		const db = createTestDb();
+		seedConfig(db);
+		db.update(schema.hostAgentConfigs)
+			.set({ presetId: agentId, command: agentId })
+			.run();
+		db.insert(schema.workspaces)
+			.values({
+				id: "ws-1",
+				projectId: "project-1",
+				worktreePath: "/tmp/fork-test",
+				branch: "test",
+			})
+			.run();
+		const terminalAgentStore = new TerminalAgentStore();
+		terminalAgentStore.recordEvent({
+			terminalId: "source",
+			workspaceId: "ws-1",
+			agentId,
+			agentSessionId: sessionId,
+			eventType: "SessionStart",
+			occurredAt: 1,
+		});
+		const ctx = { db, terminalAgentStore } as Parameters<
+			typeof runAgentInWorkspace
+		>[0];
+		await expect(
+			runAgentInWorkspace(ctx, {
+				workspaceId: "ws-1",
+				agent: agentId,
+				prompt: "",
+				forkSourceTerminalId: "source",
+				forkSessionId: requestedId,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	});
 
 	it("resolves the agent config to a runnable command without a terminal", () => {
 		const db = createTestDb();
@@ -573,6 +646,48 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			})
 			.run();
 	}
+
+	it("pins a fork to its source home for preflight and launch after configuration changes", () => {
+		const db = createTestDb();
+		const sourceHome = join(supersetHome, "source");
+		const changedHome = join(supersetHome, "changed");
+		mkdirSync(join(sourceHome, "sessions"), { recursive: true });
+		mkdirSync(join(changedHome, "sessions"), { recursive: true });
+		const sessionId = "01a0bfde-622a-7103-8cc3-ddb312e39832";
+		writeFileSync(
+			join(sourceHome, "sessions", `rollout-test-${sessionId}.jsonl`),
+			"",
+		);
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "codex-fork",
+				presetId: "codex",
+				label: "Codex",
+				command: "codex",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				forkArgsJson: JSON.stringify(["fork", "{sessionId}"]),
+				envJson: JSON.stringify({ CODEX_HOME: changedHome }),
+				displayOrder: 0,
+			})
+			.run();
+		const input = {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "codex-fork",
+			prompt: "",
+			forkSessionId: sessionId,
+		};
+		expect(() => buildTerminalAgentLaunch(db, input)).toThrow(
+			"no longer has session",
+		);
+		const launch = buildTerminalAgentLaunch(db, input, {
+			CODEX_HOME: sourceHome,
+		});
+		expect(launch.fullCommand).toContain(`CODEX_HOME='${sourceHome}'`);
+		expect(launch.fullCommand).not.toContain(changedHome);
+		expect(launch.fullCommand).toContain(`'fork' '${sessionId}'`);
+	});
 
 	it("injects CLAUDE_CONFIG_DIR for claude agents when a default account is set", () => {
 		const db = createTestDb();

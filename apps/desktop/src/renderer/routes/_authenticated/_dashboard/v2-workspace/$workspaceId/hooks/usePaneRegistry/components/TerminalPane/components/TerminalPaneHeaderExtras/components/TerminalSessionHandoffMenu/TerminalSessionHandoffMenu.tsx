@@ -47,6 +47,7 @@ interface TerminalSessionHandoffMenuProps {
 		placement: Placement;
 		prompt: string;
 		forkSessionId?: string;
+		forkSourceTerminalId?: string;
 	}) => Promise<{ terminalId: string } | null>;
 }
 
@@ -77,12 +78,11 @@ export function TerminalSessionHandoffMenu({
 			(config) => config.id === sourceId || config.presetId === sourceId,
 		);
 	}, [binding?.agentId, binding?.definitionId, configs]);
+	const forkSessionId = binding?.agentSessionId;
 	const selectedConfig = configs.find((config) => config.id === targetConfigId);
 	// `forkArgs` is absent when the host service predates it, so an older
 	// remote host degrades to "cannot fork" instead of throwing in render.
-	const canFork = Boolean(
-		binding?.agentSessionId && sourceConfig?.forkArgs?.length,
-	);
+	const canFork = Boolean(forkSessionId && sourceConfig?.forkArgs?.length);
 	const defaultTargetConfigId = resolveDefaultTargetConfigId(
 		configs.map((config) => config.id),
 		typeof window === "undefined"
@@ -137,12 +137,13 @@ export function TerminalSessionHandoffMenu({
 		setIsStarting(true);
 		try {
 			if (action === "fork") {
-				if (!sourceConfig || !binding.agentSessionId || !canFork) return;
+				if (!sourceConfig || !forkSessionId || !canFork) return;
 				const result = await onCreateNewAgentSession({
 					configId: sourceConfig.id,
 					placement,
 					prompt: "",
-					forkSessionId: binding.agentSessionId,
+					forkSessionId,
+					forkSourceTerminalId: terminalId,
 				});
 				if (result) setAction(null);
 				return;

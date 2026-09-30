@@ -4625,6 +4625,9 @@ msgstr "Dal güncellenemedi"
 msgid "serverError.plugins.credentialUnverified"
 msgstr "Kimlik bilgisi doğrulanamadı: {reason}"
 
+msgid "Could not verify the source session. Reopen it and try again."
+msgstr "Kaynak oturum doğrulanamadı. Yeniden açıp tekrar deneyin."
+
 msgid "Couldn't ask the workspace for a description"
 msgstr "Çalışma alanından açıklama istenemedi"
 
