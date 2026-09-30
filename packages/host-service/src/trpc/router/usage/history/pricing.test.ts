@@ -57,6 +57,59 @@ describe("matchModelRate", () => {
 		});
 	});
 
+	test("prices GPT-6.1 Sol including cached input and vendor-qualified ids", () => {
+		const rate = matchModelRate("codex", "gpt-6.1-sol");
+		expect(rate).toMatchObject({
+			inputPerM: 2,
+			outputPerM: 10,
+			cacheReadPerM: 0.1,
+			approximate: false,
+		});
+		for (const model of ["openai/gpt-6.1-sol", "openai-codex/gpt-6.1-sol"]) {
+			expect(matchModelRate("omp", model)).toEqual(rate);
+		}
+		const tokens = {
+			uncachedInput: 1_000_000,
+			cachedInput: 1_000_000,
+			cacheWrite5m: 1_000_000,
+			cacheWrite1h: 0,
+			output: 1_000_000,
+		};
+		expect(costUsd(rate, tokens)).toBeCloseTo(14.6);
+		expect(cacheSavingsUsd(rate, tokens)).toBeCloseTo(1.9);
+	});
+
+	test("uses GPT-6.1 Sol long-context rates only above 272k prompt tokens", () => {
+		for (const promptTokens of [200_001, 272_000]) {
+			expect(
+				matchModelRate("codex", "gpt-6.1-sol", promptTokens),
+			).toMatchObject({
+				inputPerM: 2,
+				outputPerM: 10,
+				cacheReadPerM: 0.1,
+			});
+		}
+		const rate = matchModelRate("codex", "gpt-6.1-sol", 272_001);
+		expect(rate).toMatchObject({
+			inputPerM: 4,
+			outputPerM: 15,
+			cacheReadPerM: 0.2,
+			approximate: false,
+		});
+		expect(matchModelRate("omp", "openai-codex/gpt-6.1-sol", 272_001)).toEqual(
+			rate,
+		);
+		expect(
+			costUsd(rate, {
+				uncachedInput: 1_000_000,
+				cachedInput: 1_000_000,
+				cacheWrite5m: 1_000_000,
+				cacheWrite1h: 0,
+				output: 1_000_000,
+			}),
+		).toBeCloseTo(24.2);
+	});
+
 	test("prices Fable 5.1 and Mythos 5.1 cache reads at their own rate, not the usual 0.1x", () => {
 		const fable51 = matchModelRate("claude", "claude-fable-5-1");
 		const fable5 = matchModelRate("claude", "claude-fable-5");
