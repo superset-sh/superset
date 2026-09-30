@@ -50,12 +50,12 @@ export function AgentAccountSection({
 	const pinnedAccount = accounts.find(
 		(account) => pinned !== null && (account.selection ?? "") === pinned,
 	);
-	const effectiveAccount = pinnedAccount ?? hostDefault;
+	const effectiveSelection = pinned ?? hostDefault?.selection ?? "";
 
 	// Running agents keep the account their terminal started with, so offer
 	// to restart this project's agents when the account they use changed.
 	const offerRestart = async (next: UsageAccount | undefined) => {
-		if (!next || next.accountKey === effectiveAccount?.accountKey) return;
+		if (!next || (next.selection ?? "") === effectiveSelection) return;
 		const count = await countRestartCandidates(agent, projectId).catch(() => 0);
 		if (count === 0) return;
 		setRestartPrompt({

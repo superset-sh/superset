@@ -153,7 +153,7 @@ describe("host-wide default account pointers", () => {
 		});
 	});
 
-	it("drops the re-resolve markers when the pins could not be published", () => {
+	it("tells the wrappers to keep the spawn value when the pins could not be published", () => {
 		const selected = join(home, ".claude-work");
 		mkdirSync(selected);
 		syncDefaultAccountPointer("claude", selected);
@@ -163,8 +163,6 @@ describe("host-wide default account pointers", () => {
 		});
 
 		expect(env.CLAUDE_CONFIG_DIR).toBe(selected);
-		expect(
-			Object.keys(env).filter((key) => key.startsWith("SUPERSET_DEFAULT_")),
-		).toEqual([]);
+		expect(env.SUPERSET_SKIP_ACCOUNT_RESOLVE).toBe("1");
 	});
 });

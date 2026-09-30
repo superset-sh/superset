@@ -15308,7 +15308,7 @@ msgid "System"
 msgstr "Системная"
 
 msgid "System login"
-msgstr "Системный вход"
+msgstr "Системный аккаунт"
 
 msgid "System memory"
 msgstr "Системная память"
@@ -17514,7 +17514,7 @@ msgid "Which AI coding agents are supported?"
 msgstr "Какие AI-агенты для кода поддерживаются?"
 
 msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
-msgstr "Какой вход используют агенты в этом проекте. По умолчанию — аккаунт, выбранный в разделе «Использование»."
+msgstr "Какой аккаунт используют агенты в этом проекте. По умолчанию — аккаунт, выбранный в разделе «Использование»."
 
 msgid "Who can open this page from its link"
 msgstr "Кто может открыть эту страницу по ссылке"

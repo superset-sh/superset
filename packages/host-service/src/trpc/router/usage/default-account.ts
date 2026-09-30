@@ -353,11 +353,9 @@ export function resolveAccountTerminalEnv(
 		...resolveAccountEnv(db, "codex", workspaceId),
 	};
 	if (options.pinsPublished) return env;
-	// Without the SUPERSET_DEFAULT_* twins the wrappers treat the spawn value
-	// as user-set and keep it, instead of re-resolving past a pin they can't see.
-	return Object.fromEntries(
-		Object.entries(env).filter(([key]) => !key.startsWith("SUPERSET_DEFAULT_")),
-	);
+	// The pointer files may be stale, so the wrappers keep the spawn value —
+	// also when it is an unset var (a Claude system-login pin).
+	return { ...env, SUPERSET_SKIP_ACCOUNT_RESOLVE: "1" };
 }
 
 /**

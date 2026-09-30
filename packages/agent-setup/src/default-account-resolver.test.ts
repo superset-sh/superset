@@ -190,6 +190,21 @@ describe("buildDefaultAccountResolver", () => {
 		).toBe("<unset>");
 	});
 
+	it("keeps an unset spawn value when told the pointers may be stale", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writePin(home, profile);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+				SUPERSET_SKIP_ACCOUNT_RESOLVE: "1",
+			}),
+		).toBe("<unset>");
+	});
+
 	it("falls back to the host pointer when the pinned dir is gone", () => {
 		const { home, profile } = makeHome(null);
 		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
