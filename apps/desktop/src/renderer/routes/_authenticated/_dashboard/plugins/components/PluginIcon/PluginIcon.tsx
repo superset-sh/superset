@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
-import { LuBookOpen, LuDrama, LuPuzzle, LuWallet } from "react-icons/lu";
+import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
 import {
 	SiGmail,
 	SiGooglechrome,
@@ -23,6 +23,7 @@ import posthogIconUrl from "renderer/assets/icons/posthog-icon.png";
 import slackIconUrl from "renderer/assets/icons/slack-icon.svg";
 import supabaseIconUrl from "renderer/assets/icons/supabase-icon.png";
 import superhumanIconUrl from "renderer/assets/icons/superhuman-icon.png";
+import ynabIconUrl from "renderer/assets/icons/ynab-icon.png";
 
 /**
  * Per-plugin brand icons. Icons stay per-app rather than in the shared
@@ -50,6 +51,7 @@ const IMAGE_ICONS: Record<string, string> = {
 	slack: slackIconUrl,
 	neon: neonIconUrl,
 	circleback: circlebackIconUrl,
+	ynab: ynabIconUrl,
 };
 
 const PLUGIN_ICONS: Record<
@@ -66,7 +68,6 @@ const PLUGIN_ICONS: Record<
 	"google-docs": { icon: SiGoogledocs, color: "#4285F4" },
 	"google-sheets": { icon: SiGooglesheets, color: "#0F9D58" },
 	vercel: { icon: SiVercel, scale: "size-1/2" },
-	ynab: { icon: LuWallet },
 };
 
 interface PluginIconProps {

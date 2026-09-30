@@ -168,12 +168,16 @@ export function toMilliunits(amount: number): number {
 	return Math.round(amount * 1000);
 }
 
-export function money(value: number | null | undefined): string {
+export function money(
+	value: number | null | undefined,
+	formatted?: string | null,
+): string {
+	if (formatted) return formatted;
 	if (value === undefined || value === null) return "n/a";
-	return (value / 1000).toFixed(2);
+	return (value / 1000).toFixed(3).replace(/(\.\d\d)0$/, "$1");
 }
 
-export function signed(value: number): string {
-	const amount = money(value);
+export function signed(value: number, formatted?: string | null): string {
+	const amount = money(value, formatted);
 	return value > 0 ? `+${amount}` : amount;
 }

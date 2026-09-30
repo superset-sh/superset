@@ -127,7 +127,12 @@ export function getTools(): ToolDefinition[] {
 				payee_id: { type: "string", description: "Payee id from list_payees." },
 				since_date: {
 					type: "string",
-					description: "Only transactions on or after this ISO date.",
+					description:
+						"Only transactions on or after this ISO date. YNAB defaults this to one year ago, so pass it to reach anything older.",
+				},
+				until_date: {
+					type: "string",
+					description: "Only transactions on or before this ISO date.",
 				},
 				type: {
 					type: "string",

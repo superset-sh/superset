@@ -27,8 +27,13 @@ function describeAccount(account: Account): string {
 	if (account.closed) flags.push("closed");
 	return `[${account.id}] ${account.name} — ${flags.join(", ")}, balance ${money(
 		account.balance,
-	)} (cleared ${money(account.cleared_balance)}, uncleared ${money(
+		account.balance_formatted,
+	)} (cleared ${money(
+		account.cleared_balance,
+		account.cleared_balance_formatted,
+	)}, uncleared ${money(
 		account.uncleared_balance,
+		account.uncleared_balance_formatted,
 	)})`;
 }
 
@@ -39,29 +44,33 @@ function describeCategory(category: Category): string {
 			: "";
 	return `[${category.id}] ${category.name} — budgeted ${money(
 		category.budgeted,
-	)}, activity ${signed(category.activity)}, available ${money(
-		category.balance,
-	)}${goal}${category.hidden ? " [hidden]" : ""}`;
+		category.budgeted_formatted,
+	)}, activity ${signed(
+		category.activity,
+		category.activity_formatted,
+	)}, available ${money(category.balance, category.balance_formatted)}${goal}${
+		category.hidden ? " [hidden]" : ""
+	}`;
 }
 
 export const budgetHandlers: Record<string, Handler> = {
 	list_budgets: async (_args, token) => {
-		const { budgets } = await ynab<{ budgets: Budget[] }>(token, "/budgets");
-		if (!budgets?.length) return text("No budgets found");
-		const lines = budgets.map((budget) => {
+		const { plans } = await ynab<{ plans: Budget[] }>(token, "/plans");
+		if (!plans?.length) return text("No budgets found");
+		const lines = plans.map((budget) => {
 			const currency = budget.currency_format?.iso_code ?? "unknown currency";
 			const modified = budget.last_modified_on
 				? `, last modified ${budget.last_modified_on.slice(0, 10)}`
 				: "";
 			return `[${budget.id}] ${budget.name} — ${currency}${modified}`;
 		});
-		return text([`${budgets.length} budget(s)`, "", ...lines].join("\n"));
+		return text([`${plans.length} budget(s)`, "", ...lines].join("\n"));
 	},
 
 	list_accounts: async (args, token) => {
 		const { accounts } = await ynab<{ accounts: Account[] }>(
 			token,
-			`/budgets/${budgetId(args)}/accounts`,
+			`/plans/${budgetId(args)}/accounts`,
 		);
 		const includeClosed = optionalBoolean(args, "include_closed") ?? false;
 		const visible = (accounts ?? []).filter(
@@ -89,13 +98,13 @@ export const budgetHandlers: Record<string, Handler> = {
 
 		const { category_groups } = await ynab<{
 			category_groups: CategoryGroup[];
-		}>(token, `/budgets/${budget}/categories`);
+		}>(token, `/plans/${budget}/categories`);
 
 		const overlay = new Map<string, Category>();
 		if (month !== "current") {
 			const detail = await ynab<{ month: MonthDetail }>(
 				token,
-				`/budgets/${budget}/months/${month}`,
+				`/plans/${budget}/months/${month}`,
 			);
 			for (const category of detail.month?.categories ?? []) {
 				overlay.set(category.id, category);
@@ -125,7 +134,7 @@ export const budgetHandlers: Record<string, Handler> = {
 		const month = monthArg(args);
 		const { month: detail } = await ynab<{ month: MonthDetail }>(
 			token,
-			`/budgets/${budgetId(args)}/months/${month}`,
+			`/plans/${budgetId(args)}/months/${month}`,
 		);
 		if (!detail) return text(`No data for ${month}`);
 
@@ -135,10 +144,13 @@ export const budgetHandlers: Record<string, Handler> = {
 
 		const lines = [
 			`Month ${detail.month}`,
-			`  Income: ${money(detail.income)}`,
-			`  Budgeted: ${money(detail.budgeted)}`,
-			`  Activity: ${signed(detail.activity)}`,
-			`  To be budgeted: ${money(detail.to_be_budgeted)}`,
+			`  Income: ${money(detail.income, detail.income_formatted)}`,
+			`  Budgeted: ${money(detail.budgeted, detail.budgeted_formatted)}`,
+			`  Activity: ${signed(detail.activity, detail.activity_formatted)}`,
+			`  To be budgeted: ${money(
+				detail.to_be_budgeted,
+				detail.to_be_budgeted_formatted,
+			)}`,
 			`  Age of money: ${detail.age_of_money ?? "n/a"} day(s)`,
 		];
 		if (detail.note) lines.push(`  Note: ${detail.note}`);
@@ -146,7 +158,10 @@ export const budgetHandlers: Record<string, Handler> = {
 			lines.push("", `${overspent.length} overspent category/ies:`);
 			for (const category of overspent.slice(0, 20)) {
 				lines.push(
-					`  [${category.id}] ${category.name} — ${money(category.balance)}`,
+					`  [${category.id}] ${category.name} — ${money(
+						category.balance,
+						category.balance_formatted,
+					)}`,
 				);
 			}
 		}
@@ -156,7 +171,7 @@ export const budgetHandlers: Record<string, Handler> = {
 	list_payees: async (args, token) => {
 		const { payees } = await ynab<{ payees: Payee[] }>(
 			token,
-			`/budgets/${budgetId(args)}/payees`,
+			`/plans/${budgetId(args)}/payees`,
 		);
 		const visible = (payees ?? []).filter((payee) => !payee.deleted);
 		if (!visible.length) return text("No payees found");
@@ -175,7 +190,7 @@ export const budgetHandlers: Record<string, Handler> = {
 	list_scheduled_transactions: async (args, token) => {
 		const { scheduled_transactions } = await ynab<{
 			scheduled_transactions: ScheduledTransaction[];
-		}>(token, `/budgets/${budgetId(args)}/scheduled_transactions`);
+		}>(token, `/plans/${budgetId(args)}/scheduled_transactions`);
 		const visible = (scheduled_transactions ?? []).filter(
 			(scheduled) => !scheduled.deleted,
 		);
@@ -188,6 +203,7 @@ export const budgetHandlers: Record<string, Handler> = {
 					(scheduled) =>
 						`[${scheduled.id}] next ${scheduled.date_next} ${scheduled.frequency} ${money(
 							scheduled.amount,
+							scheduled.amount_formatted,
 						)}  ${scheduled.payee_name ?? "(no payee)"} > ${
 							scheduled.category_name ?? "Uncategorized"
 						}  (${scheduled.account_name ?? "unknown account"})`,
@@ -201,7 +217,7 @@ export const budgetHandlers: Record<string, Handler> = {
 		const categoryId = requireString(args, "category_id");
 		const { category } = await ynab<{ category: Category }>(
 			token,
-			`/budgets/${budgetId(args)}/months/${month}/categories/${categoryId}`,
+			`/plans/${budgetId(args)}/months/${month}/categories/${categoryId}`,
 			{
 				method: "PATCH",
 				body: {

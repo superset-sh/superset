@@ -25,8 +25,11 @@ export interface Account {
 	closed: boolean;
 	deleted: boolean;
 	balance: number;
+	balance_formatted?: string | null;
 	cleared_balance: number;
+	cleared_balance_formatted?: string | null;
 	uncleared_balance: number;
+	uncleared_balance_formatted?: string | null;
 }
 
 export interface Category {
@@ -36,8 +39,11 @@ export interface Category {
 	hidden: boolean;
 	deleted: boolean;
 	budgeted: number;
+	budgeted_formatted?: string | null;
 	activity: number;
+	activity_formatted?: string | null;
 	balance: number;
+	balance_formatted?: string | null;
 	goal_type?: string | null;
 	goal_target?: number | null;
 }
@@ -53,9 +59,13 @@ export interface CategoryGroup {
 export interface MonthDetail {
 	month: string;
 	income: number;
+	income_formatted?: string | null;
 	budgeted: number;
+	budgeted_formatted?: string | null;
 	activity: number;
+	activity_formatted?: string | null;
 	to_be_budgeted: number;
+	to_be_budgeted_formatted?: string | null;
 	age_of_money?: number | null;
 	note?: string | null;
 	categories?: Category[];
@@ -71,6 +81,7 @@ export interface Payee {
 export interface SubTransaction {
 	id?: string;
 	amount: number;
+	amount_formatted?: string | null;
 	memo?: string | null;
 	payee_name?: string | null;
 	category_id?: string | null;
@@ -81,6 +92,7 @@ export interface Transaction {
 	id: string;
 	date: string;
 	amount: number;
+	amount_formatted?: string | null;
 	memo?: string | null;
 	cleared: string;
 	approved: boolean;
@@ -103,6 +115,7 @@ export interface ScheduledTransaction {
 	date_next: string;
 	frequency: string;
 	amount: number;
+	amount_formatted?: string | null;
 	memo?: string | null;
 	account_name?: string;
 	payee_name?: string | null;

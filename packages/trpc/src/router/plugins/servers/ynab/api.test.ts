@@ -15,6 +15,18 @@ describe("milliunits", () => {
 		expect(signed(500000)).toBe("+500.00");
 		expect(signed(-500000)).toBe("-500.00");
 	});
+
+	test("keeps the third decimal for currencies that have one", () => {
+		expect(money(-395032)).toBe("-395.032");
+	});
+
+	test("prefers the amount YNAB formatted in the plan's own currency", () => {
+		expect(money(123930, "$123.93")).toBe("$123.93");
+		expect(money(-2990, "-€2,99")).toBe("-€2,99");
+		expect(signed(4924340, "€4.924,34")).toBe("+€4.924,34");
+		expect(money(0, null)).toBe("0.00");
+		expect(money(0, "")).toBe("0.00");
+	});
 });
 
 describe("month", () => {

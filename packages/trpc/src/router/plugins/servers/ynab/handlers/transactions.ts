@@ -24,7 +24,7 @@ function describe(transaction: Transaction): string {
 
 	const memo = transaction.memo ? `  memo: ${transaction.memo}` : "";
 	const suffix = flags.length ? `  [${flags.join(", ")}]` : "";
-	return `[${transaction.id}] ${transaction.date}  ${money(transaction.amount)}  ${
+	return `[${transaction.id}] ${transaction.date}  ${money(transaction.amount, transaction.amount_formatted)}  ${
 		transaction.payee_name ?? "(no payee)"
 	} > ${transaction.category_name ?? "Uncategorized"}  (${
 		transaction.account_name ?? transaction.account_id
@@ -33,20 +33,20 @@ function describe(transaction: Transaction): string {
 
 function describeSplit(split: SubTransaction): string {
 	const memo = split.memo ? `  memo: ${split.memo}` : "";
-	return `  ${money(split.amount)}  ${split.payee_name ?? ""} > ${
+	return `  ${money(split.amount, split.amount_formatted)}  ${split.payee_name ?? ""} > ${
 		split.category_name ?? "Uncategorized"
 	}${memo}`;
 }
 
 function listPath(budget: string, args: Record<string, unknown>): string {
 	const accountId = optionalString(args, "account_id");
-	if (accountId) return `/budgets/${budget}/accounts/${accountId}/transactions`;
+	if (accountId) return `/plans/${budget}/accounts/${accountId}/transactions`;
 	const categoryId = optionalString(args, "category_id");
 	if (categoryId)
-		return `/budgets/${budget}/categories/${categoryId}/transactions`;
+		return `/plans/${budget}/categories/${categoryId}/transactions`;
 	const payeeId = optionalString(args, "payee_id");
-	if (payeeId) return `/budgets/${budget}/payees/${payeeId}/transactions`;
-	return `/budgets/${budget}/transactions`;
+	if (payeeId) return `/plans/${budget}/payees/${payeeId}/transactions`;
+	return `/plans/${budget}/transactions`;
 }
 
 function writeFields(args: Record<string, unknown>): Record<string, unknown> {
@@ -106,7 +106,7 @@ async function readTransaction(
 ): Promise<Transaction> {
 	const { transaction } = await ynab<{ transaction: Transaction }>(
 		token,
-		`/budgets/${budget}/transactions/${id}`,
+		`/plans/${budget}/transactions/${id}`,
 	);
 	return transaction;
 }
@@ -121,6 +121,7 @@ export const transactionHandlers: Record<string, Handler> = {
 			{
 				query: {
 					since_date: dateArg(args, "since_date"),
+					until_date: dateArg(args, "until_date"),
 					type: optionalString(args, "type"),
 				},
 			},
@@ -163,7 +164,7 @@ export const transactionHandlers: Record<string, Handler> = {
 
 		const { transaction } = await ynab<{ transaction: Transaction }>(
 			token,
-			`/budgets/${budgetId(args)}/transactions`,
+			`/plans/${budgetId(args)}/transactions`,
 			{
 				method: "POST",
 				body: {
@@ -192,7 +193,7 @@ export const transactionHandlers: Record<string, Handler> = {
 
 		const { transaction } = await ynab<{ transaction: Transaction }>(
 			token,
-			`/budgets/${budget}/transactions/${id}`,
+			`/plans/${budget}/transactions/${id}`,
 			{
 				method: "PUT",
 				body: {
@@ -218,7 +219,7 @@ export const transactionHandlers: Record<string, Handler> = {
 
 	delete_transaction: async (args, token) => {
 		const id = requireString(args, "transaction_id");
-		await ynab(token, `/budgets/${budgetId(args)}/transactions/${id}`, {
+		await ynab(token, `/plans/${budgetId(args)}/transactions/${id}`, {
 			method: "DELETE",
 		});
 		return text(`Deleted transaction ${id}`);
