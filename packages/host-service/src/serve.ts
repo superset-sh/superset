@@ -6,6 +6,7 @@ import { installConsoleTimestamps } from "./log-timestamps";
 import {
 	ConfigFileSessionTokenSource,
 	JwtApiAuthProvider,
+	SandboxApiAuthProvider,
 } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
@@ -76,6 +77,10 @@ async function main(): Promise<void> {
 			: undefined,
 		apiUrl: env.SUPERSET_API_URL,
 	});
+	const apiAuthProvider =
+		env.SUPERSET_HOST_RUN_MODE === "sandbox"
+			? new SandboxApiAuthProvider()
+			: authProvider;
 
 	const {
 		app,
@@ -98,7 +103,7 @@ async function main(): Promise<void> {
 			browserBridge: resolveBrowserBridgeFromEnv(env),
 		},
 		providers: {
-			auth: authProvider,
+			auth: apiAuthProvider,
 			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
 			credentials: new LocalGitCredentialProvider(),
 		},

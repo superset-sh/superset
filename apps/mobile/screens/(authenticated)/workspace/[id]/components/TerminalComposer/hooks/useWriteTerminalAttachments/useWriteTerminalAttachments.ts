@@ -7,10 +7,13 @@ import { asAttachmentError } from "@/lib/attachments/errors";
 import { awaitAttachmentUploads } from "@/lib/attachments/upload";
 import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { apiClient } from "@/lib/trpc/client";
 
 export interface TerminalAttachmentTarget {
 	workspaceId: string;
 	hostUrl: string;
+	/** A cloud box fetches only files attached to it, so they are attached first. */
+	isCloud: boolean;
 	/** Which draft the attachments (and their uploads) belong to. */
 	draftKey: string;
 }
@@ -43,6 +46,12 @@ export function useWriteTerminalAttachments() {
 			);
 			const client = getHostServiceClientByUrl(target.hostUrl);
 			try {
+				if (target.isCloud) {
+					await apiClient.cloudWorkspace.attachFiles.mutate({
+						id: target.workspaceId,
+						fileIds,
+					});
+				}
 				const { paths } =
 					await client.attachments.materializeIntoWorkspace.mutate({
 						workspaceId: target.workspaceId,

@@ -756,9 +756,14 @@ export function WorkspaceScreen() {
 	const attachmentTarget = useMemo(
 		() =>
 			id && hostUrl && workspace?.worktreePath
-				? { workspaceId: id, hostUrl, draftKey: workspaceDraftKey(id) }
+				? {
+						workspaceId: id,
+						hostUrl,
+						isCloud: cloud !== null,
+						draftKey: workspaceDraftKey(id),
+					}
 				: null,
-		[id, hostUrl, workspace],
+		[id, hostUrl, workspace, cloud],
 	);
 
 	// The chip beside the quick keys, or nothing. Mark and colour both come off

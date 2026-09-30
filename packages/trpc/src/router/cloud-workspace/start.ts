@@ -180,7 +180,7 @@ export async function startCloudWorkspace(args: {
 		}
 	}
 	await anchorAttachments({
-		parentKind: "cloud_workspace_prompt",
+		parentKind: "cloud_workspace",
 		parentId: row.id,
 		organizationId: args.organizationId,
 		fileIds: args.attachmentFileIds ?? [],
