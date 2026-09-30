@@ -7423,6 +7423,9 @@ msgstr "需要登入 GitHub"
 msgid "GitHub stars"
 msgstr "GitHub 星標"
 
+msgid "GitHub sync is part of Pro."
+msgstr "GitHub同步屬於Pro方案。"
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub同步需要Pro方案。"
 
@@ -8734,6 +8737,9 @@ msgstr "Linear已連線，但初始同步未能啟動。請嘗試重新連線。
 
 msgid "Linear integration"
 msgstr "Linear整合"
+
+msgid "Linear sync is part of Pro."
+msgstr "Linear同步屬於Pro方案。"
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Linear同步需要Pro方案。"
@@ -16898,12 +16904,6 @@ msgstr "升級到{0}"
 
 msgid "Upgrade to Pro"
 msgstr "升級至 Pro"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "升級至 Pro 以連線 GitHub"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "升級至 Pro 以連線 Linear"
 
 msgid "Upload files"
 msgstr "上傳檔案"

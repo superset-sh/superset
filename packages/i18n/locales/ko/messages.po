@@ -7423,6 +7423,9 @@ msgstr "GitHub 로그인이 필요합니다"
 msgid "GitHub stars"
 msgstr "GitHub 스타"
 
+msgid "GitHub sync is part of Pro."
+msgstr "GitHub 동기화는 Pro에 포함되어 있습니다."
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub 동기화에는 Pro 플랜이 필요합니다."
 
@@ -8734,6 +8737,9 @@ msgstr "Linear는 연결되었지만 초기 동기화를 시작하지 못했습�
 
 msgid "Linear integration"
 msgstr "Linear 연동"
+
+msgid "Linear sync is part of Pro."
+msgstr "Linear 동기화는 Pro에 포함되어 있습니다."
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Linear 동기화에는 Pro 플랜이 필요합니다."
@@ -16898,12 +16904,6 @@ msgstr "{0}(으)로 업그레이드"
 
 msgid "Upgrade to Pro"
 msgstr "Pro로 업그레이드"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "GitHub를 연결하려면 Pro로 업그레이드"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Linear를 연결하려면 Pro로 업그레이드"
 
 msgid "Upload files"
 msgstr "파일 업로드"

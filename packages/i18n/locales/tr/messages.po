@@ -7423,6 +7423,9 @@ msgstr "GitHub oturumu açmanız gerekiyor"
 msgid "GitHub stars"
 msgstr "GitHub yıldızları"
 
+msgid "GitHub sync is part of Pro."
+msgstr "GitHub eşitlemesi Pro'nun bir parçasıdır."
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub eşitlemesi Pro planı gerektirir."
 
@@ -8734,6 +8737,9 @@ msgstr "Linear bağlandı, ancak ilk eşitleme başlatılamadı. Lütfen yeniden
 
 msgid "Linear integration"
 msgstr "Linear entegrasyonu"
+
+msgid "Linear sync is part of Pro."
+msgstr "Linear eşitlemesi Pro'nun bir parçasıdır."
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Linear eşitlemesi Pro planı gerektirir."
@@ -16898,12 +16904,6 @@ msgstr "{0} planına yükselt"
 
 msgid "Upgrade to Pro"
 msgstr "Pro'ya yükselt"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "GitHub'ı bağlamak için Pro'ya yükselt"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Linear'ı bağlamak için Pro'ya yükselt"
 
 msgid "Upload files"
 msgstr "Dosya yükle"

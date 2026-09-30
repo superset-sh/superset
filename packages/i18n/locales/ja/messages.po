@@ -7423,6 +7423,9 @@ msgstr "GitHub へのサインインが必要です"
 msgid "GitHub stars"
 msgstr "GitHubスター"
 
+msgid "GitHub sync is part of Pro."
+msgstr "GitHubの同期はProプランに含まれます。"
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHubの同期にはProプランが必要です。"
 
@@ -8734,6 +8737,9 @@ msgstr "Linearは接続しましたが、初回同期を開始できませんで
 
 msgid "Linear integration"
 msgstr "Linear連携"
+
+msgid "Linear sync is part of Pro."
+msgstr "Linearの同期はProプランに含まれます。"
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Linearの同期にはProプランが必要です。"
@@ -16898,12 +16904,6 @@ msgstr "{0}にアップグレード"
 
 msgid "Upgrade to Pro"
 msgstr "Pro にアップグレード"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "Pro にアップグレードして GitHub を接続"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Pro にアップグレードして Linear を接続"
 
 msgid "Upload files"
 msgstr "ファイルをアップロード"

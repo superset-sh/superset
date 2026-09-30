@@ -13,6 +13,7 @@ import { SiLinear } from "react-icons/si";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
+import { ProGate } from "../components/ProGate";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { TeamSelector } from "./components/TeamSelector";
 
@@ -99,8 +100,8 @@ export default async function LinearIntegrationPage() {
 		}),
 		trpc.integration.syncAllowed.query({ organizationId: organization.id }),
 	]);
+	const isConnected = !!connection;
 	const needsReconnect = !!connection?.needsReconnect;
-	const isConnected = !!connection && (syncAllowed || !needsReconnect);
 
 	return (
 		<div className="space-y-8">
@@ -129,7 +130,7 @@ export default async function LinearIntegrationPage() {
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
 						<h1 className="text-2xl font-semibold">Linear</h1>
-						{isConnected && needsReconnect ? (
+						{!syncAllowed ? null : needsReconnect ? (
 							<Badge variant="destructive" className="gap-1">
 								<AlertTriangle className="size-3" />
 								{i18n._(
@@ -168,74 +169,90 @@ export default async function LinearIntegrationPage() {
 				</div>
 			</div>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>
-						{i18n._(
-							msg({
-								message: "Connection",
-							}),
-						)}
-					</CardTitle>
-					<CardDescription>
-						{i18n._(
-							msg({
-								message:
-									"Connect your Linear workspace to sync issues bidirectionally.",
-							}),
-						)}
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<ConnectionControls
-						organizationId={organization.id}
-						isConnected={isConnected}
-						needsReconnect={needsReconnect}
-						syncAllowed={syncAllowed}
-					/>
-				</CardContent>
-			</Card>
-
-			{isConnected && (
-				<Card>
-					<CardHeader>
-						<CardTitle>
-							{i18n._(
-								msg({
-									message: "Settings",
-								}),
-							)}
-						</CardTitle>
-						<CardDescription>
-							{i18n._(
-								msg({
-									message:
-										"Configure how tasks sync between Superset and Linear.",
-								}),
-							)}
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="space-y-2">
-							<p className="text-sm font-medium">
+			{syncAllowed ? (
+				<>
+					<Card>
+						<CardHeader>
+							<CardTitle>
 								{i18n._(
 									msg({
-										message: "Default team for new tasks",
+										message: "Connection",
 									}),
 								)}
-							</p>
-							<TeamSelector organizationId={organization.id} />
-							<p className="text-sm text-muted-foreground">
+							</CardTitle>
+							<CardDescription>
 								{i18n._(
 									msg({
 										message:
-											"Tasks created in Superset will be synced to this Linear team.",
+											"Connect your Linear workspace to sync issues bidirectionally.",
 									}),
 								)}
-							</p>
-						</div>
-					</CardContent>
-				</Card>
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<ConnectionControls
+								organizationId={organization.id}
+								isConnected={isConnected}
+								needsReconnect={needsReconnect}
+							/>
+						</CardContent>
+					</Card>
+
+					{connection && (
+						<Card>
+							<CardHeader>
+								<CardTitle>
+									{i18n._(
+										msg({
+											message: "Settings",
+										}),
+									)}
+								</CardTitle>
+								<CardDescription>
+									{i18n._(
+										msg({
+											message:
+												"Configure how tasks sync between Superset and Linear.",
+										}),
+									)}
+								</CardDescription>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								<div className="space-y-2">
+									<p className="text-sm font-medium">
+										{i18n._(
+											msg({
+												message: "Default team for new tasks",
+											}),
+										)}
+									</p>
+									<TeamSelector organizationId={organization.id} />
+									<p className="text-sm text-muted-foreground">
+										{i18n._(
+											msg({
+												message:
+													"Tasks created in Superset will be synced to this Linear team.",
+											}),
+										)}
+									</p>
+								</div>
+							</CardContent>
+						</Card>
+					)}
+				</>
+			) : (
+				<ProGate
+					message={i18n._(
+						msg({
+							message: "Linear sync is part of Pro.",
+						}),
+					)}
+					upgradeLabel={i18n._(
+						msg({
+							message: "Upgrade to Pro",
+						}),
+					)}
+				/>
 			)}
 		</div>
 	);

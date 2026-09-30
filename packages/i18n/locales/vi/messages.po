@@ -7423,6 +7423,9 @@ msgstr "Cần đăng nhập GitHub"
 msgid "GitHub stars"
 msgstr "Star GitHub"
 
+msgid "GitHub sync is part of Pro."
+msgstr "Đồng bộ GitHub là một phần của gói Pro."
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "Đồng bộ GitHub yêu cầu gói Pro."
 
@@ -8734,6 +8737,9 @@ msgstr "Đã kết nối Linear, nhưng lần đồng bộ đầu tiên không k
 
 msgid "Linear integration"
 msgstr "Tích hợp Linear"
+
+msgid "Linear sync is part of Pro."
+msgstr "Đồng bộ Linear là một phần của gói Pro."
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Đồng bộ Linear yêu cầu gói Pro."
@@ -16898,12 +16904,6 @@ msgstr "Nâng cấp lên {0}"
 
 msgid "Upgrade to Pro"
 msgstr "Nâng cấp lên Pro"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "Nâng cấp lên Pro để kết nối GitHub"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Nâng cấp lên Pro để kết nối Linear"
 
 msgid "Upload files"
 msgstr "Tải tệp lên"

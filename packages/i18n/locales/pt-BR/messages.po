@@ -7423,6 +7423,9 @@ msgstr "Login no GitHub necessário"
 msgid "GitHub stars"
 msgstr "Estrelas do GitHub"
 
+msgid "GitHub sync is part of Pro."
+msgstr "A sincronização do GitHub faz parte do Pro."
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "A sincronização do GitHub exige o plano Pro."
 
@@ -8734,6 +8737,9 @@ msgstr "Linear conectado, mas a sincronização inicial não começou. Tente rec
 
 msgid "Linear integration"
 msgstr "Integração com o Linear"
+
+msgid "Linear sync is part of Pro."
+msgstr "A sincronização do Linear faz parte do Pro."
 
 msgid "Linear sync requires the Pro plan."
 msgstr "A sincronização do Linear exige o plano Pro."
@@ -16898,12 +16904,6 @@ msgstr "Fazer upgrade para {0}"
 
 msgid "Upgrade to Pro"
 msgstr "Fazer upgrade para o Pro"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "Faça upgrade para o Pro para conectar o GitHub"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Faça upgrade para o Pro para conectar o Linear"
 
 msgid "Upload files"
 msgstr "Enviar arquivos"

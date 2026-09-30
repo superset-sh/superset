@@ -7423,6 +7423,9 @@ msgstr "Perlu masuk ke GitHub"
 msgid "GitHub stars"
 msgstr "Star GitHub"
 
+msgid "GitHub sync is part of Pro."
+msgstr "Sinkronisasi GitHub adalah bagian dari Pro."
+
 msgid "GitHub sync requires the Pro plan."
 msgstr "Sinkronisasi GitHub memerlukan paket Pro."
 
@@ -8734,6 +8737,9 @@ msgstr "Linear terhubung, tapi sinkronisasi awal gagal dimulai. Silakan coba hub
 
 msgid "Linear integration"
 msgstr "Integrasi Linear"
+
+msgid "Linear sync is part of Pro."
+msgstr "Sinkronisasi Linear adalah bagian dari Pro."
 
 msgid "Linear sync requires the Pro plan."
 msgstr "Sinkronisasi Linear memerlukan paket Pro."
@@ -16898,12 +16904,6 @@ msgstr "Upgrade ke {0}"
 
 msgid "Upgrade to Pro"
 msgstr "Upgrade ke Pro"
-
-msgid "Upgrade to Pro to connect GitHub"
-msgstr "Upgrade ke Pro untuk menghubungkan GitHub"
-
-msgid "Upgrade to Pro to connect Linear"
-msgstr "Upgrade ke Pro untuk menghubungkan Linear"
 
 msgid "Upload files"
 msgstr "Unggah file"
