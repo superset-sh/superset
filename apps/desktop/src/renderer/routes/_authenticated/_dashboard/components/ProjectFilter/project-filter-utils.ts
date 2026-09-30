@@ -41,6 +41,26 @@ export function resolveProjectFilterParams(
 	return emptyValue;
 }
 
+/**
+ * The pull-requests routes give the `project` search param two meanings:
+ * the legacy single-repo list filter (pre-multi-select links), and the open
+ * PR's repo written by the detail pane. Only the first may narrow the list.
+ * Treating the second as a filter silently locked the list to the clicked
+ * PR's repo (GH #7577) and, because that changes every query key, refetched
+ * every page of search results and check rollups per click (GH #7578).
+ */
+export function resolvePullRequestListFilters(args: {
+	projects: string | undefined;
+	project: string | null | undefined;
+	prIsOpen: boolean;
+}): string[] | undefined {
+	return resolveProjectFilterParams(
+		args.projects,
+		args.prIsOpen ? null : args.project,
+		undefined,
+	);
+}
+
 export function serializeProjectFilters(
 	projectFilters: string[],
 ): string | undefined {

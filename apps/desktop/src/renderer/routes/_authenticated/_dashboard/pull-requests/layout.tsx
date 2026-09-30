@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import { resolvePullRequestListFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
@@ -79,10 +79,13 @@ function PullRequestsLayout() {
 	const isAppSidebarCollapsed = useWorkspaceSidebarStore((s) =>
 		s.isCollapsed(),
 	);
-	// Stable identity: effects downstream key off this array.
+	// Stable identity: effects downstream key off this array. With a PR
+	// open, `project` names the detail pane's repo, not a list filter — see
+	// resolvePullRequestListFilters.
+	const prIsOpen = selectedPrNumber !== null;
 	const initialProjects = useMemo(
-		() => resolveProjectFilterParams(projects, project, undefined),
-		[projects, project],
+		() => resolvePullRequestListFilters({ projects, project, prIsOpen }),
+		[projects, project, prIsOpen],
 	);
 
 	const rootRef = useRef<HTMLDivElement>(null);
