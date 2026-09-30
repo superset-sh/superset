@@ -23,6 +23,7 @@ import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hook
 import { useOpenPullRequestInApp } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPullRequestInApp";
 import { useOrganizationPeople } from "renderer/routes/_authenticated/_dashboard/hooks/useOrganizationPeople";
 import { useSetCloudWorkspaceVisibility } from "renderer/routes/_authenticated/_dashboard/hooks/useSetCloudWorkspaceVisibility";
+import { useUnarchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useUnarchiveCloudWorkspace";
 import { useCloudSidebarStore } from "renderer/routes/_authenticated/_dashboard/stores/cloudSidebarStore";
 import { useInviteMember } from "renderer/routes/_authenticated/hooks/useInviteMember";
 import { useSaveImageToDownloads } from "renderer/routes/_authenticated/hooks/useSaveImageToDownloads";
@@ -50,6 +51,7 @@ export function CloudWorkspaceRecordScreen({
 	const organizationId = useActiveOrganizationId();
 	const { data: session } = authClient.useSession();
 	const setVisibility = useSetCloudWorkspaceVisibility();
+	const unarchive = useUnarchiveCloudWorkspace();
 	const copyShareLink = useCopyShareLink();
 	const requestSaveAsEnvironment = useSaveAsEnvironmentIntent(
 		(state) => state.request,
@@ -207,12 +209,13 @@ export function CloudWorkspaceRecordScreen({
 						? () => requestSaveAsEnvironment(workspace.id)
 						: undefined
 				}
-				onDelete={() =>
+				onArchive={() =>
 					useDeleteWorkspaceIntent.getState().request({
 						workspaceId,
 						workspaceName: workspace.name || (branch ?? ""),
 					})
 				}
+				onUnarchive={() => unarchive(workspaceId)}
 				onSetVisibility={(visibility) =>
 					setVisibility.mutateAsync({ id: workspaceId, visibility })
 				}

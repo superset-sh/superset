@@ -9,6 +9,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { ACTIVE_WITHIN_MS } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspacePresenceStack";
 import { CloudWorkspacesList } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspacesList";
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
+import { useUnarchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useUnarchiveCloudWorkspace";
 import { useListDisplayStore } from "renderer/routes/_authenticated/_dashboard/stores/listDisplayStore";
 import {
 	type CloudWorkspacePeriod,
@@ -42,6 +43,7 @@ export function CloudWorkspacesView({ search }: CloudWorkspacesViewProps) {
 		status = ["active"],
 	} = search;
 	const navigate = useNavigate();
+	const unarchive = useUnarchiveCloudWorkspace();
 	const display = useListDisplayStore((state) => state.cloudWorkspaces);
 	const setDisplay = useListDisplayStore(
 		(state) => state.setCloudWorkspacesDisplay,
@@ -222,6 +224,7 @@ export function CloudWorkspacesView({ search }: CloudWorkspacesViewProps) {
 					onOpenPullRequest={listItems.onOpenPullRequest}
 					onOpenRepo={listItems.onOpenRepo}
 					onSetInSidebar={listItems.onSetInSidebar}
+					onUnarchive={unarchive}
 				/>
 			</div>
 		</div>

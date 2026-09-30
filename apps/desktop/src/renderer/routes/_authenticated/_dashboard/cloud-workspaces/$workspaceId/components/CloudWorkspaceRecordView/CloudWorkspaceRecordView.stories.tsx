@@ -323,7 +323,8 @@ const meta = {
 		onSetVisibility: fn(async () => {}),
 		onCopyLink: fn(),
 		onCopyId: fn(),
-		onDelete: fn(),
+		onArchive: fn(),
+		onUnarchive: fn(),
 	},
 } satisfies Meta<typeof CloudWorkspaceRecordView>;
 

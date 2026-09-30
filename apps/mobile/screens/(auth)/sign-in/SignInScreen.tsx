@@ -103,17 +103,17 @@ export function SignInScreen() {
 				<SocialButton
 					provider="apple"
 					onPress={handleAppleSignIn}
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 				/>
 				<SocialButton
 					provider="github"
 					onPress={() => handleSignIn("github")}
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 				/>
 				<SocialButton
 					provider="google"
 					onPress={() => handleSignIn("google")}
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 				/>
 				{(__DEV__ || env.EXPO_PUBLIC_E2E === "1") && <DevSignInOptions />}
 				<EmailSignInLink onError={setError} />

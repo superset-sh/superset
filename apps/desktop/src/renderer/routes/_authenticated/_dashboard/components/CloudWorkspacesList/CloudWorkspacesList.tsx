@@ -27,6 +27,7 @@ interface CloudWorkspacesListProps {
 	onOpenPullRequest: (url: string) => void;
 	onOpenRepo: (fullName: string) => void;
 	onSetInSidebar: (workspaceId: string, inSidebar: boolean) => void;
+	onUnarchive?: (workspaceId: string) => void;
 }
 
 export function CloudWorkspacesList({
@@ -36,6 +37,7 @@ export function CloudWorkspacesList({
 	onOpenPullRequest,
 	onOpenRepo,
 	onSetInSidebar,
+	onUnarchive,
 }: CloudWorkspacesListProps) {
 	const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 	const renderRow = (item: CloudWorkspaceListItem, showCreator: boolean) => (
@@ -50,6 +52,7 @@ export function CloudWorkspacesList({
 			onSetInSidebar={(inSidebar) =>
 				onSetInSidebar(item.workspace.id, inSidebar)
 			}
+			onUnarchive={onUnarchive && (() => onUnarchive(item.workspace.id))}
 		/>
 	);
 	const isEmpty =

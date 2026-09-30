@@ -4,6 +4,7 @@ import type { IconType } from "react-icons";
 import { HiOutlineCube } from "react-icons/hi2";
 import {
 	LuArchive,
+	LuArchiveRestore,
 	LuFileText,
 	LuGitPullRequest,
 	LuLink2,
@@ -54,6 +55,7 @@ const SYSTEM_ICON: Record<Entry["kind"], IconType> = {
 	pull_request_opened: LuGitPullRequest,
 	page_published: LuFileText,
 	archived: LuArchive,
+	unarchived: LuArchiveRestore,
 };
 
 export function CloudWorkspaceTimelineEntry({
@@ -237,6 +239,9 @@ export function CloudWorkspaceTimelineEntry({
 		}
 		case "archived":
 			sentence = <Trans>{actor} archived the workspace</Trans>;
+			break;
+		case "unarchived":
+			sentence = <Trans>{actor} unarchived the workspace</Trans>;
 			break;
 	}
 	return (

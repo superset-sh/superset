@@ -679,6 +679,9 @@ msgstr "{actor} nastavil(a) stav na {to}"
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} sdílel(a) pracovní prostor s organizací"
 
+msgid "{actor} unarchived the workspace"
+msgstr "{actor} obnovil(a) pracovní prostor z archivu"
+
 msgid "{actor} unassigned {from}"
 msgstr "{actor} odebral(a) přiřazení {from}"
 
@@ -2305,12 +2308,19 @@ msgstr "Archivovat"
 msgid "Archive environment"
 msgstr "Archivovat prostředí"
 
+msgid "Archive workspace"
+msgstr "Archivovat pracovní prostor"
+
 msgid "Archived"
 msgstr "Archivované"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
 msgid "Archived · {0}"
 msgstr "Archivováno · {0}"
+
+#. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
+msgid "Archived {0}"
+msgstr "Archivováno {0}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Opravdu chcete tento soubor smazat? Tuto akci nelze vrátit zpět."
@@ -16278,6 +16288,12 @@ msgstr "Tuto stránku zveřejnil uživatel Superset. Její obsah není ověřen.
 msgid "This page was taken down and can no longer be changed"
 msgstr "Tato stránka byla stažena a už ji nelze měnit"
 
+msgid "This pane can't be shown"
+msgstr "Tento panel nelze zobrazit"
+
+msgid "This pane hit an error"
+msgstr "V tomto panelu došlo k chybě"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Tato cesta existuje, ale není to adresář."
 
@@ -16349,6 +16365,9 @@ msgstr "Tento subagent už není hostitelem sledován. Jeho přepis zůstává n
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Tento terminál zatím nemá žádný výstup k předání."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Tento terminál je otevřený i na menší obrazovce, proto je přizpůsobený její velikosti"
 
 msgid "This thread has no comment to reply to."
 msgstr "V tomto vlákně není komentář, na který by šlo odpovědět."
@@ -16778,6 +16797,12 @@ msgstr "Diktování se nepodařilo spustit"
 msgid "Unable to transcribe audio"
 msgstr "Zvuk se nepodařilo přepsat"
 
+msgid "Unarchive"
+msgstr "Obnovit z archivu"
+
+msgid "Unarchive workspace"
+msgstr "Obnovit pracovní prostor z archivu"
+
 msgid "Unassigned"
 msgstr "Nepřiřazeno"
 
@@ -16872,6 +16897,12 @@ msgstr "Neznámý host"
 
 msgid "Unknown Host"
 msgstr "Neznámý host"
+
+msgid "Unknown pane"
+msgstr "Neznámý panel"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Neznámý typ panelu: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

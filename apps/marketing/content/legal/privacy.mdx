@@ -69,12 +69,12 @@ Connecting a Google Account is optional and separate from signing in. You connec
 
 We request these Google API scopes, and we use each one only for the purpose listed:
 
-- `openid`, `email` — identify which Google Account you connected, and show its address in Superset.
-- `gmail.readonly` — read message headers and labels, so an automation can start when new mail arrives, and read the messages and attachments you ask an agent to open.
-- `gmail.compose`, `gmail.modify` — create and send drafts, and change labels or read state, when you ask an agent to.
-- `gmail.labels` — create, rename, and delete Gmail labels at your request.
-- `gmail.settings.basic` — read and manage the Gmail filters you ask an agent to set up.
-- `https://mail.google.com/` — Google grants some mailbox operations only under full mail access, including permanently deleting a message or a thread.
+- `openid`, `email`: identify which Google Account you connected, and show its address in Superset.
+- `gmail.readonly`: read message headers and labels, so an automation can start when new mail arrives, and read the messages and attachments you ask an agent to open.
+- `gmail.compose`, `gmail.modify`: create and send drafts, and change labels or read state, when you ask an agent to.
+- `gmail.labels`: create, rename, and delete Gmail labels at your request.
+- `gmail.settings.basic`: read and manage the Gmail filters you ask an agent to set up.
+- `https://mail.google.com/`: Google grants some mailbox operations only under full mail access, including permanently deleting a message or a thread.
 
 Our Google consent screen also requests read-only Calendar access (`calendar.readonly`). Superset does not read your calendar, and we will update this policy before any feature does.
 

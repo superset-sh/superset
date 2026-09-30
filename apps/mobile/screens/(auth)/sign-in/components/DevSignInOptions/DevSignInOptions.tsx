@@ -87,7 +87,7 @@ export function DevSignInOptions() {
 				disabled={isLoading}
 				variant="outline"
 				size="lg"
-				className="w-4/5"
+				className="w-4/5 max-w-sm"
 			>
 				<Text>
 					{isLoading
@@ -102,7 +102,7 @@ export function DevSignInOptions() {
 				disabled={isLoading}
 				variant="outline"
 				size="lg"
-				className="w-4/5"
+				className="w-4/5 max-w-sm"
 			>
 				<Text>
 					<Trans>Sign in with email (dev)</Trans>

@@ -1,32 +1,30 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useFormat } from "@superset/i18n/react";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
-import { LuArrowRight, LuHash, LuLink } from "react-icons/lu";
+import { LuArchiveRestore, LuArrowRight, LuHash, LuLink } from "react-icons/lu";
 import { RecordIconButton } from "renderer/routes/_authenticated/_dashboard/components/RecordIconButton";
 import { CloudWorkspaceRecordMenu } from "./components/CloudWorkspaceRecordMenu";
 
 interface CloudWorkspaceRecordActionsProps {
 	archivedAt: Date | null;
-	now: Date;
 	onOpenWorkspace: () => void;
 	onCopyLink: () => void;
 	onCopyId: () => void;
 	onSaveAsEnvironment?: () => void;
-	onDelete: () => void;
+	onArchive: () => void;
+	onUnarchive: () => void;
 }
 
 export function CloudWorkspaceRecordActions({
 	archivedAt,
-	now,
 	onOpenWorkspace,
 	onCopyLink,
 	onCopyId,
 	onSaveAsEnvironment,
-	onDelete,
+	onArchive,
+	onUnarchive,
 }: CloudWorkspaceRecordActionsProps) {
 	const { t } = useLingui();
-	const { formatCompactRelativeTime } = useFormat();
 	return (
 		<>
 			<ButtonGroup>
@@ -42,17 +40,18 @@ export function CloudWorkspaceRecordActions({
 				>
 					<LuHash className="size-3.5" />
 				</RecordIconButton>
-				{!archivedAt && (
-					<CloudWorkspaceRecordMenu
-						onSaveAsEnvironment={onSaveAsEnvironment}
-						onDelete={onDelete}
-					/>
-				)}
+				<CloudWorkspaceRecordMenu
+					isArchived={archivedAt !== null}
+					onSaveAsEnvironment={onSaveAsEnvironment}
+					onArchive={onArchive}
+					onUnarchive={onUnarchive}
+				/>
 			</ButtonGroup>
 			{archivedAt ? (
-				<span className="text-xs text-muted-foreground">
-					<Trans>Archived · {formatCompactRelativeTime(archivedAt, now)}</Trans>
-				</span>
+				<Button variant="outline" size="sm" onClick={onUnarchive}>
+					<LuArchiveRestore className="size-3.5" />
+					<Trans>Unarchive</Trans>
+				</Button>
 			) : (
 				<Button variant="outline" size="sm" onClick={onOpenWorkspace}>
 					<Trans>Go to workspace</Trans>

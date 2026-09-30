@@ -346,19 +346,16 @@ async function resolveWriteTarget(absolutePath: string): Promise<string> {
 }
 
 async function writeAtomically({
-	rootPath,
 	absolutePath,
 	content,
 	encoding,
 }: {
-	rootPath: string;
 	absolutePath: string;
 	content: string | Uint8Array;
 	encoding?: string;
 }): Promise<void> {
 	const targetPath = await resolveWriteTarget(absolutePath);
 	const tempPath = `${targetPath}.superset-tmp-${randomUUID()}`;
-	await assertParentWithinRoot(rootPath, tempPath);
 
 	let sourceMode: number | undefined;
 	try {
@@ -388,11 +385,11 @@ async function writeAtomically({
 // per-entry stat calls bounds how much zombie work continues after an abort.
 const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
 
-// Read-only operations (listDirectory, readFile, getMetadata) are not
-// confined to the workspace root: terminals and agents routinely reference
-// files anywhere on the host, and viewing them is within the caller's trust
-// model (statPath/browseHost already expose arbitrary host paths). Mutations
-// remain strictly confined to the root.
+// listDirectory, readFile, getMetadata and writeFile are not confined to the
+// workspace root: terminals and agents routinely reference files anywhere on
+// the host, and viewing or editing them is within the caller's trust model
+// (the same caller can run any command in a terminal). Structural mutations
+// (create, delete, move, copy) remain confined to the root.
 export async function listDirectory({
 	absolutePath,
 	signal,
@@ -536,22 +533,19 @@ export async function getMetadata({
 }
 
 export async function writeFile({
-	rootPath,
 	absolutePath,
 	content,
 	encoding,
 	options,
 	precondition,
 }: {
-	rootPath: string;
 	absolutePath: string;
 	content: string | Uint8Array;
 	encoding?: string;
 	options?: { create: boolean; overwrite: boolean };
 	precondition?: { ifMatch: string };
 }): Promise<FsWriteResult> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = normalizeAbsolutePath(absolutePath);
 
 	const create = options?.create ?? true;
 	const overwrite = options?.overwrite ?? true;
@@ -604,7 +598,6 @@ export async function writeFile({
 		}
 
 		await writeAtomically({
-			rootPath,
 			absolutePath: targetPath,
 			content,
 			encoding,

@@ -180,6 +180,7 @@ const meta = {
 		onOpenPullRequest: fn(),
 		onOpenRepo: fn(),
 		onSetInSidebar: fn(),
+		onUnarchive: fn(),
 	},
 } satisfies Meta<typeof CloudWorkspacesList>;
 
@@ -215,4 +216,21 @@ export const GroupedByPerson: Story = {
 
 export const Empty: Story = {
 	args: { content: { items: [] } },
+};
+
+const ALL_ITEMS = GROUPS.flatMap((group) => group.items);
+
+export const WithArchived: Story = {
+	args: {
+		content: {
+			items: [
+				ALL_ITEMS[0],
+				...ALL_ITEMS.slice(1, 3).map((item) => ({
+					...item,
+					workspace: { ...item.workspace, status: "deleted" as const },
+				})),
+				...ALL_ITEMS.slice(3),
+			],
+		},
+	},
 };

@@ -16,6 +16,7 @@ import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
 import { startSandboxAgentStatusReporter } from "./runtime/sandbox-agent-status";
 import { startSandboxCredentialRefresh } from "./runtime/sandbox-credential-refresh";
+import { startVitalsLog } from "./runtime/vitals";
 import { detachFromLaunchDirectory } from "./runtime/working-directory";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 import { configureSelfUpdater } from "./self-update";
@@ -153,6 +154,7 @@ async function main(): Promise<void> {
 		recordBootStamp("host.listening");
 
 		startTerminalReaper(db);
+		startVitalsLog();
 		// A cloud workspace created with an agent starts it now: the pty daemon
 		// and event bus are up, and a person opening the workspace sees the
 		// agent's terminal the way they would on their own machine.

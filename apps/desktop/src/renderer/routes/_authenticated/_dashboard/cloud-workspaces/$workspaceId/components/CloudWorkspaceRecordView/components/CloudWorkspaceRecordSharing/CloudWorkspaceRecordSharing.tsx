@@ -34,15 +34,13 @@ export function CloudWorkspaceRecordSharing({
 }: CloudWorkspaceRecordSharingProps) {
 	return (
 		<div className="flex shrink-0 items-center gap-3">
-			{!archivedAt && (
-				<CloudWorkspaceShareButton
-					workspaceId={workspaceId}
-					owner={owner}
-					visibility={visibility}
-					canEdit={canEditSharing}
-					onSetVisibility={onSetVisibility}
-				/>
-			)}
+			<CloudWorkspaceShareButton
+				workspaceId={workspaceId}
+				owner={owner}
+				visibility={visibility}
+				canEdit={canEditSharing}
+				onSetVisibility={onSetVisibility}
+			/>
 			<CloudWorkspacePresenceStack
 				people={people}
 				viewerId={viewerId}

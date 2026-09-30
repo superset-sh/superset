@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import * as Sentry from "@sentry/core";
 import { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
@@ -21,6 +22,15 @@ export const FALLBACK_NAME = "Cloud workspace";
 /** Derived from the row id so the name is stable and collision-free. */
 export function sandboxNameFor(cloudWorkspaceId: string): string {
 	return `ws-${cloudWorkspaceId.replaceAll("-", "").slice(0, 24)}`;
+}
+
+/**
+ * A later box for the same row. Vercel refuses a deleted sandbox's name
+ * with `image_not_ready` for a few minutes after the delete.
+ */
+export function nextSandboxNameFor(cloudWorkspaceId: string): string {
+	const prefix = cloudWorkspaceId.replaceAll("-", "").slice(0, 16);
+	return `ws-${prefix}${randomBytes(4).toString("hex")}`;
 }
 
 export interface ProvisionCloudWorkspaceInput {
@@ -79,7 +89,7 @@ async function provision(
 	if (!row) return "skipped";
 	if (row.status !== "provisioning") return "skipped";
 
-	const providerSandboxId = sandboxNameFor(row.id);
+	const providerSandboxId = row.providerSandboxId;
 	const naming =
 		input.namingPrompt === undefined
 			? Promise.resolve()

@@ -86,7 +86,7 @@ export function DashboardSidebarCloudItem({
 	const requestSaveAsEnvironment = useSaveAsEnvironmentIntent(
 		(state) => state.request,
 	);
-	const deleteShortcut = useHotkeyDisplay("CLOSE_WORKSPACE").text;
+	const archiveShortcut = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const setInSidebar = useCloudSidebarStore((state) => state.setInSidebar);
 	const moveToGroup = useCloudSidebarStore((state) => state.moveToGroup);
 	const markRead = useCloudSidebarStore((state) => state.markRead);
@@ -157,7 +157,7 @@ export function DashboardSidebarCloudItem({
 			isUnread={hasFinished && !isRead}
 			groups={groups}
 			groupId={entry?.groupId ?? null}
-			deleteShortcut={isActive ? deleteShortcut : null}
+			archiveShortcut={isActive ? archiveShortcut : null}
 			isClosingPorts={isClosingPorts}
 			onOpenChange={onSuppressHover}
 			onOpenDetails={() =>
@@ -214,7 +214,7 @@ export function DashboardSidebarCloudItem({
 					? undefined
 					: () => setInSidebar(organizationId, workspace.id, false)
 			}
-			onDelete={() =>
+			onArchive={() =>
 				useDeleteWorkspaceIntent.getState().request({
 					workspaceId: workspace.id,
 					workspaceName: workspace.name || branch,
@@ -286,7 +286,7 @@ export function DashboardSidebarCloudItem({
 				onOpenPullRequest={() => {
 					if (pullRequest) openPullRequest(pullRequest.url);
 				}}
-				onDelete={() =>
+				onArchive={() =>
 					useDeleteWorkspaceIntent.getState().request({
 						workspaceId: workspace.id,
 						workspaceName: workspace.name || branch,

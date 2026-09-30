@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { provisioningSince } from "renderer/routes/_authenticated/_dashboard/utils/provisioningSince";
 
 /**
  * A warm sandbox is up in a second or two; the first ones after an image
@@ -18,7 +19,6 @@ interface CloudWorkspaceProvisioningStateProps {
 	workspaceId: string;
 	name: string;
 	status: CloudWorkspaceRow["status"];
-	createdAt: Date;
 }
 
 /**
@@ -30,10 +30,10 @@ export function CloudWorkspaceProvisioningState({
 	workspaceId,
 	name,
 	status,
-	createdAt,
 }: CloudWorkspaceProvisioningStateProps) {
 	const { t } = useLingui();
-	const elapsed = useElapsedSeconds(createdAt.getTime());
+	const [since] = useState(() => provisioningSince(workspaceId));
+	const elapsed = useElapsedSeconds(since);
 
 	if (status === "failed") {
 		return <CloudWorkspaceFailedState workspaceId={workspaceId} name={name} />;

@@ -26,7 +26,10 @@
 					"scope_separator": " ",
 					"token_request_auth_method": "client_secret_post",
 					"token_expiration_buffer": 300,
-					"requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+					"requires_env": [
+						"GOOGLE_TEMP_CLIENT_ID",
+						"GOOGLE_TEMP_CLIENT_SECRET"
+					],
 					"authorization_params": {
 						"access_type": "offline",
 						"prompt": "consent",

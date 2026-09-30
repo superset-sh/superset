@@ -7,16 +7,20 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { LuBox, LuEllipsis, LuTrash2 } from "react-icons/lu";
+import { LuArchive, LuArchiveRestore, LuBox, LuEllipsis } from "react-icons/lu";
 
 interface CloudWorkspaceRecordMenuProps {
+	isArchived: boolean;
 	onSaveAsEnvironment?: () => void;
-	onDelete: () => void;
+	onArchive: () => void;
+	onUnarchive: () => void;
 }
 
 export function CloudWorkspaceRecordMenu({
+	isArchived,
 	onSaveAsEnvironment,
-	onDelete,
+	onArchive,
+	onUnarchive,
 }: CloudWorkspaceRecordMenuProps) {
 	const { t } = useLingui();
 	return (
@@ -41,10 +45,17 @@ export function CloudWorkspaceRecordMenu({
 						<DropdownMenuSeparator />
 					</>
 				)}
-				<DropdownMenuItem variant="destructive" onSelect={onDelete}>
-					<LuTrash2 className="size-4" />
-					<Trans>Delete</Trans>
-				</DropdownMenuItem>
+				{isArchived ? (
+					<DropdownMenuItem onSelect={onUnarchive}>
+						<LuArchiveRestore className="size-4" />
+						<Trans>Unarchive</Trans>
+					</DropdownMenuItem>
+				) : (
+					<DropdownMenuItem onSelect={onArchive}>
+						<LuArchive className="size-4" />
+						<Trans>Archive</Trans>
+					</DropdownMenuItem>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

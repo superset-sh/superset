@@ -11,7 +11,12 @@ const meta = {
 			</div>
 		),
 	],
-	args: { onSaveAsEnvironment: fn(), onDelete: fn() },
+	args: {
+		isArchived: false,
+		onSaveAsEnvironment: fn(),
+		onArchive: fn(),
+		onUnarchive: fn(),
+	},
 } satisfies Meta<typeof CloudWorkspaceRecordMenu>;
 
 export default meta;
@@ -21,4 +26,8 @@ export const Default: Story = {};
 
 export const NotRunning: Story = {
 	args: { onSaveAsEnvironment: undefined },
+};
+
+export const Archived: Story = {
+	args: { isArchived: true, onSaveAsEnvironment: undefined },
 };
