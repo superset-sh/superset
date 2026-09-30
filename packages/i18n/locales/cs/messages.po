@@ -664,7 +664,7 @@ msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} sdílel(a) pracovní prostor s organizací"
 
 msgid "{actor} unarchived the workspace"
-msgstr "{actor} obnovil pracovní prostor z archivu"
+msgstr "{actor} obnovil(a) pracovní prostor z archivu"
 
 msgid "{actor} unassigned {from}"
 msgstr "{actor} odebral(a) přiřazení {from}"

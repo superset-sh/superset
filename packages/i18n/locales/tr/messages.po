@@ -2304,7 +2304,7 @@ msgstr "Arşivlendi · {0}"
 
 #. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
 msgid "Archived {0}"
-msgstr "Arşivlendi {0}"
+msgstr "{0} arşivlendi"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bu dosyayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
