@@ -1471,6 +1471,9 @@ msgstr "Установка в аккаунт работает только с с
 msgid "Account is pending deletion."
 msgstr "Аккаунт ожидает удаления."
 
+msgid "Account not found: {pinned}"
+msgstr "Аккаунт не найден: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Аккаунт ожидает удаления"
 
@@ -9336,9 +9339,6 @@ msgstr "Минимальный контраст"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Зеркало <0>дашборда PostHog Success Metrics</0> — продукт из сохранённых инсайтов, бизнес — вживую из Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Аккаунт не найден (используется по умолчанию)"
 
 msgid "Missing auth state"
 msgstr "Отсутствует состояние аутентификации"

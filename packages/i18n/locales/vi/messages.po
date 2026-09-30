@@ -1471,6 +1471,9 @@ msgstr "Cài đặt lên tài khoản chỉ xử lý manifest nội bộ, nên {
 msgid "Account is pending deletion."
 msgstr "Tài khoản đang chờ xóa."
 
+msgid "Account not found: {pinned}"
+msgstr "Không tìm thấy tài khoản: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Tài khoản đang chờ xóa"
 
@@ -9336,9 +9339,6 @@ msgstr "Độ tương phản tối thiểu"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Bản sao của <0>dashboard PostHog Success Metrics</0> — sản phẩm qua saved insight, kinh doanh lấy trực tiếp từ Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Thiếu tài khoản (đang dùng mặc định)"
 
 msgid "Missing auth state"
 msgstr "Thiếu trạng thái xác thực"

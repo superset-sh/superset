@@ -1471,6 +1471,9 @@ msgstr "A instalação na conta só resolve manifestos próprios, então {plugin
 msgid "Account is pending deletion."
 msgstr "A conta está com exclusão pendente."
 
+msgid "Account not found: {pinned}"
+msgstr "Conta não encontrada: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Conta com exclusão pendente"
 
@@ -9336,9 +9339,6 @@ msgstr "Contraste mínimo"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Espelho do <0>painel Success Metrics do PostHog</0> — produto via insights salvos, negócio ao vivo do Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Conta ausente (usando a padrão)"
 
 msgid "Missing auth state"
 msgstr "Falta o estado de autenticação"

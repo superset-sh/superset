@@ -1471,6 +1471,9 @@ msgstr "Hesaba kurulum yalnızca birinci taraf manifestlerini çözer, bu yüzde
 msgid "Account is pending deletion."
 msgstr "Hesap silinmeyi bekliyor."
 
+msgid "Account not found: {pinned}"
+msgstr "Hesap bulunamadı: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Hesap silinmeyi bekliyor"
 
@@ -9336,9 +9339,6 @@ msgstr "En düşük kontrast"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog Success Metrics panosunun</0> aynası — ürün kayıtlı içgörülerden, iş verileri Stripe/Neon üzerinden canlı"
-
-msgid "Missing account (using default)"
-msgstr "Hesap bulunamadı (varsayılan kullanılıyor)"
 
 msgid "Missing auth state"
 msgstr "Kimlik doğrulama durumu eksik"

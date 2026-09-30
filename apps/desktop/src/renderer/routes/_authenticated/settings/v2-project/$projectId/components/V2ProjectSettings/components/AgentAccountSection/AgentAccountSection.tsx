@@ -136,7 +136,7 @@ export function AgentAccountSection({
 					{pinned !== null && !pinnedAccount && (
 						<SelectItem value={UNLISTED_PIN}>
 							{pinned
-								? t({ message: "Missing account (using default)" })
+								? t({ message: `Account not found: ${pinned}` })
 								: t({ message: "System login" })}
 						</SelectItem>
 					)}

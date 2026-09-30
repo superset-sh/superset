@@ -1471,6 +1471,9 @@ msgstr "La instalación en la cuenta solo resuelve manifiestos propios, así que
 msgid "Account is pending deletion."
 msgstr "La cuenta está pendiente de eliminación."
 
+msgid "Account not found: {pinned}"
+msgstr "Cuenta no encontrada: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Cuenta pendiente de eliminación"
 
@@ -9336,9 +9339,6 @@ msgstr "Contraste mínimo"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Réplica del <0>panel Success Metrics de PostHog</0> — producto mediante análisis guardados, negocio en directo desde Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Cuenta no encontrada (se usa la predeterminada)"
 
 msgid "Missing auth state"
 msgstr "Falta el estado de autenticación"

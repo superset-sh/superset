@@ -1471,6 +1471,9 @@ msgstr "帳戶安裝僅解析第一方資訊清單，因此來自 {marketplace} 
 msgid "Account is pending deletion."
 msgstr "帳戶正在等待刪除。"
 
+msgid "Account not found: {pinned}"
+msgstr "找不到帳號：{pinned}"
+
 msgid "Account pending deletion"
 msgstr "帳戶待刪除"
 
@@ -9336,9 +9339,6 @@ msgstr "最小對比度"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog成功指標儀表板</0>的映象 — 產品資料來自已儲存的洞察，業務資料即時取自Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "帳號遺失（正在使用預設帳號）"
 
 msgid "Missing auth state"
 msgstr "缺少認證狀態"

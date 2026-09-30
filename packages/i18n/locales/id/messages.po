@@ -1471,6 +1471,9 @@ msgstr "Instalasi ke akun hanya menangani manifes internal, jadi {plugin} dari {
 msgid "Account is pending deletion."
 msgstr "Akun sedang menunggu penghapusan."
 
+msgid "Account not found: {pinned}"
+msgstr "Akun tidak ditemukan: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Akun menunggu penghapusan"
 
@@ -9336,9 +9339,6 @@ msgstr "Kontras minimum"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Cerminan <0>dasbor PostHog Success Metrics</0> — produk lewat insight tersimpan, bisnis langsung dari Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Akun tidak ditemukan (memakai default)"
 
 msgid "Missing auth state"
 msgstr "State auth tidak ada"

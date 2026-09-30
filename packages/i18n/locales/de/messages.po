@@ -1471,6 +1471,9 @@ msgstr "Die Installation im Konto löst nur Erstanbieter-Manifeste auf, daher ka
 msgid "Account is pending deletion."
 msgstr "Das Konto ist zur Löschung vorgemerkt."
 
+msgid "Account not found: {pinned}"
+msgstr "Konto nicht gefunden: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Konto zur Löschung vorgemerkt"
 
@@ -9336,9 +9339,6 @@ msgstr "Mindestkontrast"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Spiegel des <0>PostHog-Dashboards „Success Metrics“</0> — Produkt über gespeicherte Insights, Business live aus Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Fehlendes Konto (Standard wird verwendet)"
 
 msgid "Missing auth state"
 msgstr "Auth-State fehlt"

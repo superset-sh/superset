@@ -1471,6 +1471,9 @@ msgstr "L'installation sur le compte ne résout que les manifestes internes, don
 msgid "Account is pending deletion."
 msgstr "Le compte est en attente de suppression."
 
+msgid "Account not found: {pinned}"
+msgstr "Compte introuvable : {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Compte en attente de suppression"
 
@@ -9336,9 +9339,6 @@ msgstr "Contraste minimal"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Miroir du <0>tableau de bord PostHog Success Metrics</0> — produit via les insights enregistrés, business en direct depuis Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Compte introuvable (compte par défaut utilisé)"
 
 msgid "Missing auth state"
 msgstr "État d'authentification manquant"

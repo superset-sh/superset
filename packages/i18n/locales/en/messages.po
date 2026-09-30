@@ -1471,6 +1471,9 @@ msgstr "Account install resolves first-party manifests only, so {plugin} from {m
 msgid "Account is pending deletion."
 msgstr "Account is pending deletion."
 
+msgid "Account not found: {pinned}"
+msgstr "Account not found: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Account pending deletion"
 
@@ -9336,9 +9339,6 @@ msgstr "Minimum contrast"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
-
-msgid "Missing account (using default)"
-msgstr "Missing account (using default)"
 
 msgid "Missing auth state"
 msgstr "Missing auth state"
