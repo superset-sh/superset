@@ -19,7 +19,9 @@ if (!alreadyRegistered) GlobalRegistrator.register();
 
 interface ReplyVariables {
 	workspaceId: string;
-	commentId: number;
+	commentId?: number;
+	discussionId?: string;
+	provider?: "gitlab";
 	body: string;
 }
 interface ReplyMutationOptions {
@@ -28,6 +30,14 @@ interface ReplyMutationOptions {
 }
 
 const replyMutate = mock((_variables: ReplyVariables) => {});
+const resolveMutate = mock(
+	(_variables: {
+		workspaceId: string;
+		threadId: string;
+		resolved: boolean;
+		provider?: "gitlab";
+	}) => {},
+);
 const invalidateThreads = mock((_input: { workspaceId: string }) => {});
 // The component wires its reply mutation once per render; capturing the
 // options lets a test settle the request the way tRPC would.
@@ -41,7 +51,7 @@ mock.module("@superset/workspace-client", () => ({
 		}),
 		git: {
 			setReviewThreadResolution: {
-				useMutation: () => ({ mutate: () => {}, isPending: false }),
+				useMutation: () => ({ mutate: resolveMutate, isPending: false }),
 			},
 			replyToReviewThread: {
 				useMutation: (options: ReplyMutationOptions) => {
@@ -68,6 +78,7 @@ const { CommentThread } = await import("./CommentThread");
 
 beforeEach(() => {
 	replyMutate.mockClear();
+	resolveMutate.mockClear();
 	invalidateThreads.mockClear();
 	replyOptions = {};
 	replyPending = false;
@@ -83,7 +94,7 @@ const COMMENTS = [
 
 // `orphaned` renders a thread whose comments carry no databaseId — passing
 // an explicit undefined would just trigger a default parameter.
-async function setup({ orphaned = false } = {}) {
+async function setup({ orphaned = false, gitlab = false } = {}) {
 	let view!: ReturnType<typeof render>;
 	await act(async () => {
 		view = render(
@@ -91,6 +102,11 @@ async function setup({ orphaned = false } = {}) {
 				workspaceId="ws-1"
 				threadId="thread-1"
 				isResolved={false}
+				url={
+					gitlab
+						? "https://gitlab.example.com/group/repo/-/merge_requests/1#note_555"
+						: undefined
+				}
 				comments={COMMENTS}
 				replyToCommentId={orphaned ? undefined : 555}
 			/>,
@@ -99,12 +115,15 @@ async function setup({ orphaned = false } = {}) {
 	const ui = within(view.baseElement as HTMLElement);
 	const textarea = ui.getByPlaceholderText("Write a reply…");
 	const replyButton = ui.getByRole("button", { name: "Reply" });
+	const resolveButton = ui.getByRole("button", {
+		name: "Resolve conversation",
+	});
 	const type = async (text: string) => {
 		await act(async () => {
 			fireEvent.change(textarea, { target: { value: text } });
 		});
 	};
-	return { textarea, replyButton, type };
+	return { textarea, replyButton, resolveButton, type };
 }
 
 describe("CommentThread reply", () => {
@@ -166,6 +185,40 @@ describe("CommentThread reply", () => {
 
 		expect(replyMutate).not.toHaveBeenCalled();
 		expect((textarea as HTMLTextAreaElement).value).toBe("Orphaned");
+	});
+
+	test("replies to and resolves a GitLab discussion by its ID", async () => {
+		const { replyButton, resolveButton, type } = await setup({
+			orphaned: true,
+			gitlab: true,
+		});
+		await type("Looks good");
+		await act(async () => {
+			fireEvent.click(replyButton);
+		});
+		expect(replyMutate.mock.calls).toEqual([
+			[
+				{
+					workspaceId: "ws-1",
+					provider: "gitlab",
+					discussionId: "thread-1",
+					body: "Looks good",
+				},
+			],
+		]);
+		await act(async () => {
+			fireEvent.click(resolveButton);
+		});
+		expect(resolveMutate.mock.calls).toEqual([
+			[
+				{
+					workspaceId: "ws-1",
+					threadId: "thread-1",
+					provider: "gitlab",
+					resolved: true,
+				},
+			],
+		]);
 	});
 
 	test("hands the draft back when GitHub rejects the reply", async () => {

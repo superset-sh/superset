@@ -30,6 +30,16 @@ import semver from "semver";
  * at that point, so the jump from the old 0.8.x line is intentional.
  */
 export const MIN_HOST_SERVICE_VERSION = "1.21.0";
+export const MIN_GITLAB_HOST_SERVICE_VERSION = "1.33.0";
+
+export function hostSupportsGitLab(
+	version: string | null | undefined,
+	capabilities?: { gitlab?: boolean } | null,
+): boolean {
+	if (capabilities?.gitlab === true) return true;
+	const host = version ? semver.coerce(version) : null;
+	return host !== null && semver.gte(host, MIN_GITLAB_HOST_SERVICE_VERSION);
+}
 
 /**
  * What spawned the host-service, which decides how it can be updated:

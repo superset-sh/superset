@@ -20,6 +20,9 @@ export interface DashboardSidebarWorkspacePullRequestCheck {
 
 export interface DashboardSidebarWorkspacePullRequest {
 	url: string;
+	provider?: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
 	number: number;
 	title: string;
 	state: "open" | "merged" | "closed" | "draft" | "queued";

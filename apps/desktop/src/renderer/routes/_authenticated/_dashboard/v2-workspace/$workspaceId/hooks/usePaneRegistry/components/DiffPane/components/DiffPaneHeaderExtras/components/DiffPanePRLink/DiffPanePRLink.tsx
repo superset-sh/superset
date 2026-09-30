@@ -28,11 +28,12 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 	// Same query key useDiffAnnotations polls at 10s from inside the pane, so
 	// tanstack-query dedupes this into the existing subscription.
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{ enabled: !!workspaceId, staleTime: 10_000 },
 	);
 	const pr = prQuery.data;
 	if (!pr || workspace.type === "session") return null;
+	const isGitLab = pullRequestRefFromUrl(pr.url)?.provider === "gitlab";
 
 	// Same state derivation as PRStatusGroup's linkState.
 	const state: PRState = pr.isDraft
@@ -59,24 +60,30 @@ export function DiffPanePRLink({ workspaceId, store }: DiffPanePRLinkProps) {
 							}
 							openPullRequestPaneInStore(store, ref);
 						}}
-						aria-label={t({
-							message: `Open pull request #${pr.number}`,
-						})}
+						aria-label={
+							isGitLab
+								? t({ message: `Open merge request !${pr.number}` })
+								: t({ message: `Open pull request #${pr.number}` })
+						}
 						className="group flex h-5 shrink-0 items-center whitespace-nowrap gap-1.5 rounded-md border border-border/60 bg-muted/30 px-1.5 transition-colors hover:bg-accent/60"
 					>
 						<PRIcon state={state} className="size-3.5 shrink-0" />
 						{/* Verb-first label: the bare number read as a badge, not as
 						    an action that opens the PR. */}
 						<span className="hidden max-w-48 truncate font-medium text-[11px] text-foreground tabular-nums @min-[360px]/pane-header:inline">
-							{t({
-								message: `Open PR #${pr.number}`,
-							})}
+							{isGitLab
+								? t({ message: `Open MR !${pr.number}` })
+								: t({ message: `Open PR #${pr.number}` })}
 						</span>
 						<LuArrowRight className="hidden size-3 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-px @min-[360px]/pane-header:block" />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<Trans>Open pull request</Trans>
+					{isGitLab ? (
+						<Trans>Open merge request</Trans>
+					) : (
+						<Trans>Open pull request</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 			{/* Rendered here, not by the parent, so no stray divider shows when

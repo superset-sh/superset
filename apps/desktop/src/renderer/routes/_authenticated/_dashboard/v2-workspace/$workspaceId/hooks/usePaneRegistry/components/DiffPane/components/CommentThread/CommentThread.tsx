@@ -20,6 +20,7 @@ import {
 	LuLoaderCircle,
 } from "react-icons/lu";
 import { CommentMarkdown } from "renderer/components/CommentMarkdown";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { ReviewThreadReplyComposer } from "renderer/routes/_authenticated/_dashboard/components/ReviewThreadReplyComposer";
 import "./comment-thread.css";
 import { msg } from "@lingui/core/macro";
@@ -59,6 +60,9 @@ export function CommentThread({
 	focusTick,
 }: CommentThreadProps) {
 	const { t } = useLingui();
+	const isGitLab = url
+		? pullRequestRefFromUrl(url)?.provider === "gitlab"
+		: false;
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
 	useEffect(() => {
@@ -207,9 +211,11 @@ export function CommentThread({
 						rel="noreferrer"
 						onClick={(e) => e.stopPropagation()}
 						className="shrink-0 text-muted-foreground hover:text-foreground"
-						aria-label={t({
-							message: "Open on GitHub",
-						})}
+						aria-label={
+							isGitLab
+								? t({ message: "Open in GitLab" })
+								: t({ message: "Open on GitHub" })
+						}
 					>
 						<LuExternalLink className="size-3" />
 					</a>
@@ -225,10 +231,12 @@ export function CommentThread({
 					value={replyText}
 					onChange={setReplyText}
 					onReply={(body) => {
-						if (replyToCommentId == null) return false;
+						if (!isGitLab && replyToCommentId == null) return false;
 						replyToThread.mutate({
 							workspaceId,
-							commentId: replyToCommentId,
+							...(isGitLab
+								? { provider: "gitlab", discussionId: threadId }
+								: { commentId: replyToCommentId }),
 							body,
 						});
 						return true;
@@ -245,6 +253,7 @@ export function CommentThread({
 								setResolution.mutate({
 									workspaceId,
 									threadId,
+									...(isGitLab ? { provider: "gitlab" as const } : {}),
 									resolved: !isResolved,
 								})
 							}

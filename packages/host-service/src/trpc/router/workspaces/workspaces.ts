@@ -14,6 +14,11 @@ import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
 import { getGitAuthorName } from "../../../runtime/git/identity";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
+import {
+	assertGitLabIdentity,
+	getGitLabMergeRequest,
+	mapGitLabMergeRequestState,
+} from "../../../source-control/gitlab/merge-requests";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
@@ -63,6 +68,7 @@ import {
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
+import { resolveGitLabRepo } from "../workspace-creation/shared/project-helpers";
 import { requireIndependentWorktree } from "../workspace-creation/shared/require-independent-worktree";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
@@ -117,6 +123,9 @@ const createInputSchema = z
 		// format the provider autolinks.
 		skipBranchPrefix: z.boolean().optional(),
 		pr: z.number().int().positive().optional(),
+		prProvider: z.enum(["github", "gitlab"]).optional(),
+		prInstance: z.string().optional(),
+		prRepoPath: z.string().optional(),
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
@@ -252,6 +261,7 @@ function findExistingWorkspaceByBranch(
 
 interface PrMetadata {
 	number: number;
+	provider?: "github" | "gitlab";
 	url: string;
 	title: string;
 	headRefName: string;
@@ -259,8 +269,65 @@ interface PrMetadata {
 	baseRefName: string;
 	headRepositoryOwner: string;
 	headRepositoryName: string;
+	headRepositoryUrl?: string | null;
 	isCrossRepository: boolean;
 	state: "open" | "closed" | "merged";
+}
+
+async function fetchGitLabPrMetadata(args: {
+	ctx: HostServiceContext;
+	projectId: string;
+	prNumber: number;
+	instance?: string;
+	repoPath?: string;
+}): Promise<PrMetadata> {
+	const identity = await resolveGitLabRepo(args.ctx, args.projectId);
+	assertGitLabIdentity(identity, {
+		instance: args.instance,
+		repoPath: args.repoPath,
+	});
+	const mr = await getGitLabMergeRequest(
+		args.ctx.gitlab,
+		identity,
+		args.prNumber,
+	);
+	if (!mr.sha) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "GitLab did not return the merge request head SHA",
+		});
+	}
+	let sourcePath = "";
+	let sourceUrl: string | null = null;
+	const crossRepository = mr.source_project_id !== mr.target_project_id;
+	if (crossRepository && mr.source_project_id) {
+		try {
+			const source = await args.ctx.gitlab.api<{
+				path_with_namespace: string;
+				ssh_url_to_repo?: string;
+				http_url_to_repo?: string;
+			}>(identity, `projects/${mr.source_project_id}`);
+			sourcePath = source.path_with_namespace;
+			sourceUrl = source.ssh_url_to_repo ?? source.http_url_to_repo ?? null;
+		} catch {
+			sourcePath = "";
+		}
+	}
+	const sourceParts = sourcePath.split("/");
+	return {
+		number: mr.iid,
+		provider: "gitlab",
+		url: mr.web_url,
+		title: mr.title,
+		headRefName: mr.source_branch,
+		headRefOid: mr.sha,
+		baseRefName: mr.target_branch,
+		headRepositoryOwner: sourceParts.slice(0, -1).join("/"),
+		headRepositoryName: sourceParts.at(-1) ?? "",
+		headRepositoryUrl: sourceUrl,
+		isCrossRepository: crossRepository,
+		state: mapGitLabMergeRequestState(mr.state),
+	};
 }
 
 async function fetchPrMetadata(args: {
@@ -753,14 +820,23 @@ export const workspacesRouter = router({
 						});
 			} else if (input.pr !== undefined) {
 				const releaseCreateLock = await acquireWorkspaceCreateLock(
-					`pr:${input.projectId}:${input.pr}`,
+					`pr:${input.projectId}:${input.prProvider ?? "github"}:${input.pr}`,
 				);
 				try {
-					const prMetadata = await fetchPrMetadata({
-						cwd: repoPath,
-						prNumber: input.pr,
-						execGh: ctx.execGh,
-					});
+					const prMetadata =
+						input.prProvider === "gitlab"
+							? await fetchGitLabPrMetadata({
+									ctx,
+									projectId: input.projectId,
+									prNumber: input.pr,
+									instance: input.prInstance,
+									repoPath: input.prRepoPath,
+								})
+							: await fetchPrMetadata({
+									cwd: repoPath,
+									prNumber: input.pr,
+									execGh: ctx.execGh,
+								});
 					resolvedBranch = derivePrLocalBranchName(prMetadata);
 
 					const existing = findExistingWorkspaceByBranch(
@@ -769,6 +845,18 @@ export const workspacesRouter = router({
 						resolvedBranch,
 					);
 					if (existing) {
+						if (input.prProvider === "gitlab") {
+							const existingOid = await getLocalBranchHead(git, resolvedBranch);
+							if (
+								existingOid?.toLowerCase() !==
+								prMetadata.headRefOid.toLowerCase()
+							) {
+								throw new TRPCError({
+									code: "CONFLICT",
+									message: `Existing branch ${resolvedBranch} does not match merge request !${input.pr} head ${prMetadata.headRefOid}`,
+								});
+							}
+						}
 						workspaceRow = existing;
 						alreadyExists = true;
 					} else {

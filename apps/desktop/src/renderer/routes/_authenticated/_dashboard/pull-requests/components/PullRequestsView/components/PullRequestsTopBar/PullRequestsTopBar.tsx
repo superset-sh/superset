@@ -71,6 +71,9 @@ export function PullRequestsTopBar({
 		!!authorFilter,
 		!!reviewFilter,
 	].filter(Boolean).length;
+	const hasGitLabProjects = projectTargets.some(
+		(target) => target.provider === "gitlab",
+	);
 
 	return (
 		<div
@@ -180,8 +183,9 @@ export function PullRequestsTopBar({
 								<Trans>Reviews</Trans>
 							</span>
 							<ReviewFilter
-								value={reviewFilter}
+								value={hasGitLabProjects ? null : reviewFilter}
 								onChange={onReviewFilterChange}
+								disabled={hasGitLabProjects}
 							/>
 						</div>
 					</PopoverContent>

@@ -41,6 +41,7 @@ export const healthRouter = router({
 			// The desktop app spawns its own bundled build, so this doubles as
 			// the app version for a standalone CLI collecting diagnostics.
 			version: HOST_SERVICE_VERSION,
+			capabilities: { gitlab: true },
 			installSource: getHostInstallSource(),
 			cloudRegistered: registration.registered,
 			registrationError: registration.lastError,

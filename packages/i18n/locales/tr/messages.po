@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "selamlama"
+
 msgid " and "
 msgstr " ve "
 
@@ -41,6 +45,10 @@ msgstr "· güncelleme {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\" silindi"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "\"{0}\" GitLab'de kapatılacak. Buradan yeniden açabilirsiniz."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Fark kısaltıldı — host'ta # satır daha var} other
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {# port kapatılamadı} other {# port kapatılamadı}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {GitLab issue} other {GitLab issue}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {# çalışma alanı içe aktarıldı} other {# çalışma alanı içe aktarıldı}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {# çalışma alanı içe aktarıldı} other {# çalış
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Seçili # çalışma alanını bir gruba taşı} other {Seçili # çalışma alanını bir gruba taşı}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {pull request} other {pull request}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {# kontrolün tümü geçti} other {# kontrolün tü
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {pull request} other {pull request}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {# özel tema içe aktarıldı} other {# özel tema içe aktarıldı}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Proje Ayarları'nda bir yaşam döngüsü çalıştırma betiği ekleyin
 
 msgid "Add a project to see GitHub issues."
 msgstr "GitHub issue'larını görmek için bir proje ekleyin."
+
+msgid "Add a project to see GitLab issues."
+msgstr "GitLab issue'larını görmek için bir proje ekleyin."
 
 msgid "Add a project to see pull requests."
 msgstr "Pull request'leri görmek için bir proje ekleyin."
@@ -2609,6 +2625,9 @@ msgstr "Güncel sürüme dön"
 msgid "Back to GitHub issues"
 msgstr "GitHub issue'larına dön"
 
+msgid "Back to GitLab issues"
+msgstr "GitLab issue'larına dön"
+
 msgid "Back to Home"
 msgstr "Ana sayfaya dön"
 
@@ -2668,6 +2687,10 @@ msgstr "{selectedHostName} üzerindeki yeni worktree'ler için temel dizin."
 
 msgid "Base URL"
 msgstr "Temel URL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "MR !{0} temel alınarak"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Bir klasör seçin"
 msgid "Choose a parent directory"
 msgstr "Bir üst dizin seçin"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Bir issue açmadan önce GitHub issue'ları bölümünden bir proje seçin."
+msgid "Choose a project before opening an issue."
+msgstr "Bir issue açmadan önce bir proje seçin."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Pull request açmadan önce Pull request'ler bölümünden bir proje seçin."
@@ -3465,6 +3488,9 @@ msgstr "Kopyalamak için tıklayın"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Oturum kimliğini kopyalamak için tıklayın (`claude --resume <id>` ile sürdürün)."
 
+msgid "Click to open merge request"
+msgstr "Merge request'i açmak için tıklayın"
+
 msgid "Click to open on GitHub"
 msgstr "GitHub'da açmak için tıklayın"
 
@@ -3510,6 +3536,10 @@ msgstr "Klonlanıyor…"
 
 msgid "Close"
 msgstr "Kapat"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "!{0} kapatılsın mı?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Bulma çubuğunu kapat"
 
 msgid "Close menu"
 msgstr "Menüyü kapat"
+
+msgid "Close merge request"
+msgstr "Merge request'i kapat"
 
 msgid "Close modal"
 msgstr "Pencereyi kapat"
@@ -4321,6 +4354,9 @@ msgstr "Bağlantıyı kopyala"
 msgid "Copy Link Address"
 msgstr "Bağlantı adresini kopyala"
 
+msgid "Copy link to merge request"
+msgstr "Merge request bağlantısını kopyala"
+
 msgid "Copy link to pull request"
 msgstr "Pull request bağlantısını kopyala"
 
@@ -4674,6 +4710,12 @@ msgstr "İnceleme yorumları yüklenemedi"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profilin yüklenemedi, bu yüzden düzenleme devre dışı."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Merge request hazır olarak işaretlenemedi"
+
+msgid "Couldn't merge merge request"
+msgstr "Merge request birleştirilemedi"
+
 msgid "Couldn't merge pull request"
 msgstr "Pull request birleştirilemedi"
 
@@ -4769,6 +4811,9 @@ msgstr "Değişiklikler hazırlıktan çıkarılamadı"
 msgid "Couldn't unstage file"
 msgstr "Dosya hazırlıktan çıkarılamadı"
 
+msgid "Couldn't update merge request"
+msgstr "Merge request güncellenemedi"
+
 msgid "Couldn't update pull request"
 msgstr "Pull request güncellenemedi"
 
@@ -4840,6 +4885,16 @@ msgstr "Birleştirme commit'i oluştur"
 
 msgid "Create Merge Commit"
 msgstr "Birleştirme commit'i oluştur"
+
+msgid "Create merge request"
+msgstr "Merge request oluştur"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "MR oluşturulamadı: {0}"
+
+msgid "Create MR"
+msgstr "MR oluştur"
 
 msgid "Create new group"
 msgstr "Yeni grup oluştur"
@@ -4968,6 +5023,9 @@ msgstr "oluşturuluyor"
 
 msgid "Creating"
 msgstr "Oluşturuluyor"
+
+msgid "Creating merge request..."
+msgstr "MR oluşturuluyor…"
 
 msgid "Creating PR..."
 msgstr "PR oluşturuluyor…"
@@ -7428,6 +7486,12 @@ msgstr "GitHub kullanıcı adı..."
 msgid "GitHub username…"
 msgstr "GitHub kullanıcı adı…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "GitLab issue'ları"
+
 msgid "Give me an example"
 msgstr "Bana bir örnek ver"
 
@@ -8885,6 +8949,9 @@ msgstr "Issue'lar yükleniyor…"
 msgid "Loading members..."
 msgstr "Üyeler yükleniyor..."
 
+msgid "Loading merge request…"
+msgstr "Merge request yükleniyor…"
+
 msgid "Loading more..."
 msgstr "Daha fazlası yükleniyor..."
 
@@ -9112,6 +9179,9 @@ msgstr "Okunmadı olarak işaretle"
 msgid "Mark as viewed"
 msgstr "Görüldü olarak işaretle"
 
+msgid "Mark ready"
+msgstr "Hazır olarak işaretle"
+
 msgid "Mark Ready"
 msgstr "Hazır işaretle"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Birleştir"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "!{0} birleştirilsin mi?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "#{0} birleştirilsin mi?"
 
@@ -9244,11 +9318,35 @@ msgstr "Birleştirme commit'i"
 msgid "Merge failed: {0}"
 msgstr "Birleştirme başarısız: {0}"
 
+msgid "Merge merge request"
+msgstr "Merge request'i birleştir"
+
 msgid "Merge pull request"
 msgstr "Pull request'i birleştir"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Superset'ten çıkmadan pull request birleştirin; ayrıca bir dizi sohbet düzeltmesi ve rötuş."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "MR !{0} oluşturuldu"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Merge request !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "MR birleştirildi"
+
+msgid "Merge request ready for review"
+msgstr "MR incelemeye hazır"
+
+msgid "Merge request title"
+msgstr "Merge request başlığı"
+
+msgid "Merge request URL"
+msgstr "MR URL'si"
 
 msgid "Merge when checks pass"
 msgstr "Kontroller geçince birleştir"
@@ -9262,6 +9360,15 @@ msgstr "{0} birleştirdi"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Birleştirildi, ancak PR durumu yenilenemedi — birazdan yeniden deneyin"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Birleştirildi, ancak isteğin durumu yenilenemedi"
+
+msgid "Merging merge request"
+msgstr "Merge request birleştiriliyor"
+
+msgid "Merging merge request..."
+msgstr "Merge request birleştiriliyor..."
 
 msgid "Merging PR..."
 msgstr "PR birleştiriliyor..."
@@ -9310,6 +9417,9 @@ msgstr "Küçült"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub issue'larını küçült"
+
+msgid "Minimize GitLab issues"
+msgstr "GitLab issue'larını küçült"
 
 msgid "Minimum contrast"
 msgstr "En düşük kontrast"
@@ -9465,6 +9575,16 @@ msgstr "Gruba taşı"
 
 msgid "Move to Tab"
 msgstr "Sekmeye taşı"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Henüz yorum yok. Yorum modunu açıp sayfadaki herhangi bir öğeye tı
 
 msgid "No commits on this branch yet."
 msgstr "Bu dalda henüz commit yok."
+
+msgid "No commits to open a merge request from"
+msgstr "Merge request açılabilecek commit yok"
 
 msgid "No commits to open a pull request from"
 msgstr "Pull request açılabilecek commit yok"
@@ -10772,6 +10895,9 @@ msgstr "Komut paletini aç"
 msgid "Open comment on GitHub"
 msgstr "Yorumu GitHub'da aç"
 
+msgid "Open comment on GitLab"
+msgstr "Yorumu GitLab'da aç"
+
 msgid "Open details"
 msgstr "Ayrıntıları aç"
 
@@ -10893,6 +11019,9 @@ msgstr "Finder'da aç"
 msgid "Open in GitHub"
 msgstr "GitHub'da aç"
 
+msgid "Open in GitLab"
+msgstr "GitLab'da aç"
+
 msgid "Open in Linear"
 msgstr "Linear'da aç"
 
@@ -10933,6 +11062,9 @@ msgstr "#{0} issue'sunu tarayıcıda aç"
 msgid "Open issue in GitHub"
 msgstr "Issue'yu GitHub'da aç"
 
+msgid "Open issue in GitLab"
+msgstr "Issue'yu GitLab'da aç"
+
 msgid "Open issues"
 msgstr "Açık issue'lar"
 
@@ -10957,6 +11089,21 @@ msgstr "localhost:{0} adresini harici tarayıcıda aç"
 
 msgid "Open menu"
 msgstr "Menüyü aç"
+
+msgid "Open merge request"
+msgstr "Merge request'i aç"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "!{0} merge request'ini aç"
+
+msgid "Open merge request options"
+msgstr "Merge request seçeneklerini aç"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "MR !{0} aç"
 
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
@@ -12427,6 +12574,9 @@ msgstr "Yenile"
 msgid "Refresh GitHub issues"
 msgstr "GitHub issue'larını yenile"
 
+msgid "Refresh GitLab issues"
+msgstr "GitLab issue'larını yenile"
+
 msgid "Refresh metrics"
 msgstr "Metrikleri yenile"
 
@@ -12688,6 +12838,9 @@ msgstr "Yeniden aç"
 
 msgid "Reopen Closed Tab"
 msgstr "Kapatılan sekmeyi yeniden aç"
+
+msgid "Reopen merge request"
+msgstr "Merge request'i yeniden aç"
 
 msgid "Reopen PR"
 msgstr "PR'ı yeniden aç"
@@ -13085,6 +13238,9 @@ msgstr "İnceleme yok sayıldı"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Devam edip etmemeye karar vermeden önce her hatayı inceleyin."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "İnceleme filtreleri yalnızca GitHub projeleri için kullanılabilir."
+
 msgid "Review message"
 msgstr "İnceleme mesajı"
 
@@ -13105,6 +13261,9 @@ msgstr "İnceleme istendi"
 
 msgid "Review required"
 msgstr "İnceleme gerekli"
+
+msgid "Review status unavailable"
+msgstr "İnceleme durumu kullanılamıyor"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Sözdizimi vurgulu diff'leri inceleyin"
@@ -13530,6 +13689,12 @@ msgstr "GitHub issue'larında ara"
 msgid "Search GitHub issues…"
 msgstr "GitHub issue'larında ara…"
 
+msgid "Search GitLab issues"
+msgstr "GitLab issue'larında ara"
+
+msgid "Search GitLab issues…"
+msgstr "GitLab issue'larında ara…"
+
 msgid "Search history"
 msgstr "Geçmişte ara"
 
@@ -13698,6 +13863,9 @@ msgstr "Önce bir proje seçin"
 msgid "Select a project to see GitHub issues."
 msgstr "GitHub issue'larını görmek için bir proje seçin."
 
+msgid "Select a project to see GitLab issues."
+msgstr "GitLab issue'larını görmek için bir proje seçin."
+
 msgid "Select a project to see pull requests."
 msgstr "Pull request'leri görmek için bir proje seçin."
 
@@ -13814,6 +13982,9 @@ msgstr "Takımları seç"
 
 msgid "Select terminal script directory"
 msgstr "Terminal betiği dizinini seçin"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Issue'yu bir çalışma alanında çalıştırmak için projesini seçin."
 
 msgid "Select worktree location"
 msgstr "Worktree konumunu seçin"
@@ -14500,9 +14671,8 @@ msgstr "Bazı dosyalar en büyük boyutu aşıyor ve eklenmedi."
 msgid "Some models were priced with a fallback rate"
 msgstr "Bazı modeller yedek bir tarifeyle fiyatlandırıldı"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Bazı depolar yüklenemedi: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Bazı depolar yüklenemedi: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Bazı oturumlar sonlandırılamadı"
@@ -15757,6 +15927,9 @@ msgstr "Yerel host hizmeti yeni açıldı. Şimdi ona yeniden bağlanılıyor."
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Birleştirilen ajan PR'larının çoğu yalnızca inceleme gerektirir, hiç insan düzenlemesi olmaz."
 
+msgid "The merge request is unavailable."
+msgstr "Merge request kullanılamıyor."
+
 msgid "The name of your organization or team"
 msgstr "Kuruluşunuzun veya takımınızın adı"
 
@@ -15827,6 +16000,12 @@ msgstr "Bu cihaz Superset rölesine bağlı olmadığı için çalıştırma atl
 
 msgid "The scorecard"
 msgstr "Puan tablosu"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "Seçilen ana makine GitLab'ı desteklemiyor. Host-service bileşenini güncelleyin."
+
+msgid "The selected host is unavailable."
+msgstr "Seçilen ana makine kullanılamıyor."
 
 msgid "The self-driving software factory"
 msgstr "Kendi kendini süren yazılım fabrikası"
@@ -16045,6 +16224,9 @@ msgstr "Bu normalden uzun sürüyor. Oturum zaten hazır olabilir — yeniden y�
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Bu normalden uzun sürüyor. Çalışma alanı zaten hazır olabilir — yeniden yüklemek onu getirebilir."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Bu issue seçilen sağlayıcıya ait değil."
+
 msgid "This issue link is invalid."
 msgstr "Bu issue bağlantısı geçersiz."
 
@@ -16111,6 +16293,12 @@ msgstr "Bu profil şu anda yoğun"
 msgid "This project is no longer available on your devices."
 msgstr "Bu proje artık cihazlarınızda kullanılamıyor."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Bu proje bir GitLab deposuna bağlı değil."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Bu proje bir GitHub deposuna bağlı değil."
+
 msgid "This project's host is offline"
 msgstr "Bu projenin host'u çevrimdışı"
 
@@ -16137,6 +16325,9 @@ msgstr "Bu işlem; etiketini, komutunu, argümanlarını, istem ve sürdürme ay
 
 msgid "This repository does not allow merging from here."
 msgstr "Bu depo buradan birleştirmeye izin vermiyor."
+
+msgid "This request does not match the selected project."
+msgstr "Bu istek seçilen projeyle eşleşmiyor."
 
 msgid "This screen doesn't exist"
 msgstr "Bu ekran mevcut değil"

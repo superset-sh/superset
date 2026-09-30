@@ -1,4 +1,5 @@
 import type { AgentIdentityId } from "@superset/shared/agent-catalog";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 export interface FilePosition {
 	line: number;
 	column?: number;
@@ -65,10 +66,7 @@ export interface CommentPaneData {
 	line?: number;
 }
 
-export interface PullRequestPaneData {
-	repoFullName: string;
-	number: number;
-}
+export type PullRequestPaneData = PullRequestRef;
 
 export interface PagePaneData {
 	slug: string;

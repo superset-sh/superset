@@ -20,7 +20,17 @@ export function persistLocalProject(
 	const existing = getLocalProject(ctx.db, projectId);
 	const repoFields = {
 		repoPath: resolved.repoPath,
-		repoProvider: resolved.parsed ? ("github" as const) : null,
+		repoProvider: resolved.parsed?.provider ?? null,
+		repoInstance:
+			resolved.parsed?.provider === "gitlab"
+				? resolved.parsed.instance
+				: resolved.parsed?.provider === "github"
+					? "https://github.com"
+					: null,
+		repoProjectId:
+			resolved.parsed?.provider === "gitlab"
+				? (resolved.parsed.projectId ?? null)
+				: null,
 		repoOwner: resolved.parsed?.owner ?? null,
 		repoName: resolved.parsed?.name ?? null,
 		repoUrl: resolved.parsed?.url ?? null,

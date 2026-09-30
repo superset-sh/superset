@@ -18,6 +18,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import {
 	IssueIcon,
 	type IssueState,
@@ -33,6 +34,10 @@ export interface SelectedIssue {
 	title: string;
 	url: string;
 	state: string;
+	provider: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
+	body?: string;
 }
 
 interface GitHubIssueLinkCommandProps {
@@ -41,6 +46,7 @@ interface GitHubIssueLinkCommandProps {
 	onSelect: (issue: SelectedIssue) => void;
 	projectId: string | null;
 	hostId: string | null;
+	provider?: "github" | "gitlab";
 }
 
 export function GitHubIssueLinkCommand({
@@ -49,6 +55,7 @@ export function GitHubIssueLinkCommand({
 	onSelect,
 	projectId,
 	hostId,
+	provider = "github",
 }: GitHubIssueLinkCommandProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
@@ -65,7 +72,7 @@ export function GitHubIssueLinkCommand({
 	const { data, isFetching, error } = useQuery({
 		queryKey: [
 			"workspaceCreation",
-			"searchGitHubIssues",
+			provider === "gitlab" ? "searchGitLabIssues" : "searchGitHubIssues",
 			projectId,
 			hostUrl,
 			debouncedTrimmed,
@@ -73,13 +80,17 @@ export function GitHubIssueLinkCommand({
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { issues: [] };
+			if (provider === "gitlab") await assertGitLabHostSupport(hostUrl);
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.workspaceCreation.searchGitHubIssues.query({
+			const input = {
 				projectId,
 				query: debouncedTrimmed || undefined,
 				limit: MAX_RESULTS,
 				includeClosed: showClosed,
-			});
+			};
+			return provider === "gitlab"
+				? client.workspaceCreation.searchGitLabIssues.query(input)
+				: client.workspaceCreation.searchGitHubIssues.query(input);
 		},
 		enabled: !!projectId && !!hostUrl && open,
 	});
@@ -115,6 +126,19 @@ export function GitHubIssueLinkCommand({
 			title: issue.title,
 			url: issue.url,
 			state: issue.state,
+			provider,
+			instance:
+				"instance" in issue && typeof issue.instance === "string"
+					? issue.instance
+					: undefined,
+			repoPath:
+				"repoPath" in issue && typeof issue.repoPath === "string"
+					? issue.repoPath
+					: undefined,
+			body:
+				"body" in issue && typeof issue.body === "string"
+					? issue.body
+					: undefined,
 		});
 		setSearchQuery("");
 		setOpen(false);
@@ -212,7 +236,7 @@ export function GitHubIssueLinkCommand({
 									const state = normalizeIssueState(issue.state);
 									return (
 										<CommandItem
-											key={issue.issueNumber}
+											key={issue.url}
 											value={`${issue.issueNumber}-${issue.title}`}
 											onSelect={() => handleSelect(issue)}
 											className="group items-start gap-3 rounded-md px-2.5 py-2"

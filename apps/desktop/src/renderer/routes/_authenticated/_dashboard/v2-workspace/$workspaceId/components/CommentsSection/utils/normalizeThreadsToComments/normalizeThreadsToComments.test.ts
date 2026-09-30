@@ -60,3 +60,34 @@ test("retains replies, thread locations, and individual GitHub links in chronolo
 		isResolved: true,
 	});
 });
+
+test("uses GitLab note anchors for merge request discussions", () => {
+	const result = normalizeThreadsToComments(
+		{
+			reviewThreads: [
+				{
+					id: "discussion-id",
+					path: "src/app.ts",
+					line: 42,
+					diffSide: "RIGHT",
+					isResolved: false,
+					isOutdated: false,
+					comments: [
+						{
+							id: "42",
+							databaseId: 42,
+							author: { login: "reviewer", avatarUrl: "" },
+							body: "Review this",
+							createdAt: "2026-09-12T00:00:00Z",
+						},
+					],
+				},
+			],
+			conversationComments: [],
+		},
+		"https://gitlab.example.com/group/subgroup/repo/-/merge_requests/1",
+	);
+	expect(result[0]?.url).toBe(
+		"https://gitlab.example.com/group/subgroup/repo/-/merge_requests/1#note_42",
+	);
+});

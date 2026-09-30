@@ -33,3 +33,13 @@ export const githubSearchInputSchema = z.object({
 	includeClosed: z.boolean().optional(),
 	page: z.number().int().min(1).optional(),
 });
+
+export const gitlabIssuesSearchInputSchema = z.object({
+	projectId: z.string(),
+	projectIds: z.array(z.string()).min(1).max(50).optional(),
+	query: z.string().optional(),
+	limit: z.number().int().min(1).max(30).optional(),
+	includeClosed: z.boolean().optional(),
+	page: z.number().int().min(1).optional(),
+	cursor: z.string().max(16_384).optional(),
+});

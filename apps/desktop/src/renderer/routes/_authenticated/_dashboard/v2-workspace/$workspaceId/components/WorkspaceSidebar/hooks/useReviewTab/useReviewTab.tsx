@@ -2,7 +2,10 @@ import { useLingui } from "@lingui/react/macro";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { LuMessageSquare } from "react-icons/lu";
-import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
+import {
+	type PullRequestRef,
+	pullRequestRefFromUrl,
+} from "renderer/lib/github/pullRequestRef";
 import type { CommentPaneData, DiffFocusSide } from "../../../../types";
 import {
 	coerceCheckStatus,
@@ -33,7 +36,7 @@ export function useReviewTab({
 }: UseReviewTabParams): SidebarTabDefinition {
 	const { t } = useLingui();
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: !!workspaceId,
 			refetchInterval: 10_000,
@@ -44,7 +47,7 @@ export function useReviewTab({
 
 	const hasPR = prQuery.isSuccess && prQuery.data != null;
 	const threadsQuery = workspaceTrpc.git.getPullRequestThreads.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: !!workspaceId && hasPR,
 			refetchInterval: 30_000,
@@ -60,7 +63,10 @@ export function useReviewTab({
 			url: raw.url,
 			title: raw.title,
 			state: raw.isDraft ? "draft" : raw.state,
-			reviewDecision: normalizeReviewDecision(raw.reviewDecision),
+			reviewDecision: normalizeReviewDecision(
+				raw.reviewDecision,
+				pullRequestRefFromUrl(raw.url)?.provider === "gitlab",
+			),
 			checksStatus: computeChecksRollup(raw.checks).overall,
 			checks: raw.checks.map((c) => ({
 				name: c.name,
@@ -113,10 +119,11 @@ export function useReviewTab({
 
 function normalizeReviewDecision(
 	decision: string | null,
-): "approved" | "changes_requested" | "pending" {
+	isGitLab: boolean,
+): "approved" | "changes_requested" | "pending" | "unknown" {
 	if (decision === "approved") return "approved";
 	if (decision === "changes_requested") return "changes_requested";
-	return "pending";
+	return isGitLab ? "unknown" : "pending";
 }
 
 function computeDurationText(

@@ -13,9 +13,10 @@ import { getRepositoryMismatchLabel } from "renderer/routes/_authenticated/_dash
 import { mergePaginatedProjectRows } from "renderer/routes/_authenticated/_dashboard/utils/mergePaginatedProjectRows";
 
 interface WorkItemsPage {
-	totalCount: number;
+	totalCount?: number | null;
 	hasNextPage: boolean;
 	repoMismatch?: string;
+	partialErrors?: Array<{ projectId: string; message: string }>;
 }
 
 interface WorkItemRow {
@@ -39,17 +40,19 @@ interface UseWorkItemsListOptions<
 		queryTarget: PaginatedQueryTarget<HostQueryTarget>,
 	) => UseQueryOptions<TData | null, Error>;
 	getRows: (data: TData) => readonly TRow[];
-	getRowKey: (row: TRow) => string;
+	getRowKey: (row: AttributedWorkItemRow<TRow>) => string;
 }
 
 interface UseWorkItemsListResult<TRow> {
 	rows: AttributedWorkItemRow<TRow>[];
 	totalCount: number;
+	hasKnownTotal: boolean;
 	repoMismatch: string | null;
 	isFetching: boolean;
 	isFetchingNextPage: boolean;
 	hasNextPage: boolean;
 	error: Error | null;
+	partialErrors: string[];
 	refetch: () => Promise<unknown[]>;
 	scrollRef: RefObject<HTMLDivElement | null>;
 	sentinelRef: RefObject<HTMLDivElement | null>;
@@ -123,26 +126,42 @@ export function useWorkItemsList<
 			}),
 		[queries, queryTargets, projectNameById, getRows, getRowKey],
 	);
-	const totalCount = queries.reduce((total, query, index) => {
-		return queryTargets[index]?.page === 1
-			? total + (query.data?.totalCount ?? 0)
-			: total;
-	}, 0);
+	const hasKnownTotal = queries.every(
+		(query, index) =>
+			queryTargets[index]?.page !== 1 ||
+			typeof query.data?.totalCount === "number",
+	);
+	const totalCount =
+		queries.reduce((total, query, index) => {
+			return queryTargets[index]?.page === 1
+				? total + (query.data?.totalCount ?? 0)
+				: total;
+		}, 0) || (!hasKnownTotal ? rows.length : 0);
 	const repoMismatch = getRepositoryMismatchLabel(
 		queries.flatMap((query, index) =>
 			queryTargets[index]?.target.hostUrl ? [query.data] : [],
 		),
 		rows.length,
 	);
+	const partialErrors = [
+		...new Set(
+			queries.flatMap(
+				(query) =>
+					query.data?.partialErrors?.map(({ message }) => message) ?? [],
+			),
+		),
+	];
 
 	return {
 		rows,
 		totalCount,
+		hasKnownTotal,
 		repoMismatch,
 		isFetching,
 		isFetchingNextPage,
 		hasNextPage,
 		error,
+		partialErrors,
 		refetch,
 		scrollRef,
 		sentinelRef,

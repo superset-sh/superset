@@ -26,6 +26,10 @@ interface PullRequestsViewProps {
 	/** The open PR's own project id — distinct from the list's `projects`
 	 *  filter, and must survive filter-driven re-navigations. */
 	selectedPrProjectId?: string | null;
+	selectedPrHostId?: string | null;
+	selectedPrProvider?: "github" | "gitlab";
+	selectedPrInstance?: string | null;
+	selectedPrRepoPath?: string | null;
 }
 
 export function PullRequestsView({
@@ -36,6 +40,10 @@ export function PullRequestsView({
 	initialState,
 	selectedPrNumber = null,
 	selectedPrProjectId = null,
+	selectedPrHostId = null,
+	selectedPrProvider = "github",
+	selectedPrInstance = null,
+	selectedPrRepoPath = null,
 }: PullRequestsViewProps) {
 	const navigate = useNavigate();
 	const {
@@ -54,12 +62,25 @@ export function PullRequestsView({
 	} = usePullRequestsFilterStore();
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? storedSearch);
 	const projectFilters = initialProjects ?? storedProjectFilters;
+	const {
+		isReady: areProjectsReady,
+		projects: hostProjects,
+		targets: projectTargets,
+	} = useProjectQueryTargets(projectFilters);
+	const authorProvider = projectTargets.some(
+		(target) => target.provider === "gitlab",
+	)
+		? "gitlab"
+		: "github";
 	const authorFilter =
 		initialAuthor === undefined
-			? storedAuthorFilter
-			: normalizeAuthorFilters(initialAuthor);
-	const reviewFilter =
-		initialReview === undefined
+			? normalizeAuthorFilters(storedAuthorFilter, authorProvider)
+			: normalizeAuthorFilters(initialAuthor, authorProvider);
+	const reviewFilter = projectTargets.some(
+		(target) => target.provider === "gitlab",
+	)
+		? null
+		: initialReview === undefined
 			? storedReviewFilter
 			: normalizePullRequestReviewFilter(initialReview);
 	const includeClosed =
@@ -75,20 +96,27 @@ export function PullRequestsView({
 				? navigate({
 						to: "/pull-requests/$prNumber",
 						params: { prNumber: String(selectedPrNumber) },
-						search: selectedPrProjectId
-							? { ...search, project: selectedPrProjectId }
-							: search,
+						search: {
+							...search,
+							project: selectedPrProjectId ?? undefined,
+							host: selectedPrHostId ?? undefined,
+							provider: selectedPrProvider === "gitlab" ? "gitlab" : undefined,
+							instance: selectedPrInstance ?? undefined,
+							repoPath: selectedPrRepoPath ?? undefined,
+						},
 						replace: true,
 					})
 				: navigate({ to: "/pull-requests", search, replace: true }),
-		[navigate, selectedPrNumber, selectedPrProjectId],
+		[
+			navigate,
+			selectedPrNumber,
+			selectedPrProjectId,
+			selectedPrHostId,
+			selectedPrProvider,
+			selectedPrInstance,
+			selectedPrRepoPath,
+		],
 	);
-	const {
-		isReady: areProjectsReady,
-		projects: hostProjects,
-		targets: projectTargets,
-	} = useProjectQueryTargets(projectFilters);
-
 	// Sync only from the URL: depending on storedSearch would snap the input
 	// back to the stale URL value on every keystroke until the debounced
 	// navigation lands.
@@ -280,6 +308,7 @@ export function PullRequestsView({
 					mergedOnly={mergedOnly}
 					selectedPrNumber={selectedPrNumber}
 					selectedPrProjectId={selectedPrProjectId}
+					selectedPrHostId={selectedPrHostId}
 					repoSlugByProjectId={repoSlugByProjectId}
 				/>
 			</div>

@@ -4,8 +4,11 @@ import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc, cloudTrpcClient } from "renderer/lib/cloud-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
@@ -13,6 +16,7 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 import type { WorkspaceCreateAgent } from "../../types";
 import type { UseUploadAttachmentsApi } from "../useUploadAttachments";
+import { getGitLabIssueTargetMismatch } from "./gitlab-issue-target";
 import { resolveNames } from "./resolveNames";
 
 /**
@@ -36,6 +40,7 @@ export function useSubmitWorkspace(
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
+	const gitLabHostUrl = useHostUrl(draft.hostId ?? machineId);
 	const activeOrganizationId = useActiveOrganizationId();
 	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
 	const utils = cloudTrpc.useUtils();
@@ -90,6 +95,77 @@ export function useSubmitWorkspace(
 			);
 			return;
 		}
+		const issueTargetMismatch = getGitLabIssueTargetMismatch(
+			draft.linkedIssues,
+			projectId,
+			hostId,
+			machineId,
+		);
+		if (issueTargetMismatch) {
+			toast.error(
+				issueTargetMismatch === "host"
+					? t({ message: "Project not set up on this host" })
+					: t({
+							message: "Select the issue's project to run it in a workspace.",
+						}),
+			);
+			return;
+		}
+		let linkedIssues = draft.linkedIssues;
+		if (
+			draft.linkedPR?.provider === "gitlab" ||
+			draft.linkedIssues.some((issue) => issue.source === "gitlab")
+		) {
+			try {
+				if (!gitLabHostUrl)
+					throw new Error(t({ message: "The selected host is unavailable." }));
+				await assertGitLabHostSupport(gitLabHostUrl);
+				if (draft.linkedIssues.some((issue) => issue.source === "gitlab")) {
+					const client = getHostServiceClientByUrl(gitLabHostUrl);
+					linkedIssues = await Promise.all(
+						draft.linkedIssues.map(async (issue) => {
+							if (issue.source !== "gitlab") return issue;
+							const {
+								projectId: issueProjectId,
+								number,
+								instance,
+								repoPath,
+							} = issue;
+							if (!issueProjectId || !number || !instance || !repoPath) {
+								throw new Error(
+									t({
+										message:
+											"Select the issue's project to run it in a workspace.",
+									}),
+								);
+							}
+							const content = await client.issues.getContent.query({
+								provider: "gitlab",
+								projectId: issueProjectId,
+								issueNumber: number,
+								instance,
+								repoPath,
+							});
+							return {
+								...issue,
+								title: content.title,
+								url: content.url,
+								body: content.body,
+							};
+						}),
+					);
+				}
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: t({
+								message: "Issue not found.",
+							}),
+				);
+				return;
+			}
+		}
 
 		const { readyIds: attachmentIds, errors } =
 			await uploadAttachments.awaitUploads();
@@ -140,12 +216,12 @@ export function useSubmitWorkspace(
 					selectedAgent !== "none" &&
 					(!!draft.prompt.trim() ||
 						draft.linkedPR !== null ||
-						draft.linkedIssues.length > 0);
+						linkedIssues.length > 0);
 				const cloudPrompt = wantCloudAgent
 					? await promptContext.build({
 							userPrompt: draft.prompt,
 							linkedPR: draft.linkedPR,
-							linkedIssues: draft.linkedIssues,
+							linkedIssues,
 							timeoutMs: 2000,
 						})
 					: null;
@@ -233,7 +309,7 @@ export function useSubmitWorkspace(
 			? await promptContext.build({
 					userPrompt: draft.prompt,
 					linkedPR: draft.linkedPR,
-					linkedIssues: draft.linkedIssues,
+					linkedIssues,
 					timeoutMs: 2000,
 				})
 			: null;
@@ -257,7 +333,8 @@ export function useSubmitWorkspace(
 		// seeds the branch slug; otherwise the server creates with a
 		// friendly random and AI-renames once names arrive.
 		const prName = isPrCheckout
-			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
+			? draft.linkedPR?.title ||
+				`${draft.linkedPR?.provider === "gitlab" ? "MR !" : "PR #"}${draft.linkedPR?.prNumber}`
 			: undefined;
 
 		const trimmedPrompt = draft.prompt.trim();
@@ -293,6 +370,9 @@ export function useSubmitWorkspace(
 								? true
 								: undefined,
 						pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+						prProvider: isPrCheckout ? draft.linkedPR?.provider : undefined,
+						prInstance: isPrCheckout ? draft.linkedPR?.instance : undefined,
+						prRepoPath: isPrCheckout ? draft.linkedPR?.repoPath : undefined,
 						baseBranch: draft.baseBranch ?? undefined,
 						taskId: linkedTaskId,
 						agents,
@@ -348,6 +428,7 @@ export function useSubmitWorkspace(
 		createCloudWorkspace,
 		draft,
 		isSession,
+		gitLabHostUrl,
 		matchRoute,
 		machineId,
 		navigate,

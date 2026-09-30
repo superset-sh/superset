@@ -18,6 +18,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
+import type { GitLabClient } from "../../../../source-control/gitlab/gitlab";
 import {
 	cloneRepoInto,
 	cloneTemplateInto,
@@ -103,6 +104,56 @@ describe("resolveLocalRepo", () => {
 		// indistinguishable from a no-remote repo to v2 setup.
 		expect(resolved.remoteName).toBeNull();
 		expect(resolved.parsed).toBeNull();
+	});
+
+	test("resolves GitLab.com nested groups when the host GitLab client is enabled", async () => {
+		const repo = join(workRoot, "gitlab-nested");
+		const git = await initRepoAt(repo);
+		await git.addRemote("origin", "git@gitlab.com:team/subgroup/widgets.git");
+		const gitlab = {
+			getProject: async () => ({
+				id: 42,
+				path_with_namespace: "team/subgroup/widgets",
+				web_url: "https://gitlab.com/team/subgroup/widgets",
+			}),
+		} as unknown as GitLabClient;
+
+		const resolved = await resolveLocalRepo(repo, gitlab);
+
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed).toMatchObject({
+			provider: "gitlab",
+			instance: "https://gitlab.com",
+			repoPath: "team/subgroup/widgets",
+			projectId: 42,
+			owner: "team/subgroup",
+			name: "widgets",
+		});
+	});
+
+	test("recognizes self-managed GitLab only after a successful project probe", async () => {
+		const repo = join(workRoot, "gitlab-self-managed");
+		const git = await initRepoAt(repo);
+		await git.addRemote(
+			"origin",
+			"https://code.example.com:8443/team/subgroup/widgets.git",
+		);
+		const gitlab = {
+			getProject: async () => ({
+				id: 91,
+				path_with_namespace: "team/subgroup/widgets",
+				web_url: "https://code.example.com:8443/team/subgroup/widgets",
+			}),
+		} as unknown as GitLabClient;
+
+		const resolved = await resolveLocalRepo(repo, gitlab);
+
+		expect(resolved.parsed).toMatchObject({
+			provider: "gitlab",
+			instance: "https://code.example.com:8443",
+			repoPath: "team/subgroup/widgets",
+			projectId: 91,
+		});
 	});
 
 	test("prefers origin over other GitHub remotes when both exist", async () => {

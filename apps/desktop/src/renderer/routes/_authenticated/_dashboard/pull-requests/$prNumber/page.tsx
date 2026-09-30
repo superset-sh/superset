@@ -43,19 +43,36 @@ function PullRequestDetailPage() {
 	const prNumber = parsePositiveIntegerParam(prNumberRaw);
 	const search = PullRequestsLayoutRoute.useSearch();
 	const projectId = search.project ?? null;
+	const provider = search.provider ?? "github";
 	const {
 		hostId,
+		hostProject,
 		isReady: areProjectsReady,
 		project,
-	} = useProjectHost(projectId);
+	} = useProjectHost(projectId, search.host);
 	const hostUrl = useHostUrl(hostId ?? undefined);
+	const identityProject = search.host ? hostProject : project;
+	const repoPath = [identityProject?.repoOwner, identityProject?.repoName]
+		.filter(Boolean)
+		.join("/");
+	const instance =
+		identityProject?.instance ??
+		(provider === "github" ? "https://github.com" : "");
+	const identityMatches =
+		!!identityProject &&
+		(identityProject.provider ?? "github") === provider &&
+		(!search.instance || search.instance === instance) &&
+		(!search.repoPath || search.repoPath === repoPath);
 	const [activeTab, setActiveTab] = useState<DetailTab>("summary");
 
 	const { data, isLoading, error, refetch } = usePullRequestDetail({
 		projectId,
 		hostUrl,
 		prNumber,
-		enabled: !!project,
+		provider,
+		instance,
+		repoPath,
+		enabled: identityMatches,
 	});
 
 	// The list pane is always visible in the split view (or reachable via the
@@ -94,6 +111,7 @@ function PullRequestDetailPage() {
 				hostId={hostId}
 				hostUrl={hostUrl}
 				prNumber={prNumber}
+				requestProvider={provider}
 				data={data}
 				isLoading={isLoading}
 			/>
@@ -107,6 +125,7 @@ function PullRequestDetailPage() {
 		hasProject: !!project,
 		hostUrl,
 		isLoading,
+		identityMatches,
 		error,
 		data,
 		refetch: () => void refetch(),
@@ -147,6 +166,7 @@ function PullRequestDetailPage() {
 					projectId={resolved.projectId}
 					prNumber={resolved.data.number}
 					prUrl={resolved.data.url}
+					headSha={resolved.data.headSha}
 					hostUrl={resolved.hostUrl}
 					hostId={hostId}
 				/>

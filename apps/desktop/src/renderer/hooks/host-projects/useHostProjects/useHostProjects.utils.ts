@@ -1,4 +1,5 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import { parseRepositoryRemote } from "@superset/shared/source-control";
 import type { ProjectSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
@@ -15,6 +16,8 @@ export interface HostProjectRow {
 	id: string;
 	name: string;
 	repoPath: string;
+	provider?: "github" | "gitlab" | null;
+	instance?: string | null;
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
@@ -41,6 +44,8 @@ export interface HostProjectItem {
 	name: string;
 	/** Present when some host serves the project. */
 	repoPath?: string;
+	provider?: "github" | "gitlab";
+	instance?: string;
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
@@ -151,10 +156,17 @@ export function deriveHostProjectsQueryTargets({
 export function normalizeHostProjectRow(
 	row: Partial<HostProjectRow> & { id: string; repoPath: string },
 ): HostProjectRow {
+	const parsed = row.repoUrl
+		? parseRepositoryRemote(row.repoUrl, {
+				gitlabHosts: row.instance ? [row.instance] : [],
+			})
+		: null;
 	return {
 		id: row.id,
 		name: row.name || row.repoPath.split(/[\\/]/).pop() || row.id,
 		repoPath: row.repoPath,
+		provider: row.provider ?? parsed?.provider,
+		instance: row.instance ?? parsed?.instance,
 		repoOwner: row.repoOwner ?? null,
 		repoName: row.repoName ?? null,
 		repoUrl: row.repoUrl ?? null,
@@ -261,6 +273,8 @@ export function applyProjectChangedEvent(
 		id: snapshot.id,
 		name: snapshot.name,
 		repoPath: snapshot.repoPath,
+		provider: snapshot.provider ?? existing?.provider,
+		instance: snapshot.instance ?? existing?.instance,
 		repoOwner: snapshot.repoOwner,
 		repoName: snapshot.repoName,
 		repoUrl: snapshot.repoUrl,
@@ -303,6 +317,8 @@ export function mergeHostProjects({
 					id: row.id,
 					name: row.name,
 					repoPath: row.repoPath,
+					provider: row.provider ?? undefined,
+					instance: row.instance ?? undefined,
 					repoOwner: row.repoOwner,
 					repoName: row.repoName,
 					repoUrl: row.repoUrl,
@@ -322,6 +338,8 @@ export function mergeHostProjects({
 			if (row.updatedAt > existing.updatedAt) {
 				existing.name = row.name;
 				existing.repoUrl = row.repoUrl;
+				existing.provider = row.provider ?? undefined;
+				existing.instance = row.instance ?? undefined;
 				existing.updatedAt = row.updatedAt;
 			}
 			if (row.createdAt < existing.createdAt) {
@@ -331,6 +349,8 @@ export function mergeHostProjects({
 			if (result.target.isLocal) {
 				existing.repoPath = row.repoPath;
 				existing.repoOwner = row.repoOwner;
+				existing.provider = row.provider ?? undefined;
+				existing.instance = row.instance ?? undefined;
 				existing.repoName = row.repoName;
 				existing.icon = row.icon;
 				existing.color = row.color;

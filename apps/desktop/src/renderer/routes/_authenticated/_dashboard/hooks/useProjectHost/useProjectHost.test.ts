@@ -17,4 +17,17 @@ describe("selectServingHostId", () => {
 	test("does not silently route an unavailable project to the local host", () => {
 		expect(selectServingHostId([], "local-machine")).toBeNull();
 	});
+
+	test("uses the explicit host and rejects a host that does not serve the project", () => {
+		expect(
+			selectServingHostId(
+				["remote-a", "local-machine"],
+				"local-machine",
+				"remote-a",
+			),
+		).toBe("remote-a");
+		expect(
+			selectServingHostId(["local-machine"], "local-machine", "remote-a"),
+		).toBeNull();
+	});
 });

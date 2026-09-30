@@ -1,5 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
 import type { inferRouterOutputs } from "@trpc/server";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import type { NormalizedComment } from "../../types";
 
 type V2ThreadsData =
@@ -10,6 +11,9 @@ export function normalizeThreadsToComments(
 	prUrl?: string,
 ): NormalizedComment[] {
 	const comments: NormalizedComment[] = [];
+	const isGitLab = prUrl
+		? pullRequestRefFromUrl(prUrl)?.provider === "gitlab"
+		: false;
 
 	for (const thread of data.reviewThreads) {
 		for (const comment of thread.comments) {
@@ -21,7 +25,7 @@ export function normalizeThreadsToComments(
 				createdAt: comment.createdAt,
 				url:
 					prUrl && comment.databaseId
-						? `${prUrl}#discussion_r${comment.databaseId}`
+						? `${prUrl}#${isGitLab ? "note_" : "discussion_r"}${comment.databaseId}`
 						: undefined,
 				kind: "review",
 				path: thread.path || undefined,

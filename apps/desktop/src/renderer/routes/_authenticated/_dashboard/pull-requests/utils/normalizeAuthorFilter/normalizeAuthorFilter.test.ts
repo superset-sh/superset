@@ -19,6 +19,12 @@ describe("normalizeAuthorFilter", () => {
 });
 
 describe("normalizeAuthorFilters", () => {
+	test("accepts GitLab usernames with dots and underscores", () => {
+		expect(normalizeAuthorFilters("@jane.doe_1", "gitlab")).toBe("jane.doe_1");
+		expect(normalizeAuthorFilters("jane.doe_1,other_user", "gitlab")).toBe(
+			"jane.doe_1",
+		);
+	});
 	test("preserves legacy single-author links and normalizes multiple authors", () => {
 		expect(normalizeAuthorFilters(" @octocat ")).toBe("octocat");
 		expect(

@@ -26,6 +26,9 @@ export function usePullRequestPaneIntentOpener({
 		openPullRequestPane({
 			repoFullName: intent.repoFullName,
 			number: intent.number,
+			provider: intent.provider,
+			instance: intent.instance,
+			repoPath: intent.repoPath,
 		});
 	}, [pendingIntent, workspaceId, isLayoutReady, openPullRequestPane]);
 }

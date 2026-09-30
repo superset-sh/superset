@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "Lời chào"
+
 msgid " and "
 msgstr " và "
 
@@ -41,6 +45,10 @@ msgstr "· cập nhật {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "Đã xóa \"{0}\""
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "\"{0}\" sẽ được đóng trên GitLab. Bạn có thể mở lại tại đây."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Diff bị cắt bớt — còn # dòng trên host} othe
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {Không thể đóng # cổng} other {Không thể đóng # cổng}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {issue GitLab} other {issue GitLab}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {Đã nhập # workspace} other {Đã nhập # workspace}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {Đã nhập # workspace} other {Đã nhập # workspace
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Chuyển # workspace đã chọn vào một nhóm} other {Chuyển # workspace đã chọn vào một nhóm}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {pull request} other {pull request}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {Cả # check đều đạt} other {Cả # check đ�
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {pull request} other {pull request}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {Đã nhập # theme tùy chỉnh} other {Đã nhập # theme tùy chỉnh}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Hãy thêm một script chạy vòng đời trong Cài đặt dự án h
 
 msgid "Add a project to see GitHub issues."
 msgstr "Thêm một dự án để xem issue GitHub."
+
+msgid "Add a project to see GitLab issues."
+msgstr "Thêm dự án để xem các issue GitLab."
 
 msgid "Add a project to see pull requests."
 msgstr "Thêm một dự án để xem pull request."
@@ -2609,6 +2625,9 @@ msgstr "Quay lại bản hiện tại"
 msgid "Back to GitHub issues"
 msgstr "Quay lại issue GitHub"
 
+msgid "Back to GitLab issues"
+msgstr "Quay lại các issue GitLab"
+
 msgid "Back to Home"
 msgstr "Về trang chủ"
 
@@ -2668,6 +2687,10 @@ msgstr "Thư mục gốc cho worktree mới trên {selectedHostName}."
 
 msgid "Base URL"
 msgstr "URL gốc"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "dựa trên MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Chọn thư mục"
 msgid "Choose a parent directory"
 msgstr "Chọn một thư mục cha"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Chọn một dự án trong mục Issue GitHub trước khi mở một issue."
+msgid "Choose a project before opening an issue."
+msgstr "Chọn một dự án trước khi mở issue."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Chọn một dự án trong mục Pull request trước khi mở pull request."
@@ -3465,6 +3488,9 @@ msgstr "Nhấp để sao chép"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Nhấp để sao chép ID phiên (resume bằng `claude --resume <id>`)."
 
+msgid "Click to open merge request"
+msgstr "Nhấp để mở yêu cầu hợp nhất"
+
 msgid "Click to open on GitHub"
 msgstr "Nhấp để mở trên GitHub"
 
@@ -3510,6 +3536,10 @@ msgstr "Đang clone…"
 
 msgid "Close"
 msgstr "Đóng"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "Đóng !{0}?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Đóng thanh tìm kiếm"
 
 msgid "Close menu"
 msgstr "Đóng menu"
+
+msgid "Close merge request"
+msgstr "Đóng yêu cầu hợp nhất"
 
 msgid "Close modal"
 msgstr "Đóng hộp thoại"
@@ -4321,6 +4354,9 @@ msgstr "Sao chép liên kết"
 msgid "Copy Link Address"
 msgstr "Sao chép địa chỉ liên kết"
 
+msgid "Copy link to merge request"
+msgstr "Sao chép liên kết đến yêu cầu hợp nhất"
+
 msgid "Copy link to pull request"
 msgstr "Sao chép liên kết tới pull request"
 
@@ -4674,6 +4710,12 @@ msgstr "Không thể tải bình luận review"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Không tải được hồ sơ của bạn nên chức năng chỉnh sửa đã bị tắt."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Không thể đánh dấu yêu cầu hợp nhất là sẵn sàng để đánh giá"
+
+msgid "Couldn't merge merge request"
+msgstr "Không thể hợp nhất yêu cầu hợp nhất"
+
 msgid "Couldn't merge pull request"
 msgstr "Không thể merge pull request"
 
@@ -4769,6 +4811,9 @@ msgstr "Không thể bỏ stage các thay đổi"
 msgid "Couldn't unstage file"
 msgstr "Không thể bỏ stage tệp"
 
+msgid "Couldn't update merge request"
+msgstr "Không thể cập nhật yêu cầu hợp nhất"
+
 msgid "Couldn't update pull request"
 msgstr "Không thể cập nhật pull request"
 
@@ -4840,6 +4885,16 @@ msgstr "Tạo merge commit"
 
 msgid "Create Merge Commit"
 msgstr "Tạo merge commit"
+
+msgid "Create merge request"
+msgstr "Tạo yêu cầu hợp nhất"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "Không thể tạo yêu cầu hợp nhất: {0}"
+
+msgid "Create MR"
+msgstr "Tạo MR"
 
 msgid "Create new group"
 msgstr "Tạo nhóm mới"
@@ -4968,6 +5023,9 @@ msgstr "đang tạo"
 
 msgid "Creating"
 msgstr "Đang tạo"
+
+msgid "Creating merge request..."
+msgstr "Đang tạo yêu cầu hợp nhất..."
 
 msgid "Creating PR..."
 msgstr "Đang tạo PR…"
@@ -7428,6 +7486,12 @@ msgstr "Tên người dùng GitHub..."
 msgid "GitHub username…"
 msgstr "Tên người dùng GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "Issue GitLab"
+
 msgid "Give me an example"
 msgstr "Cho tôi một ví dụ"
 
@@ -8885,6 +8949,9 @@ msgstr "Đang tải issue…"
 msgid "Loading members..."
 msgstr "Đang tải thành viên..."
 
+msgid "Loading merge request…"
+msgstr "Đang tải yêu cầu hợp nhất…"
+
 msgid "Loading more..."
 msgstr "Đang tải thêm..."
 
@@ -9112,6 +9179,9 @@ msgstr "Đánh dấu chưa đọc"
 msgid "Mark as viewed"
 msgstr "Đánh dấu đã xem"
 
+msgid "Mark ready"
+msgstr "Đánh dấu là sẵn sàng"
+
 msgid "Mark Ready"
 msgstr "Đánh dấu sẵn sàng"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Merge"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "Hợp nhất !{0}?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "Merge #{0}?"
 
@@ -9244,11 +9318,35 @@ msgstr "Merge commit"
 msgid "Merge failed: {0}"
 msgstr "Merge thất bại: {0}"
 
+msgid "Merge merge request"
+msgstr "Hợp nhất yêu cầu hợp nhất"
+
 msgid "Merge pull request"
 msgstr "Merge pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Merge pull request mà không cần rời Superset, kèm một đợt sửa lỗi và trau chuốt chat."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "Đã tạo yêu cầu hợp nhất !{0}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Yêu cầu hợp nhất !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "Đã hợp nhất yêu cầu hợp nhất"
+
+msgid "Merge request ready for review"
+msgstr "Yêu cầu hợp nhất đã sẵn sàng để đánh giá"
+
+msgid "Merge request title"
+msgstr "Tiêu đề yêu cầu hợp nhất"
+
+msgid "Merge request URL"
+msgstr "URL yêu cầu hợp nhất"
 
 msgid "Merge when checks pass"
 msgstr "Merge khi các check qua"
@@ -9262,6 +9360,15 @@ msgstr "Được merge bởi {0}"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Đã merge, nhưng không làm mới được trạng thái PR — hãy thử lại sau giây lát"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Đã hợp nhất nhưng không thể làm mới trạng thái yêu cầu"
+
+msgid "Merging merge request"
+msgstr "Đang hợp nhất yêu cầu hợp nhất"
+
+msgid "Merging merge request..."
+msgstr "Đang hợp nhất yêu cầu hợp nhất..."
 
 msgid "Merging PR..."
 msgstr "Đang merge PR..."
@@ -9310,6 +9417,9 @@ msgstr "Thu nhỏ"
 
 msgid "Minimize GitHub issues"
 msgstr "Thu nhỏ issue GitHub"
+
+msgid "Minimize GitLab issues"
+msgstr "Thu nhỏ các issue GitLab"
 
 msgid "Minimum contrast"
 msgstr "Độ tương phản tối thiểu"
@@ -9465,6 +9575,16 @@ msgstr "Chuyển vào nhóm"
 
 msgid "Move to Tab"
 msgstr "Chuyển sang tab"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Chưa có bình luận nào. Bật chế độ bình luận rồi nhấp
 
 msgid "No commits on this branch yet."
 msgstr "Chưa có commit nào trên nhánh này."
+
+msgid "No commits to open a merge request from"
+msgstr "Không có commit nào để mở yêu cầu hợp nhất"
 
 msgid "No commits to open a pull request from"
 msgstr "Không có commit nào để mở pull request"
@@ -10772,6 +10895,9 @@ msgstr "Mở bảng lệnh"
 msgid "Open comment on GitHub"
 msgstr "Mở bình luận trên GitHub"
 
+msgid "Open comment on GitLab"
+msgstr "Mở bình luận trên GitLab"
+
 msgid "Open details"
 msgstr "Mở chi tiết"
 
@@ -10893,6 +11019,9 @@ msgstr "Mở trong Finder"
 msgid "Open in GitHub"
 msgstr "Mở trong GitHub"
 
+msgid "Open in GitLab"
+msgstr "Mở trên GitLab"
+
 msgid "Open in Linear"
 msgstr "Mở trong Linear"
 
@@ -10933,6 +11062,9 @@ msgstr "Mở issue #{0} trong trình duyệt"
 msgid "Open issue in GitHub"
 msgstr "Mở issue trong GitHub"
 
+msgid "Open issue in GitLab"
+msgstr "Mở issue trên GitLab"
+
 msgid "Open issues"
 msgstr "Issue đang mở"
 
@@ -10957,6 +11089,21 @@ msgstr "Mở localhost:{0} trong trình duyệt ngoài"
 
 msgid "Open menu"
 msgstr "Mở menu"
+
+msgid "Open merge request"
+msgstr "Mở yêu cầu hợp nhất"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "Mở yêu cầu hợp nhất !{0}"
+
+msgid "Open merge request options"
+msgstr "Mở tùy chọn yêu cầu hợp nhất"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "Mở MR !{0}"
 
 msgid "Open navigation"
 msgstr "Mở điều hướng"
@@ -12427,6 +12574,9 @@ msgstr "Làm mới"
 msgid "Refresh GitHub issues"
 msgstr "Làm mới issue GitHub"
 
+msgid "Refresh GitLab issues"
+msgstr "Làm mới các issue GitLab"
+
 msgid "Refresh metrics"
 msgstr "Làm mới số liệu"
 
@@ -12688,6 +12838,9 @@ msgstr "Mở lại"
 
 msgid "Reopen Closed Tab"
 msgstr "Mở lại tab vừa đóng"
+
+msgid "Reopen merge request"
+msgstr "Mở lại yêu cầu hợp nhất"
 
 msgid "Reopen PR"
 msgstr "Mở lại PR"
@@ -13085,6 +13238,9 @@ msgstr "Review đã bị bỏ qua"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Xem lại từng lỗi trước khi quyết định có tiếp tục hay không."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "Bộ lọc đánh giá chỉ có sẵn cho các dự án GitHub."
+
 msgid "Review message"
 msgstr "Nội dung review"
 
@@ -13105,6 +13261,9 @@ msgstr "Yêu cầu review"
 
 msgid "Review required"
 msgstr "Cần review"
+
+msgid "Review status unavailable"
+msgstr "Không có trạng thái đánh giá"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Xem xét diff có tô sáng cú pháp"
@@ -13530,6 +13689,12 @@ msgstr "Tìm issue GitHub"
 msgid "Search GitHub issues…"
 msgstr "Tìm issue GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Tìm kiếm issue GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Tìm kiếm issue GitLab…"
+
 msgid "Search history"
 msgstr "Tìm trong lịch sử"
 
@@ -13698,6 +13863,9 @@ msgstr "Hãy chọn dự án trước"
 msgid "Select a project to see GitHub issues."
 msgstr "Chọn một dự án để xem issue GitHub."
 
+msgid "Select a project to see GitLab issues."
+msgstr "Chọn một dự án để xem các issue GitLab."
+
 msgid "Select a project to see pull requests."
 msgstr "Chọn một dự án để xem pull request."
 
@@ -13814,6 +13982,9 @@ msgstr "Chọn nhóm"
 
 msgid "Select terminal script directory"
 msgstr "Chọn thư mục cho script terminal"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Chọn dự án của issue để chạy trong workspace."
 
 msgid "Select worktree location"
 msgstr "Chọn vị trí worktree"
@@ -14500,9 +14671,8 @@ msgstr "Một số tệp vượt quá kích thước tối đa nên không đư�
 msgid "Some models were priced with a fallback rate"
 msgstr "Một số mô hình được tính giá theo mức dự phòng"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Một số repository không tải được: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Không thể tải một số kho lưu trữ: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Một số phiên không thể kết thúc"
@@ -15757,6 +15927,9 @@ msgstr "Dịch vụ host cục bộ vừa khởi động. Đang kết nối lạ
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Phần lớn PR của agent được merge chỉ cần review, không có chỉnh sửa của con người."
 
+msgid "The merge request is unavailable."
+msgstr "Yêu cầu hợp nhất không khả dụng."
+
 msgid "The name of your organization or team"
 msgstr "Tên tổ chức hoặc nhóm của bạn"
 
@@ -15827,6 +16000,12 @@ msgstr "Lần chạy bị bỏ qua vì thiết bị này chưa kết nối tới
 
 msgid "The scorecard"
 msgstr "Bảng điểm"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "Máy chủ đã chọn không hỗ trợ GitLab. Hãy cập nhật dịch vụ máy chủ."
+
+msgid "The selected host is unavailable."
+msgstr "Máy chủ đã chọn không khả dụng."
 
 msgid "The self-driving software factory"
 msgstr "Nhà máy phần mềm tự vận hành"
@@ -16045,6 +16224,9 @@ msgstr "Việc này lâu hơn bình thường. Phiên có thể đã sẵn sàng
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Việc này lâu hơn bình thường. Workspace có thể đã sẵn sàng — tải lại có thể nhận được nó."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Issue này không thuộc nhà cung cấp đã chọn."
+
 msgid "This issue link is invalid."
 msgstr "Liên kết issue này không hợp lệ."
 
@@ -16111,6 +16293,12 @@ msgstr "Hồ sơ này hiện đang quá tải"
 msgid "This project is no longer available on your devices."
 msgstr "Dự án này không còn khả dụng trên các thiết bị của bạn."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Dự án này chưa liên kết với kho lưu trữ GitLab."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Dự án này chưa liên kết với kho lưu trữ GitHub."
+
 msgid "This project's host is offline"
 msgstr "Host của dự án này đang ngoại tuyến"
 
@@ -16137,6 +16325,9 @@ msgstr "Thao tác này thay nhãn, lệnh, tham số, cài đặt prompt và res
 
 msgid "This repository does not allow merging from here."
 msgstr "Repository này không cho phép merge từ đây."
+
+msgid "This request does not match the selected project."
+msgstr "Yêu cầu này không khớp với dự án đã chọn."
 
 msgid "This screen doesn't exist"
 msgstr "Màn hình này không tồn tại"

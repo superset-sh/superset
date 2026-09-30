@@ -105,6 +105,11 @@ export const projectRouter = router({
 				name: row.name || basename(row.repoPath),
 				repoPath: row.repoPath,
 				repoOwner: row.repoOwner,
+				provider:
+					row.repoProvider === "github" || row.repoProvider === "gitlab"
+						? row.repoProvider
+						: null,
+				instance: row.repoInstance,
 				repoName: row.repoName,
 				repoUrl: row.repoUrl,
 				worktreeBaseDir: row.worktreeBaseDir,
@@ -223,6 +228,11 @@ export const projectRouter = router({
 				name: row.name || basename(row.repoPath),
 				repoPath: row.repoPath,
 				repoOwner: row.repoOwner,
+				provider:
+					row.repoProvider === "github" || row.repoProvider === "gitlab"
+						? row.repoProvider
+						: null,
+				instance: row.repoInstance,
 				repoName: row.repoName,
 				repoUrl: row.repoUrl,
 				worktreeBaseDir: row.worktreeBaseDir,

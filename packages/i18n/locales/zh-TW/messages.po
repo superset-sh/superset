@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "問候"
+
 msgid " and "
 msgstr "和"
 
@@ -41,6 +45,10 @@ msgstr "· 更新於{updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "「{0}」已刪除"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "「{0}」將在 GitLab 上關閉。你可以從這裡重新開啟。"
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {差異已截斷 — 主機上還有#行} other {差異�
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {關閉#個埠失敗} other {關閉#個埠失敗}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {GitLab 議題} other {GitLab 議題}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {已匯入#個工作區} other {已匯入#個工作區}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {已匯入#個工作區} other {已匯入#個工作區}}
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {把選中的#個工作區移動到群組} other {把選中的#個工作區移動到群組}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {拉取請求} other {拉取請求}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通�
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub議題} other {GitHub議題}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {拉取請求} other {拉取請求}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {已匯入#個自訂主題} other {已匯入#個自訂主題}}"
 
@@ -1551,6 +1564,9 @@ msgstr "在專案設定中新增生命週期執行指令碼，或將某個終端
 
 msgid "Add a project to see GitHub issues."
 msgstr "新增專案以檢視GitHub議題。"
+
+msgid "Add a project to see GitLab issues."
+msgstr "新增專案以查看 GitLab 議題。"
 
 msgid "Add a project to see pull requests."
 msgstr "新增一個專案來檢視拉取請求。"
@@ -2609,6 +2625,9 @@ msgstr "返回目前版本"
 msgid "Back to GitHub issues"
 msgstr "返回GitHub議題"
 
+msgid "Back to GitLab issues"
+msgstr "返回 GitLab 議題"
+
 msgid "Back to Home"
 msgstr "返回首頁"
 
@@ -2668,6 +2687,10 @@ msgstr "{selectedHostName}上新建worktree的基準目錄。"
 
 msgid "Base URL"
 msgstr "基礎URL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "基於 MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "選擇資料夾"
 msgid "Choose a parent directory"
 msgstr "選擇父目錄"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "開啟議題前，請先在GitHub議題中選擇一個專案。"
+msgid "Choose a project before opening an issue."
+msgstr "開啟議題前，請先選擇專案。"
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "開拉取請求之前，請先在「拉取請求」裡選擇一個專案。"
@@ -3465,6 +3488,9 @@ msgstr "點選複製"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "點選複製會話ID（使用`claude --resume <id>`恢復）。"
 
+msgid "Click to open merge request"
+msgstr "點按以開啟合併請求"
+
 msgid "Click to open on GitHub"
 msgstr "點選在GitHub上開啟"
 
@@ -3510,6 +3536,10 @@ msgstr "正在克隆…"
 
 msgid "Close"
 msgstr "關閉"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "關閉 !{0}？"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "關閉查詢欄"
 
 msgid "Close menu"
 msgstr "關閉選單"
+
+msgid "Close merge request"
+msgstr "關閉合併請求"
 
 msgid "Close modal"
 msgstr "關閉彈窗"
@@ -4321,6 +4354,9 @@ msgstr "複製連結"
 msgid "Copy Link Address"
 msgstr "複製連結地址"
 
+msgid "Copy link to merge request"
+msgstr "複製合併請求連結"
+
 msgid "Copy link to pull request"
 msgstr "複製拉取請求連結"
 
@@ -4674,6 +4710,12 @@ msgstr "無法載入審查評論"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "無法載入你的個人檔案，編輯已停用。"
 
+msgid "Couldn't mark merge request ready"
+msgstr "無法將合併請求標記為可供審查"
+
+msgid "Couldn't merge merge request"
+msgstr "無法合併此合併請求"
+
 msgid "Couldn't merge pull request"
 msgstr "無法合併拉取請求"
 
@@ -4769,6 +4811,9 @@ msgstr "無法取消暫存更改"
 msgid "Couldn't unstage file"
 msgstr "無法取消暫存檔案"
 
+msgid "Couldn't update merge request"
+msgstr "無法更新合併請求"
+
 msgid "Couldn't update pull request"
 msgstr "無法更新拉取請求"
 
@@ -4840,6 +4885,16 @@ msgstr "建立合併提交"
 
 msgid "Create Merge Commit"
 msgstr "建立合併提交"
+
+msgid "Create merge request"
+msgstr "建立合併請求"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "建立合併請求失敗：{0}"
+
+msgid "Create MR"
+msgstr "建立 MR"
 
 msgid "Create new group"
 msgstr "建立新群組"
@@ -4968,6 +5023,9 @@ msgstr "建立中"
 
 msgid "Creating"
 msgstr "建立中"
+
+msgid "Creating merge request..."
+msgstr "正在建立合併請求..."
 
 msgid "Creating PR..."
 msgstr "正在建立PR…"
@@ -7428,6 +7486,12 @@ msgstr "GitHub 使用者名稱..."
 msgid "GitHub username…"
 msgstr "GitHub使用者名稱…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "GitLab 議題"
+
 msgid "Give me an example"
 msgstr "給我一個範例"
 
@@ -8885,6 +8949,9 @@ msgstr "正在載入議題…"
 msgid "Loading members..."
 msgstr "正在載入成員..."
 
+msgid "Loading merge request…"
+msgstr "正在載入合併請求…"
+
 msgid "Loading more..."
 msgstr "正在載入更多..."
 
@@ -9112,6 +9179,9 @@ msgstr "標為未讀"
 msgid "Mark as viewed"
 msgstr "標記為已檢視"
 
+msgid "Mark ready"
+msgstr "標記為可供審查"
+
 msgid "Mark Ready"
 msgstr "標記為待審查"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "合併"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "合併 !{0}？"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "合併#{0}？"
 
@@ -9244,11 +9318,35 @@ msgstr "合併提交"
 msgid "Merge failed: {0}"
 msgstr "合併失敗：{0}"
 
+msgid "Merge merge request"
+msgstr "合併此合併請求"
+
 msgid "Merge pull request"
 msgstr "合併拉取請求"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "不離開Superset就能合併拉取請求，另有一輪聊天修復與打磨。"
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "已建立合併請求 !{0}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "合併請求 !{0}，{1}"
+
+msgid "Merge request merged"
+msgstr "合併請求已合併"
+
+msgid "Merge request ready for review"
+msgstr "合併請求已可供審查"
+
+msgid "Merge request title"
+msgstr "合併請求標題"
+
+msgid "Merge request URL"
+msgstr "合併請求 URL"
 
 msgid "Merge when checks pass"
 msgstr "檢查通過後合併"
@@ -9262,6 +9360,15 @@ msgstr "由{0}合併"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "已合併，但無法重新整理PR狀態 — 請稍後重試"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "已合併，但無法重新整理請求狀態"
+
+msgid "Merging merge request"
+msgstr "正在合併合併請求"
+
+msgid "Merging merge request..."
+msgstr "正在合併合併請求..."
 
 msgid "Merging PR..."
 msgstr "正在合併PR..."
@@ -9310,6 +9417,9 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "最小化GitHub議題"
+
+msgid "Minimize GitLab issues"
+msgstr "最小化 GitLab 議題"
 
 msgid "Minimum contrast"
 msgstr "最小對比度"
@@ -9465,6 +9575,16 @@ msgstr "移動到群組"
 
 msgid "Move to Tab"
 msgstr "移動到分頁"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0}（{1}）"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "還沒有評論。開啟評論模式，點擊頁面上的任何元素即
 
 msgid "No commits on this branch yet."
 msgstr "此分支上還沒有提交。"
+
+msgid "No commits to open a merge request from"
+msgstr "沒有可用於開啟合併請求的提交"
 
 msgid "No commits to open a pull request from"
 msgstr "沒有可用於建立拉取請求的提交"
@@ -10772,6 +10895,9 @@ msgstr "開啟命令面板"
 msgid "Open comment on GitHub"
 msgstr "在GitHub上開啟評論"
 
+msgid "Open comment on GitLab"
+msgstr "在 GitLab 上開啟留言"
+
 msgid "Open details"
 msgstr "開啟詳細資料"
 
@@ -10893,6 +11019,9 @@ msgstr "在Finder中開啟"
 msgid "Open in GitHub"
 msgstr "在GitHub中開啟"
 
+msgid "Open in GitLab"
+msgstr "在 GitLab 上開啟"
+
 msgid "Open in Linear"
 msgstr "在Linear中開啟"
 
@@ -10933,6 +11062,9 @@ msgstr "在瀏覽器中開啟議題#{0}"
 msgid "Open issue in GitHub"
 msgstr "在GitHub中開啟議題"
 
+msgid "Open issue in GitLab"
+msgstr "在 GitLab 上開啟議題"
+
 msgid "Open issues"
 msgstr "開啟的議題"
 
@@ -10957,6 +11089,21 @@ msgstr "在外部瀏覽器中開啟localhost:{0}"
 
 msgid "Open menu"
 msgstr "開啟選單"
+
+msgid "Open merge request"
+msgstr "開啟合併請求"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "開啟合併請求 !{0}"
+
+msgid "Open merge request options"
+msgstr "開啟合併請求選項"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "開啟 MR !{0}"
 
 msgid "Open navigation"
 msgstr "開啟導覽"
@@ -12427,6 +12574,9 @@ msgstr "重新整理"
 msgid "Refresh GitHub issues"
 msgstr "重新整理GitHub議題"
 
+msgid "Refresh GitLab issues"
+msgstr "重新整理 GitLab 議題"
+
 msgid "Refresh metrics"
 msgstr "重新整理指標"
 
@@ -12688,6 +12838,9 @@ msgstr "重新開啟"
 
 msgid "Reopen Closed Tab"
 msgstr "重新開啟已關閉的分頁"
+
+msgid "Reopen merge request"
+msgstr "重新開啟合併請求"
 
 msgid "Reopen PR"
 msgstr "重新開啟PR"
@@ -13085,6 +13238,9 @@ msgstr "審查已忽略"
 msgid "Review each failure before deciding whether to continue."
 msgstr "在決定是否繼續之前，請逐個檢視失敗原因。"
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "審查篩選器僅適用於 GitHub 專案。"
+
 msgid "Review message"
 msgstr "審查留言"
 
@@ -13105,6 +13261,9 @@ msgstr "已請求審查"
 
 msgid "Review required"
 msgstr "需要審查"
+
+msgid "Review status unavailable"
+msgstr "審查狀態無法使用"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "審查含語法醒目提示的差異"
@@ -13530,6 +13689,12 @@ msgstr "搜尋GitHub議題"
 msgid "Search GitHub issues…"
 msgstr "搜尋GitHub議題…"
 
+msgid "Search GitLab issues"
+msgstr "搜尋 GitLab 議題"
+
+msgid "Search GitLab issues…"
+msgstr "搜尋 GitLab 議題…"
+
 msgid "Search history"
 msgstr "搜尋歷史"
 
@@ -13698,6 +13863,9 @@ msgstr "請先選擇專案"
 msgid "Select a project to see GitHub issues."
 msgstr "選擇專案以檢視GitHub議題。"
 
+msgid "Select a project to see GitLab issues."
+msgstr "選擇專案以查看 GitLab 議題。"
+
 msgid "Select a project to see pull requests."
 msgstr "選擇一個專案來檢視拉取請求。"
 
@@ -13814,6 +13982,9 @@ msgstr "選擇團隊"
 
 msgid "Select terminal script directory"
 msgstr "選擇終端指令碼目錄"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "選擇此議題所屬的專案，以在工作區中執行。"
 
 msgid "Select worktree location"
 msgstr "選擇worktree位置"
@@ -14500,9 +14671,8 @@ msgstr "部分檔案超過大小上限，未新增。"
 msgid "Some models were priced with a fallback rate"
 msgstr "部分模型按備用費率計價"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "部分儲存庫無法載入：{0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "部分儲存庫無法載入：{displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "部分會話無法終止"
@@ -15757,6 +15927,9 @@ msgstr "本地主機服務剛剛啟動。正在重新連線。"
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "多數已合併的代理程式PR只需審查，無需任何人工修改。"
 
+msgid "The merge request is unavailable."
+msgstr "合併請求無法使用。"
+
 msgid "The name of your organization or team"
 msgstr "你的組織或團隊的名稱"
 
@@ -15827,6 +16000,12 @@ msgstr "這次執行被跳過了，因為此裝置沒有連線到Superset中繼�
 
 msgid "The scorecard"
 msgstr "評分表"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "所選主機不支援 GitLab。請更新其主機服務。"
+
+msgid "The selected host is unavailable."
+msgstr "所選主機無法使用。"
 
 msgid "The self-driving software factory"
 msgstr "自動駕駛的軟體工廠"
@@ -16045,6 +16224,9 @@ msgstr "這比平時耗時更久。會話可能已經就緒 — 重新載入即�
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "這比平時耗時更久。工作區可能已經就緒 — 重新載入即可接上。"
 
+msgid "This issue does not belong to the selected provider."
+msgstr "此議題不屬於所選的服務供應商。"
+
 msgid "This issue link is invalid."
 msgstr "此議題連結無效。"
 
@@ -16111,6 +16293,12 @@ msgstr "此個人檔案目前繁忙"
 msgid "This project is no longer available on your devices."
 msgstr "這個專案在你的裝置上已不可用。"
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "此專案未連結至 GitLab 儲存庫。"
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "此專案未連結至 GitHub 儲存庫。"
+
 msgid "This project's host is offline"
 msgstr "此專案的主機已離線"
 
@@ -16137,6 +16325,9 @@ msgstr "這會用目前內建配置替換它的名稱、命令、引數、提示
 
 msgid "This repository does not allow merging from here."
 msgstr "此儲存庫不允許從這裡合併。"
+
+msgid "This request does not match the selected project."
+msgstr "此請求與所選專案不符。"
 
 msgid "This screen doesn't exist"
 msgstr "此頁面不存在"

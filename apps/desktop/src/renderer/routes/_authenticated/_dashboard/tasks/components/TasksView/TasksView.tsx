@@ -16,11 +16,9 @@ import {
 	useTasksFilterStore,
 } from "../../stores/tasks-filter-state";
 import { BoardContent } from "./components/BoardContent";
-import {
-	GitHubIssuesContent,
-	type SelectedIssue,
-} from "./components/GitHubIssuesContent";
+import type { SelectedIssue } from "./components/GitHubIssuesContent";
 import { LinearCTA } from "./components/LinearCTA";
+import { RepositoryIssuesContent } from "./components/RepositoryIssuesContent";
 import { TableContent } from "./components/TableContent";
 import {
 	type TabValue,
@@ -33,7 +31,7 @@ interface TasksViewProps {
 	initialTab?: TabValue;
 	initialAssignee?: string;
 	initialSearch?: string;
-	initialType?: "tasks" | "issues";
+	initialType?: TaskSource;
 	initialProjects?: string[];
 	initialLinearProject?: string;
 	initialState?: "open" | "all";
@@ -92,7 +90,7 @@ export function TasksView({
 			tab?: TabValue;
 			assignee?: string | null;
 			search?: string;
-			type?: "tasks" | "issues";
+			type?: TaskSource;
 			projects?: string[];
 			linearProject?: string | null;
 			includeClosedIssues?: boolean;
@@ -332,8 +330,13 @@ export function TasksView({
 		integrations !== undefined && !isLinearConnected && typeTab === "tasks";
 
 	const showTasks = typeTab === "tasks";
-	const showIssues = typeTab === "issues";
-	const taskSource: TaskSource = showIssues ? "issues" : "tasks";
+	const showIssues = typeTab !== "tasks";
+	const taskSource: TaskSource = typeTab;
+	const issueProjectTargets = projectTargets.filter(
+		(target) =>
+			(target.provider ?? "github") ===
+			(typeTab === "gitlab-issues" ? "gitlab" : "github"),
+	);
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -384,9 +387,11 @@ export function TasksView({
 							/>
 						))}
 					{showIssues && (
-						<GitHubIssuesContent
+						<RepositoryIssuesContent
+							key={taskSource}
+							provider={typeTab === "gitlab-issues" ? "gitlab" : "github"}
 							projectFilters={projectFilters}
-							projectTargets={projectTargets}
+							projectTargets={issueProjectTargets}
 							areProjectsReady={areProjectsReady}
 							hasProjects={v2Projects.length > 0}
 							searchQuery={searchQuery}

@@ -5,11 +5,13 @@ import { GoGitPullRequest } from "react-icons/go";
 import { LuRefreshCw } from "react-icons/lu";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
 import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
+import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
 import { PullRequestRow } from "../PullRequestRow";
 
@@ -25,6 +27,7 @@ interface PullRequestsContentProps {
 	mergedOnly: boolean;
 	selectedPrNumber: number | null;
 	selectedPrProjectId: string | null;
+	selectedPrHostId: string | null;
 	repoSlugByProjectId: Map<string, string>;
 }
 
@@ -42,6 +45,7 @@ export function PullRequestsContent({
 	mergedOnly,
 	selectedPrNumber,
 	selectedPrProjectId,
+	selectedPrHostId,
 	repoSlugByProjectId,
 }: PullRequestsContentProps) {
 	const { t } = useLingui();
@@ -52,21 +56,24 @@ export function PullRequestsContent({
 	const {
 		rows: pullRequests,
 		totalCount,
+		hasKnownTotal,
 		repoMismatch,
 		isFetching,
 		isFetchingNextPage,
 		hasNextPage,
 		error,
+		partialErrors,
 		refetch,
 		scrollRef,
 		sentinelRef,
 	} = useWorkItemsList({
 		projectTargets,
 		resetKey: `${debouncedQuery.trim()}\0${authorFilter ?? ""}\0${reviewFilter ?? ""}\0${includeClosed}\0${mergedOnly}`,
-		getQueryOptions: ({ target, page }) => ({
+		getQueryOptions: ({ target, page, cursor }) => ({
 			queryKey: [
 				"pullRequests",
 				"searchPullRequests",
+				target.provider,
 				target.key,
 				target.hostUrl,
 				debouncedQuery.trim(),
@@ -75,22 +82,42 @@ export function PullRequestsContent({
 				includeClosed,
 				mergedOnly,
 				page,
+				cursor,
 			],
 			queryFn: async () => {
+				if (
+					target.provider === "github" &&
+					authorFilter
+						?.split(",")
+						.some((author) => !normalizeAuthorFilter(author))
+				) {
+					return { pullRequests: [], totalCount: 0, hasNextPage: false };
+				}
 				const firstProject = target.projects[0];
 				if (!target.hostUrl || !firstProject) return null;
+				if (target.provider === "gitlab")
+					await assertGitLabHostSupport(target.hostUrl);
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				const result = await client.workspaceCreation.searchPullRequests.query({
+				const input = {
 					projectId: firstProject.projectId,
 					projectIds: target.projects.map((project) => project.projectId),
 					query: debouncedQuery.trim() || undefined,
 					author: authorFilter ?? undefined,
-					review: reviewFilter ?? undefined,
 					limit: PAGE_SIZE,
 					includeClosed,
 					mergedOnly,
 					page,
-				});
+				};
+				const result =
+					target.provider === "gitlab"
+						? await client.workspaceCreation.searchGitLabMergeRequests.query({
+								...input,
+								cursor,
+							})
+						: await client.workspaceCreation.searchPullRequests.query({
+								...input,
+								review: reviewFilter ?? undefined,
+							});
 				// The router types come from this build, the rows come from
 				// whichever host-service the host actually runs — hosts update
 				// independently and the list is not version-gated. Rows only
@@ -100,17 +127,20 @@ export function PullRequestsContent({
 					...result,
 					pullRequests: result.pullRequests.map((pullRequest) => ({
 						...pullRequest,
+						hostId: target.hostId,
+						provider: target.provider,
 						checks: pullRequest.checks ?? [],
 					})),
 				};
 			},
-			enabled: !!target.hostUrl,
+			enabled:
+				!!target.hostUrl &&
+				(target.provider === "github" || page === 1 || !!cursor),
 			staleTime: 30_000,
 			gcTime: 10 * 60_000,
 		}),
 		getRows: (data) => data.pullRequests,
-		getRowKey: (pullRequest) =>
-			`${pullRequest.projectId}:${pullRequest.prNumber}`,
+		getRowKey: (pullRequest) => `${pullRequest.hostId}\0${pullRequest.url}`,
 	});
 
 	const handleOpenPreview = (pr: (typeof pullRequests)[number]) => {
@@ -121,6 +151,10 @@ export function PullRequestsContent({
 			search: {
 				search: searchQuery || undefined,
 				project: pr.projectId,
+				host: pr.hostId ?? undefined,
+				provider: pr.provider === "gitlab" ? "gitlab" : undefined,
+				instance: "instance" in pr ? pr.instance : undefined,
+				repoPath: "repoPath" in pr ? pr.repoPath : undefined,
 				projects: serializeProjectFilters(projectFilters),
 				author: authorFilter ?? undefined,
 				review: reviewFilter ?? undefined,
@@ -164,6 +198,7 @@ export function PullRequestsContent({
 	}
 
 	const isInitialLoad = isFetching && pullRequests.length === 0;
+	const displayError = error?.message ?? partialErrors.join("; ");
 	// Without a project to disambiguate, only the first row sharing this PR
 	// number gets marked selected — distinct repos can reuse the same number.
 	const firstMatchingPrIndex =
@@ -181,6 +216,8 @@ export function PullRequestsContent({
 					<span className="tabular-nums">
 						{isInitialLoad ? (
 							<Trans>Loading…</Trans>
+						) : !hasKnownTotal ? (
+							pullRequests.length
 						) : totalCount === 0 ? (
 							"0"
 						) : (
@@ -189,7 +226,11 @@ export function PullRequestsContent({
 							</Trans>
 						)}
 					</span>{" "}
-					<Plural value={totalCount} one="pull request" other="pull requests" />
+					<Plural
+						value={hasKnownTotal ? totalCount : pullRequests.length}
+						one="pull request"
+						other="pull requests"
+					/>
 				</span>
 				<Button
 					variant="ghost"
@@ -215,9 +256,9 @@ export function PullRequestsContent({
 			</div>
 
 			<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-				{error instanceof Error && pullRequests.length === 0 ? (
+				{displayError && pullRequests.length === 0 ? (
 					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
-						<span>{error.message}</span>
+						<span>{displayError}</span>
 						<Button variant="outline" size="sm" onClick={() => refetch()}>
 							<Trans>Try again</Trans>
 						</Button>
@@ -247,11 +288,11 @@ export function PullRequestsContent({
 					</div>
 				) : (
 					<div className="flex flex-col gap-1.5 p-2">
-						{error instanceof Error && (
+						{displayError && (
 							<div className="flex items-center gap-2 rounded-lg bg-destructive/5 px-4 py-2 text-xs text-destructive">
 								<span className="min-w-0 flex-1 truncate select-text cursor-text">
 									<Trans>
-										Some repositories could not be loaded: {error.message}
+										Some repositories could not be loaded: {displayError}
 									</Trans>
 								</span>
 								<Button variant="outline" size="xs" onClick={() => refetch()}>
@@ -260,13 +301,17 @@ export function PullRequestsContent({
 							</div>
 						)}
 						{pullRequests.map((pr, index) => {
-							const rowKey = `${pr.projectId}:${pr.prNumber}`;
+							const rowKey = `${pr.hostId}:${pr.url}`;
 							const isSelected =
 								selectedPrNumber === pr.prNumber &&
+								(selectedPrHostId == null || selectedPrHostId === pr.hostId) &&
 								(selectedPrProjectId != null
 									? selectedPrProjectId === pr.projectId
 									: firstMatchingPrIndex === index);
-							const repoSlug = repoSlugByProjectId.get(pr.projectId);
+							const repoSlug =
+								pr.provider === "gitlab" && "repoPath" in pr
+									? pr.repoPath
+									: repoSlugByProjectId.get(pr.projectId);
 							return (
 								<PullRequestRow
 									key={rowKey}

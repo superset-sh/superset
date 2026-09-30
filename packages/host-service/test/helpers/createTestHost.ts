@@ -40,6 +40,7 @@ export interface TestHostOptions {
 	 */
 	githubFactory?: () => Promise<unknown>;
 	execGh?: (args: string[], options?: unknown) => Promise<unknown>;
+	execGlab?: CreateAppOptions["execGlab"];
 }
 
 export interface TestHost {
@@ -130,6 +131,11 @@ export async function createTestHost(
 				async () => {
 					throw new Error("execGh not configured in test");
 				},
+		execGlab:
+			options.execGlab ??
+			(async () => {
+				throw new Error("execGlab not configured in test");
+			}),
 	};
 
 	const result = createApp(createOptions);

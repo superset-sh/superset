@@ -50,6 +50,9 @@ export function AuthorFilter({
 
 	const singleTarget =
 		projectTargets.length === 1 ? projectTargets[0] : undefined;
+	const provider = projectTargets.some((target) => target.provider === "gitlab")
+		? "gitlab"
+		: "github";
 
 	const {
 		data: contributors,
@@ -91,7 +94,8 @@ export function AuthorFilter({
 		return list.filter((c) => c.login.toLowerCase().includes(q));
 	}, [contributors, search, selectedAuthors]);
 
-	const normalizedSearch = normalizeAuthorFilter(search)?.toLowerCase() ?? null;
+	const normalizedSearch =
+		normalizeAuthorFilter(search, provider)?.toLowerCase() ?? null;
 	const showCustomOption =
 		!!normalizedSearch &&
 		!filtered.some((c) => c.login.toLowerCase() === normalizedSearch);
@@ -109,8 +113,10 @@ export function AuthorFilter({
 					? selectedAuthors.filter(
 							(author) => author.toLowerCase() !== login.toLowerCase(),
 						)
-					: [...selectedAuthors, login];
-		onChange(normalizeAuthorFilters(next.join(",")));
+					: provider === "gitlab"
+						? [login]
+						: [...selectedAuthors, login];
+		onChange(normalizeAuthorFilters(next.join(","), provider));
 		setSearch("");
 	};
 

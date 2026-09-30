@@ -439,6 +439,7 @@ export function useDashboardSidebarData() {
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
+					acceptedProviders: ["github", "gitlab"],
 				});
 			},
 		})),

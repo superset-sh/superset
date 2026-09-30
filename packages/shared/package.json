@@ -101,6 +101,10 @@
 			"types": "./src/pull-request.ts",
 			"default": "./src/pull-request.ts"
 		},
+		"./source-control": {
+			"types": "./src/source-control.ts",
+			"default": "./src/source-control.ts"
+		},
 		"./sandbox-gate": {
 			"types": "./src/sandbox-gate.ts",
 			"default": "./src/sandbox-gate.ts"

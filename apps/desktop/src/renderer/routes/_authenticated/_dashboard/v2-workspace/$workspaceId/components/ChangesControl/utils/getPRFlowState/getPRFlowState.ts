@@ -152,7 +152,7 @@ function getPRFromState(state: PRFlowState): PullRequest | null {
 function unavailableBadge(reason: UnavailableReason): string {
 	switch (reason) {
 		case "no-repo":
-			return "No GitHub repo";
+			return "No repository";
 		case "default-branch":
 			return "On default branch";
 		case "detached-head":

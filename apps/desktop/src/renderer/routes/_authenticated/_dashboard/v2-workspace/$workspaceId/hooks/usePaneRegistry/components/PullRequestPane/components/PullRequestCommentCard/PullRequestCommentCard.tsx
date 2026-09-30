@@ -14,6 +14,7 @@ import {
 	LuUndo2,
 } from "react-icons/lu";
 import { CommentBody } from "renderer/components/CommentBody";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { NormalizedComment } from "../../../../../../components/CommentsSection/types";
 import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
@@ -36,6 +37,9 @@ export function PullRequestCommentCard({
 	onOpenInDiff,
 }: PullRequestCommentCardProps) {
 	const { t } = useLingui();
+	const isGitLab = comment.url
+		? pullRequestRefFromUrl(comment.url)?.provider === "gitlab"
+		: false;
 	const [copied, setCopied] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 	const resolve = workspaceTrpc.git.setReviewThreadResolution.useMutation({
@@ -172,7 +176,11 @@ export function PullRequestCommentCard({
 								href={comment.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({ message: "Open comment on GitHub" })}
+								aria-label={
+									isGitLab
+										? t({ message: "Open comment on GitLab" })
+										: t({ message: "Open comment on GitHub" })
+								}
 							>
 								<LuArrowUpRight className="size-3.5" />
 							</a>
@@ -195,6 +203,7 @@ export function PullRequestCommentCard({
 								resolve.mutate({
 									workspaceId,
 									threadId: comment.threadId,
+									...(isGitLab ? { provider: "gitlab" as const } : {}),
 									resolved: !comment.isResolved,
 								});
 						}}

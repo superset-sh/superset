@@ -29,6 +29,10 @@ const reviewDecisionConfig = {
 		className:
 			"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
 	},
+	unknown: {
+		label: msg({ message: "Review status unavailable" }),
+		className: "border border-border bg-muted/40 text-muted-foreground",
+	},
 } as const;
 
 interface PRHeaderProps {

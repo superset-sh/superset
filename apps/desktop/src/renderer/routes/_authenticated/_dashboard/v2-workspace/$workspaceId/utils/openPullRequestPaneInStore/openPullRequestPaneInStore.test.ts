@@ -144,4 +144,61 @@ describe("openPullRequestPaneInStore", () => {
 			number: 42,
 		});
 	});
+
+	it("retargets the same IID when the GitLab instance changes", () => {
+		const first = {
+			repoFullName: "group/subgroup/project",
+			number: 42,
+			provider: "gitlab" as const,
+			instance: "https://gitlab.com",
+			repoPath: "group/subgroup/project",
+		};
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState({
+				tabId: "tab-2",
+				paneId: "pr-pane",
+				data: first,
+			}),
+		});
+		const second = { ...first, instance: "https://gitlab.example.com" };
+
+		openPullRequestPaneInStore(store, second);
+
+		expect(findPullRequestPanes(store)).toHaveLength(1);
+		expect(paneData(store)).toEqual(second);
+	});
+
+	it("treats an old pane without provider fields as GitHub", () => {
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState({
+				tabId: "tab-2",
+				paneId: "pr-pane",
+				data: { repoFullName: REPO, number: 42 },
+			}),
+		});
+		const before = paneData(store);
+
+		openPullRequestPaneInStore(store, {
+			repoFullName: REPO,
+			number: 42,
+			provider: "github",
+			instance: "https://github.com",
+			repoPath: REPO,
+		});
+
+		expect(paneData(store)).toBe(before);
+	});
+
+	it("requires a complete identity for new GitLab panes", () => {
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState(),
+		});
+		expect(() =>
+			openPullRequestPaneInStore(store, {
+				repoFullName: "group/subgroup/project",
+				number: 42,
+				provider: "gitlab",
+			}),
+		).toThrow("identity is incomplete");
+	});
 });

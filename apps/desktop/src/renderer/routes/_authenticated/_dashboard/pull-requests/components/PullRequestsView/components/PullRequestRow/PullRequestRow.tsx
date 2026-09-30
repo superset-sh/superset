@@ -20,6 +20,9 @@ export interface PullRequestRowData {
 	deletions: number | null;
 	headRefName: string | null;
 	checks: PullRequestCheck[];
+	provider?: "github" | "gitlab";
+	instance?: string;
+	authorAvatarUrl?: string | null;
 }
 
 interface PullRequestRowProps {
@@ -69,7 +72,12 @@ export function PullRequestRow({
 						<div className="flex shrink-0 items-center gap-1">
 							<Avatar className="size-4 rounded-sm">
 								<AvatarImage
-									src={`https://github.com/${pr.authorLogin}.png?size=32`}
+									src={
+										pr.authorAvatarUrl ??
+										(pr.provider === "gitlab"
+											? undefined
+											: `https://github.com/${pr.authorLogin}.png?size=32`)
+									}
 									alt={pr.authorLogin}
 								/>
 								<AvatarFallback className="rounded-sm text-[8px]">
@@ -84,7 +92,8 @@ export function PullRequestRow({
 						</span>
 					)}
 					<span className="shrink-0 text-[10px] tabular-nums">
-						#{pr.prNumber}
+						{pr.provider === "gitlab" ? "!" : "#"}
+						{pr.prNumber}
 					</span>
 					{pr.headRefName && (
 						<>

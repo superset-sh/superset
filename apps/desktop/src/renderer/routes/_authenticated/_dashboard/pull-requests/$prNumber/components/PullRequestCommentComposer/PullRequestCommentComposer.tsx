@@ -29,6 +29,7 @@ interface PullRequestCommentComposerProps {
 		comment: string;
 		target: AgentTarget;
 	}) => void | Promise<void>;
+	onPublish?: (comment: string) => Promise<void>;
 }
 
 // A twin of the v2-workspace DiffPane's AgentCommentComposer: same popover
@@ -42,6 +43,7 @@ export function PullRequestCommentComposer({
 	linkedWorkspaceId,
 	onCancel,
 	onSubmit,
+	onPublish,
 }: PullRequestCommentComposerProps) {
 	const { t } = useLingui();
 	const bindings = useTerminalAgentBindings(linkedWorkspaceId ?? "", {
@@ -74,6 +76,7 @@ export function PullRequestCommentComposer({
 
 	const canSubmit =
 		comment.trim().length > 0 && !submitting && resolved != null;
+	const canPublish = comment.trim().length > 0 && !submitting;
 
 	const handleSubmit = async () => {
 		if (!canSubmit || !resolved) return;
@@ -85,6 +88,17 @@ export function PullRequestCommentComposer({
 			// the mutation's onError) — just don't let a rejection leak out of
 			// this form's synchronous handlers.
 			console.error("[PullRequestCommentComposer] submit failed", error);
+		} finally {
+			setSubmitting(false);
+		}
+	};
+	const handlePublish = async () => {
+		if (!canPublish || !onPublish) return;
+		setSubmitting(true);
+		try {
+			await onPublish(comment.trim());
+		} catch (error) {
+			console.error("[PullRequestCommentComposer] publish failed", error);
 		} finally {
 			setSubmitting(false);
 		}
@@ -121,9 +135,11 @@ export function PullRequestCommentComposer({
 					ref={textareaRef}
 					value={comment}
 					onChange={(e) => setComment(e.target.value)}
-					placeholder={t({
-						message: "Ask the AI…",
-					})}
+					placeholder={
+						onPublish
+							? t({ message: "Write a comment" })
+							: t({ message: "Ask the AI…" })
+					}
 					rows={3}
 					className={cn(
 						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
@@ -151,15 +167,33 @@ export function PullRequestCommentComposer({
 					>
 						<Trans>Cancel</Trans>
 					</Button>
+					{onPublish && (
+						<Button
+							type="button"
+							size="xs"
+							disabled={!canPublish}
+							onClick={() => void handlePublish()}
+							className="h-7 gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
+						>
+							<Trans>Post comment</Trans>
+						</Button>
+					)}
 					<Button
 						type="submit"
 						size="xs"
+						variant={onPublish ? "outline" : undefined}
 						disabled={!canSubmit}
 						className="h-7 gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
 					>
 						{submitting && <LuLoaderCircle className="size-3 animate-spin" />}
 						<span>
-							{submitting ? <Trans>Sending…</Trans> : <Trans>Comment</Trans>}
+							{submitting ? (
+								<Trans>Sending…</Trans>
+							) : onPublish ? (
+								<Trans>Send to agent</Trans>
+							) : (
+								<Trans>Comment</Trans>
+							)}
 						</span>
 					</Button>
 				</div>

@@ -10,6 +10,7 @@ interface LinkedGitHubIssuePillProps {
 	issueNumber: number;
 	title: string;
 	state: string;
+	provider?: "github" | "gitlab";
 	onRemove: () => void;
 }
 
@@ -21,6 +22,7 @@ export function LinkedGitHubIssuePill({
 	issueNumber,
 	title,
 	state,
+	provider = "github",
 	onRemove,
 }: LinkedGitHubIssuePillProps) {
 	const { t } = useLingui();
@@ -58,7 +60,11 @@ export function LinkedGitHubIssuePill({
 					<span>#{issueNumber}</span>
 					<span>·</span>
 					<span>
-						<Trans>GitHub</Trans>
+						{provider === "gitlab" ? (
+							<Trans>GitLab</Trans>
+						) : (
+							<Trans>GitHub</Trans>
+						)}
 					</span>
 				</div>
 			</div>

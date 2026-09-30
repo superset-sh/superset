@@ -80,6 +80,17 @@ describe("resolvePullRequestDetail", () => {
 		expect(result.status === "fallback" && result.onRetry).toBeUndefined();
 	});
 
+	it("rejects a route for another provider or instance", () => {
+		const result = resolvePullRequestDetail({
+			...ready,
+			identityMatches: false,
+		});
+		expect(result).toMatchObject({ status: "fallback", isError: true });
+		expect(result.status === "fallback" && result.message).toContain(
+			"selected project",
+		);
+	});
+
 	it("offers a retry when the fetch fails or returns nothing", () => {
 		const refetch = () => {};
 		const failed = resolvePullRequestDetail({

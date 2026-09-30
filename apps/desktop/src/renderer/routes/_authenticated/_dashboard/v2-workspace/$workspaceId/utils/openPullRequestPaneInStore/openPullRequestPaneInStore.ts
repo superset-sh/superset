@@ -17,9 +17,15 @@ export function openPullRequestPaneInStore(
 	ref: PullRequestRef,
 ): void {
 	const state = store.getState();
+	if (ref.provider === "gitlab" && (!ref.instance || !ref.repoPath)) {
+		throw new Error("GitLab merge request identity is incomplete");
+	}
 	const data: PullRequestPaneData = {
 		repoFullName: ref.repoFullName,
 		number: ref.number,
+		...(ref.provider ? { provider: ref.provider } : {}),
+		...(ref.instance ? { instance: ref.instance } : {}),
+		...(ref.repoPath ? { repoPath: ref.repoPath } : {}),
 	};
 
 	for (const tab of state.tabs) {

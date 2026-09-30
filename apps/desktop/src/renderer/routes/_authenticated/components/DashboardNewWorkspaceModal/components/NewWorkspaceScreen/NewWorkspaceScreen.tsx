@@ -264,9 +264,15 @@ export function NewWorkspaceScreen({
 					name: project.name,
 					githubOwner: project.repoOwner,
 					githubRepoName: project.repoName,
-					iconUrl: project.repoOwner
-						? `https://github.com/${project.repoOwner}.png?size=64`
-						: null,
+					provider: project.provider ?? "github",
+					instance: project.instance,
+					repoPath: [project.repoOwner, project.repoName]
+						.filter(Boolean)
+						.join("/"),
+					iconUrl:
+						(project.provider ?? "github") === "github" && project.repoOwner
+							? `https://github.com/${project.repoOwner}.png?size=64`
+							: null,
 					needsSetup:
 						setUpProjectIds === null
 							? null
@@ -340,7 +346,7 @@ export function NewWorkspaceScreen({
 	);
 	const {
 		addLinkedIssue,
-		addLinkedGitHubIssue,
+		addLinkedRepositoryIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,
@@ -804,17 +810,22 @@ export function NewWorkspaceScreen({
 											prNumber={draft.linkedPR.prNumber}
 											title={draft.linkedPR.title}
 											state={draft.linkedPR.state}
+											provider={draft.linkedPR.provider}
 											onRemove={removeLinkedPR}
 										/>
 									</div>
 								)}
 								{draft.linkedIssues.map((issue) => (
 									<div key={issue.url ?? issue.slug} className="shrink-0">
-										{issue.source === "github" && issue.number != null ? (
+										{(issue.source === "github" || issue.source === "gitlab") &&
+										issue.number != null ? (
 											<LinkedGitHubIssuePill
 												issueNumber={issue.number}
 												title={issue.title}
 												state={issue.state ?? "open"}
+												provider={
+													issue.source === "gitlab" ? "gitlab" : "github"
+												}
 												onRemove={() => removeLinkedIssue(issue.slug)}
 											/>
 										) : (
@@ -935,22 +946,22 @@ export function NewWorkspaceScreen({
 								</IssueLinkCommand>
 								<GitHubIssueLinkCommand
 									onSelect={(issue) =>
-										addLinkedGitHubIssue(
-											issue.issueNumber,
-											issue.title,
-											issue.url,
-											issue.state,
-										)
+										addLinkedRepositoryIssue({
+											...issue,
+											projectId: projectId ?? undefined,
+											hostId: draft.hostId,
+										})
 									}
 									projectId={projectId}
 									hostId={draft.hostId}
+									provider={selectedProject?.provider}
 									tooltipLabel={t({
-										message: "Link GitHub issue",
+										message: "Link issue",
 									})}
 								>
 									<PromptInputButton
 										aria-label={t({
-											message: "Link GitHub issue",
+											message: "Link issue",
 										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
@@ -961,6 +972,7 @@ export function NewWorkspaceScreen({
 									onSelect={setLinkedPR}
 									projectId={projectId}
 									hostId={draft.hostId}
+									provider={selectedProject?.provider}
 									tooltipLabel={t({
 										message: "Link pull request",
 									})}
@@ -1049,7 +1061,11 @@ export function NewWorkspaceScreen({
 									/>
 									<span className="flex items-center gap-1 text-xs text-muted-foreground">
 										<LuGitPullRequest className="size-3 shrink-0" />
-										<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
+										{draft.linkedPR.provider === "gitlab" ? (
+											<Trans>based off MR !{draft.linkedPR.prNumber}</Trans>
+										) : (
+											<Trans>based off PR #{draft.linkedPR.prNumber}</Trans>
+										)}
 									</span>
 								</>
 							) : draft.hostId === CLOUD_HOST_ID ? (

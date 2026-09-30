@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
+import { addComment } from "./procedures/add-comment";
 import { createForWorkspace } from "./procedures/create-for-workspace";
 import { getContent } from "./procedures/get-content";
 import { getDiff } from "./procedures/get-diff";
 import { getLinkedWorkspace } from "./procedures/get-linked-workspace";
 import { getThreads } from "./procedures/get-threads";
+import { markReady } from "./procedures/mark-ready";
 import { mergePR } from "./procedures/merge";
 import { replyToThread } from "./procedures/reply-to-thread";
 import { setState } from "./procedures/set-state";
@@ -15,6 +17,7 @@ export const pullRequestsRouter = router({
 		.input(
 			z.object({
 				workspaceIds: z.array(z.string()),
+				acceptedProviders: z.array(z.enum(["github", "gitlab"])).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -22,12 +25,21 @@ export const pullRequestsRouter = router({
 				await ctx.runtime.pullRequests.getPullRequestsByWorkspaces(
 					input.workspaceIds,
 				);
+			const accepted = input.acceptedProviders ?? ["github"];
 			// Why links may be stale: the sweep keeps existing links through a
 			// rate limit, outage, or rejected credential but cannot create new
 			// ones, and a workspace with no PR chip says nothing on its own.
 			return {
-				workspaces,
+				workspaces: workspaces.map((workspace) => ({
+					...workspace,
+					pullRequest:
+						workspace.pullRequest &&
+						accepted.includes(workspace.pullRequest.provider)
+							? workspace.pullRequest
+							: null,
+				})),
 				github: ctx.runtime.pullRequests.getGithubStatus(),
+				gitlab: ctx.runtime.pullRequests.getGitLabStatus(),
 			};
 		}),
 	/**
@@ -39,6 +51,7 @@ export const pullRequestsRouter = router({
 		.input(
 			z.object({
 				workspaceIds: z.array(z.string()),
+				acceptedProviders: z.array(z.enum(["github", "gitlab"])).optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -46,7 +59,15 @@ export const pullRequestsRouter = router({
 				await ctx.runtime.pullRequests.getPullRequestHistoryByWorkspaces(
 					input.workspaceIds,
 				);
-			return { workspaces };
+			const accepted = input.acceptedProviders ?? ["github"];
+			return {
+				workspaces: workspaces.map((workspace) => ({
+					...workspace,
+					pullRequests: workspace.pullRequests.filter((request) =>
+						accepted.includes(request.provider),
+					),
+				})),
+			};
 		}),
 	unlinkFromWorkspace: protectedProcedure
 		.input(
@@ -79,4 +100,6 @@ export const pullRequestsRouter = router({
 	setThreadResolution,
 	replyToThread,
 	mergePR,
+	markReady,
+	addComment,
 });

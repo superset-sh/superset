@@ -20,6 +20,8 @@ import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProject
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
@@ -40,12 +42,27 @@ interface RunIssuesInWorkspacePopoverProps {
 	onComplete: () => void;
 }
 
-function synthesizeIssuePrompt(issue: SelectedIssue): string {
-	return `GitHub issue #${issue.issueNumber}: ${issue.title}\n${issue.url}`;
+async function synthesizeIssuePrompt(
+	issue: SelectedIssue,
+	hostUrl: string,
+): Promise<string> {
+	if (issue.provider !== "gitlab") {
+		return `GitHub issue #${issue.issueNumber}: ${issue.title}\n${issue.url}`;
+	}
+	const client = getHostServiceClientByUrl(hostUrl);
+	const result = await client.issues.getContent.query({
+		provider: "gitlab",
+		projectId: issue.projectId,
+		issueNumber: issue.issueNumber,
+		instance: issue.instance ?? "",
+		repoPath: issue.repoPath ?? "",
+	});
+	const header = `GitLab issue #${result.number}: ${result.title}\n${result.url}`;
+	return result.body.trim() ? `${header}\n\n${result.body.trim()}` : header;
 }
 
 function issueSlug(issue: SelectedIssue): string {
-	return `issue-${issue.issueNumber}`;
+	return `${issue.provider}-${issue.projectId}-issue-${issue.issueNumber}`;
 }
 
 function readStoredAgent(): SelectedAgent {
@@ -76,8 +93,13 @@ export function RunIssuesInWorkspacePopover({
 	);
 
 	const [hostId, setHostId] = useState<string | null>(
-		lastHostId ?? machineId ?? null,
+		issues[0]?.hostId ?? lastHostId ?? machineId ?? null,
 	);
+	const selectedIssueHostId = issues[0]?.hostId;
+	const hasGitLabIssues = issues.some((issue) => issue.provider === "gitlab");
+	useEffect(() => {
+		if (selectedIssueHostId) setHostId(selectedIssueHostId);
+	}, [selectedIssueHostId]);
 
 	const launchHostUrl = useHostUrl(hostId);
 	const setUpProjectIds = useSelectedHostProjectIds(hostId);
@@ -95,10 +117,11 @@ export function RunIssuesInWorkspacePopover({
 		[hostRecentProjects, setUpProjectIds],
 	);
 
+	const issueProjectId = issues[0]?.projectId ?? projectFilter;
 	const seededProjectId =
-		projectFilter &&
-		recentProjects.some((project) => project.id === projectFilter)
-			? projectFilter
+		issueProjectId &&
+		recentProjects.some((project) => project.id === issueProjectId)
+			? issueProjectId
 			: (recentProjects[0]?.id ?? null);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		seededProjectId,
@@ -148,7 +171,13 @@ export function RunIssuesInWorkspacePopover({
 	// Workspaces launch against one project; a mixed-repo selection would
 	// silently run every issue against a single repository.
 	const issueProjectIds = useMemo(
-		() => new Set(issues.map((issue) => issue.projectId)),
+		() =>
+			new Set(
+				issues.map(
+					(issue) =>
+						`${issue.hostId ?? ""}\0${issue.provider}\0${issue.instance ?? ""}\0${issue.projectId}\0${issue.repoPath ?? ""}`,
+				),
+			),
 		[issues],
 	);
 
@@ -161,6 +190,15 @@ export function RunIssuesInWorkspacePopover({
 					"Selected issues span multiple repositories. Select issues from a single repository to run them.",
 			});
 		}
+		if (
+			selectedProjectId &&
+			issues[0] &&
+			selectedProjectId !== issues[0].projectId
+		) {
+			return t({
+				message: "Select the issue's project to run it in a workspace.",
+			});
+		}
 		if (!selectedProjectId)
 			return t({
 				message: "Select a project",
@@ -169,6 +207,14 @@ export function RunIssuesInWorkspacePopover({
 			return t({
 				message: "No active host",
 			});
+		if (
+			hasGitLabIssues &&
+			(!selectedIssueHostId || hostId !== selectedIssueHostId)
+		) {
+			return t({
+				message: "Project not set up on this host",
+			});
+		}
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
 			if (!remote?.isOnline)
@@ -203,6 +249,9 @@ export function RunIssuesInWorkspacePopover({
 		return null;
 	}, [
 		hasMixedRepos,
+		hasGitLabIssues,
+		issues,
+		selectedIssueHostId,
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
@@ -231,44 +280,54 @@ export function RunIssuesInWorkspacePopover({
 
 		setLastProjectId(selectedProjectId);
 
-		const handles = issues.map((issue) =>
-			submit({
-				hostId,
-				snapshot: {
-					id: crypto.randomUUID(),
-					projectId: selectedProjectId,
-					name: issue.title,
-					branch: deriveBranchName({
-						slug: issueSlug(issue),
-						title: issue.title,
-					}),
-					agents:
-						selectedAgent === NONE
-							? undefined
-							: [
-									{
-										agent: selectedAgent,
-										prompt: synthesizeIssuePrompt(issue),
-									},
-								],
-				},
-			}),
-		);
-
-		const promise = Promise.all(handles.map((handle) => handle.completed)).then(
-			(outcomes) => {
-				const failed = outcomes.filter((outcome) => !outcome.ok).length;
-				if (failed > 0) {
-					const firstFailure = outcomes.find((outcome) => !outcome.ok);
-					const details =
-						firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
-					throw new Error(
-						`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
-					);
-				}
-				return outcomes.length;
-			},
-		);
+		const promise = (async () => {
+			if (!launchHostUrl)
+				throw new Error(t({ message: "The selected host is unavailable." }));
+			if (issues.some((issue) => issue.provider === "gitlab")) {
+				await assertGitLabHostSupport(launchHostUrl);
+			}
+			const prompts = await Promise.all(
+				issues.map((issue) => synthesizeIssuePrompt(issue, launchHostUrl)),
+			);
+			return Promise.all(
+				issues.map((issue, index) => {
+					const prompt = prompts[index] ?? "";
+					const handle = submit({
+						hostId,
+						snapshot: {
+							id: crypto.randomUUID(),
+							projectId: selectedProjectId,
+							name: issue.title,
+							branch: deriveBranchName({
+								slug: issueSlug(issue),
+								title: issue.title,
+							}),
+							agents:
+								selectedAgent === NONE
+									? undefined
+									: [
+											{
+												agent: selectedAgent,
+												prompt,
+											},
+										],
+						},
+					});
+					return handle.completed;
+				}),
+			);
+		})().then((outcomes) => {
+			const failed = outcomes.filter((outcome) => !outcome.ok).length;
+			if (failed > 0) {
+				const firstFailure = outcomes.find((outcome) => !outcome.ok);
+				const details =
+					firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
+				throw new Error(
+					`${outcomes.length - failed} of ${outcomes.length} succeeded${details}`,
+				);
+			}
+			return outcomes.length;
+		});
 
 		toast.promise(promise, {
 			loading: t({
@@ -307,6 +366,7 @@ export function RunIssuesInWorkspacePopover({
 				<div className="flex flex-col gap-2 p-2">
 					<DevicePicker
 						hostId={hostId}
+						disabled={hasGitLabIssues && !!selectedIssueHostId}
 						onSelectHostId={(next) => {
 							setHostId(next);
 							setLastHostId(next);

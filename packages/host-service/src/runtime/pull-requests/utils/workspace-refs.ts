@@ -2,7 +2,7 @@
 // own module (not pull-requests.ts) so the worker task can import it without
 // pulling the runtime's DB/Octokit graph into the worker bundle.
 
-import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseRepositoryRemote } from "@superset/shared/source-control";
 import type { SimpleGit } from "simple-git";
 
 const UNBORN_HEAD_ERROR_PATTERNS = [
@@ -78,6 +78,8 @@ async function resolveRemoteValueToUrl(
 async function resolveWorkspaceUpstream(
 	git: SimpleGit,
 	localBranch: string,
+	gitlabHosts: string[],
+	gitlabSshHosts: { sshHost: string; instance: string }[],
 ): Promise<WorkspaceUpstream | null> {
 	// `@{push}` resolves remote+branch respecting all config precedence in one call.
 	const pushRef = await tryRaw(git, [
@@ -89,7 +91,9 @@ async function resolveWorkspaceUpstream(
 		const slash = pushRef.indexOf("/");
 		if (slash > 0) {
 			const url = await resolveRemoteValueToUrl(git, pushRef.slice(0, slash));
-			const parsed = url ? parseGitHubRemote(url) : null;
+			const parsed = url
+				? parseRepositoryRemote(url, { gitlabHosts, gitlabSshHosts })
+				: null;
 			if (parsed) {
 				return {
 					owner: parsed.owner,
@@ -114,7 +118,9 @@ async function resolveWorkspaceUpstream(
 	if (!remoteValue) return null;
 
 	const url = await resolveRemoteValueToUrl(git, remoteValue);
-	const parsed = url ? parseGitHubRemote(url) : null;
+	const parsed = url
+		? parseRepositoryRemote(url, { gitlabHosts, gitlabSshHosts })
+		: null;
 	if (!parsed) return null;
 
 	// `gh pr checkout` renames the local branch on collision (`main` →
@@ -142,11 +148,18 @@ async function tryConfig(git: SimpleGit, key: string): Promise<string | null> {
  */
 export async function readWorkspaceRefs(
 	git: SimpleGit,
+	gitlabHosts: string[] = [],
+	gitlabSshHosts: { sshHost: string; instance: string }[] = [],
 ): Promise<WorkspaceRefsSnapshot> {
 	const branch = await getCurrentBranchName(git);
 	if (!branch) return { branch: null, headSha: null, upstream: null };
 
 	const headSha = await getHeadSha(git);
-	const upstream = await resolveWorkspaceUpstream(git, branch);
+	const upstream = await resolveWorkspaceUpstream(
+		git,
+		branch,
+		gitlabHosts,
+		gitlabSshHosts,
+	);
 	return { branch, headSha, upstream };
 }

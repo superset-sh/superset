@@ -10,6 +10,7 @@ interface LinkedPRPillProps {
 	prNumber: number;
 	title: string;
 	state: string;
+	provider?: "github" | "gitlab";
 	onRemove: () => void;
 }
 
@@ -17,6 +18,7 @@ export function LinkedPRPill({
 	prNumber,
 	title,
 	state,
+	provider = "github",
 	onRemove,
 }: LinkedPRPillProps) {
 	const { t } = useLingui();
@@ -51,10 +53,17 @@ export function LinkedPRPill({
 			<div className="flex flex-col items-start leading-tight">
 				<span className="max-w-[180px] truncate font-medium">{title}</span>
 				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
-					<span>#{prNumber}</span>
+					<span>
+						{provider === "gitlab" ? "!" : "#"}
+						{prNumber}
+					</span>
 					<span>·</span>
 					<span>
-						<Trans>GitHub</Trans>
+						{provider === "gitlab" ? (
+							<Trans>GitLab</Trans>
+						) : (
+							<Trans>GitHub</Trans>
+						)}
 					</span>
 				</div>
 			</div>

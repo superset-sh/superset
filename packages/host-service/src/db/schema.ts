@@ -89,6 +89,8 @@ export const projects = sqliteTable(
 		id: text().primaryKey(),
 		repoPath: text("repo_path").notNull(),
 		repoProvider: text("repo_provider"),
+		repoInstance: text("repo_instance"),
+		repoProjectId: integer("repo_project_id"),
 		repoOwner: text("repo_owner"),
 		repoName: text("repo_name"),
 		repoUrl: text("repo_url"),
@@ -153,6 +155,7 @@ export const pullRequests = sqliteTable(
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
 		repoProvider: text("repo_provider").notNull(),
+		repoInstance: text("repo_instance").notNull().default("https://github.com"),
 		repoOwner: text("repo_owner").notNull(),
 		repoName: text("repo_name").notNull(),
 		prNumber: integer("pr_number").notNull(),
@@ -182,12 +185,14 @@ export const pullRequests = sqliteTable(
 		index("pull_requests_project_id_idx").on(table.projectId),
 		index("pull_requests_repo_branch_idx").on(
 			table.repoProvider,
+			table.repoInstance,
 			table.repoOwner,
 			table.repoName,
 			table.headBranch,
 		),
 		uniqueIndex("pull_requests_repo_pr_unique").on(
 			table.repoProvider,
+			table.repoInstance,
 			table.repoOwner,
 			table.repoName,
 			table.prNumber,

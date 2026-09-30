@@ -39,13 +39,14 @@ export function PullRequestPane({
 	// the one on screen.
 	const linkedPR = workspaceTrpc.git.getPullRequest.useQuery({
 		workspaceId: workspace.id,
+		acceptedProviders: ["github", "gitlab"],
 	});
 	const linkedRef = linkedPR.data?.url
 		? pullRequestRefFromUrl(linkedPR.data.url)
 		: null;
 	const isLinkedPR = linkedRef !== null && isSamePullRequest(linkedRef, data);
 	const threads = workspaceTrpc.git.getPullRequestThreads.useQuery(
-		{ workspaceId: workspace.id },
+		{ workspaceId: workspace.id, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: isLinkedPR,
 			refetchInterval: 30_000,
@@ -69,6 +70,7 @@ export function PullRequestPane({
 					hostId={isLinkedPR ? workspace.hostId : null}
 					hostUrl={isLinkedPR ? workspaceHostUrl : null}
 					prNumber={data.number}
+					requestProvider={data.provider}
 					data={detail.data}
 					isLoading={detail.isLoading}
 					showStartWorkspace={false}
@@ -94,7 +96,9 @@ export function PullRequestPane({
 					message={
 						detail.error
 							? errorMessage(detail.error)
-							: t({ message: "Loading pull request…" })
+							: data.provider === "gitlab"
+								? t({ message: "Loading merge request…" })
+								: t({ message: "Loading pull request…" })
 					}
 					isLoading={detail.isLoading}
 					isError={!!detail.error}

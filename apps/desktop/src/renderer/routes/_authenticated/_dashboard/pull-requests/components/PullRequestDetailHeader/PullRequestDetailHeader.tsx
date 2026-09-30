@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import { LuCheck, LuChevronRight, LuGitBranch } from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -81,6 +81,7 @@ interface PullRequestDetailHeaderProps {
 	hostUrl: string | null;
 	/** Parsed PR number; null when the route param is malformed. */
 	prNumber: number | null;
+	requestProvider?: "github" | "gitlab";
 	data: PullRequestDetail | null | undefined;
 	isLoading: boolean;
 	/**
@@ -102,11 +103,15 @@ export function PullRequestDetailHeader({
 	hostId,
 	hostUrl,
 	prNumber,
+	requestProvider,
 	data,
 	isLoading,
 	showStartWorkspace = true,
 }: PullRequestDetailHeaderProps) {
 	const { t } = useLingui();
+	const provider = data?.provider ?? requestProvider ?? "github";
+	const instance = data?.instance ?? "https://github.com";
+	const repoPath = data?.repoPath ?? data?.repoFullName ?? "";
 	const mergeMethodLabels: Record<MergeMethod, string> = {
 		squash: t({
 			message: "Squash and merge",
@@ -145,26 +150,46 @@ export function PullRequestDetailHeader({
 		projectId,
 		hostUrl,
 		prNumber,
+		provider,
+		instance,
+		repoPath,
 	});
 
 	const setPullRequestState = useMutation({
 		mutationFn: async (nextState: "open" | "closed") => {
 			if (!hostUrl || !projectId || prNumber === null) {
-				throw new Error("This project isn't linked to a GitHub repository.");
+				throw new Error(
+					provider === "gitlab"
+						? t({
+								message: "This project is not linked to a GitLab repository.",
+							})
+						: t({
+								message: "This project isn't linked to a GitHub repository.",
+							}),
+				);
 			}
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.setState.mutate({
-				projectId,
-				prNumber,
-				state: nextState,
-			});
+			return provider === "gitlab"
+				? client.pullRequests.setState.mutate({
+						provider: "gitlab",
+						projectId,
+						prNumber,
+						state: nextState,
+						instance,
+						repoPath,
+					})
+				: client.pullRequests.setState.mutate({
+						projectId,
+						prNumber,
+						state: nextState,
+					});
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
 			toast.error(
-				t({
-					message: "Couldn't update pull request",
-				}),
+				provider === "gitlab"
+					? t({ message: "Couldn't update merge request" })
+					: t({ message: "Couldn't update pull request" }),
 				{
 					description: errorMessage(mutationError),
 				},
@@ -181,9 +206,33 @@ export function PullRequestDetailHeader({
 			commitMessage?: string;
 		}) => {
 			if (!hostUrl || !projectId || prNumber === null) {
-				throw new Error("This project isn't linked to a GitHub repository.");
+				throw new Error(
+					provider === "gitlab"
+						? t({
+								message: "This project is not linked to a GitLab repository.",
+							})
+						: t({
+								message: "This project isn't linked to a GitHub repository.",
+							}),
+				);
 			}
 			const client = getHostServiceClientByUrl(hostUrl);
+			if (provider === "gitlab") {
+				if (!data?.headSha)
+					throw new Error("Merge request head SHA is unavailable.");
+				if (mergeMethod === "rebase")
+					throw new Error("Rebase is unavailable for this merge request.");
+				return client.pullRequests.mergePR.mutate({
+					provider: "gitlab",
+					projectId,
+					prNumber,
+					instance,
+					repoPath,
+					mergeMethod,
+					commitMessage,
+					headSha: data.headSha,
+				});
+			}
 			return client.pullRequests.mergePR.mutate({
 				projectId,
 				prNumber,
@@ -193,10 +242,11 @@ export function PullRequestDetailHeader({
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
+			if (provider === "gitlab") invalidatePullRequestQueries();
 			toast.error(
-				t({
-					message: "Couldn't merge pull request",
-				}),
+				provider === "gitlab"
+					? t({ message: "Couldn't merge merge request" })
+					: t({ message: "Couldn't merge pull request" }),
 				{
 					description: errorMessage(mutationError),
 				},
@@ -204,8 +254,30 @@ export function PullRequestDetailHeader({
 		},
 	});
 
+	const markReady = useMutation({
+		mutationFn: async () => {
+			if (!hostUrl || !projectId || prNumber === null) {
+				throw new Error(t({ message: "The merge request is unavailable." }));
+			}
+			await getHostServiceClientByUrl(hostUrl).pullRequests.markReady.mutate({
+				provider: "gitlab",
+				projectId,
+				prNumber,
+				instance,
+				repoPath,
+			});
+		},
+		onSuccess: invalidatePullRequestQueries,
+		onError: (mutationError) =>
+			toast.error(t({ message: "Couldn't mark merge request ready" }), {
+				description: errorMessage(mutationError),
+			}),
+	});
+
 	const isActionPending =
-		setPullRequestState.isPending || mergePullRequest.isPending;
+		setPullRequestState.isPending ||
+		mergePullRequest.isPending ||
+		markReady.isPending;
 
 	const handleConfirmAction = () => {
 		if (!pendingAction) return;
@@ -228,6 +300,10 @@ export function PullRequestDetailHeader({
 			title: data.title,
 			url: data.url,
 			state: normalizePRState(data.state, data.isDraft),
+			provider,
+			instance,
+			repoPath,
+			headSha: data.headSha,
 		};
 		resetDraft();
 		selectProject(projectId);
@@ -239,7 +315,17 @@ export function PullRequestDetailHeader({
 	const state = data
 		? normalizePRState(data.state, data.isDraft)
 		: defaultState;
-	const canMerge = data?.state === "open" && !data.isDraft;
+	const canMerge =
+		data?.state === "open" &&
+		!data.isDraft &&
+		(provider === "github" ||
+			(!!data.headSha &&
+				data.capabilities?.canMerge === true &&
+				data.capabilities.mergeMethods.length > 0));
+	const mergeMethods: MergeMethod[] =
+		provider === "gitlab"
+			? (data?.capabilities?.mergeMethods ?? [])
+			: ["squash", "merge", "rebase"];
 	const itemNumber = data?.number ?? prNumber;
 	const createdAtMs = data?.createdAt
 		? new Date(data.createdAt).getTime()
@@ -258,7 +344,7 @@ export function PullRequestDetailHeader({
 							(itemNumber === null ? (
 								<Trans>Pull request</Trans>
 							) : (
-								`#${itemNumber}`
+								`${provider === "gitlab" ? "!" : "#"}${itemNumber}`
 							))}
 					</h1>
 				)}
@@ -269,14 +355,22 @@ export function PullRequestDetailHeader({
 								href={data.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({
-									message: "Open pull request in GitHub",
-								})}
-								title={t({
-									message: "Open pull request in GitHub",
-								})}
+								aria-label={
+									provider === "gitlab"
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
+								title={
+									provider === "gitlab"
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
 							>
-								<FaGithub className="size-4" />
+								{provider === "gitlab" ? (
+									<FaGitlab className="size-4" />
+								) : (
+									<FaGithub className="size-4" />
+								)}
 							</a>
 						</Button>
 						{showStartWorkspace && (
@@ -289,6 +383,38 @@ export function PullRequestDetailHeader({
 								<Trans>Start Workspace</Trans>
 							</Button>
 						)}
+						{provider === "gitlab" &&
+							data.isDraft &&
+							data.capabilities?.canMarkReady && (
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={isActionPending}
+									onClick={() => markReady.mutate()}
+								>
+									<Trans>Mark ready</Trans>
+								</Button>
+							)}
+						{provider === "gitlab" &&
+							data.capabilities?.canClose &&
+							data.state !== "merged" && (
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={isActionPending}
+									onClick={() =>
+										data.state === "closed"
+											? setPullRequestState.mutate("open")
+											: setPendingAction({ kind: "close" })
+									}
+								>
+									{data.state === "closed" ? (
+										<Trans>Reopen merge request</Trans>
+									) : (
+										<Trans>Close merge request</Trans>
+									)}
+								</Button>
+							)}
 						{canMerge && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -297,9 +423,11 @@ export function PullRequestDetailHeader({
 										size="sm"
 										className="h-8 gap-1.5 px-3 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 [.dark_&]:text-[#34d399] [.dark_&]:hover:text-[#34d399]"
 										disabled={isActionPending}
-										aria-label={t({
-											message: "Merge pull request",
-										})}
+										aria-label={
+											provider === "gitlab"
+												? t({ message: "Merge merge request" })
+												: t({ message: "Merge pull request" })
+										}
 									>
 										<VscGitMerge className="size-4" />
 										<Trans>Merge</Trans>
@@ -321,7 +449,7 @@ export function PullRequestDetailHeader({
 									<DropdownMenuLabel className="px-3 pb-1 pt-0 text-xs font-normal text-muted-foreground">
 										<Trans>Select method</Trans>
 									</DropdownMenuLabel>
-									{(["squash", "merge", "rebase"] as const).map((method) => (
+									{mergeMethods.map((method) => (
 										<DropdownMenuItem
 											key={method}
 											className="flex-col items-start gap-0.5 px-3 py-2"
@@ -337,56 +465,57 @@ export function PullRequestDetailHeader({
 											</span>
 										</DropdownMenuItem>
 									))}
-									{(data.checksStatus === "pending" ||
-										data.checksStatus === "failure") && (
-										<>
-											<DropdownMenuSeparator />
-											{data.checksStatus === "pending" && (
-												<DropdownMenuItem
-													className="flex items-center justify-between gap-2 px-3 py-2"
-													onClick={() =>
-														toast.info(
-															t({
-																message: "Auto-merge is coming soon",
-															}),
-														)
-													}
-												>
-													<div className="flex flex-col gap-0.5">
-														<span className="text-sm font-medium">
-															<Trans>Enable auto-merge</Trans>
-														</span>
-														<span className="text-xs text-muted-foreground">
-															<Trans>Merge when checks pass</Trans>
-														</span>
-													</div>
-													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-												</DropdownMenuItem>
-											)}
-											{data.checksStatus === "failure" && (
-												<DropdownMenuItem
-													className="flex items-center justify-between gap-2 px-3 py-2"
-													onClick={() =>
-														setPendingAction({
-															kind: "merge",
-															method: "squash",
-															force: true,
-														})
-													}
-												>
-													<div className="flex flex-col gap-0.5">
-														<span className="text-sm font-medium">
-															<Trans>Force merge</Trans>
-														</span>
-														<span className="text-xs text-muted-foreground">
-															<Trans>Attempt before checks pass</Trans>
-														</span>
-													</div>
-													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-												</DropdownMenuItem>
-											)}
-										</>
-									)}
+									{provider === "github" &&
+										(data.checksStatus === "pending" ||
+											data.checksStatus === "failure") && (
+											<>
+												<DropdownMenuSeparator />
+												{data.checksStatus === "pending" && (
+													<DropdownMenuItem
+														className="flex items-center justify-between gap-2 px-3 py-2"
+														onClick={() =>
+															toast.info(
+																t({
+																	message: "Auto-merge is coming soon",
+																}),
+															)
+														}
+													>
+														<div className="flex flex-col gap-0.5">
+															<span className="text-sm font-medium">
+																<Trans>Enable auto-merge</Trans>
+															</span>
+															<span className="text-xs text-muted-foreground">
+																<Trans>Merge when checks pass</Trans>
+															</span>
+														</div>
+														<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+													</DropdownMenuItem>
+												)}
+												{data.checksStatus === "failure" && (
+													<DropdownMenuItem
+														className="flex items-center justify-between gap-2 px-3 py-2"
+														onClick={() =>
+															setPendingAction({
+																kind: "merge",
+																method: "squash",
+																force: true,
+															})
+														}
+													>
+														<div className="flex flex-col gap-0.5">
+															<span className="text-sm font-medium">
+																<Trans>Force merge</Trans>
+															</span>
+															<span className="text-xs text-muted-foreground">
+																<Trans>Attempt before checks pass</Trans>
+															</span>
+														</div>
+														<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+													</DropdownMenuItem>
+												)}
+											</>
+										)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
@@ -420,7 +549,9 @@ export function PullRequestDetailHeader({
 								<AvatarImage
 									src={
 										data.author.avatarUrl ??
-										`https://github.com/${data.author.login}.png?size=64`
+										(provider === "github"
+											? `https://github.com/${data.author.login}.png?size=64`
+											: undefined)
 									}
 									alt={data.author.login}
 								/>
@@ -433,7 +564,10 @@ export function PullRequestDetailHeader({
 					)}
 					<span className="inline-flex shrink-0 items-center gap-2">
 						<span aria-hidden>·</span>
-						<span className="font-mono tabular-nums">#{data.number}</span>
+						<span className="font-mono tabular-nums">
+							{provider === "gitlab" ? "!" : "#"}
+							{data.number}
+						</span>
 					</span>
 					<span className="inline-flex min-w-0 shrink items-center gap-2">
 						<span aria-hidden>·</span>
@@ -512,19 +646,32 @@ export function PullRequestDetailHeader({
 						<AlertDialogHeader className="px-4 pb-2 pt-4">
 							<AlertDialogTitle className="font-medium">
 								{pendingAction?.kind === "close" ? (
-									<Trans>Close #{data.number}?</Trans>
+									provider === "gitlab" ? (
+										<Trans>Close !{data.number}?</Trans>
+									) : (
+										<Trans>Close #{data.number}?</Trans>
+									)
 								) : pendingAction?.kind === "merge" && pendingAction.force ? (
 									<Trans>Force merge #{data.number}?</Trans>
+								) : provider === "gitlab" ? (
+									<Trans>Merge !{data.number}?</Trans>
 								) : (
 									<Trans>Merge #{data.number}?</Trans>
 								)}
 							</AlertDialogTitle>
 							<AlertDialogDescription>
 								{pendingAction?.kind === "close" ? (
-									<Trans>
-										"{data.title}" will be marked closed on GitHub. You can
-										reopen it from here at any time.
-									</Trans>
+									provider === "gitlab" ? (
+										<Trans>
+											"{data.title}" will be closed on GitLab. You can reopen it
+											from here.
+										</Trans>
+									) : (
+										<Trans>
+											"{data.title}" will be marked closed on GitHub. You can
+											reopen it from here at any time.
+										</Trans>
+									)
 								) : pendingAction?.kind === "merge" && pendingAction.force ? (
 									<Trans>
 										"{data.title}" will be merged into {data.base.ref} via{" "}
@@ -562,9 +709,15 @@ export function PullRequestDetailHeader({
 								onClick={handleConfirmAction}
 							>
 								{pendingAction?.kind === "close" ? (
-									<Trans>Close pull request</Trans>
+									provider === "gitlab" ? (
+										<Trans>Close merge request</Trans>
+									) : (
+										<Trans>Close pull request</Trans>
+									)
 								) : pendingAction?.kind === "merge" && pendingAction.force ? (
 									<Trans>Force merge</Trans>
+								) : provider === "gitlab" ? (
+									<Trans>Merge merge request</Trans>
 								) : (
 									<Trans>Merge pull request</Trans>
 								)}

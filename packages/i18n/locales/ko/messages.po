@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "인사말"
+
 msgid " and "
 msgstr " 및 "
 
@@ -41,6 +45,10 @@ msgstr "· {updatedAgo}에 업데이트"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\"을(를) 삭제했습니다"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "\"{0}\"이(가) GitLab에서 닫힙니다. 여기에서 다시 열 수 있습니다."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {차이가 잘렸습니다 — 호스트에 #줄 더 있
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {포트 #개를 닫지 못했습니다} other {포트 #개를 닫지 못했습니다}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {GitLab 이슈} other {GitLab 이슈}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {워크스페이스 #개를 가져왔습니다} other {워크스페이스 #개를 가져왔습니다}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {워크스페이스 #개를 가져왔습니다} other {�
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {선택한 워크스페이스 #개를 그룹으로 이동} other {선택한 워크스페이스 #개를 그룹으로 이동}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {풀 리퀘스트} other {풀 리퀘스트}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {#개 검사를 모두 통과했습니다} other {#�
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub 이슈} other {GitHub 이슈}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {풀 리퀘스트} other {풀 리퀘스트}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {사용자 지정 테마 #개를 가져왔습니다} other {사용자 지정 테마 #개를 가져왔습니다}}"
 
@@ -1551,6 +1564,9 @@ msgstr "프로젝트 설정에서 라이프사이클 실행 스크립트를 추�
 
 msgid "Add a project to see GitHub issues."
 msgstr "GitHub 이슈를 보려면 프로젝트를 추가하세요."
+
+msgid "Add a project to see GitLab issues."
+msgstr "GitLab 이슈를 보려면 프로젝트를 추가하세요."
 
 msgid "Add a project to see pull requests."
 msgstr "풀 리퀘스트를 보려면 프로젝트를 추가하세요."
@@ -2609,6 +2625,9 @@ msgstr "현재 버전으로 돌아가기"
 msgid "Back to GitHub issues"
 msgstr "GitHub 이슈로 돌아가기"
 
+msgid "Back to GitLab issues"
+msgstr "GitLab 이슈로 돌아가기"
+
 msgid "Back to Home"
 msgstr "홈으로 돌아가기"
 
@@ -2668,6 +2687,10 @@ msgstr "{selectedHostName}에서 새 worktree를 만들 기본 디렉터리입�
 
 msgid "Base URL"
 msgstr "기본 URL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "MR !{0}을(를) 기반으로"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "폴더 선택"
 msgid "Choose a parent directory"
 msgstr "상위 디렉터리 선택"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "이슈를 열기 전에 GitHub 이슈 화면에서 프로젝트를 선택하세요."
+msgid "Choose a project before opening an issue."
+msgstr "이슈를 열기 전에 프로젝트를 선택하세요."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "풀 리퀘스트를 열기 전에 풀 리퀘스트 화면에서 프로젝트를 선택하세요."
@@ -3465,6 +3488,9 @@ msgstr "클릭하여 복사"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "클릭하면 세션 ID를 복사합니다(`claude --resume <id>`로 이어서 진행)."
 
+msgid "Click to open merge request"
+msgstr "클릭하여 병합 요청 열기"
+
 msgid "Click to open on GitHub"
 msgstr "클릭하여 GitHub에서 열기"
 
@@ -3510,6 +3536,10 @@ msgstr "클론하는 중…"
 
 msgid "Close"
 msgstr "닫기"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "!{0}을(를) 닫으시겠습니까?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "찾기 바 닫기"
 
 msgid "Close menu"
 msgstr "메뉴 닫기"
+
+msgid "Close merge request"
+msgstr "병합 요청 닫기"
 
 msgid "Close modal"
 msgstr "모달 닫기"
@@ -4321,6 +4354,9 @@ msgstr "링크 복사"
 msgid "Copy Link Address"
 msgstr "링크 주소 복사"
 
+msgid "Copy link to merge request"
+msgstr "병합 요청 링크 복사"
+
 msgid "Copy link to pull request"
 msgstr "풀 리퀘스트 링크 복사"
 
@@ -4674,6 +4710,12 @@ msgstr "리뷰 코멘트를 불러오지 못했습니다"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "프로필을 불러오지 못해 편집이 비활성화되었습니다."
 
+msgid "Couldn't mark merge request ready"
+msgstr "병합 요청을 검토 준비 상태로 표시하지 못했습니다"
+
+msgid "Couldn't merge merge request"
+msgstr "병합 요청을 병합하지 못했습니다"
+
 msgid "Couldn't merge pull request"
 msgstr "풀 리퀘스트를 머지하지 못했습니다"
 
@@ -4769,6 +4811,9 @@ msgstr "스테이징을 해제하지 못했습니다"
 msgid "Couldn't unstage file"
 msgstr "파일 스테이징을 해제하지 못했습니다"
 
+msgid "Couldn't update merge request"
+msgstr "병합 요청을 업데이트하지 못했습니다"
+
 msgid "Couldn't update pull request"
 msgstr "풀 리퀘스트를 업데이트하지 못했습니다"
 
@@ -4840,6 +4885,16 @@ msgstr "머지 커밋 만들기"
 
 msgid "Create Merge Commit"
 msgstr "머지 커밋 만들기"
+
+msgid "Create merge request"
+msgstr "병합 요청 만들기"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "병합 요청 만들기 실패: {0}"
+
+msgid "Create MR"
+msgstr "MR 만들기"
 
 msgid "Create new group"
 msgstr "새 그룹 만들기"
@@ -4968,6 +5023,9 @@ msgstr "생성 중"
 
 msgid "Creating"
 msgstr "만드는 중"
+
+msgid "Creating merge request..."
+msgstr "병합 요청 만드는 중..."
 
 msgid "Creating PR..."
 msgstr "PR 생성 중…"
@@ -7428,6 +7486,12 @@ msgstr "GitHub 사용자 이름..."
 msgid "GitHub username…"
 msgstr "GitHub 사용자 이름…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "GitLab 이슈"
+
 msgid "Give me an example"
 msgstr "예시를 보여주세요"
 
@@ -8885,6 +8949,9 @@ msgstr "이슈 불러오는 중…"
 msgid "Loading members..."
 msgstr "멤버 불러오는 중..."
 
+msgid "Loading merge request…"
+msgstr "병합 요청 불러오는 중…"
+
 msgid "Loading more..."
 msgstr "더 불러오는 중..."
 
@@ -9112,6 +9179,9 @@ msgstr "읽지 않음으로 표시"
 msgid "Mark as viewed"
 msgstr "확인함으로 표시"
 
+msgid "Mark ready"
+msgstr "검토 준비 상태로 표시"
+
 msgid "Mark Ready"
 msgstr "준비됨으로 표시"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "머지"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "!{0}을(를) 병합하시겠습니까?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "#{0}을(를) 머지할까요?"
 
@@ -9244,11 +9318,35 @@ msgstr "머지 커밋"
 msgid "Merge failed: {0}"
 msgstr "머지 실패: {0}"
 
+msgid "Merge merge request"
+msgstr "병합 요청 병합"
+
 msgid "Merge pull request"
 msgstr "풀 리퀘스트 머지"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Superset을 벗어나지 않고 풀 리퀘스트를 머지하세요. 채팅 수정과 다듬기도 함께 들어갑니다."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "병합 요청 !{0}을(를) 만들었습니다"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "병합 요청 !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "병합 요청이 병합되었습니다"
+
+msgid "Merge request ready for review"
+msgstr "병합 요청을 검토 준비 상태로 표시했습니다"
+
+msgid "Merge request title"
+msgstr "병합 요청 제목"
+
+msgid "Merge request URL"
+msgstr "병합 요청 URL"
 
 msgid "Merge when checks pass"
 msgstr "검사 통과 시 머지"
@@ -9262,6 +9360,15 @@ msgstr "{0}이(가) 머지함"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "머지했지만 PR 상태를 새로 고치지 못했습니다 — 잠시 후 다시 시도하세요"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "병합했지만 요청 상태를 새로 고치지 못했습니다"
+
+msgid "Merging merge request"
+msgstr "병합 요청 병합 중"
+
+msgid "Merging merge request..."
+msgstr "병합 요청 병합 중..."
 
 msgid "Merging PR..."
 msgstr "PR을 머지하는 중..."
@@ -9310,6 +9417,9 @@ msgstr "최소화"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub 이슈 최소화"
+
+msgid "Minimize GitLab issues"
+msgstr "GitLab 이슈 최소화"
 
 msgid "Minimum contrast"
 msgstr "최소 대비"
@@ -9465,6 +9575,16 @@ msgstr "그룹으로 이동"
 
 msgid "Move to Tab"
 msgstr "탭으로 이동"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "아직 댓글이 없습니다. 댓글 모드를 켜고 페이지의 아�
 
 msgid "No commits on this branch yet."
 msgstr "이 브랜치에는 아직 커밋이 없습니다."
+
+msgid "No commits to open a merge request from"
+msgstr "병합 요청을 열 커밋이 없습니다"
 
 msgid "No commits to open a pull request from"
 msgstr "풀 리퀘스트를 만들 커밋이 없습니다"
@@ -10772,6 +10895,9 @@ msgstr "명령 팔레트 열기"
 msgid "Open comment on GitHub"
 msgstr "GitHub에서 코멘트 열기"
 
+msgid "Open comment on GitLab"
+msgstr "GitLab에서 댓글 열기"
+
 msgid "Open details"
 msgstr "세부 정보 열기"
 
@@ -10893,6 +11019,9 @@ msgstr "Finder에서 열기"
 msgid "Open in GitHub"
 msgstr "GitHub에서 열기"
 
+msgid "Open in GitLab"
+msgstr "GitLab에서 열기"
+
 msgid "Open in Linear"
 msgstr "Linear에서 열기"
 
@@ -10933,6 +11062,9 @@ msgstr "브라우저에서 이슈 #{0} 열기"
 msgid "Open issue in GitHub"
 msgstr "GitHub에서 이슈 열기"
 
+msgid "Open issue in GitLab"
+msgstr "GitLab에서 이슈 열기"
+
 msgid "Open issues"
 msgstr "열린 이슈"
 
@@ -10957,6 +11089,21 @@ msgstr "외부 브라우저에서 localhost:{0} 열기"
 
 msgid "Open menu"
 msgstr "메뉴 열기"
+
+msgid "Open merge request"
+msgstr "병합 요청 열기"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "병합 요청 !{0} 열기"
+
+msgid "Open merge request options"
+msgstr "병합 요청 옵션 열기"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "MR !{0} 열기"
 
 msgid "Open navigation"
 msgstr "내비게이션 열기"
@@ -12427,6 +12574,9 @@ msgstr "새로 고침"
 msgid "Refresh GitHub issues"
 msgstr "GitHub 이슈 새로 고침"
 
+msgid "Refresh GitLab issues"
+msgstr "GitLab 이슈 새로 고침"
+
 msgid "Refresh metrics"
 msgstr "지표 새로 고침"
 
@@ -12688,6 +12838,9 @@ msgstr "다시 열기"
 
 msgid "Reopen Closed Tab"
 msgstr "닫은 탭 다시 열기"
+
+msgid "Reopen merge request"
+msgstr "병합 요청 다시 열기"
 
 msgid "Reopen PR"
 msgstr "PR 다시 열기"
@@ -13085,6 +13238,9 @@ msgstr "리뷰 무시됨"
 msgid "Review each failure before deciding whether to continue."
 msgstr "계속할지 결정하기 전에 각 실패를 확인하세요."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "리뷰 필터는 GitHub 프로젝트에서만 사용할 수 있습니다."
+
 msgid "Review message"
 msgstr "리뷰 메시지"
 
@@ -13105,6 +13261,9 @@ msgstr "리뷰 요청됨"
 
 msgid "Review required"
 msgstr "리뷰 필요"
+
+msgid "Review status unavailable"
+msgstr "리뷰 상태를 확인할 수 없음"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "구문 강조된 diff 리뷰"
@@ -13530,6 +13689,12 @@ msgstr "GitHub 이슈 검색"
 msgid "Search GitHub issues…"
 msgstr "GitHub 이슈 검색…"
 
+msgid "Search GitLab issues"
+msgstr "GitLab 이슈 검색"
+
+msgid "Search GitLab issues…"
+msgstr "GitLab 이슈 검색…"
+
 msgid "Search history"
 msgstr "기록 검색"
 
@@ -13698,6 +13863,9 @@ msgstr "프로젝트를 먼저 선택하세요"
 msgid "Select a project to see GitHub issues."
 msgstr "GitHub 이슈를 보려면 프로젝트를 선택하세요."
 
+msgid "Select a project to see GitLab issues."
+msgstr "GitLab 이슈를 보려면 프로젝트를 선택하세요."
+
 msgid "Select a project to see pull requests."
 msgstr "풀 리퀘스트를 보려면 프로젝트를 선택하세요."
 
@@ -13814,6 +13982,9 @@ msgstr "팀 선택"
 
 msgid "Select terminal script directory"
 msgstr "터미널 스크립트 디렉터리 선택"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "워크스페이스에서 실행하려면 이 이슈의 프로젝트를 선택하세요."
 
 msgid "Select worktree location"
 msgstr "worktree 위치 선택"
@@ -14500,9 +14671,8 @@ msgstr "일부 파일이 최대 크기를 초과해 추가되지 않았습니다
 msgid "Some models were priced with a fallback rate"
 msgstr "일부 모델은 대체 단가로 계산했습니다"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "일부 리포지토리를 불러오지 못했습니다: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "일부 저장소를 불러오지 못했습니다: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "일부 세션을 종료하지 못했습니다"
@@ -15757,6 +15927,9 @@ msgstr "로컬 호스트 서비스가 방금 올라왔습니다. 지금 다시 �
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "머지된 에이전트 PR의 대부분이 사람의 수정 없이 리뷰만으로 끝납니다."
 
+msgid "The merge request is unavailable."
+msgstr "병합 요청을 사용할 수 없습니다."
+
 msgid "The name of your organization or team"
 msgstr "조직 또는 팀의 이름"
 
@@ -15827,6 +16000,12 @@ msgstr "이 기기가 Superset 릴레이에 연결되어 있지 않아 실행을
 
 msgid "The scorecard"
 msgstr "성적표"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "선택한 호스트가 GitLab을 지원하지 않습니다. 호스트 서비스를 업데이트하세요."
+
+msgid "The selected host is unavailable."
+msgstr "선택한 호스트를 사용할 수 없습니다."
 
 msgid "The self-driving software factory"
 msgstr "자율 주행 소프트웨어 공장"
@@ -16045,6 +16224,9 @@ msgstr "평소보다 오래 걸리고 있습니다. 세션이 이미 준비되�
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "평소보다 오래 걸리고 있습니다. 워크스페이스가 이미 준비되었을 수 있으니 다시 로드하면 반영될 수 있습니다."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "이 이슈는 선택한 제공자에 속하지 않습니다."
+
 msgid "This issue link is invalid."
 msgstr "이 이슈 링크가 올바르지 않습니다."
 
@@ -16111,6 +16293,12 @@ msgstr "이 프로필은 지금 이용자가 많습니다"
 msgid "This project is no longer available on your devices."
 msgstr "이 프로젝트는 더 이상 내 기기에서 사용할 수 없습니다."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "이 프로젝트는 GitLab 저장소에 연결되어 있지 않습니다."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "이 프로젝트는 GitHub 저장소에 연결되어 있지 않습니다."
+
 msgid "This project's host is offline"
 msgstr "이 프로젝트의 호스트가 오프라인입니다"
 
@@ -16137,6 +16325,9 @@ msgstr "레이블, 명령, 인수, 프롬프트 및 재개 설정, 환경 변수
 
 msgid "This repository does not allow merging from here."
 msgstr "이 리포지토리는 여기에서 머지하는 것을 허용하지 않습니다."
+
+msgid "This request does not match the selected project."
+msgstr "이 요청은 선택한 프로젝트와 일치하지 않습니다."
 
 msgid "This screen doesn't exist"
 msgstr "이 화면은 존재하지 않습니다"

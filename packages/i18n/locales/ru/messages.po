@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "приветствие"
+
 msgid " and "
 msgstr " и "
 
@@ -41,6 +45,10 @@ msgstr "· обновлено {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "«{0}» удалена"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "«{0}» будет закрыт в GitLab. Вы сможете снова открыть его здесь."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Diff обрезан — ещё # строка на хо
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {Не удалось закрыть # порт} few {Не удалось закрыть # порта} many {Не удалось закрыть # портов} other {Не удалось закрыть # порта}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {задача GitLab} few {задачи GitLab} many {задач GitLab} other {задачи GitLab}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {Импортирована # рабочая область} few {Импортировано # рабочие области} many {Импортировано # рабочих областей} other {Импортировано # рабочей области}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {Импортирована # рабочая облас�
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Переместить # выбранную рабочую область в группу} few {Переместить # выбранные рабочие области в группу} many {Переместить # выбранных рабочих областей в группу} other {Переместить # выбранных рабочих областей в группу}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {пул-реквест} few {пул-реквеста} many {пул-реквестов} other {пул-реквеста}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {Проверка пройдена} few {Все # п
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {задача GitHub} few {задачи GitHub} many {задач GitHub} other {задачи GitHub}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {пул-реквест} few {пул-реквеста} many {пул-реквестов} other {пул-реквеста}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {Импортирована # своя тема} few {Импортировано # свои темы} many {Импортировано # своих тем} other {Импортировано # своей темы}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Добавьте скрипт запуска в настройках п�
 
 msgid "Add a project to see GitHub issues."
 msgstr "Добавьте проект, чтобы видеть задачи GitHub."
+
+msgid "Add a project to see GitLab issues."
+msgstr "Добавьте проект, чтобы видеть задачи GitLab."
 
 msgid "Add a project to see pull requests."
 msgstr "Добавьте проект, чтобы видеть пул-реквесты."
@@ -2609,6 +2625,9 @@ msgstr "Вернуться к текущей"
 msgid "Back to GitHub issues"
 msgstr "К задачам GitHub"
 
+msgid "Back to GitLab issues"
+msgstr "К задачам GitLab"
+
 msgid "Back to Home"
 msgstr "На главную"
 
@@ -2668,6 +2687,10 @@ msgstr "Базовая папка для новых worktree на {selectedHostN
 
 msgid "Base URL"
 msgstr "Базовый URL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "на основе MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Выберите папку"
 msgid "Choose a parent directory"
 msgstr "Выберите родительскую папку"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Выберите проект в разделе задач GitHub, прежде чем открывать задачу."
+msgid "Choose a project before opening an issue."
+msgstr "Выберите проект, прежде чем открывать задачу."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Выберите проект в разделе «Пул-реквесты», прежде чем открывать пул-реквест."
@@ -3465,6 +3488,9 @@ msgstr "Нажмите, чтобы скопировать"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Нажмите, чтобы скопировать ID сессии (возобновление: `claude --resume <id>`)."
 
+msgid "Click to open merge request"
+msgstr "Нажмите, чтобы открыть мерж-реквест"
+
 msgid "Click to open on GitHub"
 msgstr "Нажмите, чтобы открыть на GitHub"
 
@@ -3510,6 +3536,10 @@ msgstr "Клонирование…"
 
 msgid "Close"
 msgstr "Закрыть"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "Закрыть !{0}?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Закрыть панель поиска"
 
 msgid "Close menu"
 msgstr "Закрыть меню"
+
+msgid "Close merge request"
+msgstr "Закрыть мерж-реквест"
 
 msgid "Close modal"
 msgstr "Закрыть окно"
@@ -4321,6 +4354,9 @@ msgstr "Скопировать ссылку"
 msgid "Copy Link Address"
 msgstr "Скопировать адрес ссылки"
 
+msgid "Copy link to merge request"
+msgstr "Скопировать ссылку на мерж-реквест"
+
 msgid "Copy link to pull request"
 msgstr "Скопировать ссылку на пул-реквест"
 
@@ -4674,6 +4710,12 @@ msgstr "Не удалось загрузить комментарии ревью
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Не удалось загрузить профиль, поэтому редактирование отключено."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Не удалось пометить мерж-реквест как готовый"
+
+msgid "Couldn't merge merge request"
+msgstr "Не удалось объединить мерж-реквест"
+
 msgid "Couldn't merge pull request"
 msgstr "Не удалось объединить пул-реквест"
 
@@ -4769,6 +4811,9 @@ msgstr "Не удалось снять индексацию"
 msgid "Couldn't unstage file"
 msgstr "Не удалось снять индексацию с файла"
 
+msgid "Couldn't update merge request"
+msgstr "Не удалось обновить мерж-реквест"
+
 msgid "Couldn't update pull request"
 msgstr "Не удалось обновить пул-реквест"
 
@@ -4840,6 +4885,16 @@ msgstr "Создать коммит слияния"
 
 msgid "Create Merge Commit"
 msgstr "Создать коммит слияния"
+
+msgid "Create merge request"
+msgstr "Создать мерж-реквест"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "Не удалось создать MR: {0}"
+
+msgid "Create MR"
+msgstr "Создать MR"
 
 msgid "Create new group"
 msgstr "Создать новую группу"
@@ -4968,6 +5023,9 @@ msgstr "создаётся"
 
 msgid "Creating"
 msgstr "Создание"
+
+msgid "Creating merge request..."
+msgstr "Создание MR…"
 
 msgid "Creating PR..."
 msgstr "Создание PR…"
@@ -7428,6 +7486,12 @@ msgstr "Имя пользователя GitHub..."
 msgid "GitHub username…"
 msgstr "Имя пользователя GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "Задачи GitLab"
+
 msgid "Give me an example"
 msgstr "Приведи пример"
 
@@ -8885,6 +8949,9 @@ msgstr "Загрузка задач…"
 msgid "Loading members..."
 msgstr "Загрузка участников..."
 
+msgid "Loading merge request…"
+msgstr "Загрузка мерж-реквеста…"
+
 msgid "Loading more..."
 msgstr "Загружаем ещё..."
 
@@ -9112,6 +9179,9 @@ msgstr "Отметить как непрочитанное"
 msgid "Mark as viewed"
 msgstr "Отметить как просмотренный"
 
+msgid "Mark ready"
+msgstr "Отметить как готовый"
+
 msgid "Mark Ready"
 msgstr "Отметить готовым"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Объединить"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "Объединить !{0}?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "Объединить #{0}?"
 
@@ -9244,11 +9318,35 @@ msgstr "Коммит слияния"
 msgid "Merge failed: {0}"
 msgstr "Не удалось объединить: {0}"
 
+msgid "Merge merge request"
+msgstr "Объединить мерж-реквест"
+
 msgid "Merge pull request"
 msgstr "Объединить пул-реквест"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Объединяйте пул-реквесты не выходя из Superset, плюс порция исправлений и полировки чата."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "MR !{0} создан"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Мерж-реквест !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "MR объединён"
+
+msgid "Merge request ready for review"
+msgstr "MR готов к ревью"
+
+msgid "Merge request title"
+msgstr "Заголовок мерж-реквеста"
+
+msgid "Merge request URL"
+msgstr "URL MR"
 
 msgid "Merge when checks pass"
 msgstr "Объединить, когда проверки пройдут"
@@ -9262,6 +9360,15 @@ msgstr "Объединил {0}"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Объединено, но не удалось обновить состояние PR — повторите через мгновение"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Объединено, но не удалось обновить состояние запроса"
+
+msgid "Merging merge request"
+msgstr "Объединение мерж-реквеста"
+
+msgid "Merging merge request..."
+msgstr "Объединение мерж-реквеста..."
 
 msgid "Merging PR..."
 msgstr "Объединение PR..."
@@ -9310,6 +9417,9 @@ msgstr "Свернуть"
 
 msgid "Minimize GitHub issues"
 msgstr "Свернуть задачи GitHub"
+
+msgid "Minimize GitLab issues"
+msgstr "Свернуть задачи GitLab"
 
 msgid "Minimum contrast"
 msgstr "Минимальный контраст"
@@ -9465,6 +9575,16 @@ msgstr "Переместить в группу"
 
 msgid "Move to Tab"
 msgstr "Переместить во вкладку"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Комментариев пока нет. Включите режим к
 
 msgid "No commits on this branch yet."
 msgstr "В этой ветке пока нет коммитов."
+
+msgid "No commits to open a merge request from"
+msgstr "Нет коммитов, из которых можно открыть мерж-реквест"
 
 msgid "No commits to open a pull request from"
 msgstr "Нет коммитов, из которых можно открыть пул-реквест"
@@ -10772,6 +10895,9 @@ msgstr "Открыть палитру команд"
 msgid "Open comment on GitHub"
 msgstr "Открыть комментарий на GitHub"
 
+msgid "Open comment on GitLab"
+msgstr "Открыть комментарий на GitLab"
+
 msgid "Open details"
 msgstr "Открыть подробности"
 
@@ -10893,6 +11019,9 @@ msgstr "Открыть в Finder"
 msgid "Open in GitHub"
 msgstr "Открыть в GitHub"
 
+msgid "Open in GitLab"
+msgstr "Открыть в GitLab"
+
 msgid "Open in Linear"
 msgstr "Открыть в Linear"
 
@@ -10933,6 +11062,9 @@ msgstr "Открыть задачу #{0} в браузере"
 msgid "Open issue in GitHub"
 msgstr "Открыть задачу на GitHub"
 
+msgid "Open issue in GitLab"
+msgstr "Открыть задачу на GitLab"
+
 msgid "Open issues"
 msgstr "Открытые задачи"
 
@@ -10957,6 +11089,21 @@ msgstr "Открыть localhost:{0} во внешнем браузере"
 
 msgid "Open menu"
 msgstr "Открыть меню"
+
+msgid "Open merge request"
+msgstr "Открыть мерж-реквест"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "Открыть мерж-реквест !{0}"
+
+msgid "Open merge request options"
+msgstr "Открыть параметры мерж-реквеста"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "Открыть MR !{0}"
 
 msgid "Open navigation"
 msgstr "Открыть навигацию"
@@ -12427,6 +12574,9 @@ msgstr "Обновить"
 msgid "Refresh GitHub issues"
 msgstr "Обновить задачи GitHub"
 
+msgid "Refresh GitLab issues"
+msgstr "Обновить задачи GitLab"
+
 msgid "Refresh metrics"
 msgstr "Обновить метрики"
 
@@ -12688,6 +12838,9 @@ msgstr "Открыть снова"
 
 msgid "Reopen Closed Tab"
 msgstr "Открыть заново закрытую вкладку"
+
+msgid "Reopen merge request"
+msgstr "Повторно открыть мерж-реквест"
 
 msgid "Reopen PR"
 msgstr "Открыть PR заново"
@@ -13085,6 +13238,9 @@ msgstr "Ревью отклонено"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Просмотрите каждую ошибку, прежде чем решать, продолжать ли."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "Фильтры по ревью доступны только для проектов GitHub."
+
 msgid "Review message"
 msgstr "Сообщение ревью"
 
@@ -13105,6 +13261,9 @@ msgstr "Запрошено ревью"
 
 msgid "Review required"
 msgstr "Требуется ревью"
+
+msgid "Review status unavailable"
+msgstr "Статус ревью недоступен"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Проверяйте diff с подсветкой синтаксиса"
@@ -13530,6 +13689,12 @@ msgstr "Поиск задач GitHub"
 msgid "Search GitHub issues…"
 msgstr "Поиск задач GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Поиск задач GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Поиск задач GitLab…"
+
 msgid "Search history"
 msgstr "Поиск по истории"
 
@@ -13698,6 +13863,9 @@ msgstr "Сначала выберите проект"
 msgid "Select a project to see GitHub issues."
 msgstr "Выберите проект, чтобы видеть задачи GitHub."
 
+msgid "Select a project to see GitLab issues."
+msgstr "Выберите проект, чтобы видеть задачи GitLab."
+
 msgid "Select a project to see pull requests."
 msgstr "Выберите проект, чтобы видеть пул-реквесты."
 
@@ -13814,6 +13982,9 @@ msgstr "Выбрать команды"
 
 msgid "Select terminal script directory"
 msgstr "Выберите папку скрипта терминала"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Выберите проект задачи, чтобы запустить её в рабочей области."
 
 msgid "Select worktree location"
 msgstr "Выберите расположение worktree"
@@ -14500,9 +14671,8 @@ msgstr "Некоторые файлы превышают максимальны�
 msgid "Some models were priced with a fallback rate"
 msgstr "Для части моделей использована резервная ставка тарификации"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Некоторые репозитории не удалось загрузить: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Некоторые репозитории не удалось загрузить: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Некоторые сессии завершить не удалось"
@@ -15757,6 +15927,9 @@ msgstr "Локальная служба хоста только что подн�
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Большинству объединённых агентских PR нужно только ревью, без правок человека."
 
+msgid "The merge request is unavailable."
+msgstr "Мерж-реквест недоступен."
+
 msgid "The name of your organization or team"
 msgstr "Название организации или команды"
 
@@ -15827,6 +16000,12 @@ msgstr "Запуск пропущен: это устройство не подк
 
 msgid "The scorecard"
 msgstr "Таблица оценок"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "Выбранный хост не поддерживает GitLab. Обновите его host-service."
+
+msgid "The selected host is unavailable."
+msgstr "Выбранный хост недоступен."
 
 msgid "The self-driving software factory"
 msgstr "Самоуправляемая софтверная фабрика"
@@ -16045,6 +16224,9 @@ msgstr "Это занимает больше времени, чем обычно
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Это занимает больше времени, чем обычно. Возможно, рабочая область уже готова — перезагрузка может её подхватить."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Эта задача не относится к выбранному провайдеру."
+
 msgid "This issue link is invalid."
 msgstr "Эта ссылка на задачу недействительна."
 
@@ -16111,6 +16293,12 @@ msgstr "Этот профиль сейчас перегружен"
 msgid "This project is no longer available on your devices."
 msgstr "Этот проект больше недоступен на ваших устройствах."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Этот проект не связан с репозиторием GitLab."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Этот проект не связан с репозиторием GitHub."
+
 msgid "This project's host is offline"
 msgstr "Хост этого проекта офлайн"
 
@@ -16137,6 +16325,9 @@ msgstr "Это заменит его название, команду, аргу�
 
 msgid "This repository does not allow merging from here."
 msgstr "Этот репозиторий не разрешает слияние отсюда."
+
+msgid "This request does not match the selected project."
+msgstr "Этот запрос не соответствует выбранному проекту."
 
 msgid "This screen doesn't exist"
 msgstr "Такого экрана нет"

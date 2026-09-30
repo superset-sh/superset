@@ -6,6 +6,9 @@ import { protectedProcedure } from "../../../index";
 const getLinkedWorkspaceInputSchema = z.object({
 	projectId: z.string(),
 	prNumber: z.number().int().positive(),
+	provider: z.enum(["github", "gitlab"]).optional(),
+	instance: z.string().optional(),
+	repoPath: z.string().optional(),
 });
 
 /**
@@ -24,6 +27,8 @@ export const getLinkedWorkspace = protectedProcedure
 			.where(
 				and(
 					eq(pullRequests.projectId, input.projectId),
+					eq(pullRequests.repoProvider, input.provider ?? "github"),
+					eq(pullRequests.repoInstance, input.instance ?? "https://github.com"),
 					eq(pullRequests.prNumber, input.prNumber),
 				),
 			)

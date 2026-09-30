@@ -22,6 +22,11 @@ export function toProjectSnapshot(
 		// backfill sweep fills it; the folder name is the honest fallback.
 		name: row.name || basename(row.repoPath) || row.id,
 		repoPath: row.repoPath,
+		provider:
+			row.repoProvider === "github" || row.repoProvider === "gitlab"
+				? row.repoProvider
+				: null,
+		instance: row.repoInstance,
 		repoOwner: row.repoOwner,
 		repoName: row.repoName,
 		repoUrl: row.repoUrl,

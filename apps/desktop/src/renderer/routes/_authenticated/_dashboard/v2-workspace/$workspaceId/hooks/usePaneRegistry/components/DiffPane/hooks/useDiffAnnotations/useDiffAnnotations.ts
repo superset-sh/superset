@@ -2,6 +2,7 @@ import type { SelectionSide } from "@pierre/diffs";
 import type { DiffLineAnnotation } from "@pierre/diffs/react";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { useSettings } from "renderer/stores/settings";
 
 export type DeferredDiffReason = "deferred" | "loading" | "error";
@@ -64,7 +65,7 @@ export function useDiffAnnotationsByPath({
 > {
 	const showDiffComments = useSettings((s) => s.showDiffComments);
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: !!workspaceId && showDiffComments,
 			refetchInterval: 10_000,
@@ -74,7 +75,7 @@ export function useDiffAnnotationsByPath({
 	);
 	const hasPR = prQuery.isSuccess && prQuery.data != null;
 	const threadsQuery = workspaceTrpc.git.getPullRequestThreads.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: !!workspaceId && hasPR && showDiffComments,
 			refetchInterval: 30_000,
@@ -83,6 +84,7 @@ export function useDiffAnnotationsByPath({
 	);
 
 	const prUrl = prQuery.data?.url ?? undefined;
+	const prProvider = prUrl ? pullRequestRefFromUrl(prUrl)?.provider : undefined;
 
 	return useMemo(() => {
 		// Gate on hasPR too — tanstack-query holds last data when the threads
@@ -108,7 +110,7 @@ export function useDiffAnnotationsByPath({
 			// "Open on GitHub" at the PR is misleading when there's no anchor.
 			const url =
 				prUrl && firstDbId != null
-					? `${prUrl}#discussion_r${firstDbId}`
+					? `${prUrl}#${prProvider === "gitlab" ? "note_" : "discussion_r"}${firstDbId}`
 					: undefined;
 
 			const annotations = annotationsByPath.get(thread.path) ?? [];
@@ -138,5 +140,5 @@ export function useDiffAnnotationsByPath({
 		}
 
 		return annotationsByPath;
-	}, [showDiffComments, hasPR, threadsQuery.data, prUrl]);
+	}, [showDiffComments, hasPR, threadsQuery.data, prUrl, prProvider]);
 }

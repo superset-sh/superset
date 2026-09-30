@@ -21,7 +21,9 @@ import {
 	VscLoading,
 	VscRepoPush,
 } from "react-icons/vsc";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
@@ -57,7 +59,11 @@ export function ShipControl({
 }: ShipControlProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { workspace } = useWorkspace();
+	const { workspace, hostUrl } = useWorkspace();
+	const { projects } = useHostProjects();
+	const isGitLab =
+		projects.find((project) => project.id === workspace.projectId)?.provider ===
+		"gitlab";
 	const status = useWorkspaceGitStatus();
 	const canCreatePr = workspace.type !== "session";
 
@@ -203,6 +209,14 @@ export function ShipControl({
 	const handleCreatePr = async () => {
 		const title = prTitle.trim();
 		if (!title || !hasCommitsAhead) return;
+		if (isGitLab) {
+			try {
+				await assertGitLabHostSupport(hostUrl);
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : String(error));
+				return;
+			}
+		}
 		const toastId = toast.loading(t({ message: "Pushing..." }));
 		// Always push first rather than trusting `needsPush`: the sync
 		// snapshot can be up to 10s stale right after a commit, and skipping
@@ -220,9 +234,9 @@ export function ShipControl({
 			return;
 		}
 		toast.loading(
-			t({
-				message: "Creating PR...",
-			}),
+			isGitLab
+				? t({ message: "Creating merge request..." })
+				: t({ message: "Creating PR..." }),
 			{ id: toastId },
 		);
 		try {
@@ -232,10 +246,12 @@ export function ShipControl({
 				body: prBody.trim() || undefined,
 				draft: prDraft,
 			});
+			const createdIsGitLab =
+				pullRequestRefFromUrl(created.url)?.provider === "gitlab";
 			toast.success(
-				t({
-					message: `PR #${created.number} created`,
-				}),
+				createdIsGitLab
+					? t({ message: `Merge request !${created.number} created` })
+					: t({ message: `PR #${created.number} created` }),
 				{
 					id: toastId,
 					description: (
@@ -245,9 +261,9 @@ export function ShipControl({
 							rel="noopener noreferrer"
 							className="underline underline-offset-2 transition-colors hover:text-foreground"
 						>
-							{t({
-								message: "PR URL",
-							})}
+							{createdIsGitLab
+								? t({ message: "Merge request URL" })
+								: t({ message: "PR URL" })}
 						</a>
 					),
 					action: {
@@ -280,9 +296,13 @@ export function ShipControl({
 			onRefresh();
 		} catch (error) {
 			toast.error(
-				t({
-					message: `Create PR failed: ${error instanceof Error ? error.message : String(error)}`,
-				}),
+				isGitLab
+					? t({
+							message: `Create merge request failed: ${error instanceof Error ? error.message : String(error)}`,
+						})
+					: t({
+							message: `Create PR failed: ${error instanceof Error ? error.message : String(error)}`,
+						}),
 				{ id: toastId },
 			);
 		}
@@ -291,9 +311,9 @@ export function ShipControl({
 	const showCreatePr = !needsCommit && canCreatePr;
 	if (!needsCommit && !showCreatePr && !needsPush) return null;
 
-	const noCommitsTooltip = t({
-		message: "No commits to open a pull request from",
-	});
+	const noCommitsTooltip = isGitLab
+		? t({ message: "No commits to open a merge request from" })
+		: t({ message: "No commits to open a pull request from" });
 
 	// enabled: on the hover so a disabled button stays hoverable (pointer
 	// events are kept alive for the native title tooltip) without lighting up.
@@ -385,7 +405,11 @@ export function ShipControl({
 										}}
 									>
 										<VscGitPullRequestCreate className="size-3.5" />
-										<Trans>Create PR</Trans>
+										{isGitLab ? (
+											<Trans>Create MR</Trans>
+										) : (
+											<Trans>Create PR</Trans>
+										)}
 									</DropdownMenuItem>
 								)}
 							</DropdownMenuContent>
@@ -418,7 +442,11 @@ export function ShipControl({
 									) : (
 										<VscGitPullRequestCreate className="size-3.5" />
 									)}
-									<Trans>Create PR</Trans>
+									{isGitLab ? (
+										<Trans>Create MR</Trans>
+									) : (
+										<Trans>Create PR</Trans>
+									)}
 								</button>
 							) : (
 								<button
@@ -500,9 +528,11 @@ export function ShipControl({
 								prTitleTouchedRef.current = true;
 								setPrTitle(e.target.value);
 							}}
-							placeholder={t({
-								message: "Pull request title",
-							})}
+							placeholder={
+								isGitLab
+									? t({ message: "Merge request title" })
+									: t({ message: "Pull request title" })
+							}
 							className="h-8 text-xs"
 						/>
 						<Textarea
@@ -528,7 +558,11 @@ export function ShipControl({
 								className="flex h-7 items-center justify-center gap-1.5 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
 							>
 								{isShipping && <VscLoading className="size-3.5 animate-spin" />}
-								<Trans>Create pull request</Trans>
+								{isGitLab ? (
+									<Trans>Create merge request</Trans>
+								) : (
+									<Trans>Create pull request</Trans>
+								)}
 							</button>
 						</div>
 					</div>

@@ -13,8 +13,21 @@ A source toggle at the top of the view switches between:
 
 - **Linear** - issues synced from your connected workspace (see [Linear Integration](/use-with-linear)), listed alongside Superset-native tasks you create in the app
 - **GitHub issues** - open issues from your projects' repositories, with a repository filter and per-row **Add to workspace** buttons
+- **GitLab issues** - live issues from your GitLab projects, including projects in nested groups and configured self-managed instances
 
 The Linear source lists issues from the whole connected workspace; filter by project, status, or assignee to narrow it to yours.
+
+GitHub and GitLab issues are read from the repositories on the host that owns each checkout. In either source, select projects, search by text or issue number, filter open or closed issues, and open an issue to read its details and follow its link. A GitLab issue URL can also be used to find an issue in the selected project. Issue editing and bidirectional sync are not available in these live sources.
+
+### GitLab Setup
+
+Install the [GitLab CLI](https://gitlab.com/gitlab-org/cli) (`glab`) and sign in on **each machine that hosts a GitLab checkout**, including connected remote hosts:
+
+```bash
+glab auth login --hostname gitlab.com
+```
+
+For a self-managed instance, use its hostname instead. The project needs a Git remote for that GitLab instance. If its SSH clone hostname differs from the API hostname, configure `GITLAB_HOST` and `GITLAB_SSH_HOST` in the host's shell so the checkout maps to the correct instance. The CLI login grants API access to issues; cloning and pushing still use that host's Git or SSH credentials.
 
 ## What You Can Do
 
@@ -36,5 +49,6 @@ Launch an agent from a task and the task's content becomes the agent's prompt:
 - The **Auto-run command** toggle controls whether each agent starts immediately or stages the command for review
 - The **Task Prompt Template** (per agent, under **Settings → Agents**) controls how a task is turned into the agent's prompt
 - On the GitHub issues source, **Add to workspace** does the same for a single issue
+- On the GitLab issues source, **Add to workspace** includes the issue title, link, and description in the agent prompt. A batch must contain issues from one repository
 
 After creating a PR, review and merge it from [Pull Requests](/pull-requests).

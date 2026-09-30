@@ -3,13 +3,18 @@ import { create } from "zustand";
 export type LinkedIssue = {
 	slug: string;
 	title: string;
-	source?: "github" | "internal";
+	source?: "github" | "gitlab" | "internal";
 	url?: string;
 	taskId?: string;
 	/** Provider branch name (e.g. Linear's), synced into `tasks.branch`. */
 	branch?: string;
 	number?: number;
 	state?: "open" | "closed";
+	projectId?: string;
+	hostId?: string;
+	instance?: string;
+	repoPath?: string;
+	body?: string;
 };
 
 export type LinkedPR = {
@@ -17,6 +22,10 @@ export type LinkedPR = {
 	title: string;
 	url: string;
 	state: string;
+	provider?: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
+	headSha?: string | null;
 };
 
 export type BaseBranchSource = "local" | "remote-tracking";

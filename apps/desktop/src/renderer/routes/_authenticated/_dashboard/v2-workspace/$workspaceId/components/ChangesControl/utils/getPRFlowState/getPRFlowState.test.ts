@@ -22,6 +22,10 @@ const sync = (overrides: Partial<BranchSyncStatus> = {}): BranchSyncStatus => ({
 });
 
 const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
+	provider: "github",
+	instance: "https://github.com",
+	repoPath: "org/repo",
+	headSha: "a".repeat(40),
 	number: 42,
 	url: "https://github.com/org/repo/pull/42",
 	title: "Feature X",

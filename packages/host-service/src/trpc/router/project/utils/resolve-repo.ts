@@ -5,11 +5,24 @@ import { existsSync, mkdirSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
+import {
+	type ParseRepositoryRemoteOptions,
+	parseRepositoryRemote,
+	type RepositoryIdentity,
+	repositoryIdentityKey,
+} from "@superset/shared/source-control";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import {
+	configuredGitLabOrigins,
+	configuredGitLabSshHosts,
+} from "../../../../source-control/gitlab/exec-glab";
+import type { GitLabClient } from "../../../../source-control/gitlab/gitlab";
+import { getToolEnvironment } from "../../../../terminal/clean-shell-env";
+import {
 	findMatchingRemote,
+	getAllRemoteUrls,
 	getGitHubRemotes,
 	type ParsedGitHubRemote,
 } from "./git-remote";
@@ -26,7 +39,7 @@ async function cloneEnv(
 export interface ResolvedRepo {
 	repoPath: string;
 	remoteName: string | null;
-	parsed: ParsedGitHubRemote | null;
+	parsed: ParsedGitHubRemote | RepositoryIdentity | null;
 }
 
 export interface ResolvedGitHubRepo extends ResolvedRepo {
@@ -205,20 +218,73 @@ async function revParseGitRoot(path: string): Promise<string> {
  * root plus its primary GitHub remote when one exists. Local-only repos are
  * valid v2 projects; they simply have no cloud clone URL or GitHub metadata.
  */
+function candidateInstance(remoteUrl: string): string | null {
+	const scp = remoteUrl.includes("://")
+		? null
+		: /^(?:[^@\s/:]+@)?(?<host>[^\s/:]+):[^\s]+$/.exec(remoteUrl.trim());
+	if (scp?.groups?.host) return `https://${scp.groups.host}`;
+	try {
+		const url = new URL(remoteUrl);
+		return url.protocol === "ssh:" ? `https://${url.host}` : url.origin;
+	} catch {
+		return null;
+	}
+}
+
+async function identifyRemote(
+	remoteUrl: string,
+	gitlab?: GitLabClient,
+	options: ParseRepositoryRemoteOptions = {},
+): Promise<ParsedGitHubRemote | RepositoryIdentity | null> {
+	const github = parseGitHubRemote(remoteUrl);
+	if (github) return github;
+	const known = parseRepositoryRemote(remoteUrl, options);
+	if (known?.provider === "gitlab" && gitlab) {
+		try {
+			const project = await gitlab.getProject(known);
+			return { ...known, projectId: project.id };
+		} catch {
+			return known;
+		}
+	}
+	if (!gitlab) return null;
+	const candidateOrigin = candidateInstance(remoteUrl);
+	if (!candidateOrigin) return null;
+	const candidate = parseRepositoryRemote(remoteUrl, {
+		...options,
+		gitlabHosts: [...(options.gitlabHosts ?? []), candidateOrigin],
+	});
+	if (candidate?.provider !== "gitlab") return null;
+	try {
+		const project = await gitlab.getProject(candidate);
+		return { ...candidate, projectId: project.id };
+	} catch {
+		return null;
+	}
+}
+
 export async function resolveLocalRepo(
 	repoPath: string,
+	gitlab?: GitLabClient,
 ): Promise<ResolvedRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
-	const originParsed = remotes.get("origin");
-	if (originParsed) {
-		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
+	const remotes = await getAllRemoteUrls(createUserSimpleGit(gitRoot));
+	const toolEnvironment = gitlab ? await getToolEnvironment() : null;
+	const remoteOptions: ParseRepositoryRemoteOptions = toolEnvironment
+		? {
+				gitlabHosts: configuredGitLabOrigins(toolEnvironment),
+				gitlabSshHosts: configuredGitLabSshHosts(toolEnvironment),
+			}
+		: {};
+	const names = [...new Set(["origin", ...remotes.keys()])];
+	for (const name of names) {
+		const remoteUrl = remotes.get(name);
+		if (!remoteUrl) continue;
+		const parsed = await identifyRemote(remoteUrl, gitlab, remoteOptions);
+		if (parsed) return { repoPath: gitRoot, remoteName: name, parsed };
 	}
-	const first = remotes.entries().next().value;
-	if (!first) return { repoPath: gitRoot, remoteName: null, parsed: null };
-	const [firstName, firstParsed] = first;
-	return { repoPath: gitRoot, remoteName: firstName, parsed: firstParsed };
+	return { repoPath: gitRoot, remoteName: null, parsed: null };
 }
 
 /**
@@ -413,11 +479,13 @@ export async function cloneRepoInto(
 	repoCloneUrl: string,
 	parentDir: string,
 	credentials?: GitCredentialProvider,
+	gitlab?: GitLabClient,
 ): Promise<ResolvedRepo> {
-	const parsedUrl = parseGitHubRemote(repoCloneUrl);
-	const expectedSlug = parsedUrl
-		? `${parsedUrl.owner}/${parsedUrl.name}`
-		: null;
+	const parsedUrl = await identifyRemote(repoCloneUrl, gitlab);
+	const expectedSlug =
+		parsedUrl?.provider === "github"
+			? `${parsedUrl.owner}/${parsedUrl.name}`
+			: null;
 	const repoName = parsedUrl?.name ?? deriveCloneDirectoryName(repoCloneUrl);
 
 	const resolvedParentDir = resolvePath(parentDir);
@@ -444,7 +512,21 @@ export async function cloneRepoInto(
 		if (expectedSlug) {
 			return await resolveMatchingSlug(targetPath, expectedSlug);
 		}
-		return await resolveLocalRepo(targetPath);
+		const resolved = await resolveLocalRepo(targetPath, gitlab);
+		if (parsedUrl?.provider === "gitlab") {
+			if (
+				!resolved.parsed ||
+				resolved.parsed.provider !== "gitlab" ||
+				repositoryIdentityKey(resolved.parsed) !==
+					repositoryIdentityKey(parsedUrl)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Cloned repository does not match ${parsedUrl.url}`,
+				});
+			}
+		}
+		return resolved;
 	} catch (err) {
 		await rollbackTargetDir(targetPath);
 		throw err;

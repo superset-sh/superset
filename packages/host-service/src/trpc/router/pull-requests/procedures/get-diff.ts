@@ -1,12 +1,22 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import {
+	assertGitLabIdentity,
+	gitLabMergeRequestApiPath,
+} from "../../../../source-control/gitlab/merge-requests";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import {
+	resolveGithubRepo,
+	resolveGitLabRepo,
+} from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
 
 const getDiffInputSchema = z.object({
 	projectId: z.string(),
 	prNumber: z.number().int().positive(),
+	provider: z.enum(["github", "gitlab"]).optional(),
+	instance: z.string().optional(),
+	repoPath: z.string().optional(),
 });
 
 // Mirrors get-content.ts's cache: the diff is immutable for a given push, but
@@ -21,6 +31,16 @@ const pullRequestDiffCache = new Map<
 export const getDiff = protectedProcedure
 	.input(getDiffInputSchema)
 	.query(async ({ ctx, input }) => {
+		if (input.provider === "gitlab") {
+			const identity = await resolveGitLabRepo(ctx, input.projectId);
+			assertGitLabIdentity(identity, input);
+			const patch = await ctx.gitlab.api<string>(
+				identity,
+				`${gitLabMergeRequestApiPath(identity, input.prNumber)}/raw_diffs`,
+				{ raw: true, timeout: 30_000, maxBuffer: 200 * 1024 * 1024 },
+			);
+			return { patch };
+		}
 		// Keyed on the input alone (no await beforehand) so the cache
 		// check-then-set below is atomic — two concurrent callers for the
 		// same PR can't both miss the cache and both shell out to `gh pr

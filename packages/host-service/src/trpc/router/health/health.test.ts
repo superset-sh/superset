@@ -46,6 +46,7 @@ describe("health.check", () => {
 		const caller = healthRouter.createCaller({} as HostServiceContext);
 		const result = await caller.check();
 		expect(result.status).toBe("ok");
+		expect(result.capabilities).toEqual({ gitlab: true });
 		expect(result.sandboxBoot).toEqual({
 			stamps: [
 				{ phase: "boot.start", at: 1789000009000 },

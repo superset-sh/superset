@@ -2,7 +2,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import {
 	LuExternalLink,
 	LuGlobe,
@@ -142,7 +142,8 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-1.5 flex-wrap">
 							<span className="text-xs font-medium text-muted-foreground">
-								#{pullRequest.number}
+								{pullRequest.provider === "gitlab" ? "!" : "#"}
+								{pullRequest.number}
 							</span>
 							<PullRequestStatusBadge state={pullRequest.state} />
 							{(pullRequest.state === "open" ||
@@ -196,8 +197,16 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 						asChild
 					>
 						<a href={pullRequest.url} target="_blank" rel="noopener noreferrer">
-							<FaGithub className="size-3" />
-							<Trans>View on GitHub</Trans>
+							{pullRequest.provider === "gitlab" ? (
+								<FaGitlab className="size-3" />
+							) : (
+								<FaGithub className="size-3" />
+							)}
+							{pullRequest.provider === "gitlab" ? (
+								<Trans>Open in GitLab</Trans>
+							) : (
+								<Trans>View on GitHub</Trans>
+							)}
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (

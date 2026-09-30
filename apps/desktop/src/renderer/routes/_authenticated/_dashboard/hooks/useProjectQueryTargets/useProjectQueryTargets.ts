@@ -7,6 +7,8 @@ import { selectServingHostId } from "../useProjectHost/useProjectHost";
 export interface ProjectQueryTarget {
 	projectId: string;
 	projectName: string;
+	provider?: "github" | "gitlab";
+	instance?: string | null;
 	hostId: string | null;
 	hostUrl: string | null;
 }
@@ -16,6 +18,7 @@ export interface HostQueryTarget {
 	key: string;
 	hostId: string | null;
 	hostUrl: string | null;
+	provider: "github" | "gitlab";
 	projects: { projectId: string; projectName: string }[];
 }
 
@@ -29,11 +32,16 @@ export function groupProjectTargetsByHost(
 		Omit<HostQueryTarget, "key"> & { hostKey: string }
 	>();
 	for (const target of targets) {
-		const hostKey = target.hostId ?? "";
+		const provider = target.provider ?? "github";
+		const hostKey =
+			provider === "github"
+				? (target.hostId ?? "")
+				: `${target.hostId ?? ""}\0gitlab`;
 		const group = byHost.get(hostKey) ?? {
 			hostKey,
 			hostId: target.hostId,
 			hostUrl: target.hostUrl,
+			provider,
 			projects: [],
 		};
 		group.projects.push({
@@ -81,6 +89,8 @@ export function useProjectQueryTargets(projectFilters: string[]) {
 				return {
 					projectId: project.projectKey,
 					projectName: project.name,
+					provider: project.provider ?? "github",
+					instance: project.instance ?? null,
 					hostId,
 					hostUrl: hostId ? (hostUrlById.get(hostId) ?? null) : null,
 				};

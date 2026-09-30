@@ -30,7 +30,9 @@ export function PullRequestPaneHeaderExtras({
 	const projectId = workspace.projectId;
 	const copyLabel = copied
 		? t({ message: "Copied" })
-		: t({ message: "Copy link to pull request" });
+		: data.provider === "gitlab"
+			? t({ message: "Copy link to merge request" })
+			: t({ message: "Copy link to pull request" });
 
 	return (
 		<>
@@ -69,7 +71,12 @@ export function PullRequestPaneHeaderExtras({
 								void navigate({
 									to: "/pull-requests/$prNumber",
 									params: { prNumber: String(data.number) },
-									search: { project: projectId },
+									search: {
+										project: projectId,
+										provider: data.provider === "gitlab" ? "gitlab" : undefined,
+										instance: data.instance,
+										repoPath: data.repoPath,
+									},
 								});
 							}}
 							aria-label={t({

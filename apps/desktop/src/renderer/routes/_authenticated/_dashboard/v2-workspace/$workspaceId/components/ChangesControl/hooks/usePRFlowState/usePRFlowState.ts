@@ -13,7 +13,7 @@ interface UsePRFlowStateResult {
 
 export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
-		{ workspaceId },
+		{ workspaceId, acceptedProviders: ["github", "gitlab"] },
 		{
 			enabled: !!workspaceId,
 			refetchInterval: 10_000,

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	deriveHostVersionState,
 	hostNeedsUpdate,
+	hostSupportsGitLab,
 	isHostUpdateTarget,
 	parseHostInstallSource,
 } from "./host-version";
@@ -49,6 +50,20 @@ describe("deriveHostVersionState", () => {
 		expect(deriveHostVersionState("1.0.0", undefined, "1.21.0")).toBe(
 			"incompatible",
 		);
+	});
+});
+
+describe("hostSupportsGitLab", () => {
+	test("gates new procedures without changing the general host floor", () => {
+		expect(hostSupportsGitLab("1.32.0")).toBe(false);
+		expect(hostSupportsGitLab("1.32.0", { gitlab: true })).toBe(true);
+		expect(hostSupportsGitLab("1.32.0", { gitlab: false })).toBe(false);
+		expect(hostSupportsGitLab(null, { gitlab: true })).toBe(true);
+		expect(hostSupportsGitLab("1.33.0")).toBe(true);
+		expect(hostSupportsGitLab("1.33.0-canary.1")).toBe(true);
+		expect(hostSupportsGitLab(null)).toBe(false);
+		expect(hostSupportsGitLab("0.0.0-dev")).toBe(false);
+		expect(deriveHostVersionState("1.32.0", "1.33.0")).toBe("behind");
 	});
 });
 

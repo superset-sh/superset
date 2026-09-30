@@ -38,6 +38,14 @@ import {
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
 import {
+	execGlab as defaultExecGlab,
+	type ExecGlab,
+} from "./source-control/gitlab/exec-glab";
+import {
+	createGitLabClient,
+	type GitLabClient,
+} from "./source-control/gitlab/gitlab";
+import {
 	isAgentTerminalAlive,
 	registerWorkspaceTerminalRoute,
 	sendAgentMessage,
@@ -98,6 +106,8 @@ export interface CreateAppOptions {
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
+	execGlab?: ExecGlab;
+	gitlab?: GitLabClient;
 }
 
 export interface CreateAppResult {
@@ -150,6 +160,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			return new Octokit({ auth: token });
 		});
 	const execGh: ExecGh = options.execGh ?? defaultExecGh;
+	const execGlab: ExecGlab = options.execGlab ?? defaultExecGlab;
+	const gitlab = options.gitlab ?? createGitLabClient({ runner: execGlab });
 
 	const filesystem = new WorkspaceFilesystemManager({ db });
 	// GitWatcher is the single source of truth for `.git/` and worktree fs
@@ -170,14 +182,15 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
+		gitlab,
 		git,
 		github,
 		gitWatcher,
-		readWorkspaceRefs: async (worktreePath) => {
+		readWorkspaceRefs: async (worktreePath, gitlabHosts) => {
 			const gitEnv = await resolveGitEnv(worktreePath);
 			return getHostWorkerPool().run(
 				gitWorkspaceRefsTask,
-				{ worktreePath, gitEnv },
+				{ worktreePath, gitEnv, gitlabHosts },
 				{
 					timeoutMs: 15_000,
 					strategy: "coalesce",
@@ -328,6 +341,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			credentials: providers.credentials,
 			github,
 			execGh,
+			gitlab,
+			execGlab,
 			api,
 			db,
 			runtime,
@@ -449,6 +464,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					credentials: providers.credentials,
 					github,
 					execGh,
+					gitlab,
+					execGlab,
 					api,
 					db,
 					runtime,
@@ -524,6 +541,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				credentials: providers.credentials,
 				github,
 				execGh,
+				gitlab,
+				execGlab,
 				api,
 				db,
 				runtime,
@@ -544,6 +563,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			credentials: providers.credentials,
 			github,
 			execGh,
+			gitlab,
+			execGlab,
 			api,
 			db,
 			runtime,

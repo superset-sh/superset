@@ -53,19 +53,35 @@ export function useLinkedContext(
 		[linkedIssues, updateDraft],
 	);
 
-	const addLinkedGitHubIssue = useCallback(
-		(issueNumber: number, title: string, url: string, state: string) => {
-			if (linkedIssues.some((i) => i.url === url)) return;
+	const addLinkedRepositoryIssue = useCallback(
+		(issue: {
+			issueNumber: number;
+			title: string;
+			url: string;
+			state: string;
+			provider: "github" | "gitlab";
+			instance?: string;
+			repoPath?: string;
+			body?: string;
+			projectId?: string;
+			hostId?: string | null;
+		}) => {
+			if (linkedIssues.some((linked) => linked.url === issue.url)) return;
 			updateDraft({
 				linkedIssues: [
 					...linkedIssues,
 					{
-						slug: `#${issueNumber}`,
-						title,
-						source: "github",
-						url,
-						number: issueNumber,
-						state: state.toLowerCase() === "closed" ? "closed" : "open",
+						slug: `repository:${issue.url}`,
+						title: issue.title,
+						source: issue.provider,
+						url: issue.url,
+						number: issue.issueNumber,
+						state: issue.state.toLowerCase() === "closed" ? "closed" : "open",
+						instance: issue.instance,
+						repoPath: issue.repoPath,
+						body: issue.body,
+						projectId: issue.projectId,
+						hostId: issue.hostId ?? undefined,
 					},
 				],
 			});
@@ -133,7 +149,7 @@ export function useLinkedContext(
 
 	return {
 		addLinkedIssue,
-		addLinkedGitHubIssue,
+		addLinkedRepositoryIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,

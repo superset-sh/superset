@@ -14,6 +14,7 @@ import { CheckCheck, LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuCheck, LuCopy } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { CommentRow } from "./components/CommentRow";
@@ -81,6 +82,10 @@ export function CommentsSection({
 		],
 		[openReviewComments],
 	);
+	const isGitLab = openReviewComments.some(
+		(comment) =>
+			comment.url && pullRequestRefFromUrl(comment.url)?.provider === "gitlab",
+	);
 	const resolvedComments = useMemo(
 		() => comments.filter((c) => c.kind === "review" && c.isResolved),
 		[comments],
@@ -147,6 +152,7 @@ export function CommentsSection({
 					setReviewThreadResolution.mutateAsync({
 						workspaceId,
 						threadId,
+						...(isGitLab ? { provider: "gitlab" as const } : {}),
 						resolved: true,
 					}),
 				),
@@ -175,6 +181,7 @@ export function CommentsSection({
 		}
 	}, [
 		resolvableThreadIds,
+		isGitLab,
 		setReviewThreadResolution,
 		utils.git.getPullRequestThreads,
 		workspaceId,

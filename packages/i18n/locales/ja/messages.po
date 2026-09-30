@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "あいさつ"
+
 msgid " and "
 msgstr "と"
 
@@ -41,6 +45,10 @@ msgstr "· {updatedAgo}に更新"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "「{0}」を削除しました"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "「{0}」をGitLabでクローズします。ここから再度開けます。"
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {差分は省略されています — ホストには�
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {#個のポートを閉じられませんでした} other {#個のポートを閉じられませんでした}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {GitLab issue} other {GitLab issue}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {#件のワークスペースをインポートしました} other {#件のワークスペースをインポートしました}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {#件のワークスペースをインポートしまし
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {選択した#件のワークスペースをグループに移動} other {選択した#件のワークスペースをグループに移動}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {プルリクエスト} other {プルリクエスト}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {#件のチェックにすべて成功しました} 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {プルリクエスト} other {プルリクエスト}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {カスタムテーマを#件インポートしました} other {カスタムテーマを#件インポートしました}}"
 
@@ -1551,6 +1564,9 @@ msgstr "プロジェクト設定でライフサイクルの実行スクリプト
 
 msgid "Add a project to see GitHub issues."
 msgstr "プロジェクトを追加するとGitHub issueが表示されます。"
+
+msgid "Add a project to see GitLab issues."
+msgstr "プロジェクトを追加するとGitLab issueが表示されます。"
 
 msgid "Add a project to see pull requests."
 msgstr "プロジェクトを追加するとプルリクエストが表示されます。"
@@ -2609,6 +2625,9 @@ msgstr "最新に戻る"
 msgid "Back to GitHub issues"
 msgstr "GitHub issueに戻る"
 
+msgid "Back to GitLab issues"
+msgstr "GitLab issueに戻る"
+
 msgid "Back to Home"
 msgstr "ホームに戻る"
 
@@ -2668,6 +2687,10 @@ msgstr "{selectedHostName}の新規ワークツリーのベースディレクト
 
 msgid "Base URL"
 msgstr "ベースURL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "MR !{0}をベースに"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "フォルダを選択"
 msgid "Choose a parent directory"
 msgstr "親ディレクトリを選択"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "issueを開く前に、GitHub issueでプロジェクトを選択してください。"
+msgid "Choose a project before opening an issue."
+msgstr "issueを開く前にプロジェクトを選択してください。"
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "プルリクエストを作成する前に、プルリクエスト画面でプロジェクトを選んでください。"
@@ -3465,6 +3488,9 @@ msgstr "クリックでコピー"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "クリックでセッションIDをコピーします(`claude --resume <id>`で再開)。"
 
+msgid "Click to open merge request"
+msgstr "クリックしてマージリクエストを開く"
+
 msgid "Click to open on GitHub"
 msgstr "クリックしてGitHubで開く"
 
@@ -3510,6 +3536,10 @@ msgstr "クローン中…"
 
 msgid "Close"
 msgstr "閉じる"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "!{0}をクローズしますか？"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "検索バーを閉じる"
 
 msgid "Close menu"
 msgstr "メニューを閉じる"
+
+msgid "Close merge request"
+msgstr "マージリクエストをクローズ"
 
 msgid "Close modal"
 msgstr "モーダルを閉じる"
@@ -4321,6 +4354,9 @@ msgstr "リンクをコピー"
 msgid "Copy Link Address"
 msgstr "リンクアドレスをコピー"
 
+msgid "Copy link to merge request"
+msgstr "マージリクエストへのリンクをコピー"
+
 msgid "Copy link to pull request"
 msgstr "プルリクエストのリンクをコピー"
 
@@ -4674,6 +4710,12 @@ msgstr "レビューコメントを読み込めませんでした"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "プロフィールを読み込めなかったため、編集は無効です。"
 
+msgid "Couldn't mark merge request ready"
+msgstr "マージリクエストをレビュー可能にできませんでした"
+
+msgid "Couldn't merge merge request"
+msgstr "マージリクエストをマージできませんでした"
+
 msgid "Couldn't merge pull request"
 msgstr "プルリクエストをマージできませんでした"
 
@@ -4769,6 +4811,9 @@ msgstr "変更をステージ解除できませんでした"
 msgid "Couldn't unstage file"
 msgstr "ファイルをステージ解除できませんでした"
 
+msgid "Couldn't update merge request"
+msgstr "マージリクエストを更新できませんでした"
+
 msgid "Couldn't update pull request"
 msgstr "プルリクエストを更新できませんでした"
 
@@ -4840,6 +4885,16 @@ msgstr "マージコミットを作成"
 
 msgid "Create Merge Commit"
 msgstr "マージコミットを作成"
+
+msgid "Create merge request"
+msgstr "マージリクエストを作成"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "マージリクエストの作成に失敗しました: {0}"
+
+msgid "Create MR"
+msgstr "MRを作成"
 
 msgid "Create new group"
 msgstr "新しいグループを作成"
@@ -4968,6 +5023,9 @@ msgstr "作成中"
 
 msgid "Creating"
 msgstr "作成中"
+
+msgid "Creating merge request..."
+msgstr "マージリクエストを作成中..."
 
 msgid "Creating PR..."
 msgstr "PRを作成中…"
@@ -7428,6 +7486,12 @@ msgstr "GitHubユーザー名..."
 msgid "GitHub username…"
 msgstr "GitHubユーザー名…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "GitLab issue"
+
 msgid "Give me an example"
 msgstr "例を挙げて"
 
@@ -8885,6 +8949,9 @@ msgstr "Issueを読み込み中…"
 msgid "Loading members..."
 msgstr "メンバーを読み込み中..."
 
+msgid "Loading merge request…"
+msgstr "マージリクエストを読み込み中…"
+
 msgid "Loading more..."
 msgstr "さらに読み込み中..."
 
@@ -9112,6 +9179,9 @@ msgstr "未読にする"
 msgid "Mark as viewed"
 msgstr "確認済みにする"
 
+msgid "Mark ready"
+msgstr "レビュー可能にする"
+
 msgid "Mark Ready"
 msgstr "レビュー可能にする"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "マージ"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "!{0}をマージしますか？"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "#{0}をマージしますか?"
 
@@ -9244,11 +9318,35 @@ msgstr "マージコミット"
 msgid "Merge failed: {0}"
 msgstr "マージに失敗しました: {0}"
 
+msgid "Merge merge request"
+msgstr "マージリクエストをマージ"
+
 msgid "Merge pull request"
 msgstr "プルリクエストをマージ"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Supersetから離れずにプルリクエストをマージできます。あわせてチャットの修正と磨き込みも。"
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "マージリクエスト !{0}を作成しました"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "マージリクエスト !{0}、{1}"
+
+msgid "Merge request merged"
+msgstr "マージリクエストをマージしました"
+
+msgid "Merge request ready for review"
+msgstr "マージリクエストをレビュー可能にしました"
+
+msgid "Merge request title"
+msgstr "マージリクエストのタイトル"
+
+msgid "Merge request URL"
+msgstr "マージリクエストのURL"
 
 msgid "Merge when checks pass"
 msgstr "チェック通過後にマージ"
@@ -9262,6 +9360,15 @@ msgstr "{0}がマージ"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "マージしましたが、PRの状態を更新できませんでした — 少し待って再試行してください"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "マージしましたが、リクエストの状態を更新できませんでした"
+
+msgid "Merging merge request"
+msgstr "マージリクエストをマージ中"
+
+msgid "Merging merge request..."
+msgstr "マージリクエストをマージ中..."
 
 msgid "Merging PR..."
 msgstr "PRをマージ中..."
@@ -9310,6 +9417,9 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub issueを最小化"
+
+msgid "Minimize GitLab issues"
+msgstr "GitLab issueを最小化"
 
 msgid "Minimum contrast"
 msgstr "最小コントラスト"
@@ -9465,6 +9575,16 @@ msgstr "グループへ移動"
 
 msgid "Move to Tab"
 msgstr "タブに移動"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0}（{1}）"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "まだコメントはありません。コメントモードをオンに
 
 msgid "No commits on this branch yet."
 msgstr "このブランチにはまだコミットがありません。"
+
+msgid "No commits to open a merge request from"
+msgstr "マージリクエストを開くためのコミットがありません"
 
 msgid "No commits to open a pull request from"
 msgstr "プルリクエストを作成できるコミットがありません"
@@ -10772,6 +10895,9 @@ msgstr "コマンドパレットを開く"
 msgid "Open comment on GitHub"
 msgstr "GitHubでコメントを開く"
 
+msgid "Open comment on GitLab"
+msgstr "GitLabでコメントを開く"
+
 msgid "Open details"
 msgstr "詳細を開く"
 
@@ -10893,6 +11019,9 @@ msgstr "Finderで開く"
 msgid "Open in GitHub"
 msgstr "GitHubで開く"
 
+msgid "Open in GitLab"
+msgstr "GitLabで開く"
+
 msgid "Open in Linear"
 msgstr "Linearで開く"
 
@@ -10933,6 +11062,9 @@ msgstr "issue #{0}をブラウザで開く"
 msgid "Open issue in GitHub"
 msgstr "GitHubでissueを開く"
 
+msgid "Open issue in GitLab"
+msgstr "GitLabでissueを開く"
+
 msgid "Open issues"
 msgstr "オープンなIssue"
 
@@ -10957,6 +11089,21 @@ msgstr "localhost:{0}を外部ブラウザで開く"
 
 msgid "Open menu"
 msgstr "メニューを開く"
+
+msgid "Open merge request"
+msgstr "マージリクエストを開く"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "マージリクエスト !{0}を開く"
+
+msgid "Open merge request options"
+msgstr "マージリクエストのオプションを開く"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "MR !{0}を開く"
 
 msgid "Open navigation"
 msgstr "ナビゲーションを開く"
@@ -12427,6 +12574,9 @@ msgstr "更新"
 msgid "Refresh GitHub issues"
 msgstr "GitHub issueを更新"
 
+msgid "Refresh GitLab issues"
+msgstr "GitLab issueを更新"
+
 msgid "Refresh metrics"
 msgstr "メトリクスを更新"
 
@@ -12688,6 +12838,9 @@ msgstr "再オープン"
 
 msgid "Reopen Closed Tab"
 msgstr "閉じたタブを再度開く"
+
+msgid "Reopen merge request"
+msgstr "マージリクエストを再度開く"
 
 msgid "Reopen PR"
 msgstr "PRを再オープン"
@@ -13085,6 +13238,9 @@ msgstr "レビューが却下されました"
 msgid "Review each failure before deciding whether to continue."
 msgstr "続行するか判断する前に、各失敗を確認してください。"
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "レビューフィルターはGitHubプロジェクトでのみ使用できます。"
+
 msgid "Review message"
 msgstr "レビューのメッセージ"
 
@@ -13105,6 +13261,9 @@ msgstr "レビューリクエスト"
 
 msgid "Review required"
 msgstr "レビュー必須"
+
+msgid "Review status unavailable"
+msgstr "レビューの状態を確認できません"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "シンタックスハイライト付きの差分をレビュー"
@@ -13530,6 +13689,12 @@ msgstr "GitHub issueを検索"
 msgid "Search GitHub issues…"
 msgstr "GitHub issueを検索…"
 
+msgid "Search GitLab issues"
+msgstr "GitLab issueを検索"
+
+msgid "Search GitLab issues…"
+msgstr "GitLab issueを検索…"
+
 msgid "Search history"
 msgstr "履歴を検索"
 
@@ -13698,6 +13863,9 @@ msgstr "先にプロジェクトを選択してください"
 msgid "Select a project to see GitHub issues."
 msgstr "プロジェクトを選択するとGitHub issueが表示されます。"
 
+msgid "Select a project to see GitLab issues."
+msgstr "GitLab issueを表示するプロジェクトを選択してください。"
+
 msgid "Select a project to see pull requests."
 msgstr "プロジェクトを選択するとプルリクエストが表示されます。"
 
@@ -13814,6 +13982,9 @@ msgstr "チームを選択"
 
 msgid "Select terminal script directory"
 msgstr "ターミナルスクリプトのディレクトリを選択"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "ワークスペースで実行するには、このissueのプロジェクトを選択してください。"
 
 msgid "Select worktree location"
 msgstr "ワークツリーの場所を選択"
@@ -14500,9 +14671,8 @@ msgstr "一部のファイルは最大サイズを超えているため追加さ
 msgid "Some models were priced with a fallback rate"
 msgstr "一部のモデルはフォールバックのレートで計算しています"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "一部のリポジトリを読み込めませんでした: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "一部のリポジトリを読み込めませんでした: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "一部のセッションを終了できませんでした"
@@ -15757,6 +15927,9 @@ msgstr "ローカルのホストサービスが起動しました。今すぐ再
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "マージされたエージェントのPRの過半数が、レビューのみで済み、人間の編集がゼロである。"
 
+msgid "The merge request is unavailable."
+msgstr "マージリクエストを利用できません。"
+
 msgid "The name of your organization or team"
 msgstr "組織またはチームの名前"
 
@@ -15827,6 +16000,12 @@ msgstr "このデバイスがSupersetリレーに接続されていないため�
 
 msgid "The scorecard"
 msgstr "スコアカード"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "選択したホストはGitLabに対応していません。ホストサービスを更新してください。"
+
+msgid "The selected host is unavailable."
+msgstr "選択したホストを利用できません。"
 
 msgid "The self-driving software factory"
 msgstr "自動運転するソフトウェア工場"
@@ -16045,6 +16224,9 @@ msgstr "通常より時間がかかっています。セッションはすでに
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "通常より時間がかかっています。ワークスペースはすでに準備できているかもしれません — 再読み込みで表示される場合があります。"
 
+msgid "This issue does not belong to the selected provider."
+msgstr "このissueは選択したプロバイダーに属していません。"
+
 msgid "This issue link is invalid."
 msgstr "このissueリンクは無効です。"
 
@@ -16111,6 +16293,12 @@ msgstr "このプロフィールは現在混み合っています"
 msgid "This project is no longer available on your devices."
 msgstr "このプロジェクトはお使いのデバイスでは利用できなくなりました。"
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "このプロジェクトはGitLabリポジトリにリンクされていません。"
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "このプロジェクトはGitHubリポジトリにリンクされていません。"
+
 msgid "This project's host is offline"
 msgstr "このプロジェクトのホストはオフラインです"
 
@@ -16137,6 +16325,9 @@ msgstr "ラベル、コマンド、引数、プロンプトと再開設定、環
 
 msgid "This repository does not allow merging from here."
 msgstr "このリポジトリはここからのマージを許可していません。"
+
+msgid "This request does not match the selected project."
+msgstr "このリクエストは選択したプロジェクトと一致しません。"
 
 msgid "This screen doesn't exist"
 msgstr "この画面は存在しません"

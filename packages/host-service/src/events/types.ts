@@ -168,6 +168,8 @@ export interface ProjectSnapshot {
 	id: string;
 	name: string;
 	repoPath: string;
+	provider?: "github" | "gitlab" | null;
+	instance?: string | null;
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;

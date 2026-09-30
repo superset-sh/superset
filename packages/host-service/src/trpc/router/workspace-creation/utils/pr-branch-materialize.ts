@@ -4,11 +4,13 @@ export type PrBranchSourceKind = "head-branch" | "synthetic-pr-ref";
 
 export interface PrBranchMetadata {
 	number: number;
+	provider?: "github" | "gitlab";
 	headRefName: string;
 	headRefOid: string;
 	isCrossRepository: boolean;
 	headRepositoryOwner?: string | null;
 	headRepositoryName?: string | null;
+	headRepositoryUrl?: string | null;
 }
 
 export interface MaterializePrBranchResult {
@@ -51,12 +53,22 @@ class SameRepoBranchFetchError extends Error {
 	}
 }
 
-export function getSyntheticPrHeadRef(prNumber: number): string {
-	return `refs/pull/${prNumber}/head`;
+export function getSyntheticPrHeadRef(
+	prNumber: number,
+	provider: "github" | "gitlab" = "github",
+): string {
+	return provider === "gitlab"
+		? `refs/merge-requests/${prNumber}/head`
+		: `refs/pull/${prNumber}/head`;
 }
 
-export function getSyntheticPrFetchRef(prNumber: number): string {
-	return `refs/superset/pr-fetch/${prNumber}/head`;
+export function getSyntheticPrFetchRef(
+	prNumber: number,
+	provider: "github" | "gitlab" = "github",
+): string {
+	return provider === "gitlab"
+		? `refs/superset/mr-fetch/${prNumber}/head`
+		: `refs/superset/pr-fetch/${prNumber}/head`;
 }
 
 function normalizeOid(oid: string): string {
@@ -75,6 +87,8 @@ function getForkRemoteName(prNumber: number): string {
 }
 
 function getHeadRepositoryUrl(pr: PrBranchMetadata): string | null {
+	if (pr.headRepositoryUrl) return pr.headRepositoryUrl;
+	if (pr.provider === "gitlab") return null;
 	const owner = pr.headRepositoryOwner?.trim();
 	const name = pr.headRepositoryName?.trim();
 	if (!owner || !name) return null;
@@ -94,11 +108,14 @@ async function assertRefMatchesExpectedOid(args: {
 	git: GitClient;
 	ref: string;
 	expectedHeadOid: string;
+	provider?: "github" | "gitlab";
 }): Promise<string> {
 	const actualOid = await revParseCommit(args.git, args.ref);
 	if (normalizeOid(actualOid) !== normalizeOid(args.expectedHeadOid)) {
 		throw new Error(
-			`Fetched PR head ${actualOid} did not match GitHub headRefOid ${args.expectedHeadOid}`,
+			args.provider === "gitlab"
+				? `Fetched merge request head ${actualOid} did not match expected head ${args.expectedHeadOid}`
+				: `Fetched PR head ${actualOid} did not match GitHub headRefOid ${args.expectedHeadOid}`,
 		);
 	}
 	return actualOid;
@@ -174,6 +191,7 @@ async function fetchSameRepoPrBranch(args: {
 		git: args.git,
 		ref: remoteTrackingRef,
 		expectedHeadOid: args.pr.headRefOid,
+		provider: args.pr.provider,
 	});
 	return {
 		kind: "head-branch",
@@ -189,8 +207,8 @@ async function fetchSyntheticPrBranch(args: {
 	pr: PrBranchMetadata;
 	warning?: string;
 }): Promise<PrBranchSource> {
-	const syntheticRef = getSyntheticPrHeadRef(args.pr.number);
-	const fetchRef = getSyntheticPrFetchRef(args.pr.number);
+	const syntheticRef = getSyntheticPrHeadRef(args.pr.number, args.pr.provider);
+	const fetchRef = getSyntheticPrFetchRef(args.pr.number, args.pr.provider);
 	await args.git.raw([
 		"fetch",
 		"--no-tags",
@@ -202,6 +220,7 @@ async function fetchSyntheticPrBranch(args: {
 		git: args.git,
 		ref: fetchRef,
 		expectedHeadOid: args.pr.headRefOid,
+		provider: args.pr.provider,
 	});
 	const forkRemoteUrl = args.pr.isCrossRepository
 		? getHeadRepositoryUrl(args.pr)
@@ -224,7 +243,7 @@ async function fetchSyntheticPrBranch(args: {
 		warning:
 			args.warning ??
 			(args.pr.isCrossRepository && !forkRemoteUrl
-				? `Superset checked out PR #${args.pr.number} through ${syntheticRef}, but GitHub did not return the fork repository. Plain git push may require manual remote configuration.`
+				? `Superset checked out request #${args.pr.number} through ${syntheticRef}, but the source repository is unavailable. Plain git push may require manual remote configuration.`
 				: undefined),
 	};
 }
@@ -324,7 +343,7 @@ async function resolvePrBranchSource(args: {
 			git: args.git,
 			remoteName: args.remoteName,
 			pr: args.pr,
-			warning: `The PR head branch "${args.pr.headRefName}" was unavailable from ${args.remoteName}, so Superset fetched ${getSyntheticPrHeadRef(args.pr.number)} instead. Original error: ${err.originalError instanceof Error ? err.originalError.message : String(err.originalError)}`,
+			warning: `The request head branch "${args.pr.headRefName}" was unavailable from ${args.remoteName}, so Superset fetched ${getSyntheticPrHeadRef(args.pr.number, args.pr.provider)} instead. Original error: ${err.originalError instanceof Error ? err.originalError.message : String(err.originalError)}`,
 		});
 	}
 }

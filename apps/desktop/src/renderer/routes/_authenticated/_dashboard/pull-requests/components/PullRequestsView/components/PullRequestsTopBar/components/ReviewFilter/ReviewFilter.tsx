@@ -17,9 +17,14 @@ import {
 interface ReviewFilterProps {
 	value: PullRequestReviewFilter | null;
 	onChange: (value: PullRequestReviewFilter | null) => void;
+	disabled?: boolean;
 }
 
-export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
+export function ReviewFilter({
+	value,
+	onChange,
+	disabled = false,
+}: ReviewFilterProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const label = getPullRequestReviewFilterLabel(value);
@@ -37,12 +42,20 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 	] as const;
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover open={disabled ? false : open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
 					size="sm"
-					title={label}
+					title={
+						disabled
+							? t({
+									message:
+										"Review filters are available for GitHub projects only.",
+								})
+							: label
+					}
+					disabled={disabled}
 					aria-label={t({
 						message: `Reviews: ${label}`,
 					})}

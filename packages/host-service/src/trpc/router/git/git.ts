@@ -6,6 +6,12 @@ import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
+import {
+	getGitLabMergeRequest,
+	getGitLabMergeRequestThreads,
+	gitLabMergeRequestApiPath,
+	gitLabProjectApiPath,
+} from "../../../source-control/gitlab/merge-requests";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
@@ -24,7 +30,10 @@ import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace-title-jobs";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { rethrowWorkerTaskAbort } from "../../worker-abort";
-import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
+import {
+	resolveGithubRepo,
+	resolveGitLabRepo,
+} from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
 	CheckConclusionState,
@@ -966,7 +975,12 @@ export const gitRouter = router({
 		}),
 
 	getPullRequest: queryProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				acceptedProviders: z.array(z.enum(["github", "gitlab"])).optional(),
+			}),
+		)
 		.query(({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
@@ -988,25 +1002,60 @@ export const gitRouter = router({
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
 			}
+			if (
+				pr.repoProvider === "gitlab" &&
+				!input.acceptedProviders?.includes("gitlab")
+			) {
+				return null;
+			}
 
 			let checks: CheckRun[] = [];
 			try {
 				const parsed = JSON.parse(pr.checksJson);
 				if (Array.isArray(parsed)) {
 					checks = parsed.map(
-						(c: Record<string, unknown>): CheckRun => ({
-							name: (c.name as string) ?? "",
-							status: ((c.status as string) ?? "completed") as CheckStatusState,
-							conclusion: (c.conclusion ?? null) as CheckConclusionState | null,
-							detailsUrl: (c.url as string) ?? null,
-							startedAt: (c.startedAt as string) ?? null,
-							completedAt: (c.completedAt as string) ?? null,
-						}),
+						(c: Record<string, unknown>): CheckRun =>
+							pr.repoProvider === "gitlab"
+								? {
+										name: (c.name as string) ?? "",
+										status:
+											c.status === "pending" ? "in_progress" : "completed",
+										conclusion:
+											c.status === "cancelled"
+												? "cancelled"
+												: c.status === "failure"
+													? "failure"
+													: c.status === "skipped"
+														? "skipped"
+														: c.status === "success"
+															? "success"
+															: null,
+										detailsUrl: (c.url as string) ?? null,
+										startedAt: null,
+										completedAt: null,
+									}
+								: {
+										name: (c.name as string) ?? "",
+										status: ((c.status as string) ??
+											"completed") as CheckStatusState,
+										conclusion: (c.conclusion ??
+											null) as CheckConclusionState | null,
+										detailsUrl: (c.url as string) ?? null,
+										startedAt: (c.startedAt as string) ?? null,
+										completedAt: (c.completedAt as string) ?? null,
+									},
 					);
 				}
 			} catch {}
 
 			return {
+				provider:
+					pr.repoProvider === "gitlab"
+						? ("gitlab" as const)
+						: ("github" as const),
+				instance: pr.repoInstance,
+				repoPath: `${pr.repoOwner}/${pr.repoName}`,
+				headSha: pr.headSha,
 				number: pr.prNumber,
 				url: pr.url,
 				title: pr.title,
@@ -1026,7 +1075,13 @@ export const gitRouter = router({
 
 	getCheckJobLogs: queryProcedure
 		.meta({ timeoutMs: 30_000 })
-		.input(z.object({ workspaceId: z.string(), detailsUrl: z.string() }))
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				detailsUrl: z.string(),
+				acceptedProviders: z.array(z.enum(["github", "gitlab"])).optional(),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
@@ -1046,6 +1101,65 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+			if (pr.repoProvider === "gitlab") {
+				if (!input.acceptedProviders?.includes("gitlab")) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "GitLab job logs require provider support",
+					});
+				}
+				const url = URL.canParse(input.detailsUrl)
+					? new URL(input.detailsUrl)
+					: null;
+				const jobPath = `/${pr.repoOwner}/${pr.repoName}/-/jobs/`;
+				const jobId = url?.pathname.startsWith(jobPath)
+					? url.pathname.slice(jobPath.length).match(/^(\d+)(?:\/|$)/)?.[1]
+					: null;
+				if (!url || url.origin !== pr.repoInstance || !jobId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Job URL does not belong to this GitLab project",
+					});
+				}
+				if (!workspace.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Workspace has no linked project",
+					});
+				}
+				const identity = await resolveGitLabRepo(ctx, workspace.projectId);
+				if (
+					identity.instance !== pr.repoInstance ||
+					identity.repoPath !== `${pr.repoOwner}/${pr.repoName}`
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The project remote changed since this merge request was linked",
+					});
+				}
+				const mr = await getGitLabMergeRequest(
+					ctx.gitlab,
+					identity,
+					pr.prNumber,
+				);
+				const job = await ctx.gitlab.api<{ pipeline?: { id: number } }>(
+					identity,
+					`${gitLabProjectApiPath(identity)}/jobs/${jobId}`,
+				);
+				if (!mr.head_pipeline || job.pipeline?.id !== mr.head_pipeline.id) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Job is not in the merge request pipeline",
+					});
+				}
+				const logs = await ctx.gitlab.api<string>(
+					identity,
+					`${gitLabProjectApiPath(identity)}/jobs/${jobId}/trace`,
+					{ raw: true, timeout: 30_000, maxBuffer: 10 * 1024 * 1024 },
+				);
+				return { logs };
 			}
 
 			// GitHub Actions check details URLs look like
@@ -1076,7 +1190,12 @@ export const gitRouter = router({
 
 	getPullRequestThreads: queryProcedure
 		.meta({ timeoutMs: 30_000 })
-		.input(z.object({ workspaceId: z.string() }))
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				acceptedProviders: z.array(z.enum(["github", "gitlab"])).optional(),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			const workspace = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
@@ -1099,6 +1218,43 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+			if (pr.repoProvider === "gitlab") {
+				if (
+					!input.acceptedProviders?.includes("gitlab") ||
+					!workspace.projectId
+				) {
+					return { reviewThreads: [], conversationComments: [] };
+				}
+				const identity = await resolveGitLabRepo(ctx, workspace.projectId);
+				if (
+					identity.instance !== pr.repoInstance ||
+					identity.repoPath !== `${pr.repoOwner}/${pr.repoName}`
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The project remote changed since this merge request was linked",
+					});
+				}
+				const discussions = await getGitLabMergeRequestThreads(
+					ctx.gitlab,
+					identity,
+					pr.prNumber,
+				);
+				const reviewThreads = discussions.filter((thread) => thread.path);
+				const conversationComments = discussions
+					.filter((thread) => !thread.path)
+					.flatMap((thread) =>
+						thread.comments.map((comment) => ({
+							id: comment.databaseId,
+							user: comment.author,
+							body: comment.body,
+							createdAt: comment.createdAt,
+							htmlUrl: `${pr.url}#note_${comment.databaseId}`,
+						})),
+					);
+				return { reviewThreads, conversationComments };
 			}
 
 			// Session workspaces (null projectId) have no GitHub remote.
@@ -1183,6 +1339,7 @@ export const gitRouter = router({
 				workspaceId: z.string(),
 				threadId: z.string(),
 				resolved: z.boolean(),
+				provider: z.enum(["github", "gitlab"]).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -1194,6 +1351,38 @@ export const gitRouter = router({
 					code: "NOT_FOUND",
 					message: "Workspace not found",
 				});
+			}
+			const linked = workspace.pullRequestId
+				? ctx.db.query.pullRequests
+						.findFirst({
+							where: eq(pullRequests.id, workspace.pullRequestId),
+						})
+						.sync()
+				: null;
+			if (linked?.repoProvider === "gitlab") {
+				if (input.provider !== "gitlab" || !workspace.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "GitLab provider identity is required",
+					});
+				}
+				const identity = await resolveGitLabRepo(ctx, workspace.projectId);
+				if (
+					identity.instance !== linked.repoInstance ||
+					identity.repoPath !== `${linked.repoOwner}/${linked.repoName}`
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The project remote changed since this merge request was linked",
+					});
+				}
+				await ctx.gitlab.api(
+					identity,
+					`${gitLabMergeRequestApiPath(identity, linked.prNumber)}/discussions/${encodeURIComponent(input.threadId)}`,
+					{ method: "PUT", fields: { resolved: input.resolved } },
+				);
+				return { threadId: input.threadId, isResolved: input.resolved };
 			}
 
 			const octokit = await ctx.github();
@@ -1229,7 +1418,9 @@ export const gitRouter = router({
 		.input(
 			z.object({
 				workspaceId: z.string(),
-				commentId: z.number().int().positive(),
+				commentId: z.number().int().positive().optional(),
+				discussionId: z.string().optional(),
+				provider: z.enum(["github", "gitlab"]).optional(),
 				body: z.string().trim().min(1),
 			}),
 		)
@@ -1251,6 +1442,40 @@ export const gitRouter = router({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
+				});
+			}
+			if (pr.repoProvider === "gitlab") {
+				if (
+					input.provider !== "gitlab" ||
+					!input.discussionId ||
+					!workspace.projectId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "GitLab discussion identity is required",
+					});
+				}
+				const identity = await resolveGitLabRepo(ctx, workspace.projectId);
+				if (
+					identity.instance !== pr.repoInstance ||
+					identity.repoPath !== `${pr.repoOwner}/${pr.repoName}`
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The project remote changed since this merge request was linked",
+					});
+				}
+				return ctx.gitlab.api(
+					identity,
+					`${gitLabMergeRequestApiPath(identity, pr.prNumber)}/discussions/${encodeURIComponent(input.discussionId)}/notes`,
+					{ method: "POST", fields: { body: input.body } },
+				);
+			}
+			if (!input.commentId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Review comment ID is required",
 				});
 			}
 

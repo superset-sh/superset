@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "pozdrav"
+
 msgid " and "
 msgstr " a "
 
@@ -41,6 +45,10 @@ msgstr "· aktualizováno {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "„{0}“ smazáno"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "„{0}“ bude na GitLab uzavřen. Můžete ho zde znovu otevřít."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Rozdíl zkrácen — na hostu je ještě # řádek} few
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {Nepodařilo se zavřít # port} few {Nepodařilo se zavřít # porty} many {Nepodařilo se zavřít # portu} other {Nepodařilo se zavřít # portů}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {GitLab issue} few {GitLab issues} many {GitLab issues} other {GitLab issues}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {Naimportován # pracovní prostor} few {Naimportovány # pracovní prostory} many {Naimportováno # pracovního prostoru} other {Naimportováno # pracovních prostorů}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {Naimportován # pracovní prostor} few {Naimportovány 
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Přesunout # vybraný pracovní prostor do skupiny} few {Přesunout # vybrané pracovní prostory do skupiny} many {Přesunout # vybraného pracovního prostoru do skupiny} other {Přesunout # vybraných pracovních prostorů do skupiny}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {pull request} few {pull requesty} many {pull requestu} other {pull requestů}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {Kontrola prošla} few {Všechny # kontroly prošly}
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} few {GitHub issues} many {GitHub issues} other {GitHub issues}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {pull request} few {pull requesty} many {pull requestu} other {pull requestů}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {Importován # vlastní motiv} few {Importovány # vlastní motivy} many {Importováno # vlastního motivu} other {Importováno # vlastních motivů}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Přidejte lifecycle run skript v nastavení projektu, nebo označte term
 
 msgid "Add a project to see GitHub issues."
 msgstr "Přidejte projekt a uvidíte GitHub issues."
+
+msgid "Add a project to see GitLab issues."
+msgstr "Přidejte projekt a uvidíte GitLab issues."
 
 msgid "Add a project to see pull requests."
 msgstr "Přidejte projekt a uvidíte pull requesty."
@@ -2609,6 +2625,9 @@ msgstr "Zpět na aktuální"
 msgid "Back to GitHub issues"
 msgstr "Zpět na GitHub issues"
 
+msgid "Back to GitLab issues"
+msgstr "Zpět na GitLab issues"
+
 msgid "Back to Home"
 msgstr "Zpět na úvod"
 
@@ -2668,6 +2687,10 @@ msgstr "Základní adresář pro nové worktree na {selectedHostName}."
 
 msgid "Base URL"
 msgstr "Základní URL"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "na základě MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Vyberte složku"
 msgid "Choose a parent directory"
 msgstr "Vyberte nadřazený adresář"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Než otevřete issue, vyberte projekt v sekci GitHub issues."
+msgid "Choose a project before opening an issue."
+msgstr "Než otevřete issue, vyberte projekt."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Než otevřete pull request, vyberte projekt v sekci Pull requesty."
@@ -3465,6 +3488,9 @@ msgstr "Kliknutím zkopírujete"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Kliknutím zkopírujete ID relace (pokračování přes `claude --resume <id>`)."
 
+msgid "Click to open merge request"
+msgstr "Kliknutím otevřete merge request"
+
 msgid "Click to open on GitHub"
 msgstr "Kliknutím otevřete na GitHubu"
 
@@ -3510,6 +3536,10 @@ msgstr "Klonuji…"
 
 msgid "Close"
 msgstr "Zavřít"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "Zavřít !{0}?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Zavřít vyhledávací lištu"
 
 msgid "Close menu"
 msgstr "Zavřít nabídku"
+
+msgid "Close merge request"
+msgstr "Zavřít merge request"
 
 msgid "Close modal"
 msgstr "Zavřít okno"
@@ -4321,6 +4354,9 @@ msgstr "Kopírovat odkaz"
 msgid "Copy Link Address"
 msgstr "Kopírovat adresu odkazu"
 
+msgid "Copy link to merge request"
+msgstr "Kopírovat odkaz na merge request"
+
 msgid "Copy link to pull request"
 msgstr "Kopírovat odkaz na pull request"
 
@@ -4674,6 +4710,12 @@ msgstr "Nepodařilo se načíst komentáře k revizi"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Tvůj profil se nepodařilo načíst, úpravy jsou proto vypnuté."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Merge request se nepodařilo označit jako připravený"
+
+msgid "Couldn't merge merge request"
+msgstr "Merge request se nepodařilo sloučit"
+
 msgid "Couldn't merge pull request"
 msgstr "Pull request se nepodařilo sloučit"
 
@@ -4769,6 +4811,9 @@ msgstr "Nepodařilo se zrušit přípravu změn"
 msgid "Couldn't unstage file"
 msgstr "Nepodařilo se zrušit přípravu souboru"
 
+msgid "Couldn't update merge request"
+msgstr "Merge request se nepodařilo aktualizovat"
+
 msgid "Couldn't update pull request"
 msgstr "Pull request se nepodařilo aktualizovat"
 
@@ -4840,6 +4885,16 @@ msgstr "Vytvořit merge commit"
 
 msgid "Create Merge Commit"
 msgstr "Vytvořit merge commit"
+
+msgid "Create merge request"
+msgstr "Vytvořit merge request"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "Vytvoření MR se nezdařilo: {0}"
+
+msgid "Create MR"
+msgstr "Vytvořit MR"
 
 msgid "Create new group"
 msgstr "Vytvořit novou skupinu"
@@ -4968,6 +5023,9 @@ msgstr "vytváří se"
 
 msgid "Creating"
 msgstr "Vytvářím"
+
+msgid "Creating merge request..."
+msgstr "Vytváření MR…"
 
 msgid "Creating PR..."
 msgstr "Vytváření PR…"
@@ -7428,6 +7486,12 @@ msgstr "Uživatelské jméno GitHub..."
 msgid "GitHub username…"
 msgstr "GitHub uživatelské jméno…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "GitLab issues"
+
 msgid "Give me an example"
 msgstr "Uveď příklad"
 
@@ -8885,6 +8949,9 @@ msgstr "Načítám issues…"
 msgid "Loading members..."
 msgstr "Načítám členy..."
 
+msgid "Loading merge request…"
+msgstr "Načítám merge request…"
+
 msgid "Loading more..."
 msgstr "Načítám další..."
 
@@ -9112,6 +9179,9 @@ msgstr "Označit jako nepřečtené"
 msgid "Mark as viewed"
 msgstr "Označit jako zobrazené"
 
+msgid "Mark ready"
+msgstr "Označit jako připravený"
+
 msgid "Mark Ready"
 msgstr "Označit jako připravené"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Sloučit"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "Sloučit !{0}?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "Sloučit #{0}?"
 
@@ -9244,11 +9318,35 @@ msgstr "Merge commit"
 msgid "Merge failed: {0}"
 msgstr "Sloučení selhalo: {0}"
 
+msgid "Merge merge request"
+msgstr "Sloučit merge request"
+
 msgid "Merge pull request"
 msgstr "Sloučit pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Slučujte pull requesty bez opuštění Superset, k tomu kolo oprav a vypilování chatu."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "MR !{0} vytvořen"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Merge request !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "MR sloučen"
+
+msgid "Merge request ready for review"
+msgstr "MR je připraven k revizi"
+
+msgid "Merge request title"
+msgstr "Název merge requestu"
+
+msgid "Merge request URL"
+msgstr "URL MR"
 
 msgid "Merge when checks pass"
 msgstr "Sloučit, až projdou kontroly"
@@ -9262,6 +9360,15 @@ msgstr "Sloučil {0}"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Sloučeno, ale nepodařilo se obnovit stav PR — zkuste to za chvíli znovu"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Sloučeno, ale stav požadavku se nepodařilo obnovit"
+
+msgid "Merging merge request"
+msgstr "Slučuji merge request"
+
+msgid "Merging merge request..."
+msgstr "Slučuji merge request..."
 
 msgid "Merging PR..."
 msgstr "Slučuji PR..."
@@ -9310,6 +9417,9 @@ msgstr "Minimalizovat"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimalizovat GitHub issues"
+
+msgid "Minimize GitLab issues"
+msgstr "Minimalizovat GitLab issues"
 
 msgid "Minimum contrast"
 msgstr "Minimální kontrast"
@@ -9465,6 +9575,16 @@ msgstr "Přesunout do skupiny"
 
 msgid "Move to Tab"
 msgstr "Přesunout na kartu"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Zatím žádné komentáře. Zapněte režim komentářů a kliknutím n
 
 msgid "No commits on this branch yet."
 msgstr "V této větvi zatím nejsou žádné commity."
+
+msgid "No commits to open a merge request from"
+msgstr "Žádné commity, ze kterých by šel otevřít merge request"
 
 msgid "No commits to open a pull request from"
 msgstr "Žádné commity, ze kterých by šel otevřít pull request"
@@ -10772,6 +10895,9 @@ msgstr "Otevřít paletu příkazů"
 msgid "Open comment on GitHub"
 msgstr "Otevřít komentář na GitHubu"
 
+msgid "Open comment on GitLab"
+msgstr "Otevřít komentář na GitLabu"
+
 msgid "Open details"
 msgstr "Otevřít podrobnosti"
 
@@ -10893,6 +11019,9 @@ msgstr "Otevřít ve Finderu"
 msgid "Open in GitHub"
 msgstr "Otevřít na GitHubu"
 
+msgid "Open in GitLab"
+msgstr "Otevřít na GitLabu"
+
 msgid "Open in Linear"
 msgstr "Otevřít v Linearu"
 
@@ -10933,6 +11062,9 @@ msgstr "Otevřít issue #{0} v prohlížeči"
 msgid "Open issue in GitHub"
 msgstr "Otevřít issue na GitHubu"
 
+msgid "Open issue in GitLab"
+msgstr "Otevřít issue na GitLabu"
+
 msgid "Open issues"
 msgstr "Otevřené issues"
 
@@ -10957,6 +11089,21 @@ msgstr "Otevřít localhost:{0} v externím prohlížeči"
 
 msgid "Open menu"
 msgstr "Otevřít nabídku"
+
+msgid "Open merge request"
+msgstr "Otevřít merge request"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "Otevřít merge request !{0}"
+
+msgid "Open merge request options"
+msgstr "Otevřít možnosti merge requestu"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "Otevřít MR !{0}"
 
 msgid "Open navigation"
 msgstr "Otevřít navigaci"
@@ -12427,6 +12574,9 @@ msgstr "Obnovit"
 msgid "Refresh GitHub issues"
 msgstr "Obnovit GitHub issues"
 
+msgid "Refresh GitLab issues"
+msgstr "Obnovit GitLab issues"
+
 msgid "Refresh metrics"
 msgstr "Obnovit metriky"
 
@@ -12688,6 +12838,9 @@ msgstr "Znovu otevřít"
 
 msgid "Reopen Closed Tab"
 msgstr "Znovu otevřít zavřenou kartu"
+
+msgid "Reopen merge request"
+msgstr "Znovu otevřít merge request"
 
 msgid "Reopen PR"
 msgstr "Znovu otevřít PR"
@@ -13085,6 +13238,9 @@ msgstr "Revize zamítnuta"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Než se rozhodnete pokračovat, projděte si každé selhání."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "Filtry kontrol kódu jsou dostupné jen pro projekty GitHub."
+
 msgid "Review message"
 msgstr "Zpráva k revizi"
 
@@ -13105,6 +13261,9 @@ msgstr "Vyžádána revize"
 
 msgid "Review required"
 msgstr "Vyžadována revize"
+
+msgid "Review status unavailable"
+msgstr "Stav kontroly kódu není dostupný"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Kontrolujte diffy se zvýrazněním syntaxe"
@@ -13530,6 +13689,12 @@ msgstr "Hledat GitHub issues"
 msgid "Search GitHub issues…"
 msgstr "Hledat GitHub issues…"
 
+msgid "Search GitLab issues"
+msgstr "Hledat GitLab issues"
+
+msgid "Search GitLab issues…"
+msgstr "Hledat GitLab issues…"
+
 msgid "Search history"
 msgstr "Prohledat historii"
 
@@ -13698,6 +13863,9 @@ msgstr "Nejprve vyberte projekt"
 msgid "Select a project to see GitHub issues."
 msgstr "Vyberte projekt a uvidíte GitHub issues."
 
+msgid "Select a project to see GitLab issues."
+msgstr "Vyberte projekt a uvidíte GitLab issues."
+
 msgid "Select a project to see pull requests."
 msgstr "Vyberte projekt a uvidíte pull requesty."
 
@@ -13814,6 +13982,9 @@ msgstr "Vyberte týmy"
 
 msgid "Select terminal script directory"
 msgstr "Vyberte adresář terminálového skriptu"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Vyberte projekt issue, aby bylo možné jej spustit v pracovním prostoru."
 
 msgid "Select worktree location"
 msgstr "Vyberte umístění worktree"
@@ -14500,9 +14671,8 @@ msgstr "Některé soubory překračují maximální velikost a nebyly přidány.
 msgid "Some models were priced with a fallback rate"
 msgstr "U některých modelů byla použita náhradní sazba"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Některé repozitáře se nepodařilo načíst: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Některé repozitáře se nepodařilo načíst: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Některé relace se nepodařilo ukončit"
@@ -15757,6 +15927,9 @@ msgstr "Místní host service právě naběhla. Připojuji se k ní."
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Většina sloučených PR od agentů potřebuje jen revizi, bez jediné lidské úpravy."
 
+msgid "The merge request is unavailable."
+msgstr "Merge request není dostupný."
+
 msgid "The name of your organization or team"
 msgstr "Název vaší organizace nebo týmu"
 
@@ -15827,6 +16000,12 @@ msgstr "Běh byl přeskočen, protože toto zařízení není připojené k Supe
 
 msgid "The scorecard"
 msgstr "Hodnocení"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "Vybraný hostitel nepodporuje GitLab. Aktualizujte jeho host-service."
+
+msgid "The selected host is unavailable."
+msgstr "Vybraný hostitel není dostupný."
 
 msgid "The self-driving software factory"
 msgstr "Samořídící softwarová továrna"
@@ -16045,6 +16224,9 @@ msgstr "Trvá to déle než obvykle. Relace už možná je připravená — nač
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Trvá to déle než obvykle. Pracovní prostor už možná je připravený — načtení znovu ho může zachytit."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Toto issue nepatří vybranému poskytovateli."
+
 msgid "This issue link is invalid."
 msgstr "Tento odkaz na issue je neplatný."
 
@@ -16111,6 +16293,12 @@ msgstr "Tento profil je právě přetížený"
 msgid "This project is no longer available on your devices."
 msgstr "Tento projekt už na vašich zařízeních není dostupný."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Tento projekt není propojený s repozitářem GitLab."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Tento projekt není propojený s repozitářem GitHub."
+
 msgid "This project's host is offline"
 msgstr "Host tohoto projektu je offline"
 
@@ -16137,6 +16325,9 @@ msgstr "Nahradí to jeho popisek, příkaz, argumenty, nastavení promptu a pokr
 
 msgid "This repository does not allow merging from here."
 msgstr "Tento repozitář neumožňuje slučovat odsud."
+
+msgid "This request does not match the selected project."
+msgstr "Tento požadavek neodpovídá vybranému projektu."
 
 msgid "This screen doesn't exist"
 msgstr "Tato obrazovka neexistuje"

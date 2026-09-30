@@ -9,10 +9,12 @@ import type {
 } from "renderer/stores/new-workspace-draft";
 import { buildSubmitPrompt } from "./buildSubmitPrompt";
 import {
-	fetchGitHubIssueBody,
 	fetchInternalTaskBody,
 	fetchPrBody,
+	fetchRepositoryIssueBody,
 } from "./fetchers";
+import { issueContextKey } from "./issue-context-key";
+import { requestContextKey } from "./request-context-key";
 import { useNewWorkspacePromptContextStore } from "./store";
 
 export interface NewWorkspacePromptContextApi {
@@ -53,16 +55,47 @@ export function useNewWorkspacePromptContext(args: {
 
 		if (linkedPR) {
 			const prNumber = linkedPR.prNumber;
-			store.register(`pr:${prNumber}`, () =>
-				fetchPrBody({ prNumber, projectId, hostUrl }),
+			store.register(requestContextKey(linkedPR, { projectId, hostId }), () =>
+				fetchPrBody({
+					prNumber,
+					projectId,
+					hostUrl,
+					provider: linkedPR.provider,
+					instance: linkedPR.instance,
+					repoPath: linkedPR.repoPath,
+				}),
 			);
 		}
 
 		for (const issue of linkedIssues) {
-			if (issue.source === "github" && issue.number != null) {
+			if (
+				(issue.source === "github" || issue.source === "gitlab") &&
+				issue.number != null
+			) {
 				const issueNumber = issue.number;
-				store.register(`github-issue:${issueNumber}`, () =>
-					fetchGitHubIssueBody({ issueNumber, projectId, hostUrl }),
+				const issueHostUrl =
+					issue.hostId && activeOrganizationId
+						? resolveHostUrl({
+								hostId: issue.hostId,
+								machineId,
+								activeHostUrl,
+								organizationId: activeOrganizationId,
+								relayUrl,
+							})
+						: hostUrl;
+				store.register(issueContextKey(issue, { projectId, hostId }), () =>
+					issue.body !== undefined
+						? Promise.resolve({ text: issue.body })
+						: issueHostUrl
+							? fetchRepositoryIssueBody({
+									provider: issue.source === "gitlab" ? "gitlab" : "github",
+									issueNumber,
+									projectId: issue.projectId ?? projectId,
+									hostUrl: issueHostUrl,
+									instance: issue.instance,
+									repoPath: issue.repoPath,
+								})
+							: Promise.resolve(null),
 				);
 			} else if (issue.source === "internal" && issue.taskId) {
 				const taskId = issue.taskId;
@@ -71,7 +104,17 @@ export function useNewWorkspacePromptContext(args: {
 				);
 			}
 		}
-	}, [projectId, hostUrl, linkedPR, linkedIssues]);
+	}, [
+		projectId,
+		hostId,
+		hostUrl,
+		linkedPR,
+		linkedIssues,
+		activeOrganizationId,
+		machineId,
+		activeHostUrl,
+		relayUrl,
+	]);
 
 	return useMemo<NewWorkspacePromptContextApi>(
 		() => ({
@@ -83,9 +126,11 @@ export function useNewWorkspacePromptContext(args: {
 					userPrompt: buildArgs.userPrompt,
 					linkedPR: buildArgs.linkedPR,
 					linkedIssues: buildArgs.linkedIssues,
+					projectId,
+					hostId,
 				});
 			},
 		}),
-		[],
+		[projectId, hostId],
 	);
 }

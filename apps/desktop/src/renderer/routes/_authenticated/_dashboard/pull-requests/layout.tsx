@@ -26,10 +26,14 @@ const MIN_DETAIL_PANE_WIDTH = 420;
 export type PullRequestsSearch = {
 	search?: string;
 	project?: string;
+	host?: string;
 	projects?: string;
 	author?: string;
 	review?: string;
 	state?: "open" | "all" | "merged";
+	provider?: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
 };
 
 export const Route = createFileRoute(
@@ -39,12 +43,16 @@ export const Route = createFileRoute(
 	validateSearch: (search: Record<string, unknown>): PullRequestsSearch => ({
 		search: typeof search.search === "string" ? search.search : undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
+		host: typeof search.host === "string" ? search.host : undefined,
 		projects: typeof search.projects === "string" ? search.projects : undefined,
 		author: typeof search.author === "string" ? search.author : undefined,
 		review: typeof search.review === "string" ? search.review : undefined,
 		state: ["open", "all", "merged"].includes(search.state as string)
 			? (search.state as PullRequestsSearch["state"])
 			: undefined,
+		provider: search.provider === "gitlab" ? "gitlab" : undefined,
+		instance: typeof search.instance === "string" ? search.instance : undefined,
+		repoPath: typeof search.repoPath === "string" ? search.repoPath : undefined,
 	}),
 });
 
@@ -58,8 +66,18 @@ export const Route = createFileRoute(
  * always reveals the other, since hiding both would leave nothing on screen.
  */
 function PullRequestsLayout() {
-	const { search, project, projects, author, review, state } =
-		Route.useSearch();
+	const {
+		search,
+		project,
+		host,
+		projects,
+		author,
+		review,
+		state,
+		provider,
+		instance,
+		repoPath,
+	} = Route.useSearch();
 	const params = useParams({ strict: false }) as { prNumber?: string };
 	const selectedPrNumber = params.prNumber
 		? parsePositiveIntegerParam(params.prNumber)
@@ -115,6 +133,10 @@ function PullRequestsLayout() {
 			initialState={state}
 			selectedPrNumber={selectedPrNumber}
 			selectedPrProjectId={project ?? null}
+			selectedPrHostId={host ?? null}
+			selectedPrProvider={provider ?? "github"}
+			selectedPrInstance={instance ?? null}
+			selectedPrRepoPath={repoPath ?? null}
 		/>
 	);
 

@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "sapaan"
+
 msgid " and "
 msgstr " dan "
 
@@ -41,6 +45,10 @@ msgstr "· diperbarui {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\" dihapus"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "\"{0}\" akan ditutup di GitLab. Anda dapat membukanya kembali dari sini."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Diff dipotong — # baris lagi ada di host} other {Diff
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {Gagal menutup # port} other {Gagal menutup # port}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {issue GitLab} other {issue GitLab}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {Mengimpor # workspace} other {Mengimpor # workspace}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {Mengimpor # workspace} other {Mengimpor # workspace}}"
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Pindahkan # workspace terpilih ke grup} other {Pindahkan # workspace terpilih ke grup}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {pull request} other {pull request}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {Semua # check lulus} other {Semua # check lulus}}"
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {pull request} other {pull request}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {Mengimpor # tema kustom} other {Mengimpor # tema kustom}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Tambahkan skrip run lifecycle di Pengaturan Proyek atau tandai sebuah sk
 
 msgid "Add a project to see GitHub issues."
 msgstr "Tambahkan proyek untuk melihat issue GitHub."
+
+msgid "Add a project to see GitLab issues."
+msgstr "Tambahkan proyek untuk melihat issue GitLab."
 
 msgid "Add a project to see pull requests."
 msgstr "Tambahkan proyek untuk melihat pull request."
@@ -2609,6 +2625,9 @@ msgstr "Kembali ke versi saat ini"
 msgid "Back to GitHub issues"
 msgstr "Kembali ke issue GitHub"
 
+msgid "Back to GitLab issues"
+msgstr "Kembali ke issue GitLab"
+
 msgid "Back to Home"
 msgstr "Kembali ke Beranda"
 
@@ -2668,6 +2687,10 @@ msgstr "Direktori dasar untuk worktree baru di {selectedHostName}."
 
 msgid "Base URL"
 msgstr "URL dasar"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "berdasarkan MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Pilih folder"
 msgid "Choose a parent directory"
 msgstr "Pilih direktori induk"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Pilih proyek dari issue GitHub sebelum membuka sebuah issue."
+msgid "Choose a project before opening an issue."
+msgstr "Pilih proyek sebelum membuka issue."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Pilih proyek dari Pull request sebelum membuka pull request."
@@ -3465,6 +3488,9 @@ msgstr "Klik untuk menyalin"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Klik untuk menyalin ID sesi (lanjutkan dengan `claude --resume <id>`)."
 
+msgid "Click to open merge request"
+msgstr "Klik untuk membuka merge request"
+
 msgid "Click to open on GitHub"
 msgstr "Klik untuk membuka di GitHub"
 
@@ -3510,6 +3536,10 @@ msgstr "Meng-clone…"
 
 msgid "Close"
 msgstr "Tutup"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "Tutup !{0}?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Tutup bilah pencarian"
 
 msgid "Close menu"
 msgstr "Tutup menu"
+
+msgid "Close merge request"
+msgstr "Tutup merge request"
 
 msgid "Close modal"
 msgstr "Tutup modal"
@@ -4321,6 +4354,9 @@ msgstr "Salin tautan"
 msgid "Copy Link Address"
 msgstr "Salin Alamat Tautan"
 
+msgid "Copy link to merge request"
+msgstr "Salin tautan ke merge request"
+
 msgid "Copy link to pull request"
 msgstr "Salin tautan ke pull request"
 
@@ -4674,6 +4710,12 @@ msgstr "Tidak bisa memuat komentar review"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profil Anda tidak dapat dimuat, sehingga penyuntingan dinonaktifkan."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Tidak dapat menandai merge request sebagai siap"
+
+msgid "Couldn't merge merge request"
+msgstr "Tidak bisa merge merge request"
+
 msgid "Couldn't merge pull request"
 msgstr "Tidak bisa merge pull request"
 
@@ -4769,6 +4811,9 @@ msgstr "Tidak bisa meng-unstage perubahan"
 msgid "Couldn't unstage file"
 msgstr "Tidak bisa meng-unstage file"
 
+msgid "Couldn't update merge request"
+msgstr "Tidak bisa memperbarui merge request"
+
 msgid "Couldn't update pull request"
 msgstr "Tidak bisa memperbarui pull request"
 
@@ -4840,6 +4885,16 @@ msgstr "Buat merge commit"
 
 msgid "Create Merge Commit"
 msgstr "Buat Merge Commit"
+
+msgid "Create merge request"
+msgstr "Buat merge request"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "Gagal membuat MR: {0}"
+
+msgid "Create MR"
+msgstr "Buat MR"
 
 msgid "Create new group"
 msgstr "Buat grup baru"
@@ -4968,6 +5023,9 @@ msgstr "membuat"
 
 msgid "Creating"
 msgstr "Membuat"
+
+msgid "Creating merge request..."
+msgstr "Membuat MR…"
 
 msgid "Creating PR..."
 msgstr "Membuat PR…"
@@ -7428,6 +7486,12 @@ msgstr "Nama pengguna GitHub..."
 msgid "GitHub username…"
 msgstr "Username GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "Issue GitLab"
+
 msgid "Give me an example"
 msgstr "Beri contoh"
 
@@ -8885,6 +8949,9 @@ msgstr "Memuat issue…"
 msgid "Loading members..."
 msgstr "Memuat anggota..."
 
+msgid "Loading merge request…"
+msgstr "Memuat merge request…"
+
 msgid "Loading more..."
 msgstr "Memuat lagi..."
 
@@ -9112,6 +9179,9 @@ msgstr "Tandai Belum Dibaca"
 msgid "Mark as viewed"
 msgstr "Tandai sudah dilihat"
 
+msgid "Mark ready"
+msgstr "Tandai siap"
+
 msgid "Mark Ready"
 msgstr "Tandai Siap"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Merge"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "Merge !{0}?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "Merge #{0}?"
 
@@ -9244,11 +9318,35 @@ msgstr "Merge Commit"
 msgid "Merge failed: {0}"
 msgstr "Merge gagal: {0}"
 
+msgid "Merge merge request"
+msgstr "Merge merge request"
+
 msgid "Merge pull request"
 msgstr "Merge pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Merge pull request tanpa meninggalkan Superset, plus sejumlah perbaikan dan pemolesan chat."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "MR !{0} dibuat"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Merge request !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "MR di-merge"
+
+msgid "Merge request ready for review"
+msgstr "MR siap ditinjau"
+
+msgid "Merge request title"
+msgstr "Judul merge request"
+
+msgid "Merge request URL"
+msgstr "URL MR"
 
 msgid "Merge when checks pass"
 msgstr "Merge saat check lulus"
@@ -9262,6 +9360,15 @@ msgstr "Di-merge oleh {0}"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Sudah di-merge, tapi status PR tidak bisa disegarkan — coba lagi sebentar lagi"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Berhasil di-merge, tetapi status permintaan tidak dapat diperbarui"
+
+msgid "Merging merge request"
+msgstr "Me-merge merge request"
+
+msgid "Merging merge request..."
+msgstr "Me-merge merge request..."
 
 msgid "Merging PR..."
 msgstr "Me-merge PR..."
@@ -9310,6 +9417,9 @@ msgstr "Perkecil"
 
 msgid "Minimize GitHub issues"
 msgstr "Perkecil issue GitHub"
+
+msgid "Minimize GitLab issues"
+msgstr "Perkecil issue GitLab"
 
 msgid "Minimum contrast"
 msgstr "Kontras minimum"
@@ -9465,6 +9575,16 @@ msgstr "Pindahkan ke grup"
 
 msgid "Move to Tab"
 msgstr "Pindahkan ke Tab"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Belum ada komentar. Aktifkan mode komentar lalu klik apa pun di halaman 
 
 msgid "No commits on this branch yet."
 msgstr "Belum ada commit di branch ini."
+
+msgid "No commits to open a merge request from"
+msgstr "Tidak ada commit untuk membuka merge request"
 
 msgid "No commits to open a pull request from"
 msgstr "Tidak ada commit untuk membuka pull request"
@@ -10772,6 +10895,9 @@ msgstr "Buka Command Palette"
 msgid "Open comment on GitHub"
 msgstr "Buka komentar di GitHub"
 
+msgid "Open comment on GitLab"
+msgstr "Buka komentar di GitLab"
+
 msgid "Open details"
 msgstr "Buka detail"
 
@@ -10893,6 +11019,9 @@ msgstr "Buka di Finder"
 msgid "Open in GitHub"
 msgstr "Buka di GitHub"
 
+msgid "Open in GitLab"
+msgstr "Buka di GitLab"
+
 msgid "Open in Linear"
 msgstr "Buka di Linear"
 
@@ -10933,6 +11062,9 @@ msgstr "Buka issue #{0} di browser"
 msgid "Open issue in GitHub"
 msgstr "Buka issue di GitHub"
 
+msgid "Open issue in GitLab"
+msgstr "Buka issue di GitLab"
+
 msgid "Open issues"
 msgstr "Issue terbuka"
 
@@ -10957,6 +11089,21 @@ msgstr "Buka localhost:{0} di browser eksternal"
 
 msgid "Open menu"
 msgstr "Buka menu"
+
+msgid "Open merge request"
+msgstr "Buka merge request"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "Buka merge request !{0}"
+
+msgid "Open merge request options"
+msgstr "Buka opsi merge request"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "Buka MR !{0}"
 
 msgid "Open navigation"
 msgstr "Buka navigasi"
@@ -12427,6 +12574,9 @@ msgstr "Segarkan"
 msgid "Refresh GitHub issues"
 msgstr "Segarkan issue GitHub"
 
+msgid "Refresh GitLab issues"
+msgstr "Segarkan issue GitLab"
+
 msgid "Refresh metrics"
 msgstr "Segarkan metrik"
 
@@ -12688,6 +12838,9 @@ msgstr "Buka lagi"
 
 msgid "Reopen Closed Tab"
 msgstr "Buka Lagi Tab yang Ditutup"
+
+msgid "Reopen merge request"
+msgstr "Buka kembali merge request"
 
 msgid "Reopen PR"
 msgstr "Buka Lagi PR"
@@ -13085,6 +13238,9 @@ msgstr "Review Diabaikan"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Tinjau tiap kegagalan sebelum memutuskan untuk melanjutkan."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "Filter ulasan hanya tersedia untuk proyek GitHub."
+
 msgid "Review message"
 msgstr "Pesan review"
 
@@ -13105,6 +13261,9 @@ msgstr "Review diminta"
 
 msgid "Review required"
 msgstr "Review diperlukan"
+
+msgid "Review status unavailable"
+msgstr "Status tinjauan tidak tersedia"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Tinjau diff dengan penyorotan sintaks"
@@ -13530,6 +13689,12 @@ msgstr "Cari issue GitHub"
 msgid "Search GitHub issues…"
 msgstr "Cari issue GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Cari issue GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Cari issue GitLab…"
+
 msgid "Search history"
 msgstr "Cari riwayat"
 
@@ -13698,6 +13863,9 @@ msgstr "Pilih proyek dulu"
 msgid "Select a project to see GitHub issues."
 msgstr "Pilih proyek untuk melihat issue GitHub."
 
+msgid "Select a project to see GitLab issues."
+msgstr "Pilih proyek untuk melihat issue GitLab."
+
 msgid "Select a project to see pull requests."
 msgstr "Pilih proyek untuk melihat pull request."
 
@@ -13814,6 +13982,9 @@ msgstr "Pilih tim"
 
 msgid "Select terminal script directory"
 msgstr "Pilih direktori skrip terminal"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Pilih proyek issue untuk menjalankannya di workspace."
 
 msgid "Select worktree location"
 msgstr "Pilih lokasi worktree"
@@ -14500,9 +14671,8 @@ msgstr "Sebagian file melebihi ukuran maksimum dan tidak ditambahkan."
 msgid "Some models were priced with a fallback rate"
 msgstr "Sebagian model dihitung dengan tarif cadangan"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Sebagian repositori tidak bisa dimuat: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Sebagian repositori tidak bisa dimuat: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Sebagian sesi tidak bisa dimatikan"
@@ -15757,6 +15927,9 @@ msgstr "Layanan host lokal baru saja aktif. Menyambungkan kembali sekarang."
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "Mayoritas PR agen yang di-merge hanya perlu direview, tanpa suntingan manusia."
 
+msgid "The merge request is unavailable."
+msgstr "Merge request tidak tersedia."
+
 msgid "The name of your organization or team"
 msgstr "Nama organisasi atau tim Anda"
 
@@ -15827,6 +16000,12 @@ msgstr "Run dilewati karena perangkat ini tidak terhubung ke relay Superset. Oto
 
 msgid "The scorecard"
 msgstr "Kartu skor"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "Host yang dipilih tidak mendukung GitLab. Perbarui host-service-nya."
+
+msgid "The selected host is unavailable."
+msgstr "Host yang dipilih tidak tersedia."
 
 msgid "The self-driving software factory"
 msgstr "Pabrik perangkat lunak yang menyetir sendiri"
@@ -16045,6 +16224,9 @@ msgstr "Ini lebih lama dari biasanya. Sesinya mungkin sudah siap — memuat ulan
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Ini lebih lama dari biasanya. Workspace-nya mungkin sudah siap — memuat ulang bisa menampilkannya."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Issue ini bukan milik penyedia yang dipilih."
+
 msgid "This issue link is invalid."
 msgstr "Tautan issue ini tidak valid."
 
@@ -16111,6 +16293,12 @@ msgstr "Profil ini sedang sibuk"
 msgid "This project is no longer available on your devices."
 msgstr "Proyek ini sudah tidak tersedia di perangkat Anda."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Proyek ini tidak ditautkan ke repositori GitLab."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Proyek ini tidak ditautkan ke repositori GitHub."
+
 msgid "This project's host is offline"
 msgstr "Host proyek ini sedang offline"
 
@@ -16137,6 +16325,9 @@ msgstr "Ini mengganti label, perintah, argumen, pengaturan prompt dan resume, va
 
 msgid "This repository does not allow merging from here."
 msgstr "Repositori ini tidak mengizinkan merge dari sini."
+
+msgid "This request does not match the selected project."
+msgstr "Permintaan ini tidak cocok dengan proyek yang dipilih."
 
 msgid "This screen doesn't exist"
 msgstr "Layar ini tidak ada"

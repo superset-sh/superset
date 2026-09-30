@@ -14,8 +14,22 @@ type HostPullRequestContent =
 export function fromHostPullRequestContent(
 	content: HostPullRequestContent,
 ): PullRequestDetail {
+	const ref = pullRequestRefFromUrl(content.url);
+	const metadata = content as HostPullRequestContent & {
+		provider?: "github" | "gitlab";
+		instance?: string;
+		repoPath?: string;
+		authorAvatarUrl?: string | null;
+		headSha?: string | null;
+		capabilities?: PullRequestDetail["capabilities"];
+	};
 	return {
-		repoFullName: pullRequestRefFromUrl(content.url)?.repoFullName ?? "",
+		provider: metadata.provider ?? ref?.provider ?? "github",
+		instance: metadata.instance ?? ref?.instance,
+		repoPath: metadata.repoPath ?? ref?.repoPath,
+		headSha: metadata.headSha,
+		capabilities: metadata.capabilities,
+		repoFullName: ref?.repoFullName ?? "",
 		number: content.number,
 		url: content.url,
 		title: content.title,
@@ -25,18 +39,25 @@ export function fromHostPullRequestContent(
 				? content.state
 				: "open",
 		isDraft: content.isDraft,
-		author: content.author ? { login: content.author, avatarUrl: null } : null,
+		author: content.author
+			? { login: content.author, avatarUrl: metadata.authorAvatarUrl ?? null }
+			: null,
 		head: {
 			ref: content.branch,
 			// The host reports only the fork's owner, never its name, so a
 			// cross-repository head is unknown here rather than half-named.
 			repoFullName: content.isCrossRepository
 				? null
-				: (pullRequestRefFromUrl(content.url)?.repoFullName ?? null),
+				: (ref?.repoFullName ?? null),
 		},
 		base: { ref: content.baseBranch },
 		reviewDecision: null,
-		checksStatus: content.checksStatus,
+		checksStatus:
+			content.checksStatus === "success" ||
+			content.checksStatus === "failure" ||
+			content.checksStatus === "pending"
+				? content.checksStatus
+				: "none",
 		checks: content.checks,
 		createdAt: content.createdAt ?? "",
 		updatedAt: content.updatedAt ?? "",

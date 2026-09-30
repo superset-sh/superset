@@ -18,6 +18,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import {
 	PRIcon,
 	type PRState,
@@ -27,6 +28,9 @@ export interface SelectedPR {
 	title: string;
 	url: string;
 	state: string;
+	provider?: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
 }
 
 interface PRLinkCommandProps {
@@ -35,6 +39,7 @@ interface PRLinkCommandProps {
 	onSelect: (pr: SelectedPR) => void;
 	projectId: string | null;
 	hostId: string | null;
+	provider?: "github" | "gitlab";
 }
 
 function normalizeState(state: string, isDraft: boolean): string {
@@ -49,6 +54,7 @@ export function PRLinkCommand({
 	onSelect,
 	projectId,
 	hostId,
+	provider = "github",
 }: PRLinkCommandProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
@@ -65,7 +71,9 @@ export function PRLinkCommand({
 	const { data, isFetching, error } = useQuery({
 		queryKey: [
 			"workspaceCreation",
-			"searchPullRequests",
+			provider === "gitlab"
+				? "searchGitLabMergeRequests"
+				: "searchPullRequests",
 			projectId,
 			hostUrl,
 			debouncedTrimmed,
@@ -73,13 +81,17 @@ export function PRLinkCommand({
 		],
 		queryFn: async () => {
 			if (!hostUrl || !projectId) return { pullRequests: [] };
+			if (provider === "gitlab") await assertGitLabHostSupport(hostUrl);
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.workspaceCreation.searchPullRequests.query({
+			const input = {
 				projectId,
 				query: debouncedTrimmed || undefined,
 				limit: 30,
 				includeClosed: showClosed,
-			});
+			};
+			return provider === "gitlab"
+				? client.workspaceCreation.searchGitLabMergeRequests.query(input)
+				: client.workspaceCreation.searchPullRequests.query(input);
 		},
 		enabled: !!projectId && !!hostUrl && open,
 	});
@@ -117,6 +129,15 @@ export function PRLinkCommand({
 			title: pr.title,
 			url: pr.url,
 			state: normalizeState(pr.state, pr.isDraft),
+			provider,
+			instance:
+				"instance" in pr && typeof pr.instance === "string"
+					? pr.instance
+					: undefined,
+			repoPath:
+				"repoPath" in pr && typeof pr.repoPath === "string"
+					? pr.repoPath
+					: undefined,
 		});
 		setSearchQuery("");
 		setOpen(false);
@@ -214,7 +235,7 @@ export function PRLinkCommand({
 									const state = normalizeState(pr.state, pr.isDraft) as PRState;
 									return (
 										<CommandItem
-											key={pr.prNumber}
+											key={pr.url}
 											value={`${pr.prNumber}-${pr.title}`}
 											onSelect={() => handleSelect(pr)}
 											className="group items-start gap-3 rounded-md px-2.5 py-2"

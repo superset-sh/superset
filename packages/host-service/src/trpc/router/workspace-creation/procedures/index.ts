@@ -3,5 +3,7 @@ export { getRepoContributors } from "./get-repo-contributors";
 export { listProjectWorktrees } from "./list-project-worktrees";
 export { searchBranches } from "./search-branches";
 export { searchGitHubIssues } from "./search-github-issues";
+export { searchGitLabIssues } from "./search-gitlab-issues";
+export { searchGitLabMergeRequests } from "./search-gitlab-merge-requests";
 export { searchPullRequests } from "./search-pull-requests";
 export { searchRemoteBranches } from "./search-remote-branches";

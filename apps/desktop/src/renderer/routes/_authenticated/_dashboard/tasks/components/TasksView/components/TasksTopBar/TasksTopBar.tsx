@@ -36,7 +36,7 @@ export type TabValue =
 	| "started"
 	| "completed"
 	| "canceled";
-export type TaskSource = "tasks" | "issues";
+export type TaskSource = "tasks" | "issues" | "gitlab-issues";
 
 interface TasksTopBarProps {
 	currentTab: TabValue;
@@ -64,6 +64,7 @@ interface TasksTopBarProps {
 const TASK_SOURCES = [
 	{ value: "tasks" as const, Icon: SiLinear },
 	{ value: "issues" as const, Icon: GoIssueOpened },
+	{ value: "gitlab-issues" as const, Icon: GoIssueOpened },
 ] as const;
 
 export function TasksTopBar({
@@ -97,9 +98,12 @@ export function TasksTopBar({
 		issues: t({
 			message: "GitHub issues",
 		}),
+		"gitlab-issues": t({
+			message: "GitLab issues",
+		}),
 	};
 	const showTaskOnlyControls = taskSource === "tasks";
-	const showIssues = taskSource === "issues";
+	const showIssues = taskSource !== "tasks";
 	const taskSelectedCount = selectedTasks.length;
 	const issueSelectedCount = selectedIssues.length;
 	const selectedCount = showIssues ? issueSelectedCount : taskSelectedCount;
@@ -291,18 +295,18 @@ export function TasksTopBar({
 							onChange={onSearchChange}
 							placeholder={
 								showIssues
-									? t({
-											message: "Search GitHub issues…",
-										})
+									? taskSource === "gitlab-issues"
+										? t({ message: "Search GitLab issues…" })
+										: t({ message: "Search GitHub issues…" })
 									: t({
 											message: "Search tasks…",
 										})
 							}
 							label={
 								showIssues
-									? t({
-											message: "Search GitHub issues",
-										})
+									? taskSource === "gitlab-issues"
+										? t({ message: "Search GitLab issues" })
+										: t({ message: "Search GitHub issues" })
 									: t({
 											message: "Search tasks",
 										})

@@ -5,8 +5,11 @@ import {
 
 interface Project {
 	projectKey: string;
+	hostId?: string;
 	repoOwner: string | null;
 	repoName: string | null;
+	provider?: "github" | "gitlab";
+	instance?: string | null;
 }
 
 /**
@@ -17,14 +20,23 @@ interface Project {
 export function getPullRequestTarget(
 	url: string,
 	projects: readonly Project[],
-): { ref: PullRequestRef; projectId: string | null } | null {
+): { ref: PullRequestRef; projectId: string | null; hostId?: string } | null {
 	const ref = pullRequestRefFromUrl(url);
 	if (!ref) return null;
-	const [owner, name] = ref.repoFullName.split("/");
+	const segments = (ref.repoPath ?? ref.repoFullName).split("/");
+	const name = segments.pop();
+	const owner = segments.join("/");
 	const project = projects.find(
 		(candidate) =>
+			(candidate.provider ?? "github") === (ref.provider ?? "github") &&
+			(candidate.instance ?? "https://github.com").toLowerCase() ===
+				(ref.instance ?? "https://github.com").toLowerCase() &&
 			candidate.repoOwner?.toLowerCase() === owner?.toLowerCase() &&
 			candidate.repoName?.toLowerCase() === name?.toLowerCase(),
 	);
-	return { ref, projectId: project?.projectKey ?? null };
+	return {
+		ref,
+		projectId: project?.projectKey ?? null,
+		...(project?.hostId ? { hostId: project.hostId } : {}),
+	};
 }

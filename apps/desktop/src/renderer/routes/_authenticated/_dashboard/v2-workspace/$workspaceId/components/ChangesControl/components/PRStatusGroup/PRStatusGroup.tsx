@@ -15,6 +15,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { LuArrowUpRight } from "react-icons/lu";
 import {
@@ -27,6 +28,7 @@ import {
 	type PullRequestRef,
 	pullRequestRefFromUrl,
 } from "renderer/lib/github/pullRequestRef";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { computeChecksRollup } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/computeChecksStatus";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
@@ -73,7 +75,7 @@ export function PRStatusGroup({
 	onOpenPullRequest,
 }: PRStatusGroupProps) {
 	const { t } = useLingui();
-	const { workspace } = useWorkspace();
+	const { workspace, hostUrl } = useWorkspace();
 	const isSession = workspace.type === "session";
 	const pr =
 		state.kind === "pr-exists"
@@ -81,6 +83,32 @@ export function PRStatusGroup({
 			: state.kind === "busy" || state.kind === "error"
 				? state.pr
 				: null;
+	const isGitLab = pr?.provider === "gitlab";
+	const gitlabHostSupport = useQuery({
+		queryKey: ["gitlab-host-support", hostUrl],
+		queryFn: () => assertGitLabHostSupport(hostUrl),
+		enabled: isGitLab,
+		staleTime: 30_000,
+	});
+	const gitlabContentQuery = workspaceTrpc.pullRequests.getContent.useQuery(
+		{
+			projectId: workspace.projectId ?? "",
+			prNumber: pr?.number ?? 0,
+			provider: "gitlab",
+			instance: pr?.instance,
+			repoPath: pr?.repoPath,
+		},
+		{
+			enabled: isGitLab && !!workspace.projectId && gitlabHostSupport.isSuccess,
+			staleTime: 10_000,
+		},
+	);
+	const gitlabContent =
+		gitlabContentQuery.data &&
+		"provider" in gitlabContentQuery.data &&
+		gitlabContentQuery.data.provider === "gitlab"
+			? gitlabContentQuery.data
+			: null;
 
 	// Triggers a GitHub→host-service-DB sync for this workspace's PR. Without
 	// this, post-merge UI state lags by up to ~30s waiting for the next
@@ -117,6 +145,36 @@ export function PRStatusGroup({
 				}),
 				{ id: context?.toastId },
 			);
+		},
+	});
+	const gitlabMergeMutation = workspaceTrpc.pullRequests.mergePR.useMutation({
+		onMutate: () => ({
+			toastId: toast.loading(t({ message: "Merging merge request..." })),
+		}),
+		onSuccess: async (_data, _variables, context) => {
+			toast.success(t({ message: "Merge request merged" }), {
+				id: context?.toastId,
+			});
+			try {
+				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
+			} catch (error) {
+				console.warn(
+					"Failed to refresh merge request state after merge",
+					error,
+				);
+				toast.warning(
+					t({ message: "Merged, but couldn't refresh request state" }),
+				);
+			} finally {
+				onRefresh?.();
+				void gitlabContentQuery.refetch();
+			}
+		},
+		onError: (error, _variables, context) => {
+			toast.error(t({ message: `Merge failed: ${error.message}` }), {
+				id: context?.toastId,
+			});
+			void gitlabContentQuery.refetch();
 		},
 	});
 
@@ -160,6 +218,34 @@ export function PRStatusGroup({
 				);
 			},
 		});
+	const gitlabMarkReadyMutation =
+		workspaceTrpc.pullRequests.markReady.useMutation({
+			onMutate: () => ({
+				toastId: toast.loading(t({ message: "Marking ready for review..." })),
+			}),
+			onSuccess: async (_data, _variables, context) => {
+				toast.success(t({ message: "Merge request ready for review" }), {
+					id: context?.toastId,
+				});
+				try {
+					await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
+				} catch (error) {
+					console.warn(
+						"Failed to refresh merge request after marking ready",
+						error,
+					);
+				} finally {
+					onRefresh?.();
+					void gitlabContentQuery.refetch();
+				}
+			},
+			onError: (error, _variables, context) => {
+				toast.error(
+					t({ message: `Ready for review failed: ${error.message}` }),
+					{ id: context?.toastId },
+				);
+			},
+		});
 
 	const checks = useMemo(
 		() => (pr ? computeChecksRollup(pr.checks) : null),
@@ -177,14 +263,34 @@ export function PRStatusGroup({
 				: pr.state === "queued"
 					? "queued"
 					: "open";
-	const canMerge = pr.state === "open" && !pr.isDraft;
+	const canMerge = isGitLab
+		? !!workspace.projectId &&
+			gitlabContent?.capabilities.canMerge === true &&
+			!!pr.headSha &&
+			pr.headSha === gitlabContent.headSha
+		: pr.state === "open" && !pr.isDraft;
 	// A closed/merged draft can't transition to ready — GitHub rejects it.
-	const canMarkReady =
-		linkState === "draft" && pr.state !== "closed" && pr.state !== "merged";
+	const canMarkReady = isGitLab
+		? !!workspace.projectId && gitlabContent?.capabilities.canMarkReady === true
+		: linkState === "draft" && pr.state !== "closed" && pr.state !== "merged";
 	// Queued PRs are still actively running checks, so keep CI/review indicators.
 	const showIndicators = pr.state === "open" || pr.state === "queued";
 
 	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
+		if (isGitLab) {
+			if (!workspace.projectId || !pr.headSha || mergeMethod === "rebase")
+				return;
+			gitlabMergeMutation.mutate({
+				projectId: workspace.projectId,
+				prNumber: pr.number,
+				provider: "gitlab",
+				instance: pr.instance,
+				repoPath: pr.repoPath,
+				headSha: pr.headSha,
+				mergeMethod,
+			});
+			return;
+		}
 		mergePRMutation.mutate({
 			owner: pr.repoOwner,
 			repo: pr.repoName,
@@ -192,6 +298,11 @@ export function PRStatusGroup({
 			mergeMethod,
 		});
 	};
+	const isPending =
+		mergePRMutation.isPending ||
+		markReadyMutation.isPending ||
+		gitlabMergeMutation.isPending ||
+		gitlabMarkReadyMutation.isPending;
 
 	const tint = stateTintClasses(linkState);
 
@@ -206,7 +317,8 @@ export function PRStatusGroup({
 					isChangesOpen ? "text-foreground" : "text-muted-foreground",
 				)}
 			>
-				#{pr.number}
+				{isGitLab ? "!" : "#"}
+				{pr.number}
 			</span>
 			{showIndicators && <PRStatusIndicators checks={checks} />}
 		</>
@@ -222,7 +334,7 @@ export function PRStatusGroup({
 		// border and rounding; the state tint lives in this segment's fill.
 		<div
 			className={cn("flex items-center", tint.container)}
-			aria-busy={mergePRMutation.isPending || markReadyMutation.isPending}
+			aria-busy={isPending}
 		>
 			<HoverCard openDelay={150} closeDelay={120}>
 				<HoverCardTrigger asChild>
@@ -237,7 +349,9 @@ export function PRStatusGroup({
 							// The visible text is only the PR number; name the action
 							// and keep the number so the badge is still identifiable.
 							aria-label={
-								toggleLabel ? `${toggleLabel}, #${pr.number}` : undefined
+								toggleLabel
+									? `${toggleLabel}, ${isGitLab ? "!" : "#"}${pr.number}`
+									: undefined
 							}
 							onClick={onToggleChanges}
 						>
@@ -272,18 +386,18 @@ export function PRStatusGroup({
 							"flex h-full items-center px-1 outline-none transition-colors",
 							tint.hover,
 						)}
-						disabled={mergePRMutation.isPending || markReadyMutation.isPending}
+						disabled={isPending}
 						aria-label={
-							mergePRMutation.isPending
-								? t({
-										message: "Merging pull request",
-									})
-								: t({
-										message: "Open pull request options",
-									})
+							mergePRMutation.isPending || gitlabMergeMutation.isPending
+								? isGitLab
+									? t({ message: "Merging merge request" })
+									: t({ message: "Merging pull request" })
+								: isGitLab
+									? t({ message: "Open merge request options" })
+									: t({ message: "Open pull request options" })
 						}
 					>
-						{mergePRMutation.isPending || markReadyMutation.isPending ? (
+						{isPending ? (
 							<VscLoading className="size-3 animate-spin text-muted-foreground" />
 						) : (
 							<VscChevronDown className="size-3 text-muted-foreground" />
@@ -295,14 +409,25 @@ export function PRStatusGroup({
 						<>
 							<DropdownMenuItem
 								className="text-xs"
-								disabled={markReadyMutation.isPending}
-								onClick={() =>
-									markReadyMutation.mutate({
-										owner: pr.repoOwner,
-										repo: pr.repoName,
-										pullNumber: pr.number,
-									})
-								}
+								disabled={isPending}
+								onClick={() => {
+									if (isGitLab) {
+										if (!workspace.projectId) return;
+										gitlabMarkReadyMutation.mutate({
+											projectId: workspace.projectId,
+											prNumber: pr.number,
+											provider: "gitlab",
+											instance: pr.instance,
+											repoPath: pr.repoPath,
+										});
+									} else {
+										markReadyMutation.mutate({
+											owner: pr.repoOwner,
+											repo: pr.repoName,
+											pullNumber: pr.number,
+										});
+									}
+								}}
 							>
 								<VscGitPullRequest className="size-3.5" />
 								<Trans>Ready for review</Trans>
@@ -315,30 +440,40 @@ export function PRStatusGroup({
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
 								<Trans>Merge</Trans>
 							</DropdownMenuLabel>
-							<DropdownMenuItem
-								onClick={() => handleMerge("squash")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								<Trans>Squash and merge</Trans>
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => handleMerge("merge")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								<Trans>Create merge commit</Trans>
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => handleMerge("rebase")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								<Trans>Rebase and merge</Trans>
-							</DropdownMenuItem>
+							{(!isGitLab ||
+								gitlabContent?.capabilities.mergeMethods.includes(
+									"squash",
+								)) && (
+								<DropdownMenuItem
+									onClick={() => handleMerge("squash")}
+									className="text-xs"
+									disabled={isPending}
+								>
+									<VscGitMerge className="size-3.5" />
+									<Trans>Squash and merge</Trans>
+								</DropdownMenuItem>
+							)}
+							{(!isGitLab ||
+								gitlabContent?.capabilities.mergeMethods.includes("merge")) && (
+								<DropdownMenuItem
+									onClick={() => handleMerge("merge")}
+									className="text-xs"
+									disabled={isPending}
+								>
+									<VscGitMerge className="size-3.5" />
+									<Trans>Create merge commit</Trans>
+								</DropdownMenuItem>
+							)}
+							{!isGitLab && (
+								<DropdownMenuItem
+									onClick={() => handleMerge("rebase")}
+									className="text-xs"
+									disabled={isPending}
+								>
+									<VscGitMerge className="size-3.5" />
+									<Trans>Rebase and merge</Trans>
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuSeparator />
 						</>
 					)}
@@ -352,13 +487,21 @@ export function PRStatusGroup({
 							}}
 						>
 							<VscGitPullRequest className="size-3.5" />
-							<Trans>Open pull request</Trans>
+							{isGitLab ? (
+								<Trans>Open merge request</Trans>
+							) : (
+								<Trans>Open pull request</Trans>
+							)}
 						</DropdownMenuItem>
 					)}
 					<DropdownMenuItem asChild className="text-xs">
 						<a href={pr.url} target="_blank" rel="noopener noreferrer">
 							<LuArrowUpRight className="size-3.5" />
-							<Trans>View on GitHub</Trans>
+							{isGitLab ? (
+								<Trans>Open in GitLab</Trans>
+							) : (
+								<Trans>View on GitHub</Trans>
+							)}
 						</a>
 					</DropdownMenuItem>
 				</DropdownMenuContent>

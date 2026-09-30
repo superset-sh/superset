@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ViewMode = "table" | "board";
-export type TypeTab = "tasks" | "issues";
+export type TypeTab = "tasks" | "issues" | "gitlab-issues";
 export type FilterTab =
 	| "all"
 	| "active"
@@ -69,7 +69,10 @@ export function migrateTasksFilterState(
 			: {};
 	return {
 		tab: isFilterTab(state.tab) ? state.tab : "all",
-		typeTab: state.typeTab === "issues" ? "issues" : "tasks",
+		typeTab:
+			state.typeTab === "issues" || state.typeTab === "gitlab-issues"
+				? state.typeTab
+				: "tasks",
 		viewMode: state.viewMode === "board" ? "board" : "table",
 		includeClosedIssues: state.includeClosedIssues === true,
 		projectFilters: normalizeProjectFilters(
@@ -152,7 +155,7 @@ export function tasksSearchFromFilters(
 	if (projects) out.projects = projects;
 	if (filters.linearProjectFilter)
 		out.linearProject = filters.linearProjectFilter;
-	if (filters.typeTab === "issues" && filters.includeClosedIssues)
+	if (filters.typeTab !== "tasks" && filters.includeClosedIssues)
 		out.state = "all";
 	return out;
 }

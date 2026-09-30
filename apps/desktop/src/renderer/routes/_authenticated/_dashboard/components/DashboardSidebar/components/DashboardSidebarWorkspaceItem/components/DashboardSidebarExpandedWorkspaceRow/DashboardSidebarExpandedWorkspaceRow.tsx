@@ -227,9 +227,15 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												event.stopPropagation();
 											}
 										}}
-										aria-label={t({
-											message: `Open pull request #${pullRequest.number}`,
-										})}
+										aria-label={
+											pullRequest.provider === "gitlab"
+												? t({
+														message: `Open merge request !${pullRequest.number}`,
+													})
+												: t({
+														message: `Open pull request #${pullRequest.number}`,
+													})
+										}
 										className="relative mr-2 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
 									>
 										<DashboardSidebarWorkspaceIcon
@@ -262,13 +268,24 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								{pullRequest ? (
 									<>
 										<p className="text-xs font-medium">
-											<Trans>
-												PR #{pullRequest.number} —{" "}
-												{i18n._(PR_STATE_LABEL[pullRequest.state])}
-											</Trans>
+											{pullRequest.provider === "gitlab" ? (
+												<Trans>
+													MR !{pullRequest.number} —{" "}
+													{i18n._(PR_STATE_LABEL[pullRequest.state])}
+												</Trans>
+											) : (
+												<Trans>
+													PR #{pullRequest.number} —{" "}
+													{i18n._(PR_STATE_LABEL[pullRequest.state])}
+												</Trans>
+											)}
 										</p>
 										<p className="text-xs text-muted-foreground">
-											<Trans>Click to open on GitHub</Trans>
+											{pullRequest.provider === "gitlab" ? (
+												<Trans>Click to open merge request</Trans>
+											) : (
+												<Trans>Click to open on GitHub</Trans>
+											)}
 										</p>
 									</>
 								) : (

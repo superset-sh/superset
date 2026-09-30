@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. js-lingui-explicit-id
+msgid "greeting"
+msgstr "Ciao"
+
 msgid " and "
 msgstr " e "
 
@@ -41,6 +45,10 @@ msgstr "· aggiornata {updatedAgo}"
 #. placeholder {0}: automation.name
 msgid "\"{0}\" deleted"
 msgstr "\"{0}\" eliminata"
+
+#. placeholder {0}: data.title
+msgid "\"{0}\" will be closed on GitLab. You can reopen it from here."
+msgstr "\"{0}\" verrà chiusa su GitLab. Puoi riaprirla da qui."
 
 #. placeholder {0}: data.title
 msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
@@ -277,6 +285,10 @@ msgstr "{0, plural, one {Diff troncato — # riga in più sull'host} other {Diff
 msgid "{0, plural, one {Failed to close # port} other {Failed to close # ports}}"
 msgstr "{0, plural, one {Chiusura di # porta non riuscita} other {Chiusura di # porte non riuscita}}"
 
+#. placeholder {0}: hasKnownTotal ? totalCount : issues.length
+msgid "{0, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{0, plural, one {issue GitLab} other {issue GitLab}}"
+
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {Importato # workspace} other {Importati # workspace}}"
@@ -284,6 +296,10 @@ msgstr "{0, plural, one {Importato # workspace} other {Importati # workspace}}"
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Sposta # workspace selezionato in un gruppo} other {Sposta # workspace selezionati in un gruppo}}"
+
+#. placeholder {0}: hasKnownTotal ? totalCount : pullRequests.length
+msgid "{0, plural, one {pull request} other {pull requests}}"
+msgstr "{0, plural, one {pull request} other {pull request}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -1055,9 +1071,6 @@ msgstr "{total, plural, one {Il controllo è passato} other {Tutti i # controlli
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"
 
-msgid "{totalCount, plural, one {pull request} other {pull requests}}"
-msgstr "{totalCount, plural, one {pull request} other {pull request}}"
-
 msgid "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 msgstr "{totalImported, plural, one {Importato # tema personalizzato} other {Importati # temi personalizzati}}"
 
@@ -1551,6 +1564,9 @@ msgstr "Aggiungi uno script di esecuzione nelle Impostazioni del progetto oppure
 
 msgid "Add a project to see GitHub issues."
 msgstr "Aggiungi un progetto per vedere le issue GitHub."
+
+msgid "Add a project to see GitLab issues."
+msgstr "Aggiungi un progetto per vedere le issue GitLab."
 
 msgid "Add a project to see pull requests."
 msgstr "Aggiungi un progetto per vedere le pull request."
@@ -2609,6 +2625,9 @@ msgstr "Torna alla versione corrente"
 msgid "Back to GitHub issues"
 msgstr "Torna alle issue GitHub"
 
+msgid "Back to GitLab issues"
+msgstr "Torna alle issue GitLab"
+
 msgid "Back to Home"
 msgstr "Torna alla home"
 
@@ -2668,6 +2687,10 @@ msgstr "Directory di base per i nuovi worktree su {selectedHostName}."
 
 msgid "Base URL"
 msgstr "URL di base"
+
+#. placeholder {0}: draft.linkedPR.prNumber
+msgid "based off MR !{0}"
+msgstr "basata sulla MR !{0}"
 
 #. placeholder {0}: draft.linkedPR.prNumber
 #. placeholder {0}: linkedPR.prNumber
@@ -3300,8 +3323,8 @@ msgstr "Scegli una cartella"
 msgid "Choose a parent directory"
 msgstr "Scegli una directory padre"
 
-msgid "Choose a project from GitHub issues before opening an issue."
-msgstr "Scegli un progetto in Issue GitHub prima di aprire una issue."
+msgid "Choose a project before opening an issue."
+msgstr "Scegli un progetto prima di aprire una issue."
 
 msgid "Choose a project from Pull requests before opening a pull request."
 msgstr "Scegli un progetto in Pull request prima di aprire una pull request."
@@ -3465,6 +3488,9 @@ msgstr "Clicca per copiare"
 msgid "Click to copy the session ID (resume with `claude --resume <id>`)."
 msgstr "Clicca per copiare l'ID della sessione (riprendi con `claude --resume <id>`)."
 
+msgid "Click to open merge request"
+msgstr "Fai clic per aprire la richiesta di merge"
+
 msgid "Click to open on GitHub"
 msgstr "Clicca per aprire su GitHub"
 
@@ -3510,6 +3536,10 @@ msgstr "Clonazione…"
 
 msgid "Close"
 msgstr "Chiudi"
+
+#. placeholder {0}: data.number
+msgid "Close !{0}?"
+msgstr "Chiudere !{0}?"
 
 #. placeholder {0}: row.title
 msgid "Close {0}"
@@ -3561,6 +3591,9 @@ msgstr "Chiudi la barra di ricerca"
 
 msgid "Close menu"
 msgstr "Chiudi il menu"
+
+msgid "Close merge request"
+msgstr "Chiudi richiesta di merge"
 
 msgid "Close modal"
 msgstr "Chiudi la finestra"
@@ -4321,6 +4354,9 @@ msgstr "Copia il link"
 msgid "Copy Link Address"
 msgstr "Copia l'indirizzo del link"
 
+msgid "Copy link to merge request"
+msgstr "Copia il link alla richiesta di merge"
+
 msgid "Copy link to pull request"
 msgstr "Copia il link alla pull request"
 
@@ -4674,6 +4710,12 @@ msgstr "Impossibile caricare i commenti di revisione"
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Non è stato possibile caricare il tuo profilo, quindi la modifica è disattivata."
 
+msgid "Couldn't mark merge request ready"
+msgstr "Impossibile segnare la richiesta di merge come pronta"
+
+msgid "Couldn't merge merge request"
+msgstr "Impossibile unire la richiesta di merge"
+
 msgid "Couldn't merge pull request"
 msgstr "Impossibile unire la pull request"
 
@@ -4769,6 +4811,9 @@ msgstr "Impossibile togliere le modifiche dallo stage"
 msgid "Couldn't unstage file"
 msgstr "Impossibile togliere il file dallo stage"
 
+msgid "Couldn't update merge request"
+msgstr "Impossibile aggiornare la richiesta di merge"
+
 msgid "Couldn't update pull request"
 msgstr "Impossibile aggiornare la pull request"
 
@@ -4840,6 +4885,16 @@ msgstr "Crea un commit di merge"
 
 msgid "Create Merge Commit"
 msgstr "Crea un commit di merge"
+
+msgid "Create merge request"
+msgstr "Crea richiesta di merge"
+
+#. placeholder {0}: error instanceof Error ? error.message : String(error)
+msgid "Create merge request failed: {0}"
+msgstr "Creazione della richiesta di merge non riuscita: {0}"
+
+msgid "Create MR"
+msgstr "Crea MR"
 
 msgid "Create new group"
 msgstr "Crea nuovo gruppo"
@@ -4968,6 +5023,9 @@ msgstr "creazione"
 
 msgid "Creating"
 msgstr "Creazione"
+
+msgid "Creating merge request..."
+msgstr "Creazione della richiesta di merge..."
 
 msgid "Creating PR..."
 msgstr "Creazione della PR…"
@@ -7428,6 +7486,12 @@ msgstr "Nome utente GitHub..."
 msgid "GitHub username…"
 msgstr "Nome utente GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab issues"
+msgstr "Issue GitLab"
+
 msgid "Give me an example"
 msgstr "Fammi un esempio"
 
@@ -8885,6 +8949,9 @@ msgstr "Caricamento delle issue…"
 msgid "Loading members..."
 msgstr "Caricamento dei membri..."
 
+msgid "Loading merge request…"
+msgstr "Caricamento della richiesta di merge…"
+
 msgid "Loading more..."
 msgstr "Caricamento di altri..."
 
@@ -9112,6 +9179,9 @@ msgstr "Segna come non letto"
 msgid "Mark as viewed"
 msgstr "Segna come visualizzato"
 
+msgid "Mark ready"
+msgstr "Segna come pronta"
+
 msgid "Mark Ready"
 msgstr "Segna come pronta"
 
@@ -9231,6 +9301,10 @@ msgid "Merge"
 msgstr "Unisci"
 
 #. placeholder {0}: data.number
+msgid "Merge !{0}?"
+msgstr "Unire !{0}?"
+
+#. placeholder {0}: data.number
 msgid "Merge #{0}?"
 msgstr "Unire #{0}?"
 
@@ -9244,11 +9318,35 @@ msgstr "Commit di merge"
 msgid "Merge failed: {0}"
 msgstr "Merge non riuscito: {0}"
 
+msgid "Merge merge request"
+msgstr "Unisci richiesta di merge"
+
 msgid "Merge pull request"
 msgstr "Unisci la pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Unisci le pull request senza uscire da Superset, più una serie di correzioni e rifiniture alla chat."
+
+#. placeholder {0}: created.number
+msgid "Merge request !{0} created"
+msgstr "Richiesta di merge !{0} creata"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "Merge request !{0}, {1}"
+msgstr "Richiesta di merge !{0}, {1}"
+
+msgid "Merge request merged"
+msgstr "Richiesta di merge unita"
+
+msgid "Merge request ready for review"
+msgstr "Richiesta di merge pronta per la revisione"
+
+msgid "Merge request title"
+msgstr "Titolo della richiesta di merge"
+
+msgid "Merge request URL"
+msgstr "URL della richiesta di merge"
 
 msgid "Merge when checks pass"
 msgstr "Unisci quando i controlli passano"
@@ -9262,6 +9360,15 @@ msgstr "Unita da {0}"
 
 msgid "Merged, but couldn't refresh PR state — try again in a moment"
 msgstr "Unita, ma non è stato possibile aggiornare lo stato della PR — riprova tra poco"
+
+msgid "Merged, but couldn't refresh request state"
+msgstr "Unione completata, ma impossibile aggiornare lo stato della richiesta"
+
+msgid "Merging merge request"
+msgstr "Unione della richiesta di merge"
+
+msgid "Merging merge request..."
+msgstr "Unione della richiesta di merge..."
 
 msgid "Merging PR..."
 msgstr "Merge della PR in corso..."
@@ -9310,6 +9417,9 @@ msgstr "Riduci"
 
 msgid "Minimize GitHub issues"
 msgstr "Riduci le issue GitHub"
+
+msgid "Minimize GitLab issues"
+msgstr "Riduci le issue GitLab"
 
 msgid "Minimum contrast"
 msgstr "Contrasto minimo"
@@ -9465,6 +9575,16 @@ msgstr "Sposta in un gruppo"
 
 msgid "Move to Tab"
 msgstr "Sposta in una scheda"
+
+#. placeholder {0}: pullRequest.number
+#. placeholder {1}: i18n._(PR_STATE_LABEL[pullRequest.state])
+msgid "MR !{0} — {1}"
+msgstr "MR !{0} — {1}"
+
+#. placeholder {0}: workspace.pr.prNumber
+#. placeholder {1}: workspace.pr.state
+msgid "MR !{0} ({1})"
+msgstr "MR !{0} ({1})"
 
 msgid "MRR"
 msgstr "MRR"
@@ -9913,6 +10033,9 @@ msgstr "Ancora nessun commento. Attiva la modalità commento e fai clic su un el
 
 msgid "No commits on this branch yet."
 msgstr "Ancora nessun commit su questo branch."
+
+msgid "No commits to open a merge request from"
+msgstr "Nessun commit da cui aprire una richiesta di merge"
 
 msgid "No commits to open a pull request from"
 msgstr "Nessun commit da cui aprire una pull request"
@@ -10772,6 +10895,9 @@ msgstr "Apri la palette dei comandi"
 msgid "Open comment on GitHub"
 msgstr "Apri il commento su GitHub"
 
+msgid "Open comment on GitLab"
+msgstr "Apri il commento su GitLab"
+
 msgid "Open details"
 msgstr "Apri dettagli"
 
@@ -10893,6 +11019,9 @@ msgstr "Apri nel Finder"
 msgid "Open in GitHub"
 msgstr "Apri in GitHub"
 
+msgid "Open in GitLab"
+msgstr "Apri in GitLab"
+
 msgid "Open in Linear"
 msgstr "Apri in Linear"
 
@@ -10933,6 +11062,9 @@ msgstr "Apri la issue #{0} nel browser"
 msgid "Open issue in GitHub"
 msgstr "Apri la issue in GitHub"
 
+msgid "Open issue in GitLab"
+msgstr "Apri l'issue in GitLab"
+
 msgid "Open issues"
 msgstr "Issue aperte"
 
@@ -10957,6 +11089,21 @@ msgstr "Apri localhost:{0} nel browser esterno"
 
 msgid "Open menu"
 msgstr "Apri il menu"
+
+msgid "Open merge request"
+msgstr "Apri richiesta di merge"
+
+#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
+msgid "Open merge request !{0}"
+msgstr "Apri richiesta di merge !{0}"
+
+msgid "Open merge request options"
+msgstr "Apri le opzioni della richiesta di merge"
+
+#. placeholder {0}: pr.number
+msgid "Open MR !{0}"
+msgstr "Apri MR !{0}"
 
 msgid "Open navigation"
 msgstr "Apri la navigazione"
@@ -12427,6 +12574,9 @@ msgstr "Aggiorna"
 msgid "Refresh GitHub issues"
 msgstr "Aggiorna le issue GitHub"
 
+msgid "Refresh GitLab issues"
+msgstr "Aggiorna le issue GitLab"
+
 msgid "Refresh metrics"
 msgstr "Aggiorna le metriche"
 
@@ -12688,6 +12838,9 @@ msgstr "Riapri"
 
 msgid "Reopen Closed Tab"
 msgstr "Riapri la scheda chiusa"
+
+msgid "Reopen merge request"
+msgstr "Riapri richiesta di merge"
 
 msgid "Reopen PR"
 msgstr "Riapri la PR"
@@ -13085,6 +13238,9 @@ msgstr "Revisione respinta"
 msgid "Review each failure before deciding whether to continue."
 msgstr "Esamina ogni errore prima di decidere se continuare."
 
+msgid "Review filters are available for GitHub projects only."
+msgstr "I filtri di revisione sono disponibili solo per i progetti GitHub."
+
 msgid "Review message"
 msgstr "Messaggio della revisione"
 
@@ -13105,6 +13261,9 @@ msgstr "Richiesta di revisione"
 
 msgid "Review required"
 msgstr "Revisione richiesta"
+
+msgid "Review status unavailable"
+msgstr "Stato della revisione non disponibile"
 
 msgid "Review syntax-highlighted diffs"
 msgstr "Rivedi i diff con evidenziazione della sintassi"
@@ -13530,6 +13689,12 @@ msgstr "Cerca nelle issue GitHub"
 msgid "Search GitHub issues…"
 msgstr "Cerca nelle issue GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Cerca issue GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Cerca issue GitLab…"
+
 msgid "Search history"
 msgstr "Cerca nella cronologia"
 
@@ -13698,6 +13863,9 @@ msgstr "Seleziona prima un progetto"
 msgid "Select a project to see GitHub issues."
 msgstr "Seleziona un progetto per vedere le issue GitHub."
 
+msgid "Select a project to see GitLab issues."
+msgstr "Seleziona un progetto per vedere le issue GitLab."
+
 msgid "Select a project to see pull requests."
 msgstr "Seleziona un progetto per vedere le pull request."
 
@@ -13814,6 +13982,9 @@ msgstr "Seleziona i team"
 
 msgid "Select terminal script directory"
 msgstr "Seleziona la directory dello script del terminale"
+
+msgid "Select the issue's project to run it in a workspace."
+msgstr "Seleziona il progetto dell'issue per eseguirla in uno spazio di lavoro."
 
 msgid "Select worktree location"
 msgstr "Seleziona la posizione dei worktree"
@@ -14500,9 +14671,8 @@ msgstr "Alcuni file superano la dimensione massima e non sono stati aggiunti."
 msgid "Some models were priced with a fallback rate"
 msgstr "Alcuni modelli sono stati valutati con una tariffa di ripiego"
 
-#. placeholder {0}: error.message
-msgid "Some repositories could not be loaded: {0}"
-msgstr "Non è stato possibile caricare alcuni repository: {0}"
+msgid "Some repositories could not be loaded: {displayError}"
+msgstr "Impossibile caricare alcuni repository: {displayError}"
 
 msgid "Some sessions could not be killed"
 msgstr "Alcune sessioni non sono state terminate"
@@ -15757,6 +15927,9 @@ msgstr "Il servizio host locale è appena partito. Riconnessione in corso."
 msgid "The majority of merged agent PRs need review only, with zero human edits."
 msgstr "La maggior parte delle PR degli agenti unite richiede solo revisione, senza modifiche umane."
 
+msgid "The merge request is unavailable."
+msgstr "La richiesta di merge non è disponibile."
+
 msgid "The name of your organization or team"
 msgstr "Il nome della tua organizzazione o del tuo team"
 
@@ -15827,6 +16000,12 @@ msgstr "L'esecuzione è stata saltata perché questo dispositivo non è connesso
 
 msgid "The scorecard"
 msgstr "La scheda di valutazione"
+
+msgid "The selected host does not support GitLab. Update its host service."
+msgstr "L'host selezionato non supporta GitLab. Aggiorna il relativo servizio host."
+
+msgid "The selected host is unavailable."
+msgstr "L'host selezionato non è disponibile."
 
 msgid "The self-driving software factory"
 msgstr "La fabbrica di software a guida autonoma"
@@ -16045,6 +16224,9 @@ msgstr "Ci sta mettendo più del solito. La sessione potrebbe essere già pronta
 msgid "This is taking longer than usual. The workspace may already be ready — reloading can pick it up."
 msgstr "Ci sta mettendo più del solito. Il workspace potrebbe essere già pronto — ricaricare può recuperarlo."
 
+msgid "This issue does not belong to the selected provider."
+msgstr "Questa issue non appartiene al provider selezionato."
+
 msgid "This issue link is invalid."
 msgstr "Questo link alla issue non è valido."
 
@@ -16111,6 +16293,12 @@ msgstr "Questo profilo è molto richiesto in questo momento"
 msgid "This project is no longer available on your devices."
 msgstr "Questo progetto non è più disponibile sui tuoi dispositivi."
 
+msgid "This project is not linked to a GitLab repository."
+msgstr "Questo progetto non è collegato a un repository GitLab."
+
+msgid "This project isn't linked to a GitHub repository."
+msgstr "Questo progetto non è collegato a un repository GitHub."
+
 msgid "This project's host is offline"
 msgstr "L'host di questo progetto è offline"
 
@@ -16137,6 +16325,9 @@ msgstr "Questo sostituisce etichetta, comando, argomenti, impostazioni di prompt
 
 msgid "This repository does not allow merging from here."
 msgstr "Questo repository non consente il merge da qui."
+
+msgid "This request does not match the selected project."
+msgstr "Questa richiesta non corrisponde al progetto selezionato."
 
 msgid "This screen doesn't exist"
 msgstr "Questa schermata non esiste"

@@ -1,7 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import {
+	assertGitLabIdentity,
+	getGitLabMergeRequestContent,
+} from "../../../../source-control/gitlab/merge-requests";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import {
+	resolveGithubRepo,
+	resolveGitLabRepo,
+} from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
 import {
 	normalizePullRequestChecks,
@@ -11,6 +18,9 @@ import {
 const getContentInputSchema = z.object({
 	projectId: z.string(),
 	prNumber: z.number().int().positive(),
+	provider: z.enum(["github", "gitlab"]).optional(),
+	instance: z.string().optional(),
+	repoPath: z.string().optional(),
 });
 
 const ghPullRequestContentSchema = z.object({
@@ -63,6 +73,11 @@ const pullRequestContentCache = new Map<
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
+		if (input.provider === "gitlab") {
+			const identity = await resolveGitLabRepo(ctx, input.projectId);
+			assertGitLabIdentity(identity, input);
+			return getGitLabMergeRequestContent(ctx.gitlab, identity, input.prNumber);
+		}
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
 		const cached = pullRequestContentCache.get(cacheKey);

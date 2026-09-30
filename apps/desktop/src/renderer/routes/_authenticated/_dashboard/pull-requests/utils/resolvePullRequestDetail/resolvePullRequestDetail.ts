@@ -25,6 +25,7 @@ interface ResolvePullRequestDetailInput {
 	/** Whether the project list has finished loading from the user's hosts. */
 	areProjectsReady: boolean;
 	hasProject: boolean;
+	identityMatches?: boolean;
 	hostUrl: string | null;
 	isLoading: boolean;
 	error: unknown;
@@ -43,6 +44,7 @@ export function resolvePullRequestDetail({
 	projectId,
 	areProjectsReady,
 	hasProject,
+	identityMatches = true,
 	hostUrl,
 	isLoading,
 	error,
@@ -83,6 +85,15 @@ export function resolvePullRequestDetail({
 					message: i18n._(msg({ message: "Loading project…" })),
 					isLoading: true,
 				};
+	}
+	if (!identityMatches) {
+		return {
+			status: "fallback",
+			message: i18n._(
+				msg({ message: "This request does not match the selected project." }),
+			),
+			isError: true,
+		};
 	}
 	if (!hostUrl) {
 		return {

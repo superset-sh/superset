@@ -50,7 +50,7 @@ export function migratePullRequestsFilterState(
 		projectFilters: normalizeProjectFilters(
 			state.projectFilters ?? (legacyProject ? [legacyProject] : []),
 		),
-		authorFilter: normalizeAuthorFilters(state.authorFilter),
+		authorFilter: normalizeAuthorFilters(state.authorFilter, "mixed"),
 		reviewFilter: normalizePullRequestReviewFilter(state.reviewFilter),
 		includeClosed: state.includeClosed === true,
 		mergedOnly: state.mergedOnly === true,
@@ -77,7 +77,7 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 						: { projectFilters: next };
 				}),
 			setAuthorFilter: (authorFilter) =>
-				set({ authorFilter: normalizeAuthorFilters(authorFilter) }),
+				set({ authorFilter: normalizeAuthorFilters(authorFilter, "mixed") }),
 			setReviewFilter: (reviewFilter) =>
 				set({
 					reviewFilter: normalizePullRequestReviewFilter(reviewFilter),

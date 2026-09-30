@@ -56,6 +56,7 @@ export const hostRouter = router({
 			hostId: getHostId(),
 			hostName: getHostName(),
 			version: HOST_SERVICE_VERSION,
+			capabilities: { gitlab: true },
 			installSource: getHostInstallSource(),
 			organization,
 			platform: os.platform(),

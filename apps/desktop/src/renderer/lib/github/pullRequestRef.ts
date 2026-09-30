@@ -1,16 +1,43 @@
-/** A pull request by its own identity: the repository it lives in and its number. */
+import { parseRepositoryRemote } from "@superset/shared/source-control";
+
 export interface PullRequestRef {
 	repoFullName: string;
 	number: number;
+	provider?: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
 }
 
-const PULL_REQUEST_URL =
-	/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)(?:[/?#]|$)/;
-
 export function pullRequestRefFromUrl(url: string): PullRequestRef | null {
-	const match = PULL_REQUEST_URL.exec(url);
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		return null;
+	}
+	const gitlabMatch = /^(.+)\/-\/merge_requests\/(\d+)(?:\/|$)/.exec(
+		parsed.pathname,
+	);
+	const githubMatch = /^\/([^/]+\/[^/]+)\/pull\/(\d+)(?:\/|$)/.exec(
+		parsed.pathname,
+	);
+	const match = gitlabMatch ?? githubMatch;
 	if (!match?.[1] || !match[2]) return null;
-	return { repoFullName: match[1], number: Number(match[2]) };
+	const repo = parseRepositoryRemote(
+		`${parsed.origin}/${match[1].replace(/^\//, "")}`,
+		{
+			gitlabHosts: gitlabMatch ? [parsed.origin] : [],
+		},
+	);
+	if (!repo || repo.provider !== (gitlabMatch ? "gitlab" : "github"))
+		return null;
+	return {
+		repoFullName: repo.repoPath,
+		number: Number(match[2]),
+		provider: repo.provider,
+		instance: repo.instance,
+		repoPath: repo.repoPath,
+	};
 }
 
 export function isSamePullRequest(
@@ -19,6 +46,10 @@ export function isSamePullRequest(
 ): boolean {
 	return (
 		left.number === right.number &&
-		left.repoFullName.toLowerCase() === right.repoFullName.toLowerCase()
+		(left.provider ?? "github") === (right.provider ?? "github") &&
+		(left.instance ?? "https://github.com").toLowerCase() ===
+			(right.instance ?? "https://github.com").toLowerCase() &&
+		(left.repoPath ?? left.repoFullName).toLowerCase() ===
+			(right.repoPath ?? right.repoFullName).toLowerCase()
 	);
 }

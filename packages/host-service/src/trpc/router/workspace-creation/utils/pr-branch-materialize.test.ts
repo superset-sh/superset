@@ -75,6 +75,35 @@ describe("materializePrBranch", () => {
 		]);
 	});
 
+	test("same-project GitLab MR fetches the source branch and verifies its head", async () => {
+		const { git, raw } = createMockGit();
+		const result = await materializePrBranch({
+			git,
+			branch: "group/feature",
+			remoteName: "origin",
+			pr: {
+				provider: "gitlab",
+				number: 42,
+				headRefName: "feature",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: false,
+			},
+		});
+
+		expect(result).toMatchObject({
+			startPoint: EXPECTED_HEAD_OID,
+			trackingRemote: "origin",
+			trackingMergeRef: "refs/heads/feature",
+		});
+		expect(raw).toHaveBeenCalledWith([
+			"fetch",
+			"--no-tags",
+			"--quiet",
+			"origin",
+			"+refs/heads/feature:refs/remotes/origin/feature",
+		]);
+	});
+
 	test("cross-repo PR configures fork push defaults from the synthetic PR ref", async () => {
 		const { git, raw } = createMockGit();
 		const pr = {
@@ -146,6 +175,43 @@ describe("materializePrBranch", () => {
 			"--replace-all",
 			"remote.superset-pr-456.push",
 			"HEAD:refs/heads/feature/x",
+		]);
+	});
+
+	test("fork GitLab MR fetches its MR head ref and configures its source remote", async () => {
+		const { git, raw } = createMockGit();
+		const fetchRef = getSyntheticPrFetchRef(42, "gitlab");
+		const result = await materializePrBranch({
+			git,
+			branch: "group/feature",
+			remoteName: "origin",
+			pr: {
+				provider: "gitlab",
+				number: 42,
+				headRefName: "feature",
+				headRefOid: EXPECTED_HEAD_OID,
+				isCrossRepository: true,
+				headRepositoryUrl: "ssh://git@gitlab.example.com/group/fork.git",
+			},
+		});
+
+		expect(result).toMatchObject({
+			startPoint: EXPECTED_HEAD_OID,
+			trackingRemote: "superset-pr-42",
+			trackingMergeRef: "refs/heads/feature",
+		});
+		expect(raw).toHaveBeenCalledWith([
+			"fetch",
+			"--no-tags",
+			"--quiet",
+			"origin",
+			`+refs/merge-requests/42/head:${fetchRef}`,
+		]);
+		expect(raw).toHaveBeenCalledWith([
+			"remote",
+			"add",
+			"superset-pr-42",
+			"ssh://git@gitlab.example.com/group/fork.git",
 		]);
 	});
 

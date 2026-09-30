@@ -10,6 +10,7 @@ import { shouldKeepWorkItemsPlaceholder } from "renderer/routes/_authenticated/_
 
 interface PaginatedQueryData {
 	hasNextPage: boolean;
+	nextCursor?: string | null;
 }
 
 export interface PaginationTarget {
@@ -20,6 +21,7 @@ export interface PaginationTarget {
 export interface PaginatedQueryTarget<TTarget extends PaginationTarget> {
 	target: TTarget;
 	page: number;
+	cursor?: string;
 }
 
 interface MultiRepoProjectPaginationOptions<
@@ -51,13 +53,17 @@ interface MultiRepoProjectPaginationResult<
 export function buildPaginatedQueryTargets<TTarget extends PaginationTarget>(
 	targets: TTarget[],
 	pageCountByTarget: Readonly<Record<string, number>>,
+	cursorsByTarget: Readonly<
+		Record<string, Readonly<Record<number, string>>>
+	> = {},
 ): PaginatedQueryTarget<TTarget>[] {
 	return targets.flatMap((target) => {
 		const pageCount = pageCountByTarget[target.key] ?? 1;
-		return Array.from({ length: pageCount }, (_, index) => ({
-			target,
-			page: index + 1,
-		}));
+		return Array.from({ length: pageCount }, (_, index) => {
+			const page = index + 1;
+			const cursor = cursorsByTarget[target.key]?.[page];
+			return cursor ? { target, page, cursor } : { target, page };
+		});
 	});
 }
 
@@ -82,9 +88,16 @@ export function useMultiRepoProjectPagination<
 	}>({ key: paginationKey, pageCountByTarget: {} });
 	const pageCountByTarget =
 		pagination.key === paginationKey ? pagination.pageCountByTarget : {};
+	const [cursorState, setCursorState] = useState<{
+		key: string;
+		byTarget: Record<string, Record<number, string>>;
+	}>({ key: paginationKey, byTarget: {} });
+	const cursorsByTarget =
+		cursorState.key === paginationKey ? cursorState.byTarget : {};
 	const queryTargets = useMemo(
-		() => buildPaginatedQueryTargets(targets, pageCountByTarget),
-		[pageCountByTarget, targets],
+		() =>
+			buildPaginatedQueryTargets(targets, pageCountByTarget, cursorsByTarget),
+		[pageCountByTarget, targets, cursorsByTarget],
 	);
 	// Keep the previous rows for the same target visible while a changed
 	// search/filter refetches, instead of blanking the list to a spinner.
@@ -106,6 +119,30 @@ export function useMultiRepoProjectPagination<
 		queries: queryOptions,
 		combine: combineQueryResults,
 	});
+	useEffect(() => {
+		setCursorState((current) => {
+			const byTarget = current.key === paginationKey ? current.byTarget : {};
+			let next = byTarget;
+			queries.forEach((query, index) => {
+				const cursor = query.data?.nextCursor;
+				const target = queryTargets[index];
+				if (
+					!cursor ||
+					!target ||
+					byTarget[target.target.key]?.[target.page + 1] === cursor
+				)
+					return;
+				if (next === byTarget) next = { ...byTarget };
+				next[target.target.key] = {
+					...next[target.target.key],
+					[target.page + 1]: cursor,
+				};
+			});
+			return current.key === paginationKey && next === byTarget
+				? current
+				: { key: paginationKey, byTarget: next };
+		});
+	}, [queries, queryTargets, paginationKey]);
 	const isFetching = queries.some((query) => query.isFetching);
 	const error = queries.find((query) => query.error)?.error ?? null;
 	const latestTargetQueries = targets.map((target) => {

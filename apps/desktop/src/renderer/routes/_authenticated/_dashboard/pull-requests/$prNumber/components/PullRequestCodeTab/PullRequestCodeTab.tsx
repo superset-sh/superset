@@ -17,6 +17,7 @@ import {
 	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	createPierreTreeStyle,
@@ -39,6 +40,7 @@ interface PullRequestCodeTabProps {
 	projectId: string;
 	prNumber: number;
 	prUrl: string;
+	headSha?: string | null;
 	hostUrl: string;
 	hostId: string | null;
 }
@@ -58,6 +60,7 @@ interface PrCommentThreadMetadata {
 	 *  onto it regardless of which comment they target. Undefined only if
 	 *  GitHub ever returns a thread with zero comments (shouldn't happen). */
 	replyToCommentId?: number;
+	discussionId?: string;
 	comments: PrCommentThreadComment[];
 	isResolved: boolean;
 	isOutdated: boolean;
@@ -133,6 +136,7 @@ const CHANGE_TYPE_TO_PIERRE_STATUS: Record<string, PierreGitStatus> = {
 interface ParsedFileDiff {
 	item: CodeViewItem<PrAnnotationMetadata>;
 	path: string;
+	prevName?: string;
 	status: PierreGitStatus;
 	additions: number;
 	deletions: number;
@@ -154,6 +158,7 @@ function parseFileDiffs(patch: string): ParsedFileDiff[] {
 			return {
 				item: { id: `${fileDiff.name}-${index}`, type: "diff", fileDiff },
 				path: fileDiff.name,
+				prevName: fileDiff.prevName,
 				status: CHANGE_TYPE_TO_PIERRE_STATUS[fileDiff.type] ?? "modified",
 				additions,
 				deletions,
@@ -176,6 +181,7 @@ export function PullRequestCodeTab({
 	projectId,
 	prNumber,
 	prUrl,
+	headSha,
 	hostUrl,
 	hostId,
 }: PullRequestCodeTabProps) {
@@ -282,12 +288,31 @@ export function PullRequestCodeTab({
 		[],
 	);
 	const queryClient = useQueryClient();
+	const requestRef = pullRequestRefFromUrl(prUrl);
+	const provider = requestRef?.provider ?? "github";
+	const requestIdentity = {
+		provider: "gitlab" as const,
+		instance: requestRef?.instance ?? "",
+		repoPath: requestRef?.repoPath ?? "",
+		projectId,
+		prNumber,
+	};
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: ["pull-request-diff", projectId, hostUrl, prNumber],
+		queryKey: [
+			"pull-request-diff",
+			provider,
+			requestIdentity.instance,
+			requestIdentity.repoPath,
+			projectId,
+			hostUrl,
+			prNumber,
+		],
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getDiff.query({ projectId, prNumber });
+			return provider === "gitlab"
+				? client.pullRequests.getDiff.query(requestIdentity)
+				: client.pullRequests.getDiff.query({ projectId, prNumber });
 		},
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -295,6 +320,9 @@ export function PullRequestCodeTab({
 
 	const threadsQueryKey = [
 		"pull-request-threads",
+		provider,
+		requestIdentity.instance,
+		requestIdentity.repoPath,
 		projectId,
 		hostUrl,
 		prNumber,
@@ -303,7 +331,9 @@ export function PullRequestCodeTab({
 		queryKey: threadsQueryKey,
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getThreads.query({ projectId, prNumber });
+			return provider === "gitlab"
+				? client.pullRequests.getThreads.query(requestIdentity)
+				: client.pullRequests.getThreads.query({ projectId, prNumber });
 		},
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -353,7 +383,12 @@ export function PullRequestCodeTab({
 	const setThreadResolution = useMutation({
 		mutationFn: async (input: { threadId: string; resolved: boolean }) => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.setThreadResolution.mutate(input);
+			return provider === "gitlab"
+				? client.pullRequests.setThreadResolution.mutate({
+						...requestIdentity,
+						...input,
+					})
+				: client.pullRequests.setThreadResolution.mutate(input);
 		},
 		onMutate: (input) => {
 			setPendingResolveThreadIds((prev) => new Set(prev).add(input.threadId));
@@ -380,24 +415,36 @@ export function PullRequestCodeTab({
 		},
 	});
 	const [pendingReplyCommentIds, setPendingReplyCommentIds] = useState<
-		ReadonlySet<number>
+		ReadonlySet<string>
 	>(new Set());
 	const replyToThread = useMutation({
-		mutationFn: async (input: { commentId: number; body: string }) => {
+		mutationFn: async (input: {
+			commentId?: number;
+			discussionId?: string;
+			body: string;
+			targetKey: string;
+		}) => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.replyToThread.mutate({
-				projectId,
-				prNumber,
-				...input,
-			});
+			return provider === "gitlab"
+				? client.pullRequests.replyToThread.mutate({
+						...requestIdentity,
+						discussionId: input.discussionId ?? "",
+						body: input.body,
+					})
+				: client.pullRequests.replyToThread.mutate({
+						projectId,
+						prNumber,
+						commentId: input.commentId ?? 0,
+						body: input.body,
+					});
 		},
 		onMutate: (input) => {
-			setPendingReplyCommentIds((prev) => new Set(prev).add(input.commentId));
+			setPendingReplyCommentIds((prev) => new Set(prev).add(input.targetKey));
 		},
 		onSettled: (_data, _error, input) => {
 			setPendingReplyCommentIds((prev) => {
 				const next = new Set(prev);
-				next.delete(input.commentId);
+				next.delete(input.targetKey);
 				return next;
 			});
 		},
@@ -417,6 +464,9 @@ export function PullRequestCodeTab({
 	});
 	const linkedWorkspaceQueryKey = [
 		"pull-request-linked-workspace",
+		provider,
+		requestIdentity.instance,
+		requestIdentity.repoPath,
 		projectId,
 		hostUrl,
 		prNumber,
@@ -425,10 +475,9 @@ export function PullRequestCodeTab({
 		queryKey: linkedWorkspaceQueryKey,
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getLinkedWorkspace.query({
-				projectId,
-				prNumber,
-			});
+			return provider === "gitlab"
+				? client.pullRequests.getLinkedWorkspace.query(requestIdentity)
+				: client.pullRequests.getLinkedWorkspace.query({ projectId, prNumber });
 		},
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -495,6 +544,11 @@ export function PullRequestCodeTab({
 					id: crypto.randomUUID(),
 					projectId,
 					pr: prNumber,
+					prProvider: provider,
+					prInstance:
+						provider === "gitlab" ? requestIdentity.instance : undefined,
+					prRepoPath:
+						provider === "gitlab" ? requestIdentity.repoPath : undefined,
 					agents: [{ agent: input.target.configId, prompt: text }],
 				},
 			});
@@ -521,6 +575,38 @@ export function PullRequestCodeTab({
 			);
 		},
 	});
+	const publishComment = useMutation({
+		mutationFn: async (input: {
+			body: string;
+			path: string;
+			oldPath?: string;
+			line: number;
+			side: "LEFT" | "RIGHT";
+		}) => {
+			if (!headSha) throw new Error("Merge request head SHA is unavailable.");
+			return getHostServiceClientByUrl(hostUrl).pullRequests.addComment.mutate({
+				...requestIdentity,
+				body: input.body,
+				position: {
+					path: input.path,
+					oldPath: input.oldPath,
+					line: input.line,
+					side: input.side,
+					headSha,
+				},
+			});
+		},
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: threadsQueryKey });
+			toast.success(t({ message: "Comment added" }));
+			closeComposer();
+		},
+		onError: (mutationError) => {
+			toast.error(t({ message: "Couldn't send comment" }), {
+				description: errorMessage(mutationError),
+			});
+		},
+	});
 
 	const annotationsByPath = useMemo(() => {
 		const map = new Map<
@@ -538,11 +624,12 @@ export function PullRequestCodeTab({
 					kind: "thread",
 					threadId: thread.id,
 					replyToCommentId: firstCommentDbId,
+					discussionId: provider === "gitlab" ? thread.id : undefined,
 					isResolved: thread.isResolved,
 					isOutdated: thread.isOutdated,
 					url: firstCommentDbId
-						? `${prUrl}#discussion_r${firstCommentDbId}`
-						: undefined,
+						? `${prUrl}#${provider === "gitlab" ? "note_" : "discussion_r"}${firstCommentDbId}`
+						: prUrl,
 					comments: thread.comments.map((comment) => ({
 						id: comment.id,
 						authorLogin: comment.author.login,
@@ -557,7 +644,7 @@ export function PullRequestCodeTab({
 			map.set(thread.path, list);
 		}
 		return map;
-	}, [threadsData, prUrl]);
+	}, [threadsData, prUrl, provider]);
 
 	const parsedPatch = useMemo(() => {
 		try {
@@ -950,6 +1037,22 @@ export function PullRequestCodeTab({
 										hostUrl={hostUrl}
 										linkedWorkspaceId={linkedWorkspaceId}
 										onCancel={closeComposer}
+										onPublish={
+											provider === "gitlab" && headSha
+												? async (body) => {
+														await publishComment.mutateAsync({
+															body,
+															path: metadata.path,
+															oldPath: fileByPath.get(metadata.path)?.prevName,
+															line: metadata.endLine,
+															side:
+																metadata.endSide === "deletions"
+																	? "LEFT"
+																	: "RIGHT",
+														});
+													}
+												: undefined
+										}
 										onSubmit={async ({ comment, target }) => {
 											await sendCommentToAgent.mutateAsync({
 												comment,
@@ -984,14 +1087,28 @@ export function PullRequestCodeTab({
 									)}
 									onReply={(body) => {
 										const commentId = metadata.replyToCommentId;
+										if (provider === "gitlab") {
+											if (!metadata.discussionId) return false;
+											replyToThread.mutate({
+												discussionId: metadata.discussionId,
+												body,
+												targetKey: metadata.discussionId,
+											});
+											return true;
+										}
 										if (!commentId) return false;
-										replyToThread.mutate({ commentId, body });
+										replyToThread.mutate({
+											commentId,
+											body,
+											targetKey: String(commentId),
+										});
 										return true;
 									}}
-									isReplyPending={
-										metadata.replyToCommentId != null &&
-										pendingReplyCommentIds.has(metadata.replyToCommentId)
-									}
+									isReplyPending={pendingReplyCommentIds.has(
+										provider === "gitlab"
+											? (metadata.discussionId ?? "")
+											: String(metadata.replyToCommentId ?? ""),
+									)}
 									focusTick={isFocused ? focusTick : undefined}
 								/>
 							);

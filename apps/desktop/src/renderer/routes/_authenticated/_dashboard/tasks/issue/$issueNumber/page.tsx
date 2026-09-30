@@ -5,9 +5,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { assertGitLabHostSupport } from "renderer/lib/host-service-gitlab";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
@@ -31,13 +33,42 @@ function IssueDetailPage() {
 	const { issueNumber: issueNumberRaw } = Route.useParams();
 	const issueNumber = parsePositiveIntegerParam(issueNumberRaw);
 	const search = TasksLayoutRoute.useSearch();
+	const provider = search.type === "gitlab-issues" ? "gitlab" : "github";
 	const navigate = useNavigate();
 	const projectId = search.project ?? null;
 	const {
-		hostId,
+		hostId: preferredHostId,
 		isReady: areProjectsReady,
 		project,
 	} = useProjectHost(projectId);
+	const { hostResults } = useHostProjects();
+	const requestedHostId = search.host ?? null;
+	const hostId = requestedHostId ?? preferredHostId;
+	const hostProject = hostResults
+		.find((result) => result.target.machineId === hostId)
+		?.rows?.find((row) => row.id === projectId);
+	const hostMatches =
+		!requestedHostId || project?.hostIds.includes(requestedHostId) === true;
+	const hostIdentityReady = !requestedHostId || !!hostProject;
+	const identityMatches =
+		!project ||
+		(hostProject
+			? (hostProject.provider ?? "github") === provider
+			: requestedHostId
+				? true
+				: (project.provider ?? "github") === provider);
+	const issueInstance =
+		search.instance ??
+		hostProject?.instance ??
+		(requestedHostId ? null : (project?.instance ?? null));
+	const issueRepoPath =
+		search.repoPath ??
+		[
+			hostProject?.repoOwner ?? (requestedHostId ? null : project?.repoOwner),
+			hostProject?.repoName ?? (requestedHostId ? null : project?.repoName),
+		]
+			.filter(Boolean)
+			.join("/");
 	const hostUrl = useHostUrl(hostId ?? undefined);
 	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
 	const selectProject = useNewWorkspaceDraftStore(
@@ -54,7 +85,7 @@ function IssueDetailPage() {
 				tab: search.tab ?? "all",
 				assignee: search.assignee ?? null,
 				search: search.search ?? "",
-				typeTab: "issues",
+				typeTab: provider === "gitlab" ? "gitlab-issues" : "issues",
 				projectFilters: resolveProjectFilterParams(search.projects, null, []),
 				linearProjectFilter: search.linearProject ?? null,
 				includeClosedIssues: search.state === "all",
@@ -66,20 +97,52 @@ function IssueDetailPage() {
 			search.projects,
 			search.state,
 			search.tab,
+			provider,
 		],
 	);
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: ["issue-detail", projectId, hostUrl, issueNumber],
+		queryKey: [
+			"issue-detail",
+			provider,
+			projectId,
+			hostId,
+			hostUrl,
+			issueInstance,
+			issueRepoPath,
+			issueNumber,
+		],
 		queryFn: async () => {
-			if (!hostUrl || !projectId || issueNumber === null) return null;
+			if (
+				!hostUrl ||
+				!project ||
+				!identityMatches ||
+				!hostMatches ||
+				!hostIdentityReady ||
+				!projectId ||
+				issueNumber === null
+			)
+				return null;
+			if (provider === "gitlab") await assertGitLabHostSupport(hostUrl);
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.issues.getContent.query({
-				projectId,
-				issueNumber,
-			});
+			return provider === "gitlab"
+				? client.issues.getContent.query({
+						provider: "gitlab",
+						projectId,
+						issueNumber,
+						instance: issueInstance ?? "",
+						repoPath: issueRepoPath,
+					})
+				: client.issues.getContent.query({ projectId, issueNumber });
 		},
-		enabled: !!hostUrl && !!project && !!projectId && issueNumber !== null,
+		enabled:
+			!!hostUrl &&
+			!!project &&
+			identityMatches &&
+			hostMatches &&
+			hostIdentityReady &&
+			!!projectId &&
+			issueNumber !== null,
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});
@@ -89,19 +152,24 @@ function IssueDetailPage() {
 	};
 
 	const handleAddToWorkspace = () => {
-		if (!projectId || !hostId || !data) return;
+		if (!project || !projectId || !hostId || !data) return;
 		const linkedIssue: LinkedIssue = {
-			slug: `gh-${data.number}`,
+			slug: `${provider === "gitlab" ? "gl" : "gh"}-${projectId}-${data.number}`,
 			title: data.title,
-			source: "github",
+			source: provider,
 			url: data.url,
 			number: data.number,
 			state: data.state.toLowerCase() === "closed" ? "closed" : "open",
+			projectId,
+			hostId,
+			instance: issueInstance ?? undefined,
+			repoPath: issueRepoPath,
+			body: data.body,
 		};
 		resetDraft();
 		selectProject(projectId);
 		updateDraft({ hostId, linkedIssues: [linkedIssue] });
-		openNewWorkspace(projectId);
+		openNewWorkspace(projectId, hostId);
 	};
 
 	const isClosed = data?.state.toLowerCase() === "closed";
@@ -111,12 +179,16 @@ function IssueDetailPage() {
 		<WorkItemDetailHeader
 			itemNumber={data?.number ?? issueNumber}
 			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
-			backLabel={t({
-				message: "Back to GitHub issues",
-			})}
-			externalLabel={t({
-				message: "Open issue in GitHub",
-			})}
+			backLabel={
+				provider === "gitlab"
+					? t({ message: "Back to GitLab issues" })
+					: t({ message: "Back to GitHub issues" })
+			}
+			externalLabel={
+				provider === "gitlab"
+					? t({ message: "Open issue in GitLab" })
+					: t({ message: "Open issue in GitHub" })
+			}
 			url={data?.url ?? null}
 			onBack={handleBack}
 			onAddToWorkspace={data ? handleAddToWorkspace : null}
@@ -143,8 +215,7 @@ function IssueDetailPage() {
 				{header}
 				<WorkItemDetailState
 					message={t({
-						message:
-							"Choose a project from GitHub issues before opening an issue.",
+						message: "Choose a project before opening an issue.",
 					})}
 				/>
 			</div>
@@ -165,6 +236,52 @@ function IssueDetailPage() {
 							: t({
 									message: "Loading project…",
 								})
+					}
+					isLoading={!areProjectsReady}
+					isError={areProjectsReady}
+				/>
+			</div>
+		);
+	}
+
+	if (!identityMatches) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={t({
+						message: "This issue does not belong to the selected provider.",
+					})}
+					isError
+				/>
+			</div>
+		);
+	}
+
+	if (!hostMatches) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={t({
+						message: "This request does not match the selected project.",
+					})}
+					isError
+				/>
+			</div>
+		);
+	}
+	if (!hostIdentityReady) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={
+						areProjectsReady
+							? t({
+									message: "The device that hosts this project is unavailable.",
+								})
+							: t({ message: "Loading project…" })
 					}
 					isLoading={!areProjectsReady}
 					isError={areProjectsReady}

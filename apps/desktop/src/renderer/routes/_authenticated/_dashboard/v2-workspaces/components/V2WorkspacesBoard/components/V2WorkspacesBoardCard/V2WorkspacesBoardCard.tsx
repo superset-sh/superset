@@ -149,7 +149,8 @@ function BoardCardBody({
 			<div className="mt-2 flex items-center gap-1.5">
 				{workspace.pr ? (
 					<span className={PILL_CLASS}>
-						<PRIcon state={workspace.pr.state} className="size-3" />#
+						<PRIcon state={workspace.pr.state} className="size-3" />
+						{workspace.pr.provider === "gitlab" ? "!" : "#"}
 						{workspace.pr.prNumber}
 						<WorkspaceChecksDot
 							status={workspace.pr.checksStatus}

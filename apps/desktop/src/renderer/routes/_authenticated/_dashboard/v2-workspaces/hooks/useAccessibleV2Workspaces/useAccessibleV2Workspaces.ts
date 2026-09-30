@@ -43,7 +43,8 @@ export type V2WorkspacePrState =
 export type V2WorkspacePrReviewDecision =
 	| "approved"
 	| "changes_requested"
-	| "pending";
+	| "pending"
+	| "unknown";
 
 export type V2WorkspacePrChecksStatus =
 	| "none"
@@ -53,6 +54,9 @@ export type V2WorkspacePrChecksStatus =
 
 export interface V2WorkspacePrSummary {
 	prNumber: number;
+	provider: "github" | "gitlab";
+	instance?: string;
+	repoPath?: string;
 	title: string;
 	url: string;
 	state: V2WorkspacePrState;
@@ -172,7 +176,11 @@ function workspaceMatchesSearch(
 		workspace.branch.toLowerCase().includes(query) ||
 		workspace.hostName.toLowerCase().includes(query) ||
 		(workspace.createdByName ?? "").toLowerCase().includes(query) ||
-		(workspace.pr ? `#${workspace.pr.prNumber}`.includes(query) : false) ||
+		(workspace.pr
+			? `${workspace.pr.provider === "gitlab" ? "!" : "#"}${workspace.pr.prNumber}`.includes(
+					query,
+				)
+			: false) ||
 		(workspace.pr?.title.toLowerCase().includes(query) ?? false)
 	);
 }
@@ -534,6 +542,7 @@ export function useAccessibleV2Workspaces(
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
+					acceptedProviders: ["github", "gitlab"],
 				});
 			},
 		})),
@@ -555,11 +564,16 @@ export function useAccessibleV2Workspaces(
 					row.workspaceId,
 					{
 						prNumber: pr.number,
+						provider: pr.provider ?? "github",
+						instance: pr.instance,
+						repoPath: pr.repoPath,
 						title: pr.title,
 						url: pr.url,
 						state: pr.state,
 						checksStatus: pr.checksStatus,
-						reviewDecision: pr.reviewDecision ?? "pending",
+						reviewDecision:
+							pr.reviewDecision ??
+							(pr.provider === "gitlab" ? "unknown" : "pending"),
 						checks: pr.checks.map((check) => ({
 							name: check.name,
 							status: check.status,

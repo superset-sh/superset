@@ -16,20 +16,28 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 	const { workspace, hostUrl } = useWorkspace();
 	const organizationId = useActiveOrganizationId();
 	const { projects, isReady: projectsReady } = useHostProjects();
+	const provider = ref.provider ?? "github";
 	const project = projects.find(
 		(candidate) => candidate.id === workspace.projectId,
 	);
 	const hostHasRepo =
+		(project?.provider ?? "github") === provider &&
 		!!project?.repoOwner &&
 		!!project.repoName &&
 		`${project.repoOwner}/${project.repoName}`.toLowerCase() ===
-			ref.repoFullName.toLowerCase();
+			(ref.repoPath ?? ref.repoFullName).toLowerCase() &&
+		(provider === "github" ||
+			project.instance?.toLowerCase() === ref.instance?.toLowerCase());
+	const useHost = provider === "gitlab" || hostHasRepo;
 
 	const fromHost = usePullRequestDetail({
-		projectId: hostHasRepo ? (workspace.projectId ?? null) : null,
-		hostUrl: hostHasRepo ? hostUrl : null,
+		projectId: useHost ? (workspace.projectId ?? null) : null,
+		hostUrl: useHost ? hostUrl : null,
 		prNumber: ref.number,
-		enabled: hostHasRepo,
+		provider,
+		instance: ref.instance,
+		repoPath: ref.repoPath ?? ref.repoFullName,
+		enabled: useHost,
 	});
 	const fromApi = cloudTrpc.integration.github.getPullRequest.useQuery(
 		{
@@ -39,10 +47,14 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 		},
 		{
 			// Until the projects have answered, which path applies is unknown.
-			enabled: projectsReady && !hostHasRepo && organizationId !== null,
+			enabled:
+				provider === "github" &&
+				projectsReady &&
+				!hostHasRepo &&
+				organizationId !== null,
 			staleTime: 30_000,
 			refetchOnWindowFocus: true,
 		},
 	);
-	return hostHasRepo ? fromHost : fromApi;
+	return useHost ? fromHost : fromApi;
 }

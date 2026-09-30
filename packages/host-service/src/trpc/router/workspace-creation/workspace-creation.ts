@@ -5,6 +5,8 @@ import {
 	listProjectWorktrees,
 	searchBranches,
 	searchGitHubIssues,
+	searchGitLabIssues,
+	searchGitLabMergeRequests,
 	searchPullRequests,
 	searchRemoteBranches,
 } from "./procedures";
@@ -15,6 +17,8 @@ export const workspaceCreationRouter = router({
 	getRepoContributors,
 	listProjectWorktrees,
 	searchGitHubIssues,
+	searchGitLabIssues,
+	searchGitLabMergeRequests,
 	searchPullRequests,
 	searchRemoteBranches,
 });

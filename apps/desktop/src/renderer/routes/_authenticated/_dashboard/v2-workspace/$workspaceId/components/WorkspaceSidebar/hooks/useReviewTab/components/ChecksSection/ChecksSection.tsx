@@ -16,6 +16,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { CHECK_STATUS_ICONS } from "renderer/routes/_authenticated/_dashboard/utils/checkStatusIcons";
 import type { NormalizedCheck, NormalizedPR } from "../../types";
 
@@ -150,8 +151,11 @@ function CheckRow({
 		check.status === "failure" &&
 		!!check.url &&
 		URL.canParse(check.url) &&
-		new URL(check.url).hostname === "github.com" &&
-		/\/job\/\d+/.test(check.url);
+		((new URL(check.url).hostname === "github.com" &&
+			/\/job\/\d+/.test(check.url)) ||
+			(pullRequestRefFromUrl(prUrl)?.provider === "gitlab" &&
+				new URL(check.url).origin === new URL(prUrl).origin &&
+				/\/-\/jobs\/\d+/.test(check.url)));
 
 	const rowContent = (
 		<div className="flex min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
@@ -223,6 +227,7 @@ function CopyLogsButton({
 			const { logs } = await utils.git.getCheckJobLogs.fetch({
 				workspaceId,
 				detailsUrl,
+				acceptedProviders: ["github", "gitlab"],
 			});
 			await navigator.clipboard.writeText(logs);
 			setState("copied");

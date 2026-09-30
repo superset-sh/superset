@@ -60,6 +60,25 @@ describe("tasksSearchFromFilters", () => {
 		});
 	});
 
+	test("preserves GitLab Issue context across detail navigation", () => {
+		expect(
+			tasksSearchFromFilters({
+				tab: "all",
+				assignee: null,
+				search: "#42",
+				typeTab: "gitlab-issues",
+				projectFilters: ["gitlab-project"],
+				linearProjectFilter: null,
+				includeClosedIssues: true,
+			}),
+		).toEqual({
+			search: "#42",
+			type: "gitlab-issues",
+			projects: "gitlab-project",
+			state: "all",
+		});
+	});
+
 	test("does not leak the issue state filter into Linear tasks", () => {
 		expect(
 			tasksSearchFromFilters({
@@ -79,6 +98,14 @@ describe("tasksSearchFromFilters", () => {
 });
 
 describe("migrateTasksFilterState", () => {
+	test("restores GitLab as a distinct issue source", () => {
+		expect(migrateTasksFilterState({ typeTab: "gitlab-issues" }).typeTab).toBe(
+			"gitlab-issues",
+		);
+		expect(migrateTasksFilterState({ typeTab: "issues" }).typeTab).toBe(
+			"issues",
+		);
+	});
 	test("moves legacy PR tabs back to Tasks and defaults issue state safely", () => {
 		expect(
 			migrateTasksFilterState({

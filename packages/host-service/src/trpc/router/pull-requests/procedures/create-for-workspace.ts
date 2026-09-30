@@ -3,18 +3,23 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../../db/schema";
 import { createGitEnvResolver } from "../../../../runtime/git";
+import { gitLabProjectApiPath } from "../../../../source-control/gitlab/merge-requests";
 import { getHostWorkerPool } from "../../../../workers/host-worker-pool";
 import { gitPrHeadBaseTask } from "../../../../workers/tasks/git";
 import { protectedProcedure } from "../../../index";
 import { resolveWorktreePath } from "../../git/utils/resolve-worktree";
 import { actionRejectionError } from "../../github/github";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import {
+	resolveGithubRepo,
+	resolveGitLabRepo,
+} from "../../workspace-creation/shared/project-helpers";
 
 const createInputSchema = z.object({
 	workspaceId: z.string(),
 	title: z.string().trim().min(1),
 	body: z.string().optional(),
 	draft: z.boolean().default(false),
+	provider: z.enum(["github", "gitlab"]).optional(),
 });
 
 /**
@@ -68,6 +73,33 @@ export const createForWorkspace = protectedProcedure
 			});
 		}
 
+		if (input.provider === "gitlab") {
+			const identity = await resolveGitLabRepo(ctx, workspace.projectId);
+			const result = await ctx.gitlab.api<{ iid: number; web_url: string }>(
+				identity,
+				`${gitLabProjectApiPath(identity)}/merge_requests`,
+				{
+					method: "POST",
+					fields: {
+						source_branch: head,
+						target_branch: base,
+						title: input.draft ? `Draft: ${input.title}` : input.title,
+						...(input.body ? { description: input.body } : {}),
+					},
+				},
+			);
+			try {
+				await ctx.runtime.pullRequests.refreshPullRequestsByWorkspaces([
+					input.workspaceId,
+				]);
+			} catch (error) {
+				console.warn(
+					"[pull-requests:create-for-workspace] created MR but failed to refresh workspace link",
+					error,
+				);
+			}
+			return { number: result.iid, url: result.web_url };
+		}
 		const repo = await resolveGithubRepo(ctx, workspace.projectId);
 		const octokit = await ctx.github();
 		let created: { number: number; html_url: string };

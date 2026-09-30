@@ -7,6 +7,8 @@ import type { PageWatchManager } from "./page-watch/index.ts";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider, GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import type { ExecGlab } from "./source-control/gitlab/exec-glab";
+import type { GitLabClient } from "./source-control/gitlab/gitlab";
 import type { TerminalAgentStore } from "./terminal-agents";
 import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
 
@@ -23,6 +25,8 @@ export interface HostServiceContext {
 	credentials: GitCredentialProvider;
 	github: () => Promise<Octokit>;
 	execGh: ExecGh;
+	gitlab: GitLabClient;
+	execGlab: ExecGlab;
 	api: ApiClient;
 	db: HostDb;
 	runtime: HostServiceRuntime;

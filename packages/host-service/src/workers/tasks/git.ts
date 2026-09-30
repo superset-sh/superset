@@ -13,6 +13,7 @@ import {
 	readWorkspaceRefs,
 	type WorkspaceRefsSnapshot,
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
+import { configuredGitLabSshHosts } from "../../source-control/gitlab/exec-glab.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
 import { buildDiffPatch } from "../../trpc/router/git/utils/diff-patch.ts";
@@ -262,13 +263,17 @@ export const gitDiffSideBlobTask = defineWorkerTask<
 });
 
 export const gitWorkspaceRefsTask = defineWorkerTask<
-	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{ worktreePath: string; gitEnv: GitTaskEnv; gitlabHosts?: string[] },
 	WorkspaceRefsSnapshot
 >({
 	type: "git/readWorkspaceRefs",
-	handler: async ({ worktreePath, gitEnv }) => {
+	handler: async ({ worktreePath, gitEnv, gitlabHosts }) => {
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
-		return readWorkspaceRefs(git);
+		return readWorkspaceRefs(
+			git,
+			gitlabHosts,
+			configuredGitLabSshHosts(gitEnv),
+		);
 	},
 });
 

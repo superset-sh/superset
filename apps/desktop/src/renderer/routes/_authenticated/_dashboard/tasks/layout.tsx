@@ -11,8 +11,11 @@ export type TasksSearch = {
 		| "canceled";
 	assignee?: string;
 	search?: string;
-	type?: "tasks" | "prs" | "issues";
+	type?: "tasks" | "prs" | "issues" | "gitlab-issues";
 	project?: string;
+	host?: string;
+	instance?: string;
+	repoPath?: string;
 	projects?: string;
 	linearProject?: string;
 	state?: "open" | "all";
@@ -34,10 +37,15 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			: undefined,
 		assignee: typeof search.assignee === "string" ? search.assignee : undefined,
 		search: typeof search.search === "string" ? search.search : undefined,
-		type: ["tasks", "prs", "issues"].includes(search.type as string)
+		type: ["tasks", "prs", "issues", "gitlab-issues"].includes(
+			search.type as string,
+		)
 			? (search.type as TasksSearch["type"])
 			: undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
+		host: typeof search.host === "string" ? search.host : undefined,
+		instance: typeof search.instance === "string" ? search.instance : undefined,
+		repoPath: typeof search.repoPath === "string" ? search.repoPath : undefined,
 		projects: typeof search.projects === "string" ? search.projects : undefined,
 		linearProject:
 			typeof search.linearProject === "string"

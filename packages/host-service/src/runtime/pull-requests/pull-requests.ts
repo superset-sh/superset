@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseRepositoryRemote } from "@superset/shared/source-control";
 import { and, eq, inArray, isNull } from "drizzle-orm";
+import { z } from "zod";
 import type { HostDb } from "../../db";
 import {
 	projects,
@@ -12,6 +14,20 @@ import {
 } from "../../db/schema";
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
+import {
+	configuredGitLabSshHosts,
+	GitLabError,
+} from "../../source-control/gitlab/exec-glab";
+import type { GitLabClient } from "../../source-control/gitlab/gitlab";
+import {
+	type GitLabMergeRequest,
+	gitLabMergeRequestSchema,
+	mapGitLabChecksStatus,
+	mapGitLabMergeRequestState,
+	mapGitLabPipelineStatus,
+} from "../../source-control/gitlab/merge-requests";
+import { getToolEnvironment } from "../../terminal/clean-shell-env";
+import { getAllRemoteUrls } from "../../trpc/router/project/utils/git-remote";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
 import {
@@ -92,9 +108,26 @@ function upstreamKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
-type RepoProvider = "github";
+function remoteCandidateOrigin(remote: string): string | null {
+	const scp = remote.includes("://")
+		? null
+		: /^(?:[^@\s/:]+@)?(?<host>[^\s/:]+):[^\s]+$/.exec(remote.trim());
+	if (scp?.groups?.host) return `https://${scp.groups.host}`;
+	try {
+		const url = new URL(remote);
+		if (!["https:", "http:", "ssh:"].includes(url.protocol)) return null;
+		return url.protocol === "ssh:" ? `https://${url.host}` : url.origin;
+	} catch {
+		return null;
+	}
+}
+
+type RepoProvider = "github" | "gitlab";
 
 export interface PullRequestStateSnapshot {
+	provider: RepoProvider;
+	instance: string;
+	repoPath: string;
 	url: string;
 	number: number;
 	title: string;
@@ -114,6 +147,9 @@ export interface PullRequestWorkspaceSnapshot {
 }
 
 export interface WorkspacePullRequestHistoryEntry {
+	provider: RepoProvider;
+	instance: string;
+	repoPath: string;
 	repoOwner: string;
 	repoName: string;
 	number: number;
@@ -144,17 +180,23 @@ export interface PullRequestRuntimeManagerOptions {
 	execGh: ExecGh;
 	git: GitFactory;
 	github: () => Promise<Octokit>;
+	gitlab?: GitLabClient;
 	gitWatcher: GitWatcher;
 	/** Override to run the per-workspace branch/HEAD/upstream read off the
 	 * event loop (app wiring passes a worker-pool-backed reader). Defaults
 	 * to reading in-process via `git`. */
-	readWorkspaceRefs?: (worktreePath: string) => Promise<WorkspaceRefsSnapshot>;
+	readWorkspaceRefs?: (
+		worktreePath: string,
+		gitlabHosts?: string[],
+	) => Promise<WorkspaceRefsSnapshot>;
 	/** Test seam for the missing-worktree gate. Defaults to `existsSync`. */
 	worktreeExists?: (worktreePath: string) => boolean;
 }
 
 interface NormalizedRepoIdentity {
 	provider: RepoProvider;
+	instance: string;
+	projectNumericId?: number;
 	owner: string;
 	name: string;
 	url: string;
@@ -222,6 +264,7 @@ export class PullRequestRuntimeManager {
 	private readonly execGh: ExecGh;
 	private readonly git: GitFactory;
 	private readonly github: () => Promise<Octokit>;
+	private readonly gitlab: GitLabClient | undefined;
 	private readonly gitWatcher: GitWatcher;
 	private safetyNetTimer: ReturnType<typeof setInterval> | null = null;
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -268,8 +311,23 @@ export class PullRequestRuntimeManager {
 			consecutiveFailures: number;
 		}
 	>();
+	private readonly gitLabBranchCache = new Map<
+		string,
+		{
+			promise: Promise<GitLabMergeRequest[]>;
+			fetchedAt: number;
+			failures: number;
+		}
+	>();
+	private readonly gitLabInstanceBackoff = new Map<string, number>();
+	private readonly gitLabProjectPathCache = new Map<string, string>();
+	private readonly gitLabConcurrency = new Map<
+		string,
+		{ active: number; waiters: Array<() => void> }
+	>();
 	private readonly readWorkspaceRefs: (
 		worktreePath: string,
+		gitlabHosts?: string[],
 	) => Promise<WorkspaceRefsSnapshot>;
 	private readonly worktreeExists: (worktreePath: string) => boolean;
 	// Worktrees deleted out from under us (external `rm`, crashed teardown).
@@ -285,10 +343,12 @@ export class PullRequestRuntimeManager {
 		this.execGh = options.execGh;
 		this.git = options.git;
 		this.github = options.github;
+		this.gitlab = options.gitlab;
 		this.gitWatcher = options.gitWatcher;
 		this.readWorkspaceRefs =
 			options.readWorkspaceRefs ??
-			(async (worktreePath) => readWorkspaceRefs(await this.git(worktreePath)));
+			(async (worktreePath, gitlabHosts) =>
+				readWorkspaceRefs(await this.git(worktreePath), gitlabHosts));
 		this.worktreeExists = options.worktreeExists ?? existsSync;
 	}
 
@@ -382,6 +442,10 @@ export class PullRequestRuntimeManager {
 		const rows = this.db
 			.select({
 				workspaceId: workspaces.id,
+				pullRequestProvider: pullRequests.repoProvider,
+				pullRequestInstance: pullRequests.repoInstance,
+				pullRequestOwner: pullRequests.repoOwner,
+				pullRequestRepo: pullRequests.repoName,
 				pullRequestUrl: pullRequests.url,
 				pullRequestNumber: pullRequests.prNumber,
 				pullRequestTitle: pullRequests.title,
@@ -405,6 +469,10 @@ export class PullRequestRuntimeManager {
 				row.pullRequestNumber !== null &&
 				row.pullRequestNumber !== undefined
 					? {
+							provider:
+								row.pullRequestProvider === "gitlab" ? "gitlab" : "github",
+							instance: row.pullRequestInstance ?? "https://github.com",
+							repoPath: `${row.pullRequestOwner}/${row.pullRequestRepo}`,
 							url: row.pullRequestUrl,
 							number: row.pullRequestNumber,
 							title: row.pullRequestTitle ?? "",
@@ -433,6 +501,18 @@ export class PullRequestRuntimeManager {
 		return this.githubGate.status();
 	}
 
+	getGitLabStatus(): Array<{
+		instance: string;
+		available: boolean;
+		retryAt: string | null;
+	}> {
+		return [...this.gitLabInstanceBackoff].map(([instance, until]) => ({
+			instance,
+			available: Date.now() >= until,
+			retryAt: Date.now() < until ? new Date(until).toISOString() : null,
+		}));
+	}
+
 	/**
 	 * Every PR each workspace has ever been linked to, currently-linked one
 	 * first and then newest link first. Suppressed ("Remove PR Link") PRs stay
@@ -449,6 +529,8 @@ export class PullRequestRuntimeManager {
 				linkedAt: workspacePullRequests.linkedAt,
 				currentPullRequestId: workspaces.pullRequestId,
 				pullRequestRowId: pullRequests.id,
+				repoProvider: pullRequests.repoProvider,
+				repoInstance: pullRequests.repoInstance,
 				repoOwner: pullRequests.repoOwner,
 				repoName: pullRequests.repoName,
 				prNumber: pullRequests.prNumber,
@@ -477,6 +559,9 @@ export class PullRequestRuntimeManager {
 		const byWorkspace = new Map<string, WorkspacePullRequestHistoryEntry[]>();
 		for (const row of rows) {
 			const entry: WorkspacePullRequestHistoryEntry = {
+				provider: row.repoProvider === "gitlab" ? "gitlab" : "github",
+				instance: row.repoInstance,
+				repoPath: `${row.repoOwner}/${row.repoName}`,
 				repoOwner: row.repoOwner,
 				repoName: row.repoName,
 				number: row.prNumber,
@@ -761,8 +846,17 @@ export class PullRequestRuntimeManager {
 		}
 		this.noteWorktreePresent(workspace.id);
 		try {
+			const project =
+				this.gitlab && workspace.projectId
+					? this.db.query.projects
+							.findFirst({
+								where: eq(projects.id, workspace.projectId),
+							})
+							.sync()
+					: null;
 			const { branch, headSha, upstream } = await this.readWorkspaceRefs(
 				workspace.worktreePath,
+				project?.repoInstance ? [project.repoInstance] : [],
 			);
 			if (!branch) return null;
 
@@ -1018,6 +1112,57 @@ export class PullRequestRuntimeManager {
 		if (!project) return null;
 
 		let identity: Omit<NormalizedRepoIdentity, "defaultBranch">;
+		if (project.repoProvider === "gitlab" && this.gitlab) {
+			const git = await this.git(project.repoPath);
+			const rawRemotes = await getAllRemoteUrls(git);
+			const gitlabSshHosts = configuredGitLabSshHosts(
+				await getToolEnvironment(),
+			);
+			const names = [
+				...new Set([
+					...(project.remoteName ? [project.remoteName] : []),
+					"origin",
+					...rawRemotes.keys(),
+				]),
+			];
+			for (const name of names) {
+				const remote = rawRemotes.get(name);
+				if (!remote) continue;
+				let parsed = parseRepositoryRemote(remote, {
+					gitlabHosts: project.repoInstance ? [project.repoInstance] : [],
+					gitlabSshHosts,
+				});
+				if (!parsed) {
+					const candidateOrigin = remoteCandidateOrigin(remote);
+					if (!candidateOrigin) continue;
+					const candidate = parseRepositoryRemote(remote, {
+						gitlabHosts: [candidateOrigin],
+						gitlabSshHosts,
+					});
+					if (candidate?.provider !== "gitlab") continue;
+					try {
+						await this.gitlab.getProject(candidate);
+						parsed = candidate;
+					} catch {
+						continue;
+					}
+				}
+				if (parsed?.provider !== "gitlab") continue;
+				const numericProject = await this.gitlab.getProject(parsed);
+				identity = {
+					provider: "gitlab",
+					instance: parsed.instance,
+					projectNumericId: numericProject.id,
+					owner: parsed.owner,
+					name: parsed.name,
+					url: parsed.url,
+					remoteName: name,
+				};
+				const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
+				return { ...identity, defaultBranch };
+			}
+			return null;
+		}
 		if (
 			project.repoProvider === "github" &&
 			project.repoOwner &&
@@ -1027,6 +1172,7 @@ export class PullRequestRuntimeManager {
 		) {
 			identity = {
 				provider: "github",
+				instance: "https://github.com",
 				owner: project.repoOwner,
 				name: project.repoName,
 				url: project.repoUrl,
@@ -1064,7 +1210,11 @@ export class PullRequestRuntimeManager {
 				.where(eq(projects.id, projectId))
 				.run();
 
-			identity = { ...parsedRemote, remoteName };
+			identity = {
+				...parsedRemote,
+				instance: "https://github.com",
+				remoteName,
+			};
 		}
 
 		const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
@@ -1114,6 +1264,7 @@ export class PullRequestRuntimeManager {
 			.findFirst({
 				where: and(
 					eq(pullRequests.repoProvider, repo.provider),
+					eq(pullRequests.repoInstance, repo.instance),
 					eq(pullRequests.repoOwner, repo.owner),
 					eq(pullRequests.repoName, repo.name),
 					eq(pullRequests.prNumber, prNumber),
@@ -1179,6 +1330,7 @@ export class PullRequestRuntimeManager {
 		const data = {
 			projectId,
 			repoProvider: repo.provider,
+			repoInstance: repo.instance,
 			repoOwner: repo.owner,
 			repoName: repo.name,
 			prNumber,
@@ -1508,6 +1660,204 @@ export class PullRequestRuntimeManager {
 		);
 	}
 
+	private async runGitLabLimited<T>(
+		instance: string,
+		operation: () => Promise<T>,
+	): Promise<T> {
+		const semaphore = this.gitLabConcurrency.get(instance) ?? {
+			active: 0,
+			waiters: [],
+		};
+		this.gitLabConcurrency.set(instance, semaphore);
+		if (semaphore.active >= 4) {
+			await new Promise<void>((resolve) => semaphore.waiters.push(resolve));
+		}
+		semaphore.active += 1;
+		try {
+			return await operation();
+		} finally {
+			semaphore.active -= 1;
+			semaphore.waiters.shift()?.();
+		}
+	}
+
+	private getGitLabMergeRequestsByBranch(
+		repo: NormalizedRepoIdentity,
+		branch: string,
+		options: { bypassCache?: boolean },
+	): Promise<GitLabMergeRequest[]> {
+		const cacheKey = `${repo.instance}/${repo.owner}/${repo.name}#${branch}`;
+		const cached = this.gitLabBranchCache.get(cacheKey);
+		if (
+			!options.bypassCache &&
+			cached &&
+			Date.now() - cached.fetchedAt <
+				Math.min(
+					REPO_PULL_REQUEST_CACHE_TTL_MS * 2 ** cached.failures,
+					REPO_PULL_REQUEST_CACHE_MAX_TTL_MS,
+				)
+		) {
+			return cached.promise;
+		}
+		const entry = {
+			promise: Promise.resolve([] as GitLabMergeRequest[]),
+			fetchedAt: Date.now(),
+			failures: cached?.failures ?? 0,
+		};
+		entry.promise = this.runGitLabLimited(repo.instance, async () => {
+			if (!this.gitlab || !repo.projectNumericId) return [];
+			const heldUntil = this.gitLabInstanceBackoff.get(repo.instance) ?? 0;
+			if (!options.bypassCache && Date.now() < heldUntil) {
+				throw new GitLabError("RATE_LIMIT", repo.instance);
+			}
+			const params = new URLSearchParams({
+				state: "all",
+				scope: "all",
+				source_branch: branch,
+				per_page: "30",
+				order_by: "updated_at",
+				sort: "desc",
+			});
+			try {
+				const result = await this.gitlab.api<unknown>(
+					{ instance: repo.instance },
+					`projects/${repo.projectNumericId}/merge_requests?${params}`,
+				);
+				this.gitLabInstanceBackoff.delete(repo.instance);
+				return z.array(gitLabMergeRequestSchema).parse(result);
+			} catch (error) {
+				if (error instanceof GitLabError && error.kind === "RATE_LIMIT") {
+					this.gitLabInstanceBackoff.set(repo.instance, Date.now() + 60_000);
+				}
+				throw error;
+			}
+		});
+		entry.promise.then(
+			() => {
+				entry.failures = 0;
+			},
+			() => {
+				entry.failures += 1;
+				entry.fetchedAt = Date.now();
+			},
+		);
+		this.gitLabBranchCache.set(cacheKey, entry);
+		return entry.promise;
+	}
+
+	private async getGitLabSourceProjectPath(
+		repo: NormalizedRepoIdentity,
+		projectId: number | null | undefined,
+	): Promise<string | null> {
+		const client = this.gitlab;
+		if (!projectId || !client) return null;
+		if (projectId === repo.projectNumericId)
+			return `${repo.owner}/${repo.name}`;
+		const cacheKey = `${repo.instance}:${projectId}`;
+		const cached = this.gitLabProjectPathCache.get(cacheKey);
+		if (cached) return cached;
+		const source = await this.runGitLabLimited(repo.instance, () =>
+			client.api<{ path_with_namespace: string }>(
+				{ instance: repo.instance },
+				`projects/${projectId}`,
+			),
+		);
+		this.gitLabProjectPathCache.set(cacheKey, source.path_with_namespace);
+		return source.path_with_namespace;
+	}
+
+	private async fetchGitLabRepoPullRequests(
+		projectId: string,
+		repo: NormalizedRepoIdentity,
+		wantedRefs: Map<string, GitHubPullRequestHeadRef>,
+		options: { bypassCache?: boolean },
+	): Promise<{
+		matched: Map<string, { id: string }>;
+		failedKeys: Set<string>;
+	}> {
+		const matched = new Map<string, { id: string }>();
+		const failedKeys = new Set<string>();
+		if (!this.gitlab || !repo.projectNumericId) return { matched, failedKeys };
+		await Promise.all(
+			[...wantedRefs].map(async ([key, head]) => {
+				try {
+					const requests = await this.getGitLabMergeRequestsByBranch(
+						repo,
+						head.branch,
+						options,
+					);
+					for (const request of requests) {
+						const sourcePath = await this.getGitLabSourceProjectPath(
+							repo,
+							request.source_project_id,
+						);
+						if (!sourcePath || !request.sha) continue;
+						const slash = sourcePath.lastIndexOf("/");
+						const requestKey = upstreamKey(
+							sourcePath.slice(0, slash),
+							sourcePath.slice(slash + 1),
+							request.source_branch,
+						);
+						if (requestKey !== key) continue;
+						const existing = this.findPullRequestRow(repo, request.iid);
+						const pipeline = request.head_pipeline;
+						const checks: PullRequestCheck[] = pipeline
+							? [
+									{
+										name: "Pipeline",
+										status: mapGitLabPipelineStatus(pipeline.status),
+										url: pipeline.web_url ?? null,
+									},
+								]
+							: [];
+						const state = mapGitLabMergeRequestState(request.state);
+						const mergedAt = request.merged_at
+							? Date.parse(request.merged_at)
+							: NaN;
+						const rowId = this.upsertPullRequestRow({
+							existing,
+							projectId,
+							repo,
+							prNumber: request.iid,
+							url: request.web_url,
+							title: request.title,
+							state:
+								state === "open" && (request.draft ?? request.work_in_progress)
+									? "draft"
+									: state,
+							isDraft: request.draft ?? request.work_in_progress ?? false,
+							headBranch: request.source_branch,
+							headSha: request.sha,
+							mergedAt: Number.isFinite(mergedAt) ? mergedAt : null,
+							reviewDecision: null,
+							checksStatus: pipeline
+								? mapGitLabChecksStatus(pipeline.status)
+								: "none",
+							checksJson: JSON.stringify(checks),
+							lastFetchedAt: Date.now(),
+							error: null,
+							now: Date.now(),
+						});
+						matched.set(key, { id: rowId });
+						break;
+					}
+				} catch (error) {
+					failedKeys.add(key);
+					console.warn(
+						"[host-service:pull-request-runtime] GitLab merge request lookup failed",
+						{
+							projectId,
+							instance: repo.instance,
+							branch: head.branch,
+							error,
+						},
+					);
+				}
+			}),
+		);
+		return { matched, failedKeys };
+	}
+
 	private async fetchRepoPullRequests(
 		projectId: string,
 		repo: NormalizedRepoIdentity,
@@ -1517,6 +1867,14 @@ export class PullRequestRuntimeManager {
 		matched: Map<string, { id: string }>;
 		failedKeys: Set<string>;
 	}> {
+		if (repo.provider === "gitlab") {
+			return this.fetchGitLabRepoPullRequests(
+				projectId,
+				repo,
+				wantedRefs,
+				options,
+			);
+		}
 		const matched = new Map<string, { id: string }>();
 		const failedKeys = new Set<string>();
 		if (wantedRefs.size === 0) return { matched, failedKeys };

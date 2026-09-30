@@ -1,3 +1,8 @@
+import {
+	parseRepositoryRemote,
+	type RepositoryIdentity,
+} from "./source-control";
+
 /** The one vocabulary every surface renders a pull request from. */
 
 export type PullRequestState = "open" | "closed" | "merged";
@@ -26,6 +31,7 @@ export interface PullRequestCheck {
 
 /** A pull request by its own identity, with what a detail view renders. */
 export interface PullRequestDetail {
+	identity?: RepositoryIdentity;
 	repoFullName: string;
 	number: number;
 	url: string;
@@ -45,4 +51,15 @@ export interface PullRequestDetail {
 	checks: PullRequestCheck[];
 	createdAt: string;
 	updatedAt: string;
+}
+
+export function normalizePullRequestIdentity(
+	detail: Pick<PullRequestDetail, "identity" | "repoFullName">,
+): RepositoryIdentity {
+	if (detail.identity) return detail.identity;
+	const parsed = parseRepositoryRemote(
+		`https://github.com/${detail.repoFullName}`,
+	);
+	if (!parsed) throw new Error("Invalid GitHub repository identity");
+	return parsed;
 }

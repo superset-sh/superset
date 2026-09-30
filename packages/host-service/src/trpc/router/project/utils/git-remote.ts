@@ -2,9 +2,27 @@ import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
 } from "@superset/shared/github-remote";
+import {
+	type ParseRepositoryRemoteOptions,
+	parseRepositoryRemote,
+	type RepositoryIdentity,
+} from "@superset/shared/source-control";
 import type { SimpleGit } from "simple-git";
 
 export type { ParsedGitHubRemote };
+
+export async function getSourceControlRemotes(
+	git: SimpleGit,
+	options?: ParseRepositoryRemoteOptions,
+): Promise<Map<string, RepositoryIdentity>> {
+	const rawRemotes = await getAllRemoteUrls(git);
+	const parsed = new Map<string, RepositoryIdentity>();
+	for (const [name, url] of rawRemotes) {
+		const identity = parseRepositoryRemote(url, options);
+		if (identity) parsed.set(name, identity);
+	}
+	return parsed;
+}
 
 /**
  * Map of remote name → URL, read from git config.

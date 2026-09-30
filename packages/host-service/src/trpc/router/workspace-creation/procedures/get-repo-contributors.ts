@@ -1,11 +1,16 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { gitLabProjectApiPath } from "../../../../source-control/gitlab/merge-requests";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../shared/project-helpers";
+import {
+	resolveGithubRepo,
+	resolveGitLabRepo,
+} from "../shared/project-helpers";
 import { execGh } from "../utils/exec-gh";
 
 const getRepoContributorsInputSchema = z.object({
 	projectId: z.string(),
+	provider: z.enum(["github", "gitlab"]).optional(),
 });
 
 const ghContributorSchema = z.object({
@@ -34,6 +39,35 @@ const repoContributorsCache = new Map<
 export const getRepoContributors = protectedProcedure
 	.input(getRepoContributorsInputSchema)
 	.query(async ({ ctx, input }): Promise<RepoContributor[]> => {
+		if (input.provider === "gitlab") {
+			const identity = await resolveGitLabRepo(ctx, input.projectId);
+			const cacheKey = `${identity.instance}/${identity.repoPath}/users`;
+			const cached = repoContributorsCache.get(cacheKey);
+			if (
+				cached &&
+				Date.now() - cached.fetchedAt < REPO_CONTRIBUTORS_CACHE_TTL_MS
+			) {
+				return cached.promise;
+			}
+			const promise = ctx.gitlab
+				.api<unknown>(
+					identity,
+					`${gitLabProjectApiPath(identity)}/users?per_page=100`,
+				)
+				.then((raw) =>
+					z
+						.array(z.object({ username: z.string() }))
+						.parse(raw)
+						.map((user) => ({ login: user.username })),
+				);
+			repoContributorsCache.set(cacheKey, { promise, fetchedAt: Date.now() });
+			promise.catch(() => {
+				if (repoContributorsCache.get(cacheKey)?.promise === promise) {
+					repoContributorsCache.delete(cacheKey);
+				}
+			});
+			return promise;
+		}
 		const repo = await resolveGithubRepo(ctx, input.projectId);
 		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		const cached = repoContributorsCache.get(cacheKey);

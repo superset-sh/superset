@@ -84,6 +84,7 @@ export async function createFromClone(
 		args.url,
 		args.parentDir,
 		ctx.credentials,
+		ctx.gitlab,
 	);
 	return persistFromResolved(ctx, {
 		name: args.name,
@@ -100,10 +101,11 @@ export async function createFromClone(
 async function resolveOrInitLocalRepo(
 	repoPath: string,
 	initIfNeeded: boolean,
+	gitlab: HostServiceContext["gitlab"],
 ): Promise<ResolvedRepo> {
-	if (!initIfNeeded) return resolveLocalRepo(repoPath);
+	if (!initIfNeeded) return resolveLocalRepo(repoPath, gitlab);
 	const root = await tryRevParseGitRoot(repoPath);
-	return root ? resolveLocalRepo(root) : initLocalRepoInPlace(repoPath);
+	return root ? resolveLocalRepo(root, gitlab) : initLocalRepoInPlace(repoPath);
 }
 
 export async function createFromImportLocal(
@@ -113,6 +115,7 @@ export async function createFromImportLocal(
 	const resolved = await resolveOrInitLocalRepo(
 		args.repoPath,
 		args.initIfNeeded ?? false,
+		ctx.gitlab,
 	);
 
 	// Idempotency guard: importing a repo that is already a project on this

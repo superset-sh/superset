@@ -89,9 +89,9 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 	// still one hover away instead of gone outright.
 	const rowTitle = [
 		workspace.pr
-			? t({
-					message: `PR #${workspace.pr.prNumber} (${workspace.pr.state})`,
-				})
+			? workspace.pr.provider === "gitlab"
+				? t({ message: `MR !${workspace.pr.prNumber} (${workspace.pr.state})` })
+				: t({ message: `PR #${workspace.pr.prNumber} (${workspace.pr.state})` })
 			: null,
 		workspace.type !== "session" &&
 		workspace.branch.toLowerCase() !== workspace.name.toLowerCase()
@@ -198,9 +198,15 @@ export const V2WorkspaceRow = memo(function V2WorkspaceRow({
 								});
 								void navigateToV2Workspace(workspace.id, navigate);
 							}}
-							aria-label={t({
-								message: `Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`,
-							})}
+							aria-label={
+								workspace.pr.provider === "gitlab"
+									? t({
+											message: `Merge request !${workspace.pr.prNumber}, ${workspace.pr.state}`,
+										})
+									: t({
+											message: `Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`,
+										})
+							}
 							className="shrink-0"
 						>
 							<PRIcon state={workspace.pr.state} className="size-3.5" />
