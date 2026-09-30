@@ -27,6 +27,7 @@ import { applyShellEnvToProcess } from "lib/trpc/routers/workspaces/utils/shell-
 import { env as mainEnv } from "main/env.main";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_SHOW_TRAY_ICON,
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
@@ -273,6 +274,15 @@ function getConfirmOnQuitSetting(): boolean {
 		return row?.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 	} catch {
 		return DEFAULT_CONFIRM_ON_QUIT;
+	}
+}
+
+function getShowTrayIconSetting(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.showTrayIcon ?? DEFAULT_SHOW_TRAY_ICON;
+	} catch {
+		return DEFAULT_SHOW_TRAY_ICON;
 	}
 }
 
@@ -616,7 +626,9 @@ if (!gotTheLock) {
 			restoreWindows,
 		);
 		setupAutoUpdater();
-		initTray();
+		if (getShowTrayIconSetting()) {
+			initTray();
+		}
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {

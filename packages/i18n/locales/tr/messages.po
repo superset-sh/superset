@@ -14233,8 +14233,14 @@ msgstr "Oturumları göster"
 msgid "Show status and send notifications for this agent."
 msgstr "Bu ajan için durum göster ve bildirim gönder."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "Superset simgesini macOS menü çubuğunda göster. Gizliyken bile ana makine hizmetleri çalışmaya devam eder."
+
 msgid "Show translation"
 msgstr "Çeviriyi göster"
+
+msgid "Show tray icon"
+msgstr "Tepsi simgesini göster"
 
 msgid "Show usage tab on sidebar"
 msgstr "Kenar çubuğunda kullanım sekmesini göster"

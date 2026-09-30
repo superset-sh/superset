@@ -43,6 +43,12 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
 		visibleItems,
 	);
+	const showTrayIcon = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_SHOW_TRAY_ICON,
+		visibleItems,
+	);
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isMac = platform === "darwin";
 
 	const utils = electronTrpc.useUtils();
 	const changesOpenTarget = useSettings((s) => s.changesOpenTarget);
@@ -70,6 +76,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
 	};
+
+	const { data: showTrayIconEnabled, isLoading: isTrayIconLoading } =
+		electronTrpc.settings.getShowTrayIcon.useQuery();
+	const setShowTrayIcon = electronTrpc.settings.setShowTrayIcon.useMutation({
+		onMutate: async ({ enabled }) => {
+			await utils.settings.getShowTrayIcon.cancel();
+			const previous = utils.settings.getShowTrayIcon.getData();
+			utils.settings.getShowTrayIcon.setData(undefined, enabled);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getShowTrayIcon.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getShowTrayIcon.invalidate();
+		},
+	});
 
 	const { data: resourceMonitorEnabled, isLoading: isResourceMonitorLoading } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
@@ -205,6 +230,35 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				)}
 
 				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
+
+			{isMac && showTrayIcon && (
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label htmlFor="show-tray-icon" className="text-sm font-medium">
+							<HighlightText
+								text={t({
+									message: "Show tray icon",
+								})}
+								query={searchQuery}
+							/>
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							<Trans>
+								Show the Superset icon in the macOS menu bar. Host services
+								keep running when it is hidden.
+							</Trans>
+						</p>
+					</div>
+					<Switch
+						id="show-tray-icon"
+						checked={showTrayIconEnabled ?? true}
+						onCheckedChange={(enabled) =>
+							setShowTrayIcon.mutate({ enabled })
+						}
+						disabled={isTrayIconLoading || setShowTrayIcon.isPending}
+					/>
+				</div>
+			)}
 			</div>
 		</div>
 	);

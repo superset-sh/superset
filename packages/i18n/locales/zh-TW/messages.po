@@ -14233,8 +14233,14 @@ msgstr "顯示會話"
 msgid "Show status and send notifications for this agent."
 msgstr "為此代理程式顯示狀態併發送通知。"
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "在 macOS 選單列中顯示 Superset 圖示。隱藏後主機服務仍繼續執行。"
+
 msgid "Show translation"
 msgstr "顯示譯文"
+
+msgid "Show tray icon"
+msgstr "顯示托盤圖示"
 
 msgid "Show usage tab on sidebar"
 msgstr "在側邊欄顯示用量分頁"

@@ -14233,8 +14233,14 @@ msgstr "Hiện phiên"
 msgid "Show status and send notifications for this agent."
 msgstr "Hiển thị trạng thái và gửi thông báo cho agent này."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "Hiển thị biểu tượng Superset trên thanh menu macOS. Các dịch vụ máy chủ vẫn chạy khi nó bị ẩn."
+
 msgid "Show translation"
 msgstr "Xem bản dịch"
+
+msgid "Show tray icon"
+msgstr "Hiển thị biểu tượng khay"
 
 msgid "Show usage tab on sidebar"
 msgstr "Hiển thị thẻ mức sử dụng trên thanh bên"

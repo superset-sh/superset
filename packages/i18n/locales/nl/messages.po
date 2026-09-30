@@ -14233,8 +14233,14 @@ msgstr "Sessies tonen"
 msgid "Show status and send notifications for this agent."
 msgstr "Status tonen en meldingen sturen voor deze agent."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "Toon het Superset-pictogram in de macOS-menubalk. Hostservices blijven actief wanneer het verborgen is."
+
 msgid "Show translation"
 msgstr "Vertaling tonen"
+
+msgid "Show tray icon"
+msgstr "Pictogram in menubalk tonen"
 
 msgid "Show usage tab on sidebar"
 msgstr "Gebruikstabblad tonen in zijbalk"

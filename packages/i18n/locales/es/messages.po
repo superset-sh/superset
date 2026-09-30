@@ -14233,8 +14233,14 @@ msgstr "Mostrar las sesiones"
 msgid "Show status and send notifications for this agent."
 msgstr "Muestra el estado y envía notificaciones para este agente."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "Muestra el icono de Superset en la barra de menús de macOS. Los servicios del host siguen ejecutándose aunque esté oculto."
+
 msgid "Show translation"
 msgstr "Ver la traducción"
+
+msgid "Show tray icon"
+msgstr "Mostrar icono en la barra de menús"
 
 msgid "Show usage tab on sidebar"
 msgstr "Mostrar la pestaña de uso en la barra lateral"

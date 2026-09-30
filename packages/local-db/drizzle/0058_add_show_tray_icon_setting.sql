@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `show_tray_icon` integer;

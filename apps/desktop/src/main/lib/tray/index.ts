@@ -54,6 +54,7 @@ function getTrayIconPath(): string | null {
 }
 
 let tray: Tray | null = null;
+let onStatusChanged: ((event: HostServiceStatusEvent) => void) | null = null;
 
 function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
@@ -331,9 +332,10 @@ export function initTray(): void {
 		void updateTrayMenu();
 
 		const manager = getHostServiceCoordinator();
-		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
+		onStatusChanged = () => {
 			void updateTrayMenu();
-		});
+		};
+		manager.on("status-changed", onStatusChanged);
 
 		tray.on("mouse-enter", () => {
 			void updateTrayMenu();
@@ -350,5 +352,9 @@ export function disposeTray(): void {
 	if (tray) {
 		tray.destroy();
 		tray = null;
+	}
+	if (onStatusChanged) {
+		getHostServiceCoordinator().off("status-changed", onStatusChanged);
+		onStatusChanged = null;
 	}
 }

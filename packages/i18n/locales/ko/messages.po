@@ -14233,8 +14233,14 @@ msgstr "세션 표시"
 msgid "Show status and send notifications for this agent."
 msgstr "이 에이전트의 상태를 표시하고 알림을 보냅니다."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "macOS 메뉴 막대에 Superset 아이콘을 표시합니다. 숨겨져 있어도 호스트 서비스는 계속 실행됩니다."
+
 msgid "Show translation"
 msgstr "번역 보기"
+
+msgid "Show tray icon"
+msgstr "트레이 아이콘 표시"
 
 msgid "Show usage tab on sidebar"
 msgstr "사이드바에 사용량 탭 표시"

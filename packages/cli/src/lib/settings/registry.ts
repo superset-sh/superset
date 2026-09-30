@@ -381,6 +381,8 @@ export const EXCLUDED_SETTINGS_COLUMNS: Record<string, string> = {
 	deleteLocalBranch: "v2 reads renderer localStorage, unreachable externally",
 	exposeHostServiceViaRelay:
 		"security-sensitive; app gates it behind plan check + confirm dialog",
+	showTrayIcon:
+		"desktop-GUI-only; a CLI write would not live-apply without extra IPC",
 };
 
 export function getSettingDefinition(key: string): SettingDefinition {

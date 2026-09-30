@@ -50,6 +50,7 @@ import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { applyAppLanguage, languageEvents } from "main/lib/language";
 import { localDb } from "main/lib/local-db";
+import { disposeTray, initTray } from "main/lib/tray";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
@@ -59,6 +60,7 @@ import {
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
+	DEFAULT_SHOW_TRAY_ICON,
 	DEFAULT_SHOW_USAGE_IN_SIDEBAR,
 	DEFAULT_TERMINAL_COPY_ON_SELECT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -735,6 +737,33 @@ export const createSettingsRouter = () => {
 						set: { confirmOnQuit: input.enabled },
 					})
 					.run();
+
+				return { success: true };
+			}),
+
+		getShowTrayIcon: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showTrayIcon ?? DEFAULT_SHOW_TRAY_ICON;
+		}),
+
+		setShowTrayIcon: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				const { id } = getSettings();
+				localDb
+					.insert(settings)
+					.values({ id, showTrayIcon: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showTrayIcon: input.enabled },
+					})
+					.run();
+
+				if (input.enabled) {
+					initTray();
+				} else {
+					disposeTray();
+				}
 
 				return { success: true };
 			}),

@@ -14233,8 +14233,14 @@ msgstr "Zobrazit relace"
 msgid "Show status and send notifications for this agent."
 msgstr "Zobrazovat stav a posílat oznámení pro tohoto agenta."
 
+msgid "Show the Superset icon in the macOS menu bar. Host services keep running when it is hidden."
+msgstr "Zobrazit ikonu Superset v panelu nabídek systému macOS. Hostitelské služby běží dál, i když je ikona skrytá."
+
 msgid "Show translation"
 msgstr "Zobrazit překlad"
+
+msgid "Show tray icon"
+msgstr "Zobrazit ikonu v panelu nabídek"
 
 msgid "Show usage tab on sidebar"
 msgstr "Zobrazit kartu využití v postranním panelu"
