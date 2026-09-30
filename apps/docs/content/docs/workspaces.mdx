@@ -19,7 +19,7 @@ Press **⌘N** or click "New Workspace". Create from:
 
 In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly. The prompt box also keeps a searchable history of your previous prompts; click the history icon to reuse one.
 
-If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
+If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset names it from your prompt in the background; see [Automatic Naming](#automatic-naming). Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
 
 Each new branch-based workspace gets:
 - Own git branch
@@ -55,6 +55,26 @@ superset workspaces create --session --local --agent claude --prompt "…"
 On iPhone, choose **No project** in the composer's project picker, or tap **+** beside **No project** on Home. Sending your prompt creates a session on the selected online host.
 
 Automations can run in session mode too; see [Automations](/automations).
+
+## Automatic Naming
+
+When you create a workspace or session from a prompt without typing a name, Superset names it in the background. Creation and agent startup don't wait for it. Until the name arrives, a new worktree workspace shows **New workspace**, a **Local** workspace shows `local` (or `local 2`, and so on), and a session shows **New session**. Pull request workspaces use the PR title, and workspaces for existing worktrees aren't renamed either.
+
+The workspace's agent writes the name with its own sign-in, from your prompt and the title and description of any GitHub issue or pull request the prompt links. If the prompt is vague or the attempt fails, Superset tries again after the agent replies, using that reply too, for up to three attempts. Renaming never moves files: the worktree directory and the session folder keep the name they were created with.
+
+If naming doesn't finish, the workspace keeps working under its placeholder or a title taken from your prompt, and a **Couldn't name "…" automatically** warning says so. Agents that can't run headlessly, and prompts sent without an agent, get the prompt title without a warning.
+
+For a new worktree workspace, Superset also renames the branch it generated, but only while that branch:
+
+- Is still checked out in the workspace
+- Has no upstream
+- Doesn't exist on a remote
+
+The new name keeps your branch prefix and gets a short unique suffix, so it doesn't collide with existing branches. Sessions always stay on `main`.
+
+Your edits win. Renaming a workspace or session ends automatic naming, including the branch rename. Changing the branch yourself keeps your branch, though the title can still update.
+
+Pending naming lives in the host service's memory. If the host service restarts before naming finishes, the workspace keeps the name it has at that point; its files, terminals, and running agents are unaffected.
 
 ## Pin Workspaces
 
