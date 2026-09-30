@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { dateArg, money, monthArg, signed, toMilliunits } from "./api";
+import {
+	clearable,
+	dateArg,
+	money,
+	monthArg,
+	signed,
+	toMilliunits,
+} from "./api";
 
 describe("milliunits", () => {
 	test("converts currency units to milliunits", () => {
@@ -43,6 +50,16 @@ describe("month", () => {
 	test("rejects anything else rather than sending it upstream", () => {
 		expect(() => monthArg({ month: "august" })).toThrow(/month must be/);
 		expect(() => monthArg({ month: "2026" })).toThrow(/month must be/);
+	});
+});
+
+describe("clearing a field", () => {
+	test("separates saying nothing from asking for empty", () => {
+		expect(clearable({}, "memo")).toBeUndefined();
+		expect(clearable({ memo: "lunch" }, "memo")).toBe("lunch");
+		expect(clearable({ memo: null }, "memo")).toBeNull();
+		expect(clearable({ memo: "" }, "memo")).toBeNull();
+		expect(clearable({ memo: "   " }, "memo")).toBeNull();
 	});
 });
 

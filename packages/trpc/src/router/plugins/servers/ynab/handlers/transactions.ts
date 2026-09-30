@@ -1,5 +1,6 @@
 import {
 	budgetId,
+	clearable,
 	dateArg,
 	money,
 	optionalBoolean,
@@ -38,7 +39,18 @@ function describeSplit(split: SubTransaction): string {
 	}${memo}`;
 }
 
+const FILTERS = ["account_id", "category_id", "payee_id"] as const;
+
 function listPath(budget: string, args: Record<string, unknown>): string {
+	const given = FILTERS.filter(
+		(field) => optionalString(args, field) !== undefined,
+	);
+	if (given.length > 1) {
+		throw new Error(
+			`filter by one of account_id, category_id, or payee_id, not ${given.join(" and ")}`,
+		);
+	}
+
 	const accountId = optionalString(args, "account_id");
 	if (accountId) return `/plans/${budget}/accounts/${accountId}/transactions`;
 	const categoryId = optionalString(args, "category_id");
@@ -49,23 +61,33 @@ function listPath(budget: string, args: Record<string, unknown>): string {
 	return `/plans/${budget}/transactions`;
 }
 
+const LIST_TYPES = ["uncategorized", "unapproved"];
+
+function listType(args: Record<string, unknown>): string | undefined {
+	const value = optionalString(args, "type");
+	if (value !== undefined && !LIST_TYPES.includes(value)) {
+		throw new Error(`type must be ${LIST_TYPES.join(" or ")}`);
+	}
+	return value;
+}
+
 function writeFields(args: Record<string, unknown>): Record<string, unknown> {
 	const fields: Record<string, unknown> = {};
-	const payeeId = optionalString(args, "payee_id");
+	const payeeId = clearable(args, "payee_id");
 	const payeeName = optionalString(args, "payee_name");
-	const categoryId = optionalString(args, "category_id");
-	const memo = optionalString(args, "memo");
+	const categoryId = clearable(args, "category_id");
+	const memo = clearable(args, "memo");
 	const cleared = optionalString(args, "cleared");
 	const approved = optionalBoolean(args, "approved");
-	const flagColor = optionalString(args, "flag_color");
+	const flagColor = clearable(args, "flag_color");
 
-	if (payeeId) fields.payee_id = payeeId;
+	if (payeeId !== undefined) fields.payee_id = payeeId;
 	if (payeeName) fields.payee_name = payeeName;
-	if (categoryId) fields.category_id = categoryId;
+	if (categoryId !== undefined) fields.category_id = categoryId;
 	if (memo !== undefined) fields.memo = memo;
 	if (cleared) fields.cleared = cleared;
 	if (approved !== undefined) fields.approved = approved;
-	if (flagColor) fields.flag_color = flagColor;
+	if (flagColor !== undefined) fields.flag_color = flagColor;
 	return fields;
 }
 
@@ -122,7 +144,7 @@ export const transactionHandlers: Record<string, Handler> = {
 				query: {
 					since_date: dateArg(args, "since_date"),
 					until_date: dateArg(args, "until_date"),
-					type: optionalString(args, "type"),
+					type: listType(args),
 				},
 			},
 		);
@@ -214,7 +236,19 @@ export const transactionHandlers: Record<string, Handler> = {
 				},
 			},
 		);
-		return text(`Updated ${describe(transaction)}`);
+
+		const lines = [`Updated ${describe(transaction)}`];
+		const ignored = current.subtransactions?.length
+			? ["date", "amount", "category_id"].filter(
+					(field) => args[field] !== undefined,
+				)
+			: [];
+		if (ignored.length) {
+			lines.push(
+				`Note: this is a split transaction, and YNAB ignores ${ignored.join(", ")} on one. Edit the split in YNAB instead.`,
+			);
+		}
+		return text(lines.join("\n"));
 	},
 
 	delete_transaction: async (args, token) => {

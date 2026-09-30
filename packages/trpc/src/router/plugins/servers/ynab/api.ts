@@ -51,6 +51,12 @@ export async function ynab<T = Record<string, unknown>>(
 		error?: { name?: string; detail?: string };
 	} | null;
 
+	if (response.status === 429) {
+		throw new Error(
+			"YNAB rate limit reached: a token allows 200 requests per hour on a rolling window. Wait before retrying rather than repeating the call.",
+		);
+	}
+
 	if (!response.ok) {
 		const detail =
 			payload?.error?.detail ??
@@ -87,6 +93,17 @@ export function optionalString(
 	const value = args[field];
 	if (value === undefined || value === null || value === "") return undefined;
 	return String(value).trim();
+}
+
+export function clearable(
+	args: Record<string, unknown>,
+	field: string,
+): string | null | undefined {
+	if (!Object.hasOwn(args, field)) return undefined;
+	const value = args[field];
+	if (value === null) return null;
+	const trimmed = String(value).trim();
+	return trimmed === "" ? null : trimmed;
 }
 
 export function optionalBoolean(

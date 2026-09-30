@@ -200,7 +200,7 @@ export function getTools(): ToolDefinition[] {
 		),
 		tool(
 			"update_transaction",
-			"Changes fields on one transaction. Omitted fields keep their current value",
+			"Changes fields on one transaction. Omitted fields keep their current value; pass null to empty memo, category_id, or flag_color. YNAB ignores date, amount, and category changes on a split transaction",
 			{
 				budget_id: BUDGET_ID,
 				transaction_id: TRANSACTION_ID,
