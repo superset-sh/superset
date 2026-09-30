@@ -9,6 +9,7 @@ import type { GitCredentialProvider, GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import type { TerminalAgentStore } from "./terminal-agents";
 import type { ExecGh } from "./trpc/router/workspace-creation/utils/exec-gh";
+import type { ExecGlab } from "./trpc/router/workspace-creation/utils/exec-glab";
 
 export type ApiClient = TRPCClient<AppRouter>;
 
@@ -23,6 +24,7 @@ export interface HostServiceContext {
 	credentials: GitCredentialProvider;
 	github: () => Promise<Octokit>;
 	execGh: ExecGh;
+	execGlab: ExecGlab;
 	api: ApiClient;
 	db: HostDb;
 	runtime: HostServiceRuntime;

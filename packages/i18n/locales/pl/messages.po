@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "„{0}” usunięta"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "„{0}” zostanie oznaczony jako zamknięty na GitHub. Można go stąd w każdej chwili otworzyć ponownie."
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "„{0}” zostanie oznaczony jako zamknięty na {providerName}. Można go stąd w każdej chwili otworzyć ponownie."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7435,9 +7435,6 @@ msgstr "Nazwa użytkownika GitHub"
 msgid "GitHub username..."
 msgstr "Nazwa użytkownika GitHub..."
 
-msgid "GitHub username…"
-msgstr "Nazwa użytkownika GitHub…"
-
 msgid "Give me an example"
 msgstr "Podaj przykład"
 
@@ -10737,8 +10734,8 @@ msgstr "Otwórz {path} w panelu plików"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Otwórz wielowierszowy edytor promptu dla aktywnego terminala"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "Otwórz pull request, aby zobaczyć status przeglądu, kontrole i komentarze."
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "Otwórz pull request lub merge request, aby zobaczyć stan przeglądu, kontrole i komentarze."
 
 msgid "Open actions menu"
 msgstr "Otwórz menu akcji"
@@ -10778,6 +10775,9 @@ msgstr "Otwórz czat v3"
 
 msgid "Open Command Palette"
 msgstr "Otwórz paletę poleceń"
+
+msgid "Open comment on {providerName}"
+msgstr "Otwórz komentarz na {providerName}"
 
 msgid "Open comment on GitHub"
 msgstr "Otwórz komentarz na GitHub"
@@ -10903,6 +10903,9 @@ msgstr "Otwórz w Finderze"
 msgid "Open in GitHub"
 msgstr "Otwórz w GitHub"
 
+msgid "Open in GitLab"
+msgstr "Otwórz w GitLab"
+
 msgid "Open in Linear"
 msgstr "Otwórz w Linear"
 
@@ -10970,6 +10973,9 @@ msgstr "Otwórz menu"
 
 msgid "Open navigation"
 msgstr "Otwórz nawigację"
+
+msgid "Open on {providerName}"
+msgstr "Otwórz na {providerName}"
 
 msgid "Open on GitHub"
 msgstr "Otwórz na GitHub"
@@ -17139,6 +17145,9 @@ msgstr "Zobacz w GitHub"
 
 msgid "View log"
 msgstr "Zobacz log"
+
+msgid "View on {providerName}"
+msgstr "Zobacz na {providerName}"
 
 msgid "View on GitHub"
 msgstr "Zobacz na GitHub"

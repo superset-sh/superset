@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" verwijderd"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "\"{0}\" wordt op GitHub als gesloten gemarkeerd. Je kunt hem hier op elk moment heropenen."
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "\"{0}\" wordt op {providerName} als gesloten gemarkeerd. Je kunt hem hier op elk moment heropenen."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7435,9 +7435,6 @@ msgstr "GitHub-gebruikersnaam"
 msgid "GitHub username..."
 msgstr "GitHub-gebruikersnaam..."
 
-msgid "GitHub username…"
-msgstr "GitHub-gebruikersnaam…"
-
 msgid "Give me an example"
 msgstr "Geef een voorbeeld"
 
@@ -10737,8 +10734,8 @@ msgstr "{path} openen in bestandspaneel"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Een prompt-editor met meerdere regels openen voor de actieve terminal"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "Open een pull request om reviewstatus, checks en opmerkingen te zien."
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "Open een pull request of merge request om de reviewstatus, controles en opmerkingen te bekijken."
 
 msgid "Open actions menu"
 msgstr "Actiemenu openen"
@@ -10778,6 +10775,9 @@ msgstr "Chat v3 openen"
 
 msgid "Open Command Palette"
 msgstr "Opdrachtenpalet openen"
+
+msgid "Open comment on {providerName}"
+msgstr "Opmerking openen op {providerName}"
 
 msgid "Open comment on GitHub"
 msgstr "Opmerking openen op GitHub"
@@ -10903,6 +10903,9 @@ msgstr "Openen in Finder"
 msgid "Open in GitHub"
 msgstr "Openen in GitHub"
 
+msgid "Open in GitLab"
+msgstr "Openen in GitLab"
+
 msgid "Open in Linear"
 msgstr "Openen in Linear"
 
@@ -10970,6 +10973,9 @@ msgstr "Menu openen"
 
 msgid "Open navigation"
 msgstr "Navigatie openen"
+
+msgid "Open on {providerName}"
+msgstr "Openen op {providerName}"
 
 msgid "Open on GitHub"
 msgstr "Openen op GitHub"
@@ -17139,6 +17145,9 @@ msgstr "Bekijken in GitHub"
 
 msgid "View log"
 msgstr "Log bekijken"
+
+msgid "View on {providerName}"
+msgstr "Bekijken op {providerName}"
 
 msgid "View on GitHub"
 msgstr "Bekijken op GitHub"

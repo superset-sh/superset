@@ -1,14 +1,23 @@
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { workspaces } from "../../../../db/schema";
+import { mergePullRequestFromGlab } from "../../../../runtime/pull-requests/utils/gitlab-query";
 import { protectedProcedure } from "../../../index";
 import { actionRejectionError } from "../../github/github";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
-const mergeInputSchema = z.object({
-	projectId: z.string(),
-	prNumber: z.number().int().positive(),
-	mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
-	commitMessage: z.string().trim().min(1).optional(),
-});
+const mergeInputSchema = z
+	.object({
+		projectId: z.string().optional(),
+		workspaceId: z.string().optional(),
+		prNumber: z.number().int().positive(),
+		mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
+		commitMessage: z.string().trim().min(1).optional(),
+	})
+	.refine((input) => Boolean(input.projectId) !== Boolean(input.workspaceId), {
+		message: "Provide exactly one of projectId or workspaceId",
+	});
 
 /**
  * Project-scoped merge: resolves the repo live via resolveGithubRepo, same
@@ -18,7 +27,37 @@ const mergeInputSchema = z.object({
 export const mergePR = protectedProcedure
 	.input(mergeInputSchema)
 	.mutation(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const projectId =
+			input.projectId ??
+			ctx.db
+				.select({ projectId: workspaces.projectId })
+				.from(workspaces)
+				.where(eq(workspaces.id, input.workspaceId as string))
+				.get()?.projectId;
+		if (!projectId) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Workspace is not linked to a project",
+			});
+		}
+
+		const repo = await resolvePullRequestRepository(ctx, projectId);
+		if (repo.provider === "gitlab") {
+			try {
+				await mergePullRequestFromGlab(
+					ctx.execGlab,
+					repo,
+					input.prNumber,
+					input.mergeMethod,
+					repo.repoPath,
+					input.commitMessage,
+				);
+				return { merged: true };
+			} catch (error) {
+				throw actionRejectionError(error, "GitLab refused the merge.");
+			}
+		}
+
 		const octokit = await ctx.github();
 		try {
 			const { data } = await octokit.pulls.merge({

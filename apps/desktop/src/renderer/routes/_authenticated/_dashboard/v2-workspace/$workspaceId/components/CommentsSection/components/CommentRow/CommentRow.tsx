@@ -22,6 +22,7 @@ import type { CommentPaneData, DiffFocusSide } from "../../../../types";
 import type { NormalizedComment } from "../../types";
 
 interface CommentRowProps {
+	provider: "github" | "gitlab";
 	comment: NormalizedComment;
 	copiedActionKey: string | null;
 	onCopy: (comment: NormalizedComment) => void;
@@ -35,6 +36,7 @@ interface CommentRowProps {
 }
 
 export function CommentRow({
+	provider,
 	comment,
 	copiedActionKey,
 	onCopy,
@@ -42,6 +44,7 @@ export function CommentRow({
 	onOpenInDiff,
 }: CommentRowProps) {
 	const { t } = useLingui();
+	const providerName = provider === "gitlab" ? "GitLab" : "GitHub";
 	const createdAt = comment.createdAt ? new Date(comment.createdAt) : null;
 	const age =
 		createdAt && Number.isFinite(createdAt.getTime())
@@ -137,7 +140,7 @@ export function CommentRow({
 						onClick={(e) => e.stopPropagation()}
 						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						aria-label={t({
-							message: "Open comment on GitHub",
+							message: `Open comment on ${providerName}`,
 						})}
 					>
 						<LuArrowUpRight className="size-3" />
@@ -221,7 +224,7 @@ export function CommentRow({
 								onSelect={() => window.open(comment.url, "_blank", "noopener")}
 							>
 								<ExternalLink />
-								<Trans>Open on GitHub</Trans>
+								<Trans>Open on {providerName}</Trans>
 							</DropdownMenuItem>
 						) : null}
 					</DropdownMenuContent>

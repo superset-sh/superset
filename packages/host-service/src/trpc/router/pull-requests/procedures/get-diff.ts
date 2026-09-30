@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
 const getDiffInputSchema = z.object({
 	projectId: z.string(),
@@ -21,12 +21,8 @@ const pullRequestDiffCache = new Map<
 export const getDiff = protectedProcedure
 	.input(getDiffInputSchema)
 	.query(async ({ ctx, input }) => {
-		// Keyed on the input alone (no await beforehand) so the cache
-		// check-then-set below is atomic — two concurrent callers for the
-		// same PR can't both miss the cache and both shell out to `gh pr
-		// diff`. resolveGithubRepo happens inside the cached promise instead
-		// of before this check.
-		const cacheKey = `${input.projectId}#${input.prNumber}`;
+		const repo = await resolvePullRequestRepository(ctx, input.projectId);
+		const cacheKey = `${repo.provider}/${repo.host}/${repo.repoPath}/${repo.owner}/${repo.name}#${input.prNumber}`;
 		const cached = pullRequestDiffCache.get(cacheKey);
 		if (
 			cached &&
@@ -38,7 +34,23 @@ export const getDiff = protectedProcedure
 		const fetchedAt = Date.now();
 		const promise = (async (): Promise<string> => {
 			try {
-				const repo = await resolveGithubRepo(ctx, input.projectId);
+				if (repo.provider === "gitlab") {
+					const raw = await ctx.execGlab(
+						[
+							"api",
+							"--method",
+							"GET",
+							`projects/${encodeURIComponent(`${repo.owner}/${repo.name}`)}/merge_requests/${input.prNumber}/raw_diffs`,
+						],
+						{
+							cwd: repo.repoPath,
+							hostname: repo.host,
+							timeout: 30_000,
+							maxBuffer: 200 * 1024 * 1024,
+						},
+					);
+					return typeof raw === "string" ? raw : "";
+				}
 				const raw = await execGh(
 					[
 						"pr",

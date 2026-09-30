@@ -36,6 +36,9 @@ export function PullRequestCommentCard({
 	onOpenInDiff,
 }: PullRequestCommentCardProps) {
 	const { t } = useLingui();
+	const providerName = comment.url?.includes("/-/merge_requests/")
+		? "GitLab"
+		: "GitHub";
 	const [copied, setCopied] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 	const resolve = workspaceTrpc.git.setReviewThreadResolution.useMutation({
@@ -172,7 +175,7 @@ export function PullRequestCommentCard({
 								href={comment.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({ message: "Open comment on GitHub" })}
+								aria-label={t({ message: `Open comment on ${providerName}` })}
 							>
 								<LuArrowUpRight className="size-3.5" />
 							</a>

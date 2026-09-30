@@ -134,15 +134,7 @@ export function AuthorFilter({
 			<PopoverContent align="start" className="w-64 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder={
-							singleTarget
-								? t({
-										message: "Search authors…",
-									})
-								: t({
-										message: "GitHub username…",
-									})
-						}
+						placeholder={t({ message: "Search authors…" })}
 						value={search}
 						onValueChange={setSearch}
 					/>
@@ -181,7 +173,12 @@ export function AuthorFilter({
 									>
 										<Avatar className="size-4 shrink-0 rounded-sm">
 											<AvatarImage
-												src={`https://github.com/${contributor.login}.png?size=32`}
+												src={
+													contributor.avatarUrl ??
+													(contributor.repoProvider === "gitlab"
+														? undefined
+														: `https://github.com/${contributor.login}.png?size=32`)
+												}
 												alt={contributor.login}
 											/>
 											<AvatarFallback className="rounded-sm text-[8px]">
