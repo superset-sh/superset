@@ -18,7 +18,7 @@ while it happens. Agents: `.agents/skills/incident-triage/SKILL.md` does the fir
 
 Setup that needs a person with incident.io access:
 
-- [ ] Find which incident.io account owns the page, and give the on-call people access.
+- [ ] Give the on-call people edit rights. The org is `superset-sh`. As of 30 September 2026, Satya Patel is the only Owner with full access. Avi Peltz and Kiet Ho have viewer-only seats and cannot configure the page or publish incidents.
 - [ ] Add components: **Remote Access** (relay), **Sign-in**, and rename **Webhooks** to **Integrations**.
 - [ ] Add uptime monitors that change component status when they fail:
 
