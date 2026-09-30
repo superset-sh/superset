@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../shared/project-helpers";
+import { resolvePullRequestRepository } from "../../pull-requests/resolve-repository";
 import { execGh } from "../utils/exec-gh";
 
 const getRepoContributorsInputSchema = z.object({
@@ -15,6 +15,8 @@ const ghContributorSchema = z.object({
 
 export interface RepoContributor {
 	login: string;
+	avatarUrl?: string | null;
+	repoProvider?: "github" | "gitlab";
 }
 
 // The Author filter only needs a quick-pick list, not a complete roster —
@@ -34,8 +36,8 @@ const repoContributorsCache = new Map<
 export const getRepoContributors = protectedProcedure
 	.input(getRepoContributorsInputSchema)
 	.query(async ({ ctx, input }): Promise<RepoContributor[]> => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+		const repo = await resolvePullRequestRepository(ctx, input.projectId);
+		const cacheKey = `${repo.provider}/${repo.host}/${repo.repoPath}/${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		const cached = repoContributorsCache.get(cacheKey);
 		if (
 			cached &&
@@ -46,6 +48,33 @@ export const getRepoContributors = protectedProcedure
 
 		const fetchedAt = Date.now();
 		const promise = (async (): Promise<RepoContributor[]> => {
+			if (repo.provider === "gitlab") {
+				const members = z
+					.array(
+						z.object({
+							username: z.string(),
+							avatar_url: z.string().nullable(),
+						}),
+					)
+					.parse(
+						await ctx.execGlab(
+							[
+								"api",
+								`projects/${encodeURIComponent(`${repo.owner}/${repo.name}`)}/members/all`,
+								"-f",
+								"per_page=100",
+								"--method",
+								"GET",
+							],
+							{ cwd: repo.repoPath, hostname: repo.host },
+						),
+					);
+				return members.map((member) => ({
+					login: member.username,
+					avatarUrl: member.avatar_url,
+					repoProvider: "gitlab",
+				}));
+			}
 			// gh-first uses the user's local `gh auth login`; falls back to
 			// Octokit when gh is missing, unauthed, or errors.
 			try {

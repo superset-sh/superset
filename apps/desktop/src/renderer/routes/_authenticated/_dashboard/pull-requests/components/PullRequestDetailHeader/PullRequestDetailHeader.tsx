@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import {
 	LuCheck,
 	LuChevronRight,

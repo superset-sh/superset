@@ -7,6 +7,7 @@ import { getDiff } from "./procedures/get-diff";
 import { getDiffByRepo } from "./procedures/get-diff-by-repo";
 import { getLinkedWorkspace } from "./procedures/get-linked-workspace";
 import { getThreads } from "./procedures/get-threads";
+import { markReady } from "./procedures/mark-ready";
 import { mergePR } from "./procedures/merge";
 import { replyToThread } from "./procedures/reply-to-thread";
 import { setState } from "./procedures/set-state";
@@ -83,4 +84,5 @@ export const pullRequestsRouter = router({
 	setThreadResolution,
 	replyToThread,
 	mergePR,
+	markReady,
 });

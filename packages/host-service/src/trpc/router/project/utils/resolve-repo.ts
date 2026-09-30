@@ -4,14 +4,17 @@ import { existsSync, mkdirSync, statSync } from "node:fs";
 // walk.
 import { rm } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
-import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseRepositoryRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
+import { execGlab } from "../../workspace-creation/utils/exec-glab";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
+	getSupportedRemotes,
 	type ParsedGitHubRemote,
+	type ParsedRepositoryRemote,
 } from "./git-remote";
 
 async function cloneEnv(
@@ -26,12 +29,26 @@ async function cloneEnv(
 export interface ResolvedRepo {
 	repoPath: string;
 	remoteName: string | null;
-	parsed: ParsedGitHubRemote | null;
+	parsed: ParsedRepositoryRemote | null;
 }
 
 export interface ResolvedGitHubRepo extends ResolvedRepo {
 	remoteName: string;
 	parsed: ParsedGitHubRemote;
+}
+
+export interface ResolveLocalRepoOptions {
+	remoteName?: string;
+	isConfiguredGitLabHost?: (host: string) => Promise<boolean>;
+}
+
+async function isConfiguredGitLabHost(host: string): Promise<boolean> {
+	try {
+		await execGlab(["auth", "status", "--hostname", host]);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 export function validateDirectoryPath(path: string, label: string): void {
@@ -238,8 +255,22 @@ async function revParseGitRoot(path: string): Promise<string> {
 
 /** Shared by `resolveLocalRepo` and `adoptLocalRepo` once each has settled
  * what `gitRoot` is (and, for the latter, made sure it has a commit). */
-async function resolveRemotesFor(gitRoot: string): Promise<ResolvedRepo> {
-	const remotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
+async function resolveRemotesFor(
+	gitRoot: string,
+	options: ResolveLocalRepoOptions = {},
+): Promise<ResolvedRepo> {
+	const remotes = await getSupportedRemotes(
+		createUserSimpleGit(gitRoot),
+		options.isConfiguredGitLabHost ?? isConfiguredGitLabHost,
+	);
+	if (options.remoteName) {
+		const parsed = remotes.get(options.remoteName);
+		return {
+			repoPath: gitRoot,
+			remoteName: parsed ? options.remoteName : null,
+			parsed: parsed ?? null,
+		};
+	}
 	const originParsed = remotes.get("origin");
 	if (originParsed) {
 		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };
@@ -264,10 +295,11 @@ async function resolveRemotesFor(gitRoot: string): Promise<ResolvedRepo> {
  */
 export async function resolveLocalRepo(
 	repoPath: string,
+	options: ResolveLocalRepoOptions = {},
 ): Promise<ResolvedRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	return resolveRemotesFor(gitRoot);
+	return resolveRemotesFor(gitRoot, options);
 }
 
 /**
@@ -469,7 +501,7 @@ export async function cloneRepoInto(
 	credentials?: GitCredentialProvider,
 	signal?: AbortSignal,
 ): Promise<ResolvedRepo> {
-	const parsedUrl = parseGitHubRemote(repoCloneUrl);
+	const parsedUrl = parseRepositoryRemote(repoCloneUrl);
 	const expectedSlug = parsedUrl
 		? `${parsedUrl.owner}/${parsedUrl.name}`
 		: null;
@@ -497,10 +529,22 @@ export async function cloneRepoInto(
 	}
 
 	try {
-		if (expectedSlug) {
+		if (expectedSlug && parsedUrl?.provider === "github") {
 			return await resolveMatchingSlug(targetPath, expectedSlug);
 		}
-		return await adoptLocalRepo(targetPath);
+		const resolved = await adoptLocalRepo(targetPath);
+		if (
+			expectedSlug &&
+			resolved.parsed &&
+			`${resolved.parsed.owner}/${resolved.parsed.name}`.toLowerCase() !==
+				expectedSlug.toLowerCase()
+		) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `No remote matches ${expectedSlug}`,
+			});
+		}
+		return resolved;
 	} catch (err) {
 		await rollbackTargetDir(targetPath);
 		throw err;

@@ -13,6 +13,8 @@ const entries = new Map<string, CacheEntry>();
 interface RepoIdentity {
 	owner: string;
 	name: string;
+	provider?: string;
+	host?: string;
 }
 
 function isExpired(entry: CacheEntry, now: number): boolean {
@@ -23,7 +25,8 @@ export function pullRequestContentCacheKey(
 	repo: RepoIdentity,
 	prNumber: number,
 ): string {
-	return `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${prNumber}`;
+	const provider = repo.provider === "gitlab" ? `gitlab/${repo.host ?? ""}/` : "";
+	return `${provider}${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${prNumber}`;
 }
 
 export function readPullRequestContentCache<T>(key: string): Promise<T> | null {

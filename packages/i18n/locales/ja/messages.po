@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "「{0}」を削除しました"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "「{0}」はGitHub上でクローズ済みになります。ここからいつでも再オープンできます。"
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "「{0}」は{providerName}上でクローズ済みになります。ここからいつでも再オープンできます。"
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7684,9 +7684,6 @@ msgstr "GitHubのユーザー名"
 msgid "GitHub username..."
 msgstr "GitHubユーザー名..."
 
-msgid "GitHub username…"
-msgstr "GitHubユーザー名…"
-
 msgid "Give me an example"
 msgstr "例を挙げて"
 
@@ -11073,8 +11070,8 @@ msgstr "{path}をファイルペインで開く"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "アクティブなターミナル用の複数行プロンプト入力を開く"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "プルリクエストを開くと、レビュー状態、チェック、コメントを確認できます。"
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "プルリクエストまたはマージリクエストを開いて、レビュー状況、チェック、コメントを表示します。"
 
 msgid "Open actions menu"
 msgstr "アクションメニューを開く"
@@ -11114,6 +11111,9 @@ msgstr "チャットv3を開く"
 
 msgid "Open Command Palette"
 msgstr "コマンドパレットを開く"
+
+msgid "Open comment on {providerName}"
+msgstr "{providerName}でコメントを開く"
 
 msgid "Open comment on GitHub"
 msgstr "GitHubでコメントを開く"
@@ -11239,6 +11239,9 @@ msgstr "Finderで開く"
 msgid "Open in GitHub"
 msgstr "GitHubで開く"
 
+msgid "Open in GitLab"
+msgstr "GitLabで開く"
+
 msgid "Open in Linear"
 msgstr "Linearで開く"
 
@@ -11309,6 +11312,9 @@ msgstr "メニューを開く"
 
 msgid "Open navigation"
 msgstr "ナビゲーションを開く"
+
+msgid "Open on {providerName}"
+msgstr "{providerName}で開く"
 
 msgid "Open on GitHub"
 msgstr "GitHubで開く"
@@ -17595,6 +17601,9 @@ msgstr "GitHubで見る"
 
 msgid "View log"
 msgstr "ログを表示"
+
+msgid "View on {providerName}"
+msgstr "{providerName}で表示"
 
 msgid "View on GitHub"
 msgstr "GitHubで表示"

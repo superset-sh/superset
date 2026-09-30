@@ -1,14 +1,14 @@
-const GITHUB_AUTHOR_PATTERN =
-	/^(?!.*--)[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?(?:\[bot\])?$/i;
+const AUTHOR_PATTERN =
+	/^(?!.*--)[a-z\d](?:[a-z\d_.-]{0,253}[a-z\d])?(?:\[bot\])?$/i;
 
 export function normalizeAuthorFilter(value: unknown): string | null {
 	if (typeof value !== "string") return null;
 	const login = value.trim().replace(/^@/, "");
-	return GITHUB_AUTHOR_PATTERN.test(login) ? login : null;
+	return AUTHOR_PATTERN.test(login) ? login : null;
 }
 
 /** Comma-separated logins keep saved filters and existing author URLs compatible.
- * Bound this singleton preference to 20 authors; GitHub logins are length-limited.
+ * Bound this singleton preference to 20 authors; Usernames are length-limited.
  */
 export function normalizeAuthorFilters(value: unknown): string | null {
 	if (typeof value !== "string") return null;

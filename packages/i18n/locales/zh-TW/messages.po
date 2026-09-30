@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "「{0}」已刪除"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "「{0}」會在GitHub上被標記為關閉。你隨時可以在這裡重新開啟它。"
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "「{0}」會在{providerName}上被標記為關閉。你隨時可以在這裡重新開啟它。"
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7684,9 +7684,6 @@ msgstr "GitHub使用者名稱"
 msgid "GitHub username..."
 msgstr "GitHub 使用者名稱..."
 
-msgid "GitHub username…"
-msgstr "GitHub使用者名稱…"
-
 msgid "Give me an example"
 msgstr "給我一個範例"
 
@@ -11073,8 +11070,8 @@ msgstr "在檔案面板中開啟{path}"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "為目前終端開啟多行提示詞編輯器"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "建立拉取請求後即可檢視評審狀態、檢查和評論。"
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "開啟提取請求或合併請求，以檢視審查狀態、檢查和留言。"
 
 msgid "Open actions menu"
 msgstr "開啟操作選單"
@@ -11114,6 +11111,9 @@ msgstr "開啟Chat v3"
 
 msgid "Open Command Palette"
 msgstr "開啟命令面板"
+
+msgid "Open comment on {providerName}"
+msgstr "在{providerName}上開啟評論"
 
 msgid "Open comment on GitHub"
 msgstr "在GitHub上開啟評論"
@@ -11239,6 +11239,9 @@ msgstr "在Finder中開啟"
 msgid "Open in GitHub"
 msgstr "在GitHub中開啟"
 
+msgid "Open in GitLab"
+msgstr "在GitLab中開啟"
+
 msgid "Open in Linear"
 msgstr "在Linear中開啟"
 
@@ -11309,6 +11312,9 @@ msgstr "開啟選單"
 
 msgid "Open navigation"
 msgstr "開啟導覽"
+
+msgid "Open on {providerName}"
+msgstr "在{providerName}上開啟"
 
 msgid "Open on GitHub"
 msgstr "在GitHub上開啟"
@@ -17595,6 +17601,9 @@ msgstr "在GitHub中檢視"
 
 msgid "View log"
 msgstr "檢視日誌"
+
+msgid "View on {providerName}"
+msgstr "在{providerName}上檢視"
 
 msgid "View on GitHub"
 msgstr "在GitHub上檢視"
