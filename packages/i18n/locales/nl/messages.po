@@ -16106,6 +16106,12 @@ msgstr "Deze pagina is gepubliceerd door een Superset-gebruiker. De inhoud is ni
 msgid "This page was taken down and can no longer be changed"
 msgstr "Deze pagina is offline gehaald en kan niet meer worden gewijzigd"
 
+msgid "This pane can't be shown"
+msgstr "Dit paneel kan niet worden weergegeven"
+
+msgid "This pane hit an error"
+msgstr "Dit paneel liep tegen een fout aan"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Dit pad bestaat, maar is geen map."
 
@@ -16697,6 +16703,12 @@ msgstr "Onbekende host"
 
 msgid "Unknown Host"
 msgstr "Onbekende host"
+
+msgid "Unknown pane"
+msgstr "Onbekend paneel"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Onbekend paneeltype: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

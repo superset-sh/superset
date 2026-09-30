@@ -16106,6 +16106,12 @@ msgstr "이 페이지는 Superset 사용자가 게시했습니다. 내용은 검
 msgid "This page was taken down and can no longer be changed"
 msgstr "이 페이지는 게시가 중단되어 더 이상 변경할 수 없습니다"
 
+msgid "This pane can't be shown"
+msgstr "이 창을 표시할 수 없습니다"
+
+msgid "This pane hit an error"
+msgstr "이 창에서 오류가 발생했습니다"
+
 msgid "This path exists, but it is not a directory."
 msgstr "이 경로는 있지만 디렉터리가 아닙니다."
 
@@ -16697,6 +16703,12 @@ msgstr "알 수 없는 호스트"
 
 msgid "Unknown Host"
 msgstr "알 수 없는 호스트"
+
+msgid "Unknown pane"
+msgstr "알 수 없는 창"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "알 수 없는 창 유형: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

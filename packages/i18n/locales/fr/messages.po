@@ -16106,6 +16106,12 @@ msgstr "Cette page a été publiée par un utilisateur de Superset. Son contenu 
 msgid "This page was taken down and can no longer be changed"
 msgstr "Cette page a été retirée et ne peut plus être modifiée"
 
+msgid "This pane can't be shown"
+msgstr "Ce volet ne peut pas être affiché"
+
+msgid "This pane hit an error"
+msgstr "Ce volet a rencontré une erreur"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Ce chemin existe, mais ce n'est pas un répertoire."
 
@@ -16697,6 +16703,12 @@ msgstr "Hôte inconnu"
 
 msgid "Unknown Host"
 msgstr "Hôte inconnu"
+
+msgid "Unknown pane"
+msgstr "Volet inconnu"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Type de volet inconnu : {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

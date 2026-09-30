@@ -16106,6 +16106,12 @@ msgstr "このページは Superset のユーザーが公開したものです�
 msgid "This page was taken down and can no longer be changed"
 msgstr "このページは公開停止されたため、変更できません"
 
+msgid "This pane can't be shown"
+msgstr "このペインは表示できません"
+
+msgid "This pane hit an error"
+msgstr "このペインでエラーが発生しました"
+
 msgid "This path exists, but it is not a directory."
 msgstr "このパスは存在しますが、ディレクトリではありません。"
 
@@ -16697,6 +16703,12 @@ msgstr "不明なホスト"
 
 msgid "Unknown Host"
 msgstr "不明なホスト"
+
+msgid "Unknown pane"
+msgstr "不明なペイン"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "不明なペインの種類: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

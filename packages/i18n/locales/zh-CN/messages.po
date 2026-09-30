@@ -16106,6 +16106,12 @@ msgstr "此页面由 Superset 用户发布，内容未经核实。"
 msgid "This page was taken down and can no longer be changed"
 msgstr "此页面已下架，无法再修改"
 
+msgid "This pane can't be shown"
+msgstr "无法显示此窗格"
+
+msgid "This pane hit an error"
+msgstr "此窗格出错了"
+
 msgid "This path exists, but it is not a directory."
 msgstr "此路径存在，但不是目录。"
 
@@ -16697,6 +16703,12 @@ msgstr "未知主机"
 
 msgid "Unknown Host"
 msgstr "未知主机"
+
+msgid "Unknown pane"
+msgstr "未知窗格"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "未知的窗格类型：{paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

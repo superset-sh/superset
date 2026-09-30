@@ -14,6 +14,7 @@ import type {
 import type {
 	ContextMenuActionConfig,
 	PaneActionConfig,
+	PaneErrorHandler,
 	PaneRegistry,
 	RendererContext,
 } from "../../../../types";
@@ -35,6 +36,7 @@ interface TabProps<TData> {
 	contextMenuActions?:
 		| ContextMenuActionConfig<TData>[]
 		| ((context: RendererContext<TData>) => ContextMenuActionConfig<TData>[]);
+	onPaneError?: PaneErrorHandler;
 	onSplitResizeDragging?: (sourceId: string, isDragging: boolean) => void;
 }
 
@@ -46,6 +48,7 @@ function SplitView<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onPaneError,
 	onSplitResizeDragging,
 }: {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -55,6 +58,7 @@ function SplitView<TData>({
 	registry: PaneRegistry<TData>;
 	paneActions?: TabProps<TData>["paneActions"];
 	contextMenuActions?: TabProps<TData>["contextMenuActions"];
+	onPaneError?: TabProps<TData>["onPaneError"];
 	onSplitResizeDragging?: TabProps<TData>["onSplitResizeDragging"];
 }) {
 	const groupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null);
@@ -117,6 +121,7 @@ function SplitView<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onPaneError={onPaneError}
 					onSplitResizeDragging={onSplitResizeDragging}
 					parentDirection={node.direction}
 				/>
@@ -207,6 +212,7 @@ function SplitView<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onPaneError={onPaneError}
 					onSplitResizeDragging={onSplitResizeDragging}
 					parentDirection={node.direction}
 				/>
@@ -223,6 +229,7 @@ function LayoutNodeView<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onPaneError,
 	onSplitResizeDragging,
 	parentDirection = null,
 }: {
@@ -233,6 +240,7 @@ function LayoutNodeView<TData>({
 	registry: PaneRegistry<TData>;
 	paneActions?: TabProps<TData>["paneActions"];
 	contextMenuActions?: TabProps<TData>["contextMenuActions"];
+	onPaneError?: TabProps<TData>["onPaneError"];
 	onSplitResizeDragging?: TabProps<TData>["onSplitResizeDragging"];
 	parentDirection?: "horizontal" | "vertical" | null;
 }) {
@@ -256,6 +264,7 @@ function LayoutNodeView<TData>({
 				registry={registry}
 				paneActions={paneActions}
 				contextMenuActions={contextMenuActions}
+				onPaneError={onPaneError}
 				parentDirection={parentDirection}
 			/>
 		);
@@ -270,6 +279,7 @@ function LayoutNodeView<TData>({
 			registry={registry}
 			paneActions={paneActions}
 			contextMenuActions={contextMenuActions}
+			onPaneError={onPaneError}
 			onSplitResizeDragging={onSplitResizeDragging}
 		/>
 	);
@@ -281,6 +291,7 @@ export function Tab<TData>({
 	registry,
 	paneActions,
 	contextMenuActions,
+	onPaneError,
 	onSplitResizeDragging,
 }: TabProps<TData>) {
 	if (!tab.layout) {
@@ -303,6 +314,7 @@ export function Tab<TData>({
 				registry={registry}
 				paneActions={paneActions}
 				contextMenuActions={contextMenuActions}
+				onPaneError={onPaneError}
 				onSplitResizeDragging={onSplitResizeDragging}
 			/>
 		</div>

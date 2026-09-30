@@ -16106,6 +16106,12 @@ msgstr "Tę stronę opublikował użytkownik Superset. Jej treść nie jest zwer
 msgid "This page was taken down and can no longer be changed"
 msgstr "Ta strona została usunięta i nie można jej już zmieniać"
 
+msgid "This pane can't be shown"
+msgstr "Nie można wyświetlić tego panelu"
+
+msgid "This pane hit an error"
+msgstr "Ten panel napotkał błąd"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Ta ścieżka istnieje, ale nie jest katalogiem."
 
@@ -16697,6 +16703,12 @@ msgstr "Nieznany host"
 
 msgid "Unknown Host"
 msgstr "Nieznany host"
+
+msgid "Unknown pane"
+msgstr "Nieznany panel"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Nieznany typ panelu: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -16106,6 +16106,12 @@ msgstr "Trang này do một người dùng Superset đăng. Nội dung chưa đ�
 msgid "This page was taken down and can no longer be changed"
 msgstr "Trang này đã bị gỡ và không thể chỉnh sửa nữa"
 
+msgid "This pane can't be shown"
+msgstr "Không thể hiển thị ngăn này"
+
+msgid "This pane hit an error"
+msgstr "Ngăn này gặp lỗi"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 
@@ -16697,6 +16703,12 @@ msgstr "Host không xác định"
 
 msgid "Unknown Host"
 msgstr "Host không rõ"
+
+msgid "Unknown pane"
+msgstr "Ngăn không xác định"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Loại ngăn không xác định: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

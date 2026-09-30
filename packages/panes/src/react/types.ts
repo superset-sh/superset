@@ -98,6 +98,11 @@ export interface PaneDefinition<TData> {
 
 export type PaneRegistry<TData> = Record<string, PaneDefinition<TData>>;
 
+export type PaneErrorHandler = (
+	error: unknown,
+	componentStack: string | null,
+) => void;
+
 export interface WorkspaceInteractionState {
 	resizeActive: boolean;
 }
@@ -128,4 +133,5 @@ export interface WorkspaceProps<TData> {
 	contextMenuActions?:
 		| ContextMenuActionConfig<TData>[]
 		| ((context: RendererContext<TData>) => ContextMenuActionConfig<TData>[]);
+	onPaneError?: PaneErrorHandler;
 }

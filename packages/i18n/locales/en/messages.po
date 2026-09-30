@@ -16106,6 +16106,12 @@ msgstr "This page was published by a Superset user. Its contents are unverified.
 msgid "This page was taken down and can no longer be changed"
 msgstr "This page was taken down and can no longer be changed"
 
+msgid "This pane can't be shown"
+msgstr "This pane can't be shown"
+
+msgid "This pane hit an error"
+msgstr "This pane hit an error"
+
 msgid "This path exists, but it is not a directory."
 msgstr "This path exists, but it is not a directory."
 
@@ -16697,6 +16703,12 @@ msgstr "Unknown host"
 
 msgid "Unknown Host"
 msgstr "Unknown Host"
+
+msgid "Unknown pane"
+msgstr "Unknown pane"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Unknown pane type: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

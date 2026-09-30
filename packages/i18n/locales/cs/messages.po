@@ -16106,6 +16106,12 @@ msgstr "Tuto stránku zveřejnil uživatel Superset. Její obsah není ověřen.
 msgid "This page was taken down and can no longer be changed"
 msgstr "Tato stránka byla stažena a už ji nelze měnit"
 
+msgid "This pane can't be shown"
+msgstr "Tento panel nelze zobrazit"
+
+msgid "This pane hit an error"
+msgstr "V tomto panelu došlo k chybě"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Tato cesta existuje, ale není to adresář."
 
@@ -16697,6 +16703,12 @@ msgstr "Neznámý host"
 
 msgid "Unknown Host"
 msgstr "Neznámý host"
+
+msgid "Unknown pane"
+msgstr "Neznámý panel"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Neznámý typ panelu: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

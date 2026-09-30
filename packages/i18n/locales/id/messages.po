@@ -16106,6 +16106,12 @@ msgstr "Halaman ini diterbitkan oleh pengguna Superset. Isinya belum diverifikas
 msgid "This page was taken down and can no longer be changed"
 msgstr "Halaman ini telah ditarik dan tidak bisa diubah lagi"
 
+msgid "This pane can't be shown"
+msgstr "Panel ini tidak dapat ditampilkan"
+
+msgid "This pane hit an error"
+msgstr "Panel ini mengalami kesalahan"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Path ini ada, tapi bukan direktori."
 
@@ -16697,6 +16703,12 @@ msgstr "Host tidak diketahui"
 
 msgid "Unknown Host"
 msgstr "Host Tidak Diketahui"
+
+msgid "Unknown pane"
+msgstr "Panel tidak dikenal"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Jenis panel tidak dikenal: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"
