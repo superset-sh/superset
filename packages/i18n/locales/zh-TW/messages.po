@@ -1742,6 +1742,9 @@ msgstr "對比main"
 msgid "Agent"
 msgstr "代理程式"
 
+msgid "Agent accounts"
+msgstr "代理程式帳號"
+
 msgid "Agent commands"
 msgstr "代理程式指令"
 
@@ -5186,6 +5189,10 @@ msgstr "預設"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "預設（{0}）"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "預設（{defaultWorktreePath}）"
 
@@ -6783,6 +6790,9 @@ msgstr "切換組織失敗。請重試。"
 
 msgid "Failed to trigger run"
 msgstr "觸發執行失敗"
+
+msgid "Failed to update agent account"
+msgstr "無法更新代理程式帳號"
 
 msgid "Failed to update agent settings"
 msgstr "更新代理程式設定失敗"
@@ -17496,6 +17506,9 @@ msgstr "支援哪些代理程式？"
 
 msgid "Which AI coding agents are supported?"
 msgstr "支援哪些AI編碼代理程式？"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "此專案中的代理程式使用哪個登入帳號。預設為在用量中選擇的帳號。"
 
 msgid "Who can open this page from its link"
 msgstr "誰可以通過連結開啟這個頁面"

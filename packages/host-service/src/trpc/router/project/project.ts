@@ -233,6 +233,8 @@ export const projectRouter = router({
 				// Always an array; the column's JSON encoding stays internal.
 				sparseCheckoutPaths: parseSparseCheckoutPaths(row.sparseCheckoutPaths),
 				namingInstructions: row.namingInstructions,
+				claudeConfigDir: row.claudeConfigDir,
+				codexHome: row.codexHome,
 			};
 		}),
 

@@ -1742,6 +1742,9 @@ msgstr "对比main"
 msgid "Agent"
 msgstr "智能体"
 
+msgid "Agent accounts"
+msgstr "智能体账号"
+
 msgid "Agent commands"
 msgstr "智能体命令"
 
@@ -5186,6 +5189,10 @@ msgstr "默认"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "默认（{0}）"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "默认（{defaultWorktreePath}）"
 
@@ -6783,6 +6790,9 @@ msgstr "切换组织失败。请重试。"
 
 msgid "Failed to trigger run"
 msgstr "触发运行失败"
+
+msgid "Failed to update agent account"
+msgstr "更新智能体账号失败"
 
 msgid "Failed to update agent settings"
 msgstr "更新智能体设置失败"
@@ -17496,6 +17506,9 @@ msgstr "支持哪些智能体？"
 
 msgid "Which AI coding agents are supported?"
 msgstr "支持哪些AI编码智能体？"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "此项目中的智能体使用哪个登录账号。默认为在用量中选择的账号。"
 
 msgid "Who can open this page from its link"
 msgstr "谁可以通过链接打开这个页面"

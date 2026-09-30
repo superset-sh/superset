@@ -533,7 +533,7 @@ describe("buildTerminalAgentLaunch", () => {
 });
 
 describe("buildTerminalAgentLaunch default account env", () => {
-	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
+	// tmpdir always exists, which is all resolveAccountEnv checks.
 	const existingDir = tmpdir();
 
 	// setDefaultAccountSelection also publishes the host-wide pointer files
@@ -653,6 +653,70 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe("'claude' 'hi'");
+	});
+
+	function seedProjectWorkspace(db: HostDb, claudeConfigDir: string | null) {
+		db.insert(schema.projects)
+			.values({
+				id: "22222222-2222-2222-2222-222222222222",
+				repoPath: existingDir,
+				claudeConfigDir,
+			})
+			.run();
+		db.insert(schema.workspaces)
+			.values({
+				id: "11111111-1111-1111-1111-111111111111",
+				projectId: "22222222-2222-2222-2222-222222222222",
+				worktreePath: existingDir,
+				branch: "main",
+			})
+			.run();
+	}
+
+	it("lets a project-pinned account beat the host default", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		const pinnedDir = mkdtempSync(join(tmpdir(), "project-account-"));
+		seedProjectWorkspace(db, pinnedDir);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_PINNED_CLAUDE_CONFIG_DIR='1' 'claude' 'hi'`,
+		);
+	});
+
+	it("lets a project pin the system login over the host default", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedProjectWorkspace(db, "");
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			"SUPERSET_PINNED_CLAUDE_CONFIG_DIR='1' 'claude' 'hi'",
+		);
+	});
+
+	it("falls back to the host default when the pinned dir is gone", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		seedProjectWorkspace(db, "/no/such/profile-dir");
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
 	});
 });
 

@@ -30,7 +30,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { resolveWriteTarget } from "@superset/agent-setup";
 import type { HostDb } from "../../../../db";
-import { resolveDefaultAccountEnv } from "../../usage/default-account";
+import { resolveAccountEnv } from "../../usage/default-account";
 
 type TrustFamily = "claude" | "codex";
 
@@ -61,7 +61,7 @@ export function resolveTrustFamily(config: {
 
 /**
  * Trust-store file for one agent config, mirroring launch-time resolution:
- * per-agent env wins over the host-default account selection
+ * per-agent env wins over the workspace's account selection
  * (`{...accountEnv, ...config.env}` in buildTerminalAgentLaunch, and the
  * agent wrapper's pointer-file fallback reads the same DB-backed selection).
  * Claude keeps state inside a custom CLAUDE_CONFIG_DIR but next door at
@@ -70,11 +70,15 @@ export function resolveTrustFamily(config: {
  */
 function resolveTrustTarget(
 	db: HostDb,
+	workspaceId: string,
 	config: { presetId: string; command: string; env: Record<string, string> },
 ): TrustTarget | null {
 	const family = resolveTrustFamily(config);
 	if (family === null) return null;
-	const env = { ...resolveDefaultAccountEnv(db, family), ...config.env };
+	const env = {
+		...resolveAccountEnv(db, family, workspaceId),
+		...config.env,
+	};
 	if (family === "claude") {
 		const configDir = env.CLAUDE_CONFIG_DIR;
 		return {
@@ -207,11 +211,12 @@ function normalizeFolderPath(path: string): string {
  */
 export async function seedAgentFolderTrust(
 	db: HostDb,
+	workspaceId: string,
 	folderPath: string,
 	config: { presetId: string; command: string; env: Record<string, string> },
 ): Promise<void> {
 	try {
-		const target = resolveTrustTarget(db, config);
+		const target = resolveTrustTarget(db, workspaceId, config);
 		if (target === null) return;
 		const normalized = normalizeFolderPath(folderPath);
 		if (target.family === "claude") {

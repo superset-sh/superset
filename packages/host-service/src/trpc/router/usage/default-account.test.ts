@@ -14,7 +14,7 @@ import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import {
 	getDefaultAccountSelections,
-	resolveDefaultAccountEnv,
+	resolveAccountEnv,
 	syncDefaultAccountPointer,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
@@ -131,7 +131,7 @@ describe("host-wide default account pointers", () => {
 		delete process.env.SUPERSET_AMBIENT_CODEX_HOME;
 		syncDefaultAccountPointer("codex", selected);
 
-		expect(resolveDefaultAccountEnv(mockDb(undefined), "codex")).toEqual({
+		expect(resolveAccountEnv(mockDb(undefined), "codex", null)).toEqual({
 			SUPERSET_AMBIENT_CODEX_HOME: customDefault,
 			CODEX_HOME: selected,
 			SUPERSET_DEFAULT_CODEX_HOME: selected,
@@ -145,7 +145,7 @@ describe("host-wide default account pointers", () => {
 		delete process.env.SUPERSET_AMBIENT_CODEX_HOME;
 		syncDefaultAccountPointer("codex", null);
 
-		expect(resolveDefaultAccountEnv(mockDb(undefined), "codex")).toEqual({
+		expect(resolveAccountEnv(mockDb(undefined), "codex", null)).toEqual({
 			SUPERSET_AMBIENT_CODEX_HOME: customDefault,
 			CODEX_HOME: customDefault,
 			SUPERSET_DEFAULT_CODEX_HOME: customDefault,

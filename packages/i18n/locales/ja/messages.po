@@ -1742,6 +1742,9 @@ msgstr "mainとの比較"
 msgid "Agent"
 msgstr "エージェント"
 
+msgid "Agent accounts"
+msgstr "エージェントのアカウント"
+
 msgid "Agent commands"
 msgstr "エージェントコマンド"
 
@@ -5186,6 +5189,10 @@ msgstr "デフォルト"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "デフォルト ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "デフォルト({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "組織の切り替えに失敗しました。もう一度お試しくだ
 
 msgid "Failed to trigger run"
 msgstr "実行を開始できませんでした"
+
+msgid "Failed to update agent account"
+msgstr "エージェントのアカウントを更新できませんでした"
 
 msgid "Failed to update agent settings"
 msgstr "エージェント設定の更新に失敗しました"
@@ -17496,6 +17506,9 @@ msgstr "どのエージェントに対応していますか?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "どのAIコーディングエージェントに対応していますか?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "このプロジェクトでエージェントが使うログイン。デフォルトは使用量で選んだアカウントです。"
 
 msgid "Who can open this page from its link"
 msgstr "リンクからこのページを開ける人"

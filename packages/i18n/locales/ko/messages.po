@@ -1742,6 +1742,9 @@ msgstr "main 기준"
 msgid "Agent"
 msgstr "에이전트"
 
+msgid "Agent accounts"
+msgstr "에이전트 계정"
+
 msgid "Agent commands"
 msgstr "에이전트 명령"
 
@@ -5186,6 +5189,10 @@ msgstr "기본값"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "기본값 ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "조직을 전환하지 못했습니다. 다시 시도해 주세요."
 
 msgid "Failed to trigger run"
 msgstr "실행을 시작하지 못했습니다"
+
+msgid "Failed to update agent account"
+msgstr "에이전트 계정을 업데이트하지 못했습니다"
 
 msgid "Failed to update agent settings"
 msgstr "에이전트 설정을 업데이트하지 못했습니다"
@@ -17496,6 +17506,9 @@ msgstr "어떤 에이전트를 지원하나요?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "어떤 AI 코딩 에이전트를 지원하나요?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "이 프로젝트에서 에이전트가 사용할 로그인입니다. 기본값은 사용량에서 선택한 계정입니다."
 
 msgid "Who can open this page from its link"
 msgstr "링크로 이 페이지를 열 수 있는 사람"

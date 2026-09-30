@@ -1742,6 +1742,9 @@ msgstr "Frente a main"
 msgid "Agent"
 msgstr "Agente"
 
+msgid "Agent accounts"
+msgstr "Cuentas de agentes"
+
 msgid "Agent commands"
 msgstr "Comandos de agente"
 
@@ -5186,6 +5189,10 @@ msgstr "Predeterminado"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Predeterminado ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Predeterminada ({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "No se pudo cambiar de organización. Inténtalo de nuevo."
 
 msgid "Failed to trigger run"
 msgstr "No se pudo iniciar la ejecución"
+
+msgid "Failed to update agent account"
+msgstr "No se pudo actualizar la cuenta del agente"
 
 msgid "Failed to update agent settings"
 msgstr "No se pudo actualizar la configuración del agente"
@@ -17496,6 +17506,9 @@ msgstr "¿Qué agentes son compatibles?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "¿Qué agentes de código con IA son compatibles?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Qué inicio de sesión usan los agentes en este proyecto. De forma predeterminada, la cuenta elegida en Uso."
 
 msgid "Who can open this page from its link"
 msgstr "Quién puede abrir esta página desde su enlace"

@@ -1,5 +1,6 @@
 /**
- * Host-wide default agent account for newly launched agents. "Switching"
+ * Host-wide default agent account for newly launched agents, which a project
+ * can override. "Switching"
  * an account never touches credential stores — it only records which profile
  * dir to inject (CLAUDE_CONFIG_DIR / CODEX_HOME) when an agent starts, so the
  * agent CLI itself keeps owning every login end to end.
@@ -18,8 +19,9 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import type { HostDb } from "../../../db/index.ts";
-import { hostSettings } from "../../../db/schema.ts";
+import { hostSettings, projects, workspaces } from "../../../db/schema.ts";
 
 type SwitchableAccountAgent = "claude" | "codex";
 
@@ -243,59 +245,88 @@ export function setDefaultAccountSelection(
 
 /**
  * Env for a new terminal so agent CLIs typed or launched in it run on the
- * host-default accounts. Both agents' vars — a shell can run either CLI.
- * Baked at PTY spawn as the fast path; the agent wrappers re-resolve from the
- * pointer files at every launch, so a later switch still reaches this
- * terminal when the agent is relaunched.
+ * workspace's accounts. Both agents' vars — a shell can run either CLI.
+ * Baked at PTY spawn as the fast path; the agent wrappers re-resolve later
+ * host-default switches at launch, but never a pinned project account.
  */
-export function resolveDefaultAccountTerminalEnv(
+export function resolveAccountTerminalEnv(
 	db: HostDb,
+	workspaceId: string | null,
 ): Record<string, string> {
 	return {
-		...resolveDefaultAccountEnv(db, "claude"),
-		...resolveDefaultAccountEnv(db, "codex"),
+		...resolveAccountEnv(db, "claude", workspaceId),
+		...resolveAccountEnv(db, "codex", workspaceId),
 	};
 }
 
 /**
- * Env to overlay on an agent launch so it runs on the host-default account.
- * A pointer whose profile dir has vanished is skipped: falling back to the
- * system-default login beats booting the agent signed out.
+ * Env to overlay on an agent launch so it runs on the workspace project's
+ * pinned account, else the host default. A selection whose profile dir has
+ * vanished is skipped: falling back beats booting the agent signed out.
  */
-export function resolveDefaultAccountEnv(
+export function resolveAccountEnv(
 	db: HostDb,
 	presetId: string,
+	workspaceId: string | null,
 ): Record<string, string> {
 	if (presetId !== "claude" && presetId !== "codex") return {};
+	const pinned = getProjectAccountSelection(db, presetId, workspaceId);
+	if (pinned !== null && (pinned === "" || existsSync(pinned))) {
+		return {
+			...accountEnv(presetId, pinned || null),
+			[PINNED_ENV[presetId]]: "1",
+		};
+	}
 	const selections = getDefaultAccountSelections(db);
-	if (
-		presetId === "claude" &&
-		selections.claudeConfigDir &&
-		existsSync(selections.claudeConfigDir)
-	) {
+	return accountEnv(
+		presetId,
+		presetId === "claude" ? selections.claudeConfigDir : selections.codexHome,
+	);
+}
+
+const PINNED_ENV: Record<SwitchableAccountAgent, string> = {
+	claude: "SUPERSET_PINNED_CLAUDE_CONFIG_DIR",
+	codex: "SUPERSET_PINNED_CODEX_HOME",
+};
+
+function getProjectAccountSelection(
+	db: HostDb,
+	agent: SwitchableAccountAgent,
+	workspaceId: string | null,
+): string | null {
+	if (!workspaceId) return null;
+	const row = db
+		.select({
+			claudeConfigDir: projects.claudeConfigDir,
+			codexHome: projects.codexHome,
+		})
+		.from(workspaces)
+		.innerJoin(projects, eq(projects.id, workspaces.projectId))
+		.where(eq(workspaces.id, workspaceId))
+		.get();
+	return (agent === "claude" ? row?.claudeConfigDir : row?.codexHome) ?? null;
+}
+
+function accountEnv(
+	agent: SwitchableAccountAgent,
+	selection: string | null,
+): Record<string, string> {
+	if (agent === "claude") {
+		if (!selection || !existsSync(selection)) return {};
 		// The SUPERSET_DEFAULT_* twin marks the value as Superset-injected, so
 		// the agent wrapper can re-resolve a later switch without ever
 		// overriding a value the user exported by hand.
 		return {
-			CLAUDE_CONFIG_DIR: selections.claudeConfigDir,
-			SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: selections.claudeConfigDir,
+			CLAUDE_CONFIG_DIR: selection,
+			SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: selection,
 		};
 	}
-	if (presetId === "codex") {
-		const ambientCodex = ambientCodexHome();
-		const ambient = { SUPERSET_AMBIENT_CODEX_HOME: ambientCodex };
-		if (!selections.codexHome || !existsSync(selections.codexHome)) {
-			return {
-				...ambient,
-				CODEX_HOME: ambientCodex,
-				SUPERSET_DEFAULT_CODEX_HOME: ambientCodex,
-			};
-		}
-		return {
-			...ambient,
-			CODEX_HOME: selections.codexHome,
-			SUPERSET_DEFAULT_CODEX_HOME: selections.codexHome,
-		};
-	}
-	return {};
+	const ambientCodex = ambientCodexHome();
+	const codexHome =
+		selection && existsSync(selection) ? selection : ambientCodex;
+	return {
+		SUPERSET_AMBIENT_CODEX_HOME: ambientCodex,
+		CODEX_HOME: codexHome,
+		SUPERSET_DEFAULT_CODEX_HOME: codexHome,
+	};
 }

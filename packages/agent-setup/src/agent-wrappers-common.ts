@@ -136,7 +136,8 @@ function buildRealBinaryResolver(): string {
  * otherwise reach only brand-new terminals; this re-reads the host's
  * pointer file every time the agent starts instead. Superset terminals
  * only, and a value the user exported by hand — one that differs from what
- * Superset injected at spawn — always wins. A missing pointer file (older
+ * Superset injected at spawn — always wins, as does a project-pinned
+ * account. A missing pointer file (older
  * host build) changes nothing; an empty one means the system default.
  */
 export function buildDefaultAccountResolver(
@@ -156,6 +157,7 @@ export function buildDefaultAccountResolver(
 		: `unset ${envVar}
   unset SUPERSET_DEFAULT_${envVar}`;
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
+  && [ -z "\${SUPERSET_PINNED_${envVar}}" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
   superset_default_account="$(cat ${pointer} 2>/dev/null)"

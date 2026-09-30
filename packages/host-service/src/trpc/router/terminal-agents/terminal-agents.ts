@@ -205,7 +205,7 @@ export async function resumeTerminalAgentSession(
  * Live agent sessions a default-account switch cannot reach: their PTY env
  * was frozen at spawn, so they keep the old login until relaunched. A
  * session qualifies when its binding captured a session id and its config
- * both belongs to `provider` — the presetId keying resolveDefaultAccountEnv —
+ * both belongs to `provider` — the presetId keying resolveAccountEnv —
  * and knows how to resume. A session idle since it started ("Attached")
  * counts: it is exactly the agent the user would otherwise have to close and
  * relaunch by hand, and the resume path starts it fresh when it has no

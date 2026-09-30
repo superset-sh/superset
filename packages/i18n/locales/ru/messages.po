@@ -1742,6 +1742,9 @@ msgstr "Против main"
 msgid "Agent"
 msgstr "Агент"
 
+msgid "Agent accounts"
+msgstr "Аккаунты агентов"
+
 msgid "Agent commands"
 msgstr "Команды агентов"
 
@@ -5186,6 +5189,10 @@ msgstr "По умолчанию"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "По умолчанию ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "По умолчанию ({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "Не удалось сменить организацию. Попроб�
 
 msgid "Failed to trigger run"
 msgstr "Не удалось запустить"
+
+msgid "Failed to update agent account"
+msgstr "Не удалось обновить аккаунт агента"
 
 msgid "Failed to update agent settings"
 msgstr "Не удалось обновить настройки агента"
@@ -17496,6 +17506,9 @@ msgstr "Какие агенты поддерживаются?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Какие AI-агенты для кода поддерживаются?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Какой вход используют агенты в этом проекте. По умолчанию — аккаунт, выбранный в разделе «Использование»."
 
 msgid "Who can open this page from its link"
 msgstr "Кто может открыть эту страницу по ссылке"

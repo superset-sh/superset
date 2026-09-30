@@ -1742,6 +1742,9 @@ msgstr "Terhadap Main"
 msgid "Agent"
 msgstr "Agen"
 
+msgid "Agent accounts"
+msgstr "Akun agen"
+
 msgid "Agent commands"
 msgstr "Perintah agen"
 
@@ -5186,6 +5189,10 @@ msgstr "Bawaan"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Bawaan ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Bawaan ({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "Gagal mengganti organisasi. Silakan coba lagi."
 
 msgid "Failed to trigger run"
 msgstr "Gagal memicu run"
+
+msgid "Failed to update agent account"
+msgstr "Gagal memperbarui akun agen"
 
 msgid "Failed to update agent settings"
 msgstr "Gagal memperbarui pengaturan agen"
@@ -17496,6 +17506,9 @@ msgstr "Agen mana saja yang didukung?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Agen coding AI mana saja yang didukung?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Login yang dipakai agen di proyek ini. Bawaannya adalah akun yang dipilih di Penggunaan."
 
 msgid "Who can open this page from its link"
 msgstr "Siapa yang bisa membuka halaman ini dari tautannya"

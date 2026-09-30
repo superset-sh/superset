@@ -88,6 +88,34 @@ describe("buildDefaultAccountResolver", () => {
 		).toBe(profile);
 	});
 
+	it("keeps a project-pinned account over the pointer", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const pinned = join(home, "pinned");
+		mkdirSync(pinned);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				CLAUDE_CONFIG_DIR: pinned,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: pinned,
+				SUPERSET_PINNED_CLAUDE_CONFIG_DIR: "1",
+			}),
+		).toBe(pinned);
+	});
+
+	it("keeps a project pinned to the system-default login unset", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_PINNED_CLAUDE_CONFIG_DIR: "1",
+			}),
+		).toBe("<unset>");
+	});
+
 	it("updates the injection marker when it adopts a new pointer", () => {
 		const { home, profile } = makeHome(null);
 		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);

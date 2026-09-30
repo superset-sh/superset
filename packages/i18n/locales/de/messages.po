@@ -1742,6 +1742,9 @@ msgstr "Gegen main"
 msgid "Agent"
 msgstr "Agent"
 
+msgid "Agent accounts"
+msgstr "Agentenkonten"
+
 msgid "Agent commands"
 msgstr "Agent-Befehle"
 
@@ -5186,6 +5189,10 @@ msgstr "Standard"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Standard ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Standard ({defaultWorktreePath})"
 
@@ -6783,6 +6790,9 @@ msgstr "Organisation konnte nicht gewechselt werden. Bitte versuche es erneut."
 
 msgid "Failed to trigger run"
 msgstr "Lauf konnte nicht ausgelöst werden"
+
+msgid "Failed to update agent account"
+msgstr "Agentenkonto konnte nicht aktualisiert werden"
 
 msgid "Failed to update agent settings"
 msgstr "Agenten-Einstellungen konnten nicht aktualisiert werden"
@@ -17496,6 +17506,9 @@ msgstr "Welche Agenten werden unterstützt?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Welche KI-Coding-Agenten werden unterstützt?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Mit welchem Login Agenten in diesem Projekt arbeiten. Standard ist das in Nutzung gewählte Konto."
 
 msgid "Who can open this page from its link"
 msgstr "Wer diese Seite über ihren Link öffnen kann"

@@ -48,7 +48,7 @@ import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import type { TerminalAgentStore } from "../terminal-agents/store.ts";
 import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
-import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
+import { resolveAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -3107,10 +3107,11 @@ async function createTerminalSessionUnlocked({
 			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
-		// Usage-tab default account: provider CLIs typed or preset-launched in
-		// this terminal run on the selected login. Baked at spawn as the fast
-		// path; the agent wrappers re-resolve later switches at launch time.
-		...resolveDefaultAccountTerminalEnv(db),
+		// Usage-tab account (or the project's pinned one): provider CLIs typed
+		// or preset-launched in this terminal run on the selected login. Baked
+		// at spawn as the fast path; the agent wrappers re-resolve later
+		// switches at launch time.
+		...resolveAccountTerminalEnv(db, workspaceId),
 		SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN: issueAttributionToken(terminalId),
 	};
 

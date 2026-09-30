@@ -5,7 +5,7 @@ import { z } from "zod";
 import { workspaces } from "../../../db/schema";
 import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
 import { queryProcedure, router } from "../../index";
-import { resolveDefaultAccountEnv } from "../usage/default-account";
+import { resolveAccountEnv } from "../usage/default-account";
 import { listAgentSlashCommands } from "./discovery";
 
 // Declaration emit (docs/interim-router-types.md): the procedure's return
@@ -35,10 +35,10 @@ export const agentToolingRouter = router({
 			const config = resolveHostAgentConfig(ctx.db, input.agent);
 			const presetId = config?.presetId ?? input.agent;
 			// Same precedence as the agent launch itself: the config's own env
-			// wins over the host-default account, so discovery reads the config
+			// wins over the workspace's account, so discovery reads the config
 			// dir the CLI will actually run with.
 			const env = {
-				...resolveDefaultAccountEnv(ctx.db, presetId),
+				...resolveAccountEnv(ctx.db, presetId, workspace.id),
 				...(config?.env ?? {}),
 			};
 			return listAgentSlashCommands({
