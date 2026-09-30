@@ -280,6 +280,7 @@ talk to when targeting this machine.
 	name="superset start"
 	options={[
 		{ flag: "--daemon", description: "Run detached." },
+		{ flag: "--auto-update", description: "Check hourly for a newer release, install it, and restart the host. Requires --daemon. Off by default." },
 		{ flag: "--port <n>", description: "Specific port. Default: a free loopback port." },
 		{ flag: "--org <id>", description: "Organization to register under. Default: the active organization." },
 	]}
@@ -1044,7 +1045,7 @@ Model is an explicit override for one launch. If you omit `--model`, Superset
 passes no model flag and the agent uses its own configured default. Ids match
 the desktop model picker: Claude takes a family alias (`fable`, `opus`,
 `sonnet`, `haiku`) that tracks the newest release, or a pinned id such as
-`claude-opus-5-5`. Codex includes `gpt-6-sol` and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
+`claude-opus-5-5` or `claude-sonnet-5-5`. Codex includes `gpt-6-astra`, `gpt-6-sol`, and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
 and the error names every id that agent accepts. Agents without a model
 picker, including Superset chat, reject an explicit model override.
 
@@ -1063,7 +1064,7 @@ The host rejects unsupported values before launching the agent.
 | Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
 | Copilot | `low`, `medium`, `high`, `xhigh` |
 
-GPT-6 Sol supports `max` and `ultra`; GPT-6 Luna supports `max`.
+GPT-6 Astra and GPT-6 Sol support `max` and `ultra`; GPT-6 Luna supports `max`.
 
 Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
@@ -1327,10 +1328,7 @@ existing page. Without a workspace, keep the returned ID and pass `--page` on
 later publishes to avoid creating another page. Existing visibility is
 preserved unless explicitly supplied.
 
-The first version published from a workspace attempts to open in the desktop,
-following **Settings → Links → Pages**. This is skipped over SSH or in a cloud
-sandbox. An opening failure does not fail the publish; the result includes an
-`openNote`. Later versions do not reopen.
+Publishing does not open the page in the desktop.
 
 ```bash
 superset pages publish report.html --title "Weekly report" --visibility everyone
@@ -1356,42 +1354,6 @@ Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 >
 Delete a page and every version. Interactive terminals ask for confirmation
 unless `--yes` is passed; non-interactive input does not prompt.
-</Command>
-
-### mcp
-
-Use tools from connected plugins. This is separate from the
-[Superset MCP server](/mcp-server), which exposes Superset itself to agents.
-
-<Command
-	name="superset mcp tools"
-	options={[
-		{ flag: "--plugin <name>", required: true, description: "Plugin name from superset plugins list." },
-	]}
-	output="Array<{ plugin: string; tool: string; description: string }>"
->
-List the tools a connected plugin exposes. Use the returned names and
-descriptions before calling a tool.
-</Command>
-
-<Command
-	name="superset mcp call-tool <tool> [arguments]"
-	args={[
-		{ name: "tool", required: true, description: "Tool name from mcp tools." },
-		{ name: "arguments", description: "JSON arguments; defaults to {}. Pass - to read stdin." },
-	]}
-	options={[
-		{ flag: "--plugin <name>", required: true, description: "Connected plugin name." },
-	]}
->
-Call a plugin tool and return its MCP result, including the content array.
-Credentials are attached by Superset's API. `--connection` and `--plugin-id`
-are deprecated aliases for `--plugin`; they take a plugin name, not a connection ID.
-
-```bash
-superset mcp tools --plugin notion
-superset mcp call-tool notion-fetch --plugin notion '{"id":"<page-id>"}'
-```
 </Command>
 
 ---
