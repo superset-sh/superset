@@ -11,14 +11,16 @@ import {
 	existsSync,
 	linkSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
 	realpathSync,
 	renameSync,
+	rmSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings, projects, workspaces } from "../../../db/schema.ts";
@@ -102,13 +104,16 @@ export function syncDefaultAccountPointer(
 	agent: SwitchableAccountAgent,
 	selection: string | null,
 ): void {
+	writePointerFile(defaultAccountPointerPath(agent), selection ?? "");
+}
+
+function writePointerFile(path: string, value: string): void {
 	let temporaryPath: string | null = null;
 	try {
-		const dir = join(supersetHomeDir(), "state");
-		mkdirSync(dir, { recursive: true });
-		const pointerPath = resolveWriteTarget(defaultAccountPointerPath(agent));
+		mkdirSync(dirname(path), { recursive: true });
+		const pointerPath = resolveWriteTarget(path);
 		temporaryPath = temporaryPointerPath(pointerPath);
-		writeFileSync(temporaryPath, selection ?? "");
+		writeFileSync(temporaryPath, value);
 		renameSync(temporaryPath, pointerPath);
 		temporaryPath = null;
 	} finally {
@@ -119,6 +124,95 @@ export function syncDefaultAccountPointer(
 				// Best-effort cleanup after a failed write or rename.
 			}
 		}
+	}
+}
+
+/**
+ * Mirrors the wrapper's `${SUPERSET_ORGANIZATION_ID:-_}`. Scoping by org lets
+ * each host-service reap its own stale pins: several org services can share
+ * one Superset home, and each sees only its own workspaces.
+ */
+const UNSCOPED_ORG_DIR = "_";
+
+function workspacePinOrgDir(): string {
+	return join(
+		supersetHomeDir(),
+		"state",
+		"workspace-accounts",
+		process.env.ORGANIZATION_ID || UNSCOPED_ORG_DIR,
+	);
+}
+
+function workspacePinPointerPath(
+	workspaceId: string,
+	agent: SwitchableAccountAgent,
+): string {
+	return join(workspacePinOrgDir(), workspaceId, POINTER_NAMES[agent]);
+}
+
+/**
+ * Publishes each workspace's project pin where the agent wrappers read it
+ * before the host-wide pointer, so pinning, switching, or clearing a pin
+ * reaches terminals that are already open. Keyed by workspace because that
+ * is the id every terminal carries. No file = not pinned. An unscoped sync
+ * also removes pins of workspaces this org no longer has.
+ */
+export function syncWorkspaceAccountPins(
+	db: HostDb,
+	scope: { projectId?: string; workspaceId?: string } = {},
+): void {
+	const rows = db
+		.select({
+			workspaceId: workspaces.id,
+			claudeConfigDir: projects.claudeConfigDir,
+			codexHome: projects.codexHome,
+		})
+		.from(workspaces)
+		.innerJoin(projects, eq(projects.id, workspaces.projectId))
+		.where(
+			scope.workspaceId
+				? eq(workspaces.id, scope.workspaceId)
+				: scope.projectId
+					? eq(workspaces.projectId, scope.projectId)
+					: undefined,
+		)
+		.all();
+	for (const row of rows) {
+		for (const [agent, pin] of [
+			["claude", row.claudeConfigDir],
+			["codex", row.codexHome],
+		] as const) {
+			const path = workspacePinPointerPath(row.workspaceId, agent);
+			if (pin !== null) {
+				writePointerFile(path, pin);
+				continue;
+			}
+			try {
+				unlinkSync(path);
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+			}
+		}
+	}
+	if (!scope.workspaceId && !scope.projectId && process.env.ORGANIZATION_ID) {
+		reapWorkspacePins(new Set(rows.map((row) => row.workspaceId)));
+	}
+}
+
+function reapWorkspacePins(liveWorkspaceIds: Set<string>): void {
+	let entries: string[];
+	try {
+		entries = readdirSync(workspacePinOrgDir());
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+		throw error;
+	}
+	for (const workspaceId of entries) {
+		if (liveWorkspaceIds.has(workspaceId)) continue;
+		rmSync(join(workspacePinOrgDir(), workspaceId), {
+			recursive: true,
+			force: true,
+		});
 	}
 }
 
@@ -247,16 +341,23 @@ export function setDefaultAccountSelection(
  * Env for a new terminal so agent CLIs typed or launched in it run on the
  * workspace's accounts. Both agents' vars — a shell can run either CLI.
  * Baked at PTY spawn as the fast path; the agent wrappers re-resolve later
- * host-default switches at launch, but never a pinned project account.
+ * switches from the pointer files at launch.
  */
 export function resolveAccountTerminalEnv(
 	db: HostDb,
 	workspaceId: string | null,
+	options: { pinsPublished: boolean } = { pinsPublished: true },
 ): Record<string, string> {
-	return {
+	const env = {
 		...resolveAccountEnv(db, "claude", workspaceId),
 		...resolveAccountEnv(db, "codex", workspaceId),
 	};
+	if (options.pinsPublished) return env;
+	// Without the SUPERSET_DEFAULT_* twins the wrappers treat the spawn value
+	// as user-set and keep it, instead of re-resolving past a pin they can't see.
+	return Object.fromEntries(
+		Object.entries(env).filter(([key]) => !key.startsWith("SUPERSET_DEFAULT_")),
+	);
 }
 
 /**
@@ -270,13 +371,8 @@ export function resolveAccountEnv(
 	workspaceId: string | null,
 ): Record<string, string> {
 	if (presetId !== "claude" && presetId !== "codex") return {};
-	const pinned = getProjectAccountSelection(db, presetId, workspaceId);
-	if (pinned !== null && (pinned === "" || existsSync(pinned))) {
-		return {
-			...accountEnv(presetId, pinned || null),
-			[PINNED_ENV[presetId]]: "1",
-		};
-	}
+	const pinned = getEffectiveProjectPin(db, presetId, workspaceId);
+	if (pinned !== null) return accountEnv(presetId, pinned || null);
 	const selections = getDefaultAccountSelections(db);
 	return accountEnv(
 		presetId,
@@ -284,10 +380,21 @@ export function resolveAccountEnv(
 	);
 }
 
-const PINNED_ENV: Record<SwitchableAccountAgent, string> = {
-	claude: "SUPERSET_PINNED_CLAUDE_CONFIG_DIR",
-	codex: "SUPERSET_PINNED_CODEX_HOME",
-};
+/**
+ * The workspace project's pin for `agent`: "" for the system login, null when
+ * unpinned or when the pinned dir has vanished (launches then fall back to
+ * the host default).
+ */
+export function getEffectiveProjectPin(
+	db: HostDb,
+	agent: SwitchableAccountAgent,
+	workspaceId: string | null,
+): string | null {
+	const pinned = getProjectAccountSelection(db, agent, workspaceId);
+	return pinned !== null && (pinned === "" || existsSync(pinned))
+		? pinned
+		: null;
+}
 
 function getProjectAccountSelection(
 	db: HostDb,

@@ -27,6 +27,7 @@ import { fetchCodexAccounts } from "./codex";
 import {
 	getDefaultAccountSelections,
 	setDefaultAccountSelection,
+	syncWorkspaceAccountPins,
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
 import { countAgentPrsByDay } from "./history/agent-prs";
@@ -56,6 +57,23 @@ async function assertKnownAccount(
 			code: "BAD_REQUEST",
 			message: `No ${agent} login found at ${selection} — refresh usage and pick again.`,
 		});
+	}
+}
+
+/**
+ * Best-effort: the pin is already saved, and every new terminal publishes
+ * its workspace's pin again, so a failed write must not fail the mutation.
+ */
+function publishWorkspaceAccountPins(
+	...args: Parameters<typeof syncWorkspaceAccountPins>
+): void {
+	try {
+		syncWorkspaceAccountPins(...args);
+	} catch (error) {
+		console.warn(
+			"[host-service] syncing workspace account pins failed:",
+			error,
+		);
 	}
 }
 
@@ -286,6 +304,7 @@ export const usageRouter = router({
 					message: `Project not set up locally: ${input.projectId}`,
 				});
 			}
+			publishWorkspaceAccountPins(ctx.db, { projectId: input.projectId });
 			await provisionSelectedAccount(input.agent, selection);
 			return { success: true as const };
 		}),
@@ -343,6 +362,7 @@ export const usageRouter = router({
 				)
 				.where(eq(pinColumn, input.selection))
 				.run();
+			publishWorkspaceAccountPins(ctx.db);
 			// The quota cache still lists the removed account; drop it so the
 			// next query re-discovers.
 			cachedQuota = null;

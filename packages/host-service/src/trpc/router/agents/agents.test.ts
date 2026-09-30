@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -11,7 +18,10 @@ import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
 import { TerminalAgentStore } from "../../../terminal-agents";
 import { claudeProjectDirName } from "../../../terminal-agents/harness-sessions/claude";
-import { setDefaultAccountSelection } from "../usage/default-account";
+import {
+	setDefaultAccountSelection,
+	syncWorkspaceAccountPins,
+} from "../usage/default-account";
 import {
 	bindResumedSession,
 	buildAgentCommandString,
@@ -685,7 +695,7 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe(
-			`CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_PINNED_CLAUDE_CONFIG_DIR='1' 'claude' 'hi'`,
+			`CLAUDE_CONFIG_DIR='${pinnedDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${pinnedDir}' 'claude' 'hi'`,
 		);
 	});
 
@@ -699,9 +709,7 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			agent: "claude",
 			prompt: "hi",
 		});
-		expect(launch.fullCommand).toBe(
-			"SUPERSET_PINNED_CLAUDE_CONFIG_DIR='1' 'claude' 'hi'",
-		);
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
 	});
 
 	it("falls back to the host default when the pinned dir is gone", () => {
@@ -718,6 +726,72 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
 	});
+
+	function withOrganizationId(id: string | undefined, run: () => void) {
+		const previous = process.env.ORGANIZATION_ID;
+		if (id === undefined) delete process.env.ORGANIZATION_ID;
+		else process.env.ORGANIZATION_ID = id;
+		try {
+			run();
+		} finally {
+			if (previous === undefined) delete process.env.ORGANIZATION_ID;
+			else process.env.ORGANIZATION_ID = previous;
+		}
+	}
+
+	it("publishes and clears the workspace pin files the wrappers read", () =>
+		withOrganizationId(undefined, () => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, "");
+			const pinDir = join(
+				process.env.SUPERSET_HOME_DIR ?? "",
+				"state",
+				"workspace-accounts",
+				"_",
+				"11111111-1111-1111-1111-111111111111",
+			);
+			syncWorkspaceAccountPins(db, {
+				projectId: "22222222-2222-2222-2222-222222222222",
+			});
+			expect(
+				readFileSync(join(pinDir, "default-claude-config-dir"), "utf8"),
+			).toBe("");
+			expect(existsSync(join(pinDir, "default-codex-home"))).toBe(false);
+
+			db.update(schema.projects).set({ claudeConfigDir: null }).run();
+			syncWorkspaceAccountPins(db);
+			expect(existsSync(join(pinDir, "default-claude-config-dir"))).toBe(false);
+		}));
+
+	it("reaps only this org's pins for workspaces it no longer has", () =>
+		withOrganizationId("org-a", () => {
+			const db = createTestDb();
+			seedProjectWorkspace(db, "");
+			const pinsRoot = join(
+				process.env.SUPERSET_HOME_DIR ?? "",
+				"state",
+				"workspace-accounts",
+			);
+			const stale = join(pinsRoot, "org-a", "deleted-workspace");
+			const otherOrg = join(pinsRoot, "org-b", "deleted-workspace");
+			mkdirSync(stale, { recursive: true });
+			mkdirSync(otherOrg, { recursive: true });
+
+			syncWorkspaceAccountPins(db);
+
+			expect(existsSync(stale)).toBe(false);
+			expect(existsSync(otherOrg)).toBe(true);
+			expect(
+				existsSync(
+					join(
+						pinsRoot,
+						"org-a",
+						"11111111-1111-1111-1111-111111111111",
+						"default-claude-config-dir",
+					),
+				),
+			).toBe(true);
+		}));
 });
 
 describe("validateAgentModelSelection", () => {

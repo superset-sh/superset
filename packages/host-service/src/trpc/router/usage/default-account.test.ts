@@ -15,6 +15,7 @@ import type { HostDb } from "../../../db/index.ts";
 import {
 	getDefaultAccountSelections,
 	resolveAccountEnv,
+	resolveAccountTerminalEnv,
 	syncDefaultAccountPointer,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
@@ -150,5 +151,20 @@ describe("host-wide default account pointers", () => {
 			CODEX_HOME: customDefault,
 			SUPERSET_DEFAULT_CODEX_HOME: customDefault,
 		});
+	});
+
+	it("drops the re-resolve markers when the pins could not be published", () => {
+		const selected = join(home, ".claude-work");
+		mkdirSync(selected);
+		syncDefaultAccountPointer("claude", selected);
+
+		const env = resolveAccountTerminalEnv(mockDb(undefined), null, {
+			pinsPublished: false,
+		});
+
+		expect(env.CLAUDE_CONFIG_DIR).toBe(selected);
+		expect(
+			Object.keys(env).filter((key) => key.startsWith("SUPERSET_DEFAULT_")),
+		).toEqual([]);
 	});
 });

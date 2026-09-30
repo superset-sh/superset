@@ -133,12 +133,12 @@ function buildRealBinaryResolver(): string {
 /**
  * Shell block that re-resolves the Usage-tab default account at launch.
  * The PTY env is frozen at terminal spawn, so an account switch would
- * otherwise reach only brand-new terminals; this re-reads the host's
- * pointer file every time the agent starts instead. Superset terminals
- * only, and a value the user exported by hand — one that differs from what
- * Superset injected at spawn — always wins, as does a project-pinned
- * account. A missing pointer file (older
- * host build) changes nothing; an empty one means the system default.
+ * otherwise reach only brand-new terminals; this re-reads the pointer files
+ * every time the agent starts instead. The workspace's project pin wins over
+ * the host pointer, unless it names a dir that no longer exists. Superset
+ * terminals only, and a value the user exported by hand — one that differs
+ * from what Superset injected at spawn — always wins. A missing pointer file
+ * (older host build) changes nothing; an empty one means the system default.
  */
 export function buildDefaultAccountResolver(
 	envVar: string,
@@ -146,26 +146,37 @@ export function buildDefaultAccountResolver(
 	ambientEnvVar?: string,
 ): string {
 	const pointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	const pin = `"$SUPERSET_HOME_DIR/state/workspace-accounts/\${SUPERSET_ORGANIZATION_ID:-_}/$SUPERSET_WORKSPACE_ID/${pointerName}"`;
 	const restoreSystemDefault = ambientEnvVar
 		? `if [ -n "\${${ambientEnvVar}}" ]; then
-    export ${envVar}="\${${ambientEnvVar}}"
-    export SUPERSET_DEFAULT_${envVar}="\${${ambientEnvVar}}"
-  else
-    unset ${envVar}
-    unset SUPERSET_DEFAULT_${envVar}
-  fi`
+      export ${envVar}="\${${ambientEnvVar}}"
+      export SUPERSET_DEFAULT_${envVar}="\${${ambientEnvVar}}"
+    else
+      unset ${envVar}
+      unset SUPERSET_DEFAULT_${envVar}
+    fi`
 		: `unset ${envVar}
-  unset SUPERSET_DEFAULT_${envVar}`;
+    unset SUPERSET_DEFAULT_${envVar}`;
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
-  && [ -z "\${SUPERSET_PINNED_${envVar}}" ] \\
-  && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
-  && [ -f ${pointer} ]; then
-  superset_default_account="$(cat ${pointer} 2>/dev/null)"
-  if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
-    export ${envVar}="$superset_default_account"
-    export SUPERSET_DEFAULT_${envVar}="$superset_default_account"
-  else
-    ${restoreSystemDefault}
+  && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; }; then
+  superset_account_pointer=""
+  if [ -n "$SUPERSET_WORKSPACE_ID" ] && [ -f ${pin} ]; then
+    superset_default_account="$(cat ${pin} 2>/dev/null)"
+    if [ -z "$superset_default_account" ] || [ -d "$superset_default_account" ]; then
+      superset_account_pointer=${pin}
+    fi
+  fi
+  if [ -z "$superset_account_pointer" ] && [ -f ${pointer} ]; then
+    superset_account_pointer=${pointer}
+  fi
+  if [ -n "$superset_account_pointer" ]; then
+    superset_default_account="$(cat "$superset_account_pointer" 2>/dev/null)"
+    if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
+      export ${envVar}="$superset_default_account"
+      export SUPERSET_DEFAULT_${envVar}="$superset_default_account"
+    else
+      ${restoreSystemDefault}
+    fi
   fi
 fi
 

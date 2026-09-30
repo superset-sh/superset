@@ -9337,6 +9337,9 @@ msgstr "최소 대비"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog Success Metrics 대시보드</0>의 미러 — 제품 지표는 저장된 인사이트, 비즈니스 지표는 Stripe/Neon 실시간"
 
+msgid "Missing account (using default)"
+msgstr "계정을 찾을 수 없음(기본값 사용 중)"
+
 msgid "Missing auth state"
 msgstr "인증 상태 누락"
 
@@ -15303,6 +15306,9 @@ msgstr "동기화하는 중..."
 
 msgid "System"
 msgstr "시스템"
+
+msgid "System login"
+msgstr "시스템 로그인"
 
 msgid "System memory"
 msgstr "시스템 메모리"

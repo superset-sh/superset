@@ -9337,6 +9337,9 @@ msgstr "Minimální kontrast"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Zrcadlo přehledu <0>PostHog Success Metrics</0> — produkt přes uložené insighty, byznys živě ze Stripe/Neon"
 
+msgid "Missing account (using default)"
+msgstr "Chybějící účet (používá se výchozí)"
+
 msgid "Missing auth state"
 msgstr "Chybí stav ověření"
 
@@ -15303,6 +15306,9 @@ msgstr "Synchronizuji..."
 
 msgid "System"
 msgstr "Systémový"
+
+msgid "System login"
+msgstr "Systémové přihlášení"
 
 msgid "System memory"
 msgstr "Systémová paměť"

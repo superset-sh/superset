@@ -119,7 +119,8 @@ export function V2ProjectSettings({
 			return client.project.get.query({ projectId });
 		},
 	});
-	const { data: usageAccounts = [] } = useHostUsageQuota(targetHostUrl);
+	const { data: usageAccounts = [], isSuccess: usageAccountsLoaded } =
+		useHostUsageQuota(targetHostUrl);
 	const agentAccounts = [
 		{ agent: "claude" as const, label: "Claude Code" },
 		{ agent: "codex" as const, label: "Codex" },
@@ -127,8 +128,12 @@ export function V2ProjectSettings({
 		.map((item) => ({
 			...item,
 			accounts: usageAccounts.filter((account) => account.agent === item.agent),
+			pinned:
+				(item.agent === "claude"
+					? hostProject?.claudeConfigDir
+					: hostProject?.codexHome) ?? null,
 		}))
-		.filter((item) => item.accounts.length > 1);
+		.filter((item) => item.accounts.length > 1 || item.pinned !== null);
 
 	// External renames land on the merged fan-out item via project:changed;
 	// re-pull the targeted host's row so host-sourced fields (Name) follow.
@@ -293,36 +298,35 @@ export function V2ProjectSettings({
 					)}
 				</SettingsSection>
 
-				{targetHostUrl && hostProject && agentAccounts.length > 0 && (
-					<SettingsSection
-						title={t({ message: "Agent accounts" })}
-						description={t({
-							message:
-								"Which login agents use in this project. Defaults to the account chosen in Usage.",
-						})}
-					>
-						{agentAccounts.map((item) => (
-							<SettingsRow
-								key={item.agent}
-								label={item.label}
-								htmlFor={`project-${item.agent}-account`}
-							>
-								<AgentAccountSection
-									projectId={projectId}
-									hostUrl={targetHostUrl}
-									agent={item.agent}
-									accounts={item.accounts}
-									pinned={
-										(item.agent === "claude"
-											? hostProject.claudeConfigDir
-											: hostProject.codexHome) ?? null
-									}
-									onChanged={() => refetchHostProject()}
-								/>
-							</SettingsRow>
-						))}
-					</SettingsSection>
-				)}
+				{targetHostUrl &&
+					hostProject &&
+					usageAccountsLoaded &&
+					agentAccounts.length > 0 && (
+						<SettingsSection
+							title={t({ message: "Agent accounts" })}
+							description={t({
+								message:
+									"Which login agents use in this project. Defaults to the account chosen in Usage.",
+							})}
+						>
+							{agentAccounts.map((item) => (
+								<SettingsRow
+									key={item.agent}
+									label={item.label}
+									htmlFor={`project-${item.agent}-account`}
+								>
+									<AgentAccountSection
+										projectId={projectId}
+										hostUrl={targetHostUrl}
+										agent={item.agent}
+										accounts={item.accounts}
+										pinned={item.pinned}
+										onChanged={() => refetchHostProject()}
+									/>
+								</SettingsRow>
+							))}
+						</SettingsSection>
+					)}
 
 				<SettingsSection
 					title={t({

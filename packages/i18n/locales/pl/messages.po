@@ -9337,6 +9337,9 @@ msgstr "Minimalny kontrast"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Odzwierciedlenie <0>panelu PostHog Success Metrics</0> — produkt z zapisanych analiz, biznes na żywo ze Stripe/Neon"
 
+msgid "Missing account (using default)"
+msgstr "Brak konta (używane jest domyślne)"
+
 msgid "Missing auth state"
 msgstr "Brak stanu uwierzytelniania"
 
@@ -15303,6 +15306,9 @@ msgstr "Synchronizowanie..."
 
 msgid "System"
 msgstr "Systemowy"
+
+msgid "System login"
+msgstr "Logowanie systemowe"
 
 msgid "System memory"
 msgstr "Pamięć systemu"

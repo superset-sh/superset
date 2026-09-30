@@ -19,6 +19,7 @@ import {
 } from "@superset/chat-runtime";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { HostDb } from "../db";
+import { resolveAccountEnv } from "../trpc/router/usage/default-account";
 import { createResolveCwd } from "./resolveCwd";
 
 export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
@@ -32,16 +33,24 @@ function migrationsFolder(): string {
 	return process.env.SUPERSET_CHAT_V3_MIGRATIONS ?? DEFAULT_MIGRATIONS_FOLDER;
 }
 
-function harnessRegistry(): HarnessRegistry {
+function harnessRegistry(db: HostDb): HarnessRegistry {
+	const envFor = (presetId: string, workspaceId: string) => ({
+		...process.env,
+		...resolveAccountEnv(db, presetId, workspaceId),
+	});
 	const entries: [string, HarnessFactory][] = [
 		[
 			"claude-code",
-			() =>
+			({ scopeId }) =>
 				createClaudeAdapter({
 					pathToClaudeCodeExecutable: process.env.SUPERSET_CHAT_V3_CLAUDE_BIN,
+					env: envFor("claude", scopeId),
 				}),
 		],
-		["codex", () => new CodexAdapter()],
+		[
+			"codex",
+			({ scopeId }) => new CodexAdapter({ env: envFor("codex", scopeId) }),
+		],
 	];
 	return new Map(entries);
 }
@@ -66,7 +75,7 @@ export function createChatV3Mount(options: {
 		built = createChatRuntime({
 			dataDir: dirname(options.dbPath),
 			migrationsFolder: migrationsFolder(),
-			harnesses: harnessRegistry(),
+			harnesses: harnessRegistry(options.db),
 		});
 		return built;
 	};

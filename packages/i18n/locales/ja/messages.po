@@ -9337,6 +9337,9 @@ msgstr "最小コントラスト"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog Success Metricsダッシュボード</0>のミラー — プロダクトは保存済みインサイト、ビジネスはStripe/Neonからライブ取得"
 
+msgid "Missing account (using default)"
+msgstr "アカウントが見つかりません（デフォルトを使用中）"
+
 msgid "Missing auth state"
 msgstr "認証ステートがありません"
 
@@ -15303,6 +15306,9 @@ msgstr "同期中..."
 
 msgid "System"
 msgstr "システム"
+
+msgid "System login"
+msgstr "システムのログイン"
 
 msgid "System memory"
 msgstr "システムメモリ"

@@ -8,27 +8,40 @@ export type RestartableUsageAgent = "claude" | "codex";
  * The account-switch restart flow. `countRestartCandidates` sizes the ask
  * (running agents keep the previous account because their PTY env froze at
  * spawn); the mutation has the host kill and relaunch each one with its own
- * session id — same conversation, new default account — and open panes
- * follow the session to its new terminal.
+ * session id — same conversation, new account — and open panes follow the
+ * session to its new terminal. `projectId` scopes both to one project, for a
+ * project pin change.
  */
 export function useRestartAgentSessions(hostUrl: string | null) {
 	const countRestartCandidates = useCallback(
-		async (agent: RestartableUsageAgent): Promise<number> => {
+		async (
+			agent: RestartableUsageAgent,
+			projectId?: string,
+		): Promise<number> => {
 			if (!hostUrl) return 0;
 			const candidates = await getHostServiceClientByUrl(
 				hostUrl,
-			).terminalAgents.accountRestartCandidates.query({ provider: agent });
+			).terminalAgents.accountRestartCandidates.query({
+				provider: agent,
+				projectId,
+			});
 			return candidates.length;
 		},
 		[hostUrl],
 	);
 
 	const restartMutation = useMutation({
-		mutationFn: async (input: { agent: RestartableUsageAgent }) => {
+		mutationFn: async (input: {
+			agent: RestartableUsageAgent;
+			projectId?: string;
+		}) => {
 			if (!hostUrl) throw new Error("No host connection.");
 			return getHostServiceClientByUrl(
 				hostUrl,
-			).terminalAgents.restartAccountSessions.mutate({ provider: input.agent });
+			).terminalAgents.restartAccountSessions.mutate({
+				provider: input.agent,
+				projectId: input.projectId,
+			});
 		},
 	});
 

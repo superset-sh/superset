@@ -18,6 +18,7 @@ import { projects } from "../../../db/schema.ts";
 import {
 	getDefaultAccountSelections,
 	syncDefaultAccountPointers,
+	syncWorkspaceAccountPins,
 } from "./default-account.ts";
 import {
 	shareClaudeSessionState,
@@ -56,6 +57,14 @@ export async function provisionSelectedAccounts(db: HostDb): Promise<void> {
 	// Heal the wrapper pointer files first — a build predating them (or a
 	// crashed switch) leaves agents launching on a stale spawn-time default.
 	syncDefaultAccountPointers(db);
+	try {
+		syncWorkspaceAccountPins(db);
+	} catch (error) {
+		console.warn(
+			"[host-service] syncing workspace account pins failed:",
+			error,
+		);
+	}
 	const selections = [
 		getDefaultAccountSelections(db),
 		...db

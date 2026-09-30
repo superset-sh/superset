@@ -28,6 +28,7 @@ export type ClaudeQueryOptions = Pick<
 	| "abortController"
 	| "canUseTool"
 	| "cwd"
+	| "env"
 	| "includePartialMessages"
 	| "model"
 	| "pathToClaudeCodeExecutable"
@@ -52,6 +53,7 @@ export type ClaudeQuery = (params: {
 export type ClaudeAdapterOptions = {
 	query: ClaudeQuery;
 	pathToClaudeCodeExecutable?: string;
+	env?: SdkOptions["env"];
 	now?: () => number;
 	mintId?: () => string;
 };
@@ -175,6 +177,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 				cwd: startOptions.cwd,
 				model: startOptions.modelId,
 				pathToClaudeCodeExecutable: this.options.pathToClaudeCodeExecutable,
+				env: this.options.env,
 				includePartialMessages: true,
 				settingSources: [],
 				permissionMode: "default",

@@ -9337,6 +9337,9 @@ msgstr "Kontras minimum"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Cerminan <0>dasbor PostHog Success Metrics</0> — produk lewat insight tersimpan, bisnis langsung dari Stripe/Neon"
 
+msgid "Missing account (using default)"
+msgstr "Akun tidak ditemukan (memakai default)"
+
 msgid "Missing auth state"
 msgstr "State auth tidak ada"
 
@@ -15303,6 +15306,9 @@ msgstr "Menyinkronkan..."
 
 msgid "System"
 msgstr "Sistem"
+
+msgid "System login"
+msgstr "Login sistem"
 
 msgid "System memory"
 msgstr "Memori sistem"

@@ -9337,6 +9337,9 @@ msgstr "最小对比度"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog成功指标仪表盘</0>的镜像 — 产品数据来自已保存的洞察，业务数据实时取自Stripe/Neon"
 
+msgid "Missing account (using default)"
+msgstr "账号缺失（正在使用默认账号）"
+
 msgid "Missing auth state"
 msgstr "缺少认证状态"
 
@@ -15303,6 +15306,9 @@ msgstr "正在同步..."
 
 msgid "System"
 msgstr "跟随系统"
+
+msgid "System login"
+msgstr "系统登录"
 
 msgid "System memory"
 msgstr "系统内存"

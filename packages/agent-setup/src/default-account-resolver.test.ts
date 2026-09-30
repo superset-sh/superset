@@ -88,7 +88,47 @@ describe("buildDefaultAccountResolver", () => {
 		).toBe(profile);
 	});
 
-	it("keeps a project-pinned account over the pointer", () => {
+	function writePin(home: string, value: string, org = "o1"): void {
+		const dir = join(home, "state", "workspace-accounts", org, "w1");
+		mkdirSync(dir, { recursive: true });
+		writeFileSync(join(dir, "default-claude-config-dir"), value);
+	}
+
+	it("prefers the workspace pin over the host pointer", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const pinned = join(home, "pinned");
+		mkdirSync(pinned);
+		writePin(home, pinned);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+			}),
+		).toBe(pinned);
+	});
+
+	it("moves a terminal spawned on the host default onto a later pin", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const pinned = join(home, "pinned");
+		mkdirSync(pinned);
+		writePin(home, pinned);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+				CLAUDE_CONFIG_DIR: profile,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: profile,
+			}),
+		).toBe(pinned);
+	});
+
+	it("returns a terminal spawned pinned to the host default once unpinned", () => {
 		const { home, profile } = makeHome(null);
 		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
 		const pinned = join(home, "pinned");
@@ -97,23 +137,74 @@ describe("buildDefaultAccountResolver", () => {
 			resolve({
 				SUPERSET_TERMINAL_ID: "t1",
 				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
 				CLAUDE_CONFIG_DIR: pinned,
 				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: pinned,
-				SUPERSET_PINNED_CLAUDE_CONFIG_DIR: "1",
 			}),
-		).toBe(pinned);
+		).toBe(profile);
 	});
 
-	it("keeps a project pinned to the system-default login unset", () => {
+	it("reads an org-less terminal's pin from the unscoped dir", () => {
 		const { home, profile } = makeHome(null);
 		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const pinned = join(home, "pinned");
+		mkdirSync(pinned);
+		writePin(home, pinned, "_");
 		expect(
 			resolve({
 				SUPERSET_TERMINAL_ID: "t1",
 				SUPERSET_HOME_DIR: home,
-				SUPERSET_PINNED_CLAUDE_CONFIG_DIR: "1",
+				SUPERSET_WORKSPACE_ID: "w1",
+			}),
+		).toBe(pinned);
+	});
+
+	it("ignores another org's pin for the same workspace id", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const pinned = join(home, "pinned");
+		mkdirSync(pinned);
+		writePin(home, pinned, "o2");
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+			}),
+		).toBe(profile);
+	});
+
+	it("keeps a workspace pinned to the system-default login unset", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writePin(home, "");
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
 			}),
 		).toBe("<unset>");
+	});
+
+	it("falls back to the host pointer when the pinned dir is gone", () => {
+		const { home, profile } = makeHome(null);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		const gone = join(home, "gone");
+		writePin(home, gone);
+		expect(
+			resolve({
+				SUPERSET_TERMINAL_ID: "t1",
+				SUPERSET_HOME_DIR: home,
+				SUPERSET_ORGANIZATION_ID: "o1",
+				SUPERSET_WORKSPACE_ID: "w1",
+				CLAUDE_CONFIG_DIR: gone,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: gone,
+			}),
+		).toBe(profile);
 	});
 
 	it("updates the injection marker when it adopts a new pointer", () => {

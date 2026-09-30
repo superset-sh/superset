@@ -22,6 +22,10 @@ export function useRemoveUsageAccount(hostUrl: string | null) {
 			void queryClient.invalidateQueries({
 				queryKey: [...HOST_USAGE_QUOTA_QUERY_KEY, hostUrl],
 			});
+			// The host clears project pins that named the removed account.
+			void queryClient.invalidateQueries({
+				queryKey: ["host-project", "get", hostUrl],
+			});
 		},
 	});
 }
