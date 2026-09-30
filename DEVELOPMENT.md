@@ -24,8 +24,7 @@ change. Superset creates that workspace as an isolated git worktree. In the new
 workspace terminal, run:
 
 ```bash
-./.superset/setup.local.sh
-bun run dev
+./.superset/setup.local.sh && bun run dev
 ```
 
 Run `setup.local.sh` separately in every new worktree before `bun run dev`. The
@@ -41,7 +40,7 @@ validation, and `setup.local.sh` runs everything against a local Docker stack.
 
 1. Copies `.env.local.example` → `.env`
 2. Allocates a per-workspace port range so multiple worktrees don't collide
-3. Brings up Postgres + neon-proxy + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
+3. Brings up Postgres 18 + neon-proxy + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
 4. Runs `bun install` and `bun run db:migrate`
 5. Seeds a `Local Admin` dev account via `bun run db:seed-dev`
 6. Writes a gitignored `.superset/config.local.json` overlay so subsequent worktrees automatically use this setup
@@ -99,6 +98,7 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
   `./.superset/setup.local.sh` in that worktree, then run `bun run dev` again.
 - **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
 - **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
+- **Existing Postgres 17 setup**: setup now creates and seeds a fresh Postgres 18 database in a separate `superset_db_data_pg18` volume. The old `superset_db_data` volume is retained. Export any local data you need before rerunning setup, then import it into the new database.
 - **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.
 
 ## Contributing

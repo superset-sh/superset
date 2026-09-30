@@ -239,8 +239,7 @@ git clone https://github.com/superset-sh/superset.git
 Then run the development setup from that workspace terminal:
 
 ```bash
-./.superset/setup.local.sh
-bun run dev
+./.superset/setup.local.sh && bun run dev
 ```
 
 Run `setup.local.sh` once in every new worktree. It configures workspace-specific
@@ -248,10 +247,14 @@ app identity and ports so the development desktop app can run alongside the
 installed Superset app and other development worktrees.
 
 No Neon account or third-party credentials are needed. `setup.local.sh` brings
-up a local Postgres + neon-proxy + Redis stack via Docker and seeds a dev account.
+up a local Postgres 18 + neon-proxy + Redis stack via Docker and seeds a dev account.
 Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
 Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, `jq`, and [`gh`](https://cli.github.com/) (`brew install jq gh`).
+
+Start Docker before running setup. Setup must complete successfully before you
+start the development servers; fix any errors in its **Failed steps** summary
+and rerun it.
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
