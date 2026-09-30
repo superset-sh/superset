@@ -55,7 +55,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.5.2",
+		"version": "1.5.3",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -78,7 +78,7 @@ export const FIRST_PARTY_MANIFESTS = {
 					"icon": "linear"
 				},
 				"connector": {
-					"slug": "linear"
+					"slug": "linear_mcp"
 				},
 				"mcp": {
 					"type": "streamable-http",

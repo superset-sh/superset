@@ -25,7 +25,7 @@
 			},
 			"category": "productivity",
 			"source": "./plugins/linear",
-			"version": "1.5.2"
+			"version": "1.5.3"
 		},
 		{
 			"name": "notion",

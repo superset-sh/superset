@@ -136,6 +136,72 @@
 				}
 			]
 		},
+		"linear_mcp": {
+			"displayName": "Linear",
+			"icon": "linear",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.linear.app/mcp",
+					"scopes": ["read", "write"],
+					"identity": {
+						"mcp": "https://mcp.linear.app/mcp",
+						"tool": "get_user",
+						"arguments": { "query": "me" },
+						"account": {
+							"id": "$.id",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.id",
+							"label": "$.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				},
+				{
+					"type": "api_key",
+					"label": "Personal API key",
+					"credential_input": "api_key",
+					"inputs": [
+						{
+							"name": "api_key",
+							"label": "Linear API key",
+							"placeholder": "lin_api_\u2026",
+							"description": "Linear \u2192 Settings \u2192 Security & access \u2192 Personal API keys",
+							"required": true,
+							"secret": true
+						}
+					],
+					"identity": {
+						"mcp": "https://mcp.linear.app/mcp",
+						"tool": "get_user",
+						"arguments": { "query": "me" },
+						"account": {
+							"id": "$.id",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.id",
+							"label": "$.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
 		"notion": {
 			"displayName": "Notion",
 			"icon": "notion",
