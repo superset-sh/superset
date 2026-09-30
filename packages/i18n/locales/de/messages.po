@@ -2255,6 +2255,9 @@ msgstr "Gilt für Ordnerpfade in der Terminal-Ausgabe. Ordner lassen sich nicht 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Gilt für Dateibaum, Änderungsliste und Diff-Kopfzeile."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Gilt für das Seiten-Menü und Seiten-Links in Terminals, Chat und anderen Seiten."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Gilt für URLs in Terminals, Chat-Nachrichten und Aufgaben-Browsern."
 
@@ -11114,6 +11117,9 @@ msgstr "Dateien öffnen"
 msgid "Opening folders"
 msgstr "Ordner öffnen"
 
+msgid "Opening pages"
+msgstr "Seiten öffnen"
+
 msgid "Opening worktree..."
 msgstr "Worktree wird geöffnet..."
 
@@ -11328,6 +11334,9 @@ msgstr "Seite gelöscht"
 
 msgid "Page has no versions"
 msgstr "Die Seite hat keine Versionen"
+
+msgid "Page links"
+msgstr "Seiten-Links"
 
 msgid "Page Load Failed"
 msgstr "Seite konnte nicht geladen werden"
@@ -17426,9 +17435,6 @@ msgstr "Auf welchem Platz stehst du?"
 
 msgid "Where does my code run?"
 msgstr "Wo läuft mein Code?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Wo Seiten aus dem Seiten-Menü eines Arbeitsbereichs geöffnet werden."
 
 msgid "Where serious teams are"
 msgstr "Wo ernsthafte Teams stehen"

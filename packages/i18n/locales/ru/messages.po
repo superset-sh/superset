@@ -2255,6 +2255,9 @@ msgstr "Применяется к путям папок в выводе терм
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Применяется к дереву файлов, списку изменений и заголовку diff."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Применяется к меню «Страницы» и ссылкам на страницы в терминалах, чате и других страницах."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Применяется к URL в терминалах, сообщениях чата и браузерах задач."
 
@@ -11114,6 +11117,9 @@ msgstr "Открытие файлов"
 msgid "Opening folders"
 msgstr "Открытие папок"
 
+msgid "Opening pages"
+msgstr "Открытие страниц"
+
 msgid "Opening worktree..."
 msgstr "Открытие worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Страница удалена"
 
 msgid "Page has no versions"
 msgstr "У страницы нет версий"
+
+msgid "Page links"
+msgstr "Ссылки на страницы"
 
 msgid "Page Load Failed"
 msgstr "Не удалось загрузить страницу"
@@ -17426,9 +17435,6 @@ msgstr "Какое у вас место?"
 
 msgid "Where does my code run?"
 msgstr "Где выполняется мой код?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Где открываются страницы из меню «Страницы» рабочей области."
 
 msgid "Where serious teams are"
 msgstr "Где сейчас серьёзные команды"

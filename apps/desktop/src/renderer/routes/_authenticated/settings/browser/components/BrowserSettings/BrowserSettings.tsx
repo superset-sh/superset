@@ -188,13 +188,9 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 						</Button>
 					</div>
 				)}
-				{[
-					SETTING_ITEM_ID.LINKS_URL,
-					SETTING_ITEM_ID.LINKS_PORT,
-					SETTING_ITEM_ID.LINKS_PAGE,
-				].some((id) => isItemVisible(id, visibleItems)) && (
-					<BrowserLinkSettings visibleItems={visibleItems} />
-				)}
+				{[SETTING_ITEM_ID.LINKS_URL, SETTING_ITEM_ID.LINKS_PORT].some((id) =>
+					isItemVisible(id, visibleItems),
+				) && <BrowserLinkSettings visibleItems={visibleItems} />}
 			</div>
 
 			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />

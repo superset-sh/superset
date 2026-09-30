@@ -2255,6 +2255,9 @@ msgstr "터미널 출력의 폴더 경로에 적용됩니다. 폴더는 파일 �
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "파일 트리, 변경 목록, 차이 헤더에 적용됩니다."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "페이지 메뉴와 터미널, 채팅, 다른 페이지의 페이지 링크에 적용됩니다."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "터미널, 채팅 메시지, 작업 브라우저의 URL에 적용됩니다."
 
@@ -11114,6 +11117,9 @@ msgstr "파일 열기"
 msgid "Opening folders"
 msgstr "폴더 열기"
 
+msgid "Opening pages"
+msgstr "페이지 열기"
+
 msgid "Opening worktree..."
 msgstr "worktree를 여는 중..."
 
@@ -11328,6 +11334,9 @@ msgstr "페이지를 삭제했습니다"
 
 msgid "Page has no versions"
 msgstr "페이지에 버전이 없습니다"
+
+msgid "Page links"
+msgstr "페이지 링크"
 
 msgid "Page Load Failed"
 msgstr "페이지 로드 실패"
@@ -17426,9 +17435,6 @@ msgstr "내 순위는 몇 위일까요?"
 
 msgid "Where does my code run?"
 msgstr "제 코드는 어디에서 실행되나요?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "워크스페이스의 페이지 메뉴에서 페이지가 열리는 위치입니다."
 
 msgid "Where serious teams are"
 msgstr "진지한 팀들이 있는 곳"

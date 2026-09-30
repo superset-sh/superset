@@ -2255,6 +2255,9 @@ msgstr "Geldt voor mappaden in terminaluitvoer. Mappen kunnen niet in de bestand
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Geldt voor de bestandsboom, de lijst met wijzigingen en de diff-header."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Geldt voor het Pagina's-menu en paginalinks in terminals, chat en andere pagina's."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Geldt voor URL's in terminals, chatberichten en taakbrowsers."
 
@@ -11114,6 +11117,9 @@ msgstr "Bestanden openen"
 msgid "Opening folders"
 msgstr "Mappen openen"
 
+msgid "Opening pages"
+msgstr "Pagina's openen"
+
 msgid "Opening worktree..."
 msgstr "Worktree openen..."
 
@@ -11328,6 +11334,9 @@ msgstr "Pagina verwijderd"
 
 msgid "Page has no versions"
 msgstr "Pagina heeft geen versies"
+
+msgid "Page links"
+msgstr "Paginalinks"
 
 msgid "Page Load Failed"
 msgstr "Pagina laden mislukt"
@@ -17426,9 +17435,6 @@ msgstr "Waar sta jij?"
 
 msgid "Where does my code run?"
 msgstr "Waar draait mijn code?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Waar pagina's uit het Pagina's-menu van een werkruimte worden geopend."
 
 msgid "Where serious teams are"
 msgstr "Waar serieuze teams staan"

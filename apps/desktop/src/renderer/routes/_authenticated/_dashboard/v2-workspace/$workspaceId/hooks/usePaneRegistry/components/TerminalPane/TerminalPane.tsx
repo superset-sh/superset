@@ -21,9 +21,10 @@ import {
 	type FolderClickPolicy,
 	folderIntentLabel,
 	LinkHoverHint,
+	type UrlLinkAction,
 	useTerminalFilePolicy,
 	useTerminalFolderPolicy,
-	useTerminalUrlPolicy,
+	useUrlLinkAction,
 } from "renderer/lib/clickPolicy";
 import {
 	type ConnectionState,
@@ -79,7 +80,7 @@ export function TerminalPane({
 }: TerminalPaneProps) {
 	const { t } = useLingui();
 	const filePolicy = useTerminalFilePolicy();
-	const urlPolicy = useTerminalUrlPolicy();
+	const getUrlAction = useUrlLinkAction("4-tier");
 	const folderPolicy = useTerminalFolderPolicy();
 	const {
 		hoveredLink,
@@ -340,7 +341,7 @@ export function TerminalPane({
 					);
 				},
 				onUrlClick: (event, url) => {
-					const action = urlPolicy.getAction(event);
+					const action = getUrlAction(event, url);
 					if (action === null) {
 						showHint(event.clientX, event.clientY);
 						return;
@@ -361,7 +362,7 @@ export function TerminalPane({
 		onLinkLeave,
 		showHint,
 		filePolicy,
-		urlPolicy,
+		getUrlAction,
 		folderPolicy,
 	]);
 
@@ -651,7 +652,7 @@ export function TerminalPane({
 				hoverLabel={resolveHoverLabel(
 					hoveredLink,
 					filePolicy,
-					urlPolicy,
+					getUrlAction,
 					folderPolicy,
 					worktreePath,
 				)}
@@ -670,7 +671,7 @@ export function TerminalPane({
 function resolveHoverLabel(
 	hovered: HoveredLink | null,
 	filePolicy: ReturnType<typeof useTerminalFilePolicy>,
-	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
+	getUrlAction: UrlLinkAction,
 	folderPolicy: FolderClickPolicy,
 	worktreePath: string | undefined,
 ): string | null {
@@ -681,7 +682,7 @@ function resolveHoverLabel(
 		shiftKey: hovered.shift,
 	};
 	if (hovered.info.kind === "url") {
-		const action = urlPolicy.getAction(event);
+		const action = getUrlAction(event, hovered.info.url);
 		return action ? actionLabel(action, "url") : null;
 	}
 	if (hovered.info.isDirectory) {

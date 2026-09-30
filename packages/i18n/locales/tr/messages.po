@@ -2255,6 +2255,9 @@ msgstr "Terminal çıktısındaki klasör yolları için geçerlidir. Klasörler
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Dosya ağacı, değişiklik listesi ve fark başlığı için geçerlidir."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Sayfalar menüsü ile terminallerdeki, sohbetteki ve diğer sayfalardaki sayfa bağlantıları için geçerlidir."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Terminallerdeki, sohbet mesajlarındaki ve görev tarayıcılarındaki URL'ler için geçerlidir."
 
@@ -11114,6 +11117,9 @@ msgstr "Dosyaları açma"
 msgid "Opening folders"
 msgstr "Klasörleri açma"
 
+msgid "Opening pages"
+msgstr "Sayfaları açma"
+
 msgid "Opening worktree..."
 msgstr "Worktree açılıyor..."
 
@@ -11328,6 +11334,9 @@ msgstr "Sayfa silindi"
 
 msgid "Page has no versions"
 msgstr "Sayfanın sürümü yok"
+
+msgid "Page links"
+msgstr "Sayfa bağlantıları"
 
 msgid "Page Load Failed"
 msgstr "Sayfa yüklenemedi"
@@ -17426,9 +17435,6 @@ msgstr "Kaçıncı sıradasınız?"
 
 msgid "Where does my code run?"
 msgstr "Kodum nerede çalışıyor?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Bir çalışma alanının Sayfalar menüsündeki sayfaların nerede açılacağı."
 
 msgid "Where serious teams are"
 msgstr "Ciddi takımların bulunduğu yer"

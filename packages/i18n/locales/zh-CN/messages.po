@@ -2255,6 +2255,9 @@ msgstr "适用于终端输出中的文件夹路径。文件夹无法在文件查
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "适用于文件树、更改列表和差异标题。"
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "适用于页面菜单，以及终端、聊天和其他页面中的页面链接。"
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "适用于终端、聊天消息和任务浏览器中的URL。"
 
@@ -11114,6 +11117,9 @@ msgstr "打开文件"
 msgid "Opening folders"
 msgstr "打开文件夹"
 
+msgid "Opening pages"
+msgstr "打开页面"
+
 msgid "Opening worktree..."
 msgstr "正在打开worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "页面已删除"
 
 msgid "Page has no versions"
 msgstr "页面没有任何版本"
+
+msgid "Page links"
+msgstr "页面链接"
 
 msgid "Page Load Failed"
 msgstr "页面加载失败"
@@ -17426,9 +17435,6 @@ msgstr "你排第几？"
 
 msgid "Where does my code run?"
 msgstr "我的代码在哪里运行？"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "从工作区的页面菜单打开页面的位置。"
 
 msgid "Where serious teams are"
 msgstr "认真的团队都在这里"

@@ -2255,6 +2255,9 @@ msgstr "適用於終端輸出中的資料夾路徑。資料夾無法在檔案檢
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "適用於檔案樹、更改列表和差異標題。"
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "適用於頁面選單，以及終端機、聊天和其他頁面中的頁面連結。"
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "適用於終端、聊天訊息和任務瀏覽器中的URL。"
 
@@ -11114,6 +11117,9 @@ msgstr "開啟檔案"
 msgid "Opening folders"
 msgstr "開啟資料夾"
 
+msgid "Opening pages"
+msgstr "開啟頁面"
+
 msgid "Opening worktree..."
 msgstr "正在開啟worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "頁面已刪除"
 
 msgid "Page has no versions"
 msgstr "頁面沒有任何版本"
+
+msgid "Page links"
+msgstr "頁面連結"
 
 msgid "Page Load Failed"
 msgstr "頁面載入失敗"
@@ -17426,9 +17435,6 @@ msgstr "你排第幾？"
 
 msgid "Where does my code run?"
 msgstr "我的程式碼在哪裡執行？"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "從工作區的頁面選單開啟頁面的位置。"
 
 msgid "Where serious teams are"
 msgstr "認真的團隊都在這裡"

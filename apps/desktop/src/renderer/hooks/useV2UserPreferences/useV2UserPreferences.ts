@@ -20,7 +20,7 @@ export interface V2UserPreferencesApi {
 	setSidebarFileLinks: (next: LinkTierMap) => void;
 	setFolderLinks: (next: FolderTierMap) => void;
 	setPortOpenAction: (next: LinkAction) => void;
-	setPageOpenAction: (next: LinkAction) => void;
+	setPageLinks: (next: LinkTierMap) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
@@ -47,7 +47,10 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	const preferences = rows[0] ?? DEFAULT_V2_USER_PREFERENCES;
 
 	const upsertTierMap = useCallback(
-		(key: "fileLinks" | "urlLinks" | "sidebarFileLinks", next: LinkTierMap) => {
+		(
+			key: "fileLinks" | "urlLinks" | "sidebarFileLinks" | "pageLinks",
+			next: LinkTierMap,
+		) => {
 			const existing = collections.v2UserPreferences.get(
 				V2_USER_PREFERENCES_ID,
 			);
@@ -118,23 +121,9 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		[collections],
 	);
 
-	const setPageOpenAction = useCallback(
-		(next: LinkAction) => {
-			const existing = collections.v2UserPreferences.get(
-				V2_USER_PREFERENCES_ID,
-			);
-			if (!existing) {
-				collections.v2UserPreferences.insert({
-					...DEFAULT_V2_USER_PREFERENCES,
-					pageOpenAction: next,
-				});
-				return;
-			}
-			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.pageOpenAction = next;
-			});
-		},
-		[collections],
+	const setPageLinks = useCallback(
+		(next: LinkTierMap) => upsertTierMap("pageLinks", next),
+		[upsertTierMap],
 	);
 
 	const setRightSidebarOpen = useCallback(
@@ -335,7 +324,7 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setSidebarFileLinks,
 		setFolderLinks,
 		setPortOpenAction,
-		setPageOpenAction,
+		setPageLinks,
 		setRightSidebarOpen,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,

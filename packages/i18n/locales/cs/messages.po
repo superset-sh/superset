@@ -2255,6 +2255,9 @@ msgstr "Platí pro cesty ke složkám ve výstupu terminálu. Složky nejde otev
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Platí pro strom souborů, seznam změn a hlavičku rozdílů."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Platí pro nabídku Stránky a odkazy na stránky v terminálech, chatu a jiných stránkách."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Platí pro URL v terminálech, zprávách chatu a prohlížečích úkolů."
 
@@ -11114,6 +11117,9 @@ msgstr "Otevírání souborů"
 msgid "Opening folders"
 msgstr "Otevírání složek"
 
+msgid "Opening pages"
+msgstr "Otevírání stránek"
+
 msgid "Opening worktree..."
 msgstr "Otevírám worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Stránka smazána"
 
 msgid "Page has no versions"
 msgstr "Stránka nemá žádné verze"
+
+msgid "Page links"
+msgstr "Odkazy na stránky"
 
 msgid "Page Load Failed"
 msgstr "Načtení stránky selhalo"
@@ -17426,9 +17435,6 @@ msgstr "Jak si stojíte?"
 
 msgid "Where does my code run?"
 msgstr "Kde běží můj kód?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Kde se otevřou stránky z nabídky Stránky v pracovním prostoru."
 
 msgid "Where serious teams are"
 msgstr "Kde jsou seriózní týmy"

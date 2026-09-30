@@ -5,9 +5,11 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, FileText, LayoutGrid, Plus } from "lucide-react";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
+import { env } from "renderer/env.renderer";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { usePagePolicy } from "renderer/lib/clickPolicy";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
 import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
@@ -25,7 +27,7 @@ const MENU_PAGE_LIMIT = 200;
 
 interface WorkspacePagesMenuProps {
 	workspaceId: string;
-	onOpenPage: (page: PagePaneData) => void;
+	onOpenPage: (page: PagePaneData, placement: "split" | "tab") => void;
 	onCreateNewAgentSession: CreateNewAgentSession;
 	onFocusAgentTerminal: (terminalId: string) => void;
 }
@@ -38,7 +40,7 @@ export function WorkspacePagesMenu({
 }: WorkspacePagesMenuProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { preferences } = useV2UserPreferences();
+	const pagePolicy = usePagePolicy("4-tier");
 	const utils = cloudTrpc.useUtils();
 	const { favoritePageIds } = usePageFavorites();
 	const seenAt = usePagesMenuSeenAt(workspaceId);
@@ -105,15 +107,21 @@ export function WorkspacePagesMenu({
 
 	const handleOpenPage = (page: MenuPage, event: MouseEvent) => {
 		handleOpenChange(false);
-		const inPane =
-			event.metaKey ||
-			event.ctrlKey ||
-			preferences.pageOpenAction !== "external";
-		if (inPane) {
-			onOpenPage({ pageId: page.id, slug: page.slug, title: page.title });
+		const action = pagePolicy.getAction(event) ?? "pane";
+		if (action === "external") {
+			const url = new URL(
+				`/page/${encodeURIComponent(page.slug)}`,
+				env.NEXT_PUBLIC_WEB_URL,
+			).toString();
+			electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
+				console.error("[WorkspacePagesMenu] Failed to open page:", url, error);
+			});
 			return;
 		}
-		void navigate({ to: "/pages/$slug", params: { slug: page.slug } });
+		onOpenPage(
+			{ pageId: page.id, slug: page.slug, title: page.title },
+			action === "newTab" ? "tab" : "split",
+		);
 	};
 
 	return (

@@ -6,11 +6,7 @@ import { EditorState } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type MutableRefObject, useEffect, useRef } from "react";
-import {
-	type LinkAction,
-	useInlineUrlPolicy,
-	useTerminalUrlPolicy,
-} from "renderer/lib/clickPolicy";
+import { type LinkAction, useUrlLinkAction } from "renderer/lib/clickPolicy";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useMarkdownStyle } from "renderer/stores";
 import { defaultConfig } from "../../styles/default/config";
@@ -154,10 +150,10 @@ export function TipTapMarkdownRenderer({
 	const onSaveRef = useRef(onSave);
 	const sourceTrackingRef = useRef<SourceTracking | null>(null);
 
-	const paneUrlPolicy = useTerminalUrlPolicy();
-	const inlineUrlPolicy = useInlineUrlPolicy();
+	const getPaneUrlAction = useUrlLinkAction("4-tier");
+	const getInlineUrlAction = useUrlLinkAction("2-tier");
 	const linkClickRef = useRef({
-		getAction: inlineUrlPolicy.getAction,
+		getAction: getInlineUrlAction,
 		onOpenUrl,
 		onUnboundLinkClick,
 	});
@@ -165,7 +161,7 @@ export function TipTapMarkdownRenderer({
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
 	linkClickRef.current = {
-		getAction: (onOpenUrl ? paneUrlPolicy : inlineUrlPolicy).getAction,
+		getAction: onOpenUrl ? getPaneUrlAction : getInlineUrlAction,
 		onOpenUrl,
 		onUnboundLinkClick,
 	};

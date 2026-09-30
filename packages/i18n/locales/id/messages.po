@@ -2255,6 +2255,9 @@ msgstr "Berlaku untuk path folder di output terminal. Folder tidak bisa dibuka d
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Berlaku untuk pohon file, daftar perubahan, dan header diff."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Berlaku untuk menu Halaman dan tautan halaman di terminal, chat, dan halaman lain."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Berlaku untuk URL di terminal, pesan chat, dan browser tugas."
 
@@ -11114,6 +11117,9 @@ msgstr "Membuka file"
 msgid "Opening folders"
 msgstr "Membuka folder"
 
+msgid "Opening pages"
+msgstr "Membuka halaman"
+
 msgid "Opening worktree..."
 msgstr "Membuka worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Halaman dihapus"
 
 msgid "Page has no versions"
 msgstr "Halaman tidak punya versi"
+
+msgid "Page links"
+msgstr "Tautan halaman"
 
 msgid "Page Load Failed"
 msgstr "Halaman Gagal Dimuat"
@@ -17426,9 +17435,6 @@ msgstr "Di peringkat berapa Anda?"
 
 msgid "Where does my code run?"
 msgstr "Di mana kode saya berjalan?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Ke mana halaman dari menu Halaman di workspace terbuka."
 
 msgid "Where serious teams are"
 msgstr "Tempat tim serius berada"

@@ -2255,6 +2255,9 @@ msgstr "Applies to folder paths in terminal output. Folders can't open in the fi
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Applies to the file tree, changes list, and diff header."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Applies to the Pages menu and page links in terminals, chat, and other pages."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Applies to URLs in terminals, chat messages, and task browsers."
 
@@ -11114,6 +11117,9 @@ msgstr "Opening files"
 msgid "Opening folders"
 msgstr "Opening folders"
 
+msgid "Opening pages"
+msgstr "Opening pages"
+
 msgid "Opening worktree..."
 msgstr "Opening worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Page deleted"
 
 msgid "Page has no versions"
 msgstr "Page has no versions"
+
+msgid "Page links"
+msgstr "Page links"
 
 msgid "Page Load Failed"
 msgstr "Page Load Failed"
@@ -17426,9 +17435,6 @@ msgstr "Where do you rank?"
 
 msgid "Where does my code run?"
 msgstr "Where does my code run?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Where pages open from a workspace's Pages menu."
 
 msgid "Where serious teams are"
 msgstr "Where serious teams are"

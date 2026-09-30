@@ -2255,6 +2255,9 @@ msgstr "Se aplica a las rutas de carpeta en la salida del terminal. Las carpetas
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Se aplica al árbol de archivos, la lista de cambios y el encabezado del diff."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Se aplica al menú Páginas y a los enlaces a páginas en terminales, chat y otras páginas."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Se aplica a las URL en terminales, mensajes de chat y navegadores de tareas."
 
@@ -11114,6 +11117,9 @@ msgstr "Abrir archivos"
 msgid "Opening folders"
 msgstr "Abrir carpetas"
 
+msgid "Opening pages"
+msgstr "Abrir páginas"
+
 msgid "Opening worktree..."
 msgstr "Abriendo el worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Página eliminada"
 
 msgid "Page has no versions"
 msgstr "La página no tiene versiones"
+
+msgid "Page links"
+msgstr "Enlaces a páginas"
 
 msgid "Page Load Failed"
 msgstr "No se pudo cargar la página"
@@ -17426,9 +17435,6 @@ msgstr "¿En qué puesto estás?"
 
 msgid "Where does my code run?"
 msgstr "¿Dónde se ejecuta mi código?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Dónde se abren las páginas desde el menú Páginas de un espacio de trabajo."
 
 msgid "Where serious teams are"
 msgstr "Donde están los equipos serios"

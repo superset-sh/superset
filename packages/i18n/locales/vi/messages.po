@@ -2255,6 +2255,9 @@ msgstr "Áp dụng cho đường dẫn thư mục trong kết quả terminal. Th
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Áp dụng cho cây tệp, danh sách thay đổi và tiêu đề diff."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Áp dụng cho menu Trang và liên kết trang trong terminal, chat và các trang khác."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Áp dụng cho URL trong terminal, tin nhắn chat và trình duyệt của tác vụ."
 
@@ -11114,6 +11117,9 @@ msgstr "Mở tệp"
 msgid "Opening folders"
 msgstr "Mở thư mục"
 
+msgid "Opening pages"
+msgstr "Mở trang"
+
 msgid "Opening worktree..."
 msgstr "Đang mở worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Đã xóa trang"
 
 msgid "Page has no versions"
 msgstr "Trang không có phiên bản nào"
+
+msgid "Page links"
+msgstr "Liên kết trang"
 
 msgid "Page Load Failed"
 msgstr "Không tải được trang"
@@ -17426,9 +17435,6 @@ msgstr "Bạn xếp hạng bao nhiêu?"
 
 msgid "Where does my code run?"
 msgstr "Code của tôi chạy ở đâu?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Nơi các trang từ menu Trang của workspace được mở."
 
 msgid "Where serious teams are"
 msgstr "Nơi các đội nghiêm túc đang đứng"

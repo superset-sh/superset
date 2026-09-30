@@ -2255,6 +2255,9 @@ msgstr "ターミナル出力内のフォルダパスに適用されます。フ
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "ファイルツリー、変更一覧、差分ヘッダーに適用されます。"
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "ページメニューと、ターミナル・チャット・他のページ内のページリンクに適用されます。"
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "ターミナル、チャットメッセージ、タスクのブラウザ内のURLに適用されます。"
 
@@ -11114,6 +11117,9 @@ msgstr "ファイルを開く"
 msgid "Opening folders"
 msgstr "フォルダーを開く"
 
+msgid "Opening pages"
+msgstr "ページを開く"
+
 msgid "Opening worktree..."
 msgstr "ワークツリーを開いています..."
 
@@ -11328,6 +11334,9 @@ msgstr "ページを削除しました"
 
 msgid "Page has no versions"
 msgstr "ページにバージョンがありません"
+
+msgid "Page links"
+msgstr "ページリンク"
 
 msgid "Page Load Failed"
 msgstr "ページの読み込みに失敗しました"
@@ -17426,9 +17435,6 @@ msgstr "あなたの順位は?"
 
 msgid "Where does my code run?"
 msgstr "コードはどこで実行されますか?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "ワークスペースのページメニューからページを開く場所。"
 
 msgid "Where serious teams are"
 msgstr "本気のチームの現在地"

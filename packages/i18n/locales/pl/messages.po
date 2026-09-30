@@ -2255,6 +2255,9 @@ msgstr "Dotyczy ścieżek folderów w wyjściu terminala. Folderów nie da się 
 msgid "Applies to the file tree, changes list, and diff header."
 msgstr "Dotyczy drzewa plików, listy zmian i nagłówka różnic."
 
+msgid "Applies to the Pages menu and page links in terminals, chat, and other pages."
+msgstr "Dotyczy menu Strony oraz linków do stron w terminalach, czacie i innych stronach."
+
 msgid "Applies to URLs in terminals, chat messages, and task browsers."
 msgstr "Dotyczy adresów URL w terminalach, wiadomościach czatu i przeglądarkach zadań."
 
@@ -11114,6 +11117,9 @@ msgstr "Otwieranie plików"
 msgid "Opening folders"
 msgstr "Otwieranie folderów"
 
+msgid "Opening pages"
+msgstr "Otwieranie stron"
+
 msgid "Opening worktree..."
 msgstr "Otwieranie worktree..."
 
@@ -11328,6 +11334,9 @@ msgstr "Strona usunięta"
 
 msgid "Page has no versions"
 msgstr "Strona nie ma wersji"
+
+msgid "Page links"
+msgstr "Linki do stron"
 
 msgid "Page Load Failed"
 msgstr "Nie udało się wczytać strony"
@@ -17426,9 +17435,6 @@ msgstr "Jaka jest twoja pozycja?"
 
 msgid "Where does my code run?"
 msgstr "Gdzie działa mój kod?"
-
-msgid "Where pages open from a workspace's Pages menu."
-msgstr "Gdzie otwierają się strony z menu Strony w obszarze roboczym."
 
 msgid "Where serious teams are"
 msgstr "Tu są poważne zespoły"

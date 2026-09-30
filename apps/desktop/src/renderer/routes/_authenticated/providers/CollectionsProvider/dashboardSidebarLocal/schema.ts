@@ -422,8 +422,6 @@ const DEFAULT_FOLDER_LINKS: FolderTierMap = {
 // in-app tab, "external" = system browser.
 const DEFAULT_PORT_OPEN_ACTION: LinkAction = "external";
 
-const DEFAULT_PAGE_OPEN_ACTION: LinkAction = "pane";
-
 function isSameLinkTierMap(a: LinkTierMap, b: LinkTierMap): boolean {
 	return (
 		a.plain === b.plain &&
@@ -468,7 +466,7 @@ export const v2UserPreferencesSchema = z.object({
 	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
 	folderLinks: folderTierMapSchema.default(DEFAULT_FOLDER_LINKS),
 	portOpenAction: linkActionSchema.default(DEFAULT_PORT_OPEN_ACTION),
-	pageOpenAction: linkActionSchema.default(DEFAULT_PAGE_OPEN_ACTION),
+	pageLinks: linkTierMapSchema.default(DEFAULT_URL_LINKS),
 	terminalPresetsInitialized: z.boolean().default(false),
 	rightSidebarOpen: z.boolean().default(true),
 	rightSidebarTab: z.enum(["changes", "files"]).default("changes"),
@@ -508,7 +506,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
 	folderLinks: DEFAULT_FOLDER_LINKS,
 	portOpenAction: DEFAULT_PORT_OPEN_ACTION,
-	pageOpenAction: DEFAULT_PAGE_OPEN_ACTION,
+	pageLinks: DEFAULT_URL_LINKS,
 	terminalPresetsInitialized: false,
 	rightSidebarOpen: true,
 	rightSidebarTab: "changes",
@@ -602,6 +600,7 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
 			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
 			: sidebarFileLinks,
+		pageLinks: { ...DEFAULT_V2_USER_PREFERENCES.pageLinks, ...r.pageLinks },
 		folderLinks: {
 			...DEFAULT_V2_USER_PREFERENCES.folderLinks,
 			...r.folderLinks,
