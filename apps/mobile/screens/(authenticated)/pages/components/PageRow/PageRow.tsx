@@ -10,7 +10,13 @@ import type { OrgPage } from "../../hooks/usePages";
 
 const EDIT_THRESHOLD_MS = 60_000;
 
-export function PageRow({ page }: { page: OrgPage }) {
+export function PageRow({
+	page,
+	variant = "row",
+}: {
+	page: OrgPage;
+	variant?: "row" | "card";
+}) {
 	const router = useRouter();
 
 	const edited = new Date(page.updatedAt).getTime();
@@ -25,59 +31,79 @@ export function PageRow({ page }: { page: OrgPage }) {
 				? Building2
 				: Lock;
 
+	const open = () =>
+		router.push({
+			pathname: "/(authenticated)/pages/[slug]",
+			params: { slug: page.slug },
+		});
+	const thumbnail = page.thumbnailUrl ? (
+		<Image
+			source={{ uri: page.thumbnailUrl }}
+			style={{ height: "100%", width: "100%" }}
+			contentFit="cover"
+			contentPosition="top center"
+			transition={120}
+		/>
+	) : (
+		<Icon as={FileText} className="text-muted-foreground size-5" />
+	);
+	const details = (
+		<View className={variant === "card" ? "px-1 pt-2" : "flex-1"}>
+			<View className="flex-row items-center gap-1.5">
+				<Text className="shrink text-[15px] font-medium" numberOfLines={1}>
+					{page.title ?? page.slug}
+				</Text>
+				<Icon
+					as={VisibilityIcon}
+					className="text-muted-foreground size-3 shrink-0"
+				/>
+			</View>
+
+			<View className="flex-row items-center gap-1.5">
+				{page.ownerName ? (
+					<View className="bg-muted size-4 shrink-0 items-center justify-center rounded-full">
+						<Text className="text-muted-foreground text-[8px] font-medium">
+							{getInitials(page.ownerName) || "?"}
+						</Text>
+					</View>
+				) : null}
+				<Text
+					className="text-muted-foreground shrink text-xs"
+					numberOfLines={1}
+				>
+					{page.ownerName ? `${page.ownerName} · ${timestamp}` : timestamp}
+				</Text>
+			</View>
+		</View>
+	);
+
+	if (variant === "card") {
+		return (
+			<Pressable
+				className="active:opacity-60"
+				accessibilityRole="button"
+				accessibilityLabel={page.title ?? page.slug}
+				onPress={open}
+			>
+				<View className="bg-muted aspect-[40/21] w-full items-center justify-center overflow-hidden rounded-xl">
+					{thumbnail}
+				</View>
+				{details}
+			</Pressable>
+		);
+	}
+
 	return (
 		<Pressable
 			className="bg-background flex-row items-center gap-3 rounded-xl px-3 py-2 active:opacity-60"
 			accessibilityRole="button"
 			accessibilityLabel={page.title ?? page.slug}
-			onPress={() =>
-				router.push({
-					pathname: "/(authenticated)/pages/[slug]",
-					params: { slug: page.slug },
-				})
-			}
+			onPress={open}
 		>
 			<View className="bg-muted h-12 w-16 items-center justify-center overflow-hidden rounded-md">
-				{page.thumbnailUrl ? (
-					<Image
-						source={{ uri: page.thumbnailUrl }}
-						style={{ height: "100%", width: "100%" }}
-						contentFit="cover"
-						contentPosition="top center"
-						transition={120}
-					/>
-				) : (
-					<Icon as={FileText} className="text-muted-foreground size-5" />
-				)}
+				{thumbnail}
 			</View>
-
-			<View className="flex-1">
-				<View className="flex-row items-center gap-1.5">
-					<Text className="shrink text-[15px] font-medium" numberOfLines={1}>
-						{page.title ?? page.slug}
-					</Text>
-					<Icon
-						as={VisibilityIcon}
-						className="text-muted-foreground size-3 shrink-0"
-					/>
-				</View>
-
-				<View className="flex-row items-center gap-1.5">
-					{page.ownerName ? (
-						<View className="bg-muted size-4 shrink-0 items-center justify-center rounded-full">
-							<Text className="text-muted-foreground text-[8px] font-medium">
-								{getInitials(page.ownerName) || "?"}
-							</Text>
-						</View>
-					) : null}
-					<Text
-						className="text-muted-foreground shrink text-xs"
-						numberOfLines={1}
-					>
-						{page.ownerName ? `${page.ownerName} · ${timestamp}` : timestamp}
-					</Text>
-				</View>
-			</View>
+			{details}
 		</Pressable>
 	);
 }

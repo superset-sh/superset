@@ -1,25 +1,28 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo, useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { Linking, Pressable, useWindowDimensions, View } from "react-native";
 import { EnrichedMarkdownText } from "react-native-enriched-markdown";
 import { Text } from "@/components/ui/text";
 import { FadeOut } from "./components/FadeOut";
 import { DESCRIPTION_MARKDOWN_STYLE } from "./constants";
 import { stripHtml } from "./utils/stripHtml";
 
-const COLLAPSED_HEIGHT = 280;
+const COLLAPSED_SHARE_OF_WINDOW = 0.3;
 
 /** The description, clamped until asked for. */
 export function PullRequestDescription({ body }: { body: string }) {
 	const { t } = useLingui();
 	const [expanded, setExpanded] = useState(false);
+	const collapsedHeight = Math.round(
+		useWindowDimensions().height * COLLAPSED_SHARE_OF_WINDOW,
+	);
 	const markdown = useMemo(() => stripHtml(body), [body]);
 	const [measured, setMeasured] = useState<{
 		body: string;
 		height: number;
 	} | null>(null);
 	const fullHeight = measured?.body === markdown ? measured.height : null;
-	const overflows = fullHeight !== null && fullHeight > COLLAPSED_HEIGHT;
+	const overflows = fullHeight !== null && fullHeight > collapsedHeight;
 
 	if (markdown === "") return null;
 
@@ -30,9 +33,7 @@ export function PullRequestDescription({ body }: { body: string }) {
 			</Text>
 			<View
 				className="overflow-hidden"
-				style={
-					overflows && !expanded ? { height: COLLAPSED_HEIGHT } : undefined
-				}
+				style={overflows && !expanded ? { height: collapsedHeight } : undefined}
 			>
 				<View
 					onLayout={(event) => {

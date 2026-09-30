@@ -43,7 +43,7 @@ export default ({ config }: ConfigContext) => ({
 		}),
 	},
 	ios: {
-		supportsTablet: false,
+		supportsTablet: true,
 		appleTeamId: "NV9657CS5A",
 		// Shared with the AgentActivity widget extension: the Live Activity
 		// sandbox has no network, so project icons are cached here by the app
@@ -54,6 +54,12 @@ export default ({ config }: ConfigContext) => ({
 		bundleIdentifier: "sh.superset.mobile",
 		usesAppleSignIn: true,
 		infoPlist: {
+			"UISupportedInterfaceOrientations~ipad": [
+				"UIInterfaceOrientationPortrait",
+				"UIInterfaceOrientationPortraitUpsideDown",
+				"UIInterfaceOrientationLandscapeLeft",
+				"UIInterfaceOrientationLandscapeRight",
+			],
 			ITSAppUsesNonExemptEncryption: false,
 			NSSupportsLiveActivities: true,
 			// Dictation is native now (`modules/composer`), so no config plugin

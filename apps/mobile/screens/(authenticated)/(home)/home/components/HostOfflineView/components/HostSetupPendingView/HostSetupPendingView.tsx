@@ -51,7 +51,7 @@ export function HostSetupPendingView({ hostName }: { hostName: string }) {
 					})}
 				</Text>
 			</View>
-			<View className="border-border bg-card w-full rounded-2xl border px-4">
+			<View className="border-border bg-card w-full max-w-md rounded-2xl border px-4">
 				<HintRow leading={<StepNumber step={1} />}>
 					<Trans>Open Superset on that computer</Trans>
 				</HintRow>
