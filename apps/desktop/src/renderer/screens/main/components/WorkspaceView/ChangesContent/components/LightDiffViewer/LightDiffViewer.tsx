@@ -1,6 +1,6 @@
 import { MultiFileDiff } from "@pierre/diffs/react";
 import { cn } from "@superset/ui/utils";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	getDiffsTheme,
@@ -47,10 +47,22 @@ export function LightDiffViewer({
 			: undefined,
 	});
 
+	// @pierre/diffs memoizes the parsed diff on the identity of these objects.
+	// Re-creating them on every render makes it re-parse and rebuild the whole
+	// diff DOM, which resets the container's scroll position back to the top.
+	const oldFile = useMemo(
+		() => ({ name: filePath, contents: contents.original }),
+		[filePath, contents.original],
+	);
+	const newFile = useMemo(
+		() => ({ name: filePath, contents: contents.modified }),
+		[filePath, contents.modified],
+	);
+
 	return (
 		<MultiFileDiff
-			oldFile={{ name: filePath, contents: contents.original }}
-			newFile={{ name: filePath, contents: contents.modified }}
+			oldFile={oldFile}
+			newFile={newFile}
 			className={cn(className)}
 			style={{
 				...diffStyle,
