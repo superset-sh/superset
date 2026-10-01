@@ -160,7 +160,13 @@ export async function createTestHost(
 					url: "http://host-service.test/trpc",
 					transformer: SuperJSON,
 					fetch: async (url, init) => {
-						return fetchApp(new Request(url as string, init as RequestInit));
+						const response = await fetchApp(
+							new Request(url as string, init as RequestInit),
+						);
+						return {
+							ok: response.ok,
+							json: () => response.json(),
+						};
 					},
 					headers: () => (authorized ? { authorization: `Bearer ${psk}` } : {}),
 				}),

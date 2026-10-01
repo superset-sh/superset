@@ -15,6 +15,7 @@ export class FakeApiAuthProvider implements ApiAuthProvider {
 	async getHeaders(): Promise<Record<string, string>> {
 		return { ...this.headers };
 	}
+	invalidateCache(): void {}
 }
 
 export class FakeHostAuthProvider implements HostAuthProvider {
