@@ -7435,9 +7435,6 @@ msgstr "Je vyžadováno přihlášení ke GitHubu"
 msgid "GitHub stars"
 msgstr "Hvězdy na GitHubu"
 
-msgid "GitHub sync is part of Pro."
-msgstr "Synchronizace GitHubu je součástí tarifu Pro."
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Synchronizace GitHubu vyžaduje tarif Pro."
 
@@ -8749,12 +8746,6 @@ msgstr "Linear je připojený, ale úvodní synchronizace se nespustila. Zkuste 
 
 msgid "Linear integration"
 msgstr "Integrace s Linearem"
-
-msgid "Linear sync is part of Pro."
-msgstr "Synchronizace Linearu je součástí tarifu Pro."
-
-msgid "Linear sync requires the Pro plan."
-msgstr "Synchronizace Linearu vyžaduje tarif Pro."
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

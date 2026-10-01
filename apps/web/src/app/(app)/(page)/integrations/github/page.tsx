@@ -13,7 +13,6 @@ import { FaGithub } from "react-icons/fa";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
-import { ProGate } from "../components/ProGate";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { RepositoryList } from "./components/RepositoryList";
 
@@ -61,11 +60,6 @@ export default async function GitHubIntegrationPage() {
 				message: "Something went wrong. Please try again.",
 			}),
 		),
-		plan_required: i18n._(
-			msg({
-				message: "GitHub sync requires the Pro plan.",
-			}),
-		),
 	};
 	const CALLBACK_WARNINGS = {
 		sync_queue_failed: i18n._(
@@ -101,12 +95,9 @@ export default async function GitHubIntegrationPage() {
 		);
 	}
 
-	const [installation, syncAllowed] = await Promise.all([
-		trpc.integration.github.getInstallation.query({
-			organizationId: organization.id,
-		}),
-		trpc.integration.syncAllowed.query({ organizationId: organization.id }),
-	]);
+	const installation = await trpc.integration.github.getInstallation.query({
+		organizationId: organization.id,
+	});
 	const isConnected = !!installation;
 
 	return (
@@ -137,7 +128,7 @@ export default async function GitHubIntegrationPage() {
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
 						<h1 className="text-2xl font-semibold">GitHub</h1>
-						{!syncAllowed ? null : isConnected ? (
+						{isConnected ? (
 							<Badge variant="default" className="gap-1">
 								<CheckCircle2 className="size-3" />
 								{i18n._(
@@ -167,92 +158,75 @@ export default async function GitHubIntegrationPage() {
 				</div>
 			</div>
 
-			{syncAllowed ? (
-				<>
-					<Card>
-						<CardHeader>
-							<CardTitle>
-								{i18n._(
-									msg({
-										message: "Connection",
-									}),
-								)}
-							</CardTitle>
-							<CardDescription>
-								{i18n._(
-									msg({
-										message:
-											"Install the Superset GitHub App to connect your repositories.",
-									}),
-								)}
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<ConnectionControls
-								organizationId={organization.id}
-								isConnected={isConnected}
-							/>
-							{installation && (
-								<div className="mt-4 text-sm text-muted-foreground">
-									{i18n._(
-										msg({
-											message: "Connected to",
-										}),
-									)}{" "}
-									<strong>{installation.accountLogin}</strong> (
-									{installation.accountType})
-									{installation.suspended && (
-										<Badge variant="destructive" className="ml-2">
-											{i18n._(
-												msg({
-													message: "Suspended",
-												}),
-											)}
-										</Badge>
-									)}
-								</div>
-							)}
-						</CardContent>
-					</Card>
-
+			<Card>
+				<CardHeader>
+					<CardTitle>
+						{i18n._(
+							msg({
+								message: "Connection",
+							}),
+						)}
+					</CardTitle>
+					<CardDescription>
+						{i18n._(
+							msg({
+								message:
+									"Install the Superset GitHub App to connect your repositories.",
+							}),
+						)}
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ConnectionControls
+						organizationId={organization.id}
+						isConnected={isConnected}
+					/>
 					{installation && (
-						<Card>
-							<CardHeader>
-								<CardTitle>
+						<div className="mt-4 text-sm text-muted-foreground">
+							{i18n._(
+								msg({
+									message: "Connected to",
+								}),
+							)}{" "}
+							<strong>{installation.accountLogin}</strong> (
+							{installation.accountType})
+							{installation.suspended && (
+								<Badge variant="destructive" className="ml-2">
 									{i18n._(
 										msg({
-											message: "Repositories",
+											message: "Suspended",
 										}),
 									)}
-								</CardTitle>
-								<CardDescription>
-									{i18n._(
-										msg({
-											message:
-												"Repositories accessible through the GitHub App installation.",
-										}),
-									)}
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<RepositoryList organizationId={organization.id} />
-							</CardContent>
-						</Card>
+								</Badge>
+							)}
+						</div>
 					)}
-				</>
-			) : (
-				<ProGate
-					message={i18n._(
-						msg({
-							message: "GitHub sync is part of Pro.",
-						}),
-					)}
-					upgradeLabel={i18n._(
-						msg({
-							message: "Upgrade to Pro",
-						}),
-					)}
-				/>
+				</CardContent>
+			</Card>
+
+			{installation && (
+				<Card>
+					<CardHeader>
+						<CardTitle>
+							{i18n._(
+								msg({
+									message: "Repositories",
+								}),
+							)}
+						</CardTitle>
+						<CardDescription>
+							{i18n._(
+								msg({
+									message:
+										"Repositories accessible through the GitHub App installation.",
+								}),
+							)}
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<RepositoryList organizationId={organization.id} />
+					</CardContent>
+				</Card>
 			)}
 		</div>
 	);

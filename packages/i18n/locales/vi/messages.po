@@ -7435,9 +7435,6 @@ msgstr "Cần đăng nhập GitHub"
 msgid "GitHub stars"
 msgstr "Star GitHub"
 
-msgid "GitHub sync is part of Pro."
-msgstr "Đồng bộ GitHub là một phần của gói Pro."
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Đồng bộ GitHub yêu cầu gói Pro."
 
@@ -8749,12 +8746,6 @@ msgstr "Đã kết nối Linear, nhưng lần đồng bộ đầu tiên không k
 
 msgid "Linear integration"
 msgstr "Tích hợp Linear"
-
-msgid "Linear sync is part of Pro."
-msgstr "Đồng bộ Linear là một phần của gói Pro."
-
-msgid "Linear sync requires the Pro plan."
-msgstr "Đồng bộ Linear yêu cầu gói Pro."
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

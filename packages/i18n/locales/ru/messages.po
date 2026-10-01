@@ -7435,9 +7435,6 @@ msgstr "Требуется вход в GitHub"
 msgid "GitHub stars"
 msgstr "Звёзды GitHub"
 
-msgid "GitHub sync is part of Pro."
-msgstr "Синхронизация GitHub входит в план Pro."
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "Для синхронизации GitHub нужен план Pro."
 
@@ -8749,12 +8746,6 @@ msgstr "Linear подключён, но начальную синхрониза�
 
 msgid "Linear integration"
 msgstr "Интеграция с Linear"
-
-msgid "Linear sync is part of Pro."
-msgstr "Синхронизация Linear входит в план Pro."
-
-msgid "Linear sync requires the Pro plan."
-msgstr "Для синхронизации Linear нужен план Pro."
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

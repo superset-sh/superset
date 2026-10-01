@@ -7435,9 +7435,6 @@ msgstr "GitHub oturumu açmanız gerekiyor"
 msgid "GitHub stars"
 msgstr "GitHub yıldızları"
 
-msgid "GitHub sync is part of Pro."
-msgstr "GitHub eşitlemesi Pro'nun bir parçasıdır."
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub eşitlemesi Pro planı gerektirir."
 
@@ -8749,12 +8746,6 @@ msgstr "Linear bağlandı, ancak ilk eşitleme başlatılamadı. Lütfen yeniden
 
 msgid "Linear integration"
 msgstr "Linear entegrasyonu"
-
-msgid "Linear sync is part of Pro."
-msgstr "Linear eşitlemesi Pro'nun bir parçasıdır."
-
-msgid "Linear sync requires the Pro plan."
-msgstr "Linear eşitlemesi Pro planı gerektirir."
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

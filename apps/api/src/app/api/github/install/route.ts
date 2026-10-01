@@ -8,9 +8,7 @@ export async function GET(request: Request) {
 	if (member instanceof Response) return member;
 
 	if (!(await organizationSyncsNow(member.organizationId))) {
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=plan_required`,
-		);
+		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/settings/billing`);
 	}
 
 	if (!env.GH_APP_ID) {

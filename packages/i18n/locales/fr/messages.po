@@ -7435,9 +7435,6 @@ msgstr "Connexion à GitHub requise"
 msgid "GitHub stars"
 msgstr "Étoiles GitHub"
 
-msgid "GitHub sync is part of Pro."
-msgstr "La synchronisation GitHub fait partie de Pro."
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "La synchronisation GitHub nécessite le forfait Pro."
 
@@ -8749,12 +8746,6 @@ msgstr "Linear est connecté, mais la synchronisation initiale n'a pas pu démar
 
 msgid "Linear integration"
 msgstr "Intégration Linear"
-
-msgid "Linear sync is part of Pro."
-msgstr "La synchronisation Linear fait partie de Pro."
-
-msgid "Linear sync requires the Pro plan."
-msgstr "La synchronisation Linear nécessite le forfait Pro."
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

@@ -7435,9 +7435,6 @@ msgstr "需要登录 GitHub"
 msgid "GitHub stars"
 msgstr "GitHub 星标"
 
-msgid "GitHub sync is part of Pro."
-msgstr "GitHub同步属于Pro套餐。"
-
 msgid "GitHub sync requires the Pro plan."
 msgstr "GitHub同步需要Pro套餐。"
 
@@ -8749,12 +8746,6 @@ msgstr "Linear已连接，但初始同步未能启动。请尝试重新连接。
 
 msgid "Linear integration"
 msgstr "Linear集成"
-
-msgid "Linear sync is part of Pro."
-msgstr "Linear同步属于Pro套餐。"
-
-msgid "Linear sync requires the Pro plan."
-msgstr "Linear同步需要Pro套餐。"
 
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine

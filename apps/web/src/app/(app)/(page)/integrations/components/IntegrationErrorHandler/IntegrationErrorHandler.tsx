@@ -21,7 +21,6 @@ type CallbackKeys = {
 			| "installation_fetch_failed"
 			| "invalid_state"
 			| "missing_params"
-			| "plan_required"
 			| "save_failed"
 			| "unauthorized"
 			| "unexpected";
@@ -44,7 +43,6 @@ type CallbackKeys = {
 			| "invalid_state"
 			| "missing_params"
 			| "oauth_denied"
-			| "plan_required"
 			| "token_exchange_failed"
 			| "unauthorized"
 			| "workspace_already_linked";
