@@ -46,7 +46,11 @@ import { queueReap } from "./reap";
 import { cloudWorkspaceRecordRouter } from "./record";
 import { queueProvision, startCloudWorkspace } from "./start";
 import { transitionCloudWorkspace } from "./transition";
-import { markSandboxUnavailable, wakeCloudWorkspace } from "./wake";
+import {
+	markSandboxUnavailable,
+	restartCloudWorkspace,
+	wakeCloudWorkspace,
+} from "./wake";
 
 const DESCRIPTION_PROMPT = [
 	"Write this workspace's description for a teammate who has not seen it:",
@@ -85,18 +89,31 @@ async function loadReadyWorkspace(
 }
 
 /**
- * Where this workspace's host-service answers. With `wake`, a stopped
- * session resumes and a moved address is recorded; a sandbox that can never
- * resume turns the row failed, the state clients already offer a way out of.
+ * Where this workspace's host-service answers. A wake resumes a stopped
+ * session and records a moved address, and a restart stops a running one
+ * first; a sandbox that can never resume turns the row failed, the state
+ * clients already offer a way out of.
  */
 async function addressSandbox(
 	row: typeof cloudWorkspaces.$inferSelect,
-	wake: boolean,
-): Promise<{ hostTarget: string; running: boolean }> {
+	mode: "address" | "wake" | "restart",
+): Promise<{
+	hostTarget: string;
+	running: boolean;
+	agentCredentialsChanged: boolean;
+}> {
 	try {
-		return wake
-			? { hostTarget: await wakeCloudWorkspace(row), running: true }
-			: await describeSandbox(row.providerSandboxId);
+		if (mode === "address") {
+			return {
+				...(await describeSandbox(row.providerSandboxId)),
+				agentCredentialsChanged: false,
+			};
+		}
+		const woken =
+			mode === "restart"
+				? await restartCloudWorkspace(row)
+				: await wakeCloudWorkspace(row);
+		return { ...woken, running: true };
 	} catch (error) {
 		if (error instanceof SandboxNotReadyError) {
 			throw new TRPCError({
@@ -424,7 +441,10 @@ export const cloudWorkspaceRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const row = await loadReadyWorkspace(ctx, input.id);
-			const address = await addressSandbox(row, input.wake);
+			const address = await addressSandbox(
+				row,
+				input.wake ? "wake" : "address",
+			);
 			// Only the open workspace wakes; addressing a listed one is not
 			// being in it.
 			// Presence is a hint; this call is also the sandbox keepalive.
@@ -477,10 +497,20 @@ export const cloudWorkspaceRouter = {
 				token: host.token,
 				expiresAt: host.expiresAt,
 				running: address.running,
+				agentCredentialsChanged: address.agentCredentialsChanged,
 				// The display is served by host-service too: same address, same
 				// ticket. The sandbox's own desktop port is not published.
 				desktop: { url: host.url, token: host.token },
 			};
+		}),
+
+	/** Ends every terminal and agent on the box so they start again with the current agent sign-ins. */
+	restart: jwtProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const row = await loadReadyWorkspace(ctx, input.id);
+			await addressSandbox(row, "restart");
+			return { restarted: true };
 		}),
 
 	/**
@@ -503,7 +533,7 @@ export const cloudWorkspaceRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const row = await loadReadyWorkspace(ctx, input.id);
-			const address = await addressSandbox(row, true);
+			const address = await addressSandbox(row, "wake");
 			const host = await mintSandboxGateAccess({
 				workspaceId: row.id,
 				userId: ctx.userId,

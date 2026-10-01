@@ -339,7 +339,8 @@ export async function wakeSandbox(args: {
 	claim: SandboxClaim;
 }): Promise<{
 	hostTarget: string;
-	wasRunning: boolean;
+	/** Boot ran, so every process on the box started from this claim. */
+	booted: boolean;
 }> {
 	try {
 		const sandbox = await Sandbox.get({
@@ -377,7 +378,7 @@ export async function wakeSandbox(args: {
 			hostTarget,
 			claim: args.claim,
 		});
-		return { hostTarget, wasRunning };
+		return { hostTarget, booted: !serving };
 	} catch (error) {
 		if (isUnavailable(error))
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
@@ -436,7 +437,7 @@ export async function promoteSandboxToEnvironment(args: {
 	goldenName: string;
 	/** What restarts the source: it boots the same way a wake does. */
 	claim: SandboxClaim;
-}): Promise<{ goldenName: string; region: string }> {
+}): Promise<{ goldenName: string; region: string; restarted: boolean }> {
 	const source = await Sandbox.get({
 		...credentials(),
 		name: args.sourceSandbox,
@@ -466,7 +467,11 @@ export async function promoteSandboxToEnvironment(args: {
 		await writeIdentity(source, args.claim.identity);
 		await runBoot(source, args.claim.hostSecret);
 	}
-	return { goldenName: args.goldenName, region: source.region };
+	return {
+		goldenName: args.goldenName,
+		region: source.region,
+		restarted: wasRunning,
+	};
 }
 
 /**

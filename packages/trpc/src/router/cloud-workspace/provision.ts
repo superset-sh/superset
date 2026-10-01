@@ -104,11 +104,10 @@ async function provision(
 					},
 				);
 	try {
-		const { claim, environment } = await Sentry.startSpan(
-			{ name: "claim", op: "sandbox" },
-			() =>
+		const { claim, environment, agentCredentialDigest } =
+			await Sentry.startSpan({ name: "claim", op: "sandbox" }, () =>
 				buildSandboxClaim({ row, launch: input.launch, withRepoHooks: true }),
-		);
+			);
 		const sandbox = await Sentry.startSpan(
 			{ name: "create", op: "sandbox" },
 			() => provisionSandbox({ name: providerSandboxId, environment, claim }),
@@ -120,6 +119,7 @@ async function provision(
 			set: {
 				providerSandboxId: sandbox.providerSandboxId,
 				sandboxUrl: sandbox.sandboxUrl,
+				bootAgentCredentialDigest: agentCredentialDigest,
 			},
 		});
 		if (!ready) {
