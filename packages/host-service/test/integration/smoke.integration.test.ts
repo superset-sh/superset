@@ -19,9 +19,11 @@ describe("host-service smoke", () => {
 			status: "ok",
 			pid: process.pid,
 			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			capabilities: { gitlab: true },
 			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
+			sandboxBoot: undefined,
 		});
 	});
 
@@ -31,9 +33,11 @@ describe("host-service smoke", () => {
 			status: "ok",
 			pid: process.pid,
 			version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+			capabilities: { gitlab: true },
 			installSource: expect.stringMatching(/^(cli|desktop|dev|unknown)$/),
 			cloudRegistered: false,
 			registrationError: null,
+			sandboxBoot: undefined,
 		});
 	});
 
