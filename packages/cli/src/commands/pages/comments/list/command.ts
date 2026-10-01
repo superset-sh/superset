@@ -7,6 +7,7 @@ interface ThreadComment {
 	authorName: string;
 	authorKind: string;
 	body: string;
+	attachments?: { name: string; url: string }[];
 	createdAt: string | Date;
 }
 
@@ -94,6 +95,9 @@ export default command({
 							? `${comment.authorName} (agent)`
 							: comment.authorName;
 					lines.push(`  ${who}: ${indent(comment.body, "    ")}`);
+					for (const attachment of comment.attachments ?? []) {
+						lines.push(`    [image ${attachment.name}] ${attachment.url}`);
+					}
 				}
 				return lines.join("\n");
 			})

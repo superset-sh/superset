@@ -15,6 +15,7 @@ import {
 	useComments,
 } from "../../providers/CommentProvider";
 import { relativeTime } from "../../utils/relativeTime";
+import { CommentImages } from "./components/CommentImages";
 import { Quote } from "./components/Quote";
 
 interface CommentListProps {
@@ -168,7 +169,17 @@ export function CommentList({
 									</div>
 								</div>
 							) : (
-								<p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+								<>
+									{comment.body ? (
+										<p className="whitespace-pre-wrap text-sm">
+											{comment.body}
+										</p>
+									) : null}
+									<CommentImages
+										attachments={comment.attachments}
+										className="mt-0.5"
+									/>
+								</>
 							)}
 						</div>
 					</div>

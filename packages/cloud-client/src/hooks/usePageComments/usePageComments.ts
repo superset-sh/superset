@@ -1,5 +1,7 @@
 import type {
+	CommentImageUpload,
 	CommentStore,
+	ComposedImage,
 	PageCommentUser,
 } from "@superset/shared/page-comments";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -42,6 +44,14 @@ interface Rollback {
 	previous: ServerThread[] | undefined;
 	placeholderId: string;
 }
+
+/**
+ * The wire input plus the composed previews the optimistic row renders
+ * until the server answers with served URLs. `composed` never leaves the
+ * client — the mutation fn strips it.
+ */
+type CreateThreadVars = CreateThreadArgs & { composed?: ComposedImage[] };
+type ReplyVars = ReplyArgs & { composed?: ComposedImage[] };
 
 export function usePageComments({
 	pageId,
@@ -99,11 +109,16 @@ export function usePageComments({
 		[onError, queryClient, queryKey],
 	);
 
-	const create = useMutation<ServerThread, unknown, CreateThreadArgs, Rollback>(
+	const create = useMutation<ServerThread, unknown, CreateThreadVars, Rollback>(
 		{
-			mutationFn: (input) => client.pageComment.create.mutate(input),
+			mutationFn: ({ composed: _composed, ...input }) =>
+				client.pageComment.create.mutate(input),
 			onMutate: (input) => {
-				const row = optimisticThread({ input, user, version });
+				const row = optimisticThread({
+					input: { ...input, attachments: input.composed },
+					user,
+					version,
+				});
 				return begin(row.id, (rows) => insertThread(rows, row));
 			},
 			onSuccess: (row, _input, context) => {
@@ -115,10 +130,15 @@ export function usePageComments({
 		},
 	);
 
-	const reply = useMutation<ServerComment, unknown, ReplyArgs, Rollback>({
-		mutationFn: (input) => client.pageComment.reply.mutate(input),
+	const reply = useMutation<ServerComment, unknown, ReplyVars, Rollback>({
+		mutationFn: ({ composed: _composed, ...input }) =>
+			client.pageComment.reply.mutate(input),
 		onMutate: (input) => {
-			const comment = optimisticComment({ body: input.body, user });
+			const comment = optimisticComment({
+				body: input.body,
+				user,
+				attachments: input.composed,
+			});
 			return begin(comment.id, (rows) =>
 				appendComment(rows, input.threadId, comment),
 			);
@@ -171,6 +191,33 @@ export function usePageComments({
 		resolve.isPending ||
 		remove.isPending;
 
+	const uploadImage = useCallback(
+		async (file: CommentImageUpload): Promise<{ fileId: string }> => {
+			const digest = await crypto.subtle.digest("SHA-256", file.bytes);
+			const sha256 = [...new Uint8Array(digest)]
+				.map((byte) => byte.toString(16).padStart(2, "0"))
+				.join("");
+			const { fileId, upload } =
+				await client.pageComment.createImageUpload.mutate({
+					pageId,
+					name: file.name,
+					contentType: file.contentType,
+					sizeBytes: file.bytes.byteLength,
+					sha256,
+				});
+			const response = await fetch(upload.url, {
+				method: "PUT",
+				headers: upload.headers,
+				body: file.bytes,
+			});
+			if (!response.ok) {
+				throw new Error(`Image upload failed (${response.status})`);
+			}
+			return { fileId };
+		},
+		[client, pageId],
+	);
+
 	const { mutateAsync: createThread } = create;
 	const { mutateAsync: addReply } = reply;
 	const { mutateAsync: editComment } = edit;
@@ -182,7 +229,13 @@ export function usePageComments({
 			threads,
 			isLoading,
 			submitting,
-			createThread: async ({ anchor, anchorText, body, intent }) => {
+			createThread: async ({
+				anchor,
+				anchorText,
+				body,
+				intent,
+				attachments,
+			}) => {
 				await createThread({
 					pageId,
 					version,
@@ -200,10 +253,17 @@ export function usePageComments({
 						: { anchorKind: "page" as const, anchor: null, anchorText: null }),
 					body,
 					intent,
+					attachments: attachments?.map((image) => image.fileId),
+					composed: attachments,
 				});
 			},
-			addReply: async (threadId, body) => {
-				await addReply({ threadId, body });
+			addReply: async (threadId, body, attachments) => {
+				await addReply({
+					threadId,
+					body,
+					attachments: attachments?.map((image) => image.fileId),
+					composed: attachments,
+				});
 			},
 			editComment: async (_threadId, commentId, body) => {
 				await editComment({ commentId, body });
@@ -214,6 +274,7 @@ export function usePageComments({
 			deleteThread: async (threadId) => {
 				await deleteThread({ threadId });
 			},
+			uploadImage,
 		}),
 		[
 			threads,
@@ -224,6 +285,7 @@ export function usePageComments({
 			editComment,
 			setResolved,
 			deleteThread,
+			uploadImage,
 			pageId,
 			version,
 		],

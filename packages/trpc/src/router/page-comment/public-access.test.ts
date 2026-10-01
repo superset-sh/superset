@@ -38,6 +38,7 @@ const COMMENT_ID = "00000000-0000-4000-8000-000000000003";
 const everyProcedure = (caller: ReturnType<typeof callerFor>) =>
 	Object.entries({
 		list: () => caller.pageComment.list({ pageId: PAGE_ID }),
+		listForOrganization: () => caller.pageComment.listForOrganization({}),
 		create: () =>
 			caller.pageComment.create({
 				pageId: PAGE_ID,
@@ -48,6 +49,14 @@ const everyProcedure = (caller: ReturnType<typeof callerFor>) =>
 				body: "rewrite this section",
 			}),
 		reply: () => caller.pageComment.reply({ threadId: THREAD_ID, body: "ok" }),
+		createImageUpload: () =>
+			caller.pageComment.createImageUpload({
+				pageId: PAGE_ID,
+				name: "screenshot.png",
+				contentType: "image/png",
+				sizeBytes: 1024,
+				sha256: "a".repeat(64),
+			}),
 		edit: () => caller.pageComment.edit({ commentId: COMMENT_ID, body: "ok" }),
 		resolve: () =>
 			caller.pageComment.resolve({ threadId: THREAD_ID, resolved: true }),

@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useFormat } from "@superset/i18n/react";
+import type { ComposedImage } from "@superset/shared/page-comments";
 import { differenceInCalendarDays } from "date-fns";
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -72,7 +73,8 @@ export function CommentsPanel({
 		active: activeThreadId === thread.id,
 		servedVersion,
 		onSelect: () => setActiveThreadId(thread.id),
-		onReply: (body: string) => addReply(thread.id, body),
+		onReply: (body: string, attachments: ComposedImage[]) =>
+			addReply(thread.id, body, attachments),
 		onEdit: (commentId: string, body: string) =>
 			editComment(thread.id, commentId, body),
 		onToggleResolved: () => void setResolved(thread.id, !thread.resolved),

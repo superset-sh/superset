@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Images in page comments</title>
+    <style>
+      :root {
+        --sp-measure: 68ch;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 48px 24px 96px;
+      }
+      header.lede p {
+        color: var(--sp-muted);
+        max-width: var(--sp-measure);
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        margin: 20px 0 0;
+        padding: 0;
+        list-style: none;
+        font-family: var(--sp-font-mono);
+        font-size: 0.8rem;
+        color: var(--sp-muted);
+      }
+      .meta strong {
+        color: var(--sp-text);
+        font-weight: 500;
+      }
+      section {
+        margin-top: 56px;
+      }
+      .pipeline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: stretch;
+        margin: 24px 0 8px;
+      }
+      .pipeline .step {
+        flex: 1 1 150px;
+        min-width: 150px;
+        background: var(--sp-surface);
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        padding: 12px 14px;
+      }
+      .pipeline .step b {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+      }
+      .pipeline .step span {
+        font-size: 0.78rem;
+        color: var(--sp-muted);
+        line-height: 1.45;
+        display: block;
+      }
+      .pipeline .step i {
+        display: block;
+        font-style: normal;
+        font-family: var(--sp-font-mono);
+        font-size: 0.7rem;
+        color: var(--sp-muted);
+        margin-top: 8px;
+        opacity: 0.8;
+      }
+      .walkthrough {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-top: 24px;
+      }
+      figure {
+        margin: 0;
+      }
+      figure img {
+        width: 100%;
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        display: block;
+      }
+      figcaption {
+        font-size: 0.8rem;
+        color: var(--sp-muted);
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      .callout {
+        border: 1px solid var(--sp-border);
+        border-left: 3px solid var(--sp-accent);
+        border-radius: var(--sp-radius);
+        padding: 16px 20px;
+        margin: 20px 0;
+        background: var(--sp-surface);
+      }
+      .callout h3 {
+        margin: 0 0 6px;
+        font-size: 0.95rem;
+      }
+      .callout p {
+        margin: 6px 0 0;
+        font-size: 0.9rem;
+      }
+      .scroll {
+        overflow-x: auto;
+      }
+      table {
+        font-size: 0.88rem;
+      }
+      td:first-child {
+        white-space: nowrap;
+        font-weight: 500;
+      }
+      .ok {
+        color: var(--sp-chart-3);
+        font-weight: 600;
+      }
+      footer {
+        margin-top: 72px;
+        padding-top: 20px;
+        border-top: 1px solid var(--sp-border);
+        color: var(--sp-muted);
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body class="dark">
+    <main>
+      <header class="lede">
+        <h1>Images in page comments</h1>
+        <p>
+          Comments on pages can now carry screenshots. Paste, drop, or pick up
+          to four images in any comment or reply; readers get inline thumbnails
+          and a lightbox, and agents reading a thread get a fetchable URL for
+          every image. Built, validated, and verified live in the dev app.
+        </p>
+        <ul class="meta">
+          <li>branch <strong>add-image-comments</strong></li>
+          <li>commit <strong>7027afd6be</strong></li>
+          <li><strong>59 files</strong> · +1919 −116</li>
+          <li><strong>not pushed</strong> — gated on Avi</li>
+        </ul>
+      </header>
+
+      <section>
+        <h2>What a commenter gets</h2>
+        <ul>
+          <li>
+            Attach via the image button, paste from clipboard, or drag onto the
+            composer — up to <strong>4 images, 10&nbsp;MB each</strong>, on new
+            threads and replies alike.
+          </li>
+          <li>
+            Uploads start the moment an image is added, with per-image
+            uploading/ready/error states. Send stays disabled while anything is
+            in flight; a failed upload shows a red-ringed chip you remove and
+            retry.
+          </li>
+          <li>
+            <strong>Image-only comments work</strong> — a screenshot with no
+            words is a valid comment.
+          </li>
+          <li>
+            Rendered as a thumbnail strip under the body; click opens a
+            lightbox, Escape closes it. Mobile renders the same attachments in
+            its comment sheets.
+          </li>
+        </ul>
+        <div class="walkthrough">
+          <figure>
+            <img src="seeded-thread.png" alt="Comments panel showing a comment with a small image thumbnail" />
+            <figcaption>
+              A thread whose first comment carries an image, served through the
+              media host with a signed ticket.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="composer-ready.png" alt="Reply composer with typed text and an attached image preview ready to send" />
+            <figcaption>
+              The reply composer after attaching a PNG through the picker — the
+              eager upload finished, the chip is ready, send is enabled.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="posted-reply.png" alt="The posted reply rendering its image inline in the thread" />
+            <figcaption>
+              The posted reply after a full app reload: the image comes back
+              from the server, not from the local preview.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>How it works</h2>
+        <p>
+          The storage layer had been built with this feature anticipated:
+          <code>attachments.parentKind</code> already carried
+          <code>"comment"</code>, the usercontent Worker already served
+          <code>/files/&lt;fileId&gt;</code> behind signed tickets, and the
+          <code>fileUrl</code> helper's doc comment named comments as a
+          consumer. Nothing minted file tickets until now — this change is that
+          machinery's first producer.
+        </p>
+        <div class="pipeline">
+          <div class="step">
+            <b>1 · Record</b>
+            <span>Composer asks the API to record the upload and hand back a presigned PUT. Declared type must be <code>image/*</code>, size ≤ 10&nbsp;MB.</span>
+            <i>pageComment.createImageUpload</i>
+          </div>
+          <div class="step">
+            <b>2 · Upload</b>
+            <span>Bytes go straight from the client to R2 — never through the API. The row stays <code>pending</code>; abandoned uploads are swept in a day.</span>
+            <i>presigned PUT → R2</i>
+          </div>
+          <div class="step">
+            <b>3 · Verify</b>
+            <span>On create/reply the server checks the object exists at its declared size, then <strong>sniffs the leading bytes</strong> — the stored type is what the bytes are, never what the client claimed. Non-images are refused.</span>
+            <i>HEAD + ranged GET + sniff</i>
+          </div>
+          <div class="step">
+            <b>4 · Attach</b>
+            <span>Attachment rows insert and the file flips <code>pending → ready</code> inside the comment's own transaction, so ready ⇔ attached — no state where a file is one but not the other.</span>
+            <i>one transaction</i>
+          </div>
+          <div class="step">
+            <b>5 · Serve</b>
+            <span>Every list/create/reply response mints a signed file ticket per image; the media host serves the bytes with no database lookup. Expiry rounds to hour windows so URLs stay stable across refetches.</span>
+            <i>ticket → media host</i>
+          </div>
+        </div>
+        <p>
+          Allowed types, decided by sniffed bytes: PNG, JPEG, GIF, WebP, AVIF —
+          everything Chromium renders in an <code>&lt;img&gt;</code>.
+          Deliberately absent: SVG (a document with script) and HEIC (browsers
+          can't decode it). Access to an image always derives from access to
+          its comment's page; a file id alone is not authority to read it, and
+          an upload belonging to someone else, or already parented elsewhere,
+          is not attachable.
+        </p>
+        <h3>Cleanup</h3>
+        <p>
+          Deleting a thread — or the whole page — now detaches the comments'
+          files and reaps the orphans, R2 bytes included, through shared
+          helpers (<code>detachAll</code> / <code>reapOrphanFiles</code>).
+          Rewriting page-delete onto those helpers also fixed a
+          <strong>pre-existing leak</strong>: staged page assets were never
+          cleaned up when a page was deleted between staging and publish.
+        </p>
+        <h3>New environment variable</h3>
+        <p>
+          <code>MEDIA_URL</code> threads the media host into the API (the
+          Worker already had its own copy). Wired through all the places
+          <code>docs/environment-variables.md</code> demands: env schema, both
+          templates, <code>turbo.jsonc</code>, both deploy workflows, and the
+          setup port-allocator for per-worktree dev values.
+        </p>
+      </section>
+
+      <section>
+        <h2>Where it lands, per surface</h2>
+        <div class="scroll">
+          <table>
+            <tbody>
+              <tr>
+                <td>Desktop</td>
+                <td>Full composer + rendering, in the pin popover and the All-comments panel (shared <code>packages/ui</code>).</td>
+              </tr>
+              <tr>
+                <td>Web viewer</td>
+                <td>Same shared components; unauthenticated public views never receive comment data, so tickets never leak.</td>
+              </tr>
+              <tr>
+                <td>Mobile</td>
+                <td>Renders attachments in comment sheets. Composer upload is a follow-up (the chat composer's picker is ready prior art).</td>
+              </tr>
+              <tr>
+                <td>CLI</td>
+                <td><code>pages comments list</code> prints an <code>[image name] url</code> line per attachment — an agent reading a bug report can fetch the screenshot.</td>
+              </tr>
+              <tr>
+                <td>MCP</td>
+                <td><code>pages_comments_list</code> returns the router shape verbatim, so agent callers inherit attachments with no changes.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <div class="scroll">
+          <table>
+            <tbody>
+              <tr>
+                <td>Integration tests</td>
+                <td><span class="ok">8 pass</span> against a real database: round trip with sniff correcting a lying declaration, reply + list serving tickets, HTML-behind-a-PNG-label refused, never-uploaded refused, foreign upload refused, double-attach refused, thread-delete reap, page-delete reap.</td>
+              </tr>
+              <tr>
+                <td>Unit tests</td>
+                <td><span class="ok">green</span> — schema refinements (image-only comments, dedupe, caps), plus updated fixtures across cloud-client and ui.</td>
+              </tr>
+              <tr>
+                <td>Typecheck</td>
+                <td><span class="ok">42/42 packages</span>. <code>attachments</code> is a required field on the comment shape, so the compiler enumerated every construction site.</td>
+              </tr>
+              <tr>
+                <td>Lint · i18n</td>
+                <td><span class="ok">clean</span> — seven new strings hand-translated into all 16 non-English locales; <code>check:i18n</code> passes.</td>
+              </tr>
+              <tr>
+                <td>Live (CDP)</td>
+                <td><span class="ok">verified</span> in the real dev app: panel render through a genuine ticket, lightbox open/close, typed reply + picker attach + eager upload to ready, send, and the posted image re-served after a full app reload. Zero console errors.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          One honesty note on the live run: local dev has no object store on
+          <code>R2_ENDPOINT</code>, and the Worker's local R2 is a separate
+          miniflare store — so the upload leg ran against a small S3 stub and
+          the freshly-uploaded bytes were mirrored into the Worker's store by
+          hand. Everything else — app, API, database, ticket signing, media
+          serving — was the real stack. The presigned-upload leg against real
+          R2 is covered by the integration suite and, in prod, is the same
+          transport the shipped cloud-workspace attachment flow already uses.
+        </p>
+        <p>
+          Also fixed en route: a new client against an older API (comments
+          without the field) would have crashed the comments UI — the read
+          paths now tolerate its absence while the types stay strict.
+        </p>
+      </section>
+
+      <section>
+        <h2>Before this ships</h2>
+        <div class="callout">
+          <h3>1 · Set the repo secret</h3>
+          <p>
+            <code>gh secret set MEDIA_URL</code> — prod
+            <code>https://media.supersetusercontent.com</code>. Workflows and
+            env schema are wired; deploys fail env validation until the secret
+            exists.
+          </p>
+        </div>
+        <div class="callout">
+          <h3>2 · One prod-desktop CSP check</h3>
+          <p>
+            The renderer PUTs presigned uploads directly to the R2 endpoint,
+            and the desktop CSP's <code>connect-src</code> doesn't obviously
+            admit that origin. The shipped cloud-workspace attachment flow
+            (#7622/#7633) uses the identical renderer-side PUT — so either both
+            work in prod or both are broken. Worth one manual check in a
+            packaged build. (Dev quirk found on the way: the CSP admits
+            <code>127.0.0.1</code> but not <code>localhost</code>.)
+          </p>
+        </div>
+        <div class="callout">
+          <h3>3 · Hands-on QA is one click away</h3>
+          <p>
+            The dev stack and the usercontent Worker are still running in two
+            terminal panes of this workspace, with a seeded
+            “Image Comments Verify” page under Pages — you can paste a
+            screenshot into a reply right now.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Follow-ups worth their own branch</h2>
+        <ul>
+          <li>Mobile composer upload (rendering already ships).</li>
+          <li>Removing attachments when editing a comment.</li>
+          <li>
+            The image tier of the page-card comment preview, once the
+            <code>create-new-page</code> branch lands.
+          </li>
+        </ul>
+      </section>
+
+      <footer>
+        Built and verified 2026-09-18 · workspace vivacious-chocolate · source
+        for this page lives at <code>plans/comment-images/</code> on the branch.
+      </footer>
+    </main>
+  </body>
+</html>

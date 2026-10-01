@@ -2390,6 +2390,9 @@ msgstr "at once"
 msgid "Attach files"
 msgstr "Attach files"
 
+msgid "Attach image"
+msgstr "Attach image"
+
 msgid "Attached"
 msgstr "Attached"
 
@@ -4796,6 +4799,10 @@ msgstr "Couldn't update pull request"
 
 msgid "Couldn't update thread"
 msgstr "Couldn't update thread"
+
+#. placeholder {0}: image.name
+msgid "Couldn't upload {0}"
+msgstr "Couldn't upload {0}"
 
 msgid "Couldn't upload {name}"
 msgstr "Couldn't upload {name}"
@@ -7910,6 +7917,9 @@ msgstr "Image copied"
 msgid "Image is too large (max 10MB)"
 msgstr "Image is too large (max 10MB)"
 
+msgid "Image not found — upload it first"
+msgstr "Image not found — upload it first"
+
 #. placeholder {0}: getBaseName(filePath)
 msgid "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
 msgstr "Image preview of {0}. Zoom with plus and minus, pan with arrow keys, press 0 to reset."
@@ -10662,6 +10672,9 @@ msgstr "Only host owners can change this location."
 msgid "Only host owners can delete this host"
 msgstr "Only host owners can delete this host"
 
+msgid "Only images can be attached to a comment"
+msgstr "Only images can be attached to a comment"
+
 msgid "Only organization owners can modify these settings."
 msgstr "Only organization owners can modify these settings."
 
@@ -12575,6 +12588,9 @@ msgstr "Remove from Sidebar"
 
 msgid "Remove icon"
 msgstr "Remove icon"
+
+msgid "Remove image"
+msgstr "Remove image"
 
 msgid "Remove linked issue"
 msgstr "Remove linked issue"
@@ -15737,6 +15753,9 @@ msgstr "The host went back to its previous build."
 msgid "The human reads every line before it merges."
 msgstr "The human reads every line before it merges."
 
+msgid "The image upload expired — attach it again"
+msgstr "The image upload expired — attach it again"
+
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 
@@ -17120,6 +17139,10 @@ msgstr "View"
 msgctxt "menu"
 msgid "View"
 msgstr "View"
+
+#. placeholder {0}: attachment.name
+msgid "View {0}"
+msgstr "View {0}"
 
 msgid "View {count} pull requests"
 msgstr "View {count} pull requests"
