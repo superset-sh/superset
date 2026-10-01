@@ -6,7 +6,6 @@ const LIGHT_TOKENS = `color-scheme: light;
 	--sp-border: oklch(0.922 0 0);
 	--sp-accent: oklch(0.205 0 0);
 	--sp-accent-text: oklch(0.985 0 0);
-	--sp-code-bg: oklch(0.97 0 0);
 	--sp-chart-1: oklch(0.646 0.222 41.116);
 	--sp-chart-2: oklch(0.6 0.118 184.704);
 	--sp-chart-3: oklch(0.398 0.07 227.392);
@@ -21,7 +20,6 @@ const DARK_TOKENS = `color-scheme: dark;
 	--sp-border: oklch(1 0 0 / 12%);
 	--sp-accent: oklch(0.922 0 0);
 	--sp-accent-text: oklch(0.205 0 0);
-	--sp-code-bg: oklch(0.269 0 0);
 	--sp-chart-1: oklch(0.488 0.243 264.376);
 	--sp-chart-2: oklch(0.696 0.17 162.48);
 	--sp-chart-3: oklch(0.769 0.188 70.08);
@@ -31,6 +29,7 @@ const DARK_TOKENS = `color-scheme: dark;
 export const PAGE_THEME_CSS = `:where(:root),
 :where(:root:has(> body.light)) {
 	${LIGHT_TOKENS}
+	--sp-code-bg: color-mix(in srgb, currentColor 8%, transparent);
 	--sp-radius: 0.625rem;
 	--sp-measure: 72ch;
 	--sp-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
