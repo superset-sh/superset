@@ -12,7 +12,7 @@ while it happens. Agents: `.agents/skills/incident-triage/SKILL.md` does the fir
 | DNS | `superset.sh` is on Cloudflare. `status` has its own **DNS-only** CNAME to `cname.vercel-dns-016.com` (added 30 September 2026), so the page does not go through the Cloudflare proxy that relay and realtime also use. Vercel holds its own certificate for the name. To undo, delete the record; the proxied `*.superset.sh` wildcard then serves it again. |
 | Components | Desktop App, Web App, General API, Integrations, Marketing Site, Remote Access (relay), Sign-in. |
 | Link in the product | `COMPANY.STATUS_URL` in `packages/shared/src/constants.ts`, used by the marketing footer, the contact page and `index.md`. |
-| Monitoring | None for uptime. incident.io does not run uptime checks; it receives alerts from other tools (alert sources). The only source today is "Status Page Views", which alerts on a spike in page visitors. The page stays green until a person changes it. |
+| Monitoring | Sentry uptime monitors (org `superset-sh`) check the web app, API, sign-in route, relay, relay v2, realtime, marketing, docs and usercontent every 1 to 5 minutes. They do not reach incident.io yet. incident.io does not run checks; it receives alerts from other tools (alert sources), and its only source today is "Status Page Views". The page stays green until a person changes it. |
 | History | No incident has ever been posted. Every component shows 100.00% uptime since 24 March 2026, including the API outage on 17 September 2026. |
 | How to update | incident.io dashboard: declare or open the incident, then publish a status page update. |
 
@@ -20,16 +20,19 @@ Setup still open in incident.io (org `superset-sh`):
 
 - [x] Components: added Remote Access and Sign-in, renamed Webhooks to Integrations (30 September 2026).
 - [ ] Give every on-call person edit rights. Viewer-only seats cannot configure the page or publish incidents.
-- [ ] Choose the tool that does uptime checks, and add it as an alert source (On-call → Alert routing → Create → Alert source). Sources that fit what we already use: Sentry Metrics, Cloudflare, Vercel, or a generic HTTP webhook. Checks to create in that tool:
+- [ ] Install the incident.io integration in Sentry (incident.io → Settings → Integrations → Sentry → Connect; needs a Sentry login with permission to install integrations). Then add "Sentry Issues" as an alert source (On-call → Alert routing → Create → Alert source).
+- [ ] In Sentry, add one alert that sends the uptime monitors to incident.io. Component for each monitor:
 
-  | Check | Expect | Component |
-  |---|---|---|
-  | `https://api.superset.sh/api/health` | 200 (503 means the database is failing) | General API |
-  | `https://api.superset.sh/api/auth/ok` | 200 | Sign-in. This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. |
-  | `https://relay.superset.sh/health` | 200 | Remote Access |
-  | `https://realtime.superset.sh/health` | 200 | Desktop App, Web App (live updates) |
-  | `https://app.superset.sh` | 200 | Web App |
-  | `https://superset.sh` | 200 | Marketing Site |
+  | Sentry uptime monitor | Component |
+  |---|---|
+  | API (`/.well-known/oauth-protected-resource`) | General API |
+  | Sign-in (`/api/auth/ok`). This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. | Sign-in |
+  | Relay, Relay v2 (`/health`) | Remote Access |
+  | Realtime (`/health`) | Desktop App, Web App (live updates) |
+  | Web app (`app.superset.sh/sign-in`) | Web App |
+  | `superset.sh` | Marketing Site |
+
+- [ ] After `/api/health` is in production, add a Sentry uptime monitor for `https://api.superset.sh/api/health` (503 means the database is failing) for General API.
 
   An alert opens an incident for the lead to accept. A person still publishes the status page update.
 
