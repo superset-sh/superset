@@ -111,6 +111,10 @@ msgstr "{0, plural, one {# aktywny port — pokaż szczegóły} few {# aktywne p
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, one {# agent} few {# agenci} many {# agentów} other {# agenta}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {Nie udało się uruchomić # automatyzacji} few {Nie udało się uruchomić # automatyzacji} many {Nie udało się uruchomić # automatyzacji} other {Nie udało się uruchomić # automatyzacji}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# zmieniony plik} few {# zmienione pliki} many {# zmienionych plików} other {# zmienionego pliku}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} z {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Ponawianie # automatyzacji} few {Ponawianie # automatyzacji} many {Ponawianie # automatyzacji} other {Ponawianie # automatyzacji}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · wszyscy do {operatorTier}"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount} gwiazdek i rośnie"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} gwiazdek · {perDay}/dzień w tym tygodniu · {peakPerDay}/dzień w szczycie"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {Uruchomiono # automatyzację} few {Uruchomiono # automatyzacje} many {Uruchomiono # automatyzacji} other {Uruchomiono # automatyzacji}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent działa} few {# subagenty działają} many {# subagentów działa} other {# subagenta działa}}"
@@ -1973,6 +1977,9 @@ msgstr "Wszystkie repozytoria"
 msgid "All reviews"
 msgstr "Wszystkie przeglądy"
 
+msgid "All runs"
+msgstr "Wszystkie uruchomienia"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Wszystkie sesje zabite, demon zrestartowany. Aplikacja użyje świeżego demona."
 
@@ -2531,6 +2538,9 @@ msgstr "Zautomatyzuj konfigurację obszaru roboczego dla {projectName}"
 msgid "Automation"
 msgstr "Automatyzacja"
 
+msgid "Automation docs"
+msgstr "Dokumentacja automatyzacji"
+
 msgid "Automation has no instructions"
 msgstr "Automatyzacja nie ma instrukcji"
 
@@ -2609,6 +2619,9 @@ msgstr "Wstecz"
 
 msgid "Back to About"
 msgstr "Wróć do O nas"
+
+msgid "Back to automations"
+msgstr "Powrót do automatyzacji"
 
 msgid "Back to billing"
 msgstr "Wróć do rozliczeń"
@@ -3946,9 +3959,6 @@ msgstr "Skonfiguruj, jak zadania synchronizują się między Superset a Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Skonfiguruj zachowanie terminala i skrypty terminala wielokrotnego użytku"
 
-msgid "Configure the automation yourself"
-msgstr "Samodzielnie skonfiguruj automatyzację"
-
 msgid "Configure the in-app browser"
 msgstr "Skonfiguruj przeglądarkę w aplikacji"
 
@@ -4693,6 +4703,12 @@ msgstr "Nie udało się wczytać pull requestów: {msg}"
 msgid "Couldn't load review comments"
 msgstr "Nie udało się wczytać komentarzy przeglądu"
 
+msgid "Couldn't load runs"
+msgstr "Nie udało się wczytać uruchomień"
+
+msgid "Couldn't load this run's payload."
+msgstr "Nie udało się wczytać ładunku tego uruchomienia."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Nie udało się wczytać Twojego profilu, więc edycja jest wyłączona."
 
@@ -4969,9 +4985,6 @@ msgstr "Utworzono {createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "Utworzono {createdDirs} folderów w {where}"
-
-msgid "Created <0>· 7d</0>"
-msgstr "Utworzone <0>· 7 dni</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "Utworzono 1 folder w {where}"
@@ -6198,6 +6211,9 @@ msgstr "Co minutę"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Wszystkie cele pracują na kolejny szczebel. Mierzone z ostatnich 30 dni."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Jak dotąd każde zaplanowane uruchomienie znalazło hosta online."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Każda gwiazdka na <0>{repoSlug}</0>, naniesiona od premiery."
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Niepowodzenie"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "Nieudane <0>· 7 dni</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Nieudane uruchomienia <0>· 7 dni</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Nie udało się przyjąć zaproszenia"
@@ -6713,12 +6729,6 @@ msgstr "Nie udało się przywrócić ustawień domyślnych"
 msgid "Failed to resume {0}"
 msgstr "Nie udało się wznowić {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Nie udało się ponowić {failedCount} z {totalCount} automatyzacji"
-
-msgid "Failed to retry automation"
-msgstr "Nie udało się ponowić automatyzacji"
-
 msgid "Failed to reveal in Finder"
 msgstr "Nie udało się pokazać w Finderze"
 
@@ -6786,6 +6796,9 @@ msgstr "Nie udało się zalogować. Spróbuj ponownie."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Nie udało się zarejestrować. Spróbuj ponownie."
+
+msgid "Failed to start the selected automations"
+msgstr "Nie udało się uruchomić wybranych automatyzacji"
 
 msgid "Failed to stop workspace run command"
 msgstr "Nie udało się zatrzymać polecenia uruchamiania obszaru roboczego"
@@ -6993,9 +7006,6 @@ msgstr "Filtruj obszary robocze…"
 
 msgid "Filter…"
 msgstr "Filtruj…"
-
-msgid "filtering"
-msgstr "filtrowanie"
 
 msgid "Filters"
 msgstr "Filtry"
@@ -9339,6 +9349,15 @@ msgstr "Minimalny kontrast"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Odzwierciedlenie <0>panelu PostHog Success Metrics</0> — produkt z zapisanych analiz, biznes na żywo ze Stripe/Neon"
 
+msgid "missed"
+msgstr "pominięte"
+
+msgid "Missed"
+msgstr "Pominięte"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Pominięte <0>· 7 dni</0>"
+
 msgid "Missing auth state"
 msgstr "Brak stanu uwierzytelniania"
 
@@ -9460,6 +9479,9 @@ msgstr "Więcej motywów {kindLower}"
 msgid "More actions"
 msgstr "Więcej akcji"
 
+msgid "More create options"
+msgstr "Więcej opcji tworzenia"
+
 msgid "More options"
 msgstr "Więcej opcji"
 
@@ -9573,6 +9595,9 @@ msgstr "Wymaga podpięcia na poziomie aplikacji (stan formularza, dane wykresu, 
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Wymaga stanu czatu/wywołania narzędzia na żywo (ToolUIPart, strumienie) albo powłoki aplikacji"
+
+msgid "Needs a retry"
+msgstr "Wymaga ponowienia"
 
 msgid "Needs Action"
 msgstr "Wymaga działania"
@@ -9984,6 +10009,9 @@ msgstr "Brak środowisk. Utwórz jedno, aby uruchamiać z niego obszar roboczy w
 msgid "No extended thinking"
 msgstr "Bez rozszerzonego myślenia"
 
+msgid "No failed runs."
+msgstr "Brak nieudanych uruchomień."
+
 msgid "No files found"
 msgstr "Nie znaleziono plików"
 
@@ -10115,6 +10143,9 @@ msgstr "Żadne strony nie pasują do tego filtra"
 
 msgid "No pages yet"
 msgstr "Brak stron"
+
+msgid "No payload is stored for this run."
+msgstr "Dla tego uruchomienia nie zapisano ładunku."
 
 msgid "No payment method on file"
 msgstr "Brak zapisanej metody płatności"
@@ -10490,8 +10521,14 @@ msgstr "Nic nie działa. Usuń go i utwórz nowy."
 msgid "Nothing lives at {pathname}."
 msgstr "Pod {pathname} nic nie ma."
 
+msgid "Nothing needs a retry"
+msgstr "Nic nie wymaga ponowienia"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nic jeszcze nie opublikowano w ciągu ostatnich 30 dni. Twoja pozycja pojawi się, gdy zsynchronizuje się użycie z tej maszyny — publikacja jako <0>{handle}</0>."
+
+msgid "Nothing was missed"
+msgstr "Nic nie zostało pominięte"
 
 msgid "Notice"
 msgstr "Powiadomienie"
@@ -11118,6 +11155,9 @@ msgstr "Otwórz obszar roboczy uruchomienia"
 msgid "open the task in a workspace"
 msgstr "otworzyć zadania w obszarze roboczym"
 
+msgid "Open this run's workspace"
+msgstr "Otwórz obszar roboczy tego uruchomienia"
+
 msgid "Open workspace"
 msgstr "Otwórz obszar roboczy"
 
@@ -11452,6 +11492,9 @@ msgstr "Częściowa"
 
 msgid "Partner, Transpose Platform"
 msgstr "Partner, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Przekaż harmonogram wewnątrz triggers jako trigger typu schedule, a nie jako rrule obok nich"
 
 msgid "Passed"
 msgstr "Zaliczona"
@@ -13043,14 +13086,8 @@ msgstr "Ponów"
 msgid "Retry after the connection refreshes."
 msgstr "Ponów po odświeżeniu połączenia."
 
-msgid "Retry all"
-msgstr "Ponów wszystkie"
-
 msgid "Retry dictation"
 msgstr "Ponów dyktowanie"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Ponów każdą automatyzację, której ostatnie uruchomienie się nie powiodło"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Ponów za kilka sekund; jeśli problem nie ustąpi, uruchom ponownie Superset."
@@ -13133,6 +13170,9 @@ msgstr "Przeglądaj diffy z podświetlaniem składni"
 
 msgid "Review the result."
 msgstr "Przejrzyj wynik."
+
+msgid "Review these runs in All runs"
+msgstr "Przejrzyj te uruchomienia w sekcji Wszystkie uruchomienia"
 
 msgid "Review thread…"
 msgstr "Wątek przeglądu…"
@@ -13231,6 +13271,9 @@ msgstr "Uruchamiaj ponad 10 agentów programistycznych równolegle na swoim komp
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Uruchom 10+ równoległych agentów kodujących na swojej maszynie."
 
+msgid "Run again"
+msgstr "Uruchom ponownie"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Uruchamiaj automatyzacje przy aktywności w źródłach danych i komentarzach."
 
@@ -13324,14 +13367,17 @@ msgstr "Działające procesy terminala nie zostaną przerwane, ale starsze wyjś
 msgid "Runs a local command on your machine"
 msgstr "Uruchamia lokalne polecenie na Twojej maszynie"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Uruchomienia zawiodły wcześniej w tym tygodniu, ale teraz nic się nie psuje"
+msgid "Runs appear here once an automation fires."
+msgstr "Uruchomienia pojawią się tutaj, gdy automatyzacja zostanie wyzwolona."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Działa wewnątrz aplikacji Superset na tamtym urządzeniu, więc aktualizacja oznacza aktualizację aplikacji tam."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Uruchomienia lądują w obszarze roboczym. Przejrzyj różnice, scal to, co dobre."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Uruchomienia, które w ciągu ostatnich 7 dni wystartowały swój workspace"
 
 msgid "Runs when a new workspace is created."
 msgstr "Uruchamia się przy tworzeniu obszaru roboczego."
@@ -13438,6 +13484,9 @@ msgstr "Planuj cykliczne uruchomienia, uruchamiaj na żądanie, wstrzymuj, wznaw
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Agenci uruchamiani według harmonogramu i zdarzeń (cron, zdarzenia GitHub, webhooki) z gotowymi szablonami."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Zaplanowane uruchomienia, które nie znalazły hosta online"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Harmonogramy muszą się powtarzać — usuń COUNT lub UNTIL."
@@ -13777,6 +13826,9 @@ msgstr "Wybierz katalog"
 msgid "Select environment"
 msgstr "Wybierz środowisko"
 
+msgid "Select every run"
+msgstr "Zaznacz wszystkie uruchomienia"
+
 msgid "Select IDE"
 msgstr "Wybierz IDE"
 
@@ -13824,6 +13876,9 @@ msgstr "Wybierz repozytoria"
 
 msgid "Select repository"
 msgstr "Wybierz repozytorium"
+
+msgid "Select run"
+msgstr "Zaznacz uruchomienie"
 
 msgid "Select senders"
 msgstr "Wybierz nadawców"
@@ -14138,9 +14193,6 @@ msgstr "Pokazuj przycisk Zużycie na pasku bocznym strony głównej, pod pull re
 msgid "Show all {count}"
 msgstr "Pokaż wszystkie ({count})"
 
-msgid "Show all automations again"
-msgstr "Pokaż ponownie wszystkie automatyzacje"
-
 msgid "Show all comments"
 msgstr "Pokaż wszystkie komentarze"
 
@@ -14216,9 +14268,6 @@ msgstr "Pokaż więcej"
 msgid "Show on Sidebar"
 msgstr "Pokaż na pasku bocznym"
 
-msgid "Show only automations whose last run failed"
-msgstr "Pokaż tylko automatyzacje, których ostatnie uruchomienie się nie powiodło"
-
 msgid "Show open items"
 msgstr "Pokaż otwarte elementy"
 
@@ -14254,6 +14303,9 @@ msgstr "Pokaż sesje"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Pokazuj status i wysyłaj powiadomienia dla tego agenta."
+
+msgid "Show the triggering payload"
+msgstr "Pokaż ładunek wyzwalający"
 
 msgid "Show translation"
 msgstr "Pokaż tłumaczenie"
@@ -14980,6 +15032,9 @@ msgstr "Sukces"
 
 msgid "Success!"
 msgstr "Sukces!"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Udane uruchomienia <0>· 7 dni</0>"
 
 msgid "Suggested"
 msgstr "Sugerowane"
@@ -15740,12 +15795,6 @@ msgstr "Człowiek czyta każdą linię przed scaleniem."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Zakres obowiązków się przesuwa. Inżynierowie przestają być maszynistkami z gustem, a stają się dyspozytorami z gustem: dzielą pracę, kierują ją do flot, rozstrzygają konflikty między agentami, którzy dotknęli tego samego modułu."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Ostatnie uruchomienie się nie powiodło. Kliknij wiersz, aby zobaczyć dlaczego."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Ostatnie uruchomienie się nie powiodło. Otwórz jego obszar roboczy, aby zobaczyć dlaczego"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Najnowsze aktualizacje, ulepszenia i nowe funkcje w Superset."
 
@@ -16461,6 +16510,9 @@ msgstr "Razem"
 msgid "Total agent sessions"
 msgstr "Łączna liczba sesji agentów"
 
+msgid "Total automations"
+msgstr "Łącznie automatyzacji"
+
 msgid "total cash"
 msgstr "gotówka łącznie"
 
@@ -16493,6 +16545,9 @@ msgstr "Segreguj nowe zgłoszenia"
 
 msgid "triaging 12 new issues…"
 msgstr "segreguje 12 nowych zgłoszeń…"
+
+msgid "Trigger"
+msgstr "Wyzwalacz"
 
 msgid "Trigger alert()"
 msgstr "Wywołaj alert()"
@@ -17674,9 +17729,6 @@ msgstr "Obszary robocze"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Obszary robocze to izolowane środowiska zadań oparte na worktree gita."
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Obszary robocze utworzone przez uruchomienia w ostatnich 7 dniach"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Obszary robocze utworzone na użytkownika w ostatnich 7 dniach, wg percentyla"

@@ -7,13 +7,20 @@ import {
 	refuseHostFlagsForCloud,
 	resolveCloudAutomationTarget,
 } from "../resolveCloudAutomationTarget";
+import { resolveTriggers } from "../resolveTriggers";
 
 export default command({
-	description: "Update an automation's metadata (name, schedule, agent, host)",
+	description: "Update an automation (name, schedule, triggers, agent, host)",
 	args: [positional("id").required().desc("Automation id")],
 	options: {
 		name: string().desc("New name"),
 		rrule: string().desc("New RRule body (RFC 5545)"),
+		triggers: string().desc(
+			"Replace the whole trigger set with this JSON array. See --triggers-file",
+		),
+		triggersFile: string().desc(
+			"Path to a JSON file holding the replacement trigger set. Fetch the current set with `superset automations get <id>` and resend the entries you want to keep, with their `id`, or they are deleted",
+		),
 		timezone: string().desc("New IANA timezone"),
 		dtstart: string().desc("New ISO 8601 start anchor"),
 		agent: string().desc(
@@ -70,6 +77,14 @@ export default command({
 				"Session mode has none; drop --session or pass --no-continue-session",
 			);
 		}
+		if (options.rrule && (options.triggers || options.triggersFile)) {
+			throw new CLIError(
+				"Pass a schedule either as --rrule or inside the trigger set, not both",
+				"The server refuses the combination; add a schedule trigger to the set instead.",
+			);
+		}
+
+		const triggers = resolveTriggers(options);
 
 		const targetHostId = resolveHostFilter({
 			host: options.host ?? undefined,
@@ -158,6 +173,7 @@ export default command({
 			timezone: options.timezone,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			agent: options.agent,
+			...(triggers ? { triggers } : {}),
 			...(targetHostId !== undefined ? { targetHostId } : {}),
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }

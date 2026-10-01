@@ -8,6 +8,7 @@ import {
 	refuseHostFlagsForCloud,
 	resolveCloudAutomationTarget,
 } from "../resolveCloudAutomationTarget";
+import { resolveTriggers } from "../resolveTriggers";
 
 const DEFAULT_TIMEZONE =
 	Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -18,11 +19,15 @@ export default command({
 		name: string().required().desc("Human-readable automation name"),
 		prompt: string().desc("Prompt to send to the agent"),
 		promptFile: string().desc("Path to a file containing the prompt"),
-		rrule: string()
-			.required()
-			.desc(
-				"RFC 5545 RRULE body, e.g. FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0",
-			),
+		rrule: string().desc(
+			"RFC 5545 RRULE body, e.g. FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0. Omit when passing --triggers",
+		),
+		triggers: string().desc(
+			"Trigger set as a JSON array, for event triggers (Slack, GitHub, Linear, ...). See --triggers-file",
+		),
+		triggersFile: string().desc(
+			"Path to a JSON file holding the trigger set. Run `superset automations trigger-options --group slack` to resolve the ids a scope filters on",
+		),
 		timezone: string().desc(`IANA timezone (default: host TZ, else UTC)`),
 		dtstart: string().desc("ISO 8601 start anchor (default: now)"),
 		project: string().desc(
@@ -61,6 +66,14 @@ export default command({
 				: null;
 		if (!prompt) {
 			throw new Error("Provide --prompt <text> or --prompt-file <path>");
+		}
+
+		const triggers = resolveTriggers(options);
+		if (!triggers && !options.rrule) {
+			throw new CLIError(
+				"An automation needs something to fire it",
+				"Pass --rrule <RRULE> for a schedule, or --triggers-file <path> for event triggers",
+			);
 		}
 
 		const organizationId = ctx.config.organizationId;
@@ -108,19 +121,23 @@ export default command({
 			agent: options.agent,
 			...target,
 			continueAgentSession: options.continueSession ?? undefined,
-			rrule: options.rrule,
+			rrule: options.rrule ?? undefined,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,
+			...(triggers ? { triggers } : {}),
 			...(options.tag?.length ? { tags: options.tag } : {}),
 		});
 
+		const schedule = result.nextRunAt
+			? `\nNext run: ${formatAutomationDate(result.nextRunAt, result.timezone)}`
+			: "";
 		return {
 			data: result,
-			message: [
-				`Created automation "${result.name}" (${result.id})`,
-				...(cloudTarget ? [`Runs ${cloudTarget.placement}`] : []),
-				`Next run: ${formatAutomationDate(result.nextRunAt, result.timezone)}`,
-			].join("\n"),
+			message:
+				[
+					`Created automation "${result.name}" (${result.id})`,
+					...(cloudTarget ? [`Runs ${cloudTarget.placement}`] : []),
+				].join("\n") + schedule,
 		};
 	},
 });

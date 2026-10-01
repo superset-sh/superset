@@ -111,6 +111,10 @@ msgstr "{0, plural, one {#个活动端口 — 显示详情} other {#个活动端
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, other {# 个智能体}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {无法启动 # 个自动化} other {无法启动 # 个自动化}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {#个已更改文件} other {#个已更改文件}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received}/{total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {正在重试#个自动化} other {正在重试#个自动化}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · 全员晋级{operatorTier}"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount}个星标，还在增长"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars}个星标 · 本周{perDay}/天 · 峰值{peakPerDay}/天"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {已启动 # 个自动化} other {已启动 # 个自动化}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
@@ -1973,6 +1977,9 @@ msgstr "所有仓库"
 msgid "All reviews"
 msgstr "所有审查"
 
+msgid "All runs"
+msgstr "所有运行"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "所有会话已终止，守护进程已重启。应用将使用全新的守护进程。"
 
@@ -2531,6 +2538,9 @@ msgstr "为{projectName}自动化工作区初始化"
 msgid "Automation"
 msgstr "自动化"
 
+msgid "Automation docs"
+msgstr "自动化文档"
+
 msgid "Automation has no instructions"
 msgstr "自动化没有任何指令"
 
@@ -2609,6 +2619,9 @@ msgstr "返回"
 
 msgid "Back to About"
 msgstr "返回关于页"
+
+msgid "Back to automations"
+msgstr "返回自动化"
 
 msgid "Back to billing"
 msgstr "返回账单"
@@ -3946,9 +3959,6 @@ msgstr "配置任务在Superset和Linear之间的同步方式。"
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "配置终端行为和可复用的终端脚本"
 
-msgid "Configure the automation yourself"
-msgstr "自行配置自动化"
-
 msgid "Configure the in-app browser"
 msgstr "配置应用内浏览器"
 
@@ -4693,6 +4703,12 @@ msgstr "无法加载拉取请求：{msg}"
 msgid "Couldn't load review comments"
 msgstr "无法加载审查评论"
 
+msgid "Couldn't load runs"
+msgstr "无法加载运行记录"
+
+msgid "Couldn't load this run's payload."
+msgstr "无法加载此次运行的负载。"
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "无法加载你的资料，编辑已停用。"
 
@@ -4969,9 +4985,6 @@ msgstr "创建于{createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "已在{where}创建{createdDirs}个文件夹"
-
-msgid "Created <0>· 7d</0>"
-msgstr "已创建 <0>· 7天</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "已在{where}创建1个文件夹"
@@ -6198,6 +6211,9 @@ msgstr "每分钟"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "所有目标都在为下一档位发力。按最近 30 天计算。"
 
+msgid "Every scheduled run so far found a host online."
+msgstr "目前每次计划运行都找到了在线主机。"
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0>的每一个星标，自发布起绘制。"
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "失败"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "失败 <0>· 7天</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "失败运行 <0>· 7天</0>"
 
 msgid "Failed to accept invitation"
 msgstr "接受邀请失败"
@@ -6713,12 +6729,6 @@ msgstr "恢复默认值失败"
 msgid "Failed to resume {0}"
 msgstr "恢复{0}失败"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "{totalCount}个自动化中有{failedCount}个重试失败"
-
-msgid "Failed to retry automation"
-msgstr "重试自动化失败"
-
 msgid "Failed to reveal in Finder"
 msgstr "在Finder中显示失败"
 
@@ -6786,6 +6796,9 @@ msgstr "登录失败。请重试。"
 
 msgid "Failed to sign up. Please try again."
 msgstr "注册失败。请重试。"
+
+msgid "Failed to start the selected automations"
+msgstr "无法启动所选的自动化"
 
 msgid "Failed to stop workspace run command"
 msgstr "停止工作区运行命令失败"
@@ -6993,9 +7006,6 @@ msgstr "筛选工作区…"
 
 msgid "Filter…"
 msgstr "筛选…"
-
-msgid "filtering"
-msgstr "筛选中"
 
 msgid "Filters"
 msgstr "筛选"
@@ -9339,6 +9349,15 @@ msgstr "最小对比度"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog成功指标仪表盘</0>的镜像 — 产品数据来自已保存的洞察，业务数据实时取自Stripe/Neon"
 
+msgid "missed"
+msgstr "已错过"
+
+msgid "Missed"
+msgstr "已错过"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "已错过 <0>· 7天</0>"
+
 msgid "Missing auth state"
 msgstr "缺少认证状态"
 
@@ -9460,6 +9479,9 @@ msgstr "更多{kindLower}主题"
 msgid "More actions"
 msgstr "更多操作"
 
+msgid "More create options"
+msgstr "更多创建选项"
+
 msgid "More options"
 msgstr "更多选项"
 
@@ -9573,6 +9595,9 @@ msgstr "需要应用层的接线（表单状态、图表数据、应用外壳）
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "需要实时的聊天或工具调用状态（ToolUIPart、流），或者应用外壳"
+
+msgid "Needs a retry"
+msgstr "需要重试"
 
 msgid "Needs Action"
 msgstr "需要处理"
@@ -9984,6 +10009,9 @@ msgstr "还没有环境。创建一个，以便基于它启动云端工作区。
 msgid "No extended thinking"
 msgstr "不使用扩展思考"
 
+msgid "No failed runs."
+msgstr "没有失败的运行。"
+
 msgid "No files found"
 msgstr "未找到文件"
 
@@ -10115,6 +10143,9 @@ msgstr "没有页面符合此筛选条件"
 
 msgid "No pages yet"
 msgstr "还没有页面"
+
+msgid "No payload is stored for this run."
+msgstr "此次运行未存储负载。"
 
 msgid "No payment method on file"
 msgstr "未登记支付方式"
@@ -10490,8 +10521,14 @@ msgstr "没有任何东西在运行。移除它，再建一个。"
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname}下没有任何内容。"
 
+msgid "Nothing needs a retry"
+msgstr "没有需要重试的运行"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近30天还没有已公开的数据。待本机用量同步后，你的排名就会显示，将以<0>{handle}</0>身份公开。"
+
+msgid "Nothing was missed"
+msgstr "没有错过的运行"
 
 msgid "Notice"
 msgstr "提示"
@@ -11118,6 +11155,9 @@ msgstr "打开这次运行的工作区"
 msgid "open the task in a workspace"
 msgstr "在工作区中打开任务"
 
+msgid "Open this run's workspace"
+msgstr "打开此次运行的工作区"
+
 msgid "Open workspace"
 msgstr "打开工作区"
 
@@ -11452,6 +11492,9 @@ msgstr "部分开启"
 
 msgid "Partner, Transpose Platform"
 msgstr "合伙人，Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "请将计划作为 triggers 中的 schedule 触发器传入，而不是与 triggers 并列的 rrule"
 
 msgid "Passed"
 msgstr "通过"
@@ -13043,14 +13086,8 @@ msgstr "重试"
 msgid "Retry after the connection refreshes."
 msgstr "请在连接刷新后重试。"
 
-msgid "Retry all"
-msgstr "全部重试"
-
 msgid "Retry dictation"
 msgstr "重试语音输入"
-
-msgid "Retry every automation whose last run failed"
-msgstr "重试所有上次运行失败的自动化"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "请在几秒后重试；若问题持续，请重启Superset。"
@@ -13133,6 +13170,9 @@ msgstr "审查带语法高亮的差异"
 
 msgid "Review the result."
 msgstr "审查结果。"
+
+msgid "Review these runs in All runs"
+msgstr "在“所有运行”中查看这些运行"
 
 msgid "Review thread…"
 msgstr "审查讨论…"
@@ -13231,6 +13271,9 @@ msgstr "在您的设备上并行运行 10 多个编程代理"
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "在你的机器上并行运行10个以上的编码智能体。"
 
+msgid "Run again"
+msgstr "重新运行"
+
 msgid "Run automations on data source and comment activity."
 msgstr "在数据源和评论活动上运行自动化。"
 
@@ -13324,14 +13367,17 @@ msgstr "运行中的终端进程会继续，但重启应用后可能无法再看
 msgid "Runs a local command on your machine"
 msgstr "在你的机器上运行本地命令"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "本周早些时候有运行失败，但现在没有失败的"
+msgid "Runs appear here once an automation fires."
+msgstr "自动化触发后，运行将显示在这里。"
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "运行在该设备的 Superset 应用内，因此更新它意味着更新那台设备上的应用。"
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "运行结果会落在一个工作区里。审查差异，把合适的合并进去。"
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "过去 7 天内启动了工作区的运行"
 
 msgid "Runs when a new workspace is created."
 msgstr "创建新工作区时运行。"
@@ -13438,6 +13484,9 @@ msgstr "安排定时运行、按需运行、暂停、恢复并读取日志。"
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "定时和事件触发的智能体（cron、GitHub事件、webhook），并提供现成模板。"
+
+msgid "Scheduled runs that found no host online"
+msgstr "未找到在线主机的计划运行"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "计划会重复 — 请移除COUNT或UNTIL。"
@@ -13777,6 +13826,9 @@ msgstr "选择目录"
 msgid "Select environment"
 msgstr "选择环境"
 
+msgid "Select every run"
+msgstr "选择所有运行"
+
 msgid "Select IDE"
 msgstr "选择IDE"
 
@@ -13824,6 +13876,9 @@ msgstr "选择仓库"
 
 msgid "Select repository"
 msgstr "选择仓库"
+
+msgid "Select run"
+msgstr "选择运行"
 
 msgid "Select senders"
 msgstr "选择发件人"
@@ -14138,9 +14193,6 @@ msgstr "在主页侧边栏的“拉取请求”下方显示“用量”按钮"
 msgid "Show all {count}"
 msgstr "显示全部{count}条"
 
-msgid "Show all automations again"
-msgstr "重新显示所有自动化"
-
 msgid "Show all comments"
 msgstr "显示全部评论"
 
@@ -14216,9 +14268,6 @@ msgstr "显示更多"
 msgid "Show on Sidebar"
 msgstr "在侧边栏中显示"
 
-msgid "Show only automations whose last run failed"
-msgstr "只显示上次运行失败的自动化"
-
 msgid "Show open items"
 msgstr "只显示打开的条目"
 
@@ -14254,6 +14303,9 @@ msgstr "显示会话"
 
 msgid "Show status and send notifications for this agent."
 msgstr "为此智能体显示状态并发送通知。"
+
+msgid "Show the triggering payload"
+msgstr "显示触发负载"
 
 msgid "Show translation"
 msgstr "显示译文"
@@ -14980,6 +15032,9 @@ msgstr "成功"
 
 msgid "Success!"
 msgstr "成功！"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "成功运行 <0>· 7天</0>"
 
 msgid "Suggested"
 msgstr "推荐"
@@ -15740,12 +15795,6 @@ msgstr "合并前人类会逐行阅读。"
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "岗位描述变了。工程师不再是有品味的打字员，而成了有品味的调度员：拆解工作、分派给智能体集群、在两个改了同一个模块的智能体之间做裁决。"
 
-msgid "The last run failed. Click the row to see why."
-msgstr "上次运行失败。点击这一行查看原因。"
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "上次运行失败。打开它的工作区查看原因"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Superset 的最新更新、改进与新功能。"
 
@@ -16461,6 +16510,9 @@ msgstr "合计"
 msgid "Total agent sessions"
 msgstr "智能体会话总数"
 
+msgid "Total automations"
+msgstr "自动化总数"
+
 msgid "total cash"
 msgstr "现金总额"
 
@@ -16493,6 +16545,9 @@ msgstr "分类新议题"
 
 msgid "triaging 12 new issues…"
 msgstr "正在分类12个新议题…"
+
+msgid "Trigger"
+msgstr "触发器"
 
 msgid "Trigger alert()"
 msgstr "触发alert()"
@@ -17674,9 +17729,6 @@ msgstr "工作区"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "工作区是由git worktree支撑的隔离任务环境。"
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "最近7天里由运行创建的工作区"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "最近7天每位用户创建的工作区数，按分位数"

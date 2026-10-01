@@ -42,7 +42,8 @@ Run the checks that can run in parallel at the same time. Record each result wit
    For a run near the start time, look at the failed or slow jobs, especially `deploy-database`
    (migrations): `gh run view <id> --json jobs`.
 2. **Sentry.** Use the Sentry MCP tools when they are connected. Search for issues first seen or
-   spiking in the last 2 hours, in these projects: api, web, relay, realtime, desktop. For each
+   spiking in the last 2 hours, in every project: api, web, admin, marketing, docs, relay
+   (it also holds realtime), sandbox, desktop, host-service, mobile. For each
    match, record the issue title, event count, first-seen time, and the release.
 3. **Health checks** (GET only, 10-second timeout):
    ```bash
@@ -51,8 +52,7 @@ Run the checks that can run in parallel at the same time. Record each result wit
    curl -sS -m 10 -w ' %{http_code} %{time_total}s\n' https://api.superset.sh/api/health
    ```
    Expected: relay `{"ok":true,"proto":2}` 200, realtime `{"ok":true}` 200, API
-   `{"ok":true,"database":"ok"}` 200. A 503 from the API names the database state. Before
-   `/api/health` is deployed it returns 404; then use `https://api.superset.sh/api`, where 401 means up.
+   `{"ok":true,"database":"ok"}` 200. A 503 from the API names the database state.
    Any other 5xx or a timeout is a failure.
    Also read `https://status.superset.sh/api/v2/summary.json` to see what the page shows now.
 4. **Vercel** (if the CLI is linked): `vercel ls` for recent production deploys, and

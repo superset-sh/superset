@@ -111,6 +111,10 @@ msgstr "{0, plural, one {# etkin port — ayrıntıları göster} other {# etkin
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, one {# ajan} other {# ajan}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {# otomasyon başlatılamadı} other {# otomasyon başlatılamadı}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# değişen dosya} other {# değişen dosya}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{total} içinden {received}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {# otomasyon yeniden deneniyor} other {# otomasyon yeniden deneniyor}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · herkes {operatorTier} seviyesine"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount} yıldız ve artıyor"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} yıldız · bu hafta {perDay}/gün · zirvede {peakPerDay}/gün"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {# otomasyon başlatıldı} other {# otomasyon başlatıldı}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
@@ -1973,6 +1977,9 @@ msgstr "Tüm depolar"
 msgid "All reviews"
 msgstr "Tüm incelemeler"
 
+msgid "All runs"
+msgstr "Tüm çalıştırmalar"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Tüm oturumlar sonlandırıldı ve daemon yeniden başlatıldı. Uygulama yeni bir daemon kullanacak."
 
@@ -2531,6 +2538,9 @@ msgstr "{projectName} için çalışma alanı kurulumunu otomatikleştirin"
 msgid "Automation"
 msgstr "Otomasyon"
 
+msgid "Automation docs"
+msgstr "Otomasyon belgeleri"
+
 msgid "Automation has no instructions"
 msgstr "Otomasyonun yönergesi yok"
 
@@ -2609,6 +2619,9 @@ msgstr "Geri"
 
 msgid "Back to About"
 msgstr "Hakkımızda sayfasına dön"
+
+msgid "Back to automations"
+msgstr "Otomasyonlara dön"
 
 msgid "Back to billing"
 msgstr "Faturalandırmaya dön"
@@ -3946,9 +3959,6 @@ msgstr "Görevlerin Superset ile Linear arasında nasıl eşitleneceğini yapıl
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Terminal davranışını ve yeniden kullanılabilir terminal betiklerini yapılandırın"
 
-msgid "Configure the automation yourself"
-msgstr "Otomasyonu kendiniz yapılandırın"
-
 msgid "Configure the in-app browser"
 msgstr "Uygulama içi tarayıcıyı yapılandırın"
 
@@ -4693,6 +4703,12 @@ msgstr "Pull request'ler yüklenemedi: {msg}"
 msgid "Couldn't load review comments"
 msgstr "İnceleme yorumları yüklenemedi"
 
+msgid "Couldn't load runs"
+msgstr "Çalıştırmalar yüklenemedi"
+
+msgid "Couldn't load this run's payload."
+msgstr "Bu çalıştırmanın yükü yüklenemedi."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profilin yüklenemedi, bu yüzden düzenleme devre dışı."
 
@@ -4969,9 +4985,6 @@ msgstr "Oluşturulma: {createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "{where} konumunda {createdDirs} klasör oluşturuldu"
-
-msgid "Created <0>· 7d</0>"
-msgstr "Oluşturulan <0>· 7g</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "{where} konumunda 1 klasör oluşturuldu"
@@ -6198,6 +6211,9 @@ msgstr "Her dakika"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Tüm hedefler bir sonraki basamak için üzerine düşeni yapıyor. Son 30 gün üzerinden ölçülür."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Şimdiye kadar her zamanlanmış çalıştırma çevrimiçi bir ana makine buldu."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "<0>{repoSlug}</0> üzerindeki her yıldız, lansmandan bu yana grafikte."
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Başarısız"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "Başarısız <0>· 7g</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Başarısız çalıştırmalar <0>· 7g</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Davet kabul edilemedi"
@@ -6713,12 +6729,6 @@ msgstr "Varsayılanlar geri yüklenemedi"
 msgid "Failed to resume {0}"
 msgstr "{0} sürdürülemedi"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "{totalCount} otomasyondan {failedCount} tanesi yeniden denenemedi"
-
-msgid "Failed to retry automation"
-msgstr "Otomasyon yeniden denenemedi"
-
 msgid "Failed to reveal in Finder"
 msgstr "Finder'da gösterilemedi"
 
@@ -6786,6 +6796,9 @@ msgstr "Oturum açılamadı. Lütfen yeniden deneyin."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Kaydolunamadı. Lütfen yeniden deneyin."
+
+msgid "Failed to start the selected automations"
+msgstr "Seçilen otomasyonlar başlatılamadı"
 
 msgid "Failed to stop workspace run command"
 msgstr "Çalışma alanı çalıştırma komutu durdurulamadı"
@@ -6993,9 +7006,6 @@ msgstr "Çalışma alanlarını filtrele…"
 
 msgid "Filter…"
 msgstr "Filtrele…"
-
-msgid "filtering"
-msgstr "filtreleniyor"
 
 msgid "Filters"
 msgstr "Filtreler"
@@ -9339,6 +9349,15 @@ msgstr "En düşük kontrast"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "<0>PostHog Success Metrics panosunun</0> aynası — ürün kayıtlı içgörülerden, iş verileri Stripe/Neon üzerinden canlı"
 
+msgid "missed"
+msgstr "kaçırıldı"
+
+msgid "Missed"
+msgstr "Kaçırılan"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Kaçırılan <0>· 7g</0>"
+
 msgid "Missing auth state"
 msgstr "Kimlik doğrulama durumu eksik"
 
@@ -9460,6 +9479,9 @@ msgstr "Daha fazla {kindLower} tema"
 msgid "More actions"
 msgstr "Diğer eylemler"
 
+msgid "More create options"
+msgstr "Diğer oluşturma seçenekleri"
+
 msgid "More options"
 msgstr "Diğer seçenekler"
 
@@ -9573,6 +9595,9 @@ msgstr "Uygulama düzeyinde bağlantı gerekir (form durumu, grafik verisi, uygu
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Canlı sohbet/araç çağrısı durumu (ToolUIPart, akışlar) veya bir uygulama kabuğu gerekir"
+
+msgid "Needs a retry"
+msgstr "Yeniden denenmeli"
 
 msgid "Needs Action"
 msgstr "İşlem gerekiyor"
@@ -9984,6 +10009,9 @@ msgstr "Henüz ortam yok. Bir bulut çalışma alanını üzerinden başlatmak i
 msgid "No extended thinking"
 msgstr "Genişletilmiş düşünme yok"
 
+msgid "No failed runs."
+msgstr "Başarısız çalıştırma yok."
+
 msgid "No files found"
 msgstr "Dosya bulunamadı"
 
@@ -10115,6 +10143,9 @@ msgstr "Bu filtreyle eşleşen sayfa yok"
 
 msgid "No pages yet"
 msgstr "Henüz sayfa yok"
+
+msgid "No payload is stored for this run."
+msgstr "Bu çalıştırma için saklanan yük yok."
 
 msgid "No payment method on file"
 msgstr "Kayıtlı ödeme yöntemi yok"
@@ -10490,8 +10521,14 @@ msgstr "Hiçbir şey çalışmıyor. Bunu kaldırıp yeni bir tane oluşturun."
 msgid "Nothing lives at {pathname}."
 msgstr "{pathname} yolunda bir şey yok."
 
+msgid "Nothing needs a retry"
+msgstr "Yeniden denenecek bir şey yok"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Son 30 günde henüz hiçbir şey yayınlanmadı. Bu makinedeki kullanım eşitlendiğinde sıralamanız görünür; <0>{handle}</0> olarak yayınlanıyor."
+
+msgid "Nothing was missed"
+msgstr "Hiçbir şey kaçırılmadı"
 
 msgid "Notice"
 msgstr "Bildirim"
@@ -11118,6 +11155,9 @@ msgstr "Çalıştırmanın çalışma alanını aç"
 msgid "open the task in a workspace"
 msgstr "görevi çalışma alanında açma"
 
+msgid "Open this run's workspace"
+msgstr "Bu çalıştırmanın çalışma alanını aç"
+
 msgid "Open workspace"
 msgstr "Çalışma alanını aç"
 
@@ -11452,6 +11492,9 @@ msgstr "Kısmi"
 
 msgid "Partner, Transpose Platform"
 msgstr "Ortak, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Zamanlamayı triggers içinde schedule tetikleyicisi olarak gönderin, yanlarında rrule olarak değil"
 
 msgid "Passed"
 msgstr "Geçti"
@@ -13043,14 +13086,8 @@ msgstr "Yeniden dene"
 msgid "Retry after the connection refreshes."
 msgstr "Bağlantı yenilendikten sonra yeniden deneyin."
 
-msgid "Retry all"
-msgstr "Tümünü yeniden dene"
-
 msgid "Retry dictation"
 msgstr "Sesle yazmayı yeniden dene"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Son çalıştırması başarısız olan tüm otomasyonları yeniden dene"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Birkaç saniye sonra yeniden deneyin; sorun sürerse Superset'i yeniden başlatın."
@@ -13133,6 +13170,9 @@ msgstr "Sözdizimi vurgulu diff'leri inceleyin"
 
 msgid "Review the result."
 msgstr "Sonucu inceleyin."
+
+msgid "Review these runs in All runs"
+msgstr "Bu çalıştırmaları Tüm çalıştırmalar'da incele"
 
 msgid "Review thread…"
 msgstr "İnceleme konusu…"
@@ -13231,6 +13271,9 @@ msgstr "Bilgisayarınızda 10'dan fazla kodlama ajanını paralel çalıştırı
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Makinenizde 10+ paralel kodlama ajanı çalıştırın."
 
+msgid "Run again"
+msgstr "Yeniden çalıştır"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Veri kaynağı ve yorum etkinliğinde otomasyon çalıştırın."
 
@@ -13324,14 +13367,17 @@ msgstr "Çalışan terminal süreçleri devam eder, ancak uygulama yeniden başl
 msgid "Runs a local command on your machine"
 msgstr "Makinenizde yerel bir komut çalıştırır"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Bu hafta daha önce çalıştırmalar başarısız oldu, ancak şu anda başarısız olan yok"
+msgid "Runs appear here once an automation fires."
+msgstr "Bir otomasyon tetiklendiğinde çalıştırmalar burada görünür."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "O cihazdaki Superset uygulamasının içinde çalışır; bu yüzden güncellemek, oradaki uygulamayı güncellemek demektir."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Çalıştırmalar bir çalışma alanına düşer. Farkı inceleyin, iyi olanı birleştirin."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Son 7 günde workspace'ini başlatan çalıştırmalar"
 
 msgid "Runs when a new workspace is created."
 msgstr "Yeni bir çalışma alanı oluşturulduğunda çalışır."
@@ -13438,6 +13484,9 @@ msgstr "Yinelenen çalıştırmaları zamanlayın, istek üzerine çalıştırı
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Hazır şablonlarla zamanlanmış ve olay tetiklemeli ajanlar (cron, GitHub olayları, webhook'lar)."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Çevrimiçi ana makine bulamayan zamanlanmış çalıştırmalar"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Zamanlamalar yinelenir — COUNT veya UNTIL değerini kaldırın."
@@ -13777,6 +13826,9 @@ msgstr "Dizin seçin"
 msgid "Select environment"
 msgstr "Ortam seç"
 
+msgid "Select every run"
+msgstr "Tüm çalıştırmaları seç"
+
 msgid "Select IDE"
 msgstr "IDE seçin"
 
@@ -13824,6 +13876,9 @@ msgstr "Depoları seç"
 
 msgid "Select repository"
 msgstr "Depo seçin"
+
+msgid "Select run"
+msgstr "Çalıştırmayı seç"
 
 msgid "Select senders"
 msgstr "Gönderenleri seç"
@@ -14138,9 +14193,6 @@ msgstr "Ana sayfa kenar çubuğunda, pull request'lerin altında bir Kullanım d
 msgid "Show all {count}"
 msgstr "Tümünü göster ({count})"
 
-msgid "Show all automations again"
-msgstr "Tüm otomasyonları yeniden göster"
-
 msgid "Show all comments"
 msgstr "Tüm yorumları göster"
 
@@ -14216,9 +14268,6 @@ msgstr "Daha fazla göster"
 msgid "Show on Sidebar"
 msgstr "Kenar çubuğunda göster"
 
-msgid "Show only automations whose last run failed"
-msgstr "Yalnızca son çalıştırması başarısız olan otomasyonları göster"
-
 msgid "Show open items"
 msgstr "Açık öğeleri göster"
 
@@ -14254,6 +14303,9 @@ msgstr "Oturumları göster"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Bu ajan için durum göster ve bildirim gönder."
+
+msgid "Show the triggering payload"
+msgstr "Tetikleyen yükü göster"
 
 msgid "Show translation"
 msgstr "Çeviriyi göster"
@@ -14980,6 +15032,9 @@ msgstr "Başarılı"
 
 msgid "Success!"
 msgstr "Başarılı!"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Başarılı çalıştırmalar <0>· 7g</0>"
 
 msgid "Suggested"
 msgstr "Önerilen"
@@ -15740,12 +15795,6 @@ msgstr "İnsan, birleştirilmeden önce her satırı okur."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "İş tanımı değişir. Mühendisler zevk sahibi daktilocular olmayı bırakıp zevk sahibi dağıtıcılar olur: işi parçalara ayırır, filolara yönlendirir ve aynı modüle dokunan iki ajan arasındaki çakışmalara hakemlik eder."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Son çalıştırma başarısız oldu. Nedenini görmek için satıra tıklayın."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Son çalıştırma başarısız oldu. Nedenini görmek için çalışma alanını açın"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Superset'teki en son güncellemeler, iyileştirmeler ve yeni özellikler."
 
@@ -16461,6 +16510,9 @@ msgstr "Toplam"
 msgid "Total agent sessions"
 msgstr "Toplam ajan oturumu"
 
+msgid "Total automations"
+msgstr "Toplam otomasyon"
+
 msgid "total cash"
 msgstr "toplam nakit"
 
@@ -16493,6 +16545,9 @@ msgstr "Yeni issue'ları sınıflandır"
 
 msgid "triaging 12 new issues…"
 msgstr "12 yeni issue sınıflandırılıyor…"
+
+msgid "Trigger"
+msgstr "Tetikleyici"
 
 msgid "Trigger alert()"
 msgstr "alert() tetikle"
@@ -17674,9 +17729,6 @@ msgstr "Çalışma alanları"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Çalışma alanları, git worktree'leriyle desteklenen yalıtılmış görev ortamlarıdır."
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Son 7 günde çalıştırmaların oluşturduğu çalışma alanları"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Son 7 günde kullanıcı başına oluşturulan çalışma alanları, yüzdelik dilime göre"

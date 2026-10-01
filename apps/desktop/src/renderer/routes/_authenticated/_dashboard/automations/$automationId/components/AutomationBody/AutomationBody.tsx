@@ -1,5 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SelectAutomationRun } from "@superset/db/schema";
 import { errorMessage } from "@superset/i18n/errors";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import { isCloudAgentId } from "@superset/shared/cloud-agent-launch";
@@ -35,6 +34,9 @@ type DetailTab = "settings" | "runs";
 export function AutomationBody({
 	automation,
 	recentRuns,
+	hasMoreRuns,
+	isLoadingMoreRuns,
+	onLoadMoreRuns,
 	ownerName,
 	readOnly,
 	onToggleEnabled,
@@ -42,7 +44,10 @@ export function AutomationBody({
 }: {
 	/** `get` output plus the prompt body, which rides its own procedure. */
 	automation: RouterOutputs["automation"]["get"] & { prompt: string };
-	recentRuns: SelectAutomationRun[];
+	recentRuns: RouterOutputs["automation"]["listOrgRuns"]["runs"];
+	hasMoreRuns: boolean;
+	isLoadingMoreRuns: boolean;
+	onLoadMoreRuns: () => void;
 	ownerName?: string | null;
 	readOnly?: boolean;
 	onToggleEnabled: (enabled: boolean) => void;
@@ -334,7 +339,12 @@ export function AutomationBody({
 						)}
 					</fieldset>
 				) : (
-					<PreviousRunsList runs={recentRuns} />
+					<PreviousRunsList
+						runs={recentRuns}
+						hasMore={hasMoreRuns}
+						isLoadingMore={isLoadingMoreRuns}
+						onLoadMore={onLoadMoreRuns}
+					/>
 				)}
 			</div>
 		</div>

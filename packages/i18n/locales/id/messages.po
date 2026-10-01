@@ -111,6 +111,10 @@ msgstr "{0, plural, one {# port aktif — tampilkan detail} other {# port aktif 
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, other {# agen}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {# otomatisasi tidak dapat dimulai} other {# otomatisasi tidak dapat dimulai}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# file berubah} other {# file berubah}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} dari {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Mencoba ulang # otomatisasi} other {Mencoba ulang # otomatisasi}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · semua ke {operatorTier}"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount} star dan terus bertambah"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} star · {perDay}/hari minggu ini · {peakPerDay}/hari saat puncak"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {# otomatisasi dimulai} other {# otomatisasi dimulai}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# subagen berjalan}}"
@@ -1973,6 +1977,9 @@ msgstr "Semua repositori"
 msgid "All reviews"
 msgstr "Semua review"
 
+msgid "All runs"
+msgstr "Semua run"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Semua sesi dimatikan dan daemon dimulai ulang. Aplikasi akan memakai daemon yang baru."
 
@@ -2531,6 +2538,9 @@ msgstr "Otomatiskan penyiapan workspace untuk {projectName}"
 msgid "Automation"
 msgstr "Otomatisasi"
 
+msgid "Automation docs"
+msgstr "Dokumentasi otomatisasi"
+
 msgid "Automation has no instructions"
 msgstr "Otomatisasi tidak punya instruksi"
 
@@ -2609,6 +2619,9 @@ msgstr "Kembali"
 
 msgid "Back to About"
 msgstr "Kembali ke Tentang"
+
+msgid "Back to automations"
+msgstr "Kembali ke otomatisasi"
 
 msgid "Back to billing"
 msgstr "Kembali ke penagihan"
@@ -3946,9 +3959,6 @@ msgstr "Atur cara tugas disinkronkan antara Superset dan Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Atur perilaku terminal dan skrip terminal pakai ulang"
 
-msgid "Configure the automation yourself"
-msgstr "Konfigurasikan otomatisasi sendiri"
-
 msgid "Configure the in-app browser"
 msgstr "Atur browser dalam aplikasi"
 
@@ -4693,6 +4703,12 @@ msgstr "Tidak bisa memuat pull request: {msg}"
 msgid "Couldn't load review comments"
 msgstr "Tidak bisa memuat komentar review"
 
+msgid "Couldn't load runs"
+msgstr "Tidak dapat memuat run"
+
+msgid "Couldn't load this run's payload."
+msgstr "Tidak dapat memuat payload run ini."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Profil Anda tidak dapat dimuat, sehingga penyuntingan dinonaktifkan."
 
@@ -4969,9 +4985,6 @@ msgstr "Dibuat {createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "Membuat {createdDirs} folder di {where}"
-
-msgid "Created <0>· 7d</0>"
-msgstr "Dibuat <0>· 7h</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "Membuat 1 folder di {where}"
@@ -6198,6 +6211,9 @@ msgstr "Tiap menit"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Semua sasaran sudah berkontribusi sesuai bobotnya untuk tingkat berikutnya. Diukur selama 30 hari terakhir."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Sejauh ini setiap eksekusi terjadwal menemukan host yang online."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Tiap star di <0>{repoSlug}</0>, diplot sejak peluncuran."
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Gagal"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "Gagal <0>· 7h</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Eksekusi gagal <0>· 7h</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Gagal menerima undangan"
@@ -6713,12 +6729,6 @@ msgstr "Gagal memulihkan setelan bawaan"
 msgid "Failed to resume {0}"
 msgstr "Gagal melanjutkan {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Gagal mencoba ulang {failedCount} dari {totalCount} otomatisasi"
-
-msgid "Failed to retry automation"
-msgstr "Gagal mencoba ulang otomatisasi"
-
 msgid "Failed to reveal in Finder"
 msgstr "Gagal menampilkan di Finder"
 
@@ -6786,6 +6796,9 @@ msgstr "Gagal masuk. Silakan coba lagi."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Gagal mendaftar. Silakan coba lagi."
+
+msgid "Failed to start the selected automations"
+msgstr "Gagal memulai otomatisasi yang dipilih"
 
 msgid "Failed to stop workspace run command"
 msgstr "Gagal menghentikan perintah run workspace"
@@ -6993,9 +7006,6 @@ msgstr "Filter workspace…"
 
 msgid "Filter…"
 msgstr "Saring…"
-
-msgid "filtering"
-msgstr "memfilter"
 
 msgid "Filters"
 msgstr "Filter"
@@ -9339,6 +9349,15 @@ msgstr "Kontras minimum"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Cerminan <0>dasbor PostHog Success Metrics</0> — produk lewat insight tersimpan, bisnis langsung dari Stripe/Neon"
 
+msgid "missed"
+msgstr "terlewat"
+
+msgid "Missed"
+msgstr "Terlewat"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Terlewat <0>· 7h</0>"
+
 msgid "Missing auth state"
 msgstr "State auth tidak ada"
 
@@ -9460,6 +9479,9 @@ msgstr "Tema {kindLower} lainnya"
 msgid "More actions"
 msgstr "Aksi lainnya"
 
+msgid "More create options"
+msgstr "Opsi pembuatan lainnya"
+
 msgid "More options"
 msgstr "Opsi lainnya"
 
@@ -9573,6 +9595,9 @@ msgstr "Butuh perangkaian di level aplikasi (state form, data grafik, app shell)
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Butuh status chat/tool-call langsung (ToolUIPart, stream) atau app shell"
+
+msgid "Needs a retry"
+msgstr "Perlu dicoba ulang"
 
 msgid "Needs Action"
 msgstr "Perlu Tindakan"
@@ -9984,6 +10009,9 @@ msgstr "Belum ada environment. Buat satu untuk memulai workspace cloud darinya."
 msgid "No extended thinking"
 msgstr "Tanpa extended thinking"
 
+msgid "No failed runs."
+msgstr "Tidak ada eksekusi yang gagal."
+
 msgid "No files found"
 msgstr "File tidak ditemukan"
 
@@ -10115,6 +10143,9 @@ msgstr "Tidak ada halaman yang cocok dengan filter ini"
 
 msgid "No pages yet"
 msgstr "Belum ada halaman"
+
+msgid "No payload is stored for this run."
+msgstr "Tidak ada payload yang tersimpan untuk run ini."
 
 msgid "No payment method on file"
 msgstr "Tidak ada metode pembayaran tersimpan"
@@ -10490,8 +10521,14 @@ msgstr "Tidak ada yang berjalan. Hapus dan buat yang baru."
 msgid "Nothing lives at {pathname}."
 msgstr "Tidak ada apa pun di {pathname}."
 
+msgid "Nothing needs a retry"
+msgstr "Tidak ada yang perlu dicoba ulang"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Belum ada yang dipublikasikan dalam 30 hari terakhir. Peringkat Anda muncul setelah penggunaan dari mesin ini tersinkron, dipublikasikan sebagai <0>{handle}</0>."
+
+msgid "Nothing was missed"
+msgstr "Tidak ada yang terlewat"
 
 msgid "Notice"
 msgstr "Pemberitahuan"
@@ -11118,6 +11155,9 @@ msgstr "Buka workspace run ini"
 msgid "open the task in a workspace"
 msgstr "membuka tugas di workspace"
 
+msgid "Open this run's workspace"
+msgstr "Buka workspace run ini"
+
 msgid "Open workspace"
 msgstr "Buka workspace"
 
@@ -11452,6 +11492,9 @@ msgstr "Sebagian"
 
 msgid "Partner, Transpose Platform"
 msgstr "Mitra, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Kirim jadwal di dalam triggers sebagai trigger schedule, bukan sebagai rrule di sampingnya"
 
 msgid "Passed"
 msgstr "Lulus"
@@ -13043,14 +13086,8 @@ msgstr "Coba lagi"
 msgid "Retry after the connection refreshes."
 msgstr "Coba lagi setelah koneksi disegarkan."
 
-msgid "Retry all"
-msgstr "Coba ulang semua"
-
 msgid "Retry dictation"
 msgstr "Coba dikte lagi"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Coba ulang setiap otomatisasi yang run terakhirnya gagal"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Coba lagi dalam beberapa detik; kalau terus terjadi, mulai ulang Superset."
@@ -13133,6 +13170,9 @@ msgstr "Tinjau diff dengan penyorotan sintaks"
 
 msgid "Review the result."
 msgstr "Review hasilnya."
+
+msgid "Review these runs in All runs"
+msgstr "Tinjau run ini di Semua run"
 
 msgid "Review thread…"
 msgstr "Thread review…"
@@ -13231,6 +13271,9 @@ msgstr "Jalankan lebih dari 10 agen pemrograman secara paralel di perangkat Anda
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Jalankan 10+ agen coding paralel di mesin Anda."
 
+msgid "Run again"
+msgstr "Jalankan lagi"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Jalankan otomatisasi pada aktivitas sumber data dan komentar."
 
@@ -13324,14 +13367,17 @@ msgstr "Proses terminal yang berjalan tetap lanjut, tapi output lama mungkin tid
 msgid "Runs a local command on your machine"
 msgstr "Menjalankan perintah lokal di mesin Anda"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Ada run yang gagal awal minggu ini, tapi sekarang tidak ada yang gagal"
+msgid "Runs appear here once an automation fires."
+msgstr "Run muncul di sini setelah otomatisasi terpicu."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Berjalan di dalam aplikasi Superset di perangkat itu, jadi memperbaruinya berarti memperbarui aplikasi di sana."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Run mendarat di sebuah workspace. Review diff-nya, merge yang bagus."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Eksekusi yang memulai workspace-nya dalam 7 hari terakhir"
 
 msgid "Runs when a new workspace is created."
 msgstr "Dijalankan saat ruang kerja baru dibuat."
@@ -13438,6 +13484,9 @@ msgstr "Menjadwalkan run berulang, menjalankan sesuai permintaan, menjeda, melan
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Agen terjadwal dan terpicu event (cron, event GitHub, webhook) dengan templat siap pakai."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Eksekusi terjadwal yang tidak menemukan host online"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Jadwal harus berulang — hapus COUNT atau UNTIL."
@@ -13777,6 +13826,9 @@ msgstr "Pilih Direktori"
 msgid "Select environment"
 msgstr "Pilih environment"
 
+msgid "Select every run"
+msgstr "Pilih semua run"
+
 msgid "Select IDE"
 msgstr "Pilih IDE"
 
@@ -13824,6 +13876,9 @@ msgstr "Pilih repositori"
 
 msgid "Select repository"
 msgstr "Pilih repositori"
+
+msgid "Select run"
+msgstr "Pilih run"
 
 msgid "Select senders"
 msgstr "Pilih pengirim"
@@ -14138,9 +14193,6 @@ msgstr "Tampilkan tombol Penggunaan di sidebar beranda, di bawah Pull request"
 msgid "Show all {count}"
 msgstr "Tampilkan semua {count}"
 
-msgid "Show all automations again"
-msgstr "Tampilkan lagi semua otomatisasi"
-
 msgid "Show all comments"
 msgstr "Tampilkan semua komentar"
 
@@ -14216,9 +14268,6 @@ msgstr "Tampilkan selengkapnya"
 msgid "Show on Sidebar"
 msgstr "Tampilkan di Sidebar"
 
-msgid "Show only automations whose last run failed"
-msgstr "Tampilkan hanya otomatisasi yang run terakhirnya gagal"
-
 msgid "Show open items"
 msgstr "Tampilkan item yang terbuka"
 
@@ -14254,6 +14303,9 @@ msgstr "Tampilkan sesi"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Tampilkan status dan kirim notifikasi untuk agen ini."
+
+msgid "Show the triggering payload"
+msgstr "Tampilkan payload pemicu"
 
 msgid "Show translation"
 msgstr "Tampilkan terjemahan"
@@ -14980,6 +15032,9 @@ msgstr "Berhasil"
 
 msgid "Success!"
 msgstr "Berhasil!"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Eksekusi berhasil <0>· 7h</0>"
 
 msgid "Suggested"
 msgstr "Disarankan"
@@ -15740,12 +15795,6 @@ msgstr "Manusia membaca tiap baris sebelum di-merge."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Deskripsi pekerjaannya bergeser. Engineer berhenti menjadi juru ketik berselera dan menjadi pengatur lalu lintas berselera: memecah pekerjaan, mengarahkannya ke armada agen, menengahi konflik antara agen yang sama-sama menyentuh modul yang sama."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Run terakhir gagal. Klik barisnya untuk melihat alasannya."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Run terakhir gagal. Buka workspace-nya untuk melihat alasannya"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Pembaruan, peningkatan, dan fitur baru terkini di Superset."
 
@@ -16461,6 +16510,9 @@ msgstr "Total"
 msgid "Total agent sessions"
 msgstr "Total sesi agen"
 
+msgid "Total automations"
+msgstr "Total otomatisasi"
+
 msgid "total cash"
 msgstr "total kas"
 
@@ -16493,6 +16545,9 @@ msgstr "Triase issue baru"
 
 msgid "triaging 12 new issues…"
 msgstr "mentriase 12 issue baru…"
+
+msgid "Trigger"
+msgstr "Pemicu"
 
 msgid "Trigger alert()"
 msgstr "Picu alert()"
@@ -17674,9 +17729,6 @@ msgstr "Workspace"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Workspace adalah lingkungan tugas terisolasi yang didukung git worktree."
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Workspace yang dibuat oleh run dalam 7 hari terakhir"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Workspace yang dibuat per pengguna dalam 7 hari terakhir, menurut persentil"

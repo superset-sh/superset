@@ -48,6 +48,8 @@ export function RealtimeNudges() {
 					case "automation_runs":
 						void utils.automation.latestRuns.invalidate(undefined, options);
 						void utils.automation.listRuns.invalidate(undefined, options);
+						void utils.automation.listOrgRuns.invalidate(undefined, options);
+						void utils.automation.orgRunStats.invalidate(undefined, options);
 						break;
 				}
 			}

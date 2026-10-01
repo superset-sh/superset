@@ -111,6 +111,10 @@ msgstr "{0, plural, one {# aktivní port — zobrazit podrobnosti} few {# aktivn
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, one {# agent} few {# agenti} many {# agenta} other {# agentů}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {# automatizaci se nepodařilo spustit} few {# automatizace se nepodařilo spustit} many {# automatizace se nepodařilo spustit} other {# automatizací se nepodařilo spustit}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# změněný soubor} few {# změněné soubory} many {# změněného souboru} other {# změněných souborů}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} z {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Opakuji # automatizaci} few {Opakuji # automatizace} many {Opakuji # automatizace} other {Opakuji # automatizací}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · všichni na {operatorTier}"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount} hvězd a přibývá"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} hvězd · {perDay}/den tento týden · {peakPerDay}/den ve špičce"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {Spuštěna # automatizace} few {Spuštěny # automatizace} many {Spuštěno # automatizace} other {Spuštěno # automatizací}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent běží} few {# subagenti běží} many {# subagenta běží} other {# subagentů běží}}"
@@ -1973,6 +1977,9 @@ msgstr "Všechny repozitáře"
 msgid "All reviews"
 msgstr "Všechny revize"
 
+msgid "All runs"
+msgstr "Všechny běhy"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Všechny relace ukončeny a démon restartován. Aplikace použije čerstvého démona."
 
@@ -2531,6 +2538,9 @@ msgstr "Zautomatizujte nastavení pracovního prostoru pro {projectName}"
 msgid "Automation"
 msgstr "Automatizace"
 
+msgid "Automation docs"
+msgstr "Dokumentace automatizací"
+
 msgid "Automation has no instructions"
 msgstr "Automatizace nemá žádné instrukce"
 
@@ -2609,6 +2619,9 @@ msgstr "Zpět"
 
 msgid "Back to About"
 msgstr "Zpět na O nás"
+
+msgid "Back to automations"
+msgstr "Zpět na automatizace"
 
 msgid "Back to billing"
 msgstr "Zpět na fakturaci"
@@ -3946,9 +3959,6 @@ msgstr "Nastavte, jak se úkoly synchronizují mezi Superset a Linearem."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Nastavte chování terminálu a znovupoužitelné terminálové skripty"
 
-msgid "Configure the automation yourself"
-msgstr "Nastavte automatizaci sami"
-
 msgid "Configure the in-app browser"
 msgstr "Nastavte vestavěný prohlížeč"
 
@@ -4693,6 +4703,12 @@ msgstr "Nepodařilo se načíst pull requesty: {msg}"
 msgid "Couldn't load review comments"
 msgstr "Nepodařilo se načíst komentáře k revizi"
 
+msgid "Couldn't load runs"
+msgstr "Běhy se nepodařilo načíst"
+
+msgid "Couldn't load this run's payload."
+msgstr "Data tohoto běhu se nepodařilo načíst."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Tvůj profil se nepodařilo načíst, úpravy jsou proto vypnuté."
 
@@ -4969,9 +4985,6 @@ msgstr "Vytvořeno {createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "Vytvořeno {createdDirs} složek v {where}"
-
-msgid "Created <0>· 7d</0>"
-msgstr "Vytvořeno <0>· 7 d</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "Vytvořena 1 složka v {where}"
@@ -6198,6 +6211,9 @@ msgstr "Každou minutu"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Všechny cíle táhnou k dalšímu stupni. Měřeno za posledních 30 dní."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Každé naplánované spuštění zatím našlo online hostitele."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Každá hvězda na <0>{repoSlug}</0>, vynesená od spuštění."
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Selhalo"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "Selhalo <0>· 7 d</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Neúspěšná spuštění <0>· 7 d</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Nepodařilo se přijmout pozvánku"
@@ -6713,12 +6729,6 @@ msgstr "Nepodařilo se obnovit výchozí nastavení"
 msgid "Failed to resume {0}"
 msgstr "Nepodařilo se obnovit {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Nepodařilo se zopakovat {failedCount} z {totalCount} automatizací"
-
-msgid "Failed to retry automation"
-msgstr "Nepodařilo se zopakovat automatizaci"
-
 msgid "Failed to reveal in Finder"
 msgstr "Nepodařilo se zobrazit ve Finderu"
 
@@ -6786,6 +6796,9 @@ msgstr "Přihlášení se nezdařilo. Zkuste to prosím znovu."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Registrace se nezdařila. Zkuste to prosím znovu."
+
+msgid "Failed to start the selected automations"
+msgstr "Vybrané automatizace se nepodařilo spustit"
 
 msgid "Failed to stop workspace run command"
 msgstr "Nepodařilo se zastavit spouštěcí příkaz pracovního prostoru"
@@ -6993,9 +7006,6 @@ msgstr "Filtrovat pracovní prostory…"
 
 msgid "Filter…"
 msgstr "Filtrovat…"
-
-msgid "filtering"
-msgstr "filtrováno"
 
 msgid "Filters"
 msgstr "Filtry"
@@ -9339,6 +9349,15 @@ msgstr "Minimální kontrast"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Zrcadlo přehledu <0>PostHog Success Metrics</0> — produkt přes uložené insighty, byznys živě ze Stripe/Neon"
 
+msgid "missed"
+msgstr "zmeškáno"
+
+msgid "Missed"
+msgstr "Zmeškaná"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Zmeškaná <0>· 7 d</0>"
+
 msgid "Missing auth state"
 msgstr "Chybí stav ověření"
 
@@ -9460,6 +9479,9 @@ msgstr "Další {kindLower} motivy"
 msgid "More actions"
 msgstr "Další akce"
 
+msgid "More create options"
+msgstr "Další možnosti vytvoření"
+
 msgid "More options"
 msgstr "Další možnosti"
 
@@ -9573,6 +9595,9 @@ msgstr "Vyžadují zapojení na úrovni aplikace (stav formuláře, data grafu, 
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Potřebuje živý stav chatu/volání nástrojů (ToolUIPart, streamy) nebo app shell"
+
+msgid "Needs a retry"
+msgstr "Vyžaduje opakování"
 
 msgid "Needs Action"
 msgstr "Vyžaduje akci"
@@ -9984,6 +10009,9 @@ msgstr "Zatím žádná prostředí. Vytvořte jedno a spusťte z něj cloudový
 msgid "No extended thinking"
 msgstr "Bez rozšířeného přemýšlení"
 
+msgid "No failed runs."
+msgstr "Žádná neúspěšná spuštění."
+
 msgid "No files found"
 msgstr "Nenalezeny žádné soubory"
 
@@ -10115,6 +10143,9 @@ msgstr "Tomuto filtru neodpovídají žádné stránky"
 
 msgid "No pages yet"
 msgstr "Zatím žádné stránky"
+
+msgid "No payload is stored for this run."
+msgstr "Pro tento běh nejsou uložena žádná data."
 
 msgid "No payment method on file"
 msgstr "Není uložený žádný způsob platby"
@@ -10490,8 +10521,14 @@ msgstr "Nic neběží. Odeberte ho a vytvořte nový."
 msgid "Nothing lives at {pathname}."
 msgstr "Na {pathname} nic není."
 
+msgid "Nothing needs a retry"
+msgstr "Není co opakovat"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Za posledních 30 dní zatím nebylo nic publikováno. Vaše pozice se objeví, jakmile se synchronizuje využití z tohoto počítače; publikujete jako <0>{handle}</0>."
+
+msgid "Nothing was missed"
+msgstr "Nic nebylo zmeškáno"
 
 msgid "Notice"
 msgstr "Upozornění"
@@ -11118,6 +11155,9 @@ msgstr "Otevřít pracovní prostor běhu"
 msgid "open the task in a workspace"
 msgstr "otevřít úkol v pracovním prostoru"
 
+msgid "Open this run's workspace"
+msgstr "Otevřít pracovní prostor tohoto běhu"
+
 msgid "Open workspace"
 msgstr "Otevřít pracovní prostor"
 
@@ -11452,6 +11492,9 @@ msgstr "Částečně"
 
 msgid "Partner, Transpose Platform"
 msgstr "Partner, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Předejte rozvrh uvnitř triggers jako trigger typu schedule, ne jako rrule vedle nich"
 
 msgid "Passed"
 msgstr "Prošlo"
@@ -13043,14 +13086,8 @@ msgstr "Zkusit znovu"
 msgid "Retry after the connection refreshes."
 msgstr "Zkuste to znovu, až se připojení obnoví."
 
-msgid "Retry all"
-msgstr "Zopakovat vše"
-
 msgid "Retry dictation"
 msgstr "Zkusit diktování znovu"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Zopakovat každou automatizaci, jejíž poslední běh selhal"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Zkuste to znovu za pár sekund; pokud potíže přetrvávají, restartujte Superset."
@@ -13133,6 +13170,9 @@ msgstr "Kontrolujte diffy se zvýrazněním syntaxe"
 
 msgid "Review the result."
 msgstr "Zrevidujte výsledek."
+
+msgid "Review these runs in All runs"
+msgstr "Zkontrolovat tyto běhy v sekci Všechny běhy"
 
 msgid "Review thread…"
 msgstr "Vlákno revize…"
@@ -13231,6 +13271,9 @@ msgstr "Spouštějte na svém počítači více než 10 programovacích agentů 
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Spusťte na svém stroji 10+ paralelních programovacích agentů."
 
+msgid "Run again"
+msgstr "Spustit znovu"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Spouštějte automatizace při aktivitě ve zdrojích dat a komentářích."
 
@@ -13324,14 +13367,17 @@ msgstr "Běžící procesy v terminálu poběží dál, ale starší výstup po 
 msgid "Runs a local command on your machine"
 msgstr "Spouští lokální příkaz na vašem počítači"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Dříve tento týden běhy selhaly, ale teď nic neselhává"
+msgid "Runs appear here once an automation fires."
+msgstr "Běhy se zde objeví, jakmile se automatizace spustí."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Běží uvnitř aplikace Superset na tom zařízení, takže aktualizace znamená aktualizovat tam aplikaci."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Běhy skončí v pracovním prostoru. Projděte rozdíly a slučte, co je dobré."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Spuštění, která v posledních 7 dnech spustila svůj workspace"
 
 msgid "Runs when a new workspace is created."
 msgstr "Spouští se při vytvoření pracovního prostoru."
@@ -13438,6 +13484,9 @@ msgstr "Naplánovat opakované běhy, spustit na vyžádání, pozastavit, obnov
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Agenti spouštění podle plánu i událostmi (cron, GitHub události, webhooky) s hotovými šablonami."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Naplánovaná spuštění, která nenašla žádného online hostitele"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Plány se opakují — odeberte COUNT nebo UNTIL."
@@ -13777,6 +13826,9 @@ msgstr "Vyberte adresář"
 msgid "Select environment"
 msgstr "Vybrat prostředí"
 
+msgid "Select every run"
+msgstr "Vybrat všechny běhy"
+
 msgid "Select IDE"
 msgstr "Vyberte IDE"
 
@@ -13824,6 +13876,9 @@ msgstr "Vybrat repozitáře"
 
 msgid "Select repository"
 msgstr "Vyberte repozitář"
+
+msgid "Select run"
+msgstr "Vybrat běh"
 
 msgid "Select senders"
 msgstr "Vyberte odesílatele"
@@ -14138,9 +14193,6 @@ msgstr "Zobrazovat tlačítko Využití v postranním panelu domovské obrazovky
 msgid "Show all {count}"
 msgstr "Zobrazit všech {count}"
 
-msgid "Show all automations again"
-msgstr "Zobrazit znovu všechny automatizace"
-
 msgid "Show all comments"
 msgstr "Zobrazit všechny komentáře"
 
@@ -14216,9 +14268,6 @@ msgstr "Zobrazit více"
 msgid "Show on Sidebar"
 msgstr "Zobrazit na postranním panelu"
 
-msgid "Show only automations whose last run failed"
-msgstr "Zobrazit jen automatizace, jejichž poslední běh selhal"
-
 msgid "Show open items"
 msgstr "Zobrazit otevřené položky"
 
@@ -14254,6 +14303,9 @@ msgstr "Zobrazit relace"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Zobrazovat stav a posílat oznámení pro tohoto agenta."
+
+msgid "Show the triggering payload"
+msgstr "Zobrazit spouštěcí data"
 
 msgid "Show translation"
 msgstr "Zobrazit překlad"
@@ -14980,6 +15032,9 @@ msgstr "Úspěch"
 
 msgid "Success!"
 msgstr "Hotovo!"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Úspěšná spuštění <0>· 7 d</0>"
 
 msgid "Suggested"
 msgstr "Návrhy"
@@ -15740,12 +15795,6 @@ msgstr "Člověk přečte každý řádek, než se sloučí."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Popis práce se posouvá. Z inženýrů přestávají být písaři s vkusem a stávají se dispečery s vkusem: rozkládají práci, směrují ji flotilám a rozsuzují konflikty mezi agenty, kteří sáhli na stejný modul."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Poslední běh selhal. Klikněte na řádek a zjistěte proč."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Poslední běh selhal. Otevřete jeho pracovní prostor a zjistěte proč"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Nejnovější aktualizace, vylepšení a nové funkce v Supersetu."
 
@@ -16461,6 +16510,9 @@ msgstr "Celkem"
 msgid "Total agent sessions"
 msgstr "Celkem relací agentů"
 
+msgid "Total automations"
+msgstr "Celkem automatizací"
+
 msgid "total cash"
 msgstr "hotovost celkem"
 
@@ -16493,6 +16545,9 @@ msgstr "Třídit nové issues"
 
 msgid "triaging 12 new issues…"
 msgstr "třídí 12 nových issues…"
+
+msgid "Trigger"
+msgstr "Spouštěč"
 
 msgid "Trigger alert()"
 msgstr "Spustit alert()"
@@ -17674,9 +17729,6 @@ msgstr "Pracovní prostory"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Pracovní prostory jsou izolovaná prostředí pro úkoly postavená na git worktree."
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Pracovní prostory vytvořené běhy za posledních 7 dní"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Pracovní prostory vytvořené na uživatele za posledních 7 dní, podle percentilu"

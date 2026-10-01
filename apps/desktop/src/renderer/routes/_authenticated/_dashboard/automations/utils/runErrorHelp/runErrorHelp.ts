@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import type { AutomationRunErrorCode } from "@superset/db/enums";
+import { i18n } from "@superset/i18n";
 
 const HELP: Record<AutomationRunErrorCode, MessageDescriptor> = {
 	host_offline: msg({
@@ -54,4 +55,18 @@ export function dispatchErrorCode(error: unknown): string | null {
 	return typeof data?.automationErrorCode === "string"
 		? data.automationErrorCode
 		: null;
+}
+
+/**
+ * How a failed run reads wherever it is shown. Leads with the plain-language
+ * fix and keeps the raw host error for bug reports; both run lists call this
+ * so the same run never reads two ways.
+ */
+export function describeRunError(run: {
+	error?: string | null;
+	errorCode?: string | null;
+}): string {
+	const error = run.error ?? "";
+	const help = runErrorHelp(run.errorCode);
+	return help ? `${i18n._(help)}\n\n(${error})` : error;
 }
