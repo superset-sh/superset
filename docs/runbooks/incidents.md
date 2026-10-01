@@ -12,8 +12,8 @@ while it happens. Agents: `.agents/skills/incident-triage/SKILL.md` does the fir
 | DNS | `superset.sh` is on Cloudflare. `status` has its own **DNS-only** CNAME to `cname.vercel-dns-016.com` (added 30 September 2026), so the page does not go through the Cloudflare proxy that relay and realtime also use. Vercel holds its own certificate for the name. To undo, delete the record; the proxied `*.superset.sh` wildcard then serves it again. |
 | Components | Desktop App, Web App, General API, Integrations, Marketing Site, Remote Access (relay), Sign-in. |
 | Link in the product | `COMPANY.STATUS_URL` in `packages/shared/src/constants.ts`, used by the marketing footer, the contact page and `index.md`. |
-| Monitoring | Sentry uptime monitors (org `superset-sh`) check the web app, API, sign-in route, relay, relay v2, realtime, marketing, docs and usercontent every 1 to 5 minutes. The Sentry alert "Uptime failures to incident.io" sends their failures to the incident.io alert source "Sentry uptime monitors". incident.io does not run checks itself. A person still changes the status page. |
-| On-call | incident.io schedule "Primary on-call": Avi Peltz, Satya Patel, Harshith Mullapudi, one week each, handover Wednesday 09:00 Pacific. It has no escalation path yet, so an alert does not page anyone. |
+| Monitoring | Sentry uptime monitors (org `superset-sh`) check the web app, API, sign-in route, API health with a database check, relay, relay v2, realtime, marketing, docs and usercontent every 1 to 5 minutes. The Sentry alert "Uptime failures to incident.io" sends their failures to the incident.io alert source "Sentry uptime monitors". incident.io does not run checks itself. A person still changes the status page. |
+| On-call | incident.io schedule "Primary on-call": Avi Peltz, Satya Patel, Harshith Mullapudi, one week each, handover Wednesday 09:00 Pacific. The escalation path "Primary on-call" pages the person on call at high urgency, and tries again 3 times if no one acknowledges in 5 minutes. The alert route "Uptime failures" sends the "Sentry uptime monitors" source to that path. It does not post in Slack and does not create an incident automatically. |
 | History | No incident has ever been posted. Every component shows 100.00% uptime since 24 March 2026, including the API outage on 17 September 2026. |
 | How to update | incident.io dashboard: declare or open the incident, then publish a status page update. |
 
@@ -32,8 +32,10 @@ Setup still open in incident.io (org `superset-sh`):
   | Web app (`app.superset.sh/sign-in`) | Web App |
   | `superset.sh` | Marketing Site |
 
-- [ ] Add an escalation path that uses the "Primary on-call" schedule, and attach it to the alert route, so that an uptime alert pages the person on call.
-- [ ] After `/api/health` is in production, add a Sentry uptime monitor for `https://api.superset.sh/api/health` (503 means the database is failing), and connect it to the "Uptime failures to incident.io" alert.
+- [x] Paging: escalation path "Primary on-call" and alert route "Uptime failures" (1 October 2026).
+- [x] Sentry uptime monitor "API health + database" for `https://api.superset.sh/api/health` (503 means the database is failing), connected to the "Uptime failures to incident.io" alert (1 October 2026). Component: General API.
+- [ ] Send a test alert from Sentry to confirm that a page reaches the person on call. This path has not fired yet.
+- [ ] Decide whether the "Uptime failures" route also posts in `#incidents`, as the default route does.
 
 To check the page again: `curl -sS https://status.superset.sh/proxy/status.superset.sh` returns
 the components and ongoing incidents as JSON.
