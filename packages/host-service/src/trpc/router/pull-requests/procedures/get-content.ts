@@ -1,12 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { fetchPullRequestChecksFromGlab } from "../../../../runtime/pull-requests/utils/gitlab-query";
 import { protectedProcedure } from "../../../index";
-import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 import { execGh } from "../../workspace-creation/utils/exec-gh";
 import {
 	normalizePullRequestChecks,
 	pullRequestCheckContextSchema,
 } from "../pull-request-checks";
+import { resolvePullRequestRepository } from "../resolve-repository";
 
 const getContentInputSchema = z.object({
 	projectId: z.string(),
@@ -33,6 +34,29 @@ const ghPullRequestContentSchema = z.object({
 		.optional(),
 });
 
+const gitlabPullRequestContentSchema = z.object({
+	iid: z.number(),
+	title: z.string(),
+	description: z.string().nullable().optional(),
+	web_url: z.string(),
+	state: z.string(),
+	source_branch: z.string(),
+	target_branch: z.string(),
+	sha: z.string(),
+	source_project_id: z.number(),
+	target_project_id: z.number(),
+	draft: z.boolean().optional(),
+	work_in_progress: z.boolean().optional(),
+	author: z
+		.object({
+			username: z.string(),
+			avatar_url: z.string().nullable().optional(),
+		})
+		.optional(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional(),
+});
+
 type PullRequestContent = {
 	number: number;
 	title: string;
@@ -44,6 +68,7 @@ type PullRequestContent = {
 	headRepositoryOwner: string | null;
 	isCrossRepository: boolean;
 	author: string | null;
+	authorAvatarUrl?: string | null;
 	isDraft: boolean;
 	createdAt: string | undefined;
 	updatedAt: string | undefined;
@@ -63,8 +88,8 @@ const pullRequestContentCache = new Map<
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
+		const repo = await resolvePullRequestRepository(ctx, input.projectId);
+		const cacheKey = `${repo.provider}/${repo.host}/${repo.repoPath}/${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
 		const cached = pullRequestContentCache.get(cacheKey);
 		if (
 			cached &&
@@ -76,6 +101,44 @@ export const getContent = protectedProcedure
 		const fetchedAt = Date.now();
 		const promise = (async (): Promise<PullRequestContent> => {
 			try {
+				if (repo.provider === "gitlab") {
+					const raw = await ctx.execGlab(
+						[
+							"api",
+							"--method",
+							"GET",
+							`projects/${encodeURIComponent(`${repo.owner}/${repo.name}`)}/merge_requests/${input.prNumber}`,
+						],
+						{ cwd: repo.repoPath, hostname: repo.host },
+					);
+					const data = gitlabPullRequestContentSchema.parse(raw);
+					const nodes = await fetchPullRequestChecksFromGlab(
+						ctx.execGlab,
+						repo,
+						data.sha,
+						repo.repoPath,
+					);
+					const { checks, checksStatus } = normalizePullRequestChecks(nodes);
+					return {
+						number: data.iid,
+						title: data.title,
+						body: data.description ?? "",
+						url: data.web_url,
+						state: data.state === "opened" ? "open" : data.state,
+						branch: data.source_branch,
+						baseBranch: data.target_branch,
+						headRepositoryOwner: repo.owner,
+						isCrossRepository:
+							data.source_project_id !== data.target_project_id,
+						author: data.author?.username ?? null,
+						authorAvatarUrl: data.author?.avatar_url ?? null,
+						isDraft: data.draft === true || data.work_in_progress === true,
+						createdAt: data.created_at,
+						updatedAt: data.updated_at,
+						checks,
+						checksStatus,
+					};
+				}
 				const raw = await execGh([
 					"pr",
 					"view",

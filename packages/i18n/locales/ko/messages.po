@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\"을(를) 삭제했습니다"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "\"{0}\"이(가) GitHub에서 닫힘으로 표시됩니다. 언제든 여기에서 다시 열 수 있습니다."
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "\"{0}\"이(가) {providerName}에서 닫힘으로 표시됩니다. 언제든 여기에서 다시 열 수 있습니다."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7447,9 +7447,6 @@ msgstr "GitHub 사용자 이름"
 msgid "GitHub username..."
 msgstr "GitHub 사용자 이름..."
 
-msgid "GitHub username…"
-msgstr "GitHub 사용자 이름…"
-
 msgid "Give me an example"
 msgstr "예시를 보여주세요"
 
@@ -10749,8 +10746,8 @@ msgstr "파일 패널에서 {path} 열기"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "활성 터미널의 여러 줄 프롬프트 작성기를 엽니다"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "리뷰 상태, 검사, 코멘트를 보려면 풀 리퀘스트를 여세요."
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "풀 리퀘스트 또는 병합 요청을 열어 검토 상태, 검사 및 댓글을 확인하세요."
 
 msgid "Open actions menu"
 msgstr "작업 메뉴 열기"
@@ -10790,6 +10787,9 @@ msgstr "Chat v3 열기"
 
 msgid "Open Command Palette"
 msgstr "명령 팔레트 열기"
+
+msgid "Open comment on {providerName}"
+msgstr "{providerName}에서 코멘트 열기"
 
 msgid "Open comment on GitHub"
 msgstr "GitHub에서 코멘트 열기"
@@ -10915,6 +10915,9 @@ msgstr "Finder에서 열기"
 msgid "Open in GitHub"
 msgstr "GitHub에서 열기"
 
+msgid "Open in GitLab"
+msgstr "GitLab에서 열기"
+
 msgid "Open in Linear"
 msgstr "Linear에서 열기"
 
@@ -10982,6 +10985,9 @@ msgstr "메뉴 열기"
 
 msgid "Open navigation"
 msgstr "내비게이션 열기"
+
+msgid "Open on {providerName}"
+msgstr "{providerName}에서 열기"
 
 msgid "Open on GitHub"
 msgstr "GitHub에서 열기"
@@ -17151,6 +17157,9 @@ msgstr "GitHub에서 보기"
 
 msgid "View log"
 msgstr "로그 보기"
+
+msgid "View on {providerName}"
+msgstr "{providerName}에서 보기"
 
 msgid "View on GitHub"
 msgstr "GitHub에서 보기"

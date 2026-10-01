@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "„{0}“ smazáno"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "„{0}“ bude na GitHubu označen jako uzavřený. Kdykoli ho odsud můžete znovu otevřít."
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "„{0}“ bude na {providerName}u označen jako uzavřený. Kdykoli ho odsud můžete znovu otevřít."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7447,9 +7447,6 @@ msgstr "GitHub uživatelské jméno"
 msgid "GitHub username..."
 msgstr "Uživatelské jméno GitHub..."
 
-msgid "GitHub username…"
-msgstr "GitHub uživatelské jméno…"
-
 msgid "Give me an example"
 msgstr "Uveď příklad"
 
@@ -10749,8 +10746,8 @@ msgstr "Otevřít {path} v panelu souboru"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Otevřít víceřádkový editor promptu pro aktivní terminál"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "Otevřete pull request a uvidíte stav revize, kontroly a komentáře."
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "Otevřete pull request nebo merge request a zobrazte stav kontroly, kontroly a komentáře."
 
 msgid "Open actions menu"
 msgstr "Otevřít nabídku akcí"
@@ -10790,6 +10787,9 @@ msgstr "Otevřít Chat v3"
 
 msgid "Open Command Palette"
 msgstr "Otevřít paletu příkazů"
+
+msgid "Open comment on {providerName}"
+msgstr "Otevřít komentář na {providerName}u"
 
 msgid "Open comment on GitHub"
 msgstr "Otevřít komentář na GitHubu"
@@ -10915,6 +10915,9 @@ msgstr "Otevřít ve Finderu"
 msgid "Open in GitHub"
 msgstr "Otevřít na GitHubu"
 
+msgid "Open in GitLab"
+msgstr "Otevřít na GitLabu"
+
 msgid "Open in Linear"
 msgstr "Otevřít v Linearu"
 
@@ -10982,6 +10985,9 @@ msgstr "Otevřít nabídku"
 
 msgid "Open navigation"
 msgstr "Otevřít navigaci"
+
+msgid "Open on {providerName}"
+msgstr "Otevřít na {providerName}u"
 
 msgid "Open on GitHub"
 msgstr "Otevřít na GitHubu"
@@ -17151,6 +17157,9 @@ msgstr "Zobrazit na GitHubu"
 
 msgid "View log"
 msgstr "Zobrazit log"
+
+msgid "View on {providerName}"
+msgstr "Zobrazit na {providerName}u"
 
 msgid "View on GitHub"
 msgstr "Zobrazit na GitHubu"

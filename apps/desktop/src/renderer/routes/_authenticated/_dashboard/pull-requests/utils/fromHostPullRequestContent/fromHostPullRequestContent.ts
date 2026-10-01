@@ -25,7 +25,9 @@ export function fromHostPullRequestContent(
 				? content.state
 				: "open",
 		isDraft: content.isDraft,
-		author: content.author ? { login: content.author, avatarUrl: null } : null,
+		author: content.author
+			? { login: content.author, avatarUrl: content.authorAvatarUrl ?? null }
+			: null,
 		head: {
 			ref: content.branch,
 			// The host reports only the fork's owner, never its name, so a

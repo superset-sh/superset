@@ -26,12 +26,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import { LuCheck, LuChevronRight, LuGitBranch } from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	normalizePRState,
@@ -107,6 +108,8 @@ export function PullRequestDetailHeader({
 	showStartWorkspace = true,
 }: PullRequestDetailHeaderProps) {
 	const { t } = useLingui();
+	const isGitLab = !!data && !!pullRequestRefFromUrl(data.url)?.host;
+	const providerName = isGitLab ? "GitLab" : "GitHub";
 	const mergeMethodLabels: Record<MergeMethod, string> = {
 		squash: t({
 			message: "Squash and merge",
@@ -150,7 +153,9 @@ export function PullRequestDetailHeader({
 	const setPullRequestState = useMutation({
 		mutationFn: async (nextState: "open" | "closed") => {
 			if (!hostUrl || !projectId || prNumber === null) {
-				throw new Error("This project isn't linked to a GitHub repository.");
+				throw new Error(
+					"This project is not linked to a repository on this host.",
+				);
 			}
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.pullRequests.setState.mutate({
@@ -181,7 +186,9 @@ export function PullRequestDetailHeader({
 			commitMessage?: string;
 		}) => {
 			if (!hostUrl || !projectId || prNumber === null) {
-				throw new Error("This project isn't linked to a GitHub repository.");
+				throw new Error(
+					"This project is not linked to a repository on this host.",
+				);
 			}
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.pullRequests.mergePR.mutate({
@@ -269,14 +276,22 @@ export function PullRequestDetailHeader({
 								href={data.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({
-									message: "Open pull request in GitHub",
-								})}
-								title={t({
-									message: "Open pull request in GitHub",
-								})}
+								aria-label={
+									isGitLab
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
+								title={
+									isGitLab
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
 							>
-								<FaGithub className="size-4" />
+								{isGitLab ? (
+									<FaGitlab className="size-4" />
+								) : (
+									<FaGithub className="size-4" />
+								)}
 							</a>
 						</Button>
 						{showStartWorkspace && (
@@ -420,7 +435,9 @@ export function PullRequestDetailHeader({
 								<AvatarImage
 									src={
 										data.author.avatarUrl ??
-										`https://github.com/${data.author.login}.png?size=64`
+										(isGitLab
+											? undefined
+											: `https://github.com/${data.author.login}.png?size=64`)
 									}
 									alt={data.author.login}
 								/>
@@ -522,8 +539,8 @@ export function PullRequestDetailHeader({
 							<AlertDialogDescription>
 								{pendingAction?.kind === "close" ? (
 									<Trans>
-										"{data.title}" will be marked closed on GitHub. You can
-										reopen it from here at any time.
+										"{data.title}" will be marked closed on {providerName}. You
+										can reopen it from here at any time.
 									</Trans>
 								) : pendingAction?.kind === "merge" && pendingAction.force ? (
 									<Trans>

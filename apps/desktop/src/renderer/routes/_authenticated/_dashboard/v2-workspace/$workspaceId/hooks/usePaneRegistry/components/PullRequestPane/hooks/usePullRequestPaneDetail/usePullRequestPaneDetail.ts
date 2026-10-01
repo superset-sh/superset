@@ -21,6 +21,9 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 	);
 	const hostHasRepo =
 		!!project?.repoOwner &&
+		(project.repoUrl && URL.canParse(project.repoUrl)
+			? new URL(project.repoUrl).host
+			: "github.com") === (ref.host ?? "github.com") &&
 		!!project.repoName &&
 		`${project.repoOwner}/${project.repoName}`.toLowerCase() ===
 			ref.repoFullName.toLowerCase();
@@ -39,7 +42,8 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 		},
 		{
 			// Until the projects have answered, which path applies is unknown.
-			enabled: projectsReady && !hostHasRepo && organizationId !== null,
+			enabled:
+				projectsReady && !ref.host && !hostHasRepo && organizationId !== null,
 			staleTime: 30_000,
 			refetchOnWindowFocus: true,
 		},

@@ -63,6 +63,9 @@ export function PullRequestCommentThread({
 	focusTick,
 }: PullRequestCommentThreadProps) {
 	const { t } = useLingui();
+	const providerName = url?.includes("/-/merge_requests/")
+		? "GitLab"
+		: "GitHub";
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
 	const [replyText, setReplyText] = useState("");
@@ -200,7 +203,7 @@ export function PullRequestCommentThread({
 							onClick={(e) => e.stopPropagation()}
 							className="shrink-0 text-muted-foreground hover:text-foreground"
 							aria-label={t({
-								message: "Open on GitHub",
+								message: `Open on ${providerName}`,
 							})}
 						>
 							<LuExternalLink className="size-3" />

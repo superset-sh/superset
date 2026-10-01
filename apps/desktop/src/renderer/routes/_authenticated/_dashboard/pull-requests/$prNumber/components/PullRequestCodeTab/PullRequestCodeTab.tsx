@@ -353,7 +353,11 @@ export function PullRequestCodeTab({
 	const setThreadResolution = useMutation({
 		mutationFn: async (input: { threadId: string; resolved: boolean }) => {
 			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.setThreadResolution.mutate(input);
+			return client.pullRequests.setThreadResolution.mutate({
+				projectId,
+				prNumber,
+				...input,
+			});
 		},
 		onMutate: (input) => {
 			setPendingResolveThreadIds((prev) => new Set(prev).add(input.threadId));

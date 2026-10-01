@@ -6,6 +6,7 @@ import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
+import { fetchJobLogsFromGlab } from "../../../runtime/pull-requests/utils/gitlab-query";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
@@ -49,6 +50,11 @@ import {
 } from "./utils/git-helpers";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
 import { gitStatusStore } from "./utils/git-status-store";
+import {
+	fetchPullRequestDiscussionsFromGlab,
+	replyToGitLabReviewComment,
+	setPullRequestDiscussionResolutionFromGlab,
+} from "./utils/gitlab-discussions";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
@@ -1019,6 +1025,7 @@ export const gitRouter = router({
 				headRefName: pr.headBranch ?? "",
 				updatedAt: pr.updatedAt ? new Date(pr.updatedAt).toISOString() : "",
 				checks,
+				repoProvider: pr.repoProvider,
 				repoOwner: pr.repoOwner,
 				repoName: pr.repoName,
 			};
@@ -1046,6 +1053,38 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+
+			if (pr.repoProvider === "gitlab") {
+				const detailsUrl = URL.canParse(input.detailsUrl)
+					? new URL(input.detailsUrl)
+					: null;
+				const mergeRequestUrl = URL.canParse(pr.url) ? new URL(pr.url) : null;
+				const jobId = detailsUrl?.pathname.match(
+					/\/-\/jobs\/(\d+)(?:\/|$)/,
+				)?.[1];
+				if (
+					!jobId ||
+					!mergeRequestUrl ||
+					detailsUrl?.origin !== mergeRequestUrl.origin
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Check is not a GitLab CI job with downloadable logs",
+					});
+				}
+
+				const logs = await fetchJobLogsFromGlab(
+					ctx.execGlab,
+					{
+						owner: pr.repoOwner,
+						name: pr.repoName,
+						host: new URL(pr.url).host,
+					},
+					Number(jobId),
+					resolveWorktreePath(ctx, input.workspaceId),
+				);
+				return { logs };
 			}
 
 			// GitHub Actions check details URLs look like
@@ -1099,6 +1138,27 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+			if (pr.repoProvider === "gitlab") {
+				try {
+					return await fetchPullRequestDiscussionsFromGlab(
+						ctx.execGlab,
+						{
+							owner: pr.repoOwner,
+							name: pr.repoName,
+							host: new URL(pr.url).host,
+						},
+						pr.prNumber,
+						pr.url,
+						resolveWorktreePath(ctx, input.workspaceId),
+					);
+				} catch (error) {
+					console.warn(
+						"[git.getPullRequestThreads] Failed to fetch GitLab discussions:",
+						error,
+					);
+					return { reviewThreads: [], conversationComments: [] };
+				}
 			}
 
 			// Session workspaces (null projectId) have no GitHub remote.
@@ -1195,6 +1255,34 @@ export const gitRouter = router({
 					message: "Workspace not found",
 				});
 			}
+			if (workspace.pullRequestId) {
+				const pr = ctx.db.query.pullRequests
+					.findFirst({ where: eq(pullRequests.id, workspace.pullRequestId) })
+					.sync();
+				if (pr?.repoProvider === "gitlab") {
+					try {
+						await setPullRequestDiscussionResolutionFromGlab(
+							ctx.execGlab,
+							{
+								owner: pr.repoOwner,
+								name: pr.repoName,
+								host: new URL(pr.url).host,
+							},
+							pr.prNumber,
+							input.threadId,
+							input.resolved,
+							resolveWorktreePath(ctx, input.workspaceId),
+						);
+					} catch (error) {
+						const message =
+							error instanceof Error
+								? error.message
+								: "GitLab discussion update failed";
+						throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+					}
+					return { threadId: input.threadId, isResolved: input.resolved };
+				}
+			}
 
 			const octokit = await ctx.github();
 			const mutation = input.resolved
@@ -1252,6 +1340,21 @@ export const gitRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Pull request ${workspace.pullRequestId} not found in database`,
 				});
+			}
+
+			if (pr.repoProvider === "gitlab") {
+				return replyToGitLabReviewComment(
+					ctx.execGlab,
+					{
+						owner: pr.repoOwner,
+						name: pr.repoName,
+						host: new URL(pr.url).host,
+					},
+					pr.prNumber,
+					input.commentId,
+					input.body,
+					resolveWorktreePath(ctx, input.workspaceId),
+				);
 			}
 
 			// The PR row already names the repo the PR lives in, so there's no

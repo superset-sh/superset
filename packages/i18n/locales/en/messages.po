@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" deleted"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
-msgstr "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgstr "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -7447,9 +7447,6 @@ msgstr "GitHub username"
 msgid "GitHub username..."
 msgstr "GitHub username..."
 
-msgid "GitHub username…"
-msgstr "GitHub username…"
-
 msgid "Give me an example"
 msgstr "Give me an example"
 
@@ -10749,8 +10746,8 @@ msgstr "Open {path} in file pane"
 msgid "Open a multiline prompt composer for the active terminal"
 msgstr "Open a multiline prompt composer for the active terminal"
 
-msgid "Open a pull request to view review status, checks, and comments."
-msgstr "Open a pull request to view review status, checks, and comments."
+msgid "Open a pull or merge request to view review status, checks, and comments."
+msgstr "Open a pull or merge request to view review status, checks, and comments."
 
 msgid "Open actions menu"
 msgstr "Open actions menu"
@@ -10790,6 +10787,9 @@ msgstr "Open Chat v3"
 
 msgid "Open Command Palette"
 msgstr "Open Command Palette"
+
+msgid "Open comment on {providerName}"
+msgstr "Open comment on {providerName}"
 
 msgid "Open comment on GitHub"
 msgstr "Open comment on GitHub"
@@ -10915,6 +10915,9 @@ msgstr "Open in Finder"
 msgid "Open in GitHub"
 msgstr "Open in GitHub"
 
+msgid "Open in GitLab"
+msgstr "Open in GitLab"
+
 msgid "Open in Linear"
 msgstr "Open in Linear"
 
@@ -10982,6 +10985,9 @@ msgstr "Open menu"
 
 msgid "Open navigation"
 msgstr "Open navigation"
+
+msgid "Open on {providerName}"
+msgstr "Open on {providerName}"
 
 msgid "Open on GitHub"
 msgstr "Open on GitHub"
@@ -17151,6 +17157,9 @@ msgstr "View in GitHub"
 
 msgid "View log"
 msgstr "View log"
+
+msgid "View on {providerName}"
+msgstr "View on {providerName}"
 
 msgid "View on GitHub"
 msgstr "View on GitHub"

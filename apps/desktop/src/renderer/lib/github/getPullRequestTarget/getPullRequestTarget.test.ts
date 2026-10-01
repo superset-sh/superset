@@ -65,4 +65,31 @@ describe("getPullRequestTarget", () => {
 			),
 		).toEqual({ ref, projectId: null });
 	});
+	it("matches GitLab subgroups only on the configured host", () => {
+		const gitlabProject = {
+			projectKey: "gitlab",
+			repoOwner: "group/subgroup",
+			repoName: "app",
+			repoUrl: "https://gitlab.example.com/group/subgroup/app",
+		};
+		expect(
+			getPullRequestTarget(
+				"https://gitlab.example.com/group/subgroup/app/-/merge_requests/42/diffs",
+				[gitlabProject],
+			),
+		).toEqual({
+			ref: {
+				repoFullName: "group/subgroup/app",
+				host: "gitlab.example.com",
+				number: 42,
+			},
+			projectId: "gitlab",
+		});
+		expect(
+			getPullRequestTarget(
+				"https://other.example.com/group/subgroup/app/-/merge_requests/42",
+				[gitlabProject],
+			),
+		).toBeNull();
+	});
 });
