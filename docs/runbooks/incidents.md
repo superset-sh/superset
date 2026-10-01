@@ -10,19 +10,19 @@ while it happens. Agents: `.agents/skills/incident-triage/SKILL.md` does the fir
 |---|---|
 | Provider | **incident.io** status page "Superset" (standalone page, created 24 March 2026). Confirmed 30 September 2026: the page CSP names `status-page-*-incident-io-team.vercel.app`. Nothing in this repo configures it. |
 | DNS | `superset.sh` is on Cloudflare. `status` has its own **DNS-only** CNAME to `cname.vercel-dns-016.com` (added 30 September 2026), so the page does not go through the Cloudflare proxy that relay and realtime also use. Vercel holds its own certificate for the name. To undo, delete the record; the proxied `*.superset.sh` wildcard then serves it again. |
-| Components | Desktop App, Web App, General API, Webhooks, Marketing Site. |
+| Components | Desktop App, Web App, General API, Integrations, Marketing Site, Remote Access (relay), Sign-in. |
 | Link in the product | `COMPANY.STATUS_URL` in `packages/shared/src/constants.ts`, used by the marketing footer, the contact page and `index.md`. |
-| Monitoring | None. No monitor feeds the page, and it stays green until a person changes it. |
+| Monitoring | None for uptime. incident.io does not run uptime checks; it receives alerts from other tools (alert sources). The only source today is "Status Page Views", which alerts on a spike in page visitors. The page stays green until a person changes it. |
 | History | No incident has ever been posted. Every component shows 100.00% uptime since 24 March 2026, including the API outage on 17 September 2026. |
 | How to update | incident.io dashboard: declare or open the incident, then publish a status page update. |
 
-Setup that needs a person with incident.io access:
+Setup still open in incident.io (org `superset-sh`):
 
-- [ ] Give the on-call people edit rights. The org is `superset-sh`. As of 30 September 2026, Satya Patel is the only Owner with full access. Avi Peltz and Kiet Ho have viewer-only seats and cannot configure the page or publish incidents.
-- [ ] Add components: **Remote Access** (relay), **Sign-in**, and rename **Webhooks** to **Integrations**.
-- [ ] Add uptime monitors that change component status when they fail:
+- [x] Components: added Remote Access and Sign-in, renamed Webhooks to Integrations (30 September 2026).
+- [ ] Give every on-call person edit rights. Viewer-only seats cannot configure the page or publish incidents.
+- [ ] Choose the tool that does uptime checks, and add it as an alert source (On-call → Alert routing → Create → Alert source). Sources that fit what we already use: Sentry Metrics, Cloudflare, Vercel, or a generic HTTP webhook. Checks to create in that tool:
 
-  | Monitor | Expect | Component |
+  | Check | Expect | Component |
   |---|---|---|
   | `https://api.superset.sh/api/health` | 200 (503 means the database is failing) | General API |
   | `https://api.superset.sh/api/auth/ok` | 200 | Sign-in. This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. |
@@ -31,7 +31,7 @@ Setup that needs a person with incident.io access:
   | `https://app.superset.sh` | 200 | Web App |
   | `https://superset.sh` | 200 | Marketing Site |
 
-- [ ] Connect Sentry alerts to incident.io, so a Sentry spike opens an incident in Slack for the lead to accept.
+  An alert opens an incident for the lead to accept. A person still publishes the status page update.
 
 To check the page again: `curl -sS https://status.superset.sh/proxy/status.superset.sh` returns
 the components and ongoing incidents as JSON.
