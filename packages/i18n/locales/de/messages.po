@@ -15947,7 +15947,7 @@ msgid "Thirty"
 msgstr "Dreißig"
 
 msgid "This {plugin} account is already connected by {owner}. Ask them to disconnect first."
-msgstr "Das {plugin}-Konto ist bereits von {owner} verbunden. Bitte sie oder ihn, es zuerst zu trennen."
+msgstr "Das {plugin}-Konto wurde bereits von {owner} verbunden. Bitte sie oder ihn, es zuerst zu trennen."
 
 msgid "This {plugin} account is already connected by another Superset organization."
 msgstr "Dieses {plugin}-Konto ist bereits mit einer anderen Superset-Organisation verbunden."
@@ -16068,7 +16068,7 @@ msgid "This issue link is invalid."
 msgstr "Dieser Issue-Link ist ungültig."
 
 msgid "This Linear workspace is already connected by {owner}. Ask them to disconnect first."
-msgstr "Dieser Linear-Workspace ist bereits von {owner} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
+msgstr "Dieser Linear-Workspace wurde bereits von {owner} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
 
 msgid "This Linear workspace is already connected by another Superset organization."
 msgstr "Dieser Linear-Workspace ist bereits mit einer anderen Superset-Organisation verbunden."
@@ -16080,7 +16080,7 @@ msgid "This Mac"
 msgstr "Dieser Mac"
 
 msgid "This Microsoft tenant is already connected by {detail}. Ask them to disconnect first."
-msgstr "Dieser Microsoft-Tenant ist bereits von {detail} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
+msgstr "Dieser Microsoft-Tenant wurde bereits von {detail} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
 
 msgid "This Microsoft tenant is already connected by another Superset organization."
 msgstr "Dieser Microsoft-Tenant ist bereits mit einer anderen Superset-Organisation verbunden."
@@ -16167,7 +16167,7 @@ msgid "This screen doesn't exist"
 msgstr "Diesen Bildschirm gibt es nicht"
 
 msgid "This Slack workspace is already connected by {owner}. Ask them to disconnect first."
-msgstr "Dieser Slack-Workspace ist bereits von {owner} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
+msgstr "Dieser Slack-Workspace wurde bereits von {owner} verbunden. Bitte diese Person, die Verbindung zuerst zu trennen."
 
 msgid "This Slack workspace is already connected by another Superset organization."
 msgstr "Dieser Slack-Workspace ist bereits mit einer anderen Superset-Organisation verbunden."
