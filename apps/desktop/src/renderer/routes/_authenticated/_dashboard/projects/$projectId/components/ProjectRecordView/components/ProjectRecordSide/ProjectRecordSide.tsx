@@ -40,8 +40,11 @@ export function ProjectRecordSide({
 		});
 
 	return (
-		<aside className="shrink-0 space-y-4 border-t border-border px-3 py-[18px] text-[13px] @min-[900px]:w-[372px] @min-[900px]:overflow-auto @min-[900px]:border-t-0 @min-[900px]:border-l">
-			<CloudSection title={<Trans>Properties</Trans>}>
+		<aside className="space-y-4 px-3 py-[18px] text-[13px] @min-[900px]:pt-1">
+			<CloudSection
+				title={<Trans>Properties</Trans>}
+				titleClassName="@min-[900px]:hidden"
+			>
 				<PropertyRow label={<Trans>Status</Trans>}>
 					<ProjectStatePicker
 						value={project.state}
@@ -63,11 +66,7 @@ export function ProjectRecordSide({
 						<button type="button" className={VALUE_BUTTON}>
 							{project.lead ? (
 								<>
-									<AvatarStack
-										people={[project.lead]}
-										size={18}
-										outlineClassName="outline-transparent"
-									/>
+									<AvatarStack people={[project.lead]} size={18} />
 									{project.lead.name}
 								</>
 							) : (

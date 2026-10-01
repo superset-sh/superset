@@ -8,9 +8,11 @@ import {
 } from "@superset/ui/hover-card";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { CloudWorkspacePresenceOverflow } from "./components/CloudWorkspacePresenceOverflow";
+import { isViewerAlone } from "./utils/isViewerAlone";
 
 interface CloudWorkspacePresenceStackProps {
 	people: CloudWorkspaceRow["presence"];
+	viewerId: string | undefined;
 	now: Date;
 	activeWithinMs: number;
 	onOpenPerson: (userId: string) => void;
@@ -18,12 +20,14 @@ interface CloudWorkspacePresenceStackProps {
 
 export function CloudWorkspacePresenceStack({
 	people,
+	viewerId,
 	now,
 	activeWithinMs,
 	onOpenPerson,
 }: CloudWorkspacePresenceStackProps) {
 	const { t } = useLingui();
 	const { formatCompactRelativeTime } = useFormat();
+	if (isViewerAlone(people, viewerId)) return null;
 	const byId = new Map(people.map((person) => [person.userId, person]));
 	const isActive = (lastSeenAt: Date) =>
 		now.getTime() - lastSeenAt.getTime() < activeWithinMs;
@@ -38,7 +42,6 @@ export function CloudWorkspacePresenceStack({
 			}))}
 			size={20}
 			className="px-1"
-			outlineClassName="outline-muted-foreground/35"
 			renderOverflow={(hidden, count) => (
 				<CloudWorkspacePresenceOverflow
 					people={hidden.flatMap((stacked) => byId.get(stacked.id) ?? [])}
@@ -77,7 +80,7 @@ export function CloudWorkspacePresenceStack({
 										},
 									]}
 									size={32}
-									surfaceClassName="bg-popover"
+									surface="popover"
 								/>
 								<div className="min-w-0">
 									<div className="truncate text-sm font-medium">

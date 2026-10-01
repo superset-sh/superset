@@ -496,6 +496,12 @@ export async function waitForStopSnapshot(
  * does to the box it keeps, so it costs storage rather than compute until
  * someone resumes it to look or deletes it.
  */
+export async function sandboxExists(
+	providerSandboxId: string,
+): Promise<boolean> {
+	return (await getSandbox(providerSandboxId)) !== null;
+}
+
 export async function stopSandbox(providerSandboxId: string): Promise<void> {
 	const sandbox = await getSandbox(providerSandboxId);
 	if (!sandbox || sandbox.status !== "running") return;

@@ -32,7 +32,6 @@ export function CloudWorkspacePersonLink({
 						{ id: person.userId, name: person.name, image: person.image },
 					]}
 					size={avatarSize}
-					outlineClassName="outline-transparent"
 				/>
 			)}
 			{person.name}

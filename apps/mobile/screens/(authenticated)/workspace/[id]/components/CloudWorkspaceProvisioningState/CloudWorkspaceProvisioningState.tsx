@@ -203,7 +203,7 @@ function Frame({
 }) {
 	return (
 		<View className="flex-1 items-center justify-center px-8">
-			<View className="w-full items-center gap-5">
+			<View className="w-full max-w-md items-center gap-5">
 				<Icon
 					as={icon}
 					className={cn("size-12", iconClassName)}

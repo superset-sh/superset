@@ -7,6 +7,7 @@ import type {
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
+import { TitlePress } from "@superset/title-press";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -756,9 +757,14 @@ export function WorkspaceScreen() {
 	const attachmentTarget = useMemo(
 		() =>
 			id && hostUrl && workspace?.worktreePath
-				? { workspaceId: id, hostUrl, draftKey: workspaceDraftKey(id) }
+				? {
+						workspaceId: id,
+						hostUrl,
+						isCloud: cloud !== null,
+						draftKey: workspaceDraftKey(id),
+					}
 				: null,
-		[id, hostUrl, workspace],
+		[id, hostUrl, workspace, cloud],
 	);
 
 	// The chip beside the quick keys, or nothing. Mark and colour both come off
@@ -871,6 +877,7 @@ export function WorkspaceScreen() {
 				}}
 			/>
 
+			{workspace ? <TitlePress onPress={openActions} /> : null}
 			{workspace ? (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Menu

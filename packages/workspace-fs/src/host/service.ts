@@ -200,7 +200,6 @@ export function createFsHostService(
 
 		async writeFile(input) {
 			return await writeFile({
-				rootPath,
 				absolutePath: input.absolutePath,
 				content: input.content,
 				encoding: input.encoding,

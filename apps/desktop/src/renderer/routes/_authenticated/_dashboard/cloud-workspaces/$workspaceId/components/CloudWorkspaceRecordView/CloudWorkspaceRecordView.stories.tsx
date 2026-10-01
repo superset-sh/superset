@@ -297,6 +297,7 @@ const meta = {
 		now,
 		isGeneratingDescription: false,
 		canEditSharing: true,
+		viewerId: "satya",
 		onBack: fn(),
 		onOpenWorkspace: fn(),
 		onOpenPerson: fn(),
@@ -322,7 +323,8 @@ const meta = {
 		onSetVisibility: fn(async () => {}),
 		onCopyLink: fn(),
 		onCopyId: fn(),
-		onDelete: fn(),
+		onArchive: fn(),
+		onUnarchive: fn(),
 	},
 } satisfies Meta<typeof CloudWorkspaceRecordView>;
 

@@ -36,13 +36,7 @@ export function ProjectTaskListRow({ task, onOpen }: ProjectTaskListRowProps) {
 				</button>
 			</td>
 			<td className="w-0 pr-4">
-				{task.assignee && (
-					<AvatarStack
-						people={[task.assignee]}
-						size={20}
-						outlineClassName="outline-transparent"
-					/>
-				)}
+				{task.assignee && <AvatarStack people={[task.assignee]} size={20} />}
 			</td>
 		</tr>
 	);

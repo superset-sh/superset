@@ -1,7 +1,10 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { AvatarStack } from "@superset/ui/atoms/AvatarStack";
 import { Button } from "@superset/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { HiMiniXMark } from "react-icons/hi2";
+import { LuRotateCcw } from "react-icons/lu";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { ACTIVE_WITHIN_MS } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspacePresenceStack";
 import { CloudWorkspaceStatus } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspaceStatus";
@@ -25,6 +28,8 @@ export interface CloudWorkspaceListItem {
 	pullRequests: CloudPullRequest[];
 	isInSidebar: boolean;
 	isMine: boolean;
+	/** False while the viewer is the only one present. */
+	showsPresence: boolean;
 	isRead: boolean;
 }
 
@@ -36,6 +41,7 @@ interface CloudWorkspaceListRowProps {
 	onOpenPullRequest: (url: string) => void;
 	onOpenRepo: (fullName: string) => void;
 	onSetInSidebar: (inSidebar: boolean) => void;
+	onUnarchive?: () => void;
 }
 
 export function CloudWorkspaceListRow({
@@ -46,12 +52,16 @@ export function CloudWorkspaceListRow({
 	onOpenPullRequest,
 	onOpenRepo,
 	onSetInSidebar,
+	onUnarchive,
 }: CloudWorkspaceListRowProps) {
+	const { t } = useLingui();
 	const { workspace, repos, pullRequests, isInSidebar } = item;
+	const isArchived = workspace.status === "deleted";
+	const canUnarchive = isArchived && onUnarchive !== undefined;
 	return (
 		<tr
 			onClick={onOpen}
-			className="h-11 cursor-pointer [&:hover>td]:bg-fill-hover [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
+			className="group h-11 cursor-pointer [&:hover>td]:bg-fill-hover [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg"
 		>
 			<td className="w-full max-w-0 pr-3 pl-4">
 				<span className="flex min-w-0 items-center gap-2">
@@ -66,7 +76,6 @@ export function CloudWorkspaceListRow({
 									},
 								]}
 								size={20}
-								outlineClassName="outline-transparent"
 							/>
 						) : (
 							<span className="size-5 shrink-0 rounded-full border border-dashed border-muted-foreground" />
@@ -77,7 +86,10 @@ export function CloudWorkspaceListRow({
 							event.stopPropagation();
 							onOpen();
 						}}
-						className="min-w-0 truncate text-left text-sm font-medium focus-visible:underline focus-visible:outline-none"
+						className={cn(
+							"min-w-0 truncate text-left text-sm font-medium focus-visible:underline focus-visible:outline-none",
+							isArchived && "text-muted-foreground",
+						)}
 					>
 						{workspace.name}
 					</button>
@@ -91,19 +103,21 @@ export function CloudWorkspaceListRow({
 				</span>
 			</td>
 			<td className="w-0 pr-3">
-				<AvatarStack
-					people={workspace.presence.map((person) => ({
-						id: person.userId,
-						name: person.name,
-						image: person.image,
-						isActive:
-							now.getTime() - person.lastSeenAt.getTime() < ACTIVE_WITHIN_MS,
-					}))}
-					size={20}
-				/>
+				{item.showsPresence && (
+					<AvatarStack
+						people={workspace.presence.map((person) => ({
+							id: person.userId,
+							name: person.name,
+							image: person.image,
+							isActive:
+								now.getTime() - person.lastSeenAt.getTime() < ACTIVE_WITHIN_MS,
+						}))}
+						size={20}
+					/>
+				)}
 			</td>
 			<td className="w-0 pr-3 text-right">
-				{workspace.status === "deleted" || item.isMine ? null : isInSidebar ? (
+				{isArchived || item.isMine ? null : isInSidebar ? (
 					<Button
 						variant="outline"
 						size="xs"
@@ -131,11 +145,39 @@ export function CloudWorkspaceListRow({
 			</td>
 			<td className="w-0 pr-4">
 				<span className="flex min-w-6 justify-end text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-					<CloudWorkspaceStatus
-						workspace={workspace}
-						isRead={item.isRead}
-						now={now}
-					/>
+					<span
+						className={cn(
+							"flex items-center",
+							canUnarchive &&
+								"group-hover:hidden group-has-[:focus-visible]:hidden",
+						)}
+					>
+						<CloudWorkspaceStatus
+							workspace={workspace}
+							isRead={item.isRead}
+							now={now}
+						/>
+					</span>
+					{canUnarchive && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={(event) => {
+										event.stopPropagation();
+										onUnarchive?.();
+									}}
+									aria-label={t({ message: "Unarchive workspace" })}
+									className="-mr-[3px] hidden size-5 items-center justify-center rounded text-muted-foreground group-hover:flex group-has-[:focus-visible]:flex hover:bg-foreground/10 hover:text-foreground"
+								>
+									<LuRotateCcw className="size-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="top">
+								<Trans>Unarchive workspace</Trans>
+							</TooltipContent>
+						</Tooltip>
+					)}
 				</span>
 			</td>
 		</tr>

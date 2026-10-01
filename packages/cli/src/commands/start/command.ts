@@ -8,6 +8,7 @@ import {
 	readManifest,
 	removeManifestIfOwnedBy,
 } from "../../lib/host/manifest";
+import { isManifestLive } from "../../lib/host/manifest-liveness";
 import {
 	describeHostExit,
 	type SpawnHostResult,
@@ -42,11 +43,16 @@ export default command({
 		);
 
 		const existing = readManifest(organization.id);
-		if (existing && isProcessAlive(existing.pid)) {
-			return {
-				data: { pid: existing.pid, endpoint: existing.endpoint },
-				message: `Host service already running for ${organization.name} (pid ${existing.pid})`,
-			};
+		if (existing) {
+			if (await isManifestLive(existing)) {
+				return {
+					data: { pid: existing.pid, endpoint: existing.endpoint },
+					message: `Host service already running for ${organization.name} (pid ${existing.pid})`,
+				};
+			}
+			// A live pid alone doesn't prove it's ours — OSes recycle pids, and a
+			// leftover manifest can point at an unrelated process.
+			removeManifestIfOwnedBy(organization.id, existing.pid);
 		}
 
 		p.intro(`superset start (${organization.name})`);

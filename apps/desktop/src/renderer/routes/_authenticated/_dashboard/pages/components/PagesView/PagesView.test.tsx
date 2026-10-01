@@ -119,6 +119,11 @@ mock.module("../PagesGrid", () => ({
 	},
 }));
 
+mock.module(
+	"renderer/routes/_authenticated/_dashboard/components/PageHeader",
+	() => ({ PageHeader: () => null }),
+);
+
 const onScopeChange = mock((_scope: string) => {});
 const onSearchChange = mock((_search: string) => {});
 

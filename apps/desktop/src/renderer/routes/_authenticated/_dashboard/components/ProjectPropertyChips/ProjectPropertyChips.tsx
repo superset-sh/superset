@@ -59,12 +59,7 @@ export function ProjectPropertyChips({
 				<ProjectPropertyChip isSet={lead !== null}>
 					{lead ? (
 						<>
-							<AvatarStack
-								people={[lead]}
-								size={16}
-								surfaceClassName="bg-popover"
-								outlineClassName="outline-transparent"
-							/>
+							<AvatarStack people={[lead]} size={16} surface="popover" />
 							<span className="max-w-32 truncate">{lead.name}</span>
 						</>
 					) : (

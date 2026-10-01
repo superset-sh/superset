@@ -25,6 +25,7 @@
 		"computer",
 		"pages",
 		"agent-integration",
+		"agent-sessions",
 		"agent-status",
 		"tasks",
 		"pull-requests",

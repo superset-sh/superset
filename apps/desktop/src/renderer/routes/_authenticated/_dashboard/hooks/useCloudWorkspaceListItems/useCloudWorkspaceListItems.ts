@@ -3,6 +3,7 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { isViewerAlone } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspacePresenceStack";
 import type { CloudWorkspaceListItem } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspacesList/components/CloudWorkspaceListRow";
 import {
 	type CloudPullRequestRef,
@@ -65,6 +66,7 @@ export function useCloudWorkspaceListItems(workspaces: CloudWorkspaceRow[]) {
 			}),
 			isInSidebar: isInCloudSidebar(workspace, entry, userId),
 			isMine: userId !== null && workspace.createdBy?.userId === userId,
+			showsPresence: !isViewerAlone(workspace.presence, userId ?? undefined),
 			isRead: isCloudWorkspaceRead(workspace, entry?.lastReadAt),
 		};
 	};

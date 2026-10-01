@@ -1,4 +1,5 @@
 import { msg } from "@lingui/core/macro";
+import { COMPANY } from "@superset/shared/constants";
 import { pageCommentUser } from "@superset/shared/page-comments";
 import {
 	PAGE_THUMBNAIL_HEIGHT,
@@ -84,6 +85,7 @@ export async function generateMetadata({
 			title: shared.title,
 			description,
 			robots: ROBOTS,
+			itunes: { appId: COMPANY.APP_STORE_ID, appArgument: shared.url },
 			openGraph: {
 				type: "website",
 				siteName: "Superset",
@@ -108,6 +110,7 @@ export async function generateMetadata({
 				title: page.title,
 				description: page.description ?? undefined,
 				robots: ROBOTS,
+				itunes: { appId: COMPANY.APP_STORE_ID, appArgument: page.url },
 			};
 		}
 	}
@@ -116,6 +119,7 @@ export async function generateMetadata({
 		title: "Superset",
 		description: i18n._(msg({ message: "Sign in to view this page" })),
 		robots: ROBOTS,
+		itunes: { appId: COMPANY.APP_STORE_ID },
 	};
 }
 

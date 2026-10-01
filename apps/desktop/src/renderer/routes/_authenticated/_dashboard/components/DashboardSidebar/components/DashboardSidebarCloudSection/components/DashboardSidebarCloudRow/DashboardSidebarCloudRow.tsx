@@ -6,7 +6,7 @@ import {
 	forwardRef,
 	type ReactNode,
 } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { LuArchive } from "react-icons/lu";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import type { CloudPullRequest } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudPullRequests";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
@@ -39,7 +39,7 @@ interface DashboardSidebarCloudRowProps
 	isActive?: boolean;
 	onOpen: () => void;
 	onOpenPullRequest: () => void;
-	onDelete: () => void;
+	onArchive: () => void;
 }
 
 export const DashboardSidebarCloudRow = forwardRef<
@@ -59,7 +59,7 @@ export const DashboardSidebarCloudRow = forwardRef<
 			isActive = false,
 			onOpen,
 			onOpenPullRequest,
-			onDelete,
+			onArchive,
 			className,
 			...props
 		},
@@ -72,7 +72,7 @@ export const DashboardSidebarCloudRow = forwardRef<
 			<div
 				ref={ref}
 				className={cn(
-					"group relative mx-2 flex h-8 items-center rounded-md pr-4 pl-2 text-left text-sm transition-colors",
+					"group relative mx-2 flex h-8 items-center rounded-md pr-2 pl-2 text-left text-sm transition-colors",
 					highlighted
 						? "bg-fill-selected"
 						: "hover:bg-fill-hover has-[:focus-visible]:bg-fill-hover",
@@ -107,32 +107,27 @@ export const DashboardSidebarCloudRow = forwardRef<
 							people={[
 								{ id: owner.userId, name: owner.name, image: owner.image },
 							]}
-							size={20}
-							surfaceClassName="bg-sidebar"
-							outlineClassName="outline-muted-foreground/35"
+							size={18}
+							surface="sidebar"
 							className="ml-1.5"
 						/>
 					)}
 				</span>
-				<span className="pointer-events-none relative ml-5 flex shrink-0 items-center [&_button]:pointer-events-auto">
+				<span className="pointer-events-none relative ml-1.5 flex shrink-0 items-center gap-1.5 [&_button]:pointer-events-auto">
 					{ports && (
-						<span className="flex w-5 justify-center">
-							<DashboardSidebarCloudPortsButton
-								count={ports.count}
-								card={ports.card}
-								onOpenChange={ports.onOpenChange}
-							/>
-						</span>
+						<DashboardSidebarCloudPortsButton
+							count={ports.count}
+							card={ports.card}
+							onOpenChange={ports.onOpenChange}
+						/>
 					)}
 					{pullRequest && (
-						<span className="flex w-5 justify-center">
-							<DashboardSidebarCloudPullRequestButton
-								pullRequest={pullRequest}
-								onClick={onOpenPullRequest}
-							/>
-						</span>
+						<DashboardSidebarCloudPullRequestButton
+							pullRequest={pullRequest}
+							onClick={onOpenPullRequest}
+						/>
 					)}
-					<span className="flex h-4 min-w-5 items-center justify-end">
+					<span className="flex h-4 w-6 items-center justify-end">
 						<span className="flex items-center group-hover:hidden group-has-[:focus-visible]:hidden">
 							<CloudWorkspaceStatus
 								workspace={workspace}
@@ -144,12 +139,12 @@ export const DashboardSidebarCloudRow = forwardRef<
 							type="button"
 							onClick={(event) => {
 								event.stopPropagation();
-								onDelete();
+								onArchive();
 							}}
-							aria-label={t({ message: "Delete workspace" })}
-							className="-mr-[6.25px] hidden size-5 items-center justify-center rounded text-muted-foreground group-hover:flex group-has-[:focus-visible]:flex hover:bg-foreground/10 hover:text-foreground"
+							aria-label={t({ message: "Archive workspace" })}
+							className="hidden items-center justify-center text-muted-foreground group-hover:flex group-has-[:focus-visible]:flex hover:text-foreground"
 						>
-							<HiMiniXMark className="size-4" />
+							<LuArchive className="size-3.5" />
 						</button>
 					</span>
 				</span>

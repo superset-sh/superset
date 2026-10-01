@@ -14,6 +14,7 @@ const meta = {
 	args: {
 		now: new Date("2026-09-25T12:00:00Z"),
 		activeWithinMs: 15 * 60 * 1000,
+		viewerId: "satya",
 		onOpenPerson: fn(),
 		people: [
 			{

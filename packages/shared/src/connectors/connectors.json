@@ -26,7 +26,10 @@
 					"scope_separator": " ",
 					"token_request_auth_method": "client_secret_post",
 					"token_expiration_buffer": 300,
-					"requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+					"requires_env": [
+						"GOOGLE_TEMP_CLIENT_ID",
+						"GOOGLE_TEMP_CLIENT_SECRET"
+					],
 					"authorization_params": {
 						"access_type": "offline",
 						"prompt": "consent",
@@ -417,6 +420,76 @@
 						"user": {
 							"id": "$.id",
 							"label": "$.login"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"granola_mcp": {
+			"displayName": "Granola",
+			"icon": "granola",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.granola.ai/mcp",
+					"scopes": ["mcp", "openid", "email", "profile", "offline_access"],
+					"identity": {
+						"url": "https://mcp-auth.granola.ai/oauth2/userinfo",
+						"method": "POST",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"circleback_mcp": {
+			"displayName": "Circleback",
+			"icon": "circleback",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://circleback.ai/api/mcp",
+					"scopes": ["user", "user:write"],
+					"identity": {
+						"url": "https://circleback.ai/api/user",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.id",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.id",
+							"label": "$.email"
 						}
 					},
 					"bind": {

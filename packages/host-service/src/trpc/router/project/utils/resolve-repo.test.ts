@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
+	adoptLocalRepo,
 	cloneRepoInto,
 	cloneTemplateInto,
 	initEmptyRepo,
@@ -202,6 +203,58 @@ describe("resolveLocalRepo", () => {
 			/Not a git repository/,
 		);
 	});
+
+	// Regression: `git worktree add ... HEAD` fails outright against a
+	// zero-commit repo ("fatal: not a valid object name: 'HEAD'") because
+	// HEAD is unborn — see resolve-start-point.ts. resolveLocalRepo is
+	// read-only (it also backs the "detect import candidates" preview
+	// query), so it must never fix this up itself — that's adoptLocalRepo's
+	// job, below.
+	test("is read-only: leaves a zero-commit repo's HEAD unborn", async () => {
+		const repo = join(workRoot, "unborn-default");
+		await initRepoAt(repo);
+
+		await resolveLocalRepo(repo);
+
+		// simple-git's chain object is a thenable, not a Promise —
+		// `expect().rejects` won't unwrap it, so catch manually.
+		let rejected = false;
+		try {
+			await simpleGit(repo).raw(["rev-parse", "--verify", "HEAD"]);
+		} catch {
+			rejected = true;
+		}
+		expect(rejected).toBe(true);
+	});
+});
+
+// ── adoptLocalRepo ──────────────────────────────────────────────────
+
+describe("adoptLocalRepo", () => {
+	test("seeds an initial commit when HEAD is unborn", async () => {
+		const repo = join(workRoot, "unborn-ensured");
+		await initRepoAt(repo);
+
+		const resolved = await adoptLocalRepo(repo);
+
+		expect(eqRealpath(resolved.repoPath, repo)).toBe(true);
+		const head = (
+			await simpleGit(repo).raw(["rev-parse", "--verify", "HEAD"])
+		).trim();
+		expect(head).toMatch(/^[0-9a-f]{40}$/);
+	});
+
+	test("is a no-op when the repo already has commits", async () => {
+		const repo = join(workRoot, "already-committed");
+		const git = await initRepoAt(repo);
+		await seedCommit(git);
+		const before = (await git.raw(["rev-parse", "HEAD"])).trim();
+
+		await adoptLocalRepo(repo);
+
+		const after = (await git.raw(["rev-parse", "HEAD"])).trim();
+		expect(after).toBe(before);
+	});
 });
 
 // ── initLocalRepoInPlace ──────────────────────────────────────────
@@ -275,6 +328,23 @@ describe("initLocalRepoInPlace", () => {
 
 		expect(eqRealpath(resolved.repoPath, repo)).toBe(true);
 		// Resolved the existing repo rather than re-initializing / re-committing.
+		expect(await commitCount(repo)).toBe(1);
+	});
+
+	test("seeds an initial commit when adopting an existing repo with zero commits", async () => {
+		const repo = join(workRoot, "already-but-unborn");
+		await initRepoAt(repo);
+		let rejected = false;
+		try {
+			await simpleGit(repo).raw(["rev-parse", "--verify", "HEAD"]);
+		} catch {
+			rejected = true;
+		}
+		expect(rejected).toBe(true);
+
+		const resolved = await initLocalRepoInPlace(repo);
+
+		expect(eqRealpath(resolved.repoPath, repo)).toBe(true);
 		expect(await commitCount(repo)).toBe(1);
 	});
 

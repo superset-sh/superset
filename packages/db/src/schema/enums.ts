@@ -86,6 +86,7 @@ export type ActorKind = (typeof actorKindValues)[number];
 export const cloudWorkspaceActivityEventValues = [
 	"created",
 	"archived",
+	"unarchived",
 	"joined",
 	"description_edited",
 	"run_finished",

@@ -4,6 +4,12 @@ import { Avatar } from "../Avatar";
 
 const OVERLAP_RATIO = 0.27;
 
+const SURFACE_CLASSES = {
+	background: "bg-background outline-background",
+	popover: "bg-popover outline-popover",
+	sidebar: "bg-sidebar outline-sidebar",
+} as const;
+
 export interface AvatarStackPerson {
 	id: string;
 	name: string;
@@ -15,9 +21,8 @@ interface AvatarStackProps {
 	people: AvatarStackPerson[];
 	size?: number;
 	max?: number;
-	/** Fill behind each avatar. Match the surface the stack sits on, or a faded avatar shows its neighbour through it. */
-	surfaceClassName?: string;
-	outlineClassName?: string;
+	/** What the stack sits on: each avatar is filled and ringed in it, so overlaps read as cut-outs. */
+	surface?: keyof typeof SURFACE_CLASSES;
 	className?: string;
 	/** Wraps each avatar, e.g. in its own hover card or link. */
 	renderPerson?: (person: AvatarStackPerson, avatar: ReactNode) => ReactNode;
@@ -33,8 +38,7 @@ export function AvatarStack({
 	people,
 	size = 16,
 	max = 3,
-	surfaceClassName = "bg-background",
-	outlineClassName = "outline-muted-foreground/70",
+	surface = "background",
 	className,
 	renderPerson,
 	renderOverflow,
@@ -42,6 +46,7 @@ export function AvatarStack({
 	const shown = people.slice(0, max);
 	const overflow = people.length - shown.length;
 	const overlap = Math.round(size * OVERLAP_RATIO);
+	const ringWidth = Math.max(1.5, size / 12);
 
 	return (
 		<span className={cn("flex shrink-0 items-center gap-1", className)}>
@@ -63,11 +68,10 @@ export function AvatarStack({
 							key={person.id}
 							className={cn(
 								"relative shrink-0 rounded-full outline-solid",
-								outlineClassName,
-								surfaceClassName,
-								isActive ? "outline-1" : "outline-[length:0.5px]",
+								SURFACE_CLASSES[surface],
 							)}
 							style={{
+								outlineWidth: ringWidth,
 								width: size,
 								height: size,
 								fontSize: size / 2,

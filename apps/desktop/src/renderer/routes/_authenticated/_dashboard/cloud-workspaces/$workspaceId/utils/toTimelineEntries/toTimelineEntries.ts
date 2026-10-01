@@ -20,6 +20,7 @@ export function toTimelineEntries(
 				case "created":
 				case "joined":
 				case "archived":
+				case "unarchived":
 					return [{ ...base, kind: row.event }];
 				case "description_edited":
 					return [{ ...base, kind: "description_edited" }];

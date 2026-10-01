@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { files } from "@superset/db/schema";
+import { attachments, files } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq, inArray } from "drizzle-orm";
@@ -95,6 +95,9 @@ export const attachmentRouter = {
 	 * Without the second scope this would sign a URL for any file in the org,
 	 * a page's private assets included.
 	 *
+	 * A box calling for itself gets only the files attached to its own
+	 * workspace: access to the box is access to its files, nothing wider.
+	 *
 	 * A mutation despite reading nothing but rows: the URLs it mints are
 	 * short-lived credentials, and a query's response is cacheable.
 	 */
@@ -111,6 +114,20 @@ export const attachmentRouter = {
 						inArray(files.id, input.fileIds),
 						eq(files.organizationId, organizationId),
 						eq(files.sha256, TRANSFER_ONLY),
+						ctx.sandboxCaller
+							? inArray(
+									files.id,
+									db
+										.select({ id: attachments.fileId })
+										.from(attachments)
+										.where(
+											and(
+												eq(attachments.parentKind, "cloud_workspace"),
+												eq(attachments.parentId, ctx.sandboxCaller.workspaceId),
+											),
+										),
+								)
+							: undefined,
 					),
 				);
 			const byId = new Map(rows.map((row) => [row.id, row]));

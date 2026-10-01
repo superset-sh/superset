@@ -1,4 +1,4 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { attachments, files } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import { and, asc, eq, inArray } from "drizzle-orm";
@@ -39,19 +39,21 @@ export async function anchorAttachments(args: {
 		const bytes = sample
 			? new Uint8Array(await sample.arrayBuffer())
 			: new Uint8Array();
-		const [ready] = await db
-			.update(files)
-			.set({
-				contentType: sniffContentType(bytes, file.contentType),
-				status: "ready",
-			})
-			.where(and(eq(files.id, file.id), eq(files.status, "pending")))
-			.returning({ id: files.id });
-		if (!ready) continue;
-		await db.insert(attachments).values({
-			fileId: file.id,
-			parentKind: args.parentKind,
-			parentId: args.parentId,
+		await dbWs.transaction(async (tx) => {
+			const [ready] = await tx
+				.update(files)
+				.set({
+					contentType: sniffContentType(bytes, file.contentType),
+					status: "ready",
+				})
+				.where(and(eq(files.id, file.id), eq(files.status, "pending")))
+				.returning({ id: files.id });
+			if (!ready) return;
+			await tx.insert(attachments).values({
+				fileId: file.id,
+				parentKind: args.parentKind,
+				parentId: args.parentId,
+			});
 		});
 	}
 }

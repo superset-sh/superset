@@ -9,11 +9,19 @@ import {
 	HiXMark,
 } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
+import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
+import {
+	WINDOW_CONTROLS_ROW_HEIGHT,
+	WINDOW_CONTROLS_ROW_TOP,
+} from "renderer/routes/_authenticated/_dashboard/components/WindowChrome";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
+import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
 import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
@@ -23,6 +31,8 @@ export function SettingsSidebar() {
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isMac = platform === undefined || platform === "darwin";
 	const mobileEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
@@ -38,7 +48,33 @@ export function SettingsSidebar() {
 		: null;
 
 	return (
-		<div className="w-56 flex flex-col pt-1 pb-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
+		<div className="w-56 flex flex-col pb-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
+			<div className="mb-1 flex h-12 shrink-0 items-center">
+				{isMac ? (
+					<div className="drag h-full shrink-0" style={{ width: 96 }} />
+				) : (
+					<div
+						className="flex shrink-0 items-center justify-center self-start"
+						style={{
+							width: COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+							marginTop: WINDOW_CONTROLS_ROW_TOP,
+							height: WINDOW_CONTROLS_ROW_HEIGHT,
+						}}
+					>
+						<AppMenuButton />
+					</div>
+				)}
+				<div
+					className="flex shrink-0 items-center self-start"
+					style={{
+						marginTop: WINDOW_CONTROLS_ROW_TOP,
+						height: WINDOW_CONTROLS_ROW_HEIGHT,
+					}}
+				>
+					<NavigationControls />
+				</div>
+				<div className="drag h-full min-w-0 flex-1" />
+			</div>
 			{/* Back button */}
 			<Link
 				to={originRoute}

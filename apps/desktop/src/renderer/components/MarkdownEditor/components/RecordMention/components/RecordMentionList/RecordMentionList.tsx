@@ -38,7 +38,6 @@ function MentionRow({ item }: { item: RecordMentionItem }) {
 					<AvatarStack
 						people={[{ id: item.id, name: item.name, image: item.image }]}
 						size={20}
-						outlineClassName="outline-transparent"
 					/>
 					<span className="truncate">{item.name}</span>
 				</>

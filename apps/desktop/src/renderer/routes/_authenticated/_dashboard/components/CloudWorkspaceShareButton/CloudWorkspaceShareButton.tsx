@@ -13,9 +13,8 @@ import {
 } from "@superset/ui/select";
 import { Separator } from "@superset/ui/separator";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
-import { LuBuilding2, LuCheck, LuLink, LuLock, LuShare2 } from "react-icons/lu";
+import { LuBuilding2, LuCheck, LuLink, LuLock } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -27,7 +26,6 @@ interface CloudWorkspaceShareButtonProps {
 	owner: CloudWorkspaceRow["createdBy"];
 	visibility: CloudWorkspaceRow["visibility"];
 	canEdit: boolean;
-	iconOnly?: boolean;
 	onSetVisibility: (
 		visibility: CloudWorkspaceRow["visibility"],
 	) => Promise<unknown>;
@@ -38,7 +36,6 @@ export function CloudWorkspaceShareButton({
 	owner,
 	visibility,
 	canEdit,
-	iconOnly = false,
 	onSetVisibility,
 }: CloudWorkspaceShareButtonProps) {
 	const { t } = useLingui();
@@ -80,37 +77,17 @@ export function CloudWorkspaceShareButton({
 		visibility === "just_me" ? (
 			<LuLock className="size-3.5" />
 		) : (
-			<LuShare2 className="size-3.5" />
+			<LuBuilding2 className="size-3.5" />
 		);
 
 	return (
 		<Popover>
-			{iconOnly ? (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<PopoverTrigger asChild>
-							<Button
-								size="icon-sm"
-								variant="outline"
-								aria-label={t({ message: "Share" })}
-								className="text-muted-foreground hover:text-foreground"
-							>
-								{icon}
-							</Button>
-						</PopoverTrigger>
-					</TooltipTrigger>
-					<TooltipContent>
-						<Trans>Share</Trans>
-					</TooltipContent>
-				</Tooltip>
-			) : (
-				<PopoverTrigger asChild>
-					<Button size="xs" variant="ghost" className="gap-1.5">
-						{icon}
-						<Trans>Share</Trans>
-					</Button>
-				</PopoverTrigger>
-			)}
+			<PopoverTrigger asChild>
+				<Button size="xs" variant="ghost" className="gap-1.5">
+					{icon}
+					<Trans>Share</Trans>
+				</Button>
+			</PopoverTrigger>
 			<PopoverContent align="end" className="w-80 p-0">
 				<div className="flex items-center justify-between gap-2 px-3 py-2.5">
 					<span className="text-sm font-medium">
@@ -137,8 +114,7 @@ export function CloudWorkspaceShareButton({
 									{ id: owner.userId, name: owner.name, image: owner.image },
 								]}
 								size={24}
-								surfaceClassName="bg-popover"
-								outlineClassName="outline-transparent"
+								surface="popover"
 							/>
 							<span className="min-w-0 flex-1 truncate text-sm">
 								{owner.name}

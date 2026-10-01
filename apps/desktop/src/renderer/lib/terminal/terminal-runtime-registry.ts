@@ -674,6 +674,25 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
+	isNarrowedByOtherClient(terminalId: string, instanceId?: string): boolean {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport.narrowedByOtherClient ??
+			false
+		);
+	}
+
+	onNarrowedChange(
+		terminalId: string,
+		listener: () => void,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.narrowedListeners.add(listener);
+		return () => {
+			entry.transport.narrowedListeners.delete(listener);
+		};
+	}
+
 	isSessionEnded(terminalId: string, instanceId?: string): boolean {
 		return (
 			this.getEntry(terminalId, instanceId)?.transport.sessionEnded ?? false

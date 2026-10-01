@@ -663,6 +663,9 @@ msgstr "{actor} đã đặt trạng thái thành {to}"
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} đã chia sẻ không gian làm việc với tổ chức"
 
+msgid "{actor} unarchived the workspace"
+msgstr "{actor} đã bỏ lưu trữ không gian làm việc"
+
 msgid "{actor} unassigned {from}"
 msgstr "{actor} đã bỏ giao cho {from}"
 
@@ -910,6 +913,9 @@ msgstr "{months} tháng"
 
 msgid "{months}mo ago"
 msgstr "{months} tháng trước"
+
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "{myFailedCount} tự động hóa của bạn thất bại ở lần chạy gần nhất"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
@@ -2289,12 +2295,19 @@ msgstr "Lưu trữ"
 msgid "Archive environment"
 msgstr "Lưu trữ environment"
 
+msgid "Archive workspace"
+msgstr "Lưu trữ workspace"
+
 msgid "Archived"
 msgstr "Đã lưu trữ"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
 msgid "Archived · {0}"
 msgstr "Đã lưu trữ · {0}"
+
+#. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
+msgid "Archived {0}"
+msgstr "Đã lưu trữ {0}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "Bạn chắc chắn muốn xóa tệp này? Không thể hoàn tác."
@@ -2536,11 +2549,17 @@ msgstr "Tiêu đề tự động hóa"
 msgid "Automations"
 msgstr "Tự động hóa"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Tự động hóa ({myFailedCount} đang lỗi)"
+
 msgid "Automations & event triggers"
 msgstr "Tự động hóa & trigger sự kiện"
 
 msgid "Automations require the Pro plan."
 msgstr "Tự động hóa yêu cầu gói Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Tự động hóa, {myFailedCount} đang lỗi"
 
 msgid "Autonomous"
 msgstr "Tự chủ"
@@ -3695,6 +3714,9 @@ msgstr "Khối mã"
 
 msgid "Code Block"
 msgstr "Code Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Không có sẵn mã — dự án của workspace này không có repository của pull request này."
 
 msgid "Cohort"
 msgstr "Nhóm"
@@ -16096,6 +16118,12 @@ msgstr "Trang này do một người dùng Superset đăng. Nội dung chưa đ�
 msgid "This page was taken down and can no longer be changed"
 msgstr "Trang này đã bị gỡ và không thể chỉnh sửa nữa"
 
+msgid "This pane can't be shown"
+msgstr "Không thể hiển thị ngăn này"
+
+msgid "This pane hit an error"
+msgstr "Ngăn này gặp lỗi"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Đường dẫn này tồn tại nhưng không phải thư mục."
 
@@ -16158,6 +16186,9 @@ msgstr "Máy chủ không còn theo dõi agent con này. Bản ghi vẫn nằm t
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Terminal này chưa có kết quả nào để bàn giao."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Terminal này cũng đang mở trên một màn hình nhỏ hơn nên đã được thu nhỏ cho vừa"
 
 msgid "This thread has no comment to reply to."
 msgstr "Luồng này không có bình luận nào để trả lời."
@@ -16587,6 +16618,12 @@ msgstr "Không thể bắt đầu đọc chính tả"
 msgid "Unable to transcribe audio"
 msgstr "Không thể chuyển âm thanh thành văn bản"
 
+msgid "Unarchive"
+msgstr "Bỏ lưu trữ"
+
+msgid "Unarchive workspace"
+msgstr "Bỏ lưu trữ workspace"
+
 msgid "Unassigned"
 msgstr "Chưa giao"
 
@@ -16681,6 +16718,12 @@ msgstr "Host không xác định"
 
 msgid "Unknown Host"
 msgstr "Host không rõ"
+
+msgid "Unknown pane"
+msgstr "Ngăn không xác định"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Loại ngăn không xác định: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -67,7 +67,6 @@ export function TaskCommentThread({
 											},
 										]}
 										size={20}
-										outlineClassName="outline-transparent"
 									/>
 								)}
 							</span>

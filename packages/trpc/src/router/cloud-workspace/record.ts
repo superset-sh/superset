@@ -21,7 +21,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { loadAttachments } from "../../lib/attachments";
+import { anchorAttachments, loadAttachments } from "../../lib/attachments";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import { ensureLabels } from "../../lib/labels";
 import { nudge } from "../../lib/realtime";
@@ -282,9 +282,8 @@ export const cloudWorkspaceRecordRouter = {
 				labels,
 				project: project ?? null,
 				attachments:
-					(await loadAttachments("cloud_workspace_prompt", [row.id])).get(
-						row.id,
-					) ?? [],
+					(await loadAttachments("cloud_workspace", [row.id])).get(row.id) ??
+					[],
 			};
 		}),
 
@@ -541,6 +540,25 @@ export const cloudWorkspaceRecordRouter = {
 				nudge(row.organizationId, "cloud_workspaces");
 			}
 			return { unlinked: Boolean(removed) };
+		}),
+
+	/** Hands uploads to the box; it can fetch only the files attached to it. */
+	attachFiles: jwtProcedure
+		.input(
+			z.object({
+				id: z.string().uuid(),
+				fileIds: z.array(z.string().uuid()).min(1).max(10),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const row = await loadVisibleWorkspace(ctx, input.id);
+			await anchorAttachments({
+				parentKind: "cloud_workspace",
+				parentId: row.id,
+				organizationId: row.organizationId,
+				fileIds: input.fileIds,
+			});
+			return { attached: true };
 		}),
 
 	/** Anyone who can see the box may edit it, and so may the box's own agent, for itself only. */

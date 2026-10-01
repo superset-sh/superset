@@ -9,6 +9,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
 import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
@@ -204,10 +205,10 @@ export function PagesView({
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			<div className="drag h-10 shrink-0" />
+			<PageHeader />
 
 			<div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
-				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
+				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pt-4 pb-12">
 					<FeatureHeader
 						title={<Trans>Pages</Trans>}
 						docsUrl={`${COMPANY.DOCS_URL}/pages`}

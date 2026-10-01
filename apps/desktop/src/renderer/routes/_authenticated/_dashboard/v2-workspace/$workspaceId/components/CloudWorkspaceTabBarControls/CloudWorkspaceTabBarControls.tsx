@@ -26,14 +26,6 @@ export function CloudWorkspaceTabBarControls({
 	if (!workspace) return null;
 	return (
 		<div className="flex items-center gap-1">
-			<CloudWorkspacePresenceStack
-				people={workspace.presence}
-				now={now}
-				activeWithinMs={ACTIVE_WITHIN_MS}
-				onOpenPerson={(userId) =>
-					navigate({ to: "/cloud-workspaces", search: { people: [userId] } })
-				}
-			/>
 			<CloudWorkspaceShareButton
 				workspaceId={workspace.id}
 				owner={workspace.createdBy}
@@ -44,6 +36,15 @@ export function CloudWorkspaceTabBarControls({
 				}
 				onSetVisibility={(visibility) =>
 					setVisibility.mutateAsync({ id: workspace.id, visibility })
+				}
+			/>
+			<CloudWorkspacePresenceStack
+				people={workspace.presence}
+				viewerId={session?.user?.id}
+				now={now}
+				activeWithinMs={ACTIVE_WITHIN_MS}
+				onOpenPerson={(userId) =>
+					navigate({ to: "/cloud-workspaces", search: { people: [userId] } })
 				}
 			/>
 		</div>

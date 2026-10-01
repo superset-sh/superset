@@ -663,6 +663,9 @@ msgstr "{actor} estableció el estado en {to}"
 msgid "{actor} shared the workspace with the organization"
 msgstr "{actor} compartió el espacio de trabajo con la organización"
 
+msgid "{actor} unarchived the workspace"
+msgstr "{actor} desarchivó el espacio de trabajo"
+
 msgid "{actor} unassigned {from}"
 msgstr "{actor} desasignó a {from}"
 
@@ -910,6 +913,9 @@ msgstr "{months} m"
 
 msgid "{months}mo ago"
 msgstr "hace {months} m"
+
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Tus automatizaciones con error en su última ejecución: {myFailedCount}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
@@ -2289,12 +2295,19 @@ msgstr "Archivar"
 msgid "Archive environment"
 msgstr "Archivar entorno"
 
+msgid "Archive workspace"
+msgstr "Archivar espacio de trabajo"
+
 msgid "Archived"
 msgstr "Archivados"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
 msgid "Archived · {0}"
 msgstr "Archivado · {0}"
+
+#. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
+msgid "Archived {0}"
+msgstr "Archivado {0}"
 
 msgid "Are you sure you want to delete this file? This action cannot be undone."
 msgstr "¿Seguro que quieres eliminar este archivo? Esta acción no se puede deshacer."
@@ -2536,11 +2549,17 @@ msgstr "Título de la automatización"
 msgid "Automations"
 msgstr "Automatizaciones"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automatizaciones ({myFailedCount} con errores)"
+
 msgid "Automations & event triggers"
 msgstr "Automatizaciones y disparadores por eventos"
 
 msgid "Automations require the Pro plan."
 msgstr "Las automatizaciones requieren el plan Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automatizaciones, {myFailedCount} con errores"
 
 msgid "Autonomous"
 msgstr "Autónomo"
@@ -3695,6 +3714,9 @@ msgstr "Bloque de código"
 
 msgid "Code Block"
 msgstr "Bloque de código"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "El código no está disponible: el proyecto de este espacio de trabajo no tiene el repositorio de esta pull request."
 
 msgid "Cohort"
 msgstr "Cohorte"
@@ -16096,6 +16118,12 @@ msgstr "Esta página la publicó un usuario de Superset. Su contenido no está v
 msgid "This page was taken down and can no longer be changed"
 msgstr "Esta página fue retirada y ya no se puede modificar"
 
+msgid "This pane can't be shown"
+msgstr "Este panel no se puede mostrar"
+
+msgid "This pane hit an error"
+msgstr "Este panel encontró un error"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Esta ruta existe, pero no es un directorio."
 
@@ -16158,6 +16186,9 @@ msgstr "El host ya no sigue este subagente. Su transcripción permanece en disco
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Este terminal aún no tiene salida que transferir."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Este terminal también está abierto en una pantalla más pequeña, así que se ajusta a ella"
 
 msgid "This thread has no comment to reply to."
 msgstr "Este hilo no tiene ningún comentario al que responder."
@@ -16587,6 +16618,12 @@ msgstr "No se pudo iniciar el dictado"
 msgid "Unable to transcribe audio"
 msgstr "No se pudo transcribir el audio"
 
+msgid "Unarchive"
+msgstr "Desarchivar"
+
+msgid "Unarchive workspace"
+msgstr "Desarchivar espacio de trabajo"
+
 msgid "Unassigned"
 msgstr "Sin asignar"
 
@@ -16681,6 +16718,12 @@ msgstr "Host desconocido"
 
 msgid "Unknown Host"
 msgstr "Host desconocido"
+
+msgid "Unknown pane"
+msgstr "Panel desconocido"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Tipo de panel desconocido: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useNow } from "renderer/hooks/useNow";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
 import { useOrganizationPeople } from "renderer/routes/_authenticated/_dashboard/hooks/useOrganizationPeople";
 import { sortCloudWorkspaces } from "renderer/routes/_authenticated/_dashboard/utils/groupCloudWorkspaces";
@@ -93,7 +94,7 @@ export function ProjectRecordScreen({
 		}),
 	);
 
-	if (!project.data) return null;
+	if (!project.data) return <StateScreenShell />;
 
 	return (
 		<ProjectRecordView

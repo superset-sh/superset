@@ -2042,8 +2042,8 @@ export const attachmentParentKind = pgEnum("attachment_parent_kind", [
 	// belong to exists; publish snapshots them onto that version and clears
 	// the staged rows, so a version is never served missing its own assets.
 	"page",
-	// A cloud workspace's prompt; the parent id is the workspace's.
-	"cloud_workspace_prompt",
+	// A file handed to a cloud workspace; the parent id is the workspace's.
+	"cloud_workspace",
 	// A comment on a task; the parent id is the task_comments row's.
 	"task_comment",
 	// A file in a project's description; the parent id is the project's.

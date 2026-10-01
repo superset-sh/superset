@@ -58,17 +58,18 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
 import { FeatureHeader } from "renderer/routes/_authenticated/_dashboard/components/FeatureHeader";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import {
 	SortableHeader,
 	type SortDirection,
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
+import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationStatCards } from "./components/AutomationStatCards";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
-import { useFailedAutomations } from "./hooks/useFailedAutomations";
 import type { AutomationTemplate } from "./templates";
 import { matchAgentChoice, portableAgentValue } from "./utils/agentIdentity";
 import { dispatchErrorCode, runErrorHelp } from "./utils/runErrorHelp";
@@ -301,8 +302,12 @@ function AutomationsPage() {
 		undefined,
 		{},
 	);
-	const { lastRunById, failedIds } = useFailedAutomations();
+	const { lastRunById, failedIds, markMyFailuresSeen } = useFailedAutomations();
 	const now = useNow(30_000);
+
+	useEffect(() => {
+		markMyFailuresSeen();
+	}, [markMyFailuresSeen]);
 
 	const recentProjects = useRecentProjects();
 
@@ -608,11 +613,10 @@ function AutomationsPage() {
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			{/* Window-drag leaf standing in for the hidden TopBar. */}
-			<div className="drag h-10 shrink-0" />
+			<PageHeader />
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
+				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pt-4 pb-12">
 					<FeatureHeader
 						title={<Trans>Automations</Trans>}
 						docsUrl={`${COMPANY.DOCS_URL}/automations`}

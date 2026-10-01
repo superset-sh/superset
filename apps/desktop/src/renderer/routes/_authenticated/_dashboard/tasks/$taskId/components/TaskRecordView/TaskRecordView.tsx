@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { DescriptionEditor } from "renderer/routes/_authenticated/_dashboard/components/DescriptionEditor";
 import type { RecordLabel } from "renderer/routes/_authenticated/_dashboard/components/RecordLabels";
+import { RecordLayout } from "renderer/routes/_authenticated/_dashboard/components/RecordLayout";
 import { RecordSection } from "renderer/routes/_authenticated/_dashboard/components/RecordSection";
 import type { CloudPullRequest } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudPullRequests";
 import type {
@@ -11,6 +12,7 @@ import type {
 	TaskRecord,
 	TaskTimelineItem,
 } from "../../types";
+import { TaskRecordActions } from "./components/TaskRecordActions";
 import { TaskRecordHeader } from "./components/TaskRecordHeader";
 import { TaskRecordSide } from "./components/TaskRecordSide";
 import { TaskRecordTopBar } from "./components/TaskRecordTopBar";
@@ -78,64 +80,63 @@ export function TaskRecordView({
 	onDeleteComment,
 }: TaskRecordViewProps) {
 	return (
-		<div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
-			<div className="@container flex min-h-0 flex-1 flex-col">
-				<TaskRecordTopBar
+		<RecordLayout
+			header={<TaskRecordTopBar slug={task.slug} onBack={onBack} />}
+			sideActions={
+				<TaskRecordActions
 					task={task}
-					onBack={onBack}
 					onCopyLink={onCopyLink}
 					onCopyId={onCopyId}
 					onOpenExternal={onOpenExternal}
 					onDelete={onDelete}
 				/>
-				<div className="flex min-h-0 flex-1 flex-col overflow-auto @min-[900px]:flex-row @min-[900px]:overflow-hidden">
-					<main className="min-w-0 flex-1 pt-5 pr-10 pb-10 pl-8 @min-[900px]:overflow-auto">
-						<TaskRecordHeader
-							task={task}
-							now={now}
-							onOpenPerson={onOpenPerson}
-							onRename={onRename}
-						/>
-						<div className="mt-6 max-w-[760px]">
-							<DescriptionEditor
-								allowAttachments
-								key={task.id}
-								description={task.description}
-								onSave={onSaveDescription}
-							/>
-						</div>
-						<RecordSection title={<Trans>Activity</Trans>}>
-							<TaskTimeline
-								items={timeline}
-								now={now}
-								currentUser={currentUser}
-								onOpenPerson={onOpenPerson}
-								onOpenProject={onOpenProject}
-								onOpenWorkspace={onOpenWorkspace}
-								onAddComment={onAddComment}
-								onEditComment={onEditComment}
-								onDeleteComment={onDeleteComment}
-							/>
-						</RecordSection>
-					</main>
-					<TaskRecordSide
-						task={task}
-						now={now}
-						project={project}
-						projects={projects}
-						workspaces={workspaces}
-						pullRequests={pullRequests}
-						labels={labels}
-						knownLabels={knownLabels}
-						onAddLabel={onAddLabel}
-						onRemoveLabel={onRemoveLabel}
-						onSetProject={onSetProject}
-						onCreateProject={onCreateProject}
-						onOpenWorkspace={onOpenWorkspace}
-						onOpenPullRequest={onOpenPullRequest}
-					/>
-				</div>
+			}
+			side={
+				<TaskRecordSide
+					task={task}
+					now={now}
+					project={project}
+					projects={projects}
+					workspaces={workspaces}
+					pullRequests={pullRequests}
+					labels={labels}
+					knownLabels={knownLabels}
+					onAddLabel={onAddLabel}
+					onRemoveLabel={onRemoveLabel}
+					onSetProject={onSetProject}
+					onCreateProject={onCreateProject}
+					onOpenWorkspace={onOpenWorkspace}
+					onOpenPullRequest={onOpenPullRequest}
+				/>
+			}
+		>
+			<TaskRecordHeader
+				task={task}
+				now={now}
+				onOpenPerson={onOpenPerson}
+				onRename={onRename}
+			/>
+			<div className="mt-6 max-w-[760px]">
+				<DescriptionEditor
+					allowAttachments
+					key={task.id}
+					description={task.description}
+					onSave={onSaveDescription}
+				/>
 			</div>
-		</div>
+			<RecordSection title={<Trans>Activity</Trans>}>
+				<TaskTimeline
+					items={timeline}
+					now={now}
+					currentUser={currentUser}
+					onOpenPerson={onOpenPerson}
+					onOpenProject={onOpenProject}
+					onOpenWorkspace={onOpenWorkspace}
+					onAddComment={onAddComment}
+					onEditComment={onEditComment}
+					onDeleteComment={onDeleteComment}
+				/>
+			</RecordSection>
+		</RecordLayout>
 	);
 }

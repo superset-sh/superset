@@ -15,8 +15,8 @@ import { SiLinear } from "react-icons/si";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { CreateTaskDialog } from "renderer/routes/_authenticated/_dashboard/components/CreateTaskDialog";
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
-import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
 import { RunInWorkspacePopoverV2 } from "../../../RunInWorkspacePopoverV2";
@@ -117,11 +117,10 @@ export function TasksTopBar({
 
 	return (
 		<>
-			<div
-				data-tasks-toolbar
-				className="@container min-w-0 shrink-0 border-b border-border px-4 py-2"
-			>
-				<div className="flex flex-col items-stretch gap-2 @4xl:flex-row @4xl:items-center @4xl:justify-between">
+			<PageHeader
+				className="@container h-auto min-h-12 shadow-[inset_0_-1px_0_var(--border)]"
+				contentClassName="flex-col items-stretch gap-2 py-2 @4xl:flex-row @4xl:items-center"
+				start={
 					<div className="flex min-w-0 items-center gap-3 overflow-x-auto hide-scrollbar">
 						{hasSelection ? (
 							<>
@@ -222,10 +221,8 @@ export function TasksTopBar({
 							</>
 						)}
 					</div>
-
-					{/* Window-drag leaf standing in for the hidden TopBar. */}
-					<div className="drag hidden min-w-0 flex-1 self-stretch @4xl:block" />
-
+				}
+				end={
 					<div className="flex shrink-0 items-center gap-2">
 						{showTaskOnlyControls && (
 							<>
@@ -312,9 +309,8 @@ export function TasksTopBar({
 							}
 						/>
 					</div>
-					<WindowControlsInset />
-				</div>
-			</div>
+				}
+			/>
 
 			<CreateTaskDialog
 				open={isCreateTaskOpen}

@@ -12,6 +12,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/components/DiscardConfirmDialog";
 import { NewProjectDialog } from "renderer/routes/_authenticated/_dashboard/components/NewProjectDialog";
+import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
 import { useOrganizationPeople } from "renderer/routes/_authenticated/_dashboard/hooks/useOrganizationPeople";
@@ -256,13 +257,15 @@ export function TaskRecordScreen({
 	};
 
 	if (!task) {
-		if (isTaskPending || areStatusesPending) return null;
+		if (isTaskPending || areStatusesPending) return <StateScreenShell />;
 		return (
-			<div className="flex flex-1 items-center justify-center">
-				<span className="text-muted-foreground">
-					<Trans>Task not found</Trans>
-				</span>
-			</div>
+			<StateScreenShell>
+				<div className="flex h-full items-center justify-center">
+					<span className="text-muted-foreground">
+						<Trans>Task not found</Trans>
+					</span>
+				</div>
+			</StateScreenShell>
 		);
 	}
 

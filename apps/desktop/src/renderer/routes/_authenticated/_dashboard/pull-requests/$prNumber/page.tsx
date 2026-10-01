@@ -3,7 +3,7 @@ import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
 import { PullRequestDetailHeader } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailHeader";
@@ -63,32 +63,32 @@ function PullRequestDetailPage() {
 	// affordance here — just the PR identity and its actions.
 	const header = (
 		<div className="flex shrink-0 flex-col border-b border-border">
-			<div className="flex h-10 shrink-0 items-center gap-1 px-4">
-				<PullRequestListToggle />
-				<div className="ml-2 flex items-center gap-1">
-					{detailTabs.map(({ value, label }) => (
-						<button
-							key={value}
-							type="button"
-							onClick={() => setActiveTab(value)}
-							aria-current={activeTab === value ? "true" : undefined}
-							className={cn(
-								"rounded-md px-2 py-1 text-xs font-medium transition-colors",
-								activeTab === value
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:text-foreground",
-							)}
-						>
-							{label}
-						</button>
-					))}
-				</div>
-				{/* Window-drag leaf standing in for the hidden TopBar. */}
-				<div className="drag h-full min-w-0 flex-1" />
-				{/* Share and the "..." overflow (close/reopen) are coming soon —
-				    both hidden until they have real functionality wired up. */}
-				<WindowControlsInset />
-			</div>
+			<PageHeader
+				contentClassName="gap-1"
+				start={
+					<>
+						<PullRequestListToggle />
+						<div className="ml-2 flex items-center gap-1">
+							{detailTabs.map(({ value, label }) => (
+								<button
+									key={value}
+									type="button"
+									onClick={() => setActiveTab(value)}
+									aria-current={activeTab === value ? "true" : undefined}
+									className={cn(
+										"rounded-md px-2 py-1 text-xs font-medium transition-colors",
+										activeTab === value
+											? "bg-accent text-foreground"
+											: "text-muted-foreground hover:text-foreground",
+									)}
+								>
+									{label}
+								</button>
+							))}
+						</div>
+					</>
+				}
+			/>
 			<PullRequestDetailHeader
 				projectId={projectId}
 				hostId={hostId}

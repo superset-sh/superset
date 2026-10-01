@@ -22,8 +22,8 @@ export const SingleIdle: Story = {
 };
 
 export const SidebarOwner: Story = {
-	name: "Sidebar owner (soft outline)",
-	args: { outlineClassName: "outline-muted-foreground/35" },
+	name: "On the sidebar",
+	args: { surface: "sidebar" },
 };
 
 export const Photo: Story = {

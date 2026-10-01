@@ -1,9 +1,7 @@
 import { db } from "@superset/db/client";
 import { cloudWorkspaces, environments, tasks } from "@superset/db/schema";
 import type { CloudAgentLaunch } from "@superset/shared/cloud-agent-launch";
-import { Client } from "@upstash/qstash";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { env } from "../../env";
 import { anchorAttachments } from "../../lib/attachments";
 import {
 	githubRepositoriesOutOfReach,
@@ -18,26 +16,15 @@ import {
 } from "../../lib/sandbox";
 import { userError } from "../../trpc";
 import { recordCloudWorkspaceActivity } from "./activity";
+import { publishCloudWorkspaceJob } from "./jobs";
 import {
 	FALLBACK_NAME,
+	type ProvisionCloudWorkspaceInput,
 	provisionCloudWorkspace,
 	sandboxNameFor,
 } from "./provision";
 import { linkTask } from "./record";
 import { transitionCloudWorkspace } from "./transition";
-
-const qstash = new Client({ token: env.QSTASH_TOKEN });
-
-const PROVISION_JOB_URL = `${env.NEXT_PUBLIC_API_URL}/api/cloud-workspaces/provision`;
-
-/**
- * QStash only calls public URLs, so a local API would queue a job nothing ever
- * delivers. Run it in-process there instead — still detached, so the create
- * returns as fast as it does in production and the UI behaves the same.
- */
-const isLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(
-	env.NEXT_PUBLIC_API_URL,
-);
 
 /** An environment this user may start a workspace from, or a user-facing NOT_FOUND. */
 export async function loadUsableEnvironment(args: {
@@ -180,7 +167,7 @@ export async function startCloudWorkspace(args: {
 		}
 	}
 	await anchorAttachments({
-		parentKind: "cloud_workspace_prompt",
+		parentKind: "cloud_workspace",
 		parentId: row.id,
 		organizationId: args.organizationId,
 		fileIds: args.attachmentFileIds ?? [],
@@ -199,37 +186,33 @@ export async function startCloudWorkspace(args: {
 	};
 
 	nudge(row.organizationId, "cloud_workspaces");
-	if (isLocalApi) {
-		void provisionCloudWorkspace(job).catch((error) => {
-			console.error(
-				`[cloud-workspace] provisioning threw for ${row.id}`,
-				error,
-			);
-		});
-		return row;
-	}
+	await queueProvision(job);
+	return row;
+}
 
+/**
+ * Hands a `provisioning` row to the provisioning job. A job that cannot be
+ * queued fails the row, so it never waits on a job that is not coming.
+ */
+export async function queueProvision(
+	job: ProvisionCloudWorkspaceInput,
+): Promise<void> {
 	try {
-		// Queued rather than fired off after the response: this runs on
-		// Vercel, where the function is frozen the moment it replies, and
-		// an unawaited promise dies with it. QStash also retries a delivery
-		// the function never finished, which is exactly the failure that
-		// stranded a row in `provisioning` when create still ran inline.
-		await qstash.publishJSON({
-			url: PROVISION_JOB_URL,
+		await publishCloudWorkspaceJob({
+			path: "/api/cloud-workspaces/provision",
 			body: job,
-			retries: 2,
+			runLocally: provisionCloudWorkspace,
 		});
 	} catch (error) {
 		// Nothing was provisioned, so there is no sandbox to tear down —
 		// but the row must not sit in `provisioning` with no job coming.
 		await transitionCloudWorkspace({
-			id: row.id,
+			id: job.cloudWorkspaceId,
 			from: ["provisioning"],
 			to: "failed",
 		});
 		console.error(
-			`[cloud-workspace] could not queue provisioning for ${row.id}`,
+			`[cloud-workspace] could not queue provisioning for ${job.cloudWorkspaceId}`,
 			error,
 		);
 		throw userError({
@@ -239,6 +222,4 @@ export async function startCloudWorkspace(args: {
 				"serverError.cloudWorkspace.couldNotStartCloudWorkspaceProvisioning",
 		});
 	}
-
-	return row;
 }

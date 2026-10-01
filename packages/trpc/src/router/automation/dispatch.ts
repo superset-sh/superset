@@ -22,6 +22,7 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq, sql } from "drizzle-orm";
+import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { runInCloud } from "./cloudDispatch";
 import { RelayDispatchError, relayMutation } from "./relay-client";
@@ -339,9 +340,11 @@ async function dispatchRun(
 			.update(automationRuns)
 			.set({ status: "dispatch_failed", ...workspace, error, errorCode })
 			.where(eq(automationRuns.id, run.id));
+		nudge(automation.organizationId, "automation_runs");
 		return { status: "dispatch_failed", runId: run.id, error, errorCode };
 	}
 
+	nudge(automation.organizationId, "automation_runs");
 	return { status: "dispatched", runId: run.id };
 }
 
@@ -515,6 +518,7 @@ async function recordUndispatched(
 		})
 		.onConflictDoNothing(runDedupTarget(cause))
 		.returning({ id: automationRuns.id });
+	if (row) nudge(automation.organizationId, "automation_runs");
 	return row;
 }
 

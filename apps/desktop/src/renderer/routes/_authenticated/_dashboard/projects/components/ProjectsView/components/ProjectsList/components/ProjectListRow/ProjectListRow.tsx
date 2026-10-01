@@ -91,7 +91,6 @@ export function ProjectListRow({
 									},
 								]}
 								size={18}
-								outlineClassName="outline-transparent"
 							/>
 							<span className="max-w-32 truncate">{project.lead.name}</span>
 						</button>

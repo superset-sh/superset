@@ -53,6 +53,7 @@ import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
@@ -680,58 +681,54 @@ export function NewWorkspaceScreen({
 					</motion.div>
 				)}
 			</AnimatePresence>
-			{/* no-drag + clear of the page's window-drag strip (which ends at
-			    right-12) so the button actually receives clicks. */}
-			<div
-				className="no-drag absolute top-2.5 z-10 flex items-center gap-0.5"
-				// Clear of the window-controls overlay on Windows and Linux; zero
-				// extra where there is none.
-				style={{
-					right: "calc(0.75rem + (100vw - env(titlebar-area-width, 100vw)))",
-				}}
-			>
-				{selectedProject && !needsSetup && (
-					<Tooltip>
-						<TooltipTrigger asChild>
+			<PageHeader
+				className="sticky top-0 z-10 w-full bg-background"
+				end={
+					<div className="flex items-center gap-0.5">
+						{selectedProject && !needsSetup && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										aria-label={t({
+											message: "Update naming instructions",
+										})}
+										className="size-7 text-muted-foreground"
+										onClick={handleGoToNamingInstructions}
+									>
+										<Settings2Icon className="size-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>
+									<Trans>
+										Update naming instructions for {selectedProject.name}
+									</Trans>
+								</TooltipContent>
+							</Tooltip>
+						)}
+						<PromptHistoryCommand
+							onSelect={applyPrompt}
+							tooltipLabel={t({
+								message: "Previous prompts",
+							})}
+						>
 							<Button
 								type="button"
 								variant="ghost"
 								size="icon"
 								aria-label={t({
-									message: "Update naming instructions",
+									message: "Previous prompts",
 								})}
 								className="size-7 text-muted-foreground"
-								onClick={handleGoToNamingInstructions}
 							>
-								<Settings2Icon className="size-4" />
+								<HistoryIcon className="size-4" />
 							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							<Trans>
-								Update naming instructions for {selectedProject.name}
-							</Trans>
-						</TooltipContent>
-					</Tooltip>
-				)}
-				<PromptHistoryCommand
-					onSelect={applyPrompt}
-					tooltipLabel={t({
-						message: "Previous prompts",
-					})}
-				>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label={t({
-							message: "Previous prompts",
-						})}
-						className="size-7 text-muted-foreground"
-					>
-						<HistoryIcon className="size-4" />
-					</Button>
-				</PromptHistoryCommand>
-			</div>
+						</PromptHistoryCommand>
+					</div>
+				}
+			/>
 			<div className="flex flex-1 flex-col items-center justify-center gap-8">
 				<SupersetIcon className="h-10 w-auto text-muted-foreground/70" />
 				<h1 className="text-center text-3xl font-medium text-foreground/90">

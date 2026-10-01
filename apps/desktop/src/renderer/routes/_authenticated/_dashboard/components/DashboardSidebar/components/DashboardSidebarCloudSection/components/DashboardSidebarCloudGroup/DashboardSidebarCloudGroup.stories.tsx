@@ -28,7 +28,7 @@ function Row({ name }: { name: string }) {
 			now={now}
 			onOpen={fn()}
 			onOpenPullRequest={fn()}
-			onDelete={fn()}
+			onArchive={fn()}
 		/>
 	);
 }
