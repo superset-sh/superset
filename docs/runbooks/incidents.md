@@ -26,7 +26,7 @@ Setup still open in incident.io (org `superset-sh`):
   | Sentry uptime monitor | Component |
   |---|---|
   | API (`/.well-known/oauth-protected-resource`): the API answers. | General API |
-  | API health + database (`/api/health`): the API can reach the database. It does not replace the monitor above. incident.io shows the two as separate alerts for the person on call. | General API |
+  | API health + database (`/api/health`): the API can read one row from `auth.users` and from `auth.organizations` in 3 seconds. A lock on those tables, as on 17 September 2026, makes it fail. It does not replace the monitor above. incident.io shows the two as separate alerts for the person on call. | General API |
   | Sign-in (`/api/auth/ok`). This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. | Sign-in |
   | Relay, Relay v2 (`/health`) | Remote Access |
   | Realtime (`/health`) | Desktop App, Web App (live updates) |
@@ -86,8 +86,8 @@ Look in this order. Stop when you find a cause that explains what users see.
    - Relay: `https://relay.superset.sh/health` returns `{"ok":true,"proto":2}`.
    - Realtime: `https://realtime.superset.sh/health` returns `{"ok":true}`.
    - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200. A
-     503 with `"database":"timeout"` means the database did not answer in 3 seconds (look for lock
-     waits). A 503 with `"database":"error"` means the query failed immediately (look for a
+     It reads one row from `auth.users` and from `auth.organizations`. A 503 with
+     `"database":"timeout"` means that the read did not finish in 3 seconds (look for lock waits). A 503 with `"database":"error"` means the query failed immediately (look for a
      connection or configuration problem).
 4. **Vercel.** api, web, marketing, admin and docs run there. Look at the deployment list,
    the runtime logs (`vercel logs`) and the function error rate. `vercel rollback` is the fastest
