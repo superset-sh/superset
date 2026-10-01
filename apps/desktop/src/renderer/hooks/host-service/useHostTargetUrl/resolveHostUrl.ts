@@ -1,9 +1,14 @@
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	CLOUD_HOST_ID,
+} from "@superset/shared/host-routing";
 
 /**
  * Pure resolver: hostId + machineId + activeHostUrl + organizationId → URL.
  * Hosts other than the local machine are reached via relay; the local
- * machine is reached directly via electronTrpc through `activeHostUrl`.
+ * machine is reached directly via electronTrpc through `activeHostUrl`. The
+ * cloud is a target, not a host: its boxes are reached through the gate
+ * with a ticket, never the relay, so it resolves to nothing here.
  *
  * Callers fetch `relayUrl` from `useRelayUrl()` so the PostHog override is
  * applied consistently between the renderer's hook-based and store-based
@@ -23,6 +28,7 @@ export function resolveHostUrl(args: {
 	sandboxUrl?: string | null;
 }): string | null {
 	if (args.sandboxUrl) return args.sandboxUrl;
+	if (args.hostId === CLOUD_HOST_ID) return null;
 	if (args.hostId === args.machineId) return args.activeHostUrl;
 	const routingKey = buildHostRoutingKey(args.organizationId, args.hostId);
 	return `${args.relayUrl}/hosts/${routingKey}`;

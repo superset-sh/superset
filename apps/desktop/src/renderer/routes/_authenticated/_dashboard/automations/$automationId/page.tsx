@@ -49,7 +49,7 @@ function organizationFromError(params: unknown): { id: string | null } | null {
 	return { id: typeof organizationId === "string" ? organizationId : null };
 }
 
-const RECENT_RUNS_LIMIT = 10;
+const RUNS_PAGE_SIZE = 20;
 
 function AutomationDetailPage() {
 	const { t } = useLingui();
@@ -77,9 +77,18 @@ function AutomationDetailPage() {
 		return { ...automationQuery.data, prompt: promptQuery.data.prompt };
 	}, [automationQuery.data, promptQuery.data]);
 
-	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
-		{ automationId, limit: RECENT_RUNS_LIMIT },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+	// The same list All runs renders, filtered to this automation, so a run
+	// reads identically on both screens and older history stays reachable.
+	const runsQuery = cloudTrpc.automation.listOrgRuns.useInfiniteQuery(
+		{ automationId, limit: RUNS_PAGE_SIZE, scope: "all", status: "all" },
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+			staleTime: 30_000,
+		},
+	);
+	const recentRuns = useMemo(
+		() => runsQuery.data?.pages.flatMap((page) => page.runs) ?? [],
+		[runsQuery.data],
 	);
 
 	const ownerUserId = automationQuery.data?.ownerUserId;
@@ -262,6 +271,9 @@ function AutomationDetailPage() {
 					key={automation.id}
 					automation={automation}
 					recentRuns={recentRuns}
+					hasMoreRuns={runsQuery.hasNextPage ?? false}
+					isLoadingMoreRuns={runsQuery.isFetchingNextPage}
+					onLoadMoreRuns={() => void runsQuery.fetchNextPage()}
 					ownerName={ownerName}
 					onToggleEnabled={(enabled) => {
 						if (!enabled) {

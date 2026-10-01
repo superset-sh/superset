@@ -1,5 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import {
+	automationEvents,
 	automationRuns,
 	automations,
 	automationTriggers,
@@ -19,6 +20,11 @@ import {
 	CLOUD_AGENT_PROMPT_MAX_LENGTH,
 	isCloudAgentId,
 } from "@superset/shared/cloud-agent-launch";
+import {
+	FAILED_RUN_STATUSES,
+	MISSED_RUN_STATUSES,
+	UNSUCCESSFUL_RUN_STATUSES,
+} from "@superset/shared/constants";
 import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
 	describeSchedule,
@@ -27,7 +33,17 @@ import {
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, desc, eq, ilike, notInArray } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	ilike,
+	inArray,
+	notInArray,
+	sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { assertCloudAccess } from "../../lib/cloud-guards";
@@ -54,8 +70,10 @@ import {
 } from "./helpers";
 import {
 	createAutomationSchema,
+	listOrgRunsSchema,
 	listRunsSchema,
 	parseRruleSchema,
+	runPayloadSchema,
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
@@ -135,6 +153,89 @@ async function verifyHostAccess(
 			i18nKey: "serverError.automation.youDonTHaveAccess",
 		});
 	}
+}
+
+/**
+ * The one run query. Both run lists read through this: All runs org-wide, and
+ * an automation's own history as the same list filtered to it. Two queries
+ * drifted apart once already, rendering the same run differently per screen.
+ */
+function selectRuns(args: {
+	organizationId: string;
+	userId: string;
+	automationId?: string;
+	status?: "all" | "failed" | "missed";
+	scope?: "all" | "mine";
+	cursor?: { createdAt: string; id: string };
+	limit: number;
+}) {
+	return db
+		.select({
+			id: automationRuns.id,
+			automationId: automationRuns.automationId,
+			automationName: automations.name,
+			ownerUserId: automations.ownerUserId,
+			title: automationRuns.title,
+			status: automationRuns.status,
+			error: automationRuns.error,
+			errorCode: automationRuns.errorCode,
+			createdAt: automationRuns.createdAt,
+			cursorAt: sql<string>`${automationRuns.createdAt}::text`,
+			scheduledFor: automationRuns.scheduledFor,
+			dispatchedAt: automationRuns.dispatchedAt,
+			hostId: automationRuns.hostId,
+			triggerKind: automationTriggers.kind,
+			v2WorkspaceId: automationRuns.v2WorkspaceId,
+			cloudWorkspaceId: automationRuns.cloudWorkspaceId,
+			chatSessionId: automationRuns.chatSessionId,
+			terminalSessionId: automationRuns.terminalSessionId,
+			eventId: automationRuns.eventId,
+		})
+		.from(automationRuns)
+		.innerJoin(automations, eq(automations.id, automationRuns.automationId))
+		.leftJoin(
+			automationTriggers,
+			eq(automationTriggers.id, automationRuns.triggerId),
+		)
+		.where(
+			and(
+				eq(automationRuns.organizationId, args.organizationId),
+				args.automationId
+					? eq(automationRuns.automationId, args.automationId)
+					: undefined,
+				args.status === "failed"
+					? inArray(automationRuns.status, [...FAILED_RUN_STATUSES])
+					: args.status === "missed"
+						? inArray(automationRuns.status, [...MISSED_RUN_STATUSES])
+						: undefined,
+				args.scope === "mine"
+					? eq(automations.ownerUserId, args.userId)
+					: undefined,
+				args.cursor
+					? sql`(${automationRuns.createdAt}, ${automationRuns.id}) < (${args.cursor.createdAt}::timestamptz, ${args.cursor.id}::uuid)`
+					: undefined,
+			),
+		)
+		.orderBy(desc(automationRuns.createdAt), desc(automationRuns.id))
+		.limit(args.limit);
+}
+
+/**
+ * A trigger set replaces the whole set, so a top-level `rrule` passed beside
+ * one is dropped and its schedule never fires. Refusing beats accepting a
+ * write we only half-apply — the caller asked for a schedule.
+ */
+function assertScheduleNotShadowed(
+	rrule: string | null | undefined,
+	triggers: DraftTrigger[] | null | undefined,
+): void {
+	if (!rrule || !triggers) return;
+	throw userError({
+		code: "BAD_REQUEST",
+		message:
+			"Pass the schedule inside triggers as a schedule trigger, not as rrule beside them",
+		i18nKey: "serverError.automation.rruleBesideTriggers",
+	});
 }
 
 /** Room for the trigger block the dispatcher puts ahead of the instructions. */
@@ -447,6 +548,8 @@ export const automationRouter = {
 			);
 			assertPromptFitsTarget(target.targetHostId, input.prompt);
 
+			assertScheduleNotShadowed(input.rrule, input.triggers);
+
 			// Only the legacy shape carries a top-level schedule; a trigger set
 			// describes its own, or has none at all.
 			const legacySchedule = input.rrule
@@ -562,6 +665,8 @@ export const automationRouter = {
 				target.targetHostId,
 				input.prompt ?? existing.prompt,
 			);
+
+			assertScheduleNotShadowed(input.rrule, input.triggers);
 
 			const nextRrule = input.rrule ?? existing.rrule;
 			const nextDtstart = input.dtstart ?? existing.dtstart;
@@ -958,12 +1063,85 @@ export const automationRouter = {
 				input.automationId,
 			);
 
-			return db
-				.select()
+			// Reads through selectRuns so the CLI and MCP see the same rows the
+			// screens do. The shape stays as shipped: no cursor field, and the
+			// run columns `automations logs` prints.
+			const rows = await selectRuns({
+				organizationId,
+				userId: ctx.session.user.id,
+				automationId: input.automationId,
+				limit: input.limit,
+			});
+			return rows.map(({ cursorAt: _cursorAt, ...run }) => run);
+		}),
+
+	listOrgRuns: protectedProcedure
+		.input(listOrgRunsSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+
+			const rows = await selectRuns({
+				organizationId,
+				userId,
+				automationId: input.automationId,
+				status: input.status,
+				scope: input.scope,
+				cursor: input.cursor,
+				limit: input.limit + 1,
+			});
+
+			const hasMore = rows.length > input.limit;
+			const page = hasMore ? rows.slice(0, input.limit) : rows;
+			const last = page.at(-1);
+
+			return {
+				runs: page.map(({ eventId, cursorAt: _cursorAt, ...run }) => ({
+					...run,
+					hasPayload: eventId !== null,
+					// "Run again" dispatches a fresh schedule-caused run, so it
+					// cannot carry an event run's message, PR or issue — retrying
+					// one would start the agent with nothing. Until there is a
+					// retryRun that re-dispatches a row with its own cause, only
+					// failed schedule-caused runs can be retried.
+					canRetry:
+						run.ownerUserId === userId &&
+						(UNSUCCESSFUL_RUN_STATUSES as readonly string[]).includes(
+							run.status,
+						) &&
+						run.scheduledFor !== null,
+				})),
+				nextCursor:
+					hasMore && last ? { createdAt: last.cursorAt, id: last.id } : null,
+			};
+		}),
+
+	runPayload: protectedProcedure
+		.input(runPayloadSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+
+			const [row] = await db
+				.select({
+					payload: automationEvents.payload,
+					provider: automationEvents.provider,
+					receivedAt: automationEvents.receivedAt,
+				})
 				.from(automationRuns)
-				.where(eq(automationRuns.automationId, input.automationId))
-				.orderBy(desc(automationRuns.createdAt))
-				.limit(input.limit);
+				.innerJoin(
+					automationEvents,
+					eq(automationEvents.id, automationRuns.eventId),
+				)
+				.where(
+					and(
+						eq(automationRuns.id, input.runId),
+						eq(automationRuns.organizationId, organizationId),
+					),
+				)
+				.limit(1);
+
+			if (!row) return { payload: null, provider: null, receivedAt: null };
+			return row;
 		}),
 
 	/** Most recent run per automation across the caller's active organization. */
@@ -985,6 +1163,54 @@ export const automationRouter = {
 			.innerJoin(automations, eq(automations.id, automationRuns.automationId))
 			.where(eq(automationRuns.organizationId, organizationId))
 			.orderBy(automationRuns.automationId, desc(automationRuns.createdAt));
+	}),
+
+	/**
+	 * Run volume for the org's last 7 days: success/failure totals for the
+	 * stat cards and 6-hour activity buckets for the run-history sparkline.
+	 * Aggregated in SQL — an org can have tens of thousands of runs a week.
+	 */
+	orgRunStats: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		const bucketSeconds = 6 * 60 * 60;
+		const bucketCount = 28;
+		// The window ends on the interval in progress, so the newest bar is the
+		// one drawing now. Anchoring it 28 intervals back instead would push
+		// that interval to index 28 and drop it off the end.
+		const baseBucket =
+			Math.floor(Date.now() / 1000 / bucketSeconds) - (bucketCount - 1);
+		const since = new Date(baseBucket * bucketSeconds * 1000);
+
+		const rows = await db
+			.select({
+				bucket: sql<number>`floor(extract(epoch from ${automationRuns.createdAt}) / ${bucketSeconds})::int`,
+				status: automationRuns.status,
+				count: sql<number>`count(*)::int`,
+			})
+			.from(automationRuns)
+			.where(
+				and(
+					eq(automationRuns.organizationId, organizationId),
+					gte(automationRuns.createdAt, since),
+				),
+			)
+			.groupBy(sql`1`, automationRuns.status);
+
+		let succeeded = 0;
+		let failed = 0;
+		let missed = 0;
+		const buckets: number[] = Array(bucketCount).fill(0);
+		for (const row of rows) {
+			if (row.status === "dispatched") succeeded += row.count;
+			else if ((FAILED_RUN_STATUSES as readonly string[]).includes(row.status))
+				failed += row.count;
+			else if ((MISSED_RUN_STATUSES as readonly string[]).includes(row.status))
+				missed += row.count;
+			const index = row.bucket - baseBucket;
+			if (index >= 0 && index < bucketCount)
+				buckets[index] = (buckets[index] ?? 0) + row.count;
+		}
+		return { succeeded, failed, missed, buckets };
 	}),
 
 	/** Validate an RRule body + preview its next occurrences. */

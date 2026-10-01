@@ -1,5 +1,5 @@
 import type { FileUIPart } from "ai";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { awaitUploads, pruneAttachmentUploads, startUpload } from "./store";
 
 export interface UploadFailure {
@@ -15,11 +15,12 @@ export interface UseUploadAttachmentsApi {
 }
 
 /**
- * Drives background attachment uploads. Each file uploads exactly once, to
- * whichever target was active when the user added it; switching targets does
- * not re-upload. The upload store keys results by `(fileId, target)` so the
- * visible pill list (filtered via `useFileIdsForHost`) follows the picker
- * while previous targets' attachments stay cached for return visits.
+ * Drives background attachment uploads. Every attached file is uploaded to
+ * the current target, so switching the picker uploads the files to the new
+ * target too: what the pill list shows for a target is what the create will
+ * send to it. The store keys uploads by `(fileId, target)` and starts each
+ * pair once, so a file never uploads twice to the same target and an earlier
+ * target's upload stays cached for a return visit.
  *
  * A target is a host URL, or `CLOUD_UPLOAD_TARGET` when the workspace will be
  * a cloud one and has no host yet.
@@ -31,16 +32,9 @@ export function useUploadAttachments({
 	files: (FileUIPart & { id: string })[];
 	hostUrl: string | null;
 }): UseUploadAttachmentsApi {
-	// File ids we've already kicked off an upload for. Prevents re-upload on
-	// host swap; keyed by fileId so a removed-and-re-added file (new id from
-	// the library) does start fresh.
-	const seenFileIdsRef = useRef<Set<string>>(new Set());
-
 	useEffect(() => {
 		if (hostUrl) {
 			for (const file of files) {
-				if (seenFileIdsRef.current.has(file.id)) continue;
-				seenFileIdsRef.current.add(file.id);
 				startUpload(hostUrl, {
 					id: file.id,
 					url: file.url,
@@ -49,11 +43,7 @@ export function useUploadAttachments({
 				});
 			}
 		}
-		const liveIds = new Set(files.map((f) => f.id));
-		for (const id of seenFileIdsRef.current) {
-			if (!liveIds.has(id)) seenFileIdsRef.current.delete(id);
-		}
-		pruneAttachmentUploads(liveIds);
+		pruneAttachmentUploads(new Set(files.map((f) => f.id)));
 	}, [files, hostUrl]);
 
 	const awaitForCurrent = useCallback(async () => {

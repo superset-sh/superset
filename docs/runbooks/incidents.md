@@ -12,8 +12,8 @@ while it happens. Agents: `.agents/skills/incident-triage/SKILL.md` does the fir
 | DNS | `superset.sh` is on Cloudflare. `status` has its own **DNS-only** CNAME to `cname.vercel-dns-016.com` (added 30 September 2026), so the page does not go through the Cloudflare proxy that relay and realtime also use. Vercel holds its own certificate for the name. To undo, delete the record; the proxied `*.superset.sh` wildcard then serves it again. |
 | Components | Desktop App, Web App, General API, Integrations, Marketing Site, Remote Access (relay), Sign-in. |
 | Link in the product | `COMPANY.STATUS_URL` in `packages/shared/src/constants.ts`, used by the marketing footer, the contact page and `index.md`. |
-| Monitoring | Sentry uptime monitors (org `superset-sh`) check the web app, API, sign-in route, relay, relay v2, realtime, marketing, docs and usercontent every 1 to 5 minutes. The Sentry alert "Uptime failures to incident.io" sends their failures to the incident.io alert source "Sentry uptime monitors". incident.io does not run checks itself. A person still changes the status page. |
-| On-call | incident.io schedule "Primary on-call": Avi Peltz, Satya Patel, Harshith Mullapudi, one week each, handover Wednesday 09:00 Pacific. It has no escalation path yet, so an alert does not page anyone. |
+| Monitoring | Sentry uptime monitors (org `superset-sh`) check the web app, API, sign-in route, API health with a database check, relay, relay v2, realtime, marketing, docs and usercontent every 1 to 5 minutes. The Sentry alert "Uptime failures to incident.io" sends their failures to the incident.io alert source "Sentry uptime monitors". incident.io does not run checks itself. A person still changes the status page. |
+| On-call | incident.io schedule "Primary on-call": Avi Peltz, Satya Patel, Harshith Mullapudi, one week each, handover Wednesday 09:00 Pacific. The escalation path "Primary on-call" pages the person on call at high urgency, and tries again 3 times if no one acknowledges in 5 minutes. The alert route "Uptime failures" sends the "Sentry uptime monitors" source to that path. It also posts each alert in the `#incidents` channel of the Superset Slack, with buttons to acknowledge or to declare an incident. It does not create an incident automatically. |
 | History | No incident has ever been posted. Every component shows 100.00% uptime since 24 March 2026, including the API outage on 17 September 2026. |
 | How to update | incident.io dashboard: declare or open the incident, then publish a status page update. |
 
@@ -25,15 +25,22 @@ Setup still open in incident.io (org `superset-sh`):
 
   | Sentry uptime monitor | Component |
   |---|---|
-  | API (`/.well-known/oauth-protected-resource`) | General API |
+  | API (`/.well-known/oauth-protected-resource`): the API answers. | General API |
+  | API health + database (`/api/health`): the API can read one row from `auth.users` and from `auth.organizations` in 3 seconds. A lock on those tables, as on 17 September 2026, makes it fail. It does not replace the monitor above. incident.io shows the two as separate alerts for the person on call. | General API |
   | Sign-in (`/api/auth/ok`). This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. | Sign-in |
   | Relay, Relay v2 (`/health`) | Remote Access |
   | Realtime (`/health`) | Desktop App, Web App (live updates) |
   | Web app (`app.superset.sh/sign-in`) | Web App |
   | `superset.sh` | Marketing Site |
+  | Docs (`docs.superset.sh`), Usercontent (`supersetusercontent.com/health`) | No component. The alert still pages the person on call. |
 
-- [ ] Add an escalation path that uses the "Primary on-call" schedule, and attach it to the alert route, so that an uptime alert pages the person on call.
-- [ ] After `/api/health` is in production, add a Sentry uptime monitor for `https://api.superset.sh/api/health` (503 means the database is failing), and connect it to the "Uptime failures to incident.io" alert.
+- [x] Paging: escalation path "Primary on-call" and alert route "Uptime failures" (1 October 2026).
+- [x] Sentry uptime monitor "API health + database" for `https://api.superset.sh/api/health` (503 means the database is failing), connected to the "Uptime failures to incident.io" alert (1 October 2026). Component: General API.
+- [x] Test alert (1 October 2026): "Send Test Notification" on the Sentry alert reached incident.io, posted in `#incidents`, and escalated to the person on call. To test again without a surprise page, first add a short schedule override for yourself.
+- [x] The "Uptime failures" route posts in `#incidents`.
+- [x] Sentry alert "Error spike to incident.io (50+ in 5 min)" (1 October 2026): one issue in the desktop, web or api project seen more than 50 times in 5 minutes goes to the same alert source, so it pages and posts in `#incidents`. At most one alert per issue in 30 minutes. This catches an incident where every endpoint answers but the app is broken, as on 23 September 2026.
+- [ ] Publish the past incidents of 17 September 2026 (API outage) and 23 September 2026 (desktop workspace screens) on the status page, with their real times.
+- [ ] Each person in the rotation: set a phone number or the incident.io mobile app in your notification preferences. Without one, a page can arrive only as an email or a Slack message.
 
 To check the page again: `curl -sS https://status.superset.sh/proxy/status.superset.sh` returns
 the components and ongoing incidents as JSON.
@@ -72,16 +79,17 @@ Look in this order. Stop when you find a cause that explains what users see.
    times to the start of the problem. The `deploy-database` job runs migrations. A migration that
    holds a lock can take the API down, as on 17 September 2026. See
    `.agents/skills/db-migrations/SKILL.md`.
-2. **Sentry.** Look for new issues or a spike in these projects: api, web, admin, marketing, docs (Next.js);
-   relay, realtime, usercontent (Cloudflare Workers); desktop; mobile. A new issue with a
+2. **Sentry.** Look for new issues or a spike in every project: api, web, admin, marketing, docs,
+   relay (it also holds realtime), sandbox, desktop, host-service, mobile. A new issue with a
    large event count that started after a deploy is the strongest signal.
 3. **Health checks.**
    - Relay: `https://relay.superset.sh/health` returns `{"ok":true,"proto":2}`.
    - Realtime: `https://realtime.superset.sh/health` returns `{"ok":true}`.
-   - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200. A
-     503 with `"database":"timeout"` means the database did not answer in 3 seconds (look for lock
-     waits). A 503 with `"database":"error"` means the query failed immediately (look for a
-     connection or configuration problem).
+   - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200.
+     It reads one row from `auth.users` and from `auth.organizations`. A 503 with
+     `"database":"timeout"` means that the read did not finish in 3 seconds (look for lock
+     waits). A 503 with `"database":"error"` means that the query failed immediately (look for
+     a connection or configuration problem).
 4. **Vercel.** api, web, marketing, admin and docs run there. Look at the deployment list,
    the runtime logs (`vercel logs`) and the function error rate. `vercel rollback` is the fastest
    fix for a bad API or web deploy. Use it before you try a fix forward, unless a migration has
@@ -141,9 +149,9 @@ During the incident:
 - [ ] Post updates on the schedule above.
 - [ ] Record the timeline in the incident channel: times, actions, and who did them.
 - [ ] To stop deploys, run `gh workflow disable "Deploy Production"`, and post that you did it.
-      This does not stop a run that is in progress. Find it with
-      `gh run list --workflow "Deploy Production" --status in_progress` and cancel it with
-      `gh run cancel <id>`. Do not cancel a run while its `deploy-database` job applies a migration,
+      This does not stop a run that is queued or in progress. Find them with
+      `gh run list --workflow "Deploy Production" --status queued` and `--status in_progress`,
+      and cancel each with `gh run cancel <id>`. Do not cancel a run while its `deploy-database` job applies a migration,
       unless the migration is the cause.
 
 When it is resolved:

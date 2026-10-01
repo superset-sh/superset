@@ -1,0 +1,1 @@
+CREATE INDEX "automation_runs_org_created_idx" ON "automation_runs" USING btree ("organization_id","created_at");

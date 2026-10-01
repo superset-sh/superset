@@ -140,6 +140,13 @@ export const serverErrorMessages: Record<
 				message: "This agent can't run in a cloud workspace",
 			}),
 		),
+	"serverError.automation.rruleBesideTriggers": () =>
+		i18n._(
+			msg({
+				message:
+					"Pass the schedule inside triggers as a schedule trigger, not as rrule beside them",
+			}),
+		),
 	"serverError.automation.cloudNeedsEnvironment": () =>
 		i18n._(
 			msg({

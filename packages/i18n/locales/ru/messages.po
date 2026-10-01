@@ -111,6 +111,10 @@ msgstr "{0, plural, one {# активный порт — показать дет
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, one {# агент} few {# агента} many {# агентов} other {# агента}}"
 
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {Не удалось запустить # автоматизацию} few {Не удалось запустить # автоматизации} many {Не удалось запустить # автоматизаций} other {Не удалось запустить # автоматизаций}}"
+
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# изменённый файл} few {# изменённых файла} many {# изменённых файлов} other {# изменённых файла}}"
@@ -999,9 +1003,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} из {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Повторяем # автоматизацию} few {Повторяем # автоматизации} many {Повторяем # автоматизаций} other {Повторяем # автоматизации}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · все к {operatorTier}"
 
@@ -1030,6 +1031,9 @@ msgstr "{starCount} звёзд и продолжаем"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} звёзд · {perDay}/день на этой неделе · {peakPerDay}/день на пике"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {Запущена # автоматизация} few {Запущено # автоматизации} many {Запущено # автоматизаций} other {Запущено # автоматизаций}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# субагент выполняется} few {# субагента выполняются} many {# субагентов выполняются} other {# субагента выполняются}}"
@@ -1973,6 +1977,9 @@ msgstr "Все репозитории"
 msgid "All reviews"
 msgstr "Все ревью"
 
+msgid "All runs"
+msgstr "Все запуски"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Все сессии завершены, демон перезапущен. Приложение будет использовать новый демон."
 
@@ -2531,6 +2538,9 @@ msgstr "Автоматизируйте настройку рабочих обл�
 msgid "Automation"
 msgstr "Автоматизация"
 
+msgid "Automation docs"
+msgstr "Документация по автоматизациям"
+
 msgid "Automation has no instructions"
 msgstr "У автоматизации нет инструкций"
 
@@ -2609,6 +2619,9 @@ msgstr "Назад"
 
 msgid "Back to About"
 msgstr "К разделу «О нас»"
+
+msgid "Back to automations"
+msgstr "Назад к автоматизациям"
 
 msgid "Back to billing"
 msgstr "Назад к оплате"
@@ -3946,9 +3959,6 @@ msgstr "Настройте, как задачи синхронизируются
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Настройка поведения терминала и переиспользуемых скриптов терминала"
 
-msgid "Configure the automation yourself"
-msgstr "Настройте автоматизацию самостоятельно"
-
 msgid "Configure the in-app browser"
 msgstr "Настройка встроенного браузера"
 
@@ -4693,6 +4703,12 @@ msgstr "Не удалось загрузить пул-реквесты: {msg}"
 msgid "Couldn't load review comments"
 msgstr "Не удалось загрузить комментарии ревью"
 
+msgid "Couldn't load runs"
+msgstr "Не удалось загрузить запуски"
+
+msgid "Couldn't load this run's payload."
+msgstr "Не удалось загрузить полезную нагрузку этого запуска."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Не удалось загрузить профиль, поэтому редактирование отключено."
 
@@ -4969,9 +4985,6 @@ msgstr "Создана {createdDate}"
 
 msgid "Created {createdDirs} folders in {where}"
 msgstr "В {where} создано папок: {createdDirs}"
-
-msgid "Created <0>· 7d</0>"
-msgstr "Создано <0>· 7 дн.</0>"
 
 msgid "Created 1 folder in {where}"
 msgstr "В {where} создана 1 папка"
@@ -6198,6 +6211,9 @@ msgstr "Каждую минуту"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Все цели работают на следующую ступень. Измерено за последние 30 дней."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Пока каждый запуск по расписанию находил хост в сети."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Каждая звезда на <0>{repoSlug}</0> с момента запуска."
 
@@ -6370,8 +6386,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Ошибка"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "С ошибкой <0>· 7 дн.</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Неудачные запуски <0>· 7 дн.</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Не удалось принять приглашение"
@@ -6713,12 +6729,6 @@ msgstr "Не удалось восстановить значения по ум�
 msgid "Failed to resume {0}"
 msgstr "Не удалось возобновить {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Не удалось повторить {failedCount} из {totalCount} автоматизаций"
-
-msgid "Failed to retry automation"
-msgstr "Не удалось повторить автоматизацию"
-
 msgid "Failed to reveal in Finder"
 msgstr "Не удалось показать в Finder"
 
@@ -6786,6 +6796,9 @@ msgstr "Не удалось войти. Попробуйте ещё раз."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Не удалось зарегистрироваться. Попробуйте ещё раз."
+
+msgid "Failed to start the selected automations"
+msgstr "Не удалось запустить выбранные автоматизации"
 
 msgid "Failed to stop workspace run command"
 msgstr "Не удалось остановить команду запуска рабочей области"
@@ -6993,9 +7006,6 @@ msgstr "Фильтр рабочих областей…"
 
 msgid "Filter…"
 msgstr "Фильтр…"
-
-msgid "filtering"
-msgstr "фильтр"
 
 msgid "Filters"
 msgstr "Фильтры"
@@ -9339,6 +9349,15 @@ msgstr "Минимальный контраст"
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Зеркало <0>дашборда PostHog Success Metrics</0> — продукт из сохранённых инсайтов, бизнес — вживую из Stripe/Neon"
 
+msgid "missed"
+msgstr "пропущен"
+
+msgid "Missed"
+msgstr "Пропущенные"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Пропущенные <0>· 7 дн.</0>"
+
 msgid "Missing auth state"
 msgstr "Отсутствует состояние аутентификации"
 
@@ -9460,6 +9479,9 @@ msgstr "Ещё {kindLower} темы"
 msgid "More actions"
 msgstr "Ещё действия"
 
+msgid "More create options"
+msgstr "Другие варианты создания"
+
 msgid "More options"
 msgstr "Ещё"
 
@@ -9573,6 +9595,9 @@ msgstr "Нужна обвязка на уровне приложения (сос
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Нужно живое состояние чата или вызова инструмента (ToolUIPart, стримы) либо оболочка приложения"
+
+msgid "Needs a retry"
+msgstr "Требует повтора"
 
 msgid "Needs Action"
 msgstr "Требует действия"
@@ -9984,6 +10009,9 @@ msgstr "Окружений пока нет. Создайте окружение,
 msgid "No extended thinking"
 msgstr "Без расширенного мышления"
 
+msgid "No failed runs."
+msgstr "Неудачных запусков нет."
+
 msgid "No files found"
 msgstr "Файлы не найдены"
 
@@ -10115,6 +10143,9 @@ msgstr "Нет страниц, соответствующих этому фил�
 
 msgid "No pages yet"
 msgstr "Страниц пока нет"
+
+msgid "No payload is stored for this run."
+msgstr "Для этого запуска не сохранена полезная нагрузка."
 
 msgid "No payment method on file"
 msgstr "Способ оплаты не указан"
@@ -10490,8 +10521,14 @@ msgstr "Ничего не запущено. Удалите её и создай�
 msgid "Nothing lives at {pathname}."
 msgstr "По адресу {pathname} ничего нет."
 
+msgid "Nothing needs a retry"
+msgstr "Повторять нечего"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "За последние 30 дней ещё ничего не опубликовано. Ваше место появится, как только синхронизируется использование с этой машины; публикация как <0>{handle}</0>."
+
+msgid "Nothing was missed"
+msgstr "Ничего не пропущено"
 
 msgid "Notice"
 msgstr "Уведомление"
@@ -11118,6 +11155,9 @@ msgstr "Открыть рабочую область запуска"
 msgid "open the task in a workspace"
 msgstr "открыть задачу в рабочей области"
 
+msgid "Open this run's workspace"
+msgstr "Открыть рабочую область этого запуска"
+
 msgid "Open workspace"
 msgstr "Открыть рабочую область"
 
@@ -11452,6 +11492,9 @@ msgstr "Частично"
 
 msgid "Partner, Transpose Platform"
 msgstr "Партнёр, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Передайте расписание внутри triggers как триггер schedule, а не как rrule рядом с ними"
 
 msgid "Passed"
 msgstr "Пройдена"
@@ -13043,14 +13086,8 @@ msgstr "Повторить"
 msgid "Retry after the connection refreshes."
 msgstr "Повторите после восстановления соединения."
 
-msgid "Retry all"
-msgstr "Повторить все"
-
 msgid "Retry dictation"
 msgstr "Повторить диктовку"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Повторить все автоматизации, чей последний запуск завершился ошибкой"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Повторите через несколько секунд; если не поможет, перезапустите Superset."
@@ -13133,6 +13170,9 @@ msgstr "Проверяйте diff с подсветкой синтаксиса"
 
 msgid "Review the result."
 msgstr "Проверьте результат."
+
+msgid "Review these runs in All runs"
+msgstr "Просмотреть эти запуски в разделе «Все запуски»"
 
 msgid "Review thread…"
 msgstr "Ветка обсуждения ревью…"
@@ -13231,6 +13271,9 @@ msgstr "Запускайте более 10 агентов программиро
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Запускайте 10+ параллельных кодовых агентов на своей машине."
 
+msgid "Run again"
+msgstr "Запустить снова"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Запускайте автоматизации по активности в источниках данных и комментариях."
 
@@ -13324,14 +13367,17 @@ msgstr "Работающие процессы терминала продолж�
 msgid "Runs a local command on your machine"
 msgstr "Запускает локальную команду на вашей машине"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Ранее на этой неделе запуски падали, но сейчас ничего не падает"
+msgid "Runs appear here once an automation fires."
+msgstr "Запуски появятся здесь, как только сработает автоматизация."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "Работает внутри приложения Superset на том устройстве, поэтому для обновления нужно обновить приложение там."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Запуски приземляются в рабочую область. Посмотрите diff и объедините то, что подходит."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Запуски, которые за последние 7 дней запустили своё рабочее пространство"
 
 msgid "Runs when a new workspace is created."
 msgstr "Выполняется при создании рабочего пространства."
@@ -13438,6 +13484,9 @@ msgstr "Ставить повторяющиеся запуски по распи
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Агенты по расписанию и по событиям (cron, события GitHub, вебхуки) с готовыми шаблонами."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Запуски по расписанию, не нашедшие хост в сети"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Расписания повторяются — уберите COUNT или UNTIL."
@@ -13777,6 +13826,9 @@ msgstr "Выберите папку"
 msgid "Select environment"
 msgstr "Выберите окружение"
 
+msgid "Select every run"
+msgstr "Выбрать все запуски"
+
 msgid "Select IDE"
 msgstr "Выбрать IDE"
 
@@ -13824,6 +13876,9 @@ msgstr "Выбрать репозитории"
 
 msgid "Select repository"
 msgstr "Выберите репозиторий"
+
+msgid "Select run"
+msgstr "Выбрать запуск"
 
 msgid "Select senders"
 msgstr "Выбрать отправителей"
@@ -14138,9 +14193,6 @@ msgstr "Показывать кнопку «Использование» в бо
 msgid "Show all {count}"
 msgstr "Показать все {count}"
 
-msgid "Show all automations again"
-msgstr "Снова показать все автоматизации"
-
 msgid "Show all comments"
 msgstr "Показать все комментарии"
 
@@ -14216,9 +14268,6 @@ msgstr "Показать больше"
 msgid "Show on Sidebar"
 msgstr "Показать на боковой панели"
 
-msgid "Show only automations whose last run failed"
-msgstr "Показать только автоматизации, чей последний запуск завершился ошибкой"
-
 msgid "Show open items"
 msgstr "Показывать только открытые"
 
@@ -14254,6 +14303,9 @@ msgstr "Показать сессии"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Показывать статус и отправлять уведомления для этого агента."
+
+msgid "Show the triggering payload"
+msgstr "Показать полезную нагрузку триггера"
 
 msgid "Show translation"
 msgstr "Показать перевод"
@@ -14980,6 +15032,9 @@ msgstr "Успех"
 
 msgid "Success!"
 msgstr "Успешно!"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Успешные запуски <0>· 7 дн.</0>"
 
 msgid "Suggested"
 msgstr "Предложения"
@@ -15740,12 +15795,6 @@ msgstr "Человек читает каждую строку перед сли�
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "Описание работы меняется. Инженеры перестают быть машинистками со вкусом и становятся диспетчерами со вкусом: декомпозируют работу, раздают её флотам, разрешают конфликты между агентами, которые оба тронули один модуль."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "Последний запуск завершился ошибкой. Нажмите на строку, чтобы узнать причину."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "Последний запуск завершился ошибкой. Откройте его рабочую область, чтобы узнать причину"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Последние обновления, улучшения и новые возможности Superset."
 
@@ -16461,6 +16510,9 @@ msgstr "Итого"
 msgid "Total agent sessions"
 msgstr "Всего сессий агентов"
 
+msgid "Total automations"
+msgstr "Всего автоматизаций"
+
 msgid "total cash"
 msgstr "общий остаток"
 
@@ -16493,6 +16545,9 @@ msgstr "Разбирать новые задачи"
 
 msgid "triaging 12 new issues…"
 msgstr "разбирает 12 новых задач…"
+
+msgid "Trigger"
+msgstr "Триггер"
 
 msgid "Trigger alert()"
 msgstr "Вызвать alert()"
@@ -17674,9 +17729,6 @@ msgstr "Рабочие области"
 
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Рабочие области — это изолированные окружения для задач на основе git worktree."
-
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Рабочие области, созданные запусками за последние 7 дней"
 
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Рабочие области, созданные одним пользователем за последние 7 дней, по перцентилям"
