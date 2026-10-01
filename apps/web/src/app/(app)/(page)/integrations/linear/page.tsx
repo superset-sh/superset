@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/card";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiLinear } from "react-icons/si";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
@@ -86,6 +87,14 @@ export default async function LinearIntegrationPage() {
 				</p>
 			</div>
 		);
+	}
+
+	if (
+		!(await trpc.integration.syncAllowed.query({
+			organizationId: organization.id,
+		}))
+	) {
+		redirect("/settings/billing");
 	}
 
 	const connection = await trpc.integration.linear.getConnection.query({

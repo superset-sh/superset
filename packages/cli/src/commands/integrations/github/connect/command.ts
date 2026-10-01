@@ -28,6 +28,13 @@ export default command({
 			};
 		}
 
+		if (!(await ctx.api.integration.syncAllowed.query({ organizationId }))) {
+			throw new CLIError(
+				"GitHub sync requires the Pro plan",
+				"Upgrade at https://superset.sh/pricing, or in the app under Settings → Billing.",
+			);
+		}
+
 		const url = `${getApiUrl()}/api/github/install?organizationId=${organizationId}`;
 		const opened =
 			canReachDesktop() &&
