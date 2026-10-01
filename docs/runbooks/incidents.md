@@ -85,10 +85,11 @@ Look in this order. Stop when you find a cause that explains what users see.
 3. **Health checks.**
    - Relay: `https://relay.superset.sh/health` returns `{"ok":true,"proto":2}`.
    - Realtime: `https://realtime.superset.sh/health` returns `{"ok":true}`.
-   - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200. A
+   - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200.
      It reads one row from `auth.users` and from `auth.organizations`. A 503 with
-     `"database":"timeout"` means that the read did not finish in 3 seconds (look for lock waits). A 503 with `"database":"error"` means the query failed immediately (look for a
-     connection or configuration problem).
+     `"database":"timeout"` means that the read did not finish in 3 seconds (look for lock
+     waits). A 503 with `"database":"error"` means that the query failed immediately (look for
+     a connection or configuration problem).
 4. **Vercel.** api, web, marketing, admin and docs run there. Look at the deployment list,
    the runtime logs (`vercel logs`) and the function error rate. `vercel rollback` is the fastest
    fix for a bad API or web deploy. Use it before you try a fix forward, unless a migration has

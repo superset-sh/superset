@@ -42,8 +42,8 @@ Run the checks that can run in parallel at the same time. Record each result wit
    For a run near the start time, look at the failed or slow jobs, especially `deploy-database`
    (migrations): `gh run view <id> --json jobs`.
 2. **Sentry.** Use the Sentry MCP tools when they are connected. Search for issues first seen or
-   spiking in the last 2 hours, in every project: api, web, admin, marketing, docs, relay,
-   sandbox, desktop, host-service, mobile. For each
+   spiking in the last 2 hours, in every project: api, web, admin, marketing, docs, relay
+   (it also holds realtime), sandbox, desktop, host-service, mobile. For each
    match, record the issue title, event count, first-seen time, and the release.
 3. **Health checks** (GET only, 10-second timeout):
    ```bash
