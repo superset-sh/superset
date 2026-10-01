@@ -3364,6 +3364,9 @@ msgstr "CI falló"
 msgid "Clarify this"
 msgstr "Aclara esto"
 
+msgid "Claude account switched on this host."
+msgstr "Se ha cambiado la cuenta de Claude en este host."
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex y OpenCode son los agentes; Superset es donde ejecutas muchos de ellos a la vez. Cada tarea recibe su propio worktree de Git aislado, así que diez agentes pueden trabajar en diez ramas al mismo tiempo mientras tú supervisas, revisas y fusionas desde un solo sitio."
 

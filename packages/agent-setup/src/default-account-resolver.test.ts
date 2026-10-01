@@ -192,4 +192,29 @@ describe("buildDefaultAccountResolver", () => {
 			resolve({ SUPERSET_TERMINAL_ID: "t1", SUPERSET_HOME_DIR: home }),
 		).toBe("<unset>");
 	});
+	it("uses one runtime directory across subscription account switches", () => {
+		const { home, profile } = makeHome(null);
+		const runtime = join(home, "state", "claude-runtime");
+		mkdirSync(runtime);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeFileSync(join(runtime, "selection"), profile);
+		const env = { SUPERSET_TERMINAL_ID: "terminal", SUPERSET_HOME_DIR: home };
+		expect(resolve(env)).toBe(runtime);
+		writeFileSync(join(home, "state", "default-claude-config-dir"), "");
+		writeFileSync(join(runtime, "selection"), "");
+		expect(resolve(env)).toBe(runtime);
+	});
+
+	it("does not use runtime credentials belonging to a different selected profile", () => {
+		const { home, profile } = makeHome(null);
+		mkdirSync(join(home, "state", "claude-runtime"));
+		writeFileSync(join(home, "state", "default-claude-config-dir"), profile);
+		writeFileSync(
+			join(home, "state", "claude-runtime", "selection"),
+			"other-profile",
+		);
+		expect(
+			resolve({ SUPERSET_TERMINAL_ID: "terminal", SUPERSET_HOME_DIR: home }),
+		).toBe(profile);
+	});
 });

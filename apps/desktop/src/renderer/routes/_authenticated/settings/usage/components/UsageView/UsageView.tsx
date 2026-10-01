@@ -431,11 +431,15 @@ export function UsageView({
 	const handleDefaultSwitched = async (
 		agent: ManagedAgent,
 		accountLabel: string,
+		hotSwapStartedAt?: number | null,
 	) => {
 		const providerLabel = AGENT_LABELS[agent];
 		let candidateCount = 0;
 		try {
-			candidateCount = await countRestartCandidates(agent);
+			candidateCount = await countRestartCandidates(
+				agent,
+				hotSwapStartedAt ?? undefined,
+			);
 		} catch {
 			// Fall through to the plain toast.
 		}
@@ -445,10 +449,13 @@ export function UsageView({
 				providerLabel,
 				accountLabel,
 				count: candidateCount,
+				startedBefore: hotSwapStartedAt ?? undefined,
 			});
 			return;
 		}
-		showMadeDefaultToast(providerLabel, accountLabel);
+		if (hotSwapStartedAt)
+			toast.success(t({ message: "Claude account switched on this host." }));
+		else showMadeDefaultToast(providerLabel, accountLabel);
 	};
 
 	const makeDefaultAccount = (account: UsageAccount) => {
@@ -457,10 +464,11 @@ export function UsageView({
 		setDefault.mutate(
 			{ agent, selection: account.selection },
 			{
-				onSuccess: () => {
+				onSuccess: (result) => {
 					void handleDefaultSwitched(
 						agent,
 						account.email ?? account.sourceLabel,
+						result.hotSwapStartedAt,
 					);
 				},
 				onError: (error) => toast.error(errorMessage(error)),
@@ -477,10 +485,10 @@ export function UsageView({
 
 	const confirmRestartSessions = () => {
 		if (!restartPrompt) return;
-		const { agent, accountLabel } = restartPrompt;
+		const { agent, accountLabel, startedBefore } = restartPrompt;
 		setRestartPrompt(null);
 		restartMutation.mutate(
-			{ agent },
+			{ agent, startedBefore },
 			{
 				onSuccess: () => {
 					toast.success(

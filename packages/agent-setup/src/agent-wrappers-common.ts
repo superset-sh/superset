@@ -155,10 +155,18 @@ export function buildDefaultAccountResolver(
   fi`
 		: `unset ${envVar}
   unset SUPERSET_DEFAULT_${envVar}`;
+	const resolveClaudeRuntime =
+		envVar === "CLAUDE_CONFIG_DIR"
+			? `
+  if [ -f "$SUPERSET_HOME_DIR/state/claude-runtime/selection" ] \\
+    && [ "$(cat "$SUPERSET_HOME_DIR/state/claude-runtime/selection" 2>/dev/null)" = "$superset_default_account" ]; then
+    superset_default_account="$SUPERSET_HOME_DIR/state/claude-runtime"
+  fi`
+			: "";
 	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
   && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
   && [ -f ${pointer} ]; then
-  superset_default_account="$(cat ${pointer} 2>/dev/null)"
+  superset_default_account="$(cat ${pointer} 2>/dev/null)"${resolveClaudeRuntime}
   if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
     export ${envVar}="$superset_default_account"
     export SUPERSET_DEFAULT_${envVar}="$superset_default_account"

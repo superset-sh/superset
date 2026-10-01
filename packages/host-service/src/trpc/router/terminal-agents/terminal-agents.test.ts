@@ -465,6 +465,19 @@ describe("findResumedSuccessorTerminalId", () => {
 });
 
 describe("listAccountRestartCandidates", () => {
+	it("only restarts sessions launched before the shared Claude runtime was enabled", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db);
+		const store = createStore(db);
+		expect(listAccountRestartCandidates(db, store, "claude", 1)).toHaveLength(
+			0,
+		);
+		expect(listAccountRestartCandidates(db, store, "claude", 2)).toHaveLength(
+			1,
+		);
+	});
+
 	it("lists live provider sessions with a resumable conversation, nothing else", () => {
 		const db = createTestDb();
 		seedAgentConfig(db);

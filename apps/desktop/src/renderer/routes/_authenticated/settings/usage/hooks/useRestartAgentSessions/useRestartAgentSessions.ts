@@ -13,22 +13,34 @@ export type RestartableUsageAgent = "claude" | "codex";
  */
 export function useRestartAgentSessions(hostUrl: string | null) {
 	const countRestartCandidates = useCallback(
-		async (agent: RestartableUsageAgent): Promise<number> => {
+		async (
+			agent: RestartableUsageAgent,
+			startedBefore?: number,
+		): Promise<number> => {
 			if (!hostUrl) return 0;
 			const candidates = await getHostServiceClientByUrl(
 				hostUrl,
-			).terminalAgents.accountRestartCandidates.query({ provider: agent });
+			).terminalAgents.accountRestartCandidates.query({
+				provider: agent,
+				startedBefore,
+			});
 			return candidates.length;
 		},
 		[hostUrl],
 	);
 
 	const restartMutation = useMutation({
-		mutationFn: async (input: { agent: RestartableUsageAgent }) => {
+		mutationFn: async (input: {
+			agent: RestartableUsageAgent;
+			startedBefore?: number;
+		}) => {
 			if (!hostUrl) throw new Error("No host connection.");
 			return getHostServiceClientByUrl(
 				hostUrl,
-			).terminalAgents.restartAccountSessions.mutate({ provider: input.agent });
+			).terminalAgents.restartAccountSessions.mutate({
+				provider: input.agent,
+				startedBefore: input.startedBefore,
+			});
 		},
 	});
 

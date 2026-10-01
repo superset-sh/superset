@@ -16,6 +16,7 @@ import {
 import type { HostDb } from "../../../db/index.ts";
 import {
 	getDefaultAccountSelections,
+	resolveDefaultAccountEnv,
 	syncDefaultAccountPointers,
 } from "./default-account.ts";
 import {
@@ -57,6 +58,10 @@ export async function provisionSelectedAccounts(db: HostDb): Promise<void> {
 	syncDefaultAccountPointers(db);
 	const { claudeConfigDir, codexHome } = getDefaultAccountSelections(db);
 	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
+	const runtimeDir = resolveDefaultAccountEnv(db, "claude").CLAUDE_CONFIG_DIR;
+	if (runtimeDir && runtimeDir !== claudeConfigDir) {
+		targets.push([runtimeDir, () => provisionClaudeAccount(runtimeDir)]);
+	}
 	// A pointer at a vanished dir is skipped, not recreated: agent launches
 	// already fall back to the system-default login in that case.
 	if (claudeConfigDir && existsSync(claudeConfigDir)) {

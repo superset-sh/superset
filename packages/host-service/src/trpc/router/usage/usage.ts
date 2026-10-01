@@ -22,9 +22,11 @@ import {
 	readClaudeLoginFingerprint,
 	readDefaultLoginEmail,
 } from "./claude";
+import { activateClaudeRuntimeAccount } from "./claude-runtime/switch-account";
 import { fetchCodexAccounts } from "./codex";
 import {
 	getDefaultAccountSelections,
+	resolveDefaultAccountEnv,
 	setDefaultAccountSelection,
 } from "./default-account";
 import { fetchGrokAccounts } from "./grok-quota";
@@ -190,10 +192,6 @@ export const usageRouter = router({
 		};
 	}),
 
-	/**
-	 * Point new agent launches at one of the discovered logins (null = the
-	 * system default). Never touches credentials — see default-account.ts.
-	 */
 	setDefaultAccount: protectedProcedure
 		.input(
 			z.object({
@@ -218,6 +216,22 @@ export const usageRouter = router({
 					});
 				}
 			}
+			const accounts = await getQuota(false);
+			const isClaudeSubscription =
+				input.agent === "claude" &&
+				accounts.some(
+					(account) =>
+						account.agent === "claude" &&
+						account.selection === input.selection &&
+						account.credentialKind === "subscription",
+				);
+			if (isClaudeSubscription) {
+				const hotSwapStartedAt = await activateClaudeRuntimeAccount(
+					ctx.db,
+					input.selection,
+				);
+				return { success: true as const, hotSwapStartedAt };
+			}
 			setDefaultAccountSelection(ctx.db, input.agent, input.selection);
 			// A profile dir is a whole config root, not just a login: without
 			// provisioning, agents launched there lose the user's skills,
@@ -237,7 +251,7 @@ export const usageRouter = router({
 					);
 				}
 			}
-			return { success: true as const };
+			return { success: true as const, hotSwapStartedAt: null };
 		}),
 
 	/**
@@ -268,6 +282,18 @@ export const usageRouter = router({
 				});
 			}
 			if (input.agent === "claude") {
+				const selected = getDefaultAccountSelections(ctx.db).claudeConfigDir;
+				const launchDir = resolveDefaultAccountEnv(
+					ctx.db,
+					"claude",
+				).CLAUDE_CONFIG_DIR;
+				if (
+					selected === input.selection &&
+					launchDir &&
+					launchDir !== selected
+				) {
+					await activateClaudeRuntimeAccount(ctx.db, null);
+				}
 				await removeClaudeProfile(input.selection);
 			} else {
 				await removeCodexHome(input.selection);

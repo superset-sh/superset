@@ -151,4 +151,20 @@ describe("host-wide default account pointers", () => {
 			SUPERSET_DEFAULT_CODEX_HOME: customDefault,
 		});
 	});
+	it("uses the shared Claude runtime only when its credentials match the selected account", () => {
+		const profile = join(home, "profile");
+		const runtime = join(home, "state", "claude-runtime");
+		mkdirSync(profile);
+		mkdirSync(runtime, { recursive: true });
+		const db = mockDb(profile);
+		writeFileSync(join(runtime, "selection"), profile);
+		expect(resolveDefaultAccountEnv(db, "claude")).toEqual({
+			CLAUDE_CONFIG_DIR: runtime,
+			SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: runtime,
+		});
+		writeFileSync(join(runtime, "selection"), "other-profile");
+		expect(resolveDefaultAccountEnv(db, "claude").CLAUDE_CONFIG_DIR).toBe(
+			profile,
+		);
+	});
 });

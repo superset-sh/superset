@@ -3364,6 +3364,9 @@ msgstr "CI 실패"
 msgid "Clarify this"
 msgstr "이것을 명확히 해 주세요"
 
+msgid "Claude account switched on this host."
+msgstr "이 호스트의 Claude 계정을 전환했습니다."
+
 msgid "Claude Code, Codex, and OpenCode are the agents; Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place."
 msgstr "Claude Code, Codex, OpenCode는 에이전트이고, Superset은 그 여럿을 한꺼번에 돌리는 곳입니다. 작업마다 격리된 Git worktree가 생기므로 에이전트 열 개가 브랜치 열 개에서 동시에 작업하는 동안 한곳에서 관찰하고, 리뷰하고, 머지할 수 있습니다."
 

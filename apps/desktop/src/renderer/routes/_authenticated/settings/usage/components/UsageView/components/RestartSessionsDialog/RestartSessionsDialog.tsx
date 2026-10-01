@@ -11,6 +11,7 @@ import { Button } from "@superset/ui/button";
 import { useRef } from "react";
 
 export interface RestartSessionsPrompt {
+	startedBefore?: number;
 	agent: "claude" | "codex";
 	/** "Claude Code" / "Codex". */
 	providerLabel: string;

@@ -216,10 +216,13 @@ export function listAccountRestartCandidates(
 	db: HostDb,
 	store: TerminalAgentStore,
 	provider: "claude" | "codex",
+	startedBefore?: number,
 ): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
 	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
 	for (const binding of store.list()) {
 		if (!binding.agentSessionId) continue;
+		if (startedBefore !== undefined && binding.startedAt >= startedBefore)
+			continue;
 		const config = resolveHostAgentConfig(
 			db,
 			binding.definitionId ?? binding.agentId,
@@ -296,11 +299,13 @@ export async function resumeCrashedAgentSessions(
 export async function restartAccountSessions(
 	deps: ResumeSessionDeps,
 	provider: "claude" | "codex",
+	startedBefore?: number,
 ): Promise<{ restartedTerminalIds: string[] }> {
 	const candidates = listAccountRestartCandidates(
 		deps.db,
 		deps.terminalAgentStore,
 		provider,
+		startedBefore,
 	);
 	const restartedTerminalIds: string[] = [];
 	for (const { binding } of candidates) {
@@ -510,12 +515,18 @@ export const terminalAgentsRouter = router({
 	 * separately so the Usage tab can ask before restarting anything.
 	 */
 	accountRestartCandidates: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.input(
+			z.object({
+				provider: z.enum(["claude", "codex"]),
+				startedBefore: z.number().positive().optional(),
+			}),
+		)
 		.query(({ ctx, input }) =>
 			listAccountRestartCandidates(
 				ctx.db,
 				ctx.terminalAgentStore,
 				input.provider,
+				input.startedBefore,
 			).map(({ binding, agentLabel }) => ({
 				terminalId: binding.terminalId,
 				workspaceId: binding.workspaceId,
@@ -525,7 +536,12 @@ export const terminalAgentsRouter = router({
 
 	/** See {@link restartAccountSessions}. */
 	restartAccountSessions: protectedProcedure
-		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.input(
+			z.object({
+				provider: z.enum(["claude", "codex"]),
+				startedBefore: z.number().positive().optional(),
+			}),
+		)
 		.mutation(({ ctx, input }) =>
 			restartAccountSessions(
 				{
@@ -538,6 +554,7 @@ export const terminalAgentsRouter = router({
 					eventBus: ctx.eventBus,
 				},
 				input.provider,
+				input.startedBefore,
 			),
 		),
 

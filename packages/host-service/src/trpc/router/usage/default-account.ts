@@ -1,8 +1,7 @@
 /**
  * Host-wide default agent account for newly launched agents. "Switching"
- * an account never touches credential stores — it only records which profile
- * dir to inject (CLAUDE_CONFIG_DIR / CODEX_HOME) when an agent starts, so the
- * agent CLI itself keeps owning every login end to end.
+ * an account records the selected profile. Claude subscription launches use
+ * a stable runtime directory after runtime credential switching is enabled.
  */
 
 import { randomUUID } from "node:crypto";
@@ -268,6 +267,22 @@ export function resolveDefaultAccountEnv(
 ): Record<string, string> {
 	if (presetId !== "claude" && presetId !== "codex") return {};
 	const selections = getDefaultAccountSelections(db);
+	if (presetId === "claude") {
+		const runtimeDir = join(supersetHomeDir(), "state", "claude-runtime");
+		try {
+			if (
+				readFileSync(join(runtimeDir, "selection"), "utf8") ===
+				(selections.claudeConfigDir ?? "")
+			) {
+				return {
+					CLAUDE_CONFIG_DIR: runtimeDir,
+					SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: runtimeDir,
+				};
+			}
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+		}
+	}
 	if (
 		presetId === "claude" &&
 		selections.claudeConfigDir &&
