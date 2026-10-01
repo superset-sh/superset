@@ -1,6 +1,5 @@
 import { db, dbWs } from "@superset/db/client";
 import {
-	cloudWorkspaces,
 	environmentRepositories,
 	environmentScopeValues,
 	environmentSecrets,
@@ -417,20 +416,12 @@ export const environmentRouter = {
 								),
 							);
 
-			const { claim, agentCredentialDigest } = await buildSandboxClaim({
-				row: workspace,
-			});
+			const { claim } = await buildSandboxClaim({ row: workspace });
 			const golden = await promoteSandboxToEnvironment({
 				sourceSandbox: workspace.providerSandboxId,
 				goldenName,
 				claim,
 			});
-			if (golden.restarted) {
-				await db
-					.update(cloudWorkspaces)
-					.set({ bootAgentCredentialDigest: agentCredentialDigest })
-					.where(eq(cloudWorkspaces.id, workspace.id));
-			}
 			const hooksRepositoryId =
 				checkouts.find((entry) => entry.hooks)?.repository.id ?? null;
 			const fromGolden = {
