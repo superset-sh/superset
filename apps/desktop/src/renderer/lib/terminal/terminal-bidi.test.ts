@@ -9,9 +9,9 @@ function cellsOf(text: string): BidiCell[] {
 }
 
 /** What the renderer draws: logical cells in visual order, mirrored where flagged. */
-function visual(text: string): string {
+function visual(text: string, alignRight = false): string {
 	const cells = cellsOf(text);
-	const row = computeBidiRow(cells);
+	const row = computeBidiRow(cells, alignRight);
 	if (!row) return text;
 	return Array.from(row.order, (logical, x) => {
 		const cell = { content: cells[logical].codePoint };
@@ -84,5 +84,27 @@ describe("computeBidiRow", () => {
 
 	test("keeps a bracket pair around Hebrew together", () => {
 		expect(visual("אישי [לא חובה].")).toBe("[הבוח אל] ישיא.");
+	});
+	describe("alignRight", () => {
+		test("pushes a Hebrew row against the right edge", () => {
+			expect(visual("שלום    ", true)).toBe("    םולש");
+		});
+
+		test("keeps LTR islands readable inside a right-aligned row", () => {
+			expect(visual("  - כל הכלים: git 3.12", true)).toBe(
+				"git 3.12 :םילכה לכ -  ",
+			);
+		});
+
+		test("leaves rows that start in English left-aligned", () => {
+			expect(visual("Mixed: שלום  ", true)).toBe("Mixed: םולש  ");
+		});
+	});
+
+	test("visualOf is the inverse of order", () => {
+		const row = computeBidiRow(cellsOf("ab שלום (x) 12 עולם"), true);
+		row?.order.forEach((logical, x) => {
+			expect(row.visualOf[logical]).toBe(x);
+		});
 	});
 });

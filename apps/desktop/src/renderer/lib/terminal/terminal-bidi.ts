@@ -24,6 +24,8 @@ export interface BidiRow {
 	order: Int32Array;
 	/** 1 when the glyph at visualX must be drawn mirrored, e.g. "(" as ")". */
 	mirror: Uint8Array;
+	/** visualOf[logicalX] = visualX — where the cursor cell is drawn. */
+	visualOf: Int32Array;
 }
 
 interface BidiLine {
@@ -110,16 +112,32 @@ function classify(cell: BidiCell): Kind {
 /**
  * Returns the visual order of a row, or null when the row has no RTL text
  * (the common case — callers then draw the row untouched).
+ *
+ * With `alignRight`, a row whose first strong character is RTL is laid out as
+ * a right-to-left paragraph: the whole row is mirrored, so its text ends up
+ * against the right edge, the way Hebrew is read.
  */
-export function computeBidiRow(cells: readonly BidiCell[]): BidiRow | null {
+export function computeBidiRow(
+	cells: readonly BidiCell[],
+	alignRight = false,
+): BidiRow | null {
 	const n = cells.length;
 	const kinds = new Uint8Array(n);
 	let hasRtl = false;
+	let firstStrong: Kind = Kind.N;
 	for (let i = 0; i < n; i++) {
 		kinds[i] = classify(cells[i]);
 		if (kinds[i] === Kind.R) hasRtl = true;
+		if (
+			firstStrong === Kind.N &&
+			(kinds[i] === Kind.L || kinds[i] === Kind.R)
+		) {
+			firstStrong = kinds[i];
+		}
 	}
 	if (!hasRtl) return null;
+	// P2/P3: paragraph level 1 (RTL) only when asked to and the row reads RTL.
+	const base = alignRight && firstStrong === Kind.R ? Kind.R : Kind.L;
 
 	// W4: one separator between digits belongs to the number ("19:00", "2.1").
 	for (let i = 1; i < n - 1; i++) {
@@ -134,7 +152,7 @@ export function computeBidiRow(cells: readonly BidiCell[]): BidiRow | null {
 	}
 
 	// W2/W7: digits take the direction of the last strong char before them.
-	let lastStrong = Kind.L;
+	let lastStrong: Kind = base;
 	for (let i = 0; i < n; i++) {
 		const k = kinds[i];
 		if (k === Kind.L || k === Kind.R) lastStrong = k;
@@ -165,23 +183,29 @@ export function computeBidiRow(cells: readonly BidiCell[]): BidiRow | null {
 		}
 	}
 
-	// N1/N2: a neutral run between two RTL-ish sides is RTL, otherwise LTR
-	// (paragraph direction; row start/end count as LTR).
+	// N1/N2: a neutral run takes the direction its two sides share, otherwise
+	// the paragraph's (row start/end count as the paragraph direction).
+	// I1/I2: then each class gets its embedding level.
+	const asStrong = (k: number): Kind =>
+		k === Kind.R || k === Kind.AN ? Kind.R : Kind.L;
+	const levelOf = (k: number): number => {
+		if (base === Kind.L) return k === Kind.R ? 1 : k === Kind.AN ? 2 : 0;
+		return k === Kind.R ? 1 : 2;
+	};
 	const levels = new Uint8Array(n);
-	const rtlish = (k: number) => k === Kind.R || k === Kind.AN;
 	let i = 0;
 	while (i < n) {
 		const k = kinds[i];
 		if (k !== Kind.N) {
-			levels[i] = k === Kind.R ? 1 : k === Kind.AN ? 2 : 0;
+			levels[i] = levelOf(k);
 			i++;
 			continue;
 		}
 		let j = i;
 		while (j < n && kinds[j] === Kind.N) j++;
-		const before = i > 0 && rtlish(kinds[i - 1]);
-		const after = j < n && rtlish(kinds[j]);
-		const level = before && after ? 1 : 0;
+		const before = i > 0 ? asStrong(kinds[i - 1]) : base;
+		const after = j < n ? asStrong(kinds[j]) : base;
+		const level = levelOf(before === after ? before : base);
 		for (let t = i; t < j; t++) levels[t] = level;
 		i = j;
 	}
@@ -204,13 +228,46 @@ export function computeBidiRow(cells: readonly BidiCell[]): BidiRow | null {
 	}
 
 	const mirror = new Uint8Array(n);
+	const visualOf = new Int32Array(n);
 	for (let x = 0; x < n; x++) {
 		const logical = order[x];
+		visualOf[logical] = x;
 		if (levels[logical] % 2 === 1 && MIRRORED[cells[logical].codePoint]) {
 			mirror[x] = 1;
 		}
 	}
-	return { order, mirror };
+	return { order, mirror, visualOf };
+}
+
+const ALIGN_RIGHT_STORAGE_KEY = "superset.terminal.alignRtlRight";
+const listeners = new Set<() => void>();
+let alignRight = readAlignRight();
+
+function readAlignRight(): boolean {
+	try {
+		return globalThis.localStorage?.getItem(ALIGN_RIGHT_STORAGE_KEY) === "1";
+	} catch {
+		return false;
+	}
+}
+
+export function getTerminalAlignRight(): boolean {
+	return alignRight;
+}
+
+/** Turn right-alignment of Hebrew rows on or off in every open terminal. */
+export function setTerminalAlignRight(next: boolean): void {
+	alignRight = next;
+	try {
+		globalThis.localStorage?.setItem(ALIGN_RIGHT_STORAGE_KEY, next ? "1" : "0");
+	} catch {}
+	for (const listener of listeners) listener();
+}
+
+/** Called whenever the bidi layout changes; returns an unsubscribe. */
+export function onTerminalBidiChange(listener: () => void): () => void {
+	listeners.add(listener);
+	return () => listeners.delete(listener);
 }
 
 function rowFromLine(line: BidiLine, cols: number): BidiRow | null {
@@ -226,7 +283,7 @@ function rowFromLine(line: BidiLine, cols: number): BidiRow | null {
 	for (let x = 0; x < cols; x++) {
 		cells[x] = { codePoint: line.getCodePoint(x), width: line.getWidth(x) };
 	}
-	return computeBidiRow(cells);
+	return computeBidiRow(cells, alignRight);
 }
 
 /** Swap a loaded cell's glyph for its mirrored pair, e.g. "(" -> ")". */
