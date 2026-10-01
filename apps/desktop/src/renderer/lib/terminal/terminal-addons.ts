@@ -8,6 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
 import { FocusAwareClipboardProvider } from "./clipboard-provider";
+import { installTerminalBidi } from "./terminal-bidi";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -41,6 +42,9 @@ export function loadAddons(
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);
 	terminal.unicode.activeVersion = "11";
+
+	// Draw RTL text (Hebrew, Arabic) in reading order; read by the WebGL renderer.
+	installTerminalBidi();
 
 	terminal.loadAddon(new ImageAddon());
 

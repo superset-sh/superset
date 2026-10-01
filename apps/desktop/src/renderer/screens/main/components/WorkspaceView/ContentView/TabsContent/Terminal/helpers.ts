@@ -21,6 +21,7 @@ import {
 	type ParserIdleGate,
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
+import { installTerminalBidi } from "renderer/lib/terminal/terminal-bidi";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -141,6 +142,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
+	// Draw RTL text (Hebrew, Arabic) in reading order; read by the WebGL renderer.
+	installTerminalBidi();
 
 	try {
 		xterm.loadAddon(new LigaturesAddon());
