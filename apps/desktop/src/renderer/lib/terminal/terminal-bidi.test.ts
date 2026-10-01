@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { type BidiCell, computeBidiRow, mirrorCell } from "./terminal-bidi";
+import {
+	type BidiCell,
+	computeBidiRow,
+	glyphFont,
+	isCursorInRtl,
+	mirrorCell,
+} from "./terminal-bidi";
 
 function cellsOf(text: string): BidiCell[] {
 	return Array.from(text, (ch) => ({
@@ -106,5 +112,28 @@ describe("computeBidiRow", () => {
 		row?.order.forEach((logical, x) => {
 			expect(row.visualOf[logical]).toBe(x);
 		});
+	});
+
+	test("levels mark Hebrew odd and Latin even", () => {
+		const row = computeBidiRow(cellsOf("ab שלום"));
+		expect(Array.from(row?.levels ?? [])).toEqual([0, 0, 0, 1, 1, 1, 1]);
+	});
+});
+
+describe("glyphFont", () => {
+	test("puts the system font first for Hebrew glyphs only", () => {
+		expect(glyphFont("ש")).toBe("system-ui, ");
+		expect(glyphFont("a")).toBe("");
+		expect(glyphFont("─")).toBe("");
+	});
+});
+
+describe("isCursorInRtl", () => {
+	test("follows the text just before the caret", () => {
+		const row = computeBidiRow(cellsOf("ab שלום  "));
+		expect(isCursorInRtl(row, 2)).toBe(false); // after "ab "
+		expect(isCursorInRtl(row, 5)).toBe(true); // inside "שלום"
+		expect(isCursorInRtl(row, 7)).toBe(true); // right after "שלום"
+		expect(isCursorInRtl(null, 3)).toBe(false); // row without RTL
 	});
 });

@@ -8,7 +8,11 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
 import { FocusAwareClipboardProvider } from "./clipboard-provider";
-import { installTerminalBidi, onTerminalBidiChange } from "./terminal-bidi";
+import {
+	installBidiArrowKeys,
+	installTerminalBidi,
+	onTerminalBidiChange,
+} from "./terminal-bidi";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
@@ -48,6 +52,7 @@ export function loadAddons(
 	const offBidiChange = onTerminalBidiChange(() =>
 		terminal.refresh(0, terminal.rows - 1),
 	);
+	const offBidiArrows = installBidiArrowKeys(terminal);
 
 	terminal.loadAddon(new ImageAddon());
 
@@ -132,6 +137,7 @@ export function loadAddons(
 			disposed = true;
 			cancelAnimationFrame(rafId);
 			offBidiChange();
+			offBidiArrows();
 			try {
 				ligaturesAddon?.dispose();
 			} catch {}

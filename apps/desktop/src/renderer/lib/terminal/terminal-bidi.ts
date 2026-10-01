@@ -26,6 +26,8 @@ export interface BidiRow {
 	mirror: Uint8Array;
 	/** visualOf[logicalX] = visualX — where the cursor cell is drawn. */
 	visualOf: Int32Array;
+	/** Embedding level per logical cell; odd = right-to-left. */
+	levels: Uint8Array;
 }
 
 interface BidiLine {
@@ -236,7 +238,7 @@ export function computeBidiRow(
 			mirror[x] = 1;
 		}
 	}
-	return { order, mirror, visualOf };
+	return { order, mirror, visualOf, levels };
 }
 
 const ALIGN_RIGHT_STORAGE_KEY = "superset.terminal.alignRtlRight";
@@ -294,9 +296,94 @@ export function mirrorCell(cell: MutableCell): void {
 	cell.content = (cell.content & ~CODEPOINT_MASK) | mirrored;
 }
 
+/**
+ * Font for RTL glyphs, put ahead of the terminal font. The usual monospace
+ * stacks reach Hebrew only through Courier New; the system UI font is what
+ * macOS and most apps (Claude Desktop included) draw Hebrew in.
+ */
+const RTL_GLYPH_FONT = "system-ui";
+
+/** CSS font-family prefix for one glyph: the RTL font for RTL text, else "". */
+export function glyphFont(chars: string): string {
+	return isRtlCodePoint(chars.codePointAt(0) ?? 0) ? `${RTL_GLYPH_FONT}, ` : "";
+}
+
+/** Whether the caret sits in right-to-left text: the level of the cell before it. */
+export function isCursorInRtl(row: BidiRow | null, logicalX: number): boolean {
+	if (!row) return false;
+	const before = logicalX > 0 ? row.levels[logicalX - 1] : undefined;
+	return (before ?? row.levels[logicalX] ?? 0) % 2 === 1;
+}
+
+interface RendererWithTerminal {
+	_terminal?: object;
+}
+
+const cursorRtl = new WeakMap<object, boolean>();
+
+function cursorAt(
+	renderer: RendererWithTerminal,
+	row: BidiRow | null,
+	logicalX: number,
+): void {
+	if (renderer._terminal) {
+		cursorRtl.set(renderer._terminal, isCursorInRtl(row, logicalX));
+	}
+}
+
+const SWAPPED_ARROWS: Record<string, [key: string, keyCode: number]> = {
+	ArrowLeft: ["ArrowRight", 39],
+	ArrowRight: ["ArrowLeft", 37],
+};
+
+/**
+ * Make Left/Right follow what's on screen. Programs move the caret in logical
+ * order, so on a right-to-left stretch "left" (one character back) moves it
+ * visually right. While the caret is in RTL text, swap the two keys before
+ * xterm sees them. Returns a disposer.
+ */
+export function installBidiArrowKeys(terminal: {
+	textarea?: HTMLTextAreaElement;
+}): () => void {
+	const textarea = terminal.textarea;
+	if (!textarea) return () => {};
+	const synthetic = new WeakSet<Event>();
+	const onKeyDown = (e: KeyboardEvent) => {
+		if (synthetic.has(e)) return;
+		const swap = SWAPPED_ARROWS[e.key];
+		if (!swap || !cursorRtl.get(terminal)) return;
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		const [key, keyCode] = swap;
+		const ev = new KeyboardEvent("keydown", {
+			key,
+			code: key,
+			shiftKey: e.shiftKey,
+			altKey: e.altKey,
+			ctrlKey: e.ctrlKey,
+			metaKey: e.metaKey,
+			bubbles: true,
+			cancelable: true,
+		});
+		// xterm reads the legacy keyCode/which, which the constructor can't set.
+		Object.defineProperty(ev, "keyCode", { get: () => keyCode });
+		Object.defineProperty(ev, "which", { get: () => keyCode });
+		synthetic.add(ev);
+		textarea.dispatchEvent(ev);
+	};
+	textarea.addEventListener("keydown", onKeyDown, true);
+	return () => textarea.removeEventListener("keydown", onKeyDown, true);
+}
+
 export interface TerminalBidiHook {
 	row: (line: BidiLine, cols: number) => BidiRow | null;
 	mirrorCell: (cell: MutableCell) => void;
+	glyphFont: (chars: string) => string;
+	cursorAt: (
+		renderer: RendererWithTerminal,
+		row: BidiRow | null,
+		logicalX: number,
+	) => void;
 }
 
 declare global {
@@ -305,5 +392,10 @@ declare global {
 }
 
 export function installTerminalBidi(): void {
-	globalThis.__supersetTerminalBidi = { row: rowFromLine, mirrorCell };
+	globalThis.__supersetTerminalBidi = {
+		row: rowFromLine,
+		mirrorCell,
+		glyphFont,
+		cursorAt,
+	};
 }

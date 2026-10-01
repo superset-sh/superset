@@ -48,6 +48,15 @@ describe("@xterm/addon-webgl bidi patch", () => {
 
 		test(`${name} draws the cursor at its visual column`, () => {
 			expect(src.split("__bd.visualOf[").length - 1).toBe(1);
+			expect(src.split("__supersetTerminalBidi?.cursorAt?.(").length - 1).toBe(
+				1,
+			);
+		});
+
+		test(`${name} draws RTL glyphs in the RTL font`, () => {
+			expect(src.split("__supersetTerminalBidi?.glyphFont?.(").length - 1).toBe(
+				1,
+			);
 		});
 	}
 });

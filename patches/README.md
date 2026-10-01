@@ -106,7 +106,11 @@ rows) and installs it on `globalThis.__supersetTerminalBidi`.
 **What it changes** (`_updateModel` in both lib bundles and
 `src/WebglRenderer.ts`): per row, ask the hook for an order; when it returns
 one, load cell `order[x]` instead of `x`, mirror flagged brackets, skip
-ligature joins for that row, and draw the cursor at `visualOf[cursorX]`. Rows
+ligature joins for that row, and draw the cursor at `visualOf[cursorX]`; report
+the cursor row to the hook (`cursorAt`, which drives the Left/Right arrow swap in
+RTL text). In `TextureAtlas._drawToCache`, prefix the glyph font with
+`glyphFont(chars)` so RTL glyphs use the system UI font instead of whichever
+monospace fallback carries Hebrew (usually Courier New). Rows
 without RTL text get `null` and render exactly as before. The buffer, input,
 selection data and copy stay logical. The DOM renderer fallback is not
 patched.
