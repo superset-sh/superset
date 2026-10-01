@@ -51,17 +51,6 @@ You usually don't invoke them; agents pick the right skill from context:
 
 To invoke one explicitly: `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat. Other agents that read skills (Codex, Kimi, Vibe, Grok) see the same skills with a `superset-` prefix.
 
-## Connected Service Plugins
-
-The plugin catalog includes Notion, Slack, and Gmail. Install a plugin from
-**Plugins**, then connect the account it needs. Connections are separate from
-installation: installed skills alone do not authorize access to a service.
-If a connection expires, reconnect it when prompted.
-
-Agents call connected tools through Superset's credential proxy. The service
-credential stays on the server; it is not written into local agent config.
-You can inspect and call the same tools with [`superset mcp`](/cli/cli-reference#mcp).
-
 ## How They're Delivered
 
 At launch, the desktop app writes managed copies into the standard discovery locations: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin, hence the `superset:` namespace), `~/.agents/skills/`, and `~/.agents/commands/`.

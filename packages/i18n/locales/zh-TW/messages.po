@@ -914,6 +914,9 @@ msgstr "{months}個月"
 msgid "{months}mo ago"
 msgstr "{months}個月前"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "你有{myFailedCount}個自動化上次執行失敗"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} 是內建的，無法移除"
@@ -2546,11 +2549,17 @@ msgstr "自動化標題"
 msgid "Automations"
 msgstr "自動化"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "自動化（{myFailedCount}個失敗）"
+
 msgid "Automations & event triggers"
 msgstr "自動化與事件觸發"
 
 msgid "Automations require the Pro plan."
 msgstr "自動化需要Pro方案。"
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "自動化，{myFailedCount}個失敗"
 
 msgid "Autonomous"
 msgstr "自主"
@@ -3705,6 +3714,9 @@ msgstr "程式碼塊"
 
 msgid "Code Block"
 msgstr "程式碼塊"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "程式碼無法使用 — 此工作區的專案沒有此拉取請求所在的儲存庫。"
 
 msgid "Cohort"
 msgstr "同期群"
@@ -16121,6 +16133,12 @@ msgstr "此頁面由 Superset 使用者發布，內容未經查核。"
 msgid "This page was taken down and can no longer be changed"
 msgstr "此頁面已下架，無法再修改"
 
+msgid "This pane can't be shown"
+msgstr "無法顯示此窗格"
+
+msgid "This pane hit an error"
+msgstr "此窗格出錯了"
+
 msgid "This path exists, but it is not a directory."
 msgstr "此路徑存在，但不是目錄。"
 
@@ -16183,6 +16201,9 @@ msgstr "主機已不再追蹤此子代理程式。其逐字稿仍保留在磁碟
 
 msgid "This terminal has no output to hand over yet."
 msgstr "這個終端還沒有可交接的輸出。"
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "此終端機也在較小的螢幕上開啟，因此已調整為符合該螢幕的大小"
 
 msgid "This thread has no comment to reply to."
 msgstr "這個討論裡沒有可回覆的評論。"
@@ -16712,6 +16733,12 @@ msgstr "未知主機"
 
 msgid "Unknown Host"
 msgstr "未知主機"
+
+msgid "Unknown pane"
+msgstr "未知窗格"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "未知的窗格類型：{paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -24,7 +24,7 @@ Sessions survive app restarts:
 - Output history preserved
 - Scrollback maintained
 
-If a terminal has ended, choose **New shell** to start a fresh session in the same pane. Recent output from the previous session stays visible. For agent recovery, see [Resume Interrupted Sessions](/agent-integration#resume-interrupted-sessions).
+If a terminal has ended, choose **New shell** to start a fresh session in the same pane. Recent output from the previous session stays visible. For agent recovery, see [Resume Interrupted Sessions](/agent-sessions#resume-interrupted-sessions).
 
 ## Pane Rename
 
@@ -43,14 +43,15 @@ Right-click in the terminal for quick actions:
 - **Mark as Unread** - Show the unread indicator again
 - Split, Clear, Move to Tab, Close
 
-Multiline copying removes trailing space padding while preserving indentation and blank lines. Single-line and rectangular selections keep their selected text.
+Copying follows Ghostty's whitespace rules: trailing spaces on each line and trailing blank lines are removed, indentation and blank lines between text are kept, and lines that wrapped only because of the pane width are joined back into one line. The same rules apply to ⌘C, copy on select, and rectangular selections.
 
 ## Cmd/Ctrl-Click Links
 
 Hold `Cmd` (macOS) or `Ctrl` and click links in terminal output:
 - URLs open in browser
 - File paths open in the built-in file viewer by default. A location such as `src/index.ts:240:7` jumps to line 240, column 7.
-- Configure link actions and modifier keys in **Settings → Links**
+- Links to Superset Pages open in a Page pane when the click opens them in the app
+- Configure modifier keys for URLs in **Settings → Browser → URL links**, and for file, folder, and page links in **Settings → Files & Editor**
 
 ## Environment Variables
 

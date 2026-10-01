@@ -50,8 +50,14 @@ export function TaskRecordActions({
 				onComplete={() => {}}
 				align="end"
 				trigger={
-					<Button variant="outline" size="sm">
-						<Trans>Create workspace</Trans>
+					<Button
+						variant="outline"
+						size="sm"
+						aria-label={t({ message: "Create workspace" })}
+					>
+						<span className="hidden @min-[18rem]/record-actions:inline">
+							<Trans>Create workspace</Trans>
+						</span>
 						<LuArrowRight className="size-3.5" />
 					</Button>
 				}

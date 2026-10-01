@@ -914,6 +914,9 @@ msgstr "{months} měs."
 msgid "{months}mo ago"
 msgstr "před {months} měs."
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Vaše automatizace s neúspěšným posledním během: {myFailedCount}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} je vestavěný a nelze jej odebrat"
@@ -2546,11 +2549,17 @@ msgstr "Název automatizace"
 msgid "Automations"
 msgstr "Automatizace"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automatizace (neúspěšné: {myFailedCount})"
+
 msgid "Automations & event triggers"
 msgstr "Automatizace a spouštěče událostí"
 
 msgid "Automations require the Pro plan."
 msgstr "Automatizace vyžadují tarif Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automatizace, neúspěšné: {myFailedCount}"
 
 msgid "Autonomous"
 msgstr "Autonomní"
@@ -3705,6 +3714,9 @@ msgstr "Blok kódu"
 
 msgid "Code Block"
 msgstr "Blok kódu"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Kód není k dispozici – projekt tohoto pracovního prostoru neobsahuje repozitář tohoto pull requestu."
 
 msgid "Cohort"
 msgstr "Kohorta"
@@ -16121,6 +16133,12 @@ msgstr "Tuto stránku zveřejnil uživatel Superset. Její obsah není ověřen.
 msgid "This page was taken down and can no longer be changed"
 msgstr "Tato stránka byla stažena a už ji nelze měnit"
 
+msgid "This pane can't be shown"
+msgstr "Tento panel nelze zobrazit"
+
+msgid "This pane hit an error"
+msgstr "V tomto panelu došlo k chybě"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Tato cesta existuje, ale není to adresář."
 
@@ -16183,6 +16201,9 @@ msgstr "Tento subagent už není hostitelem sledován. Jeho přepis zůstává n
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Tento terminál zatím nemá žádný výstup k předání."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Tento terminál je otevřený i na menší obrazovce, proto je přizpůsobený její velikosti"
 
 msgid "This thread has no comment to reply to."
 msgstr "V tomto vlákně není komentář, na který by šlo odpovědět."
@@ -16712,6 +16733,12 @@ msgstr "Neznámý host"
 
 msgid "Unknown Host"
 msgstr "Neznámý host"
+
+msgid "Unknown pane"
+msgstr "Neznámý panel"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Neznámý typ panelu: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

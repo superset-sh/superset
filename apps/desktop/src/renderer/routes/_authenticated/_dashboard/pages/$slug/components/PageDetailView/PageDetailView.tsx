@@ -59,6 +59,7 @@ export function PageDetailView({ slug }: PageDetailViewProps) {
 				>
 					<PageTitleBar
 						className="h-full min-w-0 flex-1 border-b-0 px-0"
+						fillerClassName="drag"
 						page={page}
 						versions={versions}
 						currentUserId={currentUserId}

@@ -41,6 +41,7 @@ config.resolver.extraNodeModules = {
 		"modules/attachments-sheet",
 	),
 	"@superset/paste-input": path.resolve(projectRoot, "modules/paste-input"),
+	"@superset/title-press": path.resolve(projectRoot, "modules/title-press"),
 };
 
 // Worklets Bundle Mode (react-native-streamdown): resolves the generated

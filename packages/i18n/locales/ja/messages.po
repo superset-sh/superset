@@ -914,6 +914,9 @@ msgstr "{months}か月"
 msgid "{months}mo ago"
 msgstr "{months}か月前"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "自分のオートメーションのうち{myFailedCount}件が前回の実行に失敗しました"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} は組み込みのため削除できません"
@@ -2546,11 +2549,17 @@ msgstr "オートメーションのタイトル"
 msgid "Automations"
 msgstr "オートメーション"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "オートメーション({myFailedCount}件失敗中)"
+
 msgid "Automations & event triggers"
 msgstr "オートメーションとイベントトリガー"
 
 msgid "Automations require the Pro plan."
 msgstr "オートメーションにはProプランが必要です。"
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "オートメーション、{myFailedCount}件が失敗中"
 
 msgid "Autonomous"
 msgstr "自律"
@@ -3705,6 +3714,9 @@ msgstr "コードブロック"
 
 msgid "Code Block"
 msgstr "Code Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "コードは利用できません — このワークスペースのプロジェクトには、このプルリクエストのリポジトリがありません。"
 
 msgid "Cohort"
 msgstr "コホート"
@@ -16121,6 +16133,12 @@ msgstr "このページは Superset のユーザーが公開したものです�
 msgid "This page was taken down and can no longer be changed"
 msgstr "このページは公開停止されたため、変更できません"
 
+msgid "This pane can't be shown"
+msgstr "このペインは表示できません"
+
+msgid "This pane hit an error"
+msgstr "このペインでエラーが発生しました"
+
 msgid "This path exists, but it is not a directory."
 msgstr "このパスは存在しますが、ディレクトリではありません。"
 
@@ -16183,6 +16201,9 @@ msgstr "このサブエージェントはホストで追跡されなくなりま
 
 msgid "This terminal has no output to hand over yet."
 msgstr "このターミナルには引き継げる出力がまだありません。"
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "このターミナルは小さい画面でも開かれているため、その画面に合わせたサイズになっています"
 
 msgid "This thread has no comment to reply to."
 msgstr "このスレッドには返信できるコメントがありません。"
@@ -16712,6 +16733,12 @@ msgstr "不明なホスト"
 
 msgid "Unknown Host"
 msgstr "不明なホスト"
+
+msgid "Unknown pane"
+msgstr "不明なペイン"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "不明なペインの種類: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

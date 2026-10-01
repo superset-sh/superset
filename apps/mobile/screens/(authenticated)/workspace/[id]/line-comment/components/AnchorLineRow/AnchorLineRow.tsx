@@ -29,7 +29,7 @@ const CODE_BG = {
 	context: undefined,
 } as const;
 
-/** Static single-line rendering for the comment composer's anchor card. */
+/** Static rendering of the anchored line for the comment composer; long lines wrap. */
 export function AnchorLineRow({
 	type,
 	lineNumber,
@@ -42,7 +42,7 @@ export function AnchorLineRow({
 	tokens?: DiffToken[];
 }) {
 	return (
-		<View className="flex-row" style={{ height: DIFF_LINE_HEIGHT }}>
+		<View className="flex-row" style={{ minHeight: DIFF_LINE_HEIGHT }}>
 			<View
 				className={cn("flex-none", GUTTER_BG[type])}
 				style={{ width: GUTTER_WIDTH }}
@@ -55,15 +55,13 @@ export function AnchorLineRow({
 					{lineNumber ?? ""}
 				</RNText>
 			</View>
-			<View className={cn("flex-1 overflow-hidden", CODE_BG[type])}>
+			<View className={cn("flex-1", CODE_BG[type])}>
 				<RNText
 					allowFontScaling={false}
 					className={cn(
 						"font-mono",
 						tokens ? "text-foreground/90" : TEXT_CLASS[type],
 					)}
-					ellipsizeMode="clip"
-					numberOfLines={1}
 					style={MONO_STYLE}
 				>
 					<RNText allowFontScaling={false} className="text-foreground/90">

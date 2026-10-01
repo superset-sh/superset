@@ -188,18 +188,15 @@ describe("readFile", () => {
 });
 
 describe("writeFile", () => {
-	it("rejects paths outside the workspace root", async () => {
-		const rootPath = await createTempRoot();
+	it("writes files outside the workspace root", async () => {
 		const outsideRoot = await createTempRoot();
-		const absolutePath = path.join(outsideRoot, "escape.txt");
+		const absolutePath = path.join(outsideRoot, "outside.txt");
+		await fs.writeFile(absolutePath, "before");
 
-		await expect(
-			writeFile({
-				rootPath,
-				absolutePath,
-				content: "should not exist",
-			}),
-		).rejects.toThrow("outside workspace root");
+		const result = await writeFile({ absolutePath, content: "after" });
+
+		expect(result.ok).toEqual(true);
+		expect(await fs.readFile(absolutePath, "utf-8")).toEqual("after");
 	});
 
 	it("returns a conflict when revision does not match", async () => {
@@ -208,7 +205,6 @@ describe("writeFile", () => {
 		await fs.writeFile(absolutePath, "current");
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "next",
 			precondition: { ifMatch: "stale-revision" },
@@ -233,7 +229,6 @@ describe("writeFile", () => {
 		});
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "updated",
 			precondition: { ifMatch: readResult.revision },
@@ -249,7 +244,6 @@ describe("writeFile", () => {
 		await fs.writeFile(absolutePath, "content");
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "new content",
 			options: { create: true, overwrite: false },
@@ -266,7 +260,6 @@ describe("writeFile", () => {
 		const absolutePath = path.join(rootPath, "missing.txt");
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "content",
 			options: { create: false, overwrite: true },
@@ -292,13 +285,11 @@ describe("writeFile", () => {
 
 		const [firstResult, secondResult] = await Promise.all([
 			writeFile({
-				rootPath,
 				absolutePath,
 				content: "first",
 				precondition: { ifMatch: revision },
 			}),
 			writeFile({
-				rootPath,
 				absolutePath,
 				content: "second",
 				precondition: { ifMatch: revision },
@@ -321,7 +312,6 @@ describe("writeFile", () => {
 		await fs.symlink(realPath, absolutePath);
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "after",
 		});
@@ -345,7 +335,6 @@ describe("writeFile", () => {
 			encoding: "utf-8",
 		});
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: "after",
 			precondition: { ifMatch: readResult.revision },
@@ -356,18 +345,19 @@ describe("writeFile", () => {
 		expect(await fs.readFile(realPath, "utf-8")).toEqual("after");
 	});
 
-	it("still refuses a symlink that escapes the workspace root", async () => {
+	it("writes through an in-root symlink that resolves outside the root", async () => {
 		const rootPath = await createTempRoot();
 		const outsideRoot = await createTempRoot();
-		const outsidePath = path.join(outsideRoot, "secret.txt");
-		await fs.writeFile(outsidePath, "secret");
+		const outsidePath = path.join(outsideRoot, "target.txt");
+		await fs.writeFile(outsidePath, "before");
 		const absolutePath = path.join(rootPath, "link.txt");
 		await fs.symlink(outsidePath, absolutePath);
 
-		await expect(
-			writeFile({ rootPath, absolutePath, content: "leaked" }),
-		).rejects.toThrow("outside workspace root");
-		expect(await fs.readFile(outsidePath, "utf-8")).toEqual("secret");
+		const result = await writeFile({ absolutePath, content: "after" });
+
+		expect(result.ok).toEqual(true);
+		expect((await fs.lstat(absolutePath)).isSymbolicLink()).toEqual(true);
+		expect(await fs.readFile(outsidePath, "utf-8")).toEqual("after");
 	});
 
 	it("writes Uint8Array content", async () => {
@@ -375,7 +365,6 @@ describe("writeFile", () => {
 		const absolutePath = path.join(rootPath, "binary.bin");
 
 		const result = await writeFile({
-			rootPath,
 			absolutePath,
 			content: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
 		});

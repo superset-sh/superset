@@ -56,10 +56,10 @@ export function CloudWorkspaceStatus({
 				<span
 					role="img"
 					aria-label={t({ message: "Waiting for your input" })}
-					className="relative flex size-2"
+					className="relative flex size-1.5"
 				>
 					<span className="absolute inset-0 animate-ping rounded-full bg-yellow-400 opacity-75" />
-					<span className="relative size-2 rounded-full bg-yellow-500" />
+					<span className="relative size-1.5 rounded-full bg-yellow-500" />
 				</span>
 			);
 		case "failed":
@@ -86,7 +86,7 @@ export function CloudWorkspaceStatus({
 					<span
 						role="img"
 						aria-label={t({ message: "Agent finished" })}
-						className="size-2 rounded-full bg-foreground/85"
+						className="size-1.5 rounded-full bg-success"
 					/>
 				);
 			}

@@ -3,7 +3,6 @@ import { ZoomStable } from "renderer/components/ZoomStable";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
-import { AppMenuButton } from "../AppMenuButton";
 import { NavigationControls } from "../NavigationControls";
 import { OfflineBadge } from "../OfflineBadge";
 import { PortsDropdown } from "../PortsDropdown";
@@ -40,12 +39,11 @@ export function WindowChrome({ className }: { className?: string }) {
 			<div
 				className="flex shrink-0 items-center"
 				style={{
-					marginTop: `${WINDOW_CONTROLS_ROW_TOP / zoomFactor}px`,
-					height: `${WINDOW_CONTROLS_ROW_HEIGHT / zoomFactor}px`,
+					marginTop: `${WINDOW_CONTROLS_ROW_TOP / (isMac ? zoomFactor : 1)}px`,
+					height: `${WINDOW_CONTROLS_ROW_HEIGHT / (isMac ? zoomFactor : 1)}px`,
 				}}
 			>
 				<ZoomStable enabled={isMac} className="flex items-center gap-1">
-					{!isMac && <AppMenuButton />}
 					<SidebarToggle />
 					<NavigationControls />
 					<PortsDropdown align="start" />

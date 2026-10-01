@@ -5,22 +5,27 @@ import path from "node:path";
 export const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
 /**
- * Open an append-mode log fd, truncating first if it exceeds maxBytes.
+ * Move `logPath` to `logPath.1` once it exceeds maxBytes, replacing the older
+ * `.1`, so a rotation keeps the history just before it.
+ */
+export function rotateLogIfOversized(logPath: string, maxBytes: number): void {
+	try {
+		if (fs.statSync(logPath).size > maxBytes) {
+			fs.renameSync(logPath, `${logPath}.1`);
+		}
+	} catch {
+		// Best-effort rotate
+	}
+}
+
+/**
+ * Open an append-mode log fd, rotating it first if it exceeds maxBytes.
  * Returns -1 on failure so callers can fall back to ignoring child stdio.
  */
 export function openRotatingLogFd(logPath: string, maxBytes: number): number {
 	try {
 		fs.mkdirSync(path.dirname(logPath), { recursive: true, mode: 0o700 });
-		if (fs.existsSync(logPath)) {
-			try {
-				const { size } = fs.statSync(logPath);
-				if (size > maxBytes) {
-					fs.writeFileSync(logPath, "", { mode: 0o600 });
-				}
-			} catch {
-				// Best-effort rotate
-			}
-		}
+		rotateLogIfOversized(logPath, maxBytes);
 		const fd = fs.openSync(logPath, "a", 0o600);
 		// openSync's mode arg only applies on create — normalize an existing
 		// file's perms in case it was rotated out-of-band with laxer bits.

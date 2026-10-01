@@ -53,8 +53,15 @@ export function CloudWorkspaceRecordActions({
 					<Trans>Unarchive</Trans>
 				</Button>
 			) : (
-				<Button variant="outline" size="sm" onClick={onOpenWorkspace}>
-					<Trans>Go to workspace</Trans>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={onOpenWorkspace}
+					aria-label={t({ message: "Go to workspace" })}
+				>
+					<span className="hidden @min-[18rem]/record-actions:inline">
+						<Trans>Go to workspace</Trans>
+					</span>
 					<LuArrowRight className="size-3.5" />
 				</Button>
 			)}

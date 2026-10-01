@@ -914,6 +914,9 @@ msgstr "{months} мес."
 msgid "{months}mo ago"
 msgstr "{months} мес. назад"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Ваши автоматизации с ошибкой при последнем запуске: {myFailedCount}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} встроен и не может быть удалён"
@@ -2546,11 +2549,17 @@ msgstr "Название автоматизации"
 msgid "Automations"
 msgstr "Автоматизации"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Автоматизации (с ошибкой: {myFailedCount})"
+
 msgid "Automations & event triggers"
 msgstr "Автоматизации и триггеры по событиям"
 
 msgid "Automations require the Pro plan."
 msgstr "Для автоматизаций нужен план Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Автоматизации, с ошибкой: {myFailedCount}"
 
 msgid "Autonomous"
 msgstr "Автономно"
@@ -3705,6 +3714,9 @@ msgstr "Блок кода"
 
 msgid "Code Block"
 msgstr "Блок кода"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Код недоступен — проект этой рабочей области не содержит репозиторий этого пул-реквеста."
 
 msgid "Cohort"
 msgstr "Когорта"
@@ -16121,6 +16133,12 @@ msgstr "Эту страницу опубликовал пользователь 
 msgid "This page was taken down and can no longer be changed"
 msgstr "Эта страница снята с публикации и больше не может быть изменена"
 
+msgid "This pane can't be shown"
+msgstr "Эту панель нельзя показать"
+
+msgid "This pane hit an error"
+msgstr "В этой панели произошла ошибка"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Этот путь существует, но это не папка."
 
@@ -16183,6 +16201,9 @@ msgstr "Хост больше не отслеживает этого субаг�
 
 msgid "This terminal has no output to hand over yet."
 msgstr "В этом терминале пока нет вывода, который можно передать."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Этот терминал также открыт на экране меньшего размера, поэтому его размер подогнан под него"
 
 msgid "This thread has no comment to reply to."
 msgstr "В этой ветке нет комментария, на который можно ответить."
@@ -16712,6 +16733,12 @@ msgstr "Неизвестный хост"
 
 msgid "Unknown Host"
 msgstr "Неизвестный хост"
+
+msgid "Unknown pane"
+msgstr "Неизвестная панель"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Неизвестный тип панели: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

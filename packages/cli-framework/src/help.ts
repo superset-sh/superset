@@ -10,6 +10,26 @@ export type CommandNode = {
 	args?: ProcessedBuilderConfig[];
 };
 
+/** A whole CLI, every node populated; the root node's options are the globals. */
+export interface CliDescription {
+	name: string;
+	version: string;
+	root: CommandNode;
+}
+
+export function byName(a: string, b: string): number {
+	return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** Runnable commands and non-empty groups, in a locale-independent order. */
+export function visibleChildren(
+	node: CommandNode,
+): Array<[string, CommandNode]> {
+	return [...node.children.entries()]
+		.filter(([, child]) => child.children.size > 0 || child.hasCommand)
+		.sort(([a], [b]) => byName(a, b));
+}
+
 /** Optional branding/curation for the root help screen. */
 export interface HelpBranding {
 	/** One-line pitch printed under the wordmark. */
@@ -43,12 +63,6 @@ export const paint = {
 	invert: ansi("\x1b[7m"),
 };
 
-function visibleRootEntries(root: CommandNode): Array<[string, CommandNode]> {
-	return [...root.children.entries()]
-		.filter(([, node]) => node.children.size > 0 || node.hasCommand)
-		.sort(([a], [b]) => a.localeCompare(b));
-}
-
 function commandLabel(name: string, node: CommandNode): string {
 	const aliasStr = node.aliases?.length ? ` (${node.aliases.join(", ")})` : "";
 	return `${name}${aliasStr}`;
@@ -72,7 +86,7 @@ export function generateRootHelp(
 	);
 	lines.push("");
 
-	const entries = visibleRootEntries(root);
+	const entries = visibleChildren(root);
 
 	if (branding?.examples?.length) {
 		lines.push(paint.heading("Examples"));

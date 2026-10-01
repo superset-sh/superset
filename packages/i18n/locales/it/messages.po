@@ -914,6 +914,9 @@ msgstr "{months}me"
 msgid "{months}mo ago"
 msgstr "{months}me fa"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Tue automazioni con l'ultima esecuzione non riuscita: {myFailedCount}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} è integrato e non può essere rimosso"
@@ -2546,11 +2549,17 @@ msgstr "Titolo dell'automazione"
 msgid "Automations"
 msgstr "Automazioni"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automazioni ({myFailedCount} in errore)"
+
 msgid "Automations & event triggers"
 msgstr "Automazioni e trigger da eventi"
 
 msgid "Automations require the Pro plan."
 msgstr "Le automazioni richiedono il piano Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automazioni, {myFailedCount} in errore"
 
 msgid "Autonomous"
 msgstr "Autonomo"
@@ -3705,6 +3714,9 @@ msgstr "Blocco di codice"
 
 msgid "Code Block"
 msgstr "Code Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Il codice non è disponibile: il progetto di questo workspace non ha il repository di questa pull request."
 
 msgid "Cohort"
 msgstr "Coorte"
@@ -16121,6 +16133,12 @@ msgstr "Questa pagina è stata pubblicata da un utente di Superset. I contenuti 
 msgid "This page was taken down and can no longer be changed"
 msgstr "Questa pagina è stata rimossa e non può più essere modificata"
 
+msgid "This pane can't be shown"
+msgstr "Questo riquadro non può essere mostrato"
+
+msgid "This pane hit an error"
+msgstr "Questo riquadro ha riscontrato un errore"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Questo percorso esiste, ma non è una directory."
 
@@ -16183,6 +16201,9 @@ msgstr "Questo sottoagente non è più tracciato dall'host. La sua trascrizione 
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Questo terminale non ha ancora output da passare."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Questo terminale è aperto anche su uno schermo più piccolo, quindi è adattato alle sue dimensioni"
 
 msgid "This thread has no comment to reply to."
 msgstr "Questo thread non ha commenti a cui rispondere."
@@ -16712,6 +16733,12 @@ msgstr "Host sconosciuto"
 
 msgid "Unknown Host"
 msgstr "Host sconosciuto"
+
+msgid "Unknown pane"
+msgstr "Riquadro sconosciuto"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Tipo di riquadro sconosciuto: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -259,6 +259,135 @@ export const FIRST_PARTY_MANIFESTS = {
 		},
 		"skills": []
 	} as const,
+	"granola": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "granola",
+		"version": "1.0.0",
+		"description": "Recall what was said in your meetings: search, read, and query Granola notes and transcripts.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"granola",
+			"meetings",
+			"meeting-notes",
+			"transcripts",
+			"notes"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Granola",
+					"category": "Productivity",
+					"icon": "granola"
+				},
+				"connector": {
+					"slug": "granola_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.granola.ai/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-granola",
+				"description": "Answer \"what did we say, decide, or promise\" from Granola meeting notes — narrow to the meetings that can hold the answer, read the notes before the transcript, and cite the meeting behind every claim. Use when the user asks what happened in a meeting, what a customer or teammate said, what was decided or promised, or refers to a call, sync, standup, or demo."
+			},
+			{
+				"name": "follow-up-from-granola",
+				"description": "Turn a meeting into work — read its Granola notes, extract the commitments that belong to this user, and carry each one out or draft it (a code change, a ticket, a reply) with a trace back to the note. Use when the user says \"do the follow-ups from\", \"implement what we agreed\", \"make tickets from\", or points at a meeting after a sync, planning session, or customer call."
+			}
+		]
+	} as const,
+	"circleback": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "circleback",
+		"version": "1.0.0",
+		"description": "Meeting notes, action items, and transcripts from Circleback: search what was said and work what was captured.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"circleback",
+			"meetings",
+			"meeting-notes",
+			"action-items",
+			"transcripts"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Circleback",
+					"category": "Productivity",
+					"icon": "circleback"
+				},
+				"connector": {
+					"slug": "circleback_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://circleback.ai/api/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-circleback",
+				"description": "Answer \"what did we say, decide, or promise\" from Circleback meetings — search by attendee, company, tag, or date before keyword, read the notes before the transcript, and cite the meeting behind every claim. Use when the user asks what happened on a call, what a customer or teammate said, what was agreed, or refers to a meeting, sync, demo, or interview."
+			},
+			{
+				"name": "prep-with-circleback",
+				"description": "Build a brief for an upcoming meeting from Circleback — the calendar event, the history with the same people and company, open commitments on both sides, and what is still unresolved. Use when the user asks to prep for a call, \"what do I need to know before\", who someone is, or where things stand with a customer or partner."
+			},
+			{
+				"name": "work-circleback-action-items",
+				"description": "Work the action items Circleback captured — find what is assigned to this user, do the ones the workspace can do, and update status only for work that is actually finished. Use when the user asks what they owe, \"do my action items\", \"what's still open from\", or wants to close, reassign, or add an action item."
+			}
+		]
+	} as const,
+	"ynab": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "ynab",
+		"version": "1.0.0",
+		"description": "Track money in YNAB: accounts, categories, budgets, and transactions.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"ynab",
+			"budget",
+			"finance",
+			"money",
+			"transactions"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "YNAB",
+					"category": "Productivity",
+					"icon": "ynab"
+				},
+				"connector": {
+					"slug": "ynab"
+				}
+			}
+		},
+		"skills": []
+	} as const,
 } as const;
 
 export type FirstPartyPluginName = keyof typeof FIRST_PARTY_MANIFESTS;

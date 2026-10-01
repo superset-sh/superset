@@ -11,7 +11,8 @@
 			],
 			"@superset/composer": ["./modules/composer/src/index.tsx"],
 			"@superset/symbol-button": ["./modules/symbol-button/src/index.tsx"],
-			"@superset/live-activity": ["./modules/live-activity/src/index.ts"]
+			"@superset/live-activity": ["./modules/live-activity/src/index.ts"],
+			"@superset/title-press": ["./modules/title-press/src/index.tsx"]
 		},
 		"allowImportingTsExtensions": true
 	},

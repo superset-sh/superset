@@ -914,6 +914,9 @@ msgstr "{months} mois"
 msgid "{months}mo ago"
 msgstr "il y a {months} mois"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Vos automatisations en échec lors de leur dernière exécution : {myFailedCount}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} est intégré et ne peut pas être supprimé"
@@ -2546,11 +2549,17 @@ msgstr "Titre de l'automatisation"
 msgid "Automations"
 msgstr "Automatisations"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automatisations ({myFailedCount} en échec)"
+
 msgid "Automations & event triggers"
 msgstr "Automatisations et déclencheurs d'événements"
 
 msgid "Automations require the Pro plan."
 msgstr "Les automatisations nécessitent le forfait Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automatisations, {myFailedCount} en échec"
 
 msgid "Autonomous"
 msgstr "Autonome"
@@ -3705,6 +3714,9 @@ msgstr "Bloc de code"
 
 msgid "Code Block"
 msgstr "Bloc de code"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Le code n'est pas disponible : le projet de cet espace de travail n'a pas le dépôt de cette pull request."
 
 msgid "Cohort"
 msgstr "Cohorte"
@@ -16121,6 +16133,12 @@ msgstr "Cette page a été publiée par un utilisateur de Superset. Son contenu 
 msgid "This page was taken down and can no longer be changed"
 msgstr "Cette page a été retirée et ne peut plus être modifiée"
 
+msgid "This pane can't be shown"
+msgstr "Ce volet ne peut pas être affiché"
+
+msgid "This pane hit an error"
+msgstr "Ce volet a rencontré une erreur"
+
 msgid "This path exists, but it is not a directory."
 msgstr "Ce chemin existe, mais ce n'est pas un répertoire."
 
@@ -16183,6 +16201,9 @@ msgstr "Cet sous-agent n'est plus suivi par l'hôte. Sa transcription reste sur 
 
 msgid "This terminal has no output to hand over yet."
 msgstr "Ce terminal n'a encore aucune sortie à transmettre."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "Ce terminal est aussi ouvert sur un écran plus petit, il est donc ajusté à sa taille"
 
 msgid "This thread has no comment to reply to."
 msgstr "Ce fil ne contient aucun commentaire auquel répondre."
@@ -16712,6 +16733,12 @@ msgstr "Hôte inconnu"
 
 msgid "Unknown Host"
 msgstr "Hôte inconnu"
+
+msgid "Unknown pane"
+msgstr "Volet inconnu"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Type de volet inconnu : {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

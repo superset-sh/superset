@@ -44,5 +44,11 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 			refetchOnWindowFocus: true,
 		},
 	);
-	return hostHasRepo ? fromHost : fromApi;
+	return {
+		...(hostHasRepo ? fromHost : fromApi),
+		/** True when this pane's diff/comments can be fetched from the
+		 *  workspace's own host (the Code tab needs a real project + host
+		 *  to call into, which the cloud API path can't provide). */
+		isFromHost: hostHasRepo,
+	};
 }

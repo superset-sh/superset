@@ -86,6 +86,11 @@ export const env = createEnv({
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
+		// Optional: the Google connector, and so the Gmail plugin, reports "not
+		// configured" wherever these are unset, and every other connector and
+		// the Google sign-in above keep working.
+		GOOGLE_TEMP_CLIENT_ID: z.string().min(1).optional(),
+		GOOGLE_TEMP_CLIENT_SECRET: z.string().min(1).optional(),
 		SENTRY_CLIENT_ID: z.string().optional(),
 		SENTRY_CLIENT_SECRET: z.string().optional(),
 		// Optional: the Teams integration is off wherever these are unset, and

@@ -6,7 +6,7 @@ export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
 
-export const SUPERSET_HOSTED_PLUGINS = ["gmail", "slack"] as const;
+export const SUPERSET_HOSTED_PLUGINS = ["gmail", "slack", "ynab"] as const;
 export type SupersetHostedPlugin = (typeof SUPERSET_HOSTED_PLUGINS)[number];
 
 export function isSupersetHosted(name: string): boolean {
@@ -450,6 +450,15 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 				args: ["-y", "chrome-devtools-mcp@latest"],
 			},
 		},
+	},
+	{
+		name: "ynab",
+		version: "1.0.0",
+		description:
+			"Track money in YNAB: accounts, categories, budgets, and transactions",
+		interface: { displayName: "YNAB", category: "Productivity" },
+		auth: [{ type: "api_key", label: "Personal Access Token" }],
+		mcpServers: {},
 	},
 ];
 

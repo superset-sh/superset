@@ -12,6 +12,15 @@ export const PROTOCOL_SCHEMES = {
 	PROD: "superset",
 } as const;
 
+const IOS_TEAM_ID = "NV9657CS5A";
+const IOS_BUNDLE_ID = "sh.superset.mobile";
+
+export const IOS_APP = {
+	TEAM_ID: IOS_TEAM_ID,
+	BUNDLE_ID: IOS_BUNDLE_ID,
+	APP_ID: `${IOS_TEAM_ID}.${IOS_BUNDLE_ID}`,
+} as const;
+
 // Company
 // Root domain flips the whole brand at cutover. Default keeps superset.sh so
 // nothing changes until NEXT_PUBLIC_ROOT_DOMAIN is set (e.g. boid.so). All
@@ -20,6 +29,7 @@ export const PROTOCOL_SCHEMES = {
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh";
 const MARKETING_URL =
 	process.env.NEXT_PUBLIC_MARKETING_URL || `https://${ROOT_DOMAIN}`;
+const APP_STORE_ID = "6788926383";
 
 export const COMPANY = {
 	NAME: "Superset",
@@ -39,7 +49,8 @@ export const COMPANY = {
 	TEAM_MAIL_TO: `mailto:team@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
-	APP_STORE_URL: "https://apps.apple.com/app/id6788926383",
+	APP_STORE_ID,
+	APP_STORE_URL: `https://apps.apple.com/app/id${APP_STORE_ID}`,
 	STATUS_URL: `https://status.${ROOT_DOMAIN}`,
 	TRUST_URL: `https://trust.${ROOT_DOMAIN}`,
 	JOIN_US_URL: `${MARKETING_URL}/join-us`,

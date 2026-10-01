@@ -249,7 +249,7 @@ it. Build on them rather than hardcoding colours and both themes keep working:
 | `--sp-muted` | Secondary text, captions, table headers |
 | `--sp-border` | Rules and hairlines |
 | `--sp-accent` / `--sp-accent-text` | Links and emphasis, and text on top of the accent |
-| `--sp-code-bg` | Code background |
+| `--sp-code-bg` | Code background: a translucent tint of the surrounding text colour, so it sits on whatever background the page paints |
 | `--sp-chart-1` … `--sp-chart-5` | Categorical series colours, distinct in both themes |
 | `--sp-radius` | Corner radius |
 | `--sp-measure` | Reading measure for prose blocks |

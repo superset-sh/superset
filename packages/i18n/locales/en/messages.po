@@ -914,6 +914,9 @@ msgstr "{months}mo"
 msgid "{months}mo ago"
 msgstr "{months}mo ago"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "{myFailedCount} of your automations failed their last run"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} is built in and cannot be removed"
@@ -2546,11 +2549,17 @@ msgstr "Automation title"
 msgid "Automations"
 msgstr "Automations"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automations ({myFailedCount} failing)"
+
 msgid "Automations & event triggers"
 msgstr "Automations & event triggers"
 
 msgid "Automations require the Pro plan."
 msgstr "Automations require the Pro plan."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automations, {myFailedCount} failing"
 
 msgid "Autonomous"
 msgstr "Autonomous"
@@ -3705,6 +3714,9 @@ msgstr "Code block"
 
 msgid "Code Block"
 msgstr "Code Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Code isn't available — this workspace's project doesn't have this pull request's repository."
 
 msgid "Cohort"
 msgstr "Cohort"
@@ -16121,6 +16133,12 @@ msgstr "This page was published by a Superset user. Its contents are unverified.
 msgid "This page was taken down and can no longer be changed"
 msgstr "This page was taken down and can no longer be changed"
 
+msgid "This pane can't be shown"
+msgstr "This pane can't be shown"
+
+msgid "This pane hit an error"
+msgstr "This pane hit an error"
+
 msgid "This path exists, but it is not a directory."
 msgstr "This path exists, but it is not a directory."
 
@@ -16183,6 +16201,9 @@ msgstr "This subagent is no longer tracked by the host. Its transcript stays on 
 
 msgid "This terminal has no output to hand over yet."
 msgstr "This terminal has no output to hand over yet."
+
+msgid "This terminal is also open on a smaller screen, so it's sized to fit"
+msgstr "This terminal is also open on a smaller screen, so it's sized to fit"
 
 msgid "This thread has no comment to reply to."
 msgstr "This thread has no comment to reply to."
@@ -16712,6 +16733,12 @@ msgstr "Unknown host"
 
 msgid "Unknown Host"
 msgstr "Unknown Host"
+
+msgid "Unknown pane"
+msgstr "Unknown pane"
+
+msgid "Unknown pane type: {paneKind}"
+msgstr "Unknown pane type: {paneKind}"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.unknownPlugin"

@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "granola",
+	"version": "1.0.0",
+	"description": "Recall what was said in your meetings: search, read, and query Granola notes and transcripts.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["granola", "meetings", "meeting-notes", "transcripts", "notes"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Granola",
+				"category": "Productivity",
+				"icon": "granola"
+			},
+			"connector": {
+				"slug": "granola_mcp"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.granola.ai/mcp"
+			}
+		}
+	}
+}

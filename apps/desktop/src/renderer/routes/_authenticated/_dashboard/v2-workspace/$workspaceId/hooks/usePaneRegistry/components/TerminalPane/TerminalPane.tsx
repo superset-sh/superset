@@ -53,6 +53,7 @@ import {
 } from "../../utils/runTerminalLinkAction";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
+import { TerminalNarrowedBanner } from "./components/TerminalNarrowedBanner";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { terminalContextMenuLinkStore } from "./contextMenuLinkStore";
 import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
@@ -614,6 +615,10 @@ export function TerminalPane({
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
+			<TerminalNarrowedBanner
+				terminalId={terminalId}
+				terminalInstanceId={terminalInstanceId}
+			/>
 			<div className="relative min-h-0 flex-1 overflow-hidden">
 				<TerminalSearch
 					searchAddon={searchAddon}

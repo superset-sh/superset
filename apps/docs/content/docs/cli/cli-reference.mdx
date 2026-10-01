@@ -280,6 +280,7 @@ talk to when targeting this machine.
 	name="superset start"
 	options={[
 		{ flag: "--daemon", description: "Run detached." },
+		{ flag: "--auto-update", description: "Check hourly for a newer release, install it, and restart the host. Requires --daemon. Off by default." },
 		{ flag: "--port <n>", description: "Specific port. Default: a free loopback port." },
 		{ flag: "--org <id>", description: "Organization to register under. Default: the active organization." },
 	]}
@@ -977,8 +978,11 @@ superset agents list --host host_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
-		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session` is set." },
+		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session`, `--fork-session`, or `--from-terminal` is set. Not allowed with `--from-terminal`." },
 		{ flag: "--resume-session <id>", description: "Agent session id of a previous run to restore instead of starting fresh (e.g. `claude --resume <id>`). Fails for agents without an id-based resume." },
+		{ flag: "--fork-session <id>", description: "Agent session id to clone into a new session of the same agent. The source session stays unchanged. Fails for agents without a fork command, or when the agent no longer has that session." },
+		{ flag: "--from-terminal <terminalId>", description: "Terminal whose recent output seeds the new session, so a different agent can continue the work. Superset builds the prompt." },
+		{ flag: "--context-chars <n>", description: "With `--from-terminal`, cap the handed-over context at 1-36000 characters. Default 36000 (roughly 9-12k tokens)." },
 		{ flag: "--model <id>", description: "Model for this launch. Supported values depend on the agent; omit to use its default." },
 		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
@@ -999,7 +1003,16 @@ superset agents create --workspace ws_… --agent claude --model sonnet --effort
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
 # Restore a killed agent session by the agent's own session id
 superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
+# Fork a session: a new Claude session with the same conversation
+superset agents create --workspace ws_… --agent claude --fork-session 0b7c…
+# Hand a terminal's recent output to a different agent
+superset agents create --workspace ws_… --agent codex --from-terminal term_…
+superset agents create --workspace ws_… --agent codex --from-terminal term_… --context-chars 12000
 ```
+
+Pass at most one of `--resume-session`, `--fork-session`, and
+`--from-terminal`. See [Fork and hand off sessions](/agent-sessions#fork-and-hand-off-sessions)
+for which agents can fork and what a handoff sends.
 
 </Command>
 
@@ -1032,7 +1045,7 @@ Model is an explicit override for one launch. If you omit `--model`, Superset
 passes no model flag and the agent uses its own configured default. Ids match
 the desktop model picker: Claude takes a family alias (`fable`, `opus`,
 `sonnet`, `haiku`) that tracks the newest release, or a pinned id such as
-`claude-opus-5-5`. Codex includes `gpt-6-sol` and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
+`claude-opus-5-5` or `claude-sonnet-5-5`. Codex includes `gpt-6-astra`, `gpt-6-sol`, and `gpt-6-luna`. The host rejects an unknown id before launching the agent,
 and the error names every id that agent accepts. Agents without a model
 picker, including Superset chat, reject an explicit model override.
 
@@ -1051,7 +1064,7 @@ The host rejects unsupported values before launching the agent.
 | Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
 | Copilot | `low`, `medium`, `high`, `xhigh` |
 
-GPT-6 Sol supports `max` and `ultra`; GPT-6 Luna supports `max`.
+GPT-6 Astra and GPT-6 Sol support `max` and `ultra`; GPT-6 Luna supports `max`.
 
 Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
@@ -1315,10 +1328,7 @@ existing page. Without a workspace, keep the returned ID and pass `--page` on
 later publishes to avoid creating another page. Existing visibility is
 preserved unless explicitly supplied.
 
-The first version published from a workspace attempts to open in the desktop,
-following **Settings → Links → Pages**. This is skipped over SSH or in a cloud
-sandbox. An opening failure does not fail the publish; the result includes an
-`openNote`. Later versions do not reopen.
+Publishing does not open the page in the desktop.
 
 ```bash
 superset pages publish report.html --title "Weekly report" --visibility everyone
@@ -1328,7 +1338,7 @@ superset pages publish report.html --page <page-id> --label "Addressed feedback"
 <CommandReturns>
 Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 `watching`, and asset upload/reuse counts. Unlinked publishes include a
-`republish` command; watch and opening notes appear when applicable.
+`republish` command. When the publish tries to register the session for comments, `watchNote` says whether it worked.
 </CommandReturns>
 </Command>
 
@@ -1344,42 +1354,6 @@ Page metadata including `id`, `title`, `version`, and `url`, plus `unanchored`,
 >
 Delete a page and every version. Interactive terminals ask for confirmation
 unless `--yes` is passed; non-interactive input does not prompt.
-</Command>
-
-### mcp
-
-Use tools from connected plugins. This is separate from the
-[Superset MCP server](/mcp-server), which exposes Superset itself to agents.
-
-<Command
-	name="superset mcp tools"
-	options={[
-		{ flag: "--plugin <name>", required: true, description: "Plugin name from superset plugins list." },
-	]}
-	output="Array<{ plugin: string; tool: string; description: string }>"
->
-List the tools a connected plugin exposes. Use the returned names and
-descriptions before calling a tool.
-</Command>
-
-<Command
-	name="superset mcp call-tool <tool> [arguments]"
-	args={[
-		{ name: "tool", required: true, description: "Tool name from mcp tools." },
-		{ name: "arguments", description: "JSON arguments; defaults to {}. Pass - to read stdin." },
-	]}
-	options={[
-		{ flag: "--plugin <name>", required: true, description: "Connected plugin name." },
-	]}
->
-Call a plugin tool and return its MCP result, including the content array.
-Credentials are attached by Superset's API. `--connection` and `--plugin-id`
-are deprecated aliases for `--plugin`; they take a plugin name, not a connection ID.
-
-```bash
-superset mcp tools --plugin notion
-superset mcp call-tool notion-fetch --plugin notion '{"id":"<page-id>"}'
-```
 </Command>
 
 ---
@@ -1935,6 +1909,131 @@ relaunch, or the app may overwrite the change.)
 superset settings theme set monokai
 superset settings theme set system --system-light light --system-dark monokai
 ```
+</Command>
+
+---
+
+### completion
+
+Shell completion for bash and zsh, generated from the installed version's
+command tree, so it never drifts from what the binary accepts.
+
+<Command
+	name="superset completion <shell>"
+	args={[
+		{ name: "shell", required: true, description: "`bash` or `zsh`." },
+	]}
+>
+Prints the script to stdout, byte for byte, in every output mode: `--json`,
+`--quiet` and agent environments do not wrap it. The script completes command
+names at every level and walks through an alias already typed
+(`superset ws cr<Tab>`), each command's flags and their aliases, enum values
+for flags (`--priority=u<Tab>` included) and arguments, and the global
+options.
+
+```bash
+# This shell session
+source <(superset completion zsh)
+eval "$(superset completion bash)"   # bash 3.2 (macOS's /bin/bash) cannot source a process substitution
+
+# Every session: put the line above in ~/.zshrc or ~/.bashrc, or for zsh
+# install the script on fpath so compinit autoloads it
+superset completion zsh > ~/.zfunc/_superset   # with fpath=(~/.zfunc $fpath) before compinit
+```
+</Command>
+
+### schema
+
+<Command name="superset schema">
+Prints every command, option and argument as JSON, for tooling that must not
+parse `--help`. Commands hidden from this run (internal-only, or unavailable
+in a cloud workspace) are left out, as they are from `--help`. Commands and
+options are sorted and absent fields are omitted, so the output of two
+versions diffs cleanly.
+
+```bash
+superset schema | jq '.commands[] | select(.path == ["terminals"]) | .commands[].path'
+```
+
+<CommandReturns>
+<JsonOutput>
+```ts
+{
+  name: "superset";
+  version: string;
+  globalOptions: SchemaOption[];
+  commands: SchemaCommand[];
+}
+
+// SchemaCommand
+{
+  path: string[];            // e.g. ["terminals", "read"]
+  description?: string;
+  aliases?: string[];
+  options: SchemaOption[];
+  args: SchemaArg[];
+  commands: SchemaCommand[]; // empty for a leaf command
+}
+
+// SchemaOption
+{
+  name: string;              // flag name without the dashes
+  aliases: string[];
+  type: "string" | "number" | "boolean";
+  required: boolean;
+  description?: string;
+  default?: unknown;
+  enum?: string[];
+  variadic?: true;
+  int?: true;
+  min?: number;
+  max?: number;
+  env?: string;              // environment variable that can supply the value
+}
+
+// SchemaArg
+{
+  name: string;
+  required: boolean;
+  description?: string;
+  enum?: string[];
+  variadic?: true;
+}
+```
+</JsonOutput>
+</CommandReturns>
+</Command>
+
+### config
+
+Inspect the CLI's local config file: `config.json` under `~/.superset`, or
+under `$SUPERSET_HOME_DIR` when that is set.
+
+<Command name="superset config check">
+Validates the file before a hand edit or a bad restore surfaces as a
+confusing auth failure: JSON syntax, the shape of `auth`, `apiKey` and
+`organizationId`, an expired token, and keys this version does not read.
+An error exits 1; a warning does not. A missing file is not an error, it
+only means nobody has logged in yet.
+
+```bash
+superset config check
+superset config check --json
+```
+
+<CommandReturns>
+<JsonOutput>
+```ts
+{
+  path: string;
+  exists: boolean;
+  valid: boolean;     // false when any issue is an error
+  loggedIn: boolean;  // the file holds a usable credential
+  issues: { severity: "error" | "warning"; message: string }[];
+}
+```
+</JsonOutput>
+</CommandReturns>
 </Command>
 
 ---
