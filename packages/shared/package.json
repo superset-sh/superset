@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./terminal-recovery": "./src/terminal-recovery.ts",
 		"./terminal-colors": "./src/terminal-colors.ts",
 		"./connectors": {
 			"types": "./src/connectors/index.ts",

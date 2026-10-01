@@ -635,3 +635,47 @@ describe("terminalRuntimeRegistry copy selection", () => {
 		);
 	});
 });
+
+describe("deleted terminal history", () => {
+	test("flushes output and captures both buffers at the actual dimensions", async () => {
+		let flush: (() => void) | undefined;
+		const serialize = mock(() => "normal history\x1b[?1049halt screen");
+		const previous = {
+			runtime: {
+				terminal: {
+					cols: 132,
+					rows: 42,
+					options: { scrollback: 5000 },
+					write: (_: string, callback: () => void) => {
+						flush = callback;
+					},
+				},
+				serializeAddon: { serialize },
+			},
+		};
+		const internals = terminalRuntimeRegistry as unknown as {
+			getEntry: () => typeof previous;
+		};
+		const getEntry = spyOn(internals, "getEntry").mockReturnValue(previous);
+		try {
+			const pending = terminalRuntimeRegistry.captureRecoveryBuffer(
+				"old",
+				"pane",
+			);
+			expect(serialize).not.toHaveBeenCalled();
+			flush?.();
+			expect(await pending).toEqual({
+				version: 1,
+				cols: 132,
+				rows: 42,
+				ansi: "normal history\x1b[?1049halt screen",
+			});
+			expect(serialize).toHaveBeenCalledWith({
+				scrollback: 5000,
+				excludeModes: true,
+			});
+		} finally {
+			getEntry.mockRestore();
+		}
+	});
+});

@@ -2570,6 +2570,9 @@ msgstr "Autonomní cesta od ticketu k PR"
 msgid "Available"
 msgstr "Volné"
 
+msgid "Available for 24 hours"
+msgstr "K dispozici po dobu 24 hodin"
+
 msgid "Available when v2 is enabled."
 msgstr "Dostupné, když je zapnutá v2."
 
@@ -6658,9 +6661,6 @@ msgstr "Nepodařilo se odebrat člena"
 msgid "Failed to remove PR link: {0}"
 msgstr "Nepodařilo se odebrat propojení s PR: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Nepodařilo se odebrat terminál"
-
 msgid "Failed to rename"
 msgstr "Nepodařilo se přejmenovat"
 
@@ -10201,6 +10201,9 @@ msgstr "Zatím žádné veřejné konfigurace agentů. Tato adresa je připraven
 msgid "No pull requests found."
 msgstr "Nenalezeny žádné pull requesty."
 
+msgid "No recently deleted panes"
+msgstr "Žádné nedávno smazané panely"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nenalezeny žádné repozitáře. Ověřte, že vaše GitHub App má k repozitářům přístup."
 
@@ -12635,9 +12638,6 @@ msgstr "Odebere tohoto agenta jen z tohoto zařízení."
 
 msgid "Removing member..."
 msgstr "Odebírám člena..."
-
-msgid "Removing terminal..."
-msgstr "Odebírám terminál..."
 
 msgid "Removing…"
 msgstr "Odebírám…"
@@ -15513,9 +15513,6 @@ msgstr "ID terminálu"
 
 msgid "Terminal input"
 msgstr "Vstup terminálu"
-
-msgid "Terminal removed"
-msgstr "Terminál odebrán"
 
 msgid "Terminal scripts"
 msgstr "Terminálové skripty"

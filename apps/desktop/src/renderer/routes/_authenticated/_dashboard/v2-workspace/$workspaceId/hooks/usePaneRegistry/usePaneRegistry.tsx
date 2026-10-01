@@ -143,6 +143,7 @@ const MOD_KEY = navigator.platform.toLowerCase().includes("mac")
 	: "Ctrl+";
 
 interface UsePaneRegistryOptions {
+	onRemoveSession: (terminalId: string) => Promise<boolean>;
 	onOpenDiff: OpenReviewDiff;
 	onOpenComment: (comment: CommentPaneData) => void;
 	onOpenFile: OpenFile;
@@ -152,6 +153,7 @@ interface UsePaneRegistryOptions {
 }
 
 export function usePaneRegistry({
+	onRemoveSession,
 	onOpenDiff,
 	onOpenComment,
 	onOpenFile,
@@ -218,6 +220,15 @@ export function usePaneRegistry({
 			});
 		},
 		[collections.v2WorkspaceLocalState, workspaceId],
+	);
+
+	const disposeTerminal = useMemo(
+		() => (terminalId: string) => {
+			clearWorkspaceRunTerminal(terminalId);
+			terminalRuntimeRegistry.dispose(terminalId);
+			killTerminalSessionSilently({ terminalId, workspaceId });
+		},
+		[clearWorkspaceRunTerminal, killTerminalSessionSilently, workspaceId],
 	);
 
 	const { createNewAgentSession, focusAgentTerminal } = useAgentSessionLauncher(
@@ -416,9 +427,7 @@ export function usePaneRegistry({
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
-					clearWorkspaceRunTerminal(terminalId);
-					terminalRuntimeRegistry.dispose(terminalId);
-					killTerminalSessionSilently({ terminalId, workspaceId });
+					disposeTerminal(terminalId);
 				},
 				onAfterRemove: (pane) => {
 					terminalRuntimeRegistry.release(
@@ -429,7 +438,19 @@ export function usePaneRegistry({
 				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
 					<div className="flex min-w-0 flex-1 items-center gap-1.5">
 						<TerminalSessionDropdown
-							onSessionRemoved={clearWorkspaceRunTerminal}
+							onRemoveSession={async (terminalId) => {
+								const hadPane = !!findTerminalPaneLocation(
+									store.getState(),
+									terminalId,
+								);
+								if (await onRemoveSession(terminalId)) {
+									if (
+										!hadPane &&
+										!findTerminalPaneLocation(store.getState(), terminalId)
+									)
+										disposeTerminal(terminalId);
+								}
+							}}
 							context={ctx}
 							launcher={launcher}
 							workspaceId={workspaceId}
@@ -889,11 +910,11 @@ export function usePaneRegistry({
 			store,
 			workspaceId,
 			isChatV3Enabled,
-			clearWorkspaceRunTerminal,
+			disposeTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,
 			killTerminalSession,
-			killTerminalSessionSilently,
+			onRemoveSession,
 			isKillingTerminalSession,
 			launcher,
 			onOpenDiff,

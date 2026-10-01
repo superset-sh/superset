@@ -1,8 +1,17 @@
+import {
+	captureTerminalRecoverySnapshot,
+	type TerminalRecoverySnapshot,
+	terminalRecoverySnapshotSchema,
+} from "@superset/shared/terminal-recovery";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { runWhenParserIdle } from "./parser-idle-gate";
+import {
+	TERMINAL_BUFFER_KEY_PREFIX,
+	TERMINAL_DIMS_KEY_PREFIX,
+} from "./terminal-buffer-gc";
 import { getTerminalSelectionForCopy } from "./terminal-copy";
 import type { ImagePasteOverride } from "./terminal-image-paste-fallback";
 import {
@@ -697,6 +706,38 @@ class TerminalRuntimeRegistryImpl {
 		return (
 			this.getEntry(terminalId, instanceId)?.transport.sessionEnded ?? false
 		);
+	}
+
+	async captureRecoveryBuffer(
+		terminalId: string,
+		instanceId?: string,
+	): Promise<TerminalRecoverySnapshot | undefined> {
+		const runtime = (
+			this.getEntry(terminalId, instanceId) ?? this.getPrimaryEntry(terminalId)
+		)?.runtime;
+		if (runtime) {
+			await new Promise<void>((resolve) => runtime.terminal.write("", resolve));
+			return captureTerminalRecoverySnapshot(runtime.terminal, (options) =>
+				runtime.serializeAddon.serialize(options),
+			);
+		}
+		try {
+			const ansi = localStorage.getItem(
+				`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`,
+			);
+			const dims = localStorage.getItem(
+				`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`,
+			);
+			if (!ansi || !dims) return undefined;
+			const parsed = terminalRecoverySnapshotSchema.safeParse({
+				version: 1,
+				ansi,
+				...JSON.parse(dims),
+			});
+			return parsed.success ? parsed.data : undefined;
+		} catch {
+			return undefined;
+		}
 	}
 
 	prepareReplacement(

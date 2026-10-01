@@ -2570,6 +2570,9 @@ msgstr "工单到PR的自主流水线"
 msgid "Available"
 msgstr "可用"
 
+msgid "Available for 24 hours"
+msgstr "24 小时内可用"
+
 msgid "Available when v2 is enabled."
 msgstr "启用v2后可用。"
 
@@ -6658,9 +6661,6 @@ msgstr "移除成员失败"
 msgid "Failed to remove PR link: {0}"
 msgstr "移除PR链接失败：{0}"
 
-msgid "Failed to remove terminal"
-msgstr "移除终端失败"
-
 msgid "Failed to rename"
 msgstr "重命名失败"
 
@@ -10201,6 +10201,9 @@ msgstr "暂无公开的智能体配置。此页面已为将来的智能体配置
 msgid "No pull requests found."
 msgstr "未找到拉取请求。"
 
+msgid "No recently deleted panes"
+msgstr "没有最近删除的窗格"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到仓库。请确认你的GitHub App有权访问仓库。"
 
@@ -12635,9 +12638,6 @@ msgstr "仅从此设备上移除该智能体。"
 
 msgid "Removing member..."
 msgstr "正在移除成员..."
-
-msgid "Removing terminal..."
-msgstr "正在移除终端..."
 
 msgid "Removing…"
 msgstr "正在移除…"
@@ -15513,9 +15513,6 @@ msgstr "终端ID"
 
 msgid "Terminal input"
 msgstr "终端输入"
-
-msgid "Terminal removed"
-msgstr "终端已移除"
 
 msgid "Terminal scripts"
 msgstr "终端脚本"

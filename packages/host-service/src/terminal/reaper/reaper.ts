@@ -1,6 +1,10 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lte } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
-import { terminalAgentBindings, terminalSessions } from "../../db/schema.ts";
+import {
+	closedPanes,
+	terminalAgentBindings,
+	terminalSessions,
+} from "../../db/schema.ts";
 import { portManager } from "../../ports/port-manager.ts";
 import { markTerminalAgentBindingEnded } from "../../terminal-agents/persistence.ts";
 import { getDaemonClient } from "../daemon-client-singleton.ts";
@@ -386,6 +390,7 @@ export function startTerminalReaper(db: HostDb): () => void {
 	const missingObservations = new MissingTerminalObservations();
 	let running = false;
 	const run = (observeMissing = true) => {
+		db.delete(closedPanes).where(lte(closedPanes.expiresAt, Date.now())).run();
 		if (running) return;
 		running = true;
 		void reapOrphanedSessions(

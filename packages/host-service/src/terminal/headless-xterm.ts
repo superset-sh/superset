@@ -14,3 +14,7 @@ export const HeadlessTerminal = (
 ).Terminal;
 
 export type HeadlessTerminal = InstanceType<typeof HeadlessTerminal>;
+
+export const HeadlessSerializeAddon = (
+	require("@xterm/addon-serialize") as typeof import("@xterm/addon-serialize")
+).SerializeAddon;

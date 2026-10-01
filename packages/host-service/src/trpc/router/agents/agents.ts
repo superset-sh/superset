@@ -1,4 +1,7 @@
-import { isBuiltinAgentId } from "@superset/shared/agent-catalog";
+import {
+	isBuiltinAgentId,
+	isCustomAgentId,
+} from "@superset/shared/agent-catalog";
 import { FORK_SESSION_ID_TOKEN } from "@superset/shared/agent-definition";
 import {
 	buildAgentEffortArgs,
@@ -472,14 +475,15 @@ export function bindResumedSession(
 	terminalId: string,
 ): void {
 	if (!input.resumeSessionId) return;
-	const presetId = resolveHostAgentConfig(ctx.db, input.agent)?.presetId;
-	if (!presetId || !isBuiltinAgentId(presetId)) return;
+	const config = resolveHostAgentConfig(ctx.db, input.agent);
+	if (!config || !isBuiltinAgentId(config.presetId)) return;
 
 	ctx.terminalAgentStore.recordEvent({
 		terminalId,
 		workspaceId: input.workspaceId,
 		eventType: "Attached",
-		agentId: presetId,
+		agentId: config.presetId,
+		definitionId: isCustomAgentId(config.id) ? config.id : config.presetId,
 		agentSessionId: input.resumeSessionId,
 		occurredAt: Date.now(),
 	});

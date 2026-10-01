@@ -54,6 +54,7 @@ const RUNTIME_PACKAGES = [
 	"better-sqlite3",
 	"node-pty",
 	"@parcel/watcher",
+	"@xterm/addon-serialize",
 	"@xterm/headless",
 ] as const;
 

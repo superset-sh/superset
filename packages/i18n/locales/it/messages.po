@@ -2570,6 +2570,9 @@ msgstr "Pipeline autonoma dal ticket alla PR"
 msgid "Available"
 msgstr "Disponibile"
 
+msgid "Available for 24 hours"
+msgstr "Disponibile per 24 ore"
+
 msgid "Available when v2 is enabled."
 msgstr "Disponibile quando v2 è attivo."
 
@@ -6658,9 +6661,6 @@ msgstr "Rimozione del membro non riuscita"
 msgid "Failed to remove PR link: {0}"
 msgstr "Rimozione del link alla PR non riuscita: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Rimozione del terminale non riuscita"
-
 msgid "Failed to rename"
 msgstr "Rinomina non riuscita"
 
@@ -10201,6 +10201,9 @@ msgstr "Ancora nessuna configurazione di agente pubblica. Questa sezione è pron
 msgid "No pull requests found."
 msgstr "Nessuna pull request trovata."
 
+msgid "No recently deleted panes"
+msgstr "Nessun pannello eliminato di recente"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Nessun repository trovato. Assicurati che la tua GitHub App abbia accesso ai repository."
 
@@ -12635,9 +12638,6 @@ msgstr "Rimuove questo agente solo da questo dispositivo."
 
 msgid "Removing member..."
 msgstr "Rimozione del membro..."
-
-msgid "Removing terminal..."
-msgstr "Rimozione del terminale..."
 
 msgid "Removing…"
 msgstr "Rimozione…"
@@ -15513,9 +15513,6 @@ msgstr "ID del terminale"
 
 msgid "Terminal input"
 msgstr "Input del terminale"
-
-msgid "Terminal removed"
-msgstr "Terminale rimosso"
 
 msgid "Terminal scripts"
 msgstr "Script del terminale"

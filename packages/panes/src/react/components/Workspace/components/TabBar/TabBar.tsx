@@ -32,7 +32,7 @@ interface TabBarProps<TData> {
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
-	renderAddTabMenu?: () => ReactNode;
+	renderAddTabMenu?: (closeMenu: () => void) => ReactNode;
 	renderTabBarLeading?: () => ReactNode;
 	renderTabBarTrailing?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
@@ -44,8 +44,22 @@ type PaneDragItem = { paneId: string };
 function AddTabButton<_TData>({
 	renderAddTabMenu,
 }: {
-	renderAddTabMenu?: () => ReactNode;
+	renderAddTabMenu?: (closeMenu: () => void) => ReactNode;
 }) {
+	const [open, setOpen] = useState(false);
+	const restoredFocus = useRef(false);
+	const openRef = useRef(false);
+	const handleOpenChange = (nextOpen: boolean) => {
+		openRef.current = nextOpen;
+		restoredFocus.current = false;
+		setOpen(nextOpen);
+	};
+	const closeMenu = () => {
+		if (!openRef.current) return;
+		restoredFocus.current = true;
+		openRef.current = false;
+		setOpen(false);
+	};
 	const button = (
 		<Button
 			className="ml-1.5 size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
@@ -59,10 +73,17 @@ function AddTabButton<_TData>({
 
 	if (renderAddTabMenu) {
 		return (
-			<DropdownMenu>
+			<DropdownMenu open={open} onOpenChange={handleOpenChange}>
 				<DropdownMenuTrigger asChild>{button}</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-56">
-					{renderAddTabMenu()}
+				<DropdownMenuContent
+					onCloseAutoFocus={(event) => {
+						if (restoredFocus.current) event.preventDefault();
+						restoredFocus.current = false;
+					}}
+					align="end"
+					className="min-w-56 w-max max-w-[calc(100vw-1rem)]"
+				>
+					{renderAddTabMenu(closeMenu)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 		);

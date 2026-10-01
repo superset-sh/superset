@@ -395,3 +395,28 @@ export const workspacePullRequests = sqliteTable(
 		index("workspace_pull_requests_workspace_idx").on(table.workspaceId),
 	],
 );
+
+export const closedPanes = sqliteTable(
+	"closed_panes",
+	{
+		id: text().primaryKey(),
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		paneId: text("pane_id").notNull(),
+		kind: text().notNull(),
+		title: text().notNull(),
+		descriptor: text({ mode: "json" })
+			.notNull()
+			.$type<Record<string, string>>(),
+		terminalId: text("terminal_id"),
+		closedAt: integer("closed_at").notNull(),
+		expiresAt: integer("expires_at").notNull(),
+		restoredAt: integer("restored_at"),
+		restoredTerminalId: text("restored_terminal_id"),
+	},
+	(table) => [
+		index("closed_panes_workspace_idx").on(table.workspaceId, table.closedAt),
+		index("closed_panes_expires_at_idx").on(table.expiresAt),
+	],
+);

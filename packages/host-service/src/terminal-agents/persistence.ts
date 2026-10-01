@@ -151,12 +151,16 @@ export function getTerminalAgentBindingSessionId(
  * fresh when there is no conversation to resume — see
  * resumeTerminalAgentSession.
  */
-function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+function resumeCandidatePredicate(
+	workspaceId: string,
+	terminalId: string,
+	endReason: "terminal-exited" | "disposed" = "terminal-exited",
+) {
 	return and(
 		eq(terminalAgentBindings.terminalId, terminalId),
 		eq(terminalAgentBindings.workspaceId, workspaceId),
 		isNotNull(terminalAgentBindings.endedAt),
-		eq(terminalAgentBindings.endReason, "terminal-exited"),
+		eq(terminalAgentBindings.endReason, endReason),
 		isNotNull(terminalAgentBindings.agentSessionId),
 	);
 }
@@ -290,11 +294,12 @@ export function claimResumeCandidateBinding(
 	db: HostDb,
 	workspaceId: string,
 	terminalId: string,
+	endReason: "terminal-exited" | "disposed" = "terminal-exited",
 ): TerminalAgentBinding | undefined {
 	const row = db
 		.update(terminalAgentBindings)
 		.set({ endReason: "resumed" })
-		.where(resumeCandidatePredicate(workspaceId, terminalId))
+		.where(resumeCandidatePredicate(workspaceId, terminalId, endReason))
 		.returning(bindingColumns)
 		.get();
 	return row ? rowToBinding(row) : undefined;
@@ -304,9 +309,10 @@ export function claimResumeCandidateBinding(
 export function unclaimResumeCandidateBinding(
 	db: HostDb,
 	terminalId: string,
+	endReason: "terminal-exited" | "disposed" = "terminal-exited",
 ): void {
 	db.update(terminalAgentBindings)
-		.set({ endReason: "terminal-exited" })
+		.set({ endReason })
 		.where(
 			and(
 				eq(terminalAgentBindings.terminalId, terminalId),

@@ -302,3 +302,39 @@ describe("snapshot behind an alt screen", () => {
 		t.dispose();
 	});
 });
+
+test("cold snapshot respects the existing history limit and round-trips Unicode, colors and the alternate screen", () => {
+	const original = createModeTracker(100, 30);
+	const restored = createModeTracker(100, 30);
+	try {
+		original.feed(
+			enc.encode(
+				Array.from(
+					{ length: 3000 },
+					(_, i) => `history-${i} café 東京\r\n`,
+				).join(""),
+			),
+		);
+		original.feed(
+			enc.encode(
+				"\x1b[31mcolored output\x1b[0m\r\n\x1b[?1049h\x1b[2J\x1b[HClaude conversation ORCHID-4829",
+			),
+		);
+		const snapshot = original.recoverySnapshot();
+		expect(snapshot.cols).toBe(100);
+		expect(snapshot.rows).toBe(30);
+		expect(snapshot.ansi).not.toContain("history-0 ");
+		expect(snapshot.ansi).not.toContain("history-1900 ");
+		expect(snapshot.ansi).toContain("history-2000 café 東京");
+		expect(snapshot.ansi).toContain("history-2999");
+		expect(snapshot.ansi).toContain("Claude conversation ORCHID-4829");
+		restored.feed(enc.encode(snapshot.ansi));
+		expect(restored.snapshot().text).toBe(original.snapshot().text);
+		original.feed(enc.encode("\x1b[?1049l"));
+		restored.feed(enc.encode("\x1b[?1049l"));
+		expect(restored.snapshot().text).toBe(original.snapshot().text);
+	} finally {
+		original.dispose();
+		restored.dispose();
+	}
+});

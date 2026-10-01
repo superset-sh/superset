@@ -2570,6 +2570,9 @@ msgstr "자율 티켓-투-PR 파이프라인"
 msgid "Available"
 msgstr "사용 가능"
 
+msgid "Available for 24 hours"
+msgstr "24시간 동안 사용 가능"
+
 msgid "Available when v2 is enabled."
 msgstr "v2를 켜면 사용할 수 있습니다."
 
@@ -6658,9 +6661,6 @@ msgstr "멤버를 제거하지 못했습니다"
 msgid "Failed to remove PR link: {0}"
 msgstr "PR 링크를 제거하지 못했습니다: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "터미널을 제거하지 못했습니다"
-
 msgid "Failed to rename"
 msgstr "이름을 변경하지 못했습니다"
 
@@ -10201,6 +10201,9 @@ msgstr "아직 공개된 에이전트 설정이 없습니다. 이 경로는 앞�
 msgid "No pull requests found."
 msgstr "풀 리퀘스트를 찾을 수 없습니다."
 
+msgid "No recently deleted panes"
+msgstr "최근 삭제한 창이 없습니다"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "리포지토리를 찾을 수 없습니다. GitHub App이 리포지토리에 접근할 수 있는지 확인하세요."
 
@@ -12635,9 +12638,6 @@ msgstr "이 기기에서만 이 에이전트를 제거합니다."
 
 msgid "Removing member..."
 msgstr "멤버를 제거하는 중..."
-
-msgid "Removing terminal..."
-msgstr "터미널을 제거하는 중..."
 
 msgid "Removing…"
 msgstr "제거하는 중…"
@@ -15513,9 +15513,6 @@ msgstr "터미널 ID"
 
 msgid "Terminal input"
 msgstr "터미널 입력"
-
-msgid "Terminal removed"
-msgstr "터미널을 제거했습니다"
 
 msgid "Terminal scripts"
 msgstr "터미널 스크립트"

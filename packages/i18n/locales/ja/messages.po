@@ -2570,6 +2570,9 @@ msgstr "チケットからPRまでの自律パイプライン"
 msgid "Available"
 msgstr "利用可能"
 
+msgid "Available for 24 hours"
+msgstr "24時間利用可能"
+
 msgid "Available when v2 is enabled."
 msgstr "v2を有効にすると利用できます。"
 
@@ -6658,9 +6661,6 @@ msgstr "メンバーの削除に失敗しました"
 msgid "Failed to remove PR link: {0}"
 msgstr "PRリンクの削除に失敗しました: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "ターミナルの削除に失敗しました"
-
 msgid "Failed to rename"
 msgstr "名前の変更に失敗しました"
 
@@ -10201,6 +10201,9 @@ msgstr "公開されているエージェント設定はまだありません。
 msgid "No pull requests found."
 msgstr "プルリクエストが見つかりません。"
 
+msgid "No recently deleted panes"
+msgstr "最近削除したペインはありません"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "リポジトリが見つかりません。GitHub Appにリポジトリへのアクセス権があるか確認してください。"
 
@@ -12635,9 +12638,6 @@ msgstr "このデバイスからのみエージェントを削除します。"
 
 msgid "Removing member..."
 msgstr "メンバーを削除中..."
-
-msgid "Removing terminal..."
-msgstr "ターミナルを削除中..."
 
 msgid "Removing…"
 msgstr "削除中…"
@@ -15513,9 +15513,6 @@ msgstr "ターミナルID"
 
 msgid "Terminal input"
 msgstr "ターミナル入力"
-
-msgid "Terminal removed"
-msgstr "ターミナルを削除しました"
 
 msgid "Terminal scripts"
 msgstr "ターミナルスクリプト"

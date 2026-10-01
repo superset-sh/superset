@@ -138,7 +138,7 @@ class MuxClient {
 	}
 
 	send(bytes: Uint8Array): void {
-		this.ws.send(bytes);
+		this.ws.send(Uint8Array.from(bytes));
 	}
 
 	/** Waits for the first not-yet-consumed frame matching the predicate. */

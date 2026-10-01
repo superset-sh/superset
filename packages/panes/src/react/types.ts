@@ -114,7 +114,7 @@ export interface WorkspaceProps<TData> {
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderEmptyState?: () => ReactNode;
-	renderAddTabMenu?: () => ReactNode;
+	renderAddTabMenu?: (closeMenu: () => void) => ReactNode;
 	/** Rendered at the leading (left) edge of the tab bar row, before the tabs. */
 	renderTabBarLeading?: () => ReactNode;
 	/** Rendered at the trailing (right) edge of the tab bar row. */

@@ -1,3 +1,8 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
+import {
+	type TerminalRecoverySnapshot,
+	terminalRecoverySnapshotSchema,
+} from "@superset/shared/terminal-recovery";
 import { DIAL_TIMEOUT_MS } from "@superset/shared/tunnel-protocol";
 import type { RelayHostProbe } from "@superset/workspace-client";
 import {
@@ -42,6 +47,7 @@ export interface TerminalLogEntry {
 // partial sequences internally). Control messages (title/error/exit) stay
 // JSON.
 type TerminalServerMessage =
+	| { type: "recovery"; id: string; snapshot?: TerminalRecoverySnapshot }
 	| { type: "attached"; terminalId: string }
 	// `code: "session-gone"` = the server says the session is permanently
 	// destroyed (not found / disposed / exited), not a transient attach failure.
@@ -653,6 +659,8 @@ export function connect(
 				: transport._xtermHadContent || transport._hasReceivedBytes
 					? "none"
 					: "new";
+			if (!transport._xtermHadContent && !transport._hasReceivedBytes)
+				current = appendQueryParam(current, "history", "1");
 			return appendQueryParam(current, "seq", seqValue);
 		},
 		getToken: () =>
@@ -727,6 +735,7 @@ function attachSocketListeners(
 	terminal: XTerm,
 	socket: RelaySocket,
 ): void {
+	let pendingRecoveryId: string | undefined;
 	socket.addEventListener("message", (event) => {
 		// Ignore events from a socket we've detached (teardown nulls _socket).
 		if (transport._socket !== socket) return;
@@ -757,6 +766,30 @@ function attachSocketListeners(
 		} catch {
 			transport._writeCoalescer?.flushSync();
 			terminal.writeln("\r\n[terminal] invalid server payload");
+			return;
+		}
+
+		if (message.type === "recovery") {
+			pendingRecoveryId = message.id;
+			if (
+				message.snapshot &&
+				!transport._xtermHadContent &&
+				!transport._hasReceivedBytes
+			) {
+				const snapshot = terminalRecoverySnapshotSchema.parse(message.snapshot);
+				const cols = terminal.cols;
+				const rows = terminal.rows;
+				terminal.resize(snapshot.cols, snapshot.rows);
+				terminal.write(
+					`${snapshot.ansi}${FRESH_SHELL_INPUT_MODE_RESET}\r\n`,
+					() => {
+						if (transport._socket !== socket) return;
+						terminal.resize(cols, rows);
+						sendResize(transport, cols, rows);
+					},
+				);
+				transport._xtermHadContent = true;
+			}
 			return;
 		}
 
@@ -812,7 +845,19 @@ function attachSocketListeners(
 			// self-report it triggered) has parsed. The host forwards the state
 			// only when the program enabled mode 1004.
 			transport._writeCoalescer?.flushSync();
-			terminal.write("", () => sendFocusState(transport));
+			terminal.write("", () => {
+				if (transport._socket !== socket) return;
+				sendFocusState(transport);
+				if (pendingRecoveryId) {
+					socket.send(
+						JSON.stringify({
+							type: "recovery-restored",
+							id: pendingRecoveryId,
+						}),
+					);
+					pendingRecoveryId = undefined;
+				}
+			});
 			return;
 		}
 

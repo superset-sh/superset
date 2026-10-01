@@ -2570,6 +2570,9 @@ msgstr "Quy trình tự động từ ticket tới PR"
 msgid "Available"
 msgstr "Còn trống"
 
+msgid "Available for 24 hours"
+msgstr "Có sẵn trong 24 giờ"
+
 msgid "Available when v2 is enabled."
 msgstr "Khả dụng khi bật v2."
 
@@ -6658,9 +6661,6 @@ msgstr "Không thể gỡ thành viên"
 msgid "Failed to remove PR link: {0}"
 msgstr "Không thể gỡ liên kết PR: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Không thể gỡ terminal"
-
 msgid "Failed to rename"
 msgstr "Không thể đổi tên"
 
@@ -10201,6 +10201,9 @@ msgstr "Chưa có cấu hình agent công khai nào. Đường dẫn này đã s
 msgid "No pull requests found."
 msgstr "Không tìm thấy pull request nào."
 
+msgid "No recently deleted panes"
+msgstr "Không có ngăn nào bị xóa gần đây"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Không tìm thấy repository nào. Hãy đảm bảo GitHub App của bạn có quyền truy cập repository."
 
@@ -12635,9 +12638,6 @@ msgstr "Chỉ gỡ agent này khỏi thiết bị này."
 
 msgid "Removing member..."
 msgstr "Đang gỡ thành viên..."
-
-msgid "Removing terminal..."
-msgstr "Đang gỡ terminal..."
 
 msgid "Removing…"
 msgstr "Đang gỡ…"
@@ -15513,9 +15513,6 @@ msgstr "ID terminal"
 
 msgid "Terminal input"
 msgstr "Ô nhập terminal"
-
-msgid "Terminal removed"
-msgstr "Đã gỡ terminal"
 
 msgid "Terminal scripts"
 msgstr "Script terminal"

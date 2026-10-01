@@ -267,6 +267,27 @@
       "when": 1790492072422,
       "tag": "0037_project_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1790790516236,
+      "tag": "0038_pane_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1790792043045,
+      "tag": "0039_recovery_expiry_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1790793796883,
+      "tag": "0040_immediate_terminal_disposal",
+      "breakpoints": true
     }
   ]
 }

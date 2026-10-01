@@ -2570,6 +2570,9 @@ msgstr "Autonomous ticket-to-PR pipeline"
 msgid "Available"
 msgstr "Available"
 
+msgid "Available for 24 hours"
+msgstr "Available for 24 hours"
+
 msgid "Available when v2 is enabled."
 msgstr "Available when v2 is enabled."
 
@@ -6658,9 +6661,6 @@ msgstr "Failed to remove member"
 msgid "Failed to remove PR link: {0}"
 msgstr "Failed to remove PR link: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Failed to remove terminal"
-
 msgid "Failed to rename"
 msgstr "Failed to rename"
 
@@ -10201,6 +10201,9 @@ msgstr "No public agent configs yet. This route is ready for future agent config
 msgid "No pull requests found."
 msgstr "No pull requests found."
 
+msgid "No recently deleted panes"
+msgstr "No recently deleted panes"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "No repositories found. Make sure your GitHub App has access to repositories."
 
@@ -12635,9 +12638,6 @@ msgstr "Removes this agent from this device only."
 
 msgid "Removing member..."
 msgstr "Removing member..."
-
-msgid "Removing terminal..."
-msgstr "Removing terminal..."
 
 msgid "Removing…"
 msgstr "Removing…"
@@ -15513,9 +15513,6 @@ msgstr "terminal ID"
 
 msgid "Terminal input"
 msgstr "Terminal input"
-
-msgid "Terminal removed"
-msgstr "Terminal removed"
 
 msgid "Terminal scripts"
 msgstr "Terminal scripts"

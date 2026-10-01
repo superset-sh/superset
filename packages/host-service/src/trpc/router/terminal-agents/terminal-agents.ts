@@ -4,9 +4,12 @@ import {
 } from "@superset/shared/agent-catalog";
 import { boundTranscriptText } from "@superset/shared/terminal-session-handoff";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
+import { terminalSessions } from "../../../db/schema";
 import type { EventBus } from "../../../events";
+import { terminalLifecycleState } from "../../../terminal/lifecycle/lifecycle";
 import { reconcileMissingTerminalSessions } from "../../../terminal/reaper/reaper";
 import {
 	createTerminalSessionInternal,
@@ -117,10 +120,11 @@ function bindingHasHarnessSession(
  */
 export async function resumeTerminalAgentSession(
 	deps: ResumeSessionDeps,
-	input: { workspaceId: string; terminalId: string },
+	input: { workspaceId: string; terminalId: string; restoreDeleted?: boolean },
 ): Promise<ResumeResult> {
 	const { workspaceId, terminalId } = input;
-	const key = `${workspaceId}::${terminalId}`;
+	const key = `${workspaceId}::${terminalId}::${input.restoreDeleted ?? false}`;
+	const endReason = input.restoreDeleted ? "disposed" : "terminal-exited";
 	const pending = resumeInflight.get(key);
 	if (pending) return pending;
 
@@ -129,6 +133,7 @@ export async function resumeTerminalAgentSession(
 			deps.db,
 			workspaceId,
 			terminalId,
+			endReason,
 		);
 		if (!claimed?.agentSessionId) return { resumed: false };
 
@@ -139,7 +144,7 @@ export async function resumeTerminalAgentSession(
 		if (!config || config.resumeArgs.length === 0) {
 			// Config gone or resume unsupported — leave the candidate intact
 			// rather than silently destroying the session id.
-			unclaimResumeCandidateBinding(deps.db, terminalId);
+			unclaimResumeCandidateBinding(deps.db, terminalId, endReason);
 			return { resumed: false };
 		}
 
@@ -158,7 +163,7 @@ export async function resumeTerminalAgentSession(
 				...(resumable ? { resumeSessionId: claimed.agentSessionId } : {}),
 			});
 		} catch (error) {
-			unclaimResumeCandidateBinding(deps.db, terminalId);
+			unclaimResumeCandidateBinding(deps.db, terminalId, endReason);
 			throw error;
 		}
 
@@ -355,6 +360,36 @@ export function findResumedSuccessor(
 		terminalId: successorTerminalId,
 		label: config?.label ?? origin.agentId,
 	};
+}
+
+export async function recoverTerminalAgentSession(
+	deps: ResumeSessionDeps,
+	input: {
+		workspaceId: string;
+		terminalId: string;
+		restoredTerminalId: string | null;
+	},
+): Promise<ResumeResult> {
+	const { db } = deps;
+	const successor =
+		(input.restoredTerminalId &&
+			findResumedSuccessor(db, input.workspaceId, input.restoredTerminalId)) ||
+		findResumedSuccessor(db, input.workspaceId, input.terminalId);
+	if (successor) {
+		const session = db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, successor.terminalId) })
+			.sync();
+		if (terminalLifecycleState(session) === "active")
+			return { resumed: true, ...successor };
+	}
+	const terminalId =
+		successor?.terminalId ?? input.restoredTerminalId ?? input.terminalId;
+	return resumeTerminalAgentSession(deps, {
+		workspaceId: input.workspaceId,
+		terminalId,
+		restoreDeleted:
+			getTerminalAgentBinding(db, terminalId)?.endReason === "disposed",
+	});
 }
 
 function inflightKey(

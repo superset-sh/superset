@@ -12,6 +12,7 @@ import { hostRouter } from "./host";
 import { issuesRouter } from "./issues";
 import { notificationsRouter } from "./notifications";
 import { pageWatchRouter } from "./page-watch";
+import { paneRecoveryRouter } from "./pane-recovery/pane-recovery";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
@@ -29,6 +30,7 @@ import { workspacesRouter } from "./workspaces";
 
 export const appRouter = router({
 	agents: agentsRouter,
+	paneRecovery: paneRecoveryRouter,
 	agentTooling: agentToolingRouter,
 	attachments: attachmentsRouter,
 	browser: browserRouter,

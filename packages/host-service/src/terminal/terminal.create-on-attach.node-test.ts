@@ -1,3 +1,5 @@
+import { closedPanes } from "../db/schema.ts";
+import { paneRecoveryRouter } from "../trpc/router/pane-recovery/pane-recovery.ts";
 import { reconcileMissingTerminalSessions } from "./reaper/reaper.ts";
 // create-on-attach: a WS attach carrying `create=1` + `workspaceId` creates
 // the session when no session row exists, so the renderer can insert a
@@ -48,6 +50,7 @@ import {
 import { initTerminalBaseEnv } from "./env.ts";
 import {
 	__resetSessionsForTesting,
+	captureSessionRecoverySnapshot,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	isLiveTerminalSession,
@@ -799,5 +802,600 @@ test("failed creation releases pending ownership for a different workspace", asy
 	} finally {
 		daemon.open = originalOpen;
 		await disposeSessionAndWait(terminalId, db);
+	}
+});
+
+async function recoveryAttach(terminalId: string, acknowledge = true) {
+	return new Promise<Array<Record<string, unknown>>>((resolve, reject) => {
+		const messages: Array<Record<string, unknown>> = [];
+		const ws = new WebSocket(
+			`ws://127.0.0.1:${httpPort}/terminal/${terminalId}?workspaceId=${workspaceId}&seq=new&history=1`,
+		);
+		const timer = setTimeout(() => {
+			ws.close();
+			reject(new Error("Recovery attach timed out"));
+		}, 10000);
+		ws.addEventListener("message", (event) => {
+			if (typeof event.data !== "string") return;
+			const message = JSON.parse(event.data);
+			messages.push(message);
+			if (message.type === "synced") {
+				const recovery = messages.find((m) => m.type === "recovery");
+				if (acknowledge && recovery)
+					ws.send(
+						JSON.stringify({ type: "recovery-restored", id: recovery.id }),
+					);
+				setTimeout(() => {
+					clearTimeout(timer);
+					ws.close();
+					resolve(messages);
+				}, 50);
+			}
+		});
+		ws.addEventListener("error", () => {
+			clearTimeout(timer);
+			reject(new Error("Recovery websocket failed"));
+		});
+	});
+}
+
+function recoveryCaller() {
+	return paneRecoveryRouter.createCaller({
+		db,
+		isAuthenticated: true,
+		terminalAgentStore: new TerminalAgentStore(
+			new SqliteTerminalAgentBindingPersistence(db),
+		),
+	} as Parameters<typeof paneRecoveryRouter.createCaller>[0]);
+}
+async function recoveryTerminal() {
+	const id = `recovery-${randomUUID()}`;
+	assert.deepEqual(await dial(id, `?workspaceId=${workspaceId}&create=1`), {
+		kind: "attached",
+	});
+	return id;
+}
+function closeEntry(terminalId: string) {
+	return {
+		id: randomUUID(),
+		paneId: randomUUID(),
+		title: "Recovery test",
+		pane: { kind: "terminal" as const, terminalId, terminate: true },
+	};
+}
+test("deleting kills immediately; restore uses a new process and retries reuse its ID", async () => {
+	const terminalId = await recoveryTerminal(),
+		caller = recoveryCaller(),
+		entry = closeEntry(terminalId),
+		daemon = await getDaemonClient();
+	const before = (await daemon.list()).find((s) => s.id === terminalId);
+	assert.ok(before);
+	await caller.close({ workspaceId, entries: [entry] });
+	assert.ok(!(await daemon.list()).some((s) => s.id === terminalId && s.alive));
+	const row = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	assert.equal(row?.status, "disposed");
+	assert.ok(row?.disposeRequestedAt);
+	await caller.close({ workspaceId, entries: [entry] });
+	const result = await caller.restore({ workspaceId, id: entry.id });
+	assert.equal(result.entry.freshShell, true);
+	assert.notEqual(result.entry.descriptor.terminalId, terminalId);
+	assert.deepEqual(await caller.restore({ workspaceId, id: entry.id }), result);
+	assert.ok(result.entry.descriptor.terminalId);
+	assert.equal(
+		(
+			await dial(
+				result.entry.descriptor.terminalId,
+				`?workspaceId=${workspaceId}&create=1`,
+			)
+		).kind,
+		"attached",
+	);
+	const restored = (await daemon.list()).find(
+		(s) => s.id === result.entry.descriptor.terminalId,
+	);
+	assert.ok(restored?.alive);
+	assert.notEqual(restored.pid, before.pid);
+	assert.equal(
+		(await dial(terminalId, `?workspaceId=${workspaceId}&create=1`)).kind,
+		"error",
+	);
+	await recoveryAttach(result.entry.descriptor.terminalId);
+	assert.ok(
+		!(await caller.list({ workspaceId })).some((row) => row.id === entry.id),
+	);
+	await assert.rejects(() => caller.close({ workspaceId, entries: [entry] }));
+});
+for (const status of ["disposed", "exited"] as const) {
+	test(`restore replaces a ${status} replacement and preserves archived history`, async () => {
+		const terminalId = await recoveryTerminal();
+		const caller = recoveryCaller();
+		const entry = {
+			...closeEntry(terminalId),
+			pane: {
+				kind: "terminal" as const,
+				terminalId,
+				terminate: true,
+				snapshot: {
+					version: 1 as const,
+					ansi: "RETRY_HISTORY",
+					cols: 80,
+					rows: 24,
+				},
+			},
+		};
+		await caller.close({ workspaceId, entries: [entry] });
+		const first = (await caller.restore({ workspaceId, id: entry.id })).entry
+			.descriptor.terminalId;
+		assert.ok(first);
+		await disposeSessionAndWait(first, db);
+		if (status === "exited")
+			db.update(terminalSessions)
+				.set({ status: "exited", disposeRequestedAt: null })
+				.where(eq(terminalSessions.id, first))
+				.run();
+		const second = (await caller.restore({ workspaceId, id: entry.id })).entry
+			.descriptor.terminalId;
+		assert.ok(second);
+		assert.notEqual(second, first);
+		assert.notEqual(second, terminalId);
+		assert.equal(
+			(await caller.restore({ workspaceId, id: entry.id })).entry.descriptor
+				.terminalId,
+			second,
+		);
+		const messages = await recoveryAttach(second);
+		assert.equal(
+			(
+				messages.find((message) => message.type === "recovery")?.snapshot as {
+					ansi: string;
+				}
+			)?.ansi,
+			"RETRY_HISTORY",
+		);
+		await disposeSessionAndWait(second, db);
+	});
+}
+
+test("recovery close clears live agent state and publishes the normal disposal change", async () => {
+	const terminalId = await recoveryTerminal();
+	const store = new TerminalAgentStore(
+		new SqliteTerminalAgentBindingPersistence(db),
+	);
+	store.recordEvent({
+		terminalId,
+		workspaceId,
+		agentId: "claude",
+		agentSessionId: "closed-conversation",
+		eventType: "Start",
+		occurredAt: Date.now(),
+	});
+	store.recordSubagentEvent({
+		terminalId,
+		workspaceId,
+		subagentId: "closed-child",
+		eventType: "SubagentStart",
+		occurredAt: Date.now(),
+	});
+	assert.ok(store.getSubagent(terminalId, "closed-child"));
+	const changes: string[] = [];
+	store.on("change", (id: string) => changes.push(id));
+	const caller = paneRecoveryRouter.createCaller({
+		db,
+		isAuthenticated: true,
+		terminalAgentStore: store,
+	} as Parameters<typeof paneRecoveryRouter.createCaller>[0]);
+	await caller.close({ workspaceId, entries: [closeEntry(terminalId)] });
+	assert.equal(store.get(terminalId), undefined);
+	assert.equal(store.getSubagent(terminalId, "closed-child"), undefined);
+	assert.deepEqual(changes, [workspaceId]);
+	const binding = db.query.terminalAgentBindings
+		.findFirst({ where: eq(terminalAgentBindings.terminalId, terminalId) })
+		.sync();
+	assert.equal(binding?.endReason, "disposed");
+	assert.equal(binding?.agentSessionId, "closed-conversation");
+});
+
+test("close before create-on-attach stamps permanent disposal", async () => {
+	const terminalId = randomUUID(),
+		entry = closeEntry(terminalId),
+		caller = recoveryCaller();
+	await caller.close({ workspaceId, entries: [entry] });
+	assert.equal(
+		(await dial(terminalId, `?workspaceId=${workspaceId}&create=1`)).kind,
+		"error",
+	);
+	assert.notEqual(
+		(await caller.restore({ workspaceId, id: entry.id })).entry.descriptor
+			.terminalId,
+		terminalId,
+	);
+});
+test("concurrent restore requests allocate one new terminal ID", async () => {
+	const entry = closeEntry(randomUUID()),
+		caller = recoveryCaller();
+	await caller.close({ workspaceId, entries: [entry] });
+	const results = await Promise.all(
+		Array.from({ length: 12 }, () =>
+			caller.restore({ workspaceId, id: entry.id }),
+		),
+	);
+	assert.equal(
+		new Set(results.map((r) => r.entry.descriptor.terminalId)).size,
+		1,
+	);
+	assert.notEqual(
+		results[0]?.entry.descriptor.terminalId,
+		entry.pane.terminalId,
+	);
+});
+test("closing one of several panes preserves the shared terminal", async () => {
+	const terminalId = await recoveryTerminal(),
+		entry = closeEntry(terminalId),
+		caller = recoveryCaller();
+	await caller.close({
+		workspaceId,
+		entries: [{ ...entry, pane: { ...entry.pane, terminate: false } }],
+	});
+	assert.ok(
+		(await (await getDaemonClient()).list()).some(
+			(s) => s.id === terminalId && s.alive,
+		),
+	);
+	const restored = await caller.restore({ workspaceId, id: entry.id });
+	assert.equal(restored.entry.descriptor.terminalId, terminalId);
+	assert.equal(restored.entry.freshShell, false);
+});
+test("repeated shared-terminal recovery acknowledges each new archive", async () => {
+	const terminalId = await recoveryTerminal();
+	const caller = recoveryCaller();
+	for (let attempt = 0; attempt < 3; attempt++) {
+		const entry = closeEntry(terminalId);
+		await caller.close({
+			workspaceId,
+			entries: [{ ...entry, pane: { ...entry.pane, terminate: false } }],
+		});
+		await caller.restore({ workspaceId, id: entry.id });
+		const messages = await recoveryAttach(terminalId);
+		assert.equal(
+			messages.find((message) => message.type === "recovery")?.id,
+			entry.id,
+		);
+		assert.ok(
+			!(await caller.list({ workspaceId })).some((row) => row.id === entry.id),
+		);
+	}
+});
+test("shared-view recovery cannot resurrect a subsequently killed terminal", async () => {
+	const terminalId = await recoveryTerminal(),
+		entry = closeEntry(terminalId),
+		caller = recoveryCaller();
+	await caller.close({
+		workspaceId,
+		entries: [{ ...entry, pane: { ...entry.pane, terminate: false } }],
+	});
+	await disposeSessionAndWait(terminalId, db);
+	assert.notEqual(
+		(await caller.restore({ workspaceId, id: entry.id })).entry.descriptor
+			.terminalId,
+		terminalId,
+	);
+});
+test("batch preflight rejects foreign ownership before killing valid terminals", async () => {
+	const terminalId = await recoveryTerminal(),
+		entry = closeEntry(terminalId),
+		caller = recoveryCaller();
+	const workspace = db.query.workspaces
+		.findFirst({ where: eq(workspaces.id, workspaceId) })
+		.sync();
+	assert.ok(workspace);
+	const other = randomUUID();
+	db.insert(workspaces)
+		.values({
+			id: other,
+			projectId: workspace.projectId,
+			worktreePath: workspace.worktreePath,
+			branch: "foreign",
+		})
+		.run();
+	const foreign = randomUUID();
+	db.insert(terminalSessions)
+		.values({ id: foreign, originWorkspaceId: other })
+		.run();
+	await assert.rejects(() =>
+		caller.close({ workspaceId, entries: [entry, closeEntry(foreign)] }),
+	);
+	assert.equal(
+		db.query.closedPanes
+			.findFirst({ where: eq(closedPanes.id, entry.id) })
+			.sync(),
+		undefined,
+	);
+	assert.ok(
+		(await (await getDaemonClient()).list()).some(
+			(s) => s.id === terminalId && s.alive,
+		),
+	);
+	await caller.close({ workspaceId, entries: [entry] });
+	await assert.rejects(() =>
+		caller.restore({ workspaceId: other, id: entry.id }),
+	);
+	assert.equal((await caller.list({ workspaceId: other })).length, 0);
+});
+test("file and browser descriptors preserve custom titles and expire", async () => {
+	const caller = recoveryCaller();
+	for (const pane of [
+		{ kind: "file" as const, filePath: "/tmp/recovery.ts" },
+		{ kind: "browser" as const, url: "https://example.com/path" },
+	]) {
+		const entry = {
+			id: randomUUID(),
+			paneId: randomUUID(),
+			title: "test",
+			titleOverride: "Pinned name",
+			pane,
+		};
+		await caller.close({ workspaceId, entries: [entry] });
+		const result = await caller.restore({ workspaceId, id: entry.id });
+		assert.equal(result.entry.kind, pane.kind);
+		assert.equal(result.entry.descriptor.titleOverride, "Pinned name");
+		db.update(closedPanes)
+			.set({ expiresAt: Date.now() - 1 })
+			.where(eq(closedPanes.id, entry.id))
+			.run();
+		await assert.rejects(() => caller.restore({ workspaceId, id: entry.id }));
+	}
+});
+test("unsafe browser schemes are rejected", async () => {
+	await assert.rejects(() =>
+		recoveryCaller().close({
+			workspaceId,
+			entries: [
+				{
+					id: randomUUID(),
+					paneId: "browser",
+					title: "",
+					pane: { kind: "browser", url: "javascript:alert(1)" },
+				},
+			],
+		}),
+	);
+});
+test("history is bounded to 100 records and exposes the latest 20", async () => {
+	const caller = recoveryCaller();
+	for (let batch = 0; batch < 6; batch++)
+		await caller.close({
+			workspaceId,
+			entries: Array.from({ length: 20 }, () => ({
+				id: randomUUID(),
+				paneId: randomUUID(),
+				title: "History bound",
+				pane: { kind: "file" as const, filePath: "/tmp/recovery.ts" },
+			})),
+		});
+	assert.equal(
+		db
+			.select()
+			.from(closedPanes)
+			.where(eq(closedPanes.workspaceId, workspaceId))
+			.all().length,
+		100,
+	);
+	assert.equal((await caller.list({ workspaceId })).length, 20);
+});
+
+test("full history is durable and delivered before output; only an attached acknowledgement consumes it", async () => {
+	const caller = recoveryCaller();
+	const terminalId = await recoveryTerminal();
+	const entry = closeEntry(terminalId);
+	const snapshot = {
+		version: 1 as const,
+		ansi: "\x1b[31mnormal history\x1b[0m\r\n\x1b[?1049hClaude conversation",
+		cols: 132,
+		rows: 42,
+	};
+	await caller.close({
+		workspaceId,
+		entries: [{ ...entry, pane: { ...entry.pane, snapshot } }],
+	});
+	assert.equal(
+		(await caller.list({ workspaceId })).find((row) => row.id === entry.id)
+			?.descriptor.snapshot,
+		undefined,
+	);
+	const restored = await caller.restore({ workspaceId, id: entry.id });
+	const newId = restored.entry.descriptor.terminalId;
+	assert.ok(newId);
+	assert.equal(restored.entry.descriptor.snapshot, undefined);
+	await caller.acknowledge({ workspaceId, id: entry.id });
+	assert.ok(
+		(await caller.list({ workspaceId })).some((row) => row.id === entry.id),
+	);
+	__resetSessionsForTesting();
+	const messages = await recoveryAttach(newId, false);
+	assert.equal(messages[0]?.type, "recovery");
+	assert.deepEqual(messages[0]?.snapshot, {
+		...snapshot,
+		cwd: path.join(TEST_HOME, "worktree"),
+	});
+	assert.ok(
+		(await caller.list({ workspaceId })).some((row) => row.id === entry.id),
+	);
+	await recoveryAttach(newId);
+	assert.ok(
+		!(await caller.list({ workspaceId })).some((row) => row.id === entry.id),
+	);
+	const remount = await recoveryAttach(newId);
+	assert.deepEqual(remount[0]?.snapshot, messages[0]?.snapshot);
+	await assert.rejects(() =>
+		caller.close({
+			workspaceId,
+			entries: [
+				{
+					...closeEntry(terminalId),
+					pane: {
+						...entry.pane,
+						snapshot: { ...snapshot, ansi: "x".repeat(5 * 1024 * 1024 + 1) },
+					},
+				},
+			],
+		}),
+	);
+});
+
+test("host checkpoint preserves a detached terminal without a renderer snapshot", async () => {
+	const caller = recoveryCaller();
+	const terminalId = await recoveryTerminal();
+	const daemon = await getDaemonClient();
+	await new Promise((resolve) => setTimeout(resolve, 500));
+	daemon.input(
+		terminalId,
+		Buffer.from(
+			"printf '\\033[31mHOST_NORMAL\\033[0m\\r\\n\\033[?1049hHOST_ALTERNATE';\r",
+		),
+	);
+	let captured = false;
+	for (let attempt = 0; attempt < 100; attempt++) {
+		const snapshot = await captureSessionRecoverySnapshot({
+			terminalId,
+			workspaceId,
+			db,
+		});
+		if (
+			snapshot?.ansi.includes("HOST_ALTERNATE") &&
+			snapshot.ansi.includes("\x1b[?1049h")
+		) {
+			captured = true;
+			break;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 20));
+	}
+	assert.ok(captured);
+	const entry = closeEntry(terminalId);
+	await caller.close({ workspaceId, entries: [entry] });
+	const restored = await caller.restore({ workspaceId, id: entry.id });
+	__resetSessionsForTesting();
+	const restoredId = restored.entry.descriptor.terminalId;
+	assert.ok(restoredId);
+	const messages = await recoveryAttach(restoredId);
+	const snapshot = messages[0]?.snapshot as { ansi: string };
+	assert.ok(snapshot.ansi.includes("HOST_NORMAL"));
+	assert.ok(snapshot.ansi.includes("HOST_ALTERNATE"));
+	assert.ok(snapshot.ansi.includes("\x1b[?1049h"));
+});
+
+test("deleted agent restores through the real launcher with its resume session ID exactly once", async () => {
+	const terminalId = await recoveryTerminal();
+	const configId = `custom:${randomUUID()}` as const;
+	const script = path.join(TEST_HOME, "recovery-agent");
+	const argsFile = path.join(TEST_HOME, "recovery-agent-args");
+	fs.writeFileSync(
+		script,
+		`#!/bin/sh\nprintf '%s\\n' "$@" >> "${argsFile}"\nexec sleep 60\n`,
+		{ mode: 0o755 },
+	);
+	db.insert(hostAgentConfigs)
+		.values({
+			id: configId,
+			presetId: "claude",
+			label: "Recovery agent",
+			command: script,
+			promptTransport: "argv",
+			resumeArgsJson: '["--resume"]',
+			displayOrder: 99,
+		})
+		.run();
+	db.insert(terminalAgentBindings)
+		.values({
+			terminalId,
+			workspaceId,
+			agentId: "claude",
+			definitionId: configId,
+			agentSessionId: "recovery-conversation",
+			startedAt: Date.now(),
+			lastEventAt: Date.now(),
+			lastEventType: "Stop",
+		})
+		.run();
+	const store = new TerminalAgentStore(
+		new SqliteTerminalAgentBindingPersistence(db),
+	);
+	const eventBus = new Proxy({}, { get: () => () => {} }) as EventBus;
+	const caller = paneRecoveryRouter.createCaller({
+		db,
+		isAuthenticated: true,
+		terminalAgentStore: store,
+		eventBus,
+	} as Parameters<typeof paneRecoveryRouter.createCaller>[0]);
+	const entry = closeEntry(terminalId);
+	await caller.close({ workspaceId, entries: [entry] });
+	assert.equal(fs.existsSync(argsFile), false);
+	const [first, second] = await Promise.all([
+		caller.restore({ workspaceId, id: entry.id }),
+		caller.restore({ workspaceId, id: entry.id }),
+	]);
+	const restoredId = first.entry.descriptor.terminalId;
+	assert.ok(restoredId);
+	assert.equal(second.entry.descriptor.terminalId, restoredId);
+	assert.notEqual(restoredId, terminalId);
+	try {
+		for (let attempt = 0; attempt < 100 && !fs.existsSync(argsFile); attempt++)
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		assert.equal(
+			fs.readFileSync(argsFile, "utf8"),
+			"--resume\nrecovery-conversation\n",
+		);
+		assert.equal(
+			db.query.terminalAgentBindings
+				.findFirst({
+					where: eq(terminalAgentBindings.terminalId, terminalId),
+				})
+				.sync()?.resumedIntoTerminalId,
+			restoredId,
+		);
+		assert.equal(
+			(await caller.restore({ workspaceId, id: entry.id })).entry.descriptor
+				.terminalId,
+			restoredId,
+		);
+		assert.equal(
+			fs.readFileSync(argsFile, "utf8"),
+			"--resume\nrecovery-conversation\n",
+		);
+		store.recordEvent({
+			terminalId: restoredId,
+			workspaceId,
+			agentId: "claude",
+			eventType: "Stop",
+			occurredAt: Date.now(),
+		});
+		await caller.close({ workspaceId, entries: [closeEntry(restoredId)] });
+		const retried = (await caller.restore({ workspaceId, id: entry.id })).entry
+			.descriptor.terminalId;
+		assert.ok(retried);
+		assert.notEqual(retried, restoredId);
+		assert.equal(
+			(await caller.restore({ workspaceId, id: entry.id })).entry.descriptor
+				.terminalId,
+			retried,
+		);
+		try {
+			for (
+				let attempt = 0;
+				attempt < 100 &&
+				fs.readFileSync(argsFile, "utf8").split("--resume").length < 3;
+				attempt++
+			)
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			assert.equal(
+				fs.readFileSync(argsFile, "utf8"),
+				"--resume\nrecovery-conversation\n--resume\nrecovery-conversation\n",
+			);
+		} finally {
+			await disposeSessionAndWait(retried, db);
+		}
+	} finally {
+		await disposeSessionAndWait(restoredId, db);
 	}
 });

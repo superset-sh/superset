@@ -2570,6 +2570,9 @@ msgstr "Автономный конвейер от тикета до PR"
 msgid "Available"
 msgstr "Свободен"
 
+msgid "Available for 24 hours"
+msgstr "Доступно в течение 24 часов"
+
 msgid "Available when v2 is enabled."
 msgstr "Доступно, когда включён v2."
 
@@ -6658,9 +6661,6 @@ msgstr "Не удалось удалить участника"
 msgid "Failed to remove PR link: {0}"
 msgstr "Не удалось отвязать PR: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Не удалось удалить терминал"
-
 msgid "Failed to rename"
 msgstr "Не удалось переименовать"
 
@@ -10201,6 +10201,9 @@ msgstr "Публичных конфигураций агентов пока не
 msgid "No pull requests found."
 msgstr "Пул-реквесты не найдены."
 
+msgid "No recently deleted panes"
+msgstr "Нет недавно удалённых панелей"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Репозитории не найдены. Убедитесь, что у вашего GitHub App есть доступ к репозиториям."
 
@@ -12635,9 +12638,6 @@ msgstr "Удаляет этого агента только с этого уст
 
 msgid "Removing member..."
 msgstr "Удаление участника..."
-
-msgid "Removing terminal..."
-msgstr "Удаление терминала..."
 
 msgid "Removing…"
 msgstr "Удаление…"
@@ -15513,9 +15513,6 @@ msgstr "ID терминала"
 
 msgid "Terminal input"
 msgstr "Ввод в терминал"
-
-msgid "Terminal removed"
-msgstr "Терминал удалён"
 
 msgid "Terminal scripts"
 msgstr "Скрипты терминала"

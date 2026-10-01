@@ -2570,6 +2570,9 @@ msgstr "工單到PR的自主流水線"
 msgid "Available"
 msgstr "可用"
 
+msgid "Available for 24 hours"
+msgstr "24 小時內可用"
+
 msgid "Available when v2 is enabled."
 msgstr "啟用v2後可用。"
 
@@ -6658,9 +6661,6 @@ msgstr "移除成員失敗"
 msgid "Failed to remove PR link: {0}"
 msgstr "移除PR連結失敗：{0}"
 
-msgid "Failed to remove terminal"
-msgstr "移除終端失敗"
-
 msgid "Failed to rename"
 msgstr "重新命名失敗"
 
@@ -10201,6 +10201,9 @@ msgstr "暫無公開的代理程式配置。此頁面已為將來的代理程式
 msgid "No pull requests found."
 msgstr "未找到拉取請求。"
 
+msgid "No recently deleted panes"
+msgstr "沒有最近刪除的窗格"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "未找到儲存庫。請確認你的GitHub App有權存取儲存庫。"
 
@@ -12635,9 +12638,6 @@ msgstr "僅從此裝置上移除該代理程式。"
 
 msgid "Removing member..."
 msgstr "正在移除成員..."
-
-msgid "Removing terminal..."
-msgstr "正在移除終端..."
 
 msgid "Removing…"
 msgstr "正在移除…"
@@ -15513,9 +15513,6 @@ msgstr "終端ID"
 
 msgid "Terminal input"
 msgstr "終端輸入"
-
-msgid "Terminal removed"
-msgstr "終端已移除"
 
 msgid "Terminal scripts"
 msgstr "終端指令碼"

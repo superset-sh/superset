@@ -925,3 +925,66 @@ test("a disconnected appearance reset is sent once on reconnect even with unchan
 	});
 	disconnect(transport);
 });
+
+describe("cold recovery attachment", () => {
+	test("hydrates saved dimensions before new output and acknowledges only after parsing", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal(80, 24);
+		const callbacks: Array<() => void> = [];
+		const writes: Array<string | Uint8Array> = [];
+		const resizes: number[][] = [];
+		terminal.resize = (cols, rows) => {
+			resizes.push([cols, rows]);
+		};
+		terminal.write = (data, callback) => {
+			writes.push(data);
+			if (callback) callbacks.push(callback);
+		};
+		connect(transport, terminal, "ws://host/terminal/restored");
+		const socket = FakeRelaySocket.instances.at(-1);
+		if (!socket) throw new Error("Missing socket");
+		socket.open();
+		expect((socket.options.buildUrl as () => string)()).toContain("history=1");
+		socket.message(
+			JSON.stringify({
+				type: "recovery",
+				id: "archive",
+				snapshot: {
+					version: 1,
+					ansi: "normal[?1049hClaude",
+					cols: 132,
+					rows: 42,
+				},
+			}),
+		);
+		socket.message(
+			JSON.stringify({ type: "attached", terminalId: "restored" }),
+		);
+		socket.message(
+			JSON.stringify({
+				type: "synced",
+				epoch: "new-epoch",
+				seq: 0,
+				mode: "tail",
+			}),
+		);
+		expect(resizes).toEqual([[132, 42]]);
+		expect(writes[0]).toContain("normal[?1049hClaude");
+		expect(
+			socket.sent.some((value) => value.includes("recovery-restored")),
+		).toBe(false);
+		for (const callback of callbacks) callback();
+		expect(resizes).toEqual([
+			[132, 42],
+			[80, 24],
+		]);
+		expect(
+			socket.sent.filter((value) => value.includes("recovery-restored")),
+		).toEqual([JSON.stringify({ type: "recovery-restored", id: "archive" })]);
+		expect(transport.seqAnchor).toEqual({ epoch: "new-epoch", seq: 0 });
+		expect((socket.options.buildUrl as () => string)()).not.toContain(
+			"history=1",
+		);
+		disconnect(transport);
+	});
+});

@@ -2570,6 +2570,9 @@ msgstr "Otonom biletten PR'a boru hattı"
 msgid "Available"
 msgstr "Uygun"
 
+msgid "Available for 24 hours"
+msgstr "24 saat boyunca kullanılabilir"
+
 msgid "Available when v2 is enabled."
 msgstr "v2 etkinleştirildiğinde kullanılabilir."
 
@@ -6658,9 +6661,6 @@ msgstr "Üye kaldırılamadı"
 msgid "Failed to remove PR link: {0}"
 msgstr "PR bağlantısı kaldırılamadı: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Terminal kaldırılamadı"
-
 msgid "Failed to rename"
 msgstr "Yeniden adlandırılamadı"
 
@@ -10201,6 +10201,9 @@ msgstr "Henüz herkese açık ajan yapılandırması yok. Bu bölüm gelecekteki
 msgid "No pull requests found."
 msgstr "Pull request bulunamadı."
 
+msgid "No recently deleted panes"
+msgstr "Yakın zamanda silinen bölme yok"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Depo bulunamadı. GitHub App'inizin depolara erişimi olduğundan emin olun."
 
@@ -12635,9 +12638,6 @@ msgstr "Bu ajanı yalnızca bu cihazdan kaldırır."
 
 msgid "Removing member..."
 msgstr "Üye kaldırılıyor..."
-
-msgid "Removing terminal..."
-msgstr "Terminal kaldırılıyor..."
 
 msgid "Removing…"
 msgstr "Kaldırılıyor…"
@@ -15513,9 +15513,6 @@ msgstr "terminal kimliği"
 
 msgid "Terminal input"
 msgstr "Terminal girişi"
-
-msgid "Terminal removed"
-msgstr "Terminal kaldırıldı"
 
 msgid "Terminal scripts"
 msgstr "Terminal betikleri"

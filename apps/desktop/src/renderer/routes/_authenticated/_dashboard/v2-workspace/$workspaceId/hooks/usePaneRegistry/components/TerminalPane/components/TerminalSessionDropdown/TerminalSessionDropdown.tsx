@@ -39,7 +39,7 @@ interface TerminalSessionDropdownProps {
 	context: RendererContext<PaneViewerData>;
 	launcher: TerminalLauncher;
 	workspaceId: string;
-	onSessionRemoved: (terminalId: string) => void;
+	onRemoveSession: (terminalId: string) => Promise<void>;
 }
 
 interface VisibleTerminalSession {
@@ -101,10 +101,10 @@ function getTerminalPaneLocations(
 }
 
 export function TerminalSessionDropdown({
+	onRemoveSession,
 	context,
 	launcher,
 	workspaceId,
-	onSessionRemoved,
 }: TerminalSessionDropdownProps) {
 	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
@@ -112,7 +112,7 @@ export function TerminalSessionDropdown({
 	const { terminalId } = context.pane.data as TerminalPaneData;
 	const terminalInstanceId = context.pane.id;
 	const utils = workspaceTrpc.useUtils();
-	const killTerminalSession = workspaceTrpc.terminal.killSession.useMutation();
+
 	const renameTerminalSession = workspaceTrpc.terminal.rename.useMutation();
 	const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null);
 	const sessionsInput = useMemo(() => ({ workspaceId }), [workspaceId]);
@@ -227,49 +227,8 @@ export function TerminalSessionDropdown({
 		setIsOpen(false);
 	};
 
-	const closePanesForTerminal = (targetTerminalId: string) => {
-		const terminalPaneLocations = getTerminalPaneLocations(context);
-		for (const location of terminalPaneLocations.get(targetTerminalId) ?? []) {
-			context.store.getState().closePane({
-				tabId: location.tabId,
-				paneId: location.paneId,
-				intent: "remove",
-			});
-		}
-
-		if (targetTerminalId === terminalId) {
-			void context.actions.close();
-		}
-	};
-
-	const removeTerminalSession = async (session: VisibleTerminalSession) => {
-		try {
-			await killTerminalSession.mutateAsync({
-				terminalId: session.terminalId,
-				workspaceId,
-			});
-			try {
-				onSessionRemoved(session.terminalId);
-			} finally {
-				closePanesForTerminal(session.terminalId);
-			}
-		} finally {
-			await utils.terminal.list.invalidate({ workspaceId });
-		}
-	};
-
 	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
-		toast.promise(removeTerminalSession(session), {
-			loading: t({
-				message: "Removing terminal...",
-			}),
-			success: t({
-				message: "Terminal removed",
-			}),
-			error: t({
-				message: "Failed to remove terminal",
-			}),
-		});
+		void onRemoveSession(session.terminalId).then(() => setIsOpen(false));
 	};
 
 	const renameSession = async (target: RenameTarget, name: string) => {
@@ -509,7 +468,6 @@ export function TerminalSessionDropdown({
 															message: "Remove terminal session",
 														})
 											}
-											disabled={killTerminalSession.isPending}
 											className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 											onClick={(event) => {
 												event.preventDefault();

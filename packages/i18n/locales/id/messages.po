@@ -2570,6 +2570,9 @@ msgstr "Pipeline otonom dari tiket ke PR"
 msgid "Available"
 msgstr "Tersedia"
 
+msgid "Available for 24 hours"
+msgstr "Tersedia selama 24 jam"
+
 msgid "Available when v2 is enabled."
 msgstr "Tersedia saat v2 aktif."
 
@@ -6658,9 +6661,6 @@ msgstr "Gagal menghapus anggota"
 msgid "Failed to remove PR link: {0}"
 msgstr "Gagal menghapus tautan PR: {0}"
 
-msgid "Failed to remove terminal"
-msgstr "Gagal menghapus terminal"
-
 msgid "Failed to rename"
 msgstr "Gagal mengganti nama"
 
@@ -10201,6 +10201,9 @@ msgstr "Belum ada konfigurasi agen publik. Rute ini siap untuk daftar konfiguras
 msgid "No pull requests found."
 msgstr "Tidak ada pull request ditemukan."
 
+msgid "No recently deleted panes"
+msgstr "Tidak ada panel yang baru dihapus"
+
 msgid "No repositories found. Make sure your GitHub App has access to repositories."
 msgstr "Tidak ada repositori ditemukan. Pastikan GitHub App Anda punya akses ke repositori."
 
@@ -12635,9 +12638,6 @@ msgstr "Menghapus agen ini hanya dari perangkat ini."
 
 msgid "Removing member..."
 msgstr "Menghapus anggota..."
-
-msgid "Removing terminal..."
-msgstr "Menghapus terminal..."
 
 msgid "Removing…"
 msgstr "Menghapus…"
@@ -15513,9 +15513,6 @@ msgstr "ID terminal"
 
 msgid "Terminal input"
 msgstr "Input terminal"
-
-msgid "Terminal removed"
-msgstr "Terminal dihapus"
 
 msgid "Terminal scripts"
 msgstr "Skrip terminal"

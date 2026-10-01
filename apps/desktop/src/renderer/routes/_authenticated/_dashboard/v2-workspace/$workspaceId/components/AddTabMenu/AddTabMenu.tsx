@@ -5,11 +5,14 @@ import {
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
 import { BsTerminalPlus } from "react-icons/bs";
-import { LuGitCompareArrows } from "react-icons/lu";
+import { LuGitCompareArrows, LuHistory } from "react-icons/lu";
 import { TbDeviceDesktop, TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import type { usePaneRecovery } from "../../hooks/usePaneRecovery";
 
 interface AddTabMenuProps {
+	onCloseMenu: () => void;
+	recovery: ReturnType<typeof usePaneRecovery>;
 	onAddTerminal: () => void;
 	onAddChatV3?: (() => void) | undefined;
 	onAddBrowser: () => void;
@@ -20,6 +23,8 @@ interface AddTabMenuProps {
 }
 
 export function AddTabMenu({
+	onCloseMenu,
+	recovery,
 	onAddTerminal,
 	onAddChatV3,
 	onAddBrowser,
@@ -68,6 +73,24 @@ export function AddTabMenu({
 					<HotkeyMenuShortcut hotkeyId="SPLIT_WITH_DESKTOP" />
 				</DropdownMenuItem>
 			)}
+			<DropdownMenuSeparator />
+			<DropdownMenuItem
+				className="gap-2"
+				onSelect={(event) => {
+					const menu = (event.currentTarget as HTMLElement).closest(
+						'[role="menu"]',
+					);
+					const triggerId = menu?.getAttribute("aria-labelledby");
+					recovery.historyTriggerRef.current = triggerId
+						? document.getElementById(triggerId)
+						: null;
+					recovery.setHistoryOpen(true);
+					onCloseMenu();
+				}}
+			>
+				<LuHistory className="size-4" />
+				<Trans>Recently deleted</Trans>
+			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuCheckboxItem
 				checked={showPresetsBar}
