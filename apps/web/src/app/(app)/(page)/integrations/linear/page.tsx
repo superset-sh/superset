@@ -94,7 +94,7 @@ export default async function LinearIntegrationPage() {
 			organizationId: organization.id,
 		}))
 	) {
-		redirect("/settings/billing");
+		redirect("/integrations?pro=linear");
 	}
 
 	const connection = await trpc.integration.linear.getConnection.query({

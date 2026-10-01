@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
+import { cn } from "../../../../lib/utils";
+import { DialogTitle } from "../../../ui/dialog";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
 
@@ -30,9 +31,11 @@ export function FeatureSidebar({
 	return (
 		<div className="flex w-[249px] shrink-0 flex-col border-r bg-card">
 			<div className="px-5 pt-5 pb-2.5">
-				<h1 className="mb-0 text-lg font-bold text-foreground">
-					<Trans>Pro Features</Trans>
-				</h1>
+				<DialogTitle asChild>
+					<h1 className="mb-0 text-lg font-bold text-foreground">
+						<Trans>Pro Features</Trans>
+					</h1>
+				</DialogTitle>
 			</div>
 
 			<div className="flex flex-col gap-2 py-2.5">

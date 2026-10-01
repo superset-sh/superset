@@ -8,7 +8,9 @@ export async function GET(request: Request) {
 	if (member instanceof Response) return member;
 
 	if (!(await organizationSyncsNow(member.organizationId))) {
-		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/settings/billing`);
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations?pro=linear`,
+		);
 	}
 
 	return beginOAuthFlow({

@@ -13,6 +13,7 @@ export interface IntegrationCardProps {
 	icon: ReactNode;
 	accentColor: string;
 	disabled?: boolean;
+	onClick?: () => void;
 }
 
 export function IntegrationCard({
@@ -23,6 +24,7 @@ export function IntegrationCard({
 	icon,
 	accentColor,
 	disabled = false,
+	onClick,
 }: IntegrationCardProps) {
 	const cardRef = useRef<HTMLDivElement>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -105,6 +107,14 @@ export function IntegrationCard({
 
 	if (disabled) {
 		return card;
+	}
+
+	if (onClick) {
+		return (
+			<button type="button" onClick={onClick} className="w-full text-left">
+				{card}
+			</button>
+		);
 	}
 
 	return <Link href={`/integrations/${id}`}>{card}</Link>;

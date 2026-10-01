@@ -101,7 +101,7 @@ export default async function GitHubIntegrationPage() {
 			organizationId: organization.id,
 		}))
 	) {
-		redirect("/settings/billing");
+		redirect("/integrations?pro=github");
 	}
 
 	const installation = await trpc.integration.github.getInstallation.query({

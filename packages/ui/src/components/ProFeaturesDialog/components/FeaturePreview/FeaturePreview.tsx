@@ -1,8 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
-import { Badge } from "@superset/ui/badge";
-import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
+import { cn } from "../../../../lib/utils";
+import { Badge } from "../../../ui/badge";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
 import { AutomationsDemo } from "./components/AutomationsDemo";
