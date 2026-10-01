@@ -1758,6 +1758,9 @@ msgstr "代理程式已完成 — {workspaceName}"
 msgid "Agent Configs"
 msgstr "代理程式配置"
 
+msgid "Agent credentials changed"
+msgstr "代理程式憑證已變更"
+
 msgid "Agent finished"
 msgstr "代理程式已完成"
 
@@ -4749,6 +4752,10 @@ msgstr "無法重啟終端"
 
 msgid "Couldn't restart the host service"
 msgstr "無法重啟主機服務"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "無法重新啟動工作區：{0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "無法還原「{projectName}」"
@@ -12996,6 +13003,9 @@ msgstr "重啟終端"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "重新啟動以使用最新版本的 Superset。"
+
+msgid "Restart workspace"
+msgstr "重新啟動工作區"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "重新啟動工作區以套用新的代理憑證。"

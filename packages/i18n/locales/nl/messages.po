@@ -1758,6 +1758,9 @@ msgstr "Agent klaar — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Agentconfiguraties"
 
+msgid "Agent credentials changed"
+msgstr "Agentgegevens gewijzigd"
+
 msgid "Agent finished"
 msgstr "Agent klaar"
 
@@ -4749,6 +4752,10 @@ msgstr "Kan terminals niet herstarten"
 
 msgid "Couldn't restart the host service"
 msgstr "Kan de hostservice niet herstarten"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Kan de werkruimte niet herstarten: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "Kan \"{projectName}\" niet herstellen"
@@ -12996,6 +13003,9 @@ msgstr "Terminals herstarten"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Start opnieuw om de nieuwste versie van Superset te gebruiken."
+
+msgid "Restart workspace"
+msgstr "Werkruimte herstarten"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Herstart workspaces om de nieuwe agentgegevens op te pakken."

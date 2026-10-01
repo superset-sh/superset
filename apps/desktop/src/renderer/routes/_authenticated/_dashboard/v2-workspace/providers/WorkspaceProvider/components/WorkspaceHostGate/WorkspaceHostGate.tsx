@@ -8,6 +8,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
 import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
+import { AgentCredentialsChangedBanner } from "./components/AgentCredentialsChangedBanner";
 import { HostConnectionStrip } from "./components/HostConnectionStrip";
 
 /** Keeps loaded panes accessible while reporting the shared host connection. */
@@ -33,7 +34,8 @@ export function WorkspaceHostGate({
 		retry,
 	} = useHostReachability(hostUrl);
 	const { hosts: hostRows } = useKnownHosts();
-	const { targets: sandboxes } = useSandboxAccess();
+	const { targets: sandboxes, agentCredentialsChangedWorkspaceId } =
+		useSandboxAccess();
 	const isSandbox = sandboxes.some(
 		(sandbox) => sandbox.workspaceId === workspace.hostId,
 	);
@@ -57,8 +59,11 @@ export function WorkspaceHostGate({
 	// reachable would move `children` in the tree and remount the whole
 	// workspace on every reconnect.
 	return (
-		<div className="relative flex min-h-0 min-w-0 flex-1">
+		<div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
 			<div className="flex min-h-0 min-w-0 flex-1">{children}</div>
+			{agentCredentialsChangedWorkspaceId === workspace.hostId ? (
+				<AgentCredentialsChangedBanner workspaceId={workspace.hostId} />
+			) : null}
 			{isDegraded || isAccessDenied ? (
 				<HostConnectionStrip
 					settingsHostId={isSandbox ? null : workspace.hostId}

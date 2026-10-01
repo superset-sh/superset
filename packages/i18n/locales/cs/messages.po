@@ -1758,6 +1758,9 @@ msgstr "Agent dokončil — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Konfigurace agentů"
 
+msgid "Agent credentials changed"
+msgstr "Přihlašovací údaje agenta se změnily"
+
 msgid "Agent finished"
 msgstr "Agent dokončil"
 
@@ -4749,6 +4752,10 @@ msgstr "Nepodařilo se restartovat terminály"
 
 msgid "Couldn't restart the host service"
 msgstr "Nepodařilo se restartovat host service"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Pracovní prostor se nepodařilo restartovat: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "„{projectName}“ se nepodařilo obnovit"
@@ -12996,6 +13003,9 @@ msgstr "Restartovat terminály"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Restartujte aplikaci, abyste používali nejnovější verzi Supersetu."
+
+msgid "Restart workspace"
+msgstr "Restartovat pracovní prostor"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Restartujte workspacy, aby převzaly nové přihlašovací údaje agenta."

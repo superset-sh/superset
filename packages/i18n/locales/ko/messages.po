@@ -1758,6 +1758,9 @@ msgstr "에이전트 완료 — {workspaceName}"
 msgid "Agent Configs"
 msgstr "에이전트 설정"
 
+msgid "Agent credentials changed"
+msgstr "에이전트 자격 증명이 변경됨"
+
 msgid "Agent finished"
 msgstr "에이전트 완료"
 
@@ -4749,6 +4752,10 @@ msgstr "터미널을 다시 시작하지 못했습니다"
 
 msgid "Couldn't restart the host service"
 msgstr "호스트 서비스를 다시 시작하지 못했습니다"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "워크스페이스를 다시 시작할 수 없습니다: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "\"{projectName}\"을(를) 복원하지 못했습니다"
@@ -12996,6 +13003,9 @@ msgstr "터미널 다시 시작"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "다시 시작하면 최신 버전의 Superset을 사용할 수 있습니다."
+
+msgid "Restart workspace"
+msgstr "워크스페이스 다시 시작"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "새 에이전트 자격 증명을 적용하려면 워크스페이스를 다시 시작하세요."

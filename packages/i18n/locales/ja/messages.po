@@ -1758,6 +1758,9 @@ msgstr "エージェント完了 — {workspaceName}"
 msgid "Agent Configs"
 msgstr "エージェント設定"
 
+msgid "Agent credentials changed"
+msgstr "エージェントの認証情報が変更されました"
+
 msgid "Agent finished"
 msgstr "エージェントが完了しました"
 
@@ -4749,6 +4752,10 @@ msgstr "ターミナルを再起動できませんでした"
 
 msgid "Couldn't restart the host service"
 msgstr "ホストサービスを再起動できませんでした"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "ワークスペースを再起動できませんでした: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "「{projectName}」を復元できませんでした"
@@ -12996,6 +13003,9 @@ msgstr "ターミナルを再起動"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "再起動すると最新バージョンの Superset を使用できます。"
+
+msgid "Restart workspace"
+msgstr "ワークスペースを再起動"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "新しいエージェント認証情報を反映するにはワークスペースを再起動してください。"

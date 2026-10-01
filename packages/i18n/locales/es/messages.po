@@ -1758,6 +1758,9 @@ msgstr "Agente finalizado — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Configuraciones de agente"
 
+msgid "Agent credentials changed"
+msgstr "Las credenciales del agente cambiaron"
+
 msgid "Agent finished"
 msgstr "El agente terminó"
 
@@ -4749,6 +4752,10 @@ msgstr "No se pudieron reiniciar las terminales"
 
 msgid "Couldn't restart the host service"
 msgstr "No se pudo reiniciar el servicio de host"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "No se pudo reiniciar el espacio de trabajo: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "No se pudo restaurar \"{projectName}\""
@@ -12996,6 +13003,9 @@ msgstr "Reiniciar las terminales"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Reinicia para usar la última versión de Superset."
+
+msgid "Restart workspace"
+msgstr "Reiniciar espacio de trabajo"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Reinicia los espacios de trabajo para aplicar las nuevas credenciales del agente."

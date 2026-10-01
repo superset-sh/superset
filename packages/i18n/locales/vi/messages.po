@@ -1758,6 +1758,9 @@ msgstr "Agent đã xong — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Cấu hình agent"
 
+msgid "Agent credentials changed"
+msgstr "Thông tin xác thực của agent đã thay đổi"
+
 msgid "Agent finished"
 msgstr "Agent đã xong"
 
@@ -4749,6 +4752,10 @@ msgstr "Không thể khởi động lại terminal"
 
 msgid "Couldn't restart the host service"
 msgstr "Không thể khởi động lại dịch vụ host"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Không thể khởi động lại workspace: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "Không thể khôi phục \"{projectName}\""
@@ -12996,6 +13003,9 @@ msgstr "Khởi động lại terminal"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Khởi động lại để dùng phiên bản Superset mới nhất."
+
+msgid "Restart workspace"
+msgstr "Khởi động lại workspace"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Khởi động lại workspace để áp dụng thông tin xác thực mới của agent."

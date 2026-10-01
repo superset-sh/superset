@@ -1758,6 +1758,9 @@ msgstr "Agen Selesai — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Konfigurasi Agen"
 
+msgid "Agent credentials changed"
+msgstr "Kredensial agen berubah"
+
 msgid "Agent finished"
 msgstr "Agen selesai"
 
@@ -4749,6 +4752,10 @@ msgstr "Tidak bisa memulai ulang terminal"
 
 msgid "Couldn't restart the host service"
 msgstr "Tidak bisa memulai ulang layanan host"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Tidak dapat memulai ulang workspace: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "Tidak dapat memulihkan \"{projectName}\""
@@ -12996,6 +13003,9 @@ msgstr "Mulai ulang terminal"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Mulai ulang untuk menggunakan versi terbaru Superset."
+
+msgid "Restart workspace"
+msgstr "Mulai ulang workspace"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Mulai ulang workspace untuk memakai kredensial agen yang baru."

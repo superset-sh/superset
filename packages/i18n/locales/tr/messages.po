@@ -1758,6 +1758,9 @@ msgstr "Ajan tamamlandı — {workspaceName}"
 msgid "Agent Configs"
 msgstr "Ajan yapılandırmaları"
 
+msgid "Agent credentials changed"
+msgstr "Ajan kimlik bilgileri değişti"
+
 msgid "Agent finished"
 msgstr "Ajan bitirdi"
 
@@ -4749,6 +4752,10 @@ msgstr "Terminaller yeniden başlatılamadı"
 
 msgid "Couldn't restart the host service"
 msgstr "Host hizmeti yeniden başlatılamadı"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Çalışma alanı yeniden başlatılamadı: {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "\"{projectName}\" geri yüklenemedi"
@@ -12996,6 +13003,9 @@ msgstr "Terminalleri yeniden başlat"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "Superset'in en son sürümünü kullanmak için yeniden başlatın."
+
+msgid "Restart workspace"
+msgstr "Çalışma alanını yeniden başlat"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Yeni ajan kimlik bilgilerinin geçerli olması için çalışma alanlarını yeniden başlatın."

@@ -1758,6 +1758,9 @@ msgstr "智能体已完成 — {workspaceName}"
 msgid "Agent Configs"
 msgstr "智能体配置"
 
+msgid "Agent credentials changed"
+msgstr "智能体凭据已更改"
+
 msgid "Agent finished"
 msgstr "智能体已完成"
 
@@ -4749,6 +4752,10 @@ msgstr "无法重启终端"
 
 msgid "Couldn't restart the host service"
 msgstr "无法重启主机服务"
+
+#. placeholder {0}: error.message
+msgid "Couldn't restart the workspace: {0}"
+msgstr "无法重启工作区：{0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "无法恢复“{projectName}”"
@@ -12996,6 +13003,9 @@ msgstr "重启终端"
 
 msgid "Restart to use the latest version of Superset."
 msgstr "重新启动以使用最新版本的 Superset。"
+
+msgid "Restart workspace"
+msgstr "重启工作区"
 
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "重启工作区以使用新的代理凭据。"
