@@ -4753,7 +4753,7 @@ msgstr "터미널을 다시 시작하지 못했습니다"
 msgid "Couldn't restart the host service"
 msgstr "호스트 서비스를 다시 시작하지 못했습니다"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "워크스페이스를 다시 시작할 수 없습니다: {0}"
 

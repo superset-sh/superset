@@ -4753,7 +4753,7 @@ msgstr "ターミナルを再起動できませんでした"
 msgid "Couldn't restart the host service"
 msgstr "ホストサービスを再起動できませんでした"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "ワークスペースを再起動できませんでした: {0}"
 

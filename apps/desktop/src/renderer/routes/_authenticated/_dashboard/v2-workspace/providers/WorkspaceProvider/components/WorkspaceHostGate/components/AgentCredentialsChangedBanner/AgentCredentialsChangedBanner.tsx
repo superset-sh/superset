@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LuTriangleAlert } from "react-icons/lu";
@@ -15,16 +16,27 @@ export function AgentCredentialsChangedBanner({
 		mutationFn: () =>
 			apiTrpcClient.cloudWorkspace.restart.mutate({ id: workspaceId }),
 		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["cloud-workspace"] }),
+			Promise.all(
+				(["access", "wake"] as const).map((kind) =>
+					queryClient.invalidateQueries({
+						queryKey: ["cloud-workspace", kind, workspaceId],
+					}),
+				),
+			),
 		onError: (error) => {
 			toast.error(
-				t({ message: `Couldn't restart the workspace: ${error.message}` }),
+				t({
+					message: `Couldn't restart the workspace: ${errorMessage(error)}`,
+				}),
 			);
 		},
 	});
 
 	return (
-		<div className="flex shrink-0 items-center gap-3 border-t border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground/85">
+		<div
+			role="status"
+			className="flex shrink-0 items-center gap-3 border-t border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground/85"
+		>
 			<LuTriangleAlert
 				className="size-4 shrink-0 text-foreground/85"
 				aria-hidden="true"

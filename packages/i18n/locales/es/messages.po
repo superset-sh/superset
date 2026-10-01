@@ -4753,7 +4753,7 @@ msgstr "No se pudieron reiniciar las terminales"
 msgid "Couldn't restart the host service"
 msgstr "No se pudo reiniciar el servicio de host"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "No se pudo reiniciar el espacio de trabajo: {0}"
 

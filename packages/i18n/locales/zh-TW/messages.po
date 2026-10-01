@@ -1759,7 +1759,7 @@ msgid "Agent Configs"
 msgstr "代理程式配置"
 
 msgid "Agent credentials changed"
-msgstr "代理程式憑證已變更"
+msgstr "代理憑證已變更"
 
 msgid "Agent finished"
 msgstr "代理程式已完成"
@@ -4753,7 +4753,7 @@ msgstr "無法重啟終端"
 msgid "Couldn't restart the host service"
 msgstr "無法重啟主機服務"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "無法重新啟動工作區：{0}"
 

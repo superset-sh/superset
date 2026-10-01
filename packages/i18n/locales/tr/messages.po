@@ -4753,7 +4753,7 @@ msgstr "Terminaller yeniden başlatılamadı"
 msgid "Couldn't restart the host service"
 msgstr "Host hizmeti yeniden başlatılamadı"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "Çalışma alanı yeniden başlatılamadı: {0}"
 

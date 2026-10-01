@@ -1759,7 +1759,7 @@ msgid "Agent Configs"
 msgstr "Agenten-Konfigurationen"
 
 msgid "Agent credentials changed"
-msgstr "Agent-Anmeldedaten geändert"
+msgstr "Agent-Zugangsdaten geändert"
 
 msgid "Agent finished"
 msgstr "Agent fertig"
@@ -4753,7 +4753,7 @@ msgstr "Terminals konnten nicht neu gestartet werden"
 msgid "Couldn't restart the host service"
 msgstr "Der Host-Dienst konnte nicht neu gestartet werden"
 
-#. placeholder {0}: error.message
+#. placeholder {0}: errorMessage(error)
 msgid "Couldn't restart the workspace: {0}"
 msgstr "Arbeitsbereich konnte nicht neu gestartet werden: {0}"
 
