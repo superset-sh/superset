@@ -91,5 +91,5 @@ Waiting for approval. I have not posted, deployed, or changed anything.
 ## 4. Stop
 
 Wait for the human. If they approve the message, they post it in incident.io themselves. If they
-ask for a change, redraft and stop again. Do a write action (for example, a rollback) only when
-the human names that action and tells you to do it. That approval covers that one action only.
+ask for a change, redraft and stop again. This skill stays read-only after approval. A rollback
+or any other write action is a separate request outside this skill.

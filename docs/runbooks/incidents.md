@@ -24,7 +24,8 @@ Setup that needs a person with incident.io access:
 
   | Monitor | Expect | Component |
   |---|---|---|
-  | `https://api.superset.sh/api/health` | 200 (503 means the database is failing) | General API, Sign-in |
+  | `https://api.superset.sh/api/health` | 200 (503 means the database is failing) | General API |
+  | `https://api.superset.sh/api/auth/ok` | 200 | Sign-in. This shows that the auth routes answer. It does not do a full sign-in, so also set Sign-in by hand when users report that they cannot sign in. |
   | `https://relay.superset.sh/health` | 200 | Remote Access |
   | `https://realtime.superset.sh/health` | 200 | Desktop App, Web App (live updates) |
   | `https://app.superset.sh` | 200 | Web App |
@@ -76,7 +77,9 @@ Look in this order. Stop when you find a cause that explains what users see.
    - Relay: `https://relay.superset.sh/health` returns `{"ok":true,"proto":2}`.
    - Realtime: `https://realtime.superset.sh/health` returns `{"ok":true}`.
    - API: `https://api.superset.sh/api/health` returns `{"ok":true,"database":"ok"}` with 200. A
-     503 with `"database":"timeout"` or `"error"` means the database does not answer in 3 seconds.
+     503 with `"database":"timeout"` means the database did not answer in 3 seconds (look for lock
+     waits). A 503 with `"database":"error"` means the query failed immediately (look for a
+     connection or configuration problem).
 4. **Vercel.** api, web, marketing, admin and docs run there. Look at the deployment list,
    the runtime logs (`vercel logs`) and the function error rate. `vercel rollback` is the fastest
    fix for a bad API or web deploy. Use it before you try a fix forward, unless a migration has
@@ -136,6 +139,10 @@ During the incident:
 - [ ] Post updates on the schedule above.
 - [ ] Record the timeline in the incident channel: times, actions, and who did them.
 - [ ] To stop deploys, run `gh workflow disable "Deploy Production"`, and post that you did it.
+      This does not stop a run that is in progress. Find it with
+      `gh run list --workflow "Deploy Production" --status in_progress` and cancel it with
+      `gh run cancel <id>`. Do not cancel a run while its `deploy-database` job applies a migration,
+      unless the migration is the cause.
 
 When it is resolved:
 
