@@ -28,9 +28,9 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { LuCloud, LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
+import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import type { AutomationLastRun } from "../../hooks/useFailedAutomations";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];

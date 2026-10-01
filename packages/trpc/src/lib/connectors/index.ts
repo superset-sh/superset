@@ -561,11 +561,18 @@ export async function probeIdentity(
 			},
 			`Connector "${slug}" identity`,
 		);
-		payload = (await response.json()) as Record<string, unknown>;
+		const text = await response.text();
 		if (!response.ok)
 			throw new Error(
-				`Connector "${slug}" identity probe failed: ${response.status}`,
+				`Connector "${slug}" identity probe failed: ${response.status} ${text.slice(0, 200)}`,
 			);
+		try {
+			payload = JSON.parse(text) as Record<string, unknown>;
+		} catch {
+			throw new Error(
+				`Connector "${slug}" identity probe returned a non-JSON body: ${text.slice(0, 200)}`,
+			);
+		}
 	} else if ("mcp" in probe) {
 		payload = await mcpIdentity(slug, probe, accessToken);
 	} else {

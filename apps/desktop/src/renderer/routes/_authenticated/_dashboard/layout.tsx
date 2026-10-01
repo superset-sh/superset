@@ -24,6 +24,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useAutomationFailuresStore } from "renderer/stores/automation-failures";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
@@ -76,12 +77,16 @@ function DashboardLayout() {
 		);
 		const stopCloudSidebarSync =
 			syncPersistedStoreAcrossWindows(useCloudSidebarStore);
+		const stopAutomationFailuresSync = syncPersistedStoreAcrossWindows(
+			useAutomationFailuresStore,
+		);
 
 		return () => {
 			stopWorkspaceSidebarSync();
 			stopSectionCollapseSync();
 			stopAgentStateSync();
 			stopCloudSidebarSync();
+			stopAutomationFailuresSync();
 		};
 	}, []);
 	// Get current workspace from route to pre-select project in new workspace modal

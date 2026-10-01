@@ -10,6 +10,7 @@ import {
 } from "react-icons/hi2";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AppMenuButton } from "renderer/routes/_authenticated/_dashboard/components/AppMenuButton";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import {
 	WINDOW_CONTROLS_ROW_HEIGHT,
@@ -20,6 +21,7 @@ import {
 	useSettingsOriginRoute,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
+import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
 import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
@@ -48,10 +50,20 @@ export function SettingsSidebar() {
 	return (
 		<div className="w-56 flex flex-col pb-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
 			<div className="mb-1 flex h-12 shrink-0 items-center">
-				<div
-					className="drag h-full shrink-0"
-					style={{ width: isMac ? "96px" : "8px" }}
-				/>
+				{isMac ? (
+					<div className="drag h-full shrink-0" style={{ width: 96 }} />
+				) : (
+					<div
+						className="flex shrink-0 items-center justify-center self-start"
+						style={{
+							width: COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+							marginTop: WINDOW_CONTROLS_ROW_TOP,
+							height: WINDOW_CONTROLS_ROW_HEIGHT,
+						}}
+					>
+						<AppMenuButton />
+					</div>
+				)}
 				<div
 					className="flex shrink-0 items-center self-start"
 					style={{

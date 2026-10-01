@@ -82,7 +82,7 @@ export function TaskRecordView({
 	return (
 		<RecordLayout
 			header={<TaskRecordTopBar slug={task.slug} onBack={onBack} />}
-			sideHeader={
+			sideActions={
 				<TaskRecordActions
 					task={task}
 					onCopyLink={onCopyLink}

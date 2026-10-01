@@ -16,6 +16,8 @@ interface PageHeaderProps {
 	contentClassName?: string;
 	/** A row that lays out its own drag area, in place of `start` and `end`. */
 	children?: ReactNode;
+	/** False for a header with another header to its right, which keeps the Windows/Linux window controls clear instead. */
+	reservesWindowControls?: boolean;
 }
 
 /** Every screen's header row. The space between `start` and `end` drags the window. */
@@ -25,6 +27,7 @@ export function PageHeader({
 	className,
 	contentClassName,
 	children,
+	reservesWindowControls = true,
 }: PageHeaderProps) {
 	const isBanded = useCollapsedSidebarBand();
 	return (
@@ -49,7 +52,7 @@ export function PageHeader({
 						{end}
 					</>
 				)}
-				<WindowControlsInset />
+				{reservesWindowControls && <WindowControlsInset />}
 			</div>
 		</header>
 	);

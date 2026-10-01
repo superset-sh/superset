@@ -930,6 +930,9 @@ msgstr "{months} Mon."
 msgid "{months}mo ago"
 msgstr "vor {months} Mon."
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Bei {myFailedCount} deiner Automatisierungen ist der letzte Lauf fehlgeschlagen"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} ist integriert und kann nicht entfernt werden"
@@ -2562,11 +2565,17 @@ msgstr "Titel der Automatisierung"
 msgid "Automations"
 msgstr "Automatisierungen"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automatisierungen ({myFailedCount} fehlgeschlagen)"
+
 msgid "Automations & event triggers"
 msgstr "Automatisierungen & Ereignis-Trigger"
 
 msgid "Automations require the Pro plan."
 msgstr "Automatisierungen erfordern den Pro-Plan."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automatisierungen, {myFailedCount} fehlgeschlagen"
 
 msgid "Autonomous"
 msgstr "Autonom"
@@ -3738,6 +3747,9 @@ msgstr "Codeblock"
 
 msgid "Code Block"
 msgstr "Code-Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Code ist nicht verfügbar – das Projekt dieses Arbeitsbereichs hat nicht das Repository dieses Pull Requests."
 
 msgid "Cohort"
 msgstr "Kohorte"

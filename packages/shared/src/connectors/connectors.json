@@ -429,6 +429,76 @@
 					}
 				}
 			]
+		},
+		"granola_mcp": {
+			"displayName": "Granola",
+			"icon": "granola",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.granola.ai/mcp",
+					"scopes": ["mcp", "openid", "email", "profile", "offline_access"],
+					"identity": {
+						"url": "https://mcp-auth.granola.ai/oauth2/userinfo",
+						"method": "POST",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.name"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"circleback_mcp": {
+			"displayName": "Circleback",
+			"icon": "circleback",
+			"category": "Productivity",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://circleback.ai/api/mcp",
+					"scopes": ["user", "user:write"],
+					"identity": {
+						"url": "https://circleback.ai/api/user",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.id",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.id",
+							"label": "$.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
 		}
 	}
 }

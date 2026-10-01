@@ -977,8 +977,11 @@ superset agents list --host host_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
-		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session` is set." },
+		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session`, `--fork-session`, or `--from-terminal` is set. Not allowed with `--from-terminal`." },
 		{ flag: "--resume-session <id>", description: "Agent session id of a previous run to restore instead of starting fresh (e.g. `claude --resume <id>`). Fails for agents without an id-based resume." },
+		{ flag: "--fork-session <id>", description: "Agent session id to clone into a new session of the same agent. The source session stays unchanged. Fails for agents without a fork command, or when the agent no longer has that session." },
+		{ flag: "--from-terminal <terminalId>", description: "Terminal whose recent output seeds the new session, so a different agent can continue the work. Superset builds the prompt." },
+		{ flag: "--context-chars <n>", description: "With `--from-terminal`, cap the handed-over context at 1-36000 characters. Default 36000 (roughly 9-12k tokens)." },
 		{ flag: "--model <id>", description: "Model for this launch. Supported values depend on the agent; omit to use its default." },
 		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
@@ -999,7 +1002,16 @@ superset agents create --workspace ws_… --agent claude --model sonnet --effort
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
 # Restore a killed agent session by the agent's own session id
 superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
+# Fork a session: a new Claude session with the same conversation
+superset agents create --workspace ws_… --agent claude --fork-session 0b7c…
+# Hand a terminal's recent output to a different agent
+superset agents create --workspace ws_… --agent codex --from-terminal term_…
+superset agents create --workspace ws_… --agent codex --from-terminal term_… --context-chars 12000
 ```
+
+Pass at most one of `--resume-session`, `--fork-session`, and
+`--from-terminal`. See [Fork and hand off sessions](/agent-sessions#fork-and-hand-off-sessions)
+for which agents can fork and what a handoff sends.
 
 </Command>
 

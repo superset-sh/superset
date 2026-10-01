@@ -56,6 +56,7 @@ Go to **Settings → Agents** to customize launch behavior for each built-in age
 - **Prompt Command Suffix** - Optional flags appended after the prompt payload
 - **Task Prompt Template** - Template used when launching an agent from a task
 - **Resume Args** - Arguments used to restore a killed session by its id (e.g. `--resume`)
+- **Fork Args** - Arguments used to clone a session by its id. Put `{sessionId}` where the id belongs (e.g. `--resume {sessionId} --fork-session`); leave empty if the agent cannot fork
 - **Model Override** - Optional model override for Superset Chat
 - **Reset to Defaults** - Restore the shipped configuration for that agent
 
@@ -76,17 +77,11 @@ When launching an agent from a task, the **Auto-run command** toggle controls wh
 
 The setting is remembered between sessions.
 
-## Resume Interrupted Sessions
+## Agent Sessions & Forking
 
-If an agent's terminal dies under it (a crash, a reboot, a killed process), Superset resumes the session automatically: the pane relaunches the agent with its resume command (e.g. `claude --resume <session-id>`) and shows a "Resuming…" pill while it happens. Only unexpected deaths qualify: sessions you close or kill deliberately, and agents that exited cleanly, stay down.
+<a id="resume-interrupted-sessions" />
 
-If the resume fails, the pill turns into "Failed to resume" with a **Retry** button and a dismiss control.
-
-Works for agents with an id-based resume command (the **Resume Args** field under **Settings → Agents**). From the CLI:
-
-```bash
-superset agents create --workspace ws_… --agent claude --resume-session <sessionId>
-```
+Resume an interrupted session, fork a session, or hand its work to another agent. See [Agent Sessions & Forking](/agent-sessions).
 
 ## Parallel Agents
 

@@ -56,5 +56,8 @@ export function usePullRequestPaneDetail(ref: PullRequestRef) {
 			refetchOnWindowFocus: true,
 		},
 	);
-	return useHost ? fromHost : fromApi;
+	return {
+		...(useHost ? fromHost : fromApi),
+		isFromHost: hostHasRepo,
+	};
 }

@@ -930,6 +930,9 @@ msgstr "{months}bln"
 msgid "{months}mo ago"
 msgstr "{months}bln lalu"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "{myFailedCount} otomatisasi Anda gagal pada run terakhirnya"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} bawaan dan tidak dapat dihapus"
@@ -2562,11 +2565,17 @@ msgstr "Judul otomatisasi"
 msgid "Automations"
 msgstr "Otomatisasi"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Otomatisasi ({myFailedCount} gagal)"
+
 msgid "Automations & event triggers"
 msgstr "Otomatisasi & pemicu event"
 
 msgid "Automations require the Pro plan."
 msgstr "Otomatisasi memerlukan paket Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Otomatisasi, {myFailedCount} gagal"
 
 msgid "Autonomous"
 msgstr "Otonom"
@@ -3738,6 +3747,9 @@ msgstr "Blok kode"
 
 msgid "Code Block"
 msgstr "Blok Kode"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Kode tidak tersedia — proyek workspace ini tidak memiliki repositori pull request ini."
 
 msgid "Cohort"
 msgstr "Kohor"

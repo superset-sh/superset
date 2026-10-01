@@ -191,8 +191,9 @@ in the commit message and the PR.
 
 ## Further reading
 
-- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, ticket
-  format, and more. Read the matching `SKILL.md` when a task fits its description.
+- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, tRPC
+  compatibility, ticket format, and more. Read the matching `SKILL.md` when a task fits its
+  description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
 - `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
   contract, the credential proxy, and which files are generated.
@@ -200,6 +201,8 @@ in the commit message and the PR.
   and missing one fails silently.
 - `docs/deploy-workflows.md`: read before writing or testing a deploy workflow step. `run:` has
   no `pipefail` by default, and production secrets exist only in GitHub.
+- `packages/trpc/AGENTS.md`: read before changing any tRPC procedure, in `packages/trpc` or
+  `packages/host-service`. Released desktop, mobile, and CLI builds still call it.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the

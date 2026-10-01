@@ -930,6 +930,9 @@ msgstr "{months}개월"
 msgid "{months}mo ago"
 msgstr "{months}개월 전"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "내 자동화 {myFailedCount}개가 마지막 실행에 실패했습니다"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name}은(는) 기본 제공이라 제거할 수 없습니다"
@@ -2562,11 +2565,17 @@ msgstr "자동화 제목"
 msgid "Automations"
 msgstr "자동화"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "자동화 ({myFailedCount}개 실패)"
+
 msgid "Automations & event triggers"
 msgstr "자동화 및 이벤트 트리거"
 
 msgid "Automations require the Pro plan."
 msgstr "자동화에는 Pro 플랜이 필요합니다."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "자동화, {myFailedCount}개 실패"
 
 msgid "Autonomous"
 msgstr "자율"
@@ -3738,6 +3747,9 @@ msgstr "코드 블록"
 
 msgid "Code Block"
 msgstr "코드 블록"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "코드를 사용할 수 없습니다 — 이 워크스페이스의 프로젝트에 이 풀 리퀘스트의 리포지토리가 없습니다."
 
 msgid "Cohort"
 msgstr "코호트"

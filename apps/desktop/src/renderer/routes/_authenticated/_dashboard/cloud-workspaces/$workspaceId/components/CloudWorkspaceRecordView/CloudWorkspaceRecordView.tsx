@@ -130,7 +130,7 @@ export function CloudWorkspaceRecordView({
 					onSetVisibility={onSetVisibility}
 				/>
 			}
-			sideHeader={
+			sideActions={
 				<CloudWorkspaceRecordActions
 					archivedAt={workspace.deletedAt}
 					onOpenWorkspace={onOpenWorkspace}

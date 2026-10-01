@@ -930,6 +930,9 @@ msgstr "{months}mo"
 msgid "{months}mo ago"
 msgstr "{months}mo ago"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "{myFailedCount} of your automations failed their last run"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} is built in and cannot be removed"
@@ -2562,11 +2565,17 @@ msgstr "Automation title"
 msgid "Automations"
 msgstr "Automations"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automations ({myFailedCount} failing)"
+
 msgid "Automations & event triggers"
 msgstr "Automations & event triggers"
 
 msgid "Automations require the Pro plan."
 msgstr "Automations require the Pro plan."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automations, {myFailedCount} failing"
 
 msgid "Autonomous"
 msgstr "Autonomous"
@@ -3738,6 +3747,9 @@ msgstr "Code block"
 
 msgid "Code Block"
 msgstr "Code Block"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Code isn't available — this workspace's project doesn't have this pull request's repository."
 
 msgid "Cohort"
 msgstr "Cohort"
