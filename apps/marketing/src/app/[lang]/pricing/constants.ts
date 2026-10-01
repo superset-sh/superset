@@ -147,12 +147,6 @@ export const PRICING_TIERS: PricingTier[] = [
 				}),
 			},
 			{
-				id: "githubIntegration",
-				label: msg({
-					message: "GitHub integration",
-				}),
-			},
-			{
 				id: "linearIntegration",
 				label: msg({
 					message: "Linear integration",
@@ -346,13 +340,6 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 				id: "mobileApp",
 				label: msg({
 					message: "Mobile app",
-				}),
-				values: [null, true, true],
-			},
-			{
-				id: "githubIntegration",
-				label: msg({
-					message: "GitHub integration",
 				}),
 				values: [null, true, true],
 			},
