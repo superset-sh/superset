@@ -34,7 +34,7 @@ export function AgentCredentialsChangedBanner({
 
 	return (
 		<div
-			role="status"
+			aria-live="polite"
 			className="flex shrink-0 items-center gap-3 border-t border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground/85"
 		>
 			<LuTriangleAlert
