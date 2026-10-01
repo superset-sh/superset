@@ -891,6 +891,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		/** The creator's agent sign-ins the running box booted with, keyed; null before it was recorded. */
+		bootAgentCredentialDigest: text("boot_agent_credential_digest"),
 		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
 		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		/** What the creator typed, as markdown; null when the box started idle. */
