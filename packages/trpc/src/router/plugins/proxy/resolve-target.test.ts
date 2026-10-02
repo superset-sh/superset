@@ -378,10 +378,26 @@ describe("resolveTarget with several accounts", () => {
 			kind: "multi",
 			connector: "acme-crm",
 			accounts: [
-				{ connectionId: "conn-work", label: "satya@superset.sh" },
 				{ connectionId: "conn-personal", label: "satya.personal@gmail.com" },
+				{ connectionId: "conn-work", label: "satya@superset.sh" },
 			],
 		});
+	});
+
+	test("orders the accounts by id, not by when they were last touched", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [twoAccounts[1], twoAccounts[0]];
+
+		const target = await resolveTarget(request);
+		if (target.kind !== "multi") return expect.unreachable("expected multi");
+
+		expect(target.accounts.map((a) => a.connectionId)).toEqual([
+			"conn-personal",
+			"conn-work",
+		]);
 	});
 
 	test("one connection resolves exactly as it does today", async () => {

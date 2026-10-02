@@ -210,7 +210,9 @@ export async function resolveTarget(
 				...identity,
 				kind: "multi",
 				connector: slug,
-				accounts: rows.map(accountRef),
+				accounts: rows
+					.map(accountRef)
+					.sort((a, b) => a.connectionId.localeCompare(b.connectionId)),
 				resolve: (connectionId) => resolveTarget({ ...request, connectionId }),
 			};
 		}
