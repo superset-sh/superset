@@ -6,6 +6,7 @@ import {
 	accountLabel,
 	chooseAccount,
 	withAccountArgument,
+	withoutStaleAccountArgument,
 } from "./account-argument";
 
 const accounts = [
@@ -292,5 +293,83 @@ describe("chooseAccount", () => {
 		expect(choice.ok).toBe(false);
 		if (choice.ok) return;
 		expect(choice.message).toContain("pass superset_account");
+	});
+});
+
+describe("chooseAccount with a vendor-owned superset_account", () => {
+	test("the fallback name wins and the vendor's argument is forwarded", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "ACC-123",
+			superset_account_id: "id-work",
+			body: "hi",
+		});
+
+		expect(choice).toEqual({
+			ok: true,
+			connectionId: "id-work",
+			rest: { superset_account: "ACC-123", body: "hi" },
+		});
+	});
+});
+
+describe("chooseAccount with two accounts sharing a label", () => {
+	const twins = [
+		{ connectionId: "id-a", userLabel: "Harshith" },
+		{ connectionId: "id-b", userLabel: "Harshith" },
+	];
+
+	test("an ambiguous label is refused rather than bound to either", () => {
+		const choice = chooseAccount("slack", twins, {
+			superset_account: "harshith",
+		});
+
+		expect(choice.ok).toBe(false);
+		if (choice.ok) return;
+		expect(choice.message).toContain("matches 2 slack accounts");
+		expect(choice.message).toContain("id-a");
+		expect(choice.message).toContain("id-b");
+	});
+
+	test("the id still resolves exactly one of them", () => {
+		expect(chooseAccount("slack", twins, { superset_account: "id-b" })).toEqual(
+			{ ok: true, connectionId: "id-b", rest: {} },
+		);
+	});
+});
+
+describe("withoutStaleAccountArgument", () => {
+	test("strips the argument when it names the only account", () => {
+		expect(
+			withoutStaleAccountArgument(
+				{
+					superset_account: "9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+					body: "hi",
+				},
+				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			),
+		).toEqual({ ok: true, args: { body: "hi" } });
+	});
+
+	test("refuses an id that is no longer connected", () => {
+		const checked = withoutStaleAccountArgument(
+			{ superset_account: "11111111-2222-4333-8444-555555555555" },
+			"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+		);
+
+		expect(checked.ok).toBe(false);
+		if (checked.ok) return;
+		expect(checked.message).toContain("retry without superset_account");
+	});
+
+	test("leaves a vendor value that is not a connection id alone", () => {
+		expect(
+			withoutStaleAccountArgument(
+				{ superset_account: "ACC-123", body: "hi" },
+				"9fc31e2d-a7f0-4c0a-88e7-4af0dbf3f079",
+			),
+		).toEqual({
+			ok: true,
+			args: { superset_account: "ACC-123", body: "hi" },
+		});
 	});
 });

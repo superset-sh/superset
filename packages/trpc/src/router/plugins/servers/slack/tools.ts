@@ -42,7 +42,11 @@ async function slack(
 
 	const payload = (await response.json()) as SlackResponse;
 	if (!payload.ok) {
-		throw new Error(`Slack API error: ${payload.error ?? "Unknown error"}`);
+		const rejected = ["invalid_auth", "token_revoked", "account_inactive"];
+		throw Object.assign(
+			new Error(`Slack API error: ${payload.error ?? "Unknown error"}`),
+			rejected.includes(payload.error ?? "") ? { code: 401 } : {},
+		);
 	}
 	return payload;
 }

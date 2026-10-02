@@ -95,7 +95,8 @@ export function chooseAccount(
 	args: Record<string, unknown>,
 ): AccountChoice {
 	const argName =
-		ACCOUNT_ARG_NAMES.find((name) => args[name] !== undefined) ?? PRIMARY;
+		[...ACCOUNT_ARG_NAMES].reverse().find((name) => args[name] !== undefined) ??
+		PRIMARY;
 	const raw = args[argName];
 	const rest = { ...args };
 	delete rest[argName];
@@ -109,15 +110,23 @@ export function chooseAccount(
 
 	const wanted = String(raw).trim();
 	const folded = wanted.toLowerCase();
-	const match =
-		accounts.find((account) => account.connectionId === wanted) ??
-		accounts.find(
-			(account) => accountLabel(account).toLowerCase() === folded,
-		) ??
-		accounts.find(
-			(account) => (account.userLabel ?? "").toLowerCase() === folded,
-		);
+	const byId = accounts.filter((account) => account.connectionId === wanted);
+	const byLabel =
+		byId.length > 0
+			? byId
+			: accounts.filter(
+					(account) =>
+						accountLabel(account).toLowerCase() === folded ||
+						(account.userLabel ?? "").toLowerCase() === folded,
+				);
 
+	if (byLabel.length > 1) {
+		return {
+			ok: false,
+			message: `${argName} "${wanted}" matches ${byLabel.length} ${connector} accounts; pass the id instead: ${choiceList(byLabel)}.`,
+		};
+	}
+	const match = byLabel[0];
 	if (!match) {
 		return {
 			ok: false,
@@ -125,4 +134,29 @@ export function chooseAccount(
 		};
 	}
 	return { ok: true, connectionId: match.connectionId, rest };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type StaleArgumentCheck =
+	| { ok: true; args: Record<string, unknown> }
+	| { ok: false; message: string };
+
+export function withoutStaleAccountArgument(
+	args: Record<string, unknown>,
+	connectionId: string,
+): StaleArgumentCheck {
+	const rest = { ...args };
+	for (const name of ACCOUNT_ARG_NAMES) {
+		const value = rest[name];
+		if (typeof value !== "string" || !UUID.test(value)) continue;
+		if (value !== connectionId) {
+			return {
+				ok: false,
+				message: `${name} "${value}" is no longer a connected account; this plugin now runs under a single account, so retry without ${name}.`,
+			};
+		}
+		delete rest[name];
+	}
+	return { ok: true, args: rest };
 }

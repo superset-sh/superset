@@ -177,7 +177,7 @@ export const connectorsRouter = {
 			z.object({
 				organizationId: z.uuid(),
 				connectionId: z.uuid(),
-				label: z.string().max(64).nullable().optional(),
+				label: z.string().trim().min(1).max(64).optional(),
 				/** @deprecated desktop 1.36.0 sends this; use `label`. */
 				nickname: z.string().max(64).nullable().optional(),
 			}),
@@ -215,12 +215,10 @@ export const connectorsRouter = {
 			else if (existing.connectedByUserId !== ctx.session.user.id)
 				throw new TRPCError({ code: "NOT_FOUND", message: "No connection" });
 
-			const trimmed = (
-				input.label === undefined ? input.nickname : input.label
-			)?.trim();
+			const label = input.label ?? (input.nickname?.trim() || undefined);
 			const [row] = await db
 				.update(connections)
-				.set({ externalUserLabel: trimmed ? trimmed : null, nickname: null })
+				.set({ ...(label ? { externalUserLabel: label } : {}), nickname: null })
 				.where(
 					and(
 						eq(connections.id, input.connectionId),

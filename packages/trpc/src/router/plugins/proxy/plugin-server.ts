@@ -13,6 +13,7 @@ import {
 	accountLabel,
 	chooseAccount,
 	withAccountArgument,
+	withoutStaleAccountArgument,
 } from "./account-argument";
 import type { PluginTarget } from "./resolve-target";
 import { forgetUpstreamTools, upstreamTools } from "./upstream-catalog";
@@ -57,13 +58,20 @@ function firstPartyServer(
 	server.setRequestHandler(ListToolsRequestSchema, async () => ({
 		tools: target.build.getTools(),
 	}));
-	server.setRequestHandler(CallToolRequestSchema, async (request) =>
-		target.build.callTool(
-			request.params.name,
+	server.setRequestHandler(CallToolRequestSchema, async (request) => {
+		const checked = withoutStaleAccountArgument(
 			request.params.arguments ?? {},
-			target.build.credential(target.secrets),
-		),
-	);
+			target.connectionId,
+		);
+		if (!checked.ok) return errorResult(checked.message);
+		return rejectionAware(target.connectionId, () =>
+			target.build.callTool(
+				request.params.name,
+				checked.args,
+				target.build.credential(target.secrets),
+			),
+		);
+	});
 	return server;
 }
 
@@ -81,18 +89,25 @@ function remoteServer(
 			tools: await upstreamTools(target.connectionId, target.plugin, target),
 		})),
 	);
-	server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
-		rejectionAware(target.connectionId, async () => {
+	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+		const checked = withoutStaleAccountArgument(
+			request.params.arguments ?? {},
+			target.connectionId,
+		);
+		if (!checked.ok) return errorResult(checked.message);
+		return rejectionAware(target.connectionId, async () => {
 			const session = await upstreamClient(target);
 			try {
-				return await session.client.callTool(request.params, undefined, {
-					signal: extra.signal,
-				});
+				return await session.client.callTool(
+					{ ...request.params, arguments: checked.args },
+					undefined,
+					{ signal: extra.signal },
+				);
 			} finally {
 				await session.close();
 			}
-		}),
-	);
+		});
+	});
 	return server;
 }
 

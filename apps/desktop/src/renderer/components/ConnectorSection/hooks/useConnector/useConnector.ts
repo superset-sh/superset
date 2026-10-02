@@ -113,11 +113,11 @@ export function useConnector(
 		},
 		rename: {
 			...rename,
-			mutate: (input: { connectionId: string; label: string | null }) =>
+			mutate: (input: { connectionId: string; label: string }) =>
 				rename.mutate({
 					organizationId,
 					connectionId: input.connectionId,
-					label: input.label?.trim() ? input.label.trim() : null,
+					label: input.label.trim(),
 				}),
 		},
 		openOAuth,
