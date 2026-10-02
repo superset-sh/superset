@@ -16,8 +16,8 @@ const TOOL: Tool = {
 };
 
 const ACCOUNTS = [
-	{ connectionId: "id-work", userLabel: "satya@superset.sh", nickname: "work" },
-	{ connectionId: "id-personal", userLabel: "satya@gmail.com", nickname: null },
+	{ connectionId: "id-work", userLabel: "work" },
+	{ connectionId: "id-personal", userLabel: "satya@gmail.com" },
 ];
 
 interface Call {
@@ -144,7 +144,7 @@ describe("a plugin server with two accounts", () => {
 		}
 	});
 
-	test("a nickname picks the right account", async () => {
+	test("the label picks the right account", async () => {
 		const calls: Call[] = [];
 		const { client, close } = await connect(
 			multiTarget(async (id) => hostedTarget(id, calls)),

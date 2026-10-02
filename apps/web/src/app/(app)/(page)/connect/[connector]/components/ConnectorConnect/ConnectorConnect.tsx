@@ -38,7 +38,6 @@ interface ConnectorConnectProps {
 		id: string;
 		externalAccountLabel: string | null;
 		externalUserLabel: string | null;
-		nickname: string | null;
 		needsReauth: boolean;
 	}[];
 }
@@ -126,7 +125,7 @@ export function ConnectorConnect({
 								rename.mutate({
 									organizationId,
 									connectionId: connection.id,
-									nickname: draftName,
+									label: draftName,
 								});
 							}}
 						>
@@ -184,7 +183,7 @@ export function ConnectorConnect({
 							variant="ghost"
 							onClick={() => {
 								setRenaming(connection.id);
-								setDraftName(connection.nickname ?? "");
+								setDraftName(connection.externalUserLabel ?? "");
 							}}
 						>
 							<Trans>Rename</Trans>

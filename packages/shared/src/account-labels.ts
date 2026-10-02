@@ -2,7 +2,6 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "./i18n";
 
 export interface AccountLabelSource {
-	nickname?: string | null;
 	externalUserLabel?: string | null;
 	externalAccountLabel?: string | null;
 }
@@ -16,7 +15,6 @@ export function accountLabels(
 	connectorName: string,
 ): { title: string; subtitle: string | null } {
 	const title =
-		source.nickname ||
 		accountIdentity(source) ||
 		i18n._(
 			msg({

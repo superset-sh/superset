@@ -105,7 +105,6 @@ async function pinnedConnection(
 function accountRef(row: SelectConnection): AccountRef {
 	return {
 		connectionId: row.id,
-		nickname: row.nickname,
 		userLabel: row.externalUserLabel,
 		accountLabel: row.externalAccountLabel,
 	};

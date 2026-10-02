@@ -28,7 +28,7 @@ export function RenameAccountDialog({
 	connectorName: string;
 	isPending?: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (nickname: string | null) => void;
+	onSubmit: (label: string | null) => void;
 }) {
 	return (
 		<Dialog open={Boolean(account)} onOpenChange={onOpenChange}>
@@ -58,11 +58,11 @@ function RenameForm({
 	account: AccountLabelSource & { id: string };
 	connectorName: string;
 	isPending?: boolean;
-	onSubmit: (nickname: string | null) => void;
+	onSubmit: (label: string | null) => void;
 	onCancel: () => void;
 }) {
 	const { t } = useLingui();
-	const [draft, setDraft] = useState(account.nickname ?? "");
+	const [draft, setDraft] = useState(account.externalUserLabel ?? "");
 
 	return (
 		<form

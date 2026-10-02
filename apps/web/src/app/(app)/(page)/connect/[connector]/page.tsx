@@ -97,7 +97,7 @@ export default async function ConnectorPage({
 							id: row.id,
 							externalAccountLabel: row.externalAccountLabel,
 							externalUserLabel: row.externalUserLabel,
-							nickname: row.nickname,
+							
 							needsReauth: row.needsReauth,
 						}))}
 					/>

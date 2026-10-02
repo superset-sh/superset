@@ -9,8 +9,8 @@ import {
 } from "./account-argument";
 
 const accounts = [
-	{ connectionId: "id-work", userLabel: "satya@superset.sh", nickname: "work" },
-	{ connectionId: "id-personal", userLabel: "satya@gmail.com", nickname: null },
+	{ connectionId: "id-work", userLabel: "work" },
+	{ connectionId: "id-personal", userLabel: "satya@gmail.com" },
 ];
 
 function tool(overrides: Partial<Tool> = {}): Tool {
@@ -27,11 +27,7 @@ function tool(overrides: Partial<Tool> = {}): Tool {
 }
 
 describe("accountLabel", () => {
-	test("prefers the nickname a person set", () => {
-		expect(accountLabel(accounts[0])).toBe("work");
-	});
-
-	test("falls back to the provider's labels, then to the id", () => {
+	test("is the provider's label, or the id when there is none", () => {
 		expect(accountLabel(accounts[1])).toBe("satya@gmail.com");
 		expect(accountLabel({ connectionId: "id-bare" })).toBe("id-bare");
 	});
@@ -113,7 +109,7 @@ describe("withAccountArgument", () => {
 		expect(injected.inputSchema.required).toEqual(["body", "superset_account"]);
 	});
 
-	test("names each account in the description so a nickname can be matched", () => {
+	test("names each account in the description so its label can be matched", () => {
 		const [injected] = withAccountArgument(
 			[tool()],
 			accounts,
@@ -189,7 +185,7 @@ describe("chooseAccount", () => {
 		});
 	});
 
-	test('accepts a nickname, so a model writing "work" does not burn a turn', () => {
+	test('accepts the label, so a model writing "work" does not burn a turn', () => {
 		const choice = chooseAccount("google", accounts, {
 			superset_account: "work",
 		});

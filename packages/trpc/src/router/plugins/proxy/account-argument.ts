@@ -2,8 +2,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 export interface AccountRef {
 	connectionId: string;
-	nickname?: string | null;
-	/** The provider's label for the person — the same string for every account they hold. */
+	/** The provider's label for the person, which its owner may have renamed. */
 	userLabel?: string | null;
 	/** The provider's label for the account itself: a workspace, a mailbox. */
 	accountLabel?: string | null;
@@ -15,7 +14,6 @@ const FALLBACK = "superset_account_id";
 export const ACCOUNT_ARG_NAMES = [PRIMARY, FALLBACK] as const;
 
 export function accountLabel(account: AccountRef): string {
-	if (account.nickname) return account.nickname;
 	// Both labels, because neither alone tells two accounts apart on every
 	// connector: Google repeats the mailbox in each, while Slack and Notion put
 	// the person in one and the workspace in the other.
@@ -118,7 +116,7 @@ export function chooseAccount(
 			(account) => accountLabel(account).toLowerCase() === folded,
 		) ??
 		accounts.find(
-			(account) => (account.nickname ?? "").toLowerCase() === folded,
+			(account) => (account.userLabel ?? "").toLowerCase() === folded,
 		);
 
 	if (!match) {
