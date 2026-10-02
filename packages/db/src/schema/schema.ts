@@ -177,13 +177,32 @@ export const taskStatuses = pgTable(
 export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
 export type SelectTaskStatus = typeof taskStatuses.$inferSelect;
 
+/** Task slugs are `<key>-<number>`. One counter per organization, on its oldest team, until tasks can choose a team. */
+export const taskSequences = pgTable(
+	"task_sequences",
+	{
+		teamId: uuid("team_id")
+			.primaryKey()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		lastNumber: integer("last_number").notNull().default(0),
+	},
+	(table) => [
+		unique("task_sequences_organization_unique").on(table.organizationId),
+	],
+);
+
 export const tasks = pgTable(
 	"tasks",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
-		slug: text().notNull(),
+		/** Leave out on insert: the tasks_assign_number trigger sets slug, team_id and number. */
+		slug: text().notNull().default(sql`NULL`),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -201,6 +220,9 @@ export const tasks = pgTable(
 		creatorId: uuid("creator_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		/** Foreign key and index wait for the Linear mirror prune; at 7M rows each blocks writes for longer than the deploy allows. */
+		teamId: uuid("team_id"),
+		number: integer(),
 
 		// Planning
 		estimate: integer(),
