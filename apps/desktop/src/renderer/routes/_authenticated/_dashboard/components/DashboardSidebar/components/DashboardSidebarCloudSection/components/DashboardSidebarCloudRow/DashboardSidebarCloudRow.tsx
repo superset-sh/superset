@@ -127,7 +127,7 @@ export const DashboardSidebarCloudRow = forwardRef<
 							onClick={onOpenPullRequest}
 						/>
 					)}
-					<span className="flex h-4 w-6 items-center justify-end">
+					<span className="flex h-5 w-6 items-center justify-end">
 						<span className="flex items-center group-hover:hidden group-has-[:focus-visible]:hidden">
 							<CloudWorkspaceStatus
 								workspace={workspace}
@@ -142,7 +142,7 @@ export const DashboardSidebarCloudRow = forwardRef<
 								onArchive();
 							}}
 							aria-label={t({ message: "Archive workspace" })}
-							className="hidden items-center justify-center text-muted-foreground group-hover:flex group-has-[:focus-visible]:flex hover:text-foreground"
+							className="hidden size-5 items-center justify-center rounded text-muted-foreground group-hover:flex group-has-[:focus-visible]:flex hover:bg-foreground/10 hover:text-foreground"
 						>
 							<LuArchive className="size-3.5" />
 						</button>
