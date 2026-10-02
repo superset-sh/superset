@@ -5,6 +5,7 @@ import {
 	ListToolsRequestSchema,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import { markNeedsReauth } from "../../../lib/connectors/refresh";
 import type { AccountRef } from "./account-argument";
 import {
 	accountArgName,
@@ -14,7 +15,7 @@ import {
 	withAccountArgument,
 } from "./account-argument";
 import type { PluginTarget } from "./resolve-target";
-import { upstreamTools } from "./upstream-catalog";
+import { forgetUpstreamTools, upstreamTools } from "./upstream-catalog";
 import { upstreamClient } from "./upstream-client";
 
 function bare(name: string, version: string): Server {
@@ -75,24 +76,56 @@ function remoteServer(
 	// rebuilds this per request, so fetching eagerly made a tools/call open one
 	// upstream session for a tool list nothing would read, then a second to
 	// make the call.
-	server.setRequestHandler(ListToolsRequestSchema, async () => ({
-		tools: await upstreamTools(target.connectionId, target.plugin, target),
-	}));
-	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
-		const session = await upstreamClient(target);
-		try {
-			return await session.client.callTool(request.params, undefined, {
-				signal: extra.signal,
-			});
-		} finally {
-			await session.close();
-		}
-	});
+	server.setRequestHandler(ListToolsRequestSchema, async () =>
+		rejectionAware(target.connectionId, async () => ({
+			tools: await upstreamTools(target.connectionId, target.plugin, target),
+		})),
+	);
+	server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
+		rejectionAware(target.connectionId, async () => {
+			const session = await upstreamClient(target);
+			try {
+				return await session.client.callTool(request.params, undefined, {
+					signal: extra.signal,
+				});
+			} finally {
+				await session.close();
+			}
+		}),
+	);
 	return server;
 }
 
 /** One slow account must not hold up the whole list. */
 const LIST_TIMEOUT_MS = 10_000;
+
+/**
+ * 401 only. A timeout, a 500 or a rate limit means the vendor is unwell, not
+ * that the credential is — and 403 is usually "not allowed to do this one
+ * thing" rather than "sign in again". Marking either would send someone to
+ * reconnect an account that works.
+ */
+function credentialRejected(error: unknown): boolean {
+	return (error as { code?: unknown } | null)?.code === 401;
+}
+
+async function recordRejection(connectionId: string): Promise<void> {
+	forgetUpstreamTools(connectionId);
+	await markNeedsReauth(connectionId);
+}
+
+/** Any 401 from a vendor flags the connection, wherever it happened. */
+async function rejectionAware<T>(
+	connectionId: string,
+	run: () => Promise<T>,
+): Promise<T> {
+	try {
+		return await run();
+	} catch (error) {
+		if (credentialRejected(error)) await recordRejection(connectionId);
+		throw error;
+	}
+}
 
 function errorResult(text: string): CallToolResult {
 	return { isError: true, content: [{ type: "text" as const, text }] };
@@ -111,7 +144,12 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		},
 	);
 
-	const listFor = async (account: AccountRef): Promise<Tool[] | null> => {
+	// "rejected" is knowledge — that account cannot serve anything, so it is not
+	// offered. "unknown" is a vendor we could not reach, where assuming parity
+	// beats making a working account unselectable.
+	type AccountTools = Tool[] | "rejected" | "unknown";
+
+	const listFor = async (account: AccountRef): Promise<AccountTools> => {
 		try {
 			const resolved = await target.resolve(account.connectionId);
 			if (resolved.kind === "first-party") return resolved.build.getTools();
@@ -122,17 +160,21 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 					resolved,
 				);
 			}
-			return null;
-		} catch {
-			return null;
+			// needs-auth: the credential is spent, and resolve has already
+			// recorded it.
+			return "rejected";
+		} catch (error) {
+			if (!credentialRejected(error)) return "unknown";
+			await recordRejection(account.connectionId);
+			return "rejected";
 		}
 	};
 
-	const listWithin = (account: AccountRef): Promise<Tool[] | null> =>
+	const listWithin = (account: AccountRef): Promise<AccountTools> =>
 		Promise.race([
 			listFor(account),
-			new Promise<null>((resolve) => {
-				setTimeout(() => resolve(null), LIST_TIMEOUT_MS).unref?.();
+			new Promise<AccountTools>((resolve) => {
+				setTimeout(() => resolve("unknown"), LIST_TIMEOUT_MS).unref?.();
 			}),
 		]);
 
@@ -159,7 +201,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		}
 
 		const lists = await Promise.all(target.accounts.map(listWithin));
-		if (lists.every((list) => list === null)) {
+		if (lists.every((list) => typeof list === "string")) {
 			throw new Error(`No usable ${target.connectorLabel} account.`);
 		}
 
@@ -167,7 +209,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		const accountsByTool = new Map<string, AccountRef[]>();
 		lists.forEach((list, index) => {
 			const account = target.accounts[index];
-			if (!list || !account) return;
+			if (typeof list === "string" || !account) return;
 			for (const tool of list) {
 				if (!definitions.has(tool.name)) definitions.set(tool.name, tool);
 				accountsByTool.set(tool.name, [
@@ -177,7 +219,9 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 			}
 		});
 
-		const unreadable = target.accounts.filter((_, index) => !lists[index]);
+		const unreadable = target.accounts.filter(
+			(_, index) => lists[index] === "unknown",
+		);
 		for (const [name, accounts] of accountsByTool) {
 			accountsByTool.set(
 				name,
@@ -223,23 +267,37 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		}
 
 		const params = { ...request.params, arguments: choice.rest };
-		const result =
-			resolved.kind === "first-party"
-				? await resolved.build.callTool(
-						params.name,
-						choice.rest,
-						resolved.build.credential(resolved.secrets),
-					)
-				: await (async () => {
-						const session = await upstreamClient(resolved);
-						try {
-							return (await session.client.callTool(params, undefined, {
-								signal: extra.signal,
-							})) as CallToolResult;
-						} finally {
-							await session.close();
-						}
-					})();
+		let result: CallToolResult;
+		try {
+			result =
+				resolved.kind === "first-party"
+					? await resolved.build.callTool(
+							params.name,
+							choice.rest,
+							resolved.build.credential(resolved.secrets),
+						)
+					: await (async () => {
+							const session = await upstreamClient(resolved);
+							try {
+								return (await session.client.callTool(params, undefined, {
+									signal: extra.signal,
+								})) as CallToolResult;
+							} finally {
+								await session.close();
+							}
+						})();
+		} catch (error) {
+			if (!credentialRejected(error)) throw error;
+			await recordRejection(resolved.connectionId);
+			// Re-resolved after the mark, so the link is the one the connector
+			// actually builds rather than a guess.
+			const after = await target.resolve(choice.connectionId);
+			return errorResult(
+				after.kind === "needs-auth"
+					? `${target.connectorLabel} rejected ${label}. Ask the user to open ${after.connectUrl} to reconnect it, then retry.`
+					: `${target.connectorLabel} rejected ${label}. Ask the user to reconnect it, then retry.`,
+			);
+		}
 
 		return {
 			...result,

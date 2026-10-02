@@ -315,7 +315,7 @@ describe("which account the tool list comes from", () => {
 		}
 	});
 
-	test("an account whose list cannot be read is still offered for everything", async () => {
+	test("an account whose credential was rejected is not offered", async () => {
 		const calls: Call[] = [];
 		const { client, close } = await connect(
 			multiTarget(async (id) =>
@@ -330,8 +330,32 @@ describe("which account the tool list comes from", () => {
 				{ enum: string[] }
 			>;
 
-			// id-personal could not be listed, so parity is assumed rather than
-			// quietly removing a selectable account.
+			// Its credential is spent, so offering it would be a claim we know is
+			// false. The row is flagged for the user to reconnect instead.
+			expect(properties.superset_account.enum).toEqual(["id-work"]);
+		} finally {
+			await close();
+		}
+	});
+
+	test("an account the vendor could not answer for is still offered", async () => {
+		const calls: Call[] = [];
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				if (id === "id-personal") throw new Error("socket hang up");
+				return hostedTarget(id, calls);
+			}),
+		);
+
+		try {
+			const { tools } = await client.listTools();
+			const properties = tools[0].inputSchema.properties as Record<
+				string,
+				{ enum: string[] }
+			>;
+
+			// Not a 401, so nothing is known about it — assuming parity beats
+			// making a working account unselectable over a blip.
 			expect(properties.superset_account.enum).toEqual([
 				"id-personal",
 				"id-work",

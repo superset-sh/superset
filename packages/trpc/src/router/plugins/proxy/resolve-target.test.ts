@@ -77,6 +77,7 @@ mock.module("../../../lib/connectors/refresh", () => ({
 	ensureFreshConnection: (row: Record<string, unknown>) =>
 		refreshError ? Promise.reject(refreshError) : Promise.resolve(row),
 	connectionAccessToken: () => Promise.resolve("token"),
+	markNeedsReauth: () => Promise.resolve(),
 	NEEDS_REAUTH: "needs_reauth",
 	ConnectorUnavailableError: StubUnavailable,
 	UnrefreshableConnectionError: StubUnrefreshable,

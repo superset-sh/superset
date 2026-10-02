@@ -58,7 +58,11 @@ async function readConnection(id: string): Promise<SelectConnection | null> {
  * every caller rediscovering the failure. `upsertConnection` clears both
  * fields when the user reconnects.
  */
-async function markNeedsReauth(id: string): Promise<void> {
+/**
+ * Flags a connection for the user to reconnect. The row leaves the live set, so
+ * the next lookup stops offering it, and `status` reports it as needsReauth.
+ */
+export async function markNeedsReauth(id: string): Promise<void> {
 	await db
 		.update(connections)
 		.set({ disconnectedAt: new Date(), disconnectReason: NEEDS_REAUTH })
