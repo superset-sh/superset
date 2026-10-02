@@ -385,6 +385,25 @@ describe("resolveTarget with several accounts", () => {
 		});
 	});
 
+	test("carries the nickname a person set, which labels the account", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [
+			{ ...twoAccounts[0], nickname: "work" },
+			{ ...twoAccounts[1], nickname: null },
+		];
+
+		const target = await resolveTarget(request);
+		if (target.kind !== "multi") return expect.unreachable("expected multi");
+
+		expect(target.accounts).toMatchObject([
+			{ connectionId: "conn-personal", nickname: null },
+			{ connectionId: "conn-work", nickname: "work" },
+		]);
+	});
+
 	test("orders the accounts by id, not by when they were last touched", async () => {
 		install = installed("superset", {
 			connector: "acme-crm",

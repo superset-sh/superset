@@ -2,12 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writePluginConnections } from "@superset/agent-setup";
 import { writeInstalledPlugins } from "./host";
 import { syncPluginMcpServers } from "./mcp-servers";
-
-// The Linear plugin's connector slug, which is not its name.
-const CONNECTOR = "linear_mcp";
 
 const ORIGINAL_HOME_DIR = process.env.SUPERSET_HOME_DIR;
 const ORIGINAL_SANDBOX = process.env.SUPERSET_SANDBOX_WORKSPACE_ID;
@@ -54,91 +50,48 @@ afterEach(() => {
 });
 
 describe("syncPluginMcpServers", () => {
-	test("writes one unpinned entry for a connector with a single account", () => {
+	test("writes one entry per plugin, whatever the account count", () => {
 		install("linear");
-		writePluginConnections([
-			{
-				connector: CONNECTOR,
-				connectionId: "c1",
-				externalUserId: "9f8a",
-				nickname: "Work",
-			},
-		]);
 
-		const result = syncPluginMcpServers({ homeDir, supersetHomeDir });
+		expect(syncPluginMcpServers({ homeDir, supersetHomeDir }).error).toBeNull();
 
-		expect(result).toEqual({ servers: 1, error: null });
 		const servers = claudeServers();
 		expect(Object.keys(servers)).toEqual(["linear"]);
-		expect(servers.linear?.url).not.toContain("connection=");
-		expect(servers.linear?.headersHelper).toContain("auth mcp-headers");
+		expect(servers.linear?.url).toBe(
+			"https://api.superset.sh/mcp/plugins/superset/linear",
+		);
 	});
 
-	// An unpinned entry answers every call with AMBIGUOUS_CONNECTION once a second
-	// account exists, which is what made the second account break every tool call.
-	test("splits a two-account connector into one pinned entry each", () => {
+	test("names no account in the url, so the entry never has to be renamed", () => {
 		install("linear");
-		writePluginConnections([
-			{
-				connector: CONNECTOR,
-				connectionId: "c1",
-				externalUserId: "9f8a",
-				nickname: "Work",
-			},
-			{
-				connector: CONNECTOR,
-				connectionId: "c2",
-				externalUserId: "1c2d",
-				nickname: "Personal",
-			},
-		]);
+		syncPluginMcpServers({ homeDir, supersetHomeDir });
 
-		const result = syncPluginMcpServers({ homeDir, supersetHomeDir });
+		// The account is a tool argument the proxy resolves per call. A
+		// `?connection=` here would pin one and suppress the choice.
+		expect(claudeServers().linear?.url).not.toContain("connection=");
+	});
 
-		expect(result.servers).toBe(2);
-		const servers = claudeServers();
-		expect(Object.keys(servers).sort()).toEqual([
-			"linear-personal",
-			"linear-work",
-		]);
-		expect(servers["linear-work"]?.url).toContain("connection=c1");
-		expect(servers["linear-personal"]?.url).toContain("connection=c2");
+	test("carries the headers helper so the entry needs no OAuth of its own", () => {
+		install("linear");
+		syncPluginMcpServers({ homeDir, supersetHomeDir });
+
+		expect(claudeServers().linear?.headersHelper).toContain("auth mcp-headers");
 	});
 
 	test("reaps the entries of an uninstalled plugin", () => {
 		install("linear");
-		writePluginConnections([
-			{
-				connector: CONNECTOR,
-				connectionId: "c1",
-				externalUserId: "9f8a",
-				nickname: "Work",
-			},
-		]);
 		syncPluginMcpServers({ homeDir, supersetHomeDir });
+		expect(Object.keys(claudeServers())).toEqual(["linear"]);
 
 		writeInstalledPlugins([]);
-		const result = syncPluginMcpServers({ homeDir, supersetHomeDir });
+		syncPluginMcpServers({ homeDir, supersetHomeDir });
 
-		expect(result).toEqual({ servers: 0, error: null });
-		expect(claudeServers()).toEqual({});
-	});
-
-	// No cache is the state of a machine the desktop never ran on. One entry per
-	// connector is the correct fallback; it must not be a failure.
-	test("falls back to one entry per connector with no cached accounts", () => {
-		install("linear");
-
-		const result = syncPluginMcpServers({ homeDir, supersetHomeDir });
-
-		expect(result).toEqual({ servers: 1, error: null });
-		expect(Object.keys(claudeServers())).toEqual(["linear"]);
+		expect(Object.keys(claudeServers())).toEqual([]);
 	});
 
 	test("omits the headers helper on a cloud box, which needs none", () => {
-		process.env.SUPERSET_SANDBOX_WORKSPACE_ID = "ws-1";
+		process.env.SUPERSET_SANDBOX_WORKSPACE_ID = "ws_1";
 		install("linear");
-
 		syncPluginMcpServers({ homeDir, supersetHomeDir });
 
 		expect(claudeServers().linear?.headersHelper).toBeUndefined();
