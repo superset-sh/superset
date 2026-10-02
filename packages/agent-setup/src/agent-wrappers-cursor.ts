@@ -117,10 +117,29 @@ export function createCursorHookScript(): void {
 	);
 }
 
+/**
+ * Superset panes advertise TERM_PROGRAM=kitty for claude-code's scroll
+ * handling, but cursor-agent branches on that literal and blocks forever on
+ * a kitty capability answer an xterm.js pane never sends: the TUI sits at
+ * "Composing" with no network activity (GH #7600). Strip the identity only
+ * when it is impersonated. A real kitty always exports KITTY_PID, and that
+ * one keeps its identity so cursor-agent behaves natively there.
+ */
+export function buildCursorAgentExecBlock(): string {
+	return `if [ "\${TERM_PROGRAM-}" = "kitty" ] && [ -z "\${KITTY_PID-}" ]; then
+  exec env -u TERM_PROGRAM -u TERM_PROGRAM_VERSION "$REAL_BIN" "$@"
+fi
+exec "$REAL_BIN" "$@"`;
+}
+
 export function createCursorAgentWrapper(): void {
-	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`, {
-		agentId: "cursor-agent",
-	});
+	const script = buildWrapperScript(
+		"cursor-agent",
+		buildCursorAgentExecBlock(),
+		{
+			agentId: "cursor-agent",
+		},
+	);
 	createWrapper("cursor-agent", script);
 }
 
