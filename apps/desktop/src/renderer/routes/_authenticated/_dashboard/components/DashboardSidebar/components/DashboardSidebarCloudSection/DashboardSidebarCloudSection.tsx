@@ -304,7 +304,7 @@ export function DashboardSidebarCloudSection({
 									openNewWorkspaceForHost(CLOUD_HOST_ID);
 								}}
 								onKeyDown={(event) => event.stopPropagation()}
-								className="mr-2 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+								className="mr-[3px] flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 							>
 								<LuPlus className="size-3.5" />
 							</button>

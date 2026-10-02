@@ -562,3 +562,35 @@ shared memory there.
 
 **What we did:** `superset-desktop-init` remounts `/dev/shm` at 50% of RAM
 at boot, after which four windows open without a crash.
+
+## A black renderer survives a full display restart — open
+
+**The app assumes:** a BrowserWindow that logs `did-finish-load` and stays
+responsive to `Runtime.evaluate` is painting. `main.ts` only guards against one
+failure mode here — a GPU process restart leaving stale compositor layers — by
+calling `webContents.invalidate()` plus a 1px resize nudge on
+`child-process-gone` (type `GPU`), rate-limited to once per 10s.
+
+**A sandbox is:** on this display (software compositing via llvmpipe/SwiftShader,
+`disableHardwareAcceleration()` always on for Linux), the window went fully
+black — frame, titlebar, and OS window controls intact, zero DOM paint — after
+some combination of repeated `Page.reload()` over CDP and killing/relaunching
+the Electron process a few times in one session (2026-10-02). Once black, it
+stayed black across: killing just Electron and relaunching (3 attempts), a full
+`superset-desktop-init` restart (fresh Xvnc + fresh D-Bus + fresh window
+manager), and reverting an unrelated DB change that briefly looked like a
+suspect. A sibling `google-chrome` window on the *same* display, launched at
+the same time, rendered fine — ruling out the display/compositor stack itself.
+`document.body.innerText` was empty but `document.documentElement.outerHTML`
+was ~390KB and `readyState` was `"complete"`; no `Runtime.exceptionThrown`, no
+`console.error`, no Crashpad dump. An OS-level `xdotool windowsize` nudge and a
+CDP `Emulation.setDeviceMetricsOverride` round-trip (the two things available
+without a `--inspect`'d main process) did not reproduce what `forceRepaint()`
+does and did not unblack it.
+
+**What we did:** nothing that worked. Logged the repro shape so the next person
+doesn't re-spend a session on it; the next thing to try is attaching to the
+*main* process (`--inspect`) and calling `webContents.invalidate()` /
+`win.setSize()` directly rather than simulating it from outside, or watching
+`app.on("child-process-gone")` / `render-process-gone` across a CDP-reload
+loop to catch the actual GPU-process death this is presumably downstream of.
