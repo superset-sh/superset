@@ -943,6 +943,7 @@ export async function callTool(
 				return { ...text(`Unknown tool: ${name}`), isError: true };
 		}
 	} catch (error) {
+		if ((error as { code?: unknown }).code === 401) throw error;
 		return {
 			...text(
 				`Error: ${error instanceof Error ? error.message : String(error)}`,

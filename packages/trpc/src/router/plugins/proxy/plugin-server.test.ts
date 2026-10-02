@@ -360,3 +360,86 @@ describe("which account the tool list comes from", () => {
 		}
 	});
 });
+
+describe("a vendor rejecting the credential mid-session", () => {
+	function rejectingTarget(connectionId: string): PluginTarget {
+		return {
+			kind: "first-party",
+			plugin: "gmail",
+			version: "1.0.0",
+			connectionId,
+			secrets: {
+				accessToken: "revoked",
+				refreshToken: null,
+				config: {},
+			} as never,
+			build: {
+				getTools: () => [TOOL],
+				credential: () => "revoked",
+				callTool: async () => {
+					throw Object.assign(
+						new Error("Gmail API error: invalid credentials"),
+						{
+							code: 401,
+						},
+					);
+				},
+			},
+		};
+	}
+
+	test("a single-account call answers with a reconnect result, not a protocol error", async () => {
+		const { client, close } = await connect(rejectingTarget("id-work"));
+
+		try {
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: { body: "hi" },
+			});
+
+			expect(result.isError).toBe(true);
+			expect(JSON.stringify(result.content)).toContain(
+				"Ask the user to reconnect it",
+			);
+		} finally {
+			await close();
+		}
+	});
+
+	test("a multi-account call marks the account and names it in the error", async () => {
+		const { client, close } = await connect(
+			multiTarget(async (id) =>
+				id === "id-personal" ? rejectingTarget(id) : hostedTarget(id, []),
+			),
+		);
+
+		try {
+			const result = await client.callTool({
+				name: "send_email",
+				arguments: { superset_account: "id-personal", body: "hi" },
+			});
+
+			expect(result.isError).toBe(true);
+			expect(JSON.stringify(result.content)).toContain("rejected");
+			expect(JSON.stringify(result.content)).toContain("satya@gmail.com");
+		} finally {
+			await close();
+		}
+	});
+
+	test("an error without a 401 code is a plain tool failure, nothing marked", async () => {
+		const target = rejectingTarget("id-work");
+		target.build.callTool = async () => {
+			throw new Error("Gmail API error: backend blew up");
+		};
+		const { client, close } = await connect(target);
+
+		try {
+			await expect(
+				client.callTool({ name: "send_email", arguments: { body: "hi" } }),
+			).rejects.toThrow("backend blew up");
+		} finally {
+			await close();
+		}
+	});
+});

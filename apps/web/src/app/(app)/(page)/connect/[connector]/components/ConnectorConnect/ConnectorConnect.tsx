@@ -122,10 +122,12 @@ export function ConnectorConnect({
 							className="space-y-2 p-3"
 							onSubmit={(e) => {
 								e.preventDefault();
+								const label = draftName.trim();
+								if (!label) return;
 								rename.mutate({
 									organizationId,
 									connectionId: connection.id,
-									label: draftName,
+									label,
 								});
 							}}
 						>

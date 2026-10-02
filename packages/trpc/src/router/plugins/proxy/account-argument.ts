@@ -150,7 +150,7 @@ export function withoutStaleAccountArgument(
 	for (const name of ACCOUNT_ARG_NAMES) {
 		const value = rest[name];
 		if (typeof value !== "string" || !UUID.test(value)) continue;
-		if (value !== connectionId) {
+		if (value.toLowerCase() !== connectionId.toLowerCase()) {
 			return {
 				ok: false,
 				message: `${name} "${value}" is no longer a connected account; this plugin now runs under a single account, so retry without ${name}.`,

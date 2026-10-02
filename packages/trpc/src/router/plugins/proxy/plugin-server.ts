@@ -64,13 +64,19 @@ function firstPartyServer(
 			target.connectionId,
 		);
 		if (!checked.ok) return errorResult(checked.message);
-		return rejectionAware(target.connectionId, () =>
-			target.build.callTool(
+		try {
+			return await target.build.callTool(
 				request.params.name,
 				checked.args,
 				target.build.credential(target.secrets),
-			),
-		);
+			);
+		} catch (error) {
+			if (!credentialRejected(error)) throw error;
+			await recordRejection(target.connectionId);
+			return errorResult(
+				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
+			);
+		}
 	});
 	return server;
 }
@@ -95,7 +101,7 @@ function remoteServer(
 			target.connectionId,
 		);
 		if (!checked.ok) return errorResult(checked.message);
-		return rejectionAware(target.connectionId, async () => {
+		try {
 			const session = await upstreamClient(target);
 			try {
 				return await session.client.callTool(
@@ -106,7 +112,13 @@ function remoteServer(
 			} finally {
 				await session.close();
 			}
-		});
+		} catch (error) {
+			if (!credentialRejected(error)) throw error;
+			await recordRejection(target.connectionId);
+			return errorResult(
+				`${target.plugin} rejected this account's credential. Ask the user to reconnect it, then retry.`,
+			);
+		}
 	});
 	return server;
 }
