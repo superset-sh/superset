@@ -63,6 +63,7 @@ import {
 	type SortDirection,
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
+import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationStatCards } from "./components/AutomationStatCards";
@@ -108,6 +109,7 @@ function AutomationsPage() {
 	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
+	const isOrgOwner = useIsOrganizationOwner();
 
 	const [scope, setScope] = useState<Scope>("mine");
 	const [search, setSearch] = useState("");
@@ -568,6 +570,7 @@ function AutomationsPage() {
 			lastRun={lastRunById.get(automation.id) ?? null}
 			now={now}
 			isOwner={automation.ownerUserId === currentUserId}
+			canDelete={automation.ownerUserId === currentUserId || isOrgOwner}
 			isRetrying={retryingIds.has(automation.id)}
 			onRunNow={(a) =>
 				gateFeature(GATED_FEATURES.AUTOMATIONS, () =>

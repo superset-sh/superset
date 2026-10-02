@@ -10654,8 +10654,8 @@ msgstr "Alleen eigenaren van de host kunnen het lidmaatschap wijzigen"
 msgid "Only host owners can change this location."
 msgstr "Alleen eigenaren van de host kunnen deze locatie wijzigen."
 
-msgid "Only host owners can delete this host"
-msgstr "Alleen eigenaren van de host kunnen deze host verwijderen"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Alleen eigenaren van de host of organisatie-eigenaren kunnen deze host verwijderen"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Alleen eigenaren van de organisatie kunnen deze instellingen wijzigen."
@@ -10695,6 +10695,9 @@ msgstr "Alleen de eigenaar kan deze automatisering uitvoeren"
 
 msgid "Only the owner can view prompt history"
 msgstr "Alleen de eigenaar kan de promptgeschiedenis bekijken"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Alleen de eigenaar of een organisatie-eigenaar kan deze automatisering verwijderen"
 
 msgid "Only the person who created this page can change it"
 msgstr "Alleen degene die deze pagina heeft gemaakt kan hem wijzigen"

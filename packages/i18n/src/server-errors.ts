@@ -122,6 +122,13 @@ export const serverErrorMessages: Record<
 				message: `This automation belongs to ${params?.organizationName}. Switch to that organization to open it.`,
 			}),
 		),
+	"serverError.automation.onlyTheOwnerOrAnOrganizationOwner": () =>
+		i18n._(
+			msg({
+				message:
+					"Only the owner or an organization owner can delete this automation",
+			}),
+		),
 	"serverError.automation.automationsRequireThePro": () =>
 		i18n._(
 			msg({
@@ -925,10 +932,10 @@ export const serverErrorMessages: Record<
 				message: "Only host owners can change membership",
 			}),
 		),
-	"serverError.host.onlyHostOwnersCanDelete": () =>
+	"serverError.host.onlyHostOwnersOrOrganizationOwnersCanDelete": () =>
 		i18n._(
 			msg({
-				message: "Only host owners can delete this host",
+				message: "Only host owners or organization owners can delete this host",
 			}),
 		),
 	"serverError.host.thisUserRunsTheHostService": () =>

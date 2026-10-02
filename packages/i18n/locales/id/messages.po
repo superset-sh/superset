@@ -10654,8 +10654,8 @@ msgstr "Hanya pemilik host yang bisa mengubah keanggotaan"
 msgid "Only host owners can change this location."
 msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 
-msgid "Only host owners can delete this host"
-msgstr "Hanya pemilik host yang bisa menghapus host ini"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Hanya pemilik host atau pemilik organisasi yang bisa menghapus host ini"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Hanya pemilik organisasi yang bisa mengubah pengaturan ini."
@@ -10695,6 +10695,9 @@ msgstr "Hanya pemilik yang bisa menjalankan otomatisasi ini"
 
 msgid "Only the owner can view prompt history"
 msgstr "Hanya pemilik yang bisa melihat riwayat prompt"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Hanya pemilik atau pemilik organisasi yang bisa menghapus otomatisasi ini"
 
 msgid "Only the person who created this page can change it"
 msgstr "Hanya orang yang membuat halaman ini yang bisa mengubahnya"

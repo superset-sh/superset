@@ -10654,8 +10654,8 @@ msgstr "호스트 소유자만 멤버십을 변경할 수 있습니다"
 msgid "Only host owners can change this location."
 msgstr "호스트 소유자만 이 위치를 변경할 수 있습니다."
 
-msgid "Only host owners can delete this host"
-msgstr "호스트 소유자만 이 호스트를 삭제할 수 있습니다"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "호스트 소유자 또는 조직 소유자만 이 호스트를 삭제할 수 있습니다"
 
 msgid "Only organization owners can modify these settings."
 msgstr "조직 소유자만 이 설정을 변경할 수 있습니다."
@@ -10695,6 +10695,9 @@ msgstr "소유자만 이 자동화를 실행할 수 있습니다"
 
 msgid "Only the owner can view prompt history"
 msgstr "소유자만 프롬프트 기록을 볼 수 있습니다"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "소유자 또는 조직 소유자만 이 자동화를 삭제할 수 있습니다"
 
 msgid "Only the person who created this page can change it"
 msgstr "이 페이지를 만든 사람만 변경할 수 있습니다"

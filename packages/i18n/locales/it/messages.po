@@ -10654,8 +10654,8 @@ msgstr "Solo i proprietari dell'host possono modificare gli accessi"
 msgid "Only host owners can change this location."
 msgstr "Solo i proprietari dell'host possono cambiare questa posizione."
 
-msgid "Only host owners can delete this host"
-msgstr "Solo i proprietari dell'host possono eliminarlo"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Solo i proprietari dell'host o i proprietari dell'organizzazione possono eliminarlo"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Solo i proprietari dell'organizzazione possono modificare queste impostazioni."
@@ -10695,6 +10695,9 @@ msgstr "Solo il proprietario può eseguire questa automazione"
 
 msgid "Only the owner can view prompt history"
 msgstr "Solo il proprietario può vedere la cronologia dei prompt"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Solo il proprietario o un proprietario dell'organizzazione può eliminare questa automazione"
 
 msgid "Only the person who created this page can change it"
 msgstr "Solo chi ha creato questa pagina può modificarla"

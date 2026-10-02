@@ -12,6 +12,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
+import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { dispatchErrorCode, runErrorHelp } from "../utils/runErrorHelp";
@@ -57,6 +58,7 @@ function AutomationDetailPage() {
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
+	const isOrgOwner = useIsOrganizationOwner();
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
@@ -256,6 +258,7 @@ function AutomationDetailPage() {
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
 					readOnly={readOnly}
+					canDelete={!readOnly || isOrgOwner}
 				/>
 
 				<AutomationBody

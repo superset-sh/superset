@@ -47,6 +47,7 @@ import {
 	promptSourceFromSession,
 	recordPromptVersion,
 	refreshScheduleNextRuns,
+	requireAutomationDeleteAccess,
 	scheduleSummariesFor,
 	summarizeSchedules,
 	syncScheduleTrigger,
@@ -729,7 +730,11 @@ export const automationRouter = {
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
-			await getAutomationForUser(ctx.session.user.id, organizationId, input.id);
+			await requireAutomationDeleteAccess(
+				ctx.session.user.id,
+				organizationId,
+				input.id,
+			);
 
 			await db.delete(automations).where(eq(automations.id, input.id));
 

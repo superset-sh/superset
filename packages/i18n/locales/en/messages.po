@@ -10654,8 +10654,8 @@ msgstr "Only host owners can change membership"
 msgid "Only host owners can change this location."
 msgstr "Only host owners can change this location."
 
-msgid "Only host owners can delete this host"
-msgstr "Only host owners can delete this host"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Only host owners or organization owners can delete this host"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Only organization owners can modify these settings."
@@ -10695,6 +10695,9 @@ msgstr "Only the owner can run this automation"
 
 msgid "Only the owner can view prompt history"
 msgstr "Only the owner can view prompt history"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Only the owner or an organization owner can delete this automation"
 
 msgid "Only the person who created this page can change it"
 msgstr "Only the person who created this page can change it"

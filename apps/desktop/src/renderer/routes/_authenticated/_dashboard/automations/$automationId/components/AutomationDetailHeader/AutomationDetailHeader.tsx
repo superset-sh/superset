@@ -20,6 +20,8 @@ interface AutomationDetailHeaderProps {
 	runNowDisabled?: boolean;
 	/** Disables the actions — they're all owner-gated server-side. */
 	readOnly?: boolean;
+	/** Owner or organization owner; delete is the one action that outlives read-only. */
+	canDelete?: boolean;
 }
 
 export function AutomationDetailHeader({
@@ -31,6 +33,7 @@ export function AutomationDetailHeader({
 	deleteDisabled,
 	runNowDisabled,
 	readOnly,
+	canDelete = !readOnly,
 }: AutomationDetailHeaderProps) {
 	const { t } = useLingui();
 	return (
@@ -80,7 +83,7 @@ export function AutomationDetailHeader({
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						variant="destructive"
-						disabled={readOnly || deleteDisabled}
+						disabled={!canDelete || deleteDisabled}
 						onSelect={onDelete}
 					>
 						<LuTrash2 className="size-4" />

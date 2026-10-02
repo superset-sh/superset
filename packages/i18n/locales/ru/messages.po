@@ -10654,8 +10654,8 @@ msgstr "Изменять состав участников может тольк
 msgid "Only host owners can change this location."
 msgstr "Изменять это расположение могут только владельцы хоста."
 
-msgid "Only host owners can delete this host"
-msgstr "Удалить этот хост могут только владельцы хоста"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Удалить этот хост могут только владельцы хоста или владельцы организации"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Изменять эти настройки могут только владельцы организации."
@@ -10695,6 +10695,9 @@ msgstr "Запускать эту автоматизацию может толь
 
 msgid "Only the owner can view prompt history"
 msgstr "Историю промптов может смотреть только владелец"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Удалить эту автоматизацию может только владелец или владелец организации"
 
 msgid "Only the person who created this page can change it"
 msgstr "Изменить эту страницу может только тот, кто её создал"

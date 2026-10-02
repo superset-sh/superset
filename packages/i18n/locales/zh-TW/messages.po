@@ -10654,8 +10654,8 @@ msgstr "只有主機擁有者才能更改成員關係"
 msgid "Only host owners can change this location."
 msgstr "只有主機擁有者可以更改此位置。"
 
-msgid "Only host owners can delete this host"
-msgstr "只有主機擁有者才能刪除此主機"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "只有主機擁有者或組織擁有者才能刪除此主機"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有組織擁有者可以修改這些設定。"
@@ -10695,6 +10695,9 @@ msgstr "只有擁有者能執行這個自動化"
 
 msgid "Only the owner can view prompt history"
 msgstr "只有擁有者能檢視提示詞歷史"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "只有擁有者或組織擁有者能刪除這個自動化"
 
 msgid "Only the person who created this page can change it"
 msgstr "只有建立此頁面的人才能修改它"

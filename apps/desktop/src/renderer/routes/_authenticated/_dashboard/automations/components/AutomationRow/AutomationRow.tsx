@@ -47,6 +47,7 @@ interface AutomationRowProps {
 	/** Shared ticking clock so relative times stay fresh without per-row timers. */
 	now: Date;
 	isOwner: boolean;
+	canDelete: boolean;
 	/** True while a run/retry dispatch for this automation is in flight. */
 	isRetrying: boolean;
 	onRunNow: (automation: AutomationListItem) => void;
@@ -127,6 +128,7 @@ export function AutomationRow({
 	lastRun,
 	now,
 	isOwner,
+	canDelete,
 	isRetrying,
 	onRunNow,
 	onToggleEnabled,
@@ -176,6 +178,7 @@ export function AutomationRow({
 		<AutomationActionsMenuItems
 			kind={kind}
 			isOwner={isOwner}
+			canDelete={canDelete}
 			enabled={automation.enabled}
 			onEdit={openDetail}
 			onCopyLink={() => copyShareLink(`automations/${automation.id}`)}
