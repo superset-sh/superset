@@ -115,10 +115,6 @@ msgstr "{0, plural, one {# agent} other {# agents}}"
 msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
 msgstr "{0, plural, one {# automatisering kon niet worden gestart} other {# automatiseringen konden niet worden gestart}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {# automation} other {# automations}}"
-msgstr "{0, plural, one {# automatisering} other {# automatiseringen}}"
-
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# gewijzigd bestand} other {# gewijzigde bestanden}}"
@@ -168,10 +164,6 @@ msgstr "{0, plural, one {# verborgen project} other {# verborgen projecten}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# item uit de geschiedenis} other {# items uit de geschiedenis}}"
-
-#. placeholder {0}: cleanup.hosts
-msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
-msgstr "{0, plural, one {# host zonder andere eigenaar, samen met zijn werkruimten} other {# hosts zonder andere eigenaar, samen met hun werkruimten}}"
 
 #. placeholder {0}: chosenLabels.length
 msgid "{0, plural, one {# label} other {# labels}}"
@@ -281,10 +273,6 @@ msgstr "{0, plural, one {# werkruimte aanmaken...} other {# werkruimtes aanmaken
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {# werkruimte verwijderen?} other {# werkruimtes verwijderen?}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
-msgstr "{0, plural, one {# automatisering verwijderd.} other {# automatiseringen verwijderd.}}"
-
 #. placeholder {0}: cleanup.hosts
 msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
 msgstr "{0, plural, one {# host zonder andere eigenaar verwijderd, samen met zijn werkruimten.} other {# hosts zonder andere eigenaar verwijderd, samen met hun werkruimten.}}"
@@ -292,6 +280,10 @@ msgstr "{0, plural, one {# host zonder andere eigenaar verwijderd, samen met zij
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {# werkruimte verwijderd} other {# werkruimtes verwijderd}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deletes # host with no other owner, along with its workspaces} other {Deletes # hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {Verwijdert # host zonder andere eigenaar, samen met zijn werkruimten} other {Verwijdert # hosts zonder andere eigenaar, samen met hun werkruimten}}"
 
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
@@ -313,6 +305,14 @@ msgstr "{0, plural, one {Linear-issue} other {Linear-issues}}"
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {# geselecteerde werkruimte naar een groep verplaatsen} other {# geselecteerde werkruimtes naar een groep verplaatsen}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Paused # automation.} other {Paused # automations.}}"
+msgstr "{0, plural, one {# automatisering gepauzeerd.} other {# automatiseringen gepauzeerd.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
+msgstr "{0, plural, one {Pauzeert # automatisering} other {Pauzeert # automatiseringen}}"
+
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
 msgid "{0, plural, one {Run # Workspace} other {Run # Workspaces}}"
@@ -326,10 +326,6 @@ msgstr "{0, plural, one {# regel meer tonen} other {# regels meer tonen}}"
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Hiermee wordt # bestaande worktree als werkruimte in Superset geïmporteerd. Elke worktree op schijf wordt gevolgd en verschijnt in je zijbalk. Er worden geen bestanden gewijzigd.} other {Hiermee worden # bestaande worktrees als werkruimtes in Superset geïmporteerd. Elke worktree op schijf wordt gevolgd en verschijnt in je zijbalk. Er worden geen bestanden gewijzigd.}}"
-
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
-msgstr "{0, plural, one {# automatisering aan jou overgedragen, gepauzeerd.} other {# automatiseringen aan jou overgedragen, gepauzeerd.}}"
 
 #. placeholder {0}: resolved.length
 msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
@@ -16239,8 +16235,8 @@ msgstr "Deze agent kan niet in een cloudwerkruimte draaien"
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Deze agent bestaat niet meer op het gekozen apparaat (de agents zijn mogelijk gereset). Runs mislukken totdat je een nieuwe kiest."
 
-msgid "This also deletes:"
-msgstr "Hiermee wordt ook verwijderd:"
+msgid "This also:"
+msgstr "Dit doet ook het volgende:"
 
 msgid "This application will be able to:"
 msgstr "Deze applicatie kan:"
@@ -16768,9 +16764,6 @@ msgstr "Spoor die flaky test op…"
 
 msgid "Tracking"
 msgstr "Bijgehouden"
-
-msgid "Transfer their automations to me (paused) instead of deleting them"
-msgstr "Hun automatiseringen aan mij overdragen (gepauzeerd) in plaats van verwijderen"
 
 msgid "Translated"
 msgstr "Vertaald"

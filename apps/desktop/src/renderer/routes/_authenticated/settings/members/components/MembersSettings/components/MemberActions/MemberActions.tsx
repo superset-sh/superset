@@ -55,22 +55,18 @@ export function MemberActions({
 		ownerCount,
 	);
 
-	type Cleanup = {
-		automations: number;
-		hosts: number;
-		automationsAction?: "deleted" | "transferred";
-	};
+	type Cleanup = { automations: number; hosts: number };
 
-	// What removal takes along: the member's automations and any host with no
-	// other owner. Empty when nothing is affected.
+	// What removal touches: the member's automations are paused and any host
+	// with no other owner is deleted. Empty when nothing is affected.
 	function cleanupItems(cleanup: Cleanup): string[] {
 		const items: string[] = [];
 		if (cleanup.automations > 0) {
 			items.push(
 				t({
 					message: plural(cleanup.automations, {
-						one: "# automation",
-						other: "# automations",
+						one: "Pauses # automation",
+						other: "Pauses # automations",
 					}),
 				}),
 			);
@@ -79,8 +75,9 @@ export function MemberActions({
 			items.push(
 				t({
 					message: plural(cleanup.hosts, {
-						one: "# host with no other owner, along with its workspaces",
-						other: "# hosts with no other owner, along with their workspaces",
+						one: "Deletes # host with no other owner, along with its workspaces",
+						other:
+							"Deletes # hosts with no other owner, along with their workspaces",
 					}),
 				}),
 			);
@@ -92,19 +89,12 @@ export function MemberActions({
 		const parts: string[] = [];
 		if (cleanup.automations > 0) {
 			parts.push(
-				cleanup.automationsAction === "transferred"
-					? t({
-							message: plural(cleanup.automations, {
-								one: "Transferred # automation to you, paused.",
-								other: "Transferred # automations to you, paused.",
-							}),
-						})
-					: t({
-							message: plural(cleanup.automations, {
-								one: "Deleted # automation.",
-								other: "Deleted # automations.",
-							}),
-						}),
+				t({
+					message: plural(cleanup.automations, {
+						one: "Paused # automation.",
+						other: "Paused # automations.",
+					}),
+				}),
 			);
 		}
 		if (cleanup.hosts > 0) {
@@ -144,11 +134,10 @@ export function MemberActions({
 		return result.cleanup;
 	}
 
-	async function removeMember(keepAutomations: boolean): Promise<Cleanup> {
+	async function removeMember(): Promise<Cleanup> {
 		const result = await apiTrpcClient.organization.removeMember.mutate({
 			organizationId: member.organizationId,
 			userId: member.userId,
-			keepAutomations,
 		});
 		await utils.organization.listMembers.invalidate();
 		await utils.automation.invalidate();
@@ -156,7 +145,7 @@ export function MemberActions({
 		return result.cleanup;
 	}
 
-	function handleRemove(keepAutomations: boolean): void {
+	function handleRemove(): void {
 		if (isCurrentUser) {
 			toast.promise(leaveOrganization(), {
 				loading: t({
@@ -177,7 +166,7 @@ export function MemberActions({
 					),
 			});
 		} else {
-			toast.promise(removeMember(keepAutomations), {
+			toast.promise(removeMember(), {
 				loading: t({
 					message: "Removing member...",
 				}),
@@ -236,7 +225,7 @@ export function MemberActions({
 				items.length > 0 ? (
 					<div className="text-sm text-muted-foreground">
 						<p>
-							<Trans>This also deletes:</Trans>
+							<Trans>This also:</Trans>
 						</p>
 						<ul className="mt-1 list-disc pl-5">
 							{items.map((item) => (
@@ -245,17 +234,6 @@ export function MemberActions({
 						</ul>
 					</div>
 				) : undefined,
-			// Only someone else's automations can be handed over; a leaver has
-			// nobody to hand them to.
-			checkbox:
-				!isCurrentUser && effects.automations > 0
-					? {
-							label: t({
-								message:
-									"Transfer their automations to me (paused) instead of deleting them",
-							}),
-						}
-					: undefined,
 			actions: [
 				{
 					label: t({
@@ -273,7 +251,7 @@ export function MemberActions({
 								message: "Remove Member",
 							}),
 					variant: "destructive",
-					onClick: ({ checkboxChecked }) => handleRemove(checkboxChecked),
+					onClick: () => handleRemove(),
 				},
 			],
 		});

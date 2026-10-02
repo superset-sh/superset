@@ -115,10 +115,6 @@ msgstr "{0, plural, one {# agente} other {# agentes}}"
 msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
 msgstr "{0, plural, one {No se pudo iniciar # automatización} other {No se pudieron iniciar # automatizaciones}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {# automation} other {# automations}}"
-msgstr "{0, plural, one {# automatización} other {# automatizaciones}}"
-
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {# archivo modificado} other {# archivos modificados}}"
@@ -168,10 +164,6 @@ msgstr "{0, plural, one {# proyecto oculto} other {# proyectos ocultos}}"
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {# elemento del historial} other {# elementos del historial}}"
-
-#. placeholder {0}: cleanup.hosts
-msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
-msgstr "{0, plural, one {# host sin otro propietario, junto con sus espacios de trabajo} other {# hosts sin otro propietario, junto con sus espacios de trabajo}}"
 
 #. placeholder {0}: chosenLabels.length
 msgid "{0, plural, one {# label} other {# labels}}"
@@ -281,10 +273,6 @@ msgstr "{0, plural, one {Creando # espacio de trabajo...} other {Creando # espac
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {¿Eliminar # espacio de trabajo?} other {¿Eliminar # espacios de trabajo?}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
-msgstr "{0, plural, one {Se eliminó # automatización.} other {Se eliminaron # automatizaciones.}}"
-
 #. placeholder {0}: cleanup.hosts
 msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
 msgstr "{0, plural, one {Se eliminó # host sin otro propietario, junto con sus espacios de trabajo.} other {Se eliminaron # hosts sin otro propietario, junto con sus espacios de trabajo.}}"
@@ -292,6 +280,10 @@ msgstr "{0, plural, one {Se eliminó # host sin otro propietario, junto con sus 
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {# espacio de trabajo eliminado} other {# espacios de trabajo eliminados}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deletes # host with no other owner, along with its workspaces} other {Deletes # hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {Elimina # host sin otro propietario, junto con sus espacios de trabajo} other {Elimina # hosts sin otro propietario, junto con sus espacios de trabajo}}"
 
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
@@ -313,6 +305,14 @@ msgstr "{0, plural, one {issue de Linear} other {issues de Linear}}"
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Mover # espacio de trabajo seleccionado a un grupo} other {Mover # espacios de trabajo seleccionados a un grupo}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Paused # automation.} other {Paused # automations.}}"
+msgstr "{0, plural, one {Se pausó # automatización.} other {Se pausaron # automatizaciones.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
+msgstr "{0, plural, one {Pausa # automatización} other {Pausa # automatizaciones}}"
+
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
 msgid "{0, plural, one {Run # Workspace} other {Run # Workspaces}}"
@@ -326,10 +326,6 @@ msgstr "{0, plural, one {Mostrar # línea más} other {Mostrar # líneas más}}"
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {Se importará # worktree existente a Superset como espacio de trabajo. Cada worktree del disco quedará registrado y aparecerá en tu barra lateral. No se modificará ningún archivo.} other {Se importarán # worktrees existentes a Superset como espacios de trabajo. Cada worktree del disco quedará registrado y aparecerá en tu barra lateral. No se modificará ningún archivo.}}"
-
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
-msgstr "{0, plural, one {Se transfirió # automatización a ti, en pausa.} other {Se transfirieron # automatizaciones a ti, en pausa.}}"
 
 #. placeholder {0}: resolved.length
 msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
@@ -16239,8 +16235,8 @@ msgstr "Este agente no puede ejecutarse en un espacio de trabajo en la nube"
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Este agente ya no existe en el dispositivo seleccionado (puede que sus agentes se hayan restablecido). Las ejecuciones fallarán hasta que elijas uno nuevo."
 
-msgid "This also deletes:"
-msgstr "Esto también elimina:"
+msgid "This also:"
+msgstr "Esto también:"
 
 msgid "This application will be able to:"
 msgstr "Esta aplicación podrá:"
@@ -16768,9 +16764,6 @@ msgstr "Localizar esa prueba inestable…"
 
 msgid "Tracking"
 msgstr "Seguimiento"
-
-msgid "Transfer their automations to me (paused) instead of deleting them"
-msgstr "Transferirme sus automatizaciones (en pausa) en lugar de eliminarlas"
 
 msgid "Translated"
 msgstr "Traducido"

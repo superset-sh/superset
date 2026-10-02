@@ -115,10 +115,6 @@ msgstr "{0, plural, other {에이전트 #개}}"
 msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
 msgstr "{0, plural, one {자동화 #개를 시작하지 못했습니다} other {자동화 #개를 시작하지 못했습니다}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {# automation} other {# automations}}"
-msgstr "{0, plural, other {자동화 #개}}"
-
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
 msgstr "{0, plural, one {변경된 파일 #개} other {변경된 파일 #개}}"
@@ -168,10 +164,6 @@ msgstr "{0, plural, one {숨긴 프로젝트 #개} other {숨긴 프로젝트 #�
 #. placeholder {0}: result.imported
 msgid "{0, plural, one {# history item} other {# history items}}"
 msgstr "{0, plural, one {기록 #개} other {기록 #개}}"
-
-#. placeholder {0}: cleanup.hosts
-msgid "{0, plural, one {# host with no other owner, along with its workspaces} other {# hosts with no other owner, along with their workspaces}}"
-msgstr "{0, plural, other {다른 소유자가 없는 호스트 #대(워크스페이스 포함)}}"
 
 #. placeholder {0}: chosenLabels.length
 msgid "{0, plural, one {# label} other {# labels}}"
@@ -281,10 +273,6 @@ msgstr "{0, plural, one {워크스페이스 #개 만드는 중...} other {워크
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {워크스페이스 #개를 삭제할까요?} other {워크스페이스 #개를 삭제할까요?}}"
 
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Deleted # automation.} other {Deleted # automations.}}"
-msgstr "{0, plural, other {자동화 #개를 삭제했습니다.}}"
-
 #. placeholder {0}: cleanup.hosts
 msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
 msgstr "{0, plural, other {다른 소유자가 없는 호스트 #대를 워크스페이스와 함께 삭제했습니다.}}"
@@ -292,6 +280,10 @@ msgstr "{0, plural, other {다른 소유자가 없는 호스트 #대를 워크�
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {워크스페이스 #개를 삭제했습니다} other {워크스페이스 #개를 삭제했습니다}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deletes # host with no other owner, along with its workspaces} other {Deletes # hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, other {다른 소유자가 없는 호스트 #대를 워크스페이스와 함께 삭제합니다}}"
 
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
@@ -313,6 +305,14 @@ msgstr "{0, plural, one {Linear 이슈} other {Linear 이슈}}"
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {선택한 워크스페이스 #개를 그룹으로 이동} other {선택한 워크스페이스 #개를 그룹으로 이동}}"
 
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Paused # automation.} other {Paused # automations.}}"
+msgstr "{0, plural, other {자동화 #개를 일시중지했습니다.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
+msgstr "{0, plural, other {자동화 #개를 일시중지합니다}}"
+
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
 msgid "{0, plural, one {Run # Workspace} other {Run # Workspaces}}"
@@ -326,10 +326,6 @@ msgstr "{0, plural, one {#줄 더 보기} other {#줄 더 보기}}"
 #. placeholder {0}: importableWorktrees.length
 msgid "{0, plural, one {This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.} other {This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified.}}"
 msgstr "{0, plural, one {기존 worktree #개를 워크스페이스로 Superset에 가져옵니다. 디스크의 각 worktree가 추적되어 사이드바에 표시됩니다. 파일은 변경되지 않습니다.} other {기존 worktree #개를 워크스페이스로 Superset에 가져옵니다. 디스크의 각 worktree가 추적되어 사이드바에 표시됩니다. 파일은 변경되지 않습니다.}}"
-
-#. placeholder {0}: cleanup.automations
-msgid "{0, plural, one {Transferred # automation to you, paused.} other {Transferred # automations to you, paused.}}"
-msgstr "{0, plural, other {자동화 #개를 나에게 이전했습니다(일시중지됨).}}"
 
 #. placeholder {0}: resolved.length
 msgid "{0, plural, one {View # resolved comment} other {View # resolved comments}}"
@@ -16239,8 +16235,8 @@ msgstr "이 에이전트는 클라우드 워크스페이스에서 실행할 수 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "이 에이전트는 선택한 기기에 더 이상 존재하지 않습니다 (에이전트가 초기화되었을 수 있습니다). 새 에이전트를 선택할 때까지 실행이 실패합니다."
 
-msgid "This also deletes:"
-msgstr "다음 항목도 함께 삭제됩니다:"
+msgid "This also:"
+msgstr "다음 작업도 함께 수행됩니다:"
 
 msgid "This application will be able to:"
 msgstr "이 애플리케이션은 다음을 할 수 있습니다:"
@@ -16768,9 +16764,6 @@ msgstr "불안정한 테스트 추적하기…"
 
 msgid "Tracking"
 msgstr "추적 기간"
-
-msgid "Transfer their automations to me (paused) instead of deleting them"
-msgstr "삭제하는 대신 이 멤버의 자동화를 나에게 이전(일시중지)"
 
 msgid "Translated"
 msgstr "번역됨"

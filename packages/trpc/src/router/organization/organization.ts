@@ -559,9 +559,6 @@ export const organizationRouter = {
 			z.object({
 				organizationId: z.uuid(),
 				userId: z.uuid(),
-				// Transfer the member's automations to the caller (paused) instead
-				// of deleting them.
-				keepAutomations: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -630,10 +627,10 @@ export const organizationRouter = {
 				headers: ctx.headers,
 			});
 
-			const cleanup = await cleanupRemovedMember(
-				{ userId: input.userId, organizationId: input.organizationId },
-				input.keepAutomations ? { transferTo: ctx.session.user.id } : "delete",
-			);
+			const cleanup = await cleanupRemovedMember({
+				userId: input.userId,
+				organizationId: input.organizationId,
+			});
 
 			return { success: true, cleanup: countEffects(cleanup) };
 		}),
