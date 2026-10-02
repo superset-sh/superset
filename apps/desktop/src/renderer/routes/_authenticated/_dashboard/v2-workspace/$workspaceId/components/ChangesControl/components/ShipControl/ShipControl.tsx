@@ -40,7 +40,7 @@ interface ShipControlProps {
 }
 
 /**
- * The no-PR half of the sidebar-strip Changes control: walks the branch to a pull
+ * The no-PR half of the tab-bar Changes control: walks the branch to a pull
  * request. Full mode shows one progressive face — Commit (message popover)
  * while the tree is dirty, then Create PR (title/description popover; pushes
  * first when the branch is unpublished or ahead), then Push. Compact mode

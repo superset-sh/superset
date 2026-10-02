@@ -386,20 +386,6 @@ function V2WorkspaceContent() {
 		/>
 	);
 
-	const shipControls = (
-		<>
-			{isLayoutReady && (
-				<ChangesControl
-					workspaceId={workspaceId}
-					isChangesOpen={isChangesPaneOpen}
-					onToggleChanges={toggleChangesPane}
-					onOpenPullRequest={openPullRequestPane}
-				/>
-			)}
-			<V2WorkspaceOpenInButton workspaceId={workspaceId} />
-		</>
-	);
-
 	return (
 		<FileDocumentStoreProvider store={store}>
 			<WorkspaceGitStatusProvider workspaceId={workspaceId}>
@@ -454,6 +440,19 @@ function V2WorkspaceContent() {
 											store={store}
 										/>
 									)}
+									{isLayoutReady && (
+										<ChangesControl
+											workspaceId={workspaceId}
+											isChangesOpen={isChangesPaneOpen}
+											onToggleChanges={toggleChangesPane}
+											onOpenPullRequest={openPullRequestPane}
+										/>
+									)}
+									{/* Open-in must not depend on the right sidebar being open,
+									    so it lives here rather than in the sidebar's top strip
+									    (#7167). Without an @container ancestor its branch label
+									    stays hidden, which keeps it compact for the tab bar. */}
+									<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 									<RightSidebarToggle />
 									{!isMac && !sidebarOpen && <WindowControlsInset />}
 								</div>
@@ -488,7 +487,6 @@ function V2WorkspaceContent() {
 						>
 							<WorkspaceSidebar
 								workspaceId={workspaceId}
-								shipControls={shipControls}
 								runButton={workspaceRunButton}
 								pagesMenu={pagesMenu}
 								onSelectFile={openFilePaneFromTreeClick}
