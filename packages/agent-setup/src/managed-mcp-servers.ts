@@ -320,7 +320,7 @@ function codexMcpSpec(
 			return [
 				CODEX_MARKER_START,
 				"# Managed by Superset — do not edit inside this block. Entries",
-				"# converge on your installed Superset plugins and their connected accounts.",
+				"# converge on the plugins installed in the Superset desktop app.",
 				...entries.map(([name, config]) => codexServerTable(name, config)),
 				CODEX_MARKER_END,
 			].join("\n");
