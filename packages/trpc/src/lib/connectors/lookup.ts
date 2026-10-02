@@ -93,6 +93,25 @@ export async function userConnection(
 	return single(rows, connector);
 }
 
+export async function userConnections(
+	organizationId: string,
+	connector: string,
+	userId: string,
+	options: ConnectionLookupOptions = {},
+): Promise<SelectConnection[]> {
+	return db
+		.select()
+		.from(connections)
+		.where(
+			live(options, [
+				eq(connections.organizationId, organizationId),
+				eq(connections.connector, connector),
+				eq(connections.connectedByUserId, userId),
+			]),
+		)
+		.orderBy(...NEWEST_FIRST);
+}
+
 export async function accountConnection(
 	connector: string,
 	externalAccountId: string,

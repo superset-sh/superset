@@ -11,6 +11,7 @@ import type { InstalledPlugin } from "../connections";
 let install: InstalledPlugin | null = null;
 let installedCalls: Array<[string, string, string | undefined]> = [];
 let active: Record<string, unknown> | null = null;
+let accounts: Record<string, unknown>[] | null = null;
 let pinned: Record<string, unknown> | null = null;
 let pinnedCalls: Array<[string, unknown]> = [];
 let refreshError: Error | null = null;
@@ -52,6 +53,7 @@ mock.module("../../../lib/connectors/lookup", () => ({
 	},
 	orgConnection: () => Promise.resolve(null),
 	userConnection: () => Promise.resolve(null),
+	userConnections: () => Promise.resolve(accounts ?? (active ? [active] : [])),
 	accountConnection: () => Promise.resolve(null),
 	accountConnections: () => Promise.resolve([]),
 	connectorConnections: () => Promise.resolve([]),
@@ -80,7 +82,9 @@ mock.module("../../../lib/connectors/refresh", () => ({
 	UnrefreshableConnectionError: StubUnrefreshable,
 }));
 
-const { PluginTargetError, resolveTarget } = await import("./resolve-target");
+const { PluginTargetError, resolveTarget, targetKey } = await import(
+	"./resolve-target"
+);
 
 interface ManifestOptions {
 	name?: string;
@@ -131,6 +135,7 @@ const request = {
 beforeEach(() => {
 	install = null;
 	active = null;
+	accounts = null;
 	pinned = null;
 	refreshError = null;
 	installedCalls = [];
@@ -341,5 +346,143 @@ describe("resolveTarget", () => {
 				expect(error.status).toBe(501);
 			},
 		);
+	});
+});
+
+describe("resolveTarget with several accounts", () => {
+	const twoAccounts = [
+		{
+			id: "conn-work",
+			authMethod: "oauth2",
+			externalUserLabel: "satya@superset.sh",
+			externalAccountLabel: null,
+		},
+		{
+			id: "conn-personal",
+			authMethod: "oauth2",
+			externalUserLabel: "satya.personal@gmail.com",
+			externalAccountLabel: null,
+		},
+	];
+
+	test("offers both when the caller has two live connections", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+
+		const target = await resolveTarget(request);
+
+		expect(target).toMatchObject({
+			kind: "multi",
+			connector: "acme-crm",
+			accounts: [
+				{ connectionId: "conn-work", label: "satya@superset.sh" },
+				{ connectionId: "conn-personal", label: "satya.personal@gmail.com" },
+			],
+		});
+	});
+
+	test("one connection resolves exactly as it does today", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = [twoAccounts[0]];
+
+		const target = await resolveTarget(request);
+
+		expect(target).toMatchObject({ kind: "remote", connectionId: "conn-work" });
+	});
+
+	test("a pinned connection skips the choice entirely", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+		pinned = {
+			id: "conn-personal",
+			connectedByUserId: "user-1",
+			organizationId: "org-1",
+			authMethod: "oauth2",
+		};
+
+		const target = await resolveTarget({
+			...request,
+			connectionId: "conn-personal",
+		});
+
+		expect(target).toMatchObject({
+			kind: "remote",
+			connectionId: "conn-personal",
+		});
+	});
+
+	test("resolve() turns one account into a single-account target", async () => {
+		install = installed("superset", {
+			connector: "acme-crm",
+			mcpUrl: "https://mcp.acme.test/mcp",
+		});
+		accounts = twoAccounts;
+		pinned = {
+			id: "conn-work",
+			connectedByUserId: "user-1",
+			organizationId: "org-1",
+			authMethod: "oauth2",
+		};
+
+		const target = await resolveTarget(request);
+		if (target.kind !== "multi") return expect.unreachable("expected multi");
+		const resolved = await target.resolve("conn-work");
+
+		expect(resolved).toMatchObject({
+			kind: "remote",
+			connectionId: "conn-work",
+		});
+	});
+
+	test("no connection at all still asks for auth", async () => {
+		install = installed("superset", { connector: "acme-crm" });
+		accounts = [];
+
+		expect((await resolveTarget(request)).kind).toBe("needs-auth");
+	});
+});
+
+describe("targetKey", () => {
+	test("is the connection for a single-account target", () => {
+		expect(
+			targetKey({
+				kind: "remote",
+				plugin: "acme",
+				version: "1.0.0",
+				url: "https://mcp.acme.test/mcp",
+				headers: {},
+				connectionId: "conn-1",
+			}),
+		).toBe("conn-1");
+	});
+
+	test("is the whole account set, order-independent, for a multi target", () => {
+		const base = {
+			kind: "multi" as const,
+			plugin: "acme",
+			version: "1.0.0",
+			connector: "acme-crm",
+			resolve: () => expect.unreachable("not called"),
+		};
+		const forward = targetKey({
+			...base,
+			accounts: [{ connectionId: "a" }, { connectionId: "b" }],
+		});
+		const reverse = targetKey({
+			...base,
+			accounts: [{ connectionId: "b" }, { connectionId: "a" }],
+		});
+
+		expect(forward).toBe("a+b");
+		expect(reverse).toBe(forward);
 	});
 });

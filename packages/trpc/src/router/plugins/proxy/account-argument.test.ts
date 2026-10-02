@@ -1,0 +1,219 @@
+import { describe, expect, test } from "bun:test";
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import {
+	accountArgName,
+	accountInstructions,
+	accountLabel,
+	chooseAccount,
+	withAccountArgument,
+} from "./account-argument";
+
+const accounts = [
+	{ connectionId: "id-work", label: "satya@superset.sh", nickname: "work" },
+	{ connectionId: "id-personal", label: "satya@gmail.com", nickname: null },
+];
+
+function tool(overrides: Partial<Tool> = {}): Tool {
+	return {
+		name: "send_email",
+		description: "Sends a new email immediately",
+		inputSchema: {
+			type: "object",
+			properties: { body: { type: "string" } },
+			required: ["body"],
+		},
+		...overrides,
+	} as Tool;
+}
+
+describe("accountLabel", () => {
+	test("prefers the nickname, then the provider label, then the id", () => {
+		expect(accountLabel(accounts[0])).toBe("work");
+		expect(accountLabel(accounts[1])).toBe("satya@gmail.com");
+		expect(accountLabel({ connectionId: "id-bare" })).toBe("id-bare");
+	});
+});
+
+describe("accountArgName", () => {
+	test("is superset_account when nothing upstream claims it", () => {
+		expect(accountArgName([tool()])).toBe("superset_account");
+	});
+
+	test("falls back when a vendor tool already has that property", () => {
+		const colliding = tool({
+			inputSchema: {
+				type: "object",
+				properties: { superset_account: { type: "string" } },
+			},
+		});
+		expect(accountArgName([colliding])).toBe("superset_account_id");
+	});
+
+	test("is chosen once for the whole server, not per tool", () => {
+		const colliding = tool({
+			name: "other",
+			inputSchema: {
+				type: "object",
+				properties: { superset_account: { type: "string" } },
+			},
+		});
+		expect(accountArgName([tool(), colliding])).toBe("superset_account_id");
+	});
+});
+
+describe("withAccountArgument", () => {
+	test("adds a required enum of the account ids and keeps the rest", () => {
+		const [injected] = withAccountArgument(
+			[tool()],
+			accounts,
+			"superset_account",
+		);
+		const properties = injected.inputSchema.properties as Record<
+			string,
+			Record<string, unknown>
+		>;
+
+		expect(properties.superset_account.enum).toEqual([
+			"id-work",
+			"id-personal",
+		]);
+		expect(properties.body).toEqual({ type: "string" });
+		expect(injected.inputSchema.required).toEqual(["body", "superset_account"]);
+	});
+
+	test("names each account in the description so a nickname can be matched", () => {
+		const [injected] = withAccountArgument(
+			[tool()],
+			accounts,
+			"superset_account",
+		);
+		const description = (
+			injected.inputSchema.properties as Record<string, { description: string }>
+		).superset_account.description;
+
+		expect(description).toContain("id-work (work)");
+		expect(description).toContain("id-personal (satya@gmail.com)");
+	});
+
+	test("gives a tool with no properties block one", () => {
+		const [injected] = withAccountArgument(
+			[tool({ inputSchema: { type: "object" } })],
+			accounts,
+			"superset_account",
+		);
+
+		expect(injected.inputSchema.properties).toHaveProperty("superset_account");
+		expect(injected.inputSchema.required).toEqual(["superset_account"]);
+	});
+
+	test("preserves additionalProperties: false", () => {
+		const [injected] = withAccountArgument(
+			[
+				tool({
+					inputSchema: {
+						type: "object",
+						properties: {},
+						additionalProperties: false,
+					},
+				}),
+			],
+			accounts,
+			"superset_account",
+		);
+
+		expect(injected.inputSchema.additionalProperties).toBe(false);
+		expect(injected.inputSchema.properties).toHaveProperty("superset_account");
+	});
+
+	test("does not add the argument twice when required already lists it", () => {
+		const once = withAccountArgument([tool()], accounts, "superset_account");
+		const twice = withAccountArgument(once, accounts, "superset_account");
+
+		expect(twice[0].inputSchema.required).toEqual(["body", "superset_account"]);
+	});
+});
+
+describe("accountInstructions", () => {
+	test("counts the accounts and names the argument", () => {
+		const text = accountInstructions("google", accounts, "superset_account");
+
+		expect(text).toContain("google is connected to 2 accounts");
+		expect(text).toContain("superset_account");
+		expect(text).toContain("work — id-work");
+	});
+});
+
+describe("chooseAccount", () => {
+	test("accepts an id and strips the argument from what is forwarded", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "id-personal",
+			body: "hello",
+		});
+
+		expect(choice).toEqual({
+			ok: true,
+			connectionId: "id-personal",
+			rest: { body: "hello" },
+		});
+	});
+
+	test('accepts a nickname, so a model writing "work" does not burn a turn', () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "work",
+		});
+
+		expect(choice).toMatchObject({ ok: true, connectionId: "id-work" });
+	});
+
+	test("accepts the provider label too", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "satya@gmail.com",
+		});
+
+		expect(choice).toMatchObject({ ok: true, connectionId: "id-personal" });
+	});
+
+	test("reads the fallback name when that is the one advertised", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account_id: "id-work",
+			to: "a@example.com",
+		});
+
+		expect(choice).toEqual({
+			ok: true,
+			connectionId: "id-work",
+			rest: { to: "a@example.com" },
+		});
+	});
+
+	test("a missing argument lists the choices", () => {
+		const choice = chooseAccount("google", accounts, { body: "hello" });
+
+		expect(choice.ok).toBe(false);
+		if (choice.ok) return;
+		expect(choice.message).toContain("2 connected accounts");
+		expect(choice.message).toContain("id-work (work)");
+		expect(choice.message).toContain("pass superset_account");
+	});
+
+	test("an unknown id lists the choices rather than guessing", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "id-nope",
+		});
+
+		expect(choice.ok).toBe(false);
+		if (choice.ok) return;
+		expect(choice.message).toContain("is not a connected google account");
+		expect(choice.message).toContain("id-personal");
+	});
+
+	test("an empty string is a missing argument, not an unknown account", () => {
+		const choice = chooseAccount("google", accounts, {
+			superset_account: "",
+		});
+
+		expect(choice.ok).toBe(false);
+		if (choice.ok) return;
+		expect(choice.message).toContain("pass superset_account");
+	});
+});

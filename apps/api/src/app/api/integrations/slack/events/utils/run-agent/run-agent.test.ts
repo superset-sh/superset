@@ -65,6 +65,16 @@ mock.module("@superset/trpc/plugins-proxy", () => ({
 	AmbiguousPluginError: FakeAmbiguousPluginError,
 	PluginTargetError: FakePluginTargetError,
 	resolveTarget,
+	targetKey: (target: {
+		connectionId?: string;
+		accounts?: { connectionId: string }[];
+	}) =>
+		target.accounts
+			? target.accounts
+					.map((account) => account.connectionId)
+					.sort()
+					.join("+")
+			: (target.connectionId ?? ""),
 	buildPluginServer: async (target: { plugin: string }) => {
 		const { Server } = await import(
 			"@modelcontextprotocol/sdk/server/index.js"
