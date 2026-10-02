@@ -23,12 +23,12 @@ import { devtools, persist } from "zustand/middleware";
  *      entry (`EXPERIMENTAL_INLINE_WORKSPACE_PORTS`).
  *   3. The mode branches in `DashboardSidebarWorkspaceChips` (the inline
  *      ports chip), `TopBar`, and the v2 workspace page's tab-bar trailing
- *      slot (`TopBarPortsDropdown`), plus the ports-provider gating in the
+ *      slot (`PortsDropdown`), plus the ports-provider gating in the
  *      dashboard layout.
  *   4. The components belonging to the losing layout:
  *      - inline: `DashboardSidebarPortsChip` (under
  *        `DashboardSidebarWorkspaceChips`).
- *      - topbar: `TopBarPortsDropdown` (under `TopBar/components`).
+ *      - topbar: `PortsDropdown`.
  *
  * Both layouts read port data from the single `DashboardSidebarPortsProvider`
  * mounted in the dashboard layout.

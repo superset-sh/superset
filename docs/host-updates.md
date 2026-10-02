@@ -6,6 +6,12 @@ Start a standalone host with automatic updates enabled:
 superset start --daemon --auto-update
 ```
 
+`--auto-update` requires `--daemon`. The foreground launcher watches the original
+host process and treats its exit as a failure. Updates replace that process, so
+a successful update would end the foreground command with an error. During a
+slow restart, its health watchdog could also kill the updater before rollback
+finishes.
+
 The first check runs after one hour and repeats hourly. Newer releases from the
 CLI release channel are installed automatically, then the host restarts using
 its existing health check and rollback flow. Terminal connections reconnect

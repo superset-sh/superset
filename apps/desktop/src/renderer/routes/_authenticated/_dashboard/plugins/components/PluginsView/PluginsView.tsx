@@ -110,7 +110,7 @@ export function PluginsView() {
 	);
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 pb-16">
+		<div className="mx-auto w-full max-w-3xl px-6 pt-4 pb-16">
 			<Tabs defaultValue="plugins">
 				<TabsList className="mb-6">
 					<TabsTrigger value="plugins">

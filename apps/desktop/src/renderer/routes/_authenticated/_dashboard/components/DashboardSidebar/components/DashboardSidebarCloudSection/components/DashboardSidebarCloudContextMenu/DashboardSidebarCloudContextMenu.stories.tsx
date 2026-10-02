@@ -31,7 +31,7 @@ const meta = {
 		onRemoveLabel: fn(),
 		groups: [],
 		groupId: null,
-		deleteShortcut: "⌘⇧⌫",
+		archiveShortcut: "⌘⇧⌫",
 		onOpenDetails: fn(),
 		onRename: fn(),
 		onSaveAsEnvironment: fn(),
@@ -41,7 +41,7 @@ const meta = {
 		onCreateGroup: fn(),
 		onMoveToGroup: fn(),
 		onHideFromSidebar: fn(),
-		onDelete: fn(),
+		onArchive: fn(),
 		children: (
 			<DashboardSidebarCloudRow
 				workspace={{
@@ -67,7 +67,7 @@ const meta = {
 				now={new Date("2026-09-25T12:00:00Z")}
 				onOpen={fn()}
 				onOpenPullRequest={fn()}
-				onDelete={fn()}
+				onArchive={fn()}
 			/>
 		),
 	},
@@ -124,7 +124,7 @@ export const Minimal: Story = {
 	args: {
 		onRename: undefined,
 		onSaveAsEnvironment: undefined,
-		onDelete: undefined,
+		onArchive: undefined,
 	},
 };
 

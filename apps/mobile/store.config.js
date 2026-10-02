@@ -43,7 +43,7 @@ const reviewNotes = [
 module.exports = {
 	configVersion: 0,
 	apple: {
-		version: "1.1.2",
+		version: "1.1.3",
 		copyright: "2026 Superset",
 		categories: ["DEVELOPER_TOOLS", "PRODUCTIVITY"],
 		info: {

@@ -7,6 +7,7 @@ import type {
 	ComposerSessionTab,
 } from "@superset/composer";
 import { i18n } from "@superset/i18n";
+import { TitlePress } from "@superset/title-press";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -28,6 +29,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useArchivedCloudWorkspaces } from "@/hooks/useArchivedCloudWorkspaces";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { errorCopy } from "@/lib/errors";
@@ -135,6 +137,12 @@ export function WorkspaceScreen() {
 		retrySandbox,
 		isResolving,
 	} = useWorkspaceHost(id ?? null);
+	const { workspaces: archivedRows } = useArchivedCloudWorkspaces({
+		enabled: !cloud && !workspace && !isResolving,
+	});
+	const archivedCloud = cloud
+		? null
+		: (archivedRows.find((row) => row.id === id) ?? null);
 	const {
 		terminalsByWorkspace,
 		isReady: terminalsReady,
@@ -432,6 +440,14 @@ export function WorkspaceScreen() {
 	useEffect(() => {
 		if (id) clearManualUnread(id);
 	}, [id, clearManualUnread]);
+	const markCloudRead = useUnreadWorkspacesStore(
+		(state) => state.markCloudRead,
+	);
+	const cloudAgentStatusAt = cloud?.agentStatusAt?.getTime() ?? null;
+	useEffect(() => {
+		if (id && cloudAgentStatusAt !== null)
+			markCloudRead(id, cloudAgentStatusAt);
+	}, [id, cloudAgentStatusAt, markCloudRead]);
 
 	// Port of desktop's useClearActivePaneAttention: viewing the tab clears
 	// its `review` state by advancing the seen mark to the binding's last
@@ -756,9 +772,14 @@ export function WorkspaceScreen() {
 	const attachmentTarget = useMemo(
 		() =>
 			id && hostUrl && workspace?.worktreePath
-				? { workspaceId: id, hostUrl, draftKey: workspaceDraftKey(id) }
+				? {
+						workspaceId: id,
+						hostUrl,
+						isCloud: cloud !== null,
+						draftKey: workspaceDraftKey(id),
+					}
 				: null,
-		[id, hostUrl, workspace],
+		[id, hostUrl, workspace, cloud],
 	);
 
 	// The chip beside the quick keys, or nothing. Mark and colour both come off
@@ -857,7 +878,7 @@ export function WorkspaceScreen() {
 			<Stack.Screen
 				options={{
 					...headerOptions,
-					title: workspace?.name ?? cloud?.name ?? "",
+					title: workspace?.name ?? cloud?.name ?? archivedCloud?.name ?? "",
 					headerTitle: notice
 						? () => (
 								<HeaderNotice
@@ -871,6 +892,7 @@ export function WorkspaceScreen() {
 				}}
 			/>
 
+			{workspace ? <TitlePress onPress={openActions} /> : null}
 			{workspace ? (
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Menu
@@ -921,13 +943,22 @@ export function WorkspaceScreen() {
 							</Stack.Toolbar.MenuAction>
 						</Stack.Toolbar.Menu>
 						<Stack.Toolbar.Menu inline>
-							<Stack.Toolbar.MenuAction
-								icon="trash"
-								destructive
-								onPress={deleteWorkspace}
-							>
-								{t({ message: "Delete workspace" })}
-							</Stack.Toolbar.MenuAction>
+							{cloud ? (
+								<Stack.Toolbar.MenuAction
+									icon="archivebox"
+									onPress={deleteWorkspace}
+								>
+									{t({ message: "Archive workspace" })}
+								</Stack.Toolbar.MenuAction>
+							) : (
+								<Stack.Toolbar.MenuAction
+									icon="trash"
+									destructive
+									onPress={deleteWorkspace}
+								>
+									{t({ message: "Delete workspace" })}
+								</Stack.Toolbar.MenuAction>
+							)}
 						</Stack.Toolbar.Menu>
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
@@ -1024,6 +1055,12 @@ export function WorkspaceScreen() {
 							}}
 						/>
 					</>
+				) : archivedCloud ? (
+					<CloudWorkspaceProvisioningState
+						cloud={archivedCloud}
+						unreachable={false}
+						onRetry={retrySandbox}
+					/>
 				) : cloud && !host ? (
 					<CloudWorkspaceProvisioningState
 						cloud={cloud}

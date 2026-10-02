@@ -25,7 +25,7 @@
 			},
 			"category": "productivity",
 			"source": "./plugins/linear",
-			"version": "1.5.2"
+			"version": "1.5.3"
 		},
 		{
 			"name": "notion",
@@ -48,6 +48,16 @@
 			"version": "1.2.3"
 		},
 		{
+			"name": "sentry",
+			"description": "Debug with production error context: search issues, read stack traces, and manage alerts in Sentry.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "development",
+			"source": "./plugins/sentry",
+			"version": "1.0.0"
+		},
+		{
 			"name": "gmail",
 			"description": "Read, search, send, and organize mail in your Gmail account.",
 			"author": {
@@ -56,6 +66,46 @@
 			"category": "communication",
 			"source": "./plugins/gmail",
 			"version": "1.1.5"
+		},
+		{
+			"name": "granola",
+			"description": "Recall what was said in your meetings: search, read, and query Granola notes and transcripts.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/granola",
+			"version": "1.0.0"
+		},
+		{
+			"name": "circleback",
+			"description": "Meeting notes, action items, and transcripts from Circleback: search what was said and work what was captured.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/circleback",
+			"version": "1.0.0"
+		},
+		{
+			"name": "ynab",
+			"description": "Track money in YNAB: accounts, categories, budgets, and transactions.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/ynab",
+			"version": "1.0.0"
+		},
+		{
+			"name": "stripe",
+			"description": "Work with payments in Stripe: trace charges and subscriptions, read billing data, and search Stripe's docs.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "development",
+			"source": "./plugins/stripe",
+			"version": "1.0.0"
 		}
 	],
 	"featured": ["github", "linear"],

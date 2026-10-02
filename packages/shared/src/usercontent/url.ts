@@ -62,6 +62,11 @@ const PAGE_ID_LABEL =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** The page id a request host names, or null for the apex or a bad label. */
+export function pageFrameOrigin(baseUrl: string, pageId: string): string {
+	const base = new URL(baseUrl);
+	return `${base.protocol}//${pageId}.${base.host}`;
+}
+
 export function pageIdFromHost(host: string, baseHost: string): string | null {
 	const suffix = `.${baseHost}`;
 	if (!host.endsWith(suffix)) return null;

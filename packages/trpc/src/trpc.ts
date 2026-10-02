@@ -175,6 +175,7 @@ export const protectedProcedure = t.procedure
 	.use(async ({ ctx, next }) => {
 		const sessionOrgId = ctx.session.session.activeOrganizationId ?? null;
 		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+		assertInBoxOrganization(ctx.sandboxCaller, headerOrgId);
 
 		let activeOrganizationId = sessionOrgId;
 		if (headerOrgId && headerOrgId !== sessionOrgId) {
@@ -204,6 +205,31 @@ function notAMemberOfOrganization(organizationId: string): TRPCError {
 	});
 }
 
+/** A box's credential is its creator's, but it acts in the box's organization only. */
+function assertInBoxOrganization(
+	sandboxCaller: SandboxCaller | null,
+	organizationId: string | null,
+) {
+	if (
+		sandboxCaller &&
+		organizationId &&
+		organizationId !== sandboxCaller.organizationId
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `A cloud workspace can only act in its own organization, not ${organizationId}`,
+		});
+	}
+}
+
+const inBoxOrganization = (
+	sandboxCaller: SandboxCaller | null,
+	organizationIds: string[],
+) =>
+	sandboxCaller
+		? organizationIds.filter((id) => id === sandboxCaller.organizationId)
+		: organizationIds;
+
 function resolveActiveOrganizationId(
 	organizationIds: string[],
 	requestedOrganizationId: string | null,
@@ -227,6 +253,7 @@ export const jwtProcedure = t.procedure
 			? authHeader.slice(7)
 			: null;
 		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+		assertInBoxOrganization(ctx.sandboxCaller, headerOrgId);
 
 		if (bearer) {
 			try {
@@ -234,11 +261,14 @@ export const jwtProcedure = t.procedure
 					body: { token: bearer },
 				});
 				if (payload?.sub) {
-					const organizationIds = Array.isArray(payload.organizationIds)
-						? payload.organizationIds.filter(
-								(id): id is string => typeof id === "string",
-							)
-						: [];
+					const organizationIds = inBoxOrganization(
+						ctx.sandboxCaller,
+						Array.isArray(payload.organizationIds)
+							? payload.organizationIds.filter(
+									(id): id is string => typeof id === "string",
+								)
+							: [],
+					);
 					return next({
 						ctx: {
 							userId: payload.sub,
@@ -265,7 +295,10 @@ export const jwtProcedure = t.procedure
 				where: eq(members.userId, userId),
 				columns: { organizationId: true },
 			});
-			const organizationIds = memberRows.map((row) => row.organizationId);
+			const organizationIds = inBoxOrganization(
+				ctx.sandboxCaller,
+				memberRows.map((row) => row.organizationId),
+			);
 			return next({
 				ctx: {
 					userId,

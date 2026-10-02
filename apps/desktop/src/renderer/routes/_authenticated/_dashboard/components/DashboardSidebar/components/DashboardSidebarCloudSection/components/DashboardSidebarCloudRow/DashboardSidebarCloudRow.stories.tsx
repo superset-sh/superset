@@ -33,7 +33,7 @@ const meta = {
 		now: new Date("2026-09-25T12:00:00Z"),
 		onOpen: fn(),
 		onOpenPullRequest: fn(),
-		onDelete: fn(),
+		onArchive: fn(),
 	},
 } satisfies Meta<typeof DashboardSidebarCloudRow>;
 

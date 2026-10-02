@@ -3,7 +3,7 @@ import { create } from "zustand";
 export type LinkedIssue = {
 	slug: string;
 	title: string;
-	source?: "github" | "internal";
+	source?: "github" | "internal" | "linear";
 	url?: string;
 	taskId?: string;
 	/** Provider branch name (e.g. Linear's), synced into `tasks.branch`. */

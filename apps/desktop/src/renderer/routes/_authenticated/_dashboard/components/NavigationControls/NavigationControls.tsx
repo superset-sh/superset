@@ -1,8 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
-import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
+import { HotkeyLabel } from "renderer/hotkeys";
 // Temporarily hidden: import { HistoryDropdown } from "./components/HistoryDropdown";
 
 export function NavigationControls() {
@@ -11,24 +10,6 @@ export function NavigationControls() {
 
 	const canGoBack = router.history.canGoBack();
 	const canGoForward = location.state.__TSR_index < router.history.length - 1;
-
-	useHotkey("NAVIGATE_BACK", () => router.history.back());
-	useHotkey("NAVIGATE_FORWARD", () => router.history.forward());
-
-	useEffect(() => {
-		const handleMouseUp = (event: MouseEvent) => {
-			if (event.button === 3) {
-				event.preventDefault();
-				router.history.back();
-			} else if (event.button === 4) {
-				event.preventDefault();
-				router.history.forward();
-			}
-		};
-
-		window.addEventListener("mouseup", handleMouseUp);
-		return () => window.removeEventListener("mouseup", handleMouseUp);
-	}, [router]);
 
 	return (
 		<div className="flex items-center">

@@ -98,6 +98,7 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		label: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{ id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", provider: "OpenAI" },
 	{ id: "openai/gpt-6-astra", label: "GPT-6 Astra", provider: "OpenAI" },
 	{ id: "openai/gpt-6-sol", label: "GPT-6 Sol", provider: "OpenAI" },
 	{ id: "openai/gpt-6-luna", label: "GPT-6 Luna", provider: "OpenAI" },
@@ -152,6 +153,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		models: [
 			// Availability is account-dependent; ids are verified against Codex's
 			// live catalog (`codex app-server` → `model/list`).
+			{ id: "gpt-6.1-sol", label: "GPT-6.1 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-6-astra", label: "GPT-6 Astra", group: CURRENT_GROUP },
 			{ id: "gpt-6-sol", label: "GPT-6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-6-luna", label: "GPT-6 Luna", group: CURRENT_GROUP },
@@ -592,6 +594,7 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 				id: "max",
 				label: "Max",
 				models: [
+					"gpt-6.1-sol",
 					"gpt-6-astra",
 					"gpt-6-sol",
 					"gpt-6-luna",
@@ -603,7 +606,13 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{
 				id: "ultra",
 				label: "Ultra",
-				models: ["gpt-6-astra", "gpt-6-sol", "gpt-5.6-sol", "gpt-5.6-terra"],
+				models: [
+					"gpt-6.1-sol",
+					"gpt-6-astra",
+					"gpt-6-sol",
+					"gpt-5.6-sol",
+					"gpt-5.6-terra",
+				],
 			},
 		],
 	},

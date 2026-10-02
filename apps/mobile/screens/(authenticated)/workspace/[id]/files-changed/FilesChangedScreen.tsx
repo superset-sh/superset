@@ -360,9 +360,10 @@ export function FilesChangedScreen() {
 	);
 
 	const onCommentMenu = useCallback(
-		(comment: DraftComment) => {
+		(comment: DraftComment, anchor: number | null) => {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
+					anchor: anchor ?? undefined,
 					options: [
 						t({ message: "Edit" }),
 						t({ message: "Delete" }),

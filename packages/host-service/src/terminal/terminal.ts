@@ -249,6 +249,10 @@ type TerminalServerMessage =
 	  }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null }
+	// The PTY's size, the smallest box across visible clients. Sent to every
+	// client when it changes, and to a client after each of its resizes, so a
+	// client larger than the PTY can say why its output is narrower.
+	| { type: "size"; cols: number; rows: number }
 	// Sequence anchor for seq-aware clients (`?seq=` on the attach URL). Sent
 	// once per attach, AFTER any host-synthesized bytes (mode preamble,
 	// restored notice) and BEFORE catch-up/live PTY bytes. The client sets its
@@ -1715,12 +1719,12 @@ function effectiveDims(
 function applyEffectiveDims(
 	session: TerminalSession,
 	options: { force?: boolean } = {},
-) {
-	if (session.exited) return;
+): boolean {
+	if (session.exited) return false;
 	const next = effectiveDims(session);
-	if (!next) return;
+	if (!next) return false;
 	const changed = next.cols !== session.cols || next.rows !== session.rows;
-	if (!changed && !options.force) return;
+	if (!changed && !options.force) return false;
 	if (changed) {
 		session.lastResizeSeq = session.outputSeq;
 		// Whatever follows is laid out for the new size; hidden clients still
@@ -1736,6 +1740,12 @@ function applyEffectiveDims(
 	session.modeTracker.resize(next.cols, next.rows);
 	session.cols = next.cols;
 	session.rows = next.rows;
+	if (changed) broadcastMessage(session, ptySizeMessage(session));
+	return changed;
+}
+
+function ptySizeMessage(session: TerminalSession): TerminalServerMessage {
+	return { type: "size", cols: session.cols, rows: session.rows };
 }
 
 /**
@@ -3882,7 +3892,8 @@ export function registerWorkspaceTerminalRoute({
 						const needsForcedNudge =
 							session.pendingRepaintNudge !== null && dimsUnchanged;
 						clearPendingRepaintNudge(session);
-						applyEffectiveDims(session, { force: true });
+						const changed = applyEffectiveDims(session, { force: true });
+						if (!changed) sendMessage(ws, ptySizeMessage(session));
 						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},

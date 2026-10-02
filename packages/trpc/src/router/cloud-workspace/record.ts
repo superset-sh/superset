@@ -8,6 +8,7 @@ import {
 	environments,
 	githubRepositories,
 	pages,
+	type SelectTask,
 	suggestions,
 	taskLabels,
 	taskProjects,
@@ -21,7 +22,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { loadAttachments } from "../../lib/attachments";
+import { anchorAttachments, loadAttachments } from "../../lib/attachments";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
 import { ensureLabels } from "../../lib/labels";
 import { nudge } from "../../lib/realtime";
@@ -35,6 +36,8 @@ const DESCRIPTION_MAX_LENGTH = 20_000;
 export const taskColumns = {
 	id: tasks.id,
 	slug: tasks.slug,
+	externalProvider: tasks.externalProvider,
+	externalKey: tasks.externalKey,
 	title: tasks.title,
 	statusType: taskStatuses.type,
 	statusColor: taskStatuses.color,
@@ -44,6 +47,8 @@ export const taskColumns = {
 type TaskColumns = {
 	id: string;
 	slug: string;
+	externalProvider: SelectTask["externalProvider"];
+	externalKey: string | null;
 	title: string;
 	statusType: string | null;
 	statusColor: string | null;
@@ -54,6 +59,8 @@ export function toTaskChip(row: TaskColumns) {
 	return {
 		id: row.id,
 		slug: row.slug,
+		externalProvider: row.externalProvider,
+		externalKey: row.externalKey,
 		title: row.title,
 		status:
 			row.statusType && row.statusColor
@@ -282,9 +289,8 @@ export const cloudWorkspaceRecordRouter = {
 				labels,
 				project: project ?? null,
 				attachments:
-					(await loadAttachments("cloud_workspace_prompt", [row.id])).get(
-						row.id,
-					) ?? [],
+					(await loadAttachments("cloud_workspace", [row.id])).get(row.id) ??
+					[],
 			};
 		}),
 
@@ -307,6 +313,8 @@ export const cloudWorkspaceRecordRouter = {
 					linkedTask: {
 						id: linkedTask.id,
 						slug: linkedTask.slug,
+						externalProvider: linkedTask.externalProvider,
+						externalKey: linkedTask.externalKey,
 						title: linkedTask.title,
 						statusType: linkedStatus.type,
 						statusColor: linkedStatus.color,
@@ -315,6 +323,8 @@ export const cloudWorkspaceRecordRouter = {
 					unlinkedTask: {
 						id: unlinkedTask.id,
 						slug: unlinkedTask.slug,
+						externalProvider: unlinkedTask.externalProvider,
+						externalKey: unlinkedTask.externalKey,
 						title: unlinkedTask.title,
 						statusType: unlinkedStatus.type,
 						statusColor: unlinkedStatus.color,
@@ -541,6 +551,25 @@ export const cloudWorkspaceRecordRouter = {
 				nudge(row.organizationId, "cloud_workspaces");
 			}
 			return { unlinked: Boolean(removed) };
+		}),
+
+	/** Hands uploads to the box; it can fetch only the files attached to it. */
+	attachFiles: jwtProcedure
+		.input(
+			z.object({
+				id: z.string().uuid(),
+				fileIds: z.array(z.string().uuid()).min(1).max(10),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const row = await loadVisibleWorkspace(ctx, input.id);
+			await anchorAttachments({
+				parentKind: "cloud_workspace",
+				parentId: row.id,
+				organizationId: row.organizationId,
+				fileIds: input.fileIds,
+			});
+			return { attached: true };
 		}),
 
 	/** Anyone who can see the box may edit it, and so may the box's own agent, for itself only. */

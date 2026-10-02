@@ -20,7 +20,7 @@ interface ChangesControlProps {
 }
 
 /**
- * Top-bar Changes control: one bordered button with a single face covering
+ * Tab-bar Changes control: one bordered button with a single face covering
  * the branch's whole lifecycle. Before a PR exists the face is the diff
  * stats with the ship actions (commit → push → create PR) in the chevron —
  * or the ship action itself once the tree is clean; once a PR exists the

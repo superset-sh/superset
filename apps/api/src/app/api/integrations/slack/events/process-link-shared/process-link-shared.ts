@@ -66,9 +66,9 @@ export interface UnfurlLinksParams {
 }
 
 /**
- * Tasks unfurl for the whole connected workspace. Pages unfurl as the poster:
- * a public page for anyone, anything narrower only once the poster has linked
- * a Superset account that can read it — and until then Slack asks them to.
+ * Tasks and org pages unfurl for the whole connected workspace. A `just_me`
+ * page unfurls only once its creator has linked their Slack account, and
+ * until then Slack asks them to.
  */
 export async function unfurlLinks({
 	connection,

@@ -14,6 +14,7 @@ import {
 	useState,
 } from "react";
 import { LuGitPullRequest } from "react-icons/lu";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import {
 	StatusIcon,
 	type StatusType,
@@ -31,6 +32,7 @@ const GROUPS: { kind: RecordMentionItem["kind"]; title: ReactNode }[] = [
 ];
 
 function MentionRow({ item }: { item: RecordMentionItem }) {
+	const taskDisplayId = useTaskDisplayId();
 	switch (item.kind) {
 		case "person":
 			return (
@@ -38,7 +40,6 @@ function MentionRow({ item }: { item: RecordMentionItem }) {
 					<AvatarStack
 						people={[{ id: item.id, name: item.name, image: item.image }]}
 						size={20}
-						outlineClassName="outline-transparent"
 					/>
 					<span className="truncate">{item.name}</span>
 				</>
@@ -53,7 +54,9 @@ function MentionRow({ item }: { item: RecordMentionItem }) {
 							progress={item.status.progressPercent ?? undefined}
 						/>
 					</span>
-					<span className="shrink-0 text-muted-foreground">{item.slug}</span>
+					<span className="shrink-0 font-mono text-muted-foreground">
+						{taskDisplayId(item)}
+					</span>
 					<span className="truncate">{item.title}</span>
 				</>
 			);

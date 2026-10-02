@@ -77,7 +77,7 @@ export function HomePaywallScreen() {
 
 				<Button
 					size="lg"
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 					onPress={() => openUrl(billingSettingsUrl(activeOrganizationId))}
 				>
 					<Text>

@@ -48,6 +48,8 @@ export const mentionRouter = {
 					.select({
 						id: tasks.id,
 						slug: tasks.slug,
+						externalProvider: tasks.externalProvider,
+						externalKey: tasks.externalKey,
 						title: tasks.title,
 						status: {
 							type: taskStatuses.type,
@@ -62,7 +64,11 @@ export const mentionRouter = {
 							eq(tasks.organizationId, input.organizationId),
 							isNull(tasks.deletedAt),
 							input.query
-								? or(ilike(tasks.title, pattern), ilike(tasks.slug, pattern))
+								? or(
+										ilike(tasks.title, pattern),
+										ilike(tasks.slug, pattern),
+										ilike(tasks.externalKey, pattern),
+									)
 								: undefined,
 						),
 					)

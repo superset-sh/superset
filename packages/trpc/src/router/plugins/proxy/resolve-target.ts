@@ -70,6 +70,11 @@ export interface TargetRequest {
 }
 
 function connectUrl(slug: string, organizationId: string | null): string {
+	const methods = getConnector(slug)?.methods ?? [];
+	if (methods.length && methods.every((method) => method.type === "api_key")) {
+		return `${env.NEXT_PUBLIC_WEB_URL}/connect/${slug}`;
+	}
+
 	const params = new URLSearchParams({ method: "oauth2" });
 	if (organizationId) params.set("organizationId", organizationId);
 	return `${env.NEXT_PUBLIC_API_URL}/api/connectors/${slug}/connect?${params}`;

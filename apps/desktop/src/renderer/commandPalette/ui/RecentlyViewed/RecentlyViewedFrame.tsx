@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { LuCpu, LuGitBranch } from "react-icons/lu";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -333,12 +334,15 @@ function TaskRow({
 	taskData: {
 		id: string;
 		slug: string;
+		externalProvider: string | null;
+		externalKey: string | null;
 		title: string;
 		statusColor: string;
 		statusType: string;
 		statusProgress: number | null;
 	}[];
 }) {
+	const taskDisplayId = useTaskDisplayId();
 	const { i18n } = useLingui();
 	const task = taskData.find(
 		(t) => t.id === entry.entityId || t.slug === entry.entityId,
@@ -349,8 +353,8 @@ function TaskRow({
 			onSelect={onSelect}
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
-			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				{task?.slug ??
+			<span className="font-mono text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
+				{(task && taskDisplayId(task)) ??
 					i18n._(
 						msg({
 							message: "Task",

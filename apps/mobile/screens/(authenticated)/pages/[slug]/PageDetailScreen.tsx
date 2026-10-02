@@ -1,4 +1,4 @@
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { usePageCommentThreads } from "@superset/cloud-client";
 import { getInitials } from "@superset/shared/names";
 import {
@@ -15,11 +15,14 @@ import {
 	useRouter,
 } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { errorCopy } from "@/lib/errors";
+import { pageUrlForSlug } from "@/lib/web-links";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { usePageQuery } from "../hooks/usePages";
 import { CommentPin } from "./components/CommentPin";
@@ -300,6 +303,19 @@ export function PageDetailScreen({
 							? t({ message: "It will open once the connection is back." })
 							: errorCopy(page.error)}
 					</Text>
+					{page.error && !offline ? (
+						<Button
+							className="mt-6"
+							variant="secondary"
+							onPress={() => {
+								void WebBrowser.openBrowserAsync(pageUrlForSlug(slug));
+							}}
+						>
+							<Text>
+								<Trans>Open in browser</Trans>
+							</Text>
+						</Button>
+					) : null}
 				</View>
 			) : null}
 

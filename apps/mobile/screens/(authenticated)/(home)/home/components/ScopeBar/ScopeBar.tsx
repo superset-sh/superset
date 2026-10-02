@@ -1,15 +1,16 @@
-import { View } from "react-native";
+import { ScrollView } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import type { WorkspaceScope } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { CloudIcon } from "@/screens/(authenticated)/components/CloudIcon";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { Chip } from "./components/Chip";
+import { CloudFilterChips } from "./components/CloudFilterChips";
 
 interface ScopeBarProps {
 	scope: WorkspaceScope;
 	hostName: string | null;
 	hostOnline: boolean;
-	sortLabel: string;
+	sortLabel: string | null;
 	onPressScope: () => void;
 	onPressSort: () => void;
 }
@@ -35,7 +36,11 @@ export function ScopeBar({
 }: ScopeBarProps) {
 	const cloud = scope === "cloud";
 	return (
-		<View className="flex-row items-center gap-2 px-4 pb-2 pt-1">
+		<ScrollView
+			horizontal
+			showsHorizontalScrollIndicator={false}
+			contentContainerClassName="flex-row items-center gap-2 px-4 pb-2 pt-1"
+		>
 			{cloud || hostName ? (
 				<Chip
 					label={cloud ? "Cloud" : (hostName ?? "")}
@@ -53,7 +58,8 @@ export function ScopeBar({
 					onPress={onPressScope}
 				/>
 			) : null}
-			<Chip label={sortLabel} onPress={onPressSort} />
-		</View>
+			{cloud ? <CloudFilterChips /> : null}
+			{sortLabel ? <Chip label={sortLabel} onPress={onPressSort} /> : null}
+		</ScrollView>
 	);
 }

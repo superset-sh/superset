@@ -15,6 +15,7 @@ import { LuCpu, LuGitBranch, LuHistory } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -182,6 +183,8 @@ function TaskRow({
 	taskData: {
 		id: string;
 		slug: string;
+		externalProvider: string | null;
+		externalKey: string | null;
 		title: string;
 		statusColor: string;
 		statusType: string;
@@ -189,6 +192,7 @@ function TaskRow({
 	}[];
 	onSelect: () => void;
 }) {
+	const taskDisplayId = useTaskDisplayId();
 	const task = taskData.find(
 		(t) => t.id === entry.entityId || t.slug === entry.entityId,
 	);
@@ -200,8 +204,8 @@ function TaskRow({
 		>
 			{task ? (
 				<>
-					<span className="text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
-						{task.slug}
+					<span className="font-mono text-muted-foreground text-xs shrink-0 w-20 text-left line-clamp-1">
+						{taskDisplayId(task)}
 					</span>
 					<span className="flex items-center justify-center w-4 shrink-0">
 						<StatusIcon

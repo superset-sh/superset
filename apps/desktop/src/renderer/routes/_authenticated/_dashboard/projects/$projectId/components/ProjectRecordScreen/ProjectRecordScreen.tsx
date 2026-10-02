@@ -1,14 +1,15 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
+import { sortCloudWorkspaces } from "@superset/shared/cloud-workspace-groups";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useNow } from "renderer/hooks/useNow";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
 import { useOrganizationPeople } from "renderer/routes/_authenticated/_dashboard/hooks/useOrganizationPeople";
-import { sortCloudWorkspaces } from "renderer/routes/_authenticated/_dashboard/utils/groupCloudWorkspaces";
 import { useInviteMember } from "renderer/routes/_authenticated/hooks/useInviteMember";
 import type { ProjectRecord, ProjectTab } from "../../types";
 import { ProjectRecordView } from "../ProjectRecordView";
@@ -87,13 +88,22 @@ export function ProjectRecordScreen({
 			return task
 				? {
 						...record,
-						tasks: [{ ...task, status: null, assignee: null }, ...record.tasks],
+						tasks: [
+							{
+								...task,
+								externalProvider: null,
+								externalKey: null,
+								status: null,
+								assignee: null,
+							},
+							...record.tasks,
+						],
 					}
 				: record;
 		}),
 	);
 
-	if (!project.data) return null;
+	if (!project.data) return <StateScreenShell />;
 
 	return (
 		<ProjectRecordView

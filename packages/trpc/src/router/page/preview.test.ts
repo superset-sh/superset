@@ -17,31 +17,22 @@ describe("previewAccess", () => {
 		).toBe("readable");
 	});
 
-	test("org pages need a reader before they show anything", async () => {
+	test("org pages preview for the connected workspace without a reader", async () => {
 		expect(
 			await previewAccess(
 				{ visibility: "org", createdByUserId: OWNER, takenDownAt: null },
 				undefined,
 			),
-		).toBe("needs_user");
-	});
-
-	test("org pages preview for a member", async () => {
-		expect(
-			await previewAccess(
-				{ visibility: "org", createdByUserId: OWNER, takenDownAt: null },
-				member(OTHER),
-			),
 		).toBe("readable");
 	});
 
-	test("a reader outside the organization sees nothing", async () => {
-		expect(
-			await previewAccess(
-				{ visibility: "org", createdByUserId: OWNER, takenDownAt: null },
-				outsider(OTHER),
-			),
-		).toBe("missing");
+	test("just_me pages need their creator to be the reader", async () => {
+		const page = {
+			visibility: "just_me" as const,
+			createdByUserId: OWNER,
+			takenDownAt: null,
+		};
+		expect(await previewAccess(page, outsider(OWNER))).toBe("missing");
 	});
 
 	test("just_me pages preview only for their creator", async () => {

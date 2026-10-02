@@ -65,7 +65,7 @@ export function CloudWorkspaceRecordSide({
 }: CloudWorkspaceRecordSideProps) {
 	const owner = workspace.createdBy;
 	return (
-		<aside className="shrink-0 space-y-4 border-t border-border px-3 py-[18px] text-[13px] @min-[900px]:w-[372px] @min-[900px]:overflow-auto @min-[900px]:border-t-0 @min-[900px]:border-l">
+		<aside className="space-y-4 px-3 py-[18px] text-[13px]">
 			<CloudSection title={<Trans>Properties</Trans>}>
 				{owner && (
 					<PropertyRow label={<Trans>Created by</Trans>}>

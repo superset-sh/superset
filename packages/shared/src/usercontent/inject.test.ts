@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { injectScriptTag, injectStyleTag } from "./inject";
+import {
+	injectHeadScriptTag,
+	injectScriptTag,
+	injectStyleTag,
+	RUNTIME_SCRIPT_PATH,
+	STORAGE_SCRIPT_PATH,
+} from "./inject";
 
 const CSS = "body{color:red}";
 const LINK = `<style>${CSS}</style>`;
@@ -121,6 +127,47 @@ describe("injectScriptTag", () => {
 	test("appends when there is no body", () => {
 		expect(injectScriptTag("<p>hi</p>", "/r.js")).toBe(
 			'<p>hi</p><script src="/r.js"></script>',
+		);
+	});
+});
+
+describe("injectHeadScriptTag", () => {
+	test("lands before a script the author wrote in the body", () => {
+		const html = `<!doctype html><html><head><title>t</title></head><body><script>init()</script></body></html>`;
+		const out = injectHeadScriptTag(html, STORAGE_SCRIPT_PATH);
+		expect(out.indexOf(STORAGE_SCRIPT_PATH)).toBeLessThan(
+			out.indexOf("init()"),
+		);
+	});
+
+	test("goes inside head, not before it", () => {
+		const out = injectHeadScriptTag(
+			`<!doctype html><html><head></head><body></body></html>`,
+			STORAGE_SCRIPT_PATH,
+		);
+		expect(out).toContain(
+			`<head><script src="${STORAGE_SCRIPT_PATH}"></script></head>`,
+		);
+	});
+
+	test("still beats author script when the document has no head", () => {
+		const out = injectHeadScriptTag(
+			`<!doctype html><body><script>init()</script></body>`,
+			STORAGE_SCRIPT_PATH,
+		);
+		expect(out.indexOf(STORAGE_SCRIPT_PATH)).toBeLessThan(
+			out.indexOf("init()"),
+		);
+	});
+
+	test("the two runtimes land on opposite sides of the document", () => {
+		const html = `<!doctype html><html><head></head><body><p>x</p></body></html>`;
+		const out = injectHeadScriptTag(
+			injectScriptTag(html, RUNTIME_SCRIPT_PATH),
+			STORAGE_SCRIPT_PATH,
+		);
+		expect(out.indexOf(STORAGE_SCRIPT_PATH)).toBeLessThan(
+			out.indexOf(RUNTIME_SCRIPT_PATH),
 		);
 	});
 });

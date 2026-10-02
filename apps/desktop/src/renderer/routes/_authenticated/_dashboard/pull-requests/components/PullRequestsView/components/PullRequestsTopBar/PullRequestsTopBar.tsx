@@ -3,11 +3,12 @@ import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
 import { LuListFilter } from "react-icons/lu";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
-import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { PullRequestDetailToggle } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestDetailToggle";
+import { usePullRequestsSplitViewStore } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore";
 import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
 import { AuthorFilter } from "./components/AuthorFilter";
 import { ReviewFilter } from "./components/ReviewFilter";
@@ -42,6 +43,9 @@ export function PullRequestsTopBar({
 	onStateFilterChange,
 }: PullRequestsTopBarProps) {
 	const { t } = useLingui();
+	const isDetailCollapsed = usePullRequestsSplitViewStore(
+		(state) => state.isDetailCollapsed,
+	);
 	const stateTabs: ReadonlyArray<{
 		value: PullRequestsStateFilter;
 		label: string;
@@ -75,40 +79,42 @@ export function PullRequestsTopBar({
 	return (
 		<div
 			data-pull-requests-toolbar
-			className="flex shrink-0 flex-col gap-2 border-b border-border px-3 py-2"
+			className="flex shrink-0 flex-col border-b border-border px-3 pb-2"
 		>
-			<div
-				role="radiogroup"
-				aria-label={t({
-					message: "Filter by state",
-				})}
-				className="flex items-center gap-1"
-			>
-				{stateTabs.map((tab) => (
-					// biome-ignore lint/a11y/useSemanticElements: styled as a pill button, not a native radio input
-					<button
-						key={tab.value}
-						type="button"
-						role="radio"
-						onClick={() => onStateFilterChange(tab.value)}
-						aria-checked={stateFilter === tab.value}
-						className={cn(
-							"rounded-md px-2 py-1 text-xs font-medium transition-colors",
-							stateFilter === tab.value
-								? "bg-accent text-foreground"
-								: "text-muted-foreground hover:text-foreground",
-						)}
+			<PageHeader
+				className="-mx-3"
+				contentClassName="px-3"
+				start={
+					<div
+						role="radiogroup"
+						aria-label={t({
+							message: "Filter by state",
+						})}
+						className="flex items-center gap-1"
 					>
-						{tab.label}
-					</button>
-				))}
-				{/* Window-drag leaf standing in for the hidden TopBar. */}
-				<div className="drag hidden min-w-0 flex-1 self-stretch @4xl:block" />
-				<div className="ml-auto shrink-0">
-					<PullRequestDetailToggle />
-				</div>
-				<WindowControlsInset />
-			</div>
+						{stateTabs.map((tab) => (
+							// biome-ignore lint/a11y/useSemanticElements: styled as a pill button, not a native radio input
+							<button
+								key={tab.value}
+								type="button"
+								role="radio"
+								onClick={() => onStateFilterChange(tab.value)}
+								aria-checked={stateFilter === tab.value}
+								className={cn(
+									"rounded-md px-2 py-1 text-xs font-medium transition-colors",
+									stateFilter === tab.value
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{tab.label}
+							</button>
+						))}
+					</div>
+				}
+				end={<PullRequestDetailToggle />}
+				reservesWindowControls={isDetailCollapsed}
+			/>
 			<div className="flex items-center gap-1.5">
 				<div className="min-w-0 flex-1">
 					<WorkItemsSearch

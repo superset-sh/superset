@@ -29,8 +29,13 @@ interface FilesSettingsProps {
 
 export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 	const { t } = useLingui();
-	const { preferences, setFileLinks, setSidebarFileLinks, setFolderLinks } =
-		useV2UserPreferences();
+	const {
+		preferences,
+		setFileLinks,
+		setSidebarFileLinks,
+		setFolderLinks,
+		setPageLinks,
+	} = useV2UserPreferences();
 
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
@@ -82,6 +87,7 @@ export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
 	const showFolder = isItemVisible(SETTING_ITEM_ID.LINKS_FOLDER, visibleItems);
+	const showPage = isItemVisible(SETTING_ITEM_ID.LINKS_PAGE, visibleItems);
 	const showSidebar = isItemVisible(
 		SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
 		visibleItems,
@@ -109,6 +115,14 @@ export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 			toast.success(t({ message: "Changes saved" }));
 		},
 		[setSidebarFileLinks, t],
+	);
+
+	const handlePageChange = useCallback(
+		(next: LinkTierMap) => {
+			setPageLinks(next);
+			toast.success(t({ message: "Changes saved" }));
+		},
+		[setPageLinks, t],
 	);
 
 	return (
@@ -259,6 +273,26 @@ export function FilesSettings({ visibleItems }: FilesSettingsProps) {
 							value={preferences.folderLinks}
 							onChange={handleFolderChange}
 							idPrefix="links-folder"
+						/>
+					</section>
+				)}
+				{showPage && (
+					<section className="space-y-3">
+						<h3 className="text-sm font-medium text-muted-foreground">
+							<Trans>Opening pages</Trans>
+						</h3>
+						<LinkTierMapper
+							title={t({
+								message: "Page links",
+							})}
+							description={t({
+								message:
+									"Applies to the Pages menu and page links in terminals, chat, and other pages.",
+							})}
+							value={preferences.pageLinks}
+							onChange={handlePageChange}
+							idPrefix="links-page"
+							surface="url"
 						/>
 					</section>
 				)}

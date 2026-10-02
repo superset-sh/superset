@@ -3,26 +3,27 @@ import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
 import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
 import {
-	SiGmail,
 	SiGooglechrome,
 	SiGoogledocs,
 	SiGooglesheets,
-	SiSentry,
 	SiStripe,
 	SiVercel,
 } from "react-icons/si";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import circlebackIconUrl from "renderer/assets/icons/circleback-icon.png";
 import figmaIconUrl from "renderer/assets/icons/figma-icon.svg";
+import gmailIconUrl from "renderer/assets/icons/gmail-icon.svg";
 import granolaIconUrl from "renderer/assets/icons/granola-icon.svg";
 import linearIconUrl from "renderer/assets/icons/linear-icon.svg";
 import mondayIconUrl from "renderer/assets/icons/monday-icon.png";
 import neonIconUrl from "renderer/assets/icons/neon-icon.png";
 import notionIconUrl from "renderer/assets/icons/notion-icon.png";
 import posthogIconUrl from "renderer/assets/icons/posthog-icon.png";
+import sentryIconUrl from "renderer/assets/icons/sentry-icon.svg";
 import slackIconUrl from "renderer/assets/icons/slack-icon.svg";
 import supabaseIconUrl from "renderer/assets/icons/supabase-icon.png";
 import superhumanIconUrl from "renderer/assets/icons/superhuman-icon.png";
+import ynabIconUrl from "renderer/assets/icons/ynab-icon.png";
 
 /**
  * Per-plugin brand icons. Icons stay per-app rather than in the shared
@@ -42,6 +43,7 @@ const FULL_BLEED_ICONS: Record<string, string> = {
 	superhuman: superhumanIconUrl,
 	granola: granolaIconUrl,
 	monday: mondayIconUrl,
+	sentry: sentryIconUrl,
 };
 
 /** Transparent full-color marks — rendered inside the tile. */
@@ -50,6 +52,8 @@ const IMAGE_ICONS: Record<string, string> = {
 	slack: slackIconUrl,
 	neon: neonIconUrl,
 	circleback: circlebackIconUrl,
+	gmail: gmailIconUrl,
+	ynab: ynabIconUrl,
 };
 
 const PLUGIN_ICONS: Record<
@@ -57,12 +61,10 @@ const PLUGIN_ICONS: Record<
 	{ icon: IconType; color?: string; scale?: string }
 > = {
 	github: { icon: FaGithub },
-	sentry: { icon: SiSentry, color: "#7553FF" },
 	stripe: { icon: SiStripe, color: "#635BFF" },
 	context7: { icon: LuBookOpen },
 	playwright: { icon: LuDrama, color: "#2EAD33" },
 	"chrome-devtools": { icon: SiGooglechrome, color: "#4285F4" },
-	gmail: { icon: SiGmail, color: "#EA4335" },
 	"google-docs": { icon: SiGoogledocs, color: "#4285F4" },
 	"google-sheets": { icon: SiGooglesheets, color: "#0F9D58" },
 	vercel: { icon: SiVercel, scale: "size-1/2" },

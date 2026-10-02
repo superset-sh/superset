@@ -18,6 +18,14 @@ const selectOptionSchema = z.looseObject({
 	label: z.string(),
 });
 
+/** A command the agent offers for this session, for the composer's `/` menu. */
+export const availableCommandSchema = z.looseObject({
+	name: z.string().min(1),
+	description: z.string().optional(),
+	hint: z.string().optional(),
+});
+export type AvailableCommand = z.infer<typeof availableCommandSchema>;
+
 export const sessionStateSchema = z.looseObject({
 	status: sessionStatusSchema,
 	harness: z.string().min(1),
@@ -26,6 +34,13 @@ export const sessionStateSchema = z.looseObject({
 	modelId: z.string().optional(),
 	availableModes: z.array(selectOptionSchema).optional(),
 	availableModels: z.array(selectOptionSchema).optional(),
+	availableCommands: z.array(availableCommandSchema).optional(),
+	/**
+	 * The agent-side session this chat is bound to. It is not always the id the
+	 * caller asked to resume: a load that finds no transcript falls back to a new
+	 * session, and the caller has to know which one it ended up on.
+	 */
+	harnessSessionId: z.string().optional(),
 });
 export type SessionState = z.infer<typeof sessionStateSchema>;
 

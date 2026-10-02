@@ -1,6 +1,8 @@
 import { LegendList } from "@legendapp/list/react-native";
 import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
+import { useFormat } from "@superset/i18n/react";
+import { groupCloudWorkspacesByTime } from "@superset/shared/cloud-workspace-groups";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { getWorkspaceActivityTime } from "@superset/shared/workspace-activity";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,16 +23,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useArchivedCloudWorkspaces } from "@/hooks/useArchivedCloudWorkspaces";
+import { useCloudWorkspaceItems } from "@/hooks/useCloudWorkspaceItems";
 import {
-	type CloudWorkspaceStatus,
-	useCloudWorkspaceItems,
-} from "@/hooks/useCloudWorkspaceItems";
+	type CloudWorkspaceRow,
+	useCloudWorkspaces,
+} from "@/hooks/useCloudWorkspaces";
 import { useHostProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
+import { useSession } from "@/lib/auth/client";
+import { useCloudFilters } from "@/screens/(authenticated)/(home)/hooks/useCloudFilters";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
@@ -41,22 +47,29 @@ import {
 } from "@/screens/(authenticated)/hooks/usePullRequests";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
+import { CloudWorkspaceRow as CloudWorkspaceListRow } from "./components/CloudWorkspaceRow";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "./components/NewChatWidget/stores/newSessionPreferencesStore";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
+import { PeriodHeader } from "./components/PeriodHeader";
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useAgentLiveActivity } from "./hooks/useAgentLiveActivity";
 import { useAppReviewPrompt } from "./hooks/useAppReviewPrompt";
-import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
+import {
+	cloudPullRequestRefKey,
+	useCloudPullRequests,
+} from "./hooks/useCloudPullRequests";
+import { useCloudRepos } from "./hooks/useCloudRepos";
 import { useFirstPaint } from "./hooks/useFirstPaint";
 import {
 	type TerminalsHost,
 	useHostsTerminals,
 } from "./hooks/useHostTerminals";
+import { useNow } from "./hooks/useNow";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import {
 	collapsedProjectKey,
@@ -100,13 +113,18 @@ type HomeListItem =
 	| {
 			kind: "workspace";
 			workspace: HostWorkspaceItem;
-			cloudStatus?: CloudWorkspaceStatus;
 	  }
 	| {
 			kind: "hostOffline";
 			hostName: string;
 			lastSeenAt: number | null | undefined;
-	  };
+	  }
+	| {
+			kind: "periodHeader";
+			key: string;
+			label: string;
+	  }
+	| { kind: "cloudRow"; row: CloudWorkspaceRow };
 
 function homeListItemKey(item: HomeListItem): string {
 	switch (item.kind) {
@@ -114,6 +132,10 @@ function homeListItemKey(item: HomeListItem): string {
 			return `project:${item.projectId}`;
 		case "workspace":
 			return `ws:${item.workspace.id}`;
+		case "periodHeader":
+			return `period:${item.key}`;
+		case "cloudRow":
+			return `cloud:${item.row.id}`;
 		default:
 			return "host-offline";
 	}
@@ -169,6 +191,14 @@ export function HomeScreen() {
 		isReady: cloudReady,
 	} = useCloudWorkspaceItems();
 	const cloudScope = useWorkspaceScope() === "cloud";
+	const cloudFilters = useCloudFilters();
+	const showArchived = cloudScope && cloudFilters.status === "archived";
+	const { workspaces: archivedCloud, isReady: archivedReady } =
+		useArchivedCloudWorkspaces({ enabled: showArchived });
+	const { workspaces: activeCloud } = useCloudWorkspaces();
+	const { formatRelativePeriod } = useFormat();
+	const viewerId = useSession().data?.user?.id ?? null;
+	const now = useNow(30_000);
 	// No session marks for cloud rows: a request per sandbox keeps each one
 	// awake for as long as Home is on screen.
 	const terminalHosts = useMemo<TerminalsHost[]>(
@@ -209,7 +239,9 @@ export function HomeScreen() {
 		!isLoadingOrganizations &&
 		(!activeOrganizationId || !hostsQuery.isPending) &&
 		(cloudScope
-			? cloudReady
+			? showArchived
+				? archivedReady
+				: cloudReady
 			: !presencePending && workspacesReady && projectsReady);
 
 	const hasPainted = useFirstPaint(contentReady);
@@ -262,15 +294,26 @@ export function HomeScreen() {
 	const listItems = useMemo<HomeListItem[]>(() => {
 		const items: HomeListItem[] = [];
 
-		// Under Cloud the sandboxes are the whole list: flat, no project headers
-		// to group them by and no machine to be offline.
+		// Under Cloud the list is desktop's: grouped by when each workspace last
+		// heard from its agent (or was archived), newest first.
 		if (cloudScope) {
-			for (const workspace of [...cloudItems].sort(byPinThenActivity)) {
+			const rows = (showArchived ? archivedCloud : activeCloud).filter((row) =>
+				cloudFilters.matchesCreator(row.createdByUserId),
+			);
+			const groups = groupCloudWorkspacesByTime({
+				workspaces: rows,
+				now,
+				sort: sort === "createdAt" ? "created" : "activity",
+				at: showArchived ? (row) => row.deletedAt ?? row.createdAt : undefined,
+			});
+			for (const { period, workspaces: grouped } of groups) {
+				const key = `${showArchived ? "archived" : "active"}:${period.unit}:${period.count}`;
 				items.push({
-					kind: "workspace",
-					workspace,
-					cloudStatus: workspace.cloud.status,
+					kind: "periodHeader",
+					key,
+					label: formatRelativePeriod(period),
 				});
+				for (const row of grouped) items.push({ kind: "cloudRow", row });
 			}
 			return items;
 		}
@@ -364,8 +407,14 @@ export function HomeScreen() {
 		return items;
 	}, [
 		liveWorkspaces,
-		cloudItems,
 		cloudScope,
+		showArchived,
+		archivedCloud,
+		activeCloud,
+		cloudFilters.matchesCreator,
+		sort,
+		formatRelativePeriod,
+		now,
 		selectedHost,
 		projects,
 		byPinThenActivity,
@@ -486,7 +535,20 @@ export function HomeScreen() {
 	// Projects are fully local: PR rows are matched by repo coordinates
 	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
 	// Cloud rows' projects come from the API instead.
-	const cloudRepoPrefixes = useCloudRepoPrefixes();
+	const cloudRepos = useCloudRepos();
+	const cloudPullRequests = useCloudPullRequests(
+		useMemo(
+			() =>
+				listItems.flatMap((item) => {
+					if (item.kind !== "cloudRow") return [];
+					const repoFullName = cloudRepos.get(item.row.id);
+					return repoFullName
+						? [{ repoFullName, headBranch: item.row.branch }]
+						: [];
+				}),
+			[listItems, cloudRepos],
+		),
+	);
 	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map<string, string | null>([
@@ -502,6 +564,32 @@ export function HomeScreen() {
 
 	const renderItem = useCallback(
 		({ item }: { item: HomeListItem }) => {
+			if (item.kind === "periodHeader") {
+				return <PeriodHeader label={item.label} />;
+			}
+			if (item.kind === "cloudRow") {
+				const repoFullName = cloudRepos.get(item.row.id);
+				return (
+					<CloudWorkspaceListRow
+						row={item.row}
+						repoFullName={repoFullName}
+						pullRequest={
+							repoFullName
+								? cloudPullRequests.get(
+										cloudPullRequestRefKey({
+											repoFullName,
+											headBranch: item.row.branch,
+										}),
+									)
+								: undefined
+						}
+						viewerId={viewerId}
+						now={now}
+						cache={cloudCache}
+						onCopied={handleCopied}
+					/>
+				);
+			}
 			if (item.kind === "hostOffline") {
 				return (
 					<View className="py-16">
@@ -548,12 +636,10 @@ export function HomeScreen() {
 					/>
 				);
 			}
-			const { workspace, cloudStatus } = item;
-			const repoPrefix = cloudStatus
-				? (cloudRepoPrefixes.get(workspace.id) ?? null)
-				: workspace.projectId
-					? repoPrefixesByProject.get(workspace.projectId)
-					: undefined;
+			const { workspace } = item;
+			const repoPrefix = workspace.projectId
+				? repoPrefixesByProject.get(workspace.projectId)
+				: undefined;
 			return (
 				<WorkspaceRow
 					workspace={workspace}
@@ -565,17 +651,19 @@ export function HomeScreen() {
 							: undefined
 					}
 					diffStats={diffStats.get(workspace.id) ?? null}
-					cache={cloudStatus === undefined ? cache : cloudCache}
+					cache={cache}
 					attention={attentionByWorkspace.get(workspace.id) ?? null}
 					sessions={terminalsByWorkspace.get(workspace.id) ?? []}
-					cloudStatus={cloudStatus}
 					onCopied={handleCopied}
 				/>
 			);
 		},
 		[
 			pullRequestsByRepoBranch,
-			cloudRepoPrefixes,
+			cloudRepos,
+			cloudPullRequests,
+			viewerId,
+			now,
 			repoPrefixesByProject,
 			diffStats,
 			cache,
@@ -601,7 +689,7 @@ export function HomeScreen() {
 			scope={cloudScope ? "cloud" : "host"}
 			hostName={selectedHost?.name ?? null}
 			hostOnline={selectedHost?.isOnline ?? false}
-			sortLabel={sortLabel}
+			sortLabel={showArchived ? null : sortLabel}
 			onPressScope={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 				router.push("/(authenticated)/(home)/filter/scope");
@@ -708,13 +796,19 @@ export function HomeScreen() {
 						contentReady ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
-									{cloudScope
-										? t({
-												message: "No cloud workspaces yet",
-											})
-										: t({
-												message: "No projects on this host yet",
-											})}
+									{showArchived
+										? t({ message: "No archived workspaces" })
+										: cloudScope && activeCloud.length > 0
+											? t({
+													message: "No cloud workspaces match these filters",
+												})
+											: cloudScope
+												? t({
+														message: "No cloud workspaces yet",
+													})
+												: t({
+														message: "No projects on this host yet",
+													})}
 								</Text>
 							</View>
 						) : (

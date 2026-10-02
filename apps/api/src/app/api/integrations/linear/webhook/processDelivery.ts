@@ -324,7 +324,7 @@ async function processIssueEvent(
 					eq(tasks.externalProvider, "linear"),
 					eq(tasks.externalId, issue.id),
 				),
-				columns: { externalUpdatedAt: true },
+				columns: { slug: true, externalUpdatedAt: true },
 			}),
 		]);
 
@@ -380,7 +380,6 @@ async function processIssueEvent(
 		const branchName = await fetchIssueBranchName(connection, issue.id);
 
 		const taskData = {
-			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
 			statusId: taskStatus.id,
@@ -418,6 +417,7 @@ async function processIssueEvent(
 			.insert(tasks)
 			.values({
 				...taskData,
+				slug: existing?.slug,
 				organizationId: connection.organizationId,
 				creatorId: connection.connectedByUserId,
 				createdAt: new Date(issue.createdAt),

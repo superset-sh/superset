@@ -58,6 +58,7 @@ export const taskCreatedAtSortKey = sql`${tasks.createdAt} + interval '0 seconds
 export interface TaskListFilters {
 	organizationId: string;
 	includeDeleted?: boolean;
+	nativeOnly?: boolean;
 	statusId?: string;
 	statusType?: TaskStatusType;
 	assigneeId?: string;
@@ -81,6 +82,19 @@ export function buildTaskListConditions(
 
 	if (!filters.includeDeleted) {
 		conditions.push(isNull(tasks.deletedAt));
+	}
+
+	if (filters.nativeOnly) {
+		const nativeStatuses = new QueryBuilder()
+			.select({ id: taskStatuses.id })
+			.from(taskStatuses)
+			.where(
+				and(
+					eq(taskStatuses.organizationId, filters.organizationId),
+					isNull(taskStatuses.externalProvider),
+				),
+			);
+		conditions.push(inArray(tasks.statusId, nativeStatuses));
 	}
 
 	if (filters.statusId) {

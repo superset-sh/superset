@@ -38,6 +38,8 @@ export function PromptInput({
 	status = "ready",
 	placement = "top",
 	toolbar,
+	defaultValue,
+	onChange,
 	onSubmit,
 	onStop,
 	onMentionHighlight,
@@ -64,6 +66,8 @@ export function PromptInput({
 					status={status}
 					placement={placement}
 					toolbar={toolbar}
+					defaultValue={defaultValue}
+					onChange={onChange}
 					onSubmit={onSubmit}
 					onStop={onStop}
 					onMentionHighlight={onMentionHighlight}

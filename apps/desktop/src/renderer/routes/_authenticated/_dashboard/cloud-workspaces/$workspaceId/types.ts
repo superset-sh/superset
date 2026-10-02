@@ -93,7 +93,8 @@ export type CloudWorkspaceTimelineEvent =
 			kind: "page_published";
 			page: Pick<CloudWorkspaceRecordPage, "id" | "title">;
 	  }
-	| { kind: "archived" };
+	| { kind: "archived" }
+	| { kind: "unarchived" };
 
 export type CloudWorkspaceTimelineEntry = CloudWorkspaceTimelineEvent & {
 	id: string;

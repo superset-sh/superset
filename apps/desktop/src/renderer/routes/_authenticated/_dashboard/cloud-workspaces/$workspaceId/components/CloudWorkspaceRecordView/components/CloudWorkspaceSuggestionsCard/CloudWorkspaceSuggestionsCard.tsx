@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { LuLightbulb } from "react-icons/lu";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { CloudTaskIcon } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskIcon";
 import { CloudWorkspaceLabelDot } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspaceLabelDot";
 import { TaskProjectIcon } from "renderer/routes/_authenticated/_dashboard/components/TaskProjectIcon";
@@ -31,6 +32,7 @@ export function CloudWorkspaceSuggestionsCard({
 	onAccept,
 	onDismiss,
 }: CloudWorkspaceSuggestionsCardProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const { t } = useLingui();
 	if (suggestions.length === 0) return null;
 	const tasks = suggestions.filter(
@@ -58,8 +60,8 @@ export function CloudWorkspaceSuggestionsCard({
 							onDismiss={() => onDismiss(suggestion.id)}
 						>
 							<CloudTaskIcon task={suggestion.task} />
-							<span className="shrink-0 text-muted-foreground">
-								{suggestion.task.slug}
+							<span className="shrink-0 font-mono text-muted-foreground">
+								{taskDisplayId(suggestion.task)}
 							</span>
 							<span className="min-w-0 truncate">{suggestion.task.title}</span>
 						</CloudWorkspaceSuggestionChip>

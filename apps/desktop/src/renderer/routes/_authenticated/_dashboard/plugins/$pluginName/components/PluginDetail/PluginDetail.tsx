@@ -42,7 +42,7 @@ export function PluginDetail({ plugin }: { plugin: CatalogPlugin }) {
 	const skills = plugin.pluginSkills ?? [];
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 pb-16">
+		<div className="mx-auto w-full max-w-3xl px-6 pt-4 pb-16">
 			<Button
 				variant="ghost"
 				size="sm"

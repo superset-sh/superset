@@ -192,7 +192,6 @@ export function mapIssueToTask(
 	return {
 		organizationId,
 		creatorId,
-		slug: issue.identifier,
 		title: issue.title,
 		description: issue.description,
 		statusId,

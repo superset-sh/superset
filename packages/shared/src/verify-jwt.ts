@@ -5,6 +5,8 @@ export interface AuthContext {
 	sub: string;
 	organizationIds: string[];
 	scope?: string;
+	name?: string | null;
+	image?: string | null;
 }
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
@@ -36,7 +38,9 @@ export async function verifyJWT(
 		const organizationIds = payload.organizationIds as string[] | undefined;
 		if (!sub || !organizationIds) return null;
 		const scope = typeof payload.scope === "string" ? payload.scope : undefined;
-		return { sub, organizationIds, scope };
+		const name = typeof payload.name === "string" ? payload.name : null;
+		const image = typeof payload.image === "string" ? payload.image : null;
+		return { sub, organizationIds, scope, name, image };
 	} catch (error) {
 		const code =
 			error instanceof Error && "code" in error

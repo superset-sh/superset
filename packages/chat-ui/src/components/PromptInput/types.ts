@@ -102,6 +102,11 @@ export type PromptInputProps = {
 	// Enables the mic button; the app owns speech-to-text.
 	dictation?: PromptInputDictation;
 	toolbar?: ReactNode;
+	// Text to open with, read once on mount. A host that persists drafts hands
+	// back what it stored; the composer owns the editor state from then on.
+	defaultValue?: string;
+	// Plain text of the composer as it is typed, for persisting a draft.
+	onChange?: (text: string) => void;
 	onSubmit?: (payload: PromptInputSubmitPayload) => void;
 	onStop?: () => void;
 	onMentionHighlight?: (entry: ComposerMentionEntry | null) => void;

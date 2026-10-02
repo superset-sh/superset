@@ -25,7 +25,6 @@ import {
 } from "../../../../../utils/settings-search";
 
 const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
-const PAGE_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
 
 interface BrowserLinkSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -36,11 +35,10 @@ export function BrowserLinkSettings({
 }: BrowserLinkSettingsProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
-	const { preferences, setUrlLinks, setPortOpenAction, setPageOpenAction } =
+	const { preferences, setUrlLinks, setPortOpenAction } =
 		useV2UserPreferences();
 	const showUrl = isItemVisible(SETTING_ITEM_ID.LINKS_URL, visibleItems);
 	const showPort = isItemVisible(SETTING_ITEM_ID.LINKS_PORT, visibleItems);
-	const showPage = isItemVisible(SETTING_ITEM_ID.LINKS_PAGE, visibleItems);
 
 	const handleUrlChange = useCallback(
 		(next: LinkTierMap) => {
@@ -56,14 +54,6 @@ export function BrowserLinkSettings({
 			toast.success(t({ message: "Changes saved" }));
 		},
 		[setPortOpenAction, t],
-	);
-
-	const handlePageChange = useCallback(
-		(next: LinkAction) => {
-			setPageOpenAction(next);
-			toast.success(t({ message: "Changes saved" }));
-		},
-		[setPageOpenAction, t],
 	);
 
 	return (
@@ -83,85 +73,45 @@ export function BrowserLinkSettings({
 					surface="url"
 				/>
 			)}
-			{(showPort || showPage) && (
-				<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-					{showPort && (
-						<div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
-							<div className="min-w-0 flex-1 basis-64 space-y-1">
-								<Label
-									htmlFor="links-port-action"
-									className="text-sm font-medium"
-								>
-									<HighlightText
-										text={t({ message: "Ports" })}
-										query={searchQuery}
-									/>
-								</Label>
-								<p className="text-xs text-muted-foreground">
-									<Trans>
-										Where detected-port badges in the sidebar open when clicked.
-									</Trans>
-								</p>
-							</div>
-							<Select
-								value={preferences.portOpenAction}
-								onValueChange={(v) => handlePortChange(v as LinkAction)}
+			{showPort && (
+				<div className="rounded-lg border border-border overflow-hidden">
+					<div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
+						<div className="min-w-0 flex-1 basis-64 space-y-1">
+							<Label
+								htmlFor="links-port-action"
+								className="text-sm font-medium"
 							>
-								<SelectTrigger
-									id="links-port-action"
-									size="sm"
-									className="w-60 max-w-full shrink-0"
-								>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{PORT_ACTIONS.map((action) => (
-										<SelectItem key={action} value={action}>
-											{actionLabel(action, "url")}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								<HighlightText
+									text={t({ message: "Ports" })}
+									query={searchQuery}
+								/>
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								<Trans>
+									Where detected-port badges in the sidebar open when clicked.
+								</Trans>
+							</p>
 						</div>
-					)}
-
-					{showPage && (
-						<div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3">
-							<div className="min-w-0 flex-1 basis-64 space-y-1">
-								<Label
-									htmlFor="links-page-action"
-									className="text-sm font-medium"
-								>
-									<HighlightText
-										text={t({ message: "Pages" })}
-										query={searchQuery}
-									/>
-								</Label>
-								<p className="text-xs text-muted-foreground">
-									<Trans>Where pages open from a workspace's Pages menu.</Trans>
-								</p>
-							</div>
-							<Select
-								value={preferences.pageOpenAction}
-								onValueChange={(v) => handlePageChange(v as LinkAction)}
+						<Select
+							value={preferences.portOpenAction}
+							onValueChange={(v) => handlePortChange(v as LinkAction)}
+						>
+							<SelectTrigger
+								id="links-port-action"
+								size="sm"
+								className="w-60 max-w-full shrink-0"
 							>
-								<SelectTrigger
-									id="links-page-action"
-									size="sm"
-									className="w-60 max-w-full shrink-0"
-								>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{PAGE_ACTIONS.map((action) => (
-										<SelectItem key={action} value={action}>
-											{actionLabel(action, "url")}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					)}
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{PORT_ACTIONS.map((action) => (
+									<SelectItem key={action} value={action}>
+										{actionLabel(action, "url")}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
 			)}
 		</>

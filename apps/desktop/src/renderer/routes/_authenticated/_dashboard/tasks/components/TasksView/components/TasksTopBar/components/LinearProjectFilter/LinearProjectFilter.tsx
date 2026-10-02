@@ -64,84 +64,89 @@ export function LinearProjectFilter({
 		setSearch("");
 	};
 
+	if (projects.length === 0 && !value) return null;
+
 	return (
-		<Popover
-			open={open}
-			onOpenChange={(next) => {
-				setOpen(next);
-				if (!next) setSearch("");
-			}}
-		>
-			<PopoverTrigger asChild>
-				<Button
-					variant="ghost"
-					size="sm"
-					title={
-						selected
-							? selected.name
-							: t({
-									message: "Project",
-								})
-					}
-					aria-label={
-						selected
-							? selected.name
-							: t({
-									message: "Project",
-								})
-					}
-					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
-				>
-					<HiOutlineFolder className="size-4" />
-					<span className="text-sm hidden @4xl:inline">
-						{selected ? selected.name : <Trans>Project</Trans>}
-					</span>
-					<HiChevronDown className="size-3" />
-				</Button>
-			</PopoverTrigger>
-			<PopoverContent align="start" className="w-60 p-0">
-				<Command shouldFilter={false}>
-					<CommandInput
-						placeholder={t({
-							message: "Search projects...",
-						})}
-						value={search}
-						onValueChange={setSearch}
-					/>
-					<CommandList className="max-h-80">
-						{filtered.length === 0 && search && (
-							<CommandEmpty>
-								<Trans>No projects found.</Trans>
-							</CommandEmpty>
-						)}
-						<CommandGroup>
-							{!search && (
-								<CommandItem onSelect={() => handleSelect(null)}>
-									<HiOutlineFolder className="size-4 shrink-0" />
-									<span className="text-sm truncate">
-										<Trans>All projects</Trans>
-									</span>
-									{value === null && (
-										<HiCheck className="ml-auto size-3.5 shrink-0" />
-									)}
-								</CommandItem>
+		<>
+			<Popover
+				open={open}
+				onOpenChange={(next) => {
+					setOpen(next);
+					if (!next) setSearch("");
+				}}
+			>
+				<PopoverTrigger asChild>
+					<Button
+						variant="ghost"
+						size="sm"
+						title={
+							selected
+								? selected.name
+								: t({
+										message: "Project",
+									})
+						}
+						aria-label={
+							selected
+								? selected.name
+								: t({
+										message: "Project",
+									})
+						}
+						className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					>
+						<HiOutlineFolder className="size-4" />
+						<span className="text-sm hidden @4xl:inline">
+							{selected ? selected.name : <Trans>Project</Trans>}
+						</span>
+						<HiChevronDown className="size-3" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent align="start" className="w-60 p-0">
+					<Command shouldFilter={false}>
+						<CommandInput
+							placeholder={t({
+								message: "Search projects...",
+							})}
+							value={search}
+							onValueChange={setSearch}
+						/>
+						<CommandList className="max-h-80">
+							{filtered.length === 0 && search && (
+								<CommandEmpty>
+									<Trans>No projects found.</Trans>
+								</CommandEmpty>
 							)}
-							{filtered.map((project) => (
-								<CommandItem
-									key={project.id}
-									onSelect={() => handleSelect(project.id)}
-								>
-									<HiOutlineFolder className="size-4 shrink-0" />
-									<span className="text-sm truncate">{project.name}</span>
-									{project.id === value && (
-										<HiCheck className="ml-auto size-3.5 shrink-0" />
-									)}
-								</CommandItem>
-							))}
-						</CommandGroup>
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
+							<CommandGroup>
+								{!search && (
+									<CommandItem onSelect={() => handleSelect(null)}>
+										<HiOutlineFolder className="size-4 shrink-0" />
+										<span className="text-sm truncate">
+											<Trans>All projects</Trans>
+										</span>
+										{value === null && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								)}
+								{filtered.map((project) => (
+									<CommandItem
+										key={project.id}
+										onSelect={() => handleSelect(project.id)}
+									>
+										<HiOutlineFolder className="size-4 shrink-0" />
+										<span className="text-sm truncate">{project.name}</span>
+										{project.id === value && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
+			<div className="h-4 w-px shrink-0 bg-border" />
+		</>
 	);
 }

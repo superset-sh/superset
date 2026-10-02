@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useMemo, useState } from "react";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useStatusPickerInput } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import {
 	StatusIcon,
@@ -24,8 +25,9 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
+	const statusPickerInput = useStatusPickerInput();
 	const { data: allStatuses } = cloudTrpc.task.statuses.list.useQuery(
-		undefined,
+		statusPickerInput,
 		{ enabled: open },
 	);
 

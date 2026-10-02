@@ -1,6 +1,7 @@
 import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
 import type { RouterOutputs } from "@superset/trpc";
 import { useCallback, useMemo } from "react";
+import { useIsLinearLiveTabEnabled } from "renderer/hooks/useIsLinearLiveTabEnabled";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { TabValue } from "../../components/TasksTopBar";
 import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
@@ -14,6 +15,8 @@ export const TASK_PAGE_SIZE = 100;
  * one React Query cache entry.
  */
 export const TASK_PICKER_INPUT = { limit: 200 };
+const NATIVE_TASK_PICKER_INPUT = { limit: 200, nativeOnly: true };
+const NATIVE_ONLY = { nativeOnly: true };
 export const TASK_LIST_REFETCH_INTERVAL = 15_000;
 
 export type TaskAssignee = NonNullable<
@@ -39,22 +42,38 @@ interface UseTasksDataParams {
 	linearProjectFilter: string | null;
 }
 
+export function useTaskPickerInput() {
+	return useIsLinearLiveTabEnabled()
+		? NATIVE_TASK_PICKER_INPUT
+		: TASK_PICKER_INPUT;
+}
+
+export function useStatusPickerInput() {
+	return useIsLinearLiveTabEnabled() ? NATIVE_ONLY : undefined;
+}
+
 export function useTasksJoinedWithStatuses(): TasksPagination & {
 	tasks: TaskWithStatus[];
 	statuses: SelectTaskStatus[];
 } {
+	const nativeOnly = useIsLinearLiveTabEnabled();
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
 		cloudTrpc.task.listPage.useInfiniteQuery(
-			{ limit: TASK_PAGE_SIZE },
+			nativeOnly
+				? { limit: TASK_PAGE_SIZE, nativeOnly }
+				: { limit: TASK_PAGE_SIZE },
 			{
 				getNextPageParam: (page) => page.nextCursor,
 				refetchInterval: TASK_LIST_REFETCH_INTERVAL,
 			},
 		);
 	const { data: statusRows, isLoading: isLoadingStatuses } =
-		cloudTrpc.task.statuses.list.useQuery(undefined, {
-			refetchInterval: TASK_LIST_REFETCH_INTERVAL,
-		});
+		cloudTrpc.task.statuses.list.useQuery(
+			nativeOnly ? NATIVE_ONLY : undefined,
+			{
+				refetchInterval: TASK_LIST_REFETCH_INTERVAL,
+			},
+		);
 
 	const statuses = useMemo(() => statusRows ?? [], [statusRows]);
 

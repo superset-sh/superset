@@ -16,7 +16,6 @@ const LOAD_MORE_ROOT_MARGIN = `${ROW_HEIGHT * 10}px`;
 
 interface TasksTableViewProps {
 	table: Table<TaskWithStatus>;
-	slugColumnWidth: string;
 	onTaskClick: (task: TaskWithStatus) => void;
 	hasNextPage: boolean;
 	isFetchingNextPage: boolean;
@@ -25,7 +24,6 @@ interface TasksTableViewProps {
 
 export function TasksTableView({
 	table,
-	slugColumnWidth,
 	onTaskClick,
 	hasNextPage,
 	isFetchingNextPage,
@@ -133,7 +131,7 @@ export function TasksTableView({
 											row.getIsSelected() && "bg-accent/30",
 										)}
 										style={{
-											gridTemplateColumns: `auto auto ${slugColumnWidth} 1fr auto auto`,
+											gridTemplateColumns: "auto auto auto 1fr auto auto",
 										}}
 										onClick={() => onTaskClick(row.original)}
 										onKeyDown={(e) => {

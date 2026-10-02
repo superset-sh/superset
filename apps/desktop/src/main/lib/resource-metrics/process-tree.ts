@@ -1,5 +1,6 @@
 import { exec } from "node:child_process";
 import os from "node:os";
+import path from "node:path";
 import { promisify } from "node:util";
 
 let nativeMetrics: typeof import("@superset/macos-process-metrics") | null =
@@ -22,6 +23,8 @@ export interface ProcessInfo {
 	cpu: number;
 	/** Resident memory in bytes. */
 	memory: number;
+	/** Executable name, without its directory. */
+	name?: string;
 }
 
 export interface ProcessSnapshot {
@@ -152,8 +155,8 @@ export function enrichWithPhysFootprint(
 
 async function listProcessesUnix(): Promise<ProcessInfo[]> {
 	try {
-		// Single call: PID, parent PID, %CPU, RSS (KB).
-		const { stdout } = await execAsync("ps -eo pid=,ppid=,pcpu=,rss=", {
+		// Single call: PID, parent PID, %CPU, RSS (KB), executable path.
+		const { stdout } = await execAsync("ps -eo pid=,ppid=,pcpu=,rss=,comm=", {
 			maxBuffer: MAX_BUFFER,
 			timeout: EXEC_TIMEOUT_MS,
 		});
@@ -172,12 +175,14 @@ async function listProcessesUnix(): Promise<ProcessInfo[]> {
 
 			const cpu = Number.parseFloat(parts[2]);
 			const rssKb = Number.parseInt(parts[3], 10);
+			const executable = parts.slice(4).join(" ");
 
 			result.push({
 				pid,
 				ppid,
 				cpu: Number.isFinite(cpu) ? Math.max(0, cpu) : 0,
 				memory: Number.isFinite(rssKb) ? Math.max(0, rssKb) * 1024 : 0,
+				name: executable ? path.basename(executable) : undefined,
 			});
 		}
 
@@ -190,7 +195,7 @@ async function listProcessesUnix(): Promise<ProcessInfo[]> {
 async function listProcessesWindows(): Promise<ProcessInfo[]> {
 	try {
 		const { stdout } = await execAsync(
-			'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,WorkingSetSize | ConvertTo-Csv -NoTypeInformation"',
+			'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,WorkingSetSize,Name | ConvertTo-Csv -NoTypeInformation"',
 			{ maxBuffer: MAX_BUFFER, timeout: EXEC_TIMEOUT_MS },
 		);
 
@@ -213,6 +218,7 @@ async function listProcessesWindows(): Promise<ProcessInfo[]> {
 				ppid,
 				cpu: 0, // Windows CPU% needs delta sampling; enriched separately.
 				memory: Number.isFinite(ws) ? Math.max(0, ws) : 0,
+				name: parts.slice(3).join(",") || undefined,
 			});
 		}
 

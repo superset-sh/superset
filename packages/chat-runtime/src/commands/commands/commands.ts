@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
 	CancelTurnInput,
+	CloseSessionInput,
 	Cursor,
 	GetItemsInput,
 	GetSessionInput,
@@ -10,7 +11,9 @@ import type {
 } from "@superset/chat/protocol";
 import {
 	cancelTurnInputSchema,
+	closeSessionInputSchema,
 	createSessionInputSchema,
+	forkSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
@@ -33,6 +36,11 @@ export type CreateSessionCommandInput = z.input<
 	typeof createSessionCommandSchema
 >;
 
+export const forkSessionCommandSchema = forkSessionInputSchema.extend({
+	cwd: z.string().min(1),
+});
+export type ForkSessionCommandInput = z.input<typeof forkSessionCommandSchema>;
+
 export const listSessionsCommandSchema = listSessionsInputSchema
 	.omit({ workspaceId: true })
 	.extend({ scopeId: z.string().min(1).optional() });
@@ -48,6 +56,12 @@ export type CreateSessionResult = {
 export type GetSessionResult = {
 	session: ChatSessionRow | null;
 	cursor: Cursor | null;
+	/**
+	 * Whether a harness process is still behind this session. The stored row
+	 * outlives the process — after a host restart it still reads "idle" — so a
+	 * caller that wants to prompt has to ask this, not the status.
+	 */
+	live: boolean;
 };
 
 export type ChatCommands = {
@@ -56,6 +70,10 @@ export type ChatCommands = {
 	cancelTurn(input: CancelTurnInput): void;
 	respondToApproval(input: RespondToApprovalInput): void;
 	setMode(input: SetModeInput): void;
+	closeSession(input: CloseSessionInput): Promise<void>;
+	forkSession(
+		input: ForkSessionCommandInput,
+	): Promise<CreateSessionResult | null>;
 	getSession(input: GetSessionInput): GetSessionResult;
 	listSessions(input: ListSessionsCommandInput): ChatSessionRow[];
 	getItems(input: z.input<typeof getItemsInputSchema>): PageResult;
@@ -102,6 +120,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 						cwd: parsed.cwd,
 						modeId: parsed.modeId,
 						modelId: parsed.modelId,
+						resume: parsed.resume,
 					});
 				} catch (error) {
 					options.journal.discard(sessionId);
@@ -144,10 +163,36 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			});
 		},
 
+		/**
+		 * Branching is two steps: the agent copies its own session, and a new
+		 * chat is opened onto the copy. Null when the harness cannot fork — the
+		 * caller shows the conversation it already has rather than a dead one.
+		 */
+		async forkSession(input) {
+			const parsed = forkSessionCommandSchema.parse(input);
+			const forked = await options.live.require(parsed.sessionId).fork();
+			if (!forked) return null;
+			const source = options.sessions.get(parsed.sessionId);
+			if (!source) return null;
+			return this.createSession({
+				commandId: parsed.commandId,
+				scopeId: source.scopeId,
+				cwd: parsed.cwd,
+				harness: parsed.harness ?? source.harness,
+				resume: { harnessSessionId: forked },
+			});
+		},
+
+		closeSession(input) {
+			const parsed: CloseSessionInput = closeSessionInputSchema.parse(input);
+			return options.live.dispose(parsed.sessionId);
+		},
+
 		getSession(input) {
 			const parsed: GetSessionInput = getSessionInputSchema.parse(input);
 			const session = options.sessions.get(parsed.sessionId);
 			return {
+				live: options.live.get(parsed.sessionId) !== null,
 				session,
 				cursor: session
 					? {

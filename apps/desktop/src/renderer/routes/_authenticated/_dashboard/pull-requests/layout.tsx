@@ -1,10 +1,10 @@
-import { cn } from "@superset/ui/utils";
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import { WindowChromeScope } from "renderer/routes/_authenticated/_dashboard/components/WindowChromeScope";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { PullRequestListToggle } from "./components/PullRequestListToggle";
 import { PullRequestsView } from "./components/PullRequestsView";
 import {
@@ -76,9 +76,6 @@ function PullRequestsLayout() {
 	const setIsResizingList = usePullRequestsSplitViewStore(
 		(s) => s.setIsResizing,
 	);
-	const isAppSidebarCollapsed = useWorkspaceSidebarStore((s) =>
-		s.isCollapsed(),
-	);
 	// Stable identity: effects downstream key off this array.
 	const initialProjects = useMemo(
 		() => resolveProjectFilterParams(projects, project, undefined),
@@ -124,10 +121,7 @@ function PullRequestsLayout() {
 	return (
 		<div
 			ref={rootRef}
-			className={cn(
-				"flex h-full min-h-0 min-w-0 flex-1 overflow-hidden",
-				isAppSidebarCollapsed && "rounded-tl-[8px] bg-sidebar dark:bg-muted/35",
-			)}
+			className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden"
 		>
 			{!isListCollapsed && (
 				<ResizablePanel
@@ -142,27 +136,19 @@ function PullRequestsLayout() {
 					onDoubleClickHandle={() =>
 						setListWidth(DEFAULT_PULL_REQUESTS_LIST_WIDTH)
 					}
-					className={cn(
-						"flex min-h-0 flex-col bg-background",
-						isAppSidebarCollapsed && "rounded-tl-[8px]",
-					)}
+					className="flex min-h-0 flex-col bg-background"
 				>
 					{listContent}
 				</ResizablePanel>
 			)}
 			{!isDetailCollapsed && (
-				<div
-					className={cn(
-						"flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
-						isAppSidebarCollapsed && isListCollapsed && "rounded-tl-[8px]",
-					)}
-				>
-					{params.prNumber === undefined && (
-						<div className="flex shrink-0 items-center justify-end px-4 pt-2">
-							<PullRequestListToggle />
-						</div>
-					)}
-					<Outlet />
+				<div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+					<WindowChromeScope enabled={isListCollapsed}>
+						{params.prNumber === undefined && (
+							<PageHeader end={<PullRequestListToggle />} />
+						)}
+						<Outlet />
+					</WindowChromeScope>
 				</div>
 			)}
 		</div>

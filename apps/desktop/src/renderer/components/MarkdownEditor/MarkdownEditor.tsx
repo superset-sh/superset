@@ -40,7 +40,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
-import { useInlineUrlPolicy } from "renderer/lib/clickPolicy";
+import { useUrlLinkAction } from "renderer/lib/clickPolicy";
 import {
 	SafeLink,
 	verbatimStringAttributes,
@@ -271,7 +271,7 @@ export function MarkdownEditor({
 	onEnterSubmitRef.current = onEnterSubmit;
 	const editorRef = useRef<Editor | null>(null);
 
-	const urlPolicy = useInlineUrlPolicy();
+	const getUrlAction = useUrlLinkAction("2-tier");
 
 	const editor = useEditor({
 		editable,
@@ -474,7 +474,7 @@ export function MarkdownEditor({
 				// No pane context here, so "pane" and "external" both route to the
 				// system browser. Null means do nothing — fall through to ProseMirror
 				// so the user can still click into the link to place a cursor.
-				if (urlPolicy.getAction(event) === null) return false;
+				if (getUrlAction(event, href) === null) return false;
 				event.preventDefault();
 				electronTrpcClient.external.openUrl.mutate(href).catch((error) => {
 					console.error("[MarkdownEditor] Failed to open URL:", href, error);

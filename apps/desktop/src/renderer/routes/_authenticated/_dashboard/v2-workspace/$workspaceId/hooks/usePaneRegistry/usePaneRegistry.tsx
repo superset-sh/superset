@@ -74,6 +74,11 @@ import { openSubagentPaneInStore } from "../../utils/openSubagentPaneInStore";
 import { useAgentSessionLauncher } from "../useAgentSessionLauncher";
 import type { OpenReviewDiff } from "../useReviewCommentNavigation";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import {
+	AgentSurfaceToggle,
+	AgentTerminalPane,
+	useAgentSurfaceSwitch,
+} from "./components/AgentTerminalPane";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatV3Pane } from "./components/ChatV3Pane";
 import { CommentPane } from "./components/CommentPane";
@@ -90,7 +95,6 @@ import { PagePaneTitle } from "./components/PagePaneTitle";
 import { PullRequestPane } from "./components/PullRequestPane";
 import { PullRequestPaneHeaderExtras } from "./components/PullRequestPane/components/PullRequestPaneHeaderExtras";
 import { SubagentPane } from "./components/SubagentPane";
-import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
@@ -163,6 +167,7 @@ export function usePaneRegistry({
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
+	const agentSurface = useAgentSurfaceSwitch(workspaceId);
 	const host = useWorkspaceHostTarget(workspaceId);
 	const desktopUrl =
 		host.status === "ready" && host.kind === "sandbox" ? host.desktopUrl : null;
@@ -401,7 +406,19 @@ export function usePaneRegistry({
 					);
 				},
 				onAfterClose: (pane, closedPanes) => {
-					const { terminalId } = pane.data as TerminalPaneData;
+					const {
+						acpSessionId,
+						agentSurface: surface,
+						terminalId,
+					} = pane.data as TerminalPaneData;
+					// On the ACP surface the adapter is the only process the close has
+					// left to end: the pty was either stopped by the switch or — for a
+					// chat opened from the launcher — never started, and asking the
+					// host to kill an id it has never seen only logs a failure.
+					if (surface === "acp") {
+						if (acpSessionId) void agentSurface.stopChat(acpSessionId);
+						return;
+					}
 					const firstClosed = closedPanes.find(
 						(candidate) =>
 							candidate.kind === "terminal" &&
@@ -432,6 +449,13 @@ export function usePaneRegistry({
 							onSessionRemoved={clearWorkspaceRunTerminal}
 							context={ctx}
 							launcher={launcher}
+							workspaceId={workspaceId}
+						/>
+						<AgentSurfaceToggle
+							data={ctx.pane.data as TerminalPaneData}
+							onChange={(surface, agent) =>
+								void agentSurface.switchSurface(ctx, surface, agent)
+							}
 							workspaceId={workspaceId}
 						/>
 						<V2NotificationStatusIndicator
@@ -473,11 +497,11 @@ export function usePaneRegistry({
 					);
 				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
-					<TerminalPane
+					<AgentTerminalPane
 						ctx={ctx}
-						workspaceId={workspaceId}
 						onOpenFile={onOpenFile}
 						onRevealPath={onRevealPath}
+						workspaceId={workspaceId}
 					/>
 				),
 				contextMenuActions: (_ctx, defaults) => {
@@ -889,6 +913,7 @@ export function usePaneRegistry({
 			store,
 			workspaceId,
 			isChatV3Enabled,
+			agentSurface,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,

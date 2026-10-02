@@ -30,7 +30,6 @@ export function TableContent({
 }: TableContentProps) {
 	const {
 		table,
-		slugColumnWidth,
 		rowSelection,
 		setRowSelection,
 		fetchNextTasksPage,
@@ -83,7 +82,6 @@ export function TableContent({
 	return (
 		<TasksTableView
 			table={table}
-			slugColumnWidth={slugColumnWidth}
 			onTaskClick={onTaskClick}
 			hasNextPage={hasNextTasksPage}
 			isFetchingNextPage={isFetchingNextTasksPage}

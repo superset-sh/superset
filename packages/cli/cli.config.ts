@@ -60,6 +60,10 @@ export default defineConfig({
 					"feedback",
 				],
 			},
+			{
+				title: "Shell & tooling",
+				commands: ["completion", "schema", "config"],
+			},
 		],
 		examples: [
 			{

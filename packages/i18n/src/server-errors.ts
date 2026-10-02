@@ -147,6 +147,13 @@ export const serverErrorMessages: Record<
 				message: "This agent can't run in a cloud workspace",
 			}),
 		),
+	"serverError.automation.rruleBesideTriggers": () =>
+		i18n._(
+			msg({
+				message:
+					"Pass the schedule inside triggers as a schedule trigger, not as rrule beside them",
+			}),
+		),
 	"serverError.automation.cloudNeedsEnvironment": () =>
 		i18n._(
 			msg({
@@ -425,6 +432,18 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "GitHub sync requires the Pro plan.",
+			}),
+		),
+	"serverError.integration.linearNotConnected": () =>
+		i18n._(
+			msg({
+				message: "Connect your Linear account to use Linear here.",
+			}),
+		),
+	"serverError.integration.linearRateLimited": () =>
+		i18n._(
+			msg({
+				message: "Linear is limiting requests. Try again in a few minutes.",
 			}),
 		),
 	"serverError.integration.notAMemberOfThisOrganization": () =>
@@ -869,12 +888,6 @@ export const serverErrorMessages: Record<
 		i18n._(
 			msg({
 				message: "Too many support reports. Try again later.",
-			}),
-		),
-	"serverError.task.failedToGenerateAUniqueTask": () =>
-		i18n._(
-			msg({
-				message: "Failed to generate a unique task slug",
 			}),
 		),
 	"serverError.team.teamNotFoundInThisOrganization": () =>

@@ -52,7 +52,7 @@ interface PRStatusGroupProps {
 }
 
 /**
- * Top-bar PR badge — status icon + number + compact CI/review indicators,
+ * Tab-bar PR badge — status icon + number + compact CI/review indicators,
  * with a dropdown for merge actions (open, non-draft PRs), marking a draft
  * ready for review, the PR summary pane, and a GitHub link.
  * Clicking the badge toggles the Changes pane; the PR pane lives in the

@@ -19,6 +19,7 @@ import {
 } from "@superset/chat-runtime";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { HostDb } from "../db";
+import { acpHarnessEntries } from "./acpHarnesses";
 import { createResolveCwd } from "./resolveCwd";
 
 export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
@@ -42,6 +43,7 @@ function harnessRegistry(): HarnessRegistry {
 				}),
 		],
 		["codex", () => new CodexAdapter()],
+		...acpHarnessEntries(),
 	];
 	return new Map(entries);
 }

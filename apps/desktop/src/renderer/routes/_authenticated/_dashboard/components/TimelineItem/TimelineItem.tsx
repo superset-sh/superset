@@ -41,7 +41,6 @@ export function TimelineItem({
 							},
 						]}
 						size={20}
-						outlineClassName="outline-transparent"
 					/>
 				) : (
 					<SystemIcon className="size-4" />

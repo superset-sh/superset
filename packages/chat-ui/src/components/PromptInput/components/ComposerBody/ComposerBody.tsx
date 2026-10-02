@@ -83,6 +83,8 @@ export type ComposerBodyProps = Required<
 		| "commands"
 		| "dictation"
 		| "toolbar"
+		| "defaultValue"
+		| "onChange"
 		| "onSubmit"
 		| "onStop"
 		| "onMentionHighlight"
@@ -127,6 +129,8 @@ export function ComposerBody({
 	status,
 	placement,
 	toolbar,
+	defaultValue,
+	onChange,
 	onSubmit,
 	onStop,
 	onMentionHighlight,
@@ -151,6 +155,30 @@ export function ComposerBody({
 	// Lexical command listeners register once; this ref bridges them to live React state.
 	const stateRef = useRef({ attachments, onChipClick, onSubmit, status });
 	stateRef.current = { attachments, onChipClick, onSubmit, status };
+
+	// A draft the host had stored. Read once: after mount the editor is the
+	// only writer, and re-applying would fight what is being typed.
+	const seeded = useRef(false);
+	useEffect(() => {
+		if (seeded.current || !defaultValue) return;
+		seeded.current = true;
+		editor.update(() => {
+			$getRoot().selectEnd();
+			const selection = $getSelection();
+			if ($isRangeSelection(selection)) selection.insertText(defaultValue);
+		});
+	}, [defaultValue, editor]);
+
+	const onChangeRef = useRef(onChange);
+	onChangeRef.current = onChange;
+	useEffect(
+		() =>
+			editor.registerUpdateListener(({ editorState }) => {
+				const text = editorState.read(() => $getRoot().getTextContent());
+				onChangeRef.current?.(text);
+			}),
+		[editor],
+	);
 
 	const addFiles = (files: FileList | File[]) => {
 		const incoming = Array.from(files);

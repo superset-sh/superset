@@ -150,14 +150,37 @@ async function performInitialSync(
 				statusByExternalId,
 			),
 		)
-		.filter((task) => task !== null);
+		.filter((task) => task !== null)
+		.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
 	const batches = chunk(taskValues, BATCH_SIZE);
 
 	for (const batch of batches) {
+		const existing = await db
+			.select({ externalId: tasks.externalId, slug: tasks.slug })
+			.from(tasks)
+			.where(
+				and(
+					eq(tasks.organizationId, organizationId),
+					eq(tasks.externalProvider, "linear"),
+					inArray(
+						tasks.externalId,
+						batch.map((task) => task.externalId),
+					),
+				),
+			);
+		const slugByExternalId = new Map(
+			existing.map((row) => [row.externalId, row.slug]),
+		);
+
 		await db
 			.insert(tasks)
-			.values(batch)
+			.values(
+				batch.map((task) => ({
+					...task,
+					slug: slugByExternalId.get(task.externalId),
+				})),
+			)
 			.onConflictDoUpdate({
 				target: [
 					tasks.organizationId,
@@ -166,7 +189,6 @@ async function performInitialSync(
 				],
 				set: {
 					...buildConflictUpdateColumns(tasks, [
-						"slug",
 						"title",
 						"description",
 						"statusId",

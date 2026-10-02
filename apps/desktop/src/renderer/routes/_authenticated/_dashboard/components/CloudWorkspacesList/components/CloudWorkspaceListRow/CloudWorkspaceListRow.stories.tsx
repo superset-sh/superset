@@ -53,6 +53,7 @@ const meta = {
 			isInSidebar: true,
 			isMine: false,
 			isRead: true,
+			showsPresence: true,
 		},
 		now: new Date("2026-09-25T12:00:00Z"),
 		onOpen: fn(),

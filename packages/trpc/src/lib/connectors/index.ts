@@ -386,6 +386,151 @@ export interface ConnectorIdentity {
 	user: { id: string; label: string | null } | null;
 }
 
+interface JsonRpcMessage {
+	id?: number | string;
+	method?: string;
+	result?: Record<string, unknown>;
+	error?: { message?: string };
+}
+
+const isJsonRpcResponse = (message: JsonRpcMessage): boolean =>
+	message.result !== undefined || message.error !== undefined;
+
+function readJsonRpc(text: string, id: number): JsonRpcMessage {
+	const messages: JsonRpcMessage[] = [];
+	const consider = (candidate: string) => {
+		if (!candidate) return;
+		try {
+			messages.push(JSON.parse(candidate) as JsonRpcMessage);
+		} catch {}
+	};
+
+	const trimmed = text.trim();
+	if (trimmed.startsWith("{")) {
+		consider(trimmed);
+	} else {
+		for (const event of text.split(/\r?\n\r?\n/)) {
+			consider(
+				event
+					.split(/\r?\n/)
+					.filter((line) => line.startsWith("data:"))
+					.map((line) => line.slice(5).replace(/^ /, ""))
+					.join("\n"),
+			);
+		}
+	}
+
+	const match =
+		messages.find(
+			(message) =>
+				isJsonRpcResponse(message) &&
+				message.id !== undefined &&
+				String(message.id) === String(id),
+		) ?? messages.filter(isJsonRpcResponse).at(-1);
+	if (!match)
+		throw new Error(`no JSON-RPC response in a ${text.length}-byte body`);
+	return match;
+}
+
+async function mcpIdentity(
+	slug: string,
+	probe: { mcp: string; tool: string; arguments: Record<string, unknown> },
+	accessToken: string,
+): Promise<Record<string, unknown>> {
+	let session: string | null = null;
+	let protocolVersion: string | null = null;
+	let requestId = 0;
+
+	const post = async (body: Record<string, unknown>) => {
+		const response = await credentialFetch(
+			probe.mcp,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+					Accept: "application/json, text/event-stream",
+					...(session ? { "Mcp-Session-Id": session } : {}),
+					...(protocolVersion
+						? { "MCP-Protocol-Version": protocolVersion }
+						: {}),
+				},
+				body: JSON.stringify(body),
+			},
+			`Connector "${slug}" identity`,
+		);
+		session = response.headers.get("mcp-session-id") ?? session;
+		return response;
+	};
+
+	const request = async (
+		method: string,
+		params: Record<string, unknown>,
+	): Promise<Record<string, unknown>> => {
+		const id = ++requestId;
+		const response = await post({ jsonrpc: "2.0", id, method, params });
+		const text = await response.text();
+		if (!response.ok)
+			throw new Error(
+				`Connector "${slug}" identity probe failed: ${response.status} ${text.slice(0, 200)}`,
+			);
+		const message = readJsonRpc(text, id);
+		if (message.error)
+			throw new Error(
+				`Connector "${slug}" identity probe failed: ${message.error.message}`,
+			);
+		return message.result ?? {};
+	};
+
+	try {
+		const init = await request("initialize", {
+			protocolVersion: "2025-06-18",
+			capabilities: {},
+			clientInfo: { name: "superset-connectors", version: "1.0.0" },
+		});
+		if (typeof init.protocolVersion === "string")
+			protocolVersion = init.protocolVersion;
+		await post({ jsonrpc: "2.0", method: "notifications/initialized" });
+
+		const result = (await request("tools/call", {
+			name: probe.tool,
+			arguments: probe.arguments,
+		})) as {
+			structuredContent?: Record<string, unknown>;
+			content?: { type: string; text?: string }[];
+			isError?: boolean;
+		};
+
+		const firstText = result.content?.find(
+			(item) => typeof item.text === "string",
+		)?.text;
+		if (result.isError)
+			throw new Error(
+				`Connector "${slug}" identity tool errored: ${firstText?.slice(0, 200) ?? "no detail"}`,
+			);
+		if (result.structuredContent) return result.structuredContent;
+		if (!firstText)
+			throw new Error(`Connector "${slug}" identity tool returned no content.`);
+		return JSON.parse(firstText) as Record<string, unknown>;
+	} finally {
+		if (session)
+			await credentialFetch(
+				probe.mcp,
+				{
+					method: "DELETE",
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+						"Mcp-Session-Id": session,
+						...(protocolVersion
+							? { "MCP-Protocol-Version": protocolVersion }
+							: {}),
+					},
+				},
+				`Connector "${slug}" identity`,
+			).catch(() => {});
+	}
+}
+
 export async function probeIdentity(
 	slug: string,
 	method: ConnectorMethod,
@@ -416,11 +561,20 @@ export async function probeIdentity(
 			},
 			`Connector "${slug}" identity`,
 		);
-		payload = (await response.json()) as Record<string, unknown>;
+		const text = await response.text();
 		if (!response.ok)
 			throw new Error(
-				`Connector "${slug}" identity probe failed: ${response.status}`,
+				`Connector "${slug}" identity probe failed: ${response.status} ${text.slice(0, 200)}`,
 			);
+		try {
+			payload = JSON.parse(text) as Record<string, unknown>;
+		} catch {
+			throw new Error(
+				`Connector "${slug}" identity probe returned a non-JSON body: ${text.slice(0, 200)}`,
+			);
+		}
+	} else if ("mcp" in probe) {
+		payload = await mcpIdentity(slug, probe, accessToken);
 	} else {
 		if (!tokenPayload)
 			throw new Error(

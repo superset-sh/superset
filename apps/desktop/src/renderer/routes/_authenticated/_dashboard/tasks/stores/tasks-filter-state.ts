@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ViewMode = "table" | "board";
-export type TypeTab = "tasks" | "issues";
+export type TypeTab = "tasks" | "linear" | "issues";
 export type FilterTab =
 	| "all"
 	| "active"
@@ -39,6 +39,8 @@ interface TasksFilterState {
 	typeTab: TypeTab;
 	projectFilters: string[];
 	linearProjectFilter: string | null;
+	linearTeamFilter: string | null;
+	linearAssigneeFilter: string | null;
 	includeClosedIssues: boolean;
 	setTab: (tab: FilterTab) => void;
 	setAssignee: (assignee: string | null) => void;
@@ -47,6 +49,8 @@ interface TasksFilterState {
 	setTypeTab: (typeTab: TypeTab) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
 	setLinearProjectFilter: (linearProjectFilter: string | null) => void;
+	setLinearTeamFilter: (linearTeamFilter: string | null) => void;
+	setLinearAssigneeFilter: (linearAssigneeFilter: string | null) => void;
 	setIncludeClosedIssues: (includeClosedIssues: boolean) => void;
 }
 
@@ -57,6 +61,8 @@ type PersistedTasksFilterState = Pick<
 	| "typeTab"
 	| "projectFilters"
 	| "linearProjectFilter"
+	| "linearTeamFilter"
+	| "linearAssigneeFilter"
 	| "includeClosedIssues"
 >;
 
@@ -69,7 +75,10 @@ export function migrateTasksFilterState(
 			: {};
 	return {
 		tab: isFilterTab(state.tab) ? state.tab : "all",
-		typeTab: state.typeTab === "issues" ? "issues" : "tasks",
+		typeTab:
+			state.typeTab === "issues" || state.typeTab === "linear"
+				? state.typeTab
+				: "tasks",
 		viewMode: state.viewMode === "board" ? "board" : "table",
 		includeClosedIssues: state.includeClosedIssues === true,
 		projectFilters: normalizeProjectFilters(
@@ -80,6 +89,14 @@ export function migrateTasksFilterState(
 			typeof state.linearProjectFilter === "string" &&
 			state.linearProjectFilter.trim().length > 0
 				? state.linearProjectFilter.trim()
+				: null,
+		linearTeamFilter:
+			typeof state.linearTeamFilter === "string"
+				? state.linearTeamFilter
+				: null,
+		linearAssigneeFilter:
+			typeof state.linearAssigneeFilter === "string"
+				? state.linearAssigneeFilter
 				: null,
 	};
 }
@@ -94,6 +111,8 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 			typeTab: "tasks",
 			projectFilters: [],
 			linearProjectFilter: null,
+			linearTeamFilter: null,
+			linearAssigneeFilter: null,
 			includeClosedIssues: false,
 			setTab: (tab) => set({ tab }),
 			setAssignee: (assignee) => set({ assignee }),
@@ -111,16 +130,21 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 				}),
 			setLinearProjectFilter: (linearProjectFilter) =>
 				set({ linearProjectFilter }),
+			setLinearTeamFilter: (linearTeamFilter) => set({ linearTeamFilter }),
+			setLinearAssigneeFilter: (linearAssigneeFilter) =>
+				set({ linearAssigneeFilter }),
 			setIncludeClosedIssues: (includeClosedIssues) =>
 				set({ includeClosedIssues }),
 		}),
 		{
 			name: "tasks-filter-state",
-			version: 4,
+			version: 5,
 			migrate: migrateTasksFilterState,
 			partialize: (state) => ({
 				projectFilters: state.projectFilters,
 				linearProjectFilter: state.linearProjectFilter,
+				linearTeamFilter: state.linearTeamFilter,
+				linearAssigneeFilter: state.linearAssigneeFilter,
 				tab: state.tab,
 				typeTab: state.typeTab,
 				viewMode: state.viewMode,

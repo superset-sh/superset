@@ -1,9 +1,13 @@
+import { electronTrpc } from "renderer/lib/electron-trpc";
+
 /**
- * Keeps a top strip clear of the window-controls overlay that Electron draws
- * on Windows and Linux. The overlay's width comes from the titlebar-area
- * environment variables, so this is zero where there is no overlay.
+ * Keeps a header clear of the window-controls overlay that Electron draws on
+ * Windows and Linux. The overlay's width comes from the titlebar-area
+ * environment variables.
  */
 export function WindowControlsInset() {
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	if (platform === undefined || platform === "darwin") return null;
 	return (
 		<div
 			className="drag h-full shrink-0"

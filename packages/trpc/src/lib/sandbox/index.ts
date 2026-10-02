@@ -46,6 +46,7 @@ export {
 	type SandboxEnvironment,
 	SandboxNotReadyError,
 	SandboxUnavailableError,
+	sandboxExists,
 	settleSandbox,
 	stopAndSnapshot,
 	stopSandbox,

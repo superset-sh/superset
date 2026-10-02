@@ -92,6 +92,10 @@
 			"types": "./src/router/cloud-workspace/provision.ts",
 			"default": "./src/router/cloud-workspace/provision.ts"
 		},
+		"./cloud-workspace-reap": {
+			"types": "./src/router/cloud-workspace/reap.ts",
+			"default": "./src/router/cloud-workspace/reap.ts"
+		},
 		"./automation-dispatch": {
 			"types": "./src/router/automation/dispatch.ts",
 			"default": "./src/router/automation/dispatch.ts"

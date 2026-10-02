@@ -13,6 +13,7 @@ import {
 	type StatusType,
 } from "../../../../../../../components/TasksView/components/shared/StatusIcon";
 import { StatusMenuItems } from "../../../../../../../components/TasksView/components/shared/StatusMenuItems";
+import { useStatusPickerInput } from "../../../../../../../components/TasksView/hooks/useTasksData";
 import type { TaskWithStatus } from "../../../../../../../components/TasksView/hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../../../../components/TasksView/utils/sorting";
 
@@ -24,8 +25,9 @@ export function StatusProperty({ task }: StatusPropertyProps) {
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
+	const statusPickerInput = useStatusPickerInput();
 	const { data: allStatuses } = cloudTrpc.task.statuses.list.useQuery(
-		undefined,
+		statusPickerInput,
 		{ enabled: open },
 	);
 

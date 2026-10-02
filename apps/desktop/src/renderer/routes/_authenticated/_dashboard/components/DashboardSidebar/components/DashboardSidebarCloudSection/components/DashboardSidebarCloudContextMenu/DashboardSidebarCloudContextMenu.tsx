@@ -13,6 +13,7 @@ import {
 import type { KeyboardEvent, ReactNode } from "react";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
+	LuArchive,
 	LuArrowRightLeft,
 	LuArrowUp,
 	LuArrowUpRight,
@@ -26,7 +27,6 @@ import {
 	LuPencil,
 	LuRadioTower,
 	LuTag,
-	LuTrash2,
 } from "react-icons/lu";
 import type { CloudTask } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskRow";
 import { LabelCommand } from "renderer/routes/_authenticated/_dashboard/components/LabelCommand";
@@ -63,7 +63,7 @@ interface DashboardSidebarCloudContextMenuProps {
 	isUnread: boolean;
 	groups: Pick<CloudSidebarGroup, "id" | "name">[];
 	groupId: string | null;
-	deleteShortcut: string | null;
+	archiveShortcut: string | null;
 	isClosingPorts?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	onOpenDetails: () => void;
@@ -80,7 +80,7 @@ interface DashboardSidebarCloudContextMenuProps {
 	onMoveToGroup: (groupId: string | null) => void;
 	onCloseAllPorts?: () => void;
 	onHideFromSidebar?: () => void;
-	onDelete?: () => void;
+	onArchive?: () => void;
 	children: ReactNode;
 }
 
@@ -93,7 +93,7 @@ export function DashboardSidebarCloudContextMenu({
 	isUnread,
 	groups,
 	groupId,
-	deleteShortcut,
+	archiveShortcut,
 	isClosingPorts = false,
 	onOpenChange,
 	onOpenDetails,
@@ -110,7 +110,7 @@ export function DashboardSidebarCloudContextMenu({
 	onMoveToGroup,
 	onCloseAllPorts,
 	onHideFromSidebar,
-	onDelete,
+	onArchive,
 	children,
 }: DashboardSidebarCloudContextMenuProps) {
 	const { runAfterClose, onCloseAutoFocus } = useRunAfterMenuClose();
@@ -136,49 +136,6 @@ export function DashboardSidebarCloudContextMenu({
 					</ContextMenuItem>
 				)}
 				{(onRename || onSaveAsEnvironment) && <ContextMenuSeparator />}
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<HiOutlineClipboardDocumentList />
-						<Trans>Add task</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-80 p-0">
-						<LinkTaskCommand
-							linkedTaskIds={linkedTaskIds}
-							onToggle={onToggleTask}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<ProjectGlyph />
-						<Trans>Add to project</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-64 p-0">
-						<ProjectCommand
-							projectId={projectId}
-							projects={projects}
-							onSelect={onSetProject}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSub>
-					<ContextMenuSubTrigger>
-						<LuTag />
-						<Trans>Add label</Trans>
-					</ContextMenuSubTrigger>
-					<ContextMenuSubContent className="w-64 p-0">
-						<LabelCommand
-							labels={labels}
-							knownLabels={knownLabels}
-							onAdd={onAddLabel}
-							onRemove={onRemoveLabel}
-							onKeyDown={keepKeysInSearch}
-						/>
-					</ContextMenuSubContent>
-				</ContextMenuSub>
-				<ContextMenuSeparator />
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
 						<Trans>Copy</Trans>
@@ -244,6 +201,49 @@ export function DashboardSidebarCloudContextMenu({
 					</ContextMenuItem>
 				)}
 				<ContextMenuSeparator />
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<HiOutlineClipboardDocumentList />
+						<Trans>Add task</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-80 p-0">
+						<LinkTaskCommand
+							linkedTaskIds={linkedTaskIds}
+							onToggle={onToggleTask}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<ProjectGlyph />
+						<Trans>Add to project</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-64 p-0">
+						<ProjectCommand
+							projectId={projectId}
+							projects={projects}
+							onSelect={onSetProject}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<LuTag />
+						<Trans>Add label</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-64 p-0">
+						<LabelCommand
+							labels={labels}
+							knownLabels={knownLabels}
+							onAdd={onAddLabel}
+							onRemove={onRemoveLabel}
+							onKeyDown={keepKeysInSearch}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuSeparator />
 				{onCloseAllPorts && (
 					<ContextMenuItem
 						variant="destructive"
@@ -260,12 +260,12 @@ export function DashboardSidebarCloudContextMenu({
 						<Trans>Hide from Sidebar</Trans>
 					</ContextMenuItem>
 				)}
-				{onDelete && (
-					<ContextMenuItem variant="destructive" onSelect={onDelete}>
-						<LuTrash2 />
-						<Trans>Delete</Trans>
-						{deleteShortcut && (
-							<ContextMenuShortcut>{deleteShortcut}</ContextMenuShortcut>
+				{onArchive && (
+					<ContextMenuItem onSelect={onArchive}>
+						<LuArchive />
+						<Trans>Archive</Trans>
+						{archiveShortcut && (
+							<ContextMenuShortcut>{archiveShortcut}</ContextMenuShortcut>
 						)}
 					</ContextMenuItem>
 				)}

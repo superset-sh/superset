@@ -16,6 +16,8 @@ const meta = {
 		task: {
 			id: "task-2463",
 			slug: "SUPER-2463",
+			externalProvider: null,
+			externalKey: null,
 			title: "Cloud workspace presence in the sidebar",
 			status: { type: "started", color: "#f2c94c", progressPercent: 60 },
 		},

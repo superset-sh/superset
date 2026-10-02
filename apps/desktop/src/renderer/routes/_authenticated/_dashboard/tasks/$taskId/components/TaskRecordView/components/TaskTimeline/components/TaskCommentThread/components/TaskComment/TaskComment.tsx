@@ -51,7 +51,6 @@ export function TaskComment({
 							{ id: author.userId, name: author.name, image: author.image },
 						]}
 						size={20}
-						outlineClassName="outline-transparent"
 					/>
 				)}
 			</span>

@@ -120,6 +120,10 @@ export class LiveSession {
 		this.options.adapter.setMode(modeId);
 	}
 
+	fork(): Promise<string | null> {
+		return this.options.adapter.fork?.() ?? Promise.resolve(null);
+	}
+
 	async dispose(): Promise<void> {
 		this.stopped = true;
 		await this.options.adapter.dispose();

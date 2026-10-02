@@ -1,19 +1,26 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
+import { getArchivedCloudWorkspacesQueryKey } from "@/hooks/useArchivedCloudWorkspaces";
+import {
+	type CloudWorkspaceRow,
+	getCloudWorkspacesQueryKey,
+} from "@/hooks/useCloudWorkspaces";
+import { useSession } from "@/lib/auth/client";
 import { clearSandboxAccess } from "@/lib/sandbox-access";
 import { apiClient } from "@/lib/trpc/client";
+import { beginCloudMove, endCloudMove } from "./pendingCloudMoves";
 
 const LIST_KEY = ["cloud", "cloudWorkspace", "list"];
 
 /**
- * Rename and delete for cloud workspaces go to the API, not the sandbox: the
- * cloud row owns the name (the sandbox's copy is scratch), and deleting
- * through the sandbox would remove the row inside it and leave the sandbox
- * running — and billing — with the cloud row still listing it.
+ * Rename, archive and unarchive for cloud workspaces go to the API, not the
+ * sandbox: the cloud row owns the name (the sandbox's copy is scratch), and the
+ * API is what stops the sandbox and later deletes it.
  */
 export function useCloudWorkspaceActions() {
 	const queryClient = useQueryClient();
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
 
 	const invalidate = useCallback(
 		() => queryClient.invalidateQueries({ queryKey: LIST_KEY }),
@@ -28,24 +35,71 @@ export function useCloudWorkspaceActions() {
 		[invalidate],
 	);
 
-	const remove = useCallback(
-		async (id: string) => {
-			// The row goes when the user asks, not when the provider finishes
-			// tearing the sandbox down; the invalidate below is what restores it
-			// if the delete never landed.
-			queryClient.setQueriesData<CloudWorkspaceRow[]>(
-				{ queryKey: LIST_KEY },
-				(rows) => rows?.filter((row) => row.id !== id),
+	/** Moves the row between the active and archived lists before the API answers. */
+	const move = useCallback(
+		(id: string, to: "archived" | "active") => {
+			const active = getCloudWorkspacesQueryKey(organizationId);
+			const archived = getArchivedCloudWorkspacesQueryKey(organizationId);
+			const [from, into] =
+				to === "archived" ? [active, archived] : [archived, active];
+			const row = queryClient
+				.getQueryData<CloudWorkspaceRow[]>(from)
+				?.find((candidate) => candidate.id === id);
+			queryClient.setQueryData<CloudWorkspaceRow[]>(from, (rows) =>
+				rows?.filter((candidate) => candidate.id !== id),
 			);
+			if (!row) return;
+			const moved: CloudWorkspaceRow =
+				to === "archived"
+					? {
+							...row,
+							status: "deleted",
+							deletedAt: new Date(),
+							sandboxUrl: null,
+						}
+					: {
+							...row,
+							status: "provisioning",
+							deletedAt: null,
+							sandboxUrl: null,
+						};
+			beginCloudMove(to, moved);
+			queryClient.setQueryData<CloudWorkspaceRow[]>(into, (rows) => [
+				moved,
+				...(rows ?? []).filter((candidate) => candidate.id !== id),
+			]);
+		},
+		[organizationId, queryClient],
+	);
+
+	const archive = useCallback(
+		async (id: string) => {
+			await queryClient.cancelQueries({ queryKey: LIST_KEY });
+			move(id, "archived");
 			try {
 				await apiClient.cloudWorkspace.delete.mutate({ id });
 				clearSandboxAccess(id);
 			} finally {
+				endCloudMove(id);
 				await invalidate();
 			}
 		},
-		[invalidate, queryClient],
+		[invalidate, move, queryClient],
 	);
 
-	return { rename, remove };
+	const unarchive = useCallback(
+		async (id: string) => {
+			await queryClient.cancelQueries({ queryKey: LIST_KEY });
+			move(id, "active");
+			try {
+				await apiClient.cloudWorkspace.unarchive.mutate({ id });
+			} finally {
+				endCloudMove(id);
+				await invalidate();
+			}
+		},
+		[invalidate, move, queryClient],
+	);
+
+	return { rename, archive, unarchive };
 }

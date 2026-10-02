@@ -1,4 +1,6 @@
 import { LinearClient } from "@linear/sdk";
+import { db } from "@superset/db/client";
+import { connections } from "@superset/db/schema";
 import {
 	connectorMethod,
 	requireConnector,
@@ -7,6 +9,8 @@ import {
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
+import { and, eq, isNull, ne } from "drizzle-orm";
+
 import { env } from "@/env";
 import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
@@ -47,6 +51,19 @@ export async function GET(request: Request) {
 	const viewer = await linearClient.viewer;
 	const linearOrg = await viewer.organization;
 
+	const [existingConnection] = await db
+		.select({ id: connections.id })
+		.from(connections)
+		.where(
+			and(
+				eq(connections.organizationId, organizationId),
+				eq(connections.connector, "linear"),
+				ne(connections.connectedByUserId, userId),
+				isNull(connections.disconnectedAt),
+			),
+		)
+		.limit(1);
+
 	const connector = requireConnector("linear");
 	const result = await upsertConnection({
 		connector,
@@ -67,7 +84,12 @@ export async function GET(request: Request) {
 			user: { id: viewer.id, label: viewer.displayName },
 		},
 	});
-	if (result.conflict) return fail("workspace_already_linked");
+	if (result.conflict) {
+		const owner = result.conflict.ownerEmail
+			? `&owner=${encodeURIComponent(result.conflict.ownerEmail)}`
+			: "";
+		return exit(`${settingsUrl}?error=workspace_already_linked${owner}`);
+	}
 
 	// The person who connected is the one Linear account we know for certain
 	// belongs to a Superset user, so link it. Linear user ids are scoped to
@@ -81,6 +103,8 @@ export async function GET(request: Request) {
 		handle: viewer.displayName,
 		displayName: viewer.name,
 	});
+
+	if (existingConnection) return exit(settingsUrl);
 
 	// A free organization's issues are mirrored into a Tasks screen it cannot
 	// open, so the backfill waits until it upgrades, where the subscription

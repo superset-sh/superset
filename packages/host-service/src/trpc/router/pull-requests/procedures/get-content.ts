@@ -7,6 +7,11 @@ import {
 	normalizePullRequestChecks,
 	pullRequestCheckContextSchema,
 } from "../pull-request-checks";
+import {
+	pullRequestContentCacheKey,
+	readPullRequestContentCache,
+	writePullRequestContentCache,
+} from "../shared/pull-request-content-cache";
 
 const getContentInputSchema = z.object({
 	projectId: z.string(),
@@ -51,29 +56,14 @@ type PullRequestContent = {
 	checksStatus: ReturnType<typeof normalizePullRequestChecks>["checksStatus"];
 };
 
-// Browsing the PR list re-opens the detail panel constantly; cache the
-// `gh pr view` response so we don't burn the user's GitHub token bucket on
-// repeat clicks. Concurrent callers share the same in-flight promise.
-const PULL_REQUEST_CONTENT_CACHE_TTL_MS = 30_000;
-const pullRequestContentCache = new Map<
-	string,
-	{ promise: Promise<PullRequestContent>; fetchedAt: number }
->();
-
 export const getContent = protectedProcedure
 	.input(getContentInputSchema)
 	.query(async ({ ctx, input }) => {
 		const repo = await resolveGithubRepo(ctx, input.projectId);
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}#${input.prNumber}`;
-		const cached = pullRequestContentCache.get(cacheKey);
-		if (
-			cached &&
-			Date.now() - cached.fetchedAt < PULL_REQUEST_CONTENT_CACHE_TTL_MS
-		) {
-			return cached.promise;
-		}
+		const cacheKey = pullRequestContentCacheKey(repo, input.prNumber);
+		const cached = readPullRequestContentCache<PullRequestContent>(cacheKey);
+		if (cached) return cached;
 
-		const fetchedAt = Date.now();
 		const promise = (async (): Promise<PullRequestContent> => {
 			try {
 				const raw = await execGh([
@@ -113,13 +103,6 @@ export const getContent = protectedProcedure
 				});
 			}
 		})();
-		// Evict on failure so the next caller retries instead of replaying the
-		// same error for the rest of the TTL.
-		promise.catch(() => {
-			if (pullRequestContentCache.get(cacheKey)?.promise === promise) {
-				pullRequestContentCache.delete(cacheKey);
-			}
-		});
-		pullRequestContentCache.set(cacheKey, { promise, fetchedAt });
+		writePullRequestContentCache(cacheKey, promise);
 		return promise;
 	});

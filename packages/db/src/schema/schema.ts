@@ -177,13 +177,32 @@ export const taskStatuses = pgTable(
 export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
 export type SelectTaskStatus = typeof taskStatuses.$inferSelect;
 
+/** Task slugs are `<key>-<number>`. One counter per organization, on its oldest team, until tasks can choose a team. */
+export const taskSequences = pgTable(
+	"task_sequences",
+	{
+		teamId: uuid("team_id")
+			.primaryKey()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		lastNumber: integer("last_number").notNull().default(0),
+	},
+	(table) => [
+		unique("task_sequences_organization_unique").on(table.organizationId),
+	],
+);
+
 export const tasks = pgTable(
 	"tasks",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
-		slug: text().notNull(),
+		/** Leave out on insert: the tasks_assign_number trigger sets slug, team_id and number. */
+		slug: text().notNull().default(sql`NULL`),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -201,6 +220,9 @@ export const tasks = pgTable(
 		creatorId: uuid("creator_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		/** Foreign key and index wait for the Linear mirror prune; at 7M rows each blocks writes for longer than the deploy allows. */
+		teamId: uuid("team_id"),
+		number: integer(),
 
 		// Planning
 		estimate: integer(),
@@ -358,6 +380,33 @@ export const taskActivity = pgTable(
 );
 
 export type InsertTaskActivity = typeof taskActivity.$inferInsert;
+
+export const taskImports = pgTable(
+	"task_imports",
+	{
+		taskId: uuid("task_id")
+			.primaryKey()
+			.references(() => tasks.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id").notNull(),
+		provider: integrationProvider().notNull(),
+		externalId: text("external_id").notNull(),
+		externalUrl: text("external_url").notNull(),
+		importedByUserId: uuid("imported_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		unique("task_imports_org_provider_external_unique").on(
+			table.organizationId,
+			table.provider,
+			table.externalId,
+		),
+	],
+);
+
+export type InsertTaskImport = typeof taskImports.$inferInsert;
+export type SelectTaskImport = typeof taskImports.$inferSelect;
 
 // Integration connections for external providers (Linear, GitHub, etc.)
 export const integrationConnections = pgTable(
@@ -891,6 +940,8 @@ export const cloudWorkspaces = pgTable(
 			.notNull()
 			.references(() => environments.id),
 		hostVersion: text("host_version"),
+		/** The creator's agent sign-ins the running box booted with, keyed; null before it was recorded. */
+		bootAgentCredentialDigest: text("boot_agent_credential_digest"),
 		agentStatus: text("agent_status").$type<ActiveAgentStatus>(),
 		agentStatusAt: timestamp("agent_status_at", { withTimezone: true }),
 		/** What the creator typed, as markdown; null when the box started idle. */
@@ -1747,6 +1798,7 @@ export const automationRuns = pgTable(
 			.on(t.triggerId, t.resourceKey)
 			.where(sql`status IN ('dispatching', 'dispatched')`),
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
+		index("automation_runs_org_created_idx").on(t.organizationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),
 		index("automation_runs_cloud_workspace_idx").on(t.cloudWorkspaceId),
@@ -2042,8 +2094,8 @@ export const attachmentParentKind = pgEnum("attachment_parent_kind", [
 	// belong to exists; publish snapshots them onto that version and clears
 	// the staged rows, so a version is never served missing its own assets.
 	"page",
-	// A cloud workspace's prompt; the parent id is the workspace's.
-	"cloud_workspace_prompt",
+	// A file handed to a cloud workspace; the parent id is the workspace's.
+	"cloud_workspace",
 	// A comment on a task; the parent id is the task_comments row's.
 	"task_comment",
 	// A file in a project's description; the parent id is the project's.

@@ -42,6 +42,7 @@ const generated = [
 	`MEDIA_URL=http://media.usercontent.localhost:${port}`,
 	`APP_URL=http://localhost:${webPort}`,
 	"FRAME_ANCESTORS=http://localhost:* file:",
+	`REALTIME_URL=${process.env.REALTIME_URL ?? rootEnv.REALTIME_URL ?? "http://127.0.0.1:8798"}`,
 	"",
 ].join("\n");
 writeFileSync(join(appDir, ".dev.vars.dev"), generated);

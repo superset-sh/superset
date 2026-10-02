@@ -52,12 +52,16 @@ export const Everything: Story = {
 			{
 				id: "task-2463",
 				slug: "SUPER-2463",
+				externalProvider: null,
+				externalKey: null,
 				title: "Cloud workspace presence in the sidebar",
 				status: { type: "started", color: "#f2c94c", progressPercent: 60 },
 			},
 			{
 				id: "task-2464",
 				slug: "SUPER-2464",
+				externalProvider: null,
+				externalKey: null,
 				title: "Only my cloud boxes in the sidebar by default",
 				status: { type: "unstarted", color: "#e2e2e2", progressPercent: null },
 			},
@@ -101,6 +105,8 @@ export const OneOfEach: Story = {
 			{
 				id: "task-2440",
 				slug: "SUPER-2440",
+				externalProvider: null,
+				externalKey: null,
 				title: "Environments pick the region nearest to the person",
 				status: { type: "started", color: "#f2c94c", progressPercent: 80 },
 			},
@@ -135,6 +141,8 @@ export const ManyPullRequests: Story = {
 			{
 				id: "task-2401",
 				slug: "SUPER-2401",
+				externalProvider: null,
+				externalKey: null,
 				title: "A box never falls back to the org model keys",
 				status: { type: "completed", color: "#5e6ad2", progressPercent: null },
 			},

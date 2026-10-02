@@ -13,12 +13,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import Fuse from "fuse.js";
 import type { ReactNode } from "react";
 import { useId, useMemo, useState } from "react";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { TASK_PICKER_INPUT } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
+import { useTaskPickerInput } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
 
 const MAX_RESULTS = 20;
 
@@ -43,24 +44,25 @@ export function IssueLinkCommand({
 	tooltipLabel,
 	onSelect,
 }: IssueLinkCommandProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
 
-	const { data: taskPage } = cloudTrpc.task.listPage.useQuery(
-		TASK_PICKER_INPUT,
-		{
-			enabled: open,
-		},
-	);
+	const taskPickerInput = useTaskPickerInput();
+	const { data: taskPage } = cloudTrpc.task.listPage.useQuery(taskPickerInput, {
+		enabled: open,
+	});
 
 	const allTasks = useMemo(
 		() =>
 			(taskPage?.items ?? []).map(({ task }) => ({
 				id: task.id,
 				slug: task.slug,
+				externalProvider: task.externalProvider,
+				externalKey: task.externalKey,
 				title: task.title,
 				statusId: task.statusId,
 				priority: task.priority,
@@ -104,6 +106,7 @@ export function IssueLinkCommand({
 				{
 					keys: [
 						{ name: "slug", weight: 3 },
+						{ name: "externalKey", weight: 3 },
 						{ name: "title", weight: 2 },
 					],
 					threshold: 0.4,
@@ -250,7 +253,9 @@ export function IssueLinkCommand({
 													{task.title}
 												</span>
 												<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-													<span className="font-mono">{task.slug}</span>
+													<span className="font-mono">
+														{taskDisplayId(task)}
+													</span>
 													{status ? (
 														<>
 															<span aria-hidden>·</span>

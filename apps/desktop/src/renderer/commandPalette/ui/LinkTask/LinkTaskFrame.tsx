@@ -7,13 +7,14 @@ import {
 } from "@superset/ui/command";
 import { toast } from "@superset/ui/sonner";
 import { useDeferredValue, useMemo } from "react";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { useHybridSearch } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useHybridSearch";
-import { TASK_PICKER_INPUT } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
+import { useTaskPickerInput } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions/useOptimisticActions";
 import { useFrameStackStore } from "../../core/frames";
 import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
@@ -42,20 +43,23 @@ interface LinkTaskFrameProps {
 }
 
 export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const { t } = useLingui();
 	const query = useCommandPaletteQuery();
 	const deferredQuery = useDeferredValue(query);
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const { v2Workspaces } = useOptimisticActions();
 
-	const { data: taskPage } =
-		cloudTrpc.task.listPage.useQuery(TASK_PICKER_INPUT);
+	const taskPickerInput = useTaskPickerInput();
+	const { data: taskPage } = cloudTrpc.task.listPage.useQuery(taskPickerInput);
 
 	const tasks = useMemo(
 		() =>
 			(taskPage?.items ?? []).map(({ task }) => ({
 				id: task.id,
 				slug: task.slug,
+				externalProvider: task.externalProvider,
+				externalKey: task.externalKey,
 				title: task.title,
 				description: task.description,
 				labels: task.labels,
@@ -168,7 +172,7 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 										{task.title}
 									</span>
 									<span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-										<span className="font-mono">{task.slug}</span>
+										<span className="font-mono">{taskDisplayId(task)}</span>
 										{status ? (
 											<>
 												<span aria-hidden>·</span>

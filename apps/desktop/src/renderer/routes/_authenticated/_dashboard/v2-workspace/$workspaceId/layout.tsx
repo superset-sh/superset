@@ -9,17 +9,20 @@ import {
 } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { WorkspaceNotFoundState } from "renderer/routes/_authenticated/_dashboard/components/WorkspaceNotFoundState";
+import { useUnarchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useUnarchiveCloudWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { CloudWorkspaceArchivedState } from "../components/CloudWorkspaceArchivedState";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
-import { StateScreenShell } from "../components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "../components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "../components/WorkspaceHostIncompatibleState";
+import { useArchivedCloudWorkspace } from "../hooks/useArchivedCloudWorkspace";
 import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
 import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "../providers/WorkspaceProvider";
@@ -93,6 +96,11 @@ function V2WorkspaceLayout() {
 				: null),
 		[hostWorkspace, isCloud, cloudWorkspace],
 	);
+	const archivedCloudWorkspace = useArchivedCloudWorkspace(
+		workspaceId,
+		!workspace && !cloudWorkspace,
+	);
+	const unarchive = useUnarchiveCloudWorkspace();
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q
@@ -143,7 +151,18 @@ function V2WorkspaceLayout() {
 					workspaceId={cloudWorkspace.id}
 					name={cloudWorkspace.name}
 					status={cloudWorkspace.status}
-					createdAt={cloudWorkspace.createdAt}
+				/>
+			</StateScreenShell>
+		);
+	}
+
+	if (!workspace && archivedCloudWorkspace?.deletedAt) {
+		return (
+			<StateScreenShell>
+				<CloudWorkspaceArchivedState
+					name={archivedCloudWorkspace.name}
+					archivedAt={archivedCloudWorkspace.deletedAt}
+					onUnarchive={() => unarchive(archivedCloudWorkspace.id)}
 				/>
 			</StateScreenShell>
 		);

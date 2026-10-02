@@ -1,6 +1,8 @@
 import {
 	cancelTurnInputSchema,
+	closeSessionInputSchema,
 	createSessionInputSchema,
+	forkSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
@@ -10,6 +12,7 @@ import {
 } from "@superset/chat/protocol";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { z } from "zod";
 import type { ChatRuntime } from "../../index";
 
 const t = initTRPC.create();
@@ -90,6 +93,18 @@ export function createChatRouter(
 		setMode: t.procedure
 			.input(setModeInputSchema)
 			.mutation(({ input }) => guarded(() => runtime.commands.setMode(input))),
+
+		forkSession: t.procedure
+			.input(forkSessionInputSchema.extend({ workspaceId: z.string().min(1) }))
+			.mutation(async ({ input }) => {
+				const { workspaceId, ...rest } = input;
+				const cwd = await options.resolveCwd(workspaceId);
+				return guarded(() => runtime.commands.forkSession({ ...rest, cwd }));
+			}),
+
+		closeSession: t.procedure
+			.input(closeSessionInputSchema)
+			.mutation(({ input }) => runtime.commands.closeSession(input)),
 
 		getSession: t.procedure
 			.input(getSessionInputSchema)

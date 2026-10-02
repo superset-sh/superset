@@ -19,6 +19,12 @@ const identityProbe = z.union([
 		body: z.record(z.string(), z.unknown()).optional(),
 		...identityPaths,
 	}),
+	z.object({
+		mcp: z.string(),
+		tool: z.string(),
+		arguments: z.record(z.string(), z.unknown()).default({}),
+		...identityPaths,
+	}),
 	z.strictObject(identityPaths),
 ]);
 

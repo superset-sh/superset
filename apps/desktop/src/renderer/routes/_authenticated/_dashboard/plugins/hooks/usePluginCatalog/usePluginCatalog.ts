@@ -62,6 +62,7 @@ export function usePluginCatalog() {
 
 	const query = cloudTrpc.plugins.list.useQuery(undefined, {
 		enabled: Boolean(userId),
+		refetchOnWindowFocus: true,
 	});
 
 	return {

@@ -58,6 +58,7 @@ describe("SUPERSET_CHAT_MODELS", () => {
 		expect(ids).toContain("anthropic/claude-opus-5-5");
 		expect(ids).toContain("anthropic/claude-opus-5");
 		expect(ids).toContain("anthropic/claude-fable-5-1");
+		expect(ids).toContain("openai/gpt-6.1-sol");
 		expect(ids).toContain("openai/gpt-6-astra");
 		expect(ids).toContain("openai/gpt-6-sol");
 		expect(ids).toContain("openai/gpt-6-luna");
@@ -215,7 +216,12 @@ describe("buildAgentModelArgs", () => {
 
 	it("offers the GPT-6 models in codex's current section", () => {
 		const models = getAgentModelSupport("codex")?.models ?? [];
-		for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+		for (const model of [
+			"gpt-6.1-sol",
+			"gpt-6-astra",
+			"gpt-6-sol",
+			"gpt-6-luna",
+		]) {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
 			expect(models.find((option) => option.id === model)?.group).toBe(
 				"Current",
@@ -401,6 +407,19 @@ describe("buildAgentEffortArgs", () => {
 		expect(
 			buildAgentEffortArgs("cursor-agent", "low", "claude-opus-5-high"),
 		).toEqual([]);
+	});
+
+	it("builds every GPT-6.1 Sol reasoning effort", () => {
+		const efforts = ["low", "medium", "high", "xhigh", "max", "ultra"];
+		expect(getAgentEfforts("codex", "gpt-6.1-sol").map(({ id }) => id)).toEqual(
+			efforts,
+		);
+		for (const effort of efforts) {
+			expect(buildAgentEffortArgs("codex", effort, "gpt-6.1-sol")).toEqual([
+				"-c",
+				`model_reasoning_effort=${effort}`,
+			]);
+		}
 	});
 
 	it("drops an effort the selected model does not accept", () => {

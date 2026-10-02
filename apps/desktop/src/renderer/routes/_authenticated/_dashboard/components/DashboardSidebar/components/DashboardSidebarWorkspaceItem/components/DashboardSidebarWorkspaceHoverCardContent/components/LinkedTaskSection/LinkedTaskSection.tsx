@@ -1,6 +1,9 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { LuExternalLink } from "react-icons/lu";
+import { MarqueeText } from "renderer/components/MarqueeText";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
@@ -12,9 +15,15 @@ interface LinkedTaskSectionProps {
 }
 
 export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const { t } = useLingui();
 	const { data: taskRecord } = cloudTrpc.task.byIdOrSlug.useQuery(taskId);
 	const { data: statuses } = cloudTrpc.task.statuses.list.useQuery(undefined);
+	const {
+		isFocusVisible,
+		onFocus: handleLinkFocus,
+		onBlur: handleLinkBlur,
+	} = useFocusVisible();
 
 	if (!taskRecord) return null;
 
@@ -23,6 +32,8 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 	const task = {
 		id: taskRecord.id,
 		slug: taskRecord.slug,
+		externalProvider: taskRecord.externalProvider,
+		externalKey: taskRecord.externalKey,
 		title: taskRecord.title,
 		externalUrl: taskRecord.externalUrl,
 		statusType: status?.type ?? null,
@@ -41,6 +52,8 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 					params={{ taskId: task.id }}
 					className="group/task flex min-w-0 flex-1 items-center gap-1.5 text-left hover:text-foreground"
 					title={task.title}
+					onFocus={handleLinkFocus}
+					onBlur={handleLinkBlur}
 				>
 					<span className="flex size-3.5 shrink-0 items-center justify-center">
 						{task.statusType ? (
@@ -53,10 +66,16 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 							<span className="size-3 rounded-full border border-muted-foreground/40" />
 						)}
 					</span>
-					<span className="font-mono text-xs text-muted-foreground shrink-0">
-						{task.slug}
-					</span>
-					<span className="truncate text-xs">{task.title}</span>
+					<MarqueeText
+						title={`${taskDisplayId(task)} ${task.title}`}
+						className="min-w-0 flex-1 text-xs"
+						forceActive={isFocusVisible}
+					>
+						<span className="mr-1.5 font-mono text-muted-foreground">
+							{taskDisplayId(task)}
+						</span>
+						{task.title}
+					</MarqueeText>
 				</Link>
 				{task.externalUrl && (
 					<a

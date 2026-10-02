@@ -47,6 +47,7 @@ import { getGitHubRemotes } from "./utils/git-remote";
 import { listGitHubRepositories } from "./utils/github-repositories";
 import { persistLocalProject } from "./utils/persist-project";
 import {
+	adoptLocalRepo,
 	cloneRepoInto,
 	type ResolvedRepo,
 	resolveLocalRepo,
@@ -639,7 +640,7 @@ export const projectRouter = router({
 				]),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ ctx, input, signal }) => {
 			switch (input.mode.kind) {
 				case "empty":
 					return createFromEmpty(ctx, {
@@ -657,6 +658,7 @@ export const projectRouter = router({
 						name: input.name,
 						parentDir: input.mode.parentDir,
 						url: input.mode.url,
+						signal,
 					});
 				case "importLocal":
 					return createFromImportLocal(ctx, {
@@ -788,7 +790,7 @@ export const projectRouter = router({
 							`${parsed.owner}/${parsed.name}`,
 						);
 					} else {
-						resolved = await resolveLocalRepo(input.mode.repoPath);
+						resolved = await adoptLocalRepo(input.mode.repoPath);
 					}
 
 					// Each on-disk repo path maps to at most one project in the

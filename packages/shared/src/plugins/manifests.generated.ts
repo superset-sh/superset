@@ -55,7 +55,7 @@ export const FIRST_PARTY_MANIFESTS = {
 	"linear": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "linear",
-		"version": "1.5.2",
+		"version": "1.5.3",
 		"description": "Plan and build products: create, search, and update Linear issues.",
 		"author": {
 			"name": "Superset",
@@ -78,7 +78,7 @@ export const FIRST_PARTY_MANIFESTS = {
 					"icon": "linear"
 				},
 				"connector": {
-					"slug": "linear"
+					"slug": "linear_mcp"
 				},
 				"mcp": {
 					"type": "streamable-http",
@@ -180,6 +180,52 @@ export const FIRST_PARTY_MANIFESTS = {
 		},
 		"skills": []
 	} as const,
+	"sentry": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "sentry",
+		"version": "1.0.0",
+		"description": "Debug with production error context: search issues, read stack traces, and manage alerts in Sentry.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"sentry",
+			"errors",
+			"monitoring",
+			"debugging",
+			"observability"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Sentry",
+					"category": "Developer tools",
+					"icon": "sentry"
+				},
+				"connector": {
+					"slug": "sentry_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.sentry.dev/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "debug-with-sentry",
+				"description": "Root-cause a production error with Sentry's evidence before touching code — pull the issue, read the stack trace and breadcrumbs, and separate the crash from its trigger. Use when the user pastes a Sentry link or issue ID, reports a production error, or asks why something is crashing for users."
+			},
+			{
+				"name": "find-in-sentry",
+				"description": "Answer \"what's breaking\" questions from Sentry — find the right org and project, search issues and events with the vocabulary Sentry uses, and report what is actually firing rather than the first hit. Use when the user asks what errors are happening, whether something is stable, what changed since a release, or for any health summary of a service."
+			}
+		]
+	} as const,
 	"gmail": {
 		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
 		"name": "gmail",
@@ -212,6 +258,185 @@ export const FIRST_PARTY_MANIFESTS = {
 			}
 		},
 		"skills": []
+	} as const,
+	"granola": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "granola",
+		"version": "1.0.0",
+		"description": "Recall what was said in your meetings: search, read, and query Granola notes and transcripts.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"granola",
+			"meetings",
+			"meeting-notes",
+			"transcripts",
+			"notes"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Granola",
+					"category": "Productivity",
+					"icon": "granola"
+				},
+				"connector": {
+					"slug": "granola_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.granola.ai/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-granola",
+				"description": "Answer \"what did we say, decide, or promise\" from Granola meeting notes — narrow to the meetings that can hold the answer, read the notes before the transcript, and cite the meeting behind every claim. Use when the user asks what happened in a meeting, what a customer or teammate said, what was decided or promised, or refers to a call, sync, standup, or demo."
+			},
+			{
+				"name": "follow-up-from-granola",
+				"description": "Turn a meeting into work — read its Granola notes, extract the commitments that belong to this user, and carry each one out or draft it (a code change, a ticket, a reply) with a trace back to the note. Use when the user says \"do the follow-ups from\", \"implement what we agreed\", \"make tickets from\", or points at a meeting after a sync, planning session, or customer call."
+			}
+		]
+	} as const,
+	"circleback": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "circleback",
+		"version": "1.0.0",
+		"description": "Meeting notes, action items, and transcripts from Circleback: search what was said and work what was captured.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"circleback",
+			"meetings",
+			"meeting-notes",
+			"action-items",
+			"transcripts"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Circleback",
+					"category": "Productivity",
+					"icon": "circleback"
+				},
+				"connector": {
+					"slug": "circleback_mcp"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://circleback.ai/api/mcp"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "find-in-circleback",
+				"description": "Answer \"what did we say, decide, or promise\" from Circleback meetings — search by attendee, company, tag, or date before keyword, read the notes before the transcript, and cite the meeting behind every claim. Use when the user asks what happened on a call, what a customer or teammate said, what was agreed, or refers to a meeting, sync, demo, or interview."
+			},
+			{
+				"name": "prep-with-circleback",
+				"description": "Build a brief for an upcoming meeting from Circleback — the calendar event, the history with the same people and company, open commitments on both sides, and what is still unresolved. Use when the user asks to prep for a call, \"what do I need to know before\", who someone is, or where things stand with a customer or partner."
+			},
+			{
+				"name": "work-circleback-action-items",
+				"description": "Work the action items Circleback captured — find what is assigned to this user, do the ones the workspace can do, and update status only for work that is actually finished. Use when the user asks what they owe, \"do my action items\", \"what's still open from\", or wants to close, reassign, or add an action item."
+			}
+		]
+	} as const,
+	"ynab": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "ynab",
+		"version": "1.0.0",
+		"description": "Track money in YNAB: accounts, categories, budgets, and transactions.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"ynab",
+			"budget",
+			"finance",
+			"money",
+			"transactions"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "YNAB",
+					"category": "Productivity",
+					"icon": "ynab"
+				},
+				"connector": {
+					"slug": "ynab"
+				}
+			}
+		},
+		"skills": []
+	} as const,
+	"stripe": {
+		"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+		"name": "stripe",
+		"version": "1.0.0",
+		"description": "Work with payments in Stripe: trace charges and subscriptions, read billing data, and search Stripe's docs.",
+		"author": {
+			"name": "Superset",
+			"url": "https://superset.sh"
+		},
+		"homepage": "https://docs.superset.sh",
+		"repository": "https://github.com/superset-sh/superset",
+		"license": "MIT",
+		"keywords": [
+			"stripe",
+			"payments",
+			"billing",
+			"subscriptions",
+			"invoices"
+		],
+		"extensions": {
+			"superset": {
+				"interface": {
+					"displayName": "Stripe",
+					"category": "Data & APIs",
+					"icon": "stripe"
+				},
+				"connector": {
+					"slug": "stripe"
+				},
+				"mcp": {
+					"type": "streamable-http",
+					"url": "https://mcp.stripe.com"
+				}
+			}
+		},
+		"skills": [
+			{
+				"name": "build-a-stripe-integration",
+				"description": "Write Stripe code against what the API does today — plan the product shape, confirm every parameter from Stripe's own docs and schemas, and keep the agent in a sandbox. Use when adding checkout, billing, subscriptions, invoicing, or webhooks to a codebase, or when debugging Stripe integration code that compiles but behaves wrong."
+			},
+			{
+				"name": "refund-and-dispute",
+				"description": "Move money back to a customer in Stripe, or respond to a dispute, with the checks that belong in front of an irreversible write — read the charge first, fix the exact amount, and clear Stripe's human confirmation step. Use when the user asks to refund a payment, cancel and refund a subscription, or handle a chargeback or dispute."
+			},
+			{
+				"name": "trace-a-payment",
+				"description": "Answer a question about money that already moved in Stripe — why a charge failed, what a customer was billed, where an invoice or payout stands — by reading the object chain instead of guessing from a dashboard total. Use when the user pastes a Stripe id, asks why a payment failed, asks what a customer is paying, or wants revenue, invoice, or subscription state."
+			}
+		]
 	} as const,
 } as const;
 

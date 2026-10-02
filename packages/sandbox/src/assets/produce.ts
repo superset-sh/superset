@@ -6,6 +6,8 @@
  *   bun run assets themes            prebuilt GTK, icon and cursor theme tarballs
  *   bun run assets wallpapers        eight photos, cropped to the display
  *   bun run assets host-service      the runtime tarball from this checkout
+ *   bun run assets claude [version]  Claude Code's native binary (default: stable)
+ *   bun run assets codex [version]   Codex's standalone package (default: latest)
  *   bun run assets all
  *
  * Each producer writes its files to .cache/assets/<sha256><suffix>, then
@@ -398,7 +400,76 @@ function cli(): void {
 	console.log(`cli ${pkg.version} sha256 ${hash}`);
 }
 
-export const producers: Record<string, () => Promise<void> | void> = {
+// --- Agent CLIs -------------------------------------------------------------
+const CLAUDE_RELEASES =
+	"https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases";
+
+async function fetchText(url: string): Promise<string> {
+	return new TextDecoder().decode(await fetchBytes(url)).trim();
+}
+
+/** Claude Code's native linux-x64 binary; defaults to the `stable` channel. */
+async function claude(version?: string): Promise<void> {
+	const pinned = version ?? (await fetchText(`${CLAUDE_RELEASES}/stable`));
+	const manifest = JSON.parse(
+		await fetchText(`${CLAUDE_RELEASES}/${pinned}/manifest.json`),
+	) as { platforms: Record<string, { checksum: string }> };
+	const expected = manifest.platforms["linux-x64"]?.checksum;
+	if (!expected) throw new Error(`claude ${pinned}: no linux-x64 build`);
+	const source = `${CLAUDE_RELEASES}/${pinned}/linux-x64/claude`;
+	const { sha256: hash } = cache(await fetchBytes(source), "");
+	if (hash !== expected)
+		throw new Error(`claude ${pinned}: sha256 ${hash}, manifest ${expected}`);
+	rewriteRows({
+		claude: {
+			sha256: hash,
+			suffix: "",
+			dest: `${SANDBOX_PATHS.media}/claude-${pinned}`,
+			mode: "0755",
+			source,
+			version: pinned,
+		},
+	});
+}
+
+/** Codex's standalone package (binary, rg, bwrap); defaults to the latest release. */
+async function codex(version?: string): Promise<void> {
+	const tag = version ? `tags/rust-v${version}` : "latest";
+	const release = JSON.parse(
+		await fetchText(
+			`https://api.github.com/repos/openai/codex/releases/${tag}`,
+		),
+	) as {
+		tag_name: string;
+		assets: { name: string; digest: string; browser_download_url: string }[];
+	};
+	const pinned = release.tag_name.replace(/^rust-v/, "");
+	const asset = release.assets.find(
+		(a) => a.name === "codex-package-x86_64-unknown-linux-musl.tar.gz",
+	);
+	if (!asset) throw new Error(`codex ${pinned}: no linux package`);
+	const { sha256: hash } = cache(
+		await fetchBytes(asset.browser_download_url),
+		".tar.gz",
+	);
+	if (`sha256:${hash}` !== asset.digest)
+		throw new Error(`codex ${pinned}: sha256 ${hash}, release ${asset.digest}`);
+	rewriteRows({
+		codex: {
+			sha256: hash,
+			suffix: ".tar.gz",
+			dest: `${SANDBOX_PATHS.media}/codex-${pinned}.tar.gz`,
+			mode: "0644",
+			source: asset.browser_download_url,
+			version: pinned,
+		},
+	});
+}
+
+export const producers: Record<
+	string,
+	(version?: string) => Promise<void> | void
+> = {
 	chrome,
 	fonts,
 	themes,
@@ -406,6 +477,8 @@ export const producers: Record<string, () => Promise<void> | void> = {
 	"host-service": hostService,
 	go,
 	cli,
+	claude,
+	codex,
 };
 
 if (import.meta.main) {
@@ -419,6 +492,6 @@ if (import.meta.main) {
 	}
 	for (const name of names) {
 		console.log(`--- ${name}`);
-		await producers[name]?.();
+		await producers[name]?.(process.argv[3]);
 	}
 }

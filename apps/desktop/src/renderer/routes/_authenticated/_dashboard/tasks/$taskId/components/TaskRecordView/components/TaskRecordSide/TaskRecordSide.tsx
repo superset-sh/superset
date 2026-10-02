@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { SiLinear } from "react-icons/si";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
 import { CloudPullRequestRow } from "renderer/routes/_authenticated/_dashboard/components/CloudPullRequestRow";
 import { CloudSection } from "renderer/routes/_authenticated/_dashboard/components/CloudSection";
@@ -17,6 +18,7 @@ import { TaskWorkspaceRow } from "./components/TaskWorkspaceRow";
 
 interface TaskRecordSideProps {
 	task: TaskRecord;
+	importSource: { externalUrl: string } | null;
 	now: Date;
 	project: TaskProjectValue | null;
 	projects: TaskProjectValue[];
@@ -34,6 +36,7 @@ interface TaskRecordSideProps {
 
 export function TaskRecordSide({
 	task,
+	importSource,
 	now,
 	project,
 	projects,
@@ -49,7 +52,7 @@ export function TaskRecordSide({
 	onOpenPullRequest,
 }: TaskRecordSideProps) {
 	return (
-		<aside className="shrink-0 space-y-4 border-t border-border px-3 py-[18px] text-[13px] @min-[900px]:w-[372px] @min-[900px]:overflow-auto @min-[900px]:border-t-0 @min-[900px]:border-l">
+		<aside className="space-y-4 px-3 py-[18px] text-[13px]">
 			<CloudSection title={<Trans>Properties</Trans>}>
 				<PropertyRow label={<Trans>Status</Trans>}>
 					<StatusProperty task={task} />
@@ -68,6 +71,17 @@ export function TaskRecordSide({
 						onCreateProject={onCreateProject}
 					/>
 				</PropertyRow>
+				{importSource && (
+					<a
+						href={importSource.externalUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+					>
+						<SiLinear className="size-3.5" />
+						<Trans>Imported from Linear</Trans>
+					</a>
+				)}
 			</CloudSection>
 			<CloudSection title={<Trans>Labels</Trans>}>
 				<div className="px-2 py-1">

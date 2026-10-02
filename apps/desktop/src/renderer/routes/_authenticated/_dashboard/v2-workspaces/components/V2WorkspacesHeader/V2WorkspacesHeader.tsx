@@ -37,9 +37,9 @@ import {
 	LuUsers,
 } from "react-icons/lu";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { SubmenuValue } from "renderer/routes/_authenticated/_dashboard/components/SubmenuValue";
 import { ToolbarMenuButton } from "renderer/routes/_authenticated/_dashboard/components/ToolbarMenuButton";
-import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
@@ -279,84 +279,87 @@ export function V2WorkspacesHeader({
 	return (
 		<div
 			data-workspaces-toolbar
-			className="@container shrink-0 border-b border-border px-6 pb-2 pt-3"
+			className="@container shrink-0 border-b border-border px-6 pb-2"
 		>
-			{/* Title row — also the window-drag surface now that it spans the top. */}
-			<div className="drag flex items-center gap-3 pb-3">
-				<DropdownMenu modal={false}>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							aria-label={t({
-								message: "Filter by device",
-							})}
-							className="no-drag -ml-2 h-9 gap-2 px-2 text-lg font-semibold"
-						>
-							<DeviceIcon className="size-4 text-muted-foreground" />
-							<span className="min-w-0 truncate">{deviceLabel}</span>
-							<LuChevronDown className="size-4 text-muted-foreground" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="start" className="min-w-[14rem]">
-						<DropdownMenuRadioGroup
-							value={deviceFilter}
-							onValueChange={setDeviceFilter}
-						>
-							<DropdownMenuRadioItem value={DEVICE_FILTER_ALL_DEVICES}>
-								<DeviceOptionLabel
-									icon={<LuMonitorSmartphone className="size-3.5" />}
-									label={t({
-										message: "All devices",
-									})}
-								/>
-							</DropdownMenuRadioItem>
-							<DropdownMenuRadioItem value={DEVICE_FILTER_THIS_DEVICE}>
-								<DeviceOptionLabel
-									icon={<LuLaptop className="size-3.5" />}
-									label={
-										localHostName
-											? t({
-													message: `${localHostName} (this device)`,
-												})
-											: t({
-													message: "This device",
-												})
-									}
-								/>
-							</DropdownMenuRadioItem>
-							{remoteHosts.length > 0 ? (
-								<>
-									<DropdownMenuSeparator />
-									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-										<Trans>Other devices</Trans>
-									</DropdownMenuLabel>
-									{remoteHosts.map((host) => (
-										<DropdownMenuRadioItem
-											key={host.hostId}
-											value={host.hostId}
-										>
-											<DeviceOptionLabel
-												icon={<LuMonitor className="size-3.5" />}
-												label={host.hostName}
-												isOnline={host.isOnline}
-											/>
-										</DropdownMenuRadioItem>
-									))}
-								</>
-							) : null}
-						</DropdownMenuRadioGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-
-				<Button
-					size="sm"
-					className="no-drag ml-auto h-8 shrink-0"
-					onClick={() => openNewWorkspace()}
-				>
-					<Trans>Create workspace</Trans>
-				</Button>
-				<WindowControlsInset />
-			</div>
+			<PageHeader
+				className="-mx-6 mb-1"
+				contentClassName="gap-3 px-6"
+				start={
+					<DropdownMenu modal={false}>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								aria-label={t({
+									message: "Filter by device",
+								})}
+								className="-ml-2 h-9 gap-2 px-2 text-lg font-semibold"
+							>
+								<DeviceIcon className="size-4 text-muted-foreground" />
+								<span className="min-w-0 truncate">{deviceLabel}</span>
+								<LuChevronDown className="size-4 text-muted-foreground" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start" className="min-w-[14rem]">
+							<DropdownMenuRadioGroup
+								value={deviceFilter}
+								onValueChange={setDeviceFilter}
+							>
+								<DropdownMenuRadioItem value={DEVICE_FILTER_ALL_DEVICES}>
+									<DeviceOptionLabel
+										icon={<LuMonitorSmartphone className="size-3.5" />}
+										label={t({
+											message: "All devices",
+										})}
+									/>
+								</DropdownMenuRadioItem>
+								<DropdownMenuRadioItem value={DEVICE_FILTER_THIS_DEVICE}>
+									<DeviceOptionLabel
+										icon={<LuLaptop className="size-3.5" />}
+										label={
+											localHostName
+												? t({
+														message: `${localHostName} (this device)`,
+													})
+												: t({
+														message: "This device",
+													})
+										}
+									/>
+								</DropdownMenuRadioItem>
+								{remoteHosts.length > 0 ? (
+									<>
+										<DropdownMenuSeparator />
+										<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+											<Trans>Other devices</Trans>
+										</DropdownMenuLabel>
+										{remoteHosts.map((host) => (
+											<DropdownMenuRadioItem
+												key={host.hostId}
+												value={host.hostId}
+											>
+												<DeviceOptionLabel
+													icon={<LuMonitor className="size-3.5" />}
+													label={host.hostName}
+													isOnline={host.isOnline}
+												/>
+											</DropdownMenuRadioItem>
+										))}
+									</>
+								) : null}
+							</DropdownMenuRadioGroup>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				}
+				end={
+					<Button
+						size="sm"
+						className="h-8 shrink-0"
+						onClick={() => openNewWorkspace()}
+					>
+						<Trans>Create workspace</Trans>
+					</Button>
+				}
+			/>
 
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				{/* Bare icon+placeholder on the page background; -ml-3 puts the

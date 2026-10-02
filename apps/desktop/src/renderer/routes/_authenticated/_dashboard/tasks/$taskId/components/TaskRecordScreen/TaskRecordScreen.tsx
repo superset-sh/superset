@@ -7,11 +7,13 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useNow } from "renderer/hooks/useNow";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/components/DiscardConfirmDialog";
 import { NewProjectDialog } from "renderer/routes/_authenticated/_dashboard/components/NewProjectDialog";
+import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
 import { useOrganizationPeople } from "renderer/routes/_authenticated/_dashboard/hooks/useOrganizationPeople";
@@ -41,6 +43,7 @@ export function TaskRecordScreen({
 	onBack,
 	onOpenAssignee,
 }: TaskRecordScreenProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const { t } = useLingui();
 	const navigate = useNavigate();
 	const tick = useNow(NOW_TICK_MS);
@@ -68,6 +71,10 @@ export function TaskRecordScreen({
 			refetchInterval: TASK_LIST_REFETCH_INTERVAL,
 		});
 	const { data: members } = cloudTrpc.organization.listMembers.useQuery();
+	const { data: importSource = null } = cloudTrpc.task.importSource.useQuery(
+		taskRecord?.id ?? "",
+		{ enabled: !!taskRecord?.id },
+	);
 
 	const task: TaskRecord | null = useMemo(() => {
 		if (!taskRecord) return null;
@@ -256,13 +263,15 @@ export function TaskRecordScreen({
 	};
 
 	if (!task) {
-		if (isTaskPending || areStatusesPending) return null;
+		if (isTaskPending || areStatusesPending) return <StateScreenShell />;
 		return (
-			<div className="flex flex-1 items-center justify-center">
-				<span className="text-muted-foreground">
-					<Trans>Task not found</Trans>
-				</span>
-			</div>
+			<StateScreenShell>
+				<div className="flex h-full items-center justify-center">
+					<span className="text-muted-foreground">
+						<Trans>Task not found</Trans>
+					</span>
+				</div>
+			</StateScreenShell>
 		);
 	}
 
@@ -270,6 +279,7 @@ export function TaskRecordScreen({
 		<>
 			<TaskRecordView
 				task={task}
+				importSource={importSource}
 				now={now}
 				timeline={timeline}
 				currentUser={
@@ -296,7 +306,7 @@ export function TaskRecordScreen({
 				}
 				onCopyLink={() => copyShareLink(`tasks/${task.slug}`)}
 				onCopyId={() =>
-					toast.promise(copyToClipboard(task.slug), {
+					toast.promise(copyToClipboard(taskDisplayId(task)), {
 						success: t({ message: "Task ID copied" }),
 						error: (error) => errorMessage(error),
 					})

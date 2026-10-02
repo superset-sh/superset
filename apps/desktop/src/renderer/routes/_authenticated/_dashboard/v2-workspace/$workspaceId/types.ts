@@ -29,6 +29,27 @@ export interface TerminalPaneData {
 	 * clobber a live or exited session.
 	 */
 	createOnAttach?: boolean;
+	/**
+	 * Which surface an agent terminal shows. Only one of the two runs at a time:
+	 * on "acp" the pty is stopped and the chat drives the agent session; going
+	 * back to "cli" stops the chat and relaunches the agent on its resume args.
+	 * Absent means the terminal, as it always was.
+	 */
+	agentSurface?: "cli" | "acp";
+	/** chat-runtime session the ACP surface resumed this agent into. */
+	acpSessionId?: string | null;
+	/**
+	 * Captured before the pty is stopped, because the terminal row and its agent
+	 * binding go with it — and they are what the trip back needs. A pane opened
+	 * straight onto the chat has no session yet: the agent reports one on its
+	 * first turn, and until then there is nothing to resume on either surface.
+	 */
+	agent?: {
+		id: string;
+		sessionId?: string;
+	};
+	/** First message for a chat opened from the launcher, sent once. */
+	pendingPrompt?: string;
 }
 
 export interface BrowserPaneData {

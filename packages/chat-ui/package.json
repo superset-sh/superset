@@ -19,7 +19,8 @@
 		"@superset/i18n": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"lexical": "0.41.0",
-		"lucide-react": "0.563.0"
+		"lucide-react": "0.563.0",
+		"streamdown": "2.5.0"
 	},
 	"devDependencies": {
 		"@storybook/react-vite": "10.4.2",

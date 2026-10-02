@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import {
+	type SelectTask,
 	suggestions,
 	taskLabels,
 	taskProjects,
@@ -38,6 +39,8 @@ type CloudWorkspaceSuggestionView = {
 			task: {
 				id: string;
 				slug: string;
+				externalProvider: SelectTask["externalProvider"];
+				externalKey: string | null;
 				title: string;
 				status: {
 					type: string;
@@ -150,6 +153,8 @@ export const suggestionRouter = {
 							.select({
 								id: tasks.id,
 								slug: tasks.slug,
+								externalProvider: tasks.externalProvider,
+								externalKey: tasks.externalKey,
 								title: tasks.title,
 								statusType: taskStatuses.type,
 								statusColor: taskStatuses.color,
@@ -193,6 +198,8 @@ export const suggestionRouter = {
 							task: {
 								id: task.id,
 								slug: task.slug,
+								externalProvider: task.externalProvider,
+								externalKey: task.externalKey,
 								title: task.title,
 								status:
 									task.statusType && task.statusColor

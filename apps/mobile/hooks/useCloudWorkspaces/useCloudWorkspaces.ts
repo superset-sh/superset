@@ -7,6 +7,8 @@ import { useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
 import { pruneSandboxAccess } from "@/lib/sandbox-access";
 import { apiClient } from "@/lib/trpc/client";
+import { withPendingCloudMoves } from "../useCloudWorkspaceActions/pendingCloudMoves";
+import { reviveCloudWorkspaceRows } from "./reviveCloudWorkspaceRow";
 
 export type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
 
@@ -57,10 +59,14 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 			current.state.data?.some((row) => row.status === "provisioning")
 				? PROVISIONING_POLL_MS
 				: IDLE_POLL_MS,
+		select: reviveCloudWorkspaceRows,
 		queryFn: async (): Promise<CloudWorkspaceRow[]> => {
 			if (!organizationId) return NO_ROWS;
 			try {
-				return await apiClient.cloudWorkspace.list.query({ organizationId });
+				return withPendingCloudMoves(
+					"active",
+					await apiClient.cloudWorkspace.list.query({ organizationId }),
+				);
 			} catch (error) {
 				if (
 					error instanceof TRPCClientError &&

@@ -4,6 +4,7 @@ import type { IconType } from "react-icons";
 import { HiOutlineCube } from "react-icons/hi2";
 import {
 	LuArchive,
+	LuArchiveRestore,
 	LuFileText,
 	LuGitPullRequest,
 	LuLink2,
@@ -14,6 +15,7 @@ import {
 	LuUnlink2,
 	LuUsers,
 } from "react-icons/lu";
+import { useTaskDisplayId } from "renderer/hooks/useTaskDisplayId";
 import { CloudTaskIcon } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskIcon";
 import { CloudWorkspaceLabelDot } from "renderer/routes/_authenticated/_dashboard/components/CloudWorkspaceLabelDot";
 import { PullRequestLink } from "renderer/routes/_authenticated/_dashboard/components/PullRequestLink";
@@ -54,6 +56,7 @@ const SYSTEM_ICON: Record<Entry["kind"], IconType> = {
 	pull_request_opened: LuGitPullRequest,
 	page_published: LuFileText,
 	archived: LuArchive,
+	unarchived: LuArchiveRestore,
 };
 
 export function CloudWorkspaceTimelineEntry({
@@ -69,6 +72,7 @@ export function CloudWorkspaceTimelineEntry({
 	onOpenEnvironment,
 	onOpenPerson,
 }: CloudWorkspaceTimelineEntryProps) {
+	const taskDisplayId = useTaskDisplayId();
 	const actor = (
 		<TimelineActor actor={entry.actor} onOpenPerson={onOpenPerson} />
 	);
@@ -167,8 +171,8 @@ export function CloudWorkspaceTimelineEntry({
 					icon={<CloudTaskIcon task={entry.task} />}
 					onClick={() => onOpenTask(entry.task.id)}
 				>
-					<span className="font-normal text-muted-foreground">
-						{entry.task.slug}
+					<span className="font-mono font-normal text-muted-foreground">
+						{taskDisplayId(entry.task)}
 					</span>{" "}
 					{entry.task.title}
 				</RecordInlineLink>
@@ -191,8 +195,8 @@ export function CloudWorkspaceTimelineEntry({
 					icon={<CloudTaskIcon task={entry.task} />}
 					onClick={() => onOpenTask(entry.task.id)}
 				>
-					<span className="font-normal text-muted-foreground">
-						{entry.task.slug}
+					<span className="font-mono font-normal text-muted-foreground">
+						{taskDisplayId(entry.task)}
 					</span>{" "}
 					{entry.task.title}
 				</RecordInlineLink>
@@ -237,6 +241,9 @@ export function CloudWorkspaceTimelineEntry({
 		}
 		case "archived":
 			sentence = <Trans>{actor} archived the workspace</Trans>;
+			break;
+		case "unarchived":
+			sentence = <Trans>{actor} unarchived the workspace</Trans>;
 			break;
 	}
 	return (

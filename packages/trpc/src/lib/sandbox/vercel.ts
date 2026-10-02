@@ -339,7 +339,8 @@ export async function wakeSandbox(args: {
 	claim: SandboxClaim;
 }): Promise<{
 	hostTarget: string;
-	wasRunning: boolean;
+	/** The session was stopped, so every process on the box started from this claim. */
+	booted: boolean;
 }> {
 	try {
 		const sandbox = await Sandbox.get({
@@ -377,7 +378,7 @@ export async function wakeSandbox(args: {
 			hostTarget,
 			claim: args.claim,
 		});
-		return { hostTarget, wasRunning };
+		return { hostTarget, booted: !wasRunning };
 	} catch (error) {
 		if (isUnavailable(error))
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
@@ -496,6 +497,12 @@ export async function waitForStopSnapshot(
  * does to the box it keeps, so it costs storage rather than compute until
  * someone resumes it to look or deletes it.
  */
+export async function sandboxExists(
+	providerSandboxId: string,
+): Promise<boolean> {
+	return (await getSandbox(providerSandboxId)) !== null;
+}
+
 export async function stopSandbox(providerSandboxId: string): Promise<void> {
 	const sandbox = await getSandbox(providerSandboxId);
 	if (!sandbox || sandbox.status !== "running") return;

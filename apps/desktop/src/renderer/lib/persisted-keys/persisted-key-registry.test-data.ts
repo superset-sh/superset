@@ -58,7 +58,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-workspaces-view"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatSession/components/Composer/Composer.tsx",
 		["chat-v3-draft:*"],
 	],
 	["src/renderer/stores/changes/store.ts", ["changes-store"]],
@@ -111,6 +111,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	[
 		"src/renderer/stores/terminal-close-confirm/store.ts",
 		["terminal-close-confirm-v1"],
+	],
+	[
+		"src/renderer/stores/automation-failures/store.ts",
+		["automation-failures-v1"],
 	],
 	[
 		"src/renderer/stores/app-version-history/store.ts",
@@ -191,6 +195,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	[
 		"src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx",
+		["lastViewedWorkspaceId"],
+	],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/automations/runs/components/RunRow/RunRow.tsx",
 		["lastViewedWorkspaceId"],
 	],
 	[

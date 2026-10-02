@@ -1,6 +1,6 @@
 {
 	"name": "@superset/host-service",
-	"version": "1.32.0",
+	"version": "1.35.0",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -75,6 +75,8 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@agentclientprotocol/claude-agent-acp": "0.84.0",
+		"@agentclientprotocol/codex-acp": "2.1.0",
 		"@hono/node-server": "2.0.10",
 		"@hono/node-ws": "1.3.0",
 		"@hono/trpc-server": "0.3.4",
@@ -94,10 +96,11 @@
 		"@xterm/headless": "6.1.0-beta.302",
 		"better-sqlite3": "12.11.1",
 		"drizzle-orm": "0.45.2",
-		"hono": "4.13.5",
+		"hono": "4.13.7",
 		"mime-types": "3.0.2",
 		"node-pty": "1.2.0-beta.14",
 		"partysocket": "1.3.0",
+		"pi-acp": "0.0.34",
 		"semver": "7.7.4",
 		"simple-git": "3.36.0",
 		"superjson": "2.2.6",

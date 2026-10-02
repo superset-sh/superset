@@ -1,0 +1,1 @@
+ALTER TABLE "cloud_workspaces" ADD COLUMN "boot_agent_credential_digest" text;

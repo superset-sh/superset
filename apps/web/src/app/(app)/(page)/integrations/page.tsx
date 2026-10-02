@@ -6,12 +6,15 @@ import {
 	type IntegrationProvider,
 	offeredIntegrations,
 } from "@superset/shared/integrations";
+import { useQuery } from "@tanstack/react-query";
 import { useFeatureFlagPayload } from "posthog-js/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { BsMicrosoftTeams } from "react-icons/bs";
 import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
 import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
+import { useTRPC } from "@/trpc/react";
 import { IntegrationCard } from "./components/IntegrationCard";
+import { ProFeaturesPaywall } from "./components/ProFeaturesPaywall";
 
 const CARD_STYLES: Record<
 	IntegrationProvider,
@@ -29,7 +32,39 @@ const CARD_STYLES: Record<
 	google: { accentColor: "#4285F4", icon: <FaGoogle className="size-8" /> },
 };
 
+const PRO_FEATURE: Partial<Record<IntegrationProvider, string>> = {
+	linear: "tasks",
+	github: "remote-access",
+};
+
+function isProGated(value: string | null): value is IntegrationProvider {
+	return value !== null && value in PRO_FEATURE;
+}
+
 export default function IntegrationsPage() {
+	const trpc = useTRPC();
+	const { data: organization } = useQuery(
+		trpc.user.myOrganization.queryOptions(),
+	);
+	const { data: syncAllowed } = useQuery({
+		...trpc.integration.syncAllowed.queryOptions({
+			organizationId: organization?.id ?? "",
+		}),
+		enabled: !!organization,
+	});
+	const [paywallFor, setPaywallFor] = useState<IntegrationProvider | null>(
+		null,
+	);
+
+	// The Linear and GitHub pages and connect routes send a free organization
+	// here with ?pro=<provider>.
+	useEffect(() => {
+		const pro = new URLSearchParams(window.location.search).get("pro");
+		if (!isProGated(pro)) return;
+		setPaywallFor(pro);
+		window.history.replaceState({}, "", "/integrations");
+	}, []);
+
 	// Before the flag resolves this is the standalone set, which is what
 	// everyone outside the flag sees anyway; the trigger-only providers join
 	// once the payload arrives.
@@ -57,10 +92,21 @@ export default function IntegrationsPage() {
 							description={integration.description()}
 							category={integration.category()}
 							{...CARD_STYLES[integration.provider]}
+							onClick={
+								syncAllowed === false && integration.provider in PRO_FEATURE
+									? () => setPaywallFor(integration.provider)
+									: undefined
+							}
 						/>
 					))}
 				</div>
 			</section>
+
+			<ProFeaturesPaywall
+				featureId={paywallFor ? (PRO_FEATURE[paywallFor] ?? null) : null}
+				triggerSource={paywallFor && `integration-${paywallFor}`}
+				onClose={() => setPaywallFor(null)}
+			/>
 		</div>
 	);
 }

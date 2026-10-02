@@ -162,6 +162,14 @@ model and GitHub ones, the API resolves that to the workspace's creator, and
 `SANDBOX_ALLOWED_PROCEDURES` is the list of things it may then call. A header
 rule applies to every process in the box, so that list is the boundary —
 widen it deliberately, and never to a procedure that can grant more access.
+A box acts in its own organization only. In `packages/trpc/src/trpc.ts`,
+`jwtProcedure` drops the creator's other memberships, both builders refuse an
+organization header that names one, and `protectedProcedure` keeps the box's
+organization as the active one; `user.myOrganizations` lists only the box's.
+Archiving the box from inside it
+(`workspaces delete`) ends the session that ran the command: expect no output,
+put the box's own id last when deleting several, and unarchive from a
+signed-in client.
 
 **Docker is installed but not started.** An environment whose repository needs
 containers starts it from its own `start` command, which is also where it
@@ -266,11 +274,11 @@ preset, but the image installs only Claude and Codex.
 
 ## Lifecycle
 
-**Delete is not wired.** The generic delete routes to the owning host, which
-for a cloud workspace deletes the row *inside* the sandbox and leaves the
+**Delete was not wired.** The generic delete routed to the owning host, which
+for a cloud workspace deleted the row *inside* the sandbox and left the
 sandbox running (and billing) plus the `cloud_workspaces` row intact — the
-workspace reappears on the next refetch. It needs to call
-`cloudWorkspace.delete`. **Open.**
+workspace reappeared on the next refetch. **Fixed:** `useDestroyWorkspace`
+sends a cloud workspace to `cloudWorkspace.delete`.
 
 **Sidebar affordances are driven by local state, not by the row.** Visibility,
 pinning and ordering live in `v2WorkspaceLocalState`; a section that renders
@@ -562,3 +570,35 @@ shared memory there.
 
 **What we did:** `superset-desktop-init` remounts `/dev/shm` at 50% of RAM
 at boot, after which four windows open without a crash.
+
+## A black renderer survives a full display restart — open
+
+**The app assumes:** a BrowserWindow that logs `did-finish-load` and stays
+responsive to `Runtime.evaluate` is painting. `main.ts` only guards against one
+failure mode here — a GPU process restart leaving stale compositor layers — by
+calling `webContents.invalidate()` plus a 1px resize nudge on
+`child-process-gone` (type `GPU`), rate-limited to once per 10s.
+
+**A sandbox is:** on this display (software compositing via llvmpipe/SwiftShader,
+`disableHardwareAcceleration()` always on for Linux), the window went fully
+black — frame, titlebar, and OS window controls intact, zero DOM paint — after
+some combination of repeated `Page.reload()` over CDP and killing/relaunching
+the Electron process a few times in one session (2026-10-02). Once black, it
+stayed black across: killing just Electron and relaunching (3 attempts), a full
+`superset-desktop-init` restart (fresh Xvnc + fresh D-Bus + fresh window
+manager), and reverting an unrelated DB change that briefly looked like a
+suspect. A sibling `google-chrome` window on the *same* display, launched at
+the same time, rendered fine — ruling out the display/compositor stack itself.
+`document.body.innerText` was empty but `document.documentElement.outerHTML`
+was ~390KB and `readyState` was `"complete"`; no `Runtime.exceptionThrown`, no
+`console.error`, no Crashpad dump. An OS-level `xdotool windowsize` nudge and a
+CDP `Emulation.setDeviceMetricsOverride` round-trip (the two things available
+without a `--inspect`'d main process) did not reproduce what `forceRepaint()`
+does and did not unblack it.
+
+**What we did:** nothing that worked. Logged the repro shape so the next person
+doesn't re-spend a session on it; the next thing to try is attaching to the
+*main* process (`--inspect`) and calling `webContents.invalidate()` /
+`win.setSize()` directly rather than simulating it from outside, or watching
+`app.on("child-process-gone")` / `render-process-gone` across a CDP-reload
+loop to catch the actual GPU-process death this is presumably downstream of.

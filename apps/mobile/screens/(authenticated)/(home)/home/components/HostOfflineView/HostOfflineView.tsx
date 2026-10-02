@@ -56,7 +56,7 @@ export function HostOfflineView({
 					{t({ message: `Last seen ${lastSeen}` })}
 				</Text>
 			</View>
-			<View className="border-border bg-card w-full rounded-2xl border px-4">
+			<View className="border-border bg-card w-full max-w-md rounded-2xl border px-4">
 				<HintRow
 					leading={<Icon as={Moon} className="text-muted-foreground size-4" />}
 				>

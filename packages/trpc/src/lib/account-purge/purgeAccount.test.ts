@@ -23,6 +23,7 @@ let log: string[] = [];
 let posthogResponse: () => Response;
 let posthogRequests: Array<{ url: string; init: RequestInit }> = [];
 let failCustomerDelete: Error | null = null;
+let failPageStoragePurge: Error | null = null;
 
 const dialect = new PgDialect();
 const firstParam = (condition: SQL) =>
@@ -103,6 +104,17 @@ mock.module("@superset/db/client", () => {
 	};
 });
 
+mock.module("../page-store", () => ({
+	purgePageStorageForUser: async (userId: string) => {
+		log.push(`page-storage.purge ${userId}`);
+		if (failPageStoragePurge) throw failPageStoragePurge;
+		return { pages: 0, cleared: 0 };
+	},
+	callPageStore: async () => ({ ok: true }),
+	deletePageStorage: async () => {},
+	notifyPageHub: () => {},
+}));
+
 mock.module("@superset/auth/stripe", () => ({
 	stripeClient: {
 		subscriptions: {
@@ -159,6 +171,7 @@ describe("purgeAccount", () => {
 		log = [];
 		posthogRequests = [];
 		failCustomerDelete = null;
+		failPageStoragePurge = null;
 		posthogResponse = () =>
 			Response.json(
 				{ persons_found: 1, persons_deleted: 1, deletion_errors: [] },
@@ -202,6 +215,7 @@ describe("purgeAccount", () => {
 		});
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"subscription.cancel sub_solo",
 			"charges.list cus_solo",
 			"customer.delete cus_solo",
@@ -225,6 +239,7 @@ describe("purgeAccount", () => {
 		expect(customerById("cus_paid").deleted).toBe(false);
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"charges.list cus_paid",
 			"organization.delete org-paid",
 			"tombstone",
@@ -245,6 +260,7 @@ describe("purgeAccount", () => {
 
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"subscription.update sub_shared 1",
 			"tombstone",
 		]);
@@ -268,6 +284,7 @@ describe("purgeAccount", () => {
 		await purge();
 		expect(log).toEqual([
 			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
 			"charges.list cus_gone",
 			"organization.delete org-solo",
 			"tombstone",
@@ -290,6 +307,21 @@ describe("purgeAccount", () => {
 		expect(log).toEqual(["posthog.delete"]);
 	});
 
+	test("a hub that kept records leaves the user untombstoned", async () => {
+		organizations = [
+			{ id: "org-solo", memberIds: [USER_ID], stripeCustomerId: "cus_solo" },
+		];
+		customers.set("cus_solo", {
+			deleted: false,
+			activeSubscriptionIds: [],
+			charges: [],
+		});
+		failPageStoragePurge = new Error("Page storage kept records on 1 page(s)");
+
+		await expect(purge()).rejects.toThrow("Page storage kept records");
+		expect(log).toEqual(["posthog.delete", `page-storage.purge ${USER_ID}`]);
+	});
+
 	test("a Stripe error other than a missing customer leaves the user untombstoned", async () => {
 		organizations = [
 			{ id: "org-solo", memberIds: [USER_ID], stripeCustomerId: "cus_solo" },
@@ -304,6 +336,10 @@ describe("purgeAccount", () => {
 		});
 
 		await expect(purge()).rejects.toThrow("rate limited");
-		expect(log).toEqual(["posthog.delete", "charges.list cus_solo"]);
+		expect(log).toEqual([
+			"posthog.delete",
+			`page-storage.purge ${USER_ID}`,
+			"charges.list cus_solo",
+		]);
 	});
 });

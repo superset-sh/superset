@@ -1,0 +1,1091 @@
+import { randomUUID } from "node:crypto";
+import type {
+	ApprovalRequest,
+	Decision,
+	Item,
+	Plan,
+	SessionState,
+	ToolCall,
+	ToolContent,
+	ToolKind,
+	Turn,
+	UserContent,
+} from "@superset/chat/protocol";
+import { EventQueue } from "../eventQueue";
+import type {
+	AdapterEvent,
+	HarnessAdapter,
+	HarnessStartOptions,
+} from "../types";
+import type {
+	AcpNotification,
+	AcpServerRequest,
+	AcpTransport,
+	AcpTransportHandlers,
+	SpawnAcpOptions,
+} from "./rpcClient";
+import { AcpRpcClient, spawnAcpTransport } from "./rpcClient";
+import {
+	type AcpContentBlock,
+	type AcpToolCallContent,
+	acpAvailableCommandsUpdateSchema,
+	acpConfigOptionUpdateSchema,
+	acpContentBlockSchema,
+	acpInitializeResponseSchema,
+	acpMessageSchema,
+	acpNewSessionResponseSchema,
+	acpPlanSchema,
+	acpPlanUpdateSchema,
+	acpPromptResponseSchema,
+	acpRequestPermissionParamsSchema,
+	acpSessionNotificationSchema,
+	acpSessionUpdateSchema,
+	acpStateUpdateSchema,
+	acpSubagentUpdateSchema,
+	acpToolCallContentChunkSchema,
+	acpToolCallUpdateSchema,
+} from "./wire";
+
+/**
+ * The newest protocol version this adapter speaks. ACP negotiates: the agent
+ * replies with this version when it supports it, or with the newest it does,
+ * and `negotiatedVersion` is what the session actually runs on. Asking for
+ * more than an agent knows is safe and is how the fleet moves forward.
+ */
+const LATEST_PROTOCOL_VERSION = 2;
+
+/** Who `initialize` says we are; v2 requires a name and a version. */
+const CLIENT_INFO = { name: "superset", version: "1.0.0" };
+
+const TOOL_KIND_BY_ACP: Record<string, ToolKind> = {
+	read: "read",
+	edit: "edit",
+	delete: "delete",
+	move: "move",
+	search: "search",
+	execute: "execute",
+	think: "think",
+	fetch: "fetch",
+	switch_mode: "other",
+	other: "other",
+};
+
+function toolKind(kind: string | undefined): ToolKind {
+	return (kind && TOOL_KIND_BY_ACP[kind]) || "other";
+}
+
+function toolStatus(status: string | undefined): ToolCall["status"] {
+	switch (status) {
+		case "completed":
+			return "completed";
+		case "failed":
+			return "failed";
+		// v2 added `cancelled` alongside `pending`, which is still pre-run.
+		case "cancelled":
+			return "canceled";
+		default:
+			return "running";
+	}
+}
+
+function toolCallSettled(status: string | null | undefined): boolean {
+	return (
+		status === "completed" || status === "failed" || status === "cancelled"
+	);
+}
+
+function planEntryStatus(status: string): Plan["entries"][number]["status"] {
+	if (status === "in_progress" || status === "completed") return status;
+	return "pending";
+}
+
+function planEntryItems(
+	entries: ReadonlyArray<{ content: string; status: string }>,
+): Plan["entries"] {
+	return entries.map((entry) => ({
+		text: entry.content,
+		status: planEntryStatus(entry.status),
+	}));
+}
+
+function messageText(content: readonly AcpContentBlock[]): string {
+	return content
+		.filter((block) => block.type === "text")
+		.map((block) => block.text ?? "")
+		.join("");
+}
+
+/**
+ * v2's `state_update` reports the agent's foreground work, which is a session
+ * status rather than the mode `current_mode_update` carried in v1. Custom and
+ * `unknown` states leave the status alone.
+ */
+const SESSION_STATUS_BY_ACP_STATE: Record<string, SessionState["status"]> = {
+	running: "running",
+	idle: "idle",
+	requires_action: "awaiting_input",
+};
+
+export type AcpAdapterOptions = SpawnAcpOptions & {
+	now?: () => number;
+	mintId?: () => string;
+	createTransport?(
+		options: SpawnAcpOptions,
+		handlers: AcpTransportHandlers,
+	): AcpTransport;
+};
+
+type OpenText = {
+	itemId: string;
+	kind: "agent_message" | "reasoning" | "user_message";
+	/** v2's message identity; v1 chunks carry none and group by kind and turn. */
+	messageId: string | null;
+	text: string;
+	turnId: string;
+	startedAtMs: number;
+};
+
+type PendingApproval = {
+	requestId: number | string;
+	turnId: string;
+	item: ApprovalRequest;
+};
+
+/**
+ * Bridges an Agent Client Protocol subprocess (Claude Code / Codex ACP
+ * adapters) into the chat runtime. A chat turn maps to one `session/prompt`
+ * round trip; ACP `session/update` notifications stream into chat items and
+ * deltas; `session/request_permission` becomes an approval item.
+ */
+export class AcpAdapter implements HarnessAdapter {
+	private readonly queue = new EventQueue();
+	private readonly toolCalls = new Map<string, ToolCall>();
+	private readonly pendingApprovals = new Map<string, PendingApproval>();
+	/**
+	 * Text and start of each v2 message that has already flushed, so a later
+	 * chunk or whole-message patch for the same id reopens the item it had
+	 * rather than a second one beside it.
+	 */
+	private readonly messages = new Map<
+		string,
+		{ text: string; startedAtMs: number }
+	>();
+	/** Children announced by `subagent_update`, so each is noted once. */
+	private readonly subagents = new Set<string>();
+	/** Start of each named v2 plan, so a revision keeps its place in the order. */
+	private readonly planItems = new Map<string, number>();
+	private client: AcpRpcClient | null = null;
+	private sessionId: string | null = null;
+	private cwd = process.cwd();
+	private openText: OpenText | null = null;
+	private currentTurn: Turn | null = null;
+	private historyTurnId: string | null = null;
+	private lastStartMs = 0;
+	/** What `initialize` settled on; v2 features stay dark below it. */
+	private negotiatedVersion = 1;
+	private agentCapabilities: Record<string, unknown> = {};
+	/** The v2 config option that stands in for v1's session mode, once seen. */
+	private modeConfigId: string | null = null;
+	private replaying = false;
+	private queuedPrompts: UserContent[][] = [];
+	private disposed = false;
+
+	constructor(private readonly options: AcpAdapterOptions) {}
+
+	start(startOptions: HarnessStartOptions): AsyncIterable<AdapterEvent> {
+		this.cwd = startOptions.cwd;
+		void this.bootstrap(startOptions);
+		return this.queue.iterable();
+	}
+
+	prompt(content: UserContent[]): void {
+		if (!this.client || !this.sessionId) {
+			this.queuedPrompts.push(content);
+			return;
+		}
+		void this.runTurn(content);
+	}
+
+	cancelTurn(): void {
+		if (!this.client || !this.sessionId) return;
+		if (this.currentTurn?.status !== "running") return;
+		this.client.notify("session/cancel", { sessionId: this.sessionId });
+	}
+
+	respondToApproval(approvalId: string, decision: Decision): void {
+		const pending = this.pendingApprovals.get(approvalId);
+		if (!pending || !this.client) return;
+		this.pendingApprovals.delete(approvalId);
+		this.client.respond(
+			pending.requestId,
+			this.approvalOutcome(pending, decision),
+		);
+		this.emitItem(
+			{
+				...pending.item,
+				status: "answered",
+				decision,
+				completedAtMs: this.now(),
+			},
+			pending.turnId,
+		);
+		this.emitSession({ status: "running" });
+	}
+
+	setMode(modeId: string): void {
+		this.emitSession({ modeId });
+		if (!this.client || !this.sessionId) return;
+		// v2 dropped session/set_mode outright: a mode is a config option there,
+		// and `config_option_update` is what told us which one.
+		const pending =
+			this.negotiatedVersion >= 2 && this.modeConfigId
+				? this.client.request("session/set_config_option", {
+						sessionId: this.sessionId,
+						configId: this.modeConfigId,
+						type: "id",
+						value: modeId,
+					})
+				: this.client.request("session/set_mode", {
+						sessionId: this.sessionId,
+						modeId,
+					});
+		void pending.catch((error: Error) =>
+			this.emitNotice("error", error.message),
+		);
+	}
+
+	/**
+	 * session/fork is unstable but reachable on v1, and both shipped adapters
+	 * advertise it. The agent copies its own session; the caller decides what to
+	 * attach to the id that comes back.
+	 */
+	async fork(): Promise<string | null> {
+		if (!this.client || !this.sessionId) return null;
+		if (!this.supportsSessionCapability("fork")) return null;
+		const response = await this.client.request("session/fork", {
+			sessionId: this.sessionId,
+			cwd: this.cwd,
+			mcpServers: [],
+		});
+		const parsed = acpNewSessionResponseSchema.safeParse(response);
+		return parsed.success ? parsed.data.sessionId : null;
+	}
+
+	/** What `initialize` said this agent can do to a session. */
+	private supportsSessionCapability(name: string): boolean {
+		const caps = this.agentCapabilities.sessionCapabilities;
+		return Boolean(
+			caps && typeof caps === "object" && name in (caps as object),
+		);
+	}
+
+	async dispose(): Promise<void> {
+		if (this.disposed) return;
+		this.disposed = true;
+		this.stalePendingApprovals();
+		await this.client?.close();
+		this.queue.close();
+	}
+
+	private async bootstrap(startOptions: HarnessStartOptions): Promise<void> {
+		this.emitSession({ status: "starting" });
+		try {
+			const client = new AcpRpcClient({
+				createTransport: (handlers) =>
+					(this.options.createTransport ?? spawnAcpTransport)(
+						{
+							command: this.options.command,
+							args: this.options.args,
+							cwd: startOptions.cwd,
+							env: this.options.env,
+						},
+						handlers,
+					),
+				onNotification: (notification) => this.handleNotification(notification),
+				onServerRequest: (request) => this.handleServerRequest(request),
+				onStderr: () => undefined,
+				onDispatchError: (error, method) =>
+					this.emitNotice(
+						"error",
+						`acp ${method} could not be read: ${error instanceof Error ? error.message : String(error)}`,
+					),
+				onExit: (code) => this.handleExit(code),
+			});
+			this.client = client;
+
+			const initialized = await client.request("initialize", {
+				protocolVersion: LATEST_PROTOCOL_VERSION,
+				// v2 requires `info` and renamed `clientCapabilities` to
+				// `capabilities`, so both names go out and one request serves either
+				// side of the bump.
+				info: CLIENT_INFO,
+				// Nothing to advertise either way: v2 moved fs and terminal out of
+				// client capabilities entirely, and receiving `subagent_update` is a
+				// baseline v2 requirement rather than a capability.
+				capabilities: {},
+				// Do not advertise fs/terminal: the agent falls back to its own
+				// Read/Edit/Bash tools, which run headless in the workspace.
+				clientCapabilities: {
+					fs: { readTextFile: false, writeTextFile: false },
+					terminal: false,
+				},
+			});
+
+			const negotiated = acpInitializeResponseSchema.safeParse(initialized);
+			if (negotiated.success) {
+				this.negotiatedVersion =
+					negotiated.data.protocolVersion ?? this.negotiatedVersion;
+				this.agentCapabilities =
+					negotiated.data.capabilities ??
+					negotiated.data.agentCapabilities ??
+					{};
+			}
+
+			let response: unknown;
+			if (startOptions.resume) {
+				this.replaying = true;
+				try {
+					response = await client.request("session/load", {
+						sessionId: startOptions.resume.harnessSessionId,
+						cwd: startOptions.cwd,
+						mcpServers: [],
+					});
+				} catch (loadError) {
+					// An agent that was started but never prompted has a session id and
+					// no transcript behind it, so loading one answers "not found".
+					// There is no conversation to lose in that case, and none to
+					// recover in the other, so opening a new session is the only thing
+					// left to do either way — do it, and say so quietly rather than
+					// handing back an error the reader cannot act on.
+					this.emitNotice(
+						"info",
+						"No earlier conversation to open, so this is a new one.",
+					);
+					console.warn("[acp] session/load failed", loadError);
+					response = await client.request("session/new", {
+						cwd: startOptions.cwd,
+						mcpServers: [],
+					});
+				} finally {
+					this.replaying = false;
+					// Nothing follows the replay, so the last item it opened has no
+					// later turn to flush it.
+					this.flushOpenText();
+				}
+			} else {
+				response = await client.request("session/new", {
+					cwd: startOptions.cwd,
+					mcpServers: [],
+				});
+			}
+
+			// session/load returns null after replaying history via session/update.
+			const parsed = acpNewSessionResponseSchema.safeParse(response);
+			this.sessionId = parsed.success
+				? parsed.data.sessionId
+				: (startOptions.resume?.harnessSessionId ?? null);
+
+			if (!this.sessionId) {
+				this.emitNotice("error", "acp agent returned no session id");
+				this.emitSession({ status: "dead" });
+				this.queue.close();
+				return;
+			}
+
+			this.emitSession({
+				status: "idle",
+				harnessSessionId: this.sessionId,
+				...(parsed.success && parsed.data.modes?.currentModeId
+					? { modeId: parsed.data.modes.currentModeId }
+					: {}),
+				...(parsed.success && parsed.data.modes?.availableModes
+					? {
+							availableModes: parsed.data.modes.availableModes.map((mode) => ({
+								id: mode.id,
+								label: mode.name,
+							})),
+						}
+					: {}),
+			});
+
+			const queued = this.queuedPrompts.splice(0, this.queuedPrompts.length);
+			for (const content of queued) await this.runTurn(content);
+		} catch (error) {
+			this.emitNotice("error", this.authAwareMessage(error));
+			this.emitSession({ status: "dead" });
+			this.queue.close();
+		}
+	}
+
+	private async runTurn(content: UserContent[]): Promise<void> {
+		const client = this.client;
+		if (!client || !this.sessionId) return;
+		const turnId = this.mintId();
+		this.emitTurn({ id: turnId, status: "running", startedAtMs: this.now() });
+		this.emitSession({ status: "running" });
+		try {
+			const response = await client.request("session/prompt", {
+				sessionId: this.sessionId,
+				prompt: this.toAcpPrompt(content),
+			});
+			this.flushOpenText();
+			const stopReason =
+				acpPromptResponseSchema.safeParse(response).data?.stopReason;
+			this.emitTurn({
+				id: turnId,
+				status: stopReason === "cancelled" ? "interrupted" : "completed",
+				startedAtMs: this.currentTurn?.startedAtMs ?? this.now(),
+				completedAtMs: this.now(),
+			});
+			if (stopReason === "refusal")
+				this.emitNotice("info", "The agent declined to continue.");
+			this.emitSession({ status: "idle" });
+		} catch (error) {
+			this.flushOpenText();
+			this.emitTurn({
+				id: turnId,
+				status: "failed",
+				error: { message: (error as Error).message },
+				startedAtMs: this.currentTurn?.startedAtMs ?? this.now(),
+				completedAtMs: this.now(),
+			});
+			this.emitNotice("error", (error as Error).message);
+			this.emitSession({ status: "idle" });
+		}
+	}
+
+	private handleNotification({ method, params }: AcpNotification): void {
+		if (method !== "session/update") return;
+		const outer = acpSessionNotificationSchema.safeParse(params);
+		if (!outer.success) return;
+		const update = acpSessionUpdateSchema.safeParse(outer.data.update);
+		if (!update.success) return;
+		const raw = outer.data.update as { content?: unknown };
+		const variant = update.data.sessionUpdate;
+
+		// Live, a user message echoes a prompt the runtime already recorded. In a
+		// session/load replay it does not: those turns were typed at the CLI and
+		// this session has never seen them, so dropping them starts the transcript
+		// at the agent's first reply. Each one opens a turn of its own, or the
+		// whole replay lands in one group whose order comes down to item id.
+		if (variant === "user_message_chunk" || variant === "user_message") {
+			if (!this.replaying) return;
+			if (this.openText?.kind !== "user_message") {
+				this.flushOpenText();
+				// emitTurn leaves the history turn as `currentTurn`, which
+				// resolveTurnId answers with first — both have to go for the next
+				// resolve to mint a fresh turn.
+				this.currentTurn = null;
+				this.historyTurnId = null;
+			}
+			const replayTurnId = this.resolveTurnId();
+			if (variant === "user_message")
+				this.handleMessage("user_message", outer.data.update, replayTurnId);
+			else
+				this.appendText(
+					"user_message",
+					this.contentBlock(raw.content),
+					replayTurnId,
+					this.messageIdOf(outer.data.update),
+				);
+			return;
+		}
+
+		const turnId = this.resolveTurnId();
+
+		switch (variant) {
+			case "agent_message_chunk":
+				this.appendText(
+					"agent_message",
+					this.contentBlock(raw.content),
+					turnId,
+					this.messageIdOf(outer.data.update),
+				);
+				return;
+			case "agent_thought_chunk":
+				this.appendText(
+					"reasoning",
+					this.contentBlock(raw.content),
+					turnId,
+					this.messageIdOf(outer.data.update),
+				);
+				return;
+			case "agent_message":
+				this.handleMessage("agent_message", outer.data.update, turnId);
+				return;
+			case "agent_thought":
+				this.handleMessage("reasoning", outer.data.update, turnId);
+				return;
+			// v1 opened a tool call with `tool_call` and amended it with
+			// `tool_call_update`; v2 dropped the former and made the latter upsert,
+			// which is what handleToolCall has always done.
+			case "tool_call":
+			case "tool_call_update":
+				this.handleToolCall(outer.data.update, turnId);
+				return;
+			case "tool_call_content_chunk":
+				this.handleToolCallContentChunk(outer.data.update, turnId);
+				return;
+			case "plan":
+				this.handlePlan(outer.data.update, turnId);
+				return;
+			case "plan_update":
+				this.handlePlanUpdate(outer.data.update, turnId);
+				return;
+			case "available_commands_update":
+				this.handleAvailableCommands(outer.data.update);
+				return;
+			case "current_mode_update":
+				if (update.data.currentModeId)
+					this.emitSession({ modeId: update.data.currentModeId });
+				return;
+			case "config_option_update":
+				this.handleConfigOptions(outer.data.update);
+				return;
+			case "state_update":
+				this.handleStateUpdate(outer.data.update);
+				return;
+			case "subagent_update":
+				this.handleSubagentUpdate(outer.data.update);
+				return;
+			default:
+				return;
+		}
+	}
+
+	private messageIdOf(raw: unknown): string | null {
+		const messageId = (raw as { messageId?: unknown }).messageId;
+		return typeof messageId === "string" && messageId !== "" ? messageId : null;
+	}
+
+	private handleAvailableCommands(raw: unknown): void {
+		const parsed = acpAvailableCommandsUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		this.emitSession({
+			availableCommands: parsed.data.availableCommands
+				// A nameless command has nothing for the menu to invoke.
+				.filter((command) => command.name.trim() !== "")
+				.map((command) => ({
+					name: command.name,
+					...(command.description ? { description: command.description } : {}),
+					...(command.input?.hint ? { hint: command.input.hint } : {}),
+				})),
+		});
+	}
+
+	private contentBlock(raw: unknown): AcpContentBlock | undefined {
+		const parsed = acpContentBlockSchema.safeParse(raw);
+		return parsed.success ? parsed.data : undefined;
+	}
+
+	private appendText(
+		kind: OpenText["kind"],
+		content: AcpContentBlock | undefined,
+		turnId: string,
+		messageId: string | null = null,
+	): void {
+		const chunk = content?.type === "text" ? (content.text ?? "") : "";
+		if (!chunk) return;
+		const open = this.openMessage(kind, turnId, messageId);
+		open.text += chunk;
+		if (kind === "user_message") return;
+		this.emit({
+			kind: "delta",
+			delta: { type: "text", itemId: open.itemId, append: chunk },
+		});
+	}
+
+	/**
+	 * The open text item this content belongs to, started if it is not already.
+	 * v1 groups by kind and turn; v2 names the message, and a new name starts a
+	 * new item even within the same kind and turn.
+	 */
+	private openMessage(
+		kind: OpenText["kind"],
+		turnId: string,
+		messageId: string | null,
+	): OpenText {
+		const open = this.openText;
+		if (
+			open &&
+			open.kind === kind &&
+			open.turnId === turnId &&
+			open.messageId === messageId
+		)
+			return open;
+		this.flushOpenText();
+		// A v2 message can be appended to or patched after it flushed, so it
+		// reopens on the id and text it already had.
+		const flushed = messageId ? this.messages.get(messageId) : undefined;
+		const next: OpenText = {
+			itemId: messageId
+				? `${kind}:${turnId}:${messageId}`
+				: `${kind}:${turnId}:${this.mintId()}`,
+			kind,
+			messageId,
+			text: flushed?.text ?? "",
+			turnId,
+			startedAtMs: flushed?.startedAtMs ?? this.nextStartMs(),
+		};
+		this.openText = next;
+		// A user message has no text field to stream into, so it is recorded
+		// once, whole, when it flushes.
+		if (kind !== "user_message") this.emitItem(this.textItem(next), turnId);
+		return next;
+	}
+
+	/**
+	 * A whole v2 message, which patches the item its chunks produced: omitted
+	 * content leaves what was streamed alone, null and [] clear it, and an array
+	 * replaces it.
+	 */
+	private handleMessage(
+		kind: OpenText["kind"],
+		raw: unknown,
+		turnId: string,
+	): void {
+		const parsed = acpMessageSchema.safeParse(raw);
+		if (!parsed.success) return;
+		const open = this.openMessage(kind, turnId, parsed.data.messageId);
+		if (parsed.data.content !== undefined)
+			open.text = messageText(parsed.data.content ?? []);
+		this.flushOpenText();
+	}
+
+	private flushOpenText(): void {
+		if (!this.openText) return;
+		const open = this.openText;
+		this.openText = null;
+		if (open.messageId)
+			this.messages.set(open.messageId, {
+				text: open.text,
+				startedAtMs: open.startedAtMs,
+			});
+		this.emitItem(this.textItem(open), open.turnId);
+	}
+
+	private textItem(open: OpenText): Item {
+		const base = {
+			id: open.itemId,
+			startedAtMs: open.startedAtMs,
+			completedAtMs: this.now(),
+		};
+		switch (open.kind) {
+			case "agent_message":
+				return { ...base, kind: "agent_message", text: open.text };
+			case "user_message":
+				return {
+					...base,
+					kind: "user_message",
+					content: [{ type: "text", text: open.text }],
+				};
+			default:
+				return { ...base, kind: "reasoning", text: open.text };
+		}
+	}
+
+	private handleToolCall(raw: unknown, turnId: string): void {
+		const parsed = acpToolCallUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		this.flushOpenText();
+		const update = parsed.data;
+		const prior = this.toolCalls.get(update.toolCallId);
+		// Patch semantics in both versions: an omitted field leaves the stored
+		// value alone, and v2 added null to clear it.
+		const content =
+			update.content === undefined
+				? (prior?.content ?? [])
+				: this.toToolContent(update.content ?? []);
+		const locations =
+			update.locations === undefined
+				? prior?.locations
+				: (update.locations ?? undefined);
+		const rawInput =
+			update.rawInput === undefined ? prior?.rawInput : update.rawInput;
+		const rawOutput =
+			update.rawOutput === undefined ? prior?.rawOutput : update.rawOutput;
+		const item: ToolCall = {
+			id: update.toolCallId,
+			kind: "tool_call",
+			title: update.title ?? prior?.title ?? "Tool call",
+			toolKind: update.kind
+				? toolKind(update.kind)
+				: (prior?.toolKind ?? "other"),
+			toolName: update.name ?? update.kind ?? prior?.toolName ?? "tool",
+			status: update.status
+				? toolStatus(update.status)
+				: (prior?.status ?? "running"),
+			content,
+			...(locations?.length ? { locations } : {}),
+			startedAtMs: prior?.startedAtMs ?? this.nextStartMs(),
+			...(toolCallSettled(update.status)
+				? { completedAtMs: this.now() }
+				: prior?.completedAtMs !== undefined
+					? { completedAtMs: prior.completedAtMs }
+					: {}),
+			...(rawInput !== undefined ? { rawInput } : {}),
+			...(rawOutput !== undefined ? { rawOutput } : {}),
+		};
+		this.toolCalls.set(update.toolCallId, item);
+		this.emitItem(item, turnId);
+	}
+
+	/**
+	 * v2 streams tool output a content item at a time, appending to whatever the
+	 * tool call already holds. A chunk may name a call no update has opened yet,
+	 * so it opens one.
+	 */
+	private handleToolCallContentChunk(raw: unknown, turnId: string): void {
+		const parsed = acpToolCallContentChunkSchema.safeParse(raw);
+		if (!parsed.success) return;
+		this.flushOpenText();
+		const { toolCallId, content } = parsed.data;
+		const prior = this.toolCalls.get(toolCallId);
+		const item: ToolCall = {
+			id: toolCallId,
+			kind: "tool_call",
+			title: prior?.title ?? "Tool call",
+			toolKind: prior?.toolKind ?? "other",
+			toolName: prior?.toolName ?? "tool",
+			status: prior?.status ?? "running",
+			content: [...(prior?.content ?? []), ...this.toToolContent([content])],
+			...(prior?.locations?.length ? { locations: prior.locations } : {}),
+			startedAtMs: prior?.startedAtMs ?? this.nextStartMs(),
+			...(prior?.completedAtMs !== undefined
+				? { completedAtMs: prior.completedAtMs }
+				: {}),
+			...(prior?.rawInput !== undefined ? { rawInput: prior.rawInput } : {}),
+			...(prior?.rawOutput !== undefined ? { rawOutput: prior.rawOutput } : {}),
+		};
+		this.toolCalls.set(toolCallId, item);
+		this.emitItem(item, turnId);
+	}
+
+	private toToolContent(content: AcpToolCallContent[]): ToolContent[] {
+		const mapped: ToolContent[] = [];
+		for (const entry of content) {
+			if (entry.type === "content" && entry.content?.type === "text") {
+				mapped.push({ type: "text", text: entry.content.text ?? "" });
+			} else if (
+				entry.type === "diff" &&
+				entry.path &&
+				entry.newText !== undefined
+			) {
+				mapped.push({
+					type: "diff",
+					path: entry.path,
+					oldText: entry.oldText ?? null,
+					newText: entry.newText,
+				});
+			} else if (entry.type === "diff") {
+				// v2 reports a diff as structured changes plus patch text rather than
+				// the before and after of one file, which is all a diff item can
+				// hold, so the patch is shown as the text it already is.
+				const patch =
+					entry.patch?.text ??
+					(entry.changes ?? [])
+						.map((change) => `${change.operation ?? "modify"} ${change.path}`)
+						.join("\n");
+				if (patch) mapped.push({ type: "text", text: patch });
+			} else if (entry.type === "terminal" && entry.terminalId) {
+				mapped.push({ type: "text", text: `[terminal ${entry.terminalId}]` });
+			}
+		}
+		return mapped;
+	}
+
+	private handlePlan(raw: unknown, turnId: string): void {
+		const parsed = acpPlanSchema.safeParse(raw);
+		if (!parsed.success) return;
+		this.flushOpenText();
+		this.emitItem(
+			{
+				id: `plan:${turnId}`,
+				kind: "plan",
+				startedAtMs: this.nextStartMs(),
+				entries: planEntryItems(parsed.data.entries),
+			},
+			turnId,
+		);
+	}
+
+	/**
+	 * v2 replaced `plan` with a named plan carrying one of several bodies, and
+	 * only the entry list maps to a plan item — a `file` or `markdown` body has
+	 * no entries and is left alone.
+	 */
+	private handlePlanUpdate(raw: unknown, turnId: string): void {
+		const parsed = acpPlanUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		const { planId, entries } = parsed.data.plan;
+		if (!entries) return;
+		this.flushOpenText();
+		const prior = this.planItems.get(planId);
+		const startedAtMs = prior ?? this.nextStartMs();
+		this.planItems.set(planId, startedAtMs);
+		this.emitItem(
+			{
+				id: `plan:${turnId}:${planId}`,
+				kind: "plan",
+				startedAtMs,
+				entries: planEntryItems(entries),
+			},
+			turnId,
+		);
+	}
+
+	private handleStateUpdate(raw: unknown): void {
+		const parsed = acpStateUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		const status = SESSION_STATUS_BY_ACP_STATE[parsed.data.state];
+		if (status) this.emitSession({ status });
+	}
+
+	/**
+	 * A child session the parent spawned. v2 requires no client capability to
+	 * receive these — understanding them is baseline — and this surfaces the
+	 * announcement as a note; a child-session view is a later slice.
+	 */
+	private handleSubagentUpdate(raw: unknown): void {
+		const parsed = acpSubagentUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		const { sessionId, title, description } = parsed.data;
+		// Only the first update for a child announces it; the rest patch metadata
+		// this view does not show.
+		if (this.subagents.has(sessionId)) return;
+		this.subagents.add(sessionId);
+		const name = title ?? sessionId;
+		this.emitNotice(
+			"info",
+			description ? `Subagent ${name}: ${description}` : `Subagent ${name}`,
+		);
+	}
+
+	/**
+	 * v2 has no session mode: a mode is a `select` config option whose category
+	 * says so, and `session/set_config_option` sets it.
+	 */
+	private handleConfigOptions(raw: unknown): void {
+		const parsed = acpConfigOptionUpdateSchema.safeParse(raw);
+		if (!parsed.success) return;
+		const mode = parsed.data.configOptions.find(
+			(option) => option.category === "mode",
+		);
+		if (!mode) return;
+		this.modeConfigId = mode.configId;
+		// Options arrive either flat or grouped under headers.
+		const options = (mode.options ?? []).flatMap((entry) =>
+			entry.options
+				? entry.options
+				: entry.value
+					? [{ value: entry.value, name: entry.name }]
+					: [],
+		);
+		const session: Partial<SessionState> = {
+			...(typeof mode.currentValue === "string"
+				? { modeId: mode.currentValue }
+				: {}),
+			...(options.length
+				? {
+						availableModes: options.map((option) => ({
+							id: option.value,
+							label: option.name,
+						})),
+					}
+				: {}),
+		};
+		if (Object.keys(session).length > 0) this.emitSession(session);
+	}
+
+	private handleServerRequest(request: AcpServerRequest): void {
+		if (request.method !== "session/request_permission") {
+			this.client?.respondWithError(
+				request.id,
+				-32601,
+				`unsupported: ${request.method}`,
+			);
+			return;
+		}
+		const parsed = acpRequestPermissionParamsSchema.safeParse(request.params);
+		if (!parsed.success) {
+			this.client?.respondWithError(
+				request.id,
+				-32602,
+				"invalid permission request",
+			);
+			return;
+		}
+		const turnId = this.resolveTurnId();
+		const targetItemId = parsed.data.toolCall?.toolCallId ?? null;
+		const approvalId = `approval:${targetItemId ?? this.mintId()}`;
+		const item: ApprovalRequest = {
+			id: approvalId,
+			kind: "approval_request",
+			targetItemId,
+			title: parsed.data.toolCall?.title ?? "Permission required",
+			status: "pending",
+			startedAtMs: this.nextStartMs(),
+			options: parsed.data.options.map((option) => ({
+				optionId: option.optionId,
+				label: option.name,
+			})),
+		};
+		this.pendingApprovals.set(approvalId, {
+			requestId: request.id,
+			turnId,
+			item,
+		});
+		this.emitItem(item, turnId);
+		this.emitSession({ status: "awaiting_input" });
+	}
+
+	private approvalOutcome(
+		pending: PendingApproval,
+		decision: Decision,
+	): unknown {
+		if (decision.type === "cancel")
+			return { outcome: { outcome: "cancelled" } };
+		if (decision.type === "option") {
+			return { outcome: { outcome: "selected", optionId: decision.optionId } };
+		}
+		// accept / accept_for_session / decline: pick the option whose id best
+		// matches the intent, else the first option.
+		const reject = decision.type === "decline";
+		const options = pending.item.options ?? [];
+		const match = options.find((option) =>
+			reject
+				? /reject|deny|no/i.test(option.optionId) ||
+					/reject|deny|no/i.test(option.label)
+				: /allow|accept|yes|approve/i.test(option.optionId) ||
+					/allow|accept|yes|approve/i.test(option.label),
+		);
+		const optionId = match?.optionId ?? options[0]?.optionId;
+		return optionId
+			? { outcome: { outcome: "selected", optionId } }
+			: { outcome: { outcome: "cancelled" } };
+	}
+
+	private toAcpPrompt(content: UserContent[]): unknown[] {
+		const blocks: unknown[] = [];
+		let skippedAttachment = false;
+		for (const entry of content) {
+			if (entry.type === "text")
+				blocks.push({ type: "text", text: entry.text });
+			else skippedAttachment = true;
+		}
+		if (skippedAttachment) {
+			this.emitNotice(
+				"info",
+				"Attachments are not supported by the ACP harness and were omitted",
+			);
+		}
+		return blocks;
+	}
+
+	private handleExit(code: number | null): void {
+		if (this.disposed) return;
+		this.stalePendingApprovals();
+		this.emitNotice("error", `acp agent exited (code ${code ?? "null"})`);
+		this.emitSession({ status: "dead" });
+		this.queue.close();
+	}
+
+	private stalePendingApprovals(): void {
+		for (const [approvalId, pending] of [...this.pendingApprovals]) {
+			this.pendingApprovals.delete(approvalId);
+			this.emitItem(
+				{ ...pending.item, status: "stale", completedAtMs: this.now() },
+				pending.turnId,
+			);
+		}
+	}
+
+	private authAwareMessage(error: unknown): string {
+		const message = error instanceof Error ? error.message : String(error);
+		if (/auth/i.test(message)) {
+			return `${message}. Run the agent's login in a terminal (e.g. \`claude /login\`), then reopen this chat.`;
+		}
+		return message;
+	}
+
+	/**
+	 * A non-empty turn id for every emitted item — the chat protocol rejects an
+	 * empty one. Items that arrive outside a prompt turn (history replayed by
+	 * `session/load`, or a notice during bootstrap) are grouped under a single
+	 * synthetic "history" turn so they still have a home.
+	 */
+	/**
+	 * A replay arrives faster than the millisecond clock ticks, and items that
+	 * share a start are ordered by item id — which is random. Strictly
+	 * increasing starts keep the transcript in the order it happened.
+	 */
+	private nextStartMs(): number {
+		const startedAtMs = Math.max(this.now(), this.lastStartMs + 1);
+		this.lastStartMs = startedAtMs;
+		return startedAtMs;
+	}
+
+	private resolveTurnId(): string {
+		if (this.currentTurn) return this.currentTurn.id;
+		if (!this.historyTurnId) {
+			this.historyTurnId = this.mintId();
+			// A replay outruns the clock, and turns that share a millisecond sort by
+			// turn id — which is random. Keep the starts strictly increasing so the
+			// transcript comes back in the order it happened.
+			const startedAtMs = this.nextStartMs();
+			this.emitTurn({
+				id: this.historyTurnId,
+				status: "completed",
+				startedAtMs,
+				completedAtMs: startedAtMs,
+			});
+		}
+		return this.historyTurnId;
+	}
+
+	private emitTurn(turn: Turn): void {
+		this.currentTurn = turn;
+		this.emit({ kind: "turn", turn });
+	}
+
+	private emitItem(item: Item, turnId: string): void {
+		this.emit({ kind: "item", item, turnId });
+	}
+
+	private emitNotice(
+		noticeKind: "info" | "error" | "compaction" | "config_change",
+		text?: string,
+	): void {
+		this.emitItem(
+			{
+				id: this.mintId(),
+				kind: "notice",
+				noticeKind,
+				startedAtMs: this.nextStartMs(),
+				completedAtMs: this.now(),
+				...(text ? { text } : {}),
+			},
+			this.resolveTurnId(),
+		);
+	}
+
+	private emitSession(session: Partial<SessionState>): void {
+		this.emit({ kind: "session", session });
+	}
+
+	private emit(event: AdapterEvent): void {
+		this.queue.push(event);
+	}
+
+	private now(): number {
+		return (this.options.now ?? Date.now)();
+	}
+
+	private mintId(): string {
+		return (this.options.mintId ?? randomUUID)();
+	}
+}
+
+export function createAcpAdapter(options: AcpAdapterOptions): HarnessAdapter {
+	return new AcpAdapter(options);
+}

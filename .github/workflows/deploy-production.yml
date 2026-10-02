@@ -117,6 +117,8 @@ jobs:
           CLOUDFLARE_BROWSER_RENDERING_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_RENDERING_TOKEN }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_TEMP_CLIENT_ID: ${{ secrets.GOOGLE_TEMP_CLIENT_ID }}
+          GOOGLE_TEMP_CLIENT_SECRET: ${{ secrets.GOOGLE_TEMP_CLIENT_SECRET }}
           GOOGLE_PUBSUB_TOPIC: ${{ secrets.GOOGLE_PUBSUB_TOPIC }}
           GOOGLE_PUBSUB_PUSH_TOKEN: ${{ secrets.GOOGLE_PUBSUB_PUSH_TOKEN }}
           SUPPORT_LOOKUP_TOKEN: ${{ secrets.SUPPORT_LOOKUP_TOKEN }}
@@ -162,8 +164,6 @@ jobs:
           MERCURY_API_TOKEN: ${{ secrets.MERCURY_API_TOKEN }}
           GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT }}
           PLUGIN_CLIENT_METADATA_BASE_URL: ${{ secrets.PLUGIN_CLIENT_METADATA_BASE_URL }}
-          PLUGIN_GITHUB_CLIENT_ID: ${{ secrets.PLUGIN_GITHUB_CLIENT_ID }}
-          PLUGIN_GITHUB_CLIENT_SECRET: ${{ secrets.PLUGIN_GITHUB_CLIENT_SECRET }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
           STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
@@ -205,6 +205,8 @@ jobs:
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
             --env GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET \
+            --env GOOGLE_TEMP_CLIENT_ID=$GOOGLE_TEMP_CLIENT_ID \
+            --env GOOGLE_TEMP_CLIENT_SECRET=$GOOGLE_TEMP_CLIENT_SECRET \
             --env GOOGLE_PUBSUB_TOPIC=$GOOGLE_PUBSUB_TOPIC \
             --env GOOGLE_PUBSUB_PUSH_TOKEN=$GOOGLE_PUBSUB_PUSH_TOKEN \
             --env SUPPORT_LOOKUP_TOKEN=$SUPPORT_LOOKUP_TOKEN \
@@ -249,8 +251,6 @@ jobs:
             --env MERCURY_API_TOKEN=$MERCURY_API_TOKEN \
             --env GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT="$GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT" \
             --env PLUGIN_CLIENT_METADATA_BASE_URL="$PLUGIN_CLIENT_METADATA_BASE_URL" \
-            --env PLUGIN_GITHUB_CLIENT_ID="$PLUGIN_GITHUB_CLIENT_ID" \
-            --env PLUGIN_GITHUB_CLIENT_SECRET="$PLUGIN_GITHUB_CLIENT_SECRET" \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
             --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
@@ -310,6 +310,7 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
+          NEXT_PUBLIC_REALTIME_URL: ${{ secrets.REALTIME_URL }}
           USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
           STATIC_URL: ${{ secrets.STATIC_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
@@ -345,6 +346,7 @@ jobs:
             --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_RELAY_URL=$NEXT_PUBLIC_RELAY_URL \
+            --env NEXT_PUBLIC_REALTIME_URL=$NEXT_PUBLIC_REALTIME_URL \
             --env USERCONTENT_URL=$USERCONTENT_URL \
             --env STATIC_URL=$STATIC_URL \
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
@@ -633,6 +635,11 @@ jobs:
             realtime:
               - 'apps/realtime/**'
               - 'packages/shared/src/realtime.ts'
+              - 'packages/shared/src/page-storage.ts'
+              - 'packages/shared/src/page-storage-hub.ts'
+              - 'packages/shared/src/usercontent/**'
+              - '!packages/shared/src/usercontent/**/*.test.ts'
+              - 'packages/shared/src/verify-jwt.ts'
               - 'patches/**'
               - '.github/workflows/deploy-production.yml'
 

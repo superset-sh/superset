@@ -8,6 +8,7 @@ import {
 	readManifest,
 	removeManifestIfOwnedBy,
 } from "../../lib/host/manifest";
+import { isManifestLive } from "../../lib/host/manifest-liveness";
 import {
 	describeHostExit,
 	type SpawnHostResult,
@@ -22,12 +23,19 @@ export default command({
 	options: {
 		daemon: boolean().desc("Run in background"),
 		autoUpdate: boolean().desc(
-			"Automatically update and restart this host hourly",
+			"Automatically update and restart this host hourly (requires --daemon)",
 		),
 		port: number().desc("Port to listen on"),
 		org: string().desc("Organization to register under (id, slug, or name)"),
 	},
 	run: async ({ ctx, options, signal }) => {
+		if (options.autoUpdate && !options.daemon) {
+			throw new CLIError(
+				"--auto-update requires --daemon because updates replace the host process.",
+				"Run superset start --daemon --auto-update.",
+			);
+		}
+
 		const orgs = await ctx.api.user.myOrganizations.query();
 		const organization = await resolveOrganization(
 			orgs,
@@ -35,11 +43,16 @@ export default command({
 		);
 
 		const existing = readManifest(organization.id);
-		if (existing && isProcessAlive(existing.pid)) {
-			return {
-				data: { pid: existing.pid, endpoint: existing.endpoint },
-				message: `Host service already running for ${organization.name} (pid ${existing.pid})`,
-			};
+		if (existing) {
+			if (await isManifestLive(existing)) {
+				return {
+					data: { pid: existing.pid, endpoint: existing.endpoint },
+					message: `Host service already running for ${organization.name} (pid ${existing.pid})`,
+				};
+			}
+			// A live pid alone doesn't prove it's ours — OSes recycle pids, and a
+			// leftover manifest can point at an unrelated process.
+			removeManifestIfOwnedBy(organization.id, existing.pid);
 		}
 
 		p.intro(`superset start (${organization.name})`);
