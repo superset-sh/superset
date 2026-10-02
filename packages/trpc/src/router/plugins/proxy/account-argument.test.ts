@@ -13,6 +13,13 @@ const accounts = [
 	{ connectionId: "id-personal", userLabel: "satya@gmail.com" },
 ];
 
+function everywhere(
+	tools: readonly Tool[],
+	refs: readonly { connectionId: string }[] = accounts,
+): Map<string, typeof accounts> {
+	return new Map(tools.map((t) => [t.name, refs as typeof accounts]));
+}
+
 function tool(overrides: Partial<Tool> = {}): Tool {
 	return {
 		name: "send_email",
@@ -93,7 +100,7 @@ describe("withAccountArgument", () => {
 	test("adds a required enum of the account ids and keeps the rest", () => {
 		const [injected] = withAccountArgument(
 			[tool()],
-			accounts,
+			everywhere([tool()]),
 			"superset_account",
 		);
 		const properties = injected.inputSchema.properties as Record<
@@ -112,7 +119,7 @@ describe("withAccountArgument", () => {
 	test("names each account in the description so its label can be matched", () => {
 		const [injected] = withAccountArgument(
 			[tool()],
-			accounts,
+			everywhere([tool()]),
 			"superset_account",
 		);
 		const description = (
@@ -124,9 +131,10 @@ describe("withAccountArgument", () => {
 	});
 
 	test("gives a tool with no properties block one", () => {
+		const bare = tool({ inputSchema: { type: "object" } });
 		const [injected] = withAccountArgument(
-			[tool({ inputSchema: { type: "object" } })],
-			accounts,
+			[bare],
+			everywhere([bare]),
 			"superset_account",
 		);
 
@@ -135,17 +143,16 @@ describe("withAccountArgument", () => {
 	});
 
 	test("preserves additionalProperties: false", () => {
+		const strict = tool({
+			inputSchema: {
+				type: "object",
+				properties: {},
+				additionalProperties: false,
+			},
+		});
 		const [injected] = withAccountArgument(
-			[
-				tool({
-					inputSchema: {
-						type: "object",
-						properties: {},
-						additionalProperties: false,
-					},
-				}),
-			],
-			accounts,
+			[strict],
+			everywhere([strict]),
 			"superset_account",
 		);
 
@@ -153,9 +160,53 @@ describe("withAccountArgument", () => {
 		expect(injected.inputSchema.properties).toHaveProperty("superset_account");
 	});
 
+	test("offers a tool only to the accounts that have it", () => {
+		const shared = tool();
+		const exclusive = tool({ name: "admin_only" });
+		const byTool = new Map([
+			[shared.name, accounts],
+			[exclusive.name, [accounts[1]]],
+		]);
+
+		const [first, second] = withAccountArgument(
+			[shared, exclusive],
+			byTool,
+			"superset_account",
+		);
+		const enumOf = (t: Tool) =>
+			(t.inputSchema.properties as Record<string, { enum: string[] }>)
+				.superset_account.enum;
+
+		expect(enumOf(first)).toEqual(["id-work", "id-personal"]);
+		expect(enumOf(second)).toEqual(["id-personal"]);
+	});
+
+	test("leaves a tool alone when no account claims it", () => {
+		const orphan = tool({ name: "orphan" });
+
+		const [injected] = withAccountArgument(
+			[orphan],
+			new Map(),
+			"superset_account",
+		);
+
+		expect(injected.inputSchema.properties).not.toHaveProperty(
+			"superset_account",
+		);
+		expect(injected.inputSchema.required).toEqual(["body"]);
+	});
+
 	test("does not add the argument twice when required already lists it", () => {
-		const once = withAccountArgument([tool()], accounts, "superset_account");
-		const twice = withAccountArgument(once, accounts, "superset_account");
+		const once = withAccountArgument(
+			[tool()],
+			everywhere([tool()]),
+			"superset_account",
+		);
+		const twice = withAccountArgument(
+			once,
+			everywhere(once),
+			"superset_account",
+		);
 
 		expect(twice[0].inputSchema.required).toEqual(["body", "superset_account"]);
 	});

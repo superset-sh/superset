@@ -5,6 +5,7 @@ import {
 	ListToolsRequestSchema,
 	type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
+import type { AccountRef } from "./account-argument";
 import {
 	accountArgName,
 	accountInstructions,
@@ -90,6 +91,9 @@ function remoteServer(
 	return server;
 }
 
+/** One slow account must not hold up the whole list. */
+const LIST_TIMEOUT_MS = 10_000;
+
 function errorResult(text: string): CallToolResult {
 	return { isError: true, content: [{ type: "text" as const, text }] };
 }
@@ -107,9 +111,8 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		},
 	);
 
-	const listTools = async (): Promise<Tool[]> => {
-		let reason: string | undefined;
-		for (const account of target.accounts) {
+	const listFor = async (account: AccountRef): Promise<Tool[] | null> => {
+		try {
 			const resolved = await target.resolve(account.connectionId);
 			if (resolved.kind === "first-party") return resolved.build.getTools();
 			if (resolved.kind === "remote") {
@@ -119,17 +122,78 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 					resolved,
 				);
 			}
-			if (resolved.kind === "needs-auth") reason = resolved.reason;
+			return null;
+		} catch {
+			return null;
 		}
-		throw new Error(
-			`No usable ${target.connectorLabel} account${reason ? `: ${reason}` : ""}.`,
-		);
+	};
+
+	const listWithin = (account: AccountRef): Promise<Tool[] | null> =>
+		Promise.race([
+			listFor(account),
+			new Promise<null>((resolve) => {
+				setTimeout(() => resolve(null), LIST_TIMEOUT_MS).unref?.();
+			}),
+		]);
+
+	/**
+	 * Every account's list at once, then one tool list carrying, per tool, the
+	 * accounts that have it. An account whose list could not be read is offered
+	 * for everything rather than dropped: a vendor blip must not make a working
+	 * account unselectable.
+	 */
+	const gather = async (): Promise<{
+		tools: Tool[];
+		accountsByTool: Map<string, AccountRef[]>;
+	}> => {
+		// A hosted plugin's tools do not vary by account, so there is nothing to
+		// compare and no credential to decrypt to find that out.
+		if (target.hosted) {
+			const tools = target.hosted.getTools();
+			return {
+				tools,
+				accountsByTool: new Map(
+					tools.map((tool) => [tool.name, [...target.accounts]]),
+				),
+			};
+		}
+
+		const lists = await Promise.all(target.accounts.map(listWithin));
+		if (lists.every((list) => list === null)) {
+			throw new Error(`No usable ${target.connectorLabel} account.`);
+		}
+
+		const definitions = new Map<string, Tool>();
+		const accountsByTool = new Map<string, AccountRef[]>();
+		lists.forEach((list, index) => {
+			const account = target.accounts[index];
+			if (!list || !account) return;
+			for (const tool of list) {
+				if (!definitions.has(tool.name)) definitions.set(tool.name, tool);
+				accountsByTool.set(tool.name, [
+					...(accountsByTool.get(tool.name) ?? []),
+					account,
+				]);
+			}
+		});
+
+		const unreadable = target.accounts.filter((_, index) => !lists[index]);
+		for (const [name, accounts] of accountsByTool) {
+			accountsByTool.set(
+				name,
+				[...accounts, ...unreadable].sort((a, b) =>
+					a.connectionId.localeCompare(b.connectionId),
+				),
+			);
+		}
+
+		return { tools: [...definitions.values()], accountsByTool };
 	};
 
 	server.setRequestHandler(ListToolsRequestSchema, async () => {
-		const tools = await listTools();
+		const { tools, accountsByTool } = await gather();
 		return {
-			tools: withAccountArgument(tools, target.accounts, accountArgName(tools)),
+			tools: withAccountArgument(tools, accountsByTool, accountArgName(tools)),
 		};
 	});
 

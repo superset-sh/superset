@@ -16,8 +16,8 @@ const TOOL: Tool = {
 };
 
 const ACCOUNTS = [
-	{ connectionId: "id-work", userLabel: "work" },
 	{ connectionId: "id-personal", userLabel: "satya@gmail.com" },
+	{ connectionId: "id-work", userLabel: "work" },
 ];
 
 interface Call {
@@ -79,6 +79,7 @@ async function connect(target: PluginTarget) {
 
 function multiTarget(
 	resolve: (connectionId: string) => Promise<PluginTarget>,
+	hosted?: PluginTarget extends { hosted?: infer H } ? H : never,
 ): PluginTarget {
 	return {
 		kind: "multi",
@@ -87,6 +88,7 @@ function multiTarget(
 		connector: "google",
 		connectorLabel: "Google",
 		accounts: ACCOUNTS,
+		...(hosted ? { hosted } : {}),
 		resolve,
 	};
 }
@@ -108,8 +110,8 @@ describe("a plugin server with two accounts", () => {
 				Record<string, unknown>
 			>;
 			expect(properties.superset_account.enum).toEqual([
-				"id-work",
 				"id-personal",
+				"id-work",
 			]);
 			expect(tools[0].inputSchema.required).toContain("superset_account");
 			expect(client.getInstructions()).toContain("2 accounts");
@@ -273,6 +275,67 @@ describe("a plugin server with one account", () => {
 			expect(result.isError).toBeFalsy();
 			expect(calls[0].args).toEqual({ body: "hi" });
 			expect(calls[0].credential).toBe("token-id-work");
+		} finally {
+			await close();
+		}
+	});
+});
+
+describe("which account the tool list comes from", () => {
+	test("a hosted plugin asks no account what its tools are", async () => {
+		const resolved: string[] = [];
+		const calls: Call[] = [];
+		const hosted = {
+			getTools: () => [TOOL],
+			credential: () => "c",
+			callTool: async () => ({ content: [] }),
+		};
+		const { client, close } = await connect(
+			multiTarget(async (id) => {
+				resolved.push(id);
+				return hostedTarget(id, calls);
+			}, hosted as never),
+		);
+
+		try {
+			const { tools } = await client.listTools();
+			expect(tools).toHaveLength(1);
+			// Every account is offered, and not one credential was decrypted.
+			const properties = tools[0].inputSchema.properties as Record<
+				string,
+				{ enum: string[] }
+			>;
+			expect(properties.superset_account.enum).toEqual([
+				"id-personal",
+				"id-work",
+			]);
+			expect(resolved).toEqual([]);
+		} finally {
+			await close();
+		}
+	});
+
+	test("an account whose list cannot be read is still offered for everything", async () => {
+		const calls: Call[] = [];
+		const { client, close } = await connect(
+			multiTarget(async (id) =>
+				id === "id-personal" ? expiredTarget() : hostedTarget(id, calls),
+			),
+		);
+
+		try {
+			const { tools } = await client.listTools();
+			const properties = tools[0].inputSchema.properties as Record<
+				string,
+				{ enum: string[] }
+			>;
+
+			// id-personal could not be listed, so parity is assumed rather than
+			// quietly removing a selectable account.
+			expect(properties.superset_account.enum).toEqual([
+				"id-personal",
+				"id-work",
+			]);
 		} finally {
 			await close();
 		}

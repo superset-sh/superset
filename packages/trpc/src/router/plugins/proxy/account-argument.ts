@@ -58,15 +58,20 @@ export function accountInstructions(
 	].join("\n");
 }
 
+/**
+ * Each tool is offered only to the accounts that actually expose it. A tool one
+ * account has and another does not would otherwise be advertised for both, and
+ * the model would spend a turn learning that from the vendor's error.
+ */
 export function withAccountArgument(
 	tools: readonly Tool[],
-	accounts: readonly AccountRef[],
+	accountsByTool: ReadonlyMap<string, readonly AccountRef[]>,
 	argName: string,
 ): Tool[] {
-	const description = `Which connected account to act as: ${choiceList(accounts)}.`;
-	const ids = accounts.map((account) => account.connectionId);
-
 	return tools.map((tool) => {
+		const accounts = accountsByTool.get(tool.name) ?? [];
+		if (accounts.length === 0) return tool;
+
 		const schema = tool.inputSchema;
 		const required = Array.isArray(schema?.required) ? schema.required : [];
 		return {
@@ -76,7 +81,11 @@ export function withAccountArgument(
 				type: "object" as const,
 				properties: {
 					...schemaProperties(tool),
-					[argName]: { type: "string", enum: ids, description },
+					[argName]: {
+						type: "string",
+						enum: accounts.map((account) => account.connectionId),
+						description: `Which connected account to act as: ${choiceList(accounts)}.`,
+					},
 				},
 				required: required.includes(argName)
 					? required
