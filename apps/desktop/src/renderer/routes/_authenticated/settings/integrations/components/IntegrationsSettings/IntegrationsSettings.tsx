@@ -183,7 +183,12 @@ export function IntegrationsSettings({
 	};
 
 	const handleOpenWeb = (path: string) => {
-		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
+		const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}${path}`);
+		if (activeOrganizationId) {
+			url.searchParams.set("organizationId", activeOrganizationId);
+		}
+
+		window.open(url.toString(), "_blank");
 	};
 
 	if (!activeOrganizationId) {

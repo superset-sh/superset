@@ -17,7 +17,9 @@ import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { RepositoryList } from "./components/RepositoryList";
 
-export default async function GitHubIntegrationPage() {
+export default async function GitHubIntegrationPage(props: {
+	searchParams: Promise<{ organizationId?: string }>;
+}) {
 	const i18n = await initServerI18n();
 	const CALLBACK_MESSAGES = {
 		installation_cancelled: i18n._(
@@ -79,9 +81,12 @@ export default async function GitHubIntegrationPage() {
 	};
 
 	const trpc = await api();
-	const organization = await trpc.user.myOrganization.query();
+	const sessionOrganization = await trpc.user.myOrganization.query();
 
-	if (!organization) {
+	const params = await props.searchParams;
+	const activeOrganizationId = params.organizationId || sessionOrganization?.id;
+
+	if (!activeOrganizationId) {
 		return (
 			<div className="flex flex-col items-center justify-center py-16">
 				<p className="text-muted-foreground">
@@ -105,7 +110,7 @@ export default async function GitHubIntegrationPage() {
 	}
 
 	const installation = await trpc.integration.github.getInstallation.query({
-		organizationId: organization.id,
+		organizationId: activeOrganizationId,
 	});
 	const isConnected = !!installation;
 
@@ -187,7 +192,7 @@ export default async function GitHubIntegrationPage() {
 				</CardHeader>
 				<CardContent>
 					<ConnectionControls
-						organizationId={organization.id}
+						organizationId={activeOrganizationId}
 						isConnected={isConnected}
 					/>
 					{installation && (
@@ -233,7 +238,7 @@ export default async function GitHubIntegrationPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<RepositoryList organizationId={organization.id} />
+						<RepositoryList organizationId={activeOrganizationId} />
 					</CardContent>
 				</Card>
 			)}
