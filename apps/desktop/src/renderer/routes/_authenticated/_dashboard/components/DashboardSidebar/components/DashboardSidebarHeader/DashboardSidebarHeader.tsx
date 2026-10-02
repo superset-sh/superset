@@ -243,6 +243,13 @@ export function DashboardSidebarHeader({
 		});
 	};
 
+	const handleFailedAutomationsClick = () => {
+		navigate({
+			to: "/automations/runs",
+			search: { status: "failed", scope: "mine" },
+		});
+	};
+
 	const handleTasksClick = () => {
 		gateFeature(GATED_FEATURES.TASKS, () => {
 			navigate({
@@ -781,34 +788,38 @@ export function DashboardSidebarHeader({
 				</button>
 			)}
 
-			<button
-				type="button"
-				onClick={handleAutomationsClick}
-				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-					isAutomationsOpen
-						? "bg-fill-selected text-foreground"
-						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
-				)}
-			>
-				<LuClock
-					className="size-4 shrink-0 text-muted-foreground"
-					strokeWidth={1.5}
-				/>
-				<span className="flex-1 text-left">
-					<Trans>Automations</Trans>
-				</span>
+			<div className="relative">
+				<button
+					type="button"
+					onClick={handleAutomationsClick}
+					className={cn(
+						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isAutomationsOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuClock
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">
+						<Trans>Automations</Trans>
+					</span>
+				</button>
 				{myFailedCount > 0 && (
-					<span
+					<button
+						type="button"
+						onClick={handleFailedAutomationsClick}
 						title={t({
 							message: `${myFailedCount} of your automations failed their last run`,
 						})}
-						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+						className="absolute right-2 top-1/2 flex h-4 min-w-4 -translate-y-1/2 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 transition-colors hover:bg-red-500/25 dark:text-red-400"
 					>
 						{myFailedCount > 9 ? "9+" : myFailedCount}
-					</span>
+					</button>
 				)}
-			</button>
+			</div>
 
 			<button
 				type="button"
