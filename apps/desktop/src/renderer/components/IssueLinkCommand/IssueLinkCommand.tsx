@@ -10,17 +10,19 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import Fuse from "fuse.js";
 import type { ReactNode } from "react";
 import { useId, useMemo, useState } from "react";
+import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { TASK_PICKER_INPUT } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
+import { rankBySlugMatch } from "./utils/rankBySlugMatch";
 
 const MAX_RESULTS = 20;
+const SEARCH_DEBOUNCE_MS = 200;
 
 function isClosedStatus(type: StatusType | undefined): boolean {
 	return type === "completed" || type === "canceled";
@@ -49,8 +51,12 @@ export function IssueLinkCommand({
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
 
+	// Search server-side. The picker only ever holds a page of tasks, so
+	// filtering in the browser could never reach an issue outside it however
+	// exactly its key was typed (SUPER-2390).
+	const search = useDebouncedValue(searchQuery.trim(), SEARCH_DEBOUNCE_MS);
 	const { data: taskPage } = cloudTrpc.task.listPage.useQuery(
-		TASK_PICKER_INPUT,
+		search ? { ...TASK_PICKER_INPUT, search } : TASK_PICKER_INPUT,
 		{
 			enabled: open,
 		},
@@ -91,50 +97,24 @@ export function IssueLinkCommand({
 		return map;
 	}, [allStatuses]);
 
-	const taskFuse = useMemo(
-		() =>
-			new Fuse(
-				(allTasks ?? []).filter((task) => {
-					if (showClosed) return true;
-					const status = task.statusId
-						? statusMap.get(task.statusId)
-						: undefined;
-					return !isClosedStatus(status?.type);
-				}),
-				{
-					keys: [
-						{ name: "slug", weight: 3 },
-						{ name: "title", weight: 2 },
-					],
-					threshold: 0.4,
-					ignoreLocation: true,
-				},
-			),
-		[allTasks, showClosed, statusMap],
-	);
-
 	const filteredTasks = useMemo(() => {
 		if (!allTasks?.length) return [];
 		// An empty status map makes every task read as open, so the open-only
 		// list would show closed issues until the statuses land.
 		if (!showClosed && !allStatuses) return [];
-		const visibleTasks = allTasks.filter((task) => {
-			if (showClosed) return true;
-			const status = task.statusId ? statusMap.get(task.statusId) : undefined;
-			return !isClosedStatus(status?.type);
-		});
-		if (!searchQuery) {
-			return visibleTasks
-				.sort(
-					(a, b) =>
-						new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-				)
-				.slice(0, MAX_RESULTS);
-		}
-		return taskFuse
-			.search(searchQuery, { limit: MAX_RESULTS })
-			.map((r) => r.item);
-	}, [allStatuses, allTasks, searchQuery, showClosed, statusMap, taskFuse]);
+		return allTasks
+			.filter((task) => {
+				if (showClosed) return true;
+				const status = task.statusId ? statusMap.get(task.statusId) : undefined;
+				return !isClosedStatus(status?.type);
+			})
+			.sort(
+				(a, b) =>
+					rankBySlugMatch(a.slug, search) - rankBySlugMatch(b.slug, search) ||
+					new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+			)
+			.slice(0, MAX_RESULTS);
+	}, [allStatuses, allTasks, search, showClosed, statusMap]);
 
 	const handleSelect = (
 		slug: string,
