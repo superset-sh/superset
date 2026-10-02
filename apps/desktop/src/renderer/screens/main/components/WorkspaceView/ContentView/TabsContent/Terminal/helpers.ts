@@ -21,6 +21,10 @@ import {
 	type ParserIdleGate,
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
+import {
+	ATLAS_PAGE_ADDS_BEFORE_RESET,
+	resetTerminalRenderer,
+} from "renderer/lib/terminal/renderer-reset";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -98,6 +102,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	gate: ParserIdleGate;
 	wrapper: HTMLDivElement;
 	linkManager: TerminalLinkManager;
+	resetRenderer: () => void;
 	cleanup: () => void;
 } {
 	const {
@@ -159,6 +164,16 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 				webglAddon = null;
 				suggestedRendererType = "dom";
 				xterm.refresh(0, xterm.rows - 1);
+			});
+			// Subscribe before loadAddon: the first page-add fires during activation.
+			let atlasPageAdds = 0;
+			webglAddon.onAddTextureAtlasCanvas(() => {
+				if (++atlasPageAdds >= ATLAS_PAGE_ADDS_BEFORE_RESET) {
+					atlasPageAdds = 0;
+					// Defer: the event fires mid-glyph-draw; clearing synchronously
+					// would wipe the atlas under the in-flight rasterization.
+					queueMicrotask(() => webglAddon?.clearTextureAtlas());
+				}
 			});
 			xterm.loadAddon(webglAddon);
 		} catch {
@@ -234,6 +249,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		gate,
 		wrapper,
 		linkManager,
+		resetRenderer: () => resetTerminalRenderer(xterm, webglAddon),
 		cleanup: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);
