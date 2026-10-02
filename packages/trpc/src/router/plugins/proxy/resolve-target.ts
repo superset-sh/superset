@@ -57,6 +57,7 @@ export type PluginTarget = TargetIdentity &
 		| {
 				kind: "multi";
 				connector: string;
+				connectorLabel: string;
 				accounts: AccountRef[];
 				resolve(connectionId: string): Promise<PluginTarget>;
 		  }
@@ -210,6 +211,7 @@ export async function resolveTarget(
 				...identity,
 				kind: "multi",
 				connector: slug,
+				connectorLabel: getConnector(slug)?.displayName ?? slug,
 				accounts: rows
 					.map(accountRef)
 					.sort((a, b) => a.connectionId.localeCompare(b.connectionId)),

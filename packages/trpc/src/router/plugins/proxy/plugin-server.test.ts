@@ -85,6 +85,7 @@ function multiTarget(
 		plugin: "gmail",
 		version: "1.0.0",
 		connector: "google",
+		connectorLabel: "Google",
 		accounts: ACCOUNTS,
 		resolve,
 	};
@@ -195,7 +196,7 @@ describe("a plugin server with two accounts", () => {
 
 			expect(result.isError).toBe(true);
 			expect(JSON.stringify(result.content)).toContain(
-				"is not a connected google account",
+				"is not a connected Google account",
 			);
 			expect(calls).toHaveLength(0);
 		} finally {

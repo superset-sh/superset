@@ -100,7 +100,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		{
 			capabilities: { tools: {} },
 			instructions: accountInstructions(
-				target.connector,
+				target.connectorLabel,
 				target.accounts,
 				accountArgName([]),
 			),
@@ -122,7 +122,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 			if (resolved.kind === "needs-auth") reason = resolved.reason;
 		}
 		throw new Error(
-			`No usable ${target.connector} account${reason ? `: ${reason}` : ""}.`,
+			`No usable ${target.connectorLabel} account${reason ? `: ${reason}` : ""}.`,
 		);
 	};
 
@@ -135,7 +135,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 
 	server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
 		const choice = chooseAccount(
-			target.connector,
+			target.connectorLabel,
 			target.accounts,
 			request.params.arguments ?? {},
 		);
@@ -154,7 +154,7 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		}
 		if (resolved.kind === "multi") {
 			return errorResult(
-				`${label} did not resolve to a single ${target.connector} account.`,
+				`${label} did not resolve to a single ${target.connectorLabel} account.`,
 			);
 		}
 
