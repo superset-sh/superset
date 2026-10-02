@@ -4751,6 +4751,9 @@ msgstr "新しい worktree へ分岐できませんでした"
 msgid "Couldn't branch the conversation"
 msgstr "会話を分岐できませんでした"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "このメンバーの削除による影響を確認できませんでした"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "スター状態を確認できませんでした — GitHub CLI (`gh`) がインストール・サインイン済みで、ネットワーク接続があることを確認してください"
 

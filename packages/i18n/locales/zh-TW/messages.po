@@ -4751,6 +4751,9 @@ msgstr "無法分叉到新的 worktree"
 msgid "Couldn't branch the conversation"
 msgstr "無法分叉對話"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "無法檢查移除此成員會影響哪些內容"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "無法確認加星狀態，請檢查是否已安裝並登入GitHub CLI（`gh`），以及網路是否連通"
 

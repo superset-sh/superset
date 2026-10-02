@@ -4751,6 +4751,9 @@ msgstr "Không thể tạo nhánh sang worktree mới"
 msgid "Couldn't branch the conversation"
 msgstr "Không thể tạo nhánh hội thoại"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Không kiểm tra được việc gỡ thành viên này ảnh hưởng đến những gì"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Không xác nhận được trạng thái sao — hãy kiểm tra GitHub CLI (`gh`) đã cài, đã đăng nhập và bạn có kết nối mạng"
 

@@ -4751,6 +4751,9 @@ msgstr "Não foi possível ramificar para um novo worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Não foi possível ramificar a conversa"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Não foi possível verificar o que a remoção deste membro afeta"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Não foi possível confirmar o status da estrela — verifique se a CLI do GitHub (`gh`) está instalada, com login feito, e se você tem conexão"
 

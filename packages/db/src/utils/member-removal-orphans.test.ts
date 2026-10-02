@@ -44,13 +44,36 @@ test("an owner who already left the organization does not keep a host alive", ()
 	).toEqual(["stale"]);
 });
 
-test("hosts the leaving user only belongs to are never orphaned", () => {
+test("a host the leaving user only belongs to survives while its owner is a member", () => {
 	expect(
 		orphanedHostIds(
 			[
 				{ hostId: "theirs", userId: teammate, role: "owner" },
 				{ hostId: "theirs", userId: leaving, role: "member" },
 			],
+			leaving,
+			new Set([teammate]),
+		),
+	).toEqual([]);
+});
+
+test("a host the leaving user only belongs to is swept once its owner has already left", () => {
+	expect(
+		orphanedHostIds(
+			[
+				{ hostId: "legacy", userId: gone, role: "owner" },
+				{ hostId: "legacy", userId: leaving, role: "member" },
+			],
+			leaving,
+			new Set([teammate]),
+		),
+	).toEqual(["legacy"]);
+});
+
+test("hosts the leaving user cannot reach are never touched", () => {
+	expect(
+		orphanedHostIds(
+			[{ hostId: "unrelated", userId: gone, role: "owner" }],
 			leaving,
 			new Set([teammate]),
 		),

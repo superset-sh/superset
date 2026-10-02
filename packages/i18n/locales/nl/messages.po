@@ -4751,6 +4751,9 @@ msgstr "Kon niet afsplitsen naar een nieuwe worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Kon het gesprek niet afsplitsen"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Kon niet controleren wat het verwijderen van dit lid beïnvloedt"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Kan de sterstatus niet bevestigen — controleer of de GitHub-CLI (`gh`) is geïnstalleerd, of je bent ingelogd en of je een netwerkverbinding hebt"
 

@@ -4751,6 +4751,9 @@ msgstr "No se pudo bifurcar en un nuevo worktree"
 msgid "Couldn't branch the conversation"
 msgstr "No se pudo bifurcar la conversación"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "No se pudo comprobar qué afecta la eliminación de este miembro"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "No se pudo confirmar el estado de la estrella — comprueba que el CLI de GitHub (`gh`) esté instalado, con la sesión iniciada, y que tengas conexión de red"
 

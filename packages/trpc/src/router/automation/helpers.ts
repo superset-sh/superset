@@ -382,7 +382,13 @@ export async function requireAutomationDeleteAccess(
 			),
 		)
 		.limit(1);
-	if (!automation) throw await automationNotFound(id, userId);
+	if (!automation) {
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+			i18nKey: "serverError.automation.automationNotFound",
+		});
+	}
 	if (automation.ownerUserId === userId) return;
 
 	const [membership] = await db

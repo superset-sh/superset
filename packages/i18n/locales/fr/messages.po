@@ -4751,6 +4751,9 @@ msgstr "Impossible de dupliquer dans un nouveau worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Impossible de dupliquer la conversation"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Impossible de vérifier ce que le retrait de ce membre affecte"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Impossible de confirmer l'état de l'étoile — vérifiez que la CLI GitHub (`gh`) est installée, que vous y êtes connecté et que vous disposez d'une connexion réseau"
 

@@ -4751,6 +4751,9 @@ msgstr "Tidak dapat mencabangkan ke worktree baru"
 msgid "Couldn't branch the conversation"
 msgstr "Tidak dapat mencabangkan percakapan"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Tidak dapat memeriksa apa yang terdampak jika anggota ini dihapus"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Tidak bisa memastikan status star — pastikan GitHub CLI (`gh`) terpasang, sudah masuk, dan Anda punya koneksi jaringan"
 

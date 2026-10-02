@@ -188,14 +188,25 @@ export function MemberActions({
 	}
 
 	const handleRemoveClick = async () => {
-		// Best effort: the confirmation still opens if the preview fails, the
-		// server reports what it actually cleaned up either way.
-		const effects = await apiTrpcClient.organization.memberRemovalEffects
-			.query({
+		// Removal deletes hosts, so never confirm it blind: if the preview
+		// fails, stop here rather than open the dialog without the list.
+		let effects: Cleanup;
+		try {
+			effects = await apiTrpcClient.organization.memberRemovalEffects.query({
 				organizationId: member.organizationId,
 				userId: member.userId,
-			})
-			.catch(() => ({ automations: 0, hosts: 0 }));
+			});
+		} catch (error) {
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						message: "Couldn't check what removing this member affects",
+					}),
+				),
+			);
+			return;
+		}
 		const items = cleanupItems(effects);
 		const billingNote =
 			plan === "pro" || plan === "enterprise"

@@ -4751,6 +4751,9 @@ msgstr "Не удалось ответвить в новый worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Не удалось ответвить разговор"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Не удалось проверить, на что повлияет удаление этого участника"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Не удалось проверить статус звезды — убедитесь, что GitHub CLI (`gh`) установлен, выполнен вход и есть подключение к сети"
 

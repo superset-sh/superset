@@ -4751,6 +4751,9 @@ msgstr "Couldn't branch into a new worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Couldn't branch the conversation"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Couldn't check what removing this member affects"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 

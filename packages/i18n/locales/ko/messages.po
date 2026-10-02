@@ -4751,6 +4751,9 @@ msgstr "새 worktree로 분기할 수 없습니다"
 msgid "Couldn't branch the conversation"
 msgstr "대화를 분기할 수 없습니다"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "이 멤버 제거의 영향을 확인할 수 없습니다"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "스타 상태를 확인하지 못했습니다 — GitHub CLI(`gh`)가 설치되어 로그인되어 있는지, 네트워크에 연결되어 있는지 확인하세요"
 

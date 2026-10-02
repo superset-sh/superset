@@ -4751,6 +4751,9 @@ msgstr "Nepodařilo se rozvětvit do nového worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Konverzaci se nepodařilo rozvětvit"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Nepodařilo se zjistit, čeho se odebrání tohoto člena dotkne"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nepodařilo se ověřit stav hvězdy — zkontrolujte, že je nainstalované GitHub CLI (`gh`), že jste přihlášeni a že máte připojení k síti"
 

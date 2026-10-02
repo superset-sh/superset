@@ -4751,6 +4751,9 @@ msgstr "Nie udało się rozgałęzić do nowego worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Nie udało się rozgałęzić rozmowy"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Nie udało się sprawdzić, na co wpłynie usunięcie tego członka"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Nie udało się potwierdzić statusu gwiazdki — sprawdź, czy GitHub CLI (`gh`) jest zainstalowane, zalogowane i czy masz połączenie z siecią"
 

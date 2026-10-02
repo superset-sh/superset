@@ -4751,6 +4751,9 @@ msgstr "Yeni bir worktree'ye çatallanamadı"
 msgid "Couldn't branch the conversation"
 msgstr "Konuşma çatallanamadı"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Bu üyeyi kaldırmanın nelere etki edeceği kontrol edilemedi"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Yıldız durumu doğrulanamadı — GitHub CLI'nin (`gh`) kurulu ve oturum açmış olduğunu ve ağ bağlantınızın bulunduğunu kontrol edin"
 

@@ -16,8 +16,8 @@ type Reader = Pick<typeof db, "select">;
 /**
  * What this member's departure touches: the automations they own (runs
  * dispatch as the owner, so they are paused until an org owner deletes them)
- * and the hosts that would have no owner left. Membership on other people's
- * hosts is dropped silently since it is only an access row.
+ * and the hosts they can reach that would have no owner left. Membership on
+ * hosts that keep an owner is dropped silently since it is only an access row.
  */
 async function loadEffects(
 	reader: Reader,

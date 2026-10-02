@@ -4751,6 +4751,9 @@ msgstr "Non è stato possibile diramare in un nuovo worktree"
 msgid "Couldn't branch the conversation"
 msgstr "Non è stato possibile diramare la conversazione"
 
+msgid "Couldn't check what removing this member affects"
+msgstr "Impossibile verificare cosa comporta la rimozione di questo membro"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Impossibile confermare lo stato della star — controlla che la CLI di GitHub (`gh`) sia installata, che tu abbia effettuato l'accesso e che ci sia connessione di rete"
 
