@@ -79,6 +79,9 @@ const REPO_PULL_REQUEST_CACHE_MAX_TTL_MS = 30 * 60_000;
 // Re-probe cadence for worktrees observed missing on disk. existsSync-only —
 // cheap enough to run every tick; spawning git against a missing dir is not.
 const MISSING_WORKTREE_PROBE_INTERVAL_MS = 30_000;
+// A Stop probe bypasses the repo cache, so it must not fire faster than the
+// cache it skips; matches the sidebar hover cooldown's intent (SUPER-2107).
+const STOP_PROBE_COOLDOWN_MS = 60_000;
 // Dedup + link-assignment key. Branch stays case-sensitive: `feature` and
 // `Feature` are distinct branches with distinct PRs, so collapsing them here
 // would mislink. Case drift is tolerated only in the fallback in
@@ -239,6 +242,7 @@ export class PullRequestRuntimeManager {
 		string,
 		{ running: Promise<void>; rerunPending: boolean; bypassCache: boolean }
 	>();
+	private readonly stopProbeAt = new Map<string, number>();
 	private readonly pullRequestHeadCache = new Map<
 		string,
 		{
@@ -345,16 +349,49 @@ export class PullRequestRuntimeManager {
 	// after this manager. Only `created`: renames/branch edits already arrive
 	// through GitWatcher, and this manager's own row writes bypass the store
 	// emitters, so syncing can't re-trigger itself.
+	// `gh pr create` writes nothing under `.git/` and the push before it caches
+	// a miss, so the agent `Stop` hook (emitted by every harness) re-probes.
 	subscribeToWorkspaceEvents(
-		eventBus: Pick<EventBus, "onWorkspaceChanged">,
+		eventBus: Pick<EventBus, "onWorkspaceChanged" | "onAgentLifecycle">,
 	): void {
 		if (this.unsubscribeFromWorkspaceEvents) return;
-		this.unsubscribeFromWorkspaceEvents = eventBus.onWorkspaceChanged(
+		const unsubscribeFromWorkspaceChanged = eventBus.onWorkspaceChanged(
 			(event) => {
 				if (event.eventType !== "created") return;
 				void this.enqueueWorkspaceSync(event.workspaceId);
 			},
 		);
+		const unsubscribeFromAgentLifecycle = eventBus.onAgentLifecycle((event) => {
+			if (event.eventType !== "Stop") return;
+			const workspace = this.db
+				.select({
+					pullRequestId: workspaces.pullRequestId,
+					suppressedPullRequestId: workspaces.suppressedPullRequestId,
+					upstreamBranch: workspaces.upstreamBranch,
+				})
+				.from(workspaces)
+				.where(eq(workspaces.id, event.workspaceId))
+				.get();
+			if (!workspace || workspace.pullRequestId) return;
+			// "Remove PR Link" clears the id but records it as suppressed, and
+			// relinking then declines that exact PR — so probing for this
+			// workspace can only ever spend quota. A different PR on the branch
+			// still links through the sweep.
+			if (workspace.suppressedPullRequestId) return;
+			if (workspace.upstreamBranch === null) return;
+			const now = Date.now();
+			const lastProbeAt = this.stopProbeAt.get(event.workspaceId) ?? 0;
+			if (now - lastProbeAt < STOP_PROBE_COOLDOWN_MS) return;
+			this.pruneStopProbes(now);
+			this.stopProbeAt.set(event.workspaceId, now);
+			void this.enqueueWorkspaceSync(event.workspaceId, {
+				bypassCache: true,
+			});
+		});
+		this.unsubscribeFromWorkspaceEvents = () => {
+			unsubscribeFromWorkspaceChanged();
+			unsubscribeFromAgentLifecycle();
+		};
 	}
 
 	stop() {
@@ -840,6 +877,17 @@ export class PullRequestRuntimeManager {
 			"[host-service:pull-request-runtime] Worktree reappeared; resuming branch sync",
 			{ workspaceId, worktreePath },
 		);
+	}
+
+	// An entry older than the cooldown always passes the check above, so
+	// dropping it changes no behaviour and keeps the map to the workspaces
+	// that probed inside the current window.
+	private pruneStopProbes(now: number): void {
+		for (const [workspaceId, probedAt] of this.stopProbeAt) {
+			if (now - probedAt >= STOP_PROBE_COOLDOWN_MS) {
+				this.stopProbeAt.delete(workspaceId);
+			}
+		}
 	}
 
 	private forgetMissingWorktree(workspaceId: string): void {
