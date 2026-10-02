@@ -379,8 +379,11 @@ describe("resolveTarget with several accounts", () => {
 			connector: "acme-crm",
 			connectorLabel: "acme-crm",
 			accounts: [
-				{ connectionId: "conn-personal", label: "satya.personal@gmail.com" },
-				{ connectionId: "conn-work", label: "satya@superset.sh" },
+				{
+					connectionId: "conn-personal",
+					userLabel: "satya.personal@gmail.com",
+				},
+				{ connectionId: "conn-work", userLabel: "satya@superset.sh" },
 			],
 		});
 	});

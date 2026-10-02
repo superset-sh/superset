@@ -3,7 +3,10 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 export interface AccountRef {
 	connectionId: string;
 	nickname?: string | null;
-	label?: string | null;
+	/** The provider's label for the person — the same string for every account they hold. */
+	userLabel?: string | null;
+	/** The provider's label for the account itself: a workspace, a mailbox. */
+	accountLabel?: string | null;
 }
 
 const PRIMARY = "superset_account";
@@ -12,7 +15,15 @@ const FALLBACK = "superset_account_id";
 export const ACCOUNT_ARG_NAMES = [PRIMARY, FALLBACK] as const;
 
 export function accountLabel(account: AccountRef): string {
-	return account.nickname || account.label || account.connectionId;
+	if (account.nickname) return account.nickname;
+	// Both labels, because neither alone tells two accounts apart on every
+	// connector: Google repeats the mailbox in each, while Slack and Notion put
+	// the person in one and the workspace in the other.
+	const parts = [account.userLabel, account.accountLabel].filter(
+		(part, index, all): part is string =>
+			Boolean(part) && all.indexOf(part) === index,
+	);
+	return parts.length > 0 ? parts.join(" · ") : account.connectionId;
 }
 
 function schemaProperties(tool: Tool): Record<string, object> {

@@ -106,7 +106,8 @@ function accountRef(row: SelectConnection): AccountRef {
 	return {
 		connectionId: row.id,
 		nickname: row.nickname,
-		label: row.externalUserLabel ?? row.externalAccountLabel,
+		userLabel: row.externalUserLabel,
+		accountLabel: row.externalAccountLabel,
 	};
 }
 

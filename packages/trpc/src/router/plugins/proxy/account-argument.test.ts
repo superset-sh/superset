@@ -9,8 +9,8 @@ import {
 } from "./account-argument";
 
 const accounts = [
-	{ connectionId: "id-work", label: "satya@superset.sh", nickname: "work" },
-	{ connectionId: "id-personal", label: "satya@gmail.com", nickname: null },
+	{ connectionId: "id-work", userLabel: "satya@superset.sh", nickname: "work" },
+	{ connectionId: "id-personal", userLabel: "satya@gmail.com", nickname: null },
 ];
 
 function tool(overrides: Partial<Tool> = {}): Tool {
@@ -27,10 +27,42 @@ function tool(overrides: Partial<Tool> = {}): Tool {
 }
 
 describe("accountLabel", () => {
-	test("prefers the nickname, then the provider label, then the id", () => {
+	test("prefers the nickname a person set", () => {
 		expect(accountLabel(accounts[0])).toBe("work");
+	});
+
+	test("falls back to the provider's labels, then to the id", () => {
 		expect(accountLabel(accounts[1])).toBe("satya@gmail.com");
 		expect(accountLabel({ connectionId: "id-bare" })).toBe("id-bare");
+	});
+
+	// On Slack, Linear and Notion the user label is the person's name, which is
+	// the SAME for every account they hold — alone it names neither account.
+	test("joins both labels, so two accounts of one person stay distinct", () => {
+		const first = accountLabel({
+			connectionId: "a",
+			userLabel: "Harshith",
+			accountLabel: "harshith@tegon.ai",
+		});
+		const second = accountLabel({
+			connectionId: "b",
+			userLabel: "Harshith",
+			accountLabel: "harshith@superset.sh",
+		});
+
+		expect(first).toBe("Harshith · harshith@tegon.ai");
+		expect(second).toBe("Harshith · harshith@superset.sh");
+		expect(first).not.toBe(second);
+	});
+
+	test("does not say the same word twice when a provider repeats it", () => {
+		expect(
+			accountLabel({
+				connectionId: "a",
+				userLabel: "me@gmail.com",
+				accountLabel: "me@gmail.com",
+			}),
+		).toBe("me@gmail.com");
 	});
 });
 

@@ -16,8 +16,8 @@ const TOOL: Tool = {
 };
 
 const ACCOUNTS = [
-	{ connectionId: "id-work", label: "satya@superset.sh", nickname: "work" },
-	{ connectionId: "id-personal", label: "satya@gmail.com", nickname: null },
+	{ connectionId: "id-work", userLabel: "satya@superset.sh", nickname: "work" },
+	{ connectionId: "id-personal", userLabel: "satya@gmail.com", nickname: null },
 ];
 
 interface Call {
