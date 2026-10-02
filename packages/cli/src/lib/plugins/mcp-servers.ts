@@ -6,11 +6,6 @@ import {
 } from "@superset/agent-setup";
 import { desiredPluginMcpServers } from "@superset/shared/plugins";
 
-/**
- * Converges this machine's agent MCP configs on the installed set, reaping what
- * is no longer wanted. Offline by construction: an entry is one per plugin and
- * names no account, so nothing here needs the account list.
- */
 export function syncPluginMcpServers(
 	options: SyncManagedMcpServersOptions = {},
 ): {

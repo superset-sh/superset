@@ -66,8 +66,6 @@ describe("syncPluginMcpServers", () => {
 		install("linear");
 		syncPluginMcpServers({ homeDir, supersetHomeDir });
 
-		// The account is a tool argument the proxy resolves per call. A
-		// `?connection=` here would pin one and suppress the choice.
 		expect(claudeServers().linear?.url).not.toContain("connection=");
 	});
 

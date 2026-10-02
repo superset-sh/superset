@@ -39,8 +39,6 @@ describe("accountLabel", () => {
 		expect(accountLabel({ connectionId: "id-bare" })).toBe("id-bare");
 	});
 
-	// On Slack, Linear and Notion the user label is the person's name, which is
-	// the SAME for every account they hold — alone it names neither account.
 	test("joins both labels, so two accounts of one person stay distinct", () => {
 		const first = accountLabel({
 			connectionId: "a",

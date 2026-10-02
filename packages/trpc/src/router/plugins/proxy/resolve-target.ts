@@ -59,11 +59,6 @@ export type PluginTarget = TargetIdentity &
 				connector: string;
 				connectorLabel: string;
 				accounts: AccountRef[];
-				/**
-				 * Set when the tools are served in-process. They are the same list
-				 * whichever account runs them, so nothing has to be fetched per
-				 * account to find out.
-				 */
 				hosted?: FirstPartyServer;
 				resolve(connectionId: string): Promise<PluginTarget>;
 		  }

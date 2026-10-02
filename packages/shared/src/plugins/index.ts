@@ -499,10 +499,6 @@ export function pluginProxyMcpServers(
 		| undefined;
 	if (!extension?.connector) return undefined;
 
-	// One entry per plugin, whatever the account count. The account is a tool
-	// argument the proxy resolves per call, so no entry name encodes one — which
-	// is what keeps an agent's stored token and tool approvals, both keyed on
-	// this name, alive across a connect or a rename.
 	return {
 		[name]: {
 			type: "http",

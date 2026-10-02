@@ -96,15 +96,8 @@ function remoteServer(
 	return server;
 }
 
-/** One slow account must not hold up the whole list. */
 const LIST_TIMEOUT_MS = 10_000;
 
-/**
- * 401 only. A timeout, a 500 or a rate limit means the vendor is unwell, not
- * that the credential is — and 403 is usually "not allowed to do this one
- * thing" rather than "sign in again". Marking either would send someone to
- * reconnect an account that works.
- */
 function credentialRejected(error: unknown): boolean {
 	return (error as { code?: unknown } | null)?.code === 401;
 }
@@ -114,7 +107,6 @@ async function recordRejection(connectionId: string): Promise<void> {
 	await markNeedsReauth(connectionId);
 }
 
-/** Any 401 from a vendor flags the connection, wherever it happened. */
 async function rejectionAware<T>(
 	connectionId: string,
 	run: () => Promise<T>,
@@ -144,9 +136,6 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		},
 	);
 
-	// "rejected" is knowledge — that account cannot serve anything, so it is not
-	// offered. "unknown" is a vendor we could not reach, where assuming parity
-	// beats making a working account unselectable.
 	type AccountTools = Tool[] | "rejected" | "unknown";
 
 	const listFor = async (account: AccountRef): Promise<AccountTools> => {
@@ -160,8 +149,6 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 					resolved,
 				);
 			}
-			// needs-auth: the credential is spent, and resolve has already
-			// recorded it.
 			return "rejected";
 		} catch (error) {
 			if (!credentialRejected(error)) return "unknown";
@@ -178,18 +165,10 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 			}),
 		]);
 
-	/**
-	 * Every account's list at once, then one tool list carrying, per tool, the
-	 * accounts that have it. An account whose list could not be read is offered
-	 * for everything rather than dropped: a vendor blip must not make a working
-	 * account unselectable.
-	 */
 	const gather = async (): Promise<{
 		tools: Tool[];
 		accountsByTool: Map<string, AccountRef[]>;
 	}> => {
-		// A hosted plugin's tools do not vary by account, so there is nothing to
-		// compare and no credential to decrypt to find that out.
 		if (target.hosted) {
 			const tools = target.hosted.getTools();
 			return {
@@ -289,8 +268,6 @@ function multiServer(target: Extract<PluginTarget, { kind: "multi" }>): Server {
 		} catch (error) {
 			if (!credentialRejected(error)) throw error;
 			await recordRejection(resolved.connectionId);
-			// Re-resolved after the mark, so the link is the one the connector
-			// actually builds rather than a guess.
 			const after = await target.resolve(choice.connectionId);
 			return errorResult(
 				after.kind === "needs-auth"

@@ -24,7 +24,6 @@ import { verifyOrgMembership } from "./utils";
  */
 export interface ProviderAccount {
 	id: string;
-	/** What to call this account: seeded from the provider, renameable by its owner. */
 	label: string | null;
 	/** @deprecated desktop 1.36.0 reads this; use `label`. */
 	identity: string | null;

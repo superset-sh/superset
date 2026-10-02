@@ -134,8 +134,6 @@ export async function upsertConnection(input: {
 					scopes: tokens.scopes,
 					externalAccountLabel: identity.account.label,
 					externalUserId: identity.user?.id ?? null,
-					// externalUserLabel is deliberately absent: a person can rename
-					// an account, and a reconnect must not quietly undo that.
 					config,
 					...(input.stateOnUpdate
 						? { state: input.stateOnUpdate }

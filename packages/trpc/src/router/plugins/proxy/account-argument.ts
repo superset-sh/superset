@@ -2,9 +2,7 @@ import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 export interface AccountRef {
 	connectionId: string;
-	/** The provider's label for the person, which its owner may have renamed. */
 	userLabel?: string | null;
-	/** The provider's label for the account itself: a workspace, a mailbox. */
 	accountLabel?: string | null;
 }
 
@@ -14,9 +12,6 @@ const FALLBACK = "superset_account_id";
 export const ACCOUNT_ARG_NAMES = [PRIMARY, FALLBACK] as const;
 
 export function accountLabel(account: AccountRef): string {
-	// Both labels, because neither alone tells two accounts apart on every
-	// connector: Google repeats the mailbox in each, while Slack and Notion put
-	// the person in one and the workspace in the other.
 	const parts = [account.userLabel, account.accountLabel].filter(
 		(part, index, all): part is string =>
 			Boolean(part) && all.indexOf(part) === index,
@@ -58,11 +53,6 @@ export function accountInstructions(
 	].join("\n");
 }
 
-/**
- * Each tool is offered only to the accounts that actually expose it. A tool one
- * account has and another does not would otherwise be advertised for both, and
- * the model would spend a turn learning that from the vendor's error.
- */
 export function withAccountArgument(
 	tools: readonly Tool[],
 	accountsByTool: ReadonlyMap<string, readonly AccountRef[]>,

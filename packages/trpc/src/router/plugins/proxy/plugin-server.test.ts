@@ -300,7 +300,6 @@ describe("which account the tool list comes from", () => {
 		try {
 			const { tools } = await client.listTools();
 			expect(tools).toHaveLength(1);
-			// Every account is offered, and not one credential was decrypted.
 			const properties = tools[0].inputSchema.properties as Record<
 				string,
 				{ enum: string[] }
@@ -330,8 +329,6 @@ describe("which account the tool list comes from", () => {
 				{ enum: string[] }
 			>;
 
-			// Its credential is spent, so offering it would be a claim we know is
-			// false. The row is flagged for the user to reconnect instead.
 			expect(properties.superset_account.enum).toEqual(["id-work"]);
 		} finally {
 			await close();
@@ -354,8 +351,6 @@ describe("which account the tool list comes from", () => {
 				{ enum: string[] }
 			>;
 
-			// Not a 401, so nothing is known about it — assuming parity beats
-			// making a working account unselectable over a blip.
 			expect(properties.superset_account.enum).toEqual([
 				"id-personal",
 				"id-work",
