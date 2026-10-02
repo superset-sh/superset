@@ -19,6 +19,10 @@
 		"./stripe": {
 			"types": "./src/stripe.ts",
 			"default": "./src/stripe.ts"
+		},
+		"./oauth-access-token-claims": {
+			"types": "./src/lib/oauth-access-token-claims/index.ts",
+			"default": "./src/lib/oauth-access-token-claims/index.ts"
 		}
 	},
 	"scripts": {

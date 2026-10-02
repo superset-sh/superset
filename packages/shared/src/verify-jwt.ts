@@ -1,6 +1,14 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
-/** The claims the Workers act on. `scope` is set only on tokens the API mints for itself. */
+/**
+ * The claims the Workers act on. `scope` carries whatever the token's issuer
+ * put there — the API's own name for a self-minted token, the granted OAuth
+ * scopes for an access token from the provider — so it names a purpose, not an
+ * issuer. `isServerPresenceScope` holds only because `automation-presence` is
+ * not in the provider's grantable scopes, so no OAuth client can ask for it.
+ * `organizationIds` on a provider-issued token is the one organization its
+ * consent named.
+ */
 export interface AuthContext {
 	sub: string;
 	organizationIds: string[];

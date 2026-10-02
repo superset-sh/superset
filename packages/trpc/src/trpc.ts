@@ -1,6 +1,7 @@
 import type { auth, Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
+import { isFirstPartyOAuthClient } from "@superset/shared/auth";
 import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -204,7 +205,7 @@ function notAMemberOfOrganization(organizationId: string): TRPCError {
 	});
 }
 
-function resolveActiveOrganizationId(
+export function resolveActiveOrganizationId(
 	organizationIds: string[],
 	requestedOrganizationId: string | null,
 ): string | null {
@@ -233,7 +234,17 @@ export const jwtProcedure = t.procedure
 				const { payload } = await ctx.auth.api.verifyJWT({
 					body: { token: bearer },
 				});
-				if (payload?.sub) {
+				// `superset` signs in with OAuth and then acts in whichever
+				// organization the user selected locally, which is not
+				// necessarily the one its consent named. Its token already
+				// stands in for the user's session everywhere else (see
+				// `sessionFromOAuthBearer`), so let the session branch below
+				// resolve organizations from the membership table. Every other
+				// OAuth token is confined to its consented organization, which
+				// is all `organizationIds` carries.
+				const firstPartyCli =
+					isFirstPartyOAuthClient(payload?.azp) && ctx.session;
+				if (payload?.sub && !firstPartyCli) {
 					const organizationIds = Array.isArray(payload.organizationIds)
 						? payload.organizationIds.filter(
 								(id): id is string => typeof id === "string",
