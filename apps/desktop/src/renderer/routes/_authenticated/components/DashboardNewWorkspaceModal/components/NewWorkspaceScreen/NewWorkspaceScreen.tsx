@@ -833,7 +833,7 @@ export function NewWorkspaceScreen({
 										<AttachmentCard
 											key={file.id}
 											file={file}
-											hostUrl={launchHostUrl}
+											hostUrl={uploadTarget}
 											onRemove={(id) => attachments.remove(id)}
 											onOpenFile={
 												sourcePath
