@@ -5,12 +5,6 @@ function url(config: unknown): string {
 	return (config as { url: string }).url;
 }
 
-/**
- * One entry per plugin, whatever the account count. The account is a required
- * tool argument the proxy resolves per call, so no entry name encodes one —
- * which is what keeps an agent's stored token and tool approvals, both keyed on
- * this name, alive across a connect or a rename.
- */
 describe("pluginProxyMcpServers", () => {
 	test("is one entry under the plugin's plain name", () => {
 		const servers = pluginProxyMcpServers("linear", "superset");
@@ -21,8 +15,6 @@ describe("pluginProxyMcpServers", () => {
 		);
 	});
 
-	// A `?connection=` would pin one account, and a pinned target never offers
-	// the choice — the account argument would never be advertised.
 	test("pins no account in the url", () => {
 		expect(
 			url(pluginProxyMcpServers("linear", "superset")?.linear),
