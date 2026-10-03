@@ -1032,6 +1032,33 @@ export const cloudWorkspacePresence = pgTable(
 	],
 );
 
+/**
+ * Every pull request a cloud workspace's box has linked, newest or not. A row
+ * outlives its branch being deleted or reused; state comes from
+ * `github_pull_requests` by (repository, number), which webhooks keep current.
+ */
+export const cloudWorkspacePullRequests = pgTable(
+	"cloud_workspace_pull_requests",
+	{
+		cloudWorkspaceId: uuid("cloud_workspace_id")
+			.notNull()
+			.references(() => cloudWorkspaces.id, { onDelete: "cascade" }),
+		repositoryId: uuid("repository_id")
+			.notNull()
+			.references(() => githubRepositories.id, { onDelete: "cascade" }),
+		prNumber: integer("pr_number").notNull(),
+		linkedAt: timestamp("linked_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({
+			name: "cloud_workspace_pull_requests_pk",
+			columns: [table.cloudWorkspaceId, table.repositoryId, table.prNumber],
+		}),
+	],
+);
+
 export const cloudWorkspaceTasks = pgTable(
 	"cloud_workspace_tasks",
 	{
