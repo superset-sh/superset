@@ -317,14 +317,13 @@ about 500 lines, and they judged it worth paying. **Our estimate was too pessimi
 stays the right call to ship prompt-transfer first, because ours is nearly free, but
 "expensive" is no longer the reason to defer it.
 
-**2. `claude_project_dir` is not what we implement.** Theirs reproduces Claude Code's own
-encoding — every non-alphanumeric character becomes `-`, plus a Java-style UTF-16 string
-hash suffix once the name passes 200 characters — with a test asserting it against Claude
-Code's function. Ours (`harness-transcript.ts:47`) is `worktreePath.replaceAll(/[/.]/g, "-")`,
-which only maps `/` and `.`. **Worth checking against a real path containing an underscore**:
-if theirs is right, our transcript lookup silently misses for those paths, `readHarnessTranscript`
-returns null, and the handoff quietly falls back to the PTY stream. It fails soft, which is
-why nobody has noticed. Independent of teleport; worth a ticket either way.
+**2. `claude_project_dir` is not what we implemented — and upstream fixed it first.** Theirs
+reproduces Claude Code's own encoding; ours (`harness-transcript.ts:47`) mapped only `/` and `.`.
+Then #7825 (`d3cebba9`) replaced that module with `terminal-agents/harness-sessions/claude.ts`,
+whose `claudeProjectDirName` does exactly what Herdr's does: every non-alphanumeric UTF-16 unit
+becomes `-`, and past 200 characters it truncates and appends `Math.abs(javaHash(path)).toString(36)`.
+The same change stores the path Claude itself reports on `terminal_agent_bindings.transcript_path`
+— the primitive an exact cross-device `--resume` would carry, with no re-encoding at all.
 
 **3. The handoff note beats both of our options.** Before moving, each live agent is asked to
 write one:
@@ -416,7 +415,66 @@ out as just another destination — "move to cloud" and "move back down" are the
 with the caveat that a stopped sandbox must be woken to serve a fetch, or the parked copy
 used.
 
+## Cloud as a destination, as built
+
+The picker offers **Cloud** beside the hosts (behind the same `cloud-workspaces` flag the sidebar
+uses). Choosing it runs a different adapter, `createCloudTeleportOperations`, because a sandbox
+differs from a machine in two ways that shape every step:
+
+1. **Transport is the hidden ref on origin.** The source host runs `teleport.publish`: capture with
+   the precious allowlist *off* (origin may be a public forge), then `git push --force origin
+   refs/superset/teleport/<id>`. No bundle, no file transfer — the sandbox clones origin anyway.
+2. **Nothing new is assumed on the destination.** The sandbox is created through the cloud API
+   (`cloudWorkspace.create`, since host `workspaces.create` is `machineOnlyProcedure`), addressed
+   through `cloudWorkspace.access({ wake: true })` until it answers, and restored by
+   `terminal.launchSession` running `buildArrivalCommand(ref, branch)` — four git commands that end
+   by printing `TELEPORT_RESTORED <n> files on <branch> @ <sha>`. The adapter watches
+   `terminal.transcript` for that marker. Both procedures ship in released host-service, so this
+   works against a sandbox image that has never heard of teleport.
+
+On arrival the workspace view's `useAutoAdoptBackgroundSessions` gives the launched terminal a
+pane, so the restore's own output is the first thing a person sees — the proof is in the frame, not
+in a caption. Agents are relaunched from the carried context with `agents.run`, as for a host.
+
 ## Traps specific to this repo
+
+- A cloud sandbox cannot be a destination through the host path. `workspaces.create` and
+  `project.create` are `machineOnlyProcedure` on host-service: inside a sandbox they refuse,
+  because a sandbox holds exactly one project and one workspace. A cloud destination is created
+  through the cloud API (what `superset ws create --branch` does) and the arrival restores into
+  the checkout the sandbox already has. Machine destinations are unaffected.
+- The cloud API names the branch itself. `superset ws create --branch X` on a cloud destination
+  produced `superset/teleport-arrival-cloud-cloud-<id>` (derived from `--name`), not `X`. The
+  arrival therefore does `git checkout -B <source branch> <base>` inside the box so the checkout is
+  on the right branch; `cloud_workspaces.branch` keeps the auto name until that row is updated.
+- A sandbox's host-service answers before its clone is done: `host.ready` was stamped 21 s before
+  `checkout.end` on a real box. A restore launched on first health ran mid-clone and left the
+  checkout with thousands of spurious changes. `createCloudTeleportOperations` now waits for the
+  `checkout.end` boot stamp in `health.check` before launching the arrival.
+- A pane attached to a terminal after its command ran shows no scrollback: the arrival terminal
+  prints `TELEPORT_RESTORED …` before any pane exists, and the pane that adopts it later opens
+  blank. `terminal.transcript` has the line, the pane does not. The recording therefore asks the
+  destination live, with a command typed into that pane, which is the better proof anyway.
+  Replaying the stream on attach would make the arrival line the first thing a person sees.
+- A fresh box has no host agent configs. `agents.run({ agent: "claude" })` resolves preset ids
+  against `host_agent_configs`, which `settings.agentConfigs.list` seeds on its first call; a box
+  nobody has opened yet answers "No host agent config matching 'claude'". The cloud adapter lists
+  the destination's agent configs before relaunching anything, as a client opening the host would.
+- A fresh sandbox boots the *released* host-service, so a new host procedure (`teleport.restore`)
+  reaches it only with a host-service release. Until then a cloud arrival restores with the four
+  git commands directly — which is why the transport that needs nothing new on the destination,
+  the hidden ref on origin, is the one that works in every direction today.
+- The renderer reaches a sandbox at the provider's domain, and the CSP's `connect-src` admits only
+  what `SANDBOX_GATE_ORIGIN` names at build time (`apps/desktop/vite/helpers.ts`). A dev checkout
+  whose `.env` points that at a local gate (`http://127.0.0.1:3015`) fails the cloud step with "The
+  sandbox's host-service did not come up": every `health.check` is refused by the page's own
+  policy before it leaves the renderer, and `fetch` reports it only as "Failed to fetch". The
+  console shows the CSP violation; curl from the same machine succeeds, which is the tell.
+- The dev API cannot provision sandboxes. Its `VERCEL_SANDBOX_*` values are placeholders and it
+  hands boxes `SUPERSET_API_URL=http://localhost:3001`, so `cloudWorkspace.create` against it can
+  never produce a box that boots. Filming a real arrival from the dev desktop needs the cloud
+  procedures routed to production (inside a sandbox, the firewall's own credential may call
+  `environment.list`, `cloudWorkspace.create/access/list/delete`) with everything else on dev.
 
 - `terminal_agent_bindings.endReason` needs a `moved` value, or source and destination both
   try to auto-resume the same session.

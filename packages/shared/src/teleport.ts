@@ -155,3 +155,27 @@ export type TeleportStepId = (typeof TELEPORT_STEPS)[number];
 export function handoffBundleName(workspaceId: string): string {
 	return `superset-teleport-${workspaceId}.bundle`;
 }
+
+/**
+ * The shell that puts a published capture back into a checkout that can
+ * reach origin. It is what a destination runs when nothing newer than git is
+ * installed there — a fresh sandbox, or a host on a release without
+ * `teleport.restore`. Prints one `TELEPORT_RESTORED <n> files` line, which is
+ * what a caller watches for.
+ */
+export function buildArrivalCommand(ref: string, branch: string): string {
+	const q = (value: string) => `'${value.replaceAll("'", `'\\''`)}'`;
+	return [
+		`git fetch -q origin ${q(`${ref}:${ref}`)}`,
+		`git checkout -q -B ${q(branch)} ${q(`${ref}~2`)}`,
+		`git read-tree -m -u HEAD ${q(ref)}`,
+		`git read-tree ${q(`${ref}^`)}`,
+		`git update-ref -d ${q(ref)}`,
+		"git update-index -q --refresh || true",
+		`echo "TELEPORT_RESTORED $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') files on $(git branch --show-current) @ $(git rev-parse --short HEAD)"`,
+	].join(" && ");
+}
+
+/** The marker a successful arrival prints; `n` is the dirty-file count. */
+export const ARRIVAL_MARKER =
+	/TELEPORT_RESTORED (\d+) files on (\S+) @ ([0-9a-f]+)/;

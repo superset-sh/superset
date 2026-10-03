@@ -132,6 +132,43 @@ export const teleportRouter = router({
 			return { ...capture, bundlePath, relativePath };
 		}),
 
+	/**
+	 * Capture and push the ref to origin, for a destination that cannot be
+	 * handed a file: a cloud sandbox, which clones origin and runs a released
+	 * host-service. Nothing ignored travels this way — origin may be a public
+	 * forge — so the precious allowlist is off, and a pushed ref is bytes the
+	 * destination fetches with plain git.
+	 */
+	publish: protectedProcedure
+		.meta({ timeoutMs: 300_000 })
+		.input(workspaceInput.extend({ remote: z.string().default("origin") }))
+		.mutation(async ({ ctx, input }) => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const ref = handoffRef(input.workspaceId);
+			const capture = await captureHandoff({
+				worktreePath,
+				ref,
+				preciousPathspecs: [],
+			});
+			try {
+				await createGitRunner(worktreePath).run([
+					"push",
+					"-q",
+					"--force",
+					input.remote,
+					`${ref}:${ref}`,
+				]);
+			} catch (error) {
+				await discardCapture(worktreePath, ref);
+				throw new TRPCError({
+					code: "BAD_GATEWAY",
+					message: `Could not push the teleport ref to ${input.remote}`,
+					cause: error,
+				});
+			}
+			return { ref, head: capture.head, working: capture.working };
+		}),
+
 	/** Where a delivered bundle should be written on the destination. */
 	bundleTarget: queryProcedure.input(workspaceInput).query(({ ctx, input }) => {
 		const worktreePath = resolveWorktreePath(ctx, input.workspaceId);

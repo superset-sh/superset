@@ -246,6 +246,10 @@ msgstr "{0, plural, one {# terminal em execução} other {# terminais em execuç
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {# chamada de ferramenta} other {# chamadas de ferramenta}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, one {# commit não enviado} other {# commits não enviados}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0} instalado"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} já está atribuído a \"{1}\"."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} já está em checkout em {hostName}."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, one {Ver mais # resposta} other {Ver mais # respostas}}
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Mostrar mais # frame} other {Mostrar mais # frames}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} tem commits em {0} que este dispositivo não tem."
+
 msgid "{hostName} is offline"
 msgstr "{hostName} está offline"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}m"
 
 msgid "{minutes}m ago"
 msgstr "há {minutes}m"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, one {# modificado} other {# modificados}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ para criar"
@@ -1016,6 +1031,9 @@ msgstr "O {plugin} ainda não tem um cliente OAuth configurado nesta implantaç�
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} não está mais instalado."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, one {# arquivo env} other {# arquivos env}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} redefinido para os padrões"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {# área de trabalho} other {# áreas 
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {# arquivo alterado} other {# arquivos alterados}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, one {# não rastreado} other {# não rastreados}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel} restaurado para os padrões"
@@ -2101,6 +2122,9 @@ msgstr "Já tem uma conta? <0>Entre</0>"
 msgid "Already in tasks"
 msgstr "Já está nas tarefas"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "Já está em {hostName} · apenas fetch"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Também disponível como CommandDialog para paletas ⌘K"
 
@@ -2446,6 +2470,10 @@ msgstr "Peça alterações"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "Peça alterações, use @ para mencionar arquivos, /comandos para executar"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "Pedindo notas de repasse aos agentes"
 
 msgid "Aspect Ratio"
 msgstr "Aspect Ratio"
@@ -3219,6 +3247,10 @@ msgstr "Superfície de markdown canônica para saída de agente, comentários e 
 msgid "Capabilities"
 msgstr "Capacidades"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "Capturando commits e alterações"
+
 msgid "Card"
 msgstr "Cartão"
 
@@ -3388,6 +3420,9 @@ msgstr "Confira sua caixa de entrada"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "Verificando {hostName} e os programas em execução…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "Conta corrente + poupança + Treasury ao longo do tempo; as tranches de captação são os degraus"
@@ -3648,6 +3683,9 @@ msgstr "Clone, envie alterações e crie PRs."
 msgid "Cloned to {0}"
 msgstr "Clonado em {0}"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "Primeiro clona o repositório em {hostName}"
+
 msgid "Cloning…"
 msgstr "Clonando…"
 
@@ -3713,6 +3751,10 @@ msgstr "Fechar o fundo do modal"
 
 msgid "Close or delete the current workspace"
 msgstr "Fechar ou excluir a área de trabalho atual"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "Feche ou troque aquele espaço de trabalho lá e tente novamente. O caminho é {0}."
 
 msgid "Close other apps using the microphone"
 msgstr "Feche outros apps que estejam usando o microfone"
@@ -4105,6 +4147,9 @@ msgstr "Conectar uma conta"
 
 msgid "Connect another account"
 msgstr "Conectar outra conta"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "Conecte outro dispositivo para teletransportar este espaço de trabalho para ele."
 
 msgid "Connect any AI agent to Superset."
 msgstr "Conecte qualquer agente de IA ao Superset."
@@ -5191,6 +5236,10 @@ msgstr "Criando a sessão: {name}"
 
 msgid "Creating the sandbox"
 msgstr "Criando o sandbox"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "Criando o worktree lá"
 
 msgid "Creating workspace"
 msgstr "Criando a área de trabalho"
@@ -7740,6 +7789,12 @@ msgstr "Metade das mudanças mescladas é código de agente sem edição"
 msgid "Handle"
 msgstr "Apelido"
 
+msgid "hands off & resumes"
+msgstr "repassa e retoma"
+
+msgid "hands off & starts fresh"
+msgstr "repassa e começa do zero"
+
 msgid "Happened"
 msgstr "Aconteceu"
 
@@ -9935,6 +9990,9 @@ msgstr "Novo push na branch"
 msgid "New releases and product updates."
 msgstr "Novas versões e atualizações do produto."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "Novo sandbox · o trabalho chega via origin"
+
 msgid "New session"
 msgstr "Nova sessão"
 
@@ -10756,6 +10814,9 @@ msgstr "Nada precisa de nova tentativa"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nada publicado nos últimos 30 dias ainda. Sua posição aparece assim que o uso desta máquina sincronizar, publicando como <0>{handle}</0>."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "Nada sem commit — apenas a branch se move"
+
 msgid "Nothing was missed"
 msgstr "Nada foi perdido"
 
@@ -10837,6 +10898,9 @@ msgstr "offline"
 
 msgid "Offline"
 msgstr "Offline"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "Off-line · será contatado quando despertar"
 
 msgid "Offline / local-first mode"
 msgstr "Modo offline / local-first"
@@ -11255,6 +11319,9 @@ msgstr "Abrir menu"
 msgid "Open navigation"
 msgstr "Abrir navegação"
 
+msgid "Open on {hostName}"
+msgstr "Abrir em {hostName}"
+
 msgid "Open on GitHub"
 msgstr "Abrir no GitHub"
 
@@ -11428,6 +11495,9 @@ msgstr "Abrindo worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Abre uma área de trabalho na nuvem onde um agente instala o que o projeto precisa e escreve seu .superset/config.json"
+
+msgid "opens empty"
+msgstr "abre vazio"
 
 msgid "Operator"
 msgstr "Operador"
@@ -12650,6 +12720,10 @@ msgstr "Rebase e merge"
 msgid "Rebase and merge"
 msgstr "Rebase e merge"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "Recriando abas"
+
 msgid "Recent Activity"
 msgstr "Atividade recente"
 
@@ -13041,6 +13115,9 @@ msgstr "Responder à thread…"
 msgid "repo"
 msgstr "repo"
 
+msgid "Repo"
+msgstr "Repositório"
+
 msgid "Report"
 msgstr "Denunciar"
 
@@ -13272,6 +13349,9 @@ msgstr "Reiniciando os serviços do host…"
 msgid "Restarting…"
 msgstr "Reiniciando…"
 
+msgid "restarts"
+msgstr "reinicia"
+
 msgid "Restore"
 msgstr "Restaurar"
 
@@ -13305,6 +13385,10 @@ msgstr "\"{name}\" restaurado"
 
 msgid "Restored \"{projectName}\""
 msgstr "\"{projectName}\" restaurado"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "Restaurando alterações"
 
 msgid "Restoring your session"
 msgstr "Restaurando sua sessão"
@@ -13558,6 +13642,9 @@ msgstr "Execute isto em um terminal deste host e cole sua chave quando for solic
 msgid "Run in a terminal on this host:"
 msgstr "Execute isto em um terminal deste host:"
 
+msgid "Run in background"
+msgstr "Executar em segundo plano"
+
 msgid "Run in Workspace"
 msgstr "Executar na área de trabalho"
 
@@ -13624,6 +13711,10 @@ msgstr "Rodando em um dispositivo pareado"
 msgid "Running on this device"
 msgstr "Rodando neste dispositivo"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "Executando scripts de configuração"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Os processos de terminal em execução continuam, mas a saída mais antiga pode não estar mais disponível depois de reiniciar o app."
 
@@ -13647,6 +13738,9 @@ msgstr "Executado quando um espaço de trabalho é criado."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Executado quando um espaço de trabalho é excluído."
+
+msgid "Safe to close — this continues in the background"
+msgstr "Pode fechar — isto continua em segundo plano"
 
 msgid "Same version as this app."
 msgstr "Mesma versão que este app."
@@ -14380,6 +14474,9 @@ msgstr "Setup"
 
 msgid "Setup script"
 msgstr "Script de setup"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "Os scripts de configuração são executados na chegada. Este espaço de trabalho permanece aqui, parado, até você excluí-lo."
 
 msgid "Sexual content"
 msgstr "Conteúdo sexual"
@@ -15165,6 +15262,10 @@ msgstr "Iniciando {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Iniciando a área de trabalho na nuvem"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "Iniciando programas"
+
 msgid "Starting the agent…"
 msgstr "Iniciando o agente…"
 
@@ -15252,6 +15353,10 @@ msgstr "Parar o comando de execução da área de trabalho"
 
 msgid "stopped"
 msgstr "parado"
+
+msgctxt "teleport step"
+msgid "Stopping the source"
+msgstr "Parando a origem"
 
 msgid "Strikethrough"
 msgstr "Tachado"
@@ -15819,6 +15924,19 @@ msgstr "O teardown foi encerrado pelo sinal {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "O teardown expirou depois de {seconds}s"
+
+msgid "Teleport"
+msgstr "Teletransportar"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "Teletransportar para {0}"
+
+msgid "Teleport…"
+msgstr "Teletransportar…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "Teletransportar iria enterrá-los. Faça pull de {hostName} primeiro, ou teletransporte no sentido contrário."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Peça a qualquer agente para usar a CLI <0>superset</0> para criar áreas de trabalho, executar tarefas ou gerenciar automações."

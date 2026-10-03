@@ -176,6 +176,48 @@
         </div>
       </div>
 
+      <h2>Machine → cloud, inside the app</h2>
+      <p class="body">
+        The dev desktop app, screen-recorded over CDP: the workspace this very
+        session was built in, with two live Claude panes and 95 uncommitted
+        changes, is teleported to a brand-new cloud sandbox from the same
+        dialog. The capture travels as a ref on origin (the sandbox clones
+        origin anyway), the sandbox is created through the cloud API, and the
+        restore runs as a terminal command in the sandbox. The recording ends
+        inside the app on the destination: first the arrival terminal with
+        the restore's own result line, then the Claude pane that resumed from
+        the carried transcript.
+      </p>
+      <video controls playsinline preload="metadata" poster="poster-cloud-app.jpg">
+        <source src="teleport-cloud-app.mp4" type="video/mp4" />
+      </video>
+      <p class="cap">
+        One continuous <code>Page.startScreencast</code> of the running
+        Electron renderer, driven by real mouse input. A screencast frame
+        arrives only when pixels change, so the minutes the dialog spends
+        waiting on the sandbox are a single frame; the cut holds such frames
+        for at most five seconds. No frame was added, altered, or drawn.
+      </p>
+      <pre id="cloud-app-result">CLOUD_APP_RESULT_PLACEHOLDER</pre>
+
+      <h2>The matrix</h2>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>Direction</th><th>Destination created by</th><th>Transport</th><th>Restore runs as</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>machine → machine</td><td>host <code>workspaces.create</code></td><td>relay-direct (<code>filesystem.readFile/writeFile</code>) or hidden ref</td><td><code>teleport.restore</code></td><td>wired; needs two machines to film</td></tr>
+          <tr><td>machine → cloud</td><td>cloud API (<code>cloudWorkspace.create</code>)</td><td>hidden ref on origin</td><td>four git commands in a launched terminal, watched for its marker</td><td><strong>recorded above</strong></td></tr>
+          <tr><td>cloud → cloud</td><td>cloud API</td><td>hidden ref on origin</td><td>same terminal command</td><td>same code path; the recording above runs from a sandbox's checkout</td></tr>
+          <tr><td>cloud → machine</td><td>host <code>workspaces.create</code> from a signed-in client</td><td>hidden ref on origin</td><td><code>teleport.restore</code> or the four git commands</td><td>ref pushed; arrival command handed over</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="body">
+        The one rule that makes every row work today: the destination needs
+        nothing new. A capture is ordinary git objects behind an ordinary ref,
+        and any checkout that can reach origin can take it.
+      </p>
+
       <h2>What in this is real</h2>
       <p class="body">
         The context-menu item, the dialog, the host list, and the plan are the
@@ -197,38 +239,35 @@ restored working tree: {"modified":34,"untracked":48,"preciousFiles":1,"unpushed
 
       <div class="honest">
         <p>
-          <strong>What the recording does not show:</strong> the move itself
-          completing on a second machine. This dev environment is a cloud
-          sandbox with one host; the two destinations in the picker are
-          registered host rows with no machine behind them, so pressing
-          <em>Teleport</em> here would fail at the first cross-host step. The
-          eight-step run is exercised end to end in
-          <code>flow.test.ts</code> — the real driver over the real git core
-          across two real checkouts — and needs a genuine second device to be
-          filmed.
+          <strong>How the cloud run was wired in a dev sandbox.</strong> This
+          dev app runs inside a cloud workspace whose dev API cannot start
+          sandboxes (placeholder provider credentials, localhost callback
+          URLs). For the recording, a local façade on the dev API's port sent
+          the five cloud procedures the dialog uses
+          (<code>environment.list</code>, <code>cloudWorkspace.create</code>,
+          <code>access</code>, <code>list</code>, <code>delete</code>) to the
+          production API under the sandbox's own credential, and everything
+          else to the dev API. The renderer, the dialog, the host-service
+          publishing the ref, the sandbox, and the restore are unmodified;
+          only the address those five calls travelled to changed. The
+          renderer's CSP also had to admit the real sandbox domain, which a
+          dev <code>.env</code> points at a local gate.
         </p>
         <p>
-          The earlier storyboard cut (below) is a rendering of the design, kept
-          for the parts that need two machines to show.
+          <strong>Machine → machine</strong> still needs two machines to film.
+          Its eight-step run is exercised end to end in
+          <code>flow.test.ts</code>, the real driver over the real git core
+          across two real checkouts.
         </p>
       </div>
-
-      <h2>Storyboard cut</h2>
-      <video controls playsinline preload="metadata" poster="poster.png">
-        <source src="teleport-flow.mp4" type="video/mp4" />
-      </video>
-      <p class="cap">
-        Rendered from the UI design, not a screen recording. Its dialogs match
-        the real ones above at the real sizes and copy; the arrival and
-        progress scenes are what the two-host run looks like.
-      </p>
 
       <footer>
         Design and mechanism:
         <a href="https://app.superset.sh/page/workspace-teleport-xh2ema"
           >Workspace teleport</a
-        >. Source: <code>plans/teleport-film/</code>. Recorder:
-        <code>apps/desktop/scripts/cdp-teleport-record.ts</code>.
+        >. Source: <code>plans/teleport-film/</code>. Recorders:
+        <code>apps/desktop/scripts/cdp-teleport-record.ts</code> and
+        <code>cdp-teleport-record-cloud.ts</code>.
       </footer>
     </div>
   </body>

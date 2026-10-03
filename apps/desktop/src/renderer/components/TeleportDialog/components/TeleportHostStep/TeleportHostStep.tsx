@@ -1,6 +1,8 @@
 import { Trans } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/lib/utils";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useWorkspaceHostOptions } from "renderer/hooks/useWorkspaceHostOptions";
 import type { TeleportDestination } from "../../types";
 
@@ -27,8 +29,10 @@ export function TeleportHostStep({
 	onReview,
 }: TeleportHostStepProps) {
 	const { otherHosts } = useWorkspaceHostOptions();
+	const cloudEnabled =
+		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
 
-	if (otherHosts.length === 0) {
+	if (otherHosts.length === 0 && !cloudEnabled) {
 		return (
 			<>
 				<p className="px-1 py-6 text-center text-muted-foreground text-sm">
@@ -55,6 +59,7 @@ export function TeleportHostStep({
 						aria-pressed={selectedHostId === host.id}
 						onClick={() =>
 							onSelect({
+								kind: "host",
 								id: host.id,
 								name: host.name,
 								isOnline: host.isOnline,
@@ -86,6 +91,32 @@ export function TeleportHostStep({
 						/>
 					</button>
 				))}
+				{cloudEnabled && (
+					<button
+						type="button"
+						aria-pressed={selectedHostId === "cloud"}
+						onClick={() =>
+							onSelect({ kind: "cloud", id: "cloud", name: "Cloud" })
+						}
+						className={cn(
+							"flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
+							selectedHostId === "cloud" ? "bg-accent" : "hover:bg-accent/50",
+						)}
+					>
+						<span className="min-w-0 flex-1">
+							<span className="block truncate font-medium text-sm">
+								<Trans>Cloud</Trans>
+							</span>
+							<span className="block text-muted-foreground text-xs">
+								<Trans>New sandbox · the work arrives through origin</Trans>
+							</span>
+						</span>
+						<span
+							aria-hidden="true"
+							className="size-2 shrink-0 rounded-full bg-emerald-500"
+						/>
+					</button>
+				)}
 			</div>
 			<div className="flex justify-end gap-2">
 				<Button variant="ghost" onClick={onCancel}>
