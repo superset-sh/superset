@@ -78,12 +78,16 @@ import {
 } from "renderer/stores/add-repository-modal";
 import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
 
+import { RestartAllSessionsButton } from "../RestartAllSessionsButton";
+
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
+	restartSessionsHostUrl: string | null;
 }
 
 export function DashboardSidebarHeader({
 	isCollapsed = false,
+	restartSessionsHostUrl,
 }: DashboardSidebarHeaderProps) {
 	const { t } = useLingui();
 	const openNewWorkspace = useOpenNewWorkspace();
@@ -597,6 +601,10 @@ export function DashboardSidebarHeader({
 						</Tooltip>
 					)}
 
+					<RestartAllSessionsButton
+						hostUrl={restartSessionsHostUrl}
+						isCollapsed
+					/>
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -927,6 +935,10 @@ export function DashboardSidebarHeader({
 					</span>
 				</button>
 			)}
+			<RestartAllSessionsButton
+				hostUrl={restartSessionsHostUrl}
+				isCollapsed={false}
+			/>
 		</div>
 	);
 }

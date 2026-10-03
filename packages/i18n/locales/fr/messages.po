@@ -796,6 +796,9 @@ msgstr "{count, plural, one {Importer # worktree} other {Importer # worktrees}}"
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Projet ouvert} other {# projets ouverts}}"
 
+msgid "{count, plural, one {Restart # resumable agent session in this organization on this computer? Saved conversations will resume. Current work will be interrupted.} other {Restart # resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted.}}"
+msgstr "{count, plural, one {Redémarrer # session d’agent pouvant être reprise dans cette organisation sur cet ordinateur ? Les conversations enregistrées reprendront. Le travail en cours sera interrompu.} other {Redémarrer # sessions d’agent pouvant être reprises dans cette organisation sur cet ordinateur ? Les conversations enregistrées reprendront. Le travail en cours sera interrompu.}}"
+
 msgid "{count, plural, one {Used # source} other {Used # sources}}"
 msgstr "{count, plural, one {# source utilisée} other {# sources utilisées}}"
 
@@ -10476,6 +10479,9 @@ msgstr "Aucun résultat pour « {query} »"
 msgid "No results found."
 msgstr "Aucun résultat trouvé."
 
+msgid "No resumable agent sessions are running."
+msgstr "Aucune session d’agent pouvant être reprise n’est en cours."
+
 msgid "No Reviewers Assigned"
 msgstr "Aucun relecteur assigné"
 
@@ -13215,6 +13221,9 @@ msgstr "Réponse"
 msgid "Restart"
 msgstr "Redémarrer"
 
+msgid "Restart all sessions"
+msgstr "Redémarrer toutes les sessions"
+
 msgid "Restart all terminals?"
 msgstr "Redémarrer tous les terminaux ?"
 
@@ -13259,6 +13268,12 @@ msgstr "{restartedOrgCount} services d'hôte redémarrés"
 
 msgid "Restarted 1 host service"
 msgstr "1 service d'hôte redémarré"
+
+msgid "Restarted: {restarted}. Failed: {failed}. Skipped: {skipped}."
+msgstr "Redémarrées: {restarted}. Échecs: {failed}. Ignorées: {skipped}."
+
+msgid "Restarted: {restarted}. Skipped: {skipped}."
+msgstr "Redémarrées: {restarted}. Ignorées: {skipped}."
 
 msgid "Restarting"
 msgstr "Redémarrage"
@@ -14298,6 +14313,9 @@ msgstr "Sessions"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sessions · top {0} par coût"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Sessions redémarrées : {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
