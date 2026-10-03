@@ -23,6 +23,7 @@ import {
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { CommandTerminal } from "renderer/routes/_authenticated/components/CommandTerminal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider";
+import { AGENT_LABELS } from "renderer/routes/_authenticated/settings/utils/agent-labels";
 import type { UsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useHostUsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useSetDefaultUsageAccount } from "../../../../hooks/useSetDefaultUsageAccount";
@@ -36,11 +37,6 @@ import { switchSignInCommand } from "../../utils/switchSignInCommand";
 import type { ManagedAgent } from "../../utils/visibleQuotaAgents";
 
 type Agent = ManagedAgent;
-
-const AGENT_LABELS: Record<Agent, string> = {
-	claude: "Claude Code",
-	codex: "Codex",
-};
 
 /** The login being re-signed by "Switch sign-in": a profile dir, or the
  * system default when selection is null. */

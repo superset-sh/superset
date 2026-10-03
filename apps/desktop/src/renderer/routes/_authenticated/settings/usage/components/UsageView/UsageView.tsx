@@ -34,6 +34,7 @@ import type {
 } from "renderer/hooks/host-service/useHostUsageQuota";
 import { useHostUsageQuota } from "renderer/hooks/host-service/useHostUsageQuota";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { AGENT_LABELS } from "renderer/routes/_authenticated/settings/utils/agent-labels";
 import {
 	formatResetIn,
 	formatResetLabel,
@@ -54,14 +55,6 @@ import { API_BILLING_LINKS } from "./utils/apiBilling";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 import type { ManagedAgent, QuotaAgent } from "./utils/visibleQuotaAgents";
 import { isManagedAgent, visibleQuotaAgents } from "./utils/visibleQuotaAgents";
-
-const AGENT_LABELS: Record<QuotaAgent, string> = {
-	claude: "Claude Code",
-	codex: "Codex",
-	grok: "Grok",
-	agy: "Antigravity",
-	opencode: "OpenCode",
-};
 
 /** Re-auth command for agents whose logins Superset only reads. */
 const READ_ONLY_LOGIN_COMMANDS: Record<

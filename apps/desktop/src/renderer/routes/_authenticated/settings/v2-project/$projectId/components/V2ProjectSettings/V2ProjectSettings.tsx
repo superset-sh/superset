@@ -14,6 +14,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { AGENT_LABELS } from "renderer/routes/_authenticated/settings/utils/agent-labels";
 import {
 	HostSelect,
 	type HostSelectOption,
@@ -121,15 +122,13 @@ export function V2ProjectSettings({
 	});
 	const { data: usageAccounts = [], isSuccess: usageAccountsLoaded } =
 		useHostUsageQuota(targetHostUrl);
-	const agentAccounts = [
-		{ agent: "claude" as const, label: "Claude Code" },
-		{ agent: "codex" as const, label: "Codex" },
-	]
-		.map((item) => ({
-			...item,
-			accounts: usageAccounts.filter((account) => account.agent === item.agent),
+	const agentAccounts = (["claude", "codex"] as const)
+		.map((agent) => ({
+			agent,
+			label: AGENT_LABELS[agent],
+			accounts: usageAccounts.filter((account) => account.agent === agent),
 			pinned:
-				(item.agent === "claude"
+				(agent === "claude"
 					? hostProject?.claudeConfigDir
 					: hostProject?.codexHome) ?? null,
 		}))

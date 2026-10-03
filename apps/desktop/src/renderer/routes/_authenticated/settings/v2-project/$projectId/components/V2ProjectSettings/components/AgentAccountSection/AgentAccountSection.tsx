@@ -12,6 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import type { UsageAccount } from "renderer/hooks/host-service/useHostUsageQuota";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { AGENT_LABELS } from "renderer/routes/_authenticated/settings/utils/agent-labels";
 import {
 	RestartSessionsDialog,
 	type RestartSessionsPrompt,
@@ -60,7 +61,7 @@ export function AgentAccountSection({
 		if (count === 0) return;
 		setRestartPrompt({
 			agent,
-			providerLabel: agent === "claude" ? "Claude Code" : "Codex",
+			providerLabel: AGENT_LABELS[agent],
 			accountLabel: label(next),
 			count,
 		});
