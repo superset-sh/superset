@@ -552,7 +552,7 @@ export async function removePlugin(
 	if (!match) throw new CLIError(`"${name}" is not installed.`);
 
 	writeInstalledPlugins(plugins.filter((p) => p !== match));
-	if (fs.existsSync(match.installPath)) {
+	if (match.installPath && fs.existsSync(match.installPath)) {
 		fs.rmSync(match.installPath, { recursive: true });
 	}
 	await syncPlugins();

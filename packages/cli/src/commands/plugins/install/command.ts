@@ -81,9 +81,10 @@ export default command({
 			),
 		);
 
-		const connector = slug
-			? await ctx.api.connectors.get.query({ slug })
-			: null;
+		const connector =
+			slug && !accountError
+				? await ctx.api.connectors.get.query({ slug })
+				: null;
 		const methods = connector?.methods ?? [];
 		const auth = methods.length === 1 ? methods[0] : undefined;
 

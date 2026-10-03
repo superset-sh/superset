@@ -1,6 +1,6 @@
 import {
 	mcpHeadersHelperCommand,
-	readInstalledPluginSources,
+	readEnabledPlugins,
 	readPluginConnections,
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
@@ -21,7 +21,10 @@ export function syncPluginMcpServers(
 	servers: number;
 	error: string | null;
 } {
-	const desired = desiredPluginMcpServers(readInstalledPluginSources() ?? [], {
+	const plugins = readEnabledPlugins();
+	if (!plugins)
+		return { servers: 0, error: "installed_plugins.json is unreadable" };
+	const desired = desiredPluginMcpServers(plugins, {
 		connections: readPluginConnections(),
 		headersHelper: mcpHeadersHelperCommand(),
 	});

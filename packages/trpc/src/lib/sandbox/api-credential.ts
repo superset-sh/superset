@@ -42,6 +42,8 @@ export const SANDBOX_ALLOWED_PROCEDURES: ReadonlySet<string> = new Set([
 	"page.publish",
 	"page.pull",
 	"page.versions",
+	"plugins.list",
+	"plugins.marketplaces.list",
 	"user.me",
 	"user.myOrganization",
 	"user.myOrganizations",
@@ -54,6 +56,24 @@ function equal(a: string, b: string): boolean {
 }
 
 /**
+ * The workspace a credential is for, without the database: callers that run
+ * before authentication use this to tell a box apart from anyone who can type
+ * the header name.
+ */
+export async function sandboxCredentialWorkspaceId(
+	header: string | null,
+): Promise<string | null> {
+	const [workspaceId, presented] = header?.split(".") ?? [];
+	if (!workspaceId || !presented) return null;
+	return equal(
+		presented,
+		await sandboxApiCredential(env.SANDBOX_GATE_SECRET, workspaceId),
+	)
+		? workspaceId
+		: null;
+}
+
+/**
  * The workspace a request comes from, or null. The creator must still be a
  * member of the workspace's organization: a box outlives the person's access
  * to the org otherwise.
@@ -61,16 +81,8 @@ function equal(a: string, b: string): boolean {
 export async function resolveSandboxCaller(
 	header: string | null,
 ): Promise<SandboxCaller | null> {
-	const [workspaceId, presented] = header?.split(".") ?? [];
-	if (!workspaceId || !presented) return null;
-	if (
-		!equal(
-			presented,
-			await sandboxApiCredential(env.SANDBOX_GATE_SECRET, workspaceId),
-		)
-	) {
-		return null;
-	}
+	const workspaceId = await sandboxCredentialWorkspaceId(header);
+	if (!workspaceId) return null;
 	const row = await db.query.cloudWorkspaces.findFirst({
 		where: and(
 			eq(cloudWorkspaces.id, workspaceId),

@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 	// Standalone entry only: the desktop provisions these itself for hosts it
 	// spawns (with its per-agent disable settings); this covers CLI/systemd
 	// launches, which previously had no notify hooks or shell wrappers (#6254).
-	provisionAgentIntegrations();
+	await provisionAgentIntegrations();
 
 	const configTokenSource = env.SUPERSET_AUTH_CONFIG_PATH
 		? new ConfigFileSessionTokenSource({

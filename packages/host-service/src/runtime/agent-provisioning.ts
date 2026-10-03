@@ -4,13 +4,14 @@ import { fileURLToPath } from "node:url";
 import {
 	getAgentSetupTemplatesDir,
 	mcpHeadersHelperCommand,
-	readInstalledPluginSources,
+	readEnabledPlugins,
 	readPluginConnections,
 	reconcileMcpServers,
 	setAgentSetupTemplatesDir,
 	setupAgentIntegrations,
 } from "@superset/agent-setup";
 import { desiredPluginMcpServers } from "@superset/shared/plugins";
+import { seedSandboxPlugins } from "./sandbox-plugins";
 
 /**
  * Locates the agent-setup template assets for this deployment. The CLI
@@ -39,10 +40,13 @@ function resolveAgentTemplatesDir(): string | undefined {
  * (#6254). Headless hosts have no per-agent disable setting, so every
  * supported agent is provisioned.
  */
-export function provisionAgentIntegrations(): void {
+export async function provisionAgentIntegrations(): Promise<void> {
 	try {
 		const templatesDir = resolveAgentTemplatesDir();
 		if (templatesDir) setAgentSetupTemplatesDir(templatesDir);
+		// The ledger has to be on disk, and resolved against the templates dir
+		// just applied, before setupAgentIntegrations reads it.
+		await seedSandboxPlugins();
 		// Individual writers soft-fail on missing templates (each is
 		// try/caught), which is exactly the silence that hid #6254 — surface a
 		// broken install loudly instead of one warn per agent.
@@ -61,8 +65,15 @@ export function provisionAgentIntegrations(): void {
 		// config; and a write can be declined when a same-named server is
 		// configured elsewhere. This reads two files and does nothing when they
 		// already agree, which is the usual case.
+		const plugins = readEnabledPlugins();
+		if (!plugins) {
+			console.warn(
+				"[host-service] installed_plugins.json is unreadable; MCP config left as is",
+			);
+			return;
+		}
 		const reports = reconcileMcpServers(
-			desiredPluginMcpServers(readInstalledPluginSources() ?? [], {
+			desiredPluginMcpServers(plugins, {
 				connections: readPluginConnections(),
 				headersHelper: mcpHeadersHelperCommand(),
 			}),

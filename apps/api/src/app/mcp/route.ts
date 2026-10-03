@@ -111,7 +111,7 @@ async function handle(req: Request): Promise<Response> {
 	const response = await transport.handleRequest(req, {
 		authInfo: {
 			token: ctx.bearerToken,
-			clientId: ctx.source === "api-key" ? "api-key" : "oauth",
+			clientId: ctx.source,
 			scopes: ["mcp:full"],
 			extra: { mcpContext: ctx },
 		},

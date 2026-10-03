@@ -2,16 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	type InstalledPluginEntry,
 	installedPluginsFilePath,
 	writeFileIfChanged,
 } from "@superset/agent-setup";
 import { CLIError } from "@superset/cli-framework";
 import { getSupersetHomeDir } from "../settings/paths";
-import {
-	assertSafeSegment,
-	MARKETPLACE_FILE,
-	type Marketplace,
-} from "./marketplace";
+import { MARKETPLACE_FILE, type Marketplace } from "./marketplace";
 
 export {
 	DEFAULT_MARKETPLACE,
@@ -33,14 +30,7 @@ export interface KnownMarketplace {
 	lastUpdated: string;
 }
 
-export interface InstalledPlugin {
-	marketplace: string;
-	name: string;
-	version: string;
-	installPath: string;
-	installedAt: string;
-	enabled: boolean;
-}
+export type { InstalledPluginEntry as InstalledPlugin } from "@superset/agent-setup";
 
 export function supersetHome(): string {
 	return getSupersetHomeDir();
@@ -56,10 +46,6 @@ export function skillsRoot(): string {
 
 export function marketplacesDir(): string {
 	return path.join(pluginsRoot(), "marketplaces");
-}
-
-export function cacheDir(): string {
-	return path.join(pluginsRoot(), "cache");
 }
 
 function knownFile(): string {
@@ -103,17 +89,15 @@ export function writeKnownMarketplaces(
 	writeJsonFile(knownFile(), value);
 }
 
-export function readInstalledPlugins(): InstalledPlugin[] {
-	const raw = readJsonFile<{ version: number; plugins: InstalledPlugin[] }>(
-		installedFile(),
-		{ version: 1, plugins: [] },
-	);
+export function readInstalledPlugins(): InstalledPluginEntry[] {
+	const raw = readJsonFile<{
+		version: number;
+		plugins: InstalledPluginEntry[];
+	}>(installedFile(), { version: 1, plugins: [] });
 	return raw.plugins ?? [];
 }
 
-export function writeInstalledPlugins(plugins: InstalledPlugin[]): void {
-	writeJsonFile(installedFile(), { version: 1, plugins });
-}
+export { writeInstalledPlugins } from "@superset/agent-setup";
 
 export function marketplaceManifest(name: string): Marketplace {
 	const known = readKnownMarketplaces()[name];
@@ -137,24 +121,13 @@ export function marketplaceManifest(name: string): Marketplace {
 	}
 }
 
-export function pluginCachePath(
-	marketplace: string,
-	name: string,
-	version: string,
-): string {
-	return path.join(
-		cacheDir(),
-		assertSafeSegment(marketplace, "marketplace"),
-		assertSafeSegment(name, "plugin name"),
-		assertSafeSegment(version, "version"),
-	);
-}
+export { pluginCachePath } from "@superset/agent-setup";
 
 export function findInstalled(
-	plugins: InstalledPlugin[],
+	plugins: InstalledPluginEntry[],
 	name: string,
 	marketplace?: string,
-): InstalledPlugin | undefined {
+): InstalledPluginEntry | undefined {
 	const matches = plugins.filter(
 		(p) => p.name === name && (!marketplace || p.marketplace === marketplace),
 	);

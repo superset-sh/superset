@@ -7,7 +7,7 @@
 # install-chrome: the deb ships google-chrome.desktop and overwrites the patch.
 set -euo pipefail
 . /etc/superset/contract.sh
-user="$SUPERSET_USER"; home="$SUPERSET_HOME_DIR"
+user="$SUPERSET_USER"; home="$SUPERSET_USER_HOME"
 [ -x /usr/bin/google-chrome-stable ] || { echo "Chrome is not installed" >&2; exit 1; }
 
 # The dock and xdg-open go through the wrapper, which owns the flags.

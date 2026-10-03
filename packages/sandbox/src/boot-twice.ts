@@ -96,6 +96,20 @@ const identity = renderSandboxConf({
 	]),
 	SUPERSET_SANDBOX_IMAGE_TAG: IMAGE,
 	SUPERSET_SANDBOX_PROVIDER: "docker",
+	SUPERSET_SANDBOX_PLUGINS: JSON.stringify([
+		{
+			marketplace: "superset",
+			name: "linear",
+			version: "0.0.0",
+			enabled: true,
+		},
+		{
+			marketplace: "acme",
+			name: "not-shipped",
+			version: "1.0.0",
+			enabled: true,
+		},
+	]),
 });
 
 docker(["rm", "-f", NAME], { check: false });
@@ -212,6 +226,22 @@ try {
 			),
 		),
 	);
+	// host-service is an asset pinned in bundle/assets.json, so the box runs a
+	// published build rather than this checkout: what it does with the plugin
+	// list belongs to the release probe and the unit tests. Handing the list
+	// over is the bundle's own job, so that is what this checks.
+	const hostEnv = exec(
+		`tr '\\0' '\\n' < /proc/$(cat ${SANDBOX_PATHS.run}/host-service.pid)/environ`,
+		{ check: false, user: "ubuntu" },
+	);
+	expect(
+		"plugins: the runner hands host-service the plugin list",
+		/SUPERSET_SANDBOX_PLUGINS=.*not-shipped/.test(hostEnv),
+		hostEnv
+			.split("\n")
+			.find((line) => line.startsWith("SUPERSET_SANDBOX_PLUGINS=")) ?? "unset",
+	);
+
 	// The control plane's push, so the runner's hook sequencing runs: this
 	// checkout declares no start hook, which the log must say.
 	exec(
