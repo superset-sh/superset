@@ -277,6 +277,155 @@ describe("LocalLinkDetector", () => {
 		});
 	});
 
+	describe("paths containing spaces", () => {
+		const spacedPath = "/tmp/link test/example.md";
+
+		it("detects an absolute path containing a space mid-line", async () => {
+			const detector = createDetector([spacedPath]);
+			const line = `Saved: ${spacedPath}`;
+			const result = await detector.detect(line);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.resolvedPath).toBe(spacedPath);
+			expect(result[0]?.startIndex).toBe(7);
+			expect(result[0]?.endIndex).toBe(line.length);
+			expect(result[0]?.text).toBe(spacedPath);
+		});
+
+		it("stops at the end of the path when text follows it", async () => {
+			const detector = createDetector([spacedPath]);
+			const line = `wrote ${spacedPath} in 3ms`;
+			const result = await detector.detect(line);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.text).toBe(spacedPath);
+			expect(result[0]?.startIndex).toBe(6);
+		});
+
+		it("keeps a line and column suffix", async () => {
+			const detector = createDetector([spacedPath]);
+			const result = await detector.detect(`error at ${spacedPath}:3:5 here`);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.text).toBe(`${spacedPath}:3:5`);
+			expect(result[0]?.row).toBe(3);
+			expect(result[0]?.col).toBe(5);
+		});
+
+		it("drops trailing punctuation from the link range", async () => {
+			const detector = createDetector([spacedPath]);
+			const result = await detector.detect(`Wrote ${spacedPath}.`);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.text).toBe(spacedPath);
+		});
+
+		it("detects a quoted path and excludes the quotes", async () => {
+			const detector = createDetector([spacedPath]);
+			const line = `Opening "${spacedPath}" now`;
+			const result = await detector.detect(line);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.text).toBe(spacedPath);
+			expect(result[0]?.startIndex).toBe(line.indexOf("/"));
+		});
+
+		it("detects tilde and relative paths containing a space", async () => {
+			const detector = createDetector([
+				"/home/Library/Mobile Documents/notes.md",
+				"/parent/cwd/my docs/readme.md",
+			]);
+			const tilde = await detector.detect(
+				"open ~/Library/Mobile Documents/notes.md",
+			);
+			expect(tilde).toHaveLength(1);
+			expect(tilde[0]?.resolvedPath).toBe(
+				"/home/Library/Mobile Documents/notes.md",
+			);
+			const relative = await detector.detect("see ./my docs/readme.md");
+			expect(relative).toHaveLength(1);
+			expect(relative[0]?.resolvedPath).toBe("/parent/cwd/my docs/readme.md");
+		});
+
+		it("detects two paths with spaces on one line", async () => {
+			const detector = createDetector(["/tmp/a b.txt", "/tmp/c d.txt"]);
+			const result = await detector.detect("cp /tmp/a b.txt /tmp/c d.txt");
+			expect(result.map((link) => link.resolvedPath)).toEqual([
+				"/tmp/a b.txt",
+				"/tmp/c d.txt",
+			]);
+		});
+
+		it("keeps a path without spaces found on the same line", async () => {
+			const detector = createDetector(["/tmp/plain.md", spacedPath]);
+			const result = await detector.detect(`diff /tmp/plain.md ${spacedPath}`);
+			expect(result.map((link) => link.resolvedPath).sort()).toEqual(
+				[spacedPath, "/tmp/plain.md"].sort(),
+			);
+		});
+
+		it("prefers the longest existing path over a shorter one inside it", async () => {
+			const detector = createDetector(["/tmp/link", spacedPath]);
+			const result = await detector.detect(`see ${spacedPath}`);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.resolvedPath).toBe(spacedPath);
+		});
+
+		it("prefers the longer path when the shorter one is the only parsed piece", async () => {
+			// The parser returns only `/tmp/my` here: `file` alone is not a path
+			// candidate, so no parsed piece is left unresolved.
+			const detector = createDetector(["/tmp/my", "/tmp/my file"]);
+			const result = await detector.detect("Saved: /tmp/my file");
+			expect(result).toHaveLength(1);
+			expect(result[0]?.resolvedPath).toBe("/tmp/my file");
+			expect(result[0]?.text).toBe("/tmp/my file");
+		});
+
+		it("keeps the shorter path when the longer one does not exist", async () => {
+			const detector = createDetector(["/tmp/my"]);
+			const result = await detector.detect("Saved: /tmp/my file");
+			expect(result).toHaveLength(1);
+			expect(result[0]?.resolvedPath).toBe("/tmp/my");
+			expect(result[0]?.text).toBe("/tmp/my");
+		});
+
+		it("does not look for a longer path when a link ends the line", async () => {
+			let calls = 0;
+			const resolver = new TerminalLinkResolver(async (path) => {
+				calls++;
+				return path === "/tmp/plain.md" ? { isDirectory: false } : null;
+			});
+			const detector = new LocalLinkDetector(resolver);
+			const result = await detector.detect("Saved: /tmp/plain.md");
+			expect(result).toHaveLength(1);
+			// One stat for the parsed path; nothing for the spaced-path pass.
+			expect(calls).toBe(1);
+		});
+
+		it("does not replace a fallback match that carries a line number", async () => {
+			const detector = createDetector(["/tmp/link test/app.py"]);
+			const result = await detector.detect(
+				'  File "/tmp/link test/app.py", line 42',
+			);
+			expect(result).toHaveLength(1);
+			expect(result[0]?.resolvedPath).toBe("/tmp/link test/app.py");
+			expect(result[0]?.row).toBe(42);
+		});
+
+		it("does not treat a URL as a path", async () => {
+			const detector = createDetector(["//example.com/a b"]);
+			const result = await detector.detect("see https://example.com/a b");
+			expect(result).toHaveLength(0);
+		});
+
+		it("bounds the number of filesystem checks on a long line", async () => {
+			let calls = 0;
+			const resolver = new TerminalLinkResolver(async () => {
+				calls++;
+				return null;
+			});
+			const detector = new LocalLinkDetector(resolver);
+			const words = Array.from({ length: 60 }, (_, i) => `/x${i} y${i}`);
+			await detector.detect(words.join(" "));
+			expect(calls).toBeLessThanOrEqual(80);
+		});
+	});
+
 	describe("trimmed candidates", () => {
 		it("should try trimmed path when original has trailing punctuation", async () => {
 			// Path followed by a bracket that gets included in the match —
