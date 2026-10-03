@@ -477,6 +477,8 @@ export interface SlackPlugin {
 	name: string;
 	displayName: string;
 	capability: string;
+	/** What still works without a connection, so a read question is not refused. */
+	fallback?: string;
 }
 
 export const SLACK_PLUGINS: readonly SlackPlugin[] = [
@@ -485,6 +487,8 @@ export const SLACK_PLUGINS: readonly SlackPlugin[] = [
 		displayName: "Linear",
 		capability:
 			"search and read issues, file issues, comment, and look up teams, projects, users, statuses and labels",
+		fallback:
+			"Superset tasks mirror this organization's Linear issues, so answer questions about Linear issues from the superset_tasks_* tools and say the answer comes from Superset's copy.",
 	},
 	{
 		name: "github",
@@ -865,7 +869,7 @@ export async function runSlackAgent(
 			}
 			if (mentionsPlugin(params.prompt, plugin)) {
 				return [
-					`- ${plugin.displayName} is not connected to this user's Superset account, so there are no ${plugin.name}_* tools. If the request needs ${plugin.displayName}, say it is not connected instead of guessing; they can connect it from the Plugins page in Superset.`,
+					`- ${plugin.displayName} is not connected to this user's Superset account, so there are no ${plugin.name}_* tools.${plugin.fallback ? ` ${plugin.fallback}` : ""} For anything that needs ${plugin.displayName} itself, say it is not connected instead of guessing; they can connect it from the Plugins page in Superset.`,
 				];
 			}
 			return [];
