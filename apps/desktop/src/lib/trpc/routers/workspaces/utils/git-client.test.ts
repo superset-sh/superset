@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -91,4 +97,47 @@ describe("simple-git user env options", () => {
 		const status = await git.raw(["status", "--short"]);
 		expect(status).toBe("");
 	});
+
+	// Repro for #5898 "Importing projects freeze on mac". Opening a folder runs
+	// getDefaultBranch(), which can reach a network git op (`ls-remote origin
+	// HEAD`). If that subprocess stalls with no output (unreachable remote, SSH
+	// host-key / credential prompt without a TTY), simple-git must kill it — the
+	// shared options carry a `timeout.block` for exactly this. Without one the
+	// call never settles and the "open a folder" flow hangs indefinitely.
+	test("ships a positive block timeout for every git command", () => {
+		expect(USER_GIT_ENV_SIMPLE_GIT_OPTIONS.timeout?.block).toBeGreaterThan(0);
+	});
+
+	test("kills a git subprocess that stalls with no output", async () => {
+		// Fake git that ignores its args and never produces output, standing in
+		// for a real git op blocked on a hung network connection or auth prompt.
+		// `exec` so the spawned process itself becomes `sleep`; a wrapper shell
+		// would exit on SIGINT but leave `sleep` holding the stdio pipes open,
+		// which stops simple-git from ever settling the task.
+		const fakeGit = join(workRoot, "hang-git.sh");
+		writeFileSync(fakeGit, "#!/bin/sh\nexec sleep 30\n");
+		chmodSync(fakeGit, 0o755);
+
+		const git = simpleGit({
+			...USER_GIT_ENV_SIMPLE_GIT_OPTIONS,
+			baseDir: workRoot,
+			binary: fakeGit,
+			// Real value lives in USER_GIT_ENV_SIMPLE_GIT_OPTIONS.timeout.block
+			// (asserted above); shortened here only so the test runs quickly.
+			timeout: { block: 500 },
+		});
+
+		const start = performance.now();
+		let rejected = false;
+		try {
+			await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
+		} catch {
+			rejected = true;
+		}
+		const elapsedMs = performance.now() - start;
+
+		expect(rejected).toBe(true);
+		// Killed by the block timeout, nowhere near the 30s the fake git sleeps.
+		expect(elapsedMs).toBeLessThan(5_000);
+	}, 15_000);
 });
