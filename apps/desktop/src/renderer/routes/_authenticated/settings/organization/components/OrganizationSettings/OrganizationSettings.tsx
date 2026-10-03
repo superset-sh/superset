@@ -47,6 +47,7 @@ import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
 } from "react-icons/hi2";
+import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -69,6 +70,9 @@ import {
 } from "../../../utils/settings-search";
 import { OrganizationLogo } from "./components/OrganizationLogo";
 import { SlugDialog } from "./components/SlugDialog";
+
+const LINEAR_CONNECT_POLL_INTERVAL_MS = 3_000;
+const LINEAR_CONNECT_WAIT_MS = 5 * 60_000;
 
 interface OrganizationSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -121,9 +125,14 @@ export function OrganizationSettings({
 	const [nameValue, setNameValue] = useState("");
 	const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
 	const [isDeletingOrg, setIsDeletingOrg] = useState(false);
+	const [isConnectingLinear, setIsConnectingLinear] = useState(false);
 
 	const { data: organizations, isPending } =
-		cloudTrpc.organization.list.useQuery(undefined);
+		cloudTrpc.organization.list.useQuery(undefined, {
+			refetchInterval: isConnectingLinear
+				? LINEAR_CONNECT_POLL_INTERVAL_MS
+				: false,
+		});
 
 	const organization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -289,11 +298,39 @@ export function OrganizationSettings({
 		);
 	}
 
+	const taskTracker = organization?.taskTracker;
+	useEffect(() => {
+		if (!isConnectingLinear) return;
+		if (taskTracker === "linear") {
+			setIsConnectingLinear(false);
+			return;
+		}
+		const giveUp = setTimeout(
+			() => setIsConnectingLinear(false),
+			LINEAR_CONNECT_WAIT_MS,
+		);
+		return () => clearTimeout(giveUp);
+	}, [isConnectingLinear, taskTracker]);
+
 	async function handleTaskTrackerChange(
 		taskTracker: TaskTracker,
 	): Promise<void> {
 		if (!organization || taskTracker === organization.taskTracker) return;
 		try {
+			if (taskTracker === "linear") {
+				const connection =
+					await apiTrpcClient.integration.linear.getConnection.query({
+						organizationId: organization.id,
+					});
+				if (!connection || connection.needsReconnect) {
+					setIsConnectingLinear(true);
+					window.open(
+						`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?taskTracker=linear`,
+						"_blank",
+					);
+					return;
+				}
+			}
 			await apiTrpcClient.organization.update.mutate({
 				id: organization.id,
 				taskTracker,
