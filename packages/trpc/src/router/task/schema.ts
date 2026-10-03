@@ -33,6 +33,7 @@ export const updateTaskSchema = z.object({
 });
 
 const taskListFilterSchema = z.object({
+	nativeOnly: z.boolean().nullish(),
 	statusId: z.string().uuid().nullish(),
 	priority: z.enum(taskPriorityValues).nullish(),
 	assigneeId: z.string().uuid().nullish(),

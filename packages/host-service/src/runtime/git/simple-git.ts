@@ -9,7 +9,7 @@ const SIMPLE_GIT_OPTIONS =
 
 export function createUserSimpleGit(
 	baseDir?: string,
-	options?: Pick<SimpleGitOptions, "timeout">,
+	options?: Pick<SimpleGitOptions, "timeout" | "abort">,
 ): SimpleGit {
 	return baseDir
 		? simpleGit(baseDir, { ...SIMPLE_GIT_OPTIONS, ...options })

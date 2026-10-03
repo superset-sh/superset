@@ -44,6 +44,8 @@ export function LinkTaskCommand({
 		return {
 			id: task.id,
 			slug: task.slug,
+			externalProvider: task.externalProvider,
+			externalKey: task.externalKey,
 			title: task.title,
 			status: status
 				? {
@@ -87,7 +89,7 @@ export function LinkTaskCommand({
 							>
 								<Checkbox checked={isLinked} className="pointer-events-none" />
 								<CloudTaskIcon task={task} />
-								<span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+								<span className="shrink-0 font-mono text-xs text-muted-foreground">
 									{task.slug}
 								</span>
 								<span className="min-w-0 flex-1 truncate">{task.title}</span>

@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/card";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiLinear } from "react-icons/si";
 import { initServerI18n } from "@/lib/i18n-server";
 import { api } from "@/trpc/server";
@@ -44,6 +45,22 @@ export default async function LinearIntegrationPage() {
 				message: "You are not authorized to perform this action.",
 			}),
 		),
+		workspace_already_linked: {
+			param: "owner",
+			withParam: i18n._({
+				...msg({
+					message:
+						"This Linear workspace is already connected by {owner}. Ask them to disconnect first.",
+				}),
+				values: { owner: "{owner}" },
+			}),
+			withoutParam: i18n._(
+				msg({
+					message:
+						"This Linear workspace is already connected by another Superset organization.",
+				}),
+			),
+		},
 	};
 	const CALLBACK_WARNINGS = {
 		sync_queued_failed: i18n._(
@@ -70,6 +87,14 @@ export default async function LinearIntegrationPage() {
 				</p>
 			</div>
 		);
+	}
+
+	if (
+		!(await trpc.integration.syncAllowed.query({
+			organizationId: organization.id,
+		}))
+	) {
+		redirect("/integrations?pro=linear");
 	}
 
 	const connection = await trpc.integration.linear.getConnection.query({

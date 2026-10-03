@@ -23,7 +23,8 @@
 		"./icons/browser-icons/*": "./src/assets/icons/browser-icons/*.svg",
 		"./atoms/*": "./src/atoms/*/index.ts",
 		"./*": "./src/components/ui/*.tsx",
-		"./app-store-qr": "./src/components/AppStoreQr/index.ts"
+		"./app-store-qr": "./src/components/AppStoreQr/index.ts",
+		"./pro-features-dialog": "./src/components/ProFeaturesDialog/index.ts"
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
@@ -36,6 +37,7 @@
 		"@hookform/resolvers": "5.2.2",
 		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0",
+		"@paper-design/shaders-react": "0.0.77",
 		"@radix-ui/react-accordion": "1.2.12",
 		"@radix-ui/react-alert-dialog": "1.1.15",
 		"@radix-ui/react-aspect-ratio": "1.1.8",

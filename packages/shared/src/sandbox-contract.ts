@@ -85,6 +85,8 @@ export const sandboxIdentitySchema = z.object({
 	SUPERSET_API_URL: z.string().url(),
 	SUPERSET_SANDBOX_WORKSPACE_ID: z.string().uuid(),
 	SUPERSET_SANDBOX_ORGANIZATION_ID: z.string().uuid(),
+	/** Absent for a workspace nobody created, such as an automation's. */
+	SUPERSET_SANDBOX_CREATOR_USER_ID: z.string().uuid().optional(),
 	/**
 	 * The repositories this workspace checks out, as JSON
 	 * (`sandboxRepositoriesSchema`): each at `<workspace>/<path>` on its

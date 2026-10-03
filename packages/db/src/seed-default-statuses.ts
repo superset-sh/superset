@@ -6,14 +6,44 @@ import { taskStatuses } from "./schema";
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 type Executor = typeof dbWs | DbWsTransaction;
 
+/**
+ * Linear's fill for its "started" icons: one state is half full, two are half
+ * and three-quarters, more are spaced evenly below full (full is "completed").
+ */
+export function startedStatusProgress(total: number): number[] {
+	if (total === 1) return [50];
+	if (total === 2) return [50, 75];
+	return Array.from({ length: total }, (_, index) =>
+		Math.round(((index + 1) / (total + 1)) * 100),
+	);
+}
+
+const [IN_PROGRESS, IN_REVIEW] = startedStatusProgress(2);
+
 const DEFAULT_STATUSES: Array<
-	Pick<InsertTaskStatus, "name" | "color" | "type" | "position">
+	Pick<
+		InsertTaskStatus,
+		"name" | "color" | "type" | "position" | "progressPercent"
+	>
 > = [
 	{ name: "Backlog", color: "#95a2b3", type: "backlog", position: 0 },
 	{ name: "Todo", color: "#e2e2e2", type: "unstarted", position: 1 },
-	{ name: "In Progress", color: "#f2c94c", type: "started", position: 2 },
-	{ name: "Done", color: "#0e9f6e", type: "completed", position: 3 },
-	{ name: "Canceled", color: "#95a2b3", type: "canceled", position: 4 },
+	{
+		name: "In Progress",
+		color: "#f2c94c",
+		type: "started",
+		position: 2,
+		progressPercent: IN_PROGRESS,
+	},
+	{
+		name: "In Review",
+		color: "#0f783c",
+		type: "started",
+		position: 3,
+		progressPercent: IN_REVIEW,
+	},
+	{ name: "Done", color: "#5e6ad2", type: "completed", position: 4 },
+	{ name: "Canceled", color: "#95a2b3", type: "canceled", position: 5 },
 ];
 
 /**

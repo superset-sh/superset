@@ -1,10 +1,10 @@
 import type { UserContent } from "@superset/chat/protocol";
 import { useCallback, useState } from "react";
+import { SessionView } from "../ChatSession/components/SessionView";
+import { useSessionClient } from "../ChatSession/hooks/useSessionClient";
 import type { HarnessId } from "./components/NewSessionView";
 import { NewSessionView } from "./components/NewSessionView";
 import { SessionPicker } from "./components/SessionPicker";
-import { SessionView } from "./components/SessionView";
-import { useSessionClient } from "./hooks/useSessionClient";
 
 export function ChatV3Pane({
 	onSessionIdChange,
@@ -58,6 +58,7 @@ export function ChatV3Pane({
 
 	return (
 		<SessionView
+			workspaceId={workspaceId}
 			client={client}
 			headerLeft={picker}
 			key={sessionId}

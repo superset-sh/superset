@@ -75,6 +75,7 @@ export {
 
 export { getCommandShellArgs, getShellArgs, getShellEnv };
 
+export { getWrapperPath } from "./agent-wrappers-common";
 export {
 	getAgentSetupTemplatesDir,
 	setAgentSetupTemplatesDir,
@@ -93,6 +94,7 @@ export {
 	readInstalledPluginSources,
 } from "./installed-plugins";
 export {
+	hashMcpServerValue,
 	readExternallyConfiguredMcpServers,
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
@@ -102,6 +104,16 @@ export {
 	type PluginSkillSource,
 } from "./managed-skills";
 export { getBinDir, resolveSupersetHomeDir } from "./paths";
+export {
+	mcpHeadersHelperCommand,
+	pluginConnectionsFilePath,
+	readPluginConnections,
+	writePluginConnections,
+} from "./plugin-connections";
+export {
+	type McpReconcileReport,
+	reconcileMcpServers,
+} from "./reconcile-mcp-servers";
 export {
 	resolveWriteTarget,
 	writeFileIfChanged,

@@ -3,6 +3,7 @@ import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiNotion } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
+import { AccountSlot } from "../components/AccountSlot";
 import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
@@ -16,12 +17,14 @@ function renderSlot(
 	config: NotionConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, state, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled, account }: SentenceContext,
 ) {
 	// The slot list is derived from this event, so the fields it names are
 	// present on this config member even where the union type cannot say so.
 	const c = config as unknown as Record<string, never>;
 	switch (slot) {
+		case "account":
+			return <AccountSlot key={index} account={account} after="›" />;
 		case "dataSources":
 			return (
 				<ScopeChip

@@ -6,7 +6,7 @@ import { LuExternalLink, LuPlus } from "react-icons/lu";
 import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 
 interface WorkItemDetailHeaderProps {
-	itemNumber: number | null;
+	itemLabel: string;
 	icon: ReactNode;
 	backLabel: string;
 	externalLabel: string;
@@ -16,7 +16,7 @@ interface WorkItemDetailHeaderProps {
 }
 
 export function WorkItemDetailHeader({
-	itemNumber,
+	itemLabel,
 	icon,
 	backLabel,
 	externalLabel,
@@ -42,7 +42,7 @@ export function WorkItemDetailHeader({
 					</Button>
 					{icon}
 					<span className="min-w-0 truncate font-mono text-sm tabular-nums text-muted-foreground">
-						{itemNumber === null ? "#—" : `#${itemNumber}`}
+						{itemLabel}
 					</span>
 				</>
 			}

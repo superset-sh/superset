@@ -88,6 +88,10 @@ cloud_setup_main() {
   step_seed_env_placeholders || step_failed "Seed .env placeholders"
   ( set -a; . "$ROOT_DIR/.env"; set +a; NODE_ENV=development bun run db:seed-dev ) ||
     step_failed "Seed dev account"
+  ( set -a; . "$ROOT_DIR/.env"; set +a; bun run db:seed-cloud-auth-token ) ||
+    step_failed "Seed personal auth token"
+  ( set -a; . "$ROOT_DIR/.env"; set +a; bun run db:seed-cloud-mobile-token ) ||
+    step_failed "Seed mobile dev token"
 
   print_summary "Cloud setup"
 }

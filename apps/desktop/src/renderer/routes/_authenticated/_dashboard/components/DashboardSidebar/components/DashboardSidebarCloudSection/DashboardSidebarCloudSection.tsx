@@ -15,7 +15,6 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CloudTask } from "renderer/routes/_authenticated/_dashboard/components/CloudTaskRow";
 import { useCloudWorkspaceRepositories } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceRepositories";
-import { useOpenPullRequestInApp } from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPullRequestInApp";
 import {
 	EMPTY_CLOUD_SIDEBAR,
 	useCloudSidebarStore,
@@ -35,6 +34,7 @@ import { DashboardSidebarCloudHoverOverlay } from "./components/DashboardSidebar
 import { DashboardSidebarCloudItem } from "./components/DashboardSidebarCloudItem";
 import { DashboardSidebarCloudRailItem } from "./components/DashboardSidebarCloudRailItem";
 import { useCloudHoverCard } from "./hooks/useCloudHoverCard";
+import { useOpenCloudWorkspacePullRequest } from "./hooks/useOpenCloudWorkspacePullRequest";
 
 const NOW_TICK_MS = 30_000;
 
@@ -217,7 +217,7 @@ export function DashboardSidebarCloudSection({
 
 	const hoverCard = useCloudHoverCard();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
-	const openPullRequest = useOpenPullRequestInApp();
+	const openPullRequest = useOpenCloudWorkspacePullRequest();
 	const hoveredWorkspace = hoverCard.hoveredWorkspaceId
 		? cloudWorkspaces.find(
 				(workspace) => workspace.id === hoverCard.hoveredWorkspaceId,
@@ -304,7 +304,7 @@ export function DashboardSidebarCloudSection({
 									openNewWorkspaceForHost(CLOUD_HOST_ID);
 								}}
 								onKeyDown={(event) => event.stopPropagation()}
-								className="mr-2 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+								className="mr-[3px] flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 							>
 								<LuPlus className="size-3.5" />
 							</button>
@@ -359,7 +359,9 @@ export function DashboardSidebarCloudSection({
 						onOpenTask={(taskId) =>
 							navigate({ to: "/tasks/$taskId", params: { taskId } })
 						}
-						onOpenPullRequest={openPullRequest}
+						onOpenPullRequest={(url) =>
+							openPullRequest(hoveredWorkspace.id, url)
+						}
 						onOpenRepository={(fullName) =>
 							openUrl.mutate(`https://github.com/${fullName}`)
 						}

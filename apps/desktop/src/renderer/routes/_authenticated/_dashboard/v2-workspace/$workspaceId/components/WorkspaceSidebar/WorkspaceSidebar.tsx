@@ -56,8 +56,6 @@ interface WorkspaceSidebarProps {
 	selectedDiffTarget?: SelectedDiffTarget;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
-	/** Changes/PR control and open-in button, rendered by the page. */
-	shipControls: ReactNode;
 	/** Run button rendered by the page, hosted in the sidebar's top strip. */
 	runButton: ReactNode;
 	/** Rendered by the page, which owns the pane store agents launch into. */
@@ -74,7 +72,6 @@ export function WorkspaceSidebar({
 	selectedDiffTarget,
 	pendingReveal,
 	workspaceId,
-	shipControls,
 	runButton,
 	pagesMenu,
 }: WorkspaceSidebarProps) {
@@ -179,11 +176,7 @@ export function WorkspaceSidebar({
 			ref={containerRef}
 			className="isolate flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
 		>
-			<PRActionHeader
-				shipControls={shipControls}
-				runButton={runButton}
-				pagesMenu={pagesMenu}
-			/>
+			<PRActionHeader runButton={runButton} pagesMenu={pagesMenu} />
 			<SidebarHeader
 				tabs={tabs}
 				activeTab={activeTabDef?.id ?? activeTab}

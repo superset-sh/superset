@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR #8003 — review findings</title>
+    <style>
+      :root {
+        --sp-measure: 78ch;
+        --high: var(--sp-chart-3);
+        --med: var(--sp-chart-1);
+        --low: var(--sp-muted);
+        --ok: var(--sp-chart-2);
+      }
+      body {
+        padding: 3rem 1.5rem 6rem;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+      }
+      .lede {
+        max-width: var(--sp-measure);
+        color: var(--sp-muted);
+        font-size: 1.05rem;
+        margin: 0 0 2rem;
+      }
+      h2 {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        margin: 3.5rem 0 1.25rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--sp-border);
+      }
+      code {
+        font-family: var(--sp-font-mono);
+        font-size: 0.86em;
+      }
+      .tally {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        padding: 1rem 0 1.25rem;
+        border-top: 1px solid var(--sp-border);
+        border-bottom: 1px solid var(--sp-border);
+        margin-bottom: 1.5rem;
+      }
+      .tally div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .tally b {
+        font-size: 1.6rem;
+        font-weight: 600;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .tally span {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--sp-muted);
+      }
+      .filters {
+        display: flex;
+        gap: 0.5rem;
+        margin: 0 0 1.75rem;
+        flex-wrap: wrap;
+      }
+      .filters button {
+        font: inherit;
+        font-size: 0.85rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid var(--sp-border);
+        background: transparent;
+        color: var(--sp-muted);
+        cursor: pointer;
+      }
+      .filters button[aria-pressed="true"] {
+        background: var(--sp-text);
+        color: var(--sp-bg);
+        border-color: var(--sp-text);
+      }
+      .finding {
+        border-top: 1px solid var(--sp-border);
+        padding: 1.5rem 0;
+      }
+      .finding[hidden] {
+        display: none;
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.4rem;
+      }
+      .num {
+        font-family: var(--sp-font-mono);
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+      }
+      .finding h3 {
+        font-size: 1.05rem;
+        margin: 0;
+        letter-spacing: -0.01em;
+        flex: 1 1 18rem;
+        min-width: 0;
+      }
+      .chip {
+        font-family: var(--sp-font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.18rem 0.5rem;
+        border-radius: 3px;
+        border: 1px solid currentColor;
+        white-space: nowrap;
+      }
+      .sev-high {
+        color: var(--high);
+      }
+      .sev-medium {
+        color: var(--med);
+      }
+      .sev-low {
+        color: var(--low);
+      }
+      .chip.verified {
+        color: var(--ok);
+      }
+      .chip.fixed {
+        background: var(--ok);
+        color: var(--sp-bg);
+        border-color: var(--ok);
+      }
+      .where {
+        font-family: var(--sp-font-mono);
+        font-size: 0.8rem;
+        color: var(--sp-muted);
+        margin: 0 0 0.8rem;
+        overflow-wrap: anywhere;
+      }
+      .finding p {
+        max-width: var(--sp-measure);
+        margin: 0 0 0.7rem;
+        font-size: 0.95rem;
+      }
+      .label {
+        font-weight: 600;
+      }
+      .fix {
+        border-left: 2px solid var(--sp-border);
+        padding-left: 0.9rem;
+        color: var(--sp-muted);
+        font-size: 0.92rem;
+        max-width: var(--sp-measure);
+      }
+      .finding h4 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        margin: 1.75rem 0 0.75rem;
+      }
+      .scroller {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 0.87rem;
+        min-width: 44rem;
+      }
+      th {
+        text-align: left;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        padding: 0 1.25rem 0.5rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.6rem 1.25rem 0.6rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        vertical-align: top;
+      }
+      td.bad {
+        color: var(--high);
+      }
+      th:last-child,
+      td:last-child {
+        padding-right: 0;
+      }
+      ul.clean {
+        margin: 0;
+        padding-left: 1.1rem;
+      }
+      ul.clean li {
+        margin-bottom: 0.5rem;
+        max-width: var(--sp-measure);
+        font-size: 0.95rem;
+      }
+      .note {
+        border-left: 2px solid var(--high);
+        padding-left: 1rem;
+        max-width: var(--sp-measure);
+      }
+      .foot {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--sp-border);
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+        max-width: var(--sp-measure);
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <h1>PR #8003 — review findings</h1>
+      <p class="lede">
+        Multi-account connectors and per-trigger account pinning. Ten findings
+        from a high-effort review of <code>5c35f6c5d…HEAD</code>. Four are
+        marked <b>verified</b> — I re-checked those against the code myself;
+        the rest are the reviewer's, unconfirmed by me.
+      </p>
+
+      <div class="tally">
+        <div><b>1</b><span>High</span></div>
+        <div><b>6</b><span>Medium</span></div>
+        <div><b>3</b><span>Low</span></div>
+        <div><b>4</b><span>Verified by me</span></div>
+        <div><b id="open-count">6</b><span>Still open</span></div>
+        <div><b>4</b><span>Fixed</span></div>
+      </div>
+
+      <div class="filters">
+        <button type="button" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" data-filter="high" aria-pressed="false">High</button>
+        <button type="button" data-filter="medium" aria-pressed="false">Medium</button>
+        <button type="button" data-filter="low" aria-pressed="false">Low</button>
+        <button type="button" data-filter="verified" aria-pressed="false">
+          Verified
+        </button>
+        <button type="button" data-filter="open" aria-pressed="false">
+          Still open
+        </button>
+      </div>
+
+      <section id="findings">
+        <article class="finding" data-sev="high" data-verified="yes" data-status="fixed">
+          <div class="head">
+            <span class="num">01</span>
+            <h3>Slack resolves an event to one connection, so a pinned trigger drops</h3>
+            <span class="chip sev-high">High</span>
+            <span class="chip verified">Verified</span>
+            <span class="chip fixed">Fixed</span>
+          </div>
+          <p class="where">
+            apps/api/src/app/api/integrations/slack/events/process-automation-event/process-automation-event.ts:52
+          </p>
+          <p>
+            Slack calls <code>accountConnection("slack", team_id)</code> —
+            singular, <code>ORDER BY updated_at DESC LIMIT 1</code> — while
+            Linear (<code>processDelivery.ts:97</code>) and Notion
+            (<code>notion/webhook/route.ts:102</code>) fan out over
+            <code>accountConnections</code>. I confirmed that asymmetry.
+          </p>
+          <p>
+            <span class="label">What breaks:</span> two members of one org both
+            connect workspace T. A adds a Slack trigger, auto-pinned to A's
+            connection. B's token refresh bumps <code>updated_at</code>, so every
+            event for T now arrives carrying B's connection id, and the new
+            <code>or(isNull, eq(connectionId, …))</code> filter drops A's
+            trigger. A's automation stops firing with no UI signal, and it flips
+            back and forth as tokens refresh.
+          </p>
+          <p class="fix">
+            <b>Fixed.</b> <code>processAutomationEvent</code> now resolves with
+            <code>accountConnections</code> and records the event once per
+            connection on the workspace, so each account's pinned triggers get
+            their own delivery. Sequential rather than concurrent, for the
+            reason Linear's fan-out documents — neon-http opens a connection per
+            query, and asking for all of them at one instant starves the pool.
+            One connection failing is caught and logged so it cannot cost the
+            others their delivery. The fan-out itself lives in its own module with a type-only import, so its four tests need no database stub — registering one reached whichever suite loaded next and broke it.
+          </p>
+
+          <h4>Which field each provider maps to a connection</h4>
+          <p>
+            The column being matched is
+            <code>connections.external_account_id</code>, populated at connect
+            time from the connector's <code>identity.account.id</code> —
+            <b>except Sentry</b>, which matches on connection state instead.
+          </p>
+          <div class="scroller">
+            <table>
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Field in the inbound payload</th>
+                  <th>Matched against</th>
+                  <th>Lookup</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Slack</td>
+                  <td><code>envelope.team_id</code></td>
+                  <td><code>external_account_id</code> (from <code>$.team_id</code>)</td>
+                  <td class="bad">singular — <code>accountConnection</code>, LIMIT 1</td>
+                </tr>
+                <tr>
+                  <td>Linear</td>
+                  <td><code>payload.organizationId</code></td>
+                  <td><code>external_account_id</code> (from <code>viewer.organization.id</code>)</td>
+                  <td>fan-out — <code>accountConnections</code></td>
+                </tr>
+                <tr>
+                  <td>Notion</td>
+                  <td><code>event.workspace_id</code></td>
+                  <td><code>external_account_id</code> (from <code>$.workspace_id</code>)</td>
+                  <td>fan-out — <code>accountConnections</code></td>
+                </tr>
+                <tr>
+                  <td>Gmail</td>
+                  <td><code>notification.emailAddress</code>, lowercased</td>
+                  <td><code>external_account_id</code> (from <code>$.email</code>)</td>
+                  <td>fan-out — <code>accountConnections</code></td>
+                </tr>
+                <tr>
+                  <td>Teams</td>
+                  <td>
+                    <code>notification.tenantId</code>, plus a
+                    <code>clientState</code> equality check
+                  </td>
+                  <td><code>external_account_id</code> (the tenant id)</td>
+                  <td>singular — org-scoped, so only one can exist</td>
+                </tr>
+                <tr>
+                  <td>Sentry</td>
+                  <td><code>installationUuid</code> from the install callback</td>
+                  <td>
+                    <code>state-&gt;&gt;'installationUuid'</code> —
+                    <b>not</b> <code>external_account_id</code>
+                  </td>
+                  <td>singular — org-scoped</td>
+                </tr>
+                <tr>
+                  <td>GitHub</td>
+                  <td>—</td>
+                  <td>none; installation-backed, stamped <code>null</code></td>
+                  <td>n/a</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Two things fall out of this table. Slack is the only
+            <i>user-scoped</i> connector resolving through a singular lookup,
+            which is exactly this finding. And Sentry keys on installation state
+            rather than the account column, so a pin would compare against a
+            connection the account id never identified — moot today, because
+            Sentry and Teams are org-scoped and cannot hold two connections, but
+            it would matter if either ever became user-scoped.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="yes" data-status="fixed">
+          <div class="head">
+            <span class="num">02</span>
+            <h3>The default pin picks an arbitrary account</h3>
+            <span class="chip sev-medium">Medium</span>
+            <span class="chip verified">Verified</span>
+            <span class="chip fixed">Fixed</span>
+          </div>
+          <p class="where">
+            apps/desktop/…/TriggersEditor/TriggersEditor.tsx:70 ·
+            packages/trpc/src/router/integration/connection-status.ts:43
+          </p>
+          <p>
+            A new trigger is pinned to
+            <code>connectorAccounts(config)[0]?.id</code>, but that list comes
+            from a <code>findMany</code> with <b>no <code>orderBy</code></b> — I
+            confirmed there is none. Postgres returns heap order, which changes
+            whenever a row is updated, and a token refresh is an update.
+          </p>
+          <p>
+            <span class="label">What breaks:</span> a user with work + personal
+            Slack gets a trigger bound to an arbitrary one of them, and two
+            triggers added minutes apart can land on different accounts.
+          </p>
+          <p class="fix">
+            <b>Fixed.</b> Both reads now order by
+            <code>(createdAt, id)</code> — <code>connection-status</code> for
+            the picker and the default pin, and <code>connectors.status</code>
+            for the account list. Fixing the Slack fan-out did not make this
+            moot: fan-out decides which connections receive an event, this
+            decides which one a new trigger listens to.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="no">
+          <div class="head">
+            <span class="num">03</span>
+            <h3>The backfill can overwrite a deliberate “Any account”</h3>
+            <span class="chip sev-medium">Medium</span>
+          </div>
+          <p class="where">packages/trpc/src/lib/connectors/trigger-pins.ts:42</p>
+          <p>
+            <code>NULL</code> is overloaded: it means both “never set” and the
+            “Any account” the chip now writes.
+            <code>pinTriggersToExistingAccount</code> updates every trigger with
+            <code>connectionId IS NULL</code>, so a deliberate choice can be
+            silently replaced.
+          </p>
+          <p>
+            <span class="label">Reachable how:</span> the backfill only runs on
+            the one-to-two transition, and the chip only appears at two or more
+            accounts — so the path is: hold two accounts, set a trigger to Any,
+            disconnect one, connect another. Narrower than it first reads, but
+            real.
+          </p>
+          <p class="fix">
+            Distinguish legacy NULL from deliberate NULL — a one-shot backfill
+            marker, or restrict the update to triggers created before the column
+            shipped.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="no" data-status="fixed">
+          <div class="head">
+            <span class="num">04</span>
+            <h3>The backfill runs outside the connect transaction and can fail the connect</h3>
+            <span class="chip sev-medium">Medium</span>
+            <span class="chip fixed">Fixed</span>
+          </div>
+          <p class="where">packages/trpc/src/lib/connectors/upsert.ts:143</p>
+          <p>
+            It is awaited after the connection row is committed, in no
+            transaction, and its rejection propagates out of
+            <code>upsertConnection</code>.
+          </p>
+          <p>
+            <span class="label">What breaks:</span> a transient DB error makes
+            the OAuth callback report failure even though the account is
+            connected. On retry, <code>previousConnectionIds</code> now contains
+            the new row, so <code>accountToPinTo</code> returns null and the
+            backfill never runs again.
+          </p>
+          <p class="fix">
+            <b>Fixed.</b> The prior-account read, the connection write and the
+            pin now commit together in one <code>dbWs.transaction</code>.
+            Catching and logging was not enough on its own: it keeps the connect
+            from reporting failure, but a failed pin still leaves the new
+            account connected with every existing trigger unpinned — matching
+            both accounts — and the retry cannot repair it, because by then the
+            new row is in <code>previousConnectionIds</code>. Encryption stays
+            outside the transaction; it touches no database.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="no" data-status="fixed">
+          <div class="head">
+            <span class="num">05</span>
+            <h3>An older client silently clears every pin, and pins are not validated</h3>
+            <span class="chip sev-medium">Medium</span>
+            <span class="chip fixed">Partly fixed</span>
+          </div>
+          <p class="where">packages/trpc/src/router/automation/triggerSet.ts:120</p>
+          <p>
+            <code>connectionId: trigger.connectionId ?? null</code> overwrites
+            unconditionally, and the field is <code>.nullish()</code> in
+            <code>draftTriggerSchema</code>. Desktop and API ship independently,
+            so an older desktop build round-tripping a trigger without the field
+            clears the pin on the next save. Nothing checks that the uuid names a
+            connection in the caller's org either, so a bad id persists as a
+            trigger that never fires and never errors.
+          </p>
+          <p class="fix">
+            <b>Half fixed.</b> <code>saveTriggerSet</code> now distinguishes
+            absent from null — undefined is a client that does not know the
+            field and leaves the pin alone, null is the “any account” the editor
+            writes. Server-side ownership validation of the uuid is
+            <b>still open</b>; a pin naming another org's connection persists
+            and matches nothing.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="no">
+          <div class="head">
+            <span class="num">06</span>
+            <h3>A needs-reauth account vanishes from the picker</h3>
+            <span class="chip sev-medium">Medium</span>
+          </div>
+          <p class="where">packages/trpc/src/router/integration/connection-status.ts:79</p>
+          <p>
+            <code>accounts</code> only receives rows with
+            <code>disconnectedAt === null</code>, while
+            <code>connected</code>/<code>needsReauth</code> still fold in expired
+            rows. With A live and B needing reauth, the connector reports
+            <code>needsReauth: false</code> and the picker lists only A — so a
+            trigger pinned to B renders as “Unknown account” with no reconnect
+            affordance, and no way to tell that B just needs re-authorizing.
+          </p>
+          <p class="fix">
+            Include needs-reauth rows in <code>accounts</code> with a flag, or
+            surface them separately.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="medium" data-verified="no">
+          <div class="head">
+            <span class="num">07</span>
+            <h3>A dangling pin after disconnect stops the automation silently</h3>
+            <span class="chip sev-medium">Medium</span>
+          </div>
+          <p class="where">
+            apps/desktop/…/TriggerSentence/components/AccountChip/AccountChip.tsx:36
+          </p>
+          <p>
+            <code>connectors.disconnect</code> is a soft delete. Disconnecting
+            the pinned account while another remains leaves the trigger pointing
+            at a dead id: the chip reads “Unknown account”,
+            <code>saveTriggerSet</code> accepts it, and the automation stops
+            firing with nothing in <code>summarizeTriggerProblems</code> and
+            nothing in the automations list.
+          </p>
+          <p class="fix">
+            Make a dangling pin a trigger problem that blocks save, or at minimum
+            warns.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="low" data-verified="yes">
+          <div class="head">
+            <span class="num">08</span>
+            <h3>Try now inherits a stale draft</h3>
+            <span class="chip sev-low">Low</span>
+            <span class="chip verified">Verified</span>
+          </div>
+          <p class="where">apps/desktop/…/PluginDetail/PluginDetail.tsx:46</p>
+          <p>
+            <code>tryNow</code> calls <code>updateDraft({ prompt })</code>
+            without <code>resetDraft()</code> first. I confirmed the convention:
+            every other seed-then-open caller resets — the PR header, the GitHub
+            issues view, and the issue page all call
+            <code>resetDraft()</code> before seeding.
+          </p>
+          <p>
+            <span class="label">What breaks:</span> a user who earlier started a
+            workspace from a PR still has <code>linkedPR</code>,
+            <code>selectedProjectId</code>, <code>hostId</code> and attachments
+            in the store, so Try now opens the create surface linked to an
+            unrelated PR.
+          </p>
+          <p class="fix">Call <code>resetDraft()</code> before seeding the prompt.</p>
+        </article>
+
+        <article class="finding" data-sev="low" data-verified="yes">
+          <div class="head">
+            <span class="num">09</span>
+            <h3>“Primary” is a label with nothing behind it</h3>
+            <span class="chip sev-low">Low</span>
+            <span class="chip verified">Verified</span>
+          </div>
+          <p class="where">
+            apps/desktop/…/ConnectedAccounts/ConnectedAccounts.tsx:52 ·
+            packages/trpc/src/router/connectors/index.ts:73
+          </p>
+          <p>
+            The subtitle is <code>index === 0</code> over
+            <code>connectors.status</code>, which I confirmed also has no
+            <code>orderBy</code>. There is no backend concept of a primary
+            account, so the badge moves to a different account after a refetch.
+            When <code>externalUserLabel</code> is null the non-first rows also
+            repeat the title verbatim as their subtitle.
+          </p>
+          <p class="fix">
+            Drop the label, or give it real backing and a deterministic order.
+          </p>
+        </article>
+
+        <article class="finding" data-sev="low" data-verified="no">
+          <div class="head">
+            <span class="num">10</span>
+            <h3>A cast hides a stale trigger-kind key until runtime</h3>
+            <span class="chip sev-low">Low</span>
+          </div>
+          <p class="where">packages/trpc/src/lib/connectors/trigger-pins.ts:47</p>
+          <p>
+            <code>kinds as AutomationTriggerKind[]</code> casts values derived
+            from <code>TRIGGER_KIND_CONNECTOR</code>, typed
+            <code>Record&lt;string, string | null&gt;</code>. A typo'd or stale
+            key becomes an invalid enum literal in the <code>inArray</code> at
+            runtime instead of a compile error; the registry test only covers
+            kinds present in <code>TRIGGER_PROVIDERS</code>.
+          </p>
+          <p class="fix">
+            Type the map as
+            <code>Record&lt;AutomationTriggerKind, string | null&gt;</code> and
+            drop the cast.
+          </p>
+        </article>
+      </section>
+
+      <h2>Verified clean</h2>
+      <ul class="clean">
+        <li>
+          Every provider route that can carry a connector connection sets
+          <code>integrationConnectionId</code> — slack, linear, notion, sentry,
+          microsoft_teams, gmail. GitHub and raw webhooks set null and their
+          kinds map to null, so the <code>isNull(connectionId)</code> branch is
+          correct for them.
+        </li>
+        <li>
+          The pin filter only ever <b>narrows</b> candidates — no cross-account
+          or cross-tenant widening. Gmail and Linear additionally pass
+          <code>ownerUserId</code>.
+        </li>
+        <li>
+          <code>accountAllows</code> and <code>accountToPinTo</code> logic and
+          tests are correct, and <code>?connection=&lt;id&gt;</code> in the
+          reworded ambiguity error is genuinely supported by the MCP route.
+        </li>
+        <li>
+          Migration <code>0134</code>, <code>_journal.json</code> and
+          <code>0134_snapshot.json</code> agree; all 18 locale catalogs carry
+          real translations for the new messages.
+        </li>
+      </ul>
+
+      <h2>Recommendation</h2>
+      <p class="note">
+        Findings 01, 02, 08 and 09 are mine, introduced by this PR, and 01 makes
+        the feature unsafe for Slack specifically. I would fix 01, 02, 04 and 08
+        before handing this over, and send the rest as known and tracked.
+      </p>
+
+      <p class="foot">
+        Scope: <code>git diff 5c35f6c5d…HEAD</code>, 6 commits. Generated files
+        excluded after confirming the migration, journal and snapshot are
+        consistent and every new message is translated. “Verified” means I
+        re-checked the claim against the code in this worktree; the others are
+        the reviewer's and I have not independently confirmed them.
+      </p>
+    </main>
+
+    <script>
+      const buttons = [...document.querySelectorAll(".filters button")];
+      const findings = [...document.querySelectorAll(".finding")];
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const filter = button.dataset.filter;
+          buttons.forEach((other) => {
+            other.setAttribute("aria-pressed", String(other === button));
+          });
+          findings.forEach((finding) => {
+            const match =
+              filter === "all" ||
+              (filter === "verified"
+                ? finding.dataset.verified === "yes"
+                : filter === "open"
+                  ? finding.dataset.status !== "fixed"
+                  : finding.dataset.sev === filter);
+            finding.hidden = !match;
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

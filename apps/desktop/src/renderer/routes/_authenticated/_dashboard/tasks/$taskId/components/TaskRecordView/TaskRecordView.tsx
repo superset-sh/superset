@@ -20,6 +20,7 @@ import { TaskTimeline } from "./components/TaskTimeline";
 
 interface TaskRecordViewProps {
 	task: TaskRecord;
+	importSource: { externalUrl: string } | null;
 	now: Date;
 	timeline: TaskTimelineItem[];
 	currentUser: TaskPerson | null;
@@ -51,6 +52,7 @@ interface TaskRecordViewProps {
 
 export function TaskRecordView({
 	task,
+	importSource,
 	now,
 	timeline,
 	currentUser,
@@ -81,8 +83,8 @@ export function TaskRecordView({
 }: TaskRecordViewProps) {
 	return (
 		<RecordLayout
-			header={<TaskRecordTopBar slug={task.slug} onBack={onBack} />}
-			sideHeader={
+			header={<TaskRecordTopBar task={task} onBack={onBack} />}
+			sideActions={
 				<TaskRecordActions
 					task={task}
 					onCopyLink={onCopyLink}
@@ -94,6 +96,7 @@ export function TaskRecordView({
 			side={
 				<TaskRecordSide
 					task={task}
+					importSource={importSource}
 					now={now}
 					project={project}
 					projects={projects}

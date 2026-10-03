@@ -23,6 +23,8 @@ export interface PageManifest {
 	pageId: string;
 	slug: string;
 	visibility: PageVisibility;
+	organizationId?: string;
+	createdByUserId?: string | null;
 	sharedVersion: number | null;
 	latestVersion: number | null;
 	versions: Record<string, PageManifestVersion>;
@@ -81,6 +83,17 @@ export function parsePageManifest(text: string): PageManifest | null {
 		}
 		versions[version] = parsed;
 	}
+	const organizationId =
+		typeof candidate.organizationId === "string"
+			? candidate.organizationId
+			: undefined;
+	const createdByUserId =
+		typeof candidate.createdByUserId === "string"
+			? candidate.createdByUserId
+			: candidate.createdByUserId === null
+				? null
+				: undefined;
+
 	return {
 		v: 1,
 		pageId: candidate.pageId,
@@ -89,6 +102,8 @@ export function parsePageManifest(text: string): PageManifest | null {
 		sharedVersion: candidate.sharedVersion,
 		latestVersion: candidate.latestVersion,
 		versions,
+		...(organizationId !== undefined ? { organizationId } : {}),
+		...(createdByUserId !== undefined ? { createdByUserId } : {}),
 	};
 }
 

@@ -97,6 +97,7 @@ export function buildTree(
 		node.hasCommand = true;
 		node.description = entry.command.description;
 		if (entry.command.aliases) node.aliases = entry.command.aliases;
+		if (entry.command.hidden) node.hidden = true;
 		commandMap.set(entry.path.join("/"), entry.command);
 	}
 

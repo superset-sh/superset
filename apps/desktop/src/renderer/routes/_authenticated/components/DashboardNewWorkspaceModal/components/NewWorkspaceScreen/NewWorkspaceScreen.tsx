@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
+import { HiOutlineCheckCircle } from "react-icons/hi2";
 import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentModelSelect } from "renderer/components/AgentModelSelect";
@@ -76,6 +77,7 @@ import { CheckoutPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/com
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { EnvironmentPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/EnvironmentPickerPill";
 import { GitHubIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand";
+import { LinearIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinearIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedPRPill";
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
@@ -340,11 +342,13 @@ export function NewWorkspaceScreen({
 	);
 	const {
 		addLinkedIssue,
+		addLinkedLinearIssue,
 		addLinkedGitHubIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
+	const linkTaskLabel = t({ message: "Link task" });
 
 	// Restore the last-used launch host once per mount, like the modal does.
 	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
@@ -404,9 +408,6 @@ export function NewWorkspaceScreen({
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
 		const id = draft.hostId ?? machineId;
-		// A cloud workspace's sandbox doesn't exist yet, and "cloud" is a
-		// sentinel — resolving it would address a machine that isn't there.
-		if (id === CLOUD_HOST_ID) return null;
 		if (!id || !activeOrganizationId) return null;
 		return (
 			resolveHostUrl({
@@ -551,6 +552,7 @@ export function NewWorkspaceScreen({
 	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
+		selectedPresetId,
 		modelSupport ? selectedModel : null,
 		effortForLaunch,
 		modeSupport ? selectedMode : null,
@@ -836,7 +838,7 @@ export function NewWorkspaceScreen({
 										<AttachmentCard
 											key={file.id}
 											file={file}
-											hostUrl={launchHostUrl}
+											hostUrl={uploadTarget}
 											onRemove={(id) => attachments.remove(id)}
 											onOpenFile={
 												sourcePath
@@ -920,19 +922,26 @@ export function NewWorkspaceScreen({
 							<div className="flex items-center gap-2">
 								<IssueLinkCommand
 									onSelect={addLinkedIssue}
-									tooltipLabel={t({
-										message: "Link issue",
-									})}
+									tooltipLabel={linkTaskLabel}
 								>
 									<PromptInputButton
-										aria-label={t({
-											message: "Link issue",
-										})}
+										aria-label={linkTaskLabel}
+										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+									>
+										<HiOutlineCheckCircle className="size-3.5" />
+									</PromptInputButton>
+								</IssueLinkCommand>
+								<LinearIssueLinkCommand
+									onSelect={addLinkedLinearIssue}
+									tooltipLabel={t({ message: "Link Linear issue" })}
+								>
+									<PromptInputButton
+										aria-label={t({ message: "Link Linear issue" })}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<SiLinear className="size-3.5" />
 									</PromptInputButton>
-								</IssueLinkCommand>
+								</LinearIssueLinkCommand>
 								<GitHubIssueLinkCommand
 									onSelect={(issue) =>
 										addLinkedGitHubIssue(

@@ -122,20 +122,62 @@ enforced identically in the desktop pane and the web viewer:
   with the network off sees nothing, and a remote image makes every reader's
   browser call that host directly, which hands a third party the IP address
   of everyone who opens the page.
-- **Storage works** and is scoped to the page: `localStorage`,
+- **Browser storage works** and is scoped to the page: `localStorage`,
   `sessionStorage`, `indexedDB` and cookies persist across reloads and across
-  versions of the same page. Use it for a chosen tab or filter, never for
-  anything the page cannot rebuild from its own content.
+  versions of the same page, but only in that one browser. Use it for a chosen
+  tab or filter. For anything the page should remember for everyone, use
+  `window.superset.storage` below.
 - **No parent access.** The viewer is a different origin, so
   `window.parent.document` and `window.top.location` throw. Superset injects
-  one script into the page for comment anchoring; nothing else listens to
-  `postMessage`, so don't build a handshake on it.
+  its own scripts for comment anchoring and for the storage API; don't build a
+  `postMessage` handshake of your own on top of them.
 - **No form submission.** `form-action 'none'`: a `<form>` may exist for its
   controls, but submitting it goes nowhere. Handle inputs in script.
 
 Scripts and popups *do* work. Inline JS runs normally, so charts, filters,
 sorting, tabs, and interactive controls are all fine, as long as everything
 they need is already in the file.
+
+## Shared storage: `window.superset.storage`
+
+A page can remember things for everyone who opens it. Each key holds **one
+slot per person**: you write yours, you read everyone's. That makes a poll, an
+RSVP sheet, a claim list or a checklist a few lines, and it makes two people
+writing at once a non-issue, because nobody ever writes someone else's slot.
+
+```js
+const store = window.superset?.storage;
+if (await store?.ready) {
+  await store.set("lunch-vote", "Ramen");      // my slot under this key
+  const mine = await store.get("lunch-vote");  // read it back
+  const all = await store.getAll("lunch-vote");
+  // [{ userId, name, value, updatedAt }, ...] everyone's slots
+  store.subscribe("lunch-vote", (records) => render(records));
+  await store.remove("lunch-vote");
+}
+```
+
+Rules that matter when you write one:
+
+- **Always handle absence.** `store` is undefined and `store.ready` resolves
+  false wherever there is no host: the thumbnail renderer, a `file://`
+  preview, a signed-out reader. Render a sensible read-only view from zero
+  records rather than a broken page.
+- **Derive, don't accumulate.** A tally is computed from `getAll` on every
+  render. Never keep a running count in a record.
+- **Values are JSON and bounded**: at most 64 KiB each, 500 keys per person,
+  and 4 MiB for the whole page. An over-size write rejects.
+- **Branch on `error.code`**, never on the message: `quota_exceeded`,
+  `rate_limited`, `unauthenticated`, `invalid`, `unavailable`, and `revoked`.
+  `revoked` is terminal: the page's access changed while it was open, so
+  surface it once and stop retrying.
+- **Who is reading** is on the object: `store.viewer` is `{ userId, name,
+  image }`, `store.author` is true for the page's author, and
+  `store.writable` says whether this viewer may write. Use `store.author` for
+  controls only the author should have, like closing a poll.
+- **Signed-in viewers of the page's organization only.** A signed-out reader
+  of an `everyone` page gets no storage, so the page must still render.
+- Writes are per-person, so there is nothing to merge and no need for a CRDT.
 
 ## The other hard limits
 
@@ -249,7 +291,7 @@ it. Build on them rather than hardcoding colours and both themes keep working:
 | `--sp-muted` | Secondary text, captions, table headers |
 | `--sp-border` | Rules and hairlines |
 | `--sp-accent` / `--sp-accent-text` | Links and emphasis, and text on top of the accent |
-| `--sp-code-bg` | Code background |
+| `--sp-code-bg` | Code background: a translucent tint of the surrounding text colour, so it sits on whatever background the page paints |
 | `--sp-chart-1` … `--sp-chart-5` | Categorical series colours, distinct in both themes |
 | `--sp-radius` | Corner radius |
 | `--sp-measure` | Reading measure for prose blocks |

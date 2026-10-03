@@ -27,7 +27,12 @@ import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { LuCheck, LuChevronRight, LuGitBranch } from "react-icons/lu";
+import {
+	LuCheck,
+	LuChevronRight,
+	LuGitBranch,
+	LuLoaderCircle,
+} from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
@@ -206,6 +211,13 @@ export function PullRequestDetailHeader({
 
 	const isActionPending =
 		setPullRequestState.isPending || mergePullRequest.isPending;
+	const pendingLabel = mergePullRequest.isPending
+		? t({ message: "Merging…" })
+		: setPullRequestState.isPending
+			? setPullRequestState.variables === "closed"
+				? t({ message: "Closing…" })
+				: t({ message: "Reopening…" })
+			: null;
 
 	const handleConfirmAction = () => {
 		if (!pendingAction) return;
@@ -297,13 +309,24 @@ export function PullRequestDetailHeader({
 										size="sm"
 										className="h-8 gap-1.5 px-3 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 [.dark_&]:text-[#34d399] [.dark_&]:hover:text-[#34d399]"
 										disabled={isActionPending}
+										aria-busy={mergePullRequest.isPending}
 										aria-label={t({
 											message: "Merge pull request",
 										})}
 									>
-										<VscGitMerge className="size-4" />
-										<Trans>Merge</Trans>
-										<VscChevronDown className="size-3" />
+										{mergePullRequest.isPending ? (
+											<LuLoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+										) : (
+											<VscGitMerge className="size-4" />
+										)}
+										{mergePullRequest.isPending ? (
+											pendingLabel
+										) : (
+											<Trans>Merge</Trans>
+										)}
+										{!mergePullRequest.isPending && (
+											<VscChevronDown className="size-3" />
+										)}
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end" className="w-80 p-0">
@@ -410,9 +433,14 @@ export function PullRequestDetailHeader({
 							"inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 font-medium capitalize",
 							STATE_BADGE_STYLES[state],
 						)}
+						aria-live="polite"
 					>
-						<PRIcon state={state} className="size-3" />
-						{data.isDraft ? <Trans>Draft</Trans> : data.state}
+						{pendingLabel ? (
+							<LuLoaderCircle className="size-3 animate-spin motion-reduce:animate-none" />
+						) : (
+							<PRIcon state={state} className="size-3" />
+						)}
+						{pendingLabel ?? (data.isDraft ? <Trans>Draft</Trans> : data.state)}
 					</span>
 					{data.author && (
 						<span className="flex shrink-0 items-center gap-1.5">

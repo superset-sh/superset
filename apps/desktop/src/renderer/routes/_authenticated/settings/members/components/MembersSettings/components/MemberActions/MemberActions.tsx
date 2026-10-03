@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
@@ -54,7 +55,63 @@ export function MemberActions({
 		ownerCount,
 	);
 
-	async function leaveOrganization(): Promise<void> {
+	type Cleanup = { automations: number; hosts: number };
+
+	// What removal touches: the member's automations are paused and any host
+	// with no other owner is deleted. Empty when nothing is affected.
+	function cleanupItems(cleanup: Cleanup): string[] {
+		const items: string[] = [];
+		if (cleanup.automations > 0) {
+			items.push(
+				t({
+					message: plural(cleanup.automations, {
+						one: "Pauses # automation",
+						other: "Pauses # automations",
+					}),
+				}),
+			);
+		}
+		if (cleanup.hosts > 0) {
+			items.push(
+				t({
+					message: plural(cleanup.hosts, {
+						one: "Deletes # host with no other owner, along with its workspaces",
+						other:
+							"Deletes # hosts with no other owner, along with their workspaces",
+					}),
+				}),
+			);
+		}
+		return items;
+	}
+
+	function cleanupSummary(cleanup: Cleanup): string {
+		const parts: string[] = [];
+		if (cleanup.automations > 0) {
+			parts.push(
+				t({
+					message: plural(cleanup.automations, {
+						one: "Paused # automation.",
+						other: "Paused # automations.",
+					}),
+				}),
+			);
+		}
+		if (cleanup.hosts > 0) {
+			parts.push(
+				t({
+					message: plural(cleanup.hosts, {
+						one: "Deleted # host with no other owner, along with its workspaces.",
+						other:
+							"Deleted # hosts with no other owner, along with their workspaces.",
+					}),
+				}),
+			);
+		}
+		return parts.join(" ");
+	}
+
+	async function leaveOrganization(): Promise<Cleanup> {
 		const result = await apiTrpcClient.organization.leave.mutate({
 			organizationId: member.organizationId,
 		});
@@ -74,14 +131,18 @@ export function MemberActions({
 		await refetchSession();
 		await utils.organization.listMembers.invalidate();
 		navigate({ to: "/" });
+		return result.cleanup;
 	}
 
-	async function removeMember(): Promise<void> {
-		await apiTrpcClient.organization.removeMember.mutate({
+	async function removeMember(): Promise<Cleanup> {
+		const result = await apiTrpcClient.organization.removeMember.mutate({
 			organizationId: member.organizationId,
 			userId: member.userId,
 		});
 		await utils.organization.listMembers.invalidate();
+		await utils.automation.invalidate();
+		await utils.v2Host.invalidate();
+		return result.cleanup;
 	}
 
 	function handleRemove(): void {
@@ -90,8 +151,11 @@ export function MemberActions({
 				loading: t({
 					message: "Leaving organization...",
 				}),
-				success: t({
-					message: "Left organization",
+				success: (cleanup) => ({
+					message: t({
+						message: "Left organization",
+					}),
+					description: cleanupSummary(cleanup) || undefined,
 				}),
 				error: (err) =>
 					errorMessage(
@@ -106,8 +170,11 @@ export function MemberActions({
 				loading: t({
 					message: "Removing member...",
 				}),
-				success: t({
-					message: "Member removed",
+				success: (cleanup) => ({
+					message: t({
+						message: "Member removed",
+					}),
+					description: cleanupSummary(cleanup) || undefined,
 				}),
 				error: (err) =>
 					errorMessage(
@@ -120,7 +187,27 @@ export function MemberActions({
 		}
 	}
 
-	const handleRemoveClick = () => {
+	const handleRemoveClick = async () => {
+		// Removal deletes hosts, so never confirm it blind: if the preview
+		// fails, stop here rather than open the dialog without the list.
+		let effects: Cleanup;
+		try {
+			effects = await apiTrpcClient.organization.memberRemovalEffects.query({
+				organizationId: member.organizationId,
+				userId: member.userId,
+			});
+		} catch (error) {
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						message: "Couldn't check what removing this member affects",
+					}),
+				),
+			);
+			return;
+		}
+		const items = cleanupItems(effects);
 		const billingNote =
 			plan === "pro" || plan === "enterprise"
 				? ` ${t({
@@ -145,6 +232,19 @@ export function MemberActions({
 				: t({
 						message: `Are you sure you want to remove ${memberName} (${memberEmail}) from the organization? They will lose access immediately.${billingNote}`,
 					}),
+			details:
+				items.length > 0 ? (
+					<div className="text-sm text-muted-foreground">
+						<p>
+							<Trans>This also:</Trans>
+						</p>
+						<ul className="mt-1 list-disc pl-5">
+							{items.map((item) => (
+								<li key={item}>{item}</li>
+							))}
+						</ul>
+					</div>
+				) : undefined,
 			actions: [
 				{
 					label: t({

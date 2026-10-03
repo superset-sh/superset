@@ -14,6 +14,9 @@ import { dirname, join } from "node:path";
 import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { env } from "./env";
 
+/** A token this close to `auth.expiresAt` is treated as expired. */
+export const AUTH_REFRESH_LEEWAY_MS = 5 * 60 * 1000;
+
 export type SupersetConfig = {
 	auth?: {
 		accessToken: string;

@@ -24,18 +24,18 @@ export function DeleteWorkspaceMount() {
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
 	const archive = useArchiveCloudWorkspace();
-	const cloudTargetId =
+	const cloudTarget =
 		target && cloudWorkspaces.some((row) => row.id === target.workspaceId)
-			? target.workspaceId
+			? target
 			: null;
 
 	useEffect(() => {
-		if (!cloudTargetId) return;
-		close(cloudTargetId);
-		archive({ id: cloudTargetId });
-	}, [cloudTargetId, close, archive]);
+		if (!cloudTarget) return;
+		close(cloudTarget.workspaceId);
+		archive({ id: cloudTarget.workspaceId, name: cloudTarget.workspaceName });
+	}, [cloudTarget, close, archive]);
 
-	if (!target || cloudTargetId) return null;
+	if (!target || cloudTarget) return null;
 	// Callbacks bind the rendered target's id: a dialog whose destroy is
 	// still in flight after a new request replaced the target keeps its own
 	// id, so its settle can't touch the new target's dialog.

@@ -22,6 +22,10 @@ export function verbatimStringAttributes(...names: string[]): Attributes {
 }
 
 export const SafeLink = Link.extend({
+	// Tiptap makes a link inclusive when autolink is on, and autolink never
+	// shrinks a link, so all text typed after a URL becomes part of it.
+	inclusive: false,
+
 	addAttributes() {
 		return {
 			...this.parent?.(),

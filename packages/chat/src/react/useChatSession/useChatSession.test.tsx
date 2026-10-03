@@ -260,6 +260,7 @@ describe("useChatSession", () => {
 			cancelTurn: (input) => stack.transport.cancelTurn(input),
 			respondToApproval: (input) => stack.transport.respondToApproval(input),
 			setMode: (input) => stack.transport.setMode(input),
+			setConfigOption: (input) => stack.transport.setConfigOption(input),
 			getSession: (input) => stack.transport.getSession(input),
 			listSessions: (input) => stack.transport.listSessions(input),
 			getItems: (input) => {

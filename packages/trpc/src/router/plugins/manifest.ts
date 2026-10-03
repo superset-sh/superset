@@ -121,23 +121,39 @@ export function resolveTemplateDeep<T>(value: T, scope: TemplateScope): T {
 	return value;
 }
 
+const DOT_OUTSIDE_BRACKETS = /\.(?![^[]*\])/;
+const PATH_SEGMENT = /^([^[\]]*)((?:\[(?:\d+|\?\(@\.[^[\]()]+\))\])*)$/;
+const ARRAY_SELECTOR = /\[([^\]]+)\]/g;
+const TRUTHY_FIELD_FILTER = /^\?\(@\.(.+)\)$/;
+
+function hasTruthyField(item: unknown, field: string): boolean {
+	return (
+		typeof item === "object" &&
+		item !== null &&
+		Boolean((item as Record<string, unknown>)[field])
+	);
+}
+
 export function readPath(source: unknown, path: string): unknown {
 	const trimmed = path.startsWith("$.") ? path.slice(2) : path;
 	let current: unknown = source;
 
-	for (const segment of trimmed.split(".")) {
+	for (const segment of trimmed.split(DOT_OUTSIDE_BRACKETS)) {
 		if (current === null || current === undefined) return undefined;
-		const match = segment.match(/^([^[\]]*)((?:\[\d+\])*)$/);
+		const match = segment.match(PATH_SEGMENT);
 		if (!match) return undefined;
 
-		const [, key, indexes] = match;
+		const [, key, selectors] = match;
 		if (key) {
 			if (typeof current !== "object") return undefined;
 			current = (current as Record<string, unknown>)[key];
 		}
-		for (const index of indexes?.match(/\d+/g) ?? []) {
-			if (!Array.isArray(current)) return undefined;
-			current = current[Number(index)];
+		for (const [, selector] of selectors?.matchAll(ARRAY_SELECTOR) ?? []) {
+			if (!Array.isArray(current) || selector === undefined) return undefined;
+			const filter = selector.match(TRUTHY_FIELD_FILTER);
+			current = filter
+				? current.find((item) => hasTruthyField(item, filter[1] ?? ""))
+				: current[Number(selector)];
 		}
 	}
 

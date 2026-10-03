@@ -12,6 +12,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
+import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { dispatchErrorCode, runErrorHelp } from "../utils/runErrorHelp";
@@ -49,7 +50,7 @@ function organizationFromError(params: unknown): { id: string | null } | null {
 	return { id: typeof organizationId === "string" ? organizationId : null };
 }
 
-const RECENT_RUNS_LIMIT = 10;
+const RUNS_PAGE_SIZE = 20;
 
 function AutomationDetailPage() {
 	const { t } = useLingui();
@@ -57,6 +58,7 @@ function AutomationDetailPage() {
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
+	const isOrgOwner = useIsOrganizationOwner();
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
@@ -77,9 +79,18 @@ function AutomationDetailPage() {
 		return { ...automationQuery.data, prompt: promptQuery.data.prompt };
 	}, [automationQuery.data, promptQuery.data]);
 
-	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
-		{ automationId, limit: RECENT_RUNS_LIMIT },
-		{ refetchInterval: 15_000, staleTime: 30_000 },
+	// The same list All runs renders, filtered to this automation, so a run
+	// reads identically on both screens and older history stays reachable.
+	const runsQuery = cloudTrpc.automation.listOrgRuns.useInfiniteQuery(
+		{ automationId, limit: RUNS_PAGE_SIZE, scope: "all", status: "all" },
+		{
+			getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+			staleTime: 30_000,
+		},
+	);
+	const recentRuns = useMemo(
+		() => runsQuery.data?.pages.flatMap((page) => page.runs) ?? [],
+		[runsQuery.data],
 	);
 
 	const ownerUserId = automationQuery.data?.ownerUserId;
@@ -256,12 +267,16 @@ function AutomationDetailPage() {
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
 					readOnly={readOnly}
+					canDelete={!readOnly || isOrgOwner}
 				/>
 
 				<AutomationBody
 					key={automation.id}
 					automation={automation}
 					recentRuns={recentRuns}
+					hasMoreRuns={runsQuery.hasNextPage ?? false}
+					isLoadingMoreRuns={runsQuery.isFetchingNextPage}
+					onLoadMoreRuns={() => void runsQuery.fetchNextPage()}
 					ownerName={ownerName}
 					onToggleEnabled={(enabled) => {
 						if (!enabled) {

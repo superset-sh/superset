@@ -30,6 +30,7 @@
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
 		"dev:relay": "turbo dev --filter=@superset/relay",
+		"dev:realtime": "bash apps/realtime/scripts/dev-local.sh",
 		"cli:dev": "bun scripts/dev-cli.ts",
 		"dev:skills": "bun scripts/sync-dev-skills.ts",
 		"build": "turbo build --filter=@superset/desktop",
@@ -55,10 +56,14 @@
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
 		"db:seed-dev": "NODE_ENV=development bun run packages/auth/src/seed-dev.ts",
+		"db:seed-cloud-auth-token": "bun run packages/auth/src/seed-cloud-auth-token.ts",
+		"db:seed-cloud-mobile-token": "bun run packages/auth/src/seed-cloud-mobile-token.ts",
+		"db:seed-local-mobile-token": "bun run packages/auth/src/seed-local-mobile-token.ts",
 		"db:generate:desktop": "bun run --cwd packages/local-db generate",
 		"db:seed-shared-environments": "bun run --cwd packages/sandbox seed",
 		"sandbox:release": "bun run --cwd packages/sandbox release",
-		"sandbox:measure": "bun run --cwd packages/sandbox measure"
+		"sandbox:measure": "bun run --cwd packages/sandbox measure",
+		"check:durable-objects": "bun scripts/check-durable-objects.ts"
 	},
 	"type": "module",
 	"workspaces": [
@@ -75,9 +80,9 @@
 		"@tiptap/extensions": "3.30.5",
 		"@types/hast": "3.0.5",
 		"axios": "1.18.1",
-		"hono": "4.13.5",
+		"hono": "4.13.7",
 		"kysely": "0.28.17",
-		"next": "16.3.3",
+		"next": "16.3.6",
 		"rollup": "4.62.3",
 		"shell-quote": "1.9.0"
 	},

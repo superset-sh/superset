@@ -54,6 +54,14 @@ export function scopeAllows(
 	return scope.ids.includes(value);
 }
 
+export function accountAllows(
+	pin: string | null | undefined,
+	eventConnectionId: string | null | undefined,
+): boolean {
+	if (!pin) return true;
+	return pin === eventConnectionId;
+}
+
 /** Same, over the event's list of values — labels, attendees. */
 export function scopeAllowsAny(scope: TriggerScope, values: string[]): boolean {
 	if (scope.mode === "any") return true;

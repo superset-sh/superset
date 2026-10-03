@@ -21,11 +21,6 @@ export const SingleIdle: Story = {
 	},
 };
 
-export const SidebarOwner: Story = {
-	name: "On the sidebar",
-	args: { surface: "sidebar" },
-};
-
 export const Photo: Story = {
 	args: {
 		people: [

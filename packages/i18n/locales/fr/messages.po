@@ -99,6 +99,10 @@ msgstr "(aucune sortie)"
 msgid "(so far)"
 msgstr "(jusqu'ici)"
 
+#. placeholder {0}: connections.length
+msgid "{0, plural, one {# account connected} other {# accounts connected}}"
+msgstr "{0, plural, one {# compte connecté} other {# comptes connectés}}"
+
 #. placeholder {0}: ports.length
 msgid "{0, plural, one {# active port — hide details} other {# active ports — hide details}}"
 msgstr "{0, plural, one {# port actif — masquer les détails} other {# ports actifs — masquer les détails}}"
@@ -110,6 +114,10 @@ msgstr "{0, plural, one {# port actif — afficher les détails} other {# ports 
 #. placeholder {0}: person.runningAgentCount
 msgid "{0, plural, one {# agent} other {# agents}}"
 msgstr "{0, plural, one {# agent} other {# agents}}"
+
+#. placeholder {0}: rejected.length
+msgid "{0, plural, one {# automation couldn't be started} other {# automations couldn't be started}}"
+msgstr "{0, plural, one {# automatisation n'a pas pu être lancée} other {# automatisations n'ont pas pu être lancées}}"
 
 #. placeholder {0}: workspace.diffStats.fileCount
 msgid "{0, plural, one {# changed file} other {# changed files}}"
@@ -243,6 +251,10 @@ msgstr "{0, plural, one {# appel d'outil} other {# appels d'outil}}"
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
 msgstr "{0, plural, one {# espace de travail} other {# espaces de travail}}"
 
+#. placeholder {0}: tail.hidden
+msgid "{0, plural, one {+# more line} other {+# more lines}}"
+msgstr "{0, plural, one {+# ligne de plus} other {+# lignes de plus}}"
+
 #. placeholder {0}: shown?.count ?? 0
 msgid "{0, plural, one {A running agent still uses the previous account — the switch only reaches new launches.} other {# running agents still use the previous account — the switch only reaches new launches.}}"
 msgstr "{0, plural, one {Un agent en cours utilise encore le compte précédent — le changement ne s'applique qu'aux nouveaux lancements.} other {# agents en cours utilisent encore le compte précédent — le changement ne s'applique qu'aux nouveaux lancements.}}"
@@ -265,9 +277,17 @@ msgstr "{0, plural, one {Création de # espace de travail...} other {Création d
 msgid "{0, plural, one {Delete # workspace?} other {Delete # workspaces?}}"
 msgstr "{0, plural, one {Supprimer # espace de travail ?} other {Supprimer # espaces de travail ?}}"
 
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deleted # host with no other owner, along with its workspaces.} other {Deleted # hosts with no other owner, along with their workspaces.}}"
+msgstr "{0, plural, one {# hôte sans autre propriétaire supprimé, ainsi que ses espaces de travail.} other {# hôtes sans autre propriétaire supprimés, ainsi que leurs espaces de travail.}}"
+
 #. placeholder {0}: deletedIds.length
 msgid "{0, plural, one {Deleted # workspace} other {Deleted # workspaces}}"
 msgstr "{0, plural, one {# espace de travail supprimé} other {# espaces de travail supprimés}}"
+
+#. placeholder {0}: cleanup.hosts
+msgid "{0, plural, one {Deletes # host with no other owner, along with its workspaces} other {Deletes # hosts with no other owner, along with their workspaces}}"
+msgstr "{0, plural, one {Supprime # hôte sans autre propriétaire, ainsi que ses espaces de travail} other {Supprime # hôtes sans autre propriétaire, ainsi que leurs espaces de travail}}"
 
 #. placeholder {0}: item.hiddenCount
 msgid "{0, plural, one {Diff truncated — # more line on the host} other {Diff truncated — # more lines on the host}}"
@@ -281,9 +301,21 @@ msgstr "{0, plural, one {Échec de la fermeture de # port} other {Échec de la f
 msgid "{0, plural, one {Imported # workspace} other {Imported # workspaces}}"
 msgstr "{0, plural, one {# espace de travail importé} other {# espaces de travail importés}}"
 
+#. placeholder {0}: issues.length
+msgid "{0, plural, one {Linear issue} other {Linear issues}}"
+msgstr "{0, plural, one {issue Linear} other {issues Linear}}"
+
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {Move # selected workspace to a group} other {Move # selected workspaces to a group}}"
 msgstr "{0, plural, one {Déplacer # espace de travail sélectionné vers un groupe} other {Déplacer # espaces de travail sélectionnés vers un groupe}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Paused # automation.} other {Paused # automations.}}"
+msgstr "{0, plural, one {# automatisation mise en pause.} other {# automatisations mises en pause.}}"
+
+#. placeholder {0}: cleanup.automations
+msgid "{0, plural, one {Pauses # automation} other {Pauses # automations}}"
+msgstr "{0, plural, one {Met en pause # automatisation} other {Met en pause # automatisations}}"
 
 #. placeholder {0}: issues.length
 #. placeholder {0}: tasks.length
@@ -346,6 +378,10 @@ msgstr "{0} et {1} règlent ça en dinosaures de terminal. Les stats décident d
 #. placeholder {0}: formatTokens(belowGap > 0n ? belowGap : 0n)
 msgid "{0} behind you"
 msgstr "{0} derrière vous"
+
+#. placeholder {0}: workspace.name
+msgid "{0} branch"
+msgstr "branche de {0}"
 
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
@@ -703,6 +739,9 @@ msgstr "{completed} sur {total} terminés"
 msgid "{configTitle} font size"
 msgstr "Taille de police de {configTitle}"
 
+msgid "{connectorName} account"
+msgstr "Compte {connectorName}"
+
 msgid "{cookieCount} cookies — forget this site"
 msgstr "{cookieCount} cookies — oublier ce site"
 
@@ -914,6 +953,12 @@ msgstr "{months} mois"
 msgid "{months}mo ago"
 msgstr "il y a {months} mois"
 
+msgid "{myFailedCount} of your automations failed their last run"
+msgstr "Vos automatisations en échec lors de leur dernière exécution : {myFailedCount}"
+
+msgid "{name} accounts"
+msgstr "Comptes {name}"
+
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceBuiltinRemove"
 msgstr "{name} est intégré et ne peut pas être supprimé"
@@ -996,9 +1041,6 @@ msgstr "{reason}"
 msgid "{received} of {total}"
 msgstr "{received} sur {total}"
 
-msgid "{retried, plural, one {Retrying # automation} other {Retrying # automations}}"
-msgstr "{retried, plural, one {Nouvelle tentative pour # automatisation} other {Nouvelle tentative pour # automatisations}}"
-
 msgid "{runLabel} · everybody to {operatorTier}"
 msgstr "{runLabel} · tout le monde vers {operatorTier}"
 
@@ -1027,6 +1069,9 @@ msgstr "{starCount} étoiles, et ça continue"
 
 msgid "{stars} stars · {perDay}/day this week · {peakPerDay}/day at peak"
 msgstr "{stars} étoiles · {perDay}/jour cette semaine · {peakPerDay}/jour au pic"
+
+msgid "{started, plural, one {Started # automation} other {Started # automations}}"
+msgstr "{started, plural, one {# automatisation lancée} other {# automatisations lancées}}"
 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# sous-agent en cours} other {# sous-agents en cours}}"
@@ -1385,6 +1430,9 @@ msgstr "La majorité des changements en production sont fusionnés sans qu'aucun
 msgid "A new version of Superset is required to continue. Please update to the latest version."
 msgstr "Une nouvelle version de Superset est requise pour continuer. Veuillez mettre à jour vers la dernière version."
 
+msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
+msgstr "Un nouvel espace de travail issu de cette branche, la conversation étant transmise à un nouvel agent"
+
 msgid "A process is still running in this tab"
 msgstr "Un processus est toujours en cours dans cet onglet"
 
@@ -1511,6 +1559,10 @@ msgstr "L'activation, l'usage une fois les gens entrés, et s'ils reviennent."
 msgid "Active"
 msgstr "Actives"
 
+msgctxt "cloud workspace status"
+msgid "Active"
+msgstr "Actifs"
+
 msgctxt "presence"
 msgid "Active"
 msgstr "Actif"
@@ -1545,6 +1597,10 @@ msgstr "Ajouter"
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "Add {0} account"
 msgstr "Ajouter un compte {0}"
+
+#. placeholder {0}: issue.identifier
+msgid "Add {0} to workspace"
+msgstr "Ajouter {0} à un espace de travail"
 
 msgid "Add a comment…"
 msgstr "Ajouter un commentaire…"
@@ -1584,6 +1640,9 @@ msgstr "ajouter un agent"
 
 msgid "Add an environment in Settings before creating a cloud workspace"
 msgstr "Ajoutez un environnement dans les Paramètres avant de créer un espace de travail cloud"
+
+msgid "Add another account, or disconnect one you no longer use."
+msgstr "Connectez un autre compte, ou déconnectez-en un que vous n'utilisez plus."
 
 msgid "Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are."
 msgstr "Ajoutez n'importe quelle machine comme hôte. Les espaces de travail continuent de tourner quand votre portable est en veille, et vous pouvez venir aux nouvelles d'où que vous soyez."
@@ -1756,6 +1815,9 @@ msgstr "Agent terminé — {workspaceName}"
 
 msgid "Agent Configs"
 msgstr "Configurations d'agents"
+
+msgid "Agent credentials changed"
+msgstr "Les identifiants de l'agent ont changé"
 
 msgid "Agent finished"
 msgstr "Agent terminé"
@@ -1976,6 +2038,9 @@ msgstr "Tous les dépôts"
 msgid "All reviews"
 msgstr "Toutes les revues"
 
+msgid "All runs"
+msgstr "Toutes les exécutions"
+
 msgid "All sessions killed and daemon restarted. The app will use a fresh daemon."
 msgstr "Toutes les sessions ont été arrêtées et le démon a redémarré. L'application utilisera un démon neuf."
 
@@ -2038,6 +2103,9 @@ msgstr "Autorisé pour la session"
 
 msgid "Already have an account? <0>Sign in</0>"
 msgstr "Vous avez déjà un compte ? <0>Se connecter</0>"
+
+msgid "Already in tasks"
+msgstr "Déjà dans les tâches"
 
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Également disponible sous forme de CommandDialog pour les palettes ⌘K"
@@ -2138,6 +2206,9 @@ msgstr "Anthropic a rejeté cette clé API."
 msgid "Anthropic rejected this token."
 msgstr "Anthropic a rejeté ce jeton."
 
+msgid "any account"
+msgstr "n'importe quel compte"
+
 msgid "Any channel"
 msgstr "Tout canal"
 
@@ -2149,6 +2220,9 @@ msgstr "Toute source de données"
 
 msgid "Any issue event"
 msgstr "Tout événement d'issue"
+
+msgid "any label"
+msgstr "tout libellé"
 
 msgid "Any label"
 msgstr "Tout libellé"
@@ -2165,14 +2239,14 @@ msgstr "Toute page"
 msgid "Any project"
 msgstr "Tout projet"
 
-msgid "Any recipient"
-msgstr "Tout destinataire"
+msgid "any recipient"
+msgstr "tout destinataire"
 
 msgid "Any review"
 msgstr "Toute revue"
 
-msgid "Any sender"
-msgstr "Tout expéditeur"
+msgid "any sender"
+msgstr "tout expéditeur"
 
 msgid "Any status"
 msgstr "Tout statut"
@@ -2286,6 +2360,9 @@ msgstr "Approuvée"
 msgid "Approved review"
 msgstr "Revue approuvée"
 
+msgid "Apps"
+msgstr "Applications"
+
 msgid "apps/desktop/src/renderer"
 msgstr "apps/desktop/src/renderer"
 
@@ -2298,6 +2375,9 @@ msgstr "Archiver"
 msgid "Archive environment"
 msgstr "Archiver l'environnement"
 
+msgid "Archive failed"
+msgstr "Échec de l'archivage"
+
 msgid "Archive workspace"
 msgstr "Archiver l'espace de travail"
 
@@ -2305,8 +2385,12 @@ msgid "Archived"
 msgstr "Archivés"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+#. placeholder {0}: formatCompactRelativeTime(cloud.deletedAt)
 msgid "Archived · {0}"
 msgstr "Archivé · {0}"
+
+msgid "Archived \"{name}\""
+msgstr "« {name} » archivé"
 
 #. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
 msgid "Archived {0}"
@@ -2351,6 +2435,9 @@ msgstr "Demandez à un agent d'en publier une depuis l'application de bureau."
 msgid "Ask for this to be removed"
 msgstr "Demander la suppression"
 
+msgid "Ask the agent, @mention files, run /commands"
+msgstr "Demandez à l'agent, @mentionnez des fichiers, lancez des /commandes"
+
 msgid "Ask the agent…"
 msgstr "Demandez à l'agent…"
 
@@ -2369,8 +2456,17 @@ msgstr "Demandez des modifications, @mentionnez des fichiers, lancez des /comman
 msgid "Aspect Ratio"
 msgstr "Rapport d'aspect"
 
+msgid "Assign to…"
+msgstr "Assigner à…"
+
 msgid "Assigned"
 msgstr "Assignée"
+
+msgid "Assigned to me"
+msgstr "Assignées à moi"
+
+msgid "Assigned to you"
+msgstr "Assignées à vous"
 
 msgid "Assignee"
 msgstr "Assigné"
@@ -2395,6 +2491,9 @@ msgstr "Joindre des fichiers"
 
 msgid "Attached"
 msgstr "Attachée"
+
+msgid "Attaching to the running session…"
+msgstr "Connexion à la session en cours…"
 
 msgid "attachment"
 msgstr "pièce jointe"
@@ -2534,6 +2633,9 @@ msgstr "Automatiser la configuration des espaces de travail pour {projectName}"
 msgid "Automation"
 msgstr "Automatisation"
 
+msgid "Automation docs"
+msgstr "Documentation des automatisations"
+
 msgid "Automation has no instructions"
 msgstr "L'automatisation n'a aucune instruction"
 
@@ -2552,11 +2654,17 @@ msgstr "Titre de l'automatisation"
 msgid "Automations"
 msgstr "Automatisations"
 
+msgid "Automations ({myFailedCount} failing)"
+msgstr "Automatisations ({myFailedCount} en échec)"
+
 msgid "Automations & event triggers"
 msgstr "Automatisations et déclencheurs d'événements"
 
 msgid "Automations require the Pro plan."
 msgstr "Les automatisations nécessitent le forfait Pro."
+
+msgid "Automations, {myFailedCount} failing"
+msgstr "Automatisations, {myFailedCount} en échec"
 
 msgid "Autonomous"
 msgstr "Autonome"
@@ -2607,6 +2715,9 @@ msgstr "Retour"
 msgid "Back to About"
 msgstr "Retour à À propos"
 
+msgid "Back to automations"
+msgstr "Retour aux automatisations"
+
 msgid "Back to billing"
 msgstr "Retour à la facturation"
 
@@ -2630,6 +2741,9 @@ msgstr "Retour à l'accueil"
 
 msgid "Back to Integrations"
 msgstr "Retour aux intégrations"
+
+msgid "Back to Linear"
+msgstr "Retour à Linear"
 
 msgid "Back to pages"
 msgstr "Retour aux pages"
@@ -2803,6 +2917,12 @@ msgstr "Comportement des branches pour les nouveaux espaces de travail sur cet a
 msgid "Branch copied"
 msgstr "Branche copiée"
 
+msgid "Branch in a new worktree"
+msgstr "Dupliquer dans un nouveau worktree"
+
+msgid "Branch in this workspace"
+msgstr "Dupliquer dans cet espace de travail"
+
 msgid "branch name"
 msgstr "nom de branche"
 
@@ -2826,6 +2946,9 @@ msgstr "Préfixe de branche"
 
 msgid "Branch renamed to {newName}"
 msgstr "Branche renommée en {newName}"
+
+msgid "Branch this conversation"
+msgstr "Dupliquer la conversation ici"
 
 #. placeholder {0}: workspace.branch
 msgid "Branch: {0}"
@@ -3129,6 +3252,9 @@ msgstr "Erreur de certificat"
 msgid "Chain of Thought"
 msgstr "Chaîne de raisonnement"
 
+msgid "Change assignee"
+msgstr "Changer l'assigné"
+
 msgid "Change avatar"
 msgstr "Changer d'avatar"
 
@@ -3150,6 +3276,9 @@ msgstr "Changer le logo de l'organisation"
 msgid "Change organization slug"
 msgstr "Changer le slug de l'organisation"
 
+msgid "Change priority"
+msgstr "Changer la priorité"
+
 msgid "Change project icon and color"
 msgstr "Changer l'icône et la couleur du projet"
 
@@ -3158,6 +3287,10 @@ msgstr "Changer l'emplacement du projet"
 
 msgid "Change role"
 msgstr "Changer de rôle"
+
+#. placeholder {0}: issue.state.name
+msgid "Change status from {0}"
+msgstr "Changer le statut (actuel : {0})"
 
 #. placeholder {0}: organizationRoleName(role)
 msgid "Change to {0}"
@@ -3675,6 +3808,9 @@ msgstr "Fermer cet onglet mettra fin au processus en cours."
 msgid "Closing this terminal will end the running process."
 msgstr "Fermer ce terminal mettra fin au processus en cours."
 
+msgid "Closing…"
+msgstr "Fermeture…"
+
 msgid "Cloud"
 msgstr "Cloud"
 
@@ -3711,6 +3847,9 @@ msgstr "Bloc de code"
 
 msgid "Code Block"
 msgstr "Bloc de code"
+
+msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
+msgstr "Le code n'est pas disponible : le projet de cet espace de travail n'a pas le dépôt de cette pull request."
 
 msgid "Cohort"
 msgstr "Cohorte"
@@ -3940,9 +4079,6 @@ msgstr "Configurez la synchronisation des tâches entre Superset et Linear."
 msgid "Configure terminal behavior and reusable terminal scripts"
 msgstr "Configurez le comportement du terminal et les scripts de terminal réutilisables"
 
-msgid "Configure the automation yourself"
-msgstr "Configurez vous-même l’automatisation"
-
 msgid "Configure the in-app browser"
 msgstr "Configurez le navigateur intégré"
 
@@ -3958,9 +4094,6 @@ msgstr "Confirmer avant de quitter"
 msgid "Connect"
 msgstr "Connecter"
 
-msgid "Connect {displayName}"
-msgstr "Connecter {displayName}"
-
 msgid "Connect {name}"
 msgstr "Connecter {name}"
 
@@ -3972,6 +4105,12 @@ msgstr "Connectez un compte Google. Sa boîte mail est en lecture seule, et les 
 
 msgid "Connect a microphone to use dictation"
 msgstr "Connectez un microphone pour utiliser la dictée"
+
+msgid "Connect an account"
+msgstr "Connecter un compte"
+
+msgid "Connect another account"
+msgstr "Connecter un autre compte"
 
 msgid "Connect any AI agent to Superset."
 msgstr "Connectez n'importe quel agent IA à Superset."
@@ -4021,8 +4160,14 @@ msgstr "Connecter cet ordinateur"
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Connectez vos dépôts GitHub et synchronisez les pull requests. Suivez l'état de la CI et les revues au sein de votre équipe."
 
-msgid "Connect your Linear workspace to sync issues and manage tasks directly from Superset."
-msgstr "Connectez votre espace de travail Linear pour synchroniser les issues et gérer les tâches directement depuis Superset."
+msgid "Connect your Linear account in Settings → Integrations to link Linear issues."
+msgstr "Connectez votre compte Linear dans Paramètres → Intégrations pour lier des issues Linear."
+
+msgid "Connect your Linear account to browse, update and start work on Linear issues from Superset."
+msgstr "Connectez votre compte Linear pour parcourir, mettre à jour et démarrer le travail sur des issues Linear depuis Superset."
+
+msgid "Connect your Linear account to use Linear here."
+msgstr "Connectez votre compte Linear pour utiliser Linear ici."
 
 msgid "Connect your Linear workspace to sync issues bidirectionally."
 msgstr "Connectez votre espace de travail Linear pour synchroniser les issues dans les deux sens."
@@ -4041,6 +4186,9 @@ msgstr "Connecté"
 
 msgid "Connected {label}"
 msgstr "{label} connecté"
+
+msgid "Connected accounts"
+msgstr "Comptes connectés"
 
 msgid "Connected as"
 msgstr "Connecté en tant que"
@@ -4350,6 +4498,9 @@ msgstr "Copier le journal"
 msgid "Copy Markdown"
 msgstr "Copier le Markdown"
 
+msgid "Copy message"
+msgstr "Copier le message"
+
 msgid "Copy on select"
 msgstr "Copier lors de la sélection"
 
@@ -4528,6 +4679,9 @@ msgstr "Impossible d'ouvrir le lien"
 msgid "Could not open Photos"
 msgstr "Impossible d'ouvrir Photos"
 
+msgid "Could not reach a mobile simulator."
+msgstr "Impossible de joindre un simulateur mobile."
+
 msgid "Could not reach the desktop."
 msgstr "Impossible de joindre le bureau."
 
@@ -4631,6 +4785,18 @@ msgstr "Impossible de vérifier les identifiants : {reason}"
 msgid "Couldn't ask the workspace for a description"
 msgstr "Impossible de demander une description à l’espace de travail"
 
+msgid "Couldn't attach files"
+msgstr "Impossible de joindre les fichiers"
+
+msgid "Couldn't branch into a new worktree"
+msgstr "Impossible de dupliquer dans un nouveau worktree"
+
+msgid "Couldn't branch the conversation"
+msgstr "Impossible de dupliquer la conversation"
+
+msgid "Couldn't check what removing this member affects"
+msgstr "Impossible de vérifier ce que le retrait de ce membre affecte"
+
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Impossible de confirmer l'état de l'étoile — vérifiez que la CLI GitHub (`gh`) est installée, que vous y êtes connecté et que vous disposez d'une connexion réseau"
 
@@ -4687,6 +4853,12 @@ msgstr "Impossible de charger les pull requests : {msg}"
 msgid "Couldn't load review comments"
 msgstr "Impossible de charger les commentaires de revue"
 
+msgid "Couldn't load runs"
+msgstr "Impossible de charger les exécutions"
+
+msgid "Couldn't load this run's payload."
+msgstr "Impossible de charger la charge utile de cette exécution."
+
 msgid "Couldn't load your profile, so editing is disabled."
 msgstr "Impossible de charger votre profil, l'édition est désactivée."
 
@@ -4710,6 +4882,9 @@ msgstr "Impossible de publier la réponse"
 msgid "Couldn't reach cloud for {0}: {1}"
 msgstr "Impossible de joindre le cloud pour {0} : {1}"
 
+msgid "Couldn't reach this cloud workspace. It may still be waking up — try again."
+msgstr "Impossible de joindre cet espace de travail cloud. Il est peut-être encore en train de se réveiller — réessayez."
+
 msgid "Couldn't reach workspace"
 msgstr "Impossible de joindre l'espace de travail"
 
@@ -4722,11 +4897,18 @@ msgstr "Impossible de lire l'historique d'utilisation depuis cet hôte."
 msgid "Couldn't remove the local sign-in"
 msgstr "Impossible de supprimer la connexion locale"
 
+msgid "Couldn't reopen the agent in a terminal"
+msgstr "Impossible de réouvrir l'agent dans un terminal"
+
 msgid "Couldn't restart terminals"
 msgstr "Impossible de redémarrer les terminaux"
 
 msgid "Couldn't restart the host service"
 msgstr "Impossible de redémarrer le service hôte"
+
+#. placeholder {0}: errorMessage(error)
+msgid "Couldn't restart the workspace: {0}"
+msgstr "Impossible de redémarrer l'espace de travail : {0}"
 
 msgid "Couldn't restore \"{projectName}\""
 msgstr "Impossible de restaurer « {projectName} »"
@@ -4779,6 +4961,12 @@ msgstr "Impossible de démarrer le mode design sur cette page"
 msgid "Couldn't start workspace"
 msgstr "Impossible de démarrer l'espace de travail"
 
+msgid "Couldn't stop the agent's terminal"
+msgstr "Impossible d'arrêter le terminal de l'agent"
+
+msgid "Couldn't stop the chat"
+msgstr "Impossible d'arrêter la discussion"
+
 msgid "Couldn't unstage changes"
 msgstr "Impossible de désindexer les modifications"
 
@@ -4815,6 +5003,9 @@ msgstr "Crée un fork natif chez le fournisseur avec le même contexte de conver
 msgid "Create a new API key for external integrations like Claude Desktop or Claude Code."
 msgstr "Créez une nouvelle clé API pour des intégrations externes comme Claude Desktop ou Claude Code."
 
+msgid "Create a new issue in Linear."
+msgstr "Créer une nouvelle issue dans Linear."
+
 msgid "Create a new project by cloning a repository or local path."
 msgstr "Créez un projet en clonant un dépôt ou un chemin local."
 
@@ -4847,6 +5038,12 @@ msgstr "Créer un compte"
 
 msgid "Create failed: {message}"
 msgstr "Échec de la création : {message}"
+
+msgid "Create issue"
+msgstr "Créer l'issue"
+
+msgid "Create Linear issue"
+msgstr "Créer une issue Linear"
 
 msgid "Create manually"
 msgstr "Créer manuellement"
@@ -4934,6 +5131,7 @@ msgctxt "github release action"
 msgid "Created"
 msgstr "Créée"
 
+#. placeholder {0}: issue.identifier
 #. placeholder {0}: result.task.slug
 msgid "Created {0}"
 msgstr "{0} créée"
@@ -4964,9 +5162,6 @@ msgstr "Créée {createdDate}"
 msgid "Created {createdDirs} folders in {where}"
 msgstr "{createdDirs} dossiers créés dans {where}"
 
-msgid "Created <0>· 7d</0>"
-msgstr "Créés <0>· 7 j</0>"
-
 msgid "Created 1 folder in {where}"
 msgstr "1 dossier créé dans {where}"
 
@@ -4975,6 +5170,9 @@ msgstr "Créé par"
 
 msgid "Created by <0/> · {createdAgo}"
 msgstr "Créé par <0/> · {createdAgo}"
+
+msgid "Created by me"
+msgstr "Créés par moi"
 
 msgid "Created team \"{trimmedName}\""
 msgstr "Équipe « {trimmedName} » créée"
@@ -5230,10 +5428,6 @@ msgstr "Supprimer"
 msgid "Delete \"{0}\"? This removes its worktree from the host."
 msgstr "Supprimer « {0} » ? Cela retire son worktree de l'hôte."
 
-#. placeholder {0}: target.name
-msgid "Delete \"{0}\"? This shuts down its sandbox and everything in it."
-msgstr "Supprimer « {0} » ? Cela arrête son bac à sable et tout ce qu'il contient."
-
 msgid "Delete \"{basename}\"?"
 msgstr "Supprimer « {basename} » ?"
 
@@ -5280,9 +5474,6 @@ msgstr "Supprimer l'automatisation"
 
 msgid "Delete automation?"
 msgstr "Supprimer l'automatisation ?"
-
-msgid "Delete cloud workspace"
-msgstr "Supprimer l'espace de travail cloud"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -5644,6 +5835,9 @@ msgstr "Déconnecter"
 
 msgid "Disconnect {credential}?"
 msgstr "Déconnecter {credential} ?"
+
+msgid "Disconnect {title}"
+msgstr "Déconnecter {title}"
 
 msgid "Disconnect GitHub?"
 msgstr "Déconnecter GitHub ?"
@@ -6196,6 +6390,9 @@ msgstr "Chaque minute"
 msgid "Every objective is carrying its weight for the next rung. Measured over the trailing 30 days."
 msgstr "Tous les objectifs contribuent au palier suivant. Mesuré sur les 30 derniers jours."
 
+msgid "Every scheduled run so far found a host online."
+msgstr "Jusqu'ici, chaque exécution planifiée a trouvé un hôte en ligne."
+
 msgid "Every star on <0>{repoSlug}</0>, plotted since launch."
 msgstr "Chaque étoile sur <0>{repoSlug}</0>, tracée depuis le lancement."
 
@@ -6368,8 +6565,8 @@ msgctxt "agent status"
 msgid "Failed"
 msgstr "Échec"
 
-msgid "Failed <0>· 7d</0>"
-msgstr "Échecs <0>· 7 j</0>"
+msgid "Failed runs <0>· 7d</0>"
+msgstr "Exécutions échouées <0>· 7 j</0>"
 
 msgid "Failed to accept invitation"
 msgstr "Échec de l'acceptation de l'invitation"
@@ -6463,6 +6660,9 @@ msgstr "Échec de la création de l'automatisation"
 msgid "Failed to create item"
 msgstr "Échec de la création de l'élément"
 
+msgid "Failed to create Linear issue"
+msgstr "Impossible de créer l'issue Linear"
+
 msgid "Failed to create organization"
 msgstr "Échec de la création de l'organisation"
 
@@ -6533,9 +6733,6 @@ msgstr "Échec de la récupération des détails de l'installation. Veuillez ré
 
 msgid "Failed to force stop workspace run command"
 msgstr "Échec de l'arrêt forcé de la commande d'exécution de l'espace de travail"
-
-msgid "Failed to generate a unique task slug"
-msgstr "Échec de la génération d'un slug de tâche unique"
 
 msgid "Failed to generate API key"
 msgstr "Échec de la génération de la clé API"
@@ -6711,12 +6908,6 @@ msgstr "Échec de la restauration des valeurs par défaut"
 msgid "Failed to resume {0}"
 msgstr "Échec de la reprise de {0}"
 
-msgid "Failed to retry {failedCount} of {totalCount} automations"
-msgstr "Échec de la nouvelle tentative pour {failedCount} automatisations sur {totalCount}"
-
-msgid "Failed to retry automation"
-msgstr "Échec de la nouvelle tentative de l'automatisation"
-
 msgid "Failed to reveal in Finder"
 msgstr "Échec de l'affichage dans le Finder"
 
@@ -6784,6 +6975,9 @@ msgstr "Échec de la connexion. Veuillez réessayer."
 
 msgid "Failed to sign up. Please try again."
 msgstr "Échec de la création du compte. Veuillez réessayer."
+
+msgid "Failed to start the selected automations"
+msgstr "Échec du lancement des automatisations sélectionnées"
 
 msgid "Failed to stop workspace run command"
 msgstr "Échec de l'arrêt de la commande d'exécution de l'espace de travail"
@@ -6995,9 +7189,6 @@ msgstr "Filtrer les espaces de travail…"
 msgid "Filter…"
 msgstr "Filtrer…"
 
-msgid "filtering"
-msgstr "filtrage"
-
 msgid "Filters"
 msgstr "Filtres"
 
@@ -7007,8 +7198,14 @@ msgstr "Filtres, {activeFilterCount} actifs"
 msgid "Find"
 msgstr "Rechercher"
 
+msgid "Find a person…"
+msgstr "Rechercher une personne…"
+
 msgid "Find a small bug and fix it…"
 msgstr "Trouve un petit bug et corrige-le…"
+
+msgid "Find a team…"
+msgstr "Rechercher une équipe…"
 
 msgid "Find and fix a small bug"
 msgstr "Trouver et corriger un petit bug"
@@ -7617,6 +7814,9 @@ msgstr "Masquer"
 msgid "Hide checks"
 msgstr "Masquer les vérifications"
 
+msgid "Hide detail"
+msgstr "Masquer le détail"
+
 msgid "Hide details"
 msgstr "Masquer les détails"
 
@@ -7975,6 +8175,9 @@ msgstr "Importer les paramètres depuis un autre navigateur"
 msgid "import the project"
 msgstr "importer le projet"
 
+msgid "Import to tasks"
+msgstr "Importer dans les tâches"
+
 msgid "Import untracked worktrees"
 msgstr "Importer les worktrees non suivis"
 
@@ -7994,6 +8197,9 @@ msgstr "Importé {joinedMessages}"
 
 msgid "Imported from Linear"
 msgstr "Importée depuis Linear"
+
+msgid "Imported to tasks"
+msgstr "Importée dans les tâches"
 
 msgid "Importing..."
 msgstr "Import en cours..."
@@ -8309,6 +8515,9 @@ msgstr "Issue introuvable."
 
 msgid "Issue resolved"
 msgstr "Issue résolue"
+
+msgid "Issue title"
+msgstr "Titre de l'issue"
 
 msgid "Issue unresolved"
 msgstr "Issue non résolue"
@@ -8748,6 +8957,9 @@ msgstr "Linear est connecté, mais la synchronisation initiale n'a pas pu démar
 msgid "Linear integration"
 msgstr "Intégration Linear"
 
+msgid "Linear is limiting requests. Try again in a few minutes."
+msgstr "Linear limite les requêtes. Réessayez dans quelques minutes."
+
 #. placeholder {0}: m.startLine
 #. placeholder {0}: metadata.startLine
 #. placeholder {1}: m.endLine
@@ -8776,8 +8988,8 @@ msgstr "Lien copié"
 msgid "Link GitHub issue"
 msgstr "Lier une issue GitHub"
 
-msgid "Link issue"
-msgstr "Lier une issue"
+msgid "Link Linear issue"
+msgstr "Lier une issue Linear"
 
 msgid "Link pull request"
 msgstr "Lier une pull request"
@@ -9019,6 +9231,9 @@ msgstr "La fiabilité sur longue durée franchit un seuil. Le travail confié à
 msgid "Long-hover shortcut-only tooltip; its chip style is now the TooltipContent default"
 msgstr "Infobulle de raccourci seul au survol prolongé ; son style de puce est désormais la valeur par défaut de TooltipContent"
 
+msgid "Looking for a mobile simulator…"
+msgstr "Recherche d’un simulateur mobile…"
+
 msgid "Looking for installed browsers…"
 msgstr "Recherche des navigateurs installés…"
 
@@ -9070,6 +9285,15 @@ msgstr "Logiciel malveillant ou hameçonnage"
 
 msgid "Manage"
 msgstr "Gérer"
+
+msgid "Manage {title}"
+msgstr "Gérer {title}"
+
+msgid "Manage accounts"
+msgstr "Gérer les comptes"
+
+msgid "Manage accounts…"
+msgstr "Gérer les comptes…"
 
 msgid "Manage billing"
 msgstr "Gérer la facturation"
@@ -9292,14 +9516,14 @@ msgstr "Fusion de la pull request..."
 msgid "Merging pull request"
 msgstr "Fusion de la pull request"
 
+msgid "Merging…"
+msgstr "Fusion en cours…"
+
 msgid "Mesh Gradient"
 msgstr "Mesh Gradient"
 
 msgid "Message in channel"
 msgstr "Message dans un canal"
-
-msgid "Message the agent"
-msgstr "Écrire à l'agent"
 
 msgid "Message..."
 msgstr "Message..."
@@ -9325,6 +9549,10 @@ msgstr "Mi-2027"
 msgid "Mine"
 msgstr "Les miennes"
 
+msgctxt "workspaces I created"
+msgid "Mine"
+msgstr "Les miens"
+
 msgid "Minimal reasoning effort"
 msgstr "Effort de raisonnement minimal"
 
@@ -9339,6 +9567,15 @@ msgstr "Contraste minimal"
 
 msgid "Mirror of the <0>PostHog Success Metrics dashboard</0> — product via saved insights, business live from Stripe/Neon"
 msgstr "Miroir du <0>tableau de bord PostHog Success Metrics</0> — produit via les insights enregistrés, business en direct depuis Stripe/Neon"
+
+msgid "missed"
+msgstr "manquée"
+
+msgid "Missed"
+msgstr "Manquées"
+
+msgid "Missed <0>· 7d</0>"
+msgstr "Manquées <0>· 7 j</0>"
 
 msgid "Missing auth state"
 msgstr "État d'authentification manquant"
@@ -9455,11 +9692,22 @@ msgstr "Mois depuis août 2026"
 msgid "More"
 msgstr "Plus"
 
+#. placeholder {0}: plugin.interface.displayName
+msgid "More {0} actions"
+msgstr "Plus d'actions {0}"
+
 msgid "More {kindLower} themes"
 msgstr "Plus de thèmes {kindLower}"
 
 msgid "More actions"
 msgstr "Plus d'actions"
+
+#. placeholder {0}: issue.identifier
+msgid "More actions for {0}"
+msgstr "Plus d'actions pour {0}"
+
+msgid "More create options"
+msgstr "Plus d'options de création"
 
 msgid "More options"
 msgstr "Plus d'options"
@@ -9574,6 +9822,9 @@ msgstr "Nécessitent un câblage au niveau de l'application (état du formulaire
 
 msgid "Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
 msgstr "Nécessite un état de chat ou d'appel d'outil en direct (ToolUIPart, flux) ou une coquille d'application"
+
+msgid "Needs a retry"
+msgstr "À relancer"
 
 msgid "Needs Action"
 msgstr "Action requise"
@@ -9812,6 +10063,9 @@ msgstr "Bonne approche"
 msgid "Nice, open a PR when ready."
 msgstr "Parfait, ouvre une pull request quand c'est prêt."
 
+msgid "Nickname"
+msgstr "Surnom"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Aucune connexion {0} sur cet hôte — connectez-vous et l'utilisation apparaîtra ici."
@@ -9862,6 +10116,9 @@ msgstr "Aucun agent pour l'instant."
 msgid "No API keys yet."
 msgstr "Aucune clé API pour l'instant."
 
+msgid "No archived workspaces"
+msgstr "Aucun espace de travail archivé"
+
 msgid "No assignee"
 msgstr "Aucun assigné"
 
@@ -9909,6 +10166,9 @@ msgstr "Aucun navigateur Chrome, Brave, Arc ou autre navigateur Chromium n'a ét
 
 msgid "No Claude or Codex usage found on this machine yet. Join now and you'll appear once you've used an agent."
 msgstr "Aucune utilisation de Claude ou Codex trouvée sur cette machine pour l'instant. Rejoignez maintenant et vous apparaîtrez dès que vous aurez utilisé un agent."
+
+msgid "No cloud workspaces match these filters"
+msgstr "Aucun espace de travail cloud ne correspond à ces filtres"
 
 msgid "No cloud workspaces yet"
 msgstr "Aucun espace de travail cloud pour l'instant"
@@ -9984,6 +10244,9 @@ msgstr "Aucun environnement pour l'instant. Créez-en un pour démarrer un espac
 
 msgid "No extended thinking"
 msgstr "Pas de réflexion étendue"
+
+msgid "No failed runs."
+msgstr "Aucune exécution en échec."
 
 msgid "No files found"
 msgstr "Aucun fichier trouvé"
@@ -10069,6 +10332,9 @@ msgstr "Aucune correspondance"
 msgid "No matches"
 msgstr "Aucun résultat"
 
+msgid "No matching files"
+msgstr "Aucun fichier correspondant"
+
 msgid "No matching org members."
 msgstr "Aucun membre de l'organisation ne correspond."
 
@@ -10086,6 +10352,9 @@ msgstr "Aucune pull request fusionnée."
 
 msgid "No messages yet"
 msgstr "Aucun message pour l'instant"
+
+msgid "No mobile simulator available here. This needs either a Limrun-enabled cloud sandbox or a local iOS/Android toolchain."
+msgstr "Aucun simulateur mobile disponible ici. Il faut un bac à sable cloud compatible Limrun ou une chaîne d’outils iOS/Android locale."
 
 msgid "No name on file"
 msgstr "Aucun nom enregistré"
@@ -10116,6 +10385,9 @@ msgstr "Aucune page ne correspond à ce filtre"
 
 msgid "No pages yet"
 msgstr "Aucune page pour le moment"
+
+msgid "No payload is stored for this run."
+msgstr "Aucune charge utile n'est stockée pour cette exécution."
 
 msgid "No payment method on file"
 msgstr "Aucun moyen de paiement enregistré"
@@ -10485,14 +10757,20 @@ msgstr "Rien ici."
 msgid "Nothing installed yet."
 msgstr "Rien d'installé pour le moment."
 
-msgid "Nothing is running. Remove it and create a new one."
-msgstr "Rien ne tourne. Supprimez-le et créez-en un nouveau."
+msgid "Nothing is running. Archive it and create a new one."
+msgstr "Rien ne tourne. Archivez-le et créez-en un nouveau."
 
 msgid "Nothing lives at {pathname}."
 msgstr "Il n'y a rien à l'emplacement {pathname}."
 
+msgid "Nothing needs a retry"
+msgstr "Rien à relancer"
+
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Rien de publié sur les 30 derniers jours pour l'instant. Votre rang apparaîtra dès que l'usage de cette machine sera synchronisé, publié sous <0>{handle}</0>."
+
+msgid "Nothing was missed"
+msgstr "Rien n'a été manqué"
 
 msgid "Notice"
 msgstr "Avis"
@@ -10660,8 +10938,8 @@ msgstr "Seuls les propriétaires de l'hôte peuvent modifier les accès"
 msgid "Only host owners can change this location."
 msgstr "Seuls les propriétaires de l'hôte peuvent modifier cet emplacement."
 
-msgid "Only host owners can delete this host"
-msgstr "Seuls les propriétaires de l'hôte peuvent supprimer cet hôte"
+msgid "Only host owners or organization owners can delete this host"
+msgstr "Seuls les propriétaires de l'hôte ou les propriétaires de l'organisation peuvent supprimer cet hôte"
 
 msgid "Only organization owners can modify these settings."
 msgstr "Seuls les propriétaires de l'organisation peuvent modifier ces paramètres."
@@ -10701,6 +10979,9 @@ msgstr "Seul le propriétaire peut exécuter cette automatisation"
 
 msgid "Only the owner can view prompt history"
 msgstr "Seul le propriétaire peut consulter l'historique des prompts"
+
+msgid "Only the owner or an organization owner can delete this automation"
+msgstr "Seul le propriétaire ou un propriétaire de l'organisation peut supprimer cette automatisation"
 
 msgid "Only the person who created this page can change it"
 msgstr "Seule la personne qui a créé cette page peut la modifier"
@@ -10956,6 +11237,9 @@ msgstr "Ouvrir l'issue #{0} dans le navigateur"
 msgid "Open issue in GitHub"
 msgstr "Ouvrir l'issue dans GitHub"
 
+msgid "Open issue in Linear"
+msgstr "Ouvrir l'issue dans Linear"
+
 msgid "Open issues"
 msgstr "Issues ouvertes"
 
@@ -11119,6 +11403,9 @@ msgstr "Ouvrir l'espace de travail de l'exécution"
 msgid "open the task in a workspace"
 msgstr "ouvrir la tâche dans un espace de travail"
 
+msgid "Open this run's workspace"
+msgstr "Ouvrir l'espace de travail de cette exécution"
+
 msgid "Open workspace"
 msgstr "Ouvrir l'espace de travail"
 
@@ -11142,6 +11429,12 @@ msgstr "Ouverture des dossiers"
 
 msgid "Opening pages"
 msgstr "Ouverture des pages"
+
+msgid "Opening the chat…"
+msgstr "Ouverture de la discussion…"
+
+msgid "Opening the conversation…"
+msgstr "Ouverture de la conversation…"
 
 msgid "Opening worktree..."
 msgstr "Ouverture du worktree..."
@@ -11453,6 +11746,9 @@ msgstr "Partielle"
 
 msgid "Partner, Transpose Platform"
 msgstr "Associé, Transpose Platform"
+
+msgid "Pass the schedule inside triggers as a schedule trigger, not as rrule beside them"
+msgstr "Passez la planification dans triggers sous forme de trigger schedule, et non comme rrule à côté"
 
 msgid "Passed"
 msgstr "Réussie"
@@ -12143,6 +12439,7 @@ msgid "Pull request"
 msgstr "Pull request"
 
 #. placeholder {0}: data.number
+#. placeholder {0}: pullRequest.number
 #. placeholder {0}: pullRequest.prNumber
 msgid "Pull request #{0}"
 msgstr "Pull request #{0}"
@@ -12405,6 +12702,9 @@ msgstr "Taille recommandée : 256×256."
 msgid "Reconnect"
 msgstr "Se reconnecter"
 
+msgid "Reconnect {name}"
+msgstr "Reconnecter {name}"
+
 msgid "Reconnect Google"
 msgstr "Reconnecter Google"
 
@@ -12449,6 +12749,9 @@ msgstr "Actualiser"
 
 msgid "Refresh GitHub issues"
 msgstr "Actualiser les issues GitHub"
+
+msgid "Refresh Linear issues"
+msgstr "Actualiser les issues Linear"
 
 msgid "Refresh metrics"
 msgstr "Actualiser les métriques"
@@ -12640,14 +12943,14 @@ msgstr "Retrait du membre..."
 msgid "Removing terminal..."
 msgstr "Suppression du terminal..."
 
-msgid "Removing…"
-msgstr "Suppression…"
-
 msgid "Rename"
 msgstr "Renommer"
 
 msgid "Rename {title}"
 msgstr "Renommer {title}"
+
+msgid "Rename account"
+msgstr "Renommer le compte"
 
 msgid "Rename branch"
 msgstr "Renommer la branche"
@@ -12717,6 +13020,9 @@ msgstr "Rouvrir la PR"
 
 msgid "Reopen thread"
 msgstr "Rouvrir le fil"
+
+msgid "Reopening…"
+msgstr "Réouverture…"
 
 msgid "reorder agents"
 msgstr "réordonner les agents"
@@ -12955,6 +13261,9 @@ msgstr "Redémarrer les terminaux"
 msgid "Restart to use the latest version of Superset."
 msgstr "Redémarrez pour utiliser la dernière version de Superset."
 
+msgid "Restart workspace"
+msgstr "Redémarrer l'espace de travail"
+
 msgid "Restart workspaces to pick up new agent credentials."
 msgstr "Redémarrez les espaces de travail pour prendre en compte les nouveaux identifiants de l'agent."
 
@@ -12995,11 +13304,17 @@ msgstr "Rétablir le forfait"
 msgid "restore the agent defaults"
 msgstr "restaurer les valeurs par défaut de l'agent"
 
+msgid "Restore the workspace you just archived"
+msgstr "Restaurer l'espace de travail que vous venez d'archiver"
+
 msgid "Restore this version?"
 msgstr "Restaurer cette version ?"
 
 msgid "Restored"
 msgstr "Restauré"
+
+msgid "Restored \"{name}\""
+msgstr "« {name} » restauré"
 
 msgid "Restored \"{projectName}\""
 msgstr "« {projectName} » restauré"
@@ -13032,6 +13347,9 @@ msgstr "Reprendre l'automatisation"
 msgid "Resuming {0}…"
 msgstr "Reprise de {0}…"
 
+msgid "Resuming the conversation…"
+msgstr "Reprise de la conversation…"
+
 msgid "Retained MRR"
 msgstr "MRR conservé"
 
@@ -13044,14 +13362,8 @@ msgstr "Réessayer"
 msgid "Retry after the connection refreshes."
 msgstr "Réessayez une fois la connexion actualisée."
 
-msgid "Retry all"
-msgstr "Tout réessayer"
-
 msgid "Retry dictation"
 msgstr "Réessayer la dictée"
-
-msgid "Retry every automation whose last run failed"
-msgstr "Réessayer toutes les automatisations dont la dernière exécution a échoué"
 
 msgid "Retry in a few seconds; if it persists, restart Superset."
 msgstr "Réessayez dans quelques secondes ; si le problème persiste, redémarrez Superset."
@@ -13134,6 +13446,9 @@ msgstr "Relisez des diffs avec coloration syntaxique"
 
 msgid "Review the result."
 msgstr "Passez le résultat en revue."
+
+msgid "Review these runs in All runs"
+msgstr "Examiner ces exécutions dans Toutes les exécutions"
 
 msgid "Review thread…"
 msgstr "Fil de revue…"
@@ -13232,6 +13547,9 @@ msgstr "Exécutez plus de 10 agents de programmation en parallèle sur votre mac
 msgid "Run 10+ parallel coding agents on your machine."
 msgstr "Exécutez plus de 10 agents de code en parallèle sur votre machine."
 
+msgid "Run again"
+msgstr "Relancer"
+
 msgid "Run automations on data source and comment activity."
 msgstr "Exécutez des automatisations sur l'activité des sources de données et des commentaires."
 
@@ -13325,14 +13643,17 @@ msgstr "Les processus de terminal en cours continuent, mais les sorties plus anc
 msgid "Runs a local command on your machine"
 msgstr "Exécute une commande locale sur votre machine"
 
-msgid "Runs failed earlier this week, but nothing is failing right now"
-msgstr "Des exécutions ont échoué plus tôt cette semaine, mais rien n'échoue actuellement"
+msgid "Runs appear here once an automation fires."
+msgstr "Les exécutions apparaissent ici dès qu'une automatisation se déclenche."
 
 msgid "Runs inside the Superset app on that device, so updating it means updating the app there."
 msgstr "S'exécute dans l'application Superset de cet appareil ; le mettre à jour revient à mettre à jour l'application là-bas."
 
 msgid "Runs land in a workspace. Review the diff, merge what's good."
 msgstr "Les exécutions arrivent dans un espace de travail. Passez le diff en revue, fusionnez ce qui convient."
+
+msgid "Runs that started their workspace in the last 7 days"
+msgstr "Exécutions ayant démarré leur espace de travail au cours des 7 derniers jours"
 
 msgid "Runs when a new workspace is created."
 msgstr "S’exécute à la création d’un espace de travail."
@@ -13442,6 +13763,9 @@ msgstr "Planifier des exécutions récurrentes, lancer à la demande, mettre en 
 
 msgid "Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates."
 msgstr "Des agents planifiés et déclenchés par événement (cron, événements GitHub, webhooks), avec des modèles prêts à l'emploi."
+
+msgid "Scheduled runs that found no host online"
+msgstr "Exécutions planifiées n'ayant trouvé aucun hôte en ligne"
 
 msgid "Schedules repeat — remove COUNT or UNTIL."
 msgstr "Les planifications se répètent — retirez COUNT ou UNTIL."
@@ -13568,6 +13892,12 @@ msgstr "Rechercher dans {frameTitle}…"
 msgid "Search issues..."
 msgstr "Rechercher des issues..."
 
+msgid "Search Linear"
+msgstr "Rechercher dans Linear"
+
+msgid "Search Linear…"
+msgstr "Rechercher dans Linear…"
+
 msgid "Search pages"
 msgstr "Rechercher des pages"
 
@@ -13657,6 +13987,9 @@ msgstr "Recherche des utilisations de Kbd"
 
 msgid "Searching..."
 msgstr "Recherche..."
+
+msgid "Searching…"
+msgstr "Recherche…"
 
 msgid "Secondary"
 msgstr "Secondaire"
@@ -13781,6 +14114,9 @@ msgstr "Sélectionner un dossier"
 msgid "Select environment"
 msgstr "Sélectionner un environnement"
 
+msgid "Select every run"
+msgstr "Sélectionner toutes les exécutions"
+
 msgid "Select IDE"
 msgstr "Sélectionner un IDE"
 
@@ -13828,6 +14164,9 @@ msgstr "Sélectionner des dépôts"
 
 msgid "Select repository"
 msgstr "Sélectionner un dépôt"
+
+msgid "Select run"
+msgstr "Sélectionner l'exécution"
 
 msgid "Select senders"
 msgstr "Sélectionner des expéditeurs"
@@ -14142,9 +14481,6 @@ msgstr "Afficher un bouton Utilisation dans la barre latérale d'accueil, sous P
 msgid "Show all {count}"
 msgstr "Afficher les {count}"
 
-msgid "Show all automations again"
-msgstr "Afficher à nouveau toutes les automatisations"
-
 msgid "Show all comments"
 msgstr "Afficher tous les commentaires"
 
@@ -14159,6 +14495,9 @@ msgstr "Afficher les fermées"
 
 msgid "Show CPU and memory usage in the top bar"
 msgstr "Afficher l'utilisation du processeur et de la mémoire dans la barre supérieure"
+
+msgid "Show detail"
+msgstr "Afficher le détail"
 
 msgid "Show details"
 msgstr "Afficher les détails"
@@ -14220,9 +14559,6 @@ msgstr "Afficher plus"
 msgid "Show on Sidebar"
 msgstr "Afficher dans la barre latérale"
 
-msgid "Show only automations whose last run failed"
-msgstr "Afficher uniquement les automatisations dont la dernière exécution a échoué"
-
 msgid "Show open items"
 msgstr "Afficher les éléments ouverts"
 
@@ -14258,6 +14594,9 @@ msgstr "Afficher les sessions"
 
 msgid "Show status and send notifications for this agent."
 msgstr "Afficher le statut et envoyer des notifications pour cet agent."
+
+msgid "Show the triggering payload"
+msgstr "Afficher la charge utile déclenchante"
 
 msgid "Show translation"
 msgstr "Afficher la traduction"
@@ -14645,6 +14984,9 @@ msgstr "Fractionner vers la droite"
 msgid "Split the current pane along its longer side"
 msgstr "Fractionner le volet actuel dans le sens de sa plus grande longueur"
 
+msgid "Split the current pane and open a mobile simulator"
+msgstr "Fractionner le volet actuel et ouvrir un simulateur mobile"
+
 msgid "Split the current pane and open a new browser pane"
 msgstr "Fractionner le volet actuel et ouvrir un nouveau volet navigateur"
 
@@ -14665,6 +15007,9 @@ msgstr "Vue côte à côte"
 
 msgid "Split with Desktop"
 msgstr "Diviser avec le bureau"
+
+msgid "Split with Mobile Simulator"
+msgstr "Diviser avec le simulateur mobile"
 
 msgid "Split with New Browser"
 msgstr "Fractionner avec un navigateur"
@@ -14763,6 +15108,9 @@ msgstr "Démarre une nouvelle session d'agent avec le contexte récent de ce ter
 msgid "Start a new agent session each run"
 msgstr "Démarrer une nouvelle session d'agent à chaque exécution"
 
+msgid "Start a new chat"
+msgstr "Démarrer une nouvelle discussion"
+
 msgid "Start a session"
 msgstr "Démarrer une session"
 
@@ -14833,6 +15181,12 @@ msgstr "Démarrage de {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Démarrage de l'espace de travail cloud"
 
+msgid "Starting the agent…"
+msgstr "Démarrage de l'agent…"
+
+msgid "Starting the simulator…"
+msgstr "Démarrage du simulateur…"
+
 msgid "Starting up. This should only take a moment."
 msgstr "Démarrage en cours. Cela ne devrait prendre qu’un instant."
 
@@ -14880,8 +15234,8 @@ msgstr "Étape {step} : {name}"
 msgid "Still can't reach the host."
 msgstr "L'hôte reste injoignable."
 
-msgid "Still trying. If it keeps failing, remove it and create a new one."
-msgstr "Nouvelle tentative en cours. Si l'échec persiste, supprimez-le et créez-en un nouveau."
+msgid "Still trying. If it keeps failing, archive it and create a new one."
+msgstr "Nouvelle tentative en cours. Si l'échec persiste, archivez-le et créez-en un nouveau."
 
 msgid "Still working — large repos can take a few minutes. You can leave; the workspace will appear on Home when it's ready."
 msgstr "Toujours en cours — les gros dépôts peuvent prendre quelques minutes. Vous pouvez quitter ; l'espace de travail apparaîtra sur l'accueil dès qu'il sera prêt."
@@ -14984,6 +15338,9 @@ msgstr "Succès"
 
 msgid "Success!"
 msgstr "Succès !"
+
+msgid "Successful runs <0>· 7d</0>"
+msgstr "Exécutions réussies <0>· 7 j</0>"
 
 msgid "Suggested"
 msgstr "Suggestions"
@@ -15587,6 +15944,12 @@ msgstr "Merci, c'est bien reçu"
 msgid "That {plugin} sign-in link expired. Try connecting again."
 msgstr "Ce lien de connexion {plugin} a expiré. Réessayez de vous connecter."
 
+msgid "That account is no longer connected — choose another."
+msgstr "Ce compte n'est plus connecté — choisissez-en un autre."
+
+msgid "That agent session has no conversation to open yet — it was started but never prompted."
+msgstr "Cette session d'agent n'a pas encore de conversation à ouvrir : elle a démarré mais n'a jamais reçu de requête."
+
 msgid "That endpoint could not be resolved."
 msgstr "Ce point de terminaison n'a pas pu être résolu."
 
@@ -15613,6 +15976,9 @@ msgstr "l'organisation active"
 
 msgid "The address is unreachable"
 msgstr "L'adresse est inaccessible"
+
+msgid "The agent copies the conversation; the branch opens here"
+msgstr "L'agent copie la conversation ; la branche s'ouvre ici"
 
 msgid "The agent owns a task from ticket to diff. The human reviews the result, not the keystrokes. Attention shifts from writing code to specifying work and judging it. One engineer runs several agents at once in isolated workspaces."
 msgstr "L'agent prend en charge une tâche du ticket au diff. L'humain relit le résultat, pas les frappes au clavier. L'attention passe de l'écriture du code à la spécification du travail et à son évaluation. Un ingénieur fait tourner plusieurs agents à la fois dans des espaces de travail isolés."
@@ -15747,12 +16113,6 @@ msgstr "L'humain lit chaque ligne avant la fusion."
 msgid "The job description shifts. Engineers stop being typists with taste and become dispatchers with taste: decomposing work, routing it to fleets, arbitrating conflicts between agents that both touched the same module."
 msgstr "La fiche de poste change. Les ingénieurs cessent d'être des dactylos avec du goût pour devenir des répartiteurs avec du goût : découper le travail, l'acheminer vers des flottes, arbitrer les conflits entre agents qui ont touché le même module."
 
-msgid "The last run failed. Click the row to see why."
-msgstr "La dernière exécution a échoué. Cliquez sur la ligne pour savoir pourquoi."
-
-msgid "The last run failed. Open its workspace to see why"
-msgstr "La dernière exécution a échoué. Ouvrez son espace de travail pour savoir pourquoi"
-
 msgid "The latest updates, improvements, and new features in Superset."
 msgstr "Les dernières mises à jour, améliorations et nouveautés de Superset."
 
@@ -15866,6 +16226,9 @@ msgstr "Le serveur est introuvable"
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Le lien de connexion était incomplet. Veuillez réessayer."
 
+msgid "The simulator instance was terminated."
+msgstr "L’instance du simulateur a été arrêtée."
+
 msgid "The site's certificate authority is not trusted"
 msgstr "L'autorité de certification du site n'est pas approuvée"
 
@@ -15965,11 +16328,20 @@ msgstr "Ce compte {plugin} est déjà connecté par une autre organisation Super
 msgid "This action is irreversible."
 msgstr "Cette action est irréversible."
 
+msgid "This agent can't be opened as a chat."
+msgstr "Cet agent ne peut pas être ouvert en tant que chat."
+
+msgid "This agent can't branch a conversation"
+msgstr "Cet agent ne peut pas dupliquer une conversation"
+
 msgid "This agent can't run in a cloud workspace"
 msgstr "Cet agent ne peut pas s'exécuter dans un espace de travail cloud"
 
 msgid "This agent no longer exists on the selected device (its agents may have been reset). Runs will fail until you pick a new one."
 msgstr "Cet agent n'existe plus sur l'appareil sélectionné (ses agents ont peut-être été réinitialisés). Les exécutions échoueront tant que vous n'en aurez pas choisi un nouveau."
+
+msgid "This also:"
+msgstr "Cela va aussi :"
 
 msgid "This application will be able to:"
 msgstr "Cette application pourra :"
@@ -15989,6 +16361,9 @@ msgstr "Cette automatisation se trouve dans une autre organisation"
 
 msgid "This cannot be undone."
 msgstr "Cette action est irréversible."
+
+msgid "This chat's agent has stopped and can't be resumed."
+msgstr "L'agent de cette discussion s'est arrêté et ne peut pas être repris."
 
 msgid "This closes every terminal session — in this workspace and any others — and can't be undone. If they're only briefly stuck, waiting usually brings them back."
 msgstr "Cela ferme toutes les sessions de terminal — dans cet espace de travail comme dans les autres — et cette action est irréversible. Si elles ne sont bloquées que brièvement, attendre suffit généralement à les faire revenir."
@@ -16076,6 +16451,12 @@ msgstr "Cela prend plus de temps que d'habitude. L'espace de travail est peut-ê
 
 msgid "This issue link is invalid."
 msgstr "Ce lien d'issue est invalide."
+
+msgid "This Linear workspace is already connected by {owner}. Ask them to disconnect first."
+msgstr "Cet espace de travail Linear est déjà connecté par {owner}. Demandez-lui de le déconnecter d'abord."
+
+msgid "This Linear workspace is already connected by another Superset organization."
+msgstr "Cet espace de travail Linear est déjà connecté par une autre organisation Superset."
 
 msgid "This looks like a binary file. Opening it as text may show garbled output or freeze the editor for large files."
 msgstr "Ce fichier semble binaire. L'ouvrir comme du texte peut afficher une sortie illisible ou figer l'éditeur pour les gros fichiers."
@@ -16263,6 +16644,9 @@ msgstr "Cette action désindexera et annulera toutes les modifications indexées
 
 msgid "This workspace"
 msgstr "Cet espace de travail"
+
+msgid "This workspace has no project to branch from"
+msgstr "Cet espace de travail n'a aucun projet depuis lequel dupliquer"
 
 msgid "This workspace may have been removed, or you no longer have access to it."
 msgstr "Cet espace de travail a peut-être été supprimé, ou vous n'y avez plus accès."
@@ -16462,6 +16846,9 @@ msgstr "Total"
 msgid "Total agent sessions"
 msgstr "Total des sessions d'agents"
 
+msgid "Total automations"
+msgstr "Total des automatisations"
+
 msgid "total cash"
 msgstr "trésorerie totale"
 
@@ -16494,6 +16881,9 @@ msgstr "Trier les nouvelles issues"
 
 msgid "triaging 12 new issues…"
 msgstr "tri de 12 nouvelles issues…"
+
+msgid "Trigger"
+msgstr "Déclencheur"
 
 msgid "Trigger alert()"
 msgstr "Déclencher alert()"
@@ -16536,6 +16926,9 @@ msgstr "Essayez les fonctionnalités en accès anticipé et les aperçus."
 
 msgid "Try it"
 msgstr "Essayez"
+
+msgid "Try now"
+msgstr "Essayer"
 
 msgid "Try Superset v2"
 msgstr "Essayer Superset v2"
@@ -16628,6 +17021,9 @@ msgstr "Impossible de transcrire l'audio"
 msgid "Unarchive"
 msgstr "Désarchiver"
 
+msgid "Unarchive failed"
+msgstr "Échec du désarchivage"
+
 msgid "Unarchive workspace"
 msgstr "Désarchiver l'espace de travail"
 
@@ -16673,6 +17069,9 @@ msgstr "En cours"
 msgid "Undo"
 msgstr "Annuler"
 
+msgid "Undo Archive"
+msgstr "Annuler l'archivage"
+
 msgid "Ungroup"
 msgstr "Dégrouper"
 
@@ -16710,6 +17109,9 @@ msgstr "Inconnue"
 msgctxt "person"
 msgid "Unknown"
 msgstr "Inconnu"
+
+msgid "Unknown account"
+msgstr "Compte inconnu"
 
 msgid "Unknown author"
 msgstr "Auteur inconnu"
@@ -16996,6 +17398,10 @@ msgstr "Utiliser Superset sur mobile"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Utilisez Superset sur votre téléphone avec Pro."
+
+#. placeholder {0}: plugin.interface.displayName
+msgid "Use the {0} plugin to "
+msgstr "Utilise le plugin {0} pour "
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Utilisez l'application de bureau pour lancer des agents de code en parallèle."
@@ -17576,6 +17982,14 @@ msgstr "Travailler depuis les tickets"
 msgid "Work with your agents across your favorite tools"
 msgstr "Travaillez avec vos agents dans vos outils préférés"
 
+#. placeholder {0}: Math.floor(seconds / 60)
+#. placeholder {1}: seconds % 60
+msgid "Worked for {0}m {1}s"
+msgstr "A travaillé {0} min {1} s"
+
+msgid "Worked for {seconds}s"
+msgstr "A travaillé {seconds} s"
+
 msgid "Worked for 39s"
 msgstr "A travaillé pendant 39 s"
 
@@ -17591,6 +18005,14 @@ msgstr "En cours"
 msgctxt "agent status"
 msgid "Working"
 msgstr "En cours"
+
+#. placeholder {0}: Math.floor(seconds / 60)
+#. placeholder {1}: seconds % 60
+msgid "Working for {0}m {1}s"
+msgstr "En cours depuis {0} min {1} s"
+
+msgid "Working for {seconds}s"
+msgstr "En cours depuis {seconds} s"
 
 msgid "Works when environments are clean. Environments are rarely clean."
 msgstr "Fonctionne quand les environnements sont propres. Ils le sont rarement."
@@ -17679,9 +18101,6 @@ msgstr "Espaces de travail"
 msgid "Workspaces are isolated task environments backed by git worktrees."
 msgstr "Les espaces de travail sont des environnements de tâche isolés reposant sur des worktrees git."
 
-msgid "Workspaces created by runs in the last 7 days"
-msgstr "Espaces de travail créés par des exécutions au cours des 7 derniers jours"
-
 msgid "Workspaces created per user in the last 7 days, by percentile"
 msgstr "Espaces de travail créés par utilisateur sur les 7 derniers jours, par centile"
 
@@ -17766,8 +18185,8 @@ msgstr "Jaune"
 msgid "Yes, demote me"
 msgstr "Oui, me rétrograder"
 
-msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, the CLI, and GitHub integration. No credit card required."
-msgstr "Oui. L'offre gratuite couvre les particuliers avec 1 utilisateur, les espaces de travail locaux, l'application de bureau, la CLI et l'intégration GitHub. Aucune carte bancaire requise."
+msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
+msgstr "Oui. L'offre gratuite couvre les particuliers avec 1 utilisateur, les espaces de travail locaux, l'application de bureau et la CLI. Aucune carte bancaire requise."
 
 msgid "Yes. Superset has completed a SOC 2 Type II audit with an independent auditor, covering our security controls in operation over time. Request the report and review our security documentation at trust.superset.sh."
 msgstr "Oui. Superset a passé un audit SOC 2 Type II avec un auditeur indépendant, portant sur le fonctionnement de nos contrôles de sécurité dans la durée. Demandez le rapport et consultez notre documentation de sécurité sur trust.superset.sh."

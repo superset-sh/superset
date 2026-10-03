@@ -310,6 +310,7 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
+          NEXT_PUBLIC_REALTIME_URL: ${{ secrets.REALTIME_URL }}
           USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
           STATIC_URL: ${{ secrets.STATIC_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
@@ -345,6 +346,7 @@ jobs:
             --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_RELAY_URL=$NEXT_PUBLIC_RELAY_URL \
+            --env NEXT_PUBLIC_REALTIME_URL=$NEXT_PUBLIC_REALTIME_URL \
             --env USERCONTENT_URL=$USERCONTENT_URL \
             --env STATIC_URL=$STATIC_URL \
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
@@ -633,6 +635,11 @@ jobs:
             realtime:
               - 'apps/realtime/**'
               - 'packages/shared/src/realtime.ts'
+              - 'packages/shared/src/page-storage.ts'
+              - 'packages/shared/src/page-storage-hub.ts'
+              - 'packages/shared/src/usercontent/**'
+              - '!packages/shared/src/usercontent/**/*.test.ts'
+              - 'packages/shared/src/verify-jwt.ts'
               - 'patches/**'
               - '.github/workflows/deploy-production.yml'
 

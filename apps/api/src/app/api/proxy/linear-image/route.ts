@@ -63,7 +63,10 @@ export async function GET(request: Request): Promise<Response> {
 
 	// Fetch the image from Linear with auth
 	const linearResponse = await fetch(linearUrl, {
-		headers: { Authorization: `Bearer ${token}` },
+		headers: {
+			Authorization:
+				connection.authMethod === "api_key" ? token : `Bearer ${token}`,
+		},
 	});
 
 	if (!linearResponse.ok) {

@@ -3,6 +3,7 @@ import type { auth } from "@superset/auth/server";
 import {
 	customSessionClient,
 	jwtClient,
+	oneTimeTokenClient,
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -40,6 +41,9 @@ export const authClient = createAuthClient({
 		}),
 		customSessionClient<typeof auth>(),
 		jwtClient(),
+		// Dev/e2e-only, mirroring the server plugin (packages/auth/src/server.ts) —
+		// only a cloud sandbox or an e2e build ever has a token to redeem with it.
+		...(__DEV__ || env.EXPO_PUBLIC_E2E === "1" ? [oneTimeTokenClient()] : []),
 	],
 	fetchOptions: {
 		// So a dropped connection during sign-in is classifiable rather than

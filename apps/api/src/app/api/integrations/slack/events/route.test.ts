@@ -27,10 +27,9 @@ mock.module("./process-app-home-opened", () => ({
 
 mock.module("./process-automation-event", () => ({
 	isAutomationEvent: () => false,
-	processAutomationEvent: mock(async () => ({
-		status: "skipped",
-		reason: "unknown workspace",
-	})),
+	processAutomationEvent: mock(async () => [
+		{ status: "skipped", reason: "unknown workspace" },
+	]),
 }));
 
 mock.module("./process-entity-details", () => ({

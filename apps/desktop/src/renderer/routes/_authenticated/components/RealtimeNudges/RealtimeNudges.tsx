@@ -10,12 +10,12 @@ import { createRelaySocket } from "@superset/workspace-client";
 import { useEffect } from "react";
 import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { getJwt } from "renderer/lib/auth-client";
+import { ensureFreshJwt } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 /**
  * One socket per window to the realtime Worker. The API sends a nudge after
- * it writes hosts or cloud workspaces: a kind refetches the matching query,
+ * it writes hosts, cloud workspaces or automation runs: a kind refetches the matching query,
  * a patch is applied to the cache without one, which is why neither polls.
  * A reopen refetches everything once, since nudges sent while the socket
  * was down are gone. Rendered inside the providers: the subscription needs
@@ -44,6 +44,12 @@ export function RealtimeNudges() {
 						void utils.suggestion.invalidate(undefined, options);
 						void utils.taskLabel.list.invalidate(undefined, options);
 						void utils.taskProject.list.invalidate(undefined, options);
+						break;
+					case "automation_runs":
+						void utils.automation.latestRuns.invalidate(undefined, options);
+						void utils.automation.listRuns.invalidate(undefined, options);
+						void utils.automation.listOrgRuns.invalidate(undefined, options);
+						void utils.automation.orgRunStats.invalidate(undefined, options);
 						break;
 				}
 			}
@@ -79,7 +85,7 @@ export function RealtimeNudges() {
 		const socket = createRelaySocket({
 			buildUrl: () =>
 				`${env.REALTIME_URL}${realtimeNudgesPath(organizationId)}`,
-			getToken: () => getJwt(),
+			getToken: () => ensureFreshJwt(),
 			minReconnectionDelay: 1_000,
 			maxReconnectionDelay: 30_000,
 		});

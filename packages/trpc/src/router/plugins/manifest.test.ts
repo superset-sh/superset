@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	installConnector,
+	readPath,
 	resolveTemplate,
 	resolveTemplateDeep,
 	resolveUrlTemplate,
@@ -130,5 +131,36 @@ describe("installConnector", () => {
 
 	test("an unpublished first-party name falls back to the stored copy", () => {
 		expect(installConnector({ ...stale, pluginName: "gone" })).toBe("notion");
+	});
+});
+
+describe("readPath", () => {
+	const payload = {
+		token: "t",
+		value: [{ id: "first" }, { id: "second" }],
+		accounts: [
+			{ accountEmail: "personal@example.com", isPrimary: false },
+			{ accountEmail: "work@example.com", isPrimary: true },
+		],
+	};
+
+	test("walks keys and indexes", () => {
+		expect(readPath(payload, "$.token")).toBe("t");
+		expect(readPath(payload, "$.value[1].id")).toBe("second");
+	});
+
+	test("a filter picks the first element whose field is truthy", () => {
+		expect(readPath(payload, "$.accounts[?(@.isPrimary)].accountEmail")).toBe(
+			"work@example.com",
+		);
+	});
+
+	test("a filter with no match, or on a non-array, reads nothing", () => {
+		expect(readPath(payload, "$.value[?(@.isPrimary)].id")).toBeUndefined();
+		expect(readPath(payload, "$.token[?(@.isPrimary)]")).toBeUndefined();
+	});
+
+	test("a malformed selector reads nothing", () => {
+		expect(readPath(payload, "$.value[first].id")).toBeUndefined();
 	});
 });

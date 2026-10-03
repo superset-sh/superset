@@ -36,7 +36,8 @@ export function useWorkspacePullRequestDetail({
 	repo: string | null;
 	pullNumber: number | null;
 }) {
-	const { host } = useWorkspaceHost(workspaceId);
+	const { host, isResolving, sandboxWaking, sandboxUnreachable } =
+		useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
@@ -65,7 +66,11 @@ export function useWorkspacePullRequestDetail({
 
 	return {
 		detail: query.data ?? null,
-		isLoading: ready && query.isPending,
+		// An idle query is not an empty one: while the box is still waking the
+		// pull request is unknown, not gone.
+		isLoading: ready
+			? query.isPending
+			: (isResolving || sandboxWaking) && !sandboxUnreachable,
 		isRefetching: query.isRefetching,
 		error: query.error,
 		refetch: query.refetch,

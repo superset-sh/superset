@@ -11,13 +11,22 @@
 	"compatibility_flags": ["nodejs_als"],
 	"vars": {
 		// Must match the API's JWT issuer/audience exactly, as on the relay.
-		"NEXT_PUBLIC_API_URL": "https://api.superset.sh"
+		"NEXT_PUBLIC_API_URL": "https://api.superset.sh",
+		"USERCONTENT_URL": "https://frame.supersetusercontent.com"
 	},
 	// NUDGE_SECRET is a secret (`wrangler secret put NUDGE_SECRET`); the API
 	// sends it on every emit.
 	"durable_objects": {
-		"bindings": [{ "name": "OrgHub", "class_name": "OrgHub" }]
+		"bindings": [
+			{ "name": "OrgHub", "class_name": "OrgHub" },
+			{ "name": "PageHub", "class_name": "PageHub" }
+		]
 	},
-	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["OrgHub"] }],
+	// Read-only: a page's hub reads its manifest to decide who may connect.
+	"r2_buckets": [{ "binding": "PRIVATE", "bucket_name": "superset-private" }],
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["OrgHub"] },
+		{ "tag": "v2", "new_sqlite_classes": ["PageHub"] }
+	],
 	"observability": { "enabled": true }
 }

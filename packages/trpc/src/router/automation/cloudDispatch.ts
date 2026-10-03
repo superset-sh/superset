@@ -234,7 +234,8 @@ async function reachablePin(
 		);
 	}
 	try {
-		return { row, hostTarget: await wakeCloudWorkspace(row) };
+		const { hostTarget } = await wakeCloudWorkspace(row);
+		return { row, hostTarget };
 	} catch (error) {
 		if (!(error instanceof SandboxUnavailableError)) throw error;
 		await markSandboxUnavailable(row, error);

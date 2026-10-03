@@ -1,12 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
-import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, Cloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { provisioningSince } from "renderer/routes/_authenticated/_dashboard/utils/provisioningSince";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 /**
  * A warm sandbox is up in a second or two; the first ones after an image
@@ -96,21 +94,6 @@ function CloudWorkspaceFailedState({
 	name: string;
 }) {
 	const { t } = useLingui();
-	const navigate = useNavigate();
-	const utils = cloudTrpc.useUtils();
-	const [isDeleting, setIsDeleting] = useState(false);
-
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			await apiTrpcClient.cloudWorkspace.delete.mutate({ id: workspaceId });
-			await utils.cloudWorkspace.list.invalidate();
-			await navigate({ to: "/v2-workspaces" });
-		} catch (error) {
-			console.error("[cloud-workspace] failed to delete", error);
-			setIsDeleting(false);
-		}
-	};
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
@@ -150,16 +133,14 @@ function CloudWorkspaceFailedState({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={isDeleting}
-					onClick={() => void handleDelete()}
+					onClick={() =>
+						useDeleteWorkspaceIntent.getState().request({
+							workspaceId,
+							workspaceName: name || t({ message: "Untitled workspace" }),
+						})
+					}
 				>
-					{isDeleting
-						? t({
-								message: "Removing…",
-							})
-						: t({
-								message: "Remove workspace",
-							})}
+					<Trans>Remove workspace</Trans>
 				</Button>
 			</div>
 		</div>

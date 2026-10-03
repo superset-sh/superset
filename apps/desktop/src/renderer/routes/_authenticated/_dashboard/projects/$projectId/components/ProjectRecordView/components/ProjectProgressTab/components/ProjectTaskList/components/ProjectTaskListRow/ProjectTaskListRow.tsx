@@ -19,7 +19,7 @@ export function ProjectTaskListRow({ task, onOpen }: ProjectTaskListRowProps) {
 				</span>
 			</td>
 			<td className="w-0 pr-4 whitespace-nowrap">
-				<span className="block max-w-56 truncate text-xs text-muted-foreground tabular-nums">
+				<span className="block max-w-56 truncate font-mono text-xs text-muted-foreground">
 					{task.slug}
 				</span>
 			</td>

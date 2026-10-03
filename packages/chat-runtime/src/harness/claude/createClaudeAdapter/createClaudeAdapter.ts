@@ -1,6 +1,7 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { HarnessAdapter } from "../../types";
-import { ClaudeAdapter, type ClaudeAdapterOptions } from "../claudeAdapter";
+import type { ClaudeAdapterOptions } from "../claudeAdapter";
+import { ClaudeAdapter } from "../claudeAdapter";
 
 /**
  * The one place the real SDK is wired in: everything else takes `query`
@@ -8,11 +9,11 @@ import { ClaudeAdapter, type ClaudeAdapterOptions } from "../claudeAdapter";
  */
 export function createClaudeAdapter(options?: {
 	pathToClaudeCodeExecutable?: string;
-	env?: ClaudeAdapterOptions["env"];
+	launch?: ClaudeAdapterOptions["launch"];
 }): HarnessAdapter {
 	return new ClaudeAdapter({
 		query,
 		pathToClaudeCodeExecutable: options?.pathToClaudeCodeExecutable,
-		env: options?.env,
+		launch: options?.launch,
 	});
 }

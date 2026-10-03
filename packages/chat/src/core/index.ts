@@ -1,3 +1,4 @@
+export * from "./bookkeeping/readBookkeeping";
 export * from "./coalesce";
 export * from "./markdown/fenceState";
 export * from "./markdown/splitBlocks";

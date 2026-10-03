@@ -28,6 +28,8 @@ export interface SandboxAccessValue {
 	targets: SandboxTarget[];
 	/** False until the cloud list is known and every ready workspace in it has been addressed once. */
 	isReady: boolean;
+	/** The open workspace, when its box booted with agent sign-ins its creator has since changed. */
+	agentCredentialsChangedWorkspaceId: string | null;
 }
 
 const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
@@ -36,6 +38,7 @@ interface SandboxAccess {
 	url: string;
 	desktopUrl: string;
 	expiresAt: number;
+	agentCredentialsChanged: boolean;
 }
 
 function sandboxAccessQueryKey(workspaceId: string) {
@@ -56,6 +59,7 @@ async function requestAccess(
 		url: granted.url,
 		desktopUrl: granted.desktop.url,
 		expiresAt: new Date(granted.expiresAt).getTime(),
+		agentCredentialsChanged: granted.agentCredentialsChanged,
 	};
 }
 
@@ -111,7 +115,7 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 	const queryClient = useQueryClient();
 	const openWorkspace =
 		workspaces.find((workspace) => workspace.id === openWorkspaceId) ?? null;
-	useQuery({
+	const wake = useQuery({
 		queryKey: ["cloud-workspace", "wake", openWorkspace?.id] as const,
 		enabled: openWorkspace !== null,
 		networkMode: "always",
@@ -143,8 +147,19 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 			isReady:
 				cloudWorkspaces !== undefined &&
 				results.every((result) => result.isFetched),
+			agentCredentialsChangedWorkspaceId:
+				openWorkspace && wake.data?.agentCredentialsChanged
+					? openWorkspace.id
+					: null,
 		};
-	}, [cloudWorkspaces, workspaces, results, organizationId]);
+	}, [
+		cloudWorkspaces,
+		workspaces,
+		results,
+		organizationId,
+		openWorkspace,
+		wake.data,
+	]);
 
 	return (
 		<SandboxAccessContext.Provider value={value}>
@@ -155,5 +170,11 @@ export function SandboxAccessProvider({ children }: { children: ReactNode }) {
 
 /** Empty (never null) so consumers work outside the provider, e.g. in tests. */
 export function useSandboxAccess(): SandboxAccessValue {
-	return useContext(SandboxAccessContext) ?? { targets: [], isReady: true };
+	return (
+		useContext(SandboxAccessContext) ?? {
+			targets: [],
+			isReady: true,
+			agentCredentialsChangedWorkspaceId: null,
+		}
+	);
 }

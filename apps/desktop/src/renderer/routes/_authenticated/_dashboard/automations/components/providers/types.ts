@@ -96,6 +96,7 @@ export type SentenceContext = {
 	disabled?: boolean;
 	/** Trailing text for a schedule row ("Next run …"); other providers ignore it. */
 	nextRun?: ReactNode;
+	account?: ReactNode;
 };
 
 /** How one option group's fetch is going, from `useProviderOptions`. */

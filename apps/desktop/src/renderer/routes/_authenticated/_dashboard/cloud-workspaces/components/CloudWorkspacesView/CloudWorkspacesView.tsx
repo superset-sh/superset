@@ -1,4 +1,9 @@
-import { getActiveLocale } from "@superset/i18n/format";
+import { formatRelativePeriod } from "@superset/i18n/format";
+import {
+	groupCloudWorkspaces,
+	groupCloudWorkspacesByTime,
+	sortCloudWorkspaces,
+} from "@superset/shared/cloud-workspace-groups";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
@@ -11,25 +16,11 @@ import { CloudWorkspacesList } from "renderer/routes/_authenticated/_dashboard/c
 import { useCloudWorkspaceListItems } from "renderer/routes/_authenticated/_dashboard/hooks/useCloudWorkspaceListItems";
 import { useUnarchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useUnarchiveCloudWorkspace";
 import { useListDisplayStore } from "renderer/routes/_authenticated/_dashboard/stores/listDisplayStore";
-import {
-	type CloudWorkspacePeriod,
-	groupCloudWorkspaces,
-	groupCloudWorkspacesByTime,
-	sortCloudWorkspaces,
-} from "renderer/routes/_authenticated/_dashboard/utils/groupCloudWorkspaces";
 import { NO_PROJECT } from "../../constants";
 import type { CloudWorkspacesSearch } from "../../types";
 import { CloudWorkspacesHeader } from "../CloudWorkspacesHeader";
 
 const NOW_TICK_MS = 30_000;
-
-function formatPeriod({ unit, count }: CloudWorkspacePeriod) {
-	const locale = getActiveLocale();
-	const label = new Intl.RelativeTimeFormat(locale, {
-		numeric: "auto",
-	}).format(-count, unit);
-	return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
-}
 
 interface CloudWorkspacesViewProps {
 	search: CloudWorkspacesSearch;
@@ -172,7 +163,7 @@ export function CloudWorkspacesView({ search }: CloudWorkspacesViewProps) {
 							sort: display.sort,
 						}).map(({ period, workspaces: grouped }) => ({
 							key: `${period.unit}:${period.count}`,
-							label: formatPeriod(period),
+							label: formatRelativePeriod(period),
 							items: grouped.map(listItems.toItem),
 						})),
 					}

@@ -19,7 +19,10 @@ import {
 } from "@superset/chat-runtime";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { HostDb } from "../db";
-import { resolveAccountEnv } from "../trpc/router/usage/default-account";
+import { cliFloor } from "./acpCatalogue";
+import { acpHarnessEntries } from "./acpHarnesses";
+import { resolveAgentCli } from "./agentCli";
+import { buildChatAgentEnv } from "./agentEnv";
 import { createResolveCwd } from "./resolveCwd";
 
 export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
@@ -34,23 +37,50 @@ function migrationsFolder(): string {
 }
 
 function harnessRegistry(db: HostDb): HarnessRegistry {
-	const envFor = (presetId: string, workspaceId: string) => ({
-		...process.env,
-		...resolveAccountEnv(db, presetId, workspaceId),
-	});
 	const entries: [string, HarnessFactory][] = [
 		[
 			"claude-code",
-			({ scopeId }) =>
+			(options) =>
 				createClaudeAdapter({
-					pathToClaudeCodeExecutable: process.env.SUPERSET_CHAT_V3_CLAUDE_BIN,
-					env: envFor("claude", scopeId),
+					launch: async () => {
+						const cli = await resolveAgentCli({
+							binary: "claude",
+							...cliFloor("claude-acp"),
+							env: () =>
+								buildChatAgentEnv({
+									db,
+									cwd: options.cwd,
+									workspaceId: options.scopeId,
+								}),
+						});
+						return {
+							pathToClaudeCodeExecutable:
+								process.env.SUPERSET_CHAT_V3_CLAUDE_BIN ?? cli.command,
+							env: cli.env,
+						};
+					},
 				}),
 		],
 		[
 			"codex",
-			({ scopeId }) => new CodexAdapter({ env: envFor("codex", scopeId) }),
+			(options) =>
+				new CodexAdapter({
+					launch: async () => {
+						const cli = await resolveAgentCli({
+							binary: "codex",
+							...cliFloor("codex-acp"),
+							env: () =>
+								buildChatAgentEnv({
+									db,
+									cwd: options.cwd,
+									workspaceId: options.scopeId,
+								}),
+						});
+						return { command: cli.command, env: cli.env };
+					},
+				}),
 		],
+		...acpHarnessEntries(db),
 	];
 	return new Map(entries);
 }

@@ -1,13 +1,12 @@
-import { Trans } from "@lingui/react/macro";
-import { Button } from "@superset/ui/button";
-import { Dialog, DialogContent } from "@superset/ui/dialog";
+import {
+	PRO_FEATURES,
+	ProFeaturesDialog,
+} from "@superset/ui/pro-features-dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
-import { FeaturePreview } from "./components/FeaturePreview";
-import { FeatureSidebar } from "./components/FeatureSidebar";
 import type { GatedFeature } from "./constants";
-import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
+import { FEATURE_ID_MAP } from "./constants";
 
 type PaywallOptions = {
 	feature: GatedFeature;
@@ -122,30 +121,14 @@ export const Paywall = () => {
 	};
 
 	return (
-		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
-			<DialogContent
-				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden !rounded-none"
-				showCloseButton={false}
-			>
-				<div className="flex">
-					<FeatureSidebar
-						selectedFeatureId={selectedFeatureId}
-						highlightedFeatureId={initialFeatureId}
-						onSelectFeature={handleSelectFeature}
-					/>
-					<FeaturePreview selectedFeature={selectedFeature} />
-				</div>
-
-				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
-					<Button variant="outline" onClick={() => handleOpenChange(false)}>
-						<Trans>Cancel</Trans>
-					</Button>
-					<Button onClick={handleUpgrade}>
-						<Trans>Get Superset Pro</Trans>
-					</Button>
-				</div>
-			</DialogContent>
-		</Dialog>
+		<ProFeaturesDialog
+			open={isOpen}
+			onOpenChange={handleOpenChange}
+			selectedFeatureId={selectedFeatureId}
+			highlightedFeatureId={initialFeatureId}
+			onSelectFeature={handleSelectFeature}
+			onUpgrade={handleUpgrade}
+		/>
 	);
 };
 

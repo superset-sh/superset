@@ -114,7 +114,6 @@ export function CloudWorkspaceShareButton({
 									{ id: owner.userId, name: owner.name, image: owner.image },
 								]}
 								size={24}
-								surface="popover"
 							/>
 							<span className="min-w-0 flex-1 truncate text-sm">
 								{owner.name}

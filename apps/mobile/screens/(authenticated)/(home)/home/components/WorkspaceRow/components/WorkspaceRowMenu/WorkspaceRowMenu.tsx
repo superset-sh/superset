@@ -7,6 +7,7 @@ export function WorkspaceRowMenu({
 	onTogglePin,
 	canRename,
 	canDelete,
+	isCloud,
 	isUnread,
 	onToggleUnread,
 	onRename,
@@ -16,9 +17,11 @@ export function WorkspaceRowMenu({
 	children,
 }: {
 	pinned: boolean;
-	onTogglePin: () => void;
+	onTogglePin?: () => void;
 	canRename: boolean;
 	canDelete: boolean;
+	/** A cloud workspace is archived, not deleted. */
+	isCloud: boolean;
 	isUnread: boolean;
 	onToggleUnread: () => void;
 	onRename: () => void;
@@ -52,18 +55,25 @@ export function WorkspaceRowMenu({
 								message: "Mark as Unread",
 							})}
 				</Link.MenuAction>
-				<Link.MenuAction
-					icon={pinned ? "pin.slash" : "pin"}
-					onPress={onTogglePin}
-				>
-					{pinned ? t({ message: "Unpin" }) : t({ message: "Pin" })}
-				</Link.MenuAction>
+				{onTogglePin ? (
+					<Link.MenuAction
+						icon={pinned ? "pin.slash" : "pin"}
+						onPress={onTogglePin}
+					>
+						{pinned ? t({ message: "Unpin" }) : t({ message: "Pin" })}
+					</Link.MenuAction>
+				) : null}
 				{canRename ? (
 					<Link.MenuAction icon="pencil" onPress={onRename}>
 						{t({ message: "Rename" })}
 					</Link.MenuAction>
 				) : null}
-				{canDelete ? (
+				{canDelete && isCloud ? (
+					<Link.MenuAction icon="archivebox" onPress={onDelete}>
+						{t({ message: "Archive" })}
+					</Link.MenuAction>
+				) : null}
+				{canDelete && !isCloud ? (
 					<Link.MenuAction icon="trash" destructive onPress={onDelete}>
 						{t({ message: "Delete" })}
 					</Link.MenuAction>

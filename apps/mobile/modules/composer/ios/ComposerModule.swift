@@ -139,6 +139,13 @@ public final class ComposerModule: Module {
         view.overlay.model.autocapitalization = mode == "never" ? .never : .sentences
       }
 
+      /// The terminal's shorter floor for the expanded editor. Set once at
+      /// mount like `autocapitalization` — no transaction, since it never
+      /// changes under a caller that isn't flipping surfaces mid-session.
+      Prop("compactEditor") { (view: ComposerAnchorView, compact: Bool) in
+        view.overlay.model.compactEditor = compact
+      }
+
       /// Same reasoning as `attachments`: the chip row is a whole row of card
       /// height appearing or leaving.
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in

@@ -1,7 +1,11 @@
 import { type ActiveAgentStatus, isActiveAgentStatus } from "./agent-status";
 
 // A change that fits in a patch never turns into a refetch.
-export const REALTIME_NUDGE_KINDS = ["hosts", "cloud_workspaces"] as const;
+export const REALTIME_NUDGE_KINDS = [
+	"hosts",
+	"cloud_workspaces",
+	"automation_runs",
+] as const;
 
 export type RealtimeNudgeKind = (typeof REALTIME_NUDGE_KINDS)[number];
 

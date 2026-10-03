@@ -8,6 +8,7 @@ import {
 	environments,
 	githubRepositories,
 	pages,
+	type SelectTask,
 	suggestions,
 	taskLabels,
 	taskProjects,
@@ -35,6 +36,8 @@ const DESCRIPTION_MAX_LENGTH = 20_000;
 export const taskColumns = {
 	id: tasks.id,
 	slug: tasks.slug,
+	externalProvider: tasks.externalProvider,
+	externalKey: tasks.externalKey,
 	title: tasks.title,
 	statusType: taskStatuses.type,
 	statusColor: taskStatuses.color,
@@ -44,6 +47,8 @@ export const taskColumns = {
 type TaskColumns = {
 	id: string;
 	slug: string;
+	externalProvider: SelectTask["externalProvider"];
+	externalKey: string | null;
 	title: string;
 	statusType: string | null;
 	statusColor: string | null;
@@ -54,6 +59,8 @@ export function toTaskChip(row: TaskColumns) {
 	return {
 		id: row.id,
 		slug: row.slug,
+		externalProvider: row.externalProvider,
+		externalKey: row.externalKey,
 		title: row.title,
 		status:
 			row.statusType && row.statusColor
@@ -306,6 +313,8 @@ export const cloudWorkspaceRecordRouter = {
 					linkedTask: {
 						id: linkedTask.id,
 						slug: linkedTask.slug,
+						externalProvider: linkedTask.externalProvider,
+						externalKey: linkedTask.externalKey,
 						title: linkedTask.title,
 						statusType: linkedStatus.type,
 						statusColor: linkedStatus.color,
@@ -314,6 +323,8 @@ export const cloudWorkspaceRecordRouter = {
 					unlinkedTask: {
 						id: unlinkedTask.id,
 						slug: unlinkedTask.slug,
+						externalProvider: unlinkedTask.externalProvider,
+						externalKey: unlinkedTask.externalKey,
 						title: unlinkedTask.title,
 						statusType: unlinkedStatus.type,
 						statusColor: unlinkedStatus.color,

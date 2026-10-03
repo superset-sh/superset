@@ -117,7 +117,17 @@ export async function saveTriggerSet(
 
 			const [row] = await tx
 				.update(automationTriggers)
-				.set({ config, nextRunAt })
+				// Absent and null mean different things: null is the "any account"
+				// the editor writes, undefined is a client that does not know the
+				// field. Desktop and API ship independently, so writing null for
+				// both would let an older build clear every pin on save.
+				.set({
+					config,
+					nextRunAt,
+					...(trigger.connectionId === undefined
+						? {}
+						: { connectionId: trigger.connectionId }),
+				})
 				.where(eq(automationTriggers.id, previous.id))
 				.returning({ id: automationTriggers.id });
 			if (row) saved.push(row.id);
@@ -131,6 +141,7 @@ export async function saveTriggerSet(
 				organizationId: params.organizationId,
 				kind: config.kind,
 				config,
+				connectionId: trigger.connectionId ?? null,
 				nextRunAt: nextRunAtFor(trigger.config),
 			})
 			.returning({ id: automationTriggers.id });

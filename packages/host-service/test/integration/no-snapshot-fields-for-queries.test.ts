@@ -29,6 +29,10 @@ const ALLOWLIST = new Set([
 	// Resolver itself: mentions field names in JSDoc, no member reads.
 	"trpc/router/workspace-creation/shared/project-helpers.ts",
 
+	// Snapshot consumer: matches the host's own `pull_requests` rows against
+	// the identity `resolveGithubRepo` already returned; never routes a query.
+	"trpc/router/pull-requests/shared/linked-workspaces.ts",
+
 	// TODO: PR-runtime poller still keys repo identity off cached
 	// `project.repoOwner`/`repoName`. Migration needs cache invalidation
 	// rethink (GitWatcher → bust on `.git/config` changes).

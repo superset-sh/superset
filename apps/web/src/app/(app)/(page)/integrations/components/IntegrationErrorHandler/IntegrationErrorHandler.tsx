@@ -44,7 +44,8 @@ type CallbackKeys = {
 			| "missing_params"
 			| "oauth_denied"
 			| "token_exchange_failed"
-			| "unauthorized";
+			| "unauthorized"
+			| "workspace_already_linked";
 		warning: "sync_queued_failed";
 	};
 	"microsoft-teams": {
@@ -147,30 +148,37 @@ export function IntegrationErrorHandler<P extends Provider>({
 		const success = searchParams.get("success");
 		if (!error && !warning && !success) return;
 
-		// Toast first: replacing the URL re-runs this effect through Next's
-		// patched history, and a deferred toast can be cleaned up before it shows.
-		if (error) {
-			const message = (messages as Record<string, CallbackMessage>)[error];
-			toast.error(resolveMessage(message, searchParams));
-		} else if (warning) {
-			toast.warning(
-				(warnings as Record<string, string> | undefined)?.[warning] ??
-					i18n._(
-						msg({
-							message: "Warning occurred.",
-						}),
-					),
-			);
-		} else if (success) {
-			toast.success(
-				(successes as Record<string, string> | undefined)?.[success] ??
-					i18n._(
-						msg({
-							message: "Success!",
-						}),
-					),
-			);
-		}
+		const show = () => {
+			const id = `integration-callback-${provider}`;
+			if (error) {
+				const message = (messages as Record<string, CallbackMessage>)[error];
+				toast.error(resolveMessage(message, searchParams), { id });
+			} else if (warning) {
+				toast.warning(
+					(warnings as Record<string, string> | undefined)?.[warning] ??
+						i18n._(
+							msg({
+								message: "Warning occurred.",
+							}),
+						),
+					{ id },
+				);
+			} else if (success) {
+				toast.success(
+					(successes as Record<string, string> | undefined)?.[success] ??
+						i18n._(
+							msg({
+								message: "Success!",
+							}),
+						),
+					{ id },
+				);
+			}
+		};
+		// The root layout's Toaster subscribes in its own effect, which runs after
+		// this one and drops anything published before it. Never cancelled: the
+		// replaceState below re-runs this effect, and its cleanup would drop the toast.
+		setTimeout(show, 0);
 		window.history.replaceState({}, "", `/integrations/${provider}`);
 	}, [searchParams, provider, messages, warnings, successes]);
 

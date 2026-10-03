@@ -50,6 +50,7 @@ export type ChatSession = {
 	cancelTurn(turnId: string): Promise<void>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
 	setMode(modeId: string): Promise<void>;
+	setConfigOption(configId: string, value: string): Promise<void>;
 };
 
 function confirmEchoes(outbox: Outbox, batch: readonly Envelope[]): void {
@@ -251,6 +252,12 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		[client],
 	);
 
+	const setConfigOption = useCallback(
+		(configId: string, value: string) =>
+			client.setConfigOption(configId, value),
+		[client],
+	);
+
 	return {
 		snapshot,
 		status,
@@ -264,5 +271,6 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		cancelTurn,
 		respondToApproval,
 		setMode,
+		setConfigOption,
 	};
 }

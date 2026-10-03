@@ -17,6 +17,7 @@ import {
 } from "@superset/db/schema";
 import { and, count, eq, ne } from "drizzle-orm";
 
+import { purgePageStorageForUser } from "../page-store";
 import { deletePostHogPerson } from "../posthog-persons";
 
 async function deleteCustomerIfNeverCharged(customerId: string) {
@@ -52,6 +53,7 @@ async function deleteCustomerIfNeverCharged(customerId: string) {
  * is safe to re-run. Deliberately silent — no removal or billing emails. */
 export async function purgeAccount(userId: string): Promise<void> {
 	await deletePostHogPerson(userId);
+	await purgePageStorageForUser(userId);
 
 	const memberships = await db.query.members.findMany({
 		where: eq(members.userId, userId),

@@ -16,7 +16,6 @@ import {
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
-import { getSlugColumnWidth } from "renderer/lib/slug-width";
 import { create } from "zustand";
 import {
 	StatusIcon,
@@ -68,7 +67,6 @@ export function useTasksTable({
 	linearProjectFilter,
 }: UseTasksTableParams): TasksPagination & {
 	table: Table<TaskWithStatus>;
-	slugColumnWidth: string;
 	rowSelection: RowSelectionState;
 	setRowSelection: (
 		updater:
@@ -131,8 +129,9 @@ export function useTasksTable({
 		}
 	}, [filterTab, assigneeFilter, setRowSelection]);
 
-	const slugColumnWidth = useMemo(
-		() => getSlugColumnWidth((data ?? []).map((t) => t.slug)),
+	const slugWidth = useMemo(
+		() =>
+			`${(data ?? []).reduce((max, task) => Math.max(max, task.slug.length), 0)}ch`,
 		[data],
 	);
 
@@ -230,8 +229,11 @@ export function useTasksTable({
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
-						<span className="text-xs text-muted-foreground truncate min-w-0">
-							{info.getValue()}
+						<span
+							className="font-mono text-xs text-muted-foreground"
+							style={{ width: slugWidth }}
+						>
+							{info.row.original.slug}
 						</span>
 					);
 				},
@@ -310,7 +312,7 @@ export function useTasksTable({
 				},
 			}),
 		],
-		[t],
+		[t, slugWidth],
 	);
 
 	const table = useReactTable({
@@ -337,7 +339,6 @@ export function useTasksTable({
 
 	return {
 		table,
-		slugColumnWidth,
 		rowSelection,
 		setRowSelection,
 		fetchNextTasksPage,

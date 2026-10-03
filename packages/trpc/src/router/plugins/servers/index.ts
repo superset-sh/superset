@@ -6,6 +6,7 @@ import {
 import type { ConnectionSecrets } from "../../../lib/connectors/upsert";
 import { gmailServer } from "./gmail";
 import { slackServer } from "./slack";
+import { ynabServer } from "./ynab";
 
 export interface FirstPartyServer {
 	getTools(): Tool[];
@@ -23,6 +24,7 @@ export const FIRST_PARTY_SERVERS: Record<
 > = {
 	gmail: gmailServer,
 	slack: slackServer,
+	ynab: ynabServer,
 };
 
 export function firstPartyServer(name: string): FirstPartyServer | undefined {

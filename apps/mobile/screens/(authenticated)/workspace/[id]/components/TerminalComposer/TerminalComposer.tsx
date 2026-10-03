@@ -234,6 +234,9 @@ export const TerminalComposer = forwardRef<
 				// while typing the next command is the whole point of this screen.
 				backdrop="passthrough"
 				autocapitalization="never"
+				// More of the transcript stays visible when the composer is
+				// collapsed to its minimum, unlike the home screen's generous floor.
+				compactEditor
 				showAttachments={allowAttachments}
 				quickKeys={quickKeys}
 				sessionTabs={sessionTabs}

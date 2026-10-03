@@ -58,7 +58,7 @@ export function CloudWorkspaceSuggestionsCard({
 							onDismiss={() => onDismiss(suggestion.id)}
 						>
 							<CloudTaskIcon task={suggestion.task} />
-							<span className="shrink-0 text-muted-foreground">
+							<span className="shrink-0 font-mono text-muted-foreground">
 								{suggestion.task.slug}
 							</span>
 							<span className="min-w-0 truncate">{suggestion.task.title}</span>

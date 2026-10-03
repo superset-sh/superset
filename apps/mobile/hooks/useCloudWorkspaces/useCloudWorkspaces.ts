@@ -5,8 +5,11 @@ import { TRPCClientError } from "@trpc/client";
 import { useFeatureFlag } from "posthog-react-native";
 import { useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
+import { useRealtimeConnected } from "@/lib/realtime";
 import { pruneSandboxAccess } from "@/lib/sandbox-access";
 import { apiClient } from "@/lib/trpc/client";
+import { withPendingCloudMoves } from "../useCloudWorkspaceActions/pendingCloudMoves";
+import { reviveCloudWorkspaceRows } from "./reviveCloudWorkspaceRow";
 
 export type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
 
@@ -45,6 +48,7 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 	const enabledByFlag = Boolean(useFeatureFlag(FEATURE_FLAGS.CLOUD_WORKSPACES));
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const realtimeConnected = useRealtimeConnected();
 
 	const query = useQuery({
 		queryKey: getCloudWorkspacesQueryKey(organizationId),
@@ -56,11 +60,17 @@ export function useCloudWorkspaces(): CloudWorkspacesValue {
 		refetchInterval: (current) =>
 			current.state.data?.some((row) => row.status === "provisioning")
 				? PROVISIONING_POLL_MS
-				: IDLE_POLL_MS,
+				: realtimeConnected && current.state.status !== "error"
+					? false
+					: IDLE_POLL_MS,
+		select: reviveCloudWorkspaceRows,
 		queryFn: async (): Promise<CloudWorkspaceRow[]> => {
 			if (!organizationId) return NO_ROWS;
 			try {
-				return await apiClient.cloudWorkspace.list.query({ organizationId });
+				return withPendingCloudMoves(
+					"active",
+					await apiClient.cloudWorkspace.list.query({ organizationId }),
+				);
 			} catch (error) {
 				if (
 					error instanceof TRPCClientError &&

@@ -13,6 +13,7 @@ export const createSessionInputSchema = z.object({
 	harness: z.string().min(1),
 	modeId: z.string().optional(),
 	modelId: z.string().optional(),
+	resume: z.object({ harnessSessionId: z.string().min(1) }).optional(),
 });
 export type CreateSessionInput = z.infer<typeof createSessionInputSchema>;
 
@@ -59,8 +60,8 @@ export type SetModelInput = z.infer<typeof setModelInputSchema>;
 
 export const setConfigOptionInputSchema = z.object({
 	...commandBaseFields,
-	optionId: z.string().min(1),
-	value: z.unknown(),
+	configId: z.string().min(1),
+	value: z.string().min(1),
 });
 export type SetConfigOptionInput = z.infer<typeof setConfigOptionInputSchema>;
 
@@ -70,6 +71,16 @@ export const forkSessionInputSchema = z.object({
 	harness: z.string().min(1).optional(),
 });
 export type ForkSessionInput = z.infer<typeof forkSessionInputSchema>;
+
+/**
+ * Stops the session's harness process. The transcript stays readable; only the
+ * live agent goes away, so a later `createSession` with `resume` picks it back
+ * up. Closing an already-stopped session is not an error.
+ */
+export const closeSessionInputSchema = z.object({
+	sessionId: z.string().min(1),
+});
+export type CloseSessionInput = z.infer<typeof closeSessionInputSchema>;
 
 export const getSessionInputSchema = z.object({ sessionId: z.string().min(1) });
 export type GetSessionInput = z.infer<typeof getSessionInputSchema>;

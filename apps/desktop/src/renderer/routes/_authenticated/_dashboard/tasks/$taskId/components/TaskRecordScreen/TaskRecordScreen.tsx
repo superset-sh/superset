@@ -69,6 +69,10 @@ export function TaskRecordScreen({
 			refetchInterval: TASK_LIST_REFETCH_INTERVAL,
 		});
 	const { data: members } = cloudTrpc.organization.listMembers.useQuery();
+	const { data: importSource = null } = cloudTrpc.task.importSource.useQuery(
+		taskRecord?.id ?? "",
+		{ enabled: !!taskRecord?.id },
+	);
 
 	const task: TaskRecord | null = useMemo(() => {
 		if (!taskRecord) return null;
@@ -273,6 +277,7 @@ export function TaskRecordScreen({
 		<>
 			<TaskRecordView
 				task={task}
+				importSource={importSource}
 				now={now}
 				timeline={timeline}
 				currentUser={

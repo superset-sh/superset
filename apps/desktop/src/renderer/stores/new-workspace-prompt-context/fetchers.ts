@@ -55,3 +55,23 @@ export async function fetchInternalTaskBody(args: {
 		return null;
 	}
 }
+
+export async function fetchLinearIssueBody(args: {
+	organizationId: string;
+	identifier: string;
+}): Promise<PromptContextBody | null> {
+	try {
+		const result = await apiTrpcClient.integration.linear.issue.query({
+			organizationId: args.organizationId,
+			issueId: args.identifier,
+		});
+		const text = (result.description ?? "").trim();
+		return text ? { text } : null;
+	} catch (err) {
+		console.error("[promptContext] fetchLinearIssueBody failed", {
+			args,
+			err,
+		});
+		return null;
+	}
+}

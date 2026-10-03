@@ -62,7 +62,7 @@ import {
 	onDaemonDisconnect,
 } from "./daemon-client-singleton.ts";
 import {
-	buildV2TerminalEnv,
+	buildHostLaunchEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
@@ -3100,21 +3100,13 @@ async function createTerminalSessionUnlocked({
 		console.warn("[terminal] syncing workspace account pin failed:", error);
 	}
 	const ptyEnv = {
-		...buildV2TerminalEnv({
-			baseEnv,
-			shell,
-			supersetHomeDir,
-			organizationId: process.env.ORGANIZATION_ID || "",
+		...buildHostLaunchEnv({
 			themeType,
 			cwd,
 			terminalId,
 			workspaceId,
 			workspacePath: workspace.worktreePath,
 			rootPath,
-			supersetEnv:
-				process.env.NODE_ENV === "development" ? "development" : "production",
-			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
 		// Usage-tab account (or the project's pinned one): provider CLIs typed

@@ -14,7 +14,23 @@ minimumReleaseAge = 259200
 # ever covers versions we already chose.
 # @vercel/sandbox: the sandbox SDK ships fixes we depend on within days, and the
 # pin is exact, so the guard would only ever delay a version we already chose.
+# The ACP adapters track the protocol draft and cut releases daily, so the
+# version the registry serves is always inside the window, and so are the agent
+# SDKs they depend on. The adapter pins are exact.
 minimumReleaseAgeExcludes = [
+  "@agentclientprotocol/claude-agent-acp",
+  "@agentclientprotocol/codex-acp",
+  "@agentclientprotocol/sdk",
+  "@anthropic-ai/claude-agent-sdk",
+  "@anthropic-ai/claude-agent-sdk-darwin-arm64",
+  "@anthropic-ai/claude-agent-sdk-darwin-x64",
+  "@anthropic-ai/claude-agent-sdk-linux-arm64",
+  "@anthropic-ai/claude-agent-sdk-linux-arm64-musl",
+  "@anthropic-ai/claude-agent-sdk-linux-x64",
+  "@anthropic-ai/claude-agent-sdk-linux-x64-musl",
+  "@anthropic-ai/claude-agent-sdk-win32-arm64",
+  "@anthropic-ai/claude-agent-sdk-win32-x64",
+  "@openai/codex",
   "@vercel/sandbox",
   "@expo/ui",
   "@pierre/diffs",

@@ -28,6 +28,11 @@ enum ComposerMetrics {
   /// Frame 4: the expanded editor has a generous floor rather than growing up
   /// from one line — roughly four blank lines.
   static let editorMinHeight: CGFloat = 96
+  /// Two lines shorter than `editorMinHeight`, at the same ~24pt-per-line rate
+  /// the frame was measured at. The terminal screen opts into this floor to
+  /// leave more of the transcript visible when the composer is collapsed to
+  /// its minimum; it still grows to `maxLines` like the regular floor does.
+  static let editorMinHeightCompact: CGFloat = 48
   /// Frame 4: growth clamps rather than filling the screen. This is the whole
   /// bound — `lineLimit(1...n)` grows the field to n lines and scrolls after.
   /// A `.frame(maxHeight:)` is *not* the way to cap it: a max height makes the
@@ -515,7 +520,12 @@ struct ComposerRootView: View {
       // The editor exists only while expanded, so this is the first moment it
       // can take first responder.
       .onAppear { isFocused = true }
-      .frame(minHeight: ComposerMetrics.editorMinHeight, alignment: .top)
+      .frame(
+        minHeight: model.compactEditor
+          ? ComposerMetrics.editorMinHeightCompact
+          : ComposerMetrics.editorMinHeight,
+        alignment: .top
+      )
       .padding(.horizontal, ComposerMetrics.textInset + ComposerMetrics.rowPadding)
       .padding(.bottom, ComposerMetrics.textInset)
   }

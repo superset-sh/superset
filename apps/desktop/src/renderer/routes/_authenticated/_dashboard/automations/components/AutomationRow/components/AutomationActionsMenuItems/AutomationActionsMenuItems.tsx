@@ -20,6 +20,8 @@ import {
 interface AutomationActionsMenuItemsProps {
 	kind: "context" | "dropdown";
 	isOwner: boolean;
+	/** Owner or organization owner: deleting runs nothing on anyone's machine. */
+	canDelete: boolean;
 	enabled: boolean;
 	onEdit: () => void;
 	onCopyLink: () => void;
@@ -32,6 +34,7 @@ interface AutomationActionsMenuItemsProps {
 export function AutomationActionsMenuItems({
 	kind,
 	isOwner,
+	canDelete,
 	enabled,
 	onEdit,
 	onCopyLink,
@@ -114,6 +117,10 @@ export function AutomationActionsMenuItems({
 							</>
 						),
 					})}
+				</>
+			)}
+			{canDelete && (
+				<>
 					{kind === "context" ? (
 						<ContextMenuSeparator />
 					) : (

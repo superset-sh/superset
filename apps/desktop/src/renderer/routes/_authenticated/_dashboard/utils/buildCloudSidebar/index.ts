@@ -3,5 +3,4 @@ export {
 	type CloudSidebarLayout,
 	isCloudWorkspaceRead,
 	isInCloudSidebar,
-	sortByLastAgentMessage,
 } from "./buildCloudSidebar";

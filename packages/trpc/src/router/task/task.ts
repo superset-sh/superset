@@ -1,5 +1,12 @@
 import { db, dbWs } from "@superset/db/client";
-import { members, taskStatuses, tasks, users } from "@superset/db/schema";
+import {
+	type InsertTaskImport,
+	members,
+	taskImports,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import {
 	buildTaskListConditions,
@@ -10,12 +17,8 @@ import {
 	taskCreatedAtSortKey,
 } from "@superset/db/task-list-query";
 import { getCurrentTxid } from "@superset/db/utils";
-import {
-	generateBaseTaskSlug,
-	generateUniqueTaskSlug,
-} from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, desc, eq, ilike, isNull, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { anchorAttachments } from "../../lib/attachments";
@@ -24,9 +27,10 @@ import {
 	toReadableDocument,
 	toStoredDocument,
 } from "../../lib/document-files";
-import { syncTask } from "../../lib/integrations/sync";
 import { setTaskLabels } from "../../lib/labels";
-import { protectedProcedure, type TRPCContext, userError } from "../../trpc";
+import { protectedProcedure, type TRPCContext } from "../../trpc";
+import { getIssue, type LinearStateType } from "../integration/linear/api";
+import { withLinear } from "../integration/linear/live";
 import { verifyOrgMembership } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import {
@@ -47,11 +51,7 @@ import {
 } from "./schema";
 import { taskStatusesRouter } from "./statuses";
 
-const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
-const TASK_SLUG_RETRY_LIMIT = 5;
-
-type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
-type Executor = typeof db | DbWsTransaction;
+const TASK_IMPORT_CONSTRAINT = "task_imports_org_provider_external_unique";
 
 function isConstraintError(error: unknown, constraint: string): boolean {
 	if (!error || typeof error !== "object") {
@@ -61,6 +61,9 @@ function isConstraintError(error: unknown, constraint: string): boolean {
 	const maybeError = error as { code?: string; constraint?: string };
 	return maybeError.code === "23505" && maybeError.constraint === constraint;
 }
+
+type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
+type Executor = typeof db | DbWsTransaction;
 
 async function getTaskAccess(
 	executor: Executor,
@@ -199,125 +202,179 @@ type CreateTaskContext = {
 	activeOrganizationId: string | null;
 };
 
+type ImportSource = Pick<
+	InsertTaskImport,
+	"provider" | "externalId" | "externalUrl"
+>;
+
 async function createTask(
 	ctx: CreateTaskContext,
 	input: z.infer<typeof createTaskSchema>,
+	importedFrom?: ImportSource,
 ) {
 	const organizationId = await requireActiveOrgMembership(ctx);
 
-	for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
-		try {
-			const result = await dbWs.transaction(async (tx) => {
-				const statusId = input.statusId
-					? await getScopedStatusId(
-							tx,
-							organizationId,
-							input.statusId,
-							"Status must belong to the active organization",
-						)
-					: await seedDefaultStatuses(organizationId, tx);
+	const result = await dbWs.transaction(async (tx) => {
+		const statusId = input.statusId
+			? await getScopedStatusId(
+					tx,
+					organizationId,
+					input.statusId,
+					"Status must belong to the active organization",
+				)
+			: await seedDefaultStatuses(organizationId, tx);
 
-				const assigneeId = input.assigneeId
-					? await getScopedAssigneeId(
-							tx,
-							organizationId,
-							input.assigneeId,
-							"Assignee must belong to the active organization",
-						)
-					: null;
+		const assigneeId = input.assigneeId
+			? await getScopedAssigneeId(
+					tx,
+					organizationId,
+					input.assigneeId,
+					"Assignee must belong to the active organization",
+				)
+			: null;
 
-				const baseSlug = generateBaseTaskSlug(input.title);
-				const existingSlugs = await tx
-					.select({ slug: tasks.slug })
-					.from(tasks)
-					.where(
-						and(
-							eq(tasks.organizationId, organizationId),
-							ilike(tasks.slug, `${baseSlug}%`),
-						),
-					);
-				const slug = generateUniqueTaskSlug(
-					baseSlug,
-					existingSlugs.map((task) => task.slug),
-				);
-
-				const taskId = crypto.randomUUID();
-				const [task] = await tx
-					.insert(tasks)
-					.values({
-						id: taskId,
-						slug,
-						title: input.title,
-						description: input.description
-							? toStoredDocument(input.description, {
-									kind: "tasks",
-									id: taskId,
-								})
-							: null,
-						statusId,
-						priority: input.priority ?? "none",
-						organizationId,
-						creatorId: ctx.session.user.id,
-						assigneeId,
-						estimate: input.estimate ?? null,
-						dueDate: input.dueDate ?? null,
-					})
-					.returning({ id: tasks.id });
-				if (task && input.labels?.length) {
-					await setTaskLabels(tx, {
-						organizationId,
-						taskId: task.id,
-						names: input.labels,
-					});
-				}
-				const [created] = task
-					? await tx
-							.select(taskColumns)
-							.from(tasks)
-							.where(eq(tasks.id, task.id))
-					: [];
-
-				const txid = await getCurrentTxid(tx);
-
-				return { task: created, txid };
+		const taskId = crypto.randomUUID();
+		const [task] = await tx
+			.insert(tasks)
+			.values({
+				id: taskId,
+				title: input.title,
+				description: input.description
+					? toStoredDocument(input.description, {
+							kind: "tasks",
+							id: taskId,
+						})
+					: null,
+				statusId,
+				priority: input.priority ?? "none",
+				organizationId,
+				creatorId: ctx.session.user.id,
+				assigneeId,
+				estimate: input.estimate ?? null,
+				dueDate: input.dueDate ?? null,
+			})
+			.returning({ id: tasks.id });
+		if (task && input.labels?.length) {
+			await setTaskLabels(tx, {
+				organizationId,
+				taskId: task.id,
+				names: input.labels,
 			});
+		}
+		const [created] = task
+			? await tx.select(taskColumns).from(tasks).where(eq(tasks.id, task.id))
+			: [];
 
-			if (result.task) {
-				const { id, organizationId, description } = result.task;
-				syncTask(id);
-				if (description) {
-					await anchorAttachments({
-						parentKind: "issue",
-						parentId: id,
-						organizationId,
-						fileIds: referencedFileIds(description, { kind: "tasks", id }),
-					}).catch((error) => {
-						console.error(
-							`[task] could not keep the description's files for ${id}`,
-							error,
-						);
-					});
-				}
-			}
+		if (task && importedFrom) {
+			await tx.insert(taskImports).values({
+				...importedFrom,
+				taskId: task.id,
+				organizationId,
+				importedByUserId: ctx.session.user.id,
+			});
+		}
 
-			return result;
-		} catch (error) {
-			if (
-				isConstraintError(error, TASK_SLUG_CONSTRAINT) &&
-				attempt < TASK_SLUG_RETRY_LIMIT - 1
-			) {
-				continue;
-			}
+		const txid = await getCurrentTxid(tx);
 
-			throw error;
+		return { task: created, txid };
+	});
+
+	if (result.task) {
+		const { id, organizationId, description } = result.task;
+		if (description) {
+			await anchorAttachments({
+				parentKind: "issue",
+				parentId: id,
+				organizationId,
+				fileIds: referencedFileIds(description, { kind: "tasks", id }),
+			}).catch((error) => {
+				console.error(
+					`[task] could not keep the description's files for ${id}`,
+					error,
+				);
+			});
 		}
 	}
 
-	throw userError({
-		code: "CONFLICT",
-		message: "Failed to generate a unique task slug",
-		i18nKey: "serverError.task.failedToGenerateAUniqueTask",
-	});
+	return result;
+}
+
+const NATIVE_STATUS_TYPE_BY_LINEAR: Record<LinearStateType, string> = {
+	triage: "backlog",
+	backlog: "backlog",
+	unstarted: "unstarted",
+	started: "started",
+	completed: "completed",
+	canceled: "canceled",
+};
+
+async function nativeStatusIdFor(
+	organizationId: string,
+	linearStateType: LinearStateType,
+) {
+	const backlogId = await seedDefaultStatuses(organizationId);
+	const [status] = await db
+		.select({ id: taskStatuses.id })
+		.from(taskStatuses)
+		.where(
+			and(
+				eq(taskStatuses.organizationId, organizationId),
+				eq(taskStatuses.type, NATIVE_STATUS_TYPE_BY_LINEAR[linearStateType]),
+				isNull(taskStatuses.externalProvider),
+			),
+		)
+		.orderBy(asc(taskStatuses.position))
+		.limit(1);
+	return status?.id ?? backlogId;
+}
+
+async function findImportedTask(organizationId: string, externalId: string) {
+	const [row] = await db
+		.select({ task: tasks })
+		.from(taskImports)
+		.innerJoin(tasks, eq(taskImports.taskId, tasks.id))
+		.where(
+			and(
+				eq(taskImports.organizationId, organizationId),
+				eq(taskImports.provider, "linear"),
+				eq(taskImports.externalId, externalId),
+				isNull(tasks.deletedAt),
+			),
+		)
+		.limit(1);
+	return row?.task ?? null;
+}
+
+async function importLinearIssue(ctx: CreateTaskContext, issueId: string) {
+	const organizationId = await requireActiveOrgMembership(ctx);
+	const issue = await withLinear(
+		ctx.session.user.id,
+		organizationId,
+		(client) => getIssue(client, issueId),
+	);
+
+	const existing = await findImportedTask(organizationId, issue.id);
+	if (existing) return { task: existing, imported: false };
+
+	const statusId = await nativeStatusIdFor(organizationId, issue.state.type);
+	try {
+		const { task } = await createTask(
+			ctx,
+			{
+				title: issue.title,
+				description: issue.description,
+				statusId,
+				priority: issue.priority,
+			},
+			{ provider: "linear", externalId: issue.id, externalUrl: issue.url },
+		);
+		return { task, imported: true };
+	} catch (error) {
+		if (!isConstraintError(error, TASK_IMPORT_CONSTRAINT)) throw error;
+		const raced = await findImportedTask(organizationId, issue.id);
+		if (!raced) throw error;
+		return { task: raced, imported: false };
+	}
 }
 
 function selectTaskListRows() {
@@ -366,6 +423,7 @@ function buildTaskListFilters(
 
 	return buildTaskListConditions({
 		organizationId,
+		nativeOnly: input?.nativeOnly ?? undefined,
 		statusId: input?.statusId ?? undefined,
 		priority: input?.priority ?? undefined,
 		assigneeId: input?.assigneeMe ? userId : (input?.assigneeId ?? undefined),
@@ -534,6 +592,25 @@ export const taskRouter = {
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
 
+	importSource: protectedProcedure
+		.input(z.string().uuid())
+		.query(async ({ ctx, input }) => {
+			await getTaskAccess(db, ctx.session.user.id, input);
+			const [source] = await db
+				.select({
+					provider: taskImports.provider,
+					externalUrl: taskImports.externalUrl,
+				})
+				.from(taskImports)
+				.where(eq(taskImports.taskId, input))
+				.limit(1);
+			return source ?? null;
+		}),
+
+	importFromLinear: protectedProcedure
+		.input(z.object({ issueId: z.string().min(1) }))
+		.mutation(({ ctx, input }) => importLinearIssue(ctx, input.issueId)),
+
 	/**
 	 * Moves a task to the organization's first "started"-type status (e.g.
 	 * "In Progress") when work begins on it — a workspace is created from it
@@ -641,16 +718,6 @@ export const taskRouter = {
 				return { task, txid };
 			});
 
-			if (result.task) {
-				const startedTaskId = result.task.id;
-				void syncTask(startedTaskId).catch((err) => {
-					console.warn(
-						`[task.start] failed to queue provider sync for task ${startedTaskId}:`,
-						err,
-					);
-				});
-			}
-
 			return result;
 		}),
 
@@ -740,7 +807,6 @@ export const taskRouter = {
 
 			if (result.task) {
 				const { id, organizationId, description } = result.task;
-				syncTask(id);
 				if (description) {
 					await anchorAttachments({
 						parentKind: "issue",
@@ -765,23 +831,13 @@ export const taskRouter = {
 			const result = await dbWs.transaction(async (tx) => {
 				await getTaskAccess(tx, ctx.session.user.id, input);
 
-				const [deleted] = await tx
+				await tx
 					.update(tasks)
 					.set({ deletedAt: new Date() })
-					.where(and(eq(tasks.id, input), isNull(tasks.deletedAt)))
-					.returning({
-						externalProvider: tasks.externalProvider,
-						externalId: tasks.externalId,
-					});
+					.where(and(eq(tasks.id, input), isNull(tasks.deletedAt)));
 
-				const txid = await getCurrentTxid(tx);
-
-				return { txid, deleted };
+				return { txid: await getCurrentTxid(tx) };
 			});
-
-			if (result.deleted?.externalProvider && result.deleted?.externalId) {
-				syncTask(input);
-			}
 
 			return { txid: result.txid };
 		}),

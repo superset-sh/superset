@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "1.33.0",
+	"version": "1.35.0",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -41,6 +41,8 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@agentclientprotocol/claude-agent-acp": "0.85.0",
+		"@agentclientprotocol/codex-acp": "2.1.0",
 		"@ast-grep/napi": "0.41.1",
 		"@better-auth/api-key": "1.6.22",
 		"@better-auth/stripe": "1.6.22",
@@ -73,6 +75,7 @@
 		"@hono/node-server": "2.0.10",
 		"@hookform/resolvers": "5.2.2",
 		"@lezer/highlight": "1.2.3",
+		"@limrun/ui": "0.16.0",
 		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0",
 		"@novnc/novnc": "1.7.0",
@@ -88,6 +91,7 @@
 		"@superset/agent-setup": "workspace:*",
 		"@superset/auth": "workspace:*",
 		"@superset/chat": "workspace:*",
+		"@superset/chat-ui": "workspace:*",
 		"@superset/cloud-client": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-service": "workspace:*",
@@ -203,6 +207,7 @@
 		"node-diff3": "3.2.1",
 		"node-pty": "1.2.0-beta.14",
 		"os-locale": "6.0.2",
+		"pi-acp": "0.0.34",
 		"pidtree": "0.6.0",
 		"pidusage": "4.0.1",
 		"posthog-js": "1.310.1",

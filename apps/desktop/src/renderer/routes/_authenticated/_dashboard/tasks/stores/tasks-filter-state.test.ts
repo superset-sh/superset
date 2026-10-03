@@ -127,4 +127,22 @@ describe("migrateTasksFilterState", () => {
 			linearProjectFilter: "linear-project-1",
 		});
 	});
+
+	test("keeps the Linear tab and its filters", () => {
+		expect(
+			migrateTasksFilterState({
+				typeTab: "linear",
+				linearTeamFilter: "team-1",
+				linearAssigneeFilter: "me",
+			}),
+		).toMatchObject({
+			typeTab: "linear",
+			linearTeamFilter: "team-1",
+			linearAssigneeFilter: "me",
+		});
+		expect(migrateTasksFilterState({ linearTeamFilter: 7 })).toMatchObject({
+			linearTeamFilter: null,
+			linearAssigneeFilter: null,
+		});
+	});
 });

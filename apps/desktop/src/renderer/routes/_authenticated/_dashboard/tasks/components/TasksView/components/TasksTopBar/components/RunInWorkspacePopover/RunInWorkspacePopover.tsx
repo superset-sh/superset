@@ -390,7 +390,7 @@ export function RunInWorkspacePopover({
 									<BatchStatusIcon
 										status={taskStatuses.get(task.id) ?? "pending"}
 									/>
-									<span className="truncate">{task.slug}</span>
+									<span className="truncate font-mono">{task.slug}</span>
 								</div>
 							))}
 						</div>

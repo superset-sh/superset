@@ -227,6 +227,18 @@ export const HOTKEYS_REGISTRY = {
 			message: "Close or delete the current workspace",
 		}),
 	},
+	UNDO_ARCHIVE_WORKSPACE: {
+		key: {
+			mac: L("meta+z"),
+			windows: L("ctrl+z"),
+			linux: L("ctrl+z"),
+		},
+		label: msg({ message: "Undo Archive" }),
+		category: "Workspace",
+		description: msg({
+			message: "Restore the workspace you just archived",
+		}),
+	},
 	NEW_WORKSPACE: {
 		key: {
 			mac: L("meta+n"),
@@ -405,6 +417,20 @@ export const HOTKEYS_REGISTRY = {
 		category: "Layout",
 		description: msg({
 			message: "Split the current pane and open the sandbox desktop",
+		}),
+	},
+	SPLIT_WITH_MOBILE: {
+		key: {
+			mac: L("meta+shift+m"),
+			windows: L("ctrl+shift+alt+m"),
+			linux: L("ctrl+shift+alt+m"),
+		},
+		label: msg({
+			message: "Split with Mobile Simulator",
+		}),
+		category: "Layout",
+		description: msg({
+			message: "Split the current pane and open a mobile simulator",
 		}),
 	},
 	EQUALIZE_PANE_SPLITS: {

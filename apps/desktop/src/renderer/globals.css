@@ -4,6 +4,7 @@
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/chat-ui/src/**/*.{ts,tsx}";
 /* @superset/panes renders inside this app with its own class names. Without
    this scan any utility used only there (PANE_MIN_SIZE_CLASS_NAME's
    min-w-[260px], the pane header's @container) never gets generated and

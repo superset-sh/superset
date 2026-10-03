@@ -61,13 +61,11 @@ export function TriggersEditor({
 }: TriggersEditorProps) {
 	const { _: translate } = useTranslation();
 
-	const add = (config: DraftTrigger["config"]) =>
-		onEdit([...drafts, { config }]);
-
 	const { plan } = useCurrentPlan();
 	const {
 		connected,
 		needsReauth,
+		accounts,
 		isPending: connectionsPending,
 	} = useProviderConnections(organizationId);
 	const [connecting, setConnecting] = useState<string | null>(null);
@@ -84,6 +82,26 @@ export function TriggersEditor({
 		const required = connectorFor(providerFor(config));
 		return required !== null && Boolean(needsReauth[required]);
 	};
+
+	const connectorAccounts = (config: DraftTrigger["config"]) => {
+		const required = connectorFor(providerFor(config));
+		return required === null ? [] : (accounts[required] ?? []);
+	};
+
+	// A new trigger starts on one account rather than all of them. Unpinned
+	// means every connection on the connector, which for an org-wide provider
+	// includes a teammate's — wider than the picker, which lists only yours. An
+	// expired account is listed but cannot deliver, so it is never the default.
+	const add = (config: DraftTrigger["config"]) =>
+		onEdit([
+			...drafts,
+			{
+				config,
+				connectionId:
+					connectorAccounts(config).find((account) => !account.needsReauth)
+						?.id ?? null,
+			},
+		]);
 
 	const runtimeWarnings = useMemo(
 		() => collectRuntimeWarnings(drafts, options, plan),
@@ -139,6 +157,7 @@ export function TriggersEditor({
 						}
 						requiresConnection={missingConnection(trigger.config)}
 						needsReauth={expiredConnection(trigger.config)}
+						accounts={connectorAccounts(trigger.config)}
 						disabled={readOnly}
 					/>
 				))}
@@ -148,7 +167,10 @@ export function TriggersEditor({
 				)}
 
 				<DropdownMenu onOpenChange={() => setQuery("")}>
-					<DropdownMenuTrigger asChild disabled={readOnly}>
+					<DropdownMenuTrigger
+						asChild
+						disabled={readOnly || connectionsPending}
+					>
 						<Button
 							type="button"
 							variant="ghost"

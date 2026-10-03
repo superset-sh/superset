@@ -26,6 +26,7 @@ import {
 	waitForManagedEnv,
 } from "../sandbox-managed-env/sandbox-managed-env.ts";
 import { resolveScript, shellSingleQuote } from "../setup/config";
+import { buildStartHookEnv } from "./utils/buildStartHookEnv";
 
 /**
  * Makes a sandbox describe its own workspace, instead of being described from
@@ -188,7 +189,7 @@ export async function runSandboxStartHook(
 		["-lc", commands.map((one) => `{ ${one}; }`).join("\n")],
 		{
 			cwd: existsSync(configured) ? configured : identity.hooksPath,
-			env: { ...process.env, ...getManagedEnv(), IS_SANDBOX: "1" },
+			env: buildStartHookEnv(process.env, getManagedEnv()),
 			stdio: ["ignore", log, log],
 			detached: true,
 		},

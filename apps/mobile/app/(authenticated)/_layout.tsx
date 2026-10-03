@@ -3,7 +3,10 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
 import { Platform } from "react-native";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
+import { useRealtimeNudges } from "@/hooks/useRealtimeNudges";
 import { useSession } from "@/lib/auth/client";
+
+export const unstable_settings = { anchor: "(home)" };
 
 // iPad shows a form sheet as a fixed-size centered card, so a partial detent
 // only shrinks the card and clips what is inside it.
@@ -35,6 +38,7 @@ const glassHeaderOptions = {
 
 export default function AuthenticatedLayout() {
 	usePrimeRelayUrl();
+	useRealtimeNudges();
 
 	const { t } = useLingui();
 	const { data: session } = useSession();

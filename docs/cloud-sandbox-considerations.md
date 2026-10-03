@@ -99,6 +99,16 @@ the visitor cannot. Before cloud workspaces leave the team this needs an
 answer: per-member identity inside a shared box, or a workspace falling back
 to the installation token while someone other than its creator holds a ticket.
 
+**A box reaches its creator's private workspaces. Open.** `superset` in a
+box calls the API as the creator, held to the box's organization. Inside it,
+`access` and `hostTicket` mint shell tickets for every workspace the creator
+can see, their private ones included, and `delete` and `rename` reach the
+same set. A teammate who opened the box, or an agent prompted by an
+automation's event, gets that reach. Closing it means holding a box to
+itself and the workspaces its organization shares, in `loadReadyWorkspace`,
+`loadVisibleWorkspace` and `delete` together; a check on one of them is
+bypassed through the others.
+
 **A sandbox has exactly one gate, and it is ours.** A sandbox's own port is
 a public URL that clients never see; they reach a workspace through the
 sandbox gate (`apps/gate`), which verifies a ticket the API signed

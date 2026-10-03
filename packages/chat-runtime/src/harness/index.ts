@@ -1,3 +1,5 @@
+export type { AcpAdapterOptions } from "./acp";
+export { AcpAdapter, createAcpAdapter } from "./acp";
 export type {
 	ClaudeAdapterOptions,
 	ClaudeQuery,

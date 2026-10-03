@@ -92,19 +92,6 @@ async function nextTurn(
 }
 
 describe("ClaudeAdapter", () => {
-	test("starts Claude Code with the env it was given", () => {
-		let received: Record<string, string | undefined> | undefined;
-		const adapter = new ClaudeAdapter({
-			query: ({ options }) => {
-				received = options.env;
-				return { async *[Symbol.asyncIterator]() {} };
-			},
-			env: { CLAUDE_CONFIG_DIR: "/accounts/work" },
-		});
-		adapter.start({ cwd: "/workspace" });
-		expect(received).toEqual({ CLAUDE_CONFIG_DIR: "/accounts/work" });
-	});
-
 	test("a canceled turn interrupts the session without killing it, and the next prompt runs", async () => {
 		const harness = createHarness();
 

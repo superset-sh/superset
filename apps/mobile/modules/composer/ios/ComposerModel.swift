@@ -20,6 +20,12 @@ final class ComposerModel {
   var placeholder = ""
   var draft = ""
 
+  /// Shrinks the expanded editor's floor by two lines. Opt-in because the
+  /// generous floor is what the reference frames show; the terminal screen
+  /// asks for the shorter one to leave more of the transcript on screen. See
+  /// `ComposerMetrics.editorMinHeightCompact`.
+  var compactEditor = false
+
   /// How the composer treats the screen behind it while expanded.
   ///
   /// `.dim` is the mocks' behaviour: the composer owns the screen, dims it, and

@@ -12,7 +12,11 @@ import { FlatList, Pressable, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { useCloudWorkspaceItems } from "@/hooks/useCloudWorkspaceItems";
+import { useArchivedCloudWorkspaces } from "@/hooks/useArchivedCloudWorkspaces";
+import {
+	itemFromCloudRow,
+	useCloudWorkspaceItems,
+} from "@/hooks/useCloudWorkspaceItems";
 import { useHostProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
@@ -24,6 +28,7 @@ import {
 	useHostsTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
+import { useCloudFilters } from "@/screens/(authenticated)/(home)/hooks/useCloudFilters";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
@@ -53,6 +58,11 @@ export function SearchScreen() {
 	const cloudScope = useWorkspaceScope() === "cloud";
 	const { workspaces } = useHostWorkspaces(selectedHost);
 	const { items: cloudItems } = useCloudWorkspaceItems();
+	const cloudFilters = useCloudFilters();
+	const searchArchived = cloudScope && cloudFilters.status === "archived";
+	const { workspaces: archivedCloud } = useArchivedCloudWorkspaces({
+		enabled: searchArchived,
+	});
 	const { projects } = useHostProjects(selectedHost);
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 
@@ -119,7 +129,12 @@ export function SearchScreen() {
 
 	const results = useMemo(() => {
 		const pool = cloudScope
-			? cloudItems
+			? (searchArchived
+					? archivedCloud.map(itemFromCloudRow)
+					: cloudItems
+				).filter((workspace) =>
+					cloudFilters.matchesCreator(workspace.createdByUserId),
+				)
 			: workspaces.filter(
 					(workspace) =>
 						workspace.worktreeExists !== false &&
@@ -129,6 +144,9 @@ export function SearchScreen() {
 	}, [
 		cloudScope,
 		cloudItems,
+		searchArchived,
+		archivedCloud,
+		cloudFilters.matchesCreator,
 		workspaces,
 		selectedHost,
 		matchesQuery,

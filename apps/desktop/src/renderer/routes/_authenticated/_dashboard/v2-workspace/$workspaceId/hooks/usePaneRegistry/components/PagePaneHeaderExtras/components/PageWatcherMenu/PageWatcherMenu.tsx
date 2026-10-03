@@ -196,16 +196,20 @@ export function PageWatcherMenu({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="relative h-6 gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
+					className="relative h-6 min-w-6 gap-1 px-1 has-[>svg]:px-1 text-muted-foreground/60 hover:text-muted-foreground"
 					aria-label={t({
 						message: "Listening agents",
 					})}
 				>
-					<Bot className="size-4" />
+					<Bot className="size-3.5" />
 					{watchers.length > 0 ? (
 						<span className="absolute top-0.5 left-3.5 size-1.5 rounded-full bg-amber-500 ring-2 ring-background" />
 					) : null}
-					{watchers.length > 1 ? <span>{watchers.length}</span> : null}
+					{watchers.length > 1 ? (
+						<span className="font-medium text-[11px] tabular-nums">
+							{watchers.length}
+						</span>
+					) : null}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-96 max-w-[calc(100vw-2rem)] p-0">

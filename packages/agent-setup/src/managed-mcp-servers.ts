@@ -112,6 +112,7 @@ function toClaudeServerValue(
 			type: config.type,
 			url: config.url,
 			...(config.headers ? { headers: config.headers } : {}),
+			...(config.headersHelper ? { headersHelper: config.headersHelper } : {}),
 		};
 	}
 	return {
@@ -271,6 +272,11 @@ function codexServerTable(name: string, config: PluginMcpServerConfig): string {
 				.join(", ");
 			lines.push(`http_headers = { ${pairs} }`);
 		}
+		// Codex's spelling of Claude's `headersHelper`. Same contract: a command
+		// printing a JSON object of headers, re-run when the server rejects.
+		if (config.headersHelper) {
+			lines.push(`http_headers_helper = ${tomlString(config.headersHelper)}`);
+		}
 	} else {
 		lines.push(`command = ${tomlString(config.command)}`);
 		if (config.args && config.args.length > 0) {
@@ -314,7 +320,7 @@ function codexMcpSpec(
 			return [
 				CODEX_MARKER_START,
 				"# Managed by Superset — do not edit inside this block. Entries",
-				"# converge on the plugins installed in the Superset desktop app.",
+				"# converge on your installed Superset plugins and their connected accounts.",
 				...entries.map(([name, config]) => codexServerTable(name, config)),
 				CODEX_MARKER_END,
 			].join("\n");
@@ -478,10 +484,15 @@ export function syncManagedMcpServers(
 	const supersetHomeDir = options.supersetHomeDir ?? resolveSupersetHomeDir();
 	const external = readExternallyConfiguredMcpServers(options);
 
-	const desiredForScope = (sourcePrefix: string) => {
+	// Only a server configured in the SAME scope we write suppresses ours. A
+	// project-scoped entry used to match on the "Claude Code" prefix, so one
+	// `claude mcp add` in any single directory silently blanked that server
+	// everywhere else — the plugin installed, no entry appeared, and nothing
+	// reported why. Claude resolves project scope over user scope, so the two
+	// can coexist: the hand-added one still wins in its own project.
+	const desiredForScope = (matches: (source: string) => boolean) => {
 		const scoped = external.filter(
-			(server) =>
-				server.source === undefined || server.source.startsWith(sourcePrefix),
+			(server) => server.source === undefined || matches(server.source),
 		);
 		return Object.fromEntries(
 			Object.entries(desired).filter(
@@ -491,10 +502,14 @@ export function syncManagedMcpServers(
 	};
 
 	const ledger = readLedger(supersetHomeDir);
-	syncClaudeMcpServers(desiredForScope("Claude Code"), homeDir, ledger);
+	syncClaudeMcpServers(
+		desiredForScope((source) => source === "Claude Code"),
+		homeDir,
+		ledger,
+	);
 	writeLedger(supersetHomeDir, ledger);
 
-	const codexDesired = desiredForScope("Codex");
+	const codexDesired = desiredForScope((source) => source.startsWith("Codex"));
 	const spec = codexMcpSpec(codexDesired, homeDir);
 	if (Object.keys(codexDesired).length === 0) {
 		// Only reap when our marker block is actually present: this runs at

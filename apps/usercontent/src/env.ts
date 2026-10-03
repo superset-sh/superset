@@ -16,6 +16,7 @@ const envSchema = z.object({
 	APP_URL: z.string().url(),
 	/** Space-separated CSP sources allowed to frame a page. */
 	FRAME_ANCESTORS: z.string().min(1),
+	REALTIME_URL: z.string().url(),
 	/** Shared with the API, which mints the tickets this origin verifies. */
 	USERCONTENT_TOKEN_SECRET: z.string().min(32),
 	/** Set during rotation so tickets signed with the old secret still open. */

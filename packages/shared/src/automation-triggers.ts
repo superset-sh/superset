@@ -362,6 +362,7 @@ export const draftTriggerSchema = z.object({
 	// a save updates in place rather than deleting and recreating, which would
 	// otherwise roll a webhook trigger's key and lose a schedule's next run.
 	id: z.string().uuid().optional(),
+	connectionId: z.string().uuid().nullish(),
 	config: z.union([
 		scheduleTriggerConfigSchema,
 		webhookTriggerConfigSchema,
@@ -376,6 +377,34 @@ export const draftTriggerSchema = z.object({
 });
 export type DraftTrigger = z.infer<typeof draftTriggerSchema>;
 export type TriggerConfigInput = DraftTrigger["config"];
+
+export const TRIGGER_KIND_CONNECTOR: Record<string, string | null> = {
+	schedule: null,
+	webhook: null,
+	github: null,
+	slack: "slack",
+	linear: "linear",
+	sentry: "sentry",
+	notion: "notion",
+	microsoft_teams: "microsoft_teams",
+	gmail: "google",
+};
+
+export function triggerKindsForConnector(connector: string): string[] {
+	return Object.entries(TRIGGER_KIND_CONNECTOR)
+		.filter(([, slug]) => slug === connector)
+		.map(([kind]) => kind);
+}
+
+export function accountToPinTo(
+	previousConnectionIds: string[],
+	connectionId: string,
+): string | null {
+	if (previousConnectionIds.includes(connectionId)) return null;
+	const [existing, ...rest] = previousConnectionIds;
+	if (!existing || rest.length > 0) return null;
+	return existing;
+}
 
 /**
  * The trigger kinds the AUTOMATION_EVENT_TRIGGERS flag payload enables. Off,
@@ -436,7 +465,7 @@ function scopeChoiceLabel(choice: ScopeChoice): string {
 		case "anySender":
 			return i18n._(
 				msg({
-					message: "Any sender",
+					message: "any sender",
 				}),
 			);
 	}
@@ -511,9 +540,11 @@ const REQUIREMENTS: Partial<
  * loop rather than schema refinements, so each rule carries a message the form
  * can put next to the field it belongs to — and so the draft/savable split
  * survives: the schema stays satisfiable by a half-configured trigger.
+ *
  */
 export function describeTriggerProblems(
 	triggers: DraftTrigger[],
+	options: { knownConnectionIds?: readonly string[] } = {},
 ): TriggerProblem[] {
 	// An empty set is legal: an automation starts untitled with no triggers
 	// and simply never fires until one is added.
@@ -578,6 +609,22 @@ export function describeTriggerProblems(
 					),
 				});
 			}
+		}
+
+		if (
+			options.knownConnectionIds &&
+			trigger.connectionId &&
+			!options.knownConnectionIds.includes(trigger.connectionId)
+		) {
+			problems.push({
+				index,
+				field: "connectionId",
+				message: i18n._(
+					msg({
+						message: "That account is no longer connected — choose another.",
+					}),
+				),
+			});
 		}
 	});
 

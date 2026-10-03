@@ -57,6 +57,7 @@ export type SessionClient = {
 	cancelTurn(turnId: string): Promise<void>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
 	setMode(modeId: string): Promise<void>;
+	setConfigOption(configId: string, value: string): Promise<void>;
 	subscribe(options: SessionSubscribeOptions): SessionStream;
 	close(): void;
 };
@@ -110,6 +111,15 @@ export function createSessionClient(
 				commandId: mintId(),
 				sessionId,
 				modeId,
+			});
+		},
+
+		setConfigOption: async (configId, value) => {
+			await options.transport.setConfigOption({
+				commandId: mintId(),
+				sessionId,
+				configId,
+				value,
 			});
 		},
 

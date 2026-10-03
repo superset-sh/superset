@@ -5,7 +5,7 @@ import { syncPlugins } from "../../../lib/plugins/install";
 
 export default command({
 	description:
-		"Reconcile installed plugins with the skill directories agents read, adding, refreshing, and reaping skill folders",
+		"Reconcile installed plugins with the skill directories agents read and the MCP entries Claude and Codex read, adding, refreshing, and reaping both",
 	skipMiddleware: true,
 	display: (data) =>
 		table(
@@ -19,6 +19,9 @@ export default command({
 		const reaped = result.removed
 			? ` Reaped ${result.removed} stale skill folder${result.removed === 1 ? "" : "s"}.`
 			: "";
+		const mcp = result.mcpError
+			? ` Agent MCP config was NOT written: ${result.mcpError}`
+			: ` ${result.mcpServers} MCP ${result.mcpServers === 1 ? "entry" : "entries"} in place for Claude and Codex.`;
 
 		return {
 			data: result.entries.map((entry) => ({
@@ -26,7 +29,7 @@ export default command({
 				plugin: entry.plugin,
 				path: entry.path,
 			})),
-			message: `Synced ${result.skills} skill${result.skills === 1 ? "" : "s"} from ${result.plugins} plugin${result.plugins === 1 ? "" : "s"} into ${skillsRoot()}.${reaped}`,
+			message: `Synced ${result.skills} skill${result.skills === 1 ? "" : "s"} from ${result.plugins} plugin${result.plugins === 1 ? "" : "s"} into ${skillsRoot()}.${reaped}${mcp}`,
 		};
 	},
 });

@@ -10,6 +10,8 @@ const taskSuggestions = [
 		task: {
 			id: "t2",
 			slug: "SUPER-2384",
+			externalProvider: null,
+			externalKey: null,
 			title: "Mobile: block comment popover on small screens",
 			status: { type: "started", color: "#f2c94c", progressPercent: 50 },
 		},
@@ -21,6 +23,8 @@ const taskSuggestions = [
 		task: {
 			id: "t3",
 			slug: "SUPER-2452",
+			externalProvider: null,
+			externalKey: null,
 			title: "No mechanism for reporting sidebar lag",
 			status: { type: "unstarted", color: "#8c8c8f", progressPercent: null },
 		},

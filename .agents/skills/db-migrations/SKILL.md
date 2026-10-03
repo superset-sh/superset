@@ -33,6 +33,8 @@ one legitimate reason to ask for that confirmation is statement order (rule 3).
 - [ ] Rehearsed on a Neon branch of production **under load**, when the migration locks a hot
       table (rule 4) or rewrites or scans a large one. Otherwise the size and lock checks are enough
 - [ ] If reads move to a new table or column, the data moves in the same release (rule 5)
+- [ ] No tRPC input or output change in the same PR, so a bad API change can still be reverted
+      (#7726; see `.agents/skills/trpc-compat/SKILL.md`)
 - [ ] After changing an already-pushed migration, the PR's preview Neon branch was deleted
 
 ### Check production sizes first
