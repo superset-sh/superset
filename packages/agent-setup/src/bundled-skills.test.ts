@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { parse as parseYaml } from "yaml";
 import { getBundledPluginDir } from "./config";
 
 /**
@@ -33,16 +34,12 @@ function parseSkill(content: string): ParsedSkill {
 	expect(content.startsWith("---\n")).toBe(true);
 	const end = content.indexOf("\n---\n", 4);
 	expect(end).toBeGreaterThan(0);
-	const frontmatter: Record<string, string> = {};
-	for (const line of content.slice(4, end).split("\n")) {
-		if (line.trim() === "") continue;
-		const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
-		// Every frontmatter line must be a top-level `key: value`.
-		expect(match, `unparseable frontmatter line: ${line}`).not.toBeNull();
-		if (!match) continue;
-		const [, key, raw] = match;
-		frontmatter[key] = raw.replace(/^"(.*)"$/, "$1");
-	}
+	const parsed = parseYaml(content.slice(4, end), {
+		strict: true,
+		uniqueKeys: true,
+	}) as unknown;
+	expect(parsed).toBeObject();
+	const frontmatter = parsed as Record<string, string>;
 	return { frontmatter, body: content.slice(end + "\n---\n".length) };
 }
 
@@ -53,6 +50,13 @@ const skillDirs = readdirSync(SKILLS_DIR).filter((name) =>
 describe("bundled plugin skills", () => {
 	it("finds the bundled skills", () => {
 		expect(skillDirs.length).toBeGreaterThan(0);
+	});
+
+	it("uses valid YAML frontmatter for every bundled skill", () => {
+		for (const dir of skillDirs) {
+			const skillPath = path.join(SKILLS_DIR, dir, "SKILL.md");
+			expect(() => parseSkill(readFileSync(skillPath, "utf-8"))).not.toThrow();
+		}
 	});
 
 	for (const dir of skillDirs) {
