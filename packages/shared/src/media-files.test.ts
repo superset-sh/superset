@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	getFileExtension,
 	isBinaryMediaFile,
+	isRasterImageFile,
 	isVideoFile,
 } from "./media-files";
 
@@ -18,6 +19,13 @@ describe("media-files", () => {
 		expect(isVideoFile("demo.mp4")).toBe(true);
 		expect(isVideoFile("clips/intro.mkv")).toBe(true);
 		expect(isVideoFile("archive.zip")).toBe(false);
+	});
+
+	test("detects raster images but not svg or video", () => {
+		expect(isRasterImageFile("assets/logo.PNG")).toBe(true);
+		expect(isRasterImageFile("photo.webp")).toBe(true);
+		expect(isRasterImageFile("icon.svg")).toBe(false);
+		expect(isRasterImageFile("demo.mp4")).toBe(false);
 	});
 
 	test("flags raster images and videos as binary media", () => {

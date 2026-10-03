@@ -1,4 +1,6 @@
+import { isRasterImageFile } from "@superset/shared/media-files";
 import { useMemo, useRef } from "react";
+import type { DiffSide } from "../../../hooks/useDiffSideImage";
 import type { ChangesetFile } from "../../../hooks/useWorkspaceChangeset";
 import type { ExpandedRange } from "../../../stores/diffViewStore";
 import type { DraftComment } from "../../../stores/draftCommentsStore";
@@ -131,6 +133,28 @@ export function useChangesetListItems(args: {
 			return item;
 		};
 
+		const imageItem = (file: ChangesetFile): ListItem => {
+			const oldPath = file.oldPath ?? file.path;
+			const signature = `image:${file.source}:${file.status}:${oldPath}`;
+			const cached = noteCache.get(file.path);
+			if (cached && cached.signature === signature) return cached.item;
+			const sides: DiffSide[] = [];
+			if (file.status !== "added" && file.status !== "untracked") {
+				sides.push("old");
+			}
+			if (file.status !== "deleted") sides.push("new");
+			const item: ListItem = {
+				kind: "image",
+				key: `${file.path}:image`,
+				path: file.path,
+				oldPath,
+				source: file.source,
+				sides,
+			};
+			noteCache.set(file.path, { signature, item });
+			return item;
+		};
+
 		for (const file of files) {
 			livePaths.add(file.path);
 			const expanded = isExpanded(file);
@@ -166,7 +190,15 @@ export function useChangesetListItems(args: {
 				continue;
 			}
 			if (file.isBinary === true) {
-				items.push(noteItem(file.path, "binary", NOTE_ROW_HEIGHT));
+				items.push(
+					isRasterImageFile(file.path)
+						? imageItem(file)
+						: noteItem(file.path, "binary", NOTE_ROW_HEIGHT),
+				);
+				for (const comment of fileComments) {
+					placedIds.add(comment.id);
+					items.push(commentItem(comment, false, false));
+				}
 				continue;
 			}
 			const entry = dataByPath.get(file.path);

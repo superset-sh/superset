@@ -63,6 +63,10 @@ export const BINARY_MEDIA_EXTENSIONS: ReadonlySet<string> = new Set([
  */
 export const BINARY_SNIFF_BYTES = 8192;
 
+export function isRasterImageFile(filePath: string): boolean {
+	return RASTER_IMAGE_EXTENSIONS.has(getFileExtension(filePath));
+}
+
 /**
  * Checks if a file is a video based on extension. Covers all known video
  * extensions, not just browser-playable ones.
