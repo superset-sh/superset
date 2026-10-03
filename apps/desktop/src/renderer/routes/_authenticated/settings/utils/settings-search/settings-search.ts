@@ -461,7 +461,14 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		section: "organization",
 		title: "Track tasks in",
 		description: "Use Superset tasks or your Linear issues",
-		keywords: ["tasks", "linear", "tracker", "issues", "integration"],
+		keywords: [
+			"organization",
+			"tasks",
+			"linear",
+			"tracker",
+			"issues",
+			"integration",
+		],
 	},
 	{
 		id: SETTING_ITEM_ID.ORGANIZATION_ID,

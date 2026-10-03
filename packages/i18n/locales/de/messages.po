@@ -17851,7 +17851,7 @@ msgid "Track down that flaky test…"
 msgstr "Diesem flaky Test auf den Grund gehen…"
 
 msgid "Track tasks in"
-msgstr "Aufgaben verwalten in"
+msgstr "Aufgabenverwaltung"
 
 msgid "Tracking"
 msgstr "Erfassung"

@@ -378,7 +378,8 @@ export function OrganizationSettings({
 		);
 	}
 
-	const showOrgSettings = showLogo || showName || showSlug || showId;
+	const showOrgSettings =
+		showLogo || showName || showSlug || showTaskTracker || showId;
 	const showMembersSection =
 		showMembersList ||
 		isItemVisible(SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE, visibleItems) ||
@@ -488,6 +489,7 @@ export function OrganizationSettings({
 								{showTaskTracker && (
 									<SettingsRow
 										label={t({ message: "Track tasks in" })}
+										htmlFor="org-task-tracker"
 										hint={t({
 											message:
 												"Tasks, the CLI and agents follow this. Each member uses their own Linear account.",
@@ -500,7 +502,11 @@ export function OrganizationSettings({
 											}
 											disabled={!isOwner}
 										>
-											<SelectTrigger size="sm" className="w-72">
+											<SelectTrigger
+												id="org-task-tracker"
+												size="sm"
+												className="w-72"
+											>
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>

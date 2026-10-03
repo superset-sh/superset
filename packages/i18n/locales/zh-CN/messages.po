@@ -16697,7 +16697,7 @@ msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "在Superset中创建的任务会同步到这个Linear团队。"
 
 msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
-msgstr "任务、CLI 和代理都遵循此设置。每位成员使用自己的 Linear 账户。"
+msgstr "任务、CLI 和智能体都遵循此设置。每位成员使用自己的 Linear 账户。"
 
 msgid "Tax ID"
 msgstr "税号"

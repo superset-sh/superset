@@ -7425,7 +7425,7 @@ msgid "Failed to update task title"
 msgstr "Не удалось изменить название задачи"
 
 msgid "Failed to update task tracker"
-msgstr "Не удалось обновить место ведения задач"
+msgstr "Не удалось обновить систему управления задачами"
 
 msgid "Failed to update team. Please try again."
 msgstr "Не удалось обновить команду. Попробуйте ещё раз."
@@ -16688,7 +16688,7 @@ msgid "Task title"
 msgstr "Название задачи"
 
 msgid "Task tracker updated"
-msgstr "Место ведения задач обновлено"
+msgstr "Система управления задачами обновлена"
 
 msgid "Tasks"
 msgstr "Задачи"
@@ -16697,7 +16697,7 @@ msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Задачи, созданные в Superset, будут синхронизироваться с этой командой Linear."
 
 msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
-msgstr "Задачи, CLI и агенты следуют этой настройке. Каждый участник использует свой аккаунт Linear."
+msgstr "Задачи, CLI и агенты работают с выбранной системой. Каждый участник использует свой аккаунт Linear."
 
 msgid "Tax ID"
 msgstr "Налоговый номер"

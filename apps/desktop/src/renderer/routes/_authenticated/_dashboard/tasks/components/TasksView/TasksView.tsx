@@ -317,6 +317,10 @@ export function TasksView({
 	const showTasks = taskSource === "tasks";
 	const showLinear = taskSource === "linear";
 
+	if (!showIssues && !taskTracker) {
+		return <div className="flex-1" />;
+	}
+
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
 			<TasksTopBar
