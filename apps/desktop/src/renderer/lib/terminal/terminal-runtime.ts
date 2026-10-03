@@ -8,6 +8,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
+	applyTerminalThemeCssVariables,
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
@@ -319,6 +320,10 @@ export function createRuntime(
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
 	applyTerminalFontFamilyCssVariable(wrapper, appearance.fontFamily);
+	applyTerminalThemeCssVariables(wrapper, {
+		background: appearance.background,
+		foreground: appearance.theme.foreground,
+	});
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
@@ -442,6 +447,11 @@ export function updateRuntimeAppearance(
 ) {
 	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
+	// Unconditional: a theme-only change leaves the measurements untouched.
+	applyTerminalThemeCssVariables(runtime.wrapper, {
+		background: appearance.background,
+		foreground: appearance.theme.foreground,
+	});
 
 	const measurementsChanged = terminalMeasurementsChanged(runtime, appearance);
 	runtime._setLigaturesEnabled?.(appearance.ligatures);
