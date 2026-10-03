@@ -3434,6 +3434,9 @@ msgstr "Controlli falliti"
 msgid "Checks passed"
 msgstr "Controlli superati"
 
+msgid "Checks running"
+msgstr "Controlli in corso"
+
 msgid "Checks Skipped"
 msgstr "Controlli saltati"
 

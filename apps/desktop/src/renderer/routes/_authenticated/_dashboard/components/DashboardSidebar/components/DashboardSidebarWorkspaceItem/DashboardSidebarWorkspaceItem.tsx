@@ -231,7 +231,7 @@ export function DashboardSidebarWorkspaceItem({
 					workspaceStatus={workspaceStatus}
 					onClick={handleClick}
 					isCreatePending={isPending}
-					pullRequestState={pullRequest?.state ?? null}
+					pullRequest={pullRequest}
 					aria-label={
 						isPending
 							? workspace.type === "session"
