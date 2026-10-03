@@ -145,6 +145,13 @@ export {
 } from "./agent-wrappers-pi";
 export { createUfoWrapper } from "./agent-wrappers-ufo";
 export {
+	createPrimeAgentExtension,
+	createPrimeAgentWrapper,
+	getPrimeAgentExtensionContent,
+	getPrimeAgentExtensionPath,
+	removePrimeAgentExtension,
+} from "./agent-wrappers-prime-agent";
+export {
 	createVibeHooksToml,
 	createVibeWrapper,
 	getVibeHooksTomlContent,
