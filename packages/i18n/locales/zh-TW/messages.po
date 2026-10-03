@@ -13891,6 +13891,9 @@ msgstr "搜尋成員..."
 msgid "Search plugins"
 msgstr "搜尋外掛"
 
+msgid "Search plugins or files..."
+msgstr "搜尋外掛或檔案..."
+
 msgid "Search previous prompts..."
 msgstr "搜尋歷史提示詞..."
 
@@ -17379,10 +17382,6 @@ msgstr "在手機上使用 Superset"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "透過 Pro 在手機上使用 Superset。"
-
-#. placeholder {0}: plugin.interface.displayName
-msgid "Use the {0} plugin to "
-msgstr "使用 {0} 外掛來 "
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "使用桌面應用程式開始並行執行編碼代理程式。"

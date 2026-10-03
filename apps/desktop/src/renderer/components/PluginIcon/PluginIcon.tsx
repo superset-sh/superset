@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
 import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
@@ -9,7 +10,10 @@ import {
 	SiStripe,
 	SiVercel,
 } from "react-icons/si";
-import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
+import {
+	getPresetIcon,
+	usePresetIcon,
+} from "renderer/assets/app-icons/preset-icons";
 import circlebackIconUrl from "renderer/assets/icons/circleback-icon.png";
 import figmaIconUrl from "renderer/assets/icons/figma-icon.svg";
 import gmailIconUrl from "renderer/assets/icons/gmail-icon.svg";
@@ -69,6 +73,26 @@ const PLUGIN_ICONS: Record<
 	"google-sheets": { icon: SiGooglesheets, color: "#0F9D58" },
 	vercel: { icon: SiVercel, scale: "size-1/2" },
 };
+
+/**
+ * The same artwork PluginIcon shows, as a URL for chips that cannot render a
+ * component. Glyph brands are rendered to an inline SVG in the theme's
+ * foreground so the chip matches the menu entry.
+ */
+export function getPluginIconUrl(
+	pluginName: string,
+	isDark: boolean,
+): string | undefined {
+	if (pluginName === "superset") return getPresetIcon("superset", isDark);
+	const artwork = FULL_BLEED_ICONS[pluginName] ?? IMAGE_ICONS[pluginName];
+	if (artwork !== undefined) return artwork;
+	const entry = PLUGIN_ICONS[pluginName];
+	const Icon = entry?.icon ?? LuPuzzle;
+	const svg = renderToStaticMarkup(
+		<Icon color={entry?.color ?? (isDark ? "#fafafa" : "#18181b")} />,
+	);
+	return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
 
 interface PluginIconProps {
 	pluginName: string;

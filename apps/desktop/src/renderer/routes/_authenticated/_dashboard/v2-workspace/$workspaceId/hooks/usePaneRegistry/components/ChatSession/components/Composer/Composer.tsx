@@ -14,6 +14,10 @@ import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useMemo, useRef } from "react";
+import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { getPluginIconUrl, PluginIcon } from "renderer/components/PluginIcon";
+import { pluginMentionText } from "renderer/components/PluginMention";
+import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import { ModelPicker } from "./components/ModelPicker";
 
 const DRAFT_DEBOUNCE_MS = 300;
@@ -62,6 +66,29 @@ export function Composer({
 	const { t } = useLingui();
 	const trpcUtils = workspaceTrpc.useUtils();
 	const uploadAttachment = workspaceTrpc.attachments.upload.useMutation();
+	const pluginMentions = usePluginMentionOptions();
+	const isDark = useIsDarkTheme();
+	const pluginEntries = useMemo(
+		() =>
+			pluginMentions.map(
+				(plugin): ComposerMentionEntry => ({
+					id: `plugin:${plugin.name}`,
+					label: plugin.displayName,
+					description: plugin.description,
+					icon: (
+						<PluginIcon pluginName={plugin.name} className="size-4 rounded" />
+					),
+					keywords: [plugin.name, plugin.description],
+					select: (ctx) =>
+						ctx.insertChip({
+							label: plugin.displayName,
+							serialized: pluginMentionText(plugin.name),
+							iconUrl: getPluginIconUrl(plugin.name, isDark),
+						}),
+				}),
+			),
+		[isDark, pluginMentions],
+	);
 
 	const searchFiles = useCallback(
 		async (query: string) => {
@@ -91,9 +118,15 @@ export function Composer({
 	const mentionProviders = useMemo<ComposerMentionProvider[]>(
 		() => [
 			{
+				id: "plugins",
+				title: t({ message: "Plugins" }),
+				priority: 0,
+				source: { kind: "static", load: () => pluginEntries },
+			},
+			{
 				id: "files",
 				title: t({ message: "Files" }),
-				priority: 0,
+				priority: 1,
 				source: {
 					kind: "search",
 					search: searchFiles,
@@ -101,7 +134,7 @@ export function Composer({
 				},
 			},
 		],
-		[searchFiles, t],
+		[pluginEntries, searchFiles, t],
 	);
 
 	const commands = useMemo(

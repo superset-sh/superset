@@ -13891,6 +13891,9 @@ msgstr "Szukaj osób..."
 msgid "Search plugins"
 msgstr "Szukaj wtyczek"
 
+msgid "Search plugins or files..."
+msgstr "Szukaj wtyczek lub plików..."
+
 msgid "Search previous prompts..."
 msgstr "Szukaj poprzednich promptów..."
 
@@ -17379,10 +17382,6 @@ msgstr "Korzystaj z Superset na telefonie"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Korzystaj z Superset na telefonie dzięki Pro."
-
-#. placeholder {0}: plugin.interface.displayName
-msgid "Use the {0} plugin to "
-msgstr "Użyj wtyczki {0}, aby "
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Użyj aplikacji desktopowej, aby uruchamiać równoległych agentów kodujących."

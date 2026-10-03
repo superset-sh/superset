@@ -6,7 +6,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect } from "react";
 import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
-import { usePluginCatalog } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
+import { usePluginCatalog } from "renderer/hooks/usePluginCatalog";
 import { PluginDetail } from "./components/PluginDetail";
 
 export type PluginDetailSearch = {

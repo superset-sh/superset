@@ -17,6 +17,7 @@ import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/TiptapPromptEditor";
 import { useSendToTerminalAgent } from "renderer/hooks/host-service/useSendToTerminalAgent";
+import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { track } from "renderer/lib/analytics";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
@@ -96,6 +97,7 @@ function TerminalRichInputInner({
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
 	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
+	const pluginMentions = usePluginMentionOptions();
 
 	// Deduped with the page-level workspace.get query; provides the cwd the
 	// mention popover uses to shorten paths.
@@ -274,6 +276,7 @@ function TerminalRichInputInner({
 						<TiptapPromptEditor
 							cwd={cwd}
 							searchFiles={searchFiles}
+							pluginMentions={pluginMentions}
 							slashCommands={[]}
 							placeholder={t({
 								message: "Ask to make changes",

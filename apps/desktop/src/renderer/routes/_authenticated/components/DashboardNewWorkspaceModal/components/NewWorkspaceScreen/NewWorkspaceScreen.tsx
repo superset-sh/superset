@@ -46,6 +46,7 @@ import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreferenc
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
+import { usePluginMentionOptions } from "renderer/hooks/usePluginMentionOptions";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useSelectedHostProjectIds } from "renderer/hooks/useSelectedHostProjectIds";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
@@ -348,6 +349,7 @@ export function NewWorkspaceScreen({
 		setLinkedPR,
 		removeLinkedPR,
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
+	const pluginMentions = usePluginMentionOptions();
 	const linkTaskLabel = t({ message: "Link task" });
 
 	// Restore the last-used launch host once per mount, like the modal does.
@@ -856,6 +858,7 @@ export function NewWorkspaceScreen({
 							onChange={(markdown) => updateDraft({ prompt: markdown })}
 							onPasteFiles={(files) => attachments.add(files)}
 							onEnterSubmit={handleSubmit}
+							pluginMentions={pluginMentions}
 							autoFocus={draft.prompt ? "end" : "start"}
 							placeholder={promptPlaceholder}
 							className="flex flex-col min-h-[80px] max-h-[min(50vh,600px)] px-3 pt-3"

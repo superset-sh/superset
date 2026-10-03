@@ -29,6 +29,15 @@ const slashSuggestionKey = new PluginKey("slashCommandSuggestion");
 const mentionSuggestionKey = new PluginKey("fileMentionSuggestion");
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { PluginIcon } from "renderer/components/PluginIcon";
+import {
+	matchPluginMentions,
+	PLUGIN_MENTION_NODE_NAME,
+	PluginMentionNode,
+	type PluginMentionOption,
+	pluginMentionText,
+	restorePluginMentions,
+} from "renderer/components/PluginMention";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
@@ -58,16 +67,21 @@ type SlashMenuState = {
 	tiptapCommand: (props: { cmd: SlashCommand }) => void;
 };
 
+type MentionSelection =
+	| { kind: "file"; path: string }
+	| { kind: "plugin"; plugin: PluginMentionOption };
+
 type MentionState = {
 	query: string;
 	selectedIndex: number;
-	tiptapCommand: (props: { path: string }) => void;
+	tiptapCommand: (props: MentionSelection) => void;
 	clientRect: (() => DOMRect | null) | null;
 };
 
 export interface TiptapPromptEditorProps {
 	cwd: string;
 	searchFiles: SearchFilesFn;
+	pluginMentions?: readonly PluginMentionOption[];
 	previewSlashCommand?: PreviewSlashCommandFn;
 	slashCommands: SlashCommand[];
 	availableModels?: ModelOption[];
@@ -85,6 +99,7 @@ function getDirectoryPath(relativePath: string): string {
 export function TiptapPromptEditor({
 	cwd,
 	searchFiles,
+	pluginMentions,
 	previewSlashCommand,
 	slashCommands,
 	availableModels,
@@ -106,6 +121,8 @@ export function TiptapPromptEditor({
 	slashCommandsRef.current = slashCommands;
 	const availableModelsRef = useRef(availableModels);
 	availableModelsRef.current = availableModels;
+	const pluginMentionsRef = useRef(pluginMentions);
+	pluginMentionsRef.current = pluginMentions;
 	const attachmentsRef = useRef(attachments);
 	attachmentsRef.current = attachments;
 	const controllerRef = useRef(controller);
@@ -174,19 +191,30 @@ export function TiptapPromptEditor({
 	}, [debouncedMentionQuery, cwd, isMentionVisible, searchFiles]);
 
 	const mentionFiles: FileResult[] = isMentionVisible ? fileResults : [];
-	const mentionFilesRef = useRef(mentionFiles);
-	mentionFilesRef.current = mentionFiles;
+	const mentionPlugins = mentionState
+		? matchPluginMentions(pluginMentions ?? [], mentionState.query)
+		: [];
+	const mentionEntries: MentionSelection[] = [
+		...mentionPlugins.map(
+			(plugin): MentionSelection => ({ kind: "plugin", plugin }),
+		),
+		...mentionFiles.map(
+			(file): MentionSelection => ({ kind: "file", path: file.relativePath }),
+		),
+	];
+	const mentionEntriesRef = useRef(mentionEntries);
+	mentionEntriesRef.current = mentionEntries;
 
-	// Clamp selectedIndex when file results shrink
+	// Clamp selectedIndex when the entries shrink
 	useEffect(() => {
-		if (!mentionState || mentionFiles.length === 0) return;
-		const max = mentionFiles.length - 1;
+		if (!mentionState || mentionEntries.length === 0) return;
+		const max = mentionEntries.length - 1;
 		if (mentionState.selectedIndex > max) {
 			setMentionState((prev) =>
 				prev ? { ...prev, selectedIndex: max } : null,
 			);
 		}
-	}, [mentionFiles.length, mentionState]);
+	}, [mentionEntries.length, mentionState]);
 
 	// ── Build editor ─────────────────────────────────────────────────────────
 	const editor = useEditor({
@@ -205,6 +233,7 @@ export function TiptapPromptEditor({
 			Placeholder.configure({ placeholder: resolvedPlaceholder }),
 
 			FileMentionNode,
+			PluginMentionNode,
 			SlashCommandNode,
 
 			// Chat-input keyboard shortcuts
@@ -441,7 +470,7 @@ export function TiptapPromptEditor({
 							render: () => ({
 								onStart(props: {
 									query: string;
-									command: (p: { path: string }) => void;
+									command: (p: MentionSelection) => void;
 									clientRect?: (() => DOMRect | null) | null;
 								}) {
 									setMentionState({
@@ -453,7 +482,7 @@ export function TiptapPromptEditor({
 								},
 								onUpdate(props: {
 									query: string;
-									command: (p: { path: string }) => void;
+									command: (p: MentionSelection) => void;
 									clientRect?: (() => DOMRect | null) | null;
 								}) {
 									setMentionState((prev) =>
@@ -470,8 +499,10 @@ export function TiptapPromptEditor({
 								},
 								onKeyDown({ event }: { event: KeyboardEvent }) {
 									const mention = mentionStateRef.current;
-									const files = mentionFilesRef.current;
+									const entries = mentionEntriesRef.current;
 									if (!mention) return false;
+									// Enter that confirms an IME candidate belongs to the IME.
+									if (event.isComposing || isComposingRef.current) return false;
 
 									if (event.key === "Escape") {
 										setMentionState(null);
@@ -484,7 +515,7 @@ export function TiptapPromptEditor({
 														...prev,
 														selectedIndex:
 															prev.selectedIndex <= 0
-																? Math.max(0, files.length - 1)
+																? Math.max(0, entries.length - 1)
 																: prev.selectedIndex - 1,
 													}
 												: null,
@@ -497,9 +528,9 @@ export function TiptapPromptEditor({
 												? {
 														...prev,
 														selectedIndex:
-															files.length === 0
+															entries.length === 0
 																? 0
-																: prev.selectedIndex >= files.length - 1
+																: prev.selectedIndex >= entries.length - 1
 																	? 0
 																	: prev.selectedIndex + 1,
 													}
@@ -507,10 +538,13 @@ export function TiptapPromptEditor({
 										);
 										return true;
 									}
-									if (event.key === "Enter" || event.key === "Tab") {
-										const file = files[mention.selectedIndex];
-										if (file) {
-											mention.tiptapCommand({ path: file.relativePath });
+									if (
+										(event.key === "Enter" && !event.shiftKey) ||
+										event.key === "Tab"
+									) {
+										const entry = entries[mention.selectedIndex];
+										if (entry) {
+											mention.tiptapCommand(entry);
 											return true;
 										}
 										// No results — close the popup and consume the event
@@ -531,12 +565,22 @@ export function TiptapPromptEditor({
 							}: {
 								editor: Editor;
 								range: { from: number; to: number };
-								props: { path: string };
+								props: MentionSelection;
 							}) {
+								const mentionNode =
+									props.kind === "plugin"
+										? {
+												type: PLUGIN_MENTION_NODE_NAME,
+												attrs: {
+													name: props.plugin.name,
+													label: props.plugin.displayName,
+												},
+											}
+										: { type: "file-mention", attrs: { path: props.path } };
 								ed.chain()
 									.deleteRange(range)
 									.insertContentAt(range.from, [
-										{ type: "file-mention", attrs: { path: props.path } },
+										mentionNode,
 										{ type: "text", text: " " },
 									])
 									.run();
@@ -594,11 +638,23 @@ export function TiptapPromptEditor({
 		},
 
 		onUpdate: ({ editor: e }) => {
-			const text = serializeEditorToText(e);
+			const text = serializeEditorToText(e, pluginMentionsRef.current);
 			lastEditorSyncedValue.current = text;
 			controllerRef.current.textInput.setInput(text);
 		},
 	});
+
+	// A draft restored before the catalog answered parsed `@name` as a file; the
+	// first catalog arrival swaps those for chips. Later refreshes leave typing alone.
+	const hadPluginMentions = useRef((pluginMentions?.length ?? 0) > 0);
+	useEffect(() => {
+		if (!editor || hadPluginMentions.current || !pluginMentions?.length) return;
+		hadPluginMentions.current = true;
+		restorePluginMentions(
+			editor,
+			(name) => pluginMentions.find((plugin) => plugin.name === name) ?? null,
+		);
+	}, [editor, pluginMentions]);
 
 	// Register focus callback so controller.textInput.focus() targets the editor
 	useEffect(() => {
@@ -632,12 +688,15 @@ export function TiptapPromptEditor({
 		const externalText = controller.textInput.value;
 		// Skip if the editor itself just produced this value
 		if (externalText === lastEditorSyncedValue.current) return;
-		const currentText = serializeEditorToText(editor);
+		const currentText = serializeEditorToText(
+			editor,
+			pluginMentionsRef.current,
+		);
 		if (externalText === currentText) return;
 		// Update editor without firing onUpdate (prevents loop)
 		editor.commands.setContent(
 			externalText
-				? parseTextToEditorContent(externalText)
+				? parseTextToEditorContent(externalText, pluginMentionsRef.current)
 				: { type: "doc", content: [{ type: "paragraph" }] },
 			{ emitUpdate: false },
 		);
@@ -755,9 +814,11 @@ export function TiptapPromptEditor({
 					>
 						<Command shouldFilter={false}>
 							<CommandInput
-								placeholder={t({
-									message: "Search files...",
-								})}
+								placeholder={
+									pluginMentions?.length
+										? t({ message: "Search plugins or files..." })
+										: t({ message: "Search files..." })
+								}
 								value={mentionState?.query ?? ""}
 								onValueChange={(q) =>
 									setMentionState((prev) =>
@@ -766,7 +827,7 @@ export function TiptapPromptEditor({
 								}
 							/>
 							<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
-								{mentionFiles.length === 0 && (
+								{mentionEntries.length === 0 && (
 									<CommandEmpty className="px-2 py-3 text-left text-xs text-muted-foreground">
 										{!mentionState?.query ? (
 											<Trans>Type to search files...</Trans>
@@ -774,6 +835,42 @@ export function TiptapPromptEditor({
 											<Trans>No results found.</Trans>
 										)}
 									</CommandEmpty>
+								)}
+								{mentionPlugins.length > 0 && (
+									<CommandGroup heading={t({ message: "Plugins" })}>
+										{mentionPlugins.map((plugin, idx) => (
+											<CommandItem
+												key={plugin.name}
+												value={pluginMentionText(plugin.name)}
+												className={cn(
+													idx === (mentionState?.selectedIndex ?? -1) &&
+														"bg-accent",
+												)}
+												onSelect={() => {
+													mentionState?.tiptapCommand({
+														kind: "plugin",
+														plugin,
+													});
+												}}
+											>
+												<PluginIcon
+													pluginName={plugin.name}
+													className="size-3.5 rounded-[3px]"
+												/>
+												<span className="shrink-0 text-xs font-medium">
+													{plugin.displayName}
+												</span>
+												<span className="min-w-0 truncate text-xs text-muted-foreground">
+													{plugin.description}
+												</span>
+											</CommandItem>
+										))}
+									</CommandGroup>
+								)}
+								{mentionPlugins.length > 0 && !mentionState?.query && (
+									<div className="px-2 py-1.5 text-xs text-muted-foreground">
+										<Trans>Type to search files...</Trans>
+									</div>
 								)}
 								{mentionFiles.length > 0 && (
 									<CommandGroup
@@ -783,16 +880,19 @@ export function TiptapPromptEditor({
 									>
 										{mentionFiles.map((file, idx) => {
 											const dirPath = getDirectoryPath(file.relativePath);
+											const entryIndex = mentionPlugins.length + idx;
 											return (
 												<CommandItem
 													key={file.id}
 													value={file.relativePath}
 													className={cn(
-														idx === (mentionState?.selectedIndex ?? -1) &&
+														entryIndex ===
+															(mentionState?.selectedIndex ?? -1) &&
 															"bg-accent",
 													)}
 													onSelect={() => {
 														mentionState?.tiptapCommand({
+															kind: "file",
 															path: file.relativePath,
 														});
 													}}

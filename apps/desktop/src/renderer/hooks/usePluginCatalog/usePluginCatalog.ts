@@ -3,6 +3,7 @@ import type {
 	PluginCategory,
 } from "@superset/shared/plugins";
 import type { RouterOutputs } from "@superset/trpc";
+import { useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
@@ -65,8 +66,13 @@ export function usePluginCatalog() {
 		refetchOnWindowFocus: true,
 	});
 
+	const plugins = useMemo(
+		() => (query.data ?? []).map(toCatalogPlugin),
+		[query.data],
+	);
+
 	return {
-		plugins: (query.data ?? []).map(toCatalogPlugin),
+		plugins,
 		isLoading: query.isLoading,
 		error: query.error,
 	};

@@ -1,4 +1,8 @@
 import type { JSONContent } from "@tiptap/core";
+import {
+	PLUGIN_MENTION_NODE_NAME,
+	type PluginMentionOption,
+} from "renderer/components/PluginMention";
 
 /**
  * Matches file-mention tokens produced by serializeEditorToText.
@@ -8,12 +12,18 @@ import type { JSONContent } from "@tiptap/core";
  */
 const MENTION_RE = /(?:^|(?<=\s))@(?:"([^"]+)"|(\S+))/g;
 
+const TRAILING_PUNCTUATION = /[.,;:!?)]+$/;
+
 /**
  * Converts a plain-text string (as produced by serializeEditorToText) back
  * into a Tiptap JSONContent document, restoring file-mention atoms wherever
- * an @path token is found.
+ * an @path token is found. An unquoted token naming one of `plugins` is a
+ * plugin mention instead.
  */
-export function parseTextToEditorContent(text: string): JSONContent {
+export function parseTextToEditorContent(
+	text: string,
+	plugins: readonly PluginMentionOption[] = [],
+): JSONContent {
 	const paragraphs = text.split("\n").map((line): JSONContent => {
 		if (line === "") {
 			return { type: "paragraph" };
@@ -32,11 +42,25 @@ export function parseTextToEditorContent(text: string): JSONContent {
 					text: line.slice(lastIndex, match.index),
 				});
 			}
-			// The file-mention node — group 1 = quoted path, group 2 = unquoted path
-			inlineNodes.push({
-				type: "file-mention",
-				attrs: { path: match[1] ?? match[2] },
-			});
+			// group 1 = quoted path, group 2 = unquoted path or plugin handle
+			const quotedPath = match[1];
+			const token = quotedPath ?? match[2] ?? "";
+			const handle =
+				quotedPath === undefined ? token.replace(TRAILING_PUNCTUATION, "") : "";
+			const plugin = plugins.find((candidate) => candidate.name === handle);
+			if (plugin) {
+				inlineNodes.push({
+					type: PLUGIN_MENTION_NODE_NAME,
+					attrs: { name: plugin.name, label: plugin.displayName },
+				});
+				const punctuation = token.slice(handle.length);
+				if (punctuation) inlineNodes.push({ type: "text", text: punctuation });
+			} else {
+				inlineNodes.push({
+					type: "file-mention",
+					attrs: { path: token, fromText: quotedPath === undefined },
+				});
+			}
 			lastIndex = match.index + match[0].length;
 			match = MENTION_RE.exec(line);
 		}
