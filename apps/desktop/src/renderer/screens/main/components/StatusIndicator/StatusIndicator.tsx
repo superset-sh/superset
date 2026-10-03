@@ -28,7 +28,7 @@ const STATUS_CONFIG = {
 		pingColor: "",
 		dotColor: "bg-green-500",
 		pulse: false,
-		tooltip: "Ready for review",
+		tooltip: "Needs review",
 	},
 } as const satisfies Record<
 	ActivePaneStatus,
