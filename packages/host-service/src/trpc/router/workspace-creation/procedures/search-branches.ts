@@ -7,6 +7,7 @@ import {
 	decodeCursor,
 	encodeNextCursor,
 	getRecentBranchOrder,
+	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 	markRefetchRemote,
 	shouldRefetchRemote,
@@ -34,6 +35,7 @@ export const searchBranches = protectedProcedure
 		if (!localProject) {
 			return {
 				defaultBranch: null as string | null,
+				checkedOutBranch: null,
 				items: [] as BranchRow[],
 				nextCursor: null as string | null,
 			};
@@ -53,6 +55,10 @@ export const searchBranches = protectedProcedure
 		}
 
 		const defaultBranch = await resolveDefaultBranchName(git);
+		const checkedOutBranch = await getWorktreeBranchAtPath(
+			git,
+			requireProjectRepoPath(localProject),
+		);
 		const { worktreeMap, checkedOutBranches } = await listWorktreeBranches(git);
 		const recencyMap = await getRecentBranchOrder(git, 30);
 
@@ -173,6 +179,7 @@ export const searchBranches = protectedProcedure
 
 		return {
 			defaultBranch,
+			checkedOutBranch,
 			items,
 			nextCursor: encodeNextCursor(offset, limit, branches.length),
 		};
