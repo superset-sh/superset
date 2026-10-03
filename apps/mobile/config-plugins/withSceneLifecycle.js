@@ -1,44 +1,19 @@
-const { promises: fs } = require("node:fs");
-const path = require("node:path");
-const {
-	IOSConfig,
-	withAppDelegate,
-	withDangerousMod,
-	withInfoPlist,
-	withXcodeProject,
-} = require("expo/config-plugins");
+const { withAppDelegate, withInfoPlist } = require("expo/config-plugins");
 
-const SCENE_DELEGATE_FILE = "SceneDelegate.swift";
+const TEMPLATE_CLASS = "class AppDelegate: ExpoAppDelegate {";
+const PROVIDER_CLASS =
+	"class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {";
+const TEMPLATE_STARTUP = `    window = UIWindow(frame: UIScreen.main.bounds)
+    factory.startReactNative(
+      withModuleName: "main",
+      in: window,
+      launchOptions: launchOptions)
+`;
 
-/**
- * Moves the app onto the UIScene life cycle. An app built with the iOS 27 SDK
- * that still sets its window up in the app delegate traps in UIKit on launch
- * (`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`), and
- * Expo's template still does exactly that.
- *
- * Single scene only: the app delegate keeps owning the React Native factory
- * and Expo's subscribers; the scene delegate creates the window, starts React
- * Native in it, and forwards the URLs, user activities and lifecycle
- * callbacks UIKit now sends to the scene instead of the app delegate.
- *
- * @type {import("expo/config-plugins").ConfigPlugin}
- */
+// Mirrors @config-plugins/expo-uiscene-lifecycle, which is not on npm yet.
+// Delete this plugin once it is, or on Expo SDK 58, which does this natively.
+/** @type {import("expo/config-plugins").ConfigPlugin} */
 const withSceneLifecycle = (config) => {
-	config = withInfoPlist(config, (config) => {
-		config.modResults.UIApplicationSceneManifest = {
-			UIApplicationSupportsMultipleScenes: false,
-			UISceneConfigurations: {
-				UIWindowSceneSessionRoleApplication: [
-					{
-						UISceneConfigurationName: "Default Configuration",
-						UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).SceneDelegate",
-					},
-				],
-			},
-		};
-		return config;
-	});
-
 	config = withAppDelegate(config, (config) => {
 		if (config.modResults.language !== "swift") {
 			throw new Error("withSceneLifecycle: expected a Swift AppDelegate");
@@ -47,186 +22,35 @@ const withSceneLifecycle = (config) => {
 		return config;
 	});
 
-	config = withDangerousMod(config, [
-		"ios",
-		async (config) => {
-			await fs.writeFile(
-				path.join(
-					config.modRequest.platformProjectRoot,
-					config.modRequest.projectName ?? "Superset",
-					SCENE_DELEGATE_FILE,
-				),
-				SCENE_DELEGATE,
-			);
-			return config;
-		},
-	]);
-
-	return withXcodeProject(config, (config) => {
-		const projectName = config.modRequest.projectName ?? "Superset";
-		const filepath = `${projectName}/${SCENE_DELEGATE_FILE}`;
-		if (!config.modResults.hasFile(filepath)) {
-			IOSConfig.XcodeUtils.addBuildSourceFileToGroup({
-				filepath,
-				groupName: projectName,
-				project: config.modResults,
-			});
-		}
+	return withInfoPlist(config, (config) => {
+		config.modResults.UIApplicationSceneManifest = {
+			UIApplicationSupportsMultipleScenes: false,
+			UISceneConfigurations: {
+				UIWindowSceneSessionRoleApplication: [
+					{
+						UISceneConfigurationName: "Default Configuration",
+						UISceneDelegateClassName: "EXExpoAppSceneDelegate",
+					},
+				],
+			},
+		};
 		return config;
 	});
 };
 
-/**
- * The template starts React Native in a window it makes itself; under scenes
- * that window has no scene and never shows. Keep the launch options for the
- * scene delegate instead, which starts React Native once it has a scene.
- */
-const LAUNCH_OPTIONS_PROPERTY =
-	"  /// Read by SceneDelegate, which starts React Native once a scene exists.\n  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?\n";
-const LAUNCH_OPTIONS_STORE = "    self.launchOptions = launchOptions\n";
-
 function rewriteAppDelegate(contents) {
-	const windowSetup =
-		/#if os\(iOS\) \|\| os\(tvOS\)\n\s*window = UIWindow\(frame: UIScreen\.main\.bounds\)\n\s*factory\.startReactNative\(\n\s*withModuleName: "main",\n\s*in: window,\n\s*launchOptions: launchOptions\)\n#endif\n/;
-
-	// Already rewritten: both of our insertions present, and nothing left that
-	// starts React Native in a window of the app delegate's own. Keyed on the
-	// finished state, not on one marker, so a template that happens to declare
-	// a `launchOptions` of its own still reaches the check below.
+	if (contents.includes(PROVIDER_CLASS)) return contents;
 	if (
-		contents.includes(LAUNCH_OPTIONS_PROPERTY) &&
-		contents.includes(LAUNCH_OPTIONS_STORE) &&
-		!contents.includes("startReactNative")
+		!contents.includes(TEMPLATE_CLASS) ||
+		!contents.includes(TEMPLATE_STARTUP)
 	) {
-		return contents;
-	}
-
-	const property = "  var reactNativeFactory: RCTReactNativeFactory?\n";
-	if (!windowSetup.test(contents) || !contents.includes(property)) {
 		throw new Error(
-			"withSceneLifecycle: AppDelegate.swift no longer matches the Expo template; update the plugin",
+			"withSceneLifecycle: AppDelegate.swift no longer matches the Expo SDK 57 template; update the plugin",
 		);
 	}
-
 	return contents
-		.replace(property, `${property}${LAUNCH_OPTIONS_PROPERTY}`)
-		.replace(windowSetup, `${LAUNCH_OPTIONS_STORE}\n`);
+		.replace(TEMPLATE_CLASS, PROVIDER_CLASS)
+		.replace(TEMPLATE_STARTUP, "");
 }
 
-const SCENE_DELEGATE = `import React
-import UIKit
-
-/// Generated by config-plugins/withSceneLifecycle.js — edit it there.
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-  var window: UIWindow?
-
-  private var appDelegate: AppDelegate? {
-    UIApplication.shared.delegate as? AppDelegate
-  }
-
-  func scene(
-    _ scene: UIScene,
-    willConnectTo session: UISceneSession,
-    options connectionOptions: UIScene.ConnectionOptions
-  ) {
-    guard let windowScene = scene as? UIWindowScene else {
-      NSLog("[SceneDelegate] connected scene is not a UIWindowScene: %@", String(describing: scene))
-      return
-    }
-    guard let appDelegate, let factory = appDelegate.reactNativeFactory else {
-      NSLog("[SceneDelegate] no React Native factory at scene connect; nothing will render")
-      return
-    }
-
-    let window = UIWindow(windowScene: windowScene)
-    self.window = window
-
-    // iOS can discard the scene and reconnect it in a live process. React
-    // Native is already running then: move its root view controller to the
-    // new window rather than start a second instance, and deliver any link
-    // the reconnect carries the way a warm app gets one.
-    if let previous = appDelegate.window, let root = previous.rootViewController {
-      previous.rootViewController = nil
-      appDelegate.window = window
-      window.rootViewController = root
-      window.makeKeyAndVisible()
-      if !connectionOptions.urlContexts.isEmpty {
-        self.scene(scene, openURLContexts: connectionOptions.urlContexts)
-      }
-      if let activity = connectionOptions.userActivities.first {
-        self.scene(scene, continue: activity)
-      }
-      return
-    }
-
-    appDelegate.window = window
-    factory.startReactNative(
-      withModuleName: "main",
-      in: window,
-      launchOptions: launchOptions(
-        base: appDelegate.launchOptions,
-        connectionOptions: connectionOptions))
-  }
-
-  /// A cold launch's URL or universal link arrives on the scene, not in the
-  /// app's launch options; put it back where Linking.getInitialURL and the
-  /// dev launcher look for it.
-  private func launchOptions(
-    base: [UIApplication.LaunchOptionsKey: Any]?,
-    connectionOptions: UIScene.ConnectionOptions
-  ) -> [UIApplication.LaunchOptionsKey: Any] {
-    var options = base ?? [:]
-    if let url = connectionOptions.urlContexts.first?.url {
-      options[.url] = url
-    }
-    if let activity = connectionOptions.userActivities.first {
-      options[.userActivityDictionary] = [
-        UIApplication.LaunchOptionsKey.userActivityType.rawValue: activity.activityType,
-        "UIApplicationLaunchOptionsUserActivityKey": activity,
-      ]
-    }
-    return options
-  }
-
-  // MARK: - Forwarded to the app delegate, where Expo's subscribers and
-  // RCTLinkingManager listen; UIKit no longer calls these there.
-
-  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-    for context in URLContexts {
-      var options: [UIApplication.OpenURLOptionsKey: Any] = [
-        .openInPlace: context.options.openInPlace
-      ]
-      if let source = context.options.sourceApplication {
-        options[.sourceApplication] = source
-      }
-      if let annotation = context.options.annotation {
-        options[.annotation] = annotation
-      }
-      _ = appDelegate?.application(.shared, open: context.url, options: options)
-    }
-  }
-
-  func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-    _ = appDelegate?.application(
-      .shared, continue: userActivity, restorationHandler: { _ in })
-  }
-
-  func sceneDidBecomeActive(_ scene: UIScene) {
-    appDelegate?.applicationDidBecomeActive(.shared)
-  }
-
-  func sceneWillResignActive(_ scene: UIScene) {
-    appDelegate?.applicationWillResignActive(.shared)
-  }
-
-  func sceneWillEnterForeground(_ scene: UIScene) {
-    appDelegate?.applicationWillEnterForeground(.shared)
-  }
-
-  func sceneDidEnterBackground(_ scene: UIScene) {
-    appDelegate?.applicationDidEnterBackground(.shared)
-  }
-}
-`;
-
-module.exports = { rewriteAppDelegate, SCENE_DELEGATE, withSceneLifecycle };
+module.exports = { rewriteAppDelegate, withSceneLifecycle };
