@@ -1,3 +1,8 @@
+import {
+	DEFAULT_TERMINAL_AGENT_WAIT_TIMEOUT_MS,
+	MAX_TERMINAL_AGENT_WAIT_TIMEOUT_MS,
+	TERMINAL_AGENT_WAIT_STATUSES,
+} from "@superset/shared/terminal-agent-wait";
 import { terminalColorsSchema } from "@superset/shared/terminal-colors";
 import { TERMINAL_HANDOFF_MAX_CHARS } from "@superset/shared/terminal-session-handoff";
 import { normalizeTerminalTitle } from "@superset/shared/terminal-title-scanner";
@@ -24,6 +29,7 @@ import {
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { waitForTerminalAgentStatus } from "../terminal-agents/wait-for-status";
 import { toTerminalSessionError } from "./errors";
 
 export const createSessionInputSchema = z.object({
@@ -178,6 +184,11 @@ export const terminalRouter = router({
 	// Send a follow-up message into an already-running terminal (e.g. a
 	// claude/codex agent) instead of spawning a new session. Multi-line text
 	// is framed as a bracketed paste server-side.
+	//
+	// `lastEventAt` is the agent binding's clock read right before Enter is
+	// pressed, inside the serialized write: the watermark `terminalAgents.wait`
+	// needs to tell this prompt's completion from the idle recorded before it.
+	// `wait` does both in one request.
 	send: protectedProcedure
 		.input(
 			z
@@ -186,25 +197,84 @@ export const terminalRouter = router({
 					workspaceId: z.string(),
 					text: z.string(),
 					submit: z.boolean().default(true),
+					wait: z
+						.object({
+							until: z.array(z.enum(TERMINAL_AGENT_WAIT_STATUSES)).min(1),
+							timeoutMs: z
+								.number()
+								.int()
+								.positive()
+								.max(MAX_TERMINAL_AGENT_WAIT_TIMEOUT_MS)
+								.default(DEFAULT_TERMINAL_AGENT_WAIT_TIMEOUT_MS),
+						})
+						.optional(),
 				})
 				.refine((input) => input.submit || input.text.length > 0, {
 					message: "Nothing to send",
+				})
+				.refine((input) => !input.wait || input.submit, {
+					message: "Text that is not submitted starts no turn to wait for",
 				}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const message = { ...input, db: ctx.db, eventBus: ctx.eventBus };
+		.mutation(async ({ ctx, input, signal }) => {
+			const { wait, ...message } = input;
 			const binding = ctx.terminalAgentStore.get(input.terminalId);
-			const result =
-				binding && binding.endedAt === undefined
-					? await sendAgentMessage({
-							...message,
-							terminalAgentStore: ctx.terminalAgentStore,
-						})
-					: await writeFramedInputToSession(message);
+			const agent =
+				binding && binding.endedAt === undefined ? binding : undefined;
+			if (wait && !agent) {
+				// Rejected before anything is written, so a distinct code lets a
+				// client say "nothing was sent"; NOT_FOUND also covers failures
+				// after the text was staged.
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: `No agent is running in terminal ${input.terminalId}, so there is no status to wait for`,
+				});
+			}
+			let lastEventAt = agent?.lastEventAt ?? null;
+			const result = agent
+				? await sendAgentMessage({
+						...message,
+						db: ctx.db,
+						eventBus: ctx.eventBus,
+						terminalAgentStore: ctx.terminalAgentStore,
+						beforeSubmit: () => {
+							lastEventAt =
+								ctx.terminalAgentStore.get(input.terminalId)?.lastEventAt ??
+								lastEventAt;
+						},
+					})
+				: await writeFramedInputToSession({
+						...message,
+						db: ctx.db,
+						eventBus: ctx.eventBus,
+					});
 			if ("error" in result) {
 				throw toTerminalSessionError(result);
 			}
-			return { terminalId: input.terminalId, submitted: input.submit };
+			const settled =
+				wait && lastEventAt !== null
+					? await waitForTerminalAgentStatus(
+							{
+								db: ctx.db,
+								terminalAgentStore: ctx.terminalAgentStore,
+								eventBus: ctx.eventBus,
+							},
+							{
+								workspaceId: input.workspaceId,
+								terminalId: input.terminalId,
+								until: wait.until,
+								timeoutMs: wait.timeoutMs,
+								after: lastEventAt,
+								signal,
+							},
+						)
+					: undefined;
+			return {
+				terminalId: input.terminalId,
+				submitted: input.submit,
+				lastEventAt,
+				...(settled ? { wait: settled } : {}),
+			};
 		}),
 
 	// Non-destructive snapshot of the terminal's current screen + recent

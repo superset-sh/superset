@@ -17,6 +17,10 @@
 			"types": "./src/page-zoom.ts",
 			"default": "./src/page-zoom.ts"
 		},
+		"./terminal-agent-wait": {
+			"types": "./src/terminal-agent-wait.ts",
+			"default": "./src/terminal-agent-wait.ts"
+		},
 		"./usercontent": {
 			"types": "./src/usercontent/index.ts",
 			"default": "./src/usercontent/index.ts"

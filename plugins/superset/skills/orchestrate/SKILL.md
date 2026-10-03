@@ -12,8 +12,8 @@ Coordinate terminal agents with Superset's workspace, agent, and terminal comman
 ## Establish the control surface
 
 1. Run `superset auth whoami --json`.
-2. Run `superset terminals --help` and require `list`, `read`, `send`, and `close`.
-3. If those commands are absent, run `superset update` and recheck. Do not invent or substitute unsupported orchestration commands.
+2. Run `superset terminals --help` and require `list`, `read`, `send`, and `close`. Note whether `wait`, `wait-output`, and `send-keys` are listed: they replace the polling loop below, but basic orchestration does not need them.
+3. If a required command is absent, run `superset update` and recheck. Do not invent or substitute unsupported orchestration commands.
 4. Resolve the workspace, host, and terminal-capable agent before dispatching:
 
 ```bash
@@ -129,7 +129,57 @@ superset terminals send \
   --json
 ```
 
-Poll at a measured cadence and read all running workers in each pass. Prefer several short monitoring passes over one long blocking shell loop so progress and user updates remain visible.
+### Waiting for a worker
+
+Agent status comes from the agent's own hooks: `attached` once the agent is up but before it has started a turn, `working` after a prompt is picked up, `permission` at a tool prompt, `failed` after an API error, `idle` once a turn stops, `ended` once the session or its terminal is gone. When `wait` is listed, block on one worker instead of polling it. A wait issued right after `agents create` is fine: it waits for the agent's first hook, and `attached` does not count as `idle`, so the default statuses return once the first turn stops.
+
+To send a follow-up and wait for that follow-up to settle, do both in one call:
+
+```bash
+superset terminals send \
+  --workspace <workspace-id> \
+  --host <host-id> \
+  --terminal <terminal-id> \
+  --text "<follow-up>" \
+  --wait \
+  --timeout 45000 \
+  --json
+```
+
+The host records the agent's last hook time just before writing the prompt and only counts events newer than that, so the `idle` left over from the previous turn cannot end the wait. Send while the worker is idle: a prompt sent mid-turn is queued by the agent, and the current turn's stop ends the wait early. In two calls, `terminals send` prints `lastEventAt`; pass it to `terminals wait --after <lastEventAt>`.
+
+To wait on a worker you did not just prompt:
+
+```bash
+superset terminals wait \
+  --workspace <workspace-id> \
+  --host <host-id> \
+  --terminal <terminal-id> \
+  --until idle,permission,failed,ended \
+  --timeout 45000 \
+  --json
+```
+
+Without `--after`, a status that already matches returns at once. Both commands hold one request open for the whole `--timeout`; a workspace on another machine allows at most 55000 ms because the relay cuts longer requests, so run the wait again when it times out. A wait that returns proves the agent stopped, not that the result is right: read the terminal afterwards and look for the completion or blocked envelope. Give each active worker its own wait rather than waiting on them one after another.
+
+For a terminal that is not an agent, such as a test watcher or a dev server, `terminals wait-output --regex <pattern>` blocks until the visible screen matches. It matches the screen on every poll, including text that was already there, so choose a pattern specific to the run you started.
+
+Without these commands, poll at a measured cadence and read all running workers in each pass. Prefer several short monitoring passes over one long blocking shell loop so progress and user updates remain visible.
+
+### Interrupting a worker
+
+`send-keys` presses keys the way a person would: `esc` interrupts the current turn of most agents, `ctrl+c` too, `esc,enter` is Escape then Enter with a pause between them. Read the terminal first and send an interrupt only when the output shows the worker mid-turn and you mean to stop it; Escape in a menu or a prompt does something else.
+
+```bash
+superset terminals send-keys \
+  --workspace <workspace-id> \
+  --host <host-id> \
+  --terminal <terminal-id> \
+  --keys esc \
+  --json
+```
+
+An interrupted agent fires no completion hook, so its status would stay `working`. After `esc` or `ctrl+c`, the command resets a `working` or `permission` status to idle, the same reset the desktop pane does. Re-read the terminal afterwards rather than assuming the interrupt alone resolved the task.
 
 ## Advance the workflow
 
