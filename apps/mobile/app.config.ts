@@ -4,6 +4,7 @@ import { IOS_APP } from "@superset/shared/constants";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
+import { withSceneLifecycle } from "./config-plugins/withSceneLifecycle";
 
 // Load .env file
 config({
@@ -96,6 +97,8 @@ export default ({ config }: ConfigContext) => ({
 		// where the rest of that chrome is dark. The composer states its own
 		// tint (`ComposerRootView`) rather than inheriting this.
 		[withIosAccentColor, { color: "#262626" }],
+		// iOS 27 SDK: an app without the UIScene life cycle traps on launch.
+		withSceneLifecycle,
 		"@bacons/apple-targets",
 		"expo-router",
 		[
