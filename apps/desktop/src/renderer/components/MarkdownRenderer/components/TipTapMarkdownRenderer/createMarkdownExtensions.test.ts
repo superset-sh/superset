@@ -42,6 +42,17 @@ function roundTrip(markdown: string): string {
 	}
 }
 
+function mathNodes(editor: InstanceType<typeof Editor>) {
+	const found: { type: string; latex: string }[] = [];
+	editor.state.doc.descendants((node) => {
+		if (node.type.name === "inlineMath" || node.type.name === "blockMath") {
+			found.push({ type: node.type.name, latex: node.attrs.latex });
+		}
+		return true;
+	});
+	return found;
+}
+
 describe("preview links", () => {
 	it.each([
 		true,
@@ -116,6 +127,97 @@ describe("image attribute parsing", () => {
 		expect(roundTrip("![photo](https://example.com/img.png)")).toBe(
 			"![photo](https://example.com/img.png)",
 		);
+	});
+});
+
+describe("math", () => {
+	it("reads $...$ as inline math and writes it back", () => {
+		const editor = createEditor("Euler: $e^{i\\pi} + 1 = 0$.");
+		try {
+			expect(mathNodes(editor)).toEqual([
+				{ type: "inlineMath", latex: "e^{i\\pi} + 1 = 0" },
+			]);
+		} finally {
+			editor.destroy();
+		}
+		expect(roundTrip("Euler: $e^{i\\pi} + 1 = 0$.")).toBe(
+			"Euler: $e^{i\\pi} + 1 = 0$.",
+		);
+	});
+
+	it("reads $$...$$ as block math and writes it back", () => {
+		const editor = createEditor("$$\n\\int_0^1 x\\,dx = \\frac{1}{2}\n$$");
+		try {
+			expect(mathNodes(editor)).toEqual([
+				{ type: "blockMath", latex: "\\int_0^1 x\\,dx = \\frac{1}{2}" },
+			]);
+		} finally {
+			editor.destroy();
+		}
+		expect(roundTrip("$$\n\\int_0^1 x\\,dx = \\frac{1}{2}\n$$")).toBe(
+			"$$\n\\int_0^1 x\\,dx = \\frac{1}{2}\n$$",
+		);
+	});
+
+	it("leaves currency alone", () => {
+		const editor = createEditor("It costs $5 and $10 today.");
+		try {
+			expect(mathNodes(editor)).toEqual([]);
+		} finally {
+			editor.destroy();
+		}
+		expect(roundTrip("It costs $5 and $10 today.")).toBe(
+			"It costs $5 and $10 today.",
+		);
+	});
+
+	it("leaves a currency range alone", () => {
+		const editor = createEditor("Costs $5-$10 today.");
+		try {
+			expect(mathNodes(editor)).toEqual([]);
+		} finally {
+			editor.destroy();
+		}
+		expect(roundTrip("Costs $5-$10 today.")).toBe("Costs $5-$10 today.");
+	});
+
+	it("keeps the text after a same-line display delimiter", () => {
+		const editor = createEditor("$$x$$ and text");
+		try {
+			expect(editor.state.doc.textContent).toContain("and text");
+		} finally {
+			editor.destroy();
+		}
+		expect(roundTrip("$$x$$ and text")).toBe("$$x$$ and text");
+	});
+
+	it("keeps the text after a later-line display delimiter", () => {
+		const markdown = "$$\nx\n$$ and text";
+		const editor = createEditor(markdown);
+		try {
+			expect(mathNodes(editor)).toEqual([]);
+		} finally {
+			editor.destroy();
+		}
+		// The trailing words used to be consumed with the closing line. Soft
+		// breaks in a paragraph collapse to spaces on the way out, so the pin
+		// is that the words survive, not the exact bytes.
+		expect(roundTrip(markdown)).toBe("$$ x $$ and text");
+	});
+
+	it("mounts the math node views instead of the raw delimiters", () => {
+		// KaTeX's own rendering is left to the extension, whose node views
+		// depend on happy-dom globals another test file may have registered
+		// first, so only the wiring is pinned here.
+		const editor = createEditor("$x^2$ and\n\n$$\n\\frac{1}{2}\n$$");
+		try {
+			const dom = editor.view.dom;
+			expect(dom.querySelectorAll('[data-type="inline-math"]').length).toBe(1);
+			expect(dom.querySelectorAll('[data-type="block-math"]').length).toBe(1);
+			expect(dom.textContent ?? "").not.toContain("$");
+		} finally {
+			editor.destroy();
+		}
 	});
 });
 
