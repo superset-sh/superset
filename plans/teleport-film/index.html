@@ -125,7 +125,7 @@
   </head>
   <body class="auto">
     <div class="wrap">
-      <p class="eyebrow">Workspace teleport · recorded in the dev app</p>
+      <p class="eyebrow">Workspace teleport · recorded in the dev app and across two sandboxes</p>
       <h1>Teleport, filmed</h1>
       <p class="lede">
         A screen recording of the real Superset desktop app: right-click a
@@ -175,6 +175,43 @@
           </p>
         </div>
       </div>
+
+      <h2>Machine → cloud, inside the app</h2>
+      <p class="body">
+        The dev desktop app, screen-recorded over CDP: a local workspace is
+        teleported to a brand-new cloud sandbox from the same dialog. The
+        capture travels as a ref on origin (the sandbox clones origin anyway),
+        the sandbox is created through the cloud API, and the restore runs as
+        a terminal command in the sandbox — the recording ends on that
+        terminal, inside the app, showing the restore's own result line.
+      </p>
+      <video controls playsinline preload="metadata" poster="poster-cloud-app.jpg">
+        <source src="teleport-cloud-app.mp4" type="video/mp4" />
+      </video>
+      <p class="cap">
+        One continuous <code>Page.startScreencast</code> of the running
+        Electron renderer, driven by real mouse input. Nothing rendered,
+        nothing staged.
+      </p>
+      <pre id="cloud-app-result">CLOUD_APP_RESULT_PLACEHOLDER</pre>
+
+      <h2>The matrix</h2>
+      <div class="scroll">
+      <table>
+        <thead><tr><th>Direction</th><th>Destination created by</th><th>Transport</th><th>Restore runs as</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>machine → machine</td><td>host <code>workspaces.create</code></td><td>relay-direct (<code>filesystem.readFile/writeFile</code>) or hidden ref</td><td><code>teleport.restore</code></td><td>wired; needs two machines to film</td></tr>
+          <tr><td>machine → cloud</td><td>cloud API (<code>cloudWorkspace.create</code>)</td><td>hidden ref on origin</td><td>agent prompt until a host-service release carries <code>teleport.restore</code></td><td>same path as cloud → cloud</td></tr>
+          <tr><td>cloud → machine</td><td>host <code>workspaces.create</code> from a signed-in client</td><td>hidden ref on origin</td><td><code>teleport.restore</code> or the four git commands</td><td>ref pushed; arrival command handed over</td></tr>
+          <tr><td>cloud → cloud</td><td>cloud API via <code>superset ws create</code></td><td>hidden ref on origin</td><td>agent prompt</td><td><strong>recorded above</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="body">
+        The one rule that makes every row work today: the destination needs
+        nothing new. A capture is ordinary git objects behind an ordinary ref,
+        and any checkout that can reach origin can take it.
+      </p>
 
       <h2>What in this is real</h2>
       <p class="body">

@@ -4,9 +4,12 @@ import {
 	derivePaneDisposition,
 } from "@superset/shared/teleport";
 import { runTeleport } from "@superset/shared/teleport-driver";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useRef, useState } from "react";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { createCloudTeleportOperations } from "./hooks/useTeleport/createCloudTeleportOperations";
 import { createTeleportOperations } from "./hooks/useTeleport/createTeleportOperations";
 import { TeleportDialog } from "./TeleportDialog";
 import type { TeleportDestination, TeleportRunState } from "./types";
@@ -41,6 +44,11 @@ export function TeleportDialogContainer({
 	// The same resolver the sidebar's other cross-host actions use, so a
 	// teleport addresses a host exactly the way a delete or an open does.
 	const { cache: hostCache } = useHostWorkspaces();
+	const organizationId = useActiveOrganizationId();
+	const navigate = useNavigate();
+	const [cloudDestinationId, setCloudDestinationId] = useState<string | null>(
+		null,
+	);
 	const [plan, setPlan] = useState<TeleportPlan | null>(null);
 	const [run, setRun] = useState<TeleportRunState>(EMPTY_RUN);
 	const planRequest = useRef(0);
@@ -87,6 +95,25 @@ export function TeleportDialogContainer({
 					}),
 				}));
 
+			if (host.kind === "cloud") {
+				// A sandbox is new by construction: nothing to diverge from,
+				// and it clones the repository before anything else.
+				if (request !== planRequest.current) return;
+				setPlan(
+					buildTeleportPlan({
+						branch,
+						destinationHostName: host.name,
+						destinationHasRepository: false,
+						workingTree: sourceState.workingTree,
+						tabs:
+							panes.length > 0
+								? [{ tabId: "panes", title: "Panes", panes }]
+								: [],
+					}),
+				);
+				return;
+			}
+
 			// The destination's own view: does it have the branch, is it
 			// checked out, has it diverged. Refusals come from the source,
 			// which is the only side that can say what it contains.
@@ -124,10 +151,40 @@ export function TeleportDialogContainer({
 	const start = useCallback(
 		async (host: TeleportDestination) => {
 			setRun({ steps: {}, error: null });
-			const destinationUrl = hostUrlFor(host.id);
-			if (!destinationUrl || !sourceHostUrl || !plan) return;
-
+			if (!sourceHostUrl || !plan) return;
 			const source = getHostServiceClientByUrl(sourceHostUrl);
+
+			if (host.kind === "cloud") {
+				if (!organizationId) return;
+				const bindings = await source.terminalAgents.listByWorkspace
+					.query({ workspaceId })
+					.catch(() => []);
+				await runTeleport(
+					createCloudTeleportOperations({
+						source,
+						sourceWorkspaceId: workspaceId,
+						organizationId,
+						branch: plan.branch,
+						workspaceName: workspaceLabel,
+						sourceTerminalIds: bindings
+							.filter((binding) => !binding.endedAt)
+							.map((binding) => binding.terminalId),
+						agentByTerminalId: Object.fromEntries(
+							bindings.map((binding) => [binding.terminalId, binding.agentId]),
+						),
+						onDestinationCreated: setCloudDestinationId,
+					}),
+					({ step, state, error }) =>
+						setRun((previous) => ({
+							steps: { ...previous.steps, [step]: state },
+							error: error ?? previous.error,
+						})),
+				);
+				return;
+			}
+
+			const destinationUrl = hostUrlFor(host.id);
+			if (!destinationUrl) return;
 			const destination = getHostServiceClientByUrl(destinationUrl);
 			const sourceState = await source.teleport.sourceState.query({
 				workspaceId,
@@ -177,7 +234,14 @@ export function TeleportDialogContainer({
 					})),
 			);
 		},
-		[workspaceId, sourceHostUrl, hostUrlFor, plan],
+		[
+			workspaceId,
+			sourceHostUrl,
+			hostUrlFor,
+			plan,
+			organizationId,
+			workspaceLabel,
+		],
 	);
 
 	return (
@@ -188,6 +252,7 @@ export function TeleportDialogContainer({
 					planRequest.current++;
 					setPlan(null);
 					setRun(EMPTY_RUN);
+					setCloudDestinationId(null);
 				}
 				onOpenChange(next);
 			}}
@@ -196,7 +261,15 @@ export function TeleportDialogContainer({
 			run={run}
 			onDestinationChosen={loadPlan}
 			onConfirm={start}
-			onOpenThere={() => onOpenChange(false)}
+			onOpenThere={() => {
+				if (cloudDestinationId) {
+					void navigate({
+						to: "/cloud-workspaces/$workspaceId",
+						params: { workspaceId: cloudDestinationId },
+					});
+				}
+				onOpenChange(false);
+			}}
 		/>
 	);
 }

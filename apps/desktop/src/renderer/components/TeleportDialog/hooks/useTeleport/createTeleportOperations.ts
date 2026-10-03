@@ -1,5 +1,6 @@
 import type { TeleportOperations } from "@superset/shared/teleport-driver";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
+import { collectHandoffContext } from "./handoff-context";
 
 /**
  * Bind the driver to two real host-service clients.
@@ -52,21 +53,16 @@ export function createTeleportOperations({
 	launchAgent,
 }: CreateTeleportOperationsInput): TeleportOperations {
 	/** Context carried per terminal, gathered before anything is captured. */
-	const carried = new Map<string, string>();
+	let carried = new Map<string, string>();
 	let bundleBase64: string | null = null;
 
 	return {
 		askAgentsForHandoff: async () => {
-			// `terminal.transcript` is the existing handoff path: it prefers
-			// the harness's own transcript and falls back to the sanitized PTY
-			// stream, so it works for any agent and for plain shells too.
-			for (const terminalId of sourceTerminalIds) {
-				const transcript = await source.terminal.transcript
-					.query({ workspaceId: sourceWorkspaceId, terminalId })
-					.catch(() => null);
-				const text = transcript?.text?.trim();
-				if (text) carried.set(terminalId, text);
-			}
+			carried = await collectHandoffContext(
+				source,
+				sourceWorkspaceId,
+				sourceTerminalIds,
+			);
 		},
 
 		capture: async () => {

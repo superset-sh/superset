@@ -12,11 +12,14 @@ export type TeleportPhase =
 	| { kind: "done"; host: TeleportDestination }
 	| { kind: "failed"; host: TeleportDestination; step: TeleportStepId };
 
-export interface TeleportDestination {
-	id: string;
-	name: string;
-	isOnline: boolean;
-}
+/**
+ * Where a workspace can go: a host someone owns, or a new cloud sandbox.
+ * The two take different paths on the way in (host `workspaces.create` vs
+ * the cloud API) and the dialog keeps them apart from the first click.
+ */
+export type TeleportDestination =
+	| { kind: "host"; id: string; name: string; isOnline: boolean }
+	| { kind: "cloud"; id: "cloud"; name: string };
 
 export type TeleportStepState = "pending" | "running" | "done" | "failed";
 

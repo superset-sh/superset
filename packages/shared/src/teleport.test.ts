@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+	ARRIVAL_MARKER,
+	buildArrivalCommand,
 	buildTeleportPlan,
 	derivePaneDisposition,
 	type TabPlan,
@@ -162,5 +164,38 @@ describe("derivePaneDisposition", () => {
 				foregroundCommand: null,
 			}),
 		).toEqual({ kind: "shell-opens" });
+	});
+});
+
+describe("buildArrivalCommand", () => {
+	test("fetches, lands on the branch at the capture base, restores both trees", () => {
+		const cmd = buildArrivalCommand(
+			"refs/superset/teleport/w1",
+			"feature/login",
+		);
+		expect(cmd).toContain(
+			"git fetch -q origin 'refs/superset/teleport/w1:refs/superset/teleport/w1'",
+		);
+		expect(cmd).toContain(
+			"git checkout -q -B 'feature/login' 'refs/superset/teleport/w1~2'",
+		);
+		expect(cmd.indexOf("read-tree -m -u HEAD")).toBeLessThan(
+			cmd.indexOf("read-tree 'refs/superset/teleport/w1^'"),
+		);
+		expect(cmd).toContain("TELEPORT_RESTORED");
+	});
+
+	test("quotes a branch name that contains a single quote", () => {
+		expect(buildArrivalCommand("refs/superset/teleport/w1", "it's")).toContain(
+			`'it'\\''s'`,
+		);
+	});
+
+	test("the marker regex reads back what the command prints", () => {
+		const m = "TELEPORT_RESTORED 86 files on feature/login @ b8c5ad7".match(
+			ARRIVAL_MARKER,
+		);
+		expect(m?.[1]).toBe("86");
+		expect(m?.[2]).toBe("feature/login");
 	});
 });

@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { TeleportDialogContainer } from "renderer/components/TeleportDialog/TeleportDialogContainer";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import {
@@ -26,7 +27,6 @@ import {
 	DashboardSidebarWorkspaceBulkContextMenu,
 	useWorkspaceRowContextMenu,
 } from "./components/DashboardSidebarWorkspaceBulkContextMenu";
-import { TeleportDialogContainer } from "renderer/components/TeleportDialog/TeleportDialogContainer";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
@@ -254,15 +254,15 @@ export function DashboardSidebarWorkspaceItem({
 
 		return (
 			<>
-			{isTeleportOpen && (
-				<TeleportDialogContainer
-					open={isTeleportOpen}
-					onOpenChange={setIsTeleportOpen}
-					workspaceId={id}
-					workspaceLabel={name}
-					sourceHostId={workspace.hostId}
-				/>
-			)}
+				{isTeleportOpen && (
+					<TeleportDialogContainer
+						open={isTeleportOpen}
+						onOpenChange={setIsTeleportOpen}
+						workspaceId={id}
+						workspaceLabel={name}
+						sourceHostId={workspace.hostId}
+					/>
+				)}
 				<div>
 					{isPending ? (
 						content
@@ -352,15 +352,15 @@ export function DashboardSidebarWorkspaceItem({
 
 	return (
 		<>
-		{isTeleportOpen && (
-			<TeleportDialogContainer
-				open={isTeleportOpen}
-				onOpenChange={setIsTeleportOpen}
-				workspaceId={id}
-				workspaceLabel={name}
-				sourceHostId={workspace.hostId}
-			/>
-		)}
+			{isTeleportOpen && (
+				<TeleportDialogContainer
+					open={isTeleportOpen}
+					onOpenChange={setIsTeleportOpen}
+					workspaceId={id}
+					workspaceLabel={name}
+					sourceHostId={workspace.hostId}
+				/>
+			)}
 			<div>
 				{isPending ? (
 					expandedContent
@@ -380,9 +380,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
-						onTeleport={
-							canTeleport ? () => setIsTeleportOpen(true) : undefined
-						}
+						onTeleport={canTeleport ? () => setIsTeleportOpen(true) : undefined}
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}

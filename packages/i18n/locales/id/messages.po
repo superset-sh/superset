@@ -246,6 +246,10 @@ msgstr "{0, plural, other {# terminal berjalan}}"
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {# panggilan alat} other {# panggilan alat}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, other {# commit belum dipush}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0} terpasang"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} sudah ditetapkan untuk \"{1}\"."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} sudah di-checkout di {hostName}."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, other {Lihat # balasan lagi}}"
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # frame lagi}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} memiliki commit di {0} yang tidak ada di perangkat ini."
+
 msgid "{hostName} is offline"
 msgstr "{hostName} sedang offline"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}m"
 
 msgid "{minutes}m ago"
 msgstr "{minutes}m lalu"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, other {# diubah}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ untuk membuat"
@@ -1016,6 +1031,9 @@ msgstr "{plugin} belum memiliki klien OAuth yang dikonfigurasi di deployment ini
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} sudah tidak terpasang."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, other {# berkas env}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} direset ke setelan bawaan"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {# workspace} other {# workspace}}"
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {# file berubah} other {# file berubah}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, other {# tidak terlacak}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel} dipulihkan ke setelan bawaan"
@@ -2101,6 +2122,9 @@ msgstr "Sudah punya akun? <0>Masuk</0>"
 msgid "Already in tasks"
 msgstr "Sudah ada di tugas"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "Sudah ada di {hostName} · cukup fetch"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Tersedia juga sebagai CommandDialog untuk palet ⌘K"
 
@@ -2446,6 +2470,10 @@ msgstr "Minta perubahan"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "Minta perubahan, @mention file, jalankan /command"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "Meminta catatan serah terima dari agen"
 
 msgid "Aspect Ratio"
 msgstr "Aspect Ratio"
@@ -3219,6 +3247,10 @@ msgstr "Permukaan markdown kanonik untuk output agen, komentar, dan dokumentasi"
 msgid "Capabilities"
 msgstr "Kemampuan"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "Menangkap commit dan perubahan"
+
 msgid "Card"
 msgstr "Kartu"
 
@@ -3388,6 +3420,9 @@ msgstr "Periksa kotak masuk Anda"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "Memeriksa {hostName} dan program yang berjalan…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "Giro + tabungan + Treasury dari waktu ke waktu; tranche penggalangan dana adalah lonjakannya"
@@ -3648,6 +3683,9 @@ msgstr "Klon, push, dan buat PR."
 msgid "Cloned to {0}"
 msgstr "Di-clone ke {0}"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "Mengklon repositori di {hostName} terlebih dahulu"
+
 msgid "Cloning…"
 msgstr "Meng-clone…"
 
@@ -3713,6 +3751,10 @@ msgstr "Tutup latar modal"
 
 msgid "Close or delete the current workspace"
 msgstr "Tutup atau hapus workspace saat ini"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "Tutup atau alihkan ruang kerja di sana, lalu coba lagi. Jalurnya adalah {0}."
 
 msgid "Close other apps using the microphone"
 msgstr "Tutup aplikasi lain yang memakai mikrofon"
@@ -4105,6 +4147,9 @@ msgstr "Hubungkan akun"
 
 msgid "Connect another account"
 msgstr "Hubungkan akun lain"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "Hubungkan perangkat lain untuk meneleportasi ruang kerja ini ke sana."
 
 msgid "Connect any AI agent to Superset."
 msgstr "Hubungkan agen AI mana pun ke Superset."
@@ -5191,6 +5236,10 @@ msgstr "Membuat sesi: {name}"
 
 msgid "Creating the sandbox"
 msgstr "Membuat sandbox"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "Membuat worktree di sana"
 
 msgid "Creating workspace"
 msgstr "Membuat workspace"
@@ -7740,6 +7789,12 @@ msgstr "Separuh perubahan yang di-merge adalah kode agen tanpa suntingan"
 msgid "Handle"
 msgstr "Handle"
 
+msgid "hands off & resumes"
+msgstr "serah terima & lanjut"
+
+msgid "hands off & starts fresh"
+msgstr "serah terima & mulai baru"
+
 msgid "Happened"
 msgstr "Sudah terjadi"
 
@@ -9935,6 +9990,9 @@ msgstr "Push baru ke branch"
 msgid "New releases and product updates."
 msgstr "Rilis baru dan pembaruan produk."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "Sandbox baru · pekerjaan tiba melalui origin"
+
 msgid "New session"
 msgstr "Sesi baru"
 
@@ -10756,6 +10814,9 @@ msgstr "Tidak ada yang perlu dicoba ulang"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Belum ada yang dipublikasikan dalam 30 hari terakhir. Peringkat Anda muncul setelah penggunaan dari mesin ini tersinkron, dipublikasikan sebagai <0>{handle}</0>."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "Tidak ada perubahan belum di-commit — hanya cabang yang berpindah"
+
 msgid "Nothing was missed"
 msgstr "Tidak ada yang terlewat"
 
@@ -10837,6 +10898,9 @@ msgstr "offline"
 
 msgid "Offline"
 msgstr "Offline"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "Luring · akan dihubungi saat aktif kembali"
 
 msgid "Offline / local-first mode"
 msgstr "Mode offline / local-first"
@@ -11255,6 +11319,9 @@ msgstr "Buka menu"
 msgid "Open navigation"
 msgstr "Buka navigasi"
 
+msgid "Open on {hostName}"
+msgstr "Buka di {hostName}"
+
 msgid "Open on GitHub"
 msgstr "Buka di GitHub"
 
@@ -11428,6 +11495,9 @@ msgstr "Membuka worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Membuka workspace cloud tempat agen memasang yang dibutuhkan proyek dan menulis .superset/config.json miliknya"
+
+msgid "opens empty"
+msgstr "terbuka kosong"
 
 msgid "Operator"
 msgstr "Operator"
@@ -12650,6 +12720,10 @@ msgstr "Rebase & Merge"
 msgid "Rebase and merge"
 msgstr "Rebase dan merge"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "Membangun ulang tab"
+
 msgid "Recent Activity"
 msgstr "Aktivitas Terbaru"
 
@@ -13041,6 +13115,9 @@ msgstr "Balas thread…"
 msgid "repo"
 msgstr "repo"
 
+msgid "Repo"
+msgstr "Repositori"
+
 msgid "Report"
 msgstr "Laporkan"
 
@@ -13272,6 +13349,9 @@ msgstr "Memulai ulang layanan host…"
 msgid "Restarting…"
 msgstr "Memulai ulang…"
 
+msgid "restarts"
+msgstr "dimulai ulang"
+
 msgid "Restore"
 msgstr "Pulihkan"
 
@@ -13305,6 +13385,10 @@ msgstr "\"{name}\" dipulihkan"
 
 msgid "Restored \"{projectName}\""
 msgstr "\"{projectName}\" dipulihkan"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "Memulihkan perubahan"
 
 msgid "Restoring your session"
 msgstr "Memulihkan sesi Anda"
@@ -13558,6 +13642,9 @@ msgstr "Jalankan ini di terminal pada host ini dan tempel kunci Anda saat dimint
 msgid "Run in a terminal on this host:"
 msgstr "Jalankan ini di terminal pada host ini:"
 
+msgid "Run in background"
+msgstr "Jalankan di latar belakang"
+
 msgid "Run in Workspace"
 msgstr "Jalankan di Workspace"
 
@@ -13624,6 +13711,10 @@ msgstr "Berjalan di perangkat yang dipasangkan"
 msgid "Running on this device"
 msgstr "Berjalan di perangkat ini"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "Menjalankan skrip penyiapan"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Proses terminal yang berjalan tetap lanjut, tapi output lama mungkin tidak tersedia lagi setelah aplikasi dimulai ulang."
 
@@ -13647,6 +13738,9 @@ msgstr "Dijalankan saat ruang kerja baru dibuat."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Dijalankan saat ruang kerja dihapus."
+
+msgid "Safe to close — this continues in the background"
+msgstr "Aman ditutup — proses berlanjut di latar belakang"
 
 msgid "Same version as this app."
 msgstr "Versi yang sama dengan aplikasi ini."
@@ -14380,6 +14474,9 @@ msgstr "Setup"
 
 msgid "Setup script"
 msgstr "Skrip setup"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "Skrip penyiapan berjalan setelah tiba. Ruang kerja ini tetap di sini, berhenti, sampai Anda menghapusnya."
 
 msgid "Sexual content"
 msgstr "Konten seksual"
@@ -15165,6 +15262,10 @@ msgstr "Memulai {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Memulai workspace cloud"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "Memulai program"
+
 msgid "Starting the agent…"
 msgstr "Memulai agen…"
 
@@ -15252,6 +15353,10 @@ msgstr "Hentikan perintah run workspace"
 
 msgid "stopped"
 msgstr "berhenti"
+
+msgctxt "teleport step"
+msgid "Stopping the source"
+msgstr "Menghentikan sumber"
 
 msgid "Strikethrough"
 msgstr "Coret"
@@ -15819,6 +15924,19 @@ msgstr "Teardown dihentikan oleh sinyal {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown kehabisan waktu setelah {seconds}d"
+
+msgid "Teleport"
+msgstr "Teleportasi"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "Teleportasi ke {0}"
+
+msgid "Teleport…"
+msgstr "Teleportasi…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "Teleportasi akan mengubur commit itu. Lakukan pull dari {hostName} dulu, atau teleportasi ke arah sebaliknya."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Minta agen mana pun memakai CLI <0>superset</0> untuk menjalankan workspace, run tugas, atau mengelola otomatisasi."

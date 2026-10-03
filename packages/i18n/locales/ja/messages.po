@@ -246,6 +246,10 @@ msgstr "{0, plural, other {ターミナル # 個が実行中}}"
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {#件のツール呼び出し} other {#件のツール呼び出し}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, other {未プッシュのコミット # 件}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0}をインストールしました"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}はすでに「{1}」に割り当てられています。"
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} は {hostName} で既にチェックアウトされています。"
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, other {他 # 件の返信を表示}}"
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other {さらに#件のフレームを表示}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} には、このデバイスにない {0} のコミットがあります。"
+
 msgid "{hostName} is offline"
 msgstr "{hostName}はオフラインです"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}分"
 
 msgid "{minutes}m ago"
 msgstr "{minutes}分前"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, other {変更 # 件}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵で作成"
@@ -1016,6 +1031,9 @@ msgstr "{plugin} の OAuth クライアントはこのデプロイにまだ設�
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} はインストールされていません。"
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, other {env ファイル # 件}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}をデフォルトに戻しました"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {#件のワークスペース} other {
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {#件のファイルが変更されました} other {#件のファイルが変更されました}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, other {未追跡 # 件}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel}をデフォルトに復元しました"
@@ -2101,6 +2122,9 @@ msgstr "すでにアカウントをお持ちですか?<0>サインイン</0>"
 msgid "Already in tasks"
 msgstr "すでにタスクにあります"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "{hostName} に既にあります · フェッチのみ"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘Kパレット向けにCommandDialogとしても利用できます"
 
@@ -2446,6 +2470,10 @@ msgstr "変更を依頼"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "変更を依頼、@でファイルをメンション、/でコマンドを実行"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "エージェントに引き継ぎメモを依頼中"
 
 msgid "Aspect Ratio"
 msgstr "Aspect Ratio"
@@ -3219,6 +3247,10 @@ msgstr "エージェント出力・コメント・ドキュメント向けの標
 msgid "Capabilities"
 msgstr "できること"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "コミットと変更を取得中"
+
 msgid "Card"
 msgstr "カード"
 
@@ -3388,6 +3420,9 @@ msgstr "受信トレイを確認してください"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "{hostName} と実行中のプログラムを確認しています…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "当座+普通+Treasuryの推移。段差は資金調達のトランシェ"
@@ -3648,6 +3683,9 @@ msgstr "クローン、プッシュ、PRの作成。"
 msgid "Cloned to {0}"
 msgstr "{0}にクローンしました"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "最初に {hostName} にリポジトリをクローンします"
+
 msgid "Cloning…"
 msgstr "クローン中…"
 
@@ -3713,6 +3751,10 @@ msgstr "モーダルの背景を閉じる"
 
 msgid "Close or delete the current workspace"
 msgstr "現在のワークスペースを閉じるか削除する"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "向こうのワークスペースを閉じるか切り替えてから、もう一度お試しください。パスは {0} です。"
 
 msgid "Close other apps using the microphone"
 msgstr "マイクを使用中の他のアプリを閉じてください"
@@ -4105,6 +4147,9 @@ msgstr "アカウントを接続"
 
 msgid "Connect another account"
 msgstr "別のアカウントを接続"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "このワークスペースをテレポートするには、別のデバイスを接続してください。"
 
 msgid "Connect any AI agent to Superset."
 msgstr "どのAIエージェントでもSupersetに接続。"
@@ -5191,6 +5236,10 @@ msgstr "セッションを作成中: {name}"
 
 msgid "Creating the sandbox"
 msgstr "サンドボックスを作成中"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "向こうでワークツリーを作成中"
 
 msgid "Creating workspace"
 msgstr "ワークスペースを作成中"
@@ -7740,6 +7789,12 @@ msgstr "マージされた変更の半分が編集ゼロのエージェントの
 msgid "Handle"
 msgstr "ハンドル"
 
+msgid "hands off & resumes"
+msgstr "引き継いで再開"
+
+msgid "hands off & starts fresh"
+msgstr "引き継いで新規開始"
+
 msgid "Happened"
 msgstr "実現済み"
 
@@ -9935,6 +9990,9 @@ msgstr "ブランチへの新規プッシュ"
 msgid "New releases and product updates."
 msgstr "新しいリリースと製品アップデート。"
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "新しいサンドボックス · 作業は origin 経由で届きます"
+
 msgid "New session"
 msgstr "新規セッション"
 
@@ -10756,6 +10814,9 @@ msgstr "再実行が必要なものはありません"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "直近30日に公開された実績はまだありません。このマシンの利用状況が同期されるとランクが表示されます(<0>{handle}</0>として公開)。"
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "未コミットの変更はありません — ブランチだけが移動します"
+
 msgid "Nothing was missed"
 msgstr "未実行はありません"
 
@@ -10837,6 +10898,9 @@ msgstr "オフライン"
 
 msgid "Offline"
 msgstr "オフライン"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "オフライン · 起動時に接続します"
 
 msgid "Offline / local-first mode"
 msgstr "オフライン/ローカルファーストモード"
@@ -11255,6 +11319,9 @@ msgstr "メニューを開く"
 msgid "Open navigation"
 msgstr "ナビゲーションを開く"
 
+msgid "Open on {hostName}"
+msgstr "{hostName} で開く"
+
 msgid "Open on GitHub"
 msgstr "GitHubで開く"
 
@@ -11428,6 +11495,9 @@ msgstr "ワークツリーを開いています..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "クラウドワークスペースを開き、エージェントがプロジェクトに必要なものをインストールして .superset/config.json を書き込みます"
+
+msgid "opens empty"
+msgstr "空で開く"
 
 msgid "Operator"
 msgstr "オペレーター"
@@ -12650,6 +12720,10 @@ msgstr "リベースしてマージ"
 msgid "Rebase and merge"
 msgstr "リベースしてマージ"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "タブを再構築中"
+
 msgid "Recent Activity"
 msgstr "最近のアクティビティ"
 
@@ -13041,6 +13115,9 @@ msgstr "スレッドに返信…"
 msgid "repo"
 msgstr "リポジトリ"
 
+msgid "Repo"
+msgstr "リポジトリ"
+
 msgid "Report"
 msgstr "報告"
 
@@ -13272,6 +13349,9 @@ msgstr "ホストサービスを再起動中…"
 msgid "Restarting…"
 msgstr "再起動中…"
 
+msgid "restarts"
+msgstr "再起動"
+
 msgid "Restore"
 msgstr "復元"
 
@@ -13305,6 +13385,10 @@ msgstr "「{name}」を復元しました"
 
 msgid "Restored \"{projectName}\""
 msgstr "「{projectName}」を復元しました"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "変更を復元中"
 
 msgid "Restoring your session"
 msgstr "セッションを復元中"
@@ -13558,6 +13642,9 @@ msgstr "このホストのターミナルで実行し、求められたらキー
 msgid "Run in a terminal on this host:"
 msgstr "このホストのターミナルで実行してください:"
 
+msgid "Run in background"
+msgstr "バックグラウンドで実行"
+
 msgid "Run in Workspace"
 msgstr "ワークスペースで実行"
 
@@ -13624,6 +13711,10 @@ msgstr "ペアリング済みデバイスで実行中"
 msgid "Running on this device"
 msgstr "このデバイスで実行中"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "セットアップスクリプトを実行中"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "実行中のターミナルプロセスは継続しますが、アプリ再起動後に古い出力が利用できなくなる場合があります。"
 
@@ -13647,6 +13738,9 @@ msgstr "新しいワークスペースの作成時に実行します。"
 
 msgid "Runs when a workspace is deleted."
 msgstr "ワークスペースの削除時に実行します。"
+
+msgid "Safe to close — this continues in the background"
+msgstr "閉じても大丈夫です — バックグラウンドで続行します"
 
 msgid "Same version as this app."
 msgstr "このアプリと同じバージョンです。"
@@ -14380,6 +14474,9 @@ msgstr "セットアップ"
 
 msgid "Setup script"
 msgstr "セットアップスクリプト"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "到着後にセットアップスクリプトが実行されます。このワークスペースは削除するまで停止した状態でここに残ります。"
 
 msgid "Sexual content"
 msgstr "性的なコンテンツ"
@@ -15165,6 +15262,10 @@ msgstr "{agentLabel}を起動中"
 msgid "Starting cloud workspace"
 msgstr "クラウドワークスペースを開始中"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "プログラムを起動中"
+
 msgid "Starting the agent…"
 msgstr "エージェントを起動しています…"
 
@@ -15252,6 +15353,10 @@ msgstr "ワークスペースの実行コマンドを停止"
 
 msgid "stopped"
 msgstr "停止"
+
+msgctxt "teleport step"
+msgid "Stopping the source"
+msgstr "移動元を停止中"
 
 msgid "Strikethrough"
 msgstr "取り消し線"
@@ -15819,6 +15924,19 @@ msgstr "ティアダウンがシグナル{signal}で終了しました"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "ティアダウンが{seconds}秒でタイムアウトしました"
+
+msgid "Teleport"
+msgstr "テレポート"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "{0} にテレポート"
+
+msgid "Teleport…"
+msgstr "テレポート…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "テレポートするとそれらが埋もれます。先に {hostName} からプルするか、逆方向にテレポートしてください。"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "任意のエージェントに<0>superset</0> CLIを使わせて、ワークスペースの作成、タスクの実行、オートメーションの管理ができます。"

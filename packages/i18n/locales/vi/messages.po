@@ -246,6 +246,10 @@ msgstr "{0, plural, other {# terminal đang chạy}}"
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {# lệnh gọi công cụ} other {# lệnh gọi công cụ}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, other {# commit chưa đẩy}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "Đã cài {0}"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} đã được gán cho \"{1}\"."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} đã được checkout trên {hostName}."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, other {Xem thêm # phản hồi}}"
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Hiện thêm # frame} other {Hiện thêm # frame}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} có các commit trên {0} mà thiết bị này không có."
+
 msgid "{hostName} is offline"
 msgstr "{hostName} đang ngoại tuyến"
 
@@ -943,6 +955,9 @@ msgstr "{minutes} phút"
 
 msgid "{minutes}m ago"
 msgstr "{minutes} phút trước"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, other {# tệp đã sửa}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ để tạo"
@@ -1016,6 +1031,9 @@ msgstr "{plugin} chưa được cấu hình ứng dụng khách OAuth trên bả
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} không còn được cài đặt."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, other {# tệp env}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "Đã đặt lại {presetLabel} về mặc định"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {# workspace} other {# workspace}}"
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {# tệp thay đổi} other {# tệp thay đổi}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, other {# tệp chưa theo dõi}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "Đã khôi phục {updatedLabel} về mặc định"
@@ -2101,6 +2122,9 @@ msgstr "Đã có tài khoản? <0>Đăng nhập</0>"
 msgid "Already in tasks"
 msgstr "Đã có trong tác vụ"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "Đã có trên {hostName} · chỉ cần fetch"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Cũng có dưới dạng CommandDialog cho bảng lệnh ⌘K"
 
@@ -2446,6 +2470,10 @@ msgstr "Yêu cầu thay đổi"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "Yêu cầu thay đổi, @nhắc đến tệp, chạy /commands"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "Đang yêu cầu tác nhân ghi chú bàn giao"
 
 msgid "Aspect Ratio"
 msgstr "Aspect Ratio"
@@ -3219,6 +3247,10 @@ msgstr "Bề mặt markdown chuẩn cho kết quả agent, bình luận và tài
 msgid "Capabilities"
 msgstr "Khả năng"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "Đang thu thập commit và thay đổi"
+
 msgid "Card"
 msgstr "Thẻ"
 
@@ -3388,6 +3420,9 @@ msgstr "Kiểm tra hộp thư"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Checkbox · Radio · Switch"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "Đang kiểm tra {hostName} và các chương trình đang chạy…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "Tài khoản thanh toán + tiết kiệm + Treasury theo thời gian; các bậc là những đợt gọi vốn"
@@ -3648,6 +3683,9 @@ msgstr "Sao chép, đẩy và tạo PR."
 msgid "Cloned to {0}"
 msgstr "Đã clone vào {0}"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "Sẽ sao chép kho lưu trữ trên {hostName} trước"
+
 msgid "Cloning…"
 msgstr "Đang clone…"
 
@@ -3713,6 +3751,10 @@ msgstr "Đóng nền hộp thoại"
 
 msgid "Close or delete the current workspace"
 msgstr "Đóng hoặc xóa workspace hiện tại"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "Hãy đóng hoặc chuyển không gian làm việc ở đó rồi thử lại. Đường dẫn của nó là {0}."
 
 msgid "Close other apps using the microphone"
 msgstr "Đóng các ứng dụng khác đang dùng micro"
@@ -4105,6 +4147,9 @@ msgstr "Kết nối tài khoản"
 
 msgid "Connect another account"
 msgstr "Kết nối tài khoản khác"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "Kết nối một thiết bị khác để dịch chuyển không gian làm việc này tới đó."
 
 msgid "Connect any AI agent to Superset."
 msgstr "Kết nối mọi agent AI với Superset."
@@ -5191,6 +5236,10 @@ msgstr "Đang tạo phiên: {name}"
 
 msgid "Creating the sandbox"
 msgstr "Đang tạo sandbox"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "Đang tạo worktree ở đó"
 
 msgid "Creating workspace"
 msgstr "Đang tạo workspace"
@@ -7740,6 +7789,12 @@ msgstr "Một nửa thay đổi được merge là code agent không cần chỉ
 msgid "Handle"
 msgstr "Tên hiển thị"
 
+msgid "hands off & resumes"
+msgstr "bàn giao & tiếp tục"
+
+msgid "hands off & starts fresh"
+msgstr "bàn giao & bắt đầu lại"
+
 msgid "Happened"
 msgstr "Đã xảy ra"
 
@@ -9935,6 +9990,9 @@ msgstr "Push mới lên nhánh"
 msgid "New releases and product updates."
 msgstr "Các bản phát hành mới và cập nhật sản phẩm."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "Sandbox mới · công việc đến qua origin"
+
 msgid "New session"
 msgstr "Phiên mới"
 
@@ -10756,6 +10814,9 @@ msgstr "Không có gì cần chạy lại"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Chưa có gì được công khai trong 30 ngày qua. Thứ hạng của bạn sẽ xuất hiện khi dữ liệu sử dụng từ máy này đồng bộ, công khai dưới tên <0>{handle}</0>."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "Không có thay đổi chưa commit — chỉ nhánh được chuyển"
+
 msgid "Nothing was missed"
 msgstr "Không có lần chạy nào bị bỏ lỡ"
 
@@ -10837,6 +10898,9 @@ msgstr "ngoại tuyến"
 
 msgid "Offline"
 msgstr "Ngoại tuyến"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "Ngoại tuyến · sẽ kết nối khi thiết bị thức dậy"
 
 msgid "Offline / local-first mode"
 msgstr "Chế độ ngoại tuyến / ưu tiên cục bộ"
@@ -11255,6 +11319,9 @@ msgstr "Mở menu"
 msgid "Open navigation"
 msgstr "Mở điều hướng"
 
+msgid "Open on {hostName}"
+msgstr "Mở trên {hostName}"
+
 msgid "Open on GitHub"
 msgstr "Mở trên GitHub"
 
@@ -11428,6 +11495,9 @@ msgstr "Đang mở worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Mở một workspace cloud để agent cài đặt những gì dự án cần và ghi .superset/config.json của nó"
+
+msgid "opens empty"
+msgstr "mở trống"
 
 msgid "Operator"
 msgstr "Người vận hành"
@@ -12650,6 +12720,10 @@ msgstr "Rebase & merge"
 msgid "Rebase and merge"
 msgstr "Rebase và merge"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "Đang dựng lại các thẻ"
+
 msgid "Recent Activity"
 msgstr "Hoạt động gần đây"
 
@@ -13041,6 +13115,9 @@ msgstr "Trả lời luồng…"
 msgid "repo"
 msgstr "repo"
 
+msgid "Repo"
+msgstr "Kho lưu trữ"
+
 msgid "Report"
 msgstr "Báo cáo"
 
@@ -13272,6 +13349,9 @@ msgstr "Đang khởi động lại dịch vụ host…"
 msgid "Restarting…"
 msgstr "Đang khởi động lại…"
 
+msgid "restarts"
+msgstr "khởi động lại"
+
 msgid "Restore"
 msgstr "Khôi phục"
 
@@ -13305,6 +13385,10 @@ msgstr "Đã khôi phục \"{name}\""
 
 msgid "Restored \"{projectName}\""
 msgstr "Đã khôi phục \"{projectName}\""
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "Đang khôi phục thay đổi"
 
 msgid "Restoring your session"
 msgstr "Đang khôi phục phiên của bạn"
@@ -13558,6 +13642,9 @@ msgstr "Chạy lệnh này trong terminal trên host này và dán khóa khi đ�
 msgid "Run in a terminal on this host:"
 msgstr "Chạy lệnh này trong terminal trên host này:"
 
+msgid "Run in background"
+msgstr "Chạy nền"
+
 msgid "Run in Workspace"
 msgstr "Chạy trong workspace"
 
@@ -13624,6 +13711,10 @@ msgstr "Đang chạy trên thiết bị đã ghép nối"
 msgid "Running on this device"
 msgstr "Đang chạy trên thiết bị này"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "Đang chạy tập lệnh thiết lập"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Các tiến trình terminal đang chạy vẫn tiếp tục, nhưng kết quả cũ có thể không còn sau khi khởi động lại ứng dụng."
 
@@ -13647,6 +13738,9 @@ msgstr "Chạy khi tạo không gian làm việc mới."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Chạy khi xóa không gian làm việc."
+
+msgid "Safe to close — this continues in the background"
+msgstr "Có thể đóng — tiến trình tiếp tục chạy nền"
 
 msgid "Same version as this app."
 msgstr "Cùng phiên bản với ứng dụng này."
@@ -14380,6 +14474,9 @@ msgstr "Thiết lập"
 
 msgid "Setup script"
 msgstr "Script thiết lập"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "Các tập lệnh thiết lập sẽ chạy khi đến nơi. Không gian làm việc này vẫn ở đây, đã dừng, cho đến khi bạn xóa nó."
 
 msgid "Sexual content"
 msgstr "Nội dung tình dục"
@@ -15165,6 +15262,10 @@ msgstr "Đang khởi động {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Đang khởi động workspace trên cloud"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "Đang khởi động chương trình"
+
 msgid "Starting the agent…"
 msgstr "Đang khởi động tác nhân…"
 
@@ -15252,6 +15353,10 @@ msgstr "Dừng lệnh chạy của workspace"
 
 msgid "stopped"
 msgstr "đã dừng"
+
+msgctxt "teleport step"
+msgid "Stopping the source"
+msgstr "Đang dừng nguồn"
 
 msgid "Strikethrough"
 msgstr "Gạch ngang"
@@ -15819,6 +15924,19 @@ msgstr "Teardown bị kết thúc bởi tín hiệu {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown quá thời gian sau {seconds}s"
+
+msgid "Teleport"
+msgstr "Dịch chuyển"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "Dịch chuyển tới {0}"
+
+msgid "Teleport…"
+msgstr "Dịch chuyển…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "Việc dịch chuyển sẽ chôn vùi chúng. Hãy pull từ {hostName} trước, hoặc dịch chuyển theo chiều ngược lại."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Bảo bất kỳ agent nào dùng CLI <0>superset</0> để tạo workspace, chạy tác vụ hoặc quản lý tự động hóa."
