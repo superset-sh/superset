@@ -13627,6 +13627,9 @@ msgstr "Działa na tym urządzeniu"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Działające procesy terminala nie zostaną przerwane, ale starsze wyjście może być niedostępne po ponownym uruchomieniu aplikacji."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Uruchomione obszary robocze używają zmian w nowych terminalach. Uruchom ponownie obszar roboczy, aby zastosować je do już otwartych terminali i agentów."
+
 msgid "Runs a local command on your machine"
 msgstr "Uruchamia lokalne polecenie na Twojej maszynie"
 

@@ -291,6 +291,28 @@ export async function applySandboxPolicy(args: {
 	return "applied";
 }
 
+/** Replaces a running box's managed environment. Wakes nothing; a stopped box gets it on wake. */
+export async function pushManagedEnvIfRunning(args: {
+	providerSandboxId: string;
+	claim: SandboxClaim;
+}): Promise<"applied" | "not-running"> {
+	const sandbox = await Sandbox.get({
+		...credentials(),
+		name: args.providerSandboxId,
+		resume: false,
+	}).catch((error: unknown) => {
+		if (isNotFound(error)) return null;
+		throw error;
+	});
+	if (!sandbox || sandbox.status !== "running") return "not-running";
+	await pushManagedEnv(
+		sandbox.domain(HOST_SERVICE_PORT),
+		args.claim.hostSecret,
+		args.claim.managedEnv,
+	);
+	return "applied";
+}
+
 /** The sandbox's addresses and whether a session is running, waking nothing. */
 export async function describeSandbox(providerSandboxId: string): Promise<{
 	hostTarget: string;

@@ -13627,6 +13627,9 @@ msgstr "Draait op dit apparaat"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Draaiende terminalprocessen gaan door, maar oudere uitvoer is na het herstarten van de app mogelijk niet meer beschikbaar."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Actieve werkruimten gebruiken wijzigingen in nieuwe terminals. Herstart een werkruimte om ze toe te passen op terminals en agents die al open zijn."
+
 msgid "Runs a local command on your machine"
 msgstr "Voert een lokaal commando uit op je machine"
 

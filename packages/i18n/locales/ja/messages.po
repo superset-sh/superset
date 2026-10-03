@@ -13627,6 +13627,9 @@ msgstr "このデバイスで実行中"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "実行中のターミナルプロセスは継続しますが、アプリ再起動後に古い出力が利用できなくなる場合があります。"
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "実行中のワークスペースでは、変更は新しいターミナルに適用されます。すでに開いているターミナルとエージェントに適用するには、ワークスペースを再起動してください。"
+
 msgid "Runs a local command on your machine"
 msgstr "マシン上でローカルコマンドを実行します"
 

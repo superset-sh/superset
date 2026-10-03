@@ -13627,6 +13627,9 @@ msgstr "Bu cihazda çalışıyor"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Çalışan terminal süreçleri devam eder, ancak uygulama yeniden başlatıldıktan sonra eski çıktı artık kullanılamayabilir."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Çalışan çalışma alanları değişiklikleri yeni terminallerde kullanır. Zaten açık olan terminallere ve ajanlara uygulamak için çalışma alanını yeniden başlatın."
+
 msgid "Runs a local command on your machine"
 msgstr "Makinenizde yerel bir komut çalıştırır"
 

@@ -10,8 +10,21 @@ import { and, asc, eq, ne, sql, sum } from "drizzle-orm";
 import { z } from "zod";
 import { assertCloudAccess } from "../../../lib/cloud-guards";
 import { jwtProcedure, userError } from "../../../trpc";
+import { queueEnvironmentPush } from "../../cloud-workspace/push-environment";
 import { loadEnvironment, secretOwnerOrganizationId } from "../environment";
 import { decryptSecret, encryptSecret } from "./utils/crypto";
+
+async function pushToRunningWorkspaces(
+	environmentId: string,
+	organizationId: string,
+): Promise<void> {
+	// The next wake pushes the change anyway, so a failed queue must not fail the save.
+	await queueEnvironmentPush({ environmentId, organizationId }).catch(
+		(error) => {
+			console.error("[environment/secrets] queue push failed", error);
+		},
+	);
+}
 
 export const secretsRouter = {
 	list: jwtProcedure
@@ -179,6 +192,7 @@ export const secretsRouter = {
 						sensitive: input.sensitive,
 					},
 				});
+			await pushToRunningWorkspaces(input.environmentId, organizationId);
 			return { key: input.key };
 		}),
 
@@ -202,6 +216,7 @@ export const secretsRouter = {
 						eq(environmentSecrets.key, input.key),
 					),
 				);
+			await pushToRunningWorkspaces(input.environmentId, organizationId);
 			return { removed: true };
 		}),
 } satisfies TRPCRouterRecord;

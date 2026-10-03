@@ -13627,6 +13627,9 @@ msgstr "Running on this device"
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Running terminal processes continue, but older output may no longer be available after restarting the app."
 
+msgid "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+msgstr "Running workspaces use changes in new terminals. Restart a workspace to apply them to terminals and agents that are already open."
+
 msgid "Runs a local command on your machine"
 msgstr "Runs a local command on your machine"
 

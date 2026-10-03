@@ -194,6 +194,9 @@ boot, host-service holds them in memory (`sandbox-managed-env`) and
 terminals and agent launches inherit the pushed set; open terminals keep the
 one they started with; nothing is written to disk. A host-service restart
 comes up with an empty set until the next push, which every wake performs.
+Saving or removing a variable also queues a push to every running box on that
+environment (`queueEnvironmentPush`), so a change does not wait for the next
+wake. A stopped box is not woken; it gets the change on its next wake.
 
 **Agent CLIs are pre-configured in the image.** A first run otherwise opens a
 theme picker, an API-key approval and a workspace trust dialog — three

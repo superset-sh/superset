@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useCallback, useState } from "react";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
@@ -51,6 +52,13 @@ export function EnvironmentSecrets({
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Variables set on every sandbox started from this environment.
+					</p>
+					<p className="text-sm text-muted-foreground">
+						<Trans>
+							Running workspaces use changes in new terminals. Restart a
+							workspace to apply them to terminals and agents that are already
+							open.
+						</Trans>
 					</p>
 				</div>
 			</div>
