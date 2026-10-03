@@ -260,7 +260,7 @@
 		"@sentry/vite-plugin": "5.4.0",
 		"@storybook/react-vite": "10.4.2",
 		"@superset/typescript": "workspace:*",
-		"@tailwindcss/vite": "4.2.2",
+		"@tailwindcss/vite": "4.3.3",
 		"@tanstack/router-cli": "1.167.17",
 		"@tanstack/router-plugin": "1.168.18",
 		"@testing-library/dom": "10.4.1",
