@@ -14,9 +14,11 @@ import {
 	resolveAmbientCodexHome,
 } from "@superset/agent-setup";
 import type { HostDb } from "../../../db/index.ts";
+import { projects } from "../../../db/schema.ts";
 import {
 	getDefaultAccountSelections,
 	syncDefaultAccountPointers,
+	syncWorkspaceAccountPins,
 } from "./default-account.ts";
 import {
 	shareClaudeSessionState,
@@ -46,27 +48,47 @@ export async function provisionCodexAccount(codexHome: string): Promise<void> {
 
 /**
  * Re-shares the default account's config into whichever profiles are
- * currently selected. Runs at host boot so a profile keeps up with skills,
- * plugins, and settings added since it was selected, and so one provisioned
- * by an older build — or by a switch that failed halfway — is repaired
- * before the next agent launches on it.
+ * currently selected, host-wide or by a project. Runs at host boot so a
+ * profile keeps up with skills, plugins, and settings added since it was
+ * selected, and so one provisioned by an older build — or by a switch that
+ * failed halfway — is repaired before the next agent launches on it.
  */
 export async function provisionSelectedAccounts(db: HostDb): Promise<void> {
 	// Heal the wrapper pointer files first — a build predating them (or a
 	// crashed switch) leaves agents launching on a stale spawn-time default.
 	syncDefaultAccountPointers(db);
-	const { claudeConfigDir, codexHome } = getDefaultAccountSelections(db);
-	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
-	// A pointer at a vanished dir is skipped, not recreated: agent launches
-	// already fall back to the system-default login in that case.
-	if (claudeConfigDir && existsSync(claudeConfigDir)) {
-		targets.push([
-			claudeConfigDir,
-			() => provisionClaudeAccount(claudeConfigDir),
-		]);
+	try {
+		syncWorkspaceAccountPins(db);
+	} catch (error) {
+		console.warn(
+			"[host-service] syncing workspace account pins failed:",
+			error,
+		);
 	}
-	if (codexHome && existsSync(codexHome)) {
-		targets.push([codexHome, () => provisionCodexAccount(codexHome)]);
+	const selections = [
+		getDefaultAccountSelections(db),
+		...db
+			.select({
+				claudeConfigDir: projects.claudeConfigDir,
+				codexHome: projects.codexHome,
+			})
+			.from(projects)
+			.all(),
+	];
+	const claudeDirs = new Set(selections.map((s) => s.claudeConfigDir));
+	const codexHomes = new Set(selections.map((s) => s.codexHome));
+	const targets: Array<readonly [string, () => Promise<unknown>]> = [];
+	// A selection at a vanished dir is skipped, not recreated: agent launches
+	// already fall back to another login in that case.
+	for (const dir of claudeDirs) {
+		if (dir && existsSync(dir)) {
+			targets.push([dir, () => provisionClaudeAccount(dir)]);
+		}
+	}
+	for (const dir of codexHomes) {
+		if (dir && existsSync(dir)) {
+			targets.push([dir, () => provisionCodexAccount(dir)]);
+		}
 	}
 	for (const [dir, provision] of targets) {
 		try {

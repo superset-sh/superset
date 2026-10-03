@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { hostAgentConfigs } from "../db/schema";
-import { resolveDefaultAccountEnv } from "../trpc/router/usage/default-account";
+import { resolveAccountEnv } from "../trpc/router/usage/default-account";
 
 export interface ResolvedHostAgentConfig {
 	id: string;
@@ -93,14 +93,18 @@ export function resolveHostAgentConfig(
 }
 
 /**
- * The account env an agent config launches under. The Usage tab's default
- * account supplies `CLAUDE_CONFIG_DIR` / `CODEX_HOME`, and per-agent env
- * wins, so a "Claude (work)" agent with its own config dir stays pinned.
+ * The account env an agent config launches under. The project's pinned
+ * account, else the Usage tab's default, supplies `CLAUDE_CONFIG_DIR` /
+ * `CODEX_HOME`, and per-agent env wins, so a "Claude (work)" agent with its own config dir stays pinned.
  * Anything that reads the agent's session store must look where this points.
  */
 export function agentLaunchEnv(
 	db: HostDb,
 	config: Pick<ResolvedHostAgentConfig, "presetId" | "env">,
+	workspaceId: string | null,
 ): Record<string, string> {
-	return { ...resolveDefaultAccountEnv(db, config.presetId), ...config.env };
+	return {
+		...resolveAccountEnv(db, config.presetId, workspaceId),
+		...config.env,
+	};
 }

@@ -1519,6 +1519,9 @@ msgstr "Cài đặt lên tài khoản chỉ xử lý manifest nội bộ, nên {
 msgid "Account is pending deletion."
 msgstr "Tài khoản đang chờ xóa."
 
+msgid "Account not found: {pinned}"
+msgstr "Không tìm thấy tài khoản: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Tài khoản đang chờ xóa"
 
@@ -1800,6 +1803,9 @@ msgstr "So với main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent accounts"
+msgstr "Tài khoản agent"
 
 msgid "Agent commands"
 msgstr "Lệnh của agent"
@@ -5384,6 +5390,10 @@ msgstr "Mặc định"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Mặc định ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Mặc định ({defaultWorktreePath})"
 
@@ -6977,6 +6987,9 @@ msgstr "Không thể chuyển tổ chức. Vui lòng thử lại."
 
 msgid "Failed to trigger run"
 msgstr "Không thể kích hoạt lần chạy"
+
+msgid "Failed to update agent account"
+msgstr "Không thể cập nhật tài khoản agent"
 
 msgid "Failed to update agent settings"
 msgstr "Không thể cập nhật cài đặt agent"
@@ -13712,6 +13725,9 @@ msgstr "Đã lưu \"{0}\" thành một environment"
 msgid "Saved to Downloads"
 msgstr "Đã lưu vào Downloads"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Đã lưu, nhưng các terminal đang mở vẫn dùng tài khoản hiện tại cho đến khi mở lại."
+
 msgid "Saving as an environment..."
 msgstr "Đang lưu làm môi trường..."
 
@@ -15650,6 +15666,9 @@ msgstr "Đang đồng bộ..."
 
 msgid "System"
 msgstr "Hệ thống"
+
+msgid "System login"
+msgstr "Đăng nhập hệ thống"
 
 msgid "System memory"
 msgstr "Bộ nhớ hệ thống"
@@ -17902,6 +17921,9 @@ msgstr "Những agent nào được hỗ trợ?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Những coding agent AI nào được hỗ trợ?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Tài khoản đăng nhập mà agent dùng trong dự án này. Mặc định là tài khoản đã chọn trong Mức sử dụng."
 
 msgid "Who can open this page from its link"
 msgstr "Ai có thể mở trang này từ liên kết của nó"

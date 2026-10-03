@@ -1519,6 +1519,9 @@ msgstr "Hesaba kurulum yalnızca birinci taraf manifestlerini çözer, bu yüzde
 msgid "Account is pending deletion."
 msgstr "Hesap silinmeyi bekliyor."
 
+msgid "Account not found: {pinned}"
+msgstr "Hesap bulunamadı: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Hesap silinmeyi bekliyor"
 
@@ -1800,6 +1803,9 @@ msgstr "main ile karşılaştır"
 
 msgid "Agent"
 msgstr "Ajan"
+
+msgid "Agent accounts"
+msgstr "Ajan hesapları"
 
 msgid "Agent commands"
 msgstr "Ajan komutları"
@@ -5384,6 +5390,10 @@ msgstr "Varsayılan"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Varsayılan ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Varsayılan ({defaultWorktreePath})"
 
@@ -6977,6 +6987,9 @@ msgstr "Kuruluş değiştirilemedi. Lütfen yeniden deneyin."
 
 msgid "Failed to trigger run"
 msgstr "Çalıştırma tetiklenemedi"
+
+msgid "Failed to update agent account"
+msgstr "Ajan hesabı güncellenemedi"
 
 msgid "Failed to update agent settings"
 msgstr "Ajan ayarları güncellenemedi"
@@ -13712,6 +13725,9 @@ msgstr "\"{0}\" ortam olarak kaydedildi"
 msgid "Saved to Downloads"
 msgstr "İndirilenler klasörüne kaydedildi"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Kaydedildi, ancak açık terminaller yeniden açılana kadar mevcut hesaplarını korur."
+
 msgid "Saving as an environment..."
 msgstr "Ortam olarak kaydediliyor..."
 
@@ -15650,6 +15666,9 @@ msgstr "Eşitleniyor..."
 
 msgid "System"
 msgstr "Sistem"
+
+msgid "System login"
+msgstr "Sistem oturumu"
 
 msgid "System memory"
 msgstr "Sistem belleği"
@@ -17902,6 +17921,9 @@ msgstr "Hangi ajanlar destekleniyor?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Hangi AI kodlama ajanları destekleniyor?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Bu projedeki ajanların kullandığı oturum. Varsayılan olarak Kullanım'da seçilen hesap kullanılır."
 
 msgid "Who can open this page from its link"
 msgstr "Bu sayfayı bağlantısından kimlerin açabileceği"

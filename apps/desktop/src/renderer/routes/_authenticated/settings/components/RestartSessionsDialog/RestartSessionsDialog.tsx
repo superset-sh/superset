@@ -14,7 +14,7 @@ export interface RestartSessionsPrompt {
 	agent: "claude" | "codex";
 	/** "Claude Code" / "Codex". */
 	providerLabel: string;
-	/** The account just made default, as shown on its card. */
+	/** The account agents move to, as shown on its card. */
 	accountLabel: string;
 	/** Running agent sessions the restart would relaunch. */
 	count: number;
@@ -29,11 +29,11 @@ interface RestartSessionsDialogProps {
 }
 
 /**
- * Post-switch ask from the Usage tab: running agents keep the previous
- * account until relaunched, so offer to restart them now. Confirming kills
- * each session crash-style and auto-resume brings it back with the same
- * conversation on the new account, so the confirm button is deliberately
- * not styled destructive.
+ * Post-switch ask after a default or project account change: running agents
+ * keep the previous account until relaunched, so offer to restart them now.
+ * Confirming kills each session crash-style and auto-resume brings it back
+ * with the same conversation on the new account, so the confirm button is
+ * deliberately not styled destructive.
  */
 export function RestartSessionsDialog({
 	prompt,

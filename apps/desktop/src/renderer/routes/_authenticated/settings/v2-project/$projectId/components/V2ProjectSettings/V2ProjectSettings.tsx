@@ -9,6 +9,7 @@ import {
 } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useHostUsageQuota } from "renderer/hooks/host-service/useHostUsageQuota";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
@@ -19,6 +20,7 @@ import {
 } from "../../../../components/HostSelect";
 import { SettingsRow } from "../../../../components/SettingsRow";
 import { SettingsSection } from "../../../../components/SettingsSection";
+import { AgentAccountSection } from "./components/AgentAccountSection";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
@@ -117,6 +119,22 @@ export function V2ProjectSettings({
 			return client.project.get.query({ projectId });
 		},
 	});
+	const { data: usageAccounts = [], isSuccess: usageAccountsLoaded } =
+		useHostUsageQuota(targetHostUrl);
+	const agentAccounts = [
+		{ agent: "claude" as const, label: "Claude Code" },
+		{ agent: "codex" as const, label: "Codex" },
+	]
+		.map((item) => ({
+			...item,
+			accounts: usageAccounts.filter((account) => account.agent === item.agent),
+			pinned:
+				(item.agent === "claude"
+					? hostProject?.claudeConfigDir
+					: hostProject?.codexHome) ?? null,
+		}))
+		.filter((item) => item.accounts.length > 1 || item.pinned !== null);
+
 	// External renames land on the merged fan-out item via project:changed;
 	// re-pull the targeted host's row so host-sourced fields (Name) follow.
 	const mergedUpdatedAt = project?.updatedAt;
@@ -279,6 +297,36 @@ export function V2ProjectSettings({
 						/>
 					)}
 				</SettingsSection>
+
+				{targetHostUrl &&
+					hostProject &&
+					usageAccountsLoaded &&
+					agentAccounts.length > 0 && (
+						<SettingsSection
+							title={t({ message: "Agent accounts" })}
+							description={t({
+								message:
+									"Which login agents use in this project. Defaults to the account chosen in Usage.",
+							})}
+						>
+							{agentAccounts.map((item) => (
+								<SettingsRow
+									key={item.agent}
+									label={item.label}
+									htmlFor={`project-${item.agent}-account`}
+								>
+									<AgentAccountSection
+										projectId={projectId}
+										hostUrl={targetHostUrl}
+										agent={item.agent}
+										accounts={item.accounts}
+										pinned={item.pinned}
+										onChanged={() => refetchHostProject()}
+									/>
+								</SettingsRow>
+							))}
+						</SettingsSection>
+					)}
 
 				<SettingsSection
 					title={t({

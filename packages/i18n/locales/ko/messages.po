@@ -1519,6 +1519,9 @@ msgstr "계정 설치는 자체 매니페스트만 해석하므로 {marketplace}
 msgid "Account is pending deletion."
 msgstr "계정이 삭제 대기 중입니다."
 
+msgid "Account not found: {pinned}"
+msgstr "계정을 찾을 수 없음: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "삭제 예정 계정"
 
@@ -1800,6 +1803,9 @@ msgstr "main 기준"
 
 msgid "Agent"
 msgstr "에이전트"
+
+msgid "Agent accounts"
+msgstr "에이전트 계정"
 
 msgid "Agent commands"
 msgstr "에이전트 명령"
@@ -5384,6 +5390,10 @@ msgstr "기본값"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "기본값 ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "기본값({defaultWorktreePath})"
 
@@ -6977,6 +6987,9 @@ msgstr "조직을 전환하지 못했습니다. 다시 시도해 주세요."
 
 msgid "Failed to trigger run"
 msgstr "실행을 시작하지 못했습니다"
+
+msgid "Failed to update agent account"
+msgstr "에이전트 계정을 업데이트하지 못했습니다"
 
 msgid "Failed to update agent settings"
 msgstr "에이전트 설정을 업데이트하지 못했습니다"
@@ -13712,6 +13725,9 @@ msgstr "\"{0}\"을(를) 환경으로 저장했습니다"
 msgid "Saved to Downloads"
 msgstr "다운로드 폴더에 저장했습니다"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "저장했지만 열려 있는 터미널은 다시 열 때까지 현재 계정을 유지합니다."
+
 msgid "Saving as an environment..."
 msgstr "환경으로 저장하는 중..."
 
@@ -15650,6 +15666,9 @@ msgstr "동기화하는 중..."
 
 msgid "System"
 msgstr "시스템"
+
+msgid "System login"
+msgstr "시스템 로그인"
 
 msgid "System memory"
 msgstr "시스템 메모리"
@@ -17902,6 +17921,9 @@ msgstr "어떤 에이전트를 지원하나요?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "어떤 AI 코딩 에이전트를 지원하나요?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "이 프로젝트에서 에이전트가 사용할 로그인입니다. 기본값은 사용량에서 선택한 계정입니다."
 
 msgid "Who can open this page from its link"
 msgstr "링크로 이 페이지를 열 수 있는 사람"

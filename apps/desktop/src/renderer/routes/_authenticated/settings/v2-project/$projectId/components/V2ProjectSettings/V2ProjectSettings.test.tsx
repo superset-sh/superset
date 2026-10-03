@@ -64,6 +64,9 @@ mock.module("renderer/hooks/host-projects/useHostProjects", () => ({
 mock.module("renderer/hooks/host-service/useHostTargetUrl", () => ({
 	useHostUrl: () => "http://127.0.0.1:7777",
 }));
+mock.module("renderer/hooks/host-service/useHostUsageQuota", () => ({
+	useHostUsageQuota: () => ({ data: [] }),
+}));
 mock.module("renderer/lib/host-service-client", () => ({
 	getHostServiceClientByUrl: () => ({}),
 }));

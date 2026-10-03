@@ -38,16 +38,18 @@ import {
 	formatResetIn,
 	formatResetLabel,
 } from "renderer/utils/usage/formatResetIn";
+import {
+	RestartSessionsDialog,
+	type RestartSessionsPrompt,
+} from "../../../components/RestartSessionsDialog";
+import { useRestartAgentSessions } from "../../../hooks/useRestartAgentSessions";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
-import { useRestartAgentSessions } from "../../hooks/useRestartAgentSessions";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
 import { LeaderboardCard } from "../LeaderboardCard";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
-import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
-import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
 import { API_BILLING_LINKS } from "./utils/apiBilling";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 import type { ManagedAgent, QuotaAgent } from "./utils/visibleQuotaAgents";

@@ -1519,6 +1519,9 @@ msgstr "Account install resolves first-party manifests only, so {plugin} from {m
 msgid "Account is pending deletion."
 msgstr "Account is pending deletion."
 
+msgid "Account not found: {pinned}"
+msgstr "Account not found: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Account pending deletion"
 
@@ -1800,6 +1803,9 @@ msgstr "Against Main"
 
 msgid "Agent"
 msgstr "Agent"
+
+msgid "Agent accounts"
+msgstr "Agent accounts"
 
 msgid "Agent commands"
 msgstr "Agent commands"
@@ -5384,6 +5390,10 @@ msgstr "Default"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Default ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Default ({defaultWorktreePath})"
 
@@ -6977,6 +6987,9 @@ msgstr "Failed to switch organization. Please try again."
 
 msgid "Failed to trigger run"
 msgstr "Failed to trigger run"
+
+msgid "Failed to update agent account"
+msgstr "Failed to update agent account"
 
 msgid "Failed to update agent settings"
 msgstr "Failed to update agent settings"
@@ -13712,6 +13725,9 @@ msgstr "Saved \"{0}\" as an environment"
 msgid "Saved to Downloads"
 msgstr "Saved to Downloads"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Saved, but open terminals keep their current account until reopened."
+
 msgid "Saving as an environment..."
 msgstr "Saving as an environment..."
 
@@ -15650,6 +15666,9 @@ msgstr "Syncing..."
 
 msgid "System"
 msgstr "System"
+
+msgid "System login"
+msgstr "System login"
 
 msgid "System memory"
 msgstr "System memory"
@@ -17902,6 +17921,9 @@ msgstr "Which agents are supported?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Which AI coding agents are supported?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Which login agents use in this project. Defaults to the account chosen in Usage."
 
 msgid "Who can open this page from its link"
 msgstr "Who can open this page from its link"

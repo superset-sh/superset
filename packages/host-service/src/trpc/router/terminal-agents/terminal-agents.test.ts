@@ -7,8 +7,10 @@ import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
 import {
 	hostAgentConfigs,
+	projects,
 	terminalAgentBindings,
 	terminalSessions,
+	workspaces,
 } from "../../../db/schema";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -392,20 +394,21 @@ function seedLiveBinding(
 		agentId = "claude" as TerminalAgentId,
 		agentSessionId = `sess-${terminalId}` as string | null,
 		lastEventType = "Stop",
+		workspaceId = "ws-1",
 	} = {},
 ) {
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
 			status: "active",
-			originWorkspaceId: "ws-1",
+			originWorkspaceId: workspaceId,
 			createdAt: 1,
 		})
 		.run();
 	db.insert(terminalAgentBindings)
 		.values({
 			terminalId,
-			workspaceId: "ws-1",
+			workspaceId,
 			agentId,
 			agentSessionId,
 			startedAt: 1,
@@ -503,6 +506,37 @@ describe("listAccountRestartCandidates", () => {
 			{ terminalId: "t-attached", agentLabel: "Claude" },
 			{ terminalId: "t-claude", agentLabel: "Claude" },
 		]);
+	});
+
+	it("with a project, lists only that project's sessions, pinned or not", () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		db.insert(projects)
+			.values([
+				{ id: "p-1", name: "one", repoPath: "/r1", claudeConfigDir: "" },
+				{ id: "p-2", name: "two", repoPath: "/r2" },
+			])
+			.run();
+		db.insert(workspaces)
+			.values([
+				{ id: "ws-1", projectId: "p-1", worktreePath: "/w1", branch: "a" },
+				{ id: "ws-2", projectId: "p-2", worktreePath: "/w2", branch: "b" },
+			])
+			.run();
+		seedLiveBinding(db, { terminalId: "t-p1" });
+		seedLiveBinding(db, { terminalId: "t-p2", workspaceId: "ws-2" });
+		const store = createStore(db);
+
+		expect(
+			listAccountRestartCandidates(db, store, "claude", "p-1").map(
+				({ binding }) => binding.terminalId,
+			),
+		).toEqual(["t-p1"]);
+		expect(
+			listAccountRestartCandidates(db, store, "claude").map(
+				({ binding }) => binding.terminalId,
+			),
+		).toEqual(["t-p2"]);
 	});
 
 	it("skips sessions whose config cannot resume", () => {

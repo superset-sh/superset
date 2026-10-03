@@ -1519,6 +1519,9 @@ msgstr "L'installazione sull'account risolve solo i manifest interni, quindi {pl
 msgid "Account is pending deletion."
 msgstr "L'account è in attesa di eliminazione."
 
+msgid "Account not found: {pinned}"
+msgstr "Account non trovato: {pinned}"
+
 msgid "Account pending deletion"
 msgstr "Account in attesa di eliminazione"
 
@@ -1800,6 +1803,9 @@ msgstr "Rispetto a main"
 
 msgid "Agent"
 msgstr "Agente"
+
+msgid "Agent accounts"
+msgstr "Account degli agenti"
 
 msgid "Agent commands"
 msgstr "Comandi degli agenti"
@@ -5384,6 +5390,10 @@ msgstr "Predefinito"
 msgid "default · secondary · outline · ghost · link · destructive"
 msgstr "default · secondary · outline · ghost · link · destructive"
 
+#. placeholder {0}: label(hostDefault)
+msgid "Default ({0})"
+msgstr "Predefinito ({0})"
+
 msgid "Default ({defaultWorktreePath})"
 msgstr "Predefinita ({defaultWorktreePath})"
 
@@ -6977,6 +6987,9 @@ msgstr "Cambio di organizzazione non riuscito. Riprova."
 
 msgid "Failed to trigger run"
 msgstr "Avvio dell'esecuzione non riuscito"
+
+msgid "Failed to update agent account"
+msgstr "Impossibile aggiornare l'account dell'agente"
 
 msgid "Failed to update agent settings"
 msgstr "Aggiornamento delle impostazioni dell'agente non riuscito"
@@ -13712,6 +13725,9 @@ msgstr "\"{0}\" salvato come ambiente"
 msgid "Saved to Downloads"
 msgstr "Salvata in Download"
 
+msgid "Saved, but open terminals keep their current account until reopened."
+msgstr "Salvato, ma i terminali aperti mantengono l'account attuale finché non vengono riaperti."
+
 msgid "Saving as an environment..."
 msgstr "Salvataggio come ambiente..."
 
@@ -15650,6 +15666,9 @@ msgstr "Sincronizzazione..."
 
 msgid "System"
 msgstr "Sistema"
+
+msgid "System login"
+msgstr "Accesso di sistema"
 
 msgid "System memory"
 msgstr "Memoria di sistema"
@@ -17902,6 +17921,9 @@ msgstr "Quali agenti sono supportati?"
 
 msgid "Which AI coding agents are supported?"
 msgstr "Quali agenti di programmazione AI sono supportati?"
+
+msgid "Which login agents use in this project. Defaults to the account chosen in Usage."
+msgstr "Quale login usano gli agenti in questo progetto. Predefinito: l'account scelto in Utilizzo."
 
 msgid "Who can open this page from its link"
 msgstr "Chi può aprire questa pagina dal suo link"
