@@ -6,6 +6,7 @@ import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persi
 import {
 	defaultShouldDehydrateQuery,
 	focusManager,
+	type Query,
 	QueryClient,
 } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -102,6 +103,17 @@ const PERSIST_KEY_PREFIXES = new Set([
 // and the cloud workspace list, so the Cloud section draws before it does.
 const PERSIST_TRPC_PATHS = new Set(["host.roster", "cloudWorkspace.list"]);
 
+/**
+ * A host query whose late retry rejected after its URL went null sits in
+ * "error" with its last payload still in `data`; that payload is what the
+ * sidebar renders through the outage, and dropping it from the persisted
+ * cache would boot the next session without it.
+ */
+function shouldDehydrateHostQuery(query: Query): boolean {
+	if (defaultShouldDehydrateQuery(query)) return true;
+	return query.state.status === "error" && query.state.data !== undefined;
+}
+
 export function ElectronTRPCProvider({
 	children,
 }: {
@@ -121,7 +133,7 @@ export function ElectronTRPCProvider({
 						buster: PERSIST_BUSTER,
 						dehydrateOptions: {
 							shouldDehydrateQuery: (query) => {
-								if (!defaultShouldDehydrateQuery(query)) return false;
+								if (!shouldDehydrateHostQuery(query)) return false;
 								const head = query.queryKey[0];
 								if (typeof head === "string") {
 									return PERSIST_KEY_PREFIXES.has(head);

@@ -108,7 +108,8 @@ export function DashboardSidebarWorkspaceIcon({
 
 	return (
 		<>
-			{isCreatePending || workspaceStatus === "working" ? (
+			{isCreatePending ||
+			(workspaceStatus === "working" && !isRemoteDeviceOffline) ? (
 				<AsciiSpinner className="text-base" />
 			) : (
 				renderPrimaryIcon()
