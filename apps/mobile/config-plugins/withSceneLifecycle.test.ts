@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { rewriteAppDelegate, SCENE_DELEGATE } from "./withSceneLifecycle";
@@ -50,6 +50,20 @@ describe("withSceneLifecycle", () => {
 			rewriteAppDelegate(TEMPLATE.replace("UIScreen.main.bounds", "x")),
 		).toThrow(/no longer matches/);
 	});
+
+	test("still fails loudly when a changed template declares launchOptions", () => {
+		const drifted = TEMPLATE.replace(
+			"  var reactNativeFactory: RCTReactNativeFactory?\n",
+			"  var reactNativeFactory: RCTReactNativeFactory?\n  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?\n",
+		).replace("UIScreen.main.bounds", "x");
+		expect(() => rewriteAppDelegate(drifted)).toThrow(/no longer matches/);
+	});
+
+	test("starts React Native once per process, reattaching on reconnect", () => {
+		expect(SCENE_DELEGATE).toMatch(
+			/if let previous = appDelegate\.window, let root = previous\.rootViewController \{[\s\S]*?window\.rootViewController = root[\s\S]*?return\n\s*\}\n\n\s*appDelegate\.window = window\n\s*factory\.startReactNative\(/,
+		);
+	});
 });
 
 /**
@@ -78,15 +92,20 @@ function nativeSource(pkg: string, file: string, from?: string): string {
 // that rebuild to the keys the readers actually look up, so a wrong key
 // cannot silently drop a cold-start link.
 describe("withSceneLifecycle cold-launch options", () => {
-	const linking = nativeSource(
-		"react-native",
-		"Libraries/LinkingIOS/RCTLinkingManager.mm",
-	);
-	const devLauncher = nativeSource(
-		"expo-dev-launcher",
-		"ios/EXDevLauncherController.m",
-		dirname(require.resolve("expo-dev-client/package.json")),
-	);
+	// Read lazily, so a missing package fails this suite, not the whole file.
+	let linking = "";
+	let devLauncher = "";
+	beforeAll(() => {
+		linking = nativeSource(
+			"react-native",
+			"Libraries/LinkingIOS/RCTLinkingManager.mm",
+		);
+		devLauncher = nativeSource(
+			"expo-dev-launcher",
+			"ios/EXDevLauncherController.m",
+			dirname(require.resolve("expo-dev-client/package.json")),
+		);
+	});
 
 	test("a custom-scheme URL lands where Linking.getInitialURL reads it", () => {
 		expect(linking).toContain(

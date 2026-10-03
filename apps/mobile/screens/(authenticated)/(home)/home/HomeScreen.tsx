@@ -755,6 +755,9 @@ export function HomeScreen() {
 						minHeight:
 							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
 						paddingTop: headerHeight,
+						// On the outer view, not the ScrollView: the scope bar sits
+						// outside it here, and both belong in the list's column.
+						paddingHorizontal: readableInset,
 					}}
 				>
 					{scopeBar}

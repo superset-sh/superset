@@ -81,11 +81,26 @@ const withSceneLifecycle = (config) => {
  * that window has no scene and never shows. Keep the launch options for the
  * scene delegate instead, which starts React Native once it has a scene.
  */
-function rewriteAppDelegate(contents) {
-	if (contents.includes("var launchOptions:")) return contents;
+const LAUNCH_OPTIONS_PROPERTY =
+	"  /// Read by SceneDelegate, which starts React Native once a scene exists.\n  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?\n";
+const LAUNCH_OPTIONS_STORE = "    self.launchOptions = launchOptions\n";
 
+function rewriteAppDelegate(contents) {
 	const windowSetup =
 		/#if os\(iOS\) \|\| os\(tvOS\)\n\s*window = UIWindow\(frame: UIScreen\.main\.bounds\)\n\s*factory\.startReactNative\(\n\s*withModuleName: "main",\n\s*in: window,\n\s*launchOptions: launchOptions\)\n#endif\n/;
+
+	// Already rewritten: both of our insertions present, and nothing left that
+	// starts React Native in a window of the app delegate's own. Keyed on the
+	// finished state, not on one marker, so a template that happens to declare
+	// a `launchOptions` of its own still reaches the check below.
+	if (
+		contents.includes(LAUNCH_OPTIONS_PROPERTY) &&
+		contents.includes(LAUNCH_OPTIONS_STORE) &&
+		!contents.includes("startReactNative")
+	) {
+		return contents;
+	}
+
 	const property = "  var reactNativeFactory: RCTReactNativeFactory?\n";
 	if (!windowSetup.test(contents) || !contents.includes(property)) {
 		throw new Error(
@@ -94,11 +109,8 @@ function rewriteAppDelegate(contents) {
 	}
 
 	return contents
-		.replace(
-			property,
-			`${property}  /// Read by SceneDelegate, which starts React Native once a scene exists.\n  var launchOptions: [UIApplication.LaunchOptionsKey: Any]?\n`,
-		)
-		.replace(windowSetup, "    self.launchOptions = launchOptions\n\n");
+		.replace(property, `${property}${LAUNCH_OPTIONS_PROPERTY}`)
+		.replace(windowSetup, `${LAUNCH_OPTIONS_STORE}\n`);
 }
 
 const SCENE_DELEGATE = `import React
@@ -117,13 +129,36 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     willConnectTo session: UISceneSession,
     options connectionOptions: UIScene.ConnectionOptions
   ) {
-    guard let windowScene = scene as? UIWindowScene,
-      let appDelegate,
-      let factory = appDelegate.reactNativeFactory
-    else { return }
+    guard let windowScene = scene as? UIWindowScene else {
+      NSLog("[SceneDelegate] connected scene is not a UIWindowScene: %@", String(describing: scene))
+      return
+    }
+    guard let appDelegate, let factory = appDelegate.reactNativeFactory else {
+      NSLog("[SceneDelegate] no React Native factory at scene connect; nothing will render")
+      return
+    }
 
     let window = UIWindow(windowScene: windowScene)
     self.window = window
+
+    // iOS can discard the scene and reconnect it in a live process. React
+    // Native is already running then: move its root view controller to the
+    // new window rather than start a second instance, and deliver any link
+    // the reconnect carries the way a warm app gets one.
+    if let previous = appDelegate.window, let root = previous.rootViewController {
+      previous.rootViewController = nil
+      appDelegate.window = window
+      window.rootViewController = root
+      window.makeKeyAndVisible()
+      if !connectionOptions.urlContexts.isEmpty {
+        self.scene(scene, openURLContexts: connectionOptions.urlContexts)
+      }
+      if let activity = connectionOptions.userActivities.first {
+        self.scene(scene, continue: activity)
+      }
+      return
+    }
+
     appDelegate.window = window
     factory.startReactNative(
       withModuleName: "main",

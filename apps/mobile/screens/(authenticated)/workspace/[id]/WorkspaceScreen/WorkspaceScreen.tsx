@@ -684,7 +684,7 @@ export function WorkspaceScreen() {
 		const change = Keyboard.addListener("keyboardWillChangeFrame", (event) => {
 			animate(event);
 			setKeyboardHeight(
-				keyboardOverlap(event.endCoordinates, Dimensions.get("screen").height),
+				keyboardOverlap(event.endCoordinates, Dimensions.get("window").height),
 			);
 		});
 		const hide = Keyboard.addListener("keyboardWillHide", (event) => {
