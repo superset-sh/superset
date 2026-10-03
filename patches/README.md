@@ -109,8 +109,8 @@ recreating the pane recovers. `flushSync` also drained from index 0 regardless
 of `_bufferOffset`, re-parsing chunks a sliced `_innerWrite` had already
 applied — duplicated output on a resize during heavy output.
 
-**What it changes** (`lib/xterm.js`, `lib/xterm.mjs`, and
-`src/common/input/WriteBuffer.ts` for readability — bundles are what run):
+**What it changes** (`lib/xterm.js`, `lib/xterm.mjs`, and the matching `src/`
+files for readability — bundles are what run):
 
 1. `flushSync` returns early while a chunk is paused in an async handler
    (`_asyncPending`), drains from `_bufferOffset` instead of index 0, and when a
@@ -145,6 +145,23 @@ applied — duplicated output on a resize during heavy output.
    helper and Unicode-service injection. Existing buffer/disposal bundle code
    is preserved. No font substitution or dependency upgrade is involved.
 
+5. `DecorationService` (GH #7630; also `src/common/services/DecorationService.ts`):
+   a decoration disposed through its marker stayed in the per-line index the
+   renderers read per cell, so its background kept being painted over whatever
+   text later occupied those cells, for the life of the terminal. The cleanup in
+   `registerDecoration` only ran when `this._decorations.delete(decoration)`
+   returned true, and that list is keyed by `marker.line` — which
+   `Marker.dispose()` sets to -1 *before* firing the event that disposes the
+   decoration, so the lookup misses whenever the marker goes first. Upstream
+   added `_indexedStartLine` for exactly this case but left the guard in place.
+   `_lineCache.remove` and `onDecorationRemoved` now run unconditionally, the
+   sorted list falls back to `_indexedStartLine` once the marker is disposed so
+   its own delete lands too, and the two cell lookups skip disposed
+   decorations. Cmd+F in a terminal hit this on every keystroke, leaving a trail
+   of grey blocks over unrelated text (nothing available to the app repainted
+   them away). Still present on upstream master, verified against
+   6.1.0-beta.304.
+
 **IME removal condition:** Follow-up: [Superset #7490](https://github.com/superset-sh/superset/issues/7490). Track [upstream fix #6162](https://github.com/xtermjs/xterm.js/pull/6162)
 and [upstream issue #6161](https://github.com/xtermjs/xterm.js/issues/6161).
 An upstream merge alone is not enough: wait for a published xterm version
@@ -174,10 +191,18 @@ scheduled and nothing may throw.
 both installed bundles: CJK cell widths, combining and supplementary characters,
 right-edge constraints, font resizing, clearing preedit, and committing once.
 
+`apps/desktop/src/xterm-decoration-leak-patch.test.ts` covers hunk 5: markers in
+both bundles, then decorations on five buffer lines disposed through their
+markers — the cell index and the decoration list must both come back empty, and
+a surviving decoration must be untouched. All four fail against an unpatched
+build.
+
 **Regenerating after a version bump** (~10 min), unless upstream has absorbed
 it (check `WriteBuffer.flushSync` for `_asyncPending` or an equivalent guard,
-`RenderDebouncer.dispose` for a disposed flag or callback clearing, and
-`CompositionHelper` for Unicode-aware cell layout; drop
+`RenderDebouncer.dispose` for a disposed flag or callback clearing,
+`CompositionHelper` for Unicode-aware cell layout, and
+`DecorationService.registerDecoration` for an unconditional `_lineCache.remove`;
+drop
 whichever hunks upstream carries, and delete the patch, the
 `patchedDependencies` entry, and the tests only once all are gone):
 
@@ -191,8 +216,11 @@ bun patch @xterm/xterm@<new-version>
 # that helper into both bundles, retaining their surrounding code. Add the
 # IUnicodeService constructor injection (index 6) and UnicodeService import;
 # bundled module identifiers vary between versions. Check both bundle tests.
+# For decorations, find the `onDispose` handler inside `registerDecoration(`,
+# the `new SortedList(` its constructor builds, and the two `AtCell(` lookups;
+# mirror the edits in src/common/services/DecorationService.ts
 bun patch --commit 'node_modules/@xterm/xterm'
-bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts apps/desktop/src/xterm-ime-patch.test.ts
+bun test apps/desktop/src/xterm-flushsync-patch.test.ts apps/desktop/src/xterm-render-debouncer-patch.test.ts apps/desktop/src/xterm-ime-patch.test.ts apps/desktop/src/xterm-decoration-leak-patch.test.ts
 ```
 
 ## trpc-electron (`trpc-electron@<version>.patch`)

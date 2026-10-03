@@ -2,12 +2,14 @@ import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
+import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
 import { PiTextAa } from "react-icons/pi";
 
 interface TerminalSearchProps {
 	searchAddon: SearchAddon | null;
+	terminal: XTerm | null;
 	isOpen: boolean;
 	onClose: () => void;
 }
@@ -23,6 +25,7 @@ const SEARCH_DECORATIONS: ISearchOptions["decorations"] = {
 
 export function TerminalSearch({
 	searchAddon,
+	terminal,
 	isOpen,
 	onClose,
 }: TerminalSearchProps) {
@@ -50,12 +53,26 @@ export function TerminalSearch({
 		}
 	}, [isOpen]);
 
+	const clearHighlights = useCallback(() => {
+		searchAddon?.clearDecorations();
+		// findNext selects the match it lands on, and clearDecorations leaves
+		// that selection painted.
+		terminal?.clearSelection();
+	}, [searchAddon, terminal]);
+
 	// Clear search highlighting when closing
 	useEffect(() => {
-		if (!isOpen && searchAddon) {
-			searchAddon.clearDecorations();
+		if (!isOpen) {
+			clearHighlights();
 		}
-	}, [isOpen, searchAddon]);
+	}, [isOpen, clearHighlights]);
+
+	// The xterm instance outlives this component — the runtime registry caches
+	// it across pane mounts — so unmounting with the bar open would strand the
+	// highlights on it for the rest of the session.
+	const clearHighlightsRef = useRef(clearHighlights);
+	clearHighlightsRef.current = clearHighlights;
+	useEffect(() => () => clearHighlightsRef.current(), []);
 
 	const handleSearch = useCallback(
 		(direction: "next" | "previous") => {
@@ -82,7 +99,7 @@ export function TerminalSearch({
 			setMatchCount(found ? 1 : 0);
 		} else {
 			setMatchCount(null);
-			searchAddon?.clearDecorations();
+			clearHighlights();
 		}
 	};
 
