@@ -16,7 +16,6 @@ import { confirmAndQuitCompletely } from "./quit-completely";
 export function createApplicationMenu() {
 	const reloadAccelerator = "CmdOrCtrl+R";
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
-	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
 	// macOS/VS Code convention for New Window. On Windows/Linux Ctrl+Shift+N is
 	// already New Workspace, so use Ctrl+Alt+N there.
@@ -237,7 +236,6 @@ export function createApplicationMenu() {
 							message: "Keyboard Shortcuts",
 						}),
 					),
-					accelerator: showHotkeysAccelerator,
 					click: () => {
 						menuEmitter.emit("open-settings", "keyboard");
 					},
