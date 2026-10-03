@@ -1,10 +1,12 @@
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow } from "electron";
 import { env } from "main/env.main";
 import { isBrowserPanePopup } from "main/lib/browser/popup-window";
 import { loadReactDevToolsExtension } from "main/lib/extensions";
+import { safeOpenExternal } from "main/lib/safe-url";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
+import { isSameAppDocument } from "../../utils/same-app-document";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);
 
@@ -44,6 +46,28 @@ export async function makeAppSetup(
 
 	app.on("web-contents-created", (_, contents) => {
 		if (contents.getType() === "webview") return;
+		// A <webview> attribute can ask for a preload script or Node access for
+		// the guest; the browser pane sets neither, and guest content must never
+		// get them. Pin the guest's preferences regardless of what the tag says.
+		contents.on("will-attach-webview", (_event, webPreferences) => {
+			delete webPreferences.preload;
+			delete (webPreferences as { preloadURL?: string }).preloadURL;
+			webPreferences.nodeIntegration = false;
+			webPreferences.nodeIntegrationInSubFrames = false;
+			webPreferences.nodeIntegrationInWorker = false;
+			webPreferences.contextIsolation = true;
+			webPreferences.webSecurity = true;
+			webPreferences.allowRunningInsecureContent = false;
+		});
+		// `window.open` / target="_blank" from an app window: with no handler
+		// Electron would create a child window that inherits the preload bridge,
+		// so a `file:` link in rendered repo content would run local HTML with
+		// the whole tRPC surface. Deny every window; web links go to the system
+		// browser. Browser-pane popups get their own handler once created.
+		contents.setWindowOpenHandler(({ url }) => {
+			void safeOpenExternal(url);
+			return { action: "deny" };
+		});
 		contents.on("will-navigate", (event, url) => {
 			// A popup a browser pane opened navigates in place: it is a real
 			// `window.open` window (an OAuth sign-in, typically) that has to stay
@@ -52,11 +76,12 @@ export async function makeAppSetup(
 			// (SUPER-1272). Checked here rather than above because the popup is
 			// marked on `did-create-window`, after this listener is attached.
 			if (isBrowserPanePopup(contents)) return;
-			// Always prevent in-app navigation for external URLs
-			if (url.startsWith("http://") || url.startsWith("https://")) {
-				event.preventDefault();
-				shell.openExternal(url);
-			}
+			// Reloads and re-routes of the app document stay in-app. Anything
+			// else would replace the UI with a page that still has the preload
+			// bridge — `file:` and custom schemes included, not only http(s).
+			if (isSameAppDocument(contents.getURL(), url)) return;
+			event.preventDefault();
+			void safeOpenExternal(url);
 		});
 	});
 
