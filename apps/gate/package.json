@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "dotenv -e ../../.env -- sh -c 'exec wrangler dev --env dev --port ${SANDBOX_GATE_DEV_PORT:-8790} --var SANDBOX_GATE_SECRET:$SANDBOX_GATE_SECRET'",
 		"deploy": "wrangler deploy",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
