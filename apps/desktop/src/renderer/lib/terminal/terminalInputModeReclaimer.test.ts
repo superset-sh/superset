@@ -11,43 +11,43 @@ import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 describe("createLeakedInputModeReclaimer", () => {
 	it("disarms kitty leaked by a dead TUI at the next prompt", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady(); // session's first prompt
+		r.noteShellReady({ alternateScreen: false }); // session's first prompt
 		r.noteArm("kitty", true); // TUI arms kitty after the prompt
-		r.noteShellReady(); // shell reprompts after the kill
+		r.noteShellReady({ alternateScreen: false }); // shell reprompts after the kill
 		expect(r.collectDisarm()).toContain(KITTY_KEYBOARD_DISARM_SEQUENCE);
 	});
 
 	it("does not disarm kitty a TUI popped itself on clean exit", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		r.noteArm("kitty", true);
 		r.noteArm("kitty", false); // clean pop
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		expect(r.collectDisarm()).toBe("");
 	});
 
 	it("leaves modes armed by shell init alone (shell-owned)", () => {
 		const r = createLeakedInputModeReclaimer();
 		r.noteArm("kitty", true); // armed before the first marker → shell owns it
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		expect(r.collectDisarm()).toBe("");
 	});
 
 	it("suppresses the disarm when a TUI re-arms before collection", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		r.noteArm("kitty", true);
-		r.noteShellReady(); // marks kitty leaked
+		r.noteShellReady({ alternateScreen: false }); // marks kitty leaked
 		r.noteArm("kitty", true); // a new TUI grabs it before the flush
 		expect(r.collectDisarm()).toBe("");
 	});
 
 	it("reclaims leaked mouse and focus reporting", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		r.noteArm("mouse", true);
 		r.noteArm("focus", true);
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		const out = r.collectDisarm();
 		expect(out).toContain("\x1b[?1003l"); // mouse protocol cleared
 		expect(out).toContain("\x1b[?1004l"); // focus reporting off
@@ -55,17 +55,17 @@ describe("createLeakedInputModeReclaimer", () => {
 
 	it("consumes the pending set — a second collect is empty", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		r.noteArm("kitty", true);
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
 		expect(r.collectDisarm()).not.toBe("");
 		expect(r.collectDisarm()).toBe("");
 	});
 
 	it("writes nothing when no TUI mode leaked", () => {
 		const r = createLeakedInputModeReclaimer();
-		r.noteShellReady();
-		r.noteShellReady();
+		r.noteShellReady({ alternateScreen: false });
+		r.noteShellReady({ alternateScreen: false });
 		expect(r.collectDisarm()).toBe("");
 	});
 });
@@ -79,7 +79,9 @@ describe("installInputModeReclaimer (xterm adapter)", () => {
 		const csi = new Map<string, CsiCb>();
 		const osc = new Map<number, OscCb>();
 		const writes: string[] = [];
+		const buffer = { active: { type: "normal" as "normal" | "alternate" } };
 		const terminal = {
+			buffer,
 			parser: {
 				registerCsiHandler(id: { prefix?: string; final: string }, cb: CsiCb) {
 					csi.set(`${id.prefix ?? ""}${id.final}`, cb);
@@ -100,6 +102,9 @@ describe("installInputModeReclaimer (xterm adapter)", () => {
 			csi: (key: string, params: (number | number[])[] = []) =>
 				csi.get(key)?.(params),
 			marker: (data = "superset-shell-ready") => osc.get(777)?.(data),
+			setAlternateScreen(active: boolean) {
+				buffer.active.type = active ? "alternate" : "normal";
+			},
 		};
 	}
 
@@ -113,6 +118,22 @@ describe("installInputModeReclaimer (xterm adapter)", () => {
 		t.marker(); // reprompt after kill
 		await flush();
 		expect(t.writes.join("")).toContain(KITTY_KEYBOARD_DISARM_SEQUENCE);
+	});
+
+	it("keeps a live alternate-screen TUI's mouse armed when a marker arrives (#7681)", async () => {
+		const t = makeFakeTerminal();
+		installInputModeReclaimer(t.terminal);
+		t.marker(); // first prompt
+		t.setAlternateScreen(true); // opencode/agy take the alt screen...
+		t.csi("?h", [1003]); // ...and arm mouse tracking
+		t.marker(); // a prompt marker leaks through while the TUI is live
+		await flush();
+		expect(t.writes).toHaveLength(0);
+
+		t.setAlternateScreen(false); // TUI exits without disarming
+		t.marker();
+		await flush();
+		expect(t.writes.join("")).toContain("\x1b[?1003l");
 	});
 
 	it("ignores OSC 777 payloads that are not the shell-ready marker", async () => {

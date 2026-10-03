@@ -166,4 +166,16 @@ describe("TerminalModes", () => {
 		expect(restored.isEnabled(1004)).toBe(false);
 		expect(restored.snapshot().keyboard.flags).toBe(0);
 	});
+
+	test("a marker on the alternate screen does not reclaim a live TUI's mouse (#7681)", () => {
+		const modes = new TerminalModes();
+		const marker = "\x1b]777;superset-shell-ready\x07";
+		modes.feed(enc.encode(`${marker}\x1b[?1049h\x1b[?1003h\x1b[?1006h`));
+		modes.feed(enc.encode(marker));
+		expect(modes.collectDisarm()).toBeNull();
+		expect(modes.snapshot().mouseMode).toBe(1003);
+
+		modes.feed(enc.encode(`\x1b[?1049l${marker}`));
+		expect(modes.collectDisarm()).not.toBeNull();
+	});
 });
