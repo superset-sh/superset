@@ -330,6 +330,47 @@ export const gitWorktreeStateTask = defineWorkerTask<
 		} catch {
 			// Leave false — `rev-list` failure isn't a signal we can act on.
 		}
+		// A squash merge flattens the branch's commits into a new sha on the
+		// remote, so `HEAD --not --remotes` still counts every one of them —
+		// and once GitHub prunes the head branch, they look unpushed. But the
+		// squash carries the branch's final tree: if any remote-tracking tip
+		// has the same tree as HEAD, the work is already upstream and gated
+		// behind a sha rename. Reset only on a tree match, so a genuinely
+		// unpushed branch (different tree) still warns.
+		if (hasUnpushedCommits) {
+			try {
+				const headTree = (
+					await git.raw(["rev-parse", "HEAD^{tree}"])
+				).trim();
+				const remoteRefs = (
+					await git.raw([
+						"for-each-ref",
+						"--format=%(refname)",
+						"refs/remotes",
+					])
+				)
+					.trim()
+					.split(/\s+/)
+					.filter(Boolean);
+				if (remoteRefs.length > 0) {
+					const remoteTrees = (
+						await git.raw([
+							"rev-parse",
+							...remoteRefs.map((ref) => `${ref}^{tree}`),
+						])
+					)
+						.trim()
+						.split(/\s+/)
+						.filter(Boolean);
+					if (remoteTrees.includes(headTree)) {
+						hasUnpushedCommits = false;
+					}
+				}
+			} catch {
+				// Leave it unpushed — a failing tree probe isn't a signal we
+				// can act on.
+			}
+		}
 		return { hasChanges: !status.isClean(), hasUnpushedCommits };
 	},
 });
