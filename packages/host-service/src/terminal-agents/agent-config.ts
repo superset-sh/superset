@@ -104,3 +104,17 @@ export function agentLaunchEnv(
 ): Record<string, string> {
 	return { ...resolveDefaultAccountEnv(db, config.presetId), ...config.env };
 }
+
+const ACCOUNT_PROFILE_ENV_VAR: Record<string, string> = {
+	claude: "CLAUDE_CONFIG_DIR",
+	codex: "CODEX_HOME",
+};
+
+/** The env that points `agentId`'s harness at a recorded account home. */
+export function accountProfileEnv(
+	agentId: string,
+	accountProfile: string | null,
+): Record<string, string> {
+	const envVar = ACCOUNT_PROFILE_ENV_VAR[agentId];
+	return envVar && accountProfile ? { [envVar]: accountProfile } : {};
+}

@@ -314,6 +314,21 @@ describe("buildTerminalAgentLaunch", () => {
 		);
 	});
 
+	it("launches under a given account home", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "",
+			resumeSessionId: "abc-123",
+			accountEnv: { CLAUDE_CONFIG_DIR: "/srv/accounts/work's/.claude" },
+		});
+		expect(launch.fullCommand).toBe(
+			"FOO='bar' CLAUDE_CONFIG_DIR='/srv/accounts/work'\\''s/.claude' 'claude' '--dangerously-skip-permissions' '--resume' 'abc-123'",
+		);
+	});
+
 	it("forks a previous provider session without changing the source", () => {
 		const db = createTestDb();
 		seedConfig(db);

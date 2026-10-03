@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -357,7 +358,34 @@ describe("resumeTerminalAgentSession", () => {
 		// The session id must survive: a config edit could re-enable resume.
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
 	});
+
+	it("relaunches on the account home the session launched under", async () => {
+		const db = createTestDb();
+		seedResumableBinding(db);
+		setAccountProfile(db, "t1", "/srv/accounts/work/.claude");
+		const { deps, runCalls } = createDeps(db);
+
+		await resumeTerminalAgentSession(deps, {
+			workspaceId: "ws-1",
+			terminalId: "t1",
+		});
+
+		expect(runCalls[0]?.accountEnv).toEqual({
+			CLAUDE_CONFIG_DIR: "/srv/accounts/work/.claude",
+		});
+	});
 });
+
+function setAccountProfile(
+	db: HostDb,
+	terminalId: string,
+	accountProfile: string,
+) {
+	db.update(terminalAgentBindings)
+		.set({ accountProfile })
+		.where(eq(terminalAgentBindings.terminalId, terminalId))
+		.run();
+}
 
 const CODEX_CONFIG_ID = "00000000-0000-0000-0000-000000000002";
 
@@ -572,6 +600,19 @@ describe("restartAccountSessions", () => {
 		expect(await restartAccountSessions(deps, "claude")).toEqual({
 			restartedTerminalIds: [],
 		});
+	});
+
+	it("moves a session onto the current default account, whatever home it launched under", async () => {
+		const db = createTestDb();
+		seedAgentConfig(db);
+		seedLiveBinding(db, { terminalId: "t1" });
+		setAccountProfile(db, "t1", "/srv/accounts/old/.claude");
+		const { deps, runCalls } = createDeps(db);
+
+		await restartAccountSessions(deps, "claude");
+
+		expect(runCalls).toHaveLength(1);
+		expect(runCalls[0]?.accountEnv).toBeUndefined();
 	});
 
 	it("lets a pane that missed the event find the relaunched terminal, even for a never-prompted session launched fresh", async () => {
