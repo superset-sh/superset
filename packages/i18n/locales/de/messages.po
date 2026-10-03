@@ -427,6 +427,10 @@ msgstr "{0} installiert"
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} ist bereits \"{1}\" zugewiesen."
 
+#. placeholder {0}: params?.key
+msgid "{0} is already used for tasks in this organization."
+msgstr "{0} wird in dieser Organisation bereits für Aufgaben verwendet."
+
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
 msgstr "{0} ist kein Repository, in dem die GitHub App installiert ist"
@@ -1456,6 +1460,9 @@ msgstr "Ein eigenes Profil mit Abrechnung pro Token. Der Schlüssel bleibt in de
 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Ein eigenes Profil, das deine Skills, Plugins, MCP-Server und Einstellungen teilt."
+
+msgid "A task key is 1 to 5 letters or numbers and starts with a letter."
+msgstr "Ein Aufgabenschlüssel hat 1 bis 5 Buchstaben oder Ziffern und beginnt mit einem Buchstaben."
 
 msgid "a teammate"
 msgstr "ein Teammitglied"
@@ -12097,6 +12104,9 @@ msgstr "Einstellungen"
 msgid "Prefix"
 msgstr "Präfix"
 
+msgid "Prefix of this team's task IDs. Changing it renames every task in the team."
+msgstr "Präfix der Aufgaben-IDs dieses Teams. Eine Änderung benennt alle Aufgaben des Teams um."
+
 msgid "Preparing"
 msgstr "Wird vorbereitet"
 
@@ -15698,6 +15708,9 @@ msgstr "Aufgabe"
 
 msgid "Task ID copied"
 msgstr "Aufgaben-ID kopiert"
+
+msgid "Task key"
+msgstr "Aufgabenschlüssel"
 
 msgid "Task Launch"
 msgstr "Aufgaben-Start"

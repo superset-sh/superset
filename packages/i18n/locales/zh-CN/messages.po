@@ -427,6 +427,10 @@ msgstr "{0}已安装"
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}已分配给“{1}”。"
 
+#. placeholder {0}: params?.key
+msgid "{0} is already used for tasks in this organization."
+msgstr "{0} 已在此组织的任务中使用。"
+
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
 msgstr "{0} 不是已安装 GitHub App 的仓库"
@@ -1456,6 +1460,9 @@ msgstr "按 token 计费的独立配置文件。密钥保存在 {0} CLI 中。"
 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "共享你的技能、插件、MCP服务器和设置的独立配置文件。"
+
+msgid "A task key is 1 to 5 letters or numbers and starts with a letter."
+msgstr "任务键为 1 到 5 个字母或数字，且以字母开头。"
 
 msgid "a teammate"
 msgstr "某位队友"
@@ -12097,6 +12104,9 @@ msgstr "偏好设置"
 msgid "Prefix"
 msgstr "前缀"
 
+msgid "Prefix of this team's task IDs. Changing it renames every task in the team."
+msgstr "此团队任务 ID 的前缀。更改后，团队中所有任务都会重新命名。"
+
 msgid "Preparing"
 msgstr "正在准备"
 
@@ -15698,6 +15708,9 @@ msgstr "任务"
 
 msgid "Task ID copied"
 msgstr "已复制任务 ID"
+
+msgid "Task key"
+msgstr "任务键"
 
 msgid "Task Launch"
 msgstr "任务启动"

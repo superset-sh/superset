@@ -427,6 +427,10 @@ msgstr "{0}をインストールしました"
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}はすでに「{1}」に割り当てられています。"
 
+#. placeholder {0}: params?.key
+msgid "{0} is already used for tasks in this organization."
+msgstr "{0} はこの組織のタスクですでに使われています。"
+
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
 msgstr "{0} は GitHub App がインストールされているリポジトリではありません"
@@ -1456,6 +1460,9 @@ msgstr "トークン単位で課金される別プロファイルです。キー
 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "スキル、プラグイン、MCPサーバー、設定を共有する別プロファイルです。"
+
+msgid "A task key is 1 to 5 letters or numbers and starts with a letter."
+msgstr "タスクキーは英字で始まる 1〜5 文字の英数字です。"
 
 msgid "a teammate"
 msgstr "チームメンバー"
@@ -12097,6 +12104,9 @@ msgstr "環境設定"
 msgid "Prefix"
 msgstr "プレフィックス"
 
+msgid "Prefix of this team's task IDs. Changing it renames every task in the team."
+msgstr "このチームのタスク ID の接頭辞です。変更すると、チーム内のすべてのタスクの ID が変わります。"
+
 msgid "Preparing"
 msgstr "準備中"
 
@@ -15698,6 +15708,9 @@ msgstr "タスク"
 
 msgid "Task ID copied"
 msgstr "タスク ID をコピーしました"
+
+msgid "Task key"
+msgstr "タスクキー"
 
 msgid "Task Launch"
 msgstr "タスク起動"

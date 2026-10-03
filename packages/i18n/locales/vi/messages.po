@@ -427,6 +427,10 @@ msgstr "Đã cài {0}"
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} đã được gán cho \"{1}\"."
 
+#. placeholder {0}: params?.key
+msgid "{0} is already used for tasks in this organization."
+msgstr "{0} đã được dùng cho nhiệm vụ trong tổ chức này."
+
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
 msgstr "{0} không phải là kho lưu trữ đã cài đặt GitHub App"
@@ -1456,6 +1460,9 @@ msgstr "Một hồ sơ riêng tính phí theo token. Khóa nằm trong CLI {0}."
 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "Một hồ sơ riêng dùng chung skill, plugin, server MCP và cài đặt của bạn."
+
+msgid "A task key is 1 to 5 letters or numbers and starts with a letter."
+msgstr "Khóa nhiệm vụ gồm 1 đến 5 chữ cái hoặc chữ số và bắt đầu bằng chữ cái."
 
 msgid "a teammate"
 msgstr "một đồng đội"
@@ -12097,6 +12104,9 @@ msgstr "Tùy chọn"
 msgid "Prefix"
 msgstr "Tiền tố"
 
+msgid "Prefix of this team's task IDs. Changing it renames every task in the team."
+msgstr "Tiền tố của ID nhiệm vụ trong nhóm này. Thay đổi sẽ đổi tên mọi nhiệm vụ trong nhóm."
+
 msgid "Preparing"
 msgstr "Đang chuẩn bị"
 
@@ -15698,6 +15708,9 @@ msgstr "Tác vụ"
 
 msgid "Task ID copied"
 msgstr "Đã sao chép ID tác vụ"
+
+msgid "Task key"
+msgstr "Khóa nhiệm vụ"
 
 msgid "Task Launch"
 msgstr "Khởi chạy tác vụ"

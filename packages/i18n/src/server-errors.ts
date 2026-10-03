@@ -902,6 +902,19 @@ export const serverErrorMessages: Record<
 				message: "Too many support reports. Try again later.",
 			}),
 		),
+	"serverError.team.taskKeyInvalid": () =>
+		i18n._(
+			msg({
+				message:
+					"A task key is 1 to 5 letters or numbers and starts with a letter.",
+			}),
+		),
+	"serverError.team.taskKeyTaken": (params) =>
+		i18n._(
+			msg({
+				message: `${params?.key} is already used for tasks in this organization.`,
+			}),
+		),
 	"serverError.team.teamNotFoundInThisOrganization": () =>
 		i18n._(
 			msg({

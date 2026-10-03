@@ -427,6 +427,10 @@ msgstr "{0} 설치됨"
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}은(는) 이미 \"{1}\"에 지정되어 있습니다."
 
+#. placeholder {0}: params?.key
+msgid "{0} is already used for tasks in this organization."
+msgstr "{0}은(는) 이 조직의 작업에 이미 사용 중입니다."
+
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
 msgstr "{0}은(는) GitHub App이 설치된 리포지토리가 아닙니다"
@@ -1456,6 +1460,9 @@ msgstr "토큰 단위로 과금되는 별도 프로필입니다. 키는 {0} CLI 
 
 msgid "A separate profile that shares your skills, plugins, MCP servers, and settings."
 msgstr "스킬, 플러그인, MCP 서버, 설정을 공유하는 별도 프로필입니다."
+
+msgid "A task key is 1 to 5 letters or numbers and starts with a letter."
+msgstr "작업 키는 문자로 시작하는 1~5자의 문자 또는 숫자입니다."
 
 msgid "a teammate"
 msgstr "팀원"
@@ -12097,6 +12104,9 @@ msgstr "환경설정"
 msgid "Prefix"
 msgstr "접두사"
 
+msgid "Prefix of this team's task IDs. Changing it renames every task in the team."
+msgstr "이 팀 작업 ID의 접두사입니다. 변경하면 팀의 모든 작업 ID가 바뀝니다."
+
 msgid "Preparing"
 msgstr "준비 중"
 
@@ -15698,6 +15708,9 @@ msgstr "작업"
 
 msgid "Task ID copied"
 msgstr "작업 ID를 복사했습니다"
+
+msgid "Task key"
+msgstr "작업 키"
 
 msgid "Task Launch"
 msgstr "작업 실행"
