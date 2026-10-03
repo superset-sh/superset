@@ -63,7 +63,6 @@ import {
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
 import { getFocusedOrLastWindow } from "./lib/window-registry/window-registry";
-import { sweepNetworkLogs } from "./network-logger-sweep";
 import {
 	createPlatformWindow,
 	initAppServices,
@@ -506,7 +505,6 @@ if (!gotTheLock) {
 		initSentry();
 		await initAppState();
 
-		sweepNetworkLogs();
 		sweepDevAppProfiles();
 
 		await loadWebviewBrowserExtension();
