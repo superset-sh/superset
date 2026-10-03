@@ -47,6 +47,12 @@ export interface TagFolderSectionInput {
 	createdAt: Date;
 	/** Null (or absent) = legacy folder that owns members via `sectionId`. */
 	tag?: string | null;
+	/**
+	 * True for a row minted by materialize-on-interaction (a collapse cache
+	 * for a derived folder). Absent/false = created on purpose (New folder,
+	 * v1 import, legacy migration) and kept while empty.
+	 */
+	materializedByInteraction?: boolean;
 }
 
 /**
@@ -168,6 +174,39 @@ export function parseSidebarFolderKey(
 }
 
 /**
+ * Drops rows that only exist because a derived folder was once collapsed,
+ * reordered, etc. ({@link TagFolderSectionInput.materializedByInteraction})
+ * and whose tag no workspace in the project carries any more. Without this
+ * the folder would outlive its last member as an empty group. Rows created
+ * on purpose (flag absent/false) are never dropped, so an empty "New folder"
+ * stays. The row itself is left in storage, so its collapse state comes back
+ * if the tag is used again.
+ */
+export function omitStaleMaterializedFolders<
+	T extends Pick<
+		TagFolderSectionInput,
+		"projectId" | "tag" | "materializedByInteraction"
+	>,
+>(sections: readonly T[], workspaces: readonly TagFolderWorkspaceInput[]): T[] {
+	if (!sections.some((section) => section.materializedByInteraction)) {
+		return [...sections];
+	}
+	const carriedTagKeys = new Set<string>();
+	for (const workspace of workspaces) {
+		const scope = tagFolderScope(workspace.projectId);
+		for (const tag of normalizeWorkspaceTags(workspace.tags)) {
+			carriedTagKeys.add(buildSidebarFolderKey(scope, tag));
+		}
+	}
+	return sections.filter((section) => {
+		if (!section.materializedByInteraction) return true;
+		const tag = normalizeWorkspaceTag(section.tag);
+		if (tag == null) return true;
+		return carriedTagKeys.has(buildSidebarFolderKey(section.projectId, tag));
+	});
+}
+
+/**
  * Union of stored presentation rows and tag-only folders. A folder exists
  * for every (project, tag) some workspace carries; a stored row only adds
  * presentation. Derived folders are appended per project in tag order at
@@ -204,7 +243,10 @@ export function deriveTagFolders(
 		(context.hiddenTagsByProject.get(folder.projectId)?.has(folder.tag) ??
 			false);
 
-	const result: TagFolderSection[] = sections.map((section) => ({
+	const result: TagFolderSection[] = omitStaleMaterializedFolders(
+		sections,
+		workspaces,
+	).map((section) => ({
 		...section,
 		tag: normalizeWorkspaceTag(section.tag),
 		isDerived: false,

@@ -32,6 +32,7 @@ import {
 	getProjectFolderTagIndex,
 	laneProjectIdForScope,
 	mintFolderTag,
+	omitStaleMaterializedFolders,
 	parseSidebarFolderKey,
 	resolveWorkspaceSectionId,
 	type TagFolderContext,
@@ -114,7 +115,10 @@ function getProjectTopLevelItems(
 			})),
 		// Stored rows only: a derived-only folder has no row to renumber, and
 		// its synthetic tabOrder floor must never feed getNextTabOrder math.
-		...Array.from(collections.v2SidebarSections.state.values())
+		...omitStaleMaterializedFolders(
+			Array.from(collections.v2SidebarSections.state.values()),
+			hostWorkspaces,
+		)
 			.filter(
 				(item) =>
 					item.projectId === scope &&
@@ -386,6 +390,9 @@ export function useDashboardSidebarState() {
 	 * Materialize-on-interaction: a derived folder has no stored row, so
 	 * color/rename/collapse/reorder mint one first (keyed by the composite
 	 * `${projectId}:${tag}` — the tag is recoverable from the key alone).
+	 * The row is flagged `materializedByInteraction`: it is a presentation
+	 * cache that disappears with the folder's last member, unlike a folder
+	 * made on purpose via {@link createSection}.
 	 * Returns the row, or null when the id is neither stored nor parseable.
 	 */
 	const ensureSectionRow = useCallback(
@@ -404,6 +411,7 @@ export function useDashboardSidebarState() {
 				projectId: parsed.projectId,
 				name: parsed.tag,
 				tag: parsed.tag,
+				materializedByInteraction: true,
 				createdAt: new Date(),
 				tabOrder:
 					hostOrder ??
@@ -606,7 +614,13 @@ export function useDashboardSidebarState() {
 			);
 			const tag = mintFolderTag(name, folderIndex.keys());
 			const sectionId = buildSidebarFolderKey(scope, tag);
-			if (collections.v2SidebarSections.get(sectionId)) return sectionId;
+			const existingRow = collections.v2SidebarSections.get(sectionId);
+			if (existingRow && !existingRow.materializedByInteraction) {
+				return sectionId;
+			}
+			// A stale interaction cache for the same tag (its members are gone,
+			// so it is not in the index) must not swallow the new folder.
+			if (existingRow) collections.v2SidebarSections.delete(sectionId);
 			const randomColor =
 				PROJECT_CUSTOM_COLORS[
 					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
