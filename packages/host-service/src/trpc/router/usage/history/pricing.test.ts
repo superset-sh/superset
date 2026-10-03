@@ -23,6 +23,15 @@ describe("matchModelRate", () => {
 		});
 	});
 
+	test("prices every jev version off the unversioned prefix, output free", () => {
+		expect(matchModelRate("typesafe", "jev-1.13.0")).toMatchObject({
+			inputPerM: 0.042,
+			outputPerM: 0,
+			approximate: false,
+		});
+		expect(matchModelRate("typesafe", "jev-latest").approximate).toBe(false);
+	});
+
 	test("unknown models fall back to the cheapest rate, marked approximate", () => {
 		const rate = matchModelRate("fx", "zai/glm-5.2");
 		expect(rate.approximate).toBe(true);
