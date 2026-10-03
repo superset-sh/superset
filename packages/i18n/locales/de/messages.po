@@ -7019,6 +7019,9 @@ msgstr "Status der Aufgabe konnte nicht geändert werden"
 msgid "Failed to update task title"
 msgstr "Titel der Aufgabe konnte nicht geändert werden"
 
+msgid "Failed to update task tracker"
+msgstr "Aufgabenverwaltung konnte nicht aktualisiert werden"
+
 msgid "Failed to update team. Please try again."
 msgstr "Team konnte nicht aktualisiert werden. Bitte versuche es erneut."
 
@@ -15723,11 +15726,17 @@ msgstr "Aufgabe mit Linear synchronisiert"
 msgid "Task title"
 msgstr "Aufgabentitel"
 
+msgid "Task tracker updated"
+msgstr "Aufgabenverwaltung aktualisiert"
+
 msgid "Tasks"
 msgstr "Aufgaben"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "In Superset erstellte Aufgaben werden mit diesem Linear-Team synchronisiert."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Aufgaben, die CLI und Agenten richten sich danach. Jedes Mitglied nutzt sein eigenes Linear-Konto."
 
 msgid "Tax ID"
 msgstr "Steuernummer"
@@ -16816,6 +16825,9 @@ msgstr "Verfolge und verwalte Aufgaben, die aus Linear synchronisiert werden. Be
 
 msgid "Track down that flaky test…"
 msgstr "Diesem flaky Test auf den Grund gehen…"
+
+msgid "Track tasks in"
+msgstr "Aufgabenverwaltung"
 
 msgid "Tracking"
 msgstr "Erfassung"

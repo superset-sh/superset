@@ -7019,6 +7019,9 @@ msgstr "Status van de taak bijwerken mislukt"
 msgid "Failed to update task title"
 msgstr "Titel van de taak bijwerken mislukt"
 
+msgid "Failed to update task tracker"
+msgstr "Takenbeheer bijwerken mislukt"
+
 msgid "Failed to update team. Please try again."
 msgstr "Bijwerken van team mislukt. Probeer het opnieuw."
 
@@ -15723,11 +15726,17 @@ msgstr "Taak gesynchroniseerd naar Linear"
 msgid "Task title"
 msgstr "Titel van taak"
 
+msgid "Task tracker updated"
+msgstr "Takenbeheer bijgewerkt"
+
 msgid "Tasks"
 msgstr "Taken"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Taken die in Superset worden gemaakt, worden naar dit Linear-team gesynchroniseerd."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Taken, de CLI en agents volgen dit. Elk lid gebruikt een eigen Linear-account."
 
 msgid "Tax ID"
 msgstr "Fiscaal nummer"
@@ -16816,6 +16825,9 @@ msgstr "Volg en beheer taken die vanuit Linear zijn gesynchroniseerd. Houd overz
 
 msgid "Track down that flaky test…"
 msgstr "Spoor die flaky test op…"
+
+msgid "Track tasks in"
+msgstr "Taken bijhouden in"
 
 msgid "Tracking"
 msgstr "Bijgehouden"

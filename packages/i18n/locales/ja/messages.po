@@ -7019,6 +7019,9 @@ msgstr "タスクのステータスを更新できませんでした"
 msgid "Failed to update task title"
 msgstr "タスクのタイトルを更新できませんでした"
 
+msgid "Failed to update task tracker"
+msgstr "タスクの管理先を更新できませんでした"
+
 msgid "Failed to update team. Please try again."
 msgstr "チームを更新できませんでした。もう一度お試しください。"
 
@@ -15723,11 +15726,17 @@ msgstr "タスクをLinearに同期しました"
 msgid "Task title"
 msgstr "タスクのタイトル"
 
+msgid "Task tracker updated"
+msgstr "タスクの管理先を更新しました"
+
 msgid "Tasks"
 msgstr "タスク"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Supersetで作成したタスクはこのLinearチームに同期されます。"
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "タスク、CLI、エージェントはこの設定に従います。各メンバーは自分の Linear アカウントを使います。"
 
 msgid "Tax ID"
 msgstr "税ID"
@@ -16816,6 +16825,9 @@ msgstr "Linearから同期したタスクを追跡・管理できます。Supers
 
 msgid "Track down that flaky test…"
 msgstr "不安定なテストの原因を突き止める…"
+
+msgid "Track tasks in"
+msgstr "タスクの管理先"
 
 msgid "Tracking"
 msgstr "計測期間"

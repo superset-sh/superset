@@ -7019,6 +7019,9 @@ msgstr "Failed to update task status"
 msgid "Failed to update task title"
 msgstr "Failed to update task title"
 
+msgid "Failed to update task tracker"
+msgstr "Failed to update task tracker"
+
 msgid "Failed to update team. Please try again."
 msgstr "Failed to update team. Please try again."
 
@@ -15723,11 +15726,17 @@ msgstr "Task synced to Linear"
 msgid "Task title"
 msgstr "Task title"
 
+msgid "Task tracker updated"
+msgstr "Task tracker updated"
+
 msgid "Tasks"
 msgstr "Tasks"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Tasks created in Superset will be synced to this Linear team."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
 
 msgid "Tax ID"
 msgstr "Tax ID"
@@ -16816,6 +16825,9 @@ msgstr "Track and manage tasks synced from Linear. Stay on top of your work with
 
 msgid "Track down that flaky test…"
 msgstr "Track down that flaky test…"
+
+msgid "Track tasks in"
+msgstr "Track tasks in"
 
 msgid "Tracking"
 msgstr "Tracking"

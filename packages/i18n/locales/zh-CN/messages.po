@@ -7019,6 +7019,9 @@ msgstr "更新任务状态失败"
 msgid "Failed to update task title"
 msgstr "更新任务标题失败"
 
+msgid "Failed to update task tracker"
+msgstr "无法更新任务管理位置"
+
 msgid "Failed to update team. Please try again."
 msgstr "更新团队失败。请重试。"
 
@@ -15723,11 +15726,17 @@ msgstr "任务已同步到Linear"
 msgid "Task title"
 msgstr "任务标题"
 
+msgid "Task tracker updated"
+msgstr "任务管理位置已更新"
+
 msgid "Tasks"
 msgstr "任务"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "在Superset中创建的任务会同步到这个Linear团队。"
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "任务、CLI 和智能体都遵循此设置。每位成员使用自己的 Linear 账户。"
 
 msgid "Tax ID"
 msgstr "税号"
@@ -16816,6 +16825,9 @@ msgstr "跟踪和管理从Linear同步的任务。不用离开Superset就能掌�
 
 msgid "Track down that flaky test…"
 msgstr "揪出那个不稳定的测试…"
+
+msgid "Track tasks in"
+msgstr "任务管理位置"
 
 msgid "Tracking"
 msgstr "已跟踪"

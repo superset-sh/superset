@@ -7019,6 +7019,9 @@ msgstr "Stav úkolu se nepodařilo změnit"
 msgid "Failed to update task title"
 msgstr "Název úkolu se nepodařilo změnit"
 
+msgid "Failed to update task tracker"
+msgstr "Sledování úkolů se nepodařilo aktualizovat"
+
 msgid "Failed to update team. Please try again."
 msgstr "Nepodařilo se aktualizovat tým. Zkuste to prosím znovu."
 
@@ -15723,11 +15726,17 @@ msgstr "Úkol synchronizován do Linearu"
 msgid "Task title"
 msgstr "Název úkolu"
 
+msgid "Task tracker updated"
+msgstr "Sledování úkolů aktualizováno"
+
 msgid "Tasks"
 msgstr "Úkoly"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Úkoly vytvořené v Superset se budou synchronizovat do tohoto týmu v Linearu."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Řídí se tím úkoly, CLI i agenti. Každý člen používá svůj vlastní účet Linear."
 
 msgid "Tax ID"
 msgstr "DIČ"
@@ -16816,6 +16825,9 @@ msgstr "Sledujte a spravujte úkoly synchronizované z Linearu. Mějte práci po
 
 msgid "Track down that flaky test…"
 msgstr "Vypátrej ten nestabilní test…"
+
+msgid "Track tasks in"
+msgstr "Sledovat úkoly v"
 
 msgid "Tracking"
 msgstr "Sleduji"

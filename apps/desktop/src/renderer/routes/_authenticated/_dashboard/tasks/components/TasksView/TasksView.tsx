@@ -7,6 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTaskTracker } from "renderer/hooks/useTaskTracker";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import {
@@ -76,6 +77,7 @@ export function TasksView({
 	const deferredSearchQuery = useDeferredValue(searchQuery);
 	const assigneeFilter = initialAssignee ?? storedAssignee;
 	const typeTab: TypeTab = initialType ?? storedTypeTab;
+	const taskTracker = useTaskTracker();
 	const projectFilters = initialProjects ?? storedProjectFilters;
 	const linearProjectFilter = initialLinearProject ?? storedLinearProjectFilter;
 	const includeClosedIssues =
@@ -321,10 +323,18 @@ export function TasksView({
 		});
 	};
 
-	const showTasks = typeTab === "tasks";
-	const showLinear = typeTab === "linear";
 	const showIssues = typeTab === "issues";
-	const taskSource: TaskSource = typeTab;
+	const taskSource: TaskSource = showIssues
+		? "issues"
+		: taskTracker === "linear"
+			? "linear"
+			: "tasks";
+	const showTasks = taskSource === "tasks";
+	const showLinear = taskSource === "linear";
+
+	if (!showIssues && !taskTracker) {
+		return <div className="flex-1" />;
+	}
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">

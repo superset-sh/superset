@@ -7019,6 +7019,9 @@ msgstr "Nie udało się zmienić statusu zadania"
 msgid "Failed to update task title"
 msgstr "Nie udało się zmienić tytułu zadania"
 
+msgid "Failed to update task tracker"
+msgstr "Nie udało się zaktualizować systemu śledzenia zadań"
+
 msgid "Failed to update team. Please try again."
 msgstr "Nie udało się zaktualizować zespołu. Spróbuj ponownie."
 
@@ -15723,11 +15726,17 @@ msgstr "Zadanie zsynchronizowane z Linear"
 msgid "Task title"
 msgstr "Tytuł zadania"
 
+msgid "Task tracker updated"
+msgstr "Zaktualizowano system śledzenia zadań"
+
 msgid "Tasks"
 msgstr "Zadania"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Zadania utworzone w Superset będą synchronizowane z tym zespołem w Linear."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Zadania, CLI i agenci korzystają z tego ustawienia. Każdy członek używa własnego konta Linear."
 
 msgid "Tax ID"
 msgstr "NIP"
@@ -16816,6 +16825,9 @@ msgstr "Śledź zadania synchronizowane z Linear i zarządzaj nimi. Panuj nad pr
 
 msgid "Track down that flaky test…"
 msgstr "Wytrop ten niestabilny test…"
+
+msgid "Track tasks in"
+msgstr "Śledź zadania w"
 
 msgid "Tracking"
 msgstr "Śledzenie"

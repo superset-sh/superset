@@ -7019,6 +7019,9 @@ msgstr "Gagal memperbarui status tugas"
 msgid "Failed to update task title"
 msgstr "Gagal memperbarui judul tugas"
 
+msgid "Failed to update task tracker"
+msgstr "Gagal memperbarui pelacak tugas"
+
 msgid "Failed to update team. Please try again."
 msgstr "Gagal memperbarui tim. Silakan coba lagi."
 
@@ -15723,11 +15726,17 @@ msgstr "Tugas disinkronkan ke Linear"
 msgid "Task title"
 msgstr "Judul tugas"
 
+msgid "Task tracker updated"
+msgstr "Pelacak tugas diperbarui"
+
 msgid "Tasks"
 msgstr "Tugas"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Tugas yang dibuat di Superset akan disinkronkan ke tim Linear ini."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Tugas, CLI, dan agen mengikuti ini. Setiap anggota memakai akun Linear miliknya sendiri."
 
 msgid "Tax ID"
 msgstr "Tax ID"
@@ -16816,6 +16825,9 @@ msgstr "Lacak dan kelola tugas yang disinkronkan dari Linear. Kuasai pekerjaan A
 
 msgid "Track down that flaky test…"
 msgstr "Lacak tes flaky itu…"
+
+msgid "Track tasks in"
+msgstr "Lacak tugas di"
 
 msgid "Tracking"
 msgstr "Pelacakan"
