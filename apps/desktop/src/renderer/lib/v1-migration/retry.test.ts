@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	isHostVersionSkewV1MigrationFailure,
 	isTransientV1MigrationFailure,
 	nextV1MigrationRetryDelayMs,
 } from "./retry";
@@ -54,5 +55,26 @@ describe("nextV1MigrationRetryDelayMs", () => {
 		expect(nextV1MigrationRetryDelayMs(-1)).toBeNull();
 		expect(nextV1MigrationRetryDelayMs(1.5)).toBeNull();
 		expect(nextV1MigrationRetryDelayMs(Number.NaN)).toBeNull();
+	});
+});
+
+describe("isHostVersionSkewV1MigrationFailure", () => {
+	test.each([
+		'No procedure found on path "workspace.list"',
+		'No procedure found on path "project.list"',
+		'Unsupported POST-request to query procedure at path "project.list"',
+		'Procedure "workspace.list" not found on server',
+	])("skew: %s", (reason) => {
+		expect(isHostVersionSkewV1MigrationFailure(reason)).toBe(true);
+	});
+
+	test.each([
+		"Failed to fetch (127.0.0.1:48592)",
+		"Invalid or missing authentication token.",
+		"no such table: workspace_tag_settings",
+		"Path does not exist: /Users/me/old-repo",
+		"",
+	])("not skew: %s", (reason) => {
+		expect(isHostVersionSkewV1MigrationFailure(reason)).toBe(false);
 	});
 });
