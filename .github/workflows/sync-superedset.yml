@@ -1,0 +1,53 @@
+name: Sync Superedset
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  push:
+    branches-ignore:
+      - main
+      - superedset-config
+      - "backup/**"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: sync-superedset
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          ref: main
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - name: Configure repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/superset-sh/superset.git
+      - id: sync
+        name: Rebuild personal main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPEREDSET_PR_AUTHOR: theblondealex
+        run: |
+          before=$(git rev-parse HEAD)
+          bun scripts/superedset/update.ts
+          after=$(git rev-parse HEAD)
+          if [[ "$before" != "$after" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build changed release
+        if: steps.sync.outputs.changed == 'true' && vars.SUPEREDSET_RELEASES_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release-desktop-superedset.yml --ref main

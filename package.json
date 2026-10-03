@@ -48,6 +48,7 @@
 		"release:desktop": "bun scripts/release/desktop.ts",
 		"release:cli": "bun scripts/release/cli.ts",
 		"release:canary": "./scripts/release-canary.sh",
+		"superedset:update": "bun scripts/superedset/update.ts",
 		"check:versions": "bun scripts/release/check-versions.ts",
 		"check:plugins": "bun scripts/check-plugins.ts",
 		"check:i18n": "bun run --cwd packages/i18n check",
