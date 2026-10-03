@@ -194,4 +194,4 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 `;
 
-module.exports = { rewriteAppDelegate, withSceneLifecycle };
+module.exports = { rewriteAppDelegate, SCENE_DELEGATE, withSceneLifecycle };
