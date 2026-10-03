@@ -8,10 +8,88 @@ This guide is for contributors building Superset from source. If you just want t
 |:-----|:--------|
 | [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`) | `curl -fsSL https://bun.sh/install \| bash` |
 | [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or OrbStack |
-| `jq` | `brew install jq` |
-| Git 2.20+ and [`gh`](https://cli.github.com/) | `brew install gh` |
+| `jq` | `brew install jq` (Linux: `sudo apt-get install -y jq`) |
+| Git 2.20+ and [`gh`](https://cli.github.com/) | `brew install gh` (Linux: [gh apt repo](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)) |
 
-macOS is the primary supported platform. Windows / Linux are untested.
+macOS is the primary supported platform. Windows is untested. Linux works, but
+needs the extra setup in [Linux prerequisites](#linux-prerequisites) first.
+
+## Linux prerequisites
+
+Verified on Ubuntu 24.04 / X11. Do all of this before `./.superset/setup.local.sh`,
+except the Electron sandbox step, which needs `node_modules` to exist.
+
+Install `bun` at the version in `.bun-version` rather than the latest release, so
+`bun.lock` doesn't churn:
+
+```bash
+curl -fsSL https://bun.sh/install | bash -s "bun-v$(cat .bun-version)"
+```
+
+**X11 headers for `native-keymap`.** Without them `bun install` fails in the
+`@superset/desktop` postinstall with `Package 'xkbfile', required by 'virtual:world', not found`:
+
+```bash
+sudo apt-get install -y libxkbfile-dev
+```
+
+**A hosts entry for `db.localtest.me`.** The name resolves to `127.0.0.1` in public
+DNS, but systemd-resolved drops answers that point at loopback, so the neon-proxy
+connection string fails with `ConnectionRefused` even though the container is
+healthy:
+
+```bash
+echo '127.0.0.1 db.localtest.me' | sudo tee -a /etc/hosts
+```
+
+**A higher inotify instance limit.** The default of 128 is not enough for the
+Next.js, Vite, and Electron watchers running at once. `inotify_init` reports
+exhaustion as `EMFILE`, which surfaces as a misleading
+`TurbopackInternalError: Too many open files (os error 24)` — misleading because
+`ulimit -n` is already high enough and is not the limit being hit:
+
+```bash
+echo 'fs.inotify.max_user_instances=1024' | sudo tee /etc/sysctl.d/99-superset-inotify.conf
+sudo sysctl --system
+```
+
+**Enough swap to run the whole stack.** `bun run dev` starts three Next.js/Turbopack
+servers plus Vite plus Electron, which together hold several GiB of anonymous
+memory. The kernel can only reclaim that if there is somewhere to page it out, so a
+small swapfile stalls the machine under memory pressure even with RAM free — on a
+15 GiB box with a 512 MiB swapfile this killed the dev servers mid-build, with no
+kernel OOM kill in `dmesg` to explain it. 6 GiB is comfortable:
+
+```bash
+sudo swapoff /swapfile
+sudo rm /swapfile
+sudo fallocate -l 6G /swapfile   # on btrfs use dd and chattr +C instead
+sudo chmod 600 /swapfile         # swapon refuses a world-readable swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+Run those with the dev servers stopped: `swapoff` pages everything back into RAM
+first. If `/etc/fstab` already lists `/swapfile`, resizing in place needs no edit
+there. `bun run dev:desktop` (api + desktop, no web app) is the lighter alternative
+if you would rather not grow swap.
+
+**A setuid Electron sandbox helper**, after `bun install` has run. Electron ships
+`chrome-sandbox` mode 755 owned by the installing user; Chromium requires it to be
+root-owned and setuid, and aborts at startup rather than run unsandboxed. Ubuntu
+24.04 and later also set `kernel.apparmor_restrict_unprivileged_userns=1`, which
+blocks the namespace sandbox Electron would otherwise fall back to, so fixing the
+binary is the fix. Do not pass `--no-sandbox` instead — that disables the renderer
+sandbox for the whole dev app:
+
+```bash
+sandbox="$(find node_modules -path '*electron/dist/chrome-sandbox' | head -1)"
+sudo chown root:root "$sandbox"
+sudo chmod 4755 "$sandbox"
+```
+
+This lives in `node_modules`, so reinstalling or bumping Electron resets it and you
+run those three lines again.
 
 ## Run it from a Superset workspace
 
@@ -100,6 +178,7 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
 - **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
 - **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
 - **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.
+- **Linux: build or startup fails in a way this list doesn't cover**: check [Linux prerequisites](#linux-prerequisites) first. `Too many open files`, `ConnectionRefused` against a healthy container, a `chrome-sandbox` abort, and dev servers dying mid-build all have Linux-specific causes documented there.
 
 ## Contributing
 
