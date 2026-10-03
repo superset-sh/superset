@@ -29,3 +29,34 @@ describe("@xterm/addon-webgl GPU atlas patch", () => {
 		});
 	}
 });
+
+// Guards the RTL hunk of the same patch: the renderer reads the bidi order from
+// renderer/lib/terminal/terminal-bidi.ts. Without it Hebrew/Arabic draws
+// letter-reversed again while every unit test still passes.
+describe("@xterm/addon-webgl bidi patch", () => {
+	const libDir = dirname(require.resolve("@xterm/addon-webgl"));
+	for (const name of ["addon-webgl.js", "addon-webgl.mjs"]) {
+		const src = readFileSync(join(libDir, name), "utf8");
+
+		test(`${name} draws cells in bidi visual order`, () => {
+			expect(src.split("__supersetTerminalBidi?.row(").length - 1).toBe(1);
+			expect(src.split("__bd.order[").length - 1).toBe(1);
+			expect(src.split("__supersetTerminalBidi.mirrorCell(").length - 1).toBe(
+				1,
+			);
+		});
+
+		test(`${name} draws the cursor at its visual column`, () => {
+			expect(src.split("__bd.visualOf[").length - 1).toBe(1);
+			expect(src.split("__supersetTerminalBidi?.cursorAt?.(").length - 1).toBe(
+				1,
+			);
+		});
+
+		test(`${name} draws RTL glyphs in the RTL font`, () => {
+			expect(src.split("__supersetTerminalBidi?.glyphFont?.(").length - 1).toBe(
+				1,
+			);
+		});
+	}
+});

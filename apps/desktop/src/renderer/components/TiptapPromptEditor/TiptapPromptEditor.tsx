@@ -547,6 +547,9 @@ export function TiptapPromptEditor({
 			}),
 		],
 
+		// Hebrew/Arabic paragraphs flow right-to-left as you type; others stay LTR.
+		textDirection: "auto",
+
 		editorProps: {
 			attributes: {
 				"data-slot": "input-group-control",

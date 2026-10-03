@@ -21,6 +21,11 @@ import {
 	type ParserIdleGate,
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
+import {
+	installBidiArrowKeys,
+	installTerminalBidi,
+	onTerminalBidiChange,
+} from "renderer/lib/terminal/terminal-bidi";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -141,6 +146,12 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
+	// Draw RTL text (Hebrew, Arabic) in reading order; read by the WebGL renderer.
+	installTerminalBidi();
+	const offBidiChange = onTerminalBidiChange(() =>
+		xterm.refresh(0, xterm.rows - 1),
+	);
+	const offBidiArrows = installBidiArrowKeys(xterm);
 
 	try {
 		xterm.loadAddon(new LigaturesAddon());
@@ -237,6 +248,8 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		cleanup: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);
+			offBidiChange();
+			offBidiArrows();
 			cleanupQuerySuppression();
 			uninstallWheelHandler();
 			inputModeReclaimer.dispose();
