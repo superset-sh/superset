@@ -105,6 +105,6 @@
 		"trpc-electron@0.1.2": "patches/trpc-electron@0.1.2.patch",
 		"react-native-screens@4.26.0": "patches/react-native-screens@4.26.0.patch",
 		"@pierre/trees@1.0.0-beta.5": "patches/@pierre%2Ftrees@1.0.0-beta.5.patch",
-		"expo-observe@57.0.19": "patches/expo-observe@57.0.19.patch"
+		"expo-observe@57.0.24": "patches/expo-observe@57.0.24.patch"
 	}
 }
