@@ -2938,6 +2938,9 @@ msgstr "브랜치 접두사"
 msgid "Branch Prefix"
 msgstr "브랜치 접두사"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "원격 “{branch}”에서 브랜치를 다시 만들었습니다."
+
 msgid "Branch renamed to {newName}"
 msgstr "브랜치 이름을 {newName}(으)로 변경했습니다"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "삭제됨"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "삭제됨 · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\"을(를) 삭제했습니다"
 
@@ -6890,6 +6897,10 @@ msgstr "데몬을 다시 시작하지 못했습니다"
 
 msgid "Failed to restore"
 msgstr "복원하지 못했습니다"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "“{workspaceName}”을(를) 복원하지 못했습니다: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "기본값을 복원하지 못했습니다"
@@ -13297,6 +13308,12 @@ msgstr "방금 보관한 워크스페이스를 복원합니다"
 msgid "Restore this version?"
 msgstr "이 버전을 복원할까요?"
 
+msgid "Restore workspace"
+msgstr "워크스페이스 복원"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "워크스페이스 “{workspaceName}”을(를) 복원하시겠습니까?"
+
 msgid "Restored"
 msgstr "복원됨"
 
@@ -16517,6 +16534,9 @@ msgstr "이 풀 리퀘스트는 더 이상 사용할 수 없습니다."
 msgid "This pull request link is invalid."
 msgstr "이 풀 리퀘스트 링크가 올바르지 않습니다."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "브랜치 “{branch}”에서 워크트리를 다시 만듭니다. 커밋되거나 푸시된 작업만 돌아옵니다 — 커밋되지 않은 변경 사항은 사라지며, 로컬과 원격 모두에서 삭제된 브랜치는 복원할 수 없습니다."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "선택한 worktree를 디스크에서 모두 제거하고 해당 워크스페이스 기록도 삭제합니다."
 
@@ -17531,6 +17551,9 @@ msgstr "전체 보기"
 msgid "View comment by {0}"
 msgstr "{0}의 코멘트 보기"
 
+msgid "View deleted workspaces"
+msgstr "삭제된 워크스페이스 보기"
+
 msgid "View file"
 msgstr "파일 보기"
 
@@ -18000,6 +18023,9 @@ msgstr "워크스페이스"
 
 msgid "Workspace"
 msgstr "워크스페이스"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "워크스페이스 “{workspaceName}”이(가) 복원되었습니다"
 
 msgid "Workspace accent-color picker"
 msgstr "워크스페이스 강조 색상 선택기"

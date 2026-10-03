@@ -2938,6 +2938,9 @@ msgstr "Prefix branch"
 msgid "Branch Prefix"
 msgstr "Awalan Cabang"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Cabang dibuat ulang dari remote “{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Nama branch diganti menjadi {newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Dihapus"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Dihapus · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "Menghapus \"{deletedName}\""
 
@@ -6890,6 +6897,10 @@ msgstr "Gagal memulai ulang daemon"
 
 msgid "Failed to restore"
 msgstr "Gagal memulihkan"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Gagal memulihkan “{workspaceName}”: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Gagal memulihkan setelan bawaan"
@@ -13297,6 +13308,12 @@ msgstr "Pulihkan ruang kerja yang baru saja Anda arsipkan"
 msgid "Restore this version?"
 msgstr "Pulihkan versi ini?"
 
+msgid "Restore workspace"
+msgstr "Pulihkan ruang kerja"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Pulihkan ruang kerja “{workspaceName}”?"
+
 msgid "Restored"
 msgstr "Dipulihkan"
 
@@ -16517,6 +16534,9 @@ msgstr "Pull request ini sudah tidak tersedia."
 msgid "This pull request link is invalid."
 msgstr "Tautan pull request ini tidak valid."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Ini membuat ulang worktree dari cabang “{branch}”. Hanya pekerjaan yang di-commit atau di-push yang kembali — perubahan yang belum di-commit hilang, dan cabang yang dihapus baik secara lokal maupun di remote tidak dapat dipulihkan."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Ini menghapus setiap worktree terpilih dari disk dan menghapus catatan workspace-nya."
 
@@ -17531,6 +17551,9 @@ msgstr "Lihat Semua"
 msgid "View comment by {0}"
 msgstr "Lihat komentar dari {0}"
 
+msgid "View deleted workspaces"
+msgstr "Lihat ruang kerja yang dihapus"
+
 msgid "View file"
 msgstr "Lihat file"
 
@@ -18000,6 +18023,9 @@ msgstr "workspace"
 
 msgid "Workspace"
 msgstr "Workspace"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Ruang kerja “{workspaceName}” dipulihkan"
 
 msgid "Workspace accent-color picker"
 msgstr "Pemilih warna aksen workspace"

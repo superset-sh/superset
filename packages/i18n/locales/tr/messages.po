@@ -2938,6 +2938,9 @@ msgstr "Dal ön eki"
 msgid "Branch Prefix"
 msgstr "Dal öneki"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Dal, “{branch}” uzak dalından yeniden oluşturuldu."
+
 msgid "Branch renamed to {newName}"
 msgstr "Dal {newName} olarak yeniden adlandırıldı"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Silindi"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Silindi · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\" silindi"
 
@@ -6890,6 +6897,10 @@ msgstr "Daemon yeniden başlatılamadı"
 
 msgid "Failed to restore"
 msgstr "Geri yüklenemedi"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "“{workspaceName}” geri yüklenemedi: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Varsayılanlar geri yüklenemedi"
@@ -13297,6 +13308,12 @@ msgstr "Az önce arşivlediğiniz çalışma alanını geri yükle"
 msgid "Restore this version?"
 msgstr "Bu sürüm geri yüklensin mi?"
 
+msgid "Restore workspace"
+msgstr "Çalışma alanını geri yükle"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "“{workspaceName}” çalışma alanı geri yüklensin mi?"
+
 msgid "Restored"
 msgstr "Geri yüklendi"
 
@@ -16517,6 +16534,9 @@ msgstr "Bu pull request artık kullanılamıyor."
 msgid "This pull request link is invalid."
 msgstr "Bu pull request bağlantısı geçersiz."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Bu işlem, worktree'yi “{branch}” dalından yeniden oluşturur. Yalnızca commit'lenmiş veya push edilmiş çalışmalar geri gelir — commit'lenmemiş değişiklikler kaybolur ve hem yerelde hem uzak depoda silinen bir dal geri yüklenemez."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Bu işlem, seçili her worktree'yi diskten kaldırır ve çalışma alanı kaydını siler."
 
@@ -17531,6 +17551,9 @@ msgstr "Tümünü görüntüle"
 msgid "View comment by {0}"
 msgstr "{0} kişisinin yorumunu görüntüle"
 
+msgid "View deleted workspaces"
+msgstr "Silinen çalışma alanlarını görüntüle"
+
 msgid "View file"
 msgstr "Dosyayı görüntüle"
 
@@ -18000,6 +18023,9 @@ msgstr "çalışma alanı"
 
 msgid "Workspace"
 msgstr "Çalışma alanı"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "“{workspaceName}” çalışma alanı geri yüklendi"
 
 msgid "Workspace accent-color picker"
 msgstr "Çalışma alanı vurgu rengi seçici"

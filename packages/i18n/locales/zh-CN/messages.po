@@ -2938,6 +2938,9 @@ msgstr "分支前缀"
 msgid "Branch Prefix"
 msgstr "分支前缀"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "已从远程“{branch}”重新创建分支。"
+
 msgid "Branch renamed to {newName}"
 msgstr "分支已重命名为{newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "已删除"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "已删除 · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "已删除“{deletedName}”"
 
@@ -6890,6 +6897,10 @@ msgstr "重启守护进程失败"
 
 msgid "Failed to restore"
 msgstr "恢复失败"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "无法恢复“{workspaceName}”：{0}"
 
 msgid "Failed to restore defaults"
 msgstr "恢复默认值失败"
@@ -13297,6 +13308,12 @@ msgstr "恢复刚刚归档的工作区"
 msgid "Restore this version?"
 msgstr "恢复这个版本？"
 
+msgid "Restore workspace"
+msgstr "恢复工作区"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "要恢复工作区“{workspaceName}”吗？"
+
 msgid "Restored"
 msgstr "已恢复"
 
@@ -16517,6 +16534,9 @@ msgstr "此拉取请求已不可用。"
 msgid "This pull request link is invalid."
 msgstr "这个拉取请求链接无效。"
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "这将从分支“{branch}”重新创建工作树。只有已提交或已推送的内容才会恢复——未提交的更改将丢失，在本地和远程都被删除的分支无法恢复。"
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "这会把每个选中的worktree从磁盘上移除，并删除它的工作区记录。"
 
@@ -17531,6 +17551,9 @@ msgstr "查看全部"
 msgid "View comment by {0}"
 msgstr "查看{0}的评论"
 
+msgid "View deleted workspaces"
+msgstr "查看已删除的工作区"
+
 msgid "View file"
 msgstr "查看文件"
 
@@ -18000,6 +18023,9 @@ msgstr "工作区"
 
 msgid "Workspace"
 msgstr "工作区"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "已恢复工作区“{workspaceName}”"
 
 msgid "Workspace accent-color picker"
 msgstr "工作区强调色选择器"

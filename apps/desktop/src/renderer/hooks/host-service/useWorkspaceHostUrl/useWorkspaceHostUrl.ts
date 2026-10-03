@@ -1,5 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMemo } from "react";
+import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -28,13 +29,31 @@ export type WorkspaceHostTarget =
  * Resolves a workspace ID to its owning host-service target: a cloud
  * workspace's sandbox gate address once its sandbox is awake, this machine's
  * host-service, or another host through the relay.
+ *
+ * Pass `{ includeArchived: true }` to also resolve archived (soft-deleted)
+ * workspace tombstones. Archived rows are absent from the default live-only
+ * workspace list; this fetches them under a separate query key so the shared
+ * live cache is unaffected. Only enable for callers that need to reach the
+ * owning host of an archived row — keep the default live-only for all others
+ * so their `not-found` signals remain meaningful.
  */
 export function useWorkspaceHostTarget(
 	workspaceId: string | null,
+	options?: { includeArchived?: boolean },
 ): WorkspaceHostTarget {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
-	const { workspaces, isReady } = useHostWorkspaces();
+	const { workspaces: liveWorkspaces, isReady: liveIsReady } =
+		useHostWorkspaces();
+	const archivedSource = useHostWorkspacesSource(undefined, {
+		includeArchived: options?.includeArchived ?? false,
+	});
+	const workspaces = options?.includeArchived
+		? archivedSource.workspaces
+		: liveWorkspaces;
+	const isReady = options?.includeArchived
+		? archivedSource.isReady
+		: liveIsReady;
 	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
 	const match = workspaces.find((w) => w.id === workspaceId) ?? null;

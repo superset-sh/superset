@@ -23,15 +23,17 @@ interface V2WorkspacesBoardCardProps {
 export const V2WorkspacesBoardCard = memo(function V2WorkspacesBoardCard({
 	workspace,
 }: V2WorkspacesBoardCardProps) {
-	// Archived tombstones have no worktree or terminals left — no navigation
-	// and no context-menu actions apply.
-	if (workspace.archivedAt != null) {
-		return <BoardCardBody workspace={workspace} />;
-	}
+	// Archived tombstones have no worktree or terminals left, so cards
+	// don't navigate — but they still wrap in the context menu for the
+	// Restore action, matching the list rows.
+	const isArchived = workspace.archivedAt != null;
 	return (
 		<V2WorkspaceContextMenu workspace={workspace}>
 			{(actions) => (
-				<BoardCardBody workspace={workspace} onOpen={actions.open} />
+				<BoardCardBody
+					workspace={workspace}
+					onOpen={isArchived ? undefined : actions.open}
+				/>
 			)}
 		</V2WorkspaceContextMenu>
 	);

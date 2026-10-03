@@ -2938,6 +2938,9 @@ msgstr "Prefiks gałęzi"
 msgid "Branch Prefix"
 msgstr "Prefiks gałęzi"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Gałąź odtworzona ze zdalnej gałęzi „{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Nazwę gałęzi zmieniono na {newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Usunięto"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Usunięto · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "Usunięto „{deletedName}”"
 
@@ -6890,6 +6897,10 @@ msgstr "Nie udało się zrestartować demona"
 
 msgid "Failed to restore"
 msgstr "Nie udało się przywrócić"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Nie udało się przywrócić „{workspaceName}”: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Nie udało się przywrócić ustawień domyślnych"
@@ -13297,6 +13308,12 @@ msgstr "Przywróć właśnie zarchiwizowany obszar roboczy"
 msgid "Restore this version?"
 msgstr "Przywrócić tę wersję?"
 
+msgid "Restore workspace"
+msgstr "Przywróć obszar roboczy"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Przywrócić obszar roboczy „{workspaceName}”?"
+
 msgid "Restored"
 msgstr "Przywrócona"
 
@@ -16517,6 +16534,9 @@ msgstr "Ten pull request nie jest już dostępny."
 msgid "This pull request link is invalid."
 msgstr "Ten link do pull requesta jest nieprawidłowy."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Spowoduje to ponowne utworzenie worktree z gałęzi „{branch}”. Wróci tylko zatwierdzona lub wypchnięta praca — niezatwierdzone zmiany przepadają, a gałęzi usuniętej zarówno lokalnie, jak i na zdalnym repozytorium nie można przywrócić."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Usuwa z dysku każdy zaznaczony worktree i kasuje jego wpis obszaru roboczego."
 
@@ -17531,6 +17551,9 @@ msgstr "Zobacz wszystkie"
 msgid "View comment by {0}"
 msgstr "Zobacz komentarz od {0}"
 
+msgid "View deleted workspaces"
+msgstr "Zobacz usunięte obszary robocze"
+
 msgid "View file"
 msgstr "Zobacz plik"
 
@@ -18000,6 +18023,9 @@ msgstr "obszar roboczy"
 
 msgid "Workspace"
 msgstr "Obszar roboczy"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Obszar roboczy „{workspaceName}” przywrócony"
 
 msgid "Workspace accent-color picker"
 msgstr "Wybór koloru akcentu obszaru roboczego"

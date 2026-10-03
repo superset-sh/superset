@@ -2938,6 +2938,9 @@ msgstr "Prefixo de branch"
 msgid "Branch Prefix"
 msgstr "Prefixo de branch"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Branch recriada a partir do remoto “{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Branch renomeada para {newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Excluído"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Excluído · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\" excluída"
 
@@ -6890,6 +6897,10 @@ msgstr "Falha ao reiniciar o daemon"
 
 msgid "Failed to restore"
 msgstr "Falha ao restaurar"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Falha ao restaurar “{workspaceName}”: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Falha ao restaurar os padrões"
@@ -13297,6 +13308,12 @@ msgstr "Restaurar a área de trabalho que você acabou de arquivar"
 msgid "Restore this version?"
 msgstr "Restaurar esta versão?"
 
+msgid "Restore workspace"
+msgstr "Restaurar workspace"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Restaurar o workspace “{workspaceName}”?"
+
 msgid "Restored"
 msgstr "Restaurado"
 
@@ -16517,6 +16534,9 @@ msgstr "Este pull request não está mais disponível."
 msgid "This pull request link is invalid."
 msgstr "Este link de pull request é inválido."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Isso recria a árvore de trabalho a partir da branch “{branch}”. Só volta o trabalho com commit ou push — alterações sem commit são perdidas, e uma branch excluída tanto localmente quanto no remoto não pode ser restaurada."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Isso remove do disco todas as worktrees selecionadas e exclui o registro de cada área de trabalho."
 
@@ -17531,6 +17551,9 @@ msgstr "Ver todas"
 msgid "View comment by {0}"
 msgstr "Ver o comentário de {0}"
 
+msgid "View deleted workspaces"
+msgstr "Ver workspaces excluídos"
+
 msgid "View file"
 msgstr "Ver arquivo"
 
@@ -18000,6 +18023,9 @@ msgstr "área de trabalho"
 
 msgid "Workspace"
 msgstr "Área de trabalho"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Workspace “{workspaceName}” restaurado"
 
 msgid "Workspace accent-color picker"
 msgstr "Seletor de cor de destaque da área de trabalho"

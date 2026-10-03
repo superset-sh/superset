@@ -7,8 +7,10 @@ import {
 	type DeleteInProgressCause,
 	isDeleteInProgressCause,
 	isProjectNotSetupCause,
+	isRestoreBranchGoneCause,
 	isTeardownFailureCause,
 	type ProjectNotSetupCause,
+	type RestoreBranchGoneCause,
 	type TeardownFailureCause,
 } from "./error-types";
 
@@ -54,6 +56,10 @@ const t = initTRPC
 				isDeleteInProgressCause(error.cause)
 					? { kind: "DELETE_IN_PROGRESS" }
 					: undefined;
+			const restoreBranchGone: RestoreBranchGoneCause | undefined =
+				isRestoreBranchGoneCause(error.cause)
+					? { kind: "RESTORE_BRANCH_GONE", branch: error.cause.branch }
+					: undefined;
 			return {
 				...shape,
 				data: {
@@ -61,6 +67,7 @@ const t = initTRPC
 					teardownFailure,
 					projectNotSetup,
 					deleteInProgress,
+					restoreBranchGone,
 				},
 			};
 		},

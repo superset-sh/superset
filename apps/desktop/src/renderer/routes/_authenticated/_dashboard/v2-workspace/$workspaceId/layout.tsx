@@ -16,9 +16,12 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
+import { useRestoreWorkspaceIntent } from "renderer/stores/restore-workspace-intent";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { useAccessibleV2Workspaces } from "../../v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { CloudWorkspaceArchivedState } from "../components/CloudWorkspaceArchivedState";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
+import { LocalWorkspaceArchivedState } from "../components/LocalWorkspaceArchivedState";
 import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "../components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "../components/WorkspaceHostIncompatibleState";
@@ -101,6 +104,19 @@ function V2WorkspaceLayout() {
 		!workspace && !cloudWorkspace,
 	);
 	const unarchive = useUnarchiveCloudWorkspace();
+	// Local tombstones never reach the host lists above, so a deleted local
+	// workspace would fall through to "not found". The accessible rows
+	// include tombstones only with includeArchived — find this one to render
+	// the restore screen.
+	const { all: accessibleWorkspaces } = useAccessibleV2Workspaces({
+		includeArchived: true,
+	});
+	const archivedLocalWorkspace =
+		!workspace && !cloudWorkspace && workspaceId != null
+			? (accessibleWorkspaces.find(
+					(row) => row.id === workspaceId && row.archivedAt != null,
+				) ?? null)
+			: null;
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q
@@ -163,6 +179,27 @@ function V2WorkspaceLayout() {
 					name={archivedCloudWorkspace.name}
 					archivedAt={archivedCloudWorkspace.deletedAt}
 					onUnarchive={() => unarchive(archivedCloudWorkspace.id)}
+				/>
+			</StateScreenShell>
+		);
+	}
+
+	if (!workspace && archivedLocalWorkspace?.archivedAt != null) {
+		const archivedAt = archivedLocalWorkspace.archivedAt;
+		return (
+			<StateScreenShell>
+				<LocalWorkspaceArchivedState
+					name={archivedLocalWorkspace.name}
+					archivedAt={new Date(archivedAt)}
+					onRestore={() =>
+						useRestoreWorkspaceIntent.getState().request({
+							workspaceId: archivedLocalWorkspace.id,
+							workspaceName:
+								archivedLocalWorkspace.name || archivedLocalWorkspace.branch,
+							branch: archivedLocalWorkspace.branch,
+							hostId: archivedLocalWorkspace.hostId,
+						})
+					}
 				/>
 			</StateScreenShell>
 		);

@@ -9,6 +9,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { LuHistory } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -17,6 +18,7 @@ import {
 } from "react-icons/vsc";
 import { useOpenNewWorkspaceForLocalProject } from "renderer/hooks/useOpenNewWorkspace";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { useV2WorkspacesFilterStore } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import {
 	useOpenEmptyProjectModal,
@@ -134,6 +136,35 @@ export function DashboardSidebarWorkspacesHeader({
 				sortMode={sortMode}
 				onSortModeChange={onSortModeChange}
 			/>
+			<Tooltip delayDuration={700}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						aria-label={t({
+							message: "View deleted workspaces",
+						})}
+						onClick={(event) => {
+							event.stopPropagation();
+							// Set the store directly: the page reads search params
+							// only on mount, so navigating while already there
+							// would be a no-op. The debounced URL sync mirrors
+							// the store back into ?archived=.
+							useV2WorkspacesFilterStore.getState().setArchivedWindow("all");
+							void navigate({
+								to: "/v2-workspaces",
+								search: { archived: "all" },
+							});
+						}}
+						onKeyDown={(event) => event.stopPropagation()}
+						className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+					>
+						<LuHistory className="size-3.5" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">
+					<Trans>View deleted workspaces</Trans>
+				</TooltipContent>
+			</Tooltip>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>

@@ -2938,6 +2938,9 @@ msgstr "Branchprefix"
 msgid "Branch Prefix"
 msgstr "Branchvoorvoegsel"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Branch opnieuw aangemaakt vanaf remote “{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Branch hernoemd naar {newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Verwijderd"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Verwijderd · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\" verwijderd"
 
@@ -6890,6 +6897,10 @@ msgstr "Herstarten van daemon mislukt"
 
 msgid "Failed to restore"
 msgstr "Herstellen mislukt"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "“{workspaceName}” kan niet worden hersteld: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Herstellen van standaardwaarden mislukt"
@@ -13297,6 +13308,12 @@ msgstr "De werkruimte herstellen die je net hebt gearchiveerd"
 msgid "Restore this version?"
 msgstr "Deze versie herstellen?"
 
+msgid "Restore workspace"
+msgstr "Werkruimte herstellen"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Werkruimte “{workspaceName}” herstellen?"
+
 msgid "Restored"
 msgstr "Hersteld"
 
@@ -16517,6 +16534,9 @@ msgstr "Deze pull request is niet meer beschikbaar."
 msgid "This pull request link is invalid."
 msgstr "Deze link naar een pull request is ongeldig."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Hiermee wordt de worktree opnieuw aangemaakt vanaf branch “{branch}”. Alleen gecommit of gepusht werk komt terug — niet-gecommitte wijzigingen zijn verdwenen en een lokaal én op de remote verwijderde branch kan niet worden hersteld."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Hiermee wordt elke geselecteerde worktree van schijf gehaald en het bijbehorende werkruimterecord verwijderd."
 
@@ -17531,6 +17551,9 @@ msgstr "Alles bekijken"
 msgid "View comment by {0}"
 msgstr "Opmerking van {0} bekijken"
 
+msgid "View deleted workspaces"
+msgstr "Verwijderde werkruimten bekijken"
+
 msgid "View file"
 msgstr "Bestand bekijken"
 
@@ -18000,6 +18023,9 @@ msgstr "werkruimte"
 
 msgid "Workspace"
 msgstr "Werkruimte"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Werkruimte “{workspaceName}” hersteld"
 
 msgid "Workspace accent-color picker"
 msgstr "Kiezer voor de accentkleur van een werkruimte"

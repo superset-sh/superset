@@ -2938,6 +2938,9 @@ msgstr "Tiền tố nhánh"
 msgid "Branch Prefix"
 msgstr "Tiền tố nhánh"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Đã tạo lại nhánh từ remote “{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Đã đổi tên nhánh thành {newName}"
 
@@ -5549,6 +5552,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Đã xóa"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Đã xóa · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "Đã xóa \"{deletedName}\""
 
@@ -6890,6 +6897,10 @@ msgstr "Không thể khởi động lại daemon"
 
 msgid "Failed to restore"
 msgstr "Không thể khôi phục"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Không khôi phục được “{workspaceName}”: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Không thể khôi phục mặc định"
@@ -13297,6 +13308,12 @@ msgstr "Khôi phục không gian làm việc bạn vừa lưu trữ"
 msgid "Restore this version?"
 msgstr "Khôi phục phiên bản này?"
 
+msgid "Restore workspace"
+msgstr "Khôi phục không gian làm việc"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Khôi phục không gian làm việc “{workspaceName}”?"
+
 msgid "Restored"
 msgstr "Đã khôi phục"
 
@@ -16517,6 +16534,9 @@ msgstr "Pull request này không còn khả dụng."
 msgid "This pull request link is invalid."
 msgstr "Liên kết pull request này không hợp lệ."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Thao tác này tạo lại cây làm việc từ nhánh “{branch}”. Chỉ công việc đã commit hoặc push mới quay lại — các thay đổi chưa commit sẽ mất, và nhánh đã xóa cả ở local lẫn remote không thể khôi phục."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Thao tác này xóa mọi worktree đã chọn khỏi đĩa và xóa bản ghi workspace của chúng."
 
@@ -17531,6 +17551,9 @@ msgstr "Xem tất cả"
 msgid "View comment by {0}"
 msgstr "Xem bình luận của {0}"
 
+msgid "View deleted workspaces"
+msgstr "Xem không gian làm việc đã xóa"
+
 msgid "View file"
 msgstr "Xem tệp"
 
@@ -18000,6 +18023,9 @@ msgstr "workspace"
 
 msgid "Workspace"
 msgstr "Workspace"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Đã khôi phục không gian làm việc “{workspaceName}”"
 
 msgid "Workspace accent-color picker"
 msgstr "Bộ chọn màu nhấn cho workspace"
