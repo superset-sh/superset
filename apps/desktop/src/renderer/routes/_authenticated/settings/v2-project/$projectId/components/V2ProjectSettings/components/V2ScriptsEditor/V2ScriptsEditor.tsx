@@ -7,85 +7,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { ScriptField } from "./components/ScriptField";
+import {
+	buildPayload,
+	parseConfigContent,
+	payloadsEqual,
+	type ScriptFieldName,
+	type ScriptPayload,
+	type ScriptTexts,
+	toScriptTexts,
+	trimEditedScriptValue,
+} from "./utils/scriptPayload";
 
 interface V2ScriptsEditorProps {
 	hostUrl: string;
 	projectId: string;
 	className?: string;
-}
-
-interface ParsedConfig {
-	setup: string;
-	teardown: string;
-	run: string;
-}
-
-type ScriptFieldName = keyof ParsedConfig;
-
-interface ScriptPayload {
-	setup: string[];
-	teardown: string[];
-	run: string[];
-}
-
-function parseConfigContent(content: string | null): ParsedConfig {
-	if (!content) return { setup: "", teardown: "", run: "" };
-	try {
-		const parsed = JSON.parse(content);
-		const setup = Array.isArray(parsed?.setup)
-			? parsed.setup.filter((s: unknown): s is string => typeof s === "string")
-			: [];
-		const teardown = Array.isArray(parsed?.teardown)
-			? parsed.teardown.filter(
-					(s: unknown): s is string => typeof s === "string",
-				)
-			: [];
-		const run = Array.isArray(parsed?.run)
-			? parsed.run.filter((s: unknown): s is string => typeof s === "string")
-			: [];
-		return {
-			setup: setup.join("\n"),
-			teardown: teardown.join("\n"),
-			run: run.join("\n"),
-		};
-	} catch {
-		return { setup: "", teardown: "", run: "" };
-	}
-}
-
-function toCommandsArray(value: string): string[] {
-	return value
-		.split("\n")
-		.map((line) => line.trim())
-		.filter((line) => line.length > 0);
-}
-
-function arraysEqual(a: string[], b: string[]): boolean {
-	return a.length === b.length && a.every((v, i) => v === b[i]);
-}
-
-function buildPayload(values: ParsedConfig): ScriptPayload {
-	return {
-		setup: toCommandsArray(values.setup),
-		teardown: toCommandsArray(values.teardown),
-		run: toCommandsArray(values.run),
-	};
-}
-
-function payloadsEqual(a: ScriptPayload, b: ScriptPayload): boolean {
-	return (
-		arraysEqual(a.setup, b.setup) &&
-		arraysEqual(a.teardown, b.teardown) &&
-		arraysEqual(a.run, b.run)
-	);
-}
-
-function trimScriptValue(value: string): string {
-	return value
-		.split("\n")
-		.map((line) => line.trim())
-		.join("\n")
-		.replace(/^\n+|\n+$/g, "");
 }
 
 type SaveStatus = "idle" | "saving" | "saved";
@@ -117,16 +53,17 @@ export function V2ScriptsEditor({
 	const [runValue, setRunValue] = useState("");
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 	const focusedRef = useRef<ScriptFieldName | null>(null);
-	const latestValuesRef = useRef<ParsedConfig>({
+	const latestValuesRef = useRef<ScriptTexts>({
 		setup: "",
 		teardown: "",
 		run: "",
 	});
-	const lastSavedRef = useRef<ScriptPayload>({
+	const loadedRef = useRef<ScriptPayload>({
 		setup: [],
 		teardown: [],
 		run: [],
 	});
+	const lastSavedRef = useRef<ScriptPayload>(loadedRef.current);
 	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const saveInFlightRef = useRef(false);
@@ -142,12 +79,14 @@ export function V2ScriptsEditor({
 		) {
 			return;
 		}
-		const parsed = parseConfigContent(configData?.content ?? null);
-		setSetupValue(parsed.setup);
-		setTeardownValue(parsed.teardown);
-		setRunValue(parsed.run);
-		latestValuesRef.current = parsed;
-		lastSavedRef.current = buildPayload(parsed);
+		const loaded = parseConfigContent(configData?.content ?? null);
+		const texts = toScriptTexts(loaded);
+		setSetupValue(texts.setup);
+		setTeardownValue(texts.teardown);
+		setRunValue(texts.run);
+		latestValuesRef.current = texts;
+		loadedRef.current = loaded;
+		lastSavedRef.current = loaded;
 	}, [configData?.content]);
 
 	useEffect(() => {
@@ -170,7 +109,12 @@ export function V2ScriptsEditor({
 	});
 
 	const flushSave = useCallback(
-		async (next: ScriptPayload = buildPayload(latestValuesRef.current)) => {
+		async (
+			next: ScriptPayload = buildPayload(
+				latestValuesRef.current,
+				loadedRef.current,
+			),
+		) => {
 			if (payloadsEqual(next, lastSavedRef.current)) {
 				return;
 			}
@@ -195,6 +139,7 @@ export function V2ScriptsEditor({
 
 					if (!payloadsEqual(payloadToSave, lastSavedRef.current)) {
 						await updateMutation.mutateAsync({ projectId, ...payloadToSave });
+						loadedRef.current = payloadToSave;
 						lastSavedRef.current = payloadToSave;
 					}
 
@@ -209,7 +154,8 @@ export function V2ScriptsEditor({
 			} catch (error) {
 				console.error("[v2-scripts/save] failed", error);
 				queuedPayloadRef.current =
-					queuedPayloadRef.current ?? buildPayload(latestValuesRef.current);
+					queuedPayloadRef.current ??
+					buildPayload(latestValuesRef.current, loadedRef.current);
 				setSaveStatus("idle");
 				if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 				debounceTimerRef.current = setTimeout(() => {
@@ -226,14 +172,16 @@ export function V2ScriptsEditor({
 	);
 
 	const scheduleSave = useCallback(
-		(nextValues: ParsedConfig) => {
+		(nextValues: ScriptTexts) => {
 			latestValuesRef.current = nextValues;
 
 			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
 			debounceTimerRef.current = setTimeout(() => {
 				debounceTimerRef.current = null;
-				void flushSave(buildPayload(latestValuesRef.current));
+				void flushSave(
+					buildPayload(latestValuesRef.current, loadedRef.current),
+				);
 			}, 500);
 		},
 		[flushSave],
@@ -253,29 +201,30 @@ export function V2ScriptsEditor({
 		[scheduleSave],
 	);
 
-	const handleBlur = useCallback(async () => {
-		focusedRef.current = null;
+	const handleBlur = useCallback(
+		async (field: ScriptFieldName) => {
+			focusedRef.current = null;
 
-		if (debounceTimerRef.current) {
-			clearTimeout(debounceTimerRef.current);
-			debounceTimerRef.current = null;
-		}
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+				debounceTimerRef.current = null;
+			}
 
-		const trimmedValues = {
-			setup: trimScriptValue(latestValuesRef.current.setup),
-			teardown: trimScriptValue(latestValuesRef.current.teardown),
-			run: trimScriptValue(latestValuesRef.current.run),
-		};
-		latestValuesRef.current = trimmedValues;
+			const trimmed = trimEditedScriptValue(
+				latestValuesRef.current[field],
+				loadedRef.current[field],
+			);
+			const nextValues = { ...latestValuesRef.current, [field]: trimmed };
+			latestValuesRef.current = nextValues;
 
-		if (trimmedValues.setup !== setupValue) setSetupValue(trimmedValues.setup);
-		if (trimmedValues.teardown !== teardownValue) {
-			setTeardownValue(trimmedValues.teardown);
-		}
-		if (trimmedValues.run !== runValue) setRunValue(trimmedValues.run);
+			if (field === "setup") setSetupValue(trimmed);
+			if (field === "teardown") setTeardownValue(trimmed);
+			if (field === "run") setRunValue(trimmed);
 
-		await flushSave(buildPayload(trimmedValues));
-	}, [flushSave, runValue, setupValue, teardownValue]);
+			await flushSave(buildPayload(nextValues, loadedRef.current));
+		},
+		[flushSave],
+	);
 
 	if (isLoading) {
 		return (
@@ -336,7 +285,7 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "setup";
 						}}
-						onBlur={() => handleBlur()}
+						onBlur={() => handleBlur("setup")}
 					/>
 				</TabsContent>
 				<TabsContent value="teardown">
@@ -347,7 +296,7 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "teardown";
 						}}
-						onBlur={() => handleBlur()}
+						onBlur={() => handleBlur("teardown")}
 					/>
 				</TabsContent>
 				<TabsContent value="run">
@@ -358,7 +307,7 @@ export function V2ScriptsEditor({
 						onFocus={() => {
 							focusedRef.current = "run";
 						}}
-						onBlur={() => handleBlur()}
+						onBlur={() => handleBlur("run")}
 					/>
 				</TabsContent>
 			</Tabs>

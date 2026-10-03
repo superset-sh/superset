@@ -127,6 +127,48 @@ describe("resolveTeardownCommand", () => {
 		}
 	});
 
+	// #7866: a multi-line script saved as one entry must run as a script,
+	// not collapse into a single comment line.
+	test("executes a multi-line teardown entry with comments and control flow", () => {
+		const sb = makeSandbox();
+		try {
+			const markerDir = join(sb.homeDir, "markers");
+			writeConfig(sb.repoPath, {
+				teardown: [
+					[
+						"#!/bin/bash",
+						"# cleanup",
+						"set -euo pipefail",
+						`mkdir -p '${markerDir}'`,
+						"for name in first second; do",
+						'  if [ -n "$name" ]; then',
+						`    touch '${markerDir}'/"$name"`,
+						"  fi",
+						"done",
+					].join("\n"),
+				],
+			});
+
+			const resolved = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
+				homeDir: sb.homeDir,
+			});
+			if (!resolved) throw new Error("expected a teardown command");
+
+			const result = spawnSync("bash", ["-c", resolved.initialCommand], {
+				encoding: "utf-8",
+			});
+
+			expect(result.status).toBe(0);
+			expect(existsSync(join(markerDir, "first"))).toBe(true);
+			expect(existsSync(join(markerDir, "second"))).toBe(true);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
 	test("configured teardown takes precedence over a teardown.sh script", () => {
 		const sb = makeSandbox();
 		try {
