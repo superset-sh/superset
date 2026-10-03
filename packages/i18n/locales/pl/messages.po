@@ -512,6 +512,11 @@ msgstr "{0} w toku"
 msgid "{0} Running"
 msgstr "{0} w toku"
 
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "{0} running · last active {1}"
+msgstr "{0} działa · ostatnia aktywność {1}"
+
 #. placeholder {0}: result.killedCount
 msgid "{0} sessions terminated"
 msgstr "Zakończono sesje: {0}"
@@ -4729,6 +4734,10 @@ msgstr "Nie udało się rozwiązać tego komentarza"
 
 msgid "Could not restart the host service"
 msgstr "Nie udało się ponownie uruchomić usługi hosta"
+
+#. placeholder {0}: session.agentLabel
+msgid "Could not resume {0}"
+msgstr "Nie można wznowić {0}"
 
 msgid "Could not send"
 msgstr "Nie udało się wysłać"
@@ -13323,6 +13332,11 @@ msgstr "Wyniki"
 
 msgid "Resume"
 msgstr "Wznów"
+
+#. placeholder {0}: session.agentLabel
+#. placeholder {1}: formatCompactRelativeTime(session.lastEventAt)
+msgid "Resume {0} · last active {1}"
+msgstr "Wznów {0} · ostatnia aktywność {1}"
 
 msgid "Resume args"
 msgstr "Argumenty wznawiania"

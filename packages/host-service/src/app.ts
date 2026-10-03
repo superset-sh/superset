@@ -39,6 +39,7 @@ import {
 } from "./runtime/sandbox-self-seed";
 import {
 	isAgentTerminalAlive,
+	listDaemonAliveSessionIds,
 	registerWorkspaceTerminalRoute,
 	sendAgentMessage,
 } from "./terminal/terminal";
@@ -49,6 +50,7 @@ import {
 import { appRouter } from "./trpc/router";
 import { gitStatusStore } from "./trpc/router/git/utils/git-status-store";
 import {
+	resumeAgentsLostWithDaemon,
 	resumeCrashedAgentSessions,
 	resumeSessionDepsFor,
 } from "./trpc/router/terminal-agents/terminal-agents";
@@ -114,6 +116,8 @@ export interface CreateAppResult {
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
 	terminalAgentStore: TerminalAgentStore;
+	/** On a desktop, resumes the agents a reboot or daemon death killed. */
+	resumeLostAgents: () => Promise<void>;
 	dispose: () => Promise<void>;
 }
 
@@ -538,8 +542,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 
 	/** Same context the launcher above builds: a resume runs an agent. */
-	const resumeCrashedAgents = async () => {
-		const ctx = {
+	const resumeContext = () =>
+		({
 			git,
 			credentials: providers.credentials,
 			github,
@@ -552,8 +556,15 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			organizationId: config.organizationId,
 			isAuthenticated: true,
 			browserBridge: config.browserBridge,
-		} as HostServiceContext;
-		await resumeCrashedAgentSessions(resumeSessionDepsFor(ctx));
+		}) as HostServiceContext;
+	const resumeCrashedAgents = async () => {
+		await resumeCrashedAgentSessions(resumeSessionDepsFor(resumeContext()));
+	};
+	const resumeLostAgents = async () => {
+		await resumeAgentsLostWithDaemon(
+			resumeSessionDepsFor(resumeContext()),
+			listDaemonAliveSessionIds,
+		);
 	};
 
 	return {
@@ -565,6 +576,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		launchSandboxAgent,
 		resumeCrashedAgents,
 		terminalAgentStore,
+		resumeLostAgents,
 		dispose,
 	};
 }
