@@ -15,6 +15,7 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
 	ORGANIZATION_ID: "organization-id",
+	ORGANIZATION_TASK_TRACKER: "organization-task-tracker",
 	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
@@ -165,6 +166,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_SLUG]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_ID]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_TASK_TRACKER]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
@@ -453,6 +455,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"link",
 			"unique",
 		],
+	},
+	{
+		id: SETTING_ITEM_ID.ORGANIZATION_TASK_TRACKER,
+		section: "organization",
+		title: "Track tasks in",
+		description: "Use Superset tasks or your Linear issues",
+		keywords: ["tasks", "linear", "tracker", "issues", "integration"],
 	},
 	{
 		id: SETTING_ITEM_ID.ORGANIZATION_ID,

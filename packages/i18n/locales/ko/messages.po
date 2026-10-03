@@ -7424,6 +7424,9 @@ msgstr "작업 상태를 업데이트하지 못했습니다"
 msgid "Failed to update task title"
 msgstr "작업 제목을 업데이트하지 못했습니다"
 
+msgid "Failed to update task tracker"
+msgstr "작업 관리 위치를 업데이트하지 못했습니다"
+
 msgid "Failed to update team. Please try again."
 msgstr "팀을 변경하지 못했습니다. 다시 시도해 주세요."
 
@@ -16684,11 +16687,17 @@ msgstr "작업이 Linear에 동기화됨"
 msgid "Task title"
 msgstr "작업 제목"
 
+msgid "Task tracker updated"
+msgstr "작업 관리 위치가 업데이트되었습니다"
+
 msgid "Tasks"
 msgstr "작업"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Superset에서 만든 작업이 이 Linear 팀으로 동기화됩니다."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "작업, CLI, 에이전트가 이 설정을 따릅니다. 각 멤버는 자신의 Linear 계정을 사용합니다."
 
 msgid "Tax ID"
 msgstr "세금 ID"
@@ -17840,6 +17849,9 @@ msgstr "예산과 지출 관리"
 
 msgid "Track down that flaky test…"
 msgstr "불안정한 테스트 추적하기…"
+
+msgid "Track tasks in"
+msgstr "작업 관리 위치"
 
 msgid "Tracking"
 msgstr "추적 기간"

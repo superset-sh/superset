@@ -95,6 +95,7 @@ export const organizationRouter = {
 				name: organizations.name,
 				slug: organizations.slug,
 				logo: organizations.logo,
+				taskTracker: organizations.taskTracker,
 			})
 			.from(organizations)
 			.innerJoin(members, eq(members.organizationId, organizations.id))

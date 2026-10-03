@@ -7424,6 +7424,9 @@ msgstr "Không cập nhật được trạng thái tác vụ"
 msgid "Failed to update task title"
 msgstr "Không cập nhật được tiêu đề tác vụ"
 
+msgid "Failed to update task tracker"
+msgstr "Không thể cập nhật nơi theo dõi công việc"
+
 msgid "Failed to update team. Please try again."
 msgstr "Không thể cập nhật nhóm. Vui lòng thử lại."
 
@@ -16684,11 +16687,17 @@ msgstr "Đã đồng bộ tác vụ sang Linear"
 msgid "Task title"
 msgstr "Tiêu đề tác vụ"
 
+msgid "Task tracker updated"
+msgstr "Đã cập nhật nơi theo dõi công việc"
+
 msgid "Tasks"
 msgstr "Tác vụ"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Tác vụ tạo trong Superset sẽ được đồng bộ sang nhóm Linear này."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Công việc, CLI và agent làm theo thiết lập này. Mỗi thành viên dùng tài khoản Linear của riêng mình."
 
 msgid "Tax ID"
 msgstr "Mã số thuế"
@@ -17840,6 +17849,9 @@ msgstr "Theo dõi ngân sách và chi tiêu"
 
 msgid "Track down that flaky test…"
 msgstr "Truy ra bài test chập chờn đó…"
+
+msgid "Track tasks in"
+msgstr "Theo dõi công việc trong"
 
 msgid "Tracking"
 msgstr "Theo dõi"

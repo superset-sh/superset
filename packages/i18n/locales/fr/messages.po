@@ -7424,6 +7424,9 @@ msgstr "Impossible de modifier le statut de la tâche"
 msgid "Failed to update task title"
 msgstr "Impossible de modifier le titre de la tâche"
 
+msgid "Failed to update task tracker"
+msgstr "Impossible de mettre à jour le suivi des tâches"
+
 msgid "Failed to update team. Please try again."
 msgstr "Échec de la mise à jour de l'équipe. Veuillez réessayer."
 
@@ -16684,11 +16687,17 @@ msgstr "Tâche synchronisée avec Linear"
 msgid "Task title"
 msgstr "Titre de la tâche"
 
+msgid "Task tracker updated"
+msgstr "Suivi des tâches mis à jour"
+
 msgid "Tasks"
 msgstr "Tâches"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Les tâches créées dans Superset seront synchronisées avec cette équipe Linear."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Les tâches, la CLI et les agents suivent ce réglage. Chaque membre utilise son propre compte Linear."
 
 msgid "Tax ID"
 msgstr "Identifiant fiscal"
@@ -17840,6 +17849,9 @@ msgstr "Suivre les budgets et les dépenses"
 
 msgid "Track down that flaky test…"
 msgstr "Traque ce test instable…"
+
+msgid "Track tasks in"
+msgstr "Suivre les tâches dans"
 
 msgid "Tracking"
 msgstr "Suivi"

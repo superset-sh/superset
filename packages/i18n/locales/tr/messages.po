@@ -7424,6 +7424,9 @@ msgstr "Görev durumu güncellenemedi"
 msgid "Failed to update task title"
 msgstr "Görev başlığı güncellenemedi"
 
+msgid "Failed to update task tracker"
+msgstr "Görev takibi güncellenemedi"
+
 msgid "Failed to update team. Please try again."
 msgstr "Takım güncellenemedi. Lütfen yeniden deneyin."
 
@@ -16684,11 +16687,17 @@ msgstr "Görev Linear'a eşitlendi"
 msgid "Task title"
 msgstr "Görev başlığı"
 
+msgid "Task tracker updated"
+msgstr "Görev takibi güncellendi"
+
 msgid "Tasks"
 msgstr "Görevler"
 
 msgid "Tasks created in Superset will be synced to this Linear team."
 msgstr "Superset'te oluşturulan görevler bu Linear takımına eşitlenecek."
+
+msgid "Tasks, the CLI and agents follow this. Each member uses their own Linear account."
+msgstr "Görevler, CLI ve ajanlar bunu izler. Her üye kendi Linear hesabını kullanır."
 
 msgid "Tax ID"
 msgstr "Vergi kimliği"
@@ -17840,6 +17849,9 @@ msgstr "Bütçeleri ve harcamaları takip edin"
 
 msgid "Track down that flaky test…"
 msgstr "Şu kararsız testin izini sür…"
+
+msgid "Track tasks in"
+msgstr "Görevleri şurada takip et"
 
 msgid "Tracking"
 msgstr "İzleme"

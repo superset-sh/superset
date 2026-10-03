@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { TaskTracker } from "@superset/db/enums";
 import { errorMessage } from "@superset/i18n/errors";
 import { useFormat } from "@superset/i18n/react";
 import {
@@ -22,6 +23,13 @@ import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import {
@@ -143,6 +151,10 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 	const showId = isItemVisible(SETTING_ITEM_ID.ORGANIZATION_ID, visibleItems);
+	const showTaskTracker = isItemVisible(
+		SETTING_ITEM_ID.ORGANIZATION_TASK_TRACKER,
+		visibleItems,
+	);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const showDelete = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_DELETE,
@@ -275,6 +287,26 @@ export function OrganizationSettings({
 					),
 			},
 		);
+	}
+
+	async function handleTaskTrackerChange(
+		taskTracker: TaskTracker,
+	): Promise<void> {
+		if (!organization || taskTracker === organization.taskTracker) return;
+		try {
+			await apiTrpcClient.organization.update.mutate({
+				id: organization.id,
+				taskTracker,
+			});
+			await utils.organization.list.invalidate();
+			toast.success(t({ message: "Task tracker updated" }));
+		} catch (error) {
+			console.error(
+				"[organization-settings] Task tracker update failed:",
+				error,
+			);
+			toast.error(t({ message: "Failed to update task tracker" }));
+		}
 	}
 
 	async function handleNameBlur(): Promise<void> {
@@ -450,6 +482,36 @@ export function OrganizationSettings({
 											}`}
 											disabled={!isOwner}
 										/>
+									</SettingsRow>
+								)}
+
+								{showTaskTracker && (
+									<SettingsRow
+										label={t({ message: "Track tasks in" })}
+										hint={t({
+											message:
+												"Tasks, the CLI and agents follow this. Each member uses their own Linear account.",
+										})}
+									>
+										<Select
+											value={organization.taskTracker}
+											onValueChange={(value) =>
+												handleTaskTrackerChange(value as TaskTracker)
+											}
+											disabled={!isOwner}
+										>
+											<SelectTrigger size="sm" className="w-72">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="superset">
+													<Trans>Superset</Trans>
+												</SelectItem>
+												<SelectItem value="linear">
+													<Trans>Linear</Trans>
+												</SelectItem>
+											</SelectContent>
+										</Select>
 									</SettingsRow>
 								)}
 
