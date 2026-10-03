@@ -26,6 +26,7 @@ mock.module("./crypto-storage", () => ({
 }));
 
 const {
+	AUTH_STATE_TTL_MS,
 	authEvents,
 	clearToken,
 	handleAuthCallback,
@@ -186,6 +187,21 @@ describe("auth token storage", () => {
 
 		expect(retriedResult).toEqual({ success: true });
 		expect(stateStore.has(state)).toBe(false);
+	});
+
+	test("rejects a sign-in state older than its TTL", async () => {
+		const state = "stale-state";
+		stateStore.set(state, Date.now() - AUTH_STATE_TTL_MS - 1);
+
+		const result = await handleAuthCallback({
+			token: "token",
+			expiresAt: "2099-01-01",
+			state,
+		});
+
+		expect(result.success).toBe(false);
+		expect(stateStore.has(state)).toBe(false);
+		expect(fs.existsSync(tokenFile)).toBe(false);
 	});
 
 	test("sign-out clears unusable storage from the token path before reporting success", async () => {

@@ -119,6 +119,9 @@ describe("stripTerminalRuntimeEnv", () => {
 		// Auth refresh tokens inherited from parent (CLI/desktop) env
 		OAUTH_REFRESH_TOKEN: "oauth-refresh-secret",
 		SUPERSET_REFRESH_TOKEN: "superset-refresh-secret",
+		// Desktop browser-bridge control surface handed to host-service at spawn
+		BROWSER_BRIDGE_URL: "http://127.0.0.1:51799",
+		BROWSER_BRIDGE_SECRET: "bridge-secret",
 		// Keys that SHOULD survive
 		HOME: "/Users/test",
 		PATH: "/usr/bin:/usr/local/bin",
@@ -170,6 +173,12 @@ describe("stripTerminalRuntimeEnv", () => {
 		const result = stripTerminalRuntimeEnv(secretsEnv);
 		expect(result.OAUTH_REFRESH_TOKEN).toBeUndefined();
 		expect(result.SUPERSET_REFRESH_TOKEN).toBeUndefined();
+	});
+
+	test("browser bridge secret and endpoint do not reach PTY env", () => {
+		const result = stripTerminalRuntimeEnv(secretsEnv);
+		expect(result.BROWSER_BRIDGE_SECRET).toBeUndefined();
+		expect(result.BROWSER_BRIDGE_URL).toBeUndefined();
 	});
 
 	test("HOST_* prefix is stripped, DESKTOP_* exact keys only", () => {
