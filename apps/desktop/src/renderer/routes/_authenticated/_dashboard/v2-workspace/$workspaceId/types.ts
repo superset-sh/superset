@@ -138,7 +138,11 @@ export type WorkspaceSearchKey =
 	| "subagentType"
 	| "openUrl"
 	| "openUrlTarget"
-	| "openUrlRequestId";
+	| "openUrlRequestId"
+	| "openFile"
+	| "openFileLine"
+	| "openFileTarget"
+	| "openFileRequestId";
 
 /**
  * Drops the search params a deep link arrived with, once the hook that owns

@@ -71,6 +71,16 @@ export class BrowserBridgeClient {
 		);
 	}
 
+	openFile(input: {
+		workspaceId: string;
+		projectId: string | null;
+		paths: string[];
+		line?: number;
+		target: "current-tab" | "new-tab";
+	}) {
+		return this.request<{ paneIds: string[] }>("POST", "/open-file", input);
+	}
+
 	navigate(workspaceId: string, paneId: string, url: string) {
 		return this.request<{ ok: true }>(
 			"POST",

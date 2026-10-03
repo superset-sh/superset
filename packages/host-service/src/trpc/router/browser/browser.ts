@@ -1,20 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { BrowserBridgeClient } from "../../../runtime/browser-bridge/browser-bridge-client";
-import type { HostServiceContext } from "../../../types";
+import { requireBridge } from "../../../runtime/browser-bridge/require-bridge";
 import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
-
-function requireBridge(ctx: HostServiceContext): BrowserBridgeClient {
-	if (!ctx.browserBridge) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message:
-				"This host has no browser panes (no desktop app is attached to it).",
-		});
-	}
-	return new BrowserBridgeClient(ctx.browserBridge);
-}
 
 export const browserRouter = router({
 	list: protectedProcedure

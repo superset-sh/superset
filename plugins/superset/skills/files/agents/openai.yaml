@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Files"
+  short_description: "Open a file in a pane of the user's Superset workspace, beside the agent's terminal"
+  default_prompt: "Use $superset-files to open this file in a workspace pane."

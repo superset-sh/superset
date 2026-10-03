@@ -1161,6 +1161,46 @@ Close (dispose) a terminal running in a workspace. This ends the session.
 
 ---
 
+### files
+
+Open files in a workspace's file panes in the desktop app. The pane opens
+beside the active pane of the workspace's active tab, which is where the
+terminal the request came from usually is; if the workspace is not on screen,
+the desktop switches to it first. File panes live in the desktop app, so a
+standalone host with no desktop attached has no panes and this command errors.
+See the [`files` skill](/skills) for the agent-facing rules.
+
+<Command
+	name="superset files open <path...>"
+	args={[
+		{ name: "path", required: true, variadic: true, description: "Files to open; relative paths resolve against the current directory." },
+	]}
+	options={[
+		{ flag: "--workspace <id>", description: "Workspace UUID (default: the workspace whose worktree contains the current directory, then `$SUPERSET_WORKSPACE_ID`)." },
+		{ flag: "--line <n>", description: "Scroll to this line; single file only." },
+		{ flag: "--new-tab", description: "Open in a new tab instead of splitting beside the active pane." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--local", description: "The workspace is on this machine." },
+	]}
+	output={`{
+  workspaceId: string;
+  paths: string[];
+  paneIds: string[];
+}`}
+>
+Open one or more files as file panes and return their `paneId`s. Relative
+paths resolve against the current directory; every path must name an existing
+file on the host. One file opens as a preview pane, like a file-tree click;
+several files in one call stay open side by side.
+
+```bash
+superset files open src/app.ts --line 120
+superset files open a.ts b.ts --new-tab
+```
+</Command>
+
+---
+
 ### browser
 
 Drive a workspace's [in-app browser](/browser) panes: open and navigate URLs,

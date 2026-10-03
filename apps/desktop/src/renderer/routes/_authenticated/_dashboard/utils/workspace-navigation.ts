@@ -84,6 +84,11 @@ export interface V2WorkspaceSearchParams extends SubagentLinkSearchParams {
 	openUrl?: string;
 	openUrlTarget?: "current-tab" | "new-tab";
 	openUrlRequestId?: string;
+	/** Absolute paths to open as file panes once the workspace is on screen. */
+	openFile?: string[];
+	openFileLine?: number;
+	openFileTarget?: "current-tab" | "new-tab";
+	openFileRequestId?: string;
 }
 
 /**

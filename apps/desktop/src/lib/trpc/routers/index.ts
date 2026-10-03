@@ -10,6 +10,7 @@ import { createConfigRouter } from "./config";
 import { createDeviceRouter } from "./device";
 import { createDownloadsRouter } from "./downloads";
 import { createExternalRouter } from "./external";
+import { createFilePanesRouter } from "./file-panes";
 import { createFilesystemRouter } from "./filesystem";
 import { createGithubStarRouter } from "./github-star";
 import { createHostServiceCoordinatorRouter } from "./host-service-coordinator";
@@ -37,6 +38,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		analytics: createAnalyticsRouter(),
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),
+		filePanes: createFilePanesRouter(),
 		downloads: createDownloadsRouter(),
 		screenshots: createScreenshotsRouter(),
 		auth: createAuthRouter(),

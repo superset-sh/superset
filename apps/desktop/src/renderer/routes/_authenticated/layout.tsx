@@ -57,6 +57,7 @@ import { FileAutoSave } from "./components/FileAutoSave";
 import { FileMenuListener } from "./components/FileMenuListener";
 import { GitInitConfirmDialog } from "./components/GitInitConfirmDialog";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
+import { GlobalFilePaneRequests } from "./components/GlobalFilePaneRequests";
 import { InviteMemberDialog } from "./components/InviteMemberDialog";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
@@ -305,6 +306,7 @@ function AuthenticatedLayout() {
 			<CollectionsProvider>
 				<WindowTitle />
 				<GlobalBrowserLifecycle />
+				<GlobalFilePaneRequests />
 				<FileAutoSave />
 				<LocalHostServiceProvider>
 					{/* Above the workspace fan-out: it needs sandbox addresses to

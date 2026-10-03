@@ -146,6 +146,12 @@ For isolated branches, ask each implementation worker to commit or otherwise pro
 
 Summarize each task's outcome, workspace/branch, files changed, checks, blockers, and integration order. Distinguish worker claims from checks the coordinator independently ran.
 
+To put a file a worker changed in front of the user, open it as a pane in that worker's workspace (see the `files` skill). Give the absolute path inside the worker's worktree, since a relative path would resolve against your own directory:
+
+```bash
+superset files open <worktree-path>/src/file.ts --workspace <workspace-id> --host <host-id> --json
+```
+
 A run across several workspaces is worth a page. One link carrying every outcome, branch, and
 check reads better than a long terminal block, it survives the session, and reviewers can pin
 a comment to the row they disagree with:

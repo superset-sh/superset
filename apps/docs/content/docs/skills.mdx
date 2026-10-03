@@ -32,6 +32,7 @@ Or, in Claude Code, via the plugin marketplace:
 | `superset:automate` | Turns a recurring chore into a scheduled [automation](/automations) and reviews its first run with you |
 | `superset:page` | Builds and publishes shareable [Pages](/pages), then updates them in response to pinned team comments |
 | `superset:browser` | Drives a workspace's [in-app browser](/browser) panes: open, navigate, screenshot, eval, read console, and raw CDP for click/type automation, and routes to [Browser Use 3.0](/browser#browser-use-30) for browsers the panes can't reach |
+| `superset:files` | Opens files as panes in the user's workspace, beside the agent's terminal and optionally at a line, so "open that file" lands in the desktop app |
 | `superset:computer` | Drives [native desktop apps](/computer) through an accessibility-first driver (Cua Driver by default): inspect windows, click, type, use menus, and verify results with background interaction when the platform supports it |
 | `superset:standup` | Sweeps your workspaces, tasks, and agent terminals into a digest: what needs you, what's in flight, what's blocked |
 | `superset:doctor` | Diagnoses Superset problems (expired auth, offline hosts, stale versions) and fixes them one step at a time |
@@ -47,6 +48,7 @@ You usually don't invoke them; agents pick the right skill from context:
 - "what did my agents do overnight?" → `superset:standup`
 - "run these three refactors in parallel" → `superset:orchestrate`
 - "open localhost:3000 and click through the signup flow" → `superset:browser`
+- "open that file at the failing line" → `superset:files`
 - "open the desktop app and change its settings" → `superset:computer`
 
 To invoke one explicitly: `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat. Other agents that read skills (Codex, Kimi, Vibe, Grok) see the same skills with a `superset-` prefix.
