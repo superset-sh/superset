@@ -1,0 +1,1 @@
+export { resolveInitialWindowOrganization } from "./resolveInitialWindowOrganization";
