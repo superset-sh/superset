@@ -6,6 +6,10 @@ import SwiftUI
 enum ComposerMetrics {
   /// Measured off frame 1: the pill's left edge sits ~12pt in, not 16.
   static let horizontalMargin: CGFloat = 12
+  /// Widest the cluster gets — tabs, keys, card — so an iPad or a wide
+  /// window centers it instead of stretching the card edge to edge. Matches
+  /// the app's `READABLE_WIDTH`; a phone never reaches it.
+  static let maxWidth: CGFloat = 720
   /// Gap between the composer and the bottom safe area, per frame 1.
   static let bottomGap: CGFloat = 8
   static let pillRadius: CGFloat = 26
@@ -298,6 +302,7 @@ struct ComposerRootView: View {
               model.commitSlashCommand(command)
             }
             .padding(.horizontal, ComposerMetrics.horizontalMargin)
+            .frame(maxWidth: ComposerMetrics.maxWidth)
             .transition(.composerContent)
           }
           VStack(spacing: ComposerMetrics.quickKeyGap) {
@@ -332,6 +337,7 @@ struct ComposerRootView: View {
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)
           }
+          .frame(maxWidth: ComposerMetrics.maxWidth)
           .padding(.bottom, ComposerMetrics.bottomGap)
           // Its own size, not its position — the keyboard moves this cluster
           // but does not resize it, so the caller gets a value that only

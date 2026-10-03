@@ -5,6 +5,7 @@ import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
+import { useReadableInset } from "@/hooks/useReadableInset";
 import { useTheme } from "@/hooks/useTheme";
 import { openUrl } from "@/lib/open-url";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
@@ -20,10 +21,13 @@ export function HostsSettingsScreen() {
 		[hosts],
 	);
 
+	// 24pt (px-6) on a phone; a centered column on iPad.
+	const readableInset = useReadableInset(24);
 	return (
 		<ScrollView
 			className="bg-background flex-1"
-			contentContainerClassName="px-6 pb-12"
+			contentContainerClassName="pb-12"
+			contentContainerStyle={{ paddingHorizontal: readableInset }}
 		>
 			{hostsQuery.isSuccess && hostRows.length === 0 ? (
 				// Same dead end as the home screen's: a device only reaches the

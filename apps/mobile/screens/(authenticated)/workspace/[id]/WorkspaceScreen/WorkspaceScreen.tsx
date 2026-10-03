@@ -21,7 +21,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
+	Dimensions,
 	Keyboard,
+	type KeyboardEvent,
 	LayoutAnimation,
 	Pressable,
 	View,
@@ -43,6 +45,10 @@ import {
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { HeaderNotice } from "@/screens/(authenticated)/components/HeaderNotice";
+import {
+	anchorOf,
+	ToolbarAnchor,
+} from "@/screens/(authenticated)/components/ToolbarAnchor";
 import { useAgentIconUris } from "@/screens/(authenticated)/hooks/useAgentIconUris";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
@@ -70,6 +76,7 @@ import { useHostCompatibility } from "../hooks/useHostCompatibility";
 import { usePullRequestIconUri } from "../hooks/usePullRequestIconUri";
 import { useWorkspaceHeaderActions } from "../hooks/useWorkspaceHeaderActions";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
+import { keyboardOverlap } from "../utils/keyboardOverlap";
 import { orderTerminalRows } from "../utils/orderTerminalRows";
 import { PULL_REQUEST_SYMBOL, pullRequestStatus } from "../utils/pullRequest";
 import { WorkspaceCreateFailedState } from "./components/WorkspaceCreateFailedState";
@@ -575,6 +582,7 @@ export function WorkspaceScreen() {
 	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const [composerActive, setComposerActive] = useState(false);
 	const composerRef = useRef<ComposerHandle>(null);
+	const shareAnchorRef = useRef<View>(null);
 	const [select, setSelect] = useState<TerminalSelectState>({
 		active: false,
 		hasSelection: false,
@@ -666,22 +674,25 @@ export function WorkspaceScreen() {
 	);
 
 	useEffect(() => {
-		const show = Keyboard.addListener("keyboardWillShow", (event) => {
+		const animate = (event: KeyboardEvent) =>
 			LayoutAnimation.configureNext({
 				duration: event.duration || 250,
 				update: { type: LayoutAnimation.Types.keyboard },
 			});
-			setKeyboardHeight(event.endCoordinates.height);
+		// Change-frame, not just show: on iPad the keyboard docks, undocks,
+		// floats and splits without ever hiding.
+		const change = Keyboard.addListener("keyboardWillChangeFrame", (event) => {
+			animate(event);
+			setKeyboardHeight(
+				keyboardOverlap(event.endCoordinates, Dimensions.get("screen").height),
+			);
 		});
 		const hide = Keyboard.addListener("keyboardWillHide", (event) => {
-			LayoutAnimation.configureNext({
-				duration: event.duration || 250,
-				update: { type: LayoutAnimation.Types.keyboard },
-			});
+			animate(event);
 			setKeyboardHeight(0);
 		});
 		return () => {
-			show.remove();
+			change.remove();
 			hide.remove();
 		};
 	}, []);
@@ -937,7 +948,7 @@ export function WorkspaceScreen() {
 							</Stack.Toolbar.Menu>
 							<Stack.Toolbar.MenuAction
 								icon="square.and.arrow.up"
-								onPress={shareWorkspace}
+								onPress={() => shareWorkspace(anchorOf(shareAnchorRef))}
 							>
 								{t({ message: "Share" })}
 							</Stack.Toolbar.MenuAction>
@@ -1149,6 +1160,7 @@ export function WorkspaceScreen() {
 					selectHasSelection={select.hasSelection}
 				/>
 			) : null}
+			<ToolbarAnchor ref={shareAnchorRef} />
 		</View>
 	);
 }

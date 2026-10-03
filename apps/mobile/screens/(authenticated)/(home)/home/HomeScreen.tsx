@@ -35,6 +35,7 @@ import {
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
+import { useReadableInset } from "@/hooks/useReadableInset";
 import { useSession } from "@/lib/auth/client";
 import { useCloudFilters } from "@/screens/(authenticated)/(home)/hooks/useCloudFilters";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
@@ -167,6 +168,7 @@ export function HomeScreen() {
 	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const headerHeight = useHeaderHeight();
+	const readableInset = useReadableInset();
 	const queryClient = useQueryClient();
 	useAppReviewPrompt();
 	const setTargetKey = useNewSessionPreferencesStore(
@@ -781,6 +783,7 @@ export function HomeScreen() {
 							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
 						paddingBottom: 112,
 						paddingTop: 8,
+						paddingHorizontal: readableInset,
 					}}
 					data={listItems}
 					extraData={renderItem}
