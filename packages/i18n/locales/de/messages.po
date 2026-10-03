@@ -4752,7 +4752,7 @@ msgid "Couldn't branch the conversation"
 msgstr "Unterhaltung konnte nicht verzweigt werden"
 
 msgid "Couldn't check what removing this member affects"
-msgstr "Konnte nicht prüfen, was das Entfernen dieses Mitglieds betrifft"
+msgstr "Die Auswirkungen der Entfernung dieses Mitglieds konnten nicht geprüft werden"
 
 msgid "Couldn't confirm star status — check that the GitHub CLI (`gh`) is installed, signed in, and that you have a network connection"
 msgstr "Der Star-Status ließ sich nicht bestätigen — prüfe, ob die GitHub-CLI (`gh`) installiert und angemeldet ist und ob du eine Netzwerkverbindung hast"
