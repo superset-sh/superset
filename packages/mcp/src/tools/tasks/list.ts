@@ -39,7 +39,7 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.nullish()
-				.describe("Linear only: team key, e.g. ENG."),
+				.describe("Filter by team key or name, e.g. ENG."),
 			priority: z
 				.enum(["urgent", "high", "medium", "low", "none"])
 				.nullish()
@@ -82,10 +82,10 @@ export function register(server: McpServer): void {
 			const caller = createMcpCaller(ctx);
 			const { tracker, linearStatus, team, ...filters } = input;
 			if ((await resolveTracker(caller, tracker)) === "superset") {
-				if (team || linearStatus) {
-					throw new Error("team and linearStatus only apply to Linear issues");
+				if (linearStatus) {
+					throw new Error("linearStatus only applies to Linear issues");
 				}
-				return caller.task.list(filters);
+				return caller.task.list({ ...filters, team });
 			}
 			if (filters.offset + filters.limit > MAX_LINEAR_ISSUES) {
 				throw new Error(

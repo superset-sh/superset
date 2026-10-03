@@ -33,7 +33,7 @@ export default command({
 		status: string().desc(
 			`Filter by status id; for Linear, one of ${linearStatusFilterValues.join(", ")} (default: active)`,
 		),
-		team: string().desc("Linear team key (Linear only)"),
+		team: string().desc("Filter by team key or name"),
 		priority: string()
 			.enum("urgent", "high", "medium", "low", "none")
 			.desc("Filter by priority"),
@@ -67,10 +67,8 @@ export default command({
 		if ((await resolveTracker(ctx, options.tracker)) === "linear") {
 			return listLinearIssues(ctx, options);
 		}
-		if (options.team) {
-			throw new CLIError("--team only applies to Linear issues");
-		}
 		const result = await ctx.api.task.list.query({
+			team: options.team ?? undefined,
 			statusId: options.status ?? undefined,
 			priority: options.priority,
 			assigneeId: options.assignee ?? undefined,

@@ -29,7 +29,7 @@ export default command({
 		),
 		statusId: string().desc("Status ID (for Linear: status name or id)"),
 		team: string().desc(
-			"Linear team key (Linear only; needed when you have several teams)",
+			"Team key or name (for Linear: needed when you have several teams)",
 		),
 		estimate: number().int().min(1).desc("Story-point estimate"),
 		dueDate: string().desc("Due date (ISO 8601)"),
@@ -74,9 +74,6 @@ export default command({
 			};
 		}
 
-		if (options.team) {
-			throw new CLIError("--team only applies to Linear issues");
-		}
 		const labels = options.labels
 			? options.labels
 					.split(",")
@@ -85,6 +82,7 @@ export default command({
 			: undefined;
 		const result = await ctx.api.task.create.mutate({
 			title: options.title,
+			team: options.team ?? undefined,
 			description: options.description ?? undefined,
 			priority: options.priority,
 			assigneeId: options.assignee ?? undefined,

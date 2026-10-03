@@ -59,6 +59,7 @@ export interface TaskListFilters {
 	organizationId: string;
 	includeDeleted?: boolean;
 	nativeOnly?: boolean;
+	teamId?: string;
 	statusId?: string;
 	statusType?: TaskStatusType;
 	assigneeId?: string;
@@ -95,6 +96,10 @@ export function buildTaskListConditions(
 				),
 			);
 		conditions.push(inArray(tasks.statusId, nativeStatuses));
+	}
+
+	if (filters.teamId) {
+		conditions.push(eq(tasks.teamId, filters.teamId));
 	}
 
 	if (filters.statusId) {

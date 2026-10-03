@@ -35,7 +35,7 @@ export function register(server: McpServer): void {
 				.min(1)
 				.nullish()
 				.describe(
-					"Linear only: team key, e.g. ENG. Needed when the Linear workspace has several teams.",
+					"Team key or name, e.g. ENG. For Linear, needed when the workspace has several teams. Omit for the default team.",
 				),
 			priority: z
 				.enum(["urgent", "high", "medium", "low", "none"])
@@ -63,8 +63,7 @@ export function register(server: McpServer): void {
 			const caller = createMcpCaller(ctx);
 			const { tracker, team, ...task } = input;
 			if ((await resolveTracker(caller, tracker)) === "superset") {
-				if (team) throw new Error("team only applies to Linear issues");
-				return caller.task.create(task);
+				return caller.task.create({ ...task, team });
 			}
 
 			rejectUnsupported({ labels: task.labels });

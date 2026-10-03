@@ -3,8 +3,10 @@ import {
 	type InsertTaskImport,
 	members,
 	taskImports,
+	taskSequences,
 	taskStatuses,
 	tasks,
+	teams,
 	users,
 } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
@@ -128,6 +130,37 @@ async function getTaskBySlug(
 	return task ?? null;
 }
 
+async function getTaskTeamId(
+	executor: Executor,
+	organizationId: string,
+	value: string,
+) {
+	const orgTeams = await executor
+		.select({
+			id: teams.id,
+			name: teams.name,
+			slug: teams.slug,
+			key: taskSequences.key,
+		})
+		.from(teams)
+		.leftJoin(taskSequences, eq(taskSequences.teamId, teams.id))
+		.where(eq(teams.organizationId, organizationId))
+		.orderBy(asc(teams.createdAt));
+	const needle = value.trim().toLowerCase();
+	const team =
+		orgTeams.find((t) => t.id === needle || t.key?.toLowerCase() === needle) ??
+		orgTeams.find(
+			(t) => t.name.toLowerCase() === needle || t.slug.toLowerCase() === needle,
+		);
+	if (!team) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Team not found: ${value}. Teams: ${orgTeams.map((t) => t.key ?? t.name).join(", ")}`,
+		});
+	}
+	return team.id;
+}
+
 async function getScopedStatusId(
 	executor: Executor,
 	organizationId: string,
@@ -233,6 +266,10 @@ async function createTask(
 				)
 			: null;
 
+		const teamId = input.team
+			? await getTaskTeamId(tx, organizationId, input.team)
+			: undefined;
+
 		const taskId = crypto.randomUUID();
 		const [task] = await tx
 			.insert(tasks)
@@ -250,6 +287,7 @@ async function createTask(
 				organizationId,
 				creatorId: ctx.session.user.id,
 				assigneeId,
+				teamId,
 				estimate: input.estimate ?? null,
 				dueDate: input.dueDate ?? null,
 			})
@@ -403,7 +441,7 @@ function selectTaskListRows() {
 		.leftJoin(status, eq(tasks.statusId, status.id));
 }
 
-function buildTaskListFilters(
+async function buildTaskListFilters(
 	organizationId: string,
 	userId: string,
 	input: TaskListFilterInput | null | undefined,
@@ -424,6 +462,9 @@ function buildTaskListFilters(
 	return buildTaskListConditions({
 		organizationId,
 		nativeOnly: input?.nativeOnly ?? undefined,
+		teamId: input?.team
+			? await getTaskTeamId(db, organizationId, input.team)
+			: undefined,
 		statusId: input?.statusId ?? undefined,
 		priority: input?.priority ?? undefined,
 		assigneeId: input?.assigneeMe ? userId : (input?.assigneeId ?? undefined),
@@ -477,7 +518,7 @@ export const taskRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const filters = buildTaskListFilters(
+			const filters = await buildTaskListFilters(
 				organizationId,
 				ctx.session.user.id,
 				input,
@@ -500,7 +541,7 @@ export const taskRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const filters = buildTaskListFilters(
+			const filters = await buildTaskListFilters(
 				organizationId,
 				ctx.session.user.id,
 				input,

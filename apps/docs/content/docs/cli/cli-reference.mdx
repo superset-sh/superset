@@ -1371,7 +1371,7 @@ Linear, Superset tasks are not listed or resolved, and the reverse. Pass
 	name="superset tasks list"
 	options={[
 		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
-		{ flag: "--team <key>", description: "Linear team key (Linear only)." },
+		{ flag: "--team <key>", description: "Filter by team key or name." },
 		{ flag: "--status <id>", description: "Filter by status ID. For Linear: all | active | backlog | unstarted | started | completed | canceled (default active)." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Filter by priority." },
 		{ flag: "--assignee <userId>", description: "Filter by assignee user ID." },
@@ -1422,7 +1422,7 @@ superset tasks get fix-login-bug
 	name="superset tasks create"
 	options={[
 		{ flag: "--tracker <superset|linear>", description: "Override the organization's task tracker." },
-		{ flag: "--team <key>", description: "Linear team key; needed when your Linear workspace has several teams." },
+		{ flag: "--team <key>", description: "Team key or name. Superset tasks go to the default team without it; Linear needs it when the workspace has several teams." },
 		{ flag: "--title <title>", required: true, description: "Task title." },
 		{ flag: "--description <text>", description: "Task description." },
 		{ flag: "--priority <urgent|high|medium|low|none>", description: "Priority." },

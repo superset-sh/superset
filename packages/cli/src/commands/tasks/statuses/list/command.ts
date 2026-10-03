@@ -38,7 +38,7 @@ export default command({
 			);
 		}
 		if (options.team) {
-			throw new CLIError("--team only applies to Linear issues");
+			throw new CLIError("Superset statuses are shared by every team");
 		}
 		return ctx.api.task.statuses.list.query();
 	},

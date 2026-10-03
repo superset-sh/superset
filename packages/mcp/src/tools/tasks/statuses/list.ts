@@ -22,7 +22,8 @@ export function register(server: McpServer): void {
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
 			if ((await resolveTracker(caller, input?.tracker)) === "superset") {
-				if (input?.team) throw new Error("team only applies to Linear issues");
+				if (input?.team)
+					throw new Error("Superset statuses are shared by every team");
 				const rows = await caller.task.statuses.list();
 				return { statuses: rows };
 			}

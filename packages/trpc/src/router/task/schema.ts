@@ -5,6 +5,12 @@ import {
 } from "@superset/db/task-list-query";
 import { z } from "zod";
 
+const taskTeamSchema = z
+	.string()
+	.min(1)
+	.nullish()
+	.describe("Team id, key (e.g. ENG), name or slug");
+
 export const createTaskSchema = z.object({
 	title: z.string().min(1),
 	description: z.string().nullish(),
@@ -14,6 +20,7 @@ export const createTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
+	team: taskTeamSchema,
 });
 
 export const updateTaskSchema = z.object({
@@ -34,6 +41,7 @@ export const updateTaskSchema = z.object({
 
 const taskListFilterSchema = z.object({
 	nativeOnly: z.boolean().nullish(),
+	team: taskTeamSchema,
 	statusId: z.string().uuid().nullish(),
 	priority: z.enum(taskPriorityValues).nullish(),
 	assigneeId: z.string().uuid().nullish(),
