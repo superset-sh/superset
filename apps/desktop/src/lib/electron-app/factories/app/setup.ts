@@ -4,6 +4,7 @@ import { isBrowserPanePopup } from "main/lib/browser/popup-window";
 import { loadReactDevToolsExtension } from "main/lib/extensions";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
+import { shouldDisableHardwareAcceleration } from "../../utils/gpu-acceleration";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);
@@ -68,7 +69,11 @@ export async function makeAppSetup(
 	return window;
 }
 
-PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
+// Only ever an explicit user opt-out — see utils/gpu-acceleration. Disabling it
+// by platform (as Linux used to) pins the whole renderer to SwiftShader.
+if (shouldDisableHardwareAcceleration()) {
+	app.disableHardwareAcceleration();
+}
 
 // macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
 if (PLATFORM.IS_MAC) {
