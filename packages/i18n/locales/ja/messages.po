@@ -2769,6 +2769,10 @@ msgstr "バッジ、アバター、カード、テーブル、リスト"
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "チップスタイルをtooltip.tsxに組み込む"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "保有リセット: {0}"
+
 msgid "Bar"
 msgstr "バー"
 
@@ -10012,6 +10016,10 @@ msgstr "次のブランチ"
 
 msgid "Next comment"
 msgstr "次のコメント"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "次の有効期限: {0}"
 
 msgid "Next file"
 msgstr "次のファイル"

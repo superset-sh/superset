@@ -2769,6 +2769,10 @@ msgstr "Значки, аватары, карточки, таблицы и спи
 msgid "Baking the chip style into tooltip.tsx"
 msgstr "Вшиваем стиль чипа в tooltip.tsx"
 
+#. placeholder {0}: account.resetCredits.availableCount
+msgid "Banked resets: {0}"
+msgstr "Накоплено сбросов: {0}"
+
 msgid "Bar"
 msgstr "Полоска"
 
@@ -10012,6 +10016,10 @@ msgstr "Следующая ветка"
 
 msgid "Next comment"
 msgstr "Следующий комментарий"
+
+#. placeholder {0}: formatDateTime( account.resetCredits.nextExpiresAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", }, )
+msgid "Next expires {0}"
+msgstr "Ближайший истекает {0}"
 
 msgid "Next file"
 msgstr "Следующий файл"
