@@ -20,6 +20,7 @@ import {
 	registerChatV3Routes,
 } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import { agentIsBusy, PageWatchManager } from "./page-watch/index.ts";
 import { registerForwardMuxRoute } from "./ports/forward-mux-route";
@@ -119,6 +120,10 @@ export interface CreateAppResult {
 	 */
 	launchSandboxAgent: () => Promise<void>;
 	resumeCrashedAgents: () => Promise<void>;
+	/** Every PR any workspace on this host has linked, for the sandbox's own reporter. */
+	readLinkedPullRequests: () => Promise<
+		{ repository: string; number: number }[]
+	>;
 	terminalAgentStore: TerminalAgentStore;
 	dispose: () => Promise<void>;
 }
@@ -612,6 +617,23 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		await resumeCrashedAgentSessions(resumeSessionDepsFor(ctx));
 	};
 
+	const readLinkedPullRequests = async () => {
+		const workspaceIds = db
+			.select({ id: workspaces.id, archivedAt: workspaces.archivedAt })
+			.from(workspaces)
+			.all()
+			.filter((row) => row.archivedAt == null)
+			.map((row) => row.id);
+		const histories =
+			await pullRequestRuntime.getPullRequestHistoryByWorkspaces(workspaceIds);
+		return histories.flatMap((history) =>
+			history.pullRequests.map((pullRequest) => ({
+				repository: `${pullRequest.repoOwner}/${pullRequest.repoName}`,
+				number: pullRequest.number,
+			})),
+		);
+	};
+
 	return {
 		app,
 		injectWebSocket,
@@ -620,6 +642,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		readLinkedPullRequests,
 		terminalAgentStore,
 		dispose,
 	};

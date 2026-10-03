@@ -77,6 +77,20 @@ A closed box's dot is therefore at most a few seconds behind; the open box's
 own subscribers stay live as before. Reaches a box only through a
 host-service release.
 
+**A closed box's pull requests are not on its creation branch.**
+`cloud_workspaces.branch` is the branch the box was cut on, and an agent
+moves on from it: new branches, one PR each. Looking PRs up by that branch
+showed a stale or missing PR for every box but the open one, which the host
+fan-out reaches. The box's PR runtime already keeps every PR it has linked
+(`workspace_pull_requests` in host.db), so the box reports each one once to
+`POST /api/cloud-workspaces/:id/pull-requests` (`sandbox-pull-requests` in
+host-service, polling that local history every 30 seconds), and the API
+records it in `cloud_workspace_pull_requests` for the repositories the
+workspace checked out. State still comes from `github_pull_requests`. A PR
+reaches the table at most a sweep of the PR runtime (5 minutes) plus a poll
+after it is opened. Reaches a box only through a host-service release.
+**Open:** no client reads the table yet.
+
 **Nobody on the box knows who is in it.** A host is one person's machine, so
 a workspace row implies its owner and the sidebar never had to say. A cloud
 workspace is opened by any member of the organization, and host-service inside
