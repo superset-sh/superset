@@ -154,7 +154,7 @@
 		"@xterm/addon-fit": "0.12.0-beta.289",
 		"@xterm/addon-serialize": "0.15.0-beta.289",
 		"@xterm/xterm": "6.1.0-beta.302",
-		"babel-preset-expo": "57.0.7",
+		"babel-preset-expo": "57.0.13",
 		"expo-mcp": "0.2.4",
 		"storybook": "10.4.2",
 		"typescript": "6.0.3"

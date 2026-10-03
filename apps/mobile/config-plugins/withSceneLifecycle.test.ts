@@ -27,7 +27,7 @@ const TEMPLATE = `class AppDelegate: ExpoAppDelegate {
 `;
 
 describe("withSceneLifecycle", () => {
-	test("hands the window and React Native's start to Expo's scene delegate", () => {
+	test("makes the app delegate a factory provider and drops its own window and start", () => {
 		const out = rewriteAppDelegate(TEMPLATE);
 		expect(out).toContain(
 			"class AppDelegate: ExpoAppDelegate, ExpoReactNativeFactoryProvider {",
