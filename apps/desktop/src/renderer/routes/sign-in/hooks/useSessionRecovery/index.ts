@@ -1,1 +1,1 @@
-export { useSessionRecovery } from "./useSessionRecovery";
+export { isNetworkFetchError, useSessionRecovery } from "./useSessionRecovery";

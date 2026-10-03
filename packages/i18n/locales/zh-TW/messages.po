@@ -3165,6 +3165,9 @@ msgstr "無法在外部編輯器中開啟遠端工作區路徑"
 msgid "Can't open remote workspace paths in Finder"
 msgstr "無法在Finder中開啟遠端工作區路徑"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "無法連線到 {apiHost}。請檢查網路、VPN 或 DNS 篩選。"
+
 msgid "Cancel"
 msgstr "取消"
 

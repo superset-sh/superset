@@ -3165,6 +3165,9 @@ msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít v externím edit
 msgid "Can't open remote workspace paths in Finder"
 msgstr "Cesty vzdáleného pracovního prostoru nejde otevřít ve Finderu"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "Nelze se připojit k {apiHost}. Zkontrolujte síť, VPN nebo filtr DNS."
+
 msgid "Cancel"
 msgstr "Zrušit"
 

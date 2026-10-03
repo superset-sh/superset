@@ -3165,6 +3165,9 @@ msgstr "リモートワークスペースのパスは外部エディタで開け
 msgid "Can't open remote workspace paths in Finder"
 msgstr "リモートワークスペースのパスはFinderで開けません"
 
+msgid "Can't reach {apiHost}. Check your network, VPN, or DNS filter."
+msgstr "{apiHost}に接続できません。ネットワーク、VPN、DNSフィルターを確認してください。"
+
 msgid "Cancel"
 msgstr "キャンセル"
 
