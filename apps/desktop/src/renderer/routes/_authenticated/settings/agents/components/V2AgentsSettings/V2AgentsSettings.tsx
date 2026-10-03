@@ -24,7 +24,9 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { SettingsHostSelect } from "renderer/routes/_authenticated/settings/components/SettingsHostSelect";
 import { useScrollReset } from "renderer/routes/_authenticated/settings/hooks/useScrollReset";
+import { useSettingsHost } from "renderer/routes/_authenticated/settings/hooks/useSettingsHost";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
 import {
@@ -82,12 +84,12 @@ export function V2AgentsSettings({
 }: V2AgentsSettingsProps = {}) {
 	const { t } = useLingui();
 	const hostService = useLocalHostService();
-	const { activeHostUrl } = hostService;
+	const { hostUrl, isLocal: isLocalHost, hasMultipleHosts } = useSettingsHost();
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
 
-	const configsQuery = useV2AgentConfigs(activeHostUrl);
-	const queryKey = [...QUERY_KEY, activeHostUrl] as const;
+	const configsQuery = useV2AgentConfigs(hostUrl);
+	const queryKey = [...QUERY_KEY, hostUrl] as const;
 	const queryFamily = { queryKey: QUERY_KEY };
 
 	const invalidate = () => {
@@ -130,7 +132,7 @@ export function V2AgentsSettings({
 
 	const addMutation = useMutation({
 		mutationFn: async (preset: HostAgentPreset) => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "addAgent",
@@ -140,20 +142,22 @@ export function V2AgentsSettings({
 			const { description: _description, ...body } = preset;
 			const added =
 				await getHostServiceClientByUrl(
-					activeHostUrl,
+					hostUrl,
 				).settings.agentConfigs.add.mutate(body);
 			// Safety net: re-run wrapper/hook setup so Add guarantees the hooks
-			// are wired even if boot setup failed or the wrapper was wiped.
-			setupAgentMutation.mutate(
-				{ agentId: preset.presetId },
-				{
-					onError: (err) =>
-						console.warn(
-							`[agents] setupAgent failed for ${preset.presetId}`,
-							err,
-						),
-				},
-			);
+			// are wired even if boot setup failed or the wrapper was wiped. The
+			// setup runs in this app's main process, so it only covers this device.
+			if (isLocalHost)
+				setupAgentMutation.mutate(
+					{ agentId: preset.presetId },
+					{
+						onError: (err) =>
+							console.warn(
+								`[agents] setupAgent failed for ${preset.presetId}`,
+								err,
+							),
+					},
+				);
 			return added;
 		},
 		onSuccess: (added) => {
@@ -177,7 +181,7 @@ export function V2AgentsSettings({
 
 	const addCustomMutation = useMutation({
 		mutationFn: async (input: CreateCustomAgentInput) => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "addAgent",
@@ -185,7 +189,7 @@ export function V2AgentsSettings({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.add.mutate(input);
 		},
 		onSuccess: (added) => {
@@ -209,7 +213,7 @@ export function V2AgentsSettings({
 
 	const reorderMutation = useMutation({
 		mutationFn: (ids: string[]) => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "reorderAgents",
@@ -217,12 +221,12 @@ export function V2AgentsSettings({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.reorder.mutate({ ids });
 		},
 		onMutate: async (ids) => {
 			await queryClient.cancelQueries({
-				queryKey: [...QUERY_KEY, activeHostUrl],
+				queryKey: [...QUERY_KEY, hostUrl],
 			});
 			const previous = queryClient.getQueryData<HostAgentConfig[]>(queryKey);
 			if (previous) {
@@ -255,7 +259,7 @@ export function V2AgentsSettings({
 
 	const resetMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "resetAgents",
@@ -263,7 +267,7 @@ export function V2AgentsSettings({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.resetToDefaults.mutate();
 		},
 		onSuccess: () => {
@@ -325,75 +329,87 @@ export function V2AgentsSettings({
 
 	const selectedAgent = configs.find((c) => c.id === selectedAgentId) ?? null;
 
+	const hostBar = hasMultipleHosts ? (
+		<div className="flex shrink-0 justify-end border-b px-4 py-2">
+			<SettingsHostSelect />
+		</div>
+	) : null;
+
 	if (configsQuery.isError) {
 		return (
-			<div className="p-6 text-sm text-destructive">
-				<Trans>
-					Couldn't load agent settings:{" "}
-					{configsQuery.error instanceof Error
-						? configsQuery.error.message
-						: hostServiceUnavailableMessage}
-				</Trans>
+			<div className="flex h-full w-full flex-col">
+				{hostBar}
+				<div className="p-6 text-sm text-destructive">
+					<Trans>
+						Couldn't load agent settings:{" "}
+						{configsQuery.error instanceof Error
+							? configsQuery.error.message
+							: hostServiceUnavailableMessage}
+					</Trans>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex h-full w-full">
-			{configsQuery.isLoading ? (
-				<SidebarSkeleton />
-			) : (
-				<AgentsSettingsSidebar
-					configs={configs}
-					presets={addablePresets}
-					selectedAgentId={selectedAgentId}
-					onSelectAgent={(id) => {
-						setSelectedAgentId(id);
-						setIsCreating(false);
-						void navigate({
-							to: "/settings/agents/$agentId",
-							params: { agentId: id },
-						});
-					}}
-					onAddAgent={(preset) => addMutation.mutate(preset)}
-					onCreateCustomAgent={() => setIsCreating(true)}
-					onReorder={(ids) => reorderMutation.mutate(ids)}
-					onResetToDefaults={() => resetMutation.mutate()}
-					isAdding={addMutation.isPending}
-					isResetting={resetMutation.isPending}
-				/>
-			)}
-			<div ref={detailRef} className="flex-1 overflow-y-auto">
-				{isCreating ? (
-					<NewCustomAgentDetail
-						onCreate={(input) => addCustomMutation.mutate(input)}
-						onCancel={() => setIsCreating(false)}
-						isSubmitting={addCustomMutation.isPending}
-					/>
-				) : selectedAgent ? (
-					<AgentDetail
-						key={selectedAgent.id}
-						config={selectedAgent}
-						description={
-							DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
-							t({
-								message: "Terminal agent launch configuration",
-							})
-						}
-						onChanged={(updated) => {
-							updateCachedConfig(updated);
-							syncLinkedPresetSnapshots(updated);
-							invalidate();
-						}}
-						onDeleted={() => {
-							setSelectedAgentId(null);
-							void navigate({ to: "/settings/agents" });
-							invalidate();
-						}}
-					/>
+		<div className="flex h-full w-full flex-col">
+			{hostBar}
+			<div className="flex min-h-0 w-full flex-1">
+				{configsQuery.isLoading ? (
+					<SidebarSkeleton />
 				) : (
-					<EmptyState />
+					<AgentsSettingsSidebar
+						configs={configs}
+						presets={addablePresets}
+						selectedAgentId={selectedAgentId}
+						onSelectAgent={(id) => {
+							setSelectedAgentId(id);
+							setIsCreating(false);
+							void navigate({
+								to: "/settings/agents/$agentId",
+								params: { agentId: id },
+							});
+						}}
+						onAddAgent={(preset) => addMutation.mutate(preset)}
+						onCreateCustomAgent={() => setIsCreating(true)}
+						onReorder={(ids) => reorderMutation.mutate(ids)}
+						onResetToDefaults={() => resetMutation.mutate()}
+						isAdding={addMutation.isPending}
+						isResetting={resetMutation.isPending}
+					/>
 				)}
+				<div ref={detailRef} className="flex-1 overflow-y-auto">
+					{isCreating ? (
+						<NewCustomAgentDetail
+							onCreate={(input) => addCustomMutation.mutate(input)}
+							onCancel={() => setIsCreating(false)}
+							isSubmitting={addCustomMutation.isPending}
+						/>
+					) : selectedAgent ? (
+						<AgentDetail
+							key={selectedAgent.id}
+							config={selectedAgent}
+							description={
+								DESCRIPTION_BY_PRESET_ID.get(selectedAgent.presetId) ??
+								t({
+									message: "Terminal agent launch configuration",
+								})
+							}
+							onChanged={(updated) => {
+								updateCachedConfig(updated);
+								syncLinkedPresetSnapshots(updated);
+								invalidate();
+							}}
+							onDeleted={() => {
+								setSelectedAgentId(null);
+								void navigate({ to: "/settings/agents" });
+								invalidate();
+							}}
+						/>
+					) : (
+						<EmptyState />
+					)}
+				</div>
 			</div>
 		</div>
 	);

@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {Zobrazit ještě # rámec} few {Zobrazit ješ
 msgid "{hostName} is offline"
 msgstr "{hostName} je offline"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} je offline. Jeho využití se zde zobrazí po opětovném připojení."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} skryje"
 
@@ -2904,6 +2907,9 @@ msgstr "Boxy běží tam, kde bylo prostředí vytvořeno; snapshot existuje jen
 
 msgid "Branch"
 msgstr "Větev"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Chování větví u nových pracovních prostorů na hostiteli {selectedHostName}. Projekty si prefix mohou nastavit samostatně."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Chování větví u nových pracovních prostorů na tomto zařízení. Projekty si prefix mohou nastavit samostatně."
@@ -12920,6 +12926,9 @@ msgstr "{credential} pro {agentLabel} odstraněno."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} odebrán."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Odebere tohoto agenta jen z hostitele {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Odebere tohoto agenta jen z tohoto zařízení."

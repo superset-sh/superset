@@ -897,7 +897,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	},
 	{
 		id: SETTING_ITEM_ID.USAGE_IN_SIDEBAR,
-		section: "usage",
+		section: "behavior",
 		title: "Show usage tab on sidebar",
 		description: "Show a Usage button in the home sidebar, under Pull requests",
 		keywords: [

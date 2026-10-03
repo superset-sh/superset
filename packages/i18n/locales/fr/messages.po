@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {Afficher # frame de plus} other {Afficher # f
 msgid "{hostName} is offline"
 msgstr "{hostName} est hors ligne"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} est hors ligne. Son utilisation s'affichera ici lorsqu'il se reconnectera."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} pour masquer"
 
@@ -2904,6 +2907,9 @@ msgstr "Les boxes s'exécutent là où l'environnement a été créé ; un insta
 
 msgid "Branch"
 msgstr "Branche"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Comportement des branches pour les nouveaux espaces de travail sur l'hôte {selectedHostName}. Les projets peuvent remplacer le préfixe individuellement."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Comportement des branches pour les nouveaux espaces de travail sur cet appareil. Les projets peuvent remplacer le préfixe individuellement."
@@ -12920,6 +12926,9 @@ msgstr "{credential} supprimé pour {agentLabel}."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} retiré."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Retire cet agent de l'hôte {hostName} uniquement."
 
 msgid "Removes this agent from this device only."
 msgstr "Retire cet agent de cet appareil uniquement."

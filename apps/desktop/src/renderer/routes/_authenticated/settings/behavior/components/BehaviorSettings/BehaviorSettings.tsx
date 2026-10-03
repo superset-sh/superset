@@ -19,6 +19,7 @@ import {
 } from "../../../utils/settings-search";
 import { AgentSessionPlacementSetting } from "./components/AgentSessionPlacementSetting";
 import { GithubStarRow } from "./components/GithubStarRow";
+import { UsageInSidebarSetting } from "./components/UsageInSidebarSetting";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -37,6 +38,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showResourceMonitor = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
+		visibleItems,
+	);
+	const showUsageInSidebar = isItemVisible(
+		SETTING_ITEM_ID.USAGE_IN_SIDEBAR,
 		visibleItems,
 	);
 	const showStarGithub = isItemVisible(
@@ -204,6 +209,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					</div>
 				)}
 
+				{showUsageInSidebar && <UsageInSidebarSetting />}
 				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
 			</div>
 		</div>

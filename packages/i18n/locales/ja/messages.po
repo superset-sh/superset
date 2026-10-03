@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {さらに#件のフレームを表示} other 
 msgid "{hostName} is offline"
 msgstr "{hostName}はオフラインです"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} はオフラインです。再接続すると、ここに使用状況が表示されます。"
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}で隠す"
 
@@ -2904,6 +2907,9 @@ msgstr "ボックスは環境が作成されたリージョンで動作します
 
 msgid "Branch"
 msgstr "ブランチ"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "ホスト {selectedHostName} の新規ワークスペースのブランチ動作。プレフィックスはプロジェクトごとに上書きできます。"
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "このデバイスの新規ワークスペースのブランチ動作。プレフィックスはプロジェクトごとに上書きできます。"
@@ -12920,6 +12926,9 @@ msgstr "{agentLabel}の{credential}を削除しました。"
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}を削除しました。"
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "ホスト {hostName} からのみエージェントを削除します。"
 
 msgid "Removes this agent from this device only."
 msgstr "このデバイスからのみエージェントを削除します。"

@@ -81,9 +81,9 @@ describe("settings search - hosts", () => {
 });
 
 describe("settings search - usage in sidebar", () => {
-	it('searching "sidebar" in Usage returns the usage-in-sidebar switch for v2 users', () => {
+	it('searching "sidebar" in General returns the usage-in-sidebar switch for v2 users', () => {
 		const ids = getVisibleItemsForSection({
-			section: "usage",
+			section: "behavior",
 			searchQuery: "sidebar",
 			isV2: true,
 		});
@@ -92,7 +92,7 @@ describe("settings search - usage in sidebar", () => {
 
 	it("hides the usage-in-sidebar switch from v1 users", () => {
 		const ids = getVisibleItemsForSection({
-			section: "usage",
+			section: "behavior",
 			searchQuery: "sidebar",
 			isV2: false,
 		});
@@ -104,9 +104,18 @@ describe("settings search - usage in sidebar", () => {
 		expect(ids).toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
 	});
 
-	it("lists the usage-in-sidebar switch in Usage without a search for v2 users", () => {
+	it("no longer lists the usage-in-sidebar switch in Usage", () => {
 		const ids = getVisibleItemsForSection({
 			section: "usage",
+			searchQuery: "",
+			isV2: true,
+		});
+		expect(ids).not.toContain(SETTING_ITEM_ID.USAGE_IN_SIDEBAR);
+	});
+
+	it("lists the usage-in-sidebar switch in General without a search for v2 users", () => {
+		const ids = getVisibleItemsForSection({
+			section: "behavior",
 			searchQuery: "",
 			isV2: true,
 		});

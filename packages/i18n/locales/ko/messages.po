@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #
 msgid "{hostName} is offline"
 msgstr "{hostName}이(가) 오프라인입니다"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName}이(가) 오프라인입니다. 다시 연결되면 사용량이 여기에 표시됩니다."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText}로 숨기기"
 
@@ -2904,6 +2907,9 @@ msgstr "박스는 환경이 만들어진 곳에서 실행됩니다. 스냅샷은
 
 msgid "Branch"
 msgstr "브랜치"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "호스트 {selectedHostName}에서 새 워크스페이스를 만들 때의 브랜치 동작입니다. 프로젝트별로 접두사를 따로 지정할 수 있습니다."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "이 기기에서 새 워크스페이스를 만들 때의 브랜치 동작입니다. 프로젝트별로 접두사를 따로 지정할 수 있습니다."
@@ -12920,6 +12926,9 @@ msgstr "{agentLabel}의 {credential}을(를) 제거했습니다."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel}을(를) 제거했습니다."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "호스트 {hostName}에서만 이 에이전트를 제거합니다."
 
 msgid "Removes this agent from this device only."
 msgstr "이 기기에서만 이 에이전트를 제거합니다."

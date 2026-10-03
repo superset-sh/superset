@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {Tampilkan # frame lagi} other {Tampilkan # fr
 msgid "{hostName} is offline"
 msgstr "{hostName} sedang offline"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} sedang offline. Penggunaannya akan muncul di sini saat tersambung kembali."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} untuk menyembunyikan"
 
@@ -2904,6 +2907,9 @@ msgstr "Box berjalan di tempat environment dibuat; snapshot hanya ada di regionn
 
 msgid "Branch"
 msgstr "Branch"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Perilaku branch untuk workspace baru di host {selectedHostName}. Tiap proyek bisa menimpa prefix-nya sendiri."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Perilaku branch untuk workspace baru di perangkat ini. Tiap proyek bisa menimpa prefix-nya sendiri."
@@ -12920,6 +12926,9 @@ msgstr "{credential} untuk {agentLabel} dihapus."
 
 msgid "Removed {removedLabel}."
 msgstr "Menghapus {removedLabel}."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Menghapus agen ini hanya dari host {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Menghapus agen ini hanya dari perangkat ini."

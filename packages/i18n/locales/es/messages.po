@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {Mostrar # marco más} other {Mostrar # marcos
 msgid "{hostName} is offline"
 msgstr "{hostName} está sin conexión"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} está sin conexión. Su uso aparecerá aquí cuando se vuelva a conectar."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} para ocultar"
 
@@ -2904,6 +2907,9 @@ msgstr "Las cajas se ejecutan donde se creó el entorno; una instantánea solo e
 
 msgid "Branch"
 msgstr "Rama"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Comportamiento de las ramas para los espacios de trabajo nuevos en el host {selectedHostName}. Los proyectos pueden anular el prefijo individualmente."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Comportamiento de las ramas para los espacios de trabajo nuevos en este dispositivo. Los proyectos pueden anular el prefijo individualmente."
@@ -12920,6 +12926,9 @@ msgstr "Se eliminó {credential} de {agentLabel}."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} eliminada."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Quita este agente solo del host {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Quita este agente solo de este dispositivo."

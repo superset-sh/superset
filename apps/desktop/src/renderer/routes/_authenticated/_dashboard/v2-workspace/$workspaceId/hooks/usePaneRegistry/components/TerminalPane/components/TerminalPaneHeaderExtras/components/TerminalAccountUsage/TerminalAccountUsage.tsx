@@ -10,7 +10,7 @@ import { ArrowUpRight, CircleHelp, Loader2, Zap } from "lucide-react";
 import { useState } from "react";
 import { useHostUsageQuota } from "renderer/hooks/host-service/useHostUsageQuota";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useNow } from "renderer/hooks/useNow";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { formatResetLabel } from "renderer/utils/usage/formatResetIn";
@@ -29,7 +29,8 @@ export function TerminalAccountUsage({
 	const { t } = useLingui();
 	const [openSession, setOpenSession] = useState<string | null>(null);
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
-	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	const hostTarget = useWorkspaceHostTarget(workspaceId);
+	const hostUrl = hostTarget.status === "ready" ? hostTarget.url : null;
 	const sessionKey = `${hostUrl}:${terminalId}:${binding?.startedAt}:${binding?.agentSessionId}`;
 	const open = openSession === sessionKey;
 	const setOpen = (value: boolean) => setOpenSession(value ? sessionKey : null);
@@ -202,7 +203,11 @@ export function TerminalAccountUsage({
 					<Link
 						to="/settings/usage"
 						search={{
-							workspaceId,
+							...(hostTarget.status === "ready" && hostTarget.kind === "sandbox"
+								? { workspaceId }
+								: hostTarget.status === "ready" && hostTarget.kind === "remote"
+									? { hostId: hostTarget.hostId }
+									: {}),
 							accountKey: account?.accountKey,
 							agent: binding.agentId,
 						}}

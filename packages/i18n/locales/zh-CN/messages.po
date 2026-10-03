@@ -887,6 +887,9 @@ msgstr "{hiddenCount, plural, one {再显示#个栈帧} other {再显示#个栈�
 msgid "{hostName} is offline"
 msgstr "{hostName}已离线"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} 已离线。重新连接后，这里会显示其用量。"
+
 msgid "{hotkeyText} to hide"
 msgstr "按{hotkeyText}隐藏"
 
@@ -2904,6 +2907,9 @@ msgstr "沙盒在环境创建的位置运行；快照只存在于其所在区域
 
 msgid "Branch"
 msgstr "分支"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "主机 {selectedHostName} 上新建工作区的分支行为。项目可以单独覆盖前缀。"
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "本设备上新建工作区的分支行为。项目可以单独覆盖前缀。"
@@ -12920,6 +12926,9 @@ msgstr "已移除{agentLabel}的{credential}。"
 
 msgid "Removed {removedLabel}."
 msgstr "已移除{removedLabel}。"
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "仅从主机 {hostName} 上移除该智能体。"
 
 msgid "Removes this agent from this device only."
 msgstr "仅从此设备上移除该智能体。"

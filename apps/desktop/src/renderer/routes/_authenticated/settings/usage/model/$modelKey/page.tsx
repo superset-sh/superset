@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider";
+import { useSettingsHost } from "../../../hooks/useSettingsHost";
 import { UsageDrilldownPage } from "../../components/UsageDrilldownPage";
 import { useRecordUsageSection } from "../../hooks/useRecordUsageSection";
 
@@ -11,12 +11,13 @@ export const Route = createFileRoute(
 
 function ModelUsagePage() {
 	const { modelKey } = Route.useParams();
-	const { activeHostUrl } = useLocalHostService();
+	const { hostUrl } = useSettingsHost();
 	useRecordUsageSection("token");
 
 	return (
 		<UsageDrilldownPage
-			hostUrl={activeHostUrl}
+			key={hostUrl}
+			hostUrl={hostUrl}
 			kind="model"
 			entityKey={modelKey}
 		/>
