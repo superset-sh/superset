@@ -25,6 +25,7 @@ import {
 	LuPin,
 	LuPinOff,
 	LuRadioTower,
+	LuSend,
 	LuTrash2,
 	LuUnlink,
 	LuX,
@@ -57,6 +58,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyBranchName: () => void;
 	onCopyWorkspaceId: () => void;
 	onRemoveFromSidebar: () => void;
+	/** Absent when no other host can take the workspace; the item is then not rendered. */
+	onTeleport?: () => void;
 	onRename?: () => void;
 	onDelete?: () => void;
 	onToggleUnread: () => void;
@@ -84,6 +87,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onCopyBranchName,
 	onCopyWorkspaceId,
 	onRemoveFromSidebar,
+	onTeleport,
 	onRename,
 	onDelete,
 	onToggleUnread,
@@ -155,6 +159,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 					<Trans>Copy Workspace ID</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
+				{onTeleport && (
+					<>
+						<ContextMenuItem onSelect={() => runAfterClose(onTeleport)}>
+							<LuSend className="size-4 mr-2" />
+							<Trans>Teleport…</Trans>
+						</ContextMenuItem>
+						<ContextMenuSeparator />
+					</>
+				)}
 				<ContextMenuItem onSelect={onToggleUnread}>
 					{isUnread ? (
 						<>

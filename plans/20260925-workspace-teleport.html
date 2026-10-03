@@ -1,0 +1,1860 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workspace teleport</title>
+    <style>
+      :root {
+        --sp-measure: 68ch;
+        --gutter: clamp(1.25rem, 5vw, 4rem);
+        --rule: 1px solid var(--sp-border);
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--sp-font-sans);
+      }
+
+      .wrap {
+        max-width: 78rem;
+        margin: 0 auto;
+        padding: 0 var(--gutter) 6rem;
+      }
+
+      /* ---- masthead ---- */
+
+      header.masthead {
+        padding: clamp(3rem, 8vw, 6rem) 0 2.5rem;
+        border-bottom: var(--rule);
+      }
+
+      .eyebrow {
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin: 0 0 1.25rem;
+      }
+
+      h1 {
+        font-size: clamp(2.25rem, 6vw, 3.75rem);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin: 0 0 1.25rem;
+        max-width: 18ch;
+        font-weight: 600;
+      }
+
+      .standfirst {
+        font-size: clamp(1.0625rem, 2vw, 1.3125rem);
+        line-height: 1.5;
+        max-width: var(--sp-measure);
+        margin: 0;
+        color: var(--sp-muted);
+      }
+
+      .standfirst strong {
+        color: var(--sp-text);
+        font-weight: 500;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+        margin-top: 2rem;
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+      }
+
+      .tag {
+        border: var(--rule);
+        border-radius: var(--sp-radius);
+        padding: 0.2rem 0.5rem;
+      }
+
+      /* ---- section rhythm ---- */
+
+      section {
+        padding-top: 3.5rem;
+      }
+
+      h2 {
+        font-size: clamp(1.375rem, 3vw, 1.75rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+        font-weight: 600;
+      }
+
+      h3 {
+        font-size: 1.0625rem;
+        margin: 2.5rem 0 0.5rem;
+        font-weight: 600;
+      }
+
+      .kicker {
+        font-family: var(--sp-font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin: 0 0 0.75rem;
+        padding-top: 1.5rem;
+        border-top: var(--rule);
+      }
+
+      p,
+      li {
+        max-width: var(--sp-measure);
+      }
+
+      p {
+        line-height: 1.6;
+      }
+
+      /* ---- state table ---- */
+
+      .scroll {
+        overflow-x: auto;
+        margin: 1.5rem 0;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 44rem;
+        font-size: 0.9375rem;
+      }
+
+      th {
+        text-align: left;
+        font-family: var(--sp-font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        font-weight: 400;
+        padding: 0 1rem 0.625rem 0;
+        border-bottom: var(--rule);
+      }
+
+      td {
+        padding: 0.875rem 1rem 0.875rem 0;
+        border-bottom: var(--rule);
+        vertical-align: top;
+        line-height: 1.45;
+        max-width: none;
+      }
+
+      td:first-child {
+        font-weight: 500;
+      }
+
+      .verdict {
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+
+      .yes {
+        color: var(--sp-chart-2);
+      }
+      .no {
+        color: var(--sp-chart-4);
+      }
+      .done {
+        color: var(--sp-chart-1);
+      }
+
+      /* ---- diagram ---- */
+
+      figure {
+        margin: 2rem 0;
+      }
+
+      figure svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      figcaption {
+        font-size: 0.8125rem;
+        color: var(--sp-muted);
+        margin-top: 0.75rem;
+        max-width: var(--sp-measure);
+        line-height: 1.5;
+      }
+
+      .d-label {
+        font-family: var(--sp-font-mono);
+        font-size: 10px;
+        fill: var(--sp-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .d-title {
+        font-family: var(--sp-font-sans);
+        font-size: 13px;
+        fill: var(--sp-text);
+        font-weight: 600;
+      }
+
+      .d-text {
+        font-family: var(--sp-font-mono);
+        font-size: 11px;
+        fill: var(--sp-text);
+      }
+
+      .d-dim {
+        font-family: var(--sp-font-mono);
+        font-size: 10.5px;
+        fill: var(--sp-muted);
+      }
+
+      .d-box {
+        fill: var(--sp-surface);
+        stroke: var(--sp-border);
+      }
+
+      .d-line {
+        stroke: var(--sp-border);
+        fill: none;
+      }
+
+      .d-flow {
+        stroke: var(--sp-chart-1);
+        fill: none;
+        stroke-width: 1.5;
+      }
+
+      /* ---- code ---- */
+
+      pre {
+        overflow-x: auto;
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        padding: 1rem 1.125rem;
+        border-radius: var(--sp-radius);
+        border: var(--rule);
+        margin: 1.25rem 0;
+      }
+
+      pre .c {
+        color: var(--sp-muted);
+      }
+
+      /* ---- callout ---- */
+
+      .callout {
+        border-left: 2px solid var(--sp-chart-1);
+        padding: 0.125rem 0 0.125rem 1.25rem;
+        margin: 1.75rem 0;
+      }
+
+      .callout p:first-child {
+        margin-top: 0;
+      }
+      .callout p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* ---- transport / prior art lists ---- */
+
+      ol.ranked {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0;
+        counter-reset: rank;
+      }
+
+      ol.ranked > li {
+        counter-increment: rank;
+        display: grid;
+        grid-template-columns: 2rem 1fr;
+        gap: 0 1rem;
+        padding: 1.25rem 0;
+        border-top: var(--rule);
+        max-width: none;
+      }
+
+      ol.ranked > li::before {
+        content: counter(rank);
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+        padding-top: 0.25rem;
+      }
+
+      ol.ranked h4 {
+        margin: 0 0 0.375rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      ol.ranked p {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        color: var(--sp-muted);
+      }
+
+      ol.ranked p + p {
+        margin-top: 0.5rem;
+      }
+
+      .art {
+        display: grid;
+        gap: 0;
+        margin: 1.5rem 0;
+      }
+
+      .art > div {
+        display: grid;
+        grid-template-columns: minmax(9rem, 14rem) 1fr;
+        gap: 0.25rem 2rem;
+        padding: 1.125rem 0;
+        border-top: var(--rule);
+      }
+
+      .art h4 {
+        margin: 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+      }
+
+      .art .takeaway {
+        font-family: var(--sp-font-mono);
+        font-size: 0.6875rem;
+        color: var(--sp-muted);
+        margin: 0.375rem 0 0;
+        letter-spacing: 0.04em;
+      }
+
+      .art p.body {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        max-width: var(--sp-measure);
+      }
+
+      @media (max-width: 40rem) {
+        .art > div {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ---- phasing ---- */
+
+      .phases {
+        margin: 1.5rem 0;
+      }
+
+      .phases > div {
+        display: grid;
+        grid-template-columns: 5.5rem 1fr;
+        gap: 0 1.5rem;
+        padding: 1.125rem 0;
+        border-top: var(--rule);
+      }
+
+      .phase-id {
+        font-family: var(--sp-font-mono);
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      .phase-id.off {
+        color: var(--sp-muted);
+        font-weight: 400;
+      }
+
+      .phases p {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+      }
+
+      /* ---- questions ---- */
+
+      ol.q {
+        padding-left: 1.25rem;
+      }
+
+      ol.q li {
+        margin: 0.75rem 0;
+        line-height: 1.55;
+        padding-left: 0.375rem;
+      }
+
+
+      /* ---- UI mockups ---- */
+
+      .ui {
+        border: var(--rule);
+        border-radius: 10px;
+        background: var(--sp-surface);
+        margin: 1.5rem 0;
+        overflow: hidden;
+        max-width: 34rem;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+      }
+
+      .ui-head {
+        padding: 1rem 1.25rem 0.875rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+
+      .ui-glyph {
+        width: 1.5rem;
+        height: 1.5rem;
+        flex: none;
+        border-radius: 6px;
+        border: var(--rule);
+        display: grid;
+        place-items: center;
+        color: var(--sp-accent);
+      }
+
+      .ui-title {
+        font-weight: 600;
+        font-size: 0.9375rem;
+        line-height: 1.3;
+      }
+
+      .ui-sub {
+        font-size: 0.8125rem;
+        color: var(--sp-muted);
+        margin-top: 0.125rem;
+      }
+
+      .ui-body {
+        padding: 0.25rem 1.25rem 1.125rem;
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+
+      .ui-foot {
+        border-top: var(--rule);
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      .btn {
+        font-size: 0.8125rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 6px;
+        border: var(--rule);
+        color: var(--sp-text);
+      }
+
+      .btn.primary {
+        background: var(--sp-accent);
+        color: var(--sp-accent-text);
+        border-color: transparent;
+      }
+
+      .btn.ghost {
+        border-color: transparent;
+        color: var(--sp-muted);
+      }
+
+      .btn[aria-disabled="true"] {
+        opacity: 0.45;
+      }
+
+      .host-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 0.5rem;
+        border-radius: 6px;
+      }
+
+      .host-row.sel {
+        background: color-mix(in srgb, var(--sp-accent) 10%, transparent);
+        outline: 1px solid color-mix(in srgb, var(--sp-accent) 35%, transparent);
+      }
+
+      .host-row .grow {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .host-name {
+        font-weight: 500;
+      }
+
+      .host-meta {
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex: none;
+        background: var(--sp-muted);
+        opacity: 0.45;
+      }
+
+      .dot.on {
+        background: var(--sp-chart-2);
+        opacity: 1;
+      }
+
+      .plan-line {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.125rem 0;
+      }
+
+      .plan-line .k {
+        color: var(--sp-muted);
+        font-size: 0.8125rem;
+      }
+
+      .plan-tab {
+        font-weight: 600;
+        font-size: 0.8125rem;
+        margin: 0.875rem 0 0.25rem;
+      }
+
+      .plan-pane {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.25rem 0 0.25rem 0.875rem;
+        border-left: var(--rule);
+        font-size: 0.8125rem;
+      }
+
+      .plan-pane .what {
+        font-family: var(--sp-font-mono);
+      }
+
+      .plan-pane .will {
+        color: var(--sp-chart-2);
+        white-space: nowrap;
+      }
+
+      .plan-pane .will.warn {
+        color: var(--sp-chart-4);
+      }
+
+      .plan-note {
+        font-size: 0.8125rem;
+        color: var(--sp-chart-1);
+        padding: 0.5rem 0 0;
+      }
+
+      .run-step {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.3rem 0;
+        font-size: 0.8125rem;
+      }
+
+      .run-step .mark {
+        width: 1rem;
+        text-align: center;
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+      }
+
+      .run-step.done .mark {
+        color: var(--sp-chart-2);
+      }
+
+      .run-step.now {
+        font-weight: 500;
+      }
+
+      .run-step.now .mark {
+        color: var(--sp-accent);
+      }
+
+      .run-step.todo {
+        color: var(--sp-muted);
+      }
+
+      .run-step.fail .mark,
+      .run-step.fail {
+        color: var(--sp-chart-4);
+      }
+
+      .sidebar-mock {
+        max-width: 19rem;
+        border: var(--rule);
+        border-radius: 8px;
+        background: var(--sp-surface);
+        padding: 0.5rem;
+        margin: 1.5rem 0;
+        font-size: 0.8125rem;
+      }
+
+      .sb-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 5px;
+      }
+
+      .sb-row .grow {
+        flex: 1;
+      }
+
+      .sb-mark {
+        font-size: 0.6875rem;
+        font-family: var(--sp-font-mono);
+        color: var(--sp-muted);
+        border: var(--rule);
+        border-radius: 4px;
+        padding: 0.05rem 0.3rem;
+      }
+
+      .menu-mock {
+        max-width: 15rem;
+        border: var(--rule);
+        border-radius: 8px;
+        background: var(--sp-surface);
+        padding: 0.3rem;
+        margin: 1.5rem 0;
+        font-size: 0.8125rem;
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+      }
+
+      .menu-mock div {
+        padding: 0.3rem 0.6rem;
+        border-radius: 5px;
+      }
+
+      .menu-mock div.hl {
+        background: color-mix(in srgb, var(--sp-accent) 12%, transparent);
+        font-weight: 500;
+      }
+
+      .menu-mock hr {
+        border: 0;
+        border-top: var(--rule);
+        margin: 0.3rem 0;
+      }
+
+      .tree {
+        font-family: var(--sp-font-mono);
+        font-size: 0.78125rem;
+        line-height: 1.75;
+        overflow-x: auto;
+        border: var(--rule);
+        border-radius: var(--sp-radius);
+        padding: 1rem 1.125rem;
+        margin: 1.5rem 0;
+      }
+
+      .tree .dir {
+        color: var(--sp-text);
+        font-weight: 600;
+      }
+
+      .tree .note {
+        color: var(--sp-muted);
+      }
+
+      .tree .new {
+        color: var(--sp-chart-2);
+      }
+
+      .copy-table td:first-child {
+        font-family: var(--sp-font-mono);
+        font-size: 0.8125rem;
+        white-space: nowrap;
+        font-weight: 400;
+      }
+
+      /* ---- reference implementation ---- */
+
+      .mock {
+        border: var(--rule);
+        border-radius: var(--sp-radius);
+        background: var(--sp-surface);
+        padding: 1.125rem 1.25rem;
+        margin: 1.5rem 0;
+        font-family: var(--sp-font-mono);
+        font-size: 0.8125rem;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+
+      .mock .hdr {
+        font-family: var(--sp-font-sans);
+        font-weight: 600;
+        font-size: 0.9375rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .mock .note {
+        color: var(--sp-chart-1);
+      }
+
+      .mock .dim {
+        color: var(--sp-muted);
+      }
+
+      .mock .verb {
+        color: var(--sp-chart-2);
+      }
+
+      .mock .tabname {
+        display: block;
+        margin-top: 0.75rem;
+        font-weight: 600;
+      }
+
+      .mock .pane {
+        display: block;
+        padding-left: 1.5rem;
+      }
+
+      .steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .steps span {
+        border: var(--rule);
+        border-radius: 999px;
+        padding: 0.3rem 0.75rem;
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+        white-space: nowrap;
+      }
+
+      .steps span.on {
+        color: var(--sp-text);
+        border-color: var(--sp-chart-2);
+      }
+
+      .verdicts {
+        margin: 1.5rem 0;
+      }
+
+      .verdicts > div {
+        display: grid;
+        grid-template-columns: 2.5rem 1fr;
+        gap: 0 1rem;
+        padding: 1.25rem 0;
+        border-top: var(--rule);
+      }
+
+      .verdicts .n {
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+        padding-top: 0.2rem;
+      }
+
+      .verdicts h4 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .verdicts p {
+        margin: 0 0 0.625rem;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+      }
+
+      .verdicts p:last-child {
+        margin-bottom: 0;
+      }
+
+      blockquote {
+        margin: 1.25rem 0;
+        padding-left: 1.25rem;
+        border-left: 2px solid var(--sp-border);
+        color: var(--sp-muted);
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        max-width: var(--sp-measure);
+      }
+
+      footer {
+        margin-top: 4rem;
+        padding-top: 1.5rem;
+        border-top: var(--rule);
+        font-size: 0.8125rem;
+        color: var(--sp-muted);
+      }
+
+      footer code {
+        font-size: 0.8125rem;
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <div class="wrap">
+      <header class="masthead">
+        <p class="eyebrow">Design exploration · 25 September 2026</p>
+        <h1>Moving a workspace between devices in one click</h1>
+        <p class="standfirst">
+          Click one thing on the laptop and the workspace — files, uncommitted
+          changes, agent context, terminals, layout — is open and running on the
+          desktop, in the cloud, or back down again.
+          <strong>The mechanism: a handoff is a commit.</strong>
+        </p>
+        <div class="meta">
+          <span class="tag">Nothing built</span>
+          <span class="tag">Written to be argued with</span>
+          <span>plans/20260925-workspace-teleport.md</span>
+        </div>
+      </header>
+
+      <section>
+        <p class="kicker">The shape of the problem</p>
+        <h2>What a workspace actually is</h2>
+        <p>
+          Several kinds of state live under one row in the host's
+          <code>workspaces</code> table, and they have nothing in common except
+          the directory they share. Sorting them is most of the design, because
+          they want completely different treatment.
+        </p>
+
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Layer</th>
+                <th scope="col">Where it lives</th>
+                <th scope="col">Size</th>
+                <th scope="col">Move it?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Committed history</td>
+                <td><code>.git</code></td>
+                <td>large, already replicated</td>
+                <td class="verdict yes">yes — both ends have ~all of it</td>
+              </tr>
+              <tr>
+                <td>Dirty state<br /><span style="color: var(--sp-muted); font-weight: 400">worktree, index, untracked, stashes</span></td>
+                <td>working tree</td>
+                <td>KBs–MBs</td>
+                <td class="verdict yes">yes — this is the whole problem</td>
+              </tr>
+              <tr>
+                <td>Ignored-but-precious<br /><span style="color: var(--sp-muted); font-weight: 400"><code>.env</code>, <code>.envrc</code>, local config</span></td>
+                <td>working tree, gitignored</td>
+                <td>KBs</td>
+                <td class="verdict yes">yes — nothing else reproduces it</td>
+              </tr>
+              <tr>
+                <td>Derived<br /><span style="color: var(--sp-muted); font-weight: 400"><code>node_modules</code>, <code>.venv</code>, caches</span></td>
+                <td>working tree, gitignored</td>
+                <td>GBs</td>
+                <td class="verdict no">no — reproduce, never ship</td>
+              </tr>
+              <tr>
+                <td>Session<br /><span style="color: var(--sp-muted); font-weight: 400">agent context, scrollback, bindings, layout</span></td>
+                <td>host SQLite, localStorage, harness store</td>
+                <td>KBs</td>
+                <td class="verdict done">already solved</td>
+              </tr>
+              <tr>
+                <td>Running processes</td>
+                <td>kernel</td>
+                <td>—</td>
+                <td class="verdict no">no — restart beats migrate</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p>
+            The consequence worth noticing: everything worth moving is either
+            already in a git object graph, or small enough to put into one.
+            That is the entire design.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">The mechanism</p>
+        <h2>A handoff <em>is</em> a commit</h2>
+        <p>
+          Build a commit that captures the dirty state, push it to the other
+          device, restore from it. Nothing more exotic — but doing it in git
+          gets the hard parts free: content addressing, so a file unchanged
+          since the last handoff never moves; delta compression; pack
+          negotiation, so only objects the destination lacks cross the wire;
+          atomicity, since a ref either exists or doesn't; and resumability.
+        </p>
+
+        <figure>
+          <svg viewBox="0 0 880 300" role="img" aria-label="Diagram: the source device builds a handoff ref from its dirty state, which travels over the relay as a thin pack to the destination device, which restores it.">
+            <defs>
+              <marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M0,1 L7,4 L0,7" fill="none" stroke="var(--sp-chart-1)" stroke-width="1.4" />
+              </marker>
+            </defs>
+
+            <!-- SOURCE -->
+            <text x="0" y="14" class="d-label">Source device</text>
+            <rect x="0" y="26" width="250" height="188" rx="6" class="d-box" />
+
+            <text x="18" y="52" class="d-title">Live workspace</text>
+            <text x="18" y="76" class="d-dim">HEAD</text>
+            <text x="18" y="96" class="d-dim">index</text>
+            <text x="18" y="116" class="d-dim">worktree · untracked</text>
+            <text x="18" y="136" class="d-dim">.env (allowlist)</text>
+            <text x="18" y="156" class="d-dim">manifest.json</text>
+
+            <path d="M158,70 C186,70 186,116 206,116" class="d-line" />
+            <path d="M158,92 C186,92 186,116 206,116" class="d-line" />
+            <path d="M158,112 C186,112 186,116 206,116" class="d-line" />
+            <path d="M158,132 C186,132 186,120 206,118" class="d-line" />
+            <path d="M158,152 C186,152 186,122 206,120" class="d-line" />
+            <circle cx="212" cy="117" r="7" fill="var(--sp-chart-1)" />
+            <text x="152" y="188" class="d-dim" text-anchor="middle">git stash create</text>
+
+            <!-- REF -->
+            <text x="300" y="14" class="d-label">One ref</text>
+            <rect x="300" y="26" width="250" height="188" rx="6" class="d-box" />
+            <text x="425" y="98" class="d-text" text-anchor="middle">refs/superset/</text>
+            <text x="425" y="116" class="d-text" text-anchor="middle">handoff/&lt;id&gt;</text>
+            <text x="425" y="150" class="d-dim" text-anchor="middle">one object graph</text>
+            <text x="425" y="168" class="d-dim" text-anchor="middle">one atomic unit</text>
+
+            <!-- DEST -->
+            <text x="630" y="14" class="d-label">Destination device</text>
+            <rect x="630" y="26" width="250" height="188" rx="6" class="d-box" />
+            <text x="648" y="52" class="d-title">Restored workspace</text>
+            <text x="648" y="76" class="d-dim">checkout + read-tree</text>
+            <text x="648" y="96" class="d-dim">stash import</text>
+            <text x="648" y="116" class="d-dim">env written back</text>
+            <text x="648" y="136" class="d-dim">setup scripts run</text>
+            <text x="648" y="156" class="d-dim">agent relaunched</text>
+
+            <!-- FLOW -->
+            <path d="M222,117 L294,117" class="d-flow" marker-end="url(#ah)" />
+            <path d="M556,117 L624,117" class="d-flow" marker-end="url(#ah)" />
+            <text x="590" y="104" class="d-dim" text-anchor="middle">fetch</text>
+
+            <!-- transport rail -->
+            <path d="M425,214 L425,246 L425,250" class="d-line" stroke-dasharray="3 3" />
+            <text x="425" y="270" class="d-dim" text-anchor="middle">relay · parked bundle · hidden ref on origin</text>
+
+            <!-- return path note -->
+            <path d="M755,214 C755,252 500,252 500,252" class="d-line" stroke-dasharray="3 3" opacity="0.6" />
+            <path d="M125,214 C125,252 350,252 350,252" class="d-line" stroke-dasharray="3 3" opacity="0.6" />
+          </svg>
+          <figcaption>
+            The source never loses its copy. It marks the workspace
+            <code>moved_to</code> only after the destination confirms the
+            restore — a tombstone with a reclaim action, directory intact for
+            N days.
+          </figcaption>
+        </figure>
+
+        <h3>Source side</h3>
+        <pre><code><span class="c"># the dirty state, without touching the user's index or worktree</span>
+STASH=$(git stash create)
+git stash export --to-ref refs/superset/handoff/&lt;id&gt;  <span class="c"># git 2.51+</span></code></pre>
+        <p>
+          <code>git stash create</code> writes a commit whose parents are HEAD,
+          a commit of the index, and a commit of the untracked files — without
+          mutating the worktree, the index, or <code>refs/stash</code>. Git
+          2.51 then added <code>stash export</code>/<code>import</code>, which
+          turn the stash stack into a chain of commits transferable by the
+          normal fetch and push mechanisms. Our wire format, shipped upstream
+          last year.
+        </p>
+        <p>Two things stash won't carry, added as extra trees in the same commit:</p>
+        <ul>
+          <li>
+            <strong>Ignored-but-precious files</strong> — an allowlist
+            (<code>.env*</code>, <code>.envrc</code>, <code>.dev.vars</code>,
+            plus a per-project list in <code>.superset/config.json</code>)
+            hashed into a side tree. Without these the destination boots a
+            workspace that can't talk to anything.
+          </li>
+          <li>
+            <strong>The manifest</strong> — workspace metadata, the
+            terminal and binding list, scrollback tails, pane layout, and one
+            handoff prompt per live agent session.
+          </li>
+        </ul>
+
+        <h3>Transport, in preference order</h3>
+        <ol class="ranked">
+          <li>
+            <div>
+              <h4>Device to device over the relay we already run</h4>
+              <p>
+                <code>apps/relay</code> already multiplexes streams to a host's
+                tunnel, and host-service already runs an authenticated HTTP
+                server. Mount git's smart-HTTP protocol at
+                <code>/git/:workspaceId</code> and the destination runs a plain
+                <code>git fetch</code>. No third party, and auth and addressing
+                are solved already.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>Park it</h4>
+              <p>
+                The source can't stay awake — a closing lid is the
+                <em>normal</em> case for "move to my desktop". A bundle built
+                against the destination's own tips, or an encrypted blob it
+                pulls when it wakes.
+                Client-side encryption is not optional: the payload carries
+                <code>.env</code> files and agent context.
+              </p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h4>A hidden ref on <code>origin</code></h4>
+              <p>
+                Invisible in GitHub's branch UI, no PR, no pollution. Cheapest
+                to build and works everywhere the project already pushes — but
+                it puts uncommitted work and secrets on the user's forge, so
+                opt-in per project, never the default.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <p class="kicker">The part I over-designed, then deleted</p>
+        <h2>Moving the session: already built</h2>
+        <p>
+          The app already has session transfer, and it is device-independent by
+          accident of good design.
+          <code>superset agents create --from-terminal</code> reads a
+          terminal's context, wraps it with
+          <code>buildTerminalSessionHandoffPrompt</code>, and launches a fresh
+          agent seeded with it. Every link in that chain is <strong>text</strong>.
+        </p>
+
+        <pre><code>prompt = hostA.terminal.transcript({ workspaceId, terminalId })
+         hostB.agents.run({ workspaceId: &lt;new&gt;, agent: &lt;same&gt;, prompt })</code></pre>
+
+        <p>
+          <code>terminal.transcript</code> returns a string;
+          <code>agents.run</code> takes a string. No path, no file, no harness
+          store anywhere in it. So a cross-device move doesn't copy transcripts
+          — it calls the transfer it already has with two different clients.
+          The only change:
+          <code>buildHandoffPromptFromTerminal</code> currently uses one client
+          for both halves. Split the read host from the launch host. Roughly
+          ten lines, not a subsystem.
+        </p>
+
+        <p>What that buys, all of it for free:</p>
+        <ul>
+          <li>
+            <strong>No transcript files move.</strong> Claude's path-encoding
+            trap — the directory name encoding the absolute worktree path, the
+            per-record <code>cwd</code> — leaves the critical path entirely.
+          </li>
+          <li>
+            <strong>Harness-agnostic.</strong> Claude, Codex, OpenCode and pi
+            transfer identically, because the wire format is a prompt. You can
+            land a Claude session onto Codex.
+          </li>
+          <li>
+            <strong>Version-proof.</strong> No dependency on both machines
+            running the same harness build.
+          </li>
+          <li><strong>Works to and from a sandbox</strong> with no special casing.</li>
+        </ul>
+
+        <h3>The one real limit</h3>
+        <p class="dim" style="color: var(--sp-muted); font-size: 0.9375rem">
+          Partly superseded — see the handoff note under "A working
+          implementation". Keep this path as the fallback for a pane whose
+          agent is dead or unresponsive.
+        </p>
+        <p>
+          Transfer is bounded at <code>TERMINAL_HANDOFF_MAX_CHARS</code>
+          (36,000 chars, roughly 9–12k tokens), so continuity is
+          summary-grade: the agent picks the work up, it does not possess turn
+          3 of 200. For moving between work sessions that is the right trade,
+          and it is the trade the existing same-machine handoff already makes.
+        </p>
+        <p>
+          If people do ask for the exact session, the upgrade is additive: put
+          the raw transcript in the handoff commit and restore it into the
+          destination harness's store so <code>--resume</code> resolves. That
+          is when the path-rewrite tax gets paid. Worth doing on evidence, not
+          before.
+        </p>
+
+        <h3>Still needed on the session side</h3>
+        <ul>
+          <li>
+            A <code>moved</code> value for
+            <code>terminal_agent_bindings.endReason</code>, so the source's
+            auto-resume doesn't relaunch an agent that now lives elsewhere. The
+            existing values carry intent precisely and a move is a new intent.
+          </li>
+          <li>
+            A <code>lineage_id</code> on <code>workspaces</code>, so a moved
+            workspace's PR link, task and tags follow it —
+            <code>workspaces.id</code> is host-local.
+          </li>
+          <li>
+            Pane layout as a one-shot localStorage payload cleared by its
+            consumer, per the persisted-key policy.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <p class="kicker">Someone built it · 29 September 2026</p>
+        <h2>A working implementation to read</h2>
+        <p>
+          Fabien Penso shipped this feature the day before this revision:
+          <em>"Right-click a worktree, pick a remote host, and your branch,
+          uncommitted changes, tabs and running agents move there. Close your
+          laptop, they keep going."</em> The code is open source and readable —
+          <a href="https://github.com/penso/herdr-gpui">penso/herdr-gpui</a>,
+          Rust on GPUI, about 6,600 lines in
+          <code>crates/herdr-gpui/src/teleport/</code> including tests. Its
+          module doc states the same scope we arrived at independently, down to
+          "then close the source workspace while keeping its checkout".
+        </p>
+
+        <h3>The UX, which we had none of</h3>
+        <p>
+          Right-click the worktree row in the sidebar →
+          <strong>Teleport…</strong> The verb hangs off the object it acts on:
+          no command palette, no settings page. Then a host list, each with an
+          online dot and a subtitle — "Connected", or "Not connected; reached
+          over SSH" — with <em>nothing preselected</em>, and an offline host
+          still a legal destination.
+        </p>
+        <p>
+          Picking a host moves nothing. It opens a plan, and the plan is the
+          whole design:
+        </p>
+
+        <div class="mock">
+          <span class="hdr">Teleport <span class="dim" style="font-weight: 400">· feature/login from MacBook</span></span>
+          To beelink · herdr-gpui. <span class="dim">Clones the repository there first.</span><br />
+          Branch feature/login · 2 unpushed commits · 5 changed files, 1 untracked<br />
+          <span class="note">beelink cannot reach GitHub, so your token is installed for pull &amp; push.</span>
+          <span class="tabname">Tab 1: agent</span>
+          <span class="pane"><span class="verb">claude</span>: resume session</span>
+          <span class="pane">npm run dev: run again</span>
+          <span class="tabname">Tab 2: dev</span>
+          <span class="pane">Shell</span>
+        </div>
+
+        <p>Three things that gets right:</p>
+        <ul>
+          <li>
+            <strong>Per-pane.</strong> Nothing is hand-waved as "your session".
+          </li>
+          <li>
+            <strong>A verb per pane</strong> — "resume session", "run again",
+            plain "Shell" — so you know what comes back alive and what comes
+            back as a prompt.
+          </li>
+          <li>
+            <strong>It states the remedies it will apply on your behalf</strong>,
+            not just the inventory: it will clone the repo there, it will
+            install a token because that host can't reach GitHub.
+          </li>
+        </ul>
+
+        <p>Then progress as named steps, each lighting up in turn:</p>
+        <div class="steps">
+          <span class="on">Bundle commits</span><span class="on">Copy changes</span
+          ><span class="on">Create worktree</span><span>Restore changes</span
+          ><span>Rebuild tabs</span><span>Stop source</span
+          ><span>Move sessions</span><span>Start programs</span>
+        </div>
+        <p>
+          The same enum backs the errors, so a failure reads "restoring
+          uncommitted changes failed: …" rather than a stack trace. Fifteen
+          steps carry human labels; free diagnostics for the cost of writing
+          the strings. Afterwards the source stays in the sidebar with a
+          <em>teleported</em> mark and a <code>teleported</code> tab where its
+          panes were — our two-phase commit, made legible instead of silent —
+          and teleporting back is one step that reuses the old checkout,
+          backed up first.
+        </p>
+
+        <h3>The implementation, which confirms most of our design</h3>
+        <p>
+          Dirty state becomes two throwaway commits through a <em>temporary
+          index</em> — better than the <code>git stash create</code> I proposed,
+          because it needs no git 2.51 and says exactly what it does:
+        </p>
+        <pre><code>staged=$(git write-tree)                           <span class="c"># the index as it stands</span>
+cp "$(git rev-parse --git-path index)" "$t/index"  <span class="c"># work on a copy</span>
+GIT_INDEX_FILE="$t/index" git add -A               <span class="c"># + untracked, .gitignore honoured</span>
+all=$(GIT_INDEX_FILE="$t/index" git write-tree)
+index=$(git commit-tree "$staged" -p HEAD -m 'staged changes')
+work=$(git commit-tree "$all" -p "$index" -m 'working tree')</code></pre>
+        <p>And the restore is four lines:</p>
+        <pre><code>git read-tree -m -u HEAD &lt;ref&gt;   <span class="c"># working tree, binaries included</span>
+git read-tree &lt;ref&gt;^             <span class="c"># then the staged index, exactly</span>
+git update-ref -d &lt;ref&gt;</code></pre>
+
+        <p>
+          <strong>Bundle prerequisites from the destination's own tips</strong>
+          answers the open question in our transport section. The destination
+          reports up to 20,000 tips; the source excludes them, filtered through
+          <code>git cat-file</code> so a ref the source never heard of can't
+          fail the bundle. That is incremental transfer over a channel with no
+          negotiation — precisely our "park" case.
+        </p>
+        <p>
+          <strong>Preflight refusals we hadn't thought of:</strong> the branch
+          already checked out in a destination worktree, and a destination tip
+          that isn't an ancestor of the source HEAD. Both cheap, both prevent
+          an unrecoverable mess.
+        </p>
+        <p>
+          <strong>Panes are argv, not agents</strong> — the detail our design
+          missed entirely. <code>remap_argv</code> re-targets each pane's
+          command line: per-agent flag tables keep <code>--model</code> and its
+          kin with their values, drop the flags naming a session or a cwd,
+          rewrite paths under the checkout, and let an absolute program path
+          outside it resolve on the destination's <code>PATH</code>. A pane
+          doesn't restart correctly without this.
+        </p>
+        <p>
+          <strong>Marks keyed on (endpoint, repo, branch)</strong>, never on a
+          workspace id — "which does not survive a daemon restart". That
+          sharpens our <code>lineage_id</code>: key on the durable triple
+          rather than minting another synthetic id. And credentials, when the
+          destination can't reach GitHub, travel over a script's
+          <strong>stdin only</strong> — never an argument, never a log line —
+          into a mode-600 file outside every working tree.
+        </p>
+
+        <h3>Where it disagrees with us, and where it's right</h3>
+        <div class="verdicts">
+          <div>
+            <span class="n">01</span>
+            <div>
+              <h4>It moves the whole session, and says so</h4>
+              <p>
+                <em>"Nothing here asks an agent to summarize: the full history
+                moves."</em> It reads the session file, rewrites the source
+                checkout path inside it, and writes it where that agent looks
+                on the destination — claude, codex, opencode, pi, omp.
+              </p>
+              <p>
+                That is the path-rewrite tax we deferred as "not scheduled",
+                paid in about 500 lines. <strong>Our estimate was too
+                pessimistic.</strong> Shipping prompt-transfer first is still
+                right because ours is nearly free — but "expensive" is no
+                longer the reason to defer the rest.
+              </p>
+            </div>
+          </div>
+          <div>
+            <span class="n">02</span>
+            <div>
+              <h4>Their Claude path encoding is not ours</h4>
+              <p>
+                Theirs reproduces Claude Code's own encoding — every
+                non-alphanumeric character becomes <code>-</code>, plus a
+                Java-style UTF-16 hash suffix past 200 characters — with a test
+                asserting it against Claude Code's function. Ours is
+                <code>replaceAll(/[/.]/g, "-")</code>, which maps only
+                <code>/</code> and <code>.</code>
+              </p>
+              <p>
+                Worth checking against a real path containing an underscore. If
+                theirs is right, our transcript lookup silently misses and the
+                handoff quietly falls back to the PTY stream. It fails soft,
+                which is why nobody has noticed. Independent of teleport; worth
+                a ticket either way.
+              </p>
+            </div>
+          </div>
+          <div>
+            <span class="n">03</span>
+            <div>
+              <h4>The handoff note beats both of our options</h4>
+              <p>Before moving, each live agent is asked to write one:</p>
+              <blockquote>
+                "This work is moving to another machine. Write a handoff note
+                to <code>.herdr/teleport/handoff-N.md</code> so another agent
+                can continue seamlessly: the goal, what is done, the current
+                state including uncommitted changes, decisions and constraints,
+                open questions, and the exact next steps. Do not change
+                anything else, then stop."
+              </blockquote>
+              <p>
+                The note is force-added into the bundle even though
+                <code>.herdr</code> is ignored, and the destination agent starts
+                with "Read it and continue the work it describes." A fallback
+                chain lets a <em>different</em> agent pick it up when the
+                destination lacks the original.
+              </p>
+              <p>
+                Strictly better than 36k characters of transcript tail: an
+                agent's own account of its intent is worth more per byte than
+                the last N chars of what it printed, and it costs one prompt.
+                <strong>Take this for P1</strong>, keeping
+                <code>terminal.transcript</code> as the fallback for a pane
+                whose agent is dead. The cost they accepted: a teleport waits
+                for the slowest note, up to five minutes — which is why the
+                review dialog says "asking agents for handoff notes" out loud.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <p>
+            What we keep that they don't have: their transport is shell scripts
+            over SSH by necessity. We already have the relay and an
+            authenticated host-service on both ends, so we keep the
+            relay-direct fetch — and we have cloud sandboxes as a destination,
+            which has no equivalent there. The architectural lesson holds
+            regardless: their orchestrator is a client-side driver over
+            primitives that already existed, not a new server subsystem. Ours
+            should be too.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">UI design · to build</p>
+        <h2>What we're building</h2>
+        <p>
+          One entry point, one dialog with three phases, one persistent mark.
+          The design goal is that nothing surprising happens: you always see
+          the plan before anything moves, and the source is never gone.
+        </p>
+
+        <h3>1 · Entry point</h3>
+        <p>
+          Right-click a workspace in the sidebar. The item sits with the other
+          workspace-level verbs, above the destructive group — and is hidden
+          entirely when there is no other host to move to, rather than shown
+          disabled.
+        </p>
+        <div class="menu-mock" role="img" aria-label="Context menu mockup with a Teleport item">
+          <div>Rename</div>
+          <div>Open in Finder</div>
+          <div>Copy Branch Name</div>
+          <hr />
+          <div class="hl">Teleport…</div>
+          <div>Move to group ›</div>
+          <hr />
+          <div>Remove from Sidebar</div>
+        </div>
+
+        <h3>2 · Pick a destination</h3>
+        <p>
+          Hosts the user can reach, from the existing
+          <code>useWorkspaceHostOptions</code> hook that the new-workspace
+          DevicePicker already uses. Online dot, nothing preselected, an
+          offline host still selectable — it just says so. The primary button
+          reads <strong>Review</strong>, never "Teleport": this step commits to
+          nothing.
+        </p>
+        <div class="ui" role="img" aria-label="Destination picker mockup">
+          <div class="ui-head">
+            <span class="ui-glyph" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h5v5M14 2 7 9M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3" /></svg>
+            </span>
+            <div>
+              <div class="ui-title">Teleport</div>
+              <div class="ui-sub">feature/login · from this device</div>
+            </div>
+          </div>
+          <div class="ui-body">
+            <div class="host-row sel">
+              <div class="grow">
+                <div class="host-name">beelink</div>
+                <div class="host-meta">Connected</div>
+              </div>
+              <span class="dot on"></span>
+            </div>
+            <div class="host-row">
+              <div class="grow">
+                <div class="host-name">m5max</div>
+                <div class="host-meta">Offline · will be reached when it wakes</div>
+              </div>
+              <span class="dot"></span>
+            </div>
+            <div class="host-row">
+              <div class="grow">
+                <div class="host-name">Cloud</div>
+                <div class="host-meta">New sandbox</div>
+              </div>
+              <span class="dot on"></span>
+            </div>
+          </div>
+          <div class="ui-foot">
+            <span class="btn ghost">Cancel</span>
+            <span class="btn primary">Review</span>
+          </div>
+        </div>
+
+        <h3>3 · The plan</h3>
+        <p>
+          The heart of it. Every pane gets a row and a verb, so nothing is
+          hand-waved. Above them, what the system will do on your behalf.
+          Below, the refusals: a diverged branch or one already checked out
+          there stops here, with the reason, not at step nine.
+        </p>
+        <div class="ui" role="img" aria-label="Plan review mockup">
+          <div class="ui-head">
+            <span class="ui-glyph" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h5v5M14 2 7 9M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3" /></svg>
+            </span>
+            <div>
+              <div class="ui-title">Teleport to beelink</div>
+              <div class="ui-sub">feature/login · superset</div>
+            </div>
+          </div>
+          <div class="ui-body">
+            <div class="plan-line">
+              <span class="k">Branch</span>
+              <span>feature/login · 2 unpushed commits</span>
+            </div>
+            <div class="plan-line">
+              <span class="k">Changes</span>
+              <span>5 modified, 1 untracked, 2 env files</span>
+            </div>
+            <div class="plan-line">
+              <span class="k">Repo</span>
+              <span>Already on beelink · fetch only</span>
+            </div>
+
+            <div class="plan-tab">Tab 1 · agent</div>
+            <div class="plan-pane">
+              <span class="what">claude</span>
+              <span class="will">hands off &amp; resumes</span>
+            </div>
+            <div class="plan-pane">
+              <span class="what">bun dev</span>
+              <span class="will">restarts</span>
+            </div>
+            <div class="plan-tab">Tab 2 · shell</div>
+            <div class="plan-pane">
+              <span class="what">zsh</span>
+              <span class="will">opens empty</span>
+            </div>
+
+            <p class="plan-note">
+              Setup scripts run on arrival. This workspace stays here, stopped,
+              until you delete it.
+            </p>
+          </div>
+          <div class="ui-foot">
+            <span class="btn ghost">Back</span>
+            <span class="btn primary">Teleport</span>
+          </div>
+        </div>
+
+        <h3>4 · Progress</h3>
+        <p>
+          Named steps, not a spinner. The step list is the same enum that names
+          failures, so an error reads "Restoring changes failed: …" and the
+          user knows exactly how far it got — and therefore that everything
+          before it is safe.
+        </p>
+        <div class="ui" role="img" aria-label="Progress mockup">
+          <div class="ui-head">
+            <span class="ui-glyph" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h5v5M14 2 7 9M12 10v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3" /></svg>
+            </span>
+            <div>
+              <div class="ui-title">Teleporting to beelink</div>
+              <div class="ui-sub">Safe to close — this continues in the background</div>
+            </div>
+          </div>
+          <div class="ui-body">
+            <div class="run-step done"><span class="mark">✓</span> Asking agents for handoff notes</div>
+            <div class="run-step done"><span class="mark">✓</span> Capturing commits and changes</div>
+            <div class="run-step done"><span class="mark">✓</span> Creating the worktree on beelink</div>
+            <div class="run-step now"><span class="mark">●</span> Restoring changes</div>
+            <div class="run-step todo"><span class="mark">·</span> Running setup scripts</div>
+            <div class="run-step todo"><span class="mark">·</span> Rebuilding tabs</div>
+            <div class="run-step todo"><span class="mark">·</span> Stopping the source</div>
+            <div class="run-step todo"><span class="mark">·</span> Starting programs</div>
+          </div>
+          <div class="ui-foot">
+            <span class="btn ghost">Run in background</span>
+            <span class="btn" aria-disabled="true">Open on beelink</span>
+          </div>
+        </div>
+
+        <h3>5 · Afterwards</h3>
+        <p>
+          The source workspace stays in the sidebar, marked, programs stopped,
+          checkout untouched. Its context menu swaps <em>Teleport…</em> for
+          <em>Teleport back</em> and <em>Reclaim here</em>. Nothing is deleted
+          by teleporting — ever; deletion stays a separate, explicit act.
+        </p>
+        <div class="sidebar-mock" role="img" aria-label="Sidebar mockup showing a teleported workspace">
+          <div class="sb-row">
+            <span class="dot on"></span><span class="grow">feature/login</span
+            ><span class="sb-mark">beelink ↗</span>
+          </div>
+          <div class="sb-row"><span class="dot"></span><span class="grow">docs-pass</span></div>
+        </div>
+
+        <h3>Copy, in full</h3>
+        <p>
+          Every string below goes through Lingui with the English as the id.
+          Writing them here first is not ceremony: the review dialog <em>is</em>
+          the feature, and half of it is wording.
+        </p>
+        <div class="scroll">
+          <table class="copy-table">
+            <thead>
+              <tr>
+                <th scope="col">Where</th>
+                <th scope="col">String</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>menu</td><td>Teleport…</td></tr>
+              <tr><td>picker.title</td><td>Teleport</td></tr>
+              <tr><td>picker.empty</td><td>Connect another device to teleport this workspace to it.</td></tr>
+              <tr><td>host.online</td><td>Connected</td></tr>
+              <tr><td>host.offline</td><td>Offline · will be reached when it wakes</td></tr>
+              <tr><td>plan.clone</td><td>Clones the repository there first.</td></tr>
+              <tr><td>plan.fetch</td><td>Already on {'{'}host{'}'} · fetch only</td></tr>
+              <tr><td>plan.keep</td><td>This workspace stays here, stopped, until you delete it.</td></tr>
+              <tr><td>pane.agent</td><td>hands off &amp; resumes</td></tr>
+              <tr><td>pane.process</td><td>restarts</td></tr>
+              <tr><td>pane.shell</td><td>opens empty</td></tr>
+              <tr><td>refuse.checkedOut</td><td>{'{'}branch{'}'} is already checked out on {'{'}host{'}'}.</td></tr>
+              <tr><td>refuse.diverged</td><td>{'{'}host{'}'} has commits on {'{'}branch{'}'} that this device doesn't.</td></tr>
+              <tr><td>run.background</td><td>Safe to close — this continues in the background</td></tr>
+              <tr><td>done.open</td><td>Open on {'{'}host{'}'}</td></tr>
+              <tr><td>mark.tooltip</td><td>Teleported to {'{'}host{'}'}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Where the code goes</h3>
+        <p>
+          Three layers, each independently testable. The git core knows nothing
+          about tRPC; the router knows nothing about React.
+        </p>
+        <div class="tree">
+<span class="dir">packages/host-service/src/teleport/</span>        <span class="note">the core — pure git, no transport</span>
+  capture.ts        <span class="note">dirty state → two commits via a temp index</span>
+  bundle.ts         <span class="note">pack, excluding the destination's tips</span>
+  restore.ts        <span class="note">read-tree the worktree, then the index</span>
+  preflight.ts      <span class="note">diverged · already-checked-out refusals</span>
+  plan.ts           <span class="note">what the review dialog renders</span>
+  <span class="note">*.test.ts            co-located, against real repos in tmp</span>
+
+<span class="dir">packages/host-service/src/trpc/router/teleport/</span>
+  teleport.ts       <span class="note">plan · capture · restore procedures</span>
+
+<span class="dir">apps/desktop/src/renderer/…/TeleportDialog/</span>
+  TeleportDialog.tsx        <span class="note">phase machine only</span>
+  components/
+    TeleportHostStep/       <span class="note">reuses useWorkspaceHostOptions</span>
+    TeleportPlanStep/
+    TeleportProgressStep/
+
+<span class="new">moved</span>  useWorkspaceHostOptions → renderer/hooks/
+        <span class="note">second consumer, so it promotes to the shared parent</span>
+        </div>
+        <div class="callout">
+          <p>
+            That last line is the repo's co-location rule doing its job: the
+            hook lived under <code>DashboardNewWorkspaceModal</code> because it
+            had one caller. Teleport is the second, so it moves up rather than
+            being imported across the tree.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">Prior art</p>
+        <h2>This is very solved, in pieces</h2>
+        <div class="art">
+          <div>
+            <div>
+              <h4>Sapling Commit Cloud</h4>
+              <p class="takeaway">THE END STATE</p>
+            </div>
+            <p class="body">
+              Every draft commit uploads as it's made — no explicit push — so
+              another machine just <code>sl goto &lt;hash&gt;</code>. Moving
+              machines stops being an operation at all. Our continuous mode is
+              this, with a handoff ref standing in for a draft commit.
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>Jujutsu</h4>
+              <p class="takeaway">THE CORE TRICK</p>
+            </div>
+            <p class="body">
+              The working copy <em>is</em> a commit; every command snapshots
+              it. If dirty state is already a commit, transferring it is just a
+              push. We can't adopt jj wholesale, but
+              <code>git stash create</code> is the same trick in one call.
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>Git 2.51</h4>
+              <p class="takeaway">OUR WIRE FORMAT</p>
+            </div>
+            <p class="body">
+              <code>stash export</code> / <code>stash import</code> is upstream
+              shipping exactly the transfer primitive this needs.
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>Gitpod</h4>
+              <p class="takeaway">ROBUST AND DUMB</p>
+            </div>
+            <p class="body">
+              Tars the workspace to object storage on stop, restores on another
+              node. It moves <code>node_modules</code> too, with no dedup and
+              no resume — necessary because a Gitpod node is ephemeral and
+              arbitrary state must survive. We have a repo at the centre, so we
+              move 300 KB where they move 3 GB.
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>Codespaces "export to branch"</h4>
+              <p class="takeaway">THE CAUTIONARY ONE</p>
+            </div>
+            <p class="body">
+              The one-click prior art for dirty state, and its failure mode is
+              the lesson: it needs the VM alive to bundle the work, so the
+              moment the codespace is unreachable the uncommitted work is
+              stranded. The forums are full of it. Argues hard for parking and
+              for continuous handoff — the export must already have happened
+              before you need it.
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>Mutagen · Syncthing</h4>
+              <p class="takeaway">DIFFERENT PROBLEM</p>
+            </div>
+            <p class="body">
+              Excellent at keeping two live copies in sync. For a <em>move</em>,
+              continuous bidirectional sync buys conflicts and syncs
+              <code>node_modules</code>. Right answer if we ever want "edit on
+              the laptop, build on the workstation".
+            </p>
+          </div>
+          <div>
+            <div>
+              <h4>CRIU · podman checkpoint</h4>
+              <p class="takeaway">CONSIDERED, REJECTED</p>
+            </div>
+            <p class="body">
+              Genuinely migrates running processes, memory and all. But it
+              wants matching kernel, arch and root, TCP connections break, and
+              it moves a live agent's <em>process</em> rather than its
+              conversation. Our sandboxes already boot fresh with no processes
+              and relaunch agents from a session id. Restart beats migrate.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">Performance</p>
+        <h2>Why it feels instant, and where it won't</h2>
+        <p>
+          The file transfer is genuinely sub-second in the common case: the
+          destination already has the project's history, so the pack holds the
+          changed blobs and nothing else — hundreds of KB for a normal
+          afternoon's work, one round trip of negotiation.
+        </p>
+        <p>
+          The long pole is <code>bun install</code> and friends: tens of
+          seconds to minutes, and no protocol trick removes it. Two ways to
+          hide it:
+        </p>
+        <ul>
+          <li>
+            <strong>Warm standby.</strong> A plausible destination keeps a
+            clone and its dependencies warm in the background. A move becomes
+            fetch, checkout, resume.
+          </li>
+          <li>
+            <strong>Continuous handoff.</strong> Push the handoff ref on a
+            debounce; the destination pre-fetches. "Move" becomes "check out
+            the ref you already have", and the Codespaces failure mode stops
+            existing. Costs object churn and a GC policy.
+          </li>
+        </ul>
+        <div class="callout">
+          <p>
+            Continuous mode is where this stops being a feature and becomes the
+            model: the workspace isn't on a device, it's on your account, and
+            devices attach to it. Cloud sandboxes then fall out as just another
+            destination — "move to cloud" and "move back down" are the same
+            button.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">Landmines</p>
+        <h2>Traps specific to this repo</h2>
+        <ul>
+          <li>
+            <code>terminal_agent_bindings.endReason</code> needs a
+            <code>moved</code> value, or source and destination both try to
+            auto-resume the same session.
+          </li>
+          <li>
+            A cloud workspace's name is owned by the cloud row, not the
+            sandbox; its <code>hostId</code> addresses nothing; its address is
+            a short-lived gate ticket. A move touching a sandbox goes through
+            <code>cloudWorkspace.*</code>, never the generic host path.
+          </li>
+          <li>
+            <code>projects.sparse_checkout_paths</code> must be reapplied
+            <em>before</em> restore, or the checkout "deletes" half the repo.
+          </li>
+          <li>
+            git-lfs: dirty LFS files need their objects pushed too, or the
+            destination restores pointers.
+          </li>
+          <li>
+            Multi-repo environments mean one handoff ref <em>per checkout</em>,
+            one manifest for the workspace.
+          </li>
+          <li>
+            Refuse early: a branch already checked out on the destination, or a
+            destination tip that isn't an ancestor of the source HEAD.
+          </li>
+          <li>
+            Renderer localStorage is a shared ~10 MB quota; layout payloads must
+            be one-shot and registered in the persisted-key registry.
+          </li>
+          <li>
+            Only if we pursue exact <code>--resume</code> across devices:
+            Claude's transcript directory name and per-record <code>cwd</code>
+            both encode the absolute worktree path.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <p class="kicker">Sequencing</p>
+        <h2>Phasing</h2>
+        <div class="phases">
+          <div>
+            <span class="phase-id">P0</span>
+            <p>
+              Device picker UI and a move of committed state only, on top of the
+              existing create-workspace-from-branch path. Ships the affordance,
+              proves the picker, needs no new transport.
+            </p>
+          </div>
+          <div>
+            <span class="phase-id">P1</span>
+            <p>
+              The handoff commit: dirty state plus env allowlist, relay-direct
+              transport, two-phase commit with a reclaimable source tombstone,
+              <code>lineage_id</code>. Session continuity rides along in the
+              same phase — it's a cross-host call to the existing transfer plus
+              a <code>moved</code> end reason, not its own project.
+            </p>
+          </div>
+          <div>
+            <span class="phase-id">P2</span>
+            <p>
+              Park-and-resume for an offline source, continuous background
+              handoff, warm standby destinations, cloud sandboxes as a
+              first-class source and destination.
+            </p>
+          </div>
+          <div>
+            <span class="phase-id off">Not&nbsp;scheduled</span>
+            <p>
+              Exact <code>--resume</code> across devices. Build it on evidence
+              that the 36k-char transfer is losing people work, not before.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <p class="kicker">Unresolved</p>
+        <h2>Open questions</h2>
+        <ol class="q">
+          <li>
+            Is "move" the right verb, or is it "attach"? Continuous handoff
+            makes the workspace device-independent, and a move becomes a UI
+            convention over an always-synced ref.
+          </li>
+          <li>
+            Does GitHub accept pushes to a custom top-level ref namespace, for
+            the cheap transport?
+          </li>
+          <li>
+            What is the size ceiling on untracked files before we refuse and
+            ask the user to exclude?
+          </li>
+          <li>
+            Do we ever move a running dev server's port bindings, or is "it
+            restarted" acceptable?
+          </li>
+          <li>
+            Per-project policy for the env allowlist: opt-in, opt-out, or a
+            prompt on first move?
+          </li>
+          <li>
+            <s>Is 36k chars of context enough?</s> Largely answered — ask the
+            agent for a handoff note instead. What's left: should a move ever
+            <em>wait</em> five minutes for that note, or write it
+            opportunistically in the background before anyone clicks?
+          </li>
+          <li>
+            Do we copy the review dialog's per-pane plan wholesale? It is the
+            best idea in the reference implementation and we have no equivalent
+            surface today.
+          </li>
+        </ol>
+      </section>
+
+      <footer>
+        Source: <code>plans/20260925-workspace-teleport.md</code> — pin a
+        comment on any paragraph to argue with it.
+      </footer>
+    </div>
+  </body>
+</html>

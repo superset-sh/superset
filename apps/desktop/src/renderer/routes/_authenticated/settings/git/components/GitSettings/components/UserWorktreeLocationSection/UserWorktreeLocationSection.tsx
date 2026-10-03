@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { useWorkspaceHostOptions } from "renderer/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {

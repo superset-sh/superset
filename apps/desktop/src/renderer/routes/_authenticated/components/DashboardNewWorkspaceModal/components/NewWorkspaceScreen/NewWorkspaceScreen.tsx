@@ -72,7 +72,7 @@ import {
 	useNewWorkspacePromptCardsVariant,
 } from "../../hooks/useNewWorkspacePromptCardsVariant";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
-import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import { useWorkspaceHostOptions } from "renderer/hooks/useWorkspaceHostOptions";
 import { CheckoutPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/CheckoutPickerPill";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { EnvironmentPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/EnvironmentPickerPill";

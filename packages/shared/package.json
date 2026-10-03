@@ -376,6 +376,14 @@
 		"./page-storage-ticket": {
 			"types": "./src/page-storage-ticket.ts",
 			"default": "./src/page-storage-ticket.ts"
+		},
+		"./teleport": {
+			"types": "./src/teleport.ts",
+			"default": "./src/teleport.ts"
+		},
+		"./teleport-driver": {
+			"types": "./src/teleport-driver.ts",
+			"default": "./src/teleport-driver.ts"
 		}
 	},
 	"scripts": {

@@ -68,7 +68,7 @@ mock.module("renderer/lib/host-service-client", () => ({
 	getHostServiceClientByUrl: () => ({}),
 }));
 mock.module(
-	"renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions",
+	"renderer/hooks/useWorkspaceHostOptions",
 	() => ({
 		useWorkspaceHostOptions: () => ({
 			currentDeviceName: "This device",

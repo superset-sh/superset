@@ -20,6 +20,7 @@ import { sandboxRouter } from "./sandbox";
 import { settingsRouter } from "./settings";
 import { systemRouter } from "./system";
 import { tagFoldersRouter } from "./tag-folders";
+import { teleportRouter } from "./teleport";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
 import { usageRouter } from "./usage";
@@ -50,6 +51,7 @@ export const appRouter = router({
 	sandbox: sandboxRouter,
 	settings: settingsRouter,
 	system: systemRouter,
+	teleport: teleportRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,
 	usage: usageRouter,

@@ -23,7 +23,7 @@ import {
 } from "react-icons/hi2";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigger";
-import { useWorkspaceHostOptions } from "./hooks/useWorkspaceHostOptions";
+import { useWorkspaceHostOptions } from "renderer/hooks/useWorkspaceHostOptions";
 
 function OnlineDot({ online }: { online: boolean }) {
 	const { t } = useLingui();
