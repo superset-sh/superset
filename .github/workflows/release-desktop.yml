@@ -110,6 +110,29 @@ jobs:
           echo "Release artifacts:"
           ls -la
 
+      - name: Pin update manifests to this release
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          # Clients fetch latest-*.yml through /releases/latest/download/, an alias
+          # GitHub re-resolves on every request. A relative artifact name is then
+          # resolved through the same alias, so a release published between the
+          # manifest fetch and the artifact fetch sends the client to
+          # /releases/download/<new tag>/<old file> and it 404s. Absolute URLs
+          # resolve the alias once, for the manifest only.
+          cd release-artifacts
+          base="https://github.com/${RELEASE_REPOSITORY}/releases/download/${RELEASE_TAG}"
+          for manifest in latest-mac.yml latest-linux.yml; do
+            sed -i -E "s#^([[:space:]]*(- )?(url|path): )'?([^'[:space:]]+)'?[[:space:]]*\$#\1'${base}/\4'#" "$manifest"
+            if grep -E "^[[:space:]]*(- )?(url|path): " "$manifest" | grep -vF "'${base}/"; then
+              echo "::error::${manifest} still references an artifact relative to the feed"
+              exit 1
+            fi
+            echo "${manifest}:"
+            cat "$manifest"
+          done
+
       - name: Generate release notes
         id: release_notes
         env:
