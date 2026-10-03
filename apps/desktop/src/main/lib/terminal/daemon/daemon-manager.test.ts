@@ -557,6 +557,210 @@ describe("DaemonTerminalManager kill tracking", () => {
 		await expect(initEffectsPromise).resolves.toMatchObject({ isNew: true });
 	});
 
+	/**
+	 * The #2748 fix stops the two racing attaches from cancelling each other,
+	 * but it does so by making the launch a *passenger* on the lifecycle hook's
+	 * request rather than an owner of its own. The AbortController stays with
+	 * the component, so when it later cancels that attach — an unmount, a
+	 * remount, a supersede, all routine while workspace init splits the agent
+	 * pane off the setup pane mid-render — the shared promise rejects and the
+	 * agent launch dies with it, even though the pane is alive and about to be
+	 * re-attached.
+	 *
+	 * This is why `ensureTerminalAttached` retries a cancelled attach instead
+	 * of treating it as a verdict on the pane; the test pins the daemon-side
+	 * semantics that make the retry necessary.
+	 */
+	it("rejects a joined launch when the attach owner cancels its own request", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-joined-launch-canceled";
+		const requestId = "req-lifecycle-cancel";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		// Lifecycle hook attaches first and owns the request.
+		const lifecyclePromise = manager.createOrAttach({
+			paneId,
+			requestId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		// The agent launch joins it rather than opening a second one.
+		const launchPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+		expect(mockClient.createOrAttachCalls).toHaveLength(1);
+
+		// Settle both before cancelling: the shared promise rejects
+		// synchronously, so handlers have to be attached first.
+		const lifecycleOutcome = lifecyclePromise.catch(
+			(error: Error) => error.message,
+		);
+		const launchOutcome = launchPromise.catch((error: Error) => error.message);
+
+		// The component unmounts and cancels the attach it owns.
+		manager.cancelCreateOrAttach({ paneId, requestId });
+
+		expect(await lifecycleOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+		// The launch had no say in that cancellation, but dies with it.
+		expect(await launchOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+	});
+
+	/**
+	 * The recovery the launch-side retry depends on: once the owner's
+	 * cancellation has torn the shared request down, the pending entry is gone
+	 * and the tombstone is unset (nothing killed the pane), so a fresh
+	 * `joinPending` attach opens its own request and succeeds. That retry then
+	 * *owns* the pending entry, and because a joined entry is never superseded,
+	 * the component's later re-attach rides along instead of cancelling it
+	 * again.
+	 */
+	it("lets a retried joined attach succeed and own the request after an unmount cancel", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-launch-retry-recovers";
+		const requestId = "req-lifecycle-retry";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+			pendingSessions: Map<string, unknown>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		// The component wins the race and owns the attach; the launch joins it.
+		const lifecyclePromise = manager.createOrAttach({
+			paneId,
+			requestId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		const launchPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+		const lifecycleOutcome = lifecyclePromise.catch(
+			(error: Error) => error.message,
+		);
+		const launchOutcome = launchPromise.catch((error: Error) => error.message);
+
+		manager.cancelCreateOrAttach({ paneId, requestId });
+		expect(await lifecycleOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+		expect(await launchOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+
+		// Nothing killed the pane, so no tombstone blocks a retry, and the
+		// cancelled request left no pending entry behind.
+		expect(managerInternals.pendingSessions.has(paneId)).toBe(false);
+
+		// The retry the launch performs.
+		const retryPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		// The component re-attaches; it joins the retry rather than superseding it.
+		const reattachPromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-lifecycle-reattach",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		const retryRequestId = mockClient.createOrAttachCalls.at(-1)?.requestId;
+		expect(typeof retryRequestId).toBe("string");
+		mockClient.resolveCreateOrAttach(retryRequestId ?? "");
+
+		await expect(retryPromise).resolves.toBeDefined();
+		await expect(reattachPromise).resolves.toBeDefined();
+	});
+
+	/**
+	 * The other half of the retry contract, and the case the launch-side doc
+	 * must not overstate: `useTerminalLifecycle` supersedes itself by cancelling
+	 * and *synchronously* issuing the replacement, so by the time the retry runs
+	 * the component already owns a fresh non-join entry. The retry therefore
+	 * joins that one rather than owning anything — which still resolves the
+	 * launch, because the replacement is the attach that goes on to succeed.
+	 */
+	it("lets a retry join the replacement when the component supersedes itself", async () => {
+		const manager = new DaemonTerminalManager();
+		const paneId = "pane-launch-retry-supersede";
+		const managerInternals = manager as unknown as {
+			daemonSessionIdsHydrated: boolean;
+			daemonAliveSessionIds: Set<string>;
+		};
+		managerInternals.daemonSessionIdsHydrated = true;
+		managerInternals.daemonAliveSessionIds = new Set([paneId]);
+
+		const firstPromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-first",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		const launchPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+		const firstOutcome = firstPromise.catch((error: Error) => error.message);
+		const launchOutcome = launchPromise.catch((error: Error) => error.message);
+
+		// Cancel + synchronous replacement, the way the lifecycle hook does it.
+		manager.cancelCreateOrAttach({ paneId, requestId: "req-first" });
+		const replacementPromise = manager.createOrAttach({
+			paneId,
+			requestId: "req-replacement",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+		});
+
+		expect(await firstOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+		expect(await launchOutcome).toBe(TERMINAL_ATTACH_CANCELED_MESSAGE);
+
+		// The retry finds the replacement already pending and rides it.
+		const retryPromise = manager.createOrAttach({
+			paneId,
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+			skipColdRestore: true,
+			joinPending: true,
+		});
+
+		const replacementRequestId =
+			mockClient.createOrAttachCalls.at(-1)?.requestId;
+		expect(replacementRequestId).toBe("req-replacement");
+		mockClient.resolveCreateOrAttach(replacementRequestId ?? "");
+
+		await expect(replacementPromise).resolves.toBeDefined();
+		await expect(retryPromise).resolves.toBeDefined();
+	});
+
 	it("propagates probe failures from forceKillAll instead of silently no-oping", async () => {
 		const manager = new DaemonTerminalManager();
 		mockClient.listSessionsIfRunningError = new Error("probe failed");
