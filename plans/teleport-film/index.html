@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teleport, filmed</title>
+    <style>
+      :root {
+        --rule: 1px solid var(--sp-border);
+      }
+      body {
+        margin: 0;
+        font-family: var(--sp-font-sans);
+      }
+      .wrap {
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 5vw, 3rem) 5rem;
+      }
+      .eyebrow {
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin: 0 0 1rem;
+      }
+      h1 {
+        font-size: clamp(1.875rem, 5vw, 2.75rem);
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        margin: 0 0 0.875rem;
+        font-weight: 600;
+      }
+      h2 {
+        font-size: 1.25rem;
+        margin: 3rem 0 0.75rem;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        font-size: 1.0625rem;
+        line-height: 1.55;
+        color: var(--sp-muted);
+        max-width: var(--sp-measure);
+        margin: 0 0 2rem;
+      }
+      video {
+        width: 100%;
+        display: block;
+        border-radius: 10px;
+        border: var(--rule);
+        background: #05070a;
+      }
+      .cap {
+        font-size: 0.8125rem;
+        color: var(--sp-muted);
+        margin: 0.625rem 0 0;
+        line-height: 1.5;
+      }
+      .beats {
+        margin: 1.5rem 0 0;
+        border-top: var(--rule);
+      }
+      .beats > div {
+        display: grid;
+        grid-template-columns: 4rem 1fr;
+        gap: 0 1.25rem;
+        padding: 0.875rem 0;
+        border-bottom: var(--rule);
+        align-items: baseline;
+      }
+      .t {
+        font-family: var(--sp-font-mono);
+        font-size: 0.75rem;
+        color: var(--sp-muted);
+      }
+      .beats p,
+      p.body {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+      }
+      p.body {
+        max-width: var(--sp-measure);
+        margin-bottom: 0.875rem;
+      }
+      pre {
+        font-family: var(--sp-font-mono);
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        border: var(--rule);
+        border-radius: var(--sp-radius);
+        padding: 1rem 1.125rem;
+        overflow-x: auto;
+        margin: 1rem 0;
+      }
+      .ok {
+        color: var(--sp-chart-2);
+      }
+      .honest {
+        border-left: 2px solid var(--sp-chart-4);
+        padding-left: 1.25rem;
+        margin: 1.5rem 0;
+      }
+      .honest p {
+        margin: 0 0 0.625rem;
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        max-width: var(--sp-measure);
+      }
+      .honest p:last-child {
+        margin-bottom: 0;
+      }
+      a {
+        color: var(--sp-accent);
+      }
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: var(--rule);
+        font-size: 0.8125rem;
+        color: var(--sp-muted);
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <div class="wrap">
+      <p class="eyebrow">Workspace teleport · recorded in the dev app</p>
+      <h1>Teleport, filmed</h1>
+      <p class="lede">
+        A screen recording of the real Superset desktop app: right-click a
+        workspace, pick a destination, and read a plan the host computed from
+        the actual checkout. Every frame is what the renderer painted.
+      </p>
+
+      <video controls playsinline preload="metadata" poster="poster-real.jpg">
+        <source src="teleport-real-app.mp4" type="video/mp4" />
+      </video>
+      <p class="cap">
+        Captured over the Chrome DevTools Protocol from the running Electron
+        renderer (<code>Page.startScreencast</code>), driven by real mouse
+        input. Playback is at the app's own timing.
+      </p>
+
+      <div class="beats">
+        <div>
+          <span class="t">0:01</span>
+          <p>
+            <strong>Right-click the workspace</strong> — the row is a real
+            local workspace on a real project the host-service created.
+          </p>
+        </div>
+        <div>
+          <span class="t">0:03</span>
+          <p>
+            <strong>Teleport…</strong> sits with the other workspace verbs. It
+            is hidden, not disabled, for cloud workspaces.
+          </p>
+        </div>
+        <div>
+          <span class="t">0:05</span>
+          <p>
+            <strong>Pick a destination.</strong> Two registered hosts, both
+            offline, both still selectable. Nothing preselected.
+          </p>
+        </div>
+        <div>
+          <span class="t">0:08</span>
+          <p>
+            <strong>The plan, from the host.</strong>
+            <code>feature/login</code> · 1 unpushed commit · 1 modified, 1
+            untracked, 1 env file · clones the repository on beelink first.
+            Those numbers came from <code>teleport.sourceState</code> on the
+            live host-service, not from a fixture.
+          </p>
+        </div>
+      </div>
+
+      <h2>What in this is real</h2>
+      <p class="body">
+        The context-menu item, the dialog, the host list, and the plan are the
+        shipped code running in the dev app against its own host-service. The
+        plan's counts are read by the new <code>teleport.sourceState</code>
+        procedure from the checkout on disk; the destination check calls
+        <code>teleport.destinationState</code> and the refusal logic behind it.
+      </p>
+      <p class="body">
+        The git core underneath — capture, bundle against the destination's
+        tips, restore, preflight refusals — is tested against real
+        repositories, and against this monorepo's own checkout at scale:
+      </p>
+      <pre>source working tree: {"modified":34,"untracked":48,"preciousFiles":1,"unpushedCommits":0}
+bundle: 1056 KB from 2 destination tips
+timing: capture 390ms · bundle 437ms · restore 1256ms
+restored working tree: {"modified":34,"untracked":48,"preciousFiles":1,"unpushedCommits":0}
+<span class="ok">status identical: YES</span></pre>
+
+      <div class="honest">
+        <p>
+          <strong>What the recording does not show:</strong> the move itself
+          completing on a second machine. This dev environment is a cloud
+          sandbox with one host; the two destinations in the picker are
+          registered host rows with no machine behind them, so pressing
+          <em>Teleport</em> here would fail at the first cross-host step. The
+          eight-step run is exercised end to end in
+          <code>flow.test.ts</code> — the real driver over the real git core
+          across two real checkouts — and needs a genuine second device to be
+          filmed.
+        </p>
+        <p>
+          The earlier storyboard cut (below) is a rendering of the design, kept
+          for the parts that need two machines to show.
+        </p>
+      </div>
+
+      <h2>Storyboard cut</h2>
+      <video controls playsinline preload="metadata" poster="poster.png">
+        <source src="teleport-flow.mp4" type="video/mp4" />
+      </video>
+      <p class="cap">
+        Rendered from the UI design, not a screen recording. Its dialogs match
+        the real ones above at the real sizes and copy; the arrival and
+        progress scenes are what the two-host run looks like.
+      </p>
+
+      <footer>
+        Design and mechanism:
+        <a href="https://app.superset.sh/page/workspace-teleport-xh2ema"
+          >Workspace teleport</a
+        >. Source: <code>plans/teleport-film/</code>. Recorder:
+        <code>apps/desktop/scripts/cdp-teleport-record.ts</code>.
+      </footer>
+    </div>
+  </body>
+</html>

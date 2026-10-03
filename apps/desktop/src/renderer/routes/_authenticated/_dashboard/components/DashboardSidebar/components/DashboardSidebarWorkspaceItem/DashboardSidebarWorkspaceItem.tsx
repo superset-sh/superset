@@ -26,6 +26,7 @@ import {
 	DashboardSidebarWorkspaceBulkContextMenu,
 	useWorkspaceRowContextMenu,
 } from "./components/DashboardSidebarWorkspaceBulkContextMenu";
+import { TeleportDialogContainer } from "renderer/components/TeleportDialog/TeleportDialogContainer";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
@@ -156,6 +157,10 @@ export function DashboardSidebarWorkspaceItem({
 		// open-card switch), never on transient row mouseenter.
 		if (isHovered && hostType === "local-device") void onHoverCardOpen?.(id);
 	}, [isHovered, hostType, onHoverCardOpen, id]);
+	// Teleport moves a workspace between machines a person owns; a cloud sandbox is reached, not owned.
+	const [isTeleportOpen, setIsTeleportOpen] = useState(false);
+	const canTeleport =
+		hostType === "local-device" || hostType === "remote-device";
 	useEffect(() => {
 		if (!isHovered) return;
 		hoverSyncIfHovered(id, hoverPayload);
@@ -249,6 +254,15 @@ export function DashboardSidebarWorkspaceItem({
 
 		return (
 			<>
+			{isTeleportOpen && (
+				<TeleportDialogContainer
+					open={isTeleportOpen}
+					onOpenChange={setIsTeleportOpen}
+					workspaceId={id}
+					workspaceLabel={name}
+					sourceHostId={workspace.hostId}
+				/>
+			)}
 				<div>
 					{isPending ? (
 						content
@@ -262,6 +276,9 @@ export function DashboardSidebarWorkspaceItem({
 							hasStatus={!!workspaceStatus}
 							hasPullRequest={!!pullRequest}
 							isLocalWorkspace={hostType === "local-device"}
+							onTeleport={
+								canTeleport ? () => setIsTeleportOpen(true) : undefined
+							}
 							isPinned={workspace.isPinned}
 							onTogglePin={handleTogglePin}
 							onCreateSection={handleCreateSection}
@@ -335,6 +352,15 @@ export function DashboardSidebarWorkspaceItem({
 
 	return (
 		<>
+		{isTeleportOpen && (
+			<TeleportDialogContainer
+				open={isTeleportOpen}
+				onOpenChange={setIsTeleportOpen}
+				workspaceId={id}
+				workspaceLabel={name}
+				sourceHostId={workspace.hostId}
+			/>
+		)}
 			<div>
 				{isPending ? (
 					expandedContent
@@ -354,6 +380,9 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
+						onTeleport={
+							canTeleport ? () => setIsTeleportOpen(true) : undefined
+						}
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}

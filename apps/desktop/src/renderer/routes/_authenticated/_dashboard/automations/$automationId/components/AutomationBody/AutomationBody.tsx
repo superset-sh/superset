@@ -15,7 +15,7 @@ import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { RichText } from "renderer/components/RichText";
 import { CLOUD_AGENT_CHOICES } from "renderer/hooks/useV2AgentChoices/cloud-agent-choices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
+import { useWorkspaceHostOptions } from "renderer/hooks/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
 import { useProviderConnections } from "../../../components/providers/useProviderConnections";
 import { useProviderOptions } from "../../../components/providers/useProviderOptions";
