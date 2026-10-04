@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hosts add · driven against a real machine</title>
+<style>
+  :root {
+    --bg: #131312;
+    --bg-raise: #1b1b19;
+    --bg-card: #181817;
+    --line: #2b2b28;
+    --line-soft: #232321;
+    --ink: #e8e6e1;
+    --ink-mute: #a3a19a;
+    --ink-faint: #706e68;
+    --add: #34d399;
+    --del: #f87171;
+    --warn: #e3b341;
+    --chip: #22221f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 72px 28px 96px; }
+
+  .eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--add); }
+  h1 { font-size: clamp(30px, 5.4vw, 46px); line-height: 1.08; letter-spacing: -0.022em; font-weight: 700; margin: 14px 0 18px; }
+  .standfirst { font-size: 19px; line-height: 1.55; color: var(--ink-mute); max-width: 62ch; margin: 0 0 28px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 10px; font: 12px/1 var(--mono); color: var(--ink-mute); padding-bottom: 40px; border-bottom: 1px solid var(--line-soft); }
+  .meta span { background: var(--chip); border: 1px solid var(--line-soft); border-radius: 5px; padding: 7px 10px; white-space: nowrap; }
+  .meta .add { color: var(--add); }
+  .meta .warn { color: var(--warn); }
+  .meta .del { color: var(--del); }
+
+  section { margin-top: 64px; }
+  .sec-num { font: 600 12px/1 var(--mono); color: var(--ink-faint); letter-spacing: 0.1em; display: block; margin-bottom: 10px; }
+  h2 { font-size: 25px; letter-spacing: -0.015em; margin: 0 0 14px; }
+  h3 { font-size: 17px; margin: 30px 0 10px; }
+  p { max-width: 68ch; margin: 0 0 16px; color: var(--ink); }
+  p.mute { color: var(--ink-mute); }
+  code { font: 0.86em var(--mono); background: var(--chip); border: 1px solid var(--line-soft); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+  a { color: var(--add); text-decoration: none; border-bottom: 1px solid rgba(52,211,153,.35); }
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; max-width: 66ch; }
+
+  .term { background: #0e0e0d; border: 1px solid var(--line); border-radius: 10px; margin: 20px 0 0; overflow: hidden; }
+  .term-head { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--bg-raise); border-bottom: 1px solid var(--line-soft); font: 11px/1 var(--mono); color: var(--ink-faint); letter-spacing: 0.06em; text-transform: uppercase; }
+  .term-head .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a3a36; flex: none; }
+  .term pre { margin: 0; padding: 16px 18px; overflow-x: auto; font: 12.5px/1.65 var(--mono); color: #d8d6d1; white-space: pre; }
+  .term .p { color: var(--add); }
+  .term .c { color: var(--ink-faint); }
+  .term .g { color: var(--add); }
+  .term .r { color: var(--del); }
+  .term .y { color: var(--warn); }
+  .term .b { color: #e8e6e1; font-weight: 600; }
+  figcaption { font: 12px/1.6 var(--mono); color: var(--ink-faint); margin-top: 10px; }
+
+  .callout { background: var(--bg-card); border: 1px solid var(--line); border-left: 2px solid var(--warn); border-radius: 0 10px 10px 0; padding: 18px 22px; margin: 24px 0 0; }
+  .callout.bad { border-left-color: var(--del); }
+  .callout.good { border-left-color: var(--add); }
+  .callout h3 { margin: 0 0 8px; font-size: 16px; }
+  .callout p { font-size: 14.5px; color: var(--ink-mute); margin: 0 0 10px; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong { color: var(--ink); }
+
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font: 600 11px/1.4 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+  td:first-child { font-family: var(--mono); font-size: 12.5px; }
+  .yes { color: var(--add); font: 600 12px var(--mono); white-space: nowrap; }
+  .no { color: var(--del); font: 600 12px var(--mono); white-space: nowrap; }
+  .na { color: var(--ink-faint); font: 600 12px var(--mono); white-space: nowrap; }
+
+  footer { margin-top: 80px; padding-top: 26px; border-top: 1px solid var(--line-soft); font: 12px/1.8 var(--mono); color: var(--ink-faint); }
+</style>
+</head>
+<body class="dark">
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Superset · Verification log</div>
+    <h1>Driving <span style="font-family:var(--mono);font-size:0.82em">hosts add</span> against a machine that really existed</h1>
+    <p class="standfirst">
+      A fresh Ubuntu container, real sshd, real keys, real network. The probe and
+      install ran as production code against it — and the drive found a bug that
+      made the safety guard accept exactly the boxes it exists to refuse.
+    </p>
+    <div class="meta">
+      <span>target <b>ubuntu:24.04</b> · sshd on :2222</span>
+      <span>real ssh · real install</span>
+      <span class="add">bug found + fixed</span>
+      <span class="warn">full flow blocked by design</span>
+      <span>2026-09-26</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="sec-num">00</span>
+    <h2>Three things I could not do, said plainly</h2>
+    <p>
+      The ask was a CDP-driven, filmed, end-to-end success run. Each of those
+      three hit a wall that is real rather than incidental, so here is what I did
+      instead of quietly substituting something weaker.
+    </p>
+
+    <div class="callout bad">
+      <h3>CDP does not apply to this change</h3>
+      <p>
+        The Chrome DevTools Protocol drives the desktop app's renderer.
+        <strong><code>hosts add</code> is a CLI command with no UI</strong> — there
+        is no element to click and no DOM to assert on. CDP could only have shown
+        the host <em>appearing</em> in the app afterwards, which needs the step
+        below that cannot run here anyway.
+      </p>
+    </div>
+
+    <div class="callout bad">
+      <h3>The full flow cannot complete from a cloud workspace</h3>
+      <p>
+        Not a limitation to engineer around — a deliberate security boundary.
+        <code>SANDBOX_ALLOWED_PROCEDURES</code> is an allowlist of 18 procedures,
+        and two of the three API calls this command makes are outside it.
+      </p>
+    </div>
+
+    <div class="callout bad">
+      <h3>There is no film</h3>
+      <p>
+        No screen recorder and nothing visual to record. What follows is the
+        <strong>real terminal output, captured verbatim</strong> as it ran — the
+        honest equivalent for a command-line flow. Nothing below is typed by hand
+        or reconstructed.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-num">01</span>
+    <h2>A machine that really existed</h2>
+    <p>
+      Docker's daemon was not running in this workspace; starting it gave me a way
+      to build a genuinely new box rather than pretend one. Ubuntu 24.04, sshd,
+      key-only root login, and its own <code>/etc/machine-id</code> the way a real
+      VM has one.
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>real ssh into the target</div>
+<pre><span class="c">$</span> ssh -i id_target -p 2222 -o BatchMode=yes root@127.0.0.1 \
+    <span class="c">'echo "connected as $(whoami) on $(uname -s) $(uname -m)"; …'</span>
+
+connected as <span class="b">root</span> on <span class="b">Linux x86_64</span>
+machine-id: <span class="b">c8ae84e02c7b6cca68c4a9036ab7f14d</span>
+superset present? <span class="y">NO</span></pre>
+      </div>
+      <figcaption>A brand-new device, by construction: nothing of ours installed on it.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">02</span>
+    <h2>The probe, as production code</h2>
+    <p>
+      This is <code>buildProbeScript()</code> and <code>parseProbe()</code> from
+      the PR, imported directly and run over the real SSH transport — not a
+      re-implementation for the demo.
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>step 1 — probe a brand-new box</div>
+<pre>exit: 0
+os=Linux
+arch=x86_64
+bin=
+version=
+curl=yes
+machine_id=present
+
+parsed: {"os":"Linux","arch":"x86_64","bin":<span class="y">null</span>,"version":null,
+         "hasCurl":true,"machineId":"present"}
+install needed? <span class="g">true</span></pre>
+      </div>
+      <figcaption>Read-only: the probe changes nothing on the box.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">03</span>
+    <h2>The install, for real — after failing honestly first</h2>
+    <p>
+      The install portion was <em>sliced out of</em> <code>buildSetupScript()</code>
+      rather than retyped, so the bytes that ran are the bytes the command sends.
+      The first attempt failed, and it failed the way it should:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>first attempt — TLS interception</div>
+<pre><span class="g">==&gt;</span> Downloading https://github.com/superset-sh/superset/releases/…/superset-linux-x64.tar.gz
+curl: (60) <span class="r">SSL certificate problem: self-signed certificate in certificate chain</span>
+<span class="r">error:</span> Failed to download …
+
+exit: <span class="r">1</span></pre>
+      </div>
+      <figcaption>This workspace's egress is TLS-intercepted (a Vercel proxy CA); a fresh container has no such CA. Environmental, not a code defect — and the script detected it and exited 1 <em>before</em> touching auth, which is the failure path behaving correctly.</figcaption>
+    </figure>
+    <p style="margin-top:22px">
+      Installing that CA into the container is what a machine behind a corporate
+      MITM proxy needs too. With it in place, the real install ran:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>step 2 — the real install on the box</div>
+<pre>exit: <span class="g">0</span>
+<span class="g">==&gt;</span> Downloading https://github.com/superset-sh/superset/releases/…/superset-linux-x64.tar.gz
+<span class="g">==&gt;</span> Extracting to /root/superset
+<span class="g">==&gt;</span> <span class="y">Adding /root/superset/bin to PATH in /root/.bashrc</span>
+
+<span class="b">Installed!</span>
+Run <span class="b">exec $SHELL</span> <span class="y">(or open a new terminal) to load the updated PATH.</span>
+Then run <span class="b">superset auth login</span> to get started.
+
+BIN resolved to: <span class="b">/root/superset/bin/superset</span></pre>
+      </div>
+      <figcaption>The installer names the trap itself, in its own output: the PATH it just set needs a new shell.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">04</span>
+    <h2>The PATH trap, proven on the box</h2>
+    <p>
+      This is the whole reason the command never calls <code>superset</code> by
+      name. On the machine that had just installed it successfully:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>the same box, one second later, over ssh</div>
+<pre><span class="c">$</span> ssh … root@127.0.0.1 <span class="c">'command -v superset'</span>
+<span class="r">NOT FOUND on PATH</span>
+
+<span class="c">$</span> ssh … root@127.0.0.1 <span class="c">'superset --version'</span>
+<span class="r">bash: line 1: superset: command not found</span>
+
+<span class="c">$</span> ssh … root@127.0.0.1 <span class="c">'"$HOME/superset/bin/superset" --version'</span>
+<span class="g">1.30.2</span>
+
+<span class="c">$</span> ssh … root@127.0.0.1 <span class="c">'grep -n "superset/bin" /root/.bashrc; head -6 …'</span>
+<span class="b">102</span>:export PATH="/root/superset/bin:$PATH"     <span class="c">← the export IS there</span>
+
+<span class="c"># If not running interactively, don't do anything</span>
+<span class="y">[ -z "$PS1" ] &amp;&amp; return</span>                        <span class="c">← line 4 returns first</span></pre>
+      </div>
+      <figcaption>The export sits at line 102 of <code>.bashrc</code>; line 4 returns before ever reaching it. Absolute path: <code>1.30.2</code>. Bare name: does not exist.</figcaption>
+    </figure>
+    <p style="margin-top:22px">
+      Re-probing the same box finds it anyway, because the probe searches the
+      install prefixes before PATH — and correctly reports that no second install
+      is needed, so re-running is idempotent:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>step 3 — probe the installed box</div>
+<pre>bin=<span class="g">/root/superset/bin/superset</span>
+version=<span class="g">1.30.2</span>
+install needed? <span class="g">false</span></pre>
+      </div>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">05</span>
+    <h2>The drive found a bug</h2>
+    <p>
+      This is the part a staged demo would never have produced. I built a second
+      container with an emptied <code>/etc/machine-id</code> to watch the collision
+      guard refuse it. It did not refuse it.
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>the container that should have been refused</div>
+<pre><span class="c">$</span> <span class="c"># both machine-id files on that box</span>
+/etc/machine-id:           exists, <span class="y">0 bytes</span>
+/var/lib/dbus/machine-id:  exists, <span class="b">33 bytes</span>
+
+probe says: {… "machineId":<span class="r">"present"</span>}   <span class="c">← accepted. wrong.</span></pre>
+      </div>
+    </figure>
+
+    <div class="callout bad">
+      <h3>Why it was wrong</h3>
+      <p>
+        <code>getHostId()</code> reads <code>/etc/machine-id</code> and falls back
+        to the dbus file <strong>only when that read throws</strong>. A file that
+        exists but is empty returns <code>""</code> and never falls through — so
+        the host id becomes the HMAC of the empty string, the colliding one.
+      </p>
+      <p>
+        My probe fell back on <strong>empty</strong> instead of on
+        <strong>unreadable</strong>. And the <code>dbus</code> package ships a
+        populated <code>/var/lib/dbus/machine-id</code>. So in precisely the
+        dangerous case, the probe consulted a file <code>getHostId()</code> would
+        never reach, saw a healthy id, and waved the box through.
+      </p>
+    </div>
+
+    <p style="margin-top:22px">
+      Fallback now happens on unreadable, matching <code>getHostId()</code> branch
+      for branch. Verified against both real containers:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>after the fix — both boxes, real ssh</div>
+<pre>fresh box (own machine-id)           machineId=present  <span class="g">accepted</span>
+container (empty /etc/machine-id)    machineId=empty    <span class="r">REFUSED (would collide)</span></pre>
+      </div>
+      <figcaption>Commit <code>495f084</code>, plus four tests pinning each branch against real files through a real shell.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">06</span>
+    <h2>Where the drive stops, and why that is correct</h2>
+    <p>
+      Two API calls the command makes are outside what a cloud workspace may
+      reach. The boundary is deliberate: <em>"Anything else is a person's call,
+      from a client they signed into."</em>
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Call</th><th>Purpose</th><th>Allowed from a box</th></tr></thead>
+        <tbody>
+          <tr><td>user.myOrganizations</td><td>Resolve <code>--org</code></td><td class="yes">yes</td></tr>
+          <tr><td>apiKey.create</td><td>Mint the device credential</td><td class="no">no</td></tr>
+          <tr><td>host.list</td><td>Wait for the host to come online</td><td class="no">no</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mute" style="margin-top:18px">
+      <code>page.publish</code> <em>is</em> on that allowlist, which is how this
+      page reached you from inside the same box.
+    </p>
+
+    <p style="margin-top:22px">
+      Trying to run it anyway produced a pleasing confirmation that the design is
+      self-consistent. The command is marked <code>sandbox: false</code>, and the
+      sandbox credential is gated on the same environment variable:
+    </p>
+    <figure>
+      <div class="term">
+        <div class="term-head"><span class="dot"></span>the two mutually exclusive states</div>
+<pre><span class="c">$</span> <span class="c"># variable unset — command visible, no credential exists</span>
+<span class="r">Error: Not logged in</span>
+Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+
+<span class="c">$</span> <span class="c"># variable set — credential resolves, command is not routable</span>
+<span class="r">Error: Unknown command: add</span></pre>
+      </div>
+      <figcaption>Both states agree: this command is not meant to run from a cloud workspace. The <code>sandbox: false</code> marking was right, and the API allowlist would have refused it regardless.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="sec-num">07</span>
+    <h2>What is now verified, and what still is not</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Step</th><th>How</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>ssh transport</td><td>Real ssh, real keys, BatchMode, port 2222</td><td class="yes">verified</td></tr>
+          <tr><td>probe, fresh box</td><td>Production code vs. a box with nothing installed</td><td class="yes">verified</td></tr>
+          <tr><td>install</td><td><code>install.sh</code> on real Ubuntu 24.04, binary at the expected path</td><td class="yes">verified</td></tr>
+          <tr><td>PATH trap</td><td>Bare name fails, absolute path returns 1.30.2, on the same box</td><td class="yes">verified</td></tr>
+          <tr><td>idempotence</td><td>Re-probe reports no install needed</td><td class="yes">verified</td></tr>
+          <tr><td>machine-id guard</td><td>Refuses the colliding box, accepts the healthy one</td><td class="yes">verified</td></tr>
+          <tr><td>install failure path</td><td>TLS failure exited 1 before touching auth</td><td class="yes">verified</td></tr>
+          <tr><td>mint key → register → online</td><td>Needs a signed-in client; blocked by the allowlist</td><td class="no">not run</td></tr>
+          <tr><td>host visible in the desktop app</td><td>Needs the step above, and a running app</td><td class="no">not run</td></tr>
+          <tr><td>CDP drive</td><td>No UI to drive — CLI command</td><td class="na">n/a</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout good" style="margin-top:28px">
+      <h3>To finish the drive</h3>
+      <p>
+        Run it from a client you are signed into — your laptop — against any
+        reachable box:
+      </p>
+      <p><code>superset hosts add ubuntu@somebox --org superset --yes</code></p>
+      <p>
+        That is the only missing link. Everything it does before
+        <code>apiKey.create</code> is verified above against a machine that really
+        existed, and the two calls it makes after are ordinary reads and writes
+        this workspace simply is not permitted to make.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    PR <a href="https://github.com/superset-sh/superset/pull/7846">#7846</a> · branch cli-hosts-add-ssh · 66 tests<br>
+    target: ubuntu:24.04 container, sshd :2222, own machine-id · second container with an emptied machine-id<br>
+    Every transcript on this page is captured output, not illustration.<br>
+    Pin a comment on anything above and I will fix it and republish.
+  </footer>
+
+</div>
+</body>
+</html>
