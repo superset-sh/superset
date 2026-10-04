@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+	branchPrefixCollides,
+	DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
 	deduplicateBranchName,
+	resolveBranchPrefix,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeBranchNameWithMaxLength,
@@ -183,6 +186,122 @@ describe("sanitizeBranchNameWithMaxLength", () => {
 				preserveFirstSegmentCase: true,
 			}),
 		).toBe("Fix_Bug");
+	});
+});
+
+describe("resolveBranchPrefix", () => {
+	test("keeps slashes in a custom prefix", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "user/my-name" }),
+		).toBe("user/my-name");
+	});
+
+	test("preserves case so the saved prefix survives branch creation", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "User/My-Team" }),
+		).toBe("User/My-Team");
+	});
+
+	test("sanitizes each segment of a custom prefix", () => {
+		expect(
+			resolveBranchPrefix({ mode: "custom", customPrefix: "my team/a b!" }),
+		).toBe("my-team/a-b");
+	});
+
+	test("returns null for a custom prefix that sanitizes away", () => {
+		expect(resolveBranchPrefix({ mode: "custom", customPrefix: "///" })).toBe(
+			null,
+		);
+	});
+
+	test("returns null when custom mode has no prefix", () => {
+		expect(resolveBranchPrefix({ mode: "custom", customPrefix: null })).toBe(
+			null,
+		);
+	});
+
+	test("caps a custom prefix at half the branch-name budget", () => {
+		expect(
+			resolveBranchPrefix({
+				mode: "custom",
+				customPrefix: `user/${"x".repeat(60)}`,
+			}),
+		).toHaveLength(50);
+	});
+
+	// Capping per segment instead of in total would let this through at ~400
+	// characters. Nothing trims `${prefix}/${slug}` before `git worktree add`,
+	// so the ceiling has to hold here no matter how many segments are typed.
+	test("bounds a custom prefix however many segments it has", () => {
+		const many = Array.from({ length: 8 }, () => "x".repeat(60)).join("/");
+		const resolved = resolveBranchPrefix({
+			mode: "custom",
+			customPrefix: many,
+		});
+		expect(resolved?.length).toBeLessThanOrEqual(50);
+	});
+
+	test("keeps author and github prefixes to a single segment", () => {
+		expect(
+			resolveBranchPrefix({ mode: "author", authorPrefix: "Ada/Lovelace" }),
+		).toBe("AdaLovelace");
+		expect(
+			resolveBranchPrefix({ mode: "github", githubUsername: "Ada-L" }),
+		).toBe("Ada-L");
+	});
+
+	test("falls back to the author prefix when github has no username", () => {
+		expect(resolveBranchPrefix({ mode: "github", authorPrefix: "Ada" })).toBe(
+			"Ada",
+		);
+	});
+
+	test("returns null for none and unset modes", () => {
+		expect(resolveBranchPrefix({ mode: "none" })).toBe(null);
+		expect(resolveBranchPrefix({ mode: null })).toBe(null);
+	});
+
+	// The settings inputs persist this sanitizer's output directly. Resolving
+	// that value again has to be a no-op, or the prefix shown in settings and
+	// the one the branch is created with drift apart.
+	test("resolving an already-saved custom prefix changes nothing", () => {
+		const saved = sanitizeBranchNameWithMaxLength(
+			"User/My Team",
+			DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+			{ preserveCase: true },
+		);
+		expect(saved).toBe("User/My-Team");
+		expect(resolveBranchPrefix({ mode: "custom", customPrefix: saved })).toBe(
+			saved,
+		);
+	});
+});
+
+describe("branchPrefixCollides", () => {
+	test("detects an exact match", () => {
+		expect(branchPrefixCollides("user", ["main", "user"])).toBe(true);
+	});
+
+	test("detects an ancestor that is already a branch", () => {
+		expect(branchPrefixCollides("user/team", ["main", "user"])).toBe(true);
+	});
+
+	test("detects an ancestor several levels up", () => {
+		expect(branchPrefixCollides("a/b/c", ["a"])).toBe(true);
+	});
+
+	test("allows a prefix whose ancestors are free", () => {
+		expect(branchPrefixCollides("user/team", ["main", "user-team"])).toBe(
+			false,
+		);
+	});
+
+	test("does not treat a descendant branch as a collision", () => {
+		expect(branchPrefixCollides("user", ["user/team/task"])).toBe(false);
+	});
+
+	test("compares case-insensitively", () => {
+		expect(branchPrefixCollides("User/Team", ["user"])).toBe(true);
 	});
 });
 
