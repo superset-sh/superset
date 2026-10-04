@@ -9,8 +9,18 @@
  * working and copied text pastes correctly.
  *
  * The patched WebGL renderer (patches/@xterm%2Faddon-webgl@*.patch) reads the
- * hook installed by `installTerminalBidi` on `globalThis`.
+ * hook installed by `installTerminalBidi` on `globalThis`. Right-to-left rows
+ * can be drawn as proportional text instead of per-cell glyphs
+ * (terminal-bidi-overlay.ts).
  */
+
+import {
+	claimRow,
+	type OverlayLine,
+	type OverlayRenderer,
+	type OverlayRow,
+	takeCell,
+} from "./terminal-bidi-overlay";
 
 export interface BidiCell {
 	/** Unicode code point; 0 for an empty cell. */
@@ -28,9 +38,11 @@ export interface BidiRow {
 	visualOf: Int32Array;
 	/** Embedding level per logical cell; odd = right-to-left. */
 	levels: Uint8Array;
+	/** The row was laid out as a right-to-left paragraph. */
+	rtl: boolean;
 }
 
-interface BidiLine {
+interface BidiLine extends OverlayLine {
 	getCodePoint(index: number): number;
 	getWidth(index: number): number;
 }
@@ -238,18 +250,20 @@ export function computeBidiRow(
 			mirror[x] = 1;
 		}
 	}
-	return { order, mirror, visualOf, levels };
+	return { order, mirror, visualOf, levels, rtl: base === Kind.R };
 }
 
 const ALIGN_RIGHT_STORAGE_KEY = "superset.terminal.alignRtlRight";
+const PROPORTIONAL_STORAGE_KEY = "superset.terminal.proportionalRtl";
 const listeners = new Set<() => void>();
-let alignRight = readAlignRight();
+let alignRight = readFlag(ALIGN_RIGHT_STORAGE_KEY) === "1";
+let proportional = readFlag(PROPORTIONAL_STORAGE_KEY) !== "0";
 
-function readAlignRight(): boolean {
+function readFlag(key: string): string | null {
 	try {
-		return globalThis.localStorage?.getItem(ALIGN_RIGHT_STORAGE_KEY) === "1";
+		return globalThis.localStorage?.getItem(key) ?? null;
 	} catch {
-		return false;
+		return null;
 	}
 }
 
@@ -266,13 +280,43 @@ export function setTerminalAlignRight(next: boolean): void {
 	for (const listener of listeners) listener();
 }
 
+export function getTerminalProportionalRtl(): boolean {
+	return proportional;
+}
+
+/**
+ * Draw right-aligned RTL rows as proportional text (on by default) or one
+ * glyph per cell, in every open terminal.
+ */
+export function setTerminalProportionalRtl(next: boolean): void {
+	proportional = next;
+	try {
+		globalThis.localStorage?.setItem(
+			PROPORTIONAL_STORAGE_KEY,
+			next ? "1" : "0",
+		);
+	} catch {}
+	for (const listener of listeners) listener();
+}
+
 /** Called whenever the bidi layout changes; returns an unsubscribe. */
 export function onTerminalBidiChange(listener: () => void): () => void {
 	listeners.add(listener);
 	return () => listeners.delete(listener);
 }
 
-function rowFromLine(line: BidiLine, cols: number): BidiRow | null {
+/**
+ * Called by the patched renderer at the start of every row it refreshes.
+ * `y` is the viewport row and `cursorRow` whether the cursor sits on it; both
+ * feed the proportional overlay.
+ */
+function rowFromLine(
+	line: BidiLine,
+	cols: number,
+	renderer?: OverlayRenderer,
+	y?: number,
+	cursorRow?: boolean,
+): BidiRow | null {
 	let hasRtl = false;
 	for (let x = 0; x < cols; x++) {
 		if (isRtlCodePoint(line.getCodePoint(x))) {
@@ -280,12 +324,21 @@ function rowFromLine(line: BidiLine, cols: number): BidiRow | null {
 			break;
 		}
 	}
-	if (!hasRtl) return null;
-	const cells: BidiCell[] = new Array(cols);
-	for (let x = 0; x < cols; x++) {
-		cells[x] = { codePoint: line.getCodePoint(x), width: line.getWidth(x) };
+	let row: OverlayRow | null = null;
+	if (hasRtl) {
+		const cells: BidiCell[] = new Array(cols);
+		for (let x = 0; x < cols; x++) {
+			cells[x] = { codePoint: line.getCodePoint(x), width: line.getWidth(x) };
+		}
+		row = computeBidiRow(cells, alignRight);
 	}
-	return computeBidiRow(cells, alignRight);
+	try {
+		claimRow(renderer, row, line, cols, y, cursorRow, proportional);
+	} catch {
+		// The overlay is optional: on any surprise the row is drawn in cells.
+		if (row) row.hide = false;
+	}
+	return row;
 }
 
 /** Swap a loaded cell's glyph for its mirrored pair, e.g. "(" -> ")". */
@@ -376,8 +429,15 @@ export function installBidiArrowKeys(terminal: {
 }
 
 export interface TerminalBidiHook {
-	row: (line: BidiLine, cols: number) => BidiRow | null;
+	row: (
+		line: BidiLine,
+		cols: number,
+		renderer?: OverlayRenderer,
+		y?: number,
+		cursorRow?: boolean,
+	) => BidiRow | null;
 	mirrorCell: (cell: MutableCell) => void;
+	takeCell: typeof takeCell;
 	glyphFont: (chars: string) => string;
 	cursorAt: (
 		renderer: RendererWithTerminal,
@@ -395,6 +455,7 @@ export function installTerminalBidi(): void {
 	globalThis.__supersetTerminalBidi = {
 		row: rowFromLine,
 		mirrorCell,
+		takeCell,
 		glyphFont,
 		cursorAt,
 	};

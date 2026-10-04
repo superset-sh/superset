@@ -110,8 +110,14 @@ ligature joins for that row, and draw the cursor at `visualOf[cursorX]`; report
 the cursor row to the hook (`cursorAt`, which drives the Left/Right arrow swap in
 RTL text). In `TextureAtlas._drawToCache`, prefix the glyph font with
 `glyphFont(chars)` so RTL glyphs use the system UI font instead of whichever
-monospace fallback carries Hebrew (usually Courier New). Rows
-without RTL text get `null` and render exactly as before. The buffer, input,
+monospace fallback carries Hebrew (usually Courier New). The row hook also
+gets the renderer, the viewport row and whether the cursor is on it
+(`row(line, cols, this, y, cursorY === row)`): for a right-aligned RTL row it
+may set `hide`, and the renderer then hands each loaded cell to
+`takeCell(row, x, cell)` instead of mirroring it. `takeCell` records the glyph
+and blanks it, so only the cell background is drawn, and
+`terminal-bidi-overlay.ts` paints the row as proportional text on a canvas over
+the terminal. Rows without RTL text get `null` and render exactly as before. The buffer, input,
 selection data and copy stay logical. The DOM renderer fallback is not
 patched.
 

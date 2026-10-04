@@ -464,6 +464,21 @@ export const HOTKEYS_REGISTRY = {
 			message: "Open a multiline prompt composer for the active terminal",
 		}),
 	},
+	TOGGLE_TERMINAL_PROPORTIONAL_RTL: {
+		key: {
+			mac: L("meta+ctrl+alt+j"),
+			windows: L("ctrl+shift+alt+j"),
+			linux: L("ctrl+shift+alt+j"),
+		},
+		label: msg({
+			message: "Toggle Proportional RTL Text",
+		}),
+		category: "Terminal",
+		description: msg({
+			message:
+				"Draw right-aligned Hebrew and Arabic lines as regular text instead of one letter per cell",
+		}),
+	},
 	FIND_IN_FILE_VIEWER: {
 		key: {
 			mac: L("meta+f"),

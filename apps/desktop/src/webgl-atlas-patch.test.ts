@@ -53,6 +53,21 @@ describe("@xterm/addon-webgl bidi patch", () => {
 			);
 		});
 
+		test(`${name} hands proportional RTL rows to the overlay`, () => {
+			// The row hook gets the renderer, viewport row and cursor-row flag.
+			expect(
+				src.match(
+					/__supersetTerminalBidi\?\.row\(\w+,\w+\.cols,this,\w+,\w+===\w+\)/g,
+				) ?? [],
+			).toHaveLength(1);
+			expect(
+				src.split(
+					"__bd&&__bd.hide&&globalThis.__supersetTerminalBidi.takeCell(__bd,",
+				).length - 1,
+			).toBe(1);
+			expect(src.split("__bd&&!__bd.hide&&__bd.mirror[").length - 1).toBe(1);
+		});
+
 		test(`${name} draws RTL glyphs in the RTL font`, () => {
 			expect(src.split("__supersetTerminalBidi?.glyphFont?.(").length - 1).toBe(
 				1,
