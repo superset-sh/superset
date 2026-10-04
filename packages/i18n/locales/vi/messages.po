@@ -3835,9 +3835,6 @@ msgstr "Khối mã"
 msgid "Code Block"
 msgstr "Code Block"
 
-msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
-msgstr "Không có sẵn mã — dự án của workspace này không có repository của pull request này."
-
 msgid "Cohort"
 msgstr "Nhóm"
 

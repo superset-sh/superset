@@ -17,6 +17,7 @@ import {
 	userError,
 } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { getPullRequestDiff } from "./get-pull-request-diff";
 import {
 	type PullRequestDetail,
 	toChecks,
@@ -29,6 +30,7 @@ import { listGithubRepositories } from "./trigger-options";
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
+	getPullRequestDiff,
 	getInstallation: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {

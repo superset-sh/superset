@@ -3,6 +3,7 @@ import { protectedProcedure, router } from "../../index";
 import { createForWorkspace } from "./procedures/create-for-workspace";
 import { getContent } from "./procedures/get-content";
 import { getDiff } from "./procedures/get-diff";
+import { getDiffByRepo } from "./procedures/get-diff-by-repo";
 import { getLinkedWorkspace } from "./procedures/get-linked-workspace";
 import { getThreads } from "./procedures/get-threads";
 import { mergePR } from "./procedures/merge";
@@ -73,6 +74,7 @@ export const pullRequestsRouter = router({
 	createForWorkspace,
 	getContent,
 	getDiff,
+	getDiffByRepo,
 	getLinkedWorkspace,
 	getThreads,
 	setState,

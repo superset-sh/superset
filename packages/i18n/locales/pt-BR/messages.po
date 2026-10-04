@@ -3835,9 +3835,6 @@ msgstr "Bloco de código"
 msgid "Code Block"
 msgstr "Bloco de código"
 
-msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
-msgstr "O código não está disponível — o projeto desta área de trabalho não tem o repositório deste pull request."
-
 msgid "Cohort"
 msgstr "Coorte"
 

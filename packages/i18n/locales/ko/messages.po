@@ -3835,9 +3835,6 @@ msgstr "코드 블록"
 msgid "Code Block"
 msgstr "코드 블록"
 
-msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
-msgstr "코드를 사용할 수 없습니다 — 이 워크스페이스의 프로젝트에 이 풀 리퀘스트의 리포지토리가 없습니다."
-
 msgid "Cohort"
 msgstr "코호트"
 

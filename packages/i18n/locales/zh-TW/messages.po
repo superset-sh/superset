@@ -3835,9 +3835,6 @@ msgstr "程式碼塊"
 msgid "Code Block"
 msgstr "程式碼塊"
 
-msgid "Code isn't available — this workspace's project doesn't have this pull request's repository."
-msgstr "程式碼無法使用 — 此工作區的專案沒有此拉取請求所在的儲存庫。"
-
 msgid "Cohort"
 msgstr "同期群"
 

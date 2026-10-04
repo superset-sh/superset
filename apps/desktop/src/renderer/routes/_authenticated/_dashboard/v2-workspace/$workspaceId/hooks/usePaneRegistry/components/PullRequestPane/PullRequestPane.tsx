@@ -42,11 +42,6 @@ export function PullRequestPane({
 	const [activeTab, setActiveTab] = useState<DetailTab>("summary");
 	const { workspace, hostUrl: workspaceHostUrl } = useWorkspace();
 	const detail = usePullRequestPaneDetail(data);
-	// The Code tab needs a real project + host to fetch the diff from (see
-	// usePullRequestPaneDetail's isFromHost) — independent of isLinkedPR
-	// below, which only gates actions tied to *this* workspace's checked-out
-	// PR. Any PR whose repo this workspace's project can reach gets a diff.
-	const canShowCode = detail.isFromHost && !!workspace.projectId;
 
 	// Review threads and the header's actions still go through the host that
 	// pushed the PR, so they exist only when this workspace's linked PR is
@@ -130,26 +125,8 @@ export function PullRequestPane({
 							) : null}
 						</PullRequestSummaryContent>
 					</div>
-					{activeTab === "code" &&
-						(canShowCode && workspace.projectId ? (
-							<PullRequestCodeTab
-								projectId={workspace.projectId}
-								prNumber={data.number}
-								prUrl={detail.data.url}
-								hostUrl={workspaceHostUrl}
-								hostId={workspace.hostId}
-							/>
-						) : (
-							<WorkItemDetailState
-								message={t({
-									message:
-										"Code isn't available — this workspace's project doesn't have this pull request's repository.",
-								})}
-								isError
-							/>
-						))}
 				</>
-			) : (
+			) : activeTab === "summary" ? (
 				<WorkItemDetailState
 					message={
 						detail.error
@@ -159,6 +136,16 @@ export function PullRequestPane({
 					isLoading={detail.isLoading}
 					isError={!!detail.error}
 					onRetry={detail.error ? () => void detail.refetch() : undefined}
+				/>
+			) : null}
+			{activeTab === "code" && (
+				<PullRequestCodeTab
+					key={`${data.repoFullName}#${data.number}`}
+					projectId={detail.isFromHost ? workspace.projectId : null}
+					prNumber={data.number}
+					prUrl={`https://github.com/${data.repoFullName}/pull/${data.number}`}
+					hostUrl={workspaceHostUrl}
+					hostId={workspace.hostId}
 				/>
 			)}
 		</div>

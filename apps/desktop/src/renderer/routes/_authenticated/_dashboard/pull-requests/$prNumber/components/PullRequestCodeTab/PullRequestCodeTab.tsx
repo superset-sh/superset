@@ -17,6 +17,8 @@ import {
 	type AgentPromptFileSide,
 	formatAgentPromptWithFileContext,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	createPierreTreeStyle,
@@ -34,9 +36,10 @@ import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel"
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
 import { PullRequestCommentComposer } from "../PullRequestCommentComposer";
 import { PullRequestCommentThread } from "../PullRequestCommentThread";
+import { fetchPullRequestDiff } from "./utils/fetchPullRequestDiff";
 
 interface PullRequestCodeTabProps {
-	projectId: string;
+	projectId: string | null;
 	prNumber: number;
 	prUrl: string;
 	hostUrl: string;
@@ -282,13 +285,27 @@ export function PullRequestCodeTab({
 		[],
 	);
 	const queryClient = useQueryClient();
+	const organizationId = useActiveOrganizationId();
+	const repoFullName = pullRequestRefFromUrl(prUrl)?.repoFullName ?? null;
+	const canUseProject = !!projectId && !!hostUrl;
 
 	const { data, isLoading, error, refetch } = useQuery({
-		queryKey: ["pull-request-diff", projectId, hostUrl, prNumber],
-		queryFn: async () => {
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.pullRequests.getDiff.query({ projectId, prNumber });
-		},
+		queryKey: [
+			"pull-request-diff",
+			organizationId,
+			repoFullName,
+			projectId,
+			hostUrl,
+			prNumber,
+		],
+		queryFn: () =>
+			fetchPullRequestDiff({
+				projectId,
+				hostUrl,
+				prNumber,
+				repoFullName,
+				organizationId,
+			}),
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});
@@ -301,7 +318,9 @@ export function PullRequestCodeTab({
 	];
 	const { data: threadsData, dataUpdatedAt: threadsUpdatedAt } = useQuery({
 		queryKey: threadsQueryKey,
+		enabled: canUseProject,
 		queryFn: async () => {
+			if (!projectId) return { reviewThreads: [], fetchFailed: false };
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.pullRequests.getThreads.query({ projectId, prNumber });
 		},
@@ -384,6 +403,8 @@ export function PullRequestCodeTab({
 	>(new Set());
 	const replyToThread = useMutation({
 		mutationFn: async (input: { commentId: number; body: string }) => {
+			if (!projectId)
+				throw new Error("No project available to reply to a thread");
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.pullRequests.replyToThread.mutate({
 				projectId,
@@ -423,7 +444,9 @@ export function PullRequestCodeTab({
 	];
 	const { data: linkedWorkspaceData } = useQuery({
 		queryKey: linkedWorkspaceQueryKey,
+		enabled: canUseProject,
 		queryFn: async () => {
+			if (!projectId) return { workspaceId: null };
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.pullRequests.getLinkedWorkspace.query({
 				projectId,
@@ -486,7 +509,7 @@ export function PullRequestCodeTab({
 				return;
 			}
 
-			if (!hostId) {
+			if (!hostId || !projectId) {
 				throw new Error("No host available to create a workspace");
 			}
 			const { completed } = submitWorkspaceCreate({
@@ -717,8 +740,8 @@ export function PullRequestCodeTab({
 		() =>
 			({
 				...options,
-				enableLineSelection: true,
-				enableGutterUtility: true,
+				enableLineSelection: canUseProject,
+				enableGutterUtility: canUseProject,
 				// Pierre gates the gutter "+" button's pointer flow behind a
 				// non-null onGutterUtilityClick (InteractionManager's
 				// startGutterSelectionFromPointerDown early-returns otherwise)
@@ -730,7 +753,7 @@ export function PullRequestCodeTab({
 					range: SelectedLineRange | null,
 					context: { type: "diff" | "file"; item: { id: string } },
 				) => {
-					if (context.type !== "diff" || !range) {
+					if (!canUseProject || context.type !== "diff" || !range) {
 						updateComposer(null);
 						return;
 					}
@@ -739,7 +762,7 @@ export function PullRequestCodeTab({
 					updateComposer({ itemId: context.item.id, path, range });
 				},
 			}) as CodeViewOptions<PrAnnotationMetadata>,
-		[options, pathByItemId, updateComposer],
+		[options, pathByItemId, updateComposer, canUseProject],
 	);
 
 	const treePaths = useMemo(() => files.map((f) => f.path), [files]);
