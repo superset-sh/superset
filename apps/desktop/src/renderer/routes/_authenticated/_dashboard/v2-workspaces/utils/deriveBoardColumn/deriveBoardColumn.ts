@@ -62,7 +62,7 @@ type BoardColumnInputs = Pick<
  *
  * A finished agent alone counts as review-worthy on main and worktree
  * workspaces: both are project checkouts a person is driving, and the
- * sidebar, dock badge and "Ready for review" filter already treat them that
+ * sidebar, dock badge and "Needs review" filter already treat them that
  * way. Only session workspaces (automation and chat runs with no project
  * checkout) are excluded: they arrive in volume, and routing them to
  * "review" buries the real candidates (the bucket answers "what needs me").
