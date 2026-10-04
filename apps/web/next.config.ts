@@ -16,36 +16,13 @@ const isProduction = process.env.NODE_ENV === "production";
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
 	: null;
-// The web app reaches host-services through the relay — a WebSocket for the
-// terminal stream and HTTP for host tRPC. In dev the blanket `ws:`/`wss:`
-// below covers the socket; prod needs the relay origins listed explicitly so
-// `connect-src` blocks neither. The hard-coded prod fallback keeps the header
-// correct even if RELAY_URL isn't plumbed into the build env.
-const relayWsOrigin = process.env.RELAY_URL
-	? new URL(process.env.RELAY_URL).origin.replace(/^http/, "ws")
-	: isProduction
-		? "wss://relay.superset.sh"
-		: null;
-const relayHttpOrigin = process.env.RELAY_URL
-	? new URL(process.env.RELAY_URL).origin
-	: isProduction
-		? "https://relay.superset.sh"
-		: null;
-// Failover relay origin. Env-driven so it flips with the domain at cutover;
-// prod default stays superset.sh until RELAY_BACKUP_URL is set (e.g. boid.so).
-const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
-	? new URL(process.env.RELAY_BACKUP_URL).origin
-	: isProduction
-		? "https://relay-backup.superset.sh"
-		: null;
-const relayBackupWsOrigin = relayBackupHttpOrigin
-	? relayBackupHttpOrigin.replace(/^http/, "ws")
-	: null;
-const realtimeWsOrigin = process.env.REALTIME_URL
-	? new URL(process.env.REALTIME_URL).origin.replace(/^http/, "ws")
-	: isProduction
-		? "wss://realtime.superset.sh"
-		: null;
+// Each origin as both its http(s) and ws(s) form: an http host source does not
+// admit a WebSocket to the same host. The prod fallbacks keep the header
+// correct when a URL isn't plumbed into the build env.
+const httpAndWsOrigins = (url: string | undefined, prodFallback: string) => {
+	const origin = url ? new URL(url).origin : isProduction ? prodFallback : null;
+	return origin ? [origin, origin.replace(/^http/, "ws")] : [];
+};
 // Published pages are framed from their own origin, one subdomain per page.
 // An unset GitHub Actions var arrives as an empty string, which `??`
 // does not catch — and `new URL("")` throws before Next even loads.
@@ -63,11 +40,15 @@ const contentSecurityPolicy = [
 	[
 		"connect-src 'self'",
 		apiOrigin,
-		relayWsOrigin,
-		relayHttpOrigin,
-		relayBackupWsOrigin,
-		relayBackupHttpOrigin,
-		realtimeWsOrigin,
+		...httpAndWsOrigins(process.env.RELAY_URL, "https://relay.superset.sh"),
+		...httpAndWsOrigins(
+			process.env.RELAY_BACKUP_URL,
+			"https://relay-backup.superset.sh",
+		),
+		...httpAndWsOrigins(
+			process.env.NEXT_PUBLIC_REALTIME_URL,
+			"https://realtime.superset.sh",
+		),
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",
