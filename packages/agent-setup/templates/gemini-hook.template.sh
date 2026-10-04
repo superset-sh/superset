@@ -24,6 +24,7 @@ printf '{}\n'
 # ~/.gemini/settings.json is global, so this also fires in sessions launched
 # outside Superset terminals; only those terminals set SUPERSET_* vars.
 [ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
+[ -n "$SUPERSET_NESTED_AGENT" ] && exit 0
 
 # The wrapper's identity, or gemini when launched without one. Another
 # agent's identity means gemini is running under it (a tool call), which is

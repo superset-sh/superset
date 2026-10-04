@@ -4,6 +4,8 @@
 # host-service endpoint, with a v1 Electron hook fallback while both
 # terminal stacks are supported.
 
+[ -z "$SUPERSET_NESTED_AGENT" ] || exit 0
+
 # Codex passes JSON as argv; Claude/Mastra/Droid/Kimi/Grok pipe via stdin.
 if [ -n "$1" ]; then
   INPUT="$1"

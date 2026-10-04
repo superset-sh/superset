@@ -593,6 +593,17 @@ describe("env", () => {
 			"CLERK_SECRET_KEY",
 			"SSL_CERT_FILE",
 			"SUPERSET_HOME_DIR",
+			"SUPERSET_AGENT_ID",
+			"SUPERSET_AGENT_LAUNCH_ID",
+			"SUPERSET_NESTED_AGENT",
+			"SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN",
+			"SUPERSET_REFRESH_TOKEN",
+			"SUPERSET_API_URL",
+			"SUPERSET_AUTH_CONFIG_PATH",
+			"SUPERSET_AGENT_HOOK_PORT",
+			"SUPERSET_AGENT_HOOK_VERSION",
+			"SUPERSET_DEBUG_HOOKS",
+			"SUPERSET_DEBUG",
 		];
 
 		beforeEach(() => {
@@ -611,6 +622,43 @@ describe("env", () => {
 					process.env[key] = originalEnvVars[key];
 				}
 			}
+		});
+
+		it("preserves hook and plugin debug switches in new terminals", () => {
+			process.env.SUPERSET_DEBUG_HOOKS = "1";
+			process.env.SUPERSET_DEBUG = "1";
+
+			const result = buildTerminalEnv(baseParams);
+
+			expect(result.SUPERSET_DEBUG_HOOKS).toBe("1");
+			expect(result.SUPERSET_DEBUG).toBe("1");
+		});
+
+		it("strips inherited agent and app metadata from new terminals", () => {
+			const inheritedKeys = [
+				"SUPERSET_AGENT_ID",
+				"SUPERSET_AGENT_LAUNCH_ID",
+				"SUPERSET_NESTED_AGENT",
+				"SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN",
+				"SUPERSET_REFRESH_TOKEN",
+				"SUPERSET_API_URL",
+				"SUPERSET_AUTH_CONFIG_PATH",
+			];
+			for (const key of inheritedKeys) process.env[key] = "inherited";
+			process.env.SUPERSET_AGENT_HOOK_PORT = "4321";
+			process.env.SUPERSET_AGENT_HOOK_VERSION = "2";
+
+			const result = buildTerminalEnv(baseParams);
+
+			for (const key of inheritedKeys) expect(result[key]).toBeUndefined();
+			expect(result.SUPERSET_HOME_DIR).toBe(
+				process.env.SUPERSET_HOME_DIR ?? "",
+			);
+			expect(result.SUPERSET_AGENT_HOOK_PORT).toBe("4321");
+			expect(result.SUPERSET_AGENT_HOOK_VERSION).toBe("2");
+			expect(result.SUPERSET_PANE_ID).toBe(baseParams.paneId);
+			expect(result.SUPERSET_TAB_ID).toBe(baseParams.tabId);
+			expect(result.SUPERSET_WORKSPACE_ID).toBe(baseParams.workspaceId);
 		});
 
 		describe("excludes non-allowlisted vars from terminals", () => {

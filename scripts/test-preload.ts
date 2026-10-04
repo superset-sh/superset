@@ -31,6 +31,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+for (const key of [
+	"SUPERSET_NESTED_AGENT",
+	"SUPERSET_AGENT_ID",
+	"SUPERSET_AGENT_LAUNCH_ID",
+	"SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN",
+]) {
+	delete process.env[key];
+}
+
 const testSupersetHome = mkdtempSync(join(tmpdir(), "superset-test-home-"));
 process.env.SUPERSET_HOME_DIR = testSupersetHome;
 Reflect.set(

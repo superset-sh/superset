@@ -91,6 +91,16 @@ function readNotifyLog(scenario: Scenario): string {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("wrapper launch report", () => {
+	it("does not mark a normal launch as nested", async () => {
+		const normal = setupScenario(
+			`printf '%s' "$SUPERSET_NESTED_AGENT" > "$SUPERSET_HOME_DIR/nested"`,
+		);
+		await runWrapper(normal, []);
+		expect(
+			readFileSync(path.join(normal.supersetHome, "nested"), "utf-8"),
+		).toBe("");
+	});
+
 	it("emits SessionStart at launch and skips help/version/fast-exit/non-Superset runs", async () => {
 		// The report is liveness-gated behind a real 2s delay, so run every
 		// scenario concurrently to keep the suite fast.
@@ -132,13 +142,16 @@ describe("wrapper launch report", () => {
 		// still Claude, so the inner wrapper must neither relabel the process
 		// tree nor report a second launch.
 		const nested = setupScenario(
-			`printf '%s' "$SUPERSET_AGENT_ID" > "$SUPERSET_HOME_DIR/identity"; sleep ${(REPORT_DELAY_MS + 1200) / 1000}`,
+			`printf '%s|%s|%s' "$SUPERSET_AGENT_ID" "$SUPERSET_AGENT_LAUNCH_ID" "$SUPERSET_NESTED_AGENT" > "$SUPERSET_HOME_DIR/identity"; sleep ${(REPORT_DELAY_MS + 1200) / 1000}`,
 		);
-		await runWrapper(nested, ["chat"], { SUPERSET_AGENT_ID: "claude" });
+		await runWrapper(nested, ["chat"], {
+			SUPERSET_AGENT_ID: "claude",
+			SUPERSET_AGENT_LAUNCH_ID: "outer-launch",
+		});
 
 		expect(
 			readFileSync(path.join(nested.supersetHome, "identity"), "utf-8"),
-		).toBe("claude");
+		).toBe("claude|outer-launch|1");
 		expect(readNotifyLog(nested)).toBe("");
 	}, 15000);
 

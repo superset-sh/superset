@@ -188,9 +188,11 @@ export interface BuildWrapperScriptOptions {
 	 * The export is first-wins: `SUPERSET_AGENT_ID` already being set means a
 	 * wrapper ran earlier in this terminal and this launch is nested under
 	 * its agent (a tool call running another CLI). The terminal's agent is
-	 * the outer one, so the wrapper keeps that identity and skips the launch
-	 * report. The host strips `SUPERSET_*` from every PTY env, so the
-	 * variable can only arrive from a wrapper in the same terminal.
+	 * the outer one, so the wrapper keeps that identity, marks the nested
+	 * process with `SUPERSET_NESTED_AGENT`, and skips the launch report. The
+	 * desktop v1 and host-service v2 terminal builders strip wrapper metadata
+	 * from new PTY environments. Custom presets must not set these
+	 * wrapper-owned keys.
 	 */
 	agentId?: string;
 	beforeLaunch?: string;
@@ -244,7 +246,9 @@ export function buildWrapperScript(
 export SUPERSET_AGENT_ID="${options.agentId}"
 export SUPERSET_AGENT_LAUNCH_ID="$$-$(date +%s)"
 
-${buildLaunchReportBlock()}fi
+${buildLaunchReportBlock()}else
+export SUPERSET_NESTED_AGENT=1
+fi
 
 `
 		: "";

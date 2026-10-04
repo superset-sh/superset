@@ -26,6 +26,7 @@ printf '{}\n'
 # there outside Superset would still fire this; only Superset terminals set
 # SUPERSET_* vars.
 [ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
+[ -n "$SUPERSET_NESTED_AGENT" ] && exit 0
 
 # The wrapper's identity, or copilot when launched without one. Another
 # agent's identity means copilot is running under it (a tool call), which is

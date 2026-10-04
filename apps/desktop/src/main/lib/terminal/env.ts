@@ -432,6 +432,14 @@ export function removeAppEnvVars(
 	return buildSafeEnv(env);
 }
 
+const TERMINAL_SUPERSET_KEEP_KEYS = new Set([
+	"SUPERSET_DEBUG_HOOKS",
+	"SUPERSET_DEBUG",
+	"SUPERSET_HOME_DIR",
+	"SUPERSET_AGENT_HOOK_PORT",
+	"SUPERSET_AGENT_HOOK_VERSION",
+]);
+
 export function buildTerminalEnv(params: {
 	shell: string;
 	paneId: string;
@@ -472,7 +480,13 @@ export function buildTerminalEnv(params: {
 	const termTheme = themeType === "light" ? "light" : "dark";
 
 	const terminalEnv: Record<string, string> = {
-		...baseEnv,
+		...Object.fromEntries(
+			Object.entries(baseEnv).filter(
+				([key]) =>
+					!key.toUpperCase().startsWith("SUPERSET_") ||
+					TERMINAL_SUPERSET_KEEP_KEYS.has(key.toUpperCase()),
+			),
+		),
 		...shellEnv,
 		TERM_PROGRAM: TERMINAL_TERM_PROGRAM,
 		TERM_PROGRAM_VERSION: TERMINAL_TERM_PROGRAM_VERSION,
