@@ -16,7 +16,7 @@ export function reviveCloudWorkspaceRow(
 		...row,
 		createdAt: asDate(row.createdAt),
 		updatedAt: asDate(row.updatedAt),
-		deletedAt: asDate(row.deletedAt),
+		archivedAt: asDate(row.archivedAt),
 		agentStatusAt: asDate(row.agentStatusAt),
 		presence: row.presence.map((person) => ({
 			...person,

@@ -216,7 +216,7 @@ async function reachablePin(
 	const row = await db.query.cloudWorkspaces.findFirst({
 		where: eq(cloudWorkspaces.id, cloudWorkspaceId),
 	});
-	if (!row || row.status === "deleted" || row.status === "failed") {
+	if (!row || row.status === "archived" || row.status === "failed") {
 		return null;
 	}
 	if (row.status === "provisioning") {

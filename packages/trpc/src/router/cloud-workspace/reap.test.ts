@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 type Row = {
 	status: string;
-	deletedAt: Date | null;
+	archivedAt: Date | null;
 	provider: string;
 	providerSandboxId: string;
 };
@@ -102,8 +102,8 @@ describe("queueReap", () => {
 describe("reapArchivedCloudWorkspace", () => {
 	beforeEach(() => {
 		row = {
-			status: "deleted",
-			deletedAt: archivedAt,
+			status: "archived",
+			archivedAt: archivedAt,
 			provider: "vercel",
 			providerSandboxId: "ws-box",
 		};
@@ -128,7 +128,7 @@ describe("reapArchivedCloudWorkspace", () => {
 
 	for (const stage of ["stop", "delete"] as const) {
 		test(`the ${stage} stage leaves an unarchived workspace alone`, async () => {
-			row = { ...(row as Row), status: "ready", deletedAt: null };
+			row = { ...(row as Row), status: "ready", archivedAt: null };
 			expect(await reapArchivedCloudWorkspace({ ...input, stage })).toBe(
 				"skipped",
 			);
@@ -138,7 +138,7 @@ describe("reapArchivedCloudWorkspace", () => {
 		test(`the ${stage} stage leaves a later archive's box alone`, async () => {
 			row = {
 				...(row as Row),
-				deletedAt: new Date("2026-10-02T00:00:00.000Z"),
+				archivedAt: new Date("2026-10-02T00:00:00.000Z"),
 			};
 			expect(await reapArchivedCloudWorkspace({ ...input, stage })).toBe(
 				"skipped",
@@ -153,8 +153,8 @@ describe("reapArchivedCloudWorkspace", () => {
 			await reapArchivedCloudWorkspace({ ...input, stage: "delete" }),
 		).toBe("skipped");
 		row = {
-			status: "deleted",
-			deletedAt: archivedAt,
+			status: "archived",
+			archivedAt: archivedAt,
 			provider: "e2b",
 			providerSandboxId: "old-box",
 		};

@@ -33,7 +33,7 @@ const meta = {
 			agentStatusAt: ago(2),
 			createdAt: ago(2),
 			createdBy: kiet,
-			deletedAt: null,
+			archivedAt: null,
 			project: null,
 			labels: [
 				{ id: "label-perf", name: "perf", color: "#ef4444" },
@@ -384,7 +384,7 @@ export const Archived: Story = {
 		workspace: {
 			...meta.args.workspace,
 			agentStatus: null,
-			deletedAt: ago(3 * 24 * 60),
+			archivedAt: ago(3 * 24 * 60),
 		},
 		suggestions: [],
 		timeline: [

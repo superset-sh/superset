@@ -68,7 +68,7 @@ export const cloudWorkspaceStatusValues = [
 	"provisioning",
 	"ready",
 	"failed",
-	"deleted",
+	"archived",
 ] as const;
 export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
 export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;

@@ -315,7 +315,7 @@ async function ownCloudWorkspaceEnvironment(
 		where: and(
 			eq(cloudWorkspaces.id, cloudWorkspaceId),
 			eq(cloudWorkspaces.organizationId, organizationId),
-			notInArray(cloudWorkspaces.status, ["deleted", "failed"]),
+			notInArray(cloudWorkspaces.status, ["archived", "failed"]),
 		),
 		columns: { environmentId: true, createdByUserId: true },
 	});

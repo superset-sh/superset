@@ -2372,14 +2372,14 @@ msgid "Archived"
 msgstr "Archiviert"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
-#. placeholder {0}: formatCompactRelativeTime(cloud.deletedAt)
+#. placeholder {0}: formatCompactRelativeTime(cloud.archivedAt)
 msgid "Archived · {0}"
 msgstr "Archiviert · {0}"
 
 msgid "Archived \"{name}\""
 msgstr "„{name}“ archiviert"
 
-#. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
+#. placeholder {0}: formatCompactRelativeTime(workspace.archivedAt, now)
 msgid "Archived {0}"
 msgstr "Archiviert {0}"
 

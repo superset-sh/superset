@@ -39,7 +39,7 @@ export function CloudWorkspaceRow({
 }) {
 	const { t } = useLingui();
 	const router = useRouter();
-	const archived = row.status === "deleted";
+	const archived = row.status === "archived";
 	const readAt = useUnreadWorkspacesStore((state) => state.cloudReadAt[row.id]);
 	const manuallyUnread = useUnreadWorkspacesStore(
 		(state) => row.id in state.manualUnread,

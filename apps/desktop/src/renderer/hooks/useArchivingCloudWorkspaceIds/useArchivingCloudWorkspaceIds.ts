@@ -6,7 +6,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 export function useArchivingCloudWorkspaceIds(): string[] {
 	return useMutationState({
 		filters: {
-			mutationKey: getMutationKey(cloudTrpc.cloudWorkspace.delete),
+			mutationKey: getMutationKey(cloudTrpc.cloudWorkspace.archive),
 			status: "pending",
 		},
 		select: (mutation) => (mutation.state.variables as { id: string }).id,

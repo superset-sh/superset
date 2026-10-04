@@ -215,18 +215,18 @@ export const cloudWorkspaceRouter = {
 					and(
 						eq(cloudWorkspaces.organizationId, input.organizationId),
 						visibleTo(ctx.userId),
-						// Deleted rows are never a workspace you can open, so they
+						// Archived rows are never a workspace you can open, so they
 						// are only listed when archived ones are asked for.
 						// Everything else is listed from the moment it is created:
 						// the client renders provisioning and failed rows off
 						// `status` rather than being told they don't exist yet.
 						input.archived
 							? and(
-									eq(cloudWorkspaces.status, "deleted"),
-									// Rows deleted before archiving existed have no deletedAt and no box.
-									isNotNull(cloudWorkspaces.deletedAt),
+									eq(cloudWorkspaces.status, "archived"),
+									// Rows deleted before archiving existed have no archivedAt and no box.
+									isNotNull(cloudWorkspaces.archivedAt),
 								)
-							: ne(cloudWorkspaces.status, "deleted"),
+							: ne(cloudWorkspaces.status, "archived"),
 					),
 				)
 				.orderBy(desc(cloudWorkspaces.createdAt));
@@ -602,16 +602,16 @@ export const cloudWorkspaceRouter = {
 			return { visibility: input.visibility };
 		}),
 
-	delete: jwtProcedure
+	archive: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const row = await db.query.cloudWorkspaces.findFirst({
 				where: eq(cloudWorkspaces.id, input.id),
 			});
-			if (!row) return { deleted: false };
+			if (!row) return { archived: false };
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, row.organizationId);
-			if (!isVisibleTo(row, ctx.userId)) return { deleted: false };
+			if (!isVisibleTo(row, ctx.userId)) return { archived: false };
 
 			const archivedAt = new Date();
 			// From any state, provisioning included: the job checks the row
@@ -620,8 +620,8 @@ export const cloudWorkspaceRouter = {
 			const archived = await transitionCloudWorkspace({
 				id: row.id,
 				from: ["provisioning", "ready", "failed"],
-				to: "deleted",
-				set: { sandboxUrl: null, deletedAt: archivedAt },
+				to: "archived",
+				set: { sandboxUrl: null, archivedAt },
 			});
 			if (archived) {
 				// A row from a retired provider has no sandbox left to keep.
@@ -650,7 +650,7 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 			nudge(row.organizationId, "cloud_workspaces");
-			return { deleted: true };
+			return { archived: true };
 		}),
 
 	unarchive: jwtProcedure
@@ -658,7 +658,7 @@ export const cloudWorkspaceRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const row = await loadVisibleWorkspace(ctx, input.id);
 			const resumable =
-				row.status === "deleted" &&
+				row.status === "archived" &&
 				row.provider === "vercel" &&
 				(await sandboxExists(row.providerSandboxId));
 			// Inside the grace period the box is still there, running for the
@@ -668,19 +668,19 @@ export const cloudWorkspaceRouter = {
 				resumable
 					? {
 							id: row.id,
-							from: ["deleted"],
+							from: ["archived"],
 							to: "ready",
-							set: { deletedAt: null },
+							set: { archivedAt: null },
 						}
 					: {
 							id: row.id,
-							from: ["deleted"],
+							from: ["archived"],
 							to: "provisioning",
 							set: {
 								provider: "vercel",
 								providerSandboxId: nextSandboxNameFor(row.id),
 								sandboxUrl: null,
-								deletedAt: null,
+								archivedAt: null,
 							},
 						},
 			);

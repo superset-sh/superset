@@ -2372,14 +2372,14 @@ msgid "Archived"
 msgstr "보관됨"
 
 #. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
-#. placeholder {0}: formatCompactRelativeTime(cloud.deletedAt)
+#. placeholder {0}: formatCompactRelativeTime(cloud.archivedAt)
 msgid "Archived · {0}"
 msgstr "보관됨 · {0}"
 
 msgid "Archived \"{name}\""
 msgstr "\"{name}\"을(를) 보관했습니다"
 
-#. placeholder {0}: formatCompactRelativeTime(workspace.deletedAt, now)
+#. placeholder {0}: formatCompactRelativeTime(workspace.archivedAt, now)
 msgid "Archived {0}"
 msgstr "보관됨 {0}"
 

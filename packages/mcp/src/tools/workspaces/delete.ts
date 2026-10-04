@@ -10,7 +10,7 @@ export function register(server: McpServer): void {
 		name: "workspaces_delete",
 		annotations: { destructiveHint: true },
 		description:
-			"Delete a workspace by UUID. Without hostId it is a cloud workspace: its sandbox is torn down, which is what stops it billing (nothing else does, including leaving it idle), and everything inside is destroyed, so push or save work first; returns { deleted: false } when no such workspace exists. With hostId, the host runs the project's teardown script (.superset/config.json teardown commands or .superset/teardown.sh, if configured), then removes the git worktree; a teardown failure does not block the delete and is reported in `warnings`, and 'main'-type workspaces cannot be deleted.",
+			"Delete a workspace by UUID. Without hostId it is a cloud workspace, which is archived: its sandbox stops about a minute later, the sandbox and its disk are deleted after 7 days, and an unarchive before then keeps the disk; returns { archived: false } when no such workspace exists. With hostId, the host runs the project's teardown script (.superset/config.json teardown commands or .superset/teardown.sh, if configured), then removes the git worktree; a teardown failure does not block the delete and is reported in `warnings`, and 'main'-type workspaces cannot be deleted.",
 		inputSchema: {
 			hostId: z
 				.string()
@@ -24,7 +24,7 @@ export function register(server: McpServer): void {
 		handler: async (input, ctx) => {
 			if (!input.hostId) {
 				await requireCloudUnlessHost(input, ctx);
-				return createMcpCaller(ctx).cloudWorkspace.delete({ id: input.id });
+				return createMcpCaller(ctx).cloudWorkspace.archive({ id: input.id });
 			}
 			return hostServiceCall<{
 				success: boolean;

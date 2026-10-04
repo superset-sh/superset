@@ -139,8 +139,10 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
-	 * Delete a cloud workspace and tear down its sandbox. `deleted` is false
-	 * when no workspace has that id.
+	 * Archive a cloud workspace. Its sandbox stops about a minute later, and the
+	 * sandbox and its disk are deleted after 7 days; an unarchive before then
+	 * keeps the disk.
+	 * `archived` is false when no workspace has that id.
 	 *
 	 * Mirrors `superset workspaces delete`.
 	 */
@@ -149,7 +151,7 @@ export class Workspaces extends APIResource {
 		options?: RequestOptions,
 	): APIPromise<WorkspaceDeleteResult> {
 		return this._client.mutation<WorkspaceDeleteResult>(
-			{ method: "workspaces.delete", procedure: "cloudWorkspace.delete" },
+			{ method: "workspaces.delete", procedure: "cloudWorkspace.archive" },
 			{ id },
 			options,
 		);
@@ -200,7 +202,7 @@ export type CloudWorkspaceStatus =
 	| "provisioning"
 	| "ready"
 	| "failed"
-	| "deleted";
+	| "archived";
 
 export interface CloudWorkspace {
 	id: string;
@@ -217,7 +219,7 @@ export interface CloudWorkspace {
 	createdByUserId: string | null;
 	createdAt: string;
 	updatedAt: string;
-	deletedAt: string | null;
+	archivedAt: string | null;
 }
 
 export type WorkspaceListResponse = Array<CloudWorkspace>;
@@ -250,7 +252,7 @@ export interface WorkspaceUpdateParams {
 }
 
 export interface WorkspaceDeleteResult {
-	deleted: boolean;
+	archived: boolean;
 }
 
 export declare namespace Workspaces {

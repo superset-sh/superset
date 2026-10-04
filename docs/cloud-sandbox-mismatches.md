@@ -277,7 +277,7 @@ preset, but the image installs only Claude and Codex.
 for a cloud workspace deleted the row *inside* the sandbox and left the
 sandbox running (and billing) plus the `cloud_workspaces` row intact — the
 workspace reappeared on the next refetch. **Fixed:** `useDestroyWorkspace`
-sends a cloud workspace to `cloudWorkspace.delete`.
+sends a cloud workspace to `cloudWorkspace.archive`.
 
 **Sidebar affordances are driven by local state, not by the row.** Visibility,
 pinning and ordering live in `v2WorkspaceLocalState`; a section that renders

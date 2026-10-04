@@ -56,7 +56,7 @@ export function CloudWorkspaceListRow({
 }: CloudWorkspaceListRowProps) {
 	const { t } = useLingui();
 	const { workspace, repos, pullRequests, isInSidebar } = item;
-	const isArchived = workspace.status === "deleted";
+	const isArchived = workspace.status === "archived";
 	const canUnarchive = isArchived && onUnarchive !== undefined;
 	return (
 		<tr

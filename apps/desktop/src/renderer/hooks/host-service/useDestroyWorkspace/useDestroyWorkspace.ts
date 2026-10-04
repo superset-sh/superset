@@ -149,7 +149,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 			// cloud row still listing it. The sandbox is the thing to destroy,
 			// and only the API can do that.
 			if (isSandbox) {
-				await apiTrpcClient.cloudWorkspace.delete.mutate({ id: workspaceId });
+				await apiTrpcClient.cloudWorkspace.archive.mutate({ id: workspaceId });
 				await utils.cloudWorkspace.list.invalidate();
 				return {
 					success: true,

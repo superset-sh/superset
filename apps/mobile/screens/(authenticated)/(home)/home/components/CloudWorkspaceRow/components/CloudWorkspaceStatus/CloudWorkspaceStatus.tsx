@@ -32,7 +32,7 @@ export function CloudWorkspaceStatus({
 			</View>
 		);
 	}
-	if (row.status === "deleted") {
+	if (row.status === "archived") {
 		return (
 			<Pressable
 				accessibilityRole="button"

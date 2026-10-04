@@ -32,7 +32,7 @@ const reached = jwtProcedure.mutation(() => "reached");
 const router = createTRPCRouter({
 	cloudWorkspace: createTRPCRouter({
 		list: jwtProcedure.query(({ ctx }) => ctx.organizationIds),
-		delete: reached,
+		archive: reached,
 		rename: reached,
 		setDescription: reached,
 		unarchive: reached,
@@ -97,7 +97,7 @@ describe("what a cloud workspace may call", () => {
 	const box = callerFor();
 
 	test.each([
-		["delete", () => box.cloudWorkspace.delete()],
+		["archive", () => box.cloudWorkspace.archive()],
 		["rename", () => box.cloudWorkspace.rename()],
 		["setDescription", () => box.cloudWorkspace.setDescription()],
 	])("a box reaches cloudWorkspace.%s", async (_name, call) => {

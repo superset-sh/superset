@@ -156,12 +156,12 @@ function V2WorkspaceLayout() {
 		);
 	}
 
-	if (!workspace && archivedCloudWorkspace?.deletedAt) {
+	if (!workspace && archivedCloudWorkspace?.archivedAt) {
 		return (
 			<StateScreenShell>
 				<CloudWorkspaceArchivedState
 					name={archivedCloudWorkspace.name}
-					archivedAt={archivedCloudWorkspace.deletedAt}
+					archivedAt={archivedCloudWorkspace.archivedAt}
 					onUnarchive={() => unarchive(archivedCloudWorkspace.id)}
 				/>
 			</StateScreenShell>

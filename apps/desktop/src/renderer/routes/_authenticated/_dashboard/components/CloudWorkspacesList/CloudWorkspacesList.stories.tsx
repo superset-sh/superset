@@ -227,7 +227,7 @@ export const WithArchived: Story = {
 				ALL_ITEMS[0],
 				...ALL_ITEMS.slice(1, 3).map((item) => ({
 					...item,
-					workspace: { ...item.workspace, status: "deleted" as const },
+					workspace: { ...item.workspace, status: "archived" as const },
 				})),
 				...ALL_ITEMS.slice(3),
 			],

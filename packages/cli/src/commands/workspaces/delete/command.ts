@@ -5,7 +5,7 @@ import { resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
 	description:
-		"Delete workspaces by ID: cloud workspaces by default if your account has them (tearing down the sandbox stops its billing), else on this machine; --local or --host picks a host",
+		"Delete workspaces by ID: cloud workspaces by default if your account has them (archived: the sandbox stops a minute later, and the sandbox and its disk are deleted after 7 days), else on this machine; --local or --host picks a host",
 	args: [positional("ids").required().variadic().desc("Workspace IDs")],
 	options: {
 		host: string().desc("Host the workspaces live on"),
@@ -24,26 +24,26 @@ export default command({
 			organizationId,
 		);
 		if (!hostId) {
-			const deleted: string[] = [];
+			const archived: string[] = [];
 			const missing: string[] = [];
 			for (const id of ids) {
-				const result = await ctx.api.cloudWorkspace.delete.mutate({ id });
-				(result.deleted ? deleted : missing).push(id);
+				const result = await ctx.api.cloudWorkspace.archive.mutate({ id });
+				(result.archived ? archived : missing).push(id);
 			}
 			if (missing.length > 0) {
-				const alsoDeleted =
-					deleted.length > 0 ? ` (deleted: ${deleted.join(", ")})` : "";
+				const alsoArchived =
+					archived.length > 0 ? ` (archived: ${archived.join(", ")})` : "";
 				throw new CLIError(
-					`No cloud workspace in this organization: ${missing.join(", ")}${alsoDeleted}`,
+					`No cloud workspace in this organization: ${missing.join(", ")}${alsoArchived}`,
 					"Pass --local or --host <id> if it lives on a machine",
 				);
 			}
 			return {
-				data: { deleted },
+				data: { archived },
 				message:
-					deleted.length === 1
-						? `Deleted cloud workspace ${deleted[0]}`
-						: `Deleted ${deleted.length} cloud workspaces`,
+					archived.length === 1
+						? `Archived cloud workspace ${archived[0]}`
+						: `Archived ${archived.length} cloud workspaces`,
 			};
 		}
 

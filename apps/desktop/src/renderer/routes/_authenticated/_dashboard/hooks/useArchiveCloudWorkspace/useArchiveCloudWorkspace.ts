@@ -29,7 +29,7 @@ export function useArchiveCloudWorkspace() {
 	const unarchive = useUnarchiveCloudWorkspace();
 	const [undoable, setUndoable] = useState<ArchivedWorkspace | null>(null);
 	const archiving = useArchivingCloudWorkspaceIds();
-	const { mutateAsync } = cloudTrpc.cloudWorkspace.delete.useMutation({
+	const { mutateAsync } = cloudTrpc.cloudWorkspace.archive.useMutation({
 		onMutate: async ({ id }) =>
 			organizationId
 				? {
@@ -101,8 +101,8 @@ export function useArchiveCloudWorkspace() {
 		// Unarchive only succeeds once the row is archived, so the undo waits
 		// for the server.
 		mutateAsync({ id })
-			.then(({ deleted }) => {
-				if (!deleted) {
+			.then(({ archived }) => {
+				if (!archived) {
 					returnIfStillAt(id, target);
 					return;
 				}

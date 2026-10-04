@@ -28,7 +28,7 @@ export const SANDBOX_ALLOWED_PROCEDURES: ReadonlySet<string> = new Set([
 	"cloudWorkspace.list",
 	"cloudWorkspace.create",
 	"cloudWorkspace.rename",
-	"cloudWorkspace.delete",
+	"cloudWorkspace.archive",
 	"cloudWorkspace.access",
 	"cloudWorkspace.hostTicket",
 	"cloudWorkspace.setDescription",
@@ -74,7 +74,7 @@ export async function resolveSandboxCaller(
 	const row = await db.query.cloudWorkspaces.findFirst({
 		where: and(
 			eq(cloudWorkspaces.id, workspaceId),
-			isNull(cloudWorkspaces.deletedAt),
+			isNull(cloudWorkspaces.archivedAt),
 		),
 	});
 	if (!row?.createdByUserId) return null;

@@ -123,7 +123,7 @@ async function provision(
 			},
 		});
 		if (!ready) {
-			// Deleted while the box was being made: the delete won the row, so
+			// Archived while the box was being made: the archive won the row, so
 			// the box it never knew about goes with it. A duplicate delivery of
 			// this job loses the row to the first one and must leave the box be:
 			// the name is per workspace, so it is the same box.
@@ -131,7 +131,7 @@ async function provision(
 				where: eq(cloudWorkspaces.id, row.id),
 				columns: { status: true },
 			});
-			if (current?.status === "deleted") {
+			if (current?.status === "archived") {
 				await deleteSandbox(providerSandboxId);
 			}
 			await naming.catch(() => {});

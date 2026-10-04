@@ -40,11 +40,13 @@ line per environment in Settings, and if goldens ever get an expiry it must
 come with an automatic rebuild, because a golden's last use only resets when a
 new box is created from it.
 
-**Delete deletes.** `useDestroyWorkspace` decides by the cloud row, not by the
-host it happens to reach: a cloud workspace goes to `cloudWorkspace.delete`,
-which removes the sandbox (and its snapshots) at the provider and marks the row
-deleted; only a machine someone owns gets the host-side destroy. Verified
-2026-09-11: four deletes from the sidebar, four sandboxes gone at Vercel. Left
+**Delete archives.** `useDestroyWorkspace` decides by the cloud row, not by the
+host it happens to reach: a cloud workspace goes to `cloudWorkspace.archive`,
+which marks the row archived, stops the sandbox about a minute later and
+deletes it (and its snapshots) at the provider after 7 days; only a machine
+someone owns gets the host-side destroy. Verified 2026-09-11, when a delete
+still removed the sandbox at once: four deletes from the sidebar, four
+sandboxes gone at Vercel. Left
 over: a pane still open on the deleted workspace keeps asking
 `cloudWorkspace.access` and logs "Cloud workspace is deleted" until it is
 closed.

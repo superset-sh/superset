@@ -274,7 +274,7 @@ export const cloudWorkspaceRecordRouter = {
 				prompt: row.prompt,
 				description: row.description,
 				createdAt: row.createdAt,
-				deletedAt: row.deletedAt,
+				archivedAt: row.archivedAt,
 				createdBy: creator
 					? { userId: creator.id, name: creator.name, image: creator.image }
 					: null,
