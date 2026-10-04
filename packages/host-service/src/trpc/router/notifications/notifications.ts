@@ -35,6 +35,17 @@ const subagentInput = z
 	})
 	.optional();
 
+function isActiveBackgroundTask(task: unknown): boolean {
+	return (
+		typeof task === "object" &&
+		task !== null &&
+		"type" in task &&
+		"status" in task &&
+		(task.type === "subagent" || task.type === "workflow") &&
+		(task.status === "running" || task.status === "pending")
+	);
+}
+
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
@@ -44,6 +55,17 @@ const hookInput = z.object({
 		.transform((value) => value.slice(0, 4000))
 		.optional(),
 	subagent: subagentInput,
+	backgroundTasks: z
+		.array(z.unknown())
+		.transform((tasks) => {
+			const retained = tasks.slice(0, 200);
+			const activeTask = tasks.find(isActiveBackgroundTask);
+			if (activeTask && !retained.includes(activeTask))
+				retained[199] = activeTask;
+			return retained;
+		})
+		.optional()
+		.catch(undefined),
 	launchId: z.string().max(128).optional(),
 	accountProfile: z.string().max(4096).optional(),
 	apiKey: z.boolean().optional(),
@@ -114,7 +136,7 @@ export const notificationsRouter = router({
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
 		const subagentId = trimOrUndefined(input.subagent?.id);
-		const eventType = subagentId ? undefined : mapEventType(input.eventType);
+		let eventType = subagentId ? undefined : mapEventType(input.eventType);
 		if (!subagentId && !eventType) {
 			return { success: true, ignored: true as const };
 		}
@@ -171,8 +193,27 @@ export const notificationsRouter = router({
 
 		const agent = normalizeAgentIdentity(input.agent);
 		const preview = trimOrUndefined(input.preview);
-
 		const prior = ctx.terminalAgentStore.get(input.terminalId);
+		// Idle teammates still report running; their messages wake the lead.
+		// Ambient tasks may not wake the session; shells and monitors may never end.
+		if (
+			eventType === "Stop" &&
+			input.eventType === "Stop" &&
+			agent?.agentId === "claude" &&
+			input.backgroundTasks?.some(isActiveBackgroundTask)
+		) {
+			if (
+				prior?.agentId === agent.agentId &&
+				prior.agentSessionId === agent.sessionId &&
+				(!input.launchId || input.launchId === prior.launchId) &&
+				(prior.lastEventType === "PermissionRequest" ||
+					prior.lastEventType === "Failed")
+			) {
+				return { success: true, ignored: false as const };
+			}
+			eventType = "Start";
+		}
+
 		const account =
 			verifyAttributionToken(input.terminalId, input.attributionToken) &&
 			eventType === "Attached" &&
