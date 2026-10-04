@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveInitialCommand } from "./setup-terminal";
@@ -74,11 +81,49 @@ describe("resolveInitialCommand", () => {
 		expect(resolve()).toEqual({ initialCommand: "bun install" });
 	});
 
-	it("passes a multi-line setup entry through intact", () => {
+	it("runs a multi-line setup entry through bash -c", () => {
 		const script =
 			"# install deps\nif [ -f bun.lock ]; then\n  bun install\nfi";
+		writeConfig(sandbox.repoPath, { setup: ["echo start", script] });
+		expect(resolve()).toEqual({
+			initialCommand: `echo start && bash -c '${script}'`,
+		});
+	});
+
+	it.each([
+		{ fails: false, agentRuns: true },
+		{ fails: true, agentRuns: false },
+	])("executes a multi-line setup script and gates the agent chain on it (fails: $fails)", ({
+		fails,
+	}) => {
+		const marker = join(sandbox.homeDir, "marker");
+		const script = [
+			"#!/bin/bash",
+			"# install deps",
+			"set -euo pipefail",
+			`echo ran > '${marker}'`,
+			...(fails ? ["false"] : []),
+			"# done",
+		].join("\n");
 		writeConfig(sandbox.repoPath, { setup: [script] });
-		expect(resolve()).toEqual({ initialCommand: script });
+		const resolved = resolve();
+		if (!resolved) throw new Error("expected a setup command");
+
+		const result = spawnSync(
+			"bash",
+			[
+				"--norc",
+				"--noprofile",
+				"-c",
+				`${resolved.initialCommand} && echo AGENT_STARTED\necho SHELL_ALIVE`,
+			],
+			{ encoding: "utf-8" },
+		);
+
+		expect(readFileSync(marker, "utf-8")).toBe("ran\n");
+		expect(result.stderr).toBe("");
+		expect(result.stdout.includes("AGENT_STARTED")).toBe(!fails);
+		expect(result.stdout).toContain("SHELL_ALIVE");
 	});
 
 	it("falls back to bash <repoPath>/.superset/setup.sh when config is empty", () => {
