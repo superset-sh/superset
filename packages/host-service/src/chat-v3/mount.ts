@@ -1,4 +1,6 @@
-import { dirname } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import type { DeltaChannel } from "@superset/chat/protocol";
@@ -29,11 +31,17 @@ export const CHAT_V3_TRPC_PATH = "/chat-v3/trpc";
 export const CHAT_V3_STREAM_PATH = "/chat-v3/sessions/:sessionId/stream";
 
 /**
- * `src/db/drizzle/` is a runtime file dependency the desktop bundle does not
- * inline: packaged builds must ship the folder and point here at it.
+ * `src/db/drizzle/` is a runtime file dependency no bundle inlines: the desktop
+ * points here at its copy, the CLI and sandbox ship it next to host-service.js.
  */
 function migrationsFolder(): string {
-	return process.env.SUPERSET_CHAT_V3_MIGRATIONS ?? DEFAULT_MIGRATIONS_FOLDER;
+	const fromEnv = process.env.SUPERSET_CHAT_V3_MIGRATIONS?.trim();
+	if (fromEnv) return fromEnv;
+	const sideBySide = join(
+		dirname(fileURLToPath(import.meta.url)),
+		"chat-migrations",
+	);
+	return existsSync(sideBySide) ? sideBySide : DEFAULT_MIGRATIONS_FOLDER;
 }
 
 function harnessRegistry(db: HostDb): HarnessRegistry {

@@ -271,6 +271,17 @@ box still fails. Still owed: `agents.run` fills the table itself (a host-service
 release), and a decision on which agents a box offers — the list fills every
 preset, but the image installs only Claude and Codex.
 
+**Runtime files the desktop passes as env have to ship in the tarball.** The
+bundle does not inline host-service's migration folders, so the desktop hands
+them over as env (`HOST_MIGRATIONS_FOLDER`,
+`SUPERSET_CHAT_V3_MIGRATIONS`). The sandbox boot sets only the first. Without
+chat.db's migrations, every `/chat-v3` request threw on the first migrate, and
+ACP chat in a cloud workspace showed "started but never prompted" over
+`Unexpected token 'I', "Internal S"... is not valid JSON`. Fixed: the runtime
+tarball (and the CLI bundle, same gap) ships `chat-migrations/` next to
+`host-service.js`, which looks there when the env is unset. Reaches a box only
+through a host-service runtime release.
+
 ## Lifecycle
 
 **Delete was not wired.** The generic delete routed to the owning host, which
