@@ -115,6 +115,13 @@ export function SessionView({
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1">
+					{rail.length > 1 && (
+						<ChatHistorySidebar
+							className="hidden shrink-0 self-center pl-3 lg:block"
+							messages={rail}
+							onMessageSelect={selectFromRail}
+						/>
+					)}
 					<Transcript
 						approvals={approvals}
 						canForkToWorktree={canForkToWorktree}
@@ -143,13 +150,6 @@ export function SessionView({
 						scrollRequest={scrollRequest}
 						snapshot={session.snapshot}
 					/>
-					{rail.length > 1 && (
-						<ChatHistorySidebar
-							className="hidden shrink-0 self-start py-6 pr-3 lg:block"
-							messages={rail}
-							onMessageSelect={selectFromRail}
-						/>
-					)}
 				</div>
 			)}
 			<Composer
