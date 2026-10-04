@@ -795,6 +795,9 @@ msgstr "{count, plural, one {Importuj # worktree} few {Importuj # worktree} many
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Otwarto projekt} few {Otwarto # projekty} many {Otwarto # projektów} other {Otwarto # projektu}}"
 
+msgid "{count, plural, one {Restart # resumable agent session in this organization on this computer? Saved conversations will resume. Current work will be interrupted.} other {Restart # resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted.}}"
+msgstr "{count, plural, one {Uruchomić ponownie # sesję agenta z możliwością wznowienia w tej organizacji na tym komputerze? Zapisane rozmowy zostaną wznowione. Bieżąca praca zostanie przerwana.} other {Uruchomić ponownie # sesji agentów z możliwością wznowienia w tej organizacji na tym komputerze? Zapisane rozmowy zostaną wznowione. Bieżąca praca zostanie przerwana.} few {Uruchomić ponownie # sesje agentów z możliwością wznowienia w tej organizacji na tym komputerze? Zapisane rozmowy zostaną wznowione. Bieżąca praca zostanie przerwana.} many {Uruchomić ponownie # sesji agentów z możliwością wznowienia w tej organizacji na tym komputerze? Zapisane rozmowy zostaną wznowione. Bieżąca praca zostanie przerwana.}}"
+
 msgid "{count, plural, one {Used # source} other {Used # sources}}"
 msgstr "{count, plural, one {Użyto # źródła} few {Użyto # źródeł} many {Użyto # źródeł} other {Użyto # źródła}}"
 
@@ -10466,6 +10469,9 @@ msgstr "Brak wyników dla „{query}”"
 msgid "No results found."
 msgstr "Nie znaleziono wyników."
 
+msgid "No resumable agent sessions are running."
+msgstr "Nie ma uruchomionych sesji agentów, które można wznowić."
+
 msgid "No Reviewers Assigned"
 msgstr "Nie przypisano recenzentów"
 
@@ -13202,6 +13208,9 @@ msgstr "Odpowiedź"
 msgid "Restart"
 msgstr "Uruchom ponownie"
 
+msgid "Restart all sessions"
+msgstr "Uruchom ponownie wszystkie sesje"
+
 msgid "Restart all terminals?"
 msgstr "Zrestartować wszystkie terminale?"
 
@@ -13246,6 +13255,12 @@ msgstr "Zrestartowano usługi hosta: {restartedOrgCount}"
 
 msgid "Restarted 1 host service"
 msgstr "Zrestartowano 1 usługę hosta"
+
+msgid "Restarted: {restarted}. Failed: {failed}. Skipped: {skipped}."
+msgstr "Uruchomiono ponownie: {restarted}. Niepowodzenia: {failed}. Pominięto: {skipped}."
+
+msgid "Restarted: {restarted}. Skipped: {skipped}."
+msgstr "Uruchomiono ponownie: {restarted}. Pominięto: {skipped}."
 
 msgid "Restarting"
 msgstr "Ponowne uruchamianie"
@@ -14270,6 +14285,9 @@ msgstr "Sesje"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Sesje · top {0} wg kosztu"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Sesje uruchomione ponownie: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

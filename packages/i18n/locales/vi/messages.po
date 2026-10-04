@@ -795,6 +795,9 @@ msgstr "{count, plural, one {Nhập # worktree} other {Nhập # worktree}}"
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Đã mở dự án} other {Đã mở # dự án}}"
 
+msgid "{count, plural, one {Restart # resumable agent session in this organization on this computer? Saved conversations will resume. Current work will be interrupted.} other {Restart # resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted.}}"
+msgstr "{count, plural, one {Khởi động lại # phiên tác nhân có thể tiếp tục của tổ chức này trên máy tính này? Các cuộc trò chuyện đã lưu sẽ được tiếp tục. Công việc hiện tại sẽ bị gián đoạn.} other {Khởi động lại # phiên tác nhân có thể tiếp tục của tổ chức này trên máy tính này? Các cuộc trò chuyện đã lưu sẽ được tiếp tục. Công việc hiện tại sẽ bị gián đoạn.}}"
+
 msgid "{count, plural, one {Used # source} other {Used # sources}}"
 msgstr "{count, plural, one {Đã dùng # nguồn} other {Đã dùng # nguồn}}"
 
@@ -10466,6 +10469,9 @@ msgstr "Không có kết quả cho “{query}”"
 msgid "No results found."
 msgstr "Không tìm thấy kết quả nào."
 
+msgid "No resumable agent sessions are running."
+msgstr "Không có phiên tác nhân đang chạy nào có thể tiếp tục."
+
 msgid "No Reviewers Assigned"
 msgstr "Chưa gán người review"
 
@@ -13202,6 +13208,9 @@ msgstr "Phản hồi"
 msgid "Restart"
 msgstr "Khởi động lại"
 
+msgid "Restart all sessions"
+msgstr "Khởi động lại tất cả phiên"
+
 msgid "Restart all terminals?"
 msgstr "Khởi động lại toàn bộ terminal?"
 
@@ -13246,6 +13255,12 @@ msgstr "Đã khởi động lại {restartedOrgCount} dịch vụ host"
 
 msgid "Restarted 1 host service"
 msgstr "Đã khởi động lại 1 dịch vụ host"
+
+msgid "Restarted: {restarted}. Failed: {failed}. Skipped: {skipped}."
+msgstr "Đã khởi động lại: {restarted}. Thất bại: {failed}. Đã bỏ qua: {skipped}."
+
+msgid "Restarted: {restarted}. Skipped: {skipped}."
+msgstr "Đã khởi động lại: {restarted}. Đã bỏ qua: {skipped}."
 
 msgid "Restarting"
 msgstr "Đang khởi động lại"
@@ -14270,6 +14285,9 @@ msgstr "Phiên"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Phiên · {0} phiên tốn nhiều nhất"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Số phiên đã khởi động lại: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

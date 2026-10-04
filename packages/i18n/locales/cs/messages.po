@@ -795,6 +795,9 @@ msgstr "{count, plural, one {Importovat # worktree} few {Importovat # worktree} 
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {Projekt otevřen} few {# projekty otevřeny} many {# projektu otevřeno} other {# projektů otevřeno}}"
 
+msgid "{count, plural, one {Restart # resumable agent session in this organization on this computer? Saved conversations will resume. Current work will be interrupted.} other {Restart # resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted.}}"
+msgstr "{count, plural, one {Restartovat # obnovitelnou relaci agenta této organizace na tomto počítači? Uložené konverzace budou obnoveny. Aktuální práce bude přerušena.} other {Restartovat # obnovitelných relací agentů této organizace na tomto počítači? Uložené konverzace budou obnoveny. Aktuální práce bude přerušena.} few {Restartovat # obnovitelné relace agentů této organizace na tomto počítači? Uložené konverzace budou obnoveny. Aktuální práce bude přerušena.}}"
+
 msgid "{count, plural, one {Used # source} other {Used # sources}}"
 msgstr "{count, plural, one {Použit # zdroj} few {Použity # zdroje} many {Použito # zdroje} other {Použito # zdrojů}}"
 
@@ -10466,6 +10469,9 @@ msgstr "Žádné výsledky pro „{query}“"
 msgid "No results found."
 msgstr "Nenalezeny žádné výsledky."
 
+msgid "No resumable agent sessions are running."
+msgstr "Neběží žádné relace agentů, které lze obnovit."
+
 msgid "No Reviewers Assigned"
 msgstr "Nepřiřazeni žádní recenzenti"
 
@@ -13202,6 +13208,9 @@ msgstr "Odpověď"
 msgid "Restart"
 msgstr "Restartovat"
 
+msgid "Restart all sessions"
+msgstr "Restartovat všechny relace"
+
 msgid "Restart all terminals?"
 msgstr "Restartovat všechny terminály?"
 
@@ -13246,6 +13255,12 @@ msgstr "Restartováno {restartedOrgCount} host services"
 
 msgid "Restarted 1 host service"
 msgstr "Restartována 1 host service"
+
+msgid "Restarted: {restarted}. Failed: {failed}. Skipped: {skipped}."
+msgstr "Restartováno: {restarted}. Selhalo: {failed}. Přeskočeno: {skipped}."
+
+msgid "Restarted: {restarted}. Skipped: {skipped}."
+msgstr "Restartováno: {restarted}. Přeskočeno: {skipped}."
 
 msgid "Restarting"
 msgstr "Restartování"
@@ -14270,6 +14285,9 @@ msgstr "Relace"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "Relace · top {0} podle nákladů"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "Restartované relace: {restarted}."
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"

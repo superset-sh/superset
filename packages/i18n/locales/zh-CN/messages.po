@@ -795,6 +795,9 @@ msgstr "{count, plural, one {导入#个worktree} other {导入#个worktree}}"
 msgid "{count, plural, one {Project opened} other {# projects opened}}"
 msgstr "{count, plural, one {已打开#个项目} other {已打开#个项目}}"
 
+msgid "{count, plural, one {Restart # resumable agent session in this organization on this computer? Saved conversations will resume. Current work will be interrupted.} other {Restart # resumable agent sessions in this organization on this computer? Saved conversations will resume. Current work will be interrupted.}}"
+msgstr "{count, plural, one {重启此计算机上此组织中 # 个可恢复的代理会话？已保存的对话将恢复，当前工作将中断。} other {重启此计算机上此组织中 # 个可恢复的代理会话？已保存的对话将恢复，当前工作将中断。}}"
+
 msgid "{count, plural, one {Used # source} other {Used # sources}}"
 msgstr "{count, plural, one {使用了#个来源} other {使用了#个来源}}"
 
@@ -10466,6 +10469,9 @@ msgstr "没有“{query}”的结果"
 msgid "No results found."
 msgstr "未找到结果。"
 
+msgid "No resumable agent sessions are running."
+msgstr "没有正在运行且可恢复的代理会话。"
+
 msgid "No Reviewers Assigned"
 msgstr "未指派审查者"
 
@@ -13202,6 +13208,9 @@ msgstr "响应"
 msgid "Restart"
 msgstr "重启"
 
+msgid "Restart all sessions"
+msgstr "重启所有会话"
+
 msgid "Restart all terminals?"
 msgstr "重启所有终端？"
 
@@ -13246,6 +13255,12 @@ msgstr "已重启{restartedOrgCount}个主机服务"
 
 msgid "Restarted 1 host service"
 msgstr "已重启1个主机服务"
+
+msgid "Restarted: {restarted}. Failed: {failed}. Skipped: {skipped}."
+msgstr "已重启: {restarted}. 失败: {failed}. 已跳过: {skipped}."
+
+msgid "Restarted: {restarted}. Skipped: {skipped}."
+msgstr "已重启: {restarted}. 已跳过: {skipped}."
 
 msgid "Restarting"
 msgstr "重启中"
@@ -14270,6 +14285,9 @@ msgstr "会话"
 #. placeholder {0}: detail.sessions.length
 msgid "Sessions · top {0} by cost"
 msgstr "会话 · 按费用排名前{0}"
+
+msgid "Sessions restarted: {restarted}."
+msgstr "已重启的会话：{restarted}。"
 
 #. placeholder {0}: color.name
 msgid "Set color to {0}"
