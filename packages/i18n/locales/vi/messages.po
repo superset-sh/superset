@@ -810,6 +810,9 @@ msgstr "{count}/ngày"
 msgid "{createdAtRelative} ago"
 msgstr "{createdAtRelative} trước"
 
+msgid "{current} of {total}"
+msgstr "{current}/{total}"
+
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
 
@@ -4397,6 +4400,9 @@ msgstr "Đã sao chép liên kết"
 msgid "Copied terminal ID"
 msgstr "Đã sao chép ID terminal"
 
+msgid "Copied the first {count} cells of the selection"
+msgstr "Đã sao chép {count} ô đầu tiên của vùng chọn"
+
 msgid "Copied to clipboard."
 msgstr "Đã sao chép vào clipboard."
 
@@ -6251,6 +6257,12 @@ msgstr "Rỗng"
 
 msgid "Empty command"
 msgstr "Lệnh trống"
+
+msgid "Empty file"
+msgstr "Tệp trống"
+
+msgid "Empty sheet"
+msgstr "Trang tính trống"
 
 msgid "Enable"
 msgstr "Bật"
@@ -9366,6 +9378,9 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Đang đánh dấu sẵn sàng để review…"
 
+msgid "Match case"
+msgstr "Phân biệt chữ hoa/thường"
+
 msgid "Match existing patterns"
 msgstr "Bám theo mẫu hiện có"
 
@@ -10012,6 +10027,9 @@ msgstr "Kết quả kế tiếp"
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
 msgstr "Lần chạy tiếp theo {0}"
+
+msgid "Next sheets"
+msgstr "Các trang tính tiếp theo"
 
 msgid "Next slide"
 msgstr "Slide kế tiếp"
@@ -12160,6 +12178,9 @@ msgstr "Kết quả trước"
 msgid "Previous prompts"
 msgstr "Prompt trước đó"
 
+msgid "Previous sheets"
+msgstr "Các trang tính trước"
+
 msgid "Previous slide"
 msgstr "Slide trước"
 
@@ -12560,6 +12581,9 @@ msgstr "Đã vượt giới hạn tần suất."
 
 msgid "Rate Superset"
 msgstr "Đánh giá Superset"
+
+msgid "Raw"
+msgstr "Thô"
 
 msgid "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 msgstr "Truy cập chiếc Mac này từ bất cứ đâu qua relay của Superset, hoặc khởi tạo workspace trên cloud. Kết nối từ mọi thiết bị."
@@ -13156,6 +13180,9 @@ msgstr "Bộ nhớ thường trú mà Superset và các cây tiến trình termi
 
 msgid "Resizable"
 msgstr "Resizable"
+
+msgid "Resize column {name}"
+msgstr "Đổi độ rộng cột {name}"
 
 msgid "Resize left edge"
 msgstr "Đổi kích thước cạnh trái"
@@ -13830,6 +13857,9 @@ msgstr "Tìm trong tài liệu..."
 msgid "Search environments..."
 msgstr "Tìm environment..."
 
+msgid "Search failed"
+msgstr "Tìm kiếm thất bại"
+
 msgid "Search files"
 msgstr "Tìm tệp"
 
@@ -14407,6 +14437,9 @@ msgstr "Dùng chung checkout của dự án — tệp, chỉ mục git và nhán
 msgid "Sheet"
 msgstr "Sheet"
 
+msgid "Sheets"
+msgstr "Trang tính"
+
 msgid "Shell"
 msgstr "Shell"
 
@@ -14532,6 +14565,9 @@ msgstr "Hiện danh sách pull request"
 
 msgid "Show pull request preview"
 msgstr "Hiện xem trước pull request"
+
+msgid "Show raw"
+msgstr "Hiển thị dạng thô"
 
 msgid "Show resolved ({resolvedCount})"
 msgstr "Hiện các mục đã xử lý ({resolvedCount})"
@@ -14812,6 +14848,9 @@ msgstr "Báo cáo SOC 2 Type II"
 msgid "Social"
 msgstr "Mạng xã hội"
 
+msgid "Some cells could not be loaded"
+msgstr "Không thể tải một số ô"
+
 msgid "Some files are not an accepted type and were not added."
 msgstr "Một số tệp không thuộc loại được chấp nhận nên không được thêm."
 
@@ -14969,6 +15008,9 @@ msgstr "Chia với Trình giả lập di động"
 
 msgid "Split with New Browser"
 msgstr "Chia kèm trình duyệt mới"
+
+msgid "Spreadsheet"
+msgstr "Bảng tính"
 
 msgid "Squash & Merge"
 msgstr "Squash & merge"
@@ -16369,8 +16411,17 @@ msgstr "Các repository của environment này đã cố định; hãy promote l
 msgid "this file"
 msgstr "tệp này"
 
+msgid "This file could not be read as a spreadsheet"
+msgstr "Không thể đọc tệp này dưới dạng bảng tính"
+
+msgid "This file format is not supported"
+msgstr "Định dạng tệp này không được hỗ trợ"
+
 msgid "This file is empty or was deleted."
 msgstr "Tệp này rỗng hoặc đã bị xóa."
+
+msgid "This file is password protected"
+msgstr "Tệp này được bảo vệ bằng mật khẩu"
 
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Bản cài đặt GitHub này đã kết nối với một tổ chức Superset khác. Hãy ngắt kết nối ở đó, hoặc gỡ Superset GitHub App, rồi thử lại."

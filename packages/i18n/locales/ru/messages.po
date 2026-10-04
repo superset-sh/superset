@@ -810,6 +810,9 @@ msgstr "{count}/день"
 msgid "{createdAtRelative} ago"
 msgstr "{createdAtRelative} назад"
 
+msgid "{current} of {total}"
+msgstr "{current} из {total}"
+
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage} из {totalBranches}"
 
@@ -4397,6 +4400,9 @@ msgstr "Ссылка скопирована"
 msgid "Copied terminal ID"
 msgstr "ID терминала скопирован"
 
+msgid "Copied the first {count} cells of the selection"
+msgstr "Скопированы ячейки из начала выделения ({count})"
+
 msgid "Copied to clipboard."
 msgstr "Скопировано в буфер обмена."
 
@@ -6251,6 +6257,12 @@ msgstr "Пусто"
 
 msgid "Empty command"
 msgstr "Пустая команда"
+
+msgid "Empty file"
+msgstr "Пустой файл"
+
+msgid "Empty sheet"
+msgstr "Пустой лист"
 
 msgid "Enable"
 msgstr "Включить"
@@ -9366,6 +9378,9 @@ msgstr "Маркетплейс"
 msgid "Marking ready for review..."
 msgstr "Помечается как готово к ревью…"
 
+msgid "Match case"
+msgstr "Учитывать регистр"
+
 msgid "Match existing patterns"
 msgstr "Следуй существующим шаблонам"
 
@@ -10012,6 +10027,9 @@ msgstr "Следующее совпадение"
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
 msgstr "Следующий запуск {0}"
+
+msgid "Next sheets"
+msgstr "Следующие листы"
 
 msgid "Next slide"
 msgstr "Следующий слайд"
@@ -12160,6 +12178,9 @@ msgstr "Предыдущее совпадение"
 msgid "Previous prompts"
 msgstr "Предыдущие промпты"
 
+msgid "Previous sheets"
+msgstr "Предыдущие листы"
+
 msgid "Previous slide"
 msgstr "Предыдущий слайд"
 
@@ -12560,6 +12581,9 @@ msgstr "Превышен лимит запросов."
 
 msgid "Rate Superset"
 msgstr "Оценить Superset"
+
+msgid "Raw"
+msgstr "Текст"
 
 msgid "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 msgstr "Достучитесь до этого Mac откуда угодно через реле Superset или поднимите облачные рабочие области. Подключайтесь с любого клиента."
@@ -13156,6 +13180,9 @@ msgstr "Резидентная память, занятая Superset и отсл
 
 msgid "Resizable"
 msgstr "Изменяемый размер"
+
+msgid "Resize column {name}"
+msgstr "Изменить ширину столбца {name}"
 
 msgid "Resize left edge"
 msgstr "Изменить размер по левому краю"
@@ -13830,6 +13857,9 @@ msgstr "Поиск по документации..."
 msgid "Search environments..."
 msgstr "Поиск окружений..."
 
+msgid "Search failed"
+msgstr "Не удалось выполнить поиск"
+
 msgid "Search files"
 msgstr "Поиск по файлам"
 
@@ -14407,6 +14437,9 @@ msgstr "Использует checkout проекта — файлы, индек�
 msgid "Sheet"
 msgstr "Панель"
 
+msgid "Sheets"
+msgstr "Листы"
+
 msgid "Shell"
 msgstr "Shell"
 
@@ -14532,6 +14565,9 @@ msgstr "Показать список пул-реквестов"
 
 msgid "Show pull request preview"
 msgstr "Показать предпросмотр пул-реквеста"
+
+msgid "Show raw"
+msgstr "Показать текст"
 
 msgid "Show resolved ({resolvedCount})"
 msgstr "Показать закрытые ({resolvedCount})"
@@ -14812,6 +14848,9 @@ msgstr "Отчёт SOC 2 Type II"
 msgid "Social"
 msgstr "Соцсети"
 
+msgid "Some cells could not be loaded"
+msgstr "Не удалось загрузить некоторые ячейки"
+
 msgid "Some files are not an accepted type and were not added."
 msgstr "Некоторые файлы не подходят по типу и не были добавлены."
 
@@ -14969,6 +15008,9 @@ msgstr "Разделить с мобильным симулятором"
 
 msgid "Split with New Browser"
 msgstr "Разделить с новым браузером"
+
+msgid "Spreadsheet"
+msgstr "Электронная таблица"
 
 msgid "Squash & Merge"
 msgstr "Сжать и объединить"
@@ -16369,8 +16411,17 @@ msgstr "Репозитории этого окружения зафиксиро�
 msgid "this file"
 msgstr "этот файл"
 
+msgid "This file could not be read as a spreadsheet"
+msgstr "Не удалось прочитать файл как электронную таблицу"
+
+msgid "This file format is not supported"
+msgstr "Этот формат файла не поддерживается"
+
 msgid "This file is empty or was deleted."
 msgstr "Файл пуст или удалён."
+
+msgid "This file is password protected"
+msgstr "Этот файл защищён паролем"
 
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Эта установка GitHub уже подключена к другой организации Superset. Отключите её там или удалите GitHub App Superset, затем повторите."

@@ -810,6 +810,9 @@ msgstr "{count}/gün"
 msgid "{createdAtRelative} ago"
 msgstr "{createdAtRelative} önce"
 
+msgid "{current} of {total}"
+msgstr "{total} içinden {current}"
+
 msgid "{currentPage} of {totalBranches}"
 msgstr "{totalBranches} içinden {currentPage}"
 
@@ -4397,6 +4400,9 @@ msgstr "Bağlantı kopyalandı"
 msgid "Copied terminal ID"
 msgstr "Terminal kimliği kopyalandı"
 
+msgid "Copied the first {count} cells of the selection"
+msgstr "Seçimin ilk {count} hücresi kopyalandı"
+
 msgid "Copied to clipboard."
 msgstr "Panoya kopyalandı."
 
@@ -6251,6 +6257,12 @@ msgstr "Boş"
 
 msgid "Empty command"
 msgstr "Boş komut"
+
+msgid "Empty file"
+msgstr "Boş dosya"
+
+msgid "Empty sheet"
+msgstr "Boş sayfa"
 
 msgid "Enable"
 msgstr "Etkinleştir"
@@ -9366,6 +9378,9 @@ msgstr "Pazar yeri"
 msgid "Marking ready for review..."
 msgstr "İncelemeye hazır olarak işaretleniyor…"
 
+msgid "Match case"
+msgstr "Büyük/küçük harf duyarlı"
+
 msgid "Match existing patterns"
 msgstr "Mevcut desenlere uy"
 
@@ -10012,6 +10027,9 @@ msgstr "Sonraki eşleşme"
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
 msgstr "Sonraki çalıştırma {0}"
+
+msgid "Next sheets"
+msgstr "Sonraki sayfalar"
 
 msgid "Next slide"
 msgstr "Sonraki slayt"
@@ -12160,6 +12178,9 @@ msgstr "Önceki eşleşme"
 msgid "Previous prompts"
 msgstr "Önceki istemler"
 
+msgid "Previous sheets"
+msgstr "Önceki sayfalar"
+
 msgid "Previous slide"
 msgstr "Önceki slayt"
 
@@ -12560,6 +12581,9 @@ msgstr "Hız sınırı aşıldı."
 
 msgid "Rate Superset"
 msgstr "Superset'i puanla"
+
+msgid "Raw"
+msgstr "Ham"
 
 msgid "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 msgstr "Superset rölesi üzerinden bu Mac'e her yerden erişin veya bulut çalışma alanları başlatın. Herhangi bir istemciden bağlanın."
@@ -13156,6 +13180,9 @@ msgstr "Superset ve izlenen terminal süreç ağaçlarının kullandığı yerle
 
 msgid "Resizable"
 msgstr "Yeniden boyutlandırılabilir"
+
+msgid "Resize column {name}"
+msgstr "{name} sütununu yeniden boyutlandır"
 
 msgid "Resize left edge"
 msgstr "Sol kenarı yeniden boyutlandır"
@@ -13830,6 +13857,9 @@ msgstr "Belgelerde ara..."
 msgid "Search environments..."
 msgstr "Ortamlarda ara..."
 
+msgid "Search failed"
+msgstr "Arama başarısız oldu"
+
 msgid "Search files"
 msgstr "Dosyalarda ara"
 
@@ -14407,6 +14437,9 @@ msgstr "Projenin checkout'unu (dosyalar, git indeksi ve dal) diğer yerel çalı
 msgid "Sheet"
 msgstr "Sayfa"
 
+msgid "Sheets"
+msgstr "Sayfalar"
+
 msgid "Shell"
 msgstr "Kabuk"
 
@@ -14532,6 +14565,9 @@ msgstr "Pull request listesini göster"
 
 msgid "Show pull request preview"
 msgstr "Pull request önizlemesini göster"
+
+msgid "Show raw"
+msgstr "Ham metni göster"
 
 msgid "Show resolved ({resolvedCount})"
 msgstr "Çözülenleri göster ({resolvedCount})"
@@ -14812,6 +14848,9 @@ msgstr "SOC 2 Type II raporu"
 msgid "Social"
 msgstr "Sosyal"
 
+msgid "Some cells could not be loaded"
+msgstr "Bazı hücreler yüklenemedi"
+
 msgid "Some files are not an accepted type and were not added."
 msgstr "Bazı dosyalar kabul edilen türde değil ve eklenmedi."
 
@@ -14969,6 +15008,9 @@ msgstr "Mobil Simülatörle böl"
 
 msgid "Split with New Browser"
 msgstr "Yeni tarayıcıyla böl"
+
+msgid "Spreadsheet"
+msgstr "Elektronik tablo"
 
 msgid "Squash & Merge"
 msgstr "Squash ve birleştir"
@@ -16369,8 +16411,17 @@ msgstr "Bu ortamın depoları sabittir; değiştirmek için bir çalışma alan�
 msgid "this file"
 msgstr "bu dosya"
 
+msgid "This file could not be read as a spreadsheet"
+msgstr "Bu dosya elektronik tablo olarak okunamadı"
+
+msgid "This file format is not supported"
+msgstr "Bu dosya biçimi desteklenmiyor"
+
 msgid "This file is empty or was deleted."
 msgstr "Bu dosya boş veya silinmiş."
+
+msgid "This file is password protected"
+msgstr "Bu dosya parola korumalı"
 
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Bu GitHub kurulumu zaten başka bir Superset kuruluşuna bağlı. Oradaki bağlantıyı kesin veya Superset GitHub App'i kaldırın, sonra yeniden deneyin."

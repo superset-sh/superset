@@ -810,6 +810,9 @@ msgstr "{count}/jour"
 msgid "{createdAtRelative} ago"
 msgstr "il y a {createdAtRelative}"
 
+msgid "{current} of {total}"
+msgstr "{current} sur {total}"
+
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage} sur {totalBranches}"
 
@@ -4397,6 +4400,9 @@ msgstr "Lien copié"
 msgid "Copied terminal ID"
 msgstr "ID du terminal copié"
 
+msgid "Copied the first {count} cells of the selection"
+msgstr "Les {count} premières cellules de la sélection ont été copiées"
+
 msgid "Copied to clipboard."
 msgstr "Copié dans le presse-papiers."
 
@@ -6251,6 +6257,12 @@ msgstr "Vide"
 
 msgid "Empty command"
 msgstr "Commande vide"
+
+msgid "Empty file"
+msgstr "Fichier vide"
+
+msgid "Empty sheet"
+msgstr "Feuille vide"
 
 msgid "Enable"
 msgstr "Activer"
@@ -9366,6 +9378,9 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Marquage comme prêt pour la revue…"
 
+msgid "Match case"
+msgstr "Respecter la casse"
+
 msgid "Match existing patterns"
 msgstr "Suivre les modèles existants"
 
@@ -10012,6 +10027,9 @@ msgstr "Résultat suivant"
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
 msgstr "Prochaine exécution {0}"
+
+msgid "Next sheets"
+msgstr "Feuilles suivantes"
 
 msgid "Next slide"
 msgstr "Diapositive suivante"
@@ -12160,6 +12178,9 @@ msgstr "Résultat précédent"
 msgid "Previous prompts"
 msgstr "Prompts précédents"
 
+msgid "Previous sheets"
+msgstr "Feuilles précédentes"
+
 msgid "Previous slide"
 msgstr "Diapositive précédente"
 
@@ -12560,6 +12581,9 @@ msgstr "Limite de débit dépassée."
 
 msgid "Rate Superset"
 msgstr "Noter Superset"
+
+msgid "Raw"
+msgstr "Brut"
 
 msgid "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 msgstr "Accédez à ce Mac depuis n'importe où via le relais Superset, ou lancez des espaces de travail cloud. Connectez-vous depuis n'importe quel client."
@@ -13156,6 +13180,9 @@ msgstr "Mémoire résidente utilisée par Superset et par les arborescences de p
 
 msgid "Resizable"
 msgstr "Redimensionnable"
+
+msgid "Resize column {name}"
+msgstr "Redimensionner la colonne {name}"
 
 msgid "Resize left edge"
 msgstr "Redimensionner le bord gauche"
@@ -13830,6 +13857,9 @@ msgstr "Rechercher dans la documentation..."
 msgid "Search environments..."
 msgstr "Rechercher des environnements..."
 
+msgid "Search failed"
+msgstr "La recherche a échoué"
+
 msgid "Search files"
 msgstr "Rechercher des fichiers"
 
@@ -14407,6 +14437,9 @@ msgstr "Partage le checkout du projet — fichiers, index git et branche — ave
 msgid "Sheet"
 msgstr "Sheet"
 
+msgid "Sheets"
+msgstr "Feuilles"
+
 msgid "Shell"
 msgstr "Shell"
 
@@ -14532,6 +14565,9 @@ msgstr "Afficher la liste des pull requests"
 
 msgid "Show pull request preview"
 msgstr "Afficher l'aperçu de la pull request"
+
+msgid "Show raw"
+msgstr "Afficher le brut"
 
 msgid "Show resolved ({resolvedCount})"
 msgstr "Afficher les commentaires résolus ({resolvedCount})"
@@ -14812,6 +14848,9 @@ msgstr "Rapport SOC 2 Type II"
 msgid "Social"
 msgstr "Réseaux sociaux"
 
+msgid "Some cells could not be loaded"
+msgstr "Certaines cellules n'ont pas pu être chargées"
+
 msgid "Some files are not an accepted type and were not added."
 msgstr "Certains fichiers ne sont pas d'un type accepté et n'ont pas été ajoutés."
 
@@ -14969,6 +15008,9 @@ msgstr "Diviser avec le simulateur mobile"
 
 msgid "Split with New Browser"
 msgstr "Fractionner avec un navigateur"
+
+msgid "Spreadsheet"
+msgstr "Tableur"
 
 msgid "Squash & Merge"
 msgstr "Squasher et fusionner"
@@ -16369,8 +16411,17 @@ msgstr "Les dépôts de cet environnement sont figés ; promouvez à nouveau un 
 msgid "this file"
 msgstr "ce fichier"
 
+msgid "This file could not be read as a spreadsheet"
+msgstr "Impossible de lire ce fichier comme un tableur"
+
+msgid "This file format is not supported"
+msgstr "Ce format de fichier n’est pas pris en charge"
+
 msgid "This file is empty or was deleted."
 msgstr "Ce fichier est vide ou a été supprimé."
+
+msgid "This file is password protected"
+msgstr "Ce fichier est protégé par un mot de passe"
 
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Cette installation GitHub est déjà connectée à une autre organisation Superset. Déconnectez-la là-bas, ou désinstallez la GitHub App Superset, puis réessayez."

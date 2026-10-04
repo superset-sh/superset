@@ -72,11 +72,31 @@ const IMAGE_MIME_TYPE_EXTENSIONS: Record<string, string> = {
 /** Markdown extensions */
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown", "mdx"]);
 
+/** Binary workbook extensions, read as bytes */
+const SPREADSHEET_EXTENSIONS = new Set(["xlsx", "xlsm", "xlsb", "xls", "ods"]);
+
+/** Delimited text extensions shown as a table */
+const DELIMITED_TEXT_EXTENSIONS = new Set(["csv", "tsv"]);
+
 /**
  * Checks if a file is a PDF based on extension
  */
 export function isPdfFile(filePath: string): boolean {
 	return getFileExtension(filePath) === "pdf";
+}
+
+/**
+ * Checks if a file is a binary workbook (Excel, OpenDocument) based on extension
+ */
+export function isSpreadsheetFile(filePath: string): boolean {
+	return SPREADSHEET_EXTENSIONS.has(getFileExtension(filePath));
+}
+
+/**
+ * Checks if a file is delimited text (CSV, TSV) based on extension
+ */
+export function isDelimitedTextFile(filePath: string): boolean {
+	return DELIMITED_TEXT_EXTENSIONS.has(getFileExtension(filePath));
 }
 
 /**

@@ -3,6 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
+import type { ReactNode } from "react";
 
 export type ErrorReason =
 	| "not-found"
@@ -14,6 +15,8 @@ export type ErrorReason =
 interface ErrorStateProps {
 	reason: ErrorReason;
 	message?: string;
+	detail?: string;
+	action?: ReactNode;
 	onOpenAnyway?: () => void;
 	onRetry?: () => void;
 }
@@ -39,6 +42,8 @@ const MESSAGES: Record<ErrorReason, MessageDescriptor> = {
 export function ErrorState({
 	reason,
 	message,
+	detail,
+	action,
 	onOpenAnyway,
 	onRetry,
 }: ErrorStateProps) {
@@ -47,6 +52,12 @@ export function ErrorState({
 			<span className="select-text cursor-text">
 				{message ?? i18n._(MESSAGES[reason])}
 			</span>
+			{detail && (
+				<span className="max-w-md cursor-text select-text text-center text-xs text-muted-foreground/70">
+					{detail}
+				</span>
+			)}
+			{action}
 			{reason === "too-large" && onOpenAnyway && (
 				<Button variant="outline" size="sm" onClick={onOpenAnyway}>
 					<Trans>Open anyway</Trans>

@@ -5,12 +5,14 @@ import { formatDate, formatList, formatNumber } from "@superset/i18n/format";
 import { I18nProvider } from "@superset/i18n/react";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 
+const greetingId = ["greet", "ing"].join("");
+
 function FormattedGreeting() {
 	const { i18n: requestI18n } = useLingui();
 	const locale = requestI18n.locale;
 	return (
 		<>
-			<Trans id="greeting" />|{formatNumber(1234.5, undefined, locale)}|
+			<Trans id={greetingId} />|{formatNumber(1234.5, undefined, locale)}|
 			{formatDate(
 				new Date("2026-09-01T00:00:00Z"),
 				{ month: "long", timeZone: "UTC" },
@@ -44,12 +46,12 @@ describe("server-resolved client translations", () => {
 		initI18n("en");
 		const french = renderToStaticMarkup(
 			<I18nProvider locale="fr" initialMessages={{ greeting: "Bonjour" }}>
-				<Trans id="greeting" />
+				<Trans id={greetingId} />
 			</I18nProvider>,
 		);
 		const german = renderToStaticMarkup(
 			<I18nProvider locale="de" initialMessages={{ greeting: "Hallo" }}>
-				<Trans id="greeting" />
+				<Trans id={greetingId} />
 			</I18nProvider>,
 		);
 

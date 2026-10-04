@@ -408,3 +408,38 @@ test("a replacement arriving from the old path after a move is still detected", 
 	expect(f.doc.content).toMatchObject({ value: "edited" });
 	await f.cleanup();
 });
+
+test("workbooks are read as bytes and delimited text as UTF-8", async () => {
+	const encodings = new Map<string, string | undefined>();
+	const client = {
+		filesystem: {
+			readFile: {
+				query: async (input: { absolutePath: string; encoding?: string }) => {
+					encodings.set(input.absolutePath, input.encoding);
+					return input.encoding
+						? { kind: "text", content: "a,b", revision: "r", byteLength: 3 }
+						: {
+								kind: "bytes",
+								content: new Uint8Array([0x50, 0x4b]),
+								revision: "r",
+								byteLength: 2,
+							};
+				},
+			},
+		},
+	} as unknown as Parameters<typeof acquireDocument>[2];
+	const workspaceId = crypto.randomUUID();
+	const workbook = acquireDocument(
+		workspaceId,
+		"/workspace/sales.xlsx",
+		client,
+	);
+	const csv = acquireDocument(workspaceId, "/workspace/sales.csv", client);
+	await Promise.resolve();
+	expect(encodings.get("/workspace/sales.xlsx")).toBeUndefined();
+	expect(workbook.content.kind).toBe("bytes");
+	expect(encodings.get("/workspace/sales.csv")).toBe("utf-8");
+	expect(csv.content.kind).toBe("text");
+	releaseDocument(workspaceId, "/workspace/sales.xlsx");
+	releaseDocument(workspaceId, "/workspace/sales.csv");
+});

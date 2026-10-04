@@ -3,9 +3,11 @@ import {
 	getImageExtensionFromMimeType,
 	getImageMimeType,
 	getVideoMimeType,
+	isDelimitedTextFile,
 	isImageFile,
 	isPdfFile,
 	isPreviewableVideoFile,
+	isSpreadsheetFile,
 	isVideoFile,
 	parseBase64DataUrl,
 } from "./file-types";
@@ -63,6 +65,19 @@ describe("file-types", () => {
 		expect(isPdfFile("docs/REPORT.PDF")).toBe(true);
 		expect(isPdfFile("report.pdf.txt")).toBe(false);
 		expect(isPdfFile("report")).toBe(false);
+	});
+
+	test("detects workbook and delimited text file paths", () => {
+		expect(isSpreadsheetFile("sales.xlsx")).toBe(true);
+		expect(isSpreadsheetFile("data/LEGACY.XLS")).toBe(true);
+		expect(isSpreadsheetFile("budget.ods")).toBe(true);
+		expect(isSpreadsheetFile("macros.xlsm")).toBe(true);
+		expect(isSpreadsheetFile("sales.csv")).toBe(false);
+		expect(isSpreadsheetFile("xlsx")).toBe(false);
+		expect(isDelimitedTextFile("sales.csv")).toBe(true);
+		expect(isDelimitedTextFile("export.TSV")).toBe(true);
+		expect(isDelimitedTextFile("sales.xlsx")).toBe(false);
+		expect(isDelimitedTextFile("notes.txt")).toBe(false);
 	});
 
 	test("parses base64 data URLs with extra MIME parameters", () => {

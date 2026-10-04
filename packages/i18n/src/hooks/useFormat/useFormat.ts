@@ -57,6 +57,8 @@ export function useFormat() {
 				format.formatCompactRelativeTime(value, now, locale),
 			formatAge: (value: Date | number, now?: Date | number) =>
 				format.formatAge(value, now, locale),
+			getNumberSeparators: (selectedLocale = locale) =>
+				format.getNumberSeparators(selectedLocale),
 			formatRelativePeriod: (period: {
 				unit: "day" | "week" | "month" | "year";
 				count: number;

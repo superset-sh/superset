@@ -250,6 +250,7 @@
 		"utf-8-validate": "6.0.6",
 		"uuid": "14.0.0",
 		"ws": "8.21.3",
+		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
 		"zod": "4.6.5",
 		"zustand": "5.0.12"
 	},

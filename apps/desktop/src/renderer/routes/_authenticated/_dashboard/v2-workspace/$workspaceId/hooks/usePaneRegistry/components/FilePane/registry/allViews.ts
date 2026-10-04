@@ -4,6 +4,7 @@ import { codeView } from "./views/CodeView";
 import { imageView } from "./views/ImageView";
 import { markdownPreviewView } from "./views/MarkdownPreviewView";
 import { pdfView } from "./views/PdfView";
+import { spreadsheetView, tableView } from "./views/SpreadsheetView";
 import { videoView } from "./views/VideoView";
 
 // Order is preserved as a stable tiebreaker for equal-priority views.
@@ -12,7 +13,9 @@ export const ALL_VIEWS: FileView[] = [
 	imageView,
 	videoView,
 	pdfView,
+	spreadsheetView,
 	binaryWarningView,
+	tableView,
 	markdownPreviewView,
 	codeView,
 ];

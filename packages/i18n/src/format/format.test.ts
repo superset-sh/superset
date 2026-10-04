@@ -12,6 +12,7 @@ import {
 	formatRelativePeriod,
 	formatRelativeTime,
 	getActiveLocale,
+	getNumberSeparators,
 } from "./index";
 
 initI18n();
@@ -45,6 +46,15 @@ describe("format helpers (en)", () => {
 	test("formatPrice renders Stripe minor units and uppercases currency", () => {
 		expect(formatPrice(1250, "usd")).toBe("$12.50");
 		expect(formatPrice(0, "USD")).toBe("$0.00");
+	});
+
+	test("getNumberSeparators follows the locale", () => {
+		expect(getNumberSeparators()).toEqual({ group: ",", decimal: "." });
+		expect(getNumberSeparators("fr")).toEqual({
+			group: "\u202f",
+			decimal: ",",
+		});
+		expect(getNumberSeparators("de")).toEqual({ group: ".", decimal: "," });
 	});
 
 	test("formatDate default matches the settings-page shape", () => {

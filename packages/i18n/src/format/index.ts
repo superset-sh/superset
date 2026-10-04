@@ -23,6 +23,22 @@ export function formatNumber(
 	return new Intl.NumberFormat(locale, options).format(value);
 }
 
+export interface NumberSeparators {
+	group: string;
+	decimal: string;
+}
+
+// "en" -> { group: ",", decimal: "." }, "fr" -> { group: "\u202f", decimal: "," }
+export function getNumberSeparators(
+	locale = getActiveLocale(),
+): NumberSeparators {
+	const parts = new Intl.NumberFormat(locale).formatToParts(12345.6);
+	return {
+		group: parts.find((part) => part.type === "group")?.value ?? ",",
+		decimal: parts.find((part) => part.type === "decimal")?.value ?? ".",
+	};
+}
+
 // 0.123 -> "12.3%"
 export function formatPercent(
 	value: number,

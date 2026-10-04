@@ -810,6 +810,9 @@ msgstr "{count}/天"
 msgid "{createdAtRelative} ago"
 msgstr "{createdAtRelative}前"
 
+msgid "{current} of {total}"
+msgstr "{current}/{total}"
+
 msgid "{currentPage} of {totalBranches}"
 msgstr "{currentPage}/{totalBranches}"
 
@@ -4397,6 +4400,9 @@ msgstr "已複製連結"
 msgid "Copied terminal ID"
 msgstr "已複製終端ID"
 
+msgid "Copied the first {count} cells of the selection"
+msgstr "已複製選取範圍的前 {count} 個儲存格"
+
 msgid "Copied to clipboard."
 msgstr "已複製到剪貼簿。"
 
@@ -6251,6 +6257,12 @@ msgstr "空狀態"
 
 msgid "Empty command"
 msgstr "空命令"
+
+msgid "Empty file"
+msgstr "空白檔案"
+
+msgid "Empty sheet"
+msgstr "空白工作表"
 
 msgid "Enable"
 msgstr "啟用"
@@ -9366,6 +9378,9 @@ msgstr "市場"
 msgid "Marking ready for review..."
 msgstr "正在標記為可審查…"
 
+msgid "Match case"
+msgstr "區分大小寫"
+
 msgid "Match existing patterns"
 msgstr "沿用現有模式"
 
@@ -10012,6 +10027,9 @@ msgstr "下一個匹配"
 #. placeholder {0}: formatDateTimeInTimezone( new Date(automation.nextRunAt), automation.timezone ?? "UTC", )
 msgid "Next run {0}"
 msgstr "下次執行{0}"
+
+msgid "Next sheets"
+msgstr "後面的工作表"
 
 msgid "Next slide"
 msgstr "下一張"
@@ -12160,6 +12178,9 @@ msgstr "上一個匹配"
 msgid "Previous prompts"
 msgstr "歷史提示詞"
 
+msgid "Previous sheets"
+msgstr "前面的工作表"
+
 msgid "Previous slide"
 msgstr "上一張"
 
@@ -12560,6 +12581,9 @@ msgstr "超出速率限制。"
 
 msgid "Rate Superset"
 msgstr "為Superset評分"
+
+msgid "Raw"
+msgstr "原始"
 
 msgid "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 msgstr "通過Superset中繼從任何地方連上這臺Mac，或啟動雲端工作區。可從任意客戶端連線。"
@@ -13156,6 +13180,9 @@ msgstr "Superset與受監控的終端處理程序樹佔用的常駐記憶體。�
 
 msgid "Resizable"
 msgstr "可調整大小"
+
+msgid "Resize column {name}"
+msgstr "調整欄 {name} 的寬度"
 
 msgid "Resize left edge"
 msgstr "調整左邊緣"
@@ -13830,6 +13857,9 @@ msgstr "搜尋文件..."
 msgid "Search environments..."
 msgstr "搜尋環境..."
 
+msgid "Search failed"
+msgstr "搜尋失敗"
+
 msgid "Search files"
 msgstr "搜尋檔案"
 
@@ -14407,6 +14437,9 @@ msgstr "與該專案的其他本地工作區共用專案的簽出（檔案、git
 msgid "Sheet"
 msgstr "側邊面板"
 
+msgid "Sheets"
+msgstr "工作表"
+
 msgid "Shell"
 msgstr "Shell"
 
@@ -14532,6 +14565,9 @@ msgstr "顯示拉取請求列表"
 
 msgid "Show pull request preview"
 msgstr "顯示拉取請求預覽"
+
+msgid "Show raw"
+msgstr "顯示原始內容"
 
 msgid "Show resolved ({resolvedCount})"
 msgstr "顯示已解決 ({resolvedCount})"
@@ -14812,6 +14848,9 @@ msgstr "SOC 2 Type II報告"
 msgid "Social"
 msgstr "社群媒體"
 
+msgid "Some cells could not be loaded"
+msgstr "部分儲存格無法載入"
+
 msgid "Some files are not an accepted type and were not added."
 msgstr "部分檔案的型別不被允許，未新增。"
 
@@ -14969,6 +15008,9 @@ msgstr "分割並開啟行動模擬器"
 
 msgid "Split with New Browser"
 msgstr "拆分並新建瀏覽器"
+
+msgid "Spreadsheet"
+msgstr "試算表"
 
 msgid "Squash & Merge"
 msgstr "壓縮併合併"
@@ -16369,8 +16411,17 @@ msgstr "此環境的儲存庫已固定；請再次提升一個工作區以變更
 msgid "this file"
 msgstr "該檔案"
 
+msgid "This file could not be read as a spreadsheet"
+msgstr "無法將此檔案讀取為試算表"
+
+msgid "This file format is not supported"
+msgstr "不支援此檔案格式"
+
 msgid "This file is empty or was deleted."
 msgstr "這個檔案為空或已被刪除。"
+
+msgid "This file is password protected"
+msgstr "此檔案受密碼保護"
 
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "這個GitHub安裝已連線到另一個Superset組織。請先在那裡斷開連線，或解除安裝Superset GitHub App，然後重試。"
