@@ -15,11 +15,24 @@ declare global {
 	}
 }
 
+/**
+ * This window's persisted identity, passed in as a process argument by the main
+ * process (see createPlatformWindow). Exposed synchronously because the router
+ * restores its history from localStorage at module-evaluation time, before any
+ * IPC round-trip could answer. Empty string when absent — callers fall back to
+ * the shared, pre-multi-window storage key.
+ */
+const windowKey =
+	process.argv
+		.find((arg) => arg.startsWith("--superset-window-key="))
+		?.slice("--superset-window-key=".length) ?? "";
+
 const API = {
 	sayHelloFromBridge: () => console.log("\nHello from bridgeAPI! 👋\n\n"),
 	username: process.env.USER,
 	appVersion: __APP_VERSION__,
 	platform: process.platform,
+	windowKey,
 };
 
 // Store mapping of user listeners to wrapped listeners for proper cleanup
