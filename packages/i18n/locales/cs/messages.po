@@ -246,6 +246,10 @@ msgstr "{0, plural, one {# běžící terminál} few {# běžící terminály} m
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {# volání nástroje} few {# volání nástroje} many {# volání nástroje} other {# volání nástrojů}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, one {# nezapsaný commit} few {# nezapsané commity} other {# nezapsaných commitů}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0} nainstalováno"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} je už přiřazeno k „{1}“."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} je už na {hostName} vyzvednutá."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, one {Zobrazit # další odpověď} few {Zobrazit # dal�
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {Zobrazit ještě # rámec} few {Zobrazit ještě # rámce} many {Zobrazit ještě # rámce} other {Zobrazit ještě # rámců}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} má na {0} commity, které toto zařízení nemá."
+
 msgid "{hostName} is offline"
 msgstr "{hostName} je offline"
 
@@ -943,6 +955,9 @@ msgstr "{minutes} m"
 
 msgid "{minutes}m ago"
 msgstr "před {minutes} m"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, one {# změněný} few {# změněné} other {# změněných}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵ pro vytvoření"
@@ -1016,6 +1031,9 @@ msgstr "{plugin} zatím nemá v tomto nasazení nakonfigurovaného klienta OAuth
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} už není nainstalován."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, one {# soubor env} few {# soubory env} other {# souborů env}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} obnoveno na výchozí"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {# pracovní prostor} few {# pracovní
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {# změněný soubor} few {# změněné soubory} many {# změněného souboru} other {# změněných souborů}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, one {# nesledovaný} few {# nesledované} other {# nesledovaných}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel} obnoveno na výchozí"
@@ -2101,6 +2122,9 @@ msgstr "Už máte účet? <0>Přihlaste se</0>"
 msgid "Already in tasks"
 msgstr "Už je v úkolech"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "Už je na {hostName} · stačí fetch"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "Dostupné také jako CommandDialog pro palety ⌘K"
 
@@ -2446,6 +2470,10 @@ msgstr "Napište, co změnit"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "Požádejte o změny, zmiňte soubory přes @, spouštějte /commands"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "Žádám agenty o předávací poznámky"
 
 msgid "Aspect Ratio"
 msgstr "Poměr stran"
@@ -3219,6 +3247,10 @@ msgstr "Kanonická markdown plocha pro výstup agenta, komentáře a dokumentaci
 msgid "Capabilities"
 msgstr "Možnosti"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "Zachytávám commity a změny"
+
 msgid "Card"
 msgstr "Karta"
 
@@ -3388,6 +3420,9 @@ msgstr "Zkontrolujte schránku"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Zaškrtávátko · Přepínač · Vypínač"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "Kontroluji {hostName} a běžící programy…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "Běžný účet + spoření + Treasury v čase; schodky jsou tranše z investic"
@@ -3648,6 +3683,9 @@ msgstr "Klonujte, odesílejte změny a vytvářejte PR."
 msgid "Cloned to {0}"
 msgstr "Naklonováno do {0}"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "Nejprve naklonuje repozitář na {hostName}"
+
 msgid "Cloning…"
 msgstr "Klonuji…"
 
@@ -3713,6 +3751,10 @@ msgstr "Zavřít pozadí okna"
 
 msgid "Close or delete the current workspace"
 msgstr "Zavřít nebo smazat aktuální pracovní prostor"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "Zavřete nebo přepněte tamní pracovní prostor a zkuste to znovu. Jeho cesta je {0}."
 
 msgid "Close other apps using the microphone"
 msgstr "Zavřete ostatní aplikace, které používají mikrofon"
@@ -4105,6 +4147,9 @@ msgstr "Připojit účet"
 
 msgid "Connect another account"
 msgstr "Připojit další účet"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "Připojte další zařízení, na které lze tento pracovní prostor teleportovat."
 
 msgid "Connect any AI agent to Superset."
 msgstr "Připojte k Superset libovolného AI agenta."
@@ -5191,6 +5236,10 @@ msgstr "Vytvářím relaci: {name}"
 
 msgid "Creating the sandbox"
 msgstr "Vytváří se sandbox"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "Vytvářím tam pracovní strom"
 
 msgid "Creating workspace"
 msgstr "Vytvářím pracovní prostor"
@@ -7740,6 +7789,12 @@ msgstr "Polovina sloučených změn je kód agenta bez úprav"
 msgid "Handle"
 msgstr "Přezdívka"
 
+msgid "hands off & resumes"
+msgstr "předá a naváže"
+
+msgid "hands off & starts fresh"
+msgstr "předá a začne znovu"
+
 msgid "Happened"
 msgstr "Stalo se"
 
@@ -9935,6 +9990,9 @@ msgstr "Nový push do větve"
 msgid "New releases and product updates."
 msgstr "Nová vydání a novinky v produktu."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "Nový sandbox · práce dorazí přes origin"
+
 msgid "New session"
 msgstr "Nová relace"
 
@@ -10756,6 +10814,9 @@ msgstr "Není co opakovat"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Za posledních 30 dní zatím nebylo nic publikováno. Vaše pozice se objeví, jakmile se synchronizuje využití z tohoto počítače; publikujete jako <0>{handle}</0>."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "Nic nezapsaného — přesune se samotná větev"
+
 msgid "Nothing was missed"
 msgstr "Nic nebylo zmeškáno"
 
@@ -10837,6 +10898,9 @@ msgstr "offline"
 
 msgid "Offline"
 msgstr "Offline"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "Offline · spojíme se, až se probudí"
 
 msgid "Offline / local-first mode"
 msgstr "Offline / local-first režim"
@@ -11255,6 +11319,13 @@ msgstr "Otevřít nabídku"
 msgid "Open navigation"
 msgstr "Otevřít navigaci"
 
+#. placeholder {0}: host.name
+msgid "Open on {0}"
+msgstr "Otevřít na {0}"
+
+msgid "Open on {hostName}"
+msgstr "Otevřít na {hostName}"
+
 msgid "Open on GitHub"
 msgstr "Otevřít na GitHubu"
 
@@ -11428,6 +11499,9 @@ msgstr "Otevírám worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Otevře cloudový pracovní prostor, kde agent nainstaluje vše, co projekt potřebuje, a zapíše jeho .superset/config.json"
+
+msgid "opens empty"
+msgstr "otevře se prázdný"
 
 msgid "Operator"
 msgstr "Operátor"
@@ -12650,6 +12724,10 @@ msgstr "Rebase a sloučit"
 msgid "Rebase and merge"
 msgstr "Rebase a sloučit"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "Obnovuji panely"
+
 msgid "Recent Activity"
 msgstr "Nedávná aktivita"
 
@@ -13041,6 +13119,9 @@ msgstr "Odpovědět do vlákna…"
 msgid "repo"
 msgstr "repo"
 
+msgid "Repo"
+msgstr "Repozitář"
+
 msgid "Report"
 msgstr "Nahlásit"
 
@@ -13272,6 +13353,9 @@ msgstr "Restartuji služby hosta…"
 msgid "Restarting…"
 msgstr "Restartuje se…"
 
+msgid "restarts"
+msgstr "restartuje se"
+
 msgid "Restore"
 msgstr "Obnovit"
 
@@ -13305,6 +13389,10 @@ msgstr "„{name}“ obnoveno"
 
 msgid "Restored \"{projectName}\""
 msgstr "„{projectName}“ obnoven"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "Obnovuji změny"
 
 msgid "Restoring your session"
 msgstr "Obnovuji vaši relaci"
@@ -13558,6 +13646,9 @@ msgstr "Spusťte to v terminálu na tomto hostu a na výzvu vložte svůj klíč
 msgid "Run in a terminal on this host:"
 msgstr "Spusťte to v terminálu na tomto hostu:"
 
+msgid "Run in background"
+msgstr "Spustit na pozadí"
+
 msgid "Run in Workspace"
 msgstr "Spustit v pracovním prostoru"
 
@@ -13624,6 +13715,10 @@ msgstr "Běží na spárovaném zařízení"
 msgid "Running on this device"
 msgstr "Běží na tomto zařízení"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "Spouštím instalační skripty"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Běžící procesy v terminálu poběží dál, ale starší výstup po restartu aplikace už nemusí být k dispozici."
 
@@ -13647,6 +13742,9 @@ msgstr "Spouští se při vytvoření pracovního prostoru."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Spouští se při smazání pracovního prostoru."
+
+msgid "Safe to close — this continues in the background"
+msgstr "Můžete zavřít — pokračuje to na pozadí"
 
 msgid "Same version as this app."
 msgstr "Stejná verze jako tato aplikace."
@@ -14380,6 +14478,9 @@ msgstr "Setup"
 
 msgid "Setup script"
 msgstr "Setup skript"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "Po příchodu se spustí instalační skripty. Tento pracovní prostor zde zůstane zastavený, dokud jej nesmažete."
 
 msgid "Sexual content"
 msgstr "Sexuální obsah"
@@ -15165,6 +15266,10 @@ msgstr "Spouštím {agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "Spouštím cloudový pracovní prostor"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "Spouštím programy"
+
 msgid "Starting the agent…"
 msgstr "Spouštění agenta…"
 
@@ -15645,6 +15750,10 @@ msgstr "Synchronizovat repozitáře"
 msgid "Sync started"
 msgstr "Synchronizace spuštěna"
 
+msgctxt "teleport step"
+msgid "Syncing late changes, stopping the source"
+msgstr "Synchronizace pozdních změn, zastavování zdroje"
+
 msgid "Syncing..."
 msgstr "Synchronizuji..."
 
@@ -15819,6 +15928,30 @@ msgstr "Teardown ukončen signálem {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown vypršel po {seconds} s"
+
+msgid "Teleport"
+msgstr "Teleportovat"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "Teleportovat na {0}"
+
+#. placeholder {0}: host.name
+msgid "Teleport to {0} failed"
+msgstr "Teleportace na {0} selhala"
+
+msgid "Teleport…"
+msgstr "Teleportovat…"
+
+#. placeholder {0}: host.name
+msgid "Teleported to {0}"
+msgstr "Teleportováno na {0}"
+
+msgid "Teleporting to {teleportingTo}…"
+msgstr "Teleportace na {teleportingTo}…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "Teleportace by je pohřbila. Nejprve proveďte pull z {hostName}, nebo teleportujte opačným směrem."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Řekněte libovolnému agentovi, ať použije CLI <0>superset</0> k vytváření pracovních prostorů, spouštění úkolů nebo správě automatizací."

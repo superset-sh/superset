@@ -17,6 +17,7 @@ import type {
 	TeleportPhase,
 	TeleportRunState,
 } from "./types";
+import { deriveRunOutcome } from "./utils/runOutcome";
 
 interface TeleportDialogProps {
 	open: boolean;
@@ -29,6 +30,8 @@ interface TeleportDialogProps {
 	onDestinationChosen: (host: TeleportDestination) => void;
 	onConfirm: (host: TeleportDestination) => void;
 	onOpenThere: (host: TeleportDestination) => void;
+	/** A move already in flight for this workspace: open straight on its progress. */
+	resumeRun?: TeleportDestination | null;
 }
 
 /**
@@ -48,14 +51,19 @@ export function TeleportDialog({
 	onDestinationChosen,
 	onConfirm,
 	onOpenThere,
+	resumeRun = null,
 }: TeleportDialogProps) {
-	const [phase, setPhase] = useState<TeleportPhase>({ kind: "picking" });
+	const [phase, setPhase] = useState<TeleportPhase>(() =>
+		resumeRun ? { kind: "running", host: resumeRun } : { kind: "picking" },
+	);
 	const [selected, setSelected] = useState<TeleportDestination | null>(null);
+	const outcome = deriveRunOutcome(run);
+	const inFlight = phase.kind === "running" && outcome === "running";
 
 	// A run must not be interrupted by an accidental click outside: the work
 	// continues either way, but a dialog that vanishes mid-transfer reads as
 	// a crash.
-	const dismissible = phase.kind !== "running";
+	const dismissible = !inFlight;
 
 	function reset() {
 		setPhase({ kind: "picking" });
@@ -93,7 +101,7 @@ export function TeleportDialog({
 							)}
 						</DialogTitle>
 						<DialogDescription className="text-left">
-							{phase.kind === "running" ? (
+							{inFlight ? (
 								<Trans>Safe to close — this continues in the background</Trans>
 							) : (
 								workspaceLabel
@@ -127,13 +135,11 @@ export function TeleportDialog({
 					/>
 				)}
 
-				{(phase.kind === "running" ||
-					phase.kind === "done" ||
-					phase.kind === "failed") && (
+				{phase.kind === "running" && (
 					<TeleportProgressStep
 						run={run}
 						hostName={phase.host.name}
-						isDone={phase.kind === "done"}
+						isDone={outcome === "done"}
 						onClose={close}
 						onOpenThere={() => {
 							onOpenThere(phase.host);

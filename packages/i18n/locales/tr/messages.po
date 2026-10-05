@@ -246,6 +246,10 @@ msgstr "{0, plural, one {# terminal çalışıyor} other {# terminal çalışıy
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {# araç çağrısı} other {# araç çağrısı}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, one {# gönderilmemiş commit} other {# gönderilmemiş commit}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0} kuruldu"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0} zaten \"{1}\" için atanmış."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} zaten {hostName} üzerinde çıkış yapılmış durumda."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, one {# yanıt daha göster} other {# yanıt daha göste
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve daha göster}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} üzerinde, bu cihazda bulunmayan {0} commit'leri var."
+
 msgid "{hostName} is offline"
 msgstr "{hostName} çevrimdışı"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}dk"
 
 msgid "{minutes}m ago"
 msgstr "{minutes}dk önce"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, one {# değişiklik} other {# değişiklik}}"
 
 msgid "{modKey}↵ to create"
 msgstr "Oluşturmak için {modKey}↵"
@@ -1016,6 +1031,9 @@ msgstr "{plugin} için bu dağıtımda henüz bir OAuth istemcisi yapılandırı
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} artık yüklü değil."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, one {# env dosyası} other {# env dosyası}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel} varsayılanlara sıfırlandı"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {# çalışma alanı} other {# çalı�
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {# dosya değişti} other {# dosya değişti}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, one {# izlenmeyen} other {# izlenmeyen}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel} varsayılanlara geri yüklendi"
@@ -2101,6 +2122,9 @@ msgstr "Zaten hesabınız var mı? <0>Oturum açın</0>"
 msgid "Already in tasks"
 msgstr "Zaten görevlerde"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "Zaten {hostName} üzerinde · yalnızca fetch"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘K paletleri için CommandDialog olarak da kullanılabilir"
 
@@ -2446,6 +2470,10 @@ msgstr "Değişiklik isteyin"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "Değişiklik isteyin, dosyaları @ ile anın, /komut çalıştırın"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "Aracılardan devir notları isteniyor"
 
 msgid "Aspect Ratio"
 msgstr "En boy oranı"
@@ -3219,6 +3247,10 @@ msgstr "Ajan çıktısı, yorumlar ve belgeler için standart markdown yüzeyi"
 msgid "Capabilities"
 msgstr "Yetenekler"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "Commit'ler ve değişiklikler yakalanıyor"
+
 msgid "Card"
 msgstr "Kart"
 
@@ -3388,6 +3420,9 @@ msgstr "Gelen kutunuzu kontrol edin"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "Onay kutusu · Radyo · Anahtar"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "{hostName} ve çalışan programlar denetleniyor…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "Vadesiz + birikim + Treasury zaman içinde; yatırım dilimleri basamakları oluşturur"
@@ -3648,6 +3683,9 @@ msgstr "Klonlayın, gönderin ve PR oluşturun."
 msgid "Cloned to {0}"
 msgstr "{0} konumuna klonlandı"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "Önce depoyu {hostName} üzerine klonlar"
+
 msgid "Cloning…"
 msgstr "Klonlanıyor…"
 
@@ -3713,6 +3751,10 @@ msgstr "Pencere arka planını kapat"
 
 msgid "Close or delete the current workspace"
 msgstr "Geçerli çalışma alanını kapat veya sil"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "Oradaki çalışma alanını kapatın veya değiştirin, sonra tekrar deneyin. Yolu: {0}."
 
 msgid "Close other apps using the microphone"
 msgstr "Mikrofonu kullanan diğer uygulamaları kapatın"
@@ -4105,6 +4147,9 @@ msgstr "Hesap bağla"
 
 msgid "Connect another account"
 msgstr "Başka bir hesap bağla"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "Bu çalışma alanını ışınlamak için başka bir cihaz bağlayın."
 
 msgid "Connect any AI agent to Superset."
 msgstr "Herhangi bir AI ajanını Superset'e bağlayın."
@@ -5191,6 +5236,10 @@ msgstr "Oturum oluşturuluyor: {name}"
 
 msgid "Creating the sandbox"
 msgstr "Sandbox oluşturuluyor"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "Orada worktree oluşturuluyor"
 
 msgid "Creating workspace"
 msgstr "Çalışma alanı oluşturuluyor"
@@ -7740,6 +7789,12 @@ msgstr "Birleştirilen değişikliklerin yarısı sıfır düzenlemeli ajan kodu
 msgid "Handle"
 msgstr "Kullanıcı adı"
 
+msgid "hands off & resumes"
+msgstr "devreder ve sürdürür"
+
+msgid "hands off & starts fresh"
+msgstr "devreder ve sıfırdan başlar"
+
 msgid "Happened"
 msgstr "Gerçekleşti"
 
@@ -9935,6 +9990,9 @@ msgstr "Dala yeni push"
 msgid "New releases and product updates."
 msgstr "Yeni sürümler ve ürün güncellemeleri."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "Yeni sandbox · iş origin üzerinden gelir"
+
 msgid "New session"
 msgstr "Yeni oturum"
 
@@ -10756,6 +10814,9 @@ msgstr "Yeniden denenecek bir şey yok"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Son 30 günde henüz hiçbir şey yayınlanmadı. Bu makinedeki kullanım eşitlendiğinde sıralamanız görünür; <0>{handle}</0> olarak yayınlanıyor."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "İşlenmemiş değişiklik yok — yalnızca dal taşınır"
+
 msgid "Nothing was missed"
 msgstr "Hiçbir şey kaçırılmadı"
 
@@ -10837,6 +10898,9 @@ msgstr "çevrimdışı"
 
 msgid "Offline"
 msgstr "Çevrimdışı"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "Çevrimdışı · uyandığında bağlanılacak"
 
 msgid "Offline / local-first mode"
 msgstr "Çevrimdışı / yerel öncelikli mod"
@@ -11255,6 +11319,13 @@ msgstr "Menüyü aç"
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
 
+#. placeholder {0}: host.name
+msgid "Open on {0}"
+msgstr "{0} üzerinde aç"
+
+msgid "Open on {hostName}"
+msgstr "{hostName} üzerinde aç"
+
 msgid "Open on GitHub"
 msgstr "GitHub'da aç"
 
@@ -11428,6 +11499,9 @@ msgstr "Worktree açılıyor..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "Bir ajanın projenin ihtiyaç duyduklarını kurup .superset/config.json dosyasını yazdığı bir bulut çalışma alanı açar"
+
+msgid "opens empty"
+msgstr "boş açılır"
 
 msgid "Operator"
 msgstr "Operatör"
@@ -12650,6 +12724,10 @@ msgstr "Rebase ve birleştir"
 msgid "Rebase and merge"
 msgstr "Rebase ve birleştir"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "Sekmeler yeniden oluşturuluyor"
+
 msgid "Recent Activity"
 msgstr "Son etkinlik"
 
@@ -13041,6 +13119,9 @@ msgstr "Konuya yanıt verin…"
 msgid "repo"
 msgstr "depo"
 
+msgid "Repo"
+msgstr "Depo"
+
 msgid "Report"
 msgstr "Bildir"
 
@@ -13272,6 +13353,9 @@ msgstr "Host hizmetleri yeniden başlatılıyor…"
 msgid "Restarting…"
 msgstr "Yeniden başlatılıyor…"
 
+msgid "restarts"
+msgstr "yeniden başlar"
+
 msgid "Restore"
 msgstr "Geri yükle"
 
@@ -13305,6 +13389,10 @@ msgstr "\"{name}\" geri yüklendi"
 
 msgid "Restored \"{projectName}\""
 msgstr "\"{projectName}\" geri yüklendi"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "Değişiklikler geri yükleniyor"
 
 msgid "Restoring your session"
 msgstr "Oturumunuz geri yükleniyor"
@@ -13558,6 +13646,9 @@ msgstr "Bunu bu host'taki bir terminalde çalıştırın ve istendiğinde anahta
 msgid "Run in a terminal on this host:"
 msgstr "Bunu bu host'taki bir terminalde çalıştırın:"
 
+msgid "Run in background"
+msgstr "Arka planda çalıştır"
+
 msgid "Run in Workspace"
 msgstr "Çalışma alanında çalıştır"
 
@@ -13624,6 +13715,10 @@ msgstr "Eşleştirilmiş bir cihazda çalışıyor"
 msgid "Running on this device"
 msgstr "Bu cihazda çalışıyor"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "Kurulum betikleri çalıştırılıyor"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "Çalışan terminal süreçleri devam eder, ancak uygulama yeniden başlatıldıktan sonra eski çıktı artık kullanılamayabilir."
 
@@ -13647,6 +13742,9 @@ msgstr "Yeni bir çalışma alanı oluşturulduğunda çalışır."
 
 msgid "Runs when a workspace is deleted."
 msgstr "Bir çalışma alanı silindiğinde çalışır."
+
+msgid "Safe to close — this continues in the background"
+msgstr "Kapatabilirsiniz — arka planda devam eder"
 
 msgid "Same version as this app."
 msgstr "Bu uygulamayla aynı sürüm."
@@ -14380,6 +14478,9 @@ msgstr "Kurulum"
 
 msgid "Setup script"
 msgstr "Kurulum betiği"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "Kurulum betikleri varışta çalışır. Bu çalışma alanı, siz silene kadar burada durdurulmuş olarak kalır."
 
 msgid "Sexual content"
 msgstr "Cinsel içerik"
@@ -15165,6 +15266,10 @@ msgstr "{agentLabel} başlatılıyor"
 msgid "Starting cloud workspace"
 msgstr "Bulut çalışma alanı başlatılıyor"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "Programlar başlatılıyor"
+
 msgid "Starting the agent…"
 msgstr "Aracı başlatılıyor…"
 
@@ -15645,6 +15750,10 @@ msgstr "Depoları eşitle"
 msgid "Sync started"
 msgstr "Eşitleme başladı"
 
+msgctxt "teleport step"
+msgid "Syncing late changes, stopping the source"
+msgstr "Son değişiklikler eşitleniyor, kaynak durduruluyor"
+
 msgid "Syncing..."
 msgstr "Eşitleniyor..."
 
@@ -15819,6 +15928,30 @@ msgstr "Kapatma {signal} sinyaliyle sonlandırıldı"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Kapatma {seconds}sn sonra zaman aşımına uğradı"
+
+msgid "Teleport"
+msgstr "Işınla"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "{0} cihazına ışınla"
+
+#. placeholder {0}: host.name
+msgid "Teleport to {0} failed"
+msgstr "{0} cihazına ışınlama başarısız oldu"
+
+msgid "Teleport…"
+msgstr "Işınla…"
+
+#. placeholder {0}: host.name
+msgid "Teleported to {0}"
+msgstr "{0} cihazına ışınlandı"
+
+msgid "Teleporting to {teleportingTo}…"
+msgstr "{teleportingTo} cihazına ışınlanıyor…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "Işınlama onları gömer. Önce {hostName} üzerinden pull yapın veya ters yönde ışınlayın."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Çalışma alanı açmak, görev çalıştırmak veya otomasyonları yönetmek için herhangi bir ajana <0>superset</0> CLI'yi kullanmasını söyleyin."

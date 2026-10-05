@@ -246,6 +246,10 @@ msgstr "{0, plural, other {터미널 #개 실행 중}}"
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {도구 호출 #건} other {도구 호출 #건}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, other {푸시되지 않은 커밋 #개}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0} 설치됨"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}은(는) 이미 \"{1}\"에 지정되어 있습니다."
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0}은(는) 이미 {hostName}에서 체크아웃되어 있습니다."
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, other {답글 #개 더 보기}}"
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {프레임 #개 더 보기} other {프레임 #개 더 보기}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName}에는 이 기기에 없는 {0}의 커밋이 있습니다."
+
 msgid "{hostName} is offline"
 msgstr "{hostName}이(가) 오프라인입니다"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}분"
 
 msgid "{minutes}m ago"
 msgstr "{minutes}분 전"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, other {수정 #개}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵로 만들기"
@@ -1016,6 +1031,9 @@ msgstr "이 배포에는 {plugin}의 OAuth 클라이언트가 아직 구성되�
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin}이(가) 더 이상 설치되어 있지 않습니다."
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, other {env 파일 #개}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}이(가) 기본값으로 초기화되었습니다"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {워크스페이스 #개} other {워�
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {파일 #개 변경} other {파일 #개 변경}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, other {추적되지 않음 #개}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel}이(가) 기본값으로 복원되었습니다"
@@ -2101,6 +2122,9 @@ msgstr "이미 계정이 있으신가요? <0>로그인</0>"
 msgid "Already in tasks"
 msgstr "이미 작업에 있습니다"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "이미 {hostName}에 있음 · 가져오기만 수행"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "⌘K 팔레트용 CommandDialog로도 제공됩니다"
 
@@ -2446,6 +2470,10 @@ msgstr "변경을 요청하세요"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "변경을 요청하고, @로 파일을 멘션하고, /명령을 실행하세요"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "에이전트에 인계 노트 요청 중"
 
 msgid "Aspect Ratio"
 msgstr "종횡비"
@@ -3219,6 +3247,10 @@ msgstr "에이전트 출력, 댓글, 문서를 위한 표준 마크다운 표면
 msgid "Capabilities"
 msgstr "기능"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "커밋과 변경 사항 캡처 중"
+
 msgid "Card"
 msgstr "카드"
 
@@ -3388,6 +3420,9 @@ msgstr "받은편지함을 확인하세요"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "체크박스 · 라디오 · 스위치"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "{hostName}과(와) 실행 중인 프로그램을 확인하는 중…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "입출금 + 예금 + Treasury 추이. 계단 구간은 투자 유치 트랜치입니다"
@@ -3648,6 +3683,9 @@ msgstr "복제, 푸시 및 PR 생성."
 msgid "Cloned to {0}"
 msgstr "{0}(으)로 클론했습니다"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "먼저 {hostName}에 저장소를 클론합니다"
+
 msgid "Cloning…"
 msgstr "클론하는 중…"
 
@@ -3713,6 +3751,10 @@ msgstr "모달 배경 닫기"
 
 msgid "Close or delete the current workspace"
 msgstr "현재 워크스페이스를 닫거나 삭제합니다"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "그곳의 워크스페이스를 닫거나 전환한 뒤 다시 시도하세요. 경로는 {0}입니다."
 
 msgid "Close other apps using the microphone"
 msgstr "마이크를 사용 중인 다른 앱을 닫으세요"
@@ -4105,6 +4147,9 @@ msgstr "계정 연결"
 
 msgid "Connect another account"
 msgstr "다른 계정 연결"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "이 워크스페이스를 텔레포트하려면 다른 기기를 연결하세요."
 
 msgid "Connect any AI agent to Superset."
 msgstr "어떤 AI 에이전트든 Superset에 연결하세요."
@@ -5191,6 +5236,10 @@ msgstr "세션 만드는 중: {name}"
 
 msgid "Creating the sandbox"
 msgstr "샌드박스 생성 중"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "그곳에 워크트리 생성 중"
 
 msgid "Creating workspace"
 msgstr "워크스페이스 만드는 중"
@@ -7740,6 +7789,12 @@ msgstr "머지된 변경의 절반이 수정 없는 에이전트 코드"
 msgid "Handle"
 msgstr "핸들"
 
+msgid "hands off & resumes"
+msgstr "인계 후 재개"
+
+msgid "hands off & starts fresh"
+msgstr "인계 후 새로 시작"
+
 msgid "Happened"
 msgstr "달성함"
 
@@ -9935,6 +9990,9 @@ msgstr "브랜치에 새 푸시"
 msgid "New releases and product updates."
 msgstr "새 릴리스와 제품 업데이트."
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "새 샌드박스 · 작업은 origin을 통해 도착합니다"
+
 msgid "New session"
 msgstr "새 세션"
 
@@ -10756,6 +10814,9 @@ msgstr "재시도가 필요한 항목이 없습니다"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "최근 30일 동안 게시된 사용량이 아직 없습니다. 이 기기의 사용량이 동기화되면 <0>{handle}</0>(으)로 게시되며 순위가 표시됩니다."
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "커밋되지 않은 변경 없음 — 브랜치만 이동합니다"
+
 msgid "Nothing was missed"
 msgstr "놓친 실행이 없습니다"
 
@@ -10837,6 +10898,9 @@ msgstr "오프라인"
 
 msgid "Offline"
 msgstr "오프라인"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "오프라인 · 깨어나면 연결됩니다"
 
 msgid "Offline / local-first mode"
 msgstr "오프라인 / 로컬 우선 모드"
@@ -11255,6 +11319,13 @@ msgstr "메뉴 열기"
 msgid "Open navigation"
 msgstr "내비게이션 열기"
 
+#. placeholder {0}: host.name
+msgid "Open on {0}"
+msgstr "{0}에서 열기"
+
+msgid "Open on {hostName}"
+msgstr "{hostName}에서 열기"
+
 msgid "Open on GitHub"
 msgstr "GitHub에서 열기"
 
@@ -11428,6 +11499,9 @@ msgstr "worktree를 여는 중..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "에이전트가 프로젝트에 필요한 것을 설치하고 .superset/config.json을 작성하는 클라우드 워크스페이스를 엽니다"
+
+msgid "opens empty"
+msgstr "빈 상태로 열림"
 
 msgid "Operator"
 msgstr "작업자"
@@ -12650,6 +12724,10 @@ msgstr "리베이스 후 머지"
 msgid "Rebase and merge"
 msgstr "리베이스 후 머지"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "탭 다시 구성 중"
+
 msgid "Recent Activity"
 msgstr "최근 활동"
 
@@ -13041,6 +13119,9 @@ msgstr "스레드에 답글…"
 msgid "repo"
 msgstr "리포"
 
+msgid "Repo"
+msgstr "저장소"
+
 msgid "Report"
 msgstr "신고"
 
@@ -13272,6 +13353,9 @@ msgstr "호스트 서비스를 재시작하는 중…"
 msgid "Restarting…"
 msgstr "다시 시작 중…"
 
+msgid "restarts"
+msgstr "다시 시작"
+
 msgid "Restore"
 msgstr "복원"
 
@@ -13305,6 +13389,10 @@ msgstr "\"{name}\"을(를) 복원했습니다"
 
 msgid "Restored \"{projectName}\""
 msgstr "\"{projectName}\"을(를) 복원했습니다"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "변경 사항 복원 중"
 
 msgid "Restoring your session"
 msgstr "세션을 복원하는 중"
@@ -13558,6 +13646,9 @@ msgstr "이 호스트의 터미널에서 실행하고, 요청되면 키를 붙�
 msgid "Run in a terminal on this host:"
 msgstr "이 호스트의 터미널에서 실행하세요:"
 
+msgid "Run in background"
+msgstr "백그라운드에서 실행"
+
 msgid "Run in Workspace"
 msgstr "워크스페이스에서 실행"
 
@@ -13624,6 +13715,10 @@ msgstr "페어링된 기기에서 실행 중"
 msgid "Running on this device"
 msgstr "이 기기에서 실행 중"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "설정 스크립트 실행 중"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "실행 중인 터미널 프로세스는 계속되지만, 앱을 다시 시작한 뒤에는 이전 출력을 볼 수 없을 수 있습니다."
 
@@ -13647,6 +13742,9 @@ msgstr "새 작업 공간을 만들 때 실행됩니다."
 
 msgid "Runs when a workspace is deleted."
 msgstr "작업 공간을 삭제할 때 실행됩니다."
+
+msgid "Safe to close — this continues in the background"
+msgstr "닫아도 됩니다 — 백그라운드에서 계속됩니다"
 
 msgid "Same version as this app."
 msgstr "이 앱과 같은 버전입니다."
@@ -14380,6 +14478,9 @@ msgstr "설정"
 
 msgid "Setup script"
 msgstr "설정 스크립트"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "도착하면 설정 스크립트가 실행됩니다. 이 워크스페이스는 삭제할 때까지 중지된 상태로 여기에 남습니다."
 
 msgid "Sexual content"
 msgstr "성적인 콘텐츠"
@@ -15165,6 +15266,10 @@ msgstr "{agentLabel} 시작 중"
 msgid "Starting cloud workspace"
 msgstr "클라우드 워크스페이스 시작 중"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "프로그램 시작 중"
+
 msgid "Starting the agent…"
 msgstr "에이전트를 시작하는 중…"
 
@@ -15645,6 +15750,10 @@ msgstr "리포지토리 동기화"
 msgid "Sync started"
 msgstr "동기화를 시작했습니다"
 
+msgctxt "teleport step"
+msgid "Syncing late changes, stopping the source"
+msgstr "최근 변경 사항 동기화 중, 원본 중지 중"
+
 msgid "Syncing..."
 msgstr "동기화하는 중..."
 
@@ -15819,6 +15928,30 @@ msgstr "정리 스크립트가 시그널 {signal}(으)로 종료되었습니다"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "정리 스크립트가 {seconds}초 후 시간 초과되었습니다"
+
+msgid "Teleport"
+msgstr "텔레포트"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "{0}(으)로 텔레포트"
+
+#. placeholder {0}: host.name
+msgid "Teleport to {0} failed"
+msgstr "{0}(으)로 텔레포트 실패"
+
+msgid "Teleport…"
+msgstr "텔레포트…"
+
+#. placeholder {0}: host.name
+msgid "Teleported to {0}"
+msgstr "{0}(으)로 텔레포트됨"
+
+msgid "Teleporting to {teleportingTo}…"
+msgstr "{teleportingTo}(으)로 텔레포트 중…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "텔레포트하면 그 커밋들이 묻힙니다. 먼저 {hostName}에서 풀하거나 반대 방향으로 텔레포트하세요."
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "어떤 에이전트에게든 <0>superset</0> CLI로 워크스페이스를 띄우거나 작업을 실행하거나 자동화를 관리하라고 지시하세요."

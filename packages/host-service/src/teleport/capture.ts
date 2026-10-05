@@ -37,6 +37,8 @@ export interface HandoffCapture {
 	staged: string;
 	/** Commit of the full working tree, parented on `staged`. */
 	working: string;
+	/** The working tree's own id: equal across captures of identical content. */
+	workingTree: string;
 	/** Ignored files carried along, repo-relative. */
 	preciousFiles: string[];
 }
@@ -84,7 +86,7 @@ export async function captureHandoff({
 		const working = await commitTree(git, workingTree, staged, WORKING_MESSAGE);
 		await git.run(["update-ref", ref, working]);
 
-		return { ref, head, staged, working, preciousFiles };
+		return { ref, head, staged, working, workingTree, preciousFiles };
 	} finally {
 		await rm(scratch, { recursive: true, force: true });
 	}

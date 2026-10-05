@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { Loader2 } from "lucide-react";
 import {
 	type KeyboardEvent,
 	type MouseEvent,
@@ -8,6 +9,9 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTeleportRunsStore } from "renderer/components/TeleportDialog/stores/teleportRunsStore";
+import { TeleportDialogContainer } from "renderer/components/TeleportDialog/TeleportDialogContainer";
+import { deriveRunOutcome } from "renderer/components/TeleportDialog/utils/runOutcome";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import {
@@ -26,7 +30,6 @@ import {
 	DashboardSidebarWorkspaceBulkContextMenu,
 	useWorkspaceRowContextMenu,
 } from "./components/DashboardSidebarWorkspaceBulkContextMenu";
-import { TeleportDialogContainer } from "renderer/components/TeleportDialog/TeleportDialogContainer";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
@@ -159,6 +162,17 @@ export function DashboardSidebarWorkspaceItem({
 	}, [isHovered, hostType, onHoverCardOpen, id]);
 	// Teleport moves a workspace between machines a person owns; a cloud sandbox is reached, not owned.
 	const [isTeleportOpen, setIsTeleportOpen] = useState(false);
+	const teleportRun = useTeleportRunsStore((state) => state.runs[id]);
+	const teleportingTo =
+		teleportRun && deriveRunOutcome(teleportRun.run) === "running"
+			? teleportRun.destination.name
+			: null;
+	const teleportIndicator = teleportingTo ? (
+		<Loader2
+			aria-label={t({ message: `Teleporting to ${teleportingTo}…` })}
+			className="pointer-events-none absolute top-1 right-1 size-3 animate-spin text-muted-foreground"
+		/>
+	) : null;
 	const canTeleport =
 		hostType === "local-device" || hostType === "remote-device";
 	useEffect(() => {
@@ -228,6 +242,7 @@ export function DashboardSidebarWorkspaceItem({
 						style={{ backgroundColor: accentColor }}
 					/>
 				)}
+				{teleportIndicator}
 				<DashboardSidebarCollapsedWorkspaceButton
 					hostType={hostType}
 					workspaceType={workspace.type}
@@ -254,15 +269,15 @@ export function DashboardSidebarWorkspaceItem({
 
 		return (
 			<>
-			{isTeleportOpen && (
-				<TeleportDialogContainer
-					open={isTeleportOpen}
-					onOpenChange={setIsTeleportOpen}
-					workspaceId={id}
-					workspaceLabel={name}
-					sourceHostId={workspace.hostId}
-				/>
-			)}
+				{isTeleportOpen && (
+					<TeleportDialogContainer
+						open={isTeleportOpen}
+						onOpenChange={setIsTeleportOpen}
+						workspaceId={id}
+						workspaceLabel={name}
+						sourceHostId={workspace.hostId}
+					/>
+				)}
 				<div>
 					{isPending ? (
 						content
@@ -319,9 +334,11 @@ export function DashboardSidebarWorkspaceItem({
 		// biome-ignore lint/a11y/noStaticElementInteractions: hover handlers drive a non-interactive popover, no new keyboard semantics
 		<div
 			ref={rowRef}
+			className="relative"
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 		>
+			{teleportIndicator}
 			<DashboardSidebarExpandedWorkspaceRow
 				workspace={displayWorkspace}
 				isActive={isActive}
@@ -352,15 +369,15 @@ export function DashboardSidebarWorkspaceItem({
 
 	return (
 		<>
-		{isTeleportOpen && (
-			<TeleportDialogContainer
-				open={isTeleportOpen}
-				onOpenChange={setIsTeleportOpen}
-				workspaceId={id}
-				workspaceLabel={name}
-				sourceHostId={workspace.hostId}
-			/>
-		)}
+			{isTeleportOpen && (
+				<TeleportDialogContainer
+					open={isTeleportOpen}
+					onOpenChange={setIsTeleportOpen}
+					workspaceId={id}
+					workspaceLabel={name}
+					sourceHostId={workspace.hostId}
+				/>
+			)}
 			<div>
 				{isPending ? (
 					expandedContent
@@ -380,9 +397,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={handleMoveToSection}
 						isLocalWorkspace={hostType === "local-device"}
-						onTeleport={
-							canTeleport ? () => setIsTeleportOpen(true) : undefined
-						}
+						onTeleport={canTeleport ? () => setIsTeleportOpen(true) : undefined}
 						isPinned={workspace.isPinned}
 						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}

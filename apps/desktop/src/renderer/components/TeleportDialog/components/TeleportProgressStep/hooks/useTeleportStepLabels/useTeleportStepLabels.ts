@@ -41,7 +41,7 @@ export function useTeleportStepLabels(): Record<TeleportStepId, string> {
 				context: "teleport step",
 			}),
 			stopSource: t({
-				message: "Stopping the source",
+				message: "Syncing late changes, stopping the source",
 				context: "teleport step",
 			}),
 			launch: t({

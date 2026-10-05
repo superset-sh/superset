@@ -1280,7 +1280,7 @@ git update-ref -d &lt;ref&gt;</code></pre>
           <div>
             <span class="n">02</span>
             <div>
-              <h4>Their Claude path encoding is not ours</h4>
+              <h4>Their Claude path encoding is not ours — and upstream fixed it first</h4>
               <p>
                 Theirs reproduces Claude Code's own encoding — every
                 non-alphanumeric character becomes <code>-</code>, plus a
@@ -1290,11 +1290,12 @@ git update-ref -d &lt;ref&gt;</code></pre>
                 <code>/</code> and <code>.</code>
               </p>
               <p>
-                Worth checking against a real path containing an underscore. If
-                theirs is right, our transcript lookup silently misses and the
-                handoff quietly falls back to the PTY stream. It fails soft,
-                which is why nobody has noticed. Independent of teleport; worth
-                a ticket either way.
+                Settled by <code>#7825</code>: <code>harness-sessions/claude.ts</code>
+                now reproduces Claude Code's encoding exactly — non-alphanumeric
+                units to <code>-</code>, a Java-hash suffix past 200 characters —
+                and stores the path Claude itself reports on
+                <code>terminal_agent_bindings.transcript_path</code>. That column
+                is the primitive an exact cross-device resume would carry.
               </p>
             </div>
           </div>
@@ -1333,6 +1334,15 @@ git update-ref -d &lt;ref&gt;</code></pre>
         </div>
 
         <div class="callout">
+          <p>
+            Two constraints the matrix has to respect: a cloud sandbox refuses
+            host <code>workspaces.create</code> (<code>machineOnlyProcedure</code>
+            — one project, one workspace per box), so a cloud destination is
+            created through the cloud API; and a fresh sandbox boots the
+            released host-service, so a new procedure reaches it only with a
+            release. The hidden-ref-on-origin transport needs nothing new on
+            the destination, which is why it works in every direction today.
+          </p>
           <p>
             What we keep that they don't have: their transport is shell scripts
             over SSH by necessity. We already have the relay and an
@@ -1730,9 +1740,154 @@ git update-ref -d &lt;ref&gt;</code></pre>
       </section>
 
       <section>
+        <p class="kicker">As built</p>
+        <h2>Cloud as a destination</h2>
+        <p>
+          The picker offers <strong>Cloud</strong> beside the hosts, behind the
+          same <code>cloud-workspaces</code> flag the sidebar uses. Choosing it
+          runs a second adapter, <code>createCloudTeleportOperations</code>,
+          because a sandbox differs from a machine in two ways that shape
+          every step.
+        </p>
+        <ol>
+          <li>
+            <strong>Transport is the hidden ref on origin.</strong> The source
+            host runs <code>teleport.publish</code>: capture with the precious
+            allowlist <em>off</em> (origin may be a public forge), then
+            <code>git push --force origin refs/superset/teleport/&lt;id&gt;</code>.
+            No bundle, no file transfer. The sandbox clones origin anyway.
+          </li>
+          <li>
+            <strong>Nothing new is assumed on the destination.</strong> The
+            sandbox is created through the cloud API
+            (<code>cloudWorkspace.create</code>; host
+            <code>workspaces.create</code> is machine-only), addressed through
+            <code>cloudWorkspace.access({ wake: true })</code> until it answers,
+            held until its boot stamps say the clone is done, and restored by
+            <code>terminal.launchSession</code> running
+            <code>buildArrivalCommand(ref, branch)</code>: four git commands
+            that end by printing
+            <code>TELEPORT_RESTORED &lt;n&gt; files on &lt;branch&gt; @ &lt;sha&gt;</code>.
+            The adapter watches <code>terminal.transcript</code> for that line.
+            Both procedures ship in released host-service, so this works
+            against a sandbox image that has never heard of teleport.
+          </li>
+        </ol>
+        <p>
+          The box is the slow part, so the adapter starts it first: the
+          create call and the wake poll begin during "Asking agents for
+          handoff notes", and the boot overlaps the handoff reads and the
+          capture. No branch is requested from the cloud API: the box then
+          fetches the repository's default branch over its image's clone, the
+          fast path, and the arrival command moves the checkout onto the source
+          branch. Asking for the source branch, which rarely exists on origin,
+          made that fetch fail and the box clone from scratch. Handoff reads
+          and agent relaunches run in parallel, and every wait polls at one
+          second. Measured from the dev app: Teleport pressed to every step
+          green in 27 seconds, with the capture pushed at 8 and the box awake
+          and fetched at 18, down from about 80 seconds, where the clone alone
+          took 20.
+        </p>
+        <p>
+          <strong>Nobody waits for it.</strong> The run's progress lives in a
+          store keyed by the source workspace, not in the dialog. "Run in
+          background" closes the dialog and the move continues; the source row
+          shows a spinner while it runs; reopening the dialog lands on the
+          progress; and a move nobody is watching ends as a toast with "Open
+          on Cloud". The source stays usable throughout: the first capture is
+          a pre-copy, and the last step captures again once the box is up and
+          restored. That second publish passes the first capture's
+          working-tree id and pushes nothing when the content is unchanged, so
+          an idle source costs one <code>write-tree</code>; a source that kept
+          changing sends only its delta and the arrival command runs once
+          more. Agents are handed their transcripts as they are at the end,
+          not as they were at the start.
+        </p>
+        <p>
+          On arrival the app opens the workspace itself, not its record page,
+          and <code>useAutoAdoptBackgroundSessions</code> gives the launched
+          terminal a pane. The restore's own output is the first thing a
+          person sees. Agents are relaunched from the carried context with
+          <code>agents.run</code>, as for a host.
+        </p>
+      </section>
+
+      <section>
         <p class="kicker">Landmines</p>
         <h2>Traps specific to this repo</h2>
         <ul>
+          <li>
+            A sandbox cannot be a destination through the host path:
+            <code>workspaces.create</code> and <code>project.create</code> are
+            <code>machineOnlyProcedure</code> and refuse inside a box, which
+            holds exactly one project and one workspace. Cloud destinations
+            are created through the cloud API and restored into the checkout
+            the box already has.
+          </li>
+          <li>
+            The cloud API names the branch itself, from the workspace name.
+            The arrival runs <code>git checkout -B &lt;source branch&gt;</code>
+            inside the box; <code>cloud_workspaces.branch</code> keeps the auto
+            name until that row is updated.
+          </li>
+          <li>
+            A fresh sandbox boots the <em>released</em> host-service, so a new
+            host procedure reaches it only with a release. The hidden ref on
+            origin needs nothing new on the destination, which is why it is
+            the transport that works in every direction today.
+          </li>
+          <li>
+            A sandbox's host-service answers before its clone is done. A
+            restore launched on first health lands mid-clone and corrupts
+            both; the adapter waits for the <code>checkout.end</code> boot
+            stamp in <code>health.check</code> first.
+          </li>
+          <li>
+            A pane attached to a terminal after its command ran shows no
+            scrollback: the arrival terminal prints its
+            <code>TELEPORT_RESTORED</code> line before any pane exists, and the
+            pane that adopts it later opens blank. The transcript has the line;
+            the pane does not. Replaying the stream on attach would make the
+            arrival line the first thing a person sees.
+          </li>
+          <li>
+            The arrival command's marker must only print on success. Its
+            first version ended in <code>… || true &amp;&amp; echo
+            TELEPORT_RESTORED</code>, and shell precedence let that
+            <code>|| true</code> swallow the whole chain, so a failed
+            <code>read-tree</code> still printed the marker. The tolerance now
+            sits in a group around the refresh alone.
+          </li>
+          <li>
+            A second arrival cannot use a two-tree merge:
+            <code>read-tree -m -u HEAD</code> refuses to overwrite files the
+            first arrival left untracked, which is every untracked file of the
+            source. The arrival uses <code>read-tree -u --reset</code>, the
+            mode <code>reset --hard</code> uses, so the late-change pass lands
+            on top of the pre-copy. A host-service test arrives twice.
+          </li>
+          <li>
+            A fresh box has no host agent configs.
+            <code>agents.run({ agent: "claude" })</code> resolves preset ids
+            against rows that <code>settings.agentConfigs.list</code> seeds on
+            its first call, so a box nobody has opened answers "No host agent
+            config matching 'claude'". The cloud adapter lists the
+            destination's agent configs before relaunching anything.
+          </li>
+          <li>
+            The renderer's CSP admits only what <code>SANDBOX_GATE_ORIGIN</code>
+            named at build time. A dev checkout pointing it at a local gate
+            fails the cloud step with "host-service did not come up": every
+            request is refused by the page's own policy and <code>fetch</code>
+            reports only "Failed to fetch". The console shows the violation;
+            curl from the same machine succeeds, which is the tell.
+          </li>
+          <li>
+            The dev API cannot provision sandboxes: its
+            <code>VERCEL_SANDBOX_*</code> values are placeholders and it hands
+            boxes a localhost API URL. Filming a real arrival from the dev
+            desktop needs the cloud procedures routed to production.
+          </li>
           <li>
             <code>terminal_agent_bindings.endReason</code> needs a
             <code>moved</code> value, or source and destination both try to

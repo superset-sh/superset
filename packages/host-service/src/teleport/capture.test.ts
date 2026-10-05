@@ -100,6 +100,17 @@ describe("captureHandoff", () => {
 		expect(await git(source, ["rev-parse", REF])).toBe(capture.working);
 	});
 
+	test("names the working tree so an unchanged checkout is recognisable", async () => {
+		await writeFile(join(source, "tracked.txt"), "edited\n");
+		const first = await captureHandoff({ worktreePath: source, ref: REF });
+		const again = await captureHandoff({ worktreePath: source, ref: REF });
+		expect(again.workingTree).toBe(first.workingTree);
+
+		await writeFile(join(source, "late.txt"), "after the first capture\n");
+		const changed = await captureHandoff({ worktreePath: source, ref: REF });
+		expect(changed.workingTree).not.toBe(first.workingTree);
+	});
+
 	test("carries ignored .env files but not ignored build output", async () => {
 		await writeFile(join(source, ".env"), "SECRET=1\n");
 		await mkdir(join(source, "node_modules", "left-pad"), {
@@ -137,6 +148,42 @@ describe("round trip", () => {
 		);
 		expect(await readFile(join(destination, ".env"), "utf8")).toBe(
 			"SECRET=1\n",
+		);
+	});
+
+	test("a second arrival overwrites what the first one left untracked", async () => {
+		// The arrival command's git steps, as a sandbox runs them, applied
+		// twice: once for the pre-copy, once for the late changes.
+		const arrive = async (ref: string) => {
+			await git(destination, ["fetch", "-q", "origin", `${ref}:${ref}`]);
+			await git(destination, ["checkout", "-q", "-B", "work", `${ref}~2`]);
+			await git(destination, ["read-tree", "-u", "--reset", ref]);
+			await git(destination, ["read-tree", `${ref}^`]);
+			await git(destination, ["update-ref", "-d", ref]);
+		};
+		await writeFile(join(source, "notes.md"), "first draft\n");
+		await captureHandoff({ worktreePath: source, ref: REF });
+		await arrive(REF);
+		expect(await readFile(join(destination, "notes.md"), "utf8")).toBe(
+			"first draft\n",
+		);
+
+		await writeFile(join(source, "notes.md"), "first draft\nlate line\n");
+		await writeFile(join(source, "tracked.txt"), "edited late\n");
+		await captureHandoff({ worktreePath: source, ref: REF });
+		await arrive(REF);
+		expect(await readFile(join(destination, "notes.md"), "utf8")).toBe(
+			"first draft\nlate line\n",
+		);
+		expect(await readFile(join(destination, "tracked.txt"), "utf8")).toBe(
+			"edited late\n",
+		);
+		expect(await git(destination, ["status", "--porcelain=v1"])).toContain(
+			"?? notes.md",
+		);
+		expect(await git(destination, ["diff", "--name-only"])).toBe("tracked.txt");
+		expect(await git(destination, ["diff", "--cached", "--name-only"])).toBe(
+			"",
 		);
 	});
 

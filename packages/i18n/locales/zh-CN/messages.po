@@ -246,6 +246,10 @@ msgstr "{0, plural, other {# 个终端正在运行}}"
 msgid "{0, plural, one {# tool call} other {# tool calls}}"
 msgstr "{0, plural, one {#次工具调用} other {#次工具调用}}"
 
+#. placeholder {0}: plan.workingTree.unpushedCommits
+msgid "{0, plural, one {# unpushed commit} other {# unpushed commits}}"
+msgstr "{0, plural, other {# 个未推送的提交}}"
+
 #. placeholder {0}: group.workspaceCount
 #. placeholder {0}: selectedWorkspaces.length
 msgid "{0, plural, one {# workspace} other {# workspaces}}"
@@ -427,6 +431,10 @@ msgstr "{0}已安装"
 #. placeholder {1}: i18n._( HOTKEYS[pendingConflict.conflictId].label, )
 msgid "{0} is already assigned to \"{1}\"."
 msgstr "{0}已分配给“{1}”。"
+
+#. placeholder {0}: refusal.branch
+msgid "{0} is already checked out on {hostName}."
+msgstr "{0} 已在 {hostName} 上检出。"
 
 #. placeholder {0}: params?.repoFullName
 msgid "{0} is not a repository the GitHub App is installed on"
@@ -884,6 +892,10 @@ msgstr "{hidden, plural, other {查看另外 # 条回复}}"
 msgid "{hiddenCount, plural, one {Show # more frame} other {Show # more frames}}"
 msgstr "{hiddenCount, plural, one {再显示#个栈帧} other {再显示#个栈帧}}"
 
+#. placeholder {0}: refusal.branch
+msgid "{hostName} has commits on {0} that this device doesn't."
+msgstr "{hostName} 上有本设备没有的 {0} 提交。"
+
 msgid "{hostName} is offline"
 msgstr "{hostName}已离线"
 
@@ -943,6 +955,9 @@ msgstr "{minutes}分"
 
 msgid "{minutes}m ago"
 msgstr "{minutes}分钟前"
+
+msgid "{modified, plural, one {# modified} other {# modified}}"
+msgstr "{modified, plural, other {# 项修改}}"
 
 msgid "{modKey}↵ to create"
 msgstr "{modKey}↵创建"
@@ -1016,6 +1031,9 @@ msgstr "此部署尚未为 {plugin} 配置 OAuth 客户端。"
 
 msgid "{plugin} is no longer installed."
 msgstr "{plugin} 已不再安装。"
+
+msgid "{preciousFiles, plural, one {# env file} other {# env files}}"
+msgstr "{preciousFiles, plural, other {# 个 env 文件}}"
 
 msgid "{presetLabel} reset to defaults"
 msgstr "{presetLabel}已重置为默认值"
@@ -1120,6 +1138,9 @@ msgstr "{totalWorkspaceCount, plural, one {#个工作区} other {#个工作区}}
 
 msgid "{uncommittedCount, plural, one {# file changed} other {# files changed}}"
 msgstr "{uncommittedCount, plural, one {#个文件已更改} other {#个文件已更改}}"
+
+msgid "{untracked, plural, one {# untracked} other {# untracked}}"
+msgstr "{untracked, plural, other {# 项未跟踪}}"
 
 msgid "{updatedLabel} restored to defaults"
 msgstr "{updatedLabel}已恢复为默认值"
@@ -2101,6 +2122,9 @@ msgstr "已有账户？<0>登录</0>"
 msgid "Already in tasks"
 msgstr "已在任务中"
 
+msgid "Already on {hostName} · fetch only"
+msgstr "{hostName} 上已有 · 仅需拉取"
+
 msgid "Also available as CommandDialog for ⌘K palettes"
 msgstr "也可用作CommandDialog，用于⌘K命令面板"
 
@@ -2446,6 +2470,10 @@ msgstr "请求进行修改"
 
 msgid "Ask to make changes, @mention files, run /commands"
 msgstr "说明要做的修改，用@提及文件，用/运行命令"
+
+msgctxt "teleport step"
+msgid "Asking agents for handoff notes"
+msgstr "正在请智能体撰写交接说明"
 
 msgid "Aspect Ratio"
 msgstr "宽高比"
@@ -3219,6 +3247,10 @@ msgstr "用于智能体输出、评论和文档的标准markdown渲染层"
 msgid "Capabilities"
 msgstr "能力"
 
+msgctxt "teleport step"
+msgid "Capturing commits and changes"
+msgstr "正在捕获提交和改动"
+
 msgid "Card"
 msgstr "卡片"
 
@@ -3388,6 +3420,9 @@ msgstr "查收你的邮箱"
 
 msgid "Checkbox · Radio · Switch"
 msgstr "复选框 · 单选框 · 开关"
+
+msgid "Checking {hostName} and the running programs…"
+msgstr "正在检查 {hostName} 和正在运行的程序…"
 
 msgid "Checking + savings + Treasury over time; fundraise tranches are the steps"
 msgstr "活期+储蓄+国库账户随时间变化；台阶处为融资到账"
@@ -3648,6 +3683,9 @@ msgstr "克隆、推送并创建 PR。"
 msgid "Cloned to {0}"
 msgstr "已克隆到{0}"
 
+msgid "Clones the repository on {hostName} first"
+msgstr "先在 {hostName} 上克隆仓库"
+
 msgid "Cloning…"
 msgstr "正在克隆…"
 
@@ -3713,6 +3751,10 @@ msgstr "关闭弹窗背景"
 
 msgid "Close or delete the current workspace"
 msgstr "关闭或删除当前工作区"
+
+#. placeholder {0}: refusal.path
+msgid "Close or switch that workspace there, then try again. Its path is {0}."
+msgstr "请在那台设备上关闭或切换该工作区后重试。其路径为 {0}。"
 
 msgid "Close other apps using the microphone"
 msgstr "请关闭其他正在使用麦克风的应用"
@@ -4105,6 +4147,9 @@ msgstr "连接账号"
 
 msgid "Connect another account"
 msgstr "连接其他账号"
+
+msgid "Connect another device to teleport this workspace to it."
+msgstr "连接另一台设备，即可将此工作区传送过去。"
 
 msgid "Connect any AI agent to Superset."
 msgstr "把任意AI智能体接入Superset。"
@@ -5191,6 +5236,10 @@ msgstr "正在创建会话：{name}"
 
 msgid "Creating the sandbox"
 msgstr "正在创建沙箱"
+
+msgctxt "teleport step"
+msgid "Creating the worktree there"
+msgstr "正在那边创建工作树"
 
 msgid "Creating workspace"
 msgstr "正在创建工作区"
@@ -7740,6 +7789,12 @@ msgstr "一半的合并变更是零修改的智能体代码"
 msgid "Handle"
 msgstr "昵称"
 
+msgid "hands off & resumes"
+msgstr "交接并恢复"
+
+msgid "hands off & starts fresh"
+msgstr "交接并重新开始"
+
 msgid "Happened"
 msgstr "已发生"
 
@@ -9935,6 +9990,9 @@ msgstr "向分支推送了新提交"
 msgid "New releases and product updates."
 msgstr "新版本与产品更新。"
 
+msgid "New sandbox · the work arrives through origin"
+msgstr "新沙箱 · 工作通过 origin 送达"
+
 msgid "New session"
 msgstr "新建会话"
 
@@ -10756,6 +10814,9 @@ msgstr "没有需要重试的运行"
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近30天还没有已公开的数据。待本机用量同步后，你的排名就会显示，将以<0>{handle}</0>身份公开。"
 
+msgid "Nothing uncommitted — the branch moves on its own"
+msgstr "没有未提交的改动 — 仅分支会移动"
+
 msgid "Nothing was missed"
 msgstr "没有错过的运行"
 
@@ -10837,6 +10898,9 @@ msgstr "离线"
 
 msgid "Offline"
 msgstr "离线"
+
+msgid "Offline · will be reached when it wakes"
+msgstr "离线 · 唤醒后将自动连接"
 
 msgid "Offline / local-first mode"
 msgstr "离线/本地优先模式"
@@ -11255,6 +11319,13 @@ msgstr "打开菜单"
 msgid "Open navigation"
 msgstr "打开导航"
 
+#. placeholder {0}: host.name
+msgid "Open on {0}"
+msgstr "在 {0} 上打开"
+
+msgid "Open on {hostName}"
+msgstr "在 {hostName} 上打开"
+
 msgid "Open on GitHub"
 msgstr "在GitHub上打开"
 
@@ -11428,6 +11499,9 @@ msgstr "正在打开worktree..."
 
 msgid "Opens a cloud workspace where an agent installs what the project needs and writes its .superset/config.json"
 msgstr "打开一个云端工作区，由代理安装项目所需内容并写入其 .superset/config.json"
+
+msgid "opens empty"
+msgstr "打开空白"
 
 msgid "Operator"
 msgstr "操作员"
@@ -12650,6 +12724,10 @@ msgstr "变基并合并"
 msgid "Rebase and merge"
 msgstr "变基并合并"
 
+msgctxt "teleport step"
+msgid "Rebuilding tabs"
+msgstr "正在重建标签页"
+
 msgid "Recent Activity"
 msgstr "最近动态"
 
@@ -13041,6 +13119,9 @@ msgstr "回复讨论串…"
 msgid "repo"
 msgstr "仓库"
 
+msgid "Repo"
+msgstr "仓库"
+
 msgid "Report"
 msgstr "举报"
 
@@ -13272,6 +13353,9 @@ msgstr "正在重启主机服务…"
 msgid "Restarting…"
 msgstr "正在重启…"
 
+msgid "restarts"
+msgstr "重新启动"
+
 msgid "Restore"
 msgstr "恢复"
 
@@ -13305,6 +13389,10 @@ msgstr "已恢复“{name}”"
 
 msgid "Restored \"{projectName}\""
 msgstr "已恢复“{projectName}”"
+
+msgctxt "teleport step"
+msgid "Restoring changes"
+msgstr "正在恢复改动"
 
 msgid "Restoring your session"
 msgstr "正在恢复你的会话"
@@ -13558,6 +13646,9 @@ msgstr "在此主机的终端中运行，出现提示时粘贴你的密钥："
 msgid "Run in a terminal on this host:"
 msgstr "在此主机的终端中运行："
 
+msgid "Run in background"
+msgstr "在后台运行"
+
 msgid "Run in Workspace"
 msgstr "在工作区中运行"
 
@@ -13624,6 +13715,10 @@ msgstr "在已配对的设备上运行"
 msgid "Running on this device"
 msgstr "在此设备上运行"
 
+msgctxt "teleport step"
+msgid "Running setup scripts"
+msgstr "正在运行安装脚本"
+
 msgid "Running terminal processes continue, but older output may no longer be available after restarting the app."
 msgstr "运行中的终端进程会继续，但重启应用后可能无法再看到较早的输出。"
 
@@ -13647,6 +13742,9 @@ msgstr "创建新工作区时运行。"
 
 msgid "Runs when a workspace is deleted."
 msgstr "删除工作区时运行。"
+
+msgid "Safe to close — this continues in the background"
+msgstr "可以关闭 — 操作将在后台继续"
 
 msgid "Same version as this app."
 msgstr "与此应用版本相同。"
@@ -14380,6 +14478,9 @@ msgstr "初始化"
 
 msgid "Setup script"
 msgstr "设置脚本"
+
+msgid "Setup scripts run on arrival. This workspace stays here, stopped, until you delete it."
+msgstr "到达后会运行安装脚本。此工作区将保留在这里并停止运行，直到你删除它。"
 
 msgid "Sexual content"
 msgstr "色情内容"
@@ -15165,6 +15266,10 @@ msgstr "正在启动{agentLabel}"
 msgid "Starting cloud workspace"
 msgstr "正在启动云端工作区"
 
+msgctxt "teleport step"
+msgid "Starting programs"
+msgstr "正在启动程序"
+
 msgid "Starting the agent…"
 msgstr "正在启动智能体…"
 
@@ -15645,6 +15750,10 @@ msgstr "同步仓库"
 msgid "Sync started"
 msgstr "同步已开始"
 
+msgctxt "teleport step"
+msgid "Syncing late changes, stopping the source"
+msgstr "正在同步最后的更改并停止源"
+
 msgid "Syncing..."
 msgstr "正在同步..."
 
@@ -15819,6 +15928,30 @@ msgstr "清理脚本被信号{signal}终止"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "清理脚本在{seconds}秒后超时"
+
+msgid "Teleport"
+msgstr "传送"
+
+#. placeholder {0}: phase.host.name
+msgid "Teleport to {0}"
+msgstr "传送到 {0}"
+
+#. placeholder {0}: host.name
+msgid "Teleport to {0} failed"
+msgstr "传送到 {0} 失败"
+
+msgid "Teleport…"
+msgstr "传送…"
+
+#. placeholder {0}: host.name
+msgid "Teleported to {0}"
+msgstr "已传送到 {0}"
+
+msgid "Teleporting to {teleportingTo}…"
+msgstr "正在传送到 {teleportingTo}…"
+
+msgid "Teleporting would bury them. Pull from {hostName} first, or teleport in the other direction."
+msgstr "传送会掩埋这些提交。请先从 {hostName} 拉取，或反向传送。"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "让任意智能体用<0>superset</0> CLI来创建工作区、运行任务或管理自动化。"

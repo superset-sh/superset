@@ -184,7 +184,10 @@ test("a diverged destination is refused before anything runs", async () => {
 	// Both refusals fire here: the clone has main checked out, and it has
 	// moved ahead. Either one is enough to stop the dialog.
 	expect(refusal).not.toBeNull();
-	expect(["branch-checked-out", "branch-diverged"]).toContain(refusal?.kind);
+	expect(
+		refusal?.kind === "branch-checked-out" ||
+			refusal?.kind === "branch-diverged",
+	).toBe(true);
 });
 
 test("a failure before the hand-over leaves the source running", async () => {
