@@ -59,6 +59,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const {
 		branches,
 		defaultBranch,
+		checkedOutBranch,
 		isLoading: isBranchesLoading,
 		isError: isBranchesError,
 		isFetchingNextPage,
@@ -155,6 +156,7 @@ export function useBranchPickerController(args: UseBranchPickerControllerArgs) {
 	const pickerProps: PickerProps = {
 		effectiveCompareBaseBranch,
 		defaultBranch,
+		checkedOutBranch,
 		isBranchesLoading,
 		isBranchesError,
 		branches,

@@ -76,7 +76,12 @@ export function useBranchContext(
 		getNextPageParam: (last: BranchPage) => last.nextCursor ?? undefined,
 		queryFn: async ({ pageParam }): Promise<BranchPage> => {
 			if (!hostUrl || !projectId) {
-				return { defaultBranch: null, items: [], nextCursor: null };
+				return {
+					defaultBranch: null,
+					checkedOutBranch: null,
+					items: [],
+					nextCursor: null,
+				};
 			}
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.workspaceCreation.searchBranches.query({
@@ -112,11 +117,13 @@ export function useBranchContext(
 	);
 
 	const defaultBranch = pages?.[0]?.defaultBranch ?? null;
+	const checkedOutBranch = pages?.[0]?.checkedOutBranch ?? null;
 
 	if (isCloud) {
 		return {
 			branches: cloudRows,
 			defaultBranch: cloudRepository?.defaultBranch ?? null,
+			checkedOutBranch: null,
 			isLoading: cloudBranches.isLoading,
 			isError: cloudBranches.isError,
 			isFetchingNextPage: false,
@@ -128,6 +135,7 @@ export function useBranchContext(
 	return {
 		branches,
 		defaultBranch,
+		checkedOutBranch,
 		isLoading: q.isLoading,
 		isError: q.isError,
 		isFetchingNextPage: q.isFetchingNextPage,
