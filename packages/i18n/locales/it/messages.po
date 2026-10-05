@@ -2951,6 +2951,9 @@ msgstr "Prefisso dei branch"
 msgid "Branch Prefix"
 msgstr "Prefisso del branch"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Ramo ricreato dal repository remoto “{branch}”."
+
 msgid "Branch renamed to {newName}"
 msgstr "Branch rinominato in {newName}"
 
@@ -5583,6 +5586,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Eliminato"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Eliminato · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "\"{deletedName}\" eliminato"
 
@@ -6936,6 +6943,10 @@ msgstr "Riavvio del daemon non riuscito"
 
 msgid "Failed to restore"
 msgstr "Ripristino non riuscito"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Ripristino di “{workspaceName}” non riuscito: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Ripristino dei valori predefiniti non riuscito"
@@ -13349,6 +13360,12 @@ msgstr "Ripristina il workspace appena archiviato"
 msgid "Restore this version?"
 msgstr "Ripristinare questa versione?"
 
+msgid "Restore workspace"
+msgstr "Ripristina workspace"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Ripristinare il workspace “{workspaceName}”?"
+
 msgid "Restored"
 msgstr "Ripristinato"
 
@@ -16560,6 +16577,9 @@ msgstr "Questa pull request non è più disponibile."
 msgid "This pull request link is invalid."
 msgstr "Questo link alla pull request non è valido."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Viene ricreato il worktree dal ramo “{branch}”. Torna solo il lavoro committato o pushato — le modifiche non committate sono perse e un ramo eliminato sia in locale che sul repository remoto non può essere ripristinato."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Rimuove dal disco ogni worktree selezionato ed elimina il record del suo workspace."
 
@@ -17572,6 +17592,9 @@ msgstr "Vedi tutti"
 msgid "View comment by {0}"
 msgstr "Vedi il commento di {0}"
 
+msgid "View deleted workspaces"
+msgstr "Visualizza i workspace eliminati"
+
 msgid "View file"
 msgstr "Vedi il file"
 
@@ -18035,6 +18058,9 @@ msgstr "workspace"
 
 msgid "Workspace"
 msgstr "Workspace"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Workspace “{workspaceName}” ripristinato"
 
 msgid "Workspace accent-color picker"
 msgstr "Selettore del colore d'accento del workspace"

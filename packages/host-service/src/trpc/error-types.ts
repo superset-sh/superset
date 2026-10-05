@@ -63,3 +63,24 @@ export function isDeleteInProgressCause(
 		(value as { kind: unknown }).kind === "DELETE_IN_PROGRESS"
 	);
 }
+
+/**
+ * Thrown by `workspaceCleanup.restore` when the workspace's branch exists
+ * neither locally nor on any configured remote — only committed or pushed
+ * work can come back, so there is nothing to rebuild the worktree from.
+ */
+export interface RestoreBranchGoneCause {
+	kind: "RESTORE_BRANCH_GONE";
+	branch: string;
+}
+
+export function isRestoreBranchGoneCause(
+	value: unknown,
+): value is RestoreBranchGoneCause {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"kind" in value &&
+		(value as { kind: unknown }).kind === "RESTORE_BRANCH_GONE"
+	);
+}

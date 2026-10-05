@@ -2951,6 +2951,9 @@ msgstr "Префикс ветки"
 msgid "Branch Prefix"
 msgstr "Префикс ветки"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "Ветка воссоздана из удалённой ветки «{branch}»."
+
 msgid "Branch renamed to {newName}"
 msgstr "Ветка переименована в {newName}"
 
@@ -5583,6 +5586,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "Удалён"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "Удалено · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "«{deletedName}» удалена"
 
@@ -6936,6 +6943,10 @@ msgstr "Не удалось перезапустить демон"
 
 msgid "Failed to restore"
 msgstr "Не удалось восстановить"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "Не удалось восстановить «{workspaceName}»: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "Не удалось восстановить значения по умолчанию"
@@ -13349,6 +13360,12 @@ msgstr "Восстановить только что заархивирован�
 msgid "Restore this version?"
 msgstr "Восстановить эту версию?"
 
+msgid "Restore workspace"
+msgstr "Восстановить рабочую область"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "Восстановить рабочую область «{workspaceName}»?"
+
 msgid "Restored"
 msgstr "Восстановлено"
 
@@ -16560,6 +16577,9 @@ msgstr "Этот пул-реквест больше недоступен."
 msgid "This pull request link is invalid."
 msgstr "Эта ссылка на пул-реквест недействительна."
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "Worktree будет пересоздан из ветки «{branch}». Вернётся только закоммиченная или отправленная работа — незакоммиченные изменения потеряны, а ветку, удалённую и локально, и на удалённом репозитории, восстановить нельзя."
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "Это удалит каждый выбранный worktree с диска и сотрёт запись о его рабочей области."
 
@@ -17572,6 +17592,9 @@ msgstr "Смотреть все"
 msgid "View comment by {0}"
 msgstr "Посмотреть комментарий от {0}"
 
+msgid "View deleted workspaces"
+msgstr "Показать удалённые рабочие области"
+
 msgid "View file"
 msgstr "Посмотреть файл"
 
@@ -18035,6 +18058,9 @@ msgstr "рабочая область"
 
 msgid "Workspace"
 msgstr "Рабочая область"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "Рабочая область «{workspaceName}» восстановлена"
 
 msgid "Workspace accent-color picker"
 msgstr "Выбор акцентного цвета рабочей области"

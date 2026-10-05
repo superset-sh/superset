@@ -13,6 +13,7 @@ import { type ReactNode, useCallback } from "react";
 import {
 	LuArrowUpRight,
 	LuGitBranch,
+	LuHistory,
 	LuPanelLeftClose,
 	LuPanelLeftOpen,
 	LuTrash2,
@@ -23,6 +24,7 @@ import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
+import { useRestoreWorkspaceIntent } from "renderer/stores/restore-workspace-intent";
 
 export interface V2WorkspaceActions {
 	/** Navigate to the workspace (paywall-gated for remote hosts). */
@@ -133,6 +135,17 @@ export function V2WorkspaceContextMenu({
 		});
 	}, [workspace.id, workspace.name, workspace.branch]);
 
+	// Restore goes through the globally-mounted dialog for the same
+	// reason as delete: the tombstone row re-renders on un-archive.
+	const openRestoreDialog = useCallback(() => {
+		useRestoreWorkspaceIntent.getState().request({
+			workspaceId: workspace.id,
+			workspaceName: workspace.name || workspace.branch,
+			branch: workspace.branch,
+			hostId: workspace.hostId,
+		});
+	}, [workspace.id, workspace.name, workspace.branch, workspace.hostId]);
+
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
@@ -168,6 +181,12 @@ export function V2WorkspaceContextMenu({
 					</ContextMenuItem>
 				)}
 				<ContextMenuSeparator />
+				{workspace.archivedAt != null && workspace.projectId != null && (
+					<ContextMenuItem onSelect={openRestoreDialog}>
+						<LuHistory className="size-4" />
+						<Trans>Restore</Trans>
+					</ContextMenuItem>
+				)}
 				<ContextMenuItem
 					onSelect={openDeleteDialog}
 					className="text-destructive focus:text-destructive"

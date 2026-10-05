@@ -2951,6 +2951,9 @@ msgstr "ブランチプレフィックス"
 msgid "Branch Prefix"
 msgstr "ブランチの接頭辞"
 
+msgid "Branch recreated from remote \"{branch}\""
+msgstr "リモート「{branch}」からブランチを再作成しました。"
+
 msgid "Branch renamed to {newName}"
 msgstr "ブランチ名を{newName}に変更しました"
 
@@ -5583,6 +5586,10 @@ msgctxt "github release action"
 msgid "Deleted"
 msgstr "削除"
 
+#. placeholder {0}: formatCompactRelativeTime(archivedAt, now)
+msgid "Deleted · {0}"
+msgstr "削除済み · {0}"
+
 msgid "Deleted \"{deletedName}\""
 msgstr "「{deletedName}」を削除しました"
 
@@ -6936,6 +6943,10 @@ msgstr "デーモンの再起動に失敗しました"
 
 msgid "Failed to restore"
 msgstr "復元できませんでした"
+
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
+msgid "Failed to restore \"{workspaceName}\": {0}"
+msgstr "「{workspaceName}」を復元できませんでした: {0}"
 
 msgid "Failed to restore defaults"
 msgstr "デフォルトの復元に失敗しました"
@@ -13349,6 +13360,12 @@ msgstr "アーカイブしたばかりのワークスペースを復元する"
 msgid "Restore this version?"
 msgstr "このバージョンを復元しますか?"
 
+msgid "Restore workspace"
+msgstr "ワークスペースを復元"
+
+msgid "Restore workspace \"{workspaceName}\"?"
+msgstr "ワークスペース「{workspaceName}」を復元しますか?"
+
 msgid "Restored"
 msgstr "復元済み"
 
@@ -16560,6 +16577,9 @@ msgstr "このプルリクエストは利用できなくなりました。"
 msgid "This pull request link is invalid."
 msgstr "このプルリクエストのリンクは無効です。"
 
+msgid "This re-creates the worktree from branch \"{branch}\". Only committed or pushed work comes back — uncommitted changes are gone, and a branch deleted both locally and on the remote cannot be restored."
+msgstr "ブランチ「{branch}」からワークツリーを再作成します。コミットまたはプッシュされた作業のみが戻ります — 未コミットの変更は失われ、ローカルとリモートの両方で削除されたブランチは復元できません。"
+
 msgid "This removes every selected worktree from disk and deletes its workspace record."
 msgstr "選択したすべてのワークツリーをディスクから削除し、ワークスペースの記録も削除します。"
 
@@ -17572,6 +17592,9 @@ msgstr "すべて表示"
 msgid "View comment by {0}"
 msgstr "{0}のコメントを表示"
 
+msgid "View deleted workspaces"
+msgstr "削除されたワークスペースを表示"
+
 msgid "View file"
 msgstr "ファイルを表示"
 
@@ -18035,6 +18058,9 @@ msgstr "ワークスペース"
 
 msgid "Workspace"
 msgstr "ワークスペース"
+
+msgid "Workspace \"{workspaceName}\" restored"
+msgstr "ワークスペース「{workspaceName}」を復元しました"
 
 msgid "Workspace accent-color picker"
 msgstr "ワークスペースのアクセントカラーピッカー"
