@@ -6,7 +6,8 @@ interface ImportSource {
 /**
  * Sources whose browser matches `from`. A browser named exactly `from`, or
  * ending in it as a whole word ("Chrome" for "Google Chrome"), wins over a
- * partial match, so "Opera" doesn't also pick "Opera GX".
+ * partial match, so "Opera" doesn't also pick "Opera GX". The browser is
+ * chosen before `profile` narrows it, so a profile name never switches browsers.
  */
 export function matchSources<T extends ImportSource>(
 	sources: T[],
@@ -15,16 +16,18 @@ export function matchSources<T extends ImportSource>(
 ): T[] {
 	const wantedBrowser = from.toLowerCase();
 	const wantedProfile = profile?.toLowerCase();
-	const candidates = sources.filter(
-		(s) =>
-			!wantedProfile || s.profileName.toLowerCase().includes(wantedProfile),
-	);
-	const exact = candidates.filter((s) => {
+	const exact = sources.filter((s) => {
 		const name = s.browserName.toLowerCase();
 		return name === wantedBrowser || name.endsWith(` ${wantedBrowser}`);
 	});
-	if (exact.length > 0) return exact;
-	return candidates.filter((s) =>
-		s.browserName.toLowerCase().includes(wantedBrowser),
+	const browserMatches =
+		exact.length > 0
+			? exact
+			: sources.filter((s) =>
+					s.browserName.toLowerCase().includes(wantedBrowser),
+				);
+	if (!wantedProfile) return browserMatches;
+	return browserMatches.filter((s) =>
+		s.profileName.toLowerCase().includes(wantedProfile),
 	);
 }

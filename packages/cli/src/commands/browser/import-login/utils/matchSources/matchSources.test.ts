@@ -9,6 +9,7 @@ const source = (browserName: string, profileName = "Default") => ({
 const SOURCES = [
 	source("Google Chrome"),
 	source("Chrome Beta"),
+	source("Chrome Beta", "Beta Only"),
 	source("Microsoft Edge"),
 	source("Microsoft Edge Dev"),
 	source("Opera"),
@@ -31,7 +32,7 @@ describe("matchSources", () => {
 
 	it("selects a channel by its full name", () => {
 		expect(names("Opera GX")).toEqual(["Opera GX/Default"]);
-		expect(names("chrome beta")).toEqual(["Chrome Beta/Default"]);
+		expect(names("chrome beta", "default")).toEqual(["Chrome Beta/Default"]);
 	});
 
 	it("falls back to a partial match", () => {
@@ -41,5 +42,9 @@ describe("matchSources", () => {
 	it("narrows by profile", () => {
 		expect(names("Aside")).toHaveLength(2);
 		expect(names("Aside", "work")).toEqual(["Aside/Work"]);
+	});
+
+	it("never switches browser to find a profile", () => {
+		expect(names("Chrome", "Beta Only")).toEqual([]);
 	});
 });
