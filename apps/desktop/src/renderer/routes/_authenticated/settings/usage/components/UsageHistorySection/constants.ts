@@ -21,6 +21,7 @@ export const AGENT_CHART_CONFIG = {
 	fx: { label: "fx", color: "#5b6bd6" },
 	muse: { label: "Muse Code", color: "#cc6b8e" },
 	devin: { label: "Devin", color: "#7f5fa8" },
+	typesafe: { label: "jev", color: "#4c7a94" },
 } satisfies ChartConfig;
 
 /** Preset-icon registry keys per agent (cursor's icon is keyed by its
@@ -38,6 +39,7 @@ export const AGENT_ICON_KEY: Record<keyof typeof AGENT_CHART_CONFIG, string> = {
 	fx: "fx",
 	muse: "muse",
 	devin: "devin",
+	typesafe: "typesafe",
 };
 
 export const AGENT_ORDER = [
@@ -53,6 +55,7 @@ export const AGENT_ORDER = [
 	"fx",
 	"muse",
 	"devin",
+	"typesafe",
 ] as const;
 
 export type HistoryMetric = "usd" | "tokens";
