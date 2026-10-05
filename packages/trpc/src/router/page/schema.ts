@@ -19,6 +19,7 @@ export const pageFields = {
 	version: z.number().int().positive(),
 	filename: z.string().min(1).max(255),
 	entryPath: z.string().min(1).max(1024),
+	storageKey: z.string().min(1).max(MAX_PAGE_STORAGE_KEY_LENGTH),
 	workspaceId: z.string().uuid(),
 	title: z.string().min(1).max(200),
 	description: z.string().max(2000),
@@ -187,7 +188,7 @@ export const pageRefSchema = pageRefFieldsSchema.refine(
 );
 
 export const pageStorageRecordsSchema = pageRefFieldsSchema
-	.extend({ key: z.string().min(1).max(MAX_PAGE_STORAGE_KEY_LENGTH) })
+	.extend({ key: pageFields.storageKey })
 	.refine(hasPageRef, PAGE_REF_MESSAGE);
 
 export const setPageVisibilitySchema = z.object({
