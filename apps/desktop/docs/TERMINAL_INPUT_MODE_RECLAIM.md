@@ -47,6 +47,21 @@ disarming on it would clear a live tmux's own modes.
 
 **Guard:** the reclaimer only acts at a shell prompt (when no TUI owns the
 foreground) and re-checks at flush, so a live/suspended/racing TUI keeps its modes.
+The re-check only saves a TUI that re-arms right after the marker; one that armed
+earlier and then went quiet had nothing to re-arm, which is why the screen itself is
+the signal. `noteShellReady({ alternateScreen })` therefore ignores a marker that
+landed on the **alternate screen**: a shell prompt never lives there, so it came from
+a shell nested inside a live TUI. Honoring it disarmed opencode/agy's mouse tracking
+mid-session, after which every wheel event reached them as arrow keys and cycled
+their prompt history (#7681). The rule lives in the core, not the adapters, which
+only report the screen they already track.
+
+**tmux, and what this gives up:** tmux owns the alternate screen, so a prompt inside
+it reports as alternate and its marker is ignored. That is the safe side of the
+trade — the same reasoning as the marker choice above, where disarming on a
+tmux-forwarded sequence would clear tmux's own modes. The cost is that a TUI killed
+uncleanly *inside* tmux is no longer healed by reclaim; recovering it still needs
+`reset`.
 
 ## Reproduction
 
