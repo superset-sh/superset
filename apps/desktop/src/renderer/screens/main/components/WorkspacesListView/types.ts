@@ -15,6 +15,7 @@ export interface WorkspaceItem {
 	createdAt: number;
 	isUnread: boolean;
 	isOpen: boolean;
+	createdBySuperset: boolean | null;
 }
 
 export interface ProjectGroup {
