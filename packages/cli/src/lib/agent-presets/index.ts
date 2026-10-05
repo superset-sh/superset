@@ -1,0 +1,1 @@
+export { parseEnvPairs } from "./parseEnvPairs";
