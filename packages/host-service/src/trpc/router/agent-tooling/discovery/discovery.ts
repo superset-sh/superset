@@ -25,7 +25,7 @@ const discoveryCache = new Map<
 >();
 
 export interface ListAgentSlashCommandsOptions {
-	worktreePath: string;
+	worktreePath: string | null;
 	/** Raw client-supplied agent id (presetId or config UUID) — cache-key part. */
 	agentId: string;
 	/** Resolved presetId (config.presetId, or agentId when no config row exists). */
@@ -52,7 +52,7 @@ export async function listAgentSlashCommands(
 		options.homeDir ?? os.homedir(),
 	);
 	const now = options.now ?? Date.now;
-	const key = `${options.worktreePath}::${options.agentId}::${configDir}`;
+	const key = `${options.worktreePath ?? ""}::${options.agentId}::${configDir}`;
 	const cached = discoveryCache.get(key);
 	if (cached && now() - cached.fetchedAt < DISCOVERY_CACHE_TTL_MS) {
 		discoveryCache.delete(key);

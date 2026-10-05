@@ -13,6 +13,7 @@ import { clearSlashCommandDiscoveryCache } from "./discovery";
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 const WORKSPACE_ID = "2b1e8c7e-1234-4abc-8def-0123456789ab";
 const CONFIG_ID = "3c2f9d8f-5678-4abc-8def-0123456789ab";
+const PROJECT_ID = "4d3a0e9a-9abc-4abc-8def-0123456789ab";
 
 let root: string;
 let worktree: string;
@@ -55,6 +56,33 @@ function writeCommand(configDir: string, name: string): void {
 		join(configDir, "commands", `${name}.md`),
 		`---\ndescription: ${name}\n---\n`,
 	);
+}
+
+function writeSkill(skillsDir: string, name: string): void {
+	mkdirSync(join(skillsDir, name), { recursive: true });
+	writeFileSync(
+		join(skillsDir, name, "SKILL.md"),
+		`---\nname: ${name}\ndescription: ${name}\n---\n`,
+	);
+}
+
+function seedProjectAndUserScope(): void {
+	const repo = join(root, "repo");
+	writeCommand(join(repo, ".claude"), "project-command");
+	writeSkill(join(repo, ".claude", "skills"), "project-skill");
+	db.insert(schema.projects).values({ id: PROJECT_ID, repoPath: repo }).run();
+	const configDir = join(root, "user-config");
+	writeCommand(configDir, "user-command");
+	writeSkill(join(configDir, "skills"), "user-skill");
+	seedAgentConfig({ CLAUDE_CONFIG_DIR: configDir });
+}
+
+function customEntries(
+	commands: { kind: string; name: string; source: string }[],
+) {
+	return commands
+		.filter((c) => c.kind === "custom")
+		.map(({ name, source }) => ({ name, source }));
 }
 
 beforeEach(() => {
@@ -156,5 +184,49 @@ describe("agentTooling.listSlashCommands", () => {
 		expect(
 			fromConfig.filter((c) => c.kind === "custom").map((c) => c.name),
 		).toEqual(["from-config-env"]);
+	});
+
+	it("scans a project's repo and user scope when given a projectId", async () => {
+		seedProjectAndUserScope();
+		const result = await createCaller().listSlashCommands({
+			projectId: PROJECT_ID,
+			agent: "claude",
+		});
+		expect(customEntries(result)).toEqual([
+			{ name: "project-command", source: "project" },
+			{ name: "user-command", source: "global" },
+			{ name: "project-skill", source: "project" },
+			{ name: "user-skill", source: "global" },
+		]);
+	});
+
+	it("scans only user scope when given neither a workspace nor a project", async () => {
+		seedProjectAndUserScope();
+		const result = await createCaller().listSlashCommands({ agent: "claude" });
+		expect(customEntries(result)).toEqual([
+			{ name: "user-command", source: "global" },
+			{ name: "user-skill", source: "global" },
+		]);
+	});
+
+	it("rejects an unknown project with NOT_FOUND", async () => {
+		await expect(
+			createCaller().listSlashCommands({
+				projectId: PROJECT_ID,
+				agent: "claude",
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+
+	it("rejects a workspaceId and a projectId together", async () => {
+		seedWorkspace();
+		seedProjectAndUserScope();
+		await expect(
+			createCaller().listSlashCommands({
+				workspaceId: WORKSPACE_ID,
+				projectId: PROJECT_ID,
+				agent: "claude",
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 });

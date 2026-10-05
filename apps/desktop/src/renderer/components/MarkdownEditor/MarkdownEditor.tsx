@@ -2,7 +2,9 @@ import "../../styles/hljs-github.css";
 import "./markdown-editor.css";
 
 import { useLingui } from "@lingui/react/macro";
+import type { SlashCommand as AgentSlashCommand } from "@superset/shared/slash-commands";
 import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
+import { Popover, PopoverAnchor } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
 import { Extension } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
@@ -38,13 +40,14 @@ import {
 } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
-import { type MutableRefObject, useEffect, useRef } from "react";
+import { type MutableRefObject, useEffect, useRef, useState } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
 import {
 	PluginMentionNode,
 	type PluginMentionOption,
 	restorePluginMentions,
 } from "renderer/components/PluginMention";
+import { SlashCommandMenu } from "renderer/components/SlashCommandMenu";
 import { useUrlLinkAction } from "renderer/lib/clickPolicy";
 import {
 	SafeLink,
@@ -52,6 +55,12 @@ import {
 } from "renderer/lib/tiptap/markdown-attributes";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { Markdown } from "tiptap-markdown";
+import {
+	type AgentSlashCommandMenu,
+	AgentSlashCommandSuggestion,
+	isAgentSlashCommandMenuOpen,
+	refreshAgentSlashCommands,
+} from "./components/AgentSlashCommandSuggestion";
 import { CodeBlockView } from "./components/CodeBlockView";
 import { EmojiSuggestion } from "./components/EmojiSuggestion";
 import {
@@ -153,7 +162,11 @@ const KeyboardHandler = Extension.create({
 	addKeyboardShortcuts() {
 		return {
 			Tab: ({ editor }) => {
-				if (isPluginMentionMenuOpen(editor)) return false;
+				if (
+					isPluginMentionMenuOpen(editor) ||
+					isAgentSlashCommandMenuOpen(editor)
+				)
+					return false;
 				if (editor.commands.sinkListItem("listItem")) return true;
 				if (editor.commands.sinkListItem("taskItem")) return true;
 				// Not in a list - consume event to prevent browser focus navigation
@@ -196,6 +209,11 @@ interface MarkdownEditorProps {
 	 * `@name`. Composer prompts only — leave searchFiles and searchMentions unset.
 	 */
 	pluginMentions?: readonly PluginMentionOption[];
+	/**
+	 * If provided, `/` at the start lists these agent commands and inserts the
+	 * chosen one as text. Do not combine with features.slashCommand.
+	 */
+	slashCommands?: AgentSlashCommand[];
 	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
 	onPasteFiles?: (files: File[]) => void;
 	/** If provided, files dropped on the editor are forwarded here with the drop position. */
@@ -254,6 +272,7 @@ export function MarkdownEditor({
 	searchFiles,
 	searchMentions,
 	pluginMentions,
+	slashCommands,
 	onPasteFiles,
 	onDropFiles,
 	editorHandle,
@@ -279,6 +298,11 @@ export function MarkdownEditor({
 	searchMentionsRef.current = searchMentions;
 	const pluginMentionsRef = useRef(pluginMentions);
 	pluginMentionsRef.current = pluginMentions;
+	const slashCommandsRef = useRef(slashCommands);
+	slashCommandsRef.current = slashCommands;
+	const [slashMenu, setSlashMenu] = useState<AgentSlashCommandMenu | null>(
+		null,
+	);
 	const onPasteFilesRef = useRef(onPasteFiles);
 	onPasteFilesRef.current = onPasteFiles;
 	const onDropFilesRef = useRef(onDropFiles);
@@ -426,6 +450,14 @@ export function MarkdownEditor({
 						}),
 					]
 				: []),
+			...(slashCommandsRef.current
+				? [
+						AgentSlashCommandSuggestion.configure({
+							getCommands: () => slashCommandsRef.current ?? [],
+							onMenuChange: setSlashMenu,
+						}),
+					]
+				: []),
 			...(!showFileMention && searchMentionsRef.current
 				? [
 						RecordMentionSuggestion.configure({
@@ -460,7 +492,8 @@ export function MarkdownEditor({
 					event.key === "Enter" &&
 					!event.shiftKey &&
 					!event.altKey &&
-					!isPluginMentionMenuOpen(editorRef.current)
+					!isPluginMentionMenuOpen(editorRef.current) &&
+					!isAgentSlashCommandMenuOpen(editorRef.current)
 				) {
 					onEnterSubmitRef.current();
 					return true;
@@ -527,6 +560,10 @@ export function MarkdownEditor({
 		if (editor && editor.isEditable !== editable) editor.setEditable(editable);
 	}, [editable, editor]);
 
+	useEffect(() => {
+		if (slashCommands) refreshAgentSlashCommands(editor);
+	}, [editor, slashCommands]);
+
 	// Content read before the catalog answered kept `@name` as text; the first
 	// catalog arrival turns those into chips. Later refreshes leave typing alone.
 	const hadPluginMentions = useRef((pluginMentions?.length ?? 0) > 0);
@@ -550,27 +587,45 @@ export function MarkdownEditor({
 	}, [content, editor]);
 
 	return (
-		<div className={cn("w-full", className)}>
-			{showBubbleMenu && editable && editor && (
-				<BubbleMenu
-					editor={editor}
-					options={{
-						placement: "top",
-						offset: { mainAxis: 8 },
-					}}
-					shouldShow={({ editor: e, from, to }) => {
-						if (from === to) return false;
-						if (e.isActive("codeBlock") || e.isActive("image")) return false;
-						return true;
-					}}
-				>
-					<BubbleMenuToolbar editor={editor} />
-				</BubbleMenu>
+		<Popover
+			open={slashMenu !== null}
+			onOpenChange={(open) => {
+				if (!open) slashMenu?.dismiss();
+			}}
+		>
+			<PopoverAnchor asChild>
+				<div className={cn("w-full", className)}>
+					{showBubbleMenu && editable && editor && (
+						<BubbleMenu
+							editor={editor}
+							options={{
+								placement: "top",
+								offset: { mainAxis: 8 },
+							}}
+							shouldShow={({ editor: e, from, to }) => {
+								if (from === to) return false;
+								if (e.isActive("codeBlock") || e.isActive("image"))
+									return false;
+								return true;
+							}}
+						>
+							<BubbleMenuToolbar editor={editor} />
+						</BubbleMenu>
+					)}
+					<EditorContent
+						editor={editor}
+						className="w-full flex-1 min-h-0 flex flex-col [&>.ProseMirror]:flex-1"
+					/>
+				</div>
+			</PopoverAnchor>
+			{slashMenu && (
+				<SlashCommandMenu
+					commands={slashMenu.commands}
+					selectedIndex={slashMenu.selectedIndex}
+					onSelect={slashMenu.select}
+					onHover={slashMenu.hover}
+				/>
 			)}
-			<EditorContent
-				editor={editor}
-				className="w-full flex-1 min-h-0 flex flex-col [&>.ProseMirror]:flex-1"
-			/>
-		</div>
+		</Popover>
 	);
 }

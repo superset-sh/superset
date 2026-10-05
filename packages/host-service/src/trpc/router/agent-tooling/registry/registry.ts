@@ -4,8 +4,8 @@ import { CODEX_BUILTIN_SLASH_COMMANDS } from "../builtins";
 import { scanClaudeSlashCommands } from "../scan-claude";
 
 export interface SlashCommandScanContext {
-	/** Workspace worktree root (workspaces.worktreePath). */
-	worktreePath: string;
+	/** Checkout whose `.claude/` holds project scope; null scans user scope only. */
+	worktreePath: string | null;
 	/** Effective provider config home (CLAUDE_CONFIG_DIR / CODEX_HOME / CLI default). */
 	configDir: string;
 }

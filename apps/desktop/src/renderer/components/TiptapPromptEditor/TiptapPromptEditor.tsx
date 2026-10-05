@@ -38,10 +38,10 @@ import {
 	pluginMentionText,
 	restorePluginMentions,
 } from "renderer/components/PluginMention";
+import { SlashCommandMenu } from "renderer/components/SlashCommandMenu";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { resolveHotkeyFromEvent } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
-import { SlashCommandMenu } from "./components/SlashCommandMenu";
 import { FileMentionNode } from "./FileMentionNode";
 import { parseTextToEditorContent } from "./parseTextToEditorContent";
 import { SlashCommandNode } from "./SlashCommandNode";

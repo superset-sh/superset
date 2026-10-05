@@ -106,6 +106,7 @@ import { SamplePromptCards } from "./components/SamplePromptCards";
 import { SamplePrompts } from "./components/SamplePrompts";
 import { PROMPT_PLACEHOLDERS } from "./components/SamplePrompts/constants";
 import { SupersetIcon } from "./components/SupersetIcon";
+import { useAgentSlashCommands } from "./hooks/useAgentSlashCommands";
 import { useProjectPreselection } from "./hooks/useProjectPreselection";
 import { useSamplePromptSelection } from "./hooks/useSamplePromptSelection";
 
@@ -465,6 +466,12 @@ export function NewWorkspaceScreen({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentsFetched,
 		});
+
+	const slashCommands = useAgentSlashCommands({
+		hostUrl: launchHostUrl,
+		projectId,
+		agent: selectedAgent === "none" ? null : selectedAgent,
+	});
 
 	const selectedPresetId = useMemo(() => {
 		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
@@ -859,6 +866,7 @@ export function NewWorkspaceScreen({
 							onPasteFiles={(files) => attachments.add(files)}
 							onEnterSubmit={handleSubmit}
 							pluginMentions={pluginMentions}
+							slashCommands={slashCommands}
 							autoFocus={draft.prompt ? "end" : "start"}
 							placeholder={promptPlaceholder}
 							className="flex flex-col min-h-[80px] max-h-[min(50vh,600px)] px-3 pt-3"

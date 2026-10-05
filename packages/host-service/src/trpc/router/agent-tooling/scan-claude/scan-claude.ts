@@ -83,13 +83,18 @@ export async function scanClaudeSlashCommands(
 		listSkillsDirPlugins(join(ctx.configDir, "skills")),
 	]);
 	const plugins = [...installedPlugins, ...skillsDirPlugins];
+	const projectDir = ctx.worktreePath && join(ctx.worktreePath, ".claude");
 
 	const commandScans = [
-		scanCommandDir(join(ctx.worktreePath, ".claude", "commands"), {
-			source: "project",
-			trigger: "/",
-			recursive: true,
-		}),
+		...(projectDir
+			? [
+					scanCommandDir(join(projectDir, "commands"), {
+						source: "project",
+						trigger: "/",
+						recursive: true,
+					}),
+				]
+			: []),
 		scanCommandDir(join(ctx.configDir, "commands"), {
 			source: "global",
 			trigger: "/",
@@ -105,10 +110,14 @@ export async function scanClaudeSlashCommands(
 		),
 	];
 	const skillScans = [
-		scanSkillsDir(join(ctx.worktreePath, ".claude", "skills"), {
-			source: "project",
-			trigger: "/",
-		}),
+		...(projectDir
+			? [
+					scanSkillsDir(join(projectDir, "skills"), {
+						source: "project",
+						trigger: "/",
+					}),
+				]
+			: []),
 		scanSkillsDir(join(ctx.configDir, "skills"), {
 			source: "global",
 			trigger: "/",

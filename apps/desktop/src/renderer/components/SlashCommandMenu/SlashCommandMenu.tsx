@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro";
+import type { SlashCommand } from "@superset/shared/slash-commands";
 import { PopoverContent } from "@superset/ui/popover";
 import { useEffect, useRef } from "react";
-import type { SlashCommand } from "../../slash-commands";
 
 interface SlashCommandMenuProps {
 	commands: SlashCommand[];
