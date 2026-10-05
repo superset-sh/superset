@@ -202,6 +202,8 @@ async function writeStoredAuth(storedAuth: StoredAuth): Promise<void> {
 }
 
 export const stateStore = new Map<string, number>();
+/** How long a sign-in started with `signIn` may take to come back. */
+export const AUTH_STATE_TTL_MS = 10 * 60 * 1000;
 let authWriteQueue: Promise<unknown> = Promise.resolve();
 
 function serializeAuthWrite<Result>(
@@ -342,6 +344,11 @@ export async function handleAuthCallback(params: {
 		return { success: false, error: "Invalid or expired auth session" };
 	}
 	stateStore.delete(params.state);
+	// signIn only sweeps expired states when the next sign-in starts, so
+	// without this check a state stays valid until the app restarts.
+	if (Date.now() - stateIssuedAt > AUTH_STATE_TTL_MS) {
+		return { success: false, error: "Invalid or expired auth session" };
+	}
 
 	try {
 		await saveToken({ token: params.token, expiresAt: params.expiresAt });
