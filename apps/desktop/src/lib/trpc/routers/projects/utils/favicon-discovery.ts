@@ -1,5 +1,5 @@
-import { readFile, stat } from "node:fs/promises";
-import { extname } from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
+import { extname, isAbsolute, relative, sep } from "node:path";
 import fg from "fast-glob";
 import {
 	saveProjectIconFromBuffer,
@@ -57,8 +57,24 @@ export async function discoverAndSaveProjectIcon({
 		// Use the first match (ordered by FAVICON_PATTERNS priority)
 		const iconPath = matches[0];
 
+		// A repo can symlink favicon.png (or a parent dir) at a file outside the
+		// checkout; don't copy that into the icon store.
+		const [repoReal, iconReal] = await Promise.all([
+			realpath(repoPath),
+			realpath(iconPath),
+		]);
+		const relativeIconPath = relative(repoReal, iconReal);
+		if (
+			relativeIconPath === "" ||
+			relativeIconPath === ".." ||
+			relativeIconPath.startsWith(`..${sep}`) ||
+			isAbsolute(relativeIconPath)
+		) {
+			return null;
+		}
+
 		// Check file size
-		const fileStat = await stat(iconPath);
+		const fileStat = await stat(iconReal);
 		if (fileStat.size > MAX_FAVICON_SIZE) {
 			console.log(
 				`[favicon-discovery] Icon too large (${Math.round(fileStat.size / 1024)}KB): ${iconPath}`,
@@ -70,7 +86,7 @@ export async function discoverAndSaveProjectIcon({
 
 		// For .ico files, read as buffer since they may need special handling
 		if (ext === "ico") {
-			const buffer = await readFile(iconPath);
+			const buffer = await readFile(iconReal);
 			return await saveProjectIconFromBuffer({
 				projectId,
 				buffer: Buffer.from(buffer),
@@ -78,7 +94,10 @@ export async function discoverAndSaveProjectIcon({
 			});
 		}
 
-		return await saveProjectIconFromFile({ projectId, sourcePath: iconPath });
+		return await saveProjectIconFromFile({
+			projectId,
+			sourcePath: iconReal,
+		});
 	} catch (error) {
 		console.error("[favicon-discovery] Error discovering icon:", error);
 		return null;
