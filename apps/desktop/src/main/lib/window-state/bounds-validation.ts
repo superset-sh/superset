@@ -54,6 +54,30 @@ export function isVisibleOnAnyDisplay(bounds: Rectangle): boolean {
 	});
 }
 
+function isSameRectangle(a: Rectangle, b: Rectangle): boolean {
+	return (
+		a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+	);
+}
+
+export function getRestorableBounds({
+	bounds,
+	normalBounds,
+	isMaximized,
+}: {
+	bounds: Rectangle;
+	normalBounds: Rectangle;
+	isMaximized: boolean;
+}): Rectangle {
+	if (!isMaximized) return bounds;
+	const screen = getScreen();
+	const currentDisplay = screen.getDisplayMatching(bounds);
+	const normalDisplay = screen.getDisplayMatching(normalBounds);
+	return isSameRectangle(currentDisplay.bounds, normalDisplay.bounds)
+		? normalBounds
+		: bounds;
+}
+
 /**
  * Clamps saved dimensions to not exceed the work area of the display the
  * saved position (x/y) actually sits on — not always the primary display.

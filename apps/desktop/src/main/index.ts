@@ -67,9 +67,8 @@ import { sweepNetworkLogs } from "./network-logger-sweep";
 import {
 	createPlatformWindow,
 	initAppServices,
-	markAppQuitting,
-	persistOpenWindows,
 	restoreWindows,
+	snapshotWindowsForQuit,
 } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -327,11 +326,7 @@ app.on("before-quit", async (event) => {
 	// Local port-forward listeners hold no state worth draining; drop them so
 	// nothing keeps 127.0.0.1:<port> bound after the app is gone.
 	portForwardManager.stopAll();
-	// Snapshot all open windows (bounds + org) before they close, so relaunch
-	// restores them. markAppQuitting() stops per-window close handlers from
-	// shrinking the set as windows close one-by-one.
-	markAppQuitting();
-	persistOpenWindows();
+	snapshotWindowsForQuit();
 	await runQuitCleanup({
 		isDev,
 		forceFullCleanup,
