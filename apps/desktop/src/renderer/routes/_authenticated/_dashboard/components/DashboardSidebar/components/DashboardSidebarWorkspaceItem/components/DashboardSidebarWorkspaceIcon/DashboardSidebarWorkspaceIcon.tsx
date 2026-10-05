@@ -17,6 +17,7 @@ import type {
 	DashboardSidebarWorkspacePullRequest,
 	DashboardSidebarWorkspaceType,
 } from "../../../../types";
+import { PullRequestChecksIndicator } from "./components/PullRequestChecksIndicator";
 
 interface DashboardSidebarWorkspaceIconProps {
 	hostType: DashboardSidebarWorkspaceHostType;
@@ -27,6 +28,7 @@ interface DashboardSidebarWorkspaceIconProps {
 	workspaceStatus?: ActivePaneStatus | null;
 	isCreatePending: boolean;
 	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
+	pullRequestChecksStatus?: DashboardSidebarWorkspacePullRequest["checksStatus"];
 }
 
 const OVERLAY_POSITION = {
@@ -59,6 +61,7 @@ export function DashboardSidebarWorkspaceIcon({
 	workspaceStatus = null,
 	isCreatePending,
 	pullRequestState = null,
+	pullRequestChecksStatus = "none",
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
 	const iconColor = cn(
@@ -113,6 +116,13 @@ export function DashboardSidebarWorkspaceIcon({
 			) : (
 				renderPrimaryIcon()
 			)}
+			<PullRequestChecksIndicator
+				state={pullRequestState}
+				status={pullRequestChecksStatus}
+				className={
+					variant === "collapsed" ? "bottom-1 right-1" : "-bottom-1 -right-1"
+				}
+			/>
 			{workspaceStatus && workspaceStatus !== "working" && (
 				<span className={cn("absolute", overlayPosition)}>
 					<StatusIndicator status={workspaceStatus} />

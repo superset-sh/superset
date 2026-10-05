@@ -3449,6 +3449,9 @@ msgstr "Kontroly selhaly"
 msgid "Checks passed"
 msgstr "Kontroly prošly"
 
+msgid "Checks running"
+msgstr "Probíhají kontroly"
+
 msgid "Checks Skipped"
 msgstr "Kontroly přeskočeny"
 

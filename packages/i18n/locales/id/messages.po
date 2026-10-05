@@ -3449,6 +3449,9 @@ msgstr "Check gagal"
 msgid "Checks passed"
 msgstr "Check lulus"
 
+msgid "Checks running"
+msgstr "Pemeriksaan sedang berjalan"
+
 msgid "Checks Skipped"
 msgstr "Check Dilewati"
 
