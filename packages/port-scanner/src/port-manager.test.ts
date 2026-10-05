@@ -1030,3 +1030,28 @@ describe("PortManager — detached servers (agent background processes)", () => 
 		expect(killed).toEqual([5001]);
 	});
 });
+
+describe("PortManager - agent-internal port filtering", () => {
+	it("excludes ports bound by known agent processes", async () => {
+		processTable = [{ pid: 1000, ppid: 500 }];
+		manager.upsertSession("p1", "ws1", 1000);
+
+		listeningPorts = [
+			{
+				port: 3000,
+				pid: 1000,
+				address: "127.0.0.1",
+				processName: "node",
+			},
+			{
+				port: 58092,
+				pid: 1000,
+				address: "127.0.0.1",
+				processName: "codex",
+			},
+		];
+
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+	});
+});

@@ -33,6 +33,14 @@ const HINT_SCAN_DELAY_MS = 500;
 /** Ports to ignore (common privileged/system ports that are usually not dev servers) */
 const IGNORED_PORTS = new Set([22, 80, 443]);
 
+/** Processes to ignore (common AI agents that spawn servers for their own purposes) */
+const IGNORED_PROCESSES = new Set([
+	"codex",
+	"cursor-agent",
+	"copilot",
+	"gemini",
+]);
+
 const PORT_HINT_PATTERNS = [
 	/listening\s+on\s+(?:port\s+)?(\d+)/i,
 	/server\s+(?:started|running)\s+(?:on|at)\s+(?:http:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0)?:?(\d+)/i,
@@ -518,7 +526,9 @@ export class PortManager extends EventEmitter {
 		const now = Date.now();
 
 		const validPortInfos = portInfos.filter(
-			(info) => !IGNORED_PORTS.has(info.port),
+			(info) =>
+				!IGNORED_PORTS.has(info.port) &&
+				!IGNORED_PROCESSES.has(info.processName.toLowerCase()),
 		);
 		const dedupedPortInfos = dedupePortInfosByPort(validPortInfos);
 
