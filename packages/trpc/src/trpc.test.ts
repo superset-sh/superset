@@ -35,6 +35,7 @@ const router = createTRPCRouter({
 		delete: reached,
 		rename: reached,
 		setDescription: reached,
+		sleep: reached,
 		unarchive: reached,
 		setVisibility: reached,
 		restart: reached,
@@ -100,6 +101,7 @@ describe("what a cloud workspace may call", () => {
 		["delete", () => box.cloudWorkspace.delete()],
 		["rename", () => box.cloudWorkspace.rename()],
 		["setDescription", () => box.cloudWorkspace.setDescription()],
+		["sleep", () => box.cloudWorkspace.sleep()],
 	])("a box reaches cloudWorkspace.%s", async (_name, call) => {
 		expect(await outcome(call)).toBe("reached");
 	});

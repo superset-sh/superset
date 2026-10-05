@@ -30,6 +30,7 @@ import {
 	SandboxNotReadyError,
 	SandboxUnavailableError,
 	sandboxExists,
+	stopAndSnapshot,
 } from "../../lib/sandbox";
 import { jwtProcedure, userError } from "../../trpc";
 import { hostServiceMutation } from "../automation/relay-client";
@@ -514,6 +515,16 @@ export const cloudWorkspaceRouter = {
 			const row = await loadReadyWorkspace(ctx, input.id);
 			await addressSandbox(row, "restart");
 			return { restarted: true };
+		}),
+
+	/** Stops the sandbox so it costs storage only; the next `access` with `wake` boots it again. */
+	sleep: jwtProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const row = await loadReadyWorkspace(ctx, input.id);
+			const { running } = await addressSandbox(row, "address");
+			if (running) await stopAndSnapshot(row.providerSandboxId);
+			return { stopped: running };
 		}),
 
 	/**

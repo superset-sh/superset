@@ -817,6 +817,22 @@ superset workspaces delete ws_a ws_b ws_c
 </Command>
 
 <Command
+	name="superset workspaces sleep [id]"
+	args={[
+		{ name: "id", description: "Cloud workspace ID. Defaults to the cloud workspace the command runs in." },
+	]}
+	output={`{ id: string; stopped: boolean }`}
+>
+Put a cloud workspace to sleep. Its sandbox stops, every terminal and agent in
+it ends, and it costs storage only. Files are kept, and opening the workspace
+wakes it. An agent can run this as its last step, inside its own workspace.
+
+```bash
+superset workspaces sleep ws_a
+```
+</Command>
+
+<Command
 	name="superset workspaces get [id]"
 	args={[
 		{ name: "id", description: "Workspace ID. Defaults to `$SUPERSET_WORKSPACE_ID` when run inside a workspace." },
