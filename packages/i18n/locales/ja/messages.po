@@ -758,6 +758,9 @@ msgstr "{count, plural, one {#件のファイル} other {#件のファイル}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#件の検索} other {#件の検索}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {#ステップ}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {このリポジトリの#件のワークツリーにワークスペースがありません。ワークスペースとしてインポートされます。} other {このリポジトリの#件のワークツリーにワークスペースがありません。ワークスペースとしてインポートされます。}}"
 
@@ -1384,6 +1387,9 @@ msgstr "アプリ内ブラウザを改良します。変更をプレビューし
 
 msgid "A better Superset is ready"
 msgstr "新しいSupersetの準備ができました"
+
+msgid "A chat takes its name from the agent."
+msgstr "チャットの名前はエージェントから付けられます。"
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "クラウドオートメーションには環境またはクラウドワークスペースが必要です"
@@ -4595,8 +4601,14 @@ msgstr "実際のコスト: $0"
 msgid "Could not add agent"
 msgstr "エージェントを追加できませんでした"
 
+msgid "Could not answer the agent"
+msgstr "エージェントに応答できませんでした"
+
 msgid "Could not attach files"
 msgstr "ファイルを添付できませんでした"
+
+msgid "Could not change the mode"
+msgstr "モードを変更できませんでした"
 
 msgid "Could not change the shared version"
 msgstr "共有バージョンを変更できませんでした"
@@ -4633,6 +4645,9 @@ msgstr "プロジェクトを作成できませんでした"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "プロジェクトを作成できませんでした。別の名前を試すか、ログを確認してください。"
+
+msgid "Could not delete"
+msgstr "削除できませんでした"
 
 msgid "Could not delete account"
 msgstr "アカウントを削除できませんでした"
@@ -4758,6 +4773,9 @@ msgstr "このコメントを解決できませんでした"
 msgid "Could not restart the host service"
 msgstr "ホストサービスを再起動できませんでした"
 
+msgid "Could not resume"
+msgstr "再開できませんでした"
+
 msgid "Could not send"
 msgstr "送信できませんでした"
 
@@ -4779,8 +4797,14 @@ msgstr "クラウドワークスペースのプロビジョニングを開始で
 msgid "Could not start session"
 msgstr "セッションを開始できませんでした"
 
+msgid "Could not steer"
+msgstr "軌道修正できませんでした"
+
 msgid "Could not stop it"
 msgstr "停止できませんでした"
+
+msgid "Could not stop the agent"
+msgstr "エージェントを停止できませんでした"
 
 msgid "Could not stop watching"
 msgstr "監視を停止できませんでした"
@@ -10771,6 +10795,9 @@ msgstr "まだイベントを受信していません: Microsoft Graphが通知�
 msgid "Not reviewed by you"
 msgstr "自分がレビューしていない"
 
+msgid "Not sent"
+msgstr "未送信"
+
 msgid "not set up"
 msgstr "未セットアップ"
 
@@ -15314,6 +15341,9 @@ msgstr "ワークスペースの実行コマンドを停止"
 msgid "stopped"
 msgstr "停止"
 
+msgid "Stopped"
+msgstr "停止しました"
+
 msgid "Strikethrough"
 msgstr "取り消し線"
 
@@ -16310,6 +16340,9 @@ msgstr "チームの招待は期限切れか、存在しません。チームの
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "タイトルはこのページが一覧表示される場所すべてと、リンクのプレビューに表示されます。"
 
+msgid "The turn failed"
+msgstr "ターンが失敗しました"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "ワークスペースの準備がまだできていません。もう一度お試しください。"
 
@@ -16403,6 +16436,9 @@ msgstr "このオートメーションは別の組織にあります"
 
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
+
+msgid "This chat has ended."
+msgstr "このチャットは終了しました。"
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "このチャットのエージェントは停止しており、再開できません。"

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {#個檔案} other {#個檔案}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#次搜尋} other {#次搜尋}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {# 個步驟}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {此儲存庫中有#個worktree沒有對應的工作區，將被匯入為工作區。} other {此儲存庫中有#個worktree沒有對應的工作區，將被匯入為工作區。}}"
 
@@ -1384,6 +1387,9 @@ msgstr "更好用的應用程式內瀏覽器：預覽改動，點選任意元素
 
 msgid "A better Superset is ready"
 msgstr "更好的 Superset 已準備就緒"
+
+msgid "A chat takes its name from the agent."
+msgstr "聊天的名稱來自代理程式。"
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "雲端自動化需要一個環境或一個雲端工作區"
@@ -4595,8 +4601,14 @@ msgstr "你的費用：$0"
 msgid "Could not add agent"
 msgstr "無法新增代理程式"
 
+msgid "Could not answer the agent"
+msgstr "無法回覆代理程式"
+
 msgid "Could not attach files"
 msgstr "無法新增附件"
+
+msgid "Could not change the mode"
+msgstr "無法變更模式"
 
 msgid "Could not change the shared version"
 msgstr "無法更改分享的版本"
@@ -4633,6 +4645,9 @@ msgstr "無法建立專案"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "無法建立專案。請換一個名稱，或檢視日誌。"
+
+msgid "Could not delete"
+msgstr "無法刪除"
 
 msgid "Could not delete account"
 msgstr "無法刪除帳戶"
@@ -4758,6 +4773,9 @@ msgstr "無法解決此留言"
 msgid "Could not restart the host service"
 msgstr "無法重新啟動主機服務"
 
+msgid "Could not resume"
+msgstr "無法繼續"
+
 msgid "Could not send"
 msgstr "無法傳送"
 
@@ -4779,8 +4797,14 @@ msgstr "無法開始配置雲端工作區"
 msgid "Could not start session"
 msgstr "無法啟動會話"
 
+msgid "Could not steer"
+msgstr "無法轉向"
+
 msgid "Could not stop it"
 msgstr "無法停止"
+
+msgid "Could not stop the agent"
+msgstr "無法停止代理程式"
 
 msgid "Could not stop watching"
 msgstr "無法停止關注"
@@ -10771,6 +10795,9 @@ msgstr "尚未接收到事件：Microsoft Graph拒絕了通知訂閱。請檢查
 msgid "Not reviewed by you"
 msgstr "你還沒有審查"
 
+msgid "Not sent"
+msgstr "未傳送"
+
 msgid "not set up"
 msgstr "未設定"
 
@@ -15314,6 +15341,9 @@ msgstr "停止工作區執行命令"
 msgid "stopped"
 msgstr "已停止"
 
+msgid "Stopped"
+msgstr "已停止"
+
 msgid "Strikethrough"
 msgstr "刪除線"
 
@@ -16310,6 +16340,9 @@ msgstr "該團隊邀請已過期或不存在。請向團隊擁有者索取新連
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "標題會顯示在此頁面列出的所有位置以及連結預覽中。"
 
+msgid "The turn failed"
+msgstr "本輪失敗"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "工作區尚未就緒。請重試。"
 
@@ -16403,6 +16436,9 @@ msgstr "此自動化位於其他組織"
 
 msgid "This cannot be undone."
 msgstr "此操作無法復原。"
+
+msgid "This chat has ended."
+msgstr "此聊天已結束。"
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "此聊天的代理已停止，無法繼續。"

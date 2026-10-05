@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# soubor} few {# soubory} many {# souboru} other {#
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# hledání} few {# hledání} many {# hledání} other {# hledání}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, one {# krok} few {# kroky} many {# kroku} other {# kroků}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree v tomto repozitáři nemá pracovní prostor. Bude importován jako pracovní prostor.} few {# worktree v tomto repozitáři nemají pracovní prostor. Budou importovány jako pracovní prostory.} many {# worktree v tomto repozitáři nemá pracovní prostor. Budou importovány jako pracovní prostory.} other {# worktree v tomto repozitáři nemá pracovní prostor. Budou importovány jako pracovní prostory.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Lepší vestavěný prohlížeč: prohlédněte si své změny a kliknut
 
 msgid "A better Superset is ready"
 msgstr "Lepší verze Superset je připravena"
+
+msgid "A chat takes its name from the agent."
+msgstr "Chat přebírá název od agenta."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Cloudová automatizace potřebuje prostředí nebo cloudový pracovní prostor"
@@ -4595,8 +4601,14 @@ msgstr "Vaše náklady: 0 $"
 msgid "Could not add agent"
 msgstr "Agenta se nepodařilo přidat"
 
+msgid "Could not answer the agent"
+msgstr "Agentovi se nepodařilo odpovědět"
+
 msgid "Could not attach files"
 msgstr "Soubory se nepodařilo přiložit"
+
+msgid "Could not change the mode"
+msgstr "Režim se nepodařilo změnit"
 
 msgid "Could not change the shared version"
 msgstr "Sdílenou verzi se nepodařilo změnit"
@@ -4633,6 +4645,9 @@ msgstr "Projekt se nepodařilo vytvořit"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Projekt se nepodařilo vytvořit. Zkuste jiný název nebo se podívejte do logů."
+
+msgid "Could not delete"
+msgstr "Smazání se nezdařilo"
 
 msgid "Could not delete account"
 msgstr "Účet se nepodařilo smazat"
@@ -4758,6 +4773,9 @@ msgstr "Tento komentář se nepodařilo vyřešit"
 msgid "Could not restart the host service"
 msgstr "Službu hostitele se nepodařilo restartovat"
 
+msgid "Could not resume"
+msgstr "Pokračování se nezdařilo"
+
 msgid "Could not send"
 msgstr "Nepodařilo se odeslat"
 
@@ -4779,8 +4797,14 @@ msgstr "Nepodařilo se spustit provisioning cloudového pracovního prostoru"
 msgid "Could not start session"
 msgstr "Relaci se nepodařilo spustit"
 
+msgid "Could not steer"
+msgstr "Změna směru se nezdařila"
+
 msgid "Could not stop it"
 msgstr "Nepodařilo se ho zastavit"
+
+msgid "Could not stop the agent"
+msgstr "Agenta se nepodařilo zastavit"
 
 msgid "Could not stop watching"
 msgstr "Nepodařilo se přestat sledovat"
@@ -10771,6 +10795,9 @@ msgstr "Zatím nepřicházejí žádné události: Microsoft Graph odmítl odbě
 msgid "Not reviewed by you"
 msgstr "Bez vaší revize"
 
+msgid "Not sent"
+msgstr "Neodesláno"
+
 msgid "not set up"
 msgstr "není nastaveno"
 
@@ -15314,6 +15341,9 @@ msgstr "Zastavit spouštěcí příkaz pracovního prostoru"
 msgid "stopped"
 msgstr "zastaveno"
 
+msgid "Stopped"
+msgstr "Zastaveno"
+
 msgid "Strikethrough"
 msgstr "Přeškrtnuté"
 
@@ -16310,6 +16340,9 @@ msgstr "Pozvánka do týmu buď vypršela, nebo neexistuje. Vyžádejte si od vl
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Název se zobrazuje všude, kde je tato stránka uvedena, a v náhledu odkazu."
 
+msgid "The turn failed"
+msgstr "Tah selhal"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "Pracovní prostor ještě není připravený. Zkuste to znovu."
 
@@ -16403,6 +16436,9 @@ msgstr "Tato automatizace je v jiné organizaci"
 
 msgid "This cannot be undone."
 msgstr "Nelze vrátit zpět."
+
+msgid "This chat has ended."
+msgstr "Tento chat skončil."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "Agent tohoto chatu byl zastaven a nelze jej obnovit."

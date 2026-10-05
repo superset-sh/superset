@@ -191,6 +191,24 @@ describe("chat commands", () => {
 		await runtime.dispose();
 	});
 
+	test("listSessions says which sessions still have a harness behind them", async () => {
+		const { runtime } = newRuntime();
+		const open = createSession(runtime, "workspace-1");
+		const closed = createSession(runtime, "workspace-1");
+		await runtime.commands.closeSession({ sessionId: closed.sessionId });
+
+		const live = Object.fromEntries(
+			runtime.commands
+				.listSessions({ scopeId: "workspace-1" })
+				.map((row) => [row.sessionId, row.live]),
+		);
+		expect(live).toEqual({
+			[open.sessionId]: true,
+			[closed.sessionId]: false,
+		});
+		await runtime.dispose();
+	});
+
 	test("getItems pages the spine backwards", async () => {
 		const { runtime } = newRuntime();
 		const created = createSession(runtime);

@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# tệp} other {# tệp}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# lượt tìm} other {# lượt tìm}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {# bước}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree trong repository này chưa có workspace. Nó sẽ được nhập thành workspace.} other {# worktree trong repository này chưa có workspace. Chúng sẽ được nhập thành workspace.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Trình duyệt trong ứng dụng tốt hơn: xem trước thay đổi v
 
 msgid "A better Superset is ready"
 msgstr "Phiên bản Superset tốt hơn đã sẵn sàng"
+
+msgid "A chat takes its name from the agent."
+msgstr "Chat lấy tên từ agent."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Tự động hóa trên cloud cần một environment hoặc một workspace cloud"
@@ -4595,8 +4601,14 @@ msgstr "Chi phí của bạn: $0"
 msgid "Could not add agent"
 msgstr "Không thể thêm tác nhân"
 
+msgid "Could not answer the agent"
+msgstr "Không thể trả lời agent"
+
 msgid "Could not attach files"
 msgstr "Không thể đính kèm tệp"
+
+msgid "Could not change the mode"
+msgstr "Không thể đổi chế độ"
 
 msgid "Could not change the shared version"
 msgstr "Không thể đổi phiên bản được chia sẻ"
@@ -4633,6 +4645,9 @@ msgstr "Không thể tạo dự án"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Không thể tạo dự án. Hãy thử tên khác hoặc xem log."
+
+msgid "Could not delete"
+msgstr "Không thể xóa"
 
 msgid "Could not delete account"
 msgstr "Không thể xóa tài khoản"
@@ -4758,6 +4773,9 @@ msgstr "Không thể giải quyết bình luận này"
 msgid "Could not restart the host service"
 msgstr "Không thể khởi động lại dịch vụ máy chủ"
 
+msgid "Could not resume"
+msgstr "Không thể tiếp tục"
+
 msgid "Could not send"
 msgstr "Không thể gửi"
 
@@ -4779,8 +4797,14 @@ msgstr "Không thể bắt đầu cấp phát workspace trên cloud"
 msgid "Could not start session"
 msgstr "Không thể bắt đầu phiên"
 
+msgid "Could not steer"
+msgstr "Không thể điều hướng"
+
 msgid "Could not stop it"
 msgstr "Không thể dừng"
+
+msgid "Could not stop the agent"
+msgstr "Không thể dừng agent"
 
 msgid "Could not stop watching"
 msgstr "Không thể ngừng theo dõi"
@@ -10771,6 +10795,9 @@ msgstr "Chưa nhận được sự kiện: Microsoft Graph đã từ chối các
 msgid "Not reviewed by you"
 msgstr "Bạn chưa review"
 
+msgid "Not sent"
+msgstr "Chưa gửi"
+
 msgid "not set up"
 msgstr "chưa thiết lập"
 
@@ -15314,6 +15341,9 @@ msgstr "Dừng lệnh chạy của workspace"
 msgid "stopped"
 msgstr "đã dừng"
 
+msgid "Stopped"
+msgstr "Đã dừng"
+
 msgid "Strikethrough"
 msgstr "Gạch ngang"
 
@@ -16310,6 +16340,9 @@ msgstr "Lời mời vào nhóm đã hết hạn hoặc không tồn tại. Hãy 
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Tiêu đề hiển thị ở mọi nơi trang này được liệt kê và trong bản xem trước liên kết."
 
+msgid "The turn failed"
+msgstr "Lượt thất bại"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "Workspace chưa sẵn sàng. Hãy thử lại."
 
@@ -16403,6 +16436,9 @@ msgstr "Tự động hóa này nằm trong một tổ chức khác"
 
 msgid "This cannot be undone."
 msgstr "Không thể hoàn tác."
+
+msgid "This chat has ended."
+msgstr "Chat này đã kết thúc."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "Tác nhân của cuộc trò chuyện này đã dừng và không thể tiếp tục."

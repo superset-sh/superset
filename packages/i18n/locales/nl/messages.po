@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# bestand} other {# bestanden}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# zoekopdracht} other {# zoekopdrachten}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, one {# stap} other {# stappen}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree in deze repository heeft geen werkruimte. Die wordt als werkruimte geïmporteerd.} other {# worktrees in deze repository hebben geen werkruimte. Ze worden als werkruimtes geïmporteerd.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Een betere ingebouwde browser: bekijk je wijzigingen en klik op elk elem
 
 msgid "A better Superset is ready"
 msgstr "Een betere versie van Superset staat klaar"
+
+msgid "A chat takes its name from the agent."
+msgstr "Een chat krijgt zijn naam van de agent."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Een cloudautomatisering heeft een omgeving of een cloudwerkruimte nodig"
@@ -4595,8 +4601,14 @@ msgstr "Kosten voor jou: $0"
 msgid "Could not add agent"
 msgstr "Kon agent niet toevoegen"
 
+msgid "Could not answer the agent"
+msgstr "Kan de agent niet antwoorden"
+
 msgid "Could not attach files"
 msgstr "Kan bestanden niet toevoegen"
+
+msgid "Could not change the mode"
+msgstr "Kan de modus niet wijzigen"
 
 msgid "Could not change the shared version"
 msgstr "Kan de gedeelde versie niet wijzigen"
@@ -4633,6 +4645,9 @@ msgstr "Kan project niet aanmaken"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Kan project niet aanmaken. Probeer een andere naam of bekijk de logs."
+
+msgid "Could not delete"
+msgstr "Kan niet verwijderen"
 
 msgid "Could not delete account"
 msgstr "Kan account niet verwijderen"
@@ -4758,6 +4773,9 @@ msgstr "Deze reactie kon niet worden opgelost"
 msgid "Could not restart the host service"
 msgstr "Kon de hostservice niet opnieuw starten"
 
+msgid "Could not resume"
+msgstr "Kan niet hervatten"
+
 msgid "Could not send"
 msgstr "Versturen mislukt"
 
@@ -4779,8 +4797,14 @@ msgstr "Kan het provisioneren van de cloudwerkruimte niet starten"
 msgid "Could not start session"
 msgstr "Kan sessie niet starten"
 
+msgid "Could not steer"
+msgstr "Kan niet bijsturen"
+
 msgid "Could not stop it"
 msgstr "Kon niet worden gestopt"
+
+msgid "Could not stop the agent"
+msgstr "Kan de agent niet stoppen"
 
 msgid "Could not stop watching"
 msgstr "Kon niet stoppen met volgen"
@@ -10771,6 +10795,9 @@ msgstr "Er komen nog geen gebeurtenissen binnen: Microsoft Graph heeft de meldin
 msgid "Not reviewed by you"
 msgstr "Niet door jou gereviewd"
 
+msgid "Not sent"
+msgstr "Niet verzonden"
+
 msgid "not set up"
 msgstr "niet ingesteld"
 
@@ -15314,6 +15341,9 @@ msgstr "Run-commando van werkruimte stoppen"
 msgid "stopped"
 msgstr "gestopt"
 
+msgid "Stopped"
+msgstr "Gestopt"
+
 msgid "Strikethrough"
 msgstr "Doorhalen"
 
@@ -16310,6 +16340,9 @@ msgstr "De teamuitnodiging is verlopen of bestaat niet. Vraag een nieuwe link aa
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "De titel verschijnt overal waar deze pagina wordt vermeld en in het linkvoorbeeld."
 
+msgid "The turn failed"
+msgstr "De beurt is mislukt"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "De werkruimte is nog niet klaar. Probeer het opnieuw."
 
@@ -16403,6 +16436,9 @@ msgstr "Deze automatisering staat in een andere organisatie"
 
 msgid "This cannot be undone."
 msgstr "Dit kan niet ongedaan worden gemaakt."
+
+msgid "This chat has ended."
+msgstr "Deze chat is beëindigd."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "De agent van deze chat is gestopt en kan niet worden hervat."

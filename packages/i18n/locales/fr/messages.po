@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# fichier} other {# fichiers}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# recherche} other {# recherches}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, one {# étape} other {# étapes}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree de ce dépôt n'a pas d'espace de travail. Il sera importé en tant qu'espace de travail.} other {# worktrees de ce dépôt n'ont pas d'espace de travail. Ils seront importés en tant qu'espaces de travail.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Un meilleur navigateur intégré : prévisualisez vos changements et cli
 
 msgid "A better Superset is ready"
 msgstr "Une meilleure version de Superset est prête"
+
+msgid "A chat takes its name from the agent."
+msgstr "Un chat prend son nom de l'agent."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Une automatisation cloud nécessite un environnement ou un espace de travail cloud"
@@ -4595,8 +4601,14 @@ msgstr "Coût pour vous : 0 $"
 msgid "Could not add agent"
 msgstr "Impossible d’ajouter l’agent"
 
+msgid "Could not answer the agent"
+msgstr "Impossible de répondre à l'agent"
+
 msgid "Could not attach files"
 msgstr "Impossible de joindre les fichiers"
+
+msgid "Could not change the mode"
+msgstr "Impossible de changer le mode"
 
 msgid "Could not change the shared version"
 msgstr "Impossible de changer la version partagée"
@@ -4633,6 +4645,9 @@ msgstr "Impossible de créer le projet"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Impossible de créer le projet. Essayez un autre nom ou consultez les logs."
+
+msgid "Could not delete"
+msgstr "Impossible de supprimer"
 
 msgid "Could not delete account"
 msgstr "Impossible de supprimer le compte"
@@ -4758,6 +4773,9 @@ msgstr "Impossible de résoudre ce commentaire"
 msgid "Could not restart the host service"
 msgstr "Impossible de redémarrer le service d'hôte"
 
+msgid "Could not resume"
+msgstr "Impossible de reprendre"
+
 msgid "Could not send"
 msgstr "Échec de l'envoi"
 
@@ -4779,8 +4797,14 @@ msgstr "Impossible de démarrer le provisionnement de l'espace de travail cloud"
 msgid "Could not start session"
 msgstr "Impossible de démarrer la session"
 
+msgid "Could not steer"
+msgstr "Impossible de réorienter"
+
 msgid "Could not stop it"
 msgstr "Impossible de l'arrêter"
+
+msgid "Could not stop the agent"
+msgstr "Impossible d'arrêter l'agent"
 
 msgid "Could not stop watching"
 msgstr "Impossible d'arrêter la surveillance"
@@ -10771,6 +10795,9 @@ msgstr "Aucun événement reçu pour l'instant : Microsoft Graph a refusé les a
 msgid "Not reviewed by you"
 msgstr "Non revues par vous"
 
+msgid "Not sent"
+msgstr "Non envoyé"
+
 msgid "not set up"
 msgstr "non configuré"
 
@@ -15314,6 +15341,9 @@ msgstr "Arrêter la commande d'exécution de l'espace de travail"
 msgid "stopped"
 msgstr "arrêté"
 
+msgid "Stopped"
+msgstr "Arrêté"
+
 msgid "Strikethrough"
 msgstr "Barré"
 
@@ -16310,6 +16340,9 @@ msgstr "L'invitation à l'équipe a expiré ou n'existe pas. Demandez un nouveau
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Le titre apparaît partout où cette page est listée ainsi que dans son aperçu de lien."
 
+msgid "The turn failed"
+msgstr "Le tour a échoué"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "L'espace de travail n'est pas encore prêt. Réessayez."
 
@@ -16403,6 +16436,9 @@ msgstr "Cette automatisation se trouve dans une autre organisation"
 
 msgid "This cannot be undone."
 msgstr "Cette action est irréversible."
+
+msgid "This chat has ended."
+msgstr "Ce chat est terminé."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "L'agent de cette discussion s'est arrêté et ne peut pas être repris."

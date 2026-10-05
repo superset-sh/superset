@@ -6,6 +6,9 @@
 		"paths": {
 			"@/*": ["./*"],
 			"@superset/alert-prompt": ["./modules/alert-prompt/src/index.ts"],
+			"@superset/chat-runtime": [
+				"./node_modules/@superset/chat-runtime/src/index.ts"
+			],
 			"@superset/attachments-sheet": [
 				"./modules/attachments-sheet/src/index.ts"
 			],

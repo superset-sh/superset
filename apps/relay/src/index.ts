@@ -259,7 +259,7 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 
 app.use("/hosts/:hostId/*", authMiddleware);
 
-app.all("/hosts/:hostId/trpc/*", async (c) => {
+const proxyHostHttp = async (c: Context<AppContext>) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
 	const path = pathAfterHost(c) || "/";
@@ -305,7 +305,10 @@ app.all("/hosts/:hostId/trpc/*", async (c) => {
 		status: result.status,
 		headers: result.headers,
 	});
-});
+};
+
+app.all("/hosts/:hostId/trpc/*", proxyHostHttp);
+app.all("/hosts/:hostId/chat-v3/trpc/*", proxyHostHttp);
 
 app.get("/hosts/:hostId/*", async (c) => {
 	if (!isWsUpgrade(c)) {

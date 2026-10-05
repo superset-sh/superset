@@ -86,6 +86,8 @@ interface TerminalComposerProps {
 	selectActive: boolean;
 	selectHasSelection: boolean;
 	onCopySelection: () => void;
+	/** A chat takes whole messages, so the terminal keys have nothing to do. */
+	hideQuickKeys?: boolean;
 }
 
 /**
@@ -123,6 +125,7 @@ export const TerminalComposer = forwardRef<
 		selectActive,
 		selectHasSelection,
 		onCopySelection,
+		hideQuickKeys = false,
 	},
 	ref,
 ) {
@@ -151,23 +154,25 @@ export const TerminalComposer = forwardRef<
 	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const quickKeys: ComposerQuickKey[] = selectActive
-		? selectHasSelection
-			? [
-					{
-						id: COPY_SELECTION_KEY,
-						label: t({
-							message: "Copy Selection",
-						}),
-					},
-				]
-			: []
-		: QUICK_KEYS.map((key) => ({
-				id: key.id,
-				label: key.label,
-				symbol: key.symbol,
-				divider: key.divider,
-			}));
+	const quickKeys: ComposerQuickKey[] = hideQuickKeys
+		? []
+		: selectActive
+			? selectHasSelection
+				? [
+						{
+							id: COPY_SELECTION_KEY,
+							label: t({
+								message: "Copy Selection",
+							}),
+						},
+					]
+				: []
+			: QUICK_KEYS.map((key) => ({
+					id: key.id,
+					label: key.label,
+					symbol: key.symbol,
+					divider: key.divider,
+				}));
 
 	const submit = async ({ text, attachments: files }: PromptInputMessage) => {
 		let body = text;

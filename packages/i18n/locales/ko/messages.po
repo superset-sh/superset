@@ -758,6 +758,9 @@ msgstr "{count, plural, one {파일 #개} other {파일 #개}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {검색 #회} other {검색 #회}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {#단계}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {이 리포지토리의 worktree #개에 워크스페이스가 없습니다. 워크스페이스로 가져옵니다.} other {이 리포지토리의 worktree #개에 워크스페이스가 없습니다. 워크스페이스로 가져옵니다.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "더 나은 인앱 브라우저입니다. 변경 사항을 미리 보고,
 
 msgid "A better Superset is ready"
 msgstr "더 나은 Superset이 준비되었습니다"
+
+msgid "A chat takes its name from the agent."
+msgstr "채팅 이름은 에이전트가 정합니다."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "클라우드 자동화에는 환경 또는 클라우드 워크스페이스가 필요합니다"
@@ -4595,8 +4601,14 @@ msgstr "실제 비용: $0"
 msgid "Could not add agent"
 msgstr "에이전트를 추가하지 못했습니다"
 
+msgid "Could not answer the agent"
+msgstr "에이전트에 응답할 수 없습니다"
+
 msgid "Could not attach files"
 msgstr "파일을 첨부할 수 없습니다"
+
+msgid "Could not change the mode"
+msgstr "모드를 변경할 수 없습니다"
 
 msgid "Could not change the shared version"
 msgstr "공유 버전을 변경할 수 없습니다"
@@ -4633,6 +4645,9 @@ msgstr "프로젝트를 만들 수 없습니다"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "프로젝트를 만들 수 없습니다. 다른 이름을 사용하거나 로그를 확인해 주세요."
+
+msgid "Could not delete"
+msgstr "삭제할 수 없습니다"
 
 msgid "Could not delete account"
 msgstr "계정을 삭제할 수 없습니다"
@@ -4758,6 +4773,9 @@ msgstr "이 댓글을 해결하지 못했습니다"
 msgid "Could not restart the host service"
 msgstr "호스트 서비스를 다시 시작할 수 없습니다"
 
+msgid "Could not resume"
+msgstr "재개할 수 없습니다"
+
 msgid "Could not send"
 msgstr "보낼 수 없습니다"
 
@@ -4779,8 +4797,14 @@ msgstr "클라우드 워크스페이스 프로비저닝을 시작할 수 없습�
 msgid "Could not start session"
 msgstr "세션을 시작할 수 없습니다"
 
+msgid "Could not steer"
+msgstr "방향을 바꿀 수 없습니다"
+
 msgid "Could not stop it"
 msgstr "중지할 수 없습니다"
+
+msgid "Could not stop the agent"
+msgstr "에이전트를 중지할 수 없습니다"
 
 msgid "Could not stop watching"
 msgstr "감시를 중지할 수 없습니다"
@@ -10771,6 +10795,9 @@ msgstr "아직 이벤트를 받지 못하고 있습니다. Microsoft Graph가 �
 msgid "Not reviewed by you"
 msgstr "내가 리뷰하지 않음"
 
+msgid "Not sent"
+msgstr "전송되지 않음"
+
 msgid "not set up"
 msgstr "설정 안 됨"
 
@@ -15314,6 +15341,9 @@ msgstr "워크스페이스 실행 명령 중지"
 msgid "stopped"
 msgstr "중지됨"
 
+msgid "Stopped"
+msgstr "중지됨"
+
 msgid "Strikethrough"
 msgstr "취소선"
 
@@ -16310,6 +16340,9 @@ msgstr "팀 초대가 만료되었거나 존재하지 않습니다. 팀 소유�
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "제목은 이 페이지가 표시되는 모든 곳과 링크 미리보기에 나타납니다."
 
+msgid "The turn failed"
+msgstr "턴이 실패했습니다"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "워크스페이스가 아직 준비되지 않았습니다. 다시 시도하세요."
 
@@ -16403,6 +16436,9 @@ msgstr "이 자동화는 다른 조직에 있습니다"
 
 msgid "This cannot be undone."
 msgstr "되돌릴 수 없습니다."
+
+msgid "This chat has ended."
+msgstr "이 채팅은 종료되었습니다."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "이 채팅의 에이전트가 중지되어 이어갈 수 없습니다."

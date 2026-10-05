@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# файл} few {# файла} many {# файлов
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# поиск} few {# поиска} many {# поисков} other {# поиска}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, one {# шаг} few {# шага} many {# шагов} other {# шага}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree в этом репозитории не имеет рабочей области. Он будет импортирован как рабочая область.} few {# worktree в этом репозитории не имеют рабочих областей. Они будут импортированы как рабочие области.} many {# worktree в этом репозитории не имеют рабочих областей. Они будут импортированы как рабочие области.} other {# worktree в этом репозитории не имеют рабочих областей. Они будут импортированы как рабочие области.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Лучший встроенный браузер: смотрите св�
 
 msgid "A better Superset is ready"
 msgstr "Улучшенная версия Superset готова"
+
+msgid "A chat takes its name from the agent."
+msgstr "Чат получает имя от агента."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Облачной автоматизации нужно окружение или облачная рабочая область"
@@ -4595,8 +4601,14 @@ msgstr "Ваши затраты: $0"
 msgid "Could not add agent"
 msgstr "Не удалось добавить агента"
 
+msgid "Could not answer the agent"
+msgstr "Не удалось ответить агенту"
+
 msgid "Could not attach files"
 msgstr "Не удалось прикрепить файлы"
+
+msgid "Could not change the mode"
+msgstr "Не удалось сменить режим"
 
 msgid "Could not change the shared version"
 msgstr "Не удалось изменить общедоступную версию"
@@ -4633,6 +4645,9 @@ msgstr "Не удалось создать проект"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Не удалось создать проект. Попробуйте другое название или посмотрите логи."
+
+msgid "Could not delete"
+msgstr "Не удалось удалить"
 
 msgid "Could not delete account"
 msgstr "Не удалось удалить аккаунт"
@@ -4758,6 +4773,9 @@ msgstr "Не удалось закрыть этот комментарий"
 msgid "Could not restart the host service"
 msgstr "Не удалось перезапустить службу хоста"
 
+msgid "Could not resume"
+msgstr "Не удалось возобновить"
+
 msgid "Could not send"
 msgstr "Не удалось отправить"
 
@@ -4779,8 +4797,14 @@ msgstr "Не удалось начать создание облачной ра�
 msgid "Could not start session"
 msgstr "Не удалось запустить сессию"
 
+msgid "Could not steer"
+msgstr "Не удалось перенаправить"
+
 msgid "Could not stop it"
 msgstr "Не удалось остановить"
+
+msgid "Could not stop the agent"
+msgstr "Не удалось остановить агента"
 
 msgid "Could not stop watching"
 msgstr "Не удалось прекратить отслеживание"
@@ -10771,6 +10795,9 @@ msgstr "События пока не приходят: Microsoft Graph откл�
 msgid "Not reviewed by you"
 msgstr "Не проверено вами"
 
+msgid "Not sent"
+msgstr "Не отправлено"
+
 msgid "not set up"
 msgstr "не настроен"
 
@@ -15314,6 +15341,9 @@ msgstr "Остановить команду запуска рабочей обл
 msgid "stopped"
 msgstr "остановлена"
 
+msgid "Stopped"
+msgstr "Остановлено"
+
 msgid "Strikethrough"
 msgstr "Зачёркнутый"
 
@@ -16310,6 +16340,9 @@ msgstr "Приглашение в команду истекло или не су
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Заголовок отображается везде, где указана эта страница, и в превью ссылки."
 
+msgid "The turn failed"
+msgstr "Ход завершился ошибкой"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "Рабочая область ещё не готова. Повторите."
 
@@ -16403,6 +16436,9 @@ msgstr "Эта автоматизация находится в другой о�
 
 msgid "This cannot be undone."
 msgstr "Это нельзя отменить."
+
+msgid "This chat has ended."
+msgstr "Этот чат завершён."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "Агент этого чата остановлен, и его нельзя возобновить."

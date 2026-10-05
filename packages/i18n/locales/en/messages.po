@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# file} other {# files}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# search} other {# searches}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, one {# step} other {# steps}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "A better in-app browser: preview your changes and click any element to s
 
 msgid "A better Superset is ready"
 msgstr "A better Superset is ready"
+
+msgid "A chat takes its name from the agent."
+msgstr "A chat takes its name from the agent."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "A cloud automation needs an environment or a cloud workspace"
@@ -4595,8 +4601,14 @@ msgstr "Cost to you: $0"
 msgid "Could not add agent"
 msgstr "Could not add agent"
 
+msgid "Could not answer the agent"
+msgstr "Could not answer the agent"
+
 msgid "Could not attach files"
 msgstr "Could not attach files"
+
+msgid "Could not change the mode"
+msgstr "Could not change the mode"
 
 msgid "Could not change the shared version"
 msgstr "Could not change the shared version"
@@ -4633,6 +4645,9 @@ msgstr "Could not create project"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Could not create project. Please try a different name or check the logs."
+
+msgid "Could not delete"
+msgstr "Could not delete"
 
 msgid "Could not delete account"
 msgstr "Could not delete account"
@@ -4758,6 +4773,9 @@ msgstr "Could not resolve this comment"
 msgid "Could not restart the host service"
 msgstr "Could not restart the host service"
 
+msgid "Could not resume"
+msgstr "Could not resume"
+
 msgid "Could not send"
 msgstr "Could not send"
 
@@ -4779,8 +4797,14 @@ msgstr "Could not start cloud workspace provisioning"
 msgid "Could not start session"
 msgstr "Could not start session"
 
+msgid "Could not steer"
+msgstr "Could not steer"
+
 msgid "Could not stop it"
 msgstr "Could not stop it"
+
+msgid "Could not stop the agent"
+msgstr "Could not stop the agent"
 
 msgid "Could not stop watching"
 msgstr "Could not stop watching"
@@ -10771,6 +10795,9 @@ msgstr "Not receiving events yet: Microsoft Graph refused the notification subsc
 msgid "Not reviewed by you"
 msgstr "Not reviewed by you"
 
+msgid "Not sent"
+msgstr "Not sent"
+
 msgid "not set up"
 msgstr "not set up"
 
@@ -15314,6 +15341,9 @@ msgstr "Stop workspace run command"
 msgid "stopped"
 msgstr "stopped"
 
+msgid "Stopped"
+msgstr "Stopped"
+
 msgid "Strikethrough"
 msgstr "Strikethrough"
 
@@ -16310,6 +16340,9 @@ msgstr "The team invitation has either expired or doesn't exist. Request a new l
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "The title shows everywhere this page is listed and in its link preview."
 
+msgid "The turn failed"
+msgstr "The turn failed"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "The workspace is not ready yet. Try again."
 
@@ -16403,6 +16436,9 @@ msgstr "This automation is in another organization"
 
 msgid "This cannot be undone."
 msgstr "This cannot be undone."
+
+msgid "This chat has ended."
+msgstr "This chat has ended."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "This chat's agent has stopped and can't be resumed."

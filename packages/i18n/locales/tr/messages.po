@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# dosya} other {# dosya}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# arama} other {# arama}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {# adım}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {Bu depodaki # worktree'nin çalışma alanı yok. Çalışma alanı olarak içe aktarılacak.} other {Bu depodaki # worktree'nin çalışma alanı yok. Çalışma alanı olarak içe aktarılacaklar.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Daha iyi bir uygulama içi tarayıcı: değişikliklerinizi önizleyin v
 
 msgid "A better Superset is ready"
 msgstr "Daha iyi bir Superset hazır"
+
+msgid "A chat takes its name from the agent."
+msgstr "Sohbet adını ajandan alır."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Bulut otomasyonu için bir ortam veya bulut çalışma alanı gerekir"
@@ -4595,8 +4601,14 @@ msgstr "Size maliyeti: $0"
 msgid "Could not add agent"
 msgstr "Ajan eklenemedi"
 
+msgid "Could not answer the agent"
+msgstr "Ajana yanıt verilemedi"
+
 msgid "Could not attach files"
 msgstr "Dosyalar eklenemedi"
+
+msgid "Could not change the mode"
+msgstr "Mod değiştirilemedi"
 
 msgid "Could not change the shared version"
 msgstr "Paylaşılan sürüm değiştirilemedi"
@@ -4633,6 +4645,9 @@ msgstr "Proje oluşturulamadı"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Proje oluşturulamadı. Lütfen farklı bir ad deneyin veya günlükleri kontrol edin."
+
+msgid "Could not delete"
+msgstr "Silinemedi"
 
 msgid "Could not delete account"
 msgstr "Hesap silinemedi"
@@ -4758,6 +4773,9 @@ msgstr "Bu yorum çözülemedi"
 msgid "Could not restart the host service"
 msgstr "Ana makine hizmeti yeniden başlatılamadı"
 
+msgid "Could not resume"
+msgstr "Devam ettirilemedi"
+
 msgid "Could not send"
 msgstr "Gönderilemedi"
 
@@ -4779,8 +4797,14 @@ msgstr "Bulut çalışma alanı sağlama işlemi başlatılamadı"
 msgid "Could not start session"
 msgstr "Oturum başlatılamadı"
 
+msgid "Could not steer"
+msgstr "Yön değiştirilemedi"
+
 msgid "Could not stop it"
 msgstr "Durdurulamadı"
+
+msgid "Could not stop the agent"
+msgstr "Ajan durdurulamadı"
 
 msgid "Could not stop watching"
 msgstr "İzleme durdurulamadı"
@@ -10771,6 +10795,9 @@ msgstr "Henüz olay alınmıyor: Microsoft Graph bildirim aboneliklerini reddett
 msgid "Not reviewed by you"
 msgstr "Sizin incelemediğiniz"
 
+msgid "Not sent"
+msgstr "Gönderilmedi"
+
 msgid "not set up"
 msgstr "kurulu değil"
 
@@ -15314,6 +15341,9 @@ msgstr "Çalışma alanı çalıştırma komutunu durdur"
 msgid "stopped"
 msgstr "durduruldu"
 
+msgid "Stopped"
+msgstr "Durduruldu"
+
 msgid "Strikethrough"
 msgstr "Üstü çizili"
 
@@ -16310,6 +16340,9 @@ msgstr "Takım daveti ya süresi dolmuş ya da mevcut değil. Takım sahibinden 
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Başlık, bu sayfanın listelendiği her yerde ve bağlantı önizlemesinde görünür."
 
+msgid "The turn failed"
+msgstr "Tur başarısız oldu"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "Çalışma alanı henüz hazır değil. Yeniden deneyin."
 
@@ -16403,6 +16436,9 @@ msgstr "Bu otomasyon başka bir kuruluşta"
 
 msgid "This cannot be undone."
 msgstr "Bu geri alınamaz."
+
+msgid "This chat has ended."
+msgstr "Bu sohbet sona erdi."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "Bu sohbetin aracısı durdu ve devam ettirilemiyor."

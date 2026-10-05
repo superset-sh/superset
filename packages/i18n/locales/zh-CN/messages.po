@@ -758,6 +758,9 @@ msgstr "{count, plural, one {#个文件} other {#个文件}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {#次搜索} other {#次搜索}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {# 个步骤}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {此仓库中有#个worktree没有对应的工作区，将被导入为工作区。} other {此仓库中有#个worktree没有对应的工作区，将被导入为工作区。}}"
 
@@ -1384,6 +1387,9 @@ msgstr "更好用的应用内浏览器：预览改动，点击任意元素即可
 
 msgid "A better Superset is ready"
 msgstr "更好的 Superset 已准备就绪"
+
+msgid "A chat takes its name from the agent."
+msgstr "聊天的名称来自智能体。"
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "云端自动化需要一个环境或一个云端工作区"
@@ -4595,8 +4601,14 @@ msgstr "你的费用：$0"
 msgid "Could not add agent"
 msgstr "无法添加智能体"
 
+msgid "Could not answer the agent"
+msgstr "无法回复智能体"
+
 msgid "Could not attach files"
 msgstr "无法添加附件"
+
+msgid "Could not change the mode"
+msgstr "无法更改模式"
 
 msgid "Could not change the shared version"
 msgstr "无法更改分享的版本"
@@ -4633,6 +4645,9 @@ msgstr "无法创建项目"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "无法创建项目。请换一个名称，或查看日志。"
+
+msgid "Could not delete"
+msgstr "无法删除"
 
 msgid "Could not delete account"
 msgstr "无法删除账户"
@@ -4758,6 +4773,9 @@ msgstr "无法解决此评论"
 msgid "Could not restart the host service"
 msgstr "无法重启主机服务"
 
+msgid "Could not resume"
+msgstr "无法继续"
+
 msgid "Could not send"
 msgstr "无法发送"
 
@@ -4779,8 +4797,14 @@ msgstr "无法开始配置云端工作区"
 msgid "Could not start session"
 msgstr "无法启动会话"
 
+msgid "Could not steer"
+msgstr "无法转向"
+
 msgid "Could not stop it"
 msgstr "无法停止"
+
+msgid "Could not stop the agent"
+msgstr "无法停止智能体"
 
 msgid "Could not stop watching"
 msgstr "无法停止关注"
@@ -10771,6 +10795,9 @@ msgstr "尚未接收到事件：Microsoft Graph拒绝了通知订阅。请检查
 msgid "Not reviewed by you"
 msgstr "你还没有审查"
 
+msgid "Not sent"
+msgstr "未发送"
+
 msgid "not set up"
 msgstr "未设置"
 
@@ -15314,6 +15341,9 @@ msgstr "停止工作区运行命令"
 msgid "stopped"
 msgstr "已停止"
 
+msgid "Stopped"
+msgstr "已停止"
+
 msgid "Strikethrough"
 msgstr "删除线"
 
@@ -16310,6 +16340,9 @@ msgstr "该团队邀请已过期或不存在。请向团队所有者索取新链
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "标题会显示在此页面列出的所有位置以及链接预览中。"
 
+msgid "The turn failed"
+msgstr "本轮失败"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "工作区尚未就绪。请重试。"
 
@@ -16403,6 +16436,9 @@ msgstr "此自动化位于其他组织"
 
 msgid "This cannot be undone."
 msgstr "此操作无法撤销。"
+
+msgid "This chat has ended."
+msgstr "此聊天已结束。"
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "此聊天的智能体已停止，无法继续。"

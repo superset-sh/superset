@@ -1,13 +1,17 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useQueryClient } from "@tanstack/react-query";
+import { randomUUID } from "expo-crypto";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
+import { useFeatureFlag } from "posthog-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { getChatTransport, harnessForAgent } from "@/lib/chat";
 import { errorCopy } from "@/lib/errors";
 import {
 	getHostServiceClientByUrl,
@@ -36,6 +40,7 @@ export function NewSessionSheet() {
 	const router = useRouter();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
+	const acpChat = Boolean(useFeatureFlag(FEATURE_FLAGS.ACP_CHAT));
 	const { workspace, host, isResolving } = useWorkspaceHost(id ?? null);
 	const hostUrl = host
 		? hostServiceUrl(host.organizationId, host.machineId)
@@ -90,6 +95,7 @@ export function NewSessionSheet() {
 	const launch = async (preset: (typeof presets)[number] | null) => {
 		if (!workspace || !hostUrl || launchingKey !== null) return;
 		setLaunchingKey(preset?.presetId ?? "shell");
+		const chatHarness = acpChat ? harnessForAgent(preset?.presetId) : undefined;
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
 			let terminalId: string;
@@ -98,6 +104,13 @@ export function NewSessionSheet() {
 					workspaceId: workspace.id,
 				});
 				terminalId = created.terminalId;
+			} else if (chatHarness) {
+				const created = await getChatTransport(hostUrl).createSession({
+					commandId: randomUUID(),
+					workspaceId: workspace.id,
+					harness: chatHarness,
+				});
+				terminalId = created.sessionId;
 			} else {
 				const { model, effort } = launchFor(preset);
 				const result = await client.agents.run.mutate({

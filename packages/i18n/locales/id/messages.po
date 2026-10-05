@@ -758,6 +758,9 @@ msgstr "{count, plural, one {# file} other {# file}}"
 msgid "{count, plural, one {# search} other {# searches}}"
 msgstr "{count, plural, one {# pencarian} other {# pencarian}}"
 
+msgid "{count, plural, one {# step} other {# steps}}"
+msgstr "{count, plural, other {# langkah}}"
+
 msgid "{count, plural, one {# worktree in this repository has no workspace. It will be imported as a workspace.} other {# worktrees in this repository have no workspace. They will be imported as workspaces.}}"
 msgstr "{count, plural, one {# worktree di repositori ini belum punya workspace. Worktree itu akan diimpor sebagai workspace.} other {# worktree di repositori ini belum punya workspace. Worktree itu akan diimpor sebagai workspace.}}"
 
@@ -1384,6 +1387,9 @@ msgstr "Browser dalam aplikasi yang lebih baik: lihat pratinjau perubahan Anda d
 
 msgid "A better Superset is ready"
 msgstr "Superset yang lebih baik sudah siap"
+
+msgid "A chat takes its name from the agent."
+msgstr "Chat mengambil namanya dari agen."
 
 msgid "A cloud automation needs an environment or a cloud workspace"
 msgstr "Otomatisasi cloud memerlukan environment atau workspace cloud"
@@ -4595,8 +4601,14 @@ msgstr "Biaya untuk Anda: $0"
 msgid "Could not add agent"
 msgstr "Tidak dapat menambahkan agen"
 
+msgid "Could not answer the agent"
+msgstr "Tidak dapat menjawab agen"
+
 msgid "Could not attach files"
 msgstr "Tidak bisa melampirkan file"
+
+msgid "Could not change the mode"
+msgstr "Tidak dapat mengubah mode"
 
 msgid "Could not change the shared version"
 msgstr "Tidak bisa mengubah versi yang dibagikan"
@@ -4633,6 +4645,9 @@ msgstr "Tidak bisa membuat proyek"
 
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Tidak bisa membuat proyek. Coba nama lain atau periksa log."
+
+msgid "Could not delete"
+msgstr "Tidak dapat menghapus"
 
 msgid "Could not delete account"
 msgstr "Tidak bisa menghapus akun"
@@ -4758,6 +4773,9 @@ msgstr "Tidak dapat menyelesaikan komentar ini"
 msgid "Could not restart the host service"
 msgstr "Tidak dapat memulai ulang layanan host"
 
+msgid "Could not resume"
+msgstr "Tidak dapat melanjutkan"
+
 msgid "Could not send"
 msgstr "Tidak bisa mengirim"
 
@@ -4779,8 +4797,14 @@ msgstr "Tidak bisa memulai provisioning workspace cloud"
 msgid "Could not start session"
 msgstr "Tidak bisa memulai sesi"
 
+msgid "Could not steer"
+msgstr "Tidak dapat mengarahkan"
+
 msgid "Could not stop it"
 msgstr "Tidak bisa dihentikan"
+
+msgid "Could not stop the agent"
+msgstr "Tidak dapat menghentikan agen"
 
 msgid "Could not stop watching"
 msgstr "Tidak bisa berhenti memantau"
@@ -10771,6 +10795,9 @@ msgstr "Belum menerima event: Microsoft Graph menolak langganan notifikasi. Peri
 msgid "Not reviewed by you"
 msgstr "Belum Anda review"
 
+msgid "Not sent"
+msgstr "Tidak terkirim"
+
 msgid "not set up"
 msgstr "belum disiapkan"
 
@@ -15314,6 +15341,9 @@ msgstr "Hentikan perintah run workspace"
 msgid "stopped"
 msgstr "berhenti"
 
+msgid "Stopped"
+msgstr "Dihentikan"
+
 msgid "Strikethrough"
 msgstr "Coret"
 
@@ -16310,6 +16340,9 @@ msgstr "Undangan tim ini sudah kedaluwarsa atau tidak ada. Minta tautan baru dar
 msgid "The title shows everywhere this page is listed and in its link preview."
 msgstr "Judul muncul di semua tempat halaman ini terdaftar dan di pratinjau tautannya."
 
+msgid "The turn failed"
+msgstr "Giliran gagal"
+
 msgid "The workspace is not ready yet. Try again."
 msgstr "Workspace belum siap. Coba lagi."
 
@@ -16403,6 +16436,9 @@ msgstr "Otomatisasi ini berada di organisasi lain"
 
 msgid "This cannot be undone."
 msgstr "Ini tidak bisa dibatalkan."
+
+msgid "This chat has ended."
+msgstr "Chat ini telah berakhir."
 
 msgid "This chat's agent has stopped and can't be resumed."
 msgstr "Agen chat ini sudah berhenti dan tidak dapat dilanjutkan."
