@@ -25,6 +25,7 @@ import {
 	listAccountRestartCandidates,
 	type ResumeSessionDeps,
 	restartAccountSessions,
+	resumeAgentsLostWithDaemon,
 	resumeTerminalAgentSession,
 } from "./terminal-agents";
 
@@ -654,5 +655,124 @@ describe("restartAccountSessions", () => {
 		expect(disposedTerminals).toEqual(["t1"]);
 		expect(broadcasts).toEqual([]);
 		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
+	});
+});
+
+describe("resumeAgentsLostWithDaemon", () => {
+	function seedLiveBinding(
+		db: HostDb,
+		terminalId: string,
+		lastEventAt: number,
+	) {
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				status: "active",
+				originWorkspaceId: "ws-1",
+				createdAt: 1,
+			})
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId,
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: `sess-${terminalId}`,
+				startedAt: 1,
+				lastEventAt,
+				lastEventType: "Stop",
+			})
+			.run();
+	}
+
+	function seedConfig(db: HostDb) {
+		db.insert(hostAgentConfigs)
+			.values({
+				id: CLAUDE_CONFIG_ID,
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				promptTransport: "argv",
+				resumeArgsJson: JSON.stringify(["--resume"]),
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	const noWait = { delayMs: 0 };
+
+	it("resumes only the agents whose terminal the daemon lost", async () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const now = Date.now();
+		seedLiveBinding(db, "t-alive", now - 60_000);
+		seedLiveBinding(db, "t-lost", now - 120_000);
+		const { deps, runCalls } = createDeps(db);
+
+		const result = await resumeAgentsLostWithDaemon(
+			deps,
+			async () => new Set(["t-alive"]),
+			noWait,
+		);
+
+		expect(result.resumedTerminalIds).toEqual(["t-new"]);
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual([
+			"sess-t-lost",
+		]);
+	});
+
+	it("resumes the most recently active agents first, up to the limit", async () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const now = Date.now();
+		for (let i = 1; i <= 4; i++) seedLiveBinding(db, `t${i}`, now - i * 60_000);
+		const { deps, runCalls } = createDeps(db);
+
+		await resumeAgentsLostWithDaemon(deps, async () => new Set(), {
+			...noWait,
+			limit: 2,
+		});
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual([
+			"sess-t1",
+			"sess-t2",
+		]);
+		// The rest stay resumable from their pane.
+		expect(findResumeCandidateBinding(db, "ws-1", "t4")).toBeDefined();
+	});
+
+	it("leaves behind agents that went quiet days ago", async () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const now = Date.now();
+		seedLiveBinding(db, "t-yesterday", now - 2 * 60 * 60_000);
+		// Never marked ended because its daemon died unobserved; the person
+		// moved on from this conversation two days ago.
+		seedLiveBinding(db, "t-stale", now - 48 * 60 * 60_000);
+		const { deps, runCalls } = createDeps(db);
+
+		await resumeAgentsLostWithDaemon(deps, async () => new Set(), noWait);
+
+		expect(runCalls.map((call) => call.resumeSessionId)).toEqual([
+			"sess-t-yesterday",
+		]);
+		// Untouched, so the reaper and the pane path still own it.
+		expect(findResumeCandidateBinding(db, "ws-1", "t-stale")).toBeUndefined();
+	});
+
+	it("does nothing when no daemon answers", async () => {
+		const db = createTestDb();
+		seedConfig(db);
+		seedLiveBinding(db, "t1", Date.now() - 60_000);
+		const { deps, runCalls } = createDeps(db);
+
+		const result = await resumeAgentsLostWithDaemon(deps, async () => null, {
+			...noWait,
+			attempts: 3,
+		});
+
+		expect(result.resumedTerminalIds).toEqual([]);
+		expect(runCalls).toEqual([]);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
 	});
 });

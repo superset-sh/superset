@@ -147,6 +147,39 @@ function parseTurns(raw: string): string[] {
 	return turns;
 }
 
+interface ClaudeTitleEvent extends ClaudeEvent {
+	summary?: string;
+}
+
+/**
+ * A name for a session, read from the head of its file: Claude's own summary
+ * record when it wrote one, else the first thing the person typed. Hook
+ * output, command expansions and pasted context all arrive as user turns
+ * wrapped in tags, and none of them is what the person would call this
+ * conversation.
+ */
+export function parseClaudeTitle(raw: string): string | null {
+	let firstPrompt: string | null = null;
+	for (const line of raw.split("\n")) {
+		if (!line) continue;
+		let event: ClaudeTitleEvent;
+		try {
+			event = JSON.parse(line) as ClaudeTitleEvent;
+		} catch {
+			continue;
+		}
+		if (event.type === "summary" && typeof event.summary === "string") {
+			const summary = event.summary.trim();
+			if (summary) return summary;
+		}
+		if (firstPrompt || event.type !== "user") continue;
+		const text = textOf(event);
+		if (!text || text.startsWith("<")) continue;
+		firstPrompt = text;
+	}
+	return firstPrompt;
+}
+
 export const claudeSessionFiles: HarnessSessionFiles = {
 	/**
 	 * The launch env's store first, then the default one: a session started

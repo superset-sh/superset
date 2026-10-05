@@ -6,6 +6,7 @@ import { piSessionStore } from "./pi";
 import { toSessionQuery } from "./query";
 import type { HarnessSessionRef, HarnessSessionStore } from "./types";
 
+export { readHarnessSessionTitle } from "./title";
 export type { HarnessTranscript } from "./transcript";
 export type { HarnessSessionRef } from "./types";
 
