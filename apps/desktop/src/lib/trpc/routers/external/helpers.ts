@@ -34,6 +34,10 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	"android-studio": "Android Studio",
 };
 
+export const MACOS_EXTERNAL_APPS = Object.keys(
+	MACOS_APP_NAMES,
+) as ExternalApp[];
+
 /**
  * Bundle ID candidates for apps with multiple installable variants — JetBrains
  * editions and Zed release channels. `open -b <bundleId>` works regardless of
@@ -55,6 +59,20 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 		"dev.zed.Zed-Dev",
 	],
 };
+
+export type MacOSAppProbe =
+	| { type: "bundleId"; value: string }
+	| { type: "appName"; value: string };
+
+export function getMacOSAppProbes(app: ExternalApp): MacOSAppProbe[] {
+	const bundleIds = BUNDLE_ID_CANDIDATES[app];
+	if (bundleIds) {
+		return bundleIds.map((value) => ({ type: "bundleId", value }));
+	}
+
+	const appName = MACOS_APP_NAMES[app];
+	return appName ? [{ type: "appName", value: appName }] : [];
+}
 
 /** Map of app IDs to their Linux CLI commands */
 const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
@@ -137,27 +155,17 @@ export function getAppCommand(
 ): { command: string; args: string[] }[] | null {
 	if (platform === "darwin") {
 		const isJetBrains = JETBRAINS_APPS.has(app);
-
-		const bundleIds = BUNDLE_ID_CANDIDATES[app];
-		if (bundleIds) {
-			return bundleIds.map((id) => ({
+		const probes = getMacOSAppProbes(app);
+		if (probes.length === 0) return null;
+		return probes.map((probe) => {
+			const selector = probe.type === "bundleId" ? "-b" : "-a";
+			return {
 				command: "open",
 				args: isJetBrains
-					? ["-n", "-b", id, "--args", targetPath]
-					: ["-b", id, targetPath],
-			}));
-		}
-
-		const appName = MACOS_APP_NAMES[app];
-		if (!appName) return null;
-		return [
-			{
-				command: "open",
-				args: isJetBrains
-					? ["-n", "-a", appName, "--args", targetPath]
-					: ["-a", appName, targetPath],
-			},
-		];
+					? ["-n", selector, probe.value, "--args", targetPath]
+					: [selector, probe.value, targetPath],
+			};
+		});
 	}
 
 	// Linux (and other non-macOS platforms)

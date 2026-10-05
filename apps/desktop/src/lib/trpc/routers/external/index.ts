@@ -15,6 +15,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspace } from "../workspaces/utils/db-helpers";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
+import { getExternalAppAvailability } from "./available-apps";
 import {
 	type ExternalApp,
 	getAppCommand,
@@ -126,6 +127,8 @@ async function openPathInApp(
  */
 export const createExternalRouter = () => {
 	return router({
+		availableApps: publicProcedure.query(() => getExternalAppAvailability()),
+
 		openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
 			if (!isSafeExternalUrl(input)) {
 				console.warn(
