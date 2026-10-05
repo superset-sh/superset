@@ -1,6 +1,7 @@
 import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveBrowserTarget } from "../shared";
+import { matchSources } from "./utils/matchSources";
 
 export default command({
 	description:
@@ -40,20 +41,7 @@ export default command({
 			};
 		}
 
-		const from = options.from.toLowerCase();
-		const profile = options.profile?.toLowerCase();
-		const profileMatches = sources.filter(
-			(s) => !profile || s.profileName.toLowerCase().includes(profile),
-		);
-		const exact = profileMatches.filter(
-			(s) => s.browserName.toLowerCase() === from,
-		);
-		const matches =
-			exact.length > 0
-				? exact
-				: profileMatches.filter((s) =>
-						s.browserName.toLowerCase().includes(from),
-					);
+		const matches = matchSources(sources, options.from, options.profile);
 
 		if (matches.length === 0) {
 			throw new CLIError(
