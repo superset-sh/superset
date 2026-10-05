@@ -25,6 +25,7 @@ export type BranchSearchResult =
 	RouterOutputs["workspaceCreation"]["searchBranches"];
 export type BranchSearchRow = BranchSearchResult["items"][number];
 export type HostProjectRow = RouterOutputs["project"]["list"][number];
+export type HostTagFolderRow = RouterOutputs["tagFolders"]["list"][number];
 
 const clientCache = new Map<string, HostServiceClient>();
 

@@ -1,11 +1,9 @@
 import {
+	mintFolderTag,
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
 } from "@superset/shared/workspace-tags";
-import {
-	buildSidebarFolderKey,
-	mintFolderTag,
-} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { buildSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 
 /**
  * In-place conversion of legacy folders (uuid-keyed rows whose membership

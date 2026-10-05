@@ -80,3 +80,18 @@ describe("planExternalSync", () => {
 		).toBe("sync");
 	});
 });
+
+test("collection collision geometry reserves an accessible root target", () => {
+	const result = Bun.spawnSync({
+		cmd: [
+			process.execPath,
+			"test",
+			`${import.meta.dir}/fixtures/collectionCollision.tsx`,
+		],
+		env: { ...process.env, NODE_ENV: "test" },
+	});
+	expect(
+		result.exitCode,
+		result.stdout.toString() + result.stderr.toString(),
+	).toBe(0);
+});

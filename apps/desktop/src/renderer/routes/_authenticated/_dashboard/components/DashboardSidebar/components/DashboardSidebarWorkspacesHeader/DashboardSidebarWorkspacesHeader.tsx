@@ -24,6 +24,7 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
+import { useSidebarProjectCollections } from "../../providers/DashboardSidebarProjectCollectionsProvider";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 import { DashboardSidebarProjectsFilterInput } from "./components/DashboardSidebarProjectsFilterInput";
 import { DashboardSidebarProjectsSortMenu } from "./components/DashboardSidebarProjectsSortMenu";
@@ -43,6 +44,7 @@ export function DashboardSidebarWorkspacesHeader({
 	onFilterQueryChange,
 }: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
+	const collections = useSidebarProjectCollections();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.workspaces,
 	);
@@ -165,6 +167,12 @@ export function DashboardSidebarWorkspacesHeader({
 					onClick={(event) => event.stopPropagation()}
 					onKeyDown={(event) => event.stopPropagation()}
 				>
+					<DropdownMenuItem
+						onSelect={() => collections?.create()}
+						disabled={!collections?.isReady}
+					>
+						<Trans>New collection</Trans>
+					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={handleImportFolder}>
 						<VscFolderOpened className="size-4" />
 						<Trans>Open project</Trans>

@@ -520,3 +520,63 @@ export const screenshots = sqliteTable(
 
 export type InsertScreenshot = typeof screenshots.$inferInsert;
 export type SelectScreenshot = typeof screenshots.$inferSelect;
+
+export const projectCollectionPlacements = sqliteTable(
+	"project_collection_placements",
+	{
+		organizationId: text("organization_id").notNull(),
+		userId: text("user_id").notNull(),
+		key: text("key").notNull(),
+		kind: text("kind", { enum: ["project", "collection"] }).notNull(),
+		tabOrder: integer("tab_order").notNull().default(0),
+		isCollapsed: integer("is_collapsed", { mode: "boolean" })
+			.notNull()
+			.default(false),
+	},
+	(table) => [
+		primaryKey({ columns: [table.organizationId, table.userId, table.key] }),
+	],
+);
+
+export const projectCollectionPendingDeletes = sqliteTable(
+	"project_collection_pending_deletes",
+	{
+		organizationId: text("organization_id").notNull(),
+		userId: text("user_id").notNull(),
+		machineId: text("machine_id").notNull(),
+		tag: text("tag").notNull(),
+		deletedAt: integer("deleted_at"),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.userId, table.machineId, table.tag],
+		}),
+	],
+);
+
+export const projectCollectionPendingPresentations = sqliteTable(
+	"project_collection_pending_presentations",
+	{
+		organizationId: text("organization_id").notNull(),
+		userId: text("user_id").notNull(),
+		machineId: text("machine_id").notNull(),
+		tag: text("tag").notNull(),
+		setting: text("setting", { mode: "json" })
+			.$type<{
+				scope: "projects";
+				updatedAt?: number;
+				create?: boolean;
+				createdAt?: number;
+				tag: string;
+				displayName: string | null;
+				color: string | null;
+				tabOrder: number | null;
+			}>()
+			.notNull(),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.organizationId, table.userId, table.machineId, table.tag],
+		}),
+	],
+);

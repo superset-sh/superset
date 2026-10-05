@@ -267,6 +267,20 @@
       "when": 1790492072422,
       "tag": "0037_project_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1791067837977,
+      "tag": "0038_project_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1791115902510,
+      "tag": "0039_project_collection_deletions",
+      "breakpoints": true
     }
   ]
 }

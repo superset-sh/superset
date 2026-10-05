@@ -407,6 +407,34 @@
       "when": 1790437860268,
       "tag": "0057_add_file_auto_save_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1791069001210,
+      "tag": "0058_project_collection_placements",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1791080146173,
+      "tag": "0059_project_collection_pending_deletes",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1791113530497,
+      "tag": "0060_project_collection_pending_presentations",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1791119679608,
+      "tag": "0061_project_collection_delete_dates",
+      "breakpoints": true
     }
   ]
 }

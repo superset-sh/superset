@@ -38,6 +38,7 @@ const PERSISTED_QUERY_PREFIXES = [
 	["cloud", "cloudWorkspace", "list"],
 	["host-service", "workspaces", "list"],
 	["host-service", "projects", "list"],
+	["host-service", "tagFolders", "list"],
 ] as const;
 
 const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;

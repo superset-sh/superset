@@ -128,3 +128,43 @@ describe("mergeHostTagFoldersWithLegacy", () => {
 		).toEqual([]);
 	});
 });
+
+test("D2 projects presentation selects the latest write rather than the local replica", () => {
+	const local = result("local", true, [
+		setting("red", {
+			scope: "projects",
+			displayName: "Old",
+			...{ updatedAt: 10 },
+		}),
+	]);
+	const remote = result("remote", false, [
+		setting("blue", {
+			scope: "projects",
+			displayName: "New",
+			...{ updatedAt: 20 },
+		}),
+	]);
+	expect(mergeHostTagFolders([remote, local])[0]?.displayName).toBe("New");
+	expect(mergeHostTagFolders([local, remote])[0]?.displayName).toBe("New");
+});
+
+test("dates never change workspace group precedence and collection ties keep the old rule", () => {
+	for (const scope of [
+		"sessions",
+		"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		"projects",
+	]) {
+		const local = result("local", true, [
+			setting("red", { scope, updatedAt: 20 }),
+		]);
+		const remote = result("remote", false, [
+			setting("blue", { scope, updatedAt: scope === "projects" ? 20 : 30 }),
+		]);
+		expect(mergeHostTagFolders([remote, local])[0]?.color).toBe("red");
+	}
+	const local = result("local", true, [setting("red", { scope: "projects" })]);
+	const remote = result("remote", false, [
+		setting("blue", { scope: "projects", updatedAt: 30 }),
+	]);
+	expect(mergeHostTagFolders([remote, local])[0]?.color).toBe("red");
+});

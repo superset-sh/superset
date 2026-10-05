@@ -1,5 +1,9 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import {
+	type UseQueryResult,
+	useQueries,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -66,7 +70,17 @@ export function useHostTagFolders(): UseHostTagFoldersResult {
 		[targets],
 	);
 
+	const combine = useCallback(
+		(results: UseQueryResult<HostTagFolderSetting[]>[]) =>
+			results.map((query) => ({
+				data: query.data,
+				isSuccess: query.isSuccess,
+				isError: query.isError,
+			})),
+		[],
+	);
 	const queries = useQueries({
+		combine,
 		queries: targets.map((target, index) => ({
 			queryKey: queryKeys[index] as string[],
 			enabled: target.hostUrl !== null,

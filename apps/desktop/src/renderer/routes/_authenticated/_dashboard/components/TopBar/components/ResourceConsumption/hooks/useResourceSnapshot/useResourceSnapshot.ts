@@ -5,6 +5,7 @@ import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
+import { useProjectCollections } from "renderer/routes/_authenticated/hooks/useProjectCollections";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -70,7 +71,11 @@ export function useResourceSnapshot(
 			q
 				.from({ sp: collections.v2SidebarProjects })
 				.orderBy(({ sp }) => sp.tabOrder, "asc")
-				.select(({ sp }) => ({ projectId: sp.projectId })),
+				.select(({ sp }) => ({
+					projectId: sp.projectId,
+					tabOrder: sp.tabOrder,
+					isHidden: sp.isHidden,
+				})),
 		[collections],
 	);
 
@@ -85,11 +90,6 @@ export function useResourceSnapshot(
 					paneLayout: ws.paneLayout,
 				})),
 		[collections],
-	);
-
-	const sidebarProjectOrder = useMemo(
-		() => rawSidebarProjects.map((p) => p.projectId),
-		[rawSidebarProjects],
 	);
 
 	const sidebarWorkspaceOrder = useMemo(
@@ -117,6 +117,12 @@ export function useResourceSnapshot(
 	);
 
 	const { workspaces: rawV2Workspaces } = useHostWorkspaces();
+	const { projectOrder } = useProjectCollections();
+	const sidebarProjectOrder = useMemo(
+		() =>
+			isV2 ? projectOrder : rawSidebarProjects.map((row) => row.projectId),
+		[isV2, projectOrder, rawSidebarProjects],
+	);
 
 	const shouldQueryMetrics = shouldQueryResourceMonitor({
 		enabled: true,

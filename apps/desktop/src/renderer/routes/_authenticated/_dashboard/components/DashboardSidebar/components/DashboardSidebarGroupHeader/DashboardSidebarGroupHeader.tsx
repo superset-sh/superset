@@ -45,6 +45,7 @@ export const DashboardSidebarGroupHeader = forwardRef<
 		<div
 			ref={ref}
 			role={isEditing ? undefined : "button"}
+			{...(isEditing ? {} : { "aria-expanded": !isCollapsed })}
 			tabIndex={isEditing ? undefined : 0}
 			onClick={isEditing ? undefined : onToggleCollapse}
 			onKeyDown={

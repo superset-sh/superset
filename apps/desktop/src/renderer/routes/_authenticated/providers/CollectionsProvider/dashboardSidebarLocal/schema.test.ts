@@ -625,3 +625,17 @@ describe("dashboardSidebarSectionSchema (Sessions scope)", () => {
 		).toThrow();
 	});
 });
+
+describe("empty project collection preference", () => {
+	it("defaults old preferences to visible collections and keeps the chosen value", () => {
+		expect(healV2UserPreferences({}).hideEmptyProjectCollections).toBe(false);
+		expect(
+			v2UserPreferencesSchema.parse({ id: "preferences" })
+				.hideEmptyProjectCollections,
+		).toBe(false);
+		expect(
+			healV2UserPreferences({ hideEmptyProjectCollections: true })
+				.hideEmptyProjectCollections,
+		).toBe(true);
+	});
+});

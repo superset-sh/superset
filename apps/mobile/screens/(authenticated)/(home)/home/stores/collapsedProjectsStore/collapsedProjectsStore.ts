@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { pruneCollapsedCollections } from "./utils/pruneCollapsedCollections";
 
 /**
  * Which project sections are shut, keyed `machineId:projectId` — collapse is
@@ -13,6 +14,7 @@ interface CollapsedProjectsStore {
 	/** False until AsyncStorage answers — sections would flash open before it. */
 	hasHydrated: boolean;
 	toggleProject: (machineId: string, projectId: string) => void;
+	pruneCollections: (machineId: string, knownTags: string[]) => void;
 	setAllCollapsed: (
 		machineId: string,
 		projectIds: string[],
@@ -29,6 +31,16 @@ export const useCollapsedProjectsStore = create<CollapsedProjectsStore>()(
 		(set) => ({
 			collapsed: {},
 			hasHydrated: false,
+			pruneCollections: (machineId, knownTags) => {
+				set((state) => {
+					const collapsed = pruneCollapsedCollections(
+						state.collapsed,
+						machineId,
+						knownTags,
+					);
+					return collapsed === state.collapsed ? state : { collapsed };
+				});
+			},
 			toggleProject: (machineId, projectId) => {
 				set((state) => {
 					const key = collapsedProjectKey(machineId, projectId);

@@ -538,18 +538,44 @@ listing. Workspaces branch off a host's checkout.
 	options={[
 		{ flag: "--host <id>", description: "List projects on a specific host machineId." },
 		{ flag: "--local", description: "List projects on this machine (the default)." },
+		{ flag: "--collection <name>", description: "Filter to projects in a collection." },
 	]}
 	output={`Array<{
   id: string;
   name: string;
   repo: string;
   path: string;
+  collection: string | null;
+  tags: string[];
 }>`}
-	humanColumns={["NAME", "REPO", "PATH", "ID"]}
+	humanColumns={["NAME", "REPO", "PATH", "COLLECTION", "TAGS", "ID"]}
 	quiet="project IDs"
 >
 List projects on a host. Defaults to this machine; pass `--host <id>` for
 another host.
+</Command>
+
+<Command
+	name="superset projects update <projectId>"
+	args={[
+		{ name: "projectId", required: true, description: "Project UUID to update." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Host where the project is set up. Default: this machine." },
+		{ flag: "--local", description: "Use this machine (the default)." },
+		{ flag: "--collection <name>", description: "Move the project into this collection." },
+		{ flag: "--clear-collection", description: "Remove the project from its collection." },
+	]}
+>
+Move a project into a collection or remove it from one. Pass exactly one of
+`--collection <name>` and `--clear-collection`. The collection name shown in the
+sidebar resolves first, then the normalized tag.
+
+```bash
+superset projects update 47c31b04-… --local --collection dibsteur
+superset projects update 47c31b04-… --host host_… --clear-collection
+superset projects list --local --collection dibsteur
+```
 </Command>
 
 <Command

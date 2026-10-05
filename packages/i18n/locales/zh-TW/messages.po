@@ -191,6 +191,7 @@ msgstr "{0, plural, one {已選擇#個專案。} other {已選擇#個專案。}}
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# 個專案} other {# 個專案}}"
 
@@ -2011,6 +2012,9 @@ msgstr "全部方案"
 
 msgid "All posts"
 msgstr "全部文章"
+
+msgid "All project hosts must be online and support collections"
+msgstr "所有專案主機必須在線上並支援集合"
 
 msgid "All projects"
 msgstr "所有專案"
@@ -3895,6 +3899,15 @@ msgstr "可摺疊的思考塊，帶時長標籤"
 msgid "Collecting…"
 msgstr "正在收集…"
 
+msgid "Collection actions"
+msgstr "集合操作"
+
+msgid "Collection name"
+msgstr "集合名稱"
+
+msgid "Collection: {name}"
+msgstr "集合：{name}"
+
 msgid "Color"
 msgstr "顏色"
 
@@ -4776,6 +4789,9 @@ msgstr "無法提交提示詞。請重試。"
 msgid "Could not take a screenshot"
 msgstr "無法截圖"
 
+msgid "Could not update collection"
+msgstr "無法更新集合"
+
 msgid "Could not update plugin"
 msgstr "無法更新外掛"
 
@@ -5488,6 +5504,9 @@ msgstr "刪除自動化"
 
 msgid "Delete automation?"
 msgstr "刪除自動化？"
+
+msgid "Delete collection"
+msgstr "刪除集合"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "隱藏詳情"
 msgid "Hide emails"
 msgstr "隱藏電子郵件"
 
+msgid "Hide empty collections"
+msgstr "隱藏空集合"
+
 msgid "Hide file tree"
 msgstr "隱藏檔案樹"
 
@@ -9755,6 +9777,9 @@ msgstr "軟體史的大部分時間"
 msgid "Move {count} to Group"
 msgstr "將{count}個移動到群組"
 
+msgid "Move to collection"
+msgstr "移至集合"
+
 msgid "Move to group"
 msgstr "移動到群組"
 
@@ -9932,6 +9957,12 @@ msgstr "新建聊天"
 
 msgid "New cloud workspace"
 msgstr "新建雲端工作區"
+
+msgid "New collection"
+msgstr "新增集合"
+
+msgid "New collection…"
+msgstr "新增集合…"
 
 msgid "New environment"
 msgstr "新增環境"
@@ -12367,6 +12398,9 @@ msgstr "專案所在主機不可達，暫時無法重新命名"
 msgid "Projects"
 msgstr "專案"
 
+msgid "Projects outside collections"
+msgstr "集合外的專案"
+
 msgid "Prompt"
 msgstr "提示詞"
 
@@ -12888,6 +12922,9 @@ msgstr "移除{label}？"
 
 msgid "Remove attachment"
 msgstr "移除附件"
+
+msgid "Remove from collection"
+msgstr "從集合中移除"
 
 msgid "Remove from Queue"
 msgstr "移出佇列"

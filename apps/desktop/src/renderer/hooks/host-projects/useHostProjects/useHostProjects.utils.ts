@@ -1,4 +1,8 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	normalizeWorkspaceTags,
+	visibleWorkspaceTags,
+} from "@superset/shared/workspace-tags";
 import type { ProjectSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
@@ -12,6 +16,8 @@ export interface HostTagSetting {
 }
 
 export interface HostProjectRow {
+	tags?: string[];
+	supportsProjectTags?: boolean;
 	id: string;
 	name: string;
 	repoPath: string;
@@ -35,6 +41,8 @@ export interface HostProjectRow {
  * group on it; local-first projects are per-host by construction.
  */
 export interface HostProjectItem {
+	tags?: string[];
+	supportsProjectTags?: boolean;
 	/** Grouping key. Today `id`; kept separate so a cloud link can join later. */
 	projectKey: string;
 	id: string;
@@ -81,6 +89,7 @@ export interface HostRowForTargets {
 
 export function getHostProjectsQueryKey(
 	target: Pick<HostProjectsQueryTarget, "machineId" | "organizationId">,
+	userId: string,
 ) {
 	// Host identity, never hostUrl — see getHostWorkspacesQueryKey.
 	return [
@@ -88,6 +97,7 @@ export function getHostProjectsQueryKey(
 		"projects",
 		"list",
 		target.organizationId,
+		userId,
 		target.machineId,
 	] as const;
 }
@@ -153,6 +163,8 @@ export function normalizeHostProjectRow(
 ): HostProjectRow {
 	return {
 		id: row.id,
+		tags: normalizeWorkspaceTags(row.tags),
+		supportsProjectTags: row.supportsProjectTags ?? Array.isArray(row.tags),
 		name: row.name || row.repoPath.split(/[\\/]/).pop() || row.id,
 		repoPath: row.repoPath,
 		repoOwner: row.repoOwner ?? null,
@@ -167,22 +179,31 @@ export function normalizeHostProjectRow(
 	};
 }
 
-const SNAPSHOT_KEY_PREFIX = "host-projects:v1";
+const SNAPSHOT_KEY_PREFIX = "host-projects:v2";
 
-function snapshotKey(organizationId: string, machineId: string): string {
-	return `${SNAPSHOT_KEY_PREFIX}:${organizationId}:${machineId}`;
+export function getHostProjectsSnapshotKey(
+	organizationId: string,
+	machineId: string,
+	userId: string,
+): string {
+	return `${SNAPSHOT_KEY_PREFIX}:${organizationId}:${userId}:${machineId}`;
 }
 
 /** Last-seen per-host snapshots in IndexedDB (remote hosts only, like workspaces). */
 export async function loadHostProjectsSnapshot(
 	organizationId: string,
 	machineId: string,
+	userId: string,
 ): Promise<HostProjectRow[] | undefined> {
-	if (!organizationId) return undefined;
+	if (!organizationId || !userId) return undefined;
 	try {
-		return await idbGet<HostProjectRow[]>(
-			snapshotKey(organizationId, machineId),
+		await idbDel(`host-projects:v1:${organizationId}:${machineId}`).catch(
+			() => undefined,
 		);
+		const rows = await idbGet<HostProjectRow[]>(
+			getHostProjectsSnapshotKey(organizationId, machineId, userId),
+		);
+		return rows?.map(normalizeHostProjectRow);
 	} catch {
 		return undefined;
 	}
@@ -191,18 +212,25 @@ export async function loadHostProjectsSnapshot(
 export function saveHostProjectsSnapshot(
 	organizationId: string,
 	machineId: string,
+	userId: string,
 	rows: HostProjectRow[],
 ): void {
-	if (!organizationId) return;
-	void idbSet(snapshotKey(organizationId, machineId), rows).catch(() => {});
+	if (!organizationId || !userId) return;
+	void idbSet(
+		getHostProjectsSnapshotKey(organizationId, machineId, userId),
+		rows,
+	).catch(() => {});
 }
 
 export function clearHostProjectsSnapshot(
 	organizationId: string,
 	machineId: string,
+	userId: string,
 ): void {
-	if (!organizationId) return;
-	void idbDel(snapshotKey(organizationId, machineId)).catch(() => {});
+	if (!organizationId || !userId) return;
+	void idbDel(
+		getHostProjectsSnapshotKey(organizationId, machineId, userId),
+	).catch(() => {});
 }
 
 // Serialize read-modify-write per snapshot key so rapid deletes can't
@@ -217,16 +245,21 @@ const snapshotWriteChains = new Map<string, Promise<void>>();
 export function removeFromHostProjectsSnapshot(
 	organizationId: string,
 	machineId: string,
+	userId: string,
 	projectId: string,
 ): Promise<void> {
-	const key = snapshotKey(organizationId, machineId);
+	const key = getHostProjectsSnapshotKey(organizationId, machineId, userId);
 	const chained = (snapshotWriteChains.get(key) ?? Promise.resolve()).then(
 		async () => {
-			const rows = await loadHostProjectsSnapshot(organizationId, machineId);
+			const rows = await loadHostProjectsSnapshot(
+				organizationId,
+				machineId,
+				userId,
+			);
 			if (!Array.isArray(rows)) return;
 			const next = rows.filter((row) => row.id !== projectId);
 			if (next.length !== rows.length) {
-				saveHostProjectsSnapshot(organizationId, machineId, next);
+				saveHostProjectsSnapshot(organizationId, machineId, userId, next);
 			}
 		},
 	);
@@ -248,6 +281,8 @@ export function applyProjectChangedEvent(
 		project: ProjectSnapshotPayload | null;
 	},
 	projectId: string,
+	viewerUserId: string | null = null,
+	requestRefresh?: () => void,
 ): HostProjectRow[] | undefined {
 	if (event.eventType === "deleted") {
 		if (!rows) return rows;
@@ -257,8 +292,22 @@ export function applyProjectChangedEvent(
 	const snapshot = event.project;
 	if (!snapshot) return rows;
 	const existing = rows?.find((row) => row.id === snapshot.id);
+	if (
+		!existing &&
+		snapshot.tagAssignments === undefined &&
+		snapshot.tags === undefined
+	)
+		requestRefresh?.();
 	const nextRow: HostProjectRow = {
 		id: snapshot.id,
+		tags: snapshot.tagAssignments
+			? viewerUserId === null
+				? (existing?.tags ?? [])
+				: visibleWorkspaceTags(snapshot.tagAssignments, viewerUserId)
+			: normalizeWorkspaceTags(snapshot.tags ?? existing?.tags),
+		supportsProjectTags:
+			existing?.supportsProjectTags ??
+			(snapshot.tagAssignments !== undefined || snapshot.tags !== undefined),
 		name: snapshot.name,
 		repoPath: snapshot.repoPath,
 		repoOwner: snapshot.repoOwner,
@@ -300,6 +349,9 @@ export function mergeHostProjects({
 			if (!existing) {
 				byKey.set(key, {
 					projectKey: key,
+					tags: normalizeWorkspaceTags(row.tags),
+					supportsProjectTags:
+						row.supportsProjectTags ?? Array.isArray(row.tags),
 					id: row.id,
 					name: row.name,
 					repoPath: row.repoPath,
@@ -316,6 +368,13 @@ export function mergeHostProjects({
 				});
 				continue;
 			}
+			existing.tags = normalizeWorkspaceTags([
+				...(existing.tags ?? []),
+				...(row.tags ?? []),
+			]);
+			existing.supportsProjectTags =
+				existing.supportsProjectTags === true &&
+				(row.supportsProjectTags ?? Array.isArray(row.tags));
 			existing.hostIds.push(result.target.machineId);
 			existing.hostReachable = existing.hostReachable || result.reachable;
 			// Most recently updated replica wins the shared fields.

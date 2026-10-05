@@ -1,8 +1,13 @@
-import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	type UseQueryResult,
+	useQueries,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -11,6 +16,7 @@ import {
 	applyProjectChangedEvent,
 	deriveHostProjectsQueryTargets,
 	getHostProjectsQueryKey,
+	getHostProjectsSnapshotKey,
 	type HostProjectItem,
 	type HostProjectRow,
 	type HostProjectRowsResult,
@@ -48,6 +54,9 @@ export interface UseHostProjectsResult {
  */
 export function useHostProjects(): UseHostProjectsResult {
 	const queryClient = useQueryClient();
+	const { data: session } = authClient.useSession();
+	const currentUserId =
+		session?.user?.id ?? (env.SKIP_ENV_VALIDATION ? "mock-user" : "");
 	const { activeHostUrl, machineId, activeOrganizationId } =
 		useLocalHostService();
 	const relayUrl = useRelayUrl();
@@ -72,7 +81,7 @@ export function useHostProjects(): UseHostProjectsResult {
 		[activeHostUrl, hosts, machineId, relayUrl, fallbackOrganizationId],
 	);
 
-	// Last-seen snapshots hydrate once per (org, host); live data always wins.
+	// Last-seen snapshots hydrate once per (org, user, host); live data wins.
 	const [snapshots, setSnapshots] = useState<Map<string, HostProjectRow[]>>(
 		() => new Map(),
 	);
@@ -82,17 +91,43 @@ export function useHostProjects(): UseHostProjectsResult {
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
-			if (snapshots.has(target.machineId)) continue;
+			if (
+				snapshots.has(
+					getHostProjectsSnapshotKey(
+						target.organizationId,
+						target.machineId,
+						currentUserId,
+					),
+				)
+			)
+				continue;
 			void loadHostProjectsSnapshot(
 				target.organizationId,
 				target.machineId,
+				currentUserId,
 			).then((rows) => {
 				if (cancelled || !rows) return;
 				const fresh = rows.filter((row) => !deletedIdsRef.current.has(row.id));
 				setSnapshots((prev) => {
-					if (prev.has(target.machineId)) return prev;
+					if (
+						prev.has(
+							getHostProjectsSnapshotKey(
+								target.organizationId,
+								target.machineId,
+								currentUserId,
+							),
+						)
+					)
+						return prev;
 					const next = new Map(prev);
-					next.set(target.machineId, fresh);
+					next.set(
+						getHostProjectsSnapshotKey(
+							target.organizationId,
+							target.machineId,
+							currentUserId,
+						),
+						fresh,
+					);
 					return next;
 				});
 			});
@@ -100,12 +135,22 @@ export function useHostProjects(): UseHostProjectsResult {
 		return () => {
 			cancelled = true;
 		};
-	}, [targets, snapshots]);
+	}, [targets, snapshots, currentUserId]);
 
+	const combine = useCallback(
+		(results: UseQueryResult<HostProjectRow[]>[]) =>
+			results.map((query) => ({
+				data: query.data,
+				isSuccess: query.isSuccess,
+				isError: query.isError,
+			})),
+		[],
+	);
 	const queries = useQueries({
+		combine,
 		queries: targets.map((target) => ({
-			queryKey: getHostProjectsQueryKey(target),
-			enabled: target.hostUrl !== null,
+			queryKey: getHostProjectsQueryKey(target, currentUserId),
+			enabled: target.hostUrl !== null && !!currentUserId,
 			refetchInterval: PROJECTS_FALLBACK_REFETCH_INTERVAL_MS,
 			// See useHostWorkspaces: "online" networkMode would pause 127.0.0.1
 			// queries when navigator.onLine is false, defeating offline-first.
@@ -122,7 +167,12 @@ export function useHostProjects(): UseHostProjectsResult {
 						Partial<HostProjectRow> & { id: string; repoPath: string }
 					>
 				).map(normalizeHostProjectRow);
-				saveHostProjectsSnapshot(target.organizationId, target.machineId, rows);
+				saveHostProjectsSnapshot(
+					target.organizationId,
+					target.machineId,
+					currentUserId,
+					rows,
+				);
 				return rows;
 			},
 		})),
@@ -148,6 +198,7 @@ export function useHostProjects(): UseHostProjectsResult {
 						void removeFromHostProjectsSnapshot(
 							target.organizationId,
 							target.machineId,
+							currentUserId,
 							projectId,
 						).catch((err) => {
 							console.warn("[useHostProjects] snapshot purge failed", {
@@ -156,24 +207,45 @@ export function useHostProjects(): UseHostProjectsResult {
 							});
 						});
 						setSnapshots((prev) => {
-							const rows = prev.get(target.machineId);
+							const rows = prev.get(
+								getHostProjectsSnapshotKey(
+									target.organizationId,
+									target.machineId,
+									currentUserId,
+								),
+							);
 							if (!rows?.some((row) => row.id === projectId)) return prev;
 							const next = new Map(prev);
 							next.set(
-								target.machineId,
+								getHostProjectsSnapshotKey(
+									target.organizationId,
+									target.machineId,
+									currentUserId,
+								),
 								rows.filter((row) => row.id !== projectId),
 							);
 							return next;
 						});
 					}
 					queryClient.setQueryData<HostProjectRow[] | undefined>(
-						getHostProjectsQueryKey(target),
+						getHostProjectsQueryKey(target, currentUserId),
 						(rows) => {
-							const next = applyProjectChangedEvent(rows, event, projectId);
+							const next = applyProjectChangedEvent(
+								rows,
+								event,
+								projectId,
+								currentUserId,
+								() => {
+									void queryClient.invalidateQueries({
+										queryKey: getHostProjectsQueryKey(target, currentUserId),
+									});
+								},
+							);
 							if (next && next !== rows) {
 								saveHostProjectsSnapshot(
 									target.organizationId,
 									target.machineId,
+									currentUserId,
 									next,
 								);
 							}
@@ -191,7 +263,7 @@ export function useHostProjects(): UseHostProjectsResult {
 		return () => {
 			for (const cleanup of cleanups) cleanup();
 		};
-	}, [targets, queryClient]);
+	}, [targets, queryClient, currentUserId]);
 
 	const hostResults = useMemo<HostProjectRowsResult[]>(
 		() =>
@@ -200,11 +272,19 @@ export function useHostProjects(): UseHostProjectsResult {
 				const live = query?.data;
 				return {
 					target,
-					rows: live ?? snapshots.get(target.machineId),
+					rows:
+						live ??
+						snapshots.get(
+							getHostProjectsSnapshotKey(
+								target.organizationId,
+								target.machineId,
+								currentUserId,
+							),
+						),
 					reachable: live !== undefined && !query?.isError,
 				};
 			}),
-		[targets, queries, snapshots],
+		[targets, queries, snapshots, currentUserId],
 	);
 	const projects = useMemo(
 		() => mergeHostProjects({ hostResults }),
@@ -217,13 +297,22 @@ export function useHostProjects(): UseHostProjectsResult {
 	const isReady =
 		knownHostsSettled &&
 		targets.length > 0 &&
-		queries.every(
-			(query, index) =>
+		queries.every((query, index) => {
+			const target = targets[index];
+			return (
 				query.isSuccess ||
 				query.isError ||
-				targets[index]?.hostUrl === null ||
-				snapshots.has(targets[index]?.machineId ?? ""),
-		);
+				target?.hostUrl === null ||
+				(!!target &&
+					snapshots.has(
+						getHostProjectsSnapshotKey(
+							target.organizationId,
+							target.machineId,
+							currentUserId,
+						),
+					))
+			);
+		});
 
 	return { projects, hostResults, isReady };
 }

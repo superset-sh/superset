@@ -1,3 +1,4 @@
+import { PROJECTS_TAG_SCOPE } from "@superset/shared/workspace-tags";
 import type {
 	HostProjectRowsResult,
 	HostProjectsQueryTarget,
@@ -6,6 +7,9 @@ import type {
 /** One folder's host-side presentation, plus the scope it belongs to. */
 export interface HostTagFolderSetting {
 	scope: string;
+	updatedAt?: number;
+	create?: boolean;
+	createdAt?: number;
 	tag: string;
 	displayName: string | null;
 	color: string | null;
@@ -23,8 +27,8 @@ export interface HostTagFoldersResult {
 
 /**
  * Collapse duplicate `(scope, tag)` rows when the same project is served by
- * multiple hosts. Local wins at row granularity; otherwise host identity
- * makes the result independent of query completion order. Do not merge
+ * multiple hosts. Project collections use the newest dated row. Local and
+ * host identity break ties and keep undated scopes stable. Do not merge
  * nullable fields: null is an explicit reset, not evidence that another
  * host's value should be resurrected. Sessions normally contribute one host.
  */
@@ -41,7 +45,15 @@ export function mergeHostTagFolders(
 	for (const result of ordered) {
 		for (const setting of result.settings) {
 			const key = `${setting.scope}\u0000${setting.tag}`;
-			if (!byFolder.has(key)) byFolder.set(key, setting);
+			const prior = byFolder.get(key);
+			if (
+				!prior ||
+				(setting.scope === PROJECTS_TAG_SCOPE &&
+					setting.updatedAt !== undefined &&
+					prior.updatedAt !== undefined &&
+					setting.updatedAt > prior.updatedAt)
+			)
+				byFolder.set(key, setting);
 		}
 	}
 	return [...byFolder.values()].sort(

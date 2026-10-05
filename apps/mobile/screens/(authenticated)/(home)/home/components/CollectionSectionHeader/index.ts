@@ -1,0 +1,1 @@
+export { CollectionSectionHeader } from "./CollectionSectionHeader";

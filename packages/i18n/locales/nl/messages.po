@@ -191,6 +191,7 @@ msgstr "{0, plural, one {# project geselecteerd.} other {# projecten geselecteer
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# project} other {# projecten}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Alle plannen"
 
 msgid "All posts"
 msgstr "Alle berichten"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Alle projecthosts moeten online zijn en collecties ondersteunen"
 
 msgid "All projects"
 msgstr "Alle projecten"
@@ -3895,6 +3899,15 @@ msgstr "Inklapbaar denkblok met duurlabel"
 msgid "Collecting…"
 msgstr "Verzamelen…"
 
+msgid "Collection actions"
+msgstr "Collectieacties"
+
+msgid "Collection name"
+msgstr "Collectienaam"
+
+msgid "Collection: {name}"
+msgstr "Collectie: {name}"
+
 msgid "Color"
 msgstr "Kleur"
 
@@ -4776,6 +4789,9 @@ msgstr "Kan prompt niet insturen. Probeer het opnieuw."
 msgid "Could not take a screenshot"
 msgstr "Kan geen screenshot maken"
 
+msgid "Could not update collection"
+msgstr "Collectie kon niet worden bijgewerkt"
+
 msgid "Could not update plugin"
 msgstr "Kan plugin niet bijwerken"
 
@@ -5488,6 +5504,9 @@ msgstr "Automatisering verwijderen"
 
 msgid "Delete automation?"
 msgstr "Automatisering verwijderen?"
+
+msgid "Delete collection"
+msgstr "Collectie verwijderen"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Details verbergen"
 msgid "Hide emails"
 msgstr "E-mails verbergen"
 
+msgid "Hide empty collections"
+msgstr "Lege collecties verbergen"
+
 msgid "Hide file tree"
 msgstr "Bestandsboom verbergen"
 
@@ -9755,6 +9777,9 @@ msgstr "Het grootste deel van de softwaregeschiedenis"
 msgid "Move {count} to Group"
 msgstr "{count} naar groep verplaatsen"
 
+msgid "Move to collection"
+msgstr "Naar collectie verplaatsen"
+
 msgid "Move to group"
 msgstr "Naar groep verplaatsen"
 
@@ -9932,6 +9957,12 @@ msgstr "Nieuwe chat"
 
 msgid "New cloud workspace"
 msgstr "Nieuwe cloudwerkruimte"
+
+msgid "New collection"
+msgstr "Nieuwe collectie"
+
+msgid "New collection…"
+msgstr "Nieuwe collectie…"
 
 msgid "New environment"
 msgstr "Nieuwe omgeving"
@@ -12367,6 +12398,9 @@ msgstr "De host van het project is onbereikbaar — naam kan nu niet worden gewi
 msgid "Projects"
 msgstr "Projecten"
 
+msgid "Projects outside collections"
+msgstr "Projecten buiten collecties"
+
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -12888,6 +12922,9 @@ msgstr "{label} verwijderen?"
 
 msgid "Remove attachment"
 msgstr "Bijlage verwijderen"
+
+msgid "Remove from collection"
+msgstr "Uit collectie verwijderen"
 
 msgid "Remove from Queue"
 msgstr "Uit wachtrij halen"

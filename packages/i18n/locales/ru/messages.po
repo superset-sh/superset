@@ -191,6 +191,7 @@ msgstr "{0, plural, one {Выбран # проект.} few {Выбрано # п�
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# проект} few {# проекта} many {# проектов} other {# проекта}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Все тарифы"
 
 msgid "All posts"
 msgstr "Все посты"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Все хосты проектов должны быть в сети и поддерживать коллекции"
 
 msgid "All projects"
 msgstr "Все проекты"
@@ -3895,6 +3899,15 @@ msgstr "Сворачиваемый блок размышлений с метко
 msgid "Collecting…"
 msgstr "Сбор данных…"
 
+msgid "Collection actions"
+msgstr "Действия с коллекцией"
+
+msgid "Collection name"
+msgstr "Название коллекции"
+
+msgid "Collection: {name}"
+msgstr "Коллекция: {name}"
+
 msgid "Color"
 msgstr "Цвет"
 
@@ -4776,6 +4789,9 @@ msgstr "Не удалось отправить промпт. Повторите.
 msgid "Could not take a screenshot"
 msgstr "Не удалось сделать скриншот"
 
+msgid "Could not update collection"
+msgstr "Не удалось обновить коллекцию"
+
 msgid "Could not update plugin"
 msgstr "Не удалось обновить плагин"
 
@@ -5488,6 +5504,9 @@ msgstr "Удалить автоматизацию"
 
 msgid "Delete automation?"
 msgstr "Удалить автоматизацию?"
+
+msgid "Delete collection"
+msgstr "Удалить коллекцию"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Скрыть детали"
 msgid "Hide emails"
 msgstr "Скрыть email"
 
+msgid "Hide empty collections"
+msgstr "Скрыть пустые коллекции"
+
 msgid "Hide file tree"
 msgstr "Скрыть дерево файлов"
 
@@ -9755,6 +9777,9 @@ msgstr "Почти вся история софта"
 msgid "Move {count} to Group"
 msgstr "Переместить {count} в группу"
 
+msgid "Move to collection"
+msgstr "Переместить в коллекцию"
+
 msgid "Move to group"
 msgstr "Переместить в группу"
 
@@ -9932,6 +9957,12 @@ msgstr "Новый чат"
 
 msgid "New cloud workspace"
 msgstr "Новая облачная рабочая область"
+
+msgid "New collection"
+msgstr "Новая коллекция"
+
+msgid "New collection…"
+msgstr "Новая коллекция…"
 
 msgid "New environment"
 msgstr "Новое окружение"
@@ -12367,6 +12398,9 @@ msgstr "Хост проекта недоступен — сейчас переи
 msgid "Projects"
 msgstr "Проекты"
 
+msgid "Projects outside collections"
+msgstr "Проекты вне коллекций"
+
 msgid "Prompt"
 msgstr "Промпт"
 
@@ -12888,6 +12922,9 @@ msgstr "Удалить {label}?"
 
 msgid "Remove attachment"
 msgstr "Удалить вложение"
+
+msgid "Remove from collection"
+msgstr "Убрать из коллекции"
 
 msgid "Remove from Queue"
 msgstr "Убрать из очереди"

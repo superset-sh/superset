@@ -191,6 +191,7 @@ msgstr "{0, plural, one {# proje seçildi.} other {# proje seçildi.}}"
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# proje} other {# proje}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Tüm planlar"
 
 msgid "All posts"
 msgstr "Tüm yazılar"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Tüm proje ana makineleri çevrimiçi olmalı ve koleksiyonları desteklemelidir"
 
 msgid "All projects"
 msgstr "Tüm projeler"
@@ -3895,6 +3899,15 @@ msgstr "Süre etiketli, daraltılabilir düşünme bloğu"
 msgid "Collecting…"
 msgstr "Toplanıyor…"
 
+msgid "Collection actions"
+msgstr "Koleksiyon işlemleri"
+
+msgid "Collection name"
+msgstr "Koleksiyon adı"
+
+msgid "Collection: {name}"
+msgstr "Koleksiyon: {name}"
+
 msgid "Color"
 msgstr "Renk"
 
@@ -4776,6 +4789,9 @@ msgstr "İstem gönderilemedi. Yeniden deneyin."
 msgid "Could not take a screenshot"
 msgstr "Ekran görüntüsü alınamadı"
 
+msgid "Could not update collection"
+msgstr "Koleksiyon güncellenemedi"
+
 msgid "Could not update plugin"
 msgstr "Eklenti güncellenemedi"
 
@@ -5488,6 +5504,9 @@ msgstr "Otomasyonu sil"
 
 msgid "Delete automation?"
 msgstr "Otomasyon silinsin mi?"
+
+msgid "Delete collection"
+msgstr "Koleksiyonu sil"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Ayrıntıları gizle"
 msgid "Hide emails"
 msgstr "E-postaları gizle"
 
+msgid "Hide empty collections"
+msgstr "Boş koleksiyonları gizle"
+
 msgid "Hide file tree"
 msgstr "Dosya ağacını gizle"
 
@@ -9755,6 +9777,9 @@ msgstr "Yazılım tarihinin çoğu"
 msgid "Move {count} to Group"
 msgstr "{count} öğeyi gruba taşı"
 
+msgid "Move to collection"
+msgstr "Koleksiyona taşı"
+
 msgid "Move to group"
 msgstr "Gruba taşı"
 
@@ -9932,6 +9957,12 @@ msgstr "Yeni sohbet"
 
 msgid "New cloud workspace"
 msgstr "Yeni bulut çalışma alanı"
+
+msgid "New collection"
+msgstr "Yeni koleksiyon"
+
+msgid "New collection…"
+msgstr "Yeni koleksiyon…"
 
 msgid "New environment"
 msgstr "Yeni ortam"
@@ -12367,6 +12398,9 @@ msgstr "Projenin host'una erişilemiyor — şu anda yeniden adlandırılamaz"
 msgid "Projects"
 msgstr "Projeler"
 
+msgid "Projects outside collections"
+msgstr "Koleksiyon dışındaki projeler"
+
 msgid "Prompt"
 msgstr "İstem"
 
@@ -12888,6 +12922,9 @@ msgstr "{label} kaldırılsın mı?"
 
 msgid "Remove attachment"
 msgstr "Eki kaldır"
+
+msgid "Remove from collection"
+msgstr "Koleksiyondan çıkar"
 
 msgid "Remove from Queue"
 msgstr "Kuyruktan çıkar"

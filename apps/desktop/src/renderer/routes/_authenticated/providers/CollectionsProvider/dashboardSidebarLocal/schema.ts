@@ -500,6 +500,7 @@ export const v2UserPreferencesSchema = z.object({
 	changesViewMode: changesViewModeSchema.default("folders"),
 	// Ordering of the dashboard sidebar's Projects list; manual = drag order.
 	sidebarProjectSortMode: persistedSidebarProjectSortModeSchema,
+	hideEmptyProjectCollections: z.boolean().default(false),
 	// Built-in (synthetic, app-shipped) presets the user hid from the preset
 	// bar. Synthetic presets have no v2TerminalPresets row, so visibility can't
 	// live on the row's pinnedToBar like user presets. Pruned against
@@ -539,6 +540,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	showPresetsBar: true,
 	changesViewMode: "folders",
 	sidebarProjectSortMode: "manual",
+	hideEmptyProjectCollections: false,
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
 	hiddenTagFolders: {},

@@ -337,6 +337,33 @@ export const tagFolderSettings = sqliteTable(
 	],
 );
 
+export const projectCollectionDeletions = sqliteTable(
+	"project_collection_deletions",
+	{
+		tag: text().notNull(),
+		createdByUserId: text("created_by_user_id").notNull().default(""),
+		deletedAt: integer("deleted_at").notNull().default(0),
+	},
+	(table) => [primaryKey({ columns: [table.tag, table.createdByUserId] })],
+);
+
+export const projectTags = sqliteTable(
+	"project_tags",
+	{
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		tag: text().notNull(),
+		createdByUserId: text("created_by_user_id").notNull().default(""),
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.projectId, table.tag, table.createdByUserId],
+		}),
+		index("project_tags_tag_idx").on(table.tag),
+	],
+);
+
 /**
  * Plain-string tags on workspaces — no tag entity, no tag ids. `tag` is
  * stored already-normalized (trimmed + lowercased, see

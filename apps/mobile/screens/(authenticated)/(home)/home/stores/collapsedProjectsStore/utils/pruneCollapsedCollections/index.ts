@@ -1,0 +1,1 @@
+export { pruneCollapsedCollections } from "./pruneCollapsedCollections";

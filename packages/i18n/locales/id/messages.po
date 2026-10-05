@@ -191,6 +191,7 @@ msgstr "{0, plural, one {# proyek dipilih.} other {# proyek dipilih.}}"
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# proyek} other {# proyek}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Semua paket"
 
 msgid "All posts"
 msgstr "Semua tulisan"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Semua host proyek harus online dan mendukung koleksi"
 
 msgid "All projects"
 msgstr "Semua proyek"
@@ -3895,6 +3899,15 @@ msgstr "Blok berpikir yang bisa diciutkan dengan label durasi"
 msgid "Collecting…"
 msgstr "Mengumpulkan…"
 
+msgid "Collection actions"
+msgstr "Tindakan koleksi"
+
+msgid "Collection name"
+msgstr "Nama koleksi"
+
+msgid "Collection: {name}"
+msgstr "Koleksi: {name}"
+
 msgid "Color"
 msgstr "Warna"
 
@@ -4776,6 +4789,9 @@ msgstr "Tidak bisa mengirim prompt. Coba lagi."
 msgid "Could not take a screenshot"
 msgstr "Tidak bisa mengambil tangkapan layar"
 
+msgid "Could not update collection"
+msgstr "Tidak dapat memperbarui koleksi"
+
 msgid "Could not update plugin"
 msgstr "Tidak bisa memperbarui plugin"
 
@@ -5488,6 +5504,9 @@ msgstr "Hapus otomatisasi"
 
 msgid "Delete automation?"
 msgstr "Hapus otomatisasi?"
+
+msgid "Delete collection"
+msgstr "Hapus koleksi"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Sembunyikan Detail"
 msgid "Hide emails"
 msgstr "Sembunyikan email"
 
+msgid "Hide empty collections"
+msgstr "Sembunyikan koleksi kosong"
+
 msgid "Hide file tree"
 msgstr "Sembunyikan pohon file"
 
@@ -9755,6 +9777,9 @@ msgstr "Sebagian besar sejarah perangkat lunak"
 msgid "Move {count} to Group"
 msgstr "Pindahkan {count} ke Grup"
 
+msgid "Move to collection"
+msgstr "Pindahkan ke koleksi"
+
 msgid "Move to group"
 msgstr "Pindahkan ke grup"
 
@@ -9932,6 +9957,12 @@ msgstr "Chat baru"
 
 msgid "New cloud workspace"
 msgstr "Workspace cloud baru"
+
+msgid "New collection"
+msgstr "Koleksi baru"
+
+msgid "New collection…"
+msgstr "Koleksi baru…"
 
 msgid "New environment"
 msgstr "Environment baru"
@@ -12367,6 +12398,9 @@ msgstr "Host proyek tidak bisa dijangkau — tidak bisa ganti nama sekarang"
 msgid "Projects"
 msgstr "Proyek"
 
+msgid "Projects outside collections"
+msgstr "Proyek di luar koleksi"
+
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -12888,6 +12922,9 @@ msgstr "Hapus {label}?"
 
 msgid "Remove attachment"
 msgstr "Hapus lampiran"
+
+msgid "Remove from collection"
+msgstr "Keluarkan dari koleksi"
 
 msgid "Remove from Queue"
 msgstr "Keluarkan dari Antrean"

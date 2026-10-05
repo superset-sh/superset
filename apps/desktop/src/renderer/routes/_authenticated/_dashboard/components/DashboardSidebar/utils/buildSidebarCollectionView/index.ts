@@ -1,0 +1,1 @@
+export { buildSidebarCollectionView } from "./buildSidebarCollectionView";

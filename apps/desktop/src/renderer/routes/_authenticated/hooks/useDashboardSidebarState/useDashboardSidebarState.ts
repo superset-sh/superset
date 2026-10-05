@@ -1,5 +1,6 @@
 import type { Pane } from "@superset/panes";
 import {
+	mintFolderTag,
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
 	SESSIONS_TAG_SCOPE,
@@ -31,7 +32,6 @@ import {
 	deriveTagFolders,
 	getProjectFolderTagIndex,
 	laneProjectIdForScope,
-	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceSectionId,
 	type TagFolderContext,
@@ -460,18 +460,6 @@ export function useDashboardSidebarState() {
 			if (!existing) return;
 			collections.v2SidebarProjects.update(projectId, (draft) => {
 				draft.isCollapsed = !draft.isCollapsed;
-			});
-		},
-		[collections],
-	);
-
-	const reorderProjects = useCallback(
-		(projectIds: string[]) => {
-			projectIds.forEach((projectId, index) => {
-				if (!collections.v2SidebarProjects.get(projectId)) return;
-				collections.v2SidebarProjects.update(projectId, (draft) => {
-					draft.tabOrder = index + 1;
-				});
 			});
 		},
 		[collections],
@@ -1061,7 +1049,6 @@ export function useDashboardSidebarState() {
 		reorderPinnedWorkspaces,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,
-		reorderProjects,
 		reorderWorkspaces,
 		renameSection,
 		setSectionColor,

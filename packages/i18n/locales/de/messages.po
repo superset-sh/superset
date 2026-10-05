@@ -191,6 +191,7 @@ msgstr "{0, plural, one {# Projekt ausgewählt.} other {# Projekte ausgewählt.}
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# Projekt} other {# Projekte}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Alle Tarife"
 
 msgid "All posts"
 msgstr "Alle Beiträge"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Alle Projekt-Hosts müssen online sein und Sammlungen unterstützen"
 
 msgid "All projects"
 msgstr "Alle Projekte"
@@ -3895,6 +3899,15 @@ msgstr "Einklappbarer Denkblock mit Dauerangabe"
 msgid "Collecting…"
 msgstr "Wird erfasst…"
 
+msgid "Collection actions"
+msgstr "Sammlungsaktionen"
+
+msgid "Collection name"
+msgstr "Sammlungsname"
+
+msgid "Collection: {name}"
+msgstr "Sammlung: {name}"
+
 msgid "Color"
 msgstr "Farbe"
 
@@ -4776,6 +4789,9 @@ msgstr "Prompt konnte nicht eingereicht werden. Versuche es erneut."
 msgid "Could not take a screenshot"
 msgstr "Es konnte kein Screenshot erstellt werden"
 
+msgid "Could not update collection"
+msgstr "Sammlung konnte nicht aktualisiert werden"
+
 msgid "Could not update plugin"
 msgstr "Plugin konnte nicht aktualisiert werden"
 
@@ -5488,6 +5504,9 @@ msgstr "Automatisierung löschen"
 
 msgid "Delete automation?"
 msgstr "Automatisierung löschen?"
+
+msgid "Delete collection"
+msgstr "Sammlung löschen"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Details ausblenden"
 msgid "Hide emails"
 msgstr "E-Mails ausblenden"
 
+msgid "Hide empty collections"
+msgstr "Leere Sammlungen ausblenden"
+
 msgid "Hide file tree"
 msgstr "Dateibaum ausblenden"
 
@@ -9755,6 +9777,9 @@ msgstr "Der Großteil der Softwaregeschichte"
 msgid "Move {count} to Group"
 msgstr "{count} in Gruppe verschieben"
 
+msgid "Move to collection"
+msgstr "In Sammlung verschieben"
+
 msgid "Move to group"
 msgstr "In Gruppe verschieben"
 
@@ -9932,6 +9957,12 @@ msgstr "Neuer Chat"
 
 msgid "New cloud workspace"
 msgstr "Neuer Cloud-Arbeitsbereich"
+
+msgid "New collection"
+msgstr "Neue Sammlung"
+
+msgid "New collection…"
+msgstr "Neue Sammlung…"
 
 msgid "New environment"
 msgstr "Neue Umgebung"
@@ -12367,6 +12398,9 @@ msgstr "Host des Projekts nicht erreichbar — Umbenennen gerade nicht möglich"
 msgid "Projects"
 msgstr "Projekte"
 
+msgid "Projects outside collections"
+msgstr "Projekte außerhalb von Sammlungen"
+
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -12888,6 +12922,9 @@ msgstr "{label} entfernen?"
 
 msgid "Remove attachment"
 msgstr "Anhang entfernen"
+
+msgid "Remove from collection"
+msgstr "Aus Sammlung entfernen"
 
 msgid "Remove from Queue"
 msgstr "Aus Warteschlange entfernen"

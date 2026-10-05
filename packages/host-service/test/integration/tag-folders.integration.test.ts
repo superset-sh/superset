@@ -189,4 +189,70 @@ describe("tag folders router integration", () => {
 			},
 		]);
 	});
+	test("project replay checks the current host write and deletion atomically", async () => {
+		host = await createTestHost();
+		const setting = {
+			scope: "projects" as const,
+			tag: "client",
+			displayName: "Client X",
+			updatedAt: 200,
+		};
+		await host.trpc.tagFolders.upsert.mutate(setting);
+		expect((await host.trpc.tagFolders.list.query())[0]?.updatedAt).toBe(200);
+		await host.trpc.tagFolders.replayPresentation.mutate({
+			...setting,
+			displayName: "Old",
+			updatedAt: 100,
+		});
+		expect((await host.trpc.tagFolders.list.query())[0]?.displayName).toBe(
+			"Client X",
+		);
+		await host.trpc.tagFolders.delete.mutate({
+			scope: "projects",
+			tag: "client",
+		});
+		await host.trpc.tagFolders.replayPresentation.mutate({
+			...setting,
+			create: true,
+		});
+		expect(await host.trpc.tagFolders.list.query()).toEqual([]);
+		await host.trpc.tagFolders.replayPresentation.mutate({
+			...setting,
+			updatedAt: Date.now() + 1000,
+			create: true,
+		});
+		expect((await host.trpc.tagFolders.list.query())[0]?.displayName).toBe(
+			"Client X",
+		);
+	});
+	test("dated project deletes preserve newer writes and reject stale creations", async () => {
+		host = await createTestHost();
+		const future = Date.now() + 300_000;
+		await host.trpc.tagFolders.delete.mutate({
+			scope: "projects",
+			tag: "client",
+			deletedAt: future + 1,
+		});
+		await host.trpc.tagFolders.replayPresentation.mutate({
+			tag: "client",
+			displayName: "Stale",
+			updatedAt: future,
+			create: true,
+		});
+		expect(await host.trpc.tagFolders.list.query()).toEqual([]);
+		await host.trpc.tagFolders.upsert.mutate({
+			scope: "projects",
+			tag: "client",
+			displayName: "Newer",
+			updatedAt: future + 2,
+		});
+		await host.trpc.tagFolders.delete.mutate({
+			scope: "projects",
+			tag: "client",
+			deletedAt: future + 1,
+		});
+		expect((await host.trpc.tagFolders.list.query())[0]?.displayName).toBe(
+			"Newer",
+		);
+	});
 });

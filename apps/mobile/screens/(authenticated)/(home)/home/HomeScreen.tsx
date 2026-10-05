@@ -4,6 +4,7 @@ import { i18n } from "@superset/i18n";
 import { useFormat } from "@superset/i18n/react";
 import { groupCloudWorkspacesByTime } from "@superset/shared/cloud-workspace-groups";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { projectCollectionId } from "@superset/shared/project-collections";
 import { getWorkspaceActivityTime } from "@superset/shared/workspace-activity";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
@@ -12,7 +13,7 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { Box } from "lucide-react-native";
 import { useFeatureFlag } from "posthog-react-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	RefreshControl,
@@ -49,12 +50,14 @@ import {
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
 import { CloudWorkspaceRow as CloudWorkspaceListRow } from "./components/CloudWorkspaceRow";
+import { CollectionSectionHeader } from "./components/CollectionSectionHeader";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "./components/NewChatWidget/stores/newSessionPreferencesStore";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { PeriodHeader } from "./components/PeriodHeader";
+import { ProjectCollectionMenu } from "./components/ProjectCollectionMenu";
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
@@ -71,6 +74,7 @@ import {
 	useHostsTerminals,
 } from "./hooks/useHostTerminals";
 import { useNow } from "./hooks/useNow";
+import { useProjectCollections } from "./hooks/useProjectCollections";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import {
 	collapsedProjectKey,
@@ -81,6 +85,7 @@ import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
 } from "./stores/workspacesFilterStore";
+import { groupProjectSections } from "./utils/groupProjectSections";
 
 const VIEWABILITY_CONFIG = {
 	itemVisiblePercentThreshold: 50,
@@ -104,16 +109,26 @@ const NO_PROJECT_SECTION_ID = "__none";
 
 type HomeListItem =
 	| {
+			kind: "collectionHeader";
+			tag: string;
+			name: string;
+			color: string | null;
+			projectCount: number;
+			collapsed: boolean;
+	  }
+	| {
 			kind: "projectHeader";
 			projectId: string;
 			name: string;
 			iconUrl?: string | null;
 			count: number;
 			collapsed: boolean;
+			inCollection: boolean;
 	  }
 	| {
 			kind: "workspace";
 			workspace: HostWorkspaceItem;
+			inCollection: boolean;
 	  }
 	| {
 			kind: "hostOffline";
@@ -129,6 +144,8 @@ type HomeListItem =
 
 function homeListItemKey(item: HomeListItem): string {
 	switch (item.kind) {
+		case "collectionHeader":
+			return `collection:${item.tag}`;
 		case "projectHeader":
 			return `project:${item.projectId}`;
 		case "workspace":
@@ -211,7 +228,19 @@ export function HomeScreen() {
 		useHostsTerminals(terminalHosts);
 
 	// Projects are fully local — served by the selected host, not the cloud.
-	const { projects, isReady: projectsReady } = useHostProjects(selectedHost);
+	const {
+		projects,
+		isReady: projectsReady,
+		isSuccess: projectsLoaded,
+	} = useHostProjects(selectedHost);
+	const {
+		collections,
+		collectionByProjectId,
+		isReady: collectionsReady,
+		isSuccess: collectionsLoaded,
+		moveProject,
+		newCollection,
+	} = useProjectCollections(selectedHost, projects);
 
 	// Mirrors the rows above onto the Lock Screen and Dynamic Island while the
 	// app is open. Foreground-only for now: nothing server-side knows an agent
@@ -244,7 +273,10 @@ export function HomeScreen() {
 			? showArchived
 				? archivedReady
 				: cloudReady
-			: !presencePending && workspacesReady && projectsReady);
+			: !presencePending &&
+				workspacesReady &&
+				projectsReady &&
+				collectionsReady);
 
 	const hasPainted = useFirstPaint(contentReady);
 
@@ -255,6 +287,29 @@ export function HomeScreen() {
 	const toggleProject = useCollapsedProjectsStore(
 		(state) => state.toggleProject,
 	);
+	const pruneCollections = useCollapsedProjectsStore(
+		(state) => state.pruneCollections,
+	);
+	useEffect(() => {
+		if (
+			!selectedHost?.isOnline ||
+			!collapseHydrated ||
+			!projectsLoaded ||
+			!collectionsLoaded
+		)
+			return;
+		pruneCollections(
+			selectedHost.machineId,
+			collections.map((collection) => collection.tag),
+		);
+	}, [
+		selectedHost,
+		collapseHydrated,
+		projectsLoaded,
+		collectionsLoaded,
+		collections,
+		pruneCollections,
+	]);
 
 	// Recency ranks a workspace by its latest activity — the newest of its
 	// own and its terminals'.
@@ -386,12 +441,14 @@ export function HomeScreen() {
 				return a.name.localeCompare(b.name);
 			});
 
-		for (const section of sections) {
-			const isCollapsed =
-				collapseHydrated &&
-				!!collapsed[
-					collapsedProjectKey(selectedHost?.machineId ?? "", section.projectId)
-				];
+		const isCollapsedKey = (key: string) =>
+			collapseHydrated &&
+			!!collapsed[collapsedProjectKey(selectedHost?.machineId ?? "", key)];
+		const pushSection = (
+			section: (typeof sections)[number],
+			inCollection: boolean,
+		) => {
+			const isCollapsed = isCollapsedKey(section.projectId);
 			items.push({
 				kind: "projectHeader",
 				projectId: section.projectId,
@@ -399,11 +456,32 @@ export function HomeScreen() {
 				iconUrl: section.iconUrl,
 				count: section.workspaces.length,
 				collapsed: isCollapsed,
+				inCollection,
+			});
+			if (isCollapsed) return;
+			for (const workspace of section.workspaces) {
+				items.push({ kind: "workspace", workspace, inCollection });
+			}
+		};
+
+		for (const group of groupProjectSections(sections, collectionByProjectId)) {
+			if (group.kind === "project") {
+				pushSection(group.section, false);
+				continue;
+			}
+			const isCollapsed = isCollapsedKey(
+				projectCollectionId(group.collection.tag),
+			);
+			items.push({
+				kind: "collectionHeader",
+				tag: group.collection.tag,
+				name: group.collection.name,
+				color: group.collection.color,
+				projectCount: group.projectCount,
+				collapsed: isCollapsed,
 			});
 			if (isCollapsed) continue;
-			for (const workspace of section.workspaces) {
-				items.push({ kind: "workspace", workspace });
-			}
+			for (const section of group.sections) pushSection(section, true);
 		}
 
 		return items;
@@ -423,6 +501,7 @@ export function HomeScreen() {
 		activityTs,
 		collapsed,
 		collapseHydrated,
+		collectionByProjectId,
 		t,
 		hostOffline,
 	]);
@@ -564,6 +643,16 @@ export function HomeScreen() {
 		[projects],
 	);
 
+	const collectableProjectIds = useMemo(
+		() =>
+			new Set(
+				projects
+					.filter((project) => project.supportsCollections)
+					.map((project) => project.id),
+			),
+		[projects],
+	);
+
 	const renderItem = useCallback(
 		({ item }: { item: HomeListItem }) => {
 			if (item.kind === "periodHeader") {
@@ -602,11 +691,28 @@ export function HomeScreen() {
 					</View>
 				);
 			}
+			if (item.kind === "collectionHeader") {
+				return (
+					<CollectionSectionHeader
+						name={item.name}
+						color={item.color}
+						projectCount={item.projectCount}
+						collapsed={item.collapsed}
+						onToggle={() => {
+							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							toggleProject(
+								selectedHost?.machineId ?? "",
+								projectCollectionId(item.tag),
+							);
+						}}
+					/>
+				);
+			}
 			if (item.kind === "projectHeader") {
 				// Only a machine's projects get headers — Cloud is a flat scope.
 				const machineId = selectedHost?.machineId;
 				const isNoProject = item.projectId === NO_PROJECT_SECTION_ID;
-				return (
+				const header = (
 					<ProjectSectionHeader
 						name={item.name}
 						iconUrl={item.iconUrl}
@@ -637,12 +743,29 @@ export function HomeScreen() {
 						}
 					/>
 				);
+				const menuHeader = collectableProjectIds.has(item.projectId) ? (
+					<ProjectCollectionMenu
+						collections={collections}
+						currentTag={collectionByProjectId.get(item.projectId)?.tag ?? null}
+						onMove={(tag) => void moveProject(item.projectId, tag)}
+						onNewCollection={() => void newCollection(item.projectId)}
+					>
+						{header}
+					</ProjectCollectionMenu>
+				) : (
+					header
+				);
+				return item.inCollection ? (
+					<View className="pl-4">{menuHeader}</View>
+				) : (
+					menuHeader
+				);
 			}
 			const { workspace } = item;
 			const repoPrefix = workspace.projectId
 				? repoPrefixesByProject.get(workspace.projectId)
 				: undefined;
-			return (
+			const row = (
 				<WorkspaceRow
 					workspace={workspace}
 					pullRequest={
@@ -659,6 +782,7 @@ export function HomeScreen() {
 					onCopied={handleCopied}
 				/>
 			);
+			return item.inCollection ? <View className="pl-4">{row}</View> : row;
 		},
 		[
 			pullRequestsByRepoBranch,
@@ -677,6 +801,11 @@ export function HomeScreen() {
 			setTargetKey,
 			requestComposerFocus,
 			handleCopied,
+			collectableProjectIds,
+			collections,
+			collectionByProjectId,
+			moveProject,
+			newCollection,
 		],
 	);
 

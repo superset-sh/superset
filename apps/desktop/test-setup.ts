@@ -272,7 +272,16 @@ const agentCustomDefinitionSchema = z.object({
 	enabled: z.boolean().optional(),
 });
 
+const {
+	projectCollectionPlacements,
+	projectCollectionPendingDeletes,
+	projectCollectionPendingPresentations,
+} = await import("../../packages/local-db/src/schema/schema");
+
 const localDbMock = () => ({
+	projectCollectionPlacements,
+	projectCollectionPendingDeletes,
+	projectCollectionPendingPresentations,
 	projects: mockTable("projects"),
 	workspaces: mockTable("workspaces"),
 	worktrees: mockTable("worktrees"),

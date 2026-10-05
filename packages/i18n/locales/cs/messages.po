@@ -191,6 +191,7 @@ msgstr "{0, plural, one {Vybrán # projekt.} few {Vybrány # projekty.} many {Vy
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# projekt} few {# projekty} many {# projektu} other {# projektů}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Všechny tarify"
 
 msgid "All posts"
 msgstr "Všechny články"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Všichni hostitelé projektů musí být online a podporovat kolekce"
 
 msgid "All projects"
 msgstr "Všechny projekty"
@@ -3895,6 +3899,15 @@ msgstr "Sbalitelný blok přemýšlení s údajem o trvání"
 msgid "Collecting…"
 msgstr "Sbírám data…"
 
+msgid "Collection actions"
+msgstr "Akce kolekce"
+
+msgid "Collection name"
+msgstr "Název kolekce"
+
+msgid "Collection: {name}"
+msgstr "Kolekce: {name}"
+
 msgid "Color"
 msgstr "Barva"
 
@@ -4776,6 +4789,9 @@ msgstr "Prompt se nepodařilo odeslat. Zkuste to znovu."
 msgid "Could not take a screenshot"
 msgstr "Nepodařilo se pořídit snímek obrazovky"
 
+msgid "Could not update collection"
+msgstr "Kolekci se nepodařilo aktualizovat"
+
 msgid "Could not update plugin"
 msgstr "Plugin se nepodařilo aktualizovat"
 
@@ -5488,6 +5504,9 @@ msgstr "Smazat automatizaci"
 
 msgid "Delete automation?"
 msgstr "Smazat automatizaci?"
+
+msgid "Delete collection"
+msgstr "Smazat kolekci"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Skrýt podrobnosti"
 msgid "Hide emails"
 msgstr "Skrýt e-maily"
 
+msgid "Hide empty collections"
+msgstr "Skrýt prázdné kolekce"
+
 msgid "Hide file tree"
 msgstr "Skrýt strom souborů"
 
@@ -9755,6 +9777,9 @@ msgstr "Většina historie softwaru"
 msgid "Move {count} to Group"
 msgstr "Přesunout {count} do skupiny"
 
+msgid "Move to collection"
+msgstr "Přesunout do kolekce"
+
 msgid "Move to group"
 msgstr "Přesunout do skupiny"
 
@@ -9932,6 +9957,12 @@ msgstr "Nový chat"
 
 msgid "New cloud workspace"
 msgstr "Nový cloudový pracovní prostor"
+
+msgid "New collection"
+msgstr "Nová kolekce"
+
+msgid "New collection…"
+msgstr "Nová kolekce…"
 
 msgid "New environment"
 msgstr "Nové prostředí"
@@ -12367,6 +12398,9 @@ msgstr "Host projektu není dostupný — teď nelze přejmenovat"
 msgid "Projects"
 msgstr "Projekty"
 
+msgid "Projects outside collections"
+msgstr "Projekty mimo kolekce"
+
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -12888,6 +12922,9 @@ msgstr "Odebrat {label}?"
 
 msgid "Remove attachment"
 msgstr "Odebrat přílohu"
+
+msgid "Remove from collection"
+msgstr "Odebrat z kolekce"
 
 msgid "Remove from Queue"
 msgstr "Odebrat z fronty"

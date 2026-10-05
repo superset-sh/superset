@@ -34,6 +34,7 @@ import {
 	useState,
 } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import type { ProjectCollectionCommand } from "renderer/routes/_authenticated/hooks/useProjectCollections";
 import { laneProjectIdForScope } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import {
 	useWorkspaceTransactionsStore,
@@ -47,6 +48,11 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 import { DRAG_ACTIVATION_DISTANCE_PX } from "./constants";
+import {
+	PROJECT_COLLECTION_ROOT_DROP,
+	type ProjectCollectionDragLayout,
+	planProjectCollectionDrop,
+} from "./projectCollectionDrop";
 import {
 	buildTopLevelUnits,
 	closestUnitCenter,
@@ -154,6 +160,10 @@ function withContainerList(
 
 export const measuring = {
 	droppable: { strategy: MeasuringStrategy.Always as const },
+};
+
+export const collectionMeasuring = {
+	droppable: { strategy: MeasuringStrategy.WhileDragging as const },
 };
 
 // ── Build flat list from project children ────────────────────────────
@@ -302,6 +312,16 @@ function parseFlatItems(
 
 export type SidebarDndActiveItem =
 	| { type: "project"; project: DashboardSidebarProject }
+	| {
+			type: "collection";
+			collection: {
+				id: string;
+				name: string;
+				color: string | null;
+				isCollapsed: boolean;
+				projectCount: number;
+			};
+	  }
 	| { type: "workspace"; workspace: DashboardSidebarWorkspace }
 	| { type: "section"; section: DashboardSidebarSection };
 
@@ -393,6 +413,8 @@ interface UseSidebarDndOptions {
 	/** The Sessions lane, shaped like a project's children (rows + folders). */
 	sessionChildren: DashboardSidebarProjectChild[];
 	onReorderProjects: (projectIds: string[]) => void;
+	collectionLayout?: ProjectCollectionDragLayout;
+	onCollectionDrop?: (command: ProjectCollectionCommand) => Promise<boolean>;
 	/**
 	 * True while a filter hides projects: the rendered project list is a
 	 * subset of the manual order, so committing a drop would rewrite tabOrder
@@ -416,6 +438,8 @@ export function useSidebarDnd({
 	pinnedWorkspaces,
 	sessionChildren,
 	onReorderProjects,
+	collectionLayout,
+	onCollectionDrop,
 	projectDragDisabled = false,
 	childDragDisabled = false,
 }: UseSidebarDndOptions) {
@@ -493,8 +517,12 @@ export function useSidebarDnd({
 	const clonedRef = useRef<SidebarDndItems | null>(null);
 
 	const projectIds = useMemo(
-		() => new Set(projects.map((project) => project.id)),
-		[projects],
+		() =>
+			new Set([
+				...projects.map((project) => project.id),
+				...(collectionLayout?.collections.map((row) => row.id) ?? []),
+			]),
+		[projects, collectionLayout],
 	);
 
 	const typeOf = useCallback(
@@ -658,7 +686,22 @@ export function useSidebarDnd({
 		if (!activeId) return null;
 		if (activeType === "project") {
 			const project = projectsById.get(String(activeId));
-			return project ? { type: "project", project } : null;
+			if (project) return { type: "project", project };
+			const collection = collectionLayout?.collections.find(
+				(row) => row.id === String(activeId),
+			);
+			return collection
+				? {
+						type: "collection",
+						collection: {
+							id: collection.id,
+							name: collection.name ?? collection.tag,
+							color: collection.color ?? null,
+							isCollapsed: collection.isCollapsed ?? false,
+							projectCount: collection.projectIds.length,
+						},
+					}
+				: null;
 		}
 		const parsed = parseId(activeId);
 		if (!parsed) return null;
@@ -668,7 +711,14 @@ export function useSidebarDnd({
 		}
 		const sec = sectionsById.get(parsed.realId);
 		return sec ? { type: "section", section: sec } : null;
-	}, [activeId, activeType, projectsById, workspacesById, sectionsById]);
+	}, [
+		activeId,
+		activeType,
+		projectsById,
+		workspacesById,
+		sectionsById,
+		collectionLayout,
+	]);
 
 	// Color the active workspace's ghost should show based on where it would
 	// land. Only meaningful while it hovers inside a project list. Mirrors the
@@ -752,12 +802,40 @@ export function useSidebarDnd({
 			const type = typeOf(args.active.id);
 
 			if (type === "project") {
-				return closestCenter({
-					...args,
-					droppableContainers: args.droppableContainers.filter((container) =>
-						projectIds.has(String(container.id)),
-					),
-				});
+				const targets = args.droppableContainers.filter(
+					(container) =>
+						projectIds.has(String(container.id)) ||
+						(collectionLayout &&
+							(String(container.id).startsWith("collection-drop:") ||
+								container.id === PROJECT_COLLECTION_ROOT_DROP)),
+				);
+				if (collectionLayout && !collectionLayout.isRail) {
+					const pointerHits = pointerWithin({
+						...args,
+						droppableContainers: targets,
+					});
+					if (pointerHits.length) {
+						const collectionHits = pointerHits.filter((hit) => {
+							const id = String(hit.id);
+							if (!id.startsWith("collection-drop:")) return false;
+							const header = args.droppableRects.get(
+								id.slice("collection-drop:".length),
+							);
+							return (
+								!header ||
+								!args.pointerCoordinates ||
+								args.pointerCoordinates.y >= header.top + header.height / 2
+							);
+						});
+						return collectionHits.length
+							? collectionHits
+							: pointerHits.filter(
+									(hit) => !String(hit.id).startsWith("collection-drop:"),
+								);
+					}
+					if (args.pointerCoordinates) return [];
+				}
+				return closestCenter({ ...args, droppableContainers: targets });
 			}
 
 			if (type === "section") {
@@ -815,7 +893,7 @@ export function useSidebarDnd({
 
 			return closestCenter(args);
 		},
-		[typeOf, projectIds, workspacesById],
+		[typeOf, projectIds, workspacesById, collectionLayout],
 	);
 
 	// ── Persistence ──────────────────────────────────────────────────
@@ -974,6 +1052,15 @@ export function useSidebarDnd({
 			}
 
 			if (type === "project") {
+				if (collectionLayout && onCollectionDrop) {
+					const command = planProjectCollectionDrop(
+						collectionLayout,
+						String(active.id),
+						String(over.id),
+					);
+					if (command) void onCollectionDrop(command);
+					return;
+				}
 				if (active.id !== over.id && projectIds.has(String(over.id))) {
 					const order = projects.map((project) => project.id);
 					const oldIndex = order.indexOf(String(active.id));
@@ -1112,6 +1199,8 @@ export function useSidebarDnd({
 			projects,
 			projectIds,
 			onReorderProjects,
+			collectionLayout,
+			onCollectionDrop,
 			commitContainerToDb,
 			persistWorkspaceDrop,
 			commitDragItems,
@@ -1186,7 +1275,8 @@ export function useSidebarDnd({
 
 	return {
 		sensors,
-		measuring,
+		measuring:
+			activeItem?.type === "collection" ? collectionMeasuring : measuring,
 		collisionDetection,
 		activeItem,
 		// Per-pointer-move value, consumed only by the provider's DragOverlay so

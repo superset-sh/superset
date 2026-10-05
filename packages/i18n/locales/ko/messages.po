@@ -191,6 +191,7 @@ msgstr "{0, plural, one {프로젝트 #개를 선택했습니다.} other {프로
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {프로젝트 #개} other {프로젝트 #개}}"
 
@@ -2011,6 +2012,9 @@ msgstr "전체 플랜"
 
 msgid "All posts"
 msgstr "모든 게시물"
+
+msgid "All project hosts must be online and support collections"
+msgstr "모든 프로젝트 호스트가 온라인 상태이며 컬렉션을 지원해야 합니다"
 
 msgid "All projects"
 msgstr "모든 프로젝트"
@@ -3895,6 +3899,15 @@ msgstr "소요 시간 레이블이 있는 접을 수 있는 사고 블록"
 msgid "Collecting…"
 msgstr "수집하는 중…"
 
+msgid "Collection actions"
+msgstr "컬렉션 작업"
+
+msgid "Collection name"
+msgstr "컬렉션 이름"
+
+msgid "Collection: {name}"
+msgstr "컬렉션: {name}"
+
 msgid "Color"
 msgstr "색상"
 
@@ -4776,6 +4789,9 @@ msgstr "프롬프트를 제출할 수 없습니다. 다시 시도하세요."
 msgid "Could not take a screenshot"
 msgstr "스크린샷을 찍을 수 없습니다"
 
+msgid "Could not update collection"
+msgstr "컬렉션을 업데이트할 수 없습니다"
+
 msgid "Could not update plugin"
 msgstr "플러그인을 업데이트할 수 없습니다"
 
@@ -5488,6 +5504,9 @@ msgstr "자동화 삭제"
 
 msgid "Delete automation?"
 msgstr "자동화를 삭제할까요?"
+
+msgid "Delete collection"
+msgstr "컬렉션 삭제"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "상세 정보 숨기기"
 msgid "Hide emails"
 msgstr "이메일 숨기기"
 
+msgid "Hide empty collections"
+msgstr "빈 컬렉션 숨기기"
+
 msgid "Hide file tree"
 msgstr "파일 트리 숨기기"
 
@@ -9755,6 +9777,9 @@ msgstr "소프트웨어 역사의 대부분"
 msgid "Move {count} to Group"
 msgstr "{count}개를 그룹으로 이동"
 
+msgid "Move to collection"
+msgstr "컬렉션으로 이동"
+
 msgid "Move to group"
 msgstr "그룹으로 이동"
 
@@ -9932,6 +9957,12 @@ msgstr "새 채팅"
 
 msgid "New cloud workspace"
 msgstr "새 클라우드 워크스페이스"
+
+msgid "New collection"
+msgstr "새 컬렉션"
+
+msgid "New collection…"
+msgstr "새 컬렉션…"
 
 msgid "New environment"
 msgstr "새 환경"
@@ -12367,6 +12398,9 @@ msgstr "프로젝트 호스트에 연결할 수 없습니다 — 지금은 이�
 msgid "Projects"
 msgstr "프로젝트"
 
+msgid "Projects outside collections"
+msgstr "컬렉션 밖의 프로젝트"
+
 msgid "Prompt"
 msgstr "프롬프트"
 
@@ -12888,6 +12922,9 @@ msgstr "{label}을(를) 제거할까요?"
 
 msgid "Remove attachment"
 msgstr "첨부 파일 제거"
+
+msgid "Remove from collection"
+msgstr "컬렉션에서 제거"
 
 msgid "Remove from Queue"
 msgstr "대기열에서 제거"

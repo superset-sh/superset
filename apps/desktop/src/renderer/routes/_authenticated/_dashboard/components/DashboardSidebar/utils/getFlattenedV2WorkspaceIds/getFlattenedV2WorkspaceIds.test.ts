@@ -178,3 +178,32 @@ describe("getFlattenedV2WorkspaceIds with tag folders", () => {
 		).toEqual([]);
 	});
 });
+
+it("workspace removal follows collection project order instead of legacy project tabOrder", () => {
+	const collections = makeCollections({
+		workspaces: [{ workspaceId: "one", tabOrder: 0 }],
+	});
+	const other = "other";
+	const project = collections.v2SidebarProjects.state.get(PROJECT_ID);
+	const workspace = collections.v2WorkspaceLocalState.state.get("one");
+	if (!project || !workspace) throw new Error("Missing navigation fixtures");
+	collections.v2SidebarProjects.state.set(other, {
+		...project,
+		projectId: other,
+		tabOrder: 2,
+	});
+	collections.v2WorkspaceLocalState.state.set("two", {
+		...workspace,
+		workspaceId: "two",
+		sidebarState: {
+			...workspace.sidebarState,
+			projectId: other,
+		},
+	});
+	expect(
+		getFlattenedV2WorkspaceIds(collections, [], EMPTY_TAG_FOLDER_CONTEXT, [
+			other,
+			PROJECT_ID,
+		]),
+	).toEqual(["two", "one"]);
+});

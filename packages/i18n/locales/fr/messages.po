@@ -191,6 +191,7 @@ msgstr "{0, plural, one {# projet sélectionné.} other {# projets sélectionné
 
 #. placeholder {0}: chosenProjects.length
 #. placeholder {0}: projectFilters.length
+#. placeholder {0}: props.projectCount
 msgid "{0, plural, one {# project} other {# projects}}"
 msgstr "{0, plural, one {# projet} other {# projets}}"
 
@@ -2011,6 +2012,9 @@ msgstr "Tous les forfaits"
 
 msgid "All posts"
 msgstr "Tous les articles"
+
+msgid "All project hosts must be online and support collections"
+msgstr "Tous les hôtes des projets doivent être en ligne et prendre en charge les collections"
 
 msgid "All projects"
 msgstr "Tous les projets"
@@ -3895,6 +3899,15 @@ msgstr "Bloc de réflexion repliable avec libellé de durée"
 msgid "Collecting…"
 msgstr "Collecte…"
 
+msgid "Collection actions"
+msgstr "Actions de la collection"
+
+msgid "Collection name"
+msgstr "Nom de la collection"
+
+msgid "Collection: {name}"
+msgstr "Collection : {name}"
+
 msgid "Color"
 msgstr "Couleur"
 
@@ -4776,6 +4789,9 @@ msgstr "Impossible de soumettre le prompt. Réessayez."
 msgid "Could not take a screenshot"
 msgstr "Impossible de prendre une capture d'écran"
 
+msgid "Could not update collection"
+msgstr "Impossible de mettre à jour la collection"
+
 msgid "Could not update plugin"
 msgstr "Impossible de mettre à jour le plugin"
 
@@ -5488,6 +5504,9 @@ msgstr "Supprimer l'automatisation"
 
 msgid "Delete automation?"
 msgstr "Supprimer l'automatisation ?"
+
+msgid "Delete collection"
+msgstr "Supprimer la collection"
 
 #. placeholder {0}: index + 1
 msgid "Delete command {0}"
@@ -7850,6 +7869,9 @@ msgstr "Masquer les détails"
 msgid "Hide emails"
 msgstr "Masquer les e-mails"
 
+msgid "Hide empty collections"
+msgstr "Masquer les collections vides"
+
 msgid "Hide file tree"
 msgstr "Masquer l'arborescence des fichiers"
 
@@ -9755,6 +9777,9 @@ msgstr "L'essentiel de l'histoire du logiciel"
 msgid "Move {count} to Group"
 msgstr "Déplacer {count} vers un groupe"
 
+msgid "Move to collection"
+msgstr "Déplacer vers une collection"
+
 msgid "Move to group"
 msgstr "Déplacer vers un groupe"
 
@@ -9932,6 +9957,12 @@ msgstr "Nouvelle discussion"
 
 msgid "New cloud workspace"
 msgstr "Nouvel espace de travail cloud"
+
+msgid "New collection"
+msgstr "Nouvelle collection"
+
+msgid "New collection…"
+msgstr "Nouvelle collection…"
 
 msgid "New environment"
 msgstr "Nouvel environnement"
@@ -12367,6 +12398,9 @@ msgstr "L'hôte du projet est injoignable — impossible de renommer pour le mom
 msgid "Projects"
 msgstr "Projets"
 
+msgid "Projects outside collections"
+msgstr "Projets hors collection"
+
 msgid "Prompt"
 msgstr "Prompt"
 
@@ -12888,6 +12922,9 @@ msgstr "Retirer {label} ?"
 
 msgid "Remove attachment"
 msgstr "Retirer la pièce jointe"
+
+msgid "Remove from collection"
+msgstr "Retirer de la collection"
 
 msgid "Remove from Queue"
 msgstr "Retirer de la file"

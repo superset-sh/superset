@@ -1,16 +1,19 @@
 import { useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { HiOutlineBarsArrowDown } from "react-icons/hi2";
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { useSidebarProjectCollections } from "../../../../providers/DashboardSidebarProjectCollectionsProvider";
 
 const SORT_MODES: SidebarProjectSortMode[] = ["manual", "active", "created"];
 
@@ -30,6 +33,7 @@ export function DashboardSidebarProjectsSortMenu({
 	onSortModeChange,
 }: DashboardSidebarProjectsSortMenuProps) {
 	const { t } = useLingui();
+	const collections = useSidebarProjectCollections();
 	const labels: Record<SidebarProjectSortMode, string> = {
 		manual: t({
 			message: "Manual order",
@@ -96,6 +100,15 @@ export function DashboardSidebarProjectsSortMenu({
 						</DropdownMenuRadioItem>
 					))}
 				</DropdownMenuRadioGroup>
+				<DropdownMenuSeparator />
+				<DropdownMenuCheckboxItem
+					checked={collections?.hideEmptyCollections ?? false}
+					onCheckedChange={(value) =>
+						collections?.setHideEmptyCollections(value)
+					}
+				>
+					{t({ message: "Hide empty collections" })}
+				</DropdownMenuCheckboxItem>
 				{sortMode !== "manual" && (
 					<div className="px-2 pb-1 pt-1.5 text-[11px] text-muted-foreground/70">
 						{t({

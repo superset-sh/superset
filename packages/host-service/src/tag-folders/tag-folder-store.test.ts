@@ -253,3 +253,176 @@ describe("tag folder settings store", () => {
 		});
 	});
 });
+
+describe("project collection last writes", () => {
+	it("exposes existing modification dates and preserves the author date", () => {
+		const h = createHarness();
+		upsertTagFolderSetting({ ...h, userId: "alice" }, "projects", "team", {
+			displayName: "New",
+			...{ updatedAt: 100, create: true },
+		});
+		expect(getAllTagFolderSettings(h.db, "alice")[0]).toMatchObject({
+			updatedAt: 100,
+		});
+	});
+	it("rejects older replay and does not resurrect a deleted presentation", () => {
+		const h = createHarness();
+		const ctx = { ...h, userId: "alice" };
+		upsertTagFolderSetting(ctx, "projects", "team", {
+			displayName: "New",
+			...{ updatedAt: 200, create: true },
+		});
+		upsertTagFolderSetting(ctx, "projects", "team", {
+			displayName: "Old",
+			...{ updatedAt: 100, replay: true },
+		});
+		expect(
+			getTagFolderSettings(h.db, "projects", "alice")[0]?.displayName,
+		).toBe("New");
+		deleteTagFolderSetting(ctx, "projects", "team");
+		upsertTagFolderSetting(ctx, "projects", "team", {
+			displayName: "Old",
+			...{ updatedAt: 100, replay: true, create: true },
+		});
+		expect(getTagFolderSettings(h.db, "projects", "alice")).toEqual([]);
+	});
+	it("allows a create after deletion but never a replayed edit on an absent row", () => {
+		const h = createHarness();
+		const ctx = { ...h, userId: "alice" };
+		deleteTagFolderSetting(ctx, "projects", "team");
+		const future = Date.now() + 1000;
+		upsertTagFolderSetting(ctx, "projects", "team", {
+			displayName: "Old",
+			...{ updatedAt: future, replay: true },
+		});
+		expect(getTagFolderSettings(h.db, "projects", "alice")).toEqual([]);
+		upsertTagFolderSetting(ctx, "projects", "team", {
+			displayName: "Created",
+			...{ updatedAt: future, replay: true, create: true },
+		});
+		expect(
+			getTagFolderSettings(h.db, "projects", "alice")[0]?.displayName,
+		).toBe("Created");
+	});
+});
+
+it("an offline create edited after deletion cannot reuse its newer edit date", () => {
+	const h = createHarness();
+	const ctx = { ...h, userId: "alice" };
+	const createdAt = Date.now() - 1000;
+	deleteTagFolderSetting(ctx, "projects", "team");
+	upsertTagFolderSetting(ctx, "projects", "team", {
+		displayName: "Old edited",
+		updatedAt: Date.now() + 1000,
+		createdAt,
+		replay: true,
+		create: true,
+	});
+	expect(getTagFolderSettings(h.db, "projects", "alice")).toEqual([]);
+});
+it("sessions keep their legacy write semantics when a client supplies a date", () => {
+	const h = createHarness();
+	const ctx = { ...h, userId: "alice" };
+	upsertTagFolderSetting(ctx, "sessions", "team", {
+		displayName: "First",
+		updatedAt: 200,
+	});
+	upsertTagFolderSetting(ctx, "sessions", "team", {
+		displayName: "Second",
+		updatedAt: 100,
+	});
+	expect(getTagFolderSettings(h.db, "sessions", "alice")[0]?.displayName).toBe(
+		"Second",
+	);
+});
+it("deletion tombstones and replay never cross users", () => {
+	const h = createHarness();
+	deleteTagFolderSetting({ ...h, userId: "alice" }, "projects", "team");
+	upsertTagFolderSetting({ ...h, userId: "bob" }, "projects", "team", {
+		displayName: "Bob",
+		updatedAt: 100,
+		create: true,
+		replay: true,
+	});
+	expect(getTagFolderSettings(h.db, "projects", "bob")[0]?.displayName).toBe(
+		"Bob",
+	);
+	expect(getTagFolderSettings(h.db, "projects", "alice")).toEqual([]);
+});
+
+it("client deletion dates block creates from an author ahead of the host clock", () => {
+	const h = createHarness();
+	const ctx = { ...h, userId: "alice" };
+	const createdAt = Date.now() + 300_000;
+	deleteTagFolderSetting(ctx, "projects", "team", createdAt + 1);
+	upsertTagFolderSetting(ctx, "projects", "team", {
+		displayName: "Stale",
+		updatedAt: createdAt,
+		createdAt,
+		create: true,
+		replay: true,
+	});
+	expect(getTagFolderSettings(h.db, "projects", "alice")).toEqual([]);
+});
+it("a dated deletion does not remove a newer recreation", () => {
+	const h = createHarness();
+	const ctx = { ...h, userId: "alice" };
+	const deletedAt = Date.now() - 1000;
+	upsertTagFolderSetting(ctx, "projects", "team", {
+		displayName: "Recreated",
+		updatedAt: deletedAt + 1,
+	});
+	deleteTagFolderSetting(ctx, "projects", "team", deletedAt);
+	expect(getTagFolderSettings(h.db, "projects", "alice")[0]?.displayName).toBe(
+		"Recreated",
+	);
+});
+it("a delayed deletion retains its author date so a later queued creation wins", () => {
+	const h = createHarness();
+	const ctx = { ...h, userId: "alice" };
+	const deletedAt = Date.now() - 2000;
+	deleteTagFolderSetting(ctx, "projects", "team", deletedAt);
+	upsertTagFolderSetting(ctx, "projects", "team", {
+		displayName: "Later",
+		updatedAt: deletedAt + 1,
+		create: true,
+		replay: true,
+	});
+	expect(getTagFolderSettings(h.db, "projects", "alice")[0]?.displayName).toBe(
+		"Later",
+	);
+});
+it("project writes bound each user's deletion history without evicting another user's history", () => {
+	const h = createHarness();
+	h.db
+		.insert(schema.projectCollectionDeletions)
+		.values(
+			Array.from({ length: 1025 }, (_, i) => ({
+				tag: `old-${i}`,
+				createdByUserId: "alice",
+				deletedAt: i,
+			})),
+		)
+		.run();
+	h.db
+		.insert(schema.projectCollectionDeletions)
+		.values({ tag: "bob", createdByUserId: "bob", deletedAt: 0 })
+		.run();
+	upsertTagFolderSetting({ ...h, userId: "alice" }, "projects", "live", {
+		displayName: "Live",
+	});
+	const rows = h.db.select().from(schema.projectCollectionDeletions).all();
+	expect(rows.filter((row) => row.createdByUserId === "alice")).toHaveLength(
+		1024,
+	);
+	expect(rows.some((row) => row.tag === "old-0")).toBe(false);
+	expect(rows.some((row) => row.tag === "bob")).toBe(true);
+	deleteTagFolderSetting({ ...h, userId: "alice" }, "projects", "live");
+	expect(
+		h.db
+			.select()
+			.from(schema.projectCollectionDeletions)
+			.all()
+			.filter((row) => row.createdByUserId === "alice"),
+	).toHaveLength(1024);
+});

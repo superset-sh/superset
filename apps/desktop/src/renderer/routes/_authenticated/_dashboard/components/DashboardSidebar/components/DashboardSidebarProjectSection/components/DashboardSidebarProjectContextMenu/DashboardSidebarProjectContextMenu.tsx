@@ -1,6 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
+	ContextMenuCheckboxItem,
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
@@ -10,6 +11,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	LuArrowRightLeft,
 	LuEye,
 	LuEyeOff,
 	LuFolderInput,
@@ -20,6 +22,7 @@ import {
 	LuTrash2,
 } from "react-icons/lu";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useSidebarProjectCollections } from "../../../../providers/DashboardSidebarProjectCollectionsProvider";
 
 interface DashboardSidebarProjectContextMenuProps {
 	projectId: string;
@@ -46,6 +49,9 @@ export function DashboardSidebarProjectContextMenu({
 	children,
 }: DashboardSidebarProjectContextMenuProps) {
 	const { preferences, setTagFolderHidden } = useV2UserPreferences();
+	const collections = useSidebarProjectCollections();
+	const canMove = collections?.canMoveProject(projectId) ?? false;
+	const currentCollection = collections?.collectionByProjectId.get(projectId);
 	const hiddenTags = preferences.hiddenTagFolders[projectId] ?? [];
 	return (
 		<ContextMenu>
@@ -55,6 +61,54 @@ export function DashboardSidebarProjectContextMenu({
 					<LuPencil className="size-4 mr-2" />
 					<Trans>Rename</Trans>
 				</ContextMenuItem>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger disabled={!canMove}>
+						<LuArrowRightLeft className="size-4 mr-2" />
+						<Trans>Move to collection</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent>
+						{collections?.collections.map((collection) => (
+							<ContextMenuCheckboxItem
+								key={collection.id}
+								checked={currentCollection?.id === collection.id}
+								onSelect={() => {
+									void collections.run({
+										type: "move",
+										projectIds: [projectId],
+										tag: collection.tag,
+									});
+								}}
+							>
+								<span
+									className="mr-2 size-2.5 rounded-full bg-muted-foreground"
+									style={
+										collection.color
+											? { backgroundColor: collection.color }
+											: undefined
+									}
+								/>
+								{collection.name}
+							</ContextMenuCheckboxItem>
+						))}
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={() => collections?.create([projectId])}>
+							<Trans>New collection…</Trans>
+						</ContextMenuItem>
+						{currentCollection && (
+							<ContextMenuItem
+								onSelect={() => {
+									void collections?.run({
+										type: "move",
+										projectIds: [projectId],
+										tag: null,
+									});
+								}}
+							>
+								<Trans>Remove from collection</Trans>
+							</ContextMenuItem>
+						)}
+					</ContextMenuSubContent>
+				</ContextMenuSub>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onOpenInFinder}>
 					<LuFolderOpen className="size-4 mr-2" />

@@ -1,0 +1,1 @@
+ALTER TABLE `project_collection_pending_deletes` ADD `deleted_at` integer;

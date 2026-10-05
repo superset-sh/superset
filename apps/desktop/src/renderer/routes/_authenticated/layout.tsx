@@ -65,6 +65,7 @@ import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
+import { ProjectCollectionsProvider } from "./providers/ProjectCollectionsProvider";
 import { SandboxAccessProvider } from "./providers/SandboxAccessProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -311,40 +312,45 @@ function AuthenticatedLayout() {
 					    include them as hosts. */}
 					<SandboxAccessProvider>
 						<HostWorkspacesProvider>
-							<WorkerPoolContextProvider
-								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
-								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-							>
-								<DiffThemeSync />
-								<AgentHooks />
-								<PluginConnectionsSync />
-								<FileMenuListener />
-								<V2NotificationController />
-								<DockBadgeController />
-								<StarNagObserver />
-								<LeaderboardAutoPublish />
-								<RealtimeNudges />
-								<DaemonAutoUpdateFailureDialog />
-								<Outlet />
-								<V1ImportModal />
-								{isV2CloudEnabled ? (
-									<>
-										<V1MigrationContinuity />
-										<V2FlipWelcome />
-									</>
-								) : (
-									<V1FlipNotice />
-								)}
-								<V1AutoMigration />
-								<WorkspaceInitEffects />
-								{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
-								{!isV2CloudEnabled && <NewWorkspaceModal />}
-								<InitGitDialog />
-								<GitInitConfirmDialog />
-								<TeardownLogsDialog />
-								<Paywall />
-								<InviteMemberDialog />
-							</WorkerPoolContextProvider>
+							<ProjectCollectionsProvider>
+								<WorkerPoolContextProvider
+									poolOptions={{
+										workerFactory: createPierreWorker,
+										poolSize: 8,
+									}}
+									highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+								>
+									<DiffThemeSync />
+									<AgentHooks />
+									<PluginConnectionsSync />
+									<FileMenuListener />
+									<V2NotificationController />
+									<DockBadgeController />
+									<StarNagObserver />
+									<LeaderboardAutoPublish />
+									<RealtimeNudges />
+									<DaemonAutoUpdateFailureDialog />
+									<Outlet />
+									<V1ImportModal />
+									{isV2CloudEnabled ? (
+										<>
+											<V1MigrationContinuity />
+											<V2FlipWelcome />
+										</>
+									) : (
+										<V1FlipNotice />
+									)}
+									<V1AutoMigration />
+									<WorkspaceInitEffects />
+									{/* v2 creates from the /new-workspace route; only v1 has a modal. */}
+									{!isV2CloudEnabled && <NewWorkspaceModal />}
+									<InitGitDialog />
+									<GitInitConfirmDialog />
+									<TeardownLogsDialog />
+									<Paywall />
+									<InviteMemberDialog />
+								</WorkerPoolContextProvider>
+							</ProjectCollectionsProvider>
 						</HostWorkspacesProvider>
 					</SandboxAccessProvider>
 				</LocalHostServiceProvider>

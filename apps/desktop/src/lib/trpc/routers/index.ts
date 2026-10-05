@@ -21,6 +21,7 @@ import { createPermissionsRouter } from "./permissions";
 import { createPluginsRouter } from "./plugins";
 import { createPortForwardsRouter } from "./port-forwards";
 import { createPortsRouter } from "./ports";
+import { createProjectCollectionsRouter } from "./project-collections";
 import { createProjectsRouter } from "./projects";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
@@ -43,6 +44,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		autoUpdate: createAutoUpdateRouter(),
 		window: createWindowRouter(),
 		projects: createProjectsRouter(getWindow),
+		projectCollections: createProjectCollectionsRouter(),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),

@@ -14,8 +14,10 @@ export const WORKSPACE_TAGS_MAX_PER_WORKSPACE = 32;
  */
 export const SESSIONS_TAG_SCOPE = "sessions";
 
-/** Router boundary for the only two valid folder owner shapes. */
+export const PROJECTS_TAG_SCOPE = "projects";
+
 export const tagFolderScopeInputSchema = z.union([
+	z.literal(PROJECTS_TAG_SCOPE),
 	z.literal(SESSIONS_TAG_SCOPE),
 	z.string().uuid(),
 ]);
@@ -65,6 +67,34 @@ export function normalizeWorkspaceTags(
 	return [...unique].sort();
 }
 
+/**
+ * Mint a tag for a folder or collection from its display name: normalize
+ * (tags allow spaces, no further slugging), fall back to "group" for a name
+ * that can't be a tag, and suffix `-2`, `-3`, ... while the tag is taken.
+ */
+export function mintFolderTag(
+	name: string | null | undefined,
+	takenTags: Iterable<string>,
+): string {
+	const taken = new Set<string>();
+	for (const tag of takenTags) {
+		const normalized = normalizeWorkspaceTag(tag);
+		if (normalized != null) taken.add(normalized);
+	}
+	const base = normalizeWorkspaceTag(name) ?? "group";
+	if (!taken.has(base)) return base;
+	let counter = 2;
+	for (;;) {
+		const suffix = `-${counter}`;
+		// The host rejects over-length tags, so trim the base to fit the suffix.
+		const candidate =
+			base.slice(0, WORKSPACE_TAG_MAX_LENGTH - suffix.length).trimEnd() +
+			suffix;
+		if (!taken.has(candidate)) return candidate;
+		counter += 1;
+	}
+}
+
 /** Router-boundary schema for one tag; parses to its stored normalized form. */
 export const workspaceTagInputSchema = z
 	.string()
@@ -97,6 +127,8 @@ export interface WorkspaceTagAssignment {
 	tag: string;
 	createdByUserId: string | null;
 }
+
+export type ProjectTagAssignment = WorkspaceTagAssignment;
 
 /**
  * Tags are personal: a tag is shown to the user who applied it, so one

@@ -43,6 +43,7 @@ export const tagFoldersRouter = router({
 				displayName: z.string().min(1).max(200).nullish(),
 				color: z.string().max(50).nullish(),
 				tabOrder: z.number().int().nullish(),
+				updatedAt: z.number().int().nonnegative().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -57,6 +58,9 @@ export const tagFoldersRouter = router({
 						: {}),
 					...(input.color !== undefined ? { color: input.color } : {}),
 					...(input.tabOrder !== undefined ? { tabOrder: input.tabOrder } : {}),
+					...(input.updatedAt !== undefined
+						? { updatedAt: input.updatedAt }
+						: {}),
 				},
 			);
 			if (settings === undefined) {
@@ -68,12 +72,34 @@ export const tagFoldersRouter = router({
 			return { tagSettings: settings };
 		}),
 
+	replayPresentation: protectedProcedure
+		.input(
+			z.object({
+				tag: workspaceTagInputSchema,
+				displayName: z.string().min(1).max(200).nullish(),
+				color: z.string().max(50).nullish(),
+				tabOrder: z.number().int().nullish(),
+				updatedAt: z.number().int().nonnegative().optional(),
+				create: z.boolean().optional(),
+				createdAt: z.number().int().nonnegative().optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => ({
+			tagSettings: upsertTagFolderSetting(
+				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
+				"projects",
+				input.tag,
+				{ ...input, replay: true },
+			),
+		})),
+
 	/** Drop one folder's presentation row (folder deletion). Idempotent. */
 	delete: protectedProcedure
 		.input(
 			z.object({
 				scope: tagFolderScopeInputSchema,
 				tag: workspaceTagInputSchema,
+				deletedAt: z.number().int().nonnegative().optional(),
 			}),
 		)
 		.mutation(({ ctx, input }) => {
@@ -82,6 +108,7 @@ export const tagFoldersRouter = router({
 				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.scope,
 				input.tag,
+				input.deletedAt,
 			);
 			if (settings === undefined) {
 				throw new TRPCError({

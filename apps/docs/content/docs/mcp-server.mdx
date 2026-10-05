@@ -21,7 +21,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 | **Terminals** | create in a workspace, list, send input, read screen, close |
 | **Pages** | list, get, list versions, pull content, publish; list/reply/resolve page comments |
 | **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
-| **Projects** | list projects on a host |
+| **Projects** | list projects on a host, move a project into or out of a collection |
 | **Hosts** | list hosts (registered machines) you have access to |
 | **Organization** | list members |
 
@@ -374,6 +374,7 @@ publishing updates. Otherwise each publish creates a separate page.
 | Tool | Description |
 |------|-------------|
 | `projects_list` | List projects (checked-out repos) on a host (get the hostId from `hosts_list`) |
+| `projects_update` | Move a project into a collection or remove it from one (get the hostId and project id from `hosts_list` and `projects_list`) |
 
 ### Hosts
 
