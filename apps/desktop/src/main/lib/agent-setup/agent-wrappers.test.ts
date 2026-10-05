@@ -56,9 +56,11 @@ mock.module("node:os", () => ({
 }));
 
 const {
+	buildClaudeWrapperExecLine,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createClaudeWrapper,
 	createCodexWrapper,
 	createDroidSettingsJson,
 	createDroidWrapper,
@@ -578,5 +580,32 @@ describe("agent-wrappers copilot", () => {
 		expect(
 			getDroidSettingsJsonContent("/tmp/.superset-new/hooks/notify.sh"),
 		).toBeNull();
+	});
+});
+
+describe("agent-wrappers claude credential guard", () => {
+	it("strips ambient anthropic credential env vars so the stored login wins", () => {
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		createClaudeWrapper();
+		const wrapper = readFileSync(path.join(TEST_BIN_DIR, "claude"), "utf-8");
+		expect(wrapper).toContain(
+			"exec env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u CLAUDE_CODE_OAUTH_TOKEN",
+		);
+		// The notify settings file is still wired into the guarded exec.
+		expect(wrapper).toContain('--settings "');
+		// Self-test hook: reports the resolution without launching.
+		expect(wrapper).toContain("CLAUDE_SHIM_SELFTEST");
+		// Documented opt-out for callers that inject credentials deliberately.
+		expect(wrapper).toContain("CLAUDE_SHIM_KEEP_ENV");
+	});
+
+	it("emits the guard via exec line builder with the settings path substituted", () => {
+		const execLine = buildClaudeWrapperExecLine(
+			"/tmp/hooks/claude-settings.json",
+		);
+		expect(execLine).not.toContain("{{SETTINGS_PATH}}");
+		expect(execLine).toContain('--settings "/tmp/hooks/claude-settings.json"');
+		expect(execLine).toContain("-u ANTHROPIC_API_KEY");
 	});
 });

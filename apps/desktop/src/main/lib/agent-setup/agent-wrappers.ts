@@ -1,4 +1,5 @@
 export {
+	buildClaudeWrapperExecLine,
 	buildCodexWrapperExecLine,
 	CLAUDE_SETTINGS_FILE,
 	cleanupGlobalOpenCodePlugin,

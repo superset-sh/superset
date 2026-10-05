@@ -26,6 +26,11 @@ const CODEX_WRAPPER_EXEC_TEMPLATE_PATH = path.join(
 	"templates",
 	"codex-wrapper-exec.template.sh",
 );
+const CLAUDE_WRAPPER_CREDENTIAL_GUARD_TEMPLATE_PATH = path.join(
+	__dirname,
+	"templates",
+	"claude-wrapper-credential-guard.template.sh",
+);
 
 export function getClaudeSettingsPath(): string {
 	return path.join(HOOKS_DIR, CLAUDE_SETTINGS_FILE);
@@ -80,11 +85,30 @@ function createClaudeSettings(): string {
 	return settingsPath;
 }
 
+/**
+ * Claude reads credentials from the environment before its stored login
+ * (precedence: ANTHROPIC_API_KEY > ANTHROPIC_AUTH_TOKEN > stored auth), so an
+ * ambient zero-credit or exhausted key exported by a shell rc file silently
+ * bypasses the subscribed account — every launch then dies with "Credit
+ * balance is too low" or runs on the wrong account. The guard strips those
+ * vars for claude only (other tools keep them), letting the stored login
+ * win. CLAUDE_SHIM_SELFTEST=1 reports the resolution without launching;
+ * CLAUDE_SHIM_KEEP_ENV=1 opts out for callers that inject credentials
+ * deliberately.
+ */
+export function buildClaudeWrapperExecLine(settingsPath: string): string {
+	const template = fs.readFileSync(
+		CLAUDE_WRAPPER_CREDENTIAL_GUARD_TEMPLATE_PATH,
+		"utf-8",
+	);
+	return template.replaceAll("{{SETTINGS_PATH}}", settingsPath);
+}
+
 export function createClaudeWrapper(): void {
 	const settingsPath = createClaudeSettings();
 	const script = buildWrapperScript(
 		"claude",
-		`exec "$REAL_BIN" --settings "${settingsPath}" "$@"`,
+		buildClaudeWrapperExecLine(settingsPath),
 	);
 	createWrapper("claude", script);
 }
