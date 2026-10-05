@@ -9,13 +9,28 @@ import {
 	writeSharedDisabledAgentIds,
 } from "./disabled-agent-hooks";
 
-const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "superset-hooks-"));
 const ORIGINAL_HOME_DIR = process.env.SUPERSET_HOME_DIR;
 const ORIGINAL_DISABLED = process.env.SUPERSET_DISABLED_AGENT_HOOKS;
 
+let testHome: string;
+
 beforeEach(() => {
-	process.env.SUPERSET_HOME_DIR = TEST_HOME;
+	// A fresh directory per test (rather than wiping/reusing one shared dir)
+	// so this file has no directory-reuse race with anything else in the suite.
+	testHome = fs.mkdtempSync(path.join(os.tmpdir(), "superset-hooks-"));
+	process.env.SUPERSET_HOME_DIR = testHome;
 	delete process.env.SUPERSET_DISABLED_AGENT_HOOKS;
+	// agent-wrappers.test.ts mock.module()s "./paths" for the whole process
+	// without restoring it, and bun runs a package's test files in one process
+	// in no guaranteed order. So when that file loads first,
+	// resolveSupersetHomeDir() here ignores SUPERSET_HOME_DIR and lands in that
+	// file's root: every test below shares one state file, and the root itself
+	// may already be deleted by that file's afterEach. Work from the path these
+	// tests actually read — clear the state file so an earlier test's write
+	// can't leak in, and create its directory so the writes here can't fail.
+	const stateFile = getAgentHooksStateFilePath();
+	fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+	fs.rmSync(stateFile, { force: true });
 });
 
 afterEach(() => {
@@ -24,8 +39,7 @@ afterEach(() => {
 	if (ORIGINAL_DISABLED === undefined)
 		delete process.env.SUPERSET_DISABLED_AGENT_HOOKS;
 	else process.env.SUPERSET_DISABLED_AGENT_HOOKS = ORIGINAL_DISABLED;
-	fs.rmSync(TEST_HOME, { recursive: true, force: true });
-	fs.mkdirSync(TEST_HOME, { recursive: true });
+	fs.rmSync(testHome, { recursive: true, force: true });
 });
 
 describe("shared disabled-agent-hooks state", () => {
