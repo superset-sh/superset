@@ -1,0 +1,102 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import type { IconType } from "react-icons";
+import { FaSlack } from "react-icons/fa";
+import {
+	HiDevicePhoneMobile,
+	HiOutlineClipboardDocumentList,
+	HiOutlineClock,
+	HiOutlineSignal,
+	HiUsers,
+} from "react-icons/hi2";
+
+export interface ProFeature {
+	id: string;
+	title: MessageDescriptor;
+	description: MessageDescriptor;
+	icon: IconType;
+	iconColor: string;
+	gradientColors: readonly [string, string, string, string];
+	comingSoon?: boolean;
+}
+
+export const PRO_FEATURES: ProFeature[] = [
+	{
+		id: "remote-access",
+		title: msg({
+			message: "Remote Access",
+		}),
+		description: msg({
+			message:
+				"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
+		}),
+		icon: HiOutlineSignal,
+		iconColor: "text-pink-500",
+		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
+	},
+	{
+		id: "automations",
+		title: msg({
+			message: "Automations",
+		}),
+		description: msg({
+			message:
+				"Put recurring work on a schedule or an event. Agents run on their own and land in a workspace for you to review.",
+		}),
+		icon: HiOutlineClock,
+		iconColor: "text-amber-500",
+		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
+	},
+	{
+		id: "team-collaboration",
+		title: msg({
+			message: "Team Collaboration",
+		}),
+		description: msg({
+			message:
+				"Invite your team to shared workspaces. See real-time updates, sync configurations, and manage team access across agents.",
+		}),
+		icon: HiUsers,
+		iconColor: "text-blue-500",
+		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
+	},
+	{
+		id: "tasks",
+		title: msg({
+			message: "Tasks",
+		}),
+		description: msg({
+			message:
+				"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
+		}),
+		icon: HiOutlineClipboardDocumentList,
+		iconColor: "text-emerald-500",
+		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
+	},
+	{
+		id: "slack-integration",
+		title: msg({
+			message: "Slack Integration",
+		}),
+		description: msg({
+			message:
+				"Turn Slack conversations into tasks, run agents from your workspace, and keep teammates in the loop where work starts.",
+		}),
+		icon: FaSlack,
+		iconColor: "text-violet-500",
+		gradientColors: ["#7c3aed", "#4f46e5", "#0f766e", "#1a1a2e"],
+	},
+	{
+		id: "mobile-app",
+		title: msg({
+			message: "Mobile App",
+		}),
+		description: msg({
+			message:
+				"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
+		}),
+		icon: HiDevicePhoneMobile,
+		iconColor: "text-red-500",
+		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
+	},
+];

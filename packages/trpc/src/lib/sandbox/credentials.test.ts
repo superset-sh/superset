@@ -17,38 +17,89 @@ const WORKSPACE_ID = "11111111-2222-4333-8444-555555555555";
 const author = { name: "Ada", email: "ada@example.com" };
 
 describe("deriveSandboxCredentials", () => {
-	test("an organization key becomes a header rule and a placeholder", async () => {
+	test("an environment's provider key is ignored: no rule, and it never reaches the box", async () => {
 		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,
-			environmentEnv: { FOO: "bar", ANTHROPIC_API_KEY: "sk-org" },
+			environmentEnv: { FOO: "bar", ANTHROPIC_API_KEY: "sk-app" },
 			userAgentEnv: {},
 			githubToken: null,
 			gitAuthor: author,
 		});
-		expect(
-			rules(networkPolicy)["api.anthropic.com"]?.[0]?.transform[0]?.headers,
-		).toEqual({ "x-api-key": "sk-org" });
-		expect(rules(networkPolicy)["*"]).toEqual([]);
-		expect(managedEnv.ANTHROPIC_API_KEY).toBe(SANDBOX_CREDENTIAL_PLACEHOLDER);
+		expect(networkPolicy).toBe("allow-all");
+		expect(managedEnv.ANTHROPIC_API_KEY).toBeUndefined();
 		expect(managedEnv.FOO).toBe("bar");
-		expect(JSON.stringify(managedEnv)).not.toContain("sk-org");
 	});
 
-	test("the person's own sign-in beats the environment's key", async () => {
+	test("a subscription sign-in is a bearer swap that fires only on the placeholder", async () => {
 		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,
-			environmentEnv: { ANTHROPIC_API_KEY: "sk-org" },
+			environmentEnv: {},
 			userAgentEnv: { CLAUDE_CODE_OAUTH_TOKEN: "oat-mine" },
 			githubToken: null,
 			gitAuthor: author,
 		});
-		expect(
-			rules(networkPolicy)["api.anthropic.com"]?.[0]?.transform[0]?.headers,
-		).toEqual({ Authorization: "Bearer oat-mine" });
+		expect(rules(networkPolicy)["api.anthropic.com"]?.[0]).toEqual({
+			match: {
+				headers: [
+					{
+						key: { exact: "authorization" },
+						value: { exact: `Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}` },
+					},
+				],
+			},
+			transform: [{ headers: { authorization: "Bearer oat-mine" } }],
+		});
+		expect(rules(networkPolicy)["*"]).toEqual([]);
 		expect(managedEnv.CLAUDE_CODE_OAUTH_TOKEN).toBe(
 			SANDBOX_CREDENTIAL_PLACEHOLDER,
 		);
+		expect(JSON.stringify(managedEnv)).not.toContain("oat-mine");
+	});
+
+	test("a gateway key is a bearer swap on the gateway host, and no Anthropic key reaches the box", async () => {
+		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
+			workspaceId: WORKSPACE_ID,
+			environmentEnv: { ANTHROPIC_API_KEY: "sk-app" },
+			userAgentEnv: {
+				ANTHROPIC_AUTH_TOKEN: "vck_mine",
+				ANTHROPIC_BASE_URL: "https://ai-gateway.vercel.sh/claude-code",
+			},
+			githubToken: null,
+			gitAuthor: author,
+		});
+		expect(
+			rules(networkPolicy)["ai-gateway.vercel.sh"]?.[0]?.transform[0]?.headers,
+		).toEqual({ authorization: "Bearer vck_mine" });
+		expect(rules(networkPolicy)["api.anthropic.com"]).toBeUndefined();
+		expect(managedEnv.ANTHROPIC_AUTH_TOKEN).toBe(
+			SANDBOX_CREDENTIAL_PLACEHOLDER,
+		);
+		expect(managedEnv.ANTHROPIC_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/claude-code",
+		);
 		expect(managedEnv.ANTHROPIC_API_KEY).toBeUndefined();
+		expect(JSON.stringify(managedEnv)).not.toContain("vck_mine");
+	});
+
+	test("a custom base URL moves the OpenAI swap to its host", async () => {
+		const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
+			workspaceId: WORKSPACE_ID,
+			environmentEnv: {},
+			userAgentEnv: {
+				OPENAI_API_KEY: "sk-mine",
+				OPENAI_BASE_URL: "https://ai-gateway.vercel.sh/codex/v1",
+			},
+			githubToken: null,
+			gitAuthor: author,
+		});
+		expect(
+			rules(networkPolicy)["ai-gateway.vercel.sh"]?.[0]?.transform[0]?.headers,
+		).toEqual({ authorization: "Bearer sk-mine" });
+		expect(rules(networkPolicy)["api.openai.com"]).toBeUndefined();
+		expect(managedEnv.OPENAI_API_KEY).toBe(SANDBOX_CREDENTIAL_PLACEHOLDER);
+		expect(managedEnv.OPENAI_BASE_URL).toBe(
+			"https://ai-gateway.vercel.sh/codex/v1",
+		);
 	});
 
 	test("the GitHub installation token is a rule for git and the API, never a value on the box", async () => {
@@ -73,7 +124,7 @@ describe("deriveSandboxCredentials", () => {
 		expect(JSON.stringify(managedEnv)).not.toContain("ghs_token");
 	});
 
-	test("a brokered key in the environment's variables never reaches the managed set as itself", async () => {
+	test("brokered names in the environment's variables never reach the box", async () => {
 		const { managedEnv } = await deriveSandboxCredentials({
 			workspaceId: WORKSPACE_ID,
 			environmentEnv: {
@@ -86,7 +137,7 @@ describe("deriveSandboxCredentials", () => {
 			gitAuthor: author,
 		});
 		expect(managedEnv.GH_TOKEN).toBeUndefined();
-		expect(managedEnv.OPENAI_API_KEY).toBe(SANDBOX_CREDENTIAL_PLACEHOLDER);
+		expect(managedEnv.OPENAI_API_KEY).toBeUndefined();
 		expect(managedEnv.OPENAI_BASE_URL).toBe("https://proxy.example");
 	});
 

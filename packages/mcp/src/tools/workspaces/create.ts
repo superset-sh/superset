@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+	describeEnvironments,
 	selectCloudEnvironment,
 	startableCloudEnvironments,
 } from "@superset/shared/cloud-environments";
@@ -45,7 +46,7 @@ export function register(server: McpServer): void {
 		name: "workspaces_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create a workspace. Without hostId it is a cloud workspace: it starts from `environment` (by id or name; its repositories are the checkouts; defaults to the first environment with repositories), runs on Superset's infrastructure so it keeps going when the user's laptop sleeps, and returns as soon as its row exists in status 'provisioning' — poll workspaces_list until it is 'ready'. It bills until deleted, so call workspaces_delete when the work is done. A cloud workspace takes `name`, `branch` and at most one entry in `agents` (claude or codex); host-only fields are rejected. With hostId it is created on that host (see projects_list and hosts_list): use `checkout: local` to share the project checkout without switching branches, or omit checkout for an isolated worktree with a branch or PR; omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) for a project-less session. `agents` spawns agents once the workspace is ready (the equivalent of agents_create) and `command` runs a one-off shell command.",
+			"Create a workspace. Without hostId it is a cloud workspace: it starts from `environment` (by id — a create without one, when several exist, fails listing the ids; its repositories are the checkouts; required when several environments have repositories), runs on Superset's infrastructure so it keeps going when the user's laptop sleeps, and returns as soon as its row exists in status 'provisioning' — poll workspaces_list until it is 'ready'. It bills until deleted, so call workspaces_delete when the work is done. A cloud workspace takes `name`, `branch` and at most one entry in `agents` (claude or codex); host-only fields are rejected. With hostId it is created on that host (see projects_list and hosts_list): use `checkout: local` to share the project checkout without switching branches, or omit checkout for an isolated worktree with a branch or PR; omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) for a project-less session. `agents` spawns agents once the workspace is ready (the equivalent of agents_create) and `command` runs a one-off shell command.",
 		inputSchema: {
 			checkout: z
 				.enum(["worktree", "local"])
@@ -72,7 +73,7 @@ export function register(server: McpServer): void {
 				.min(1)
 				.optional()
 				.describe(
-					"Cloud only: environment the workspace starts from, by id or name. Defaults to the first environment with repositories.",
+					"Cloud only: id of the environment the workspace starts from. Required when several environments have repositories.",
 				),
 			branch: z
 				.string()
@@ -268,7 +269,7 @@ async function createInCloud(
 		throw new Error(
 			startable.length === 0
 				? "No environment with repositories in this organization. Create one in Settings → Environments."
-				: `${environment ? `Environment "${environment.name}" has no repositories` : `No environment "${input.environment}"`}. Start from one of: ${startable.map((row) => row.name).join(", ")}`,
+				: `${environment ? `Environment "${environment.name}" has no repositories` : input.environment === undefined ? "Several environments have repositories; pass environment" : `No environment ${input.environment}`}. Start from one of: ${describeEnvironments(startable)}`,
 		);
 	}
 

@@ -29,6 +29,7 @@ const inflight = new Map<string, Promise<SandboxAccess>>();
  * quietly resurrect credentials for a workspace this client gave up.
  */
 const epochByWorkspaceId = new Map<string, number>();
+const wakesByWorkspaceId = new Map<string, number>();
 
 export function getSandboxAccess(workspaceId: string): SandboxAccess | null {
 	return accessByWorkspaceId.get(workspaceId) ?? null;
@@ -60,19 +61,34 @@ export function ensureSandboxAccess(
 }
 
 /**
+ * A grant for the sandbox at its last known address, without waking it. Fast
+ * enough to open the workspace on: a running sandbox answers there right
+ * away, and a stopped one fails its requests until `wakeSandboxAccess` lands.
+ */
+export function addressSandboxAccess(
+	workspaceId: string,
+): Promise<SandboxAccess> {
+	return mint(workspaceId, false);
+}
+
+/**
  * A new grant whether or not the current one is fresh. The ticket outlives
  * the sandbox's session by hours, so this — not expiry — is what keeps the
  * open workspace's session going and resumes it once it has stopped.
  */
 export function wakeSandboxAccess(workspaceId: string): Promise<SandboxAccess> {
-	const pending = inflight.get(workspaceId);
+	return mint(workspaceId, true);
+}
+
+function mint(workspaceId: string, wake: boolean): Promise<SandboxAccess> {
+	const key = `${workspaceId}:${wake}`;
+	const pending = inflight.get(key);
 	if (pending) return pending;
 
 	const epoch = epochByWorkspaceId.get(workspaceId) ?? 0;
-	// A phone only ever asks for a workspace it is looking at, so every mint
-	// wakes: a stopped sandbox resumes and a running one stays up.
-	const mint = apiClient.cloudWorkspace.access
-		.mutate({ id: workspaceId, wake: true })
+	const wakes = wakesByWorkspaceId.get(workspaceId) ?? 0;
+	const request = apiClient.cloudWorkspace.access
+		.mutate({ id: workspaceId, wake })
 		.then((granted) => {
 			const access: SandboxAccess = {
 				url: granted.url,
@@ -84,6 +100,12 @@ export function wakeSandboxAccess(workspaceId: string): Promise<SandboxAccess> {
 				// legitimate) but don't re-register credentials nothing owns.
 				return access;
 			}
+			// A resumed sandbox can answer on a new domain; an address read
+			// before that wake landed points at the old one.
+			if (!wake && (wakesByWorkspaceId.get(workspaceId) ?? 0) !== wakes) {
+				return accessByWorkspaceId.get(workspaceId) ?? access;
+			}
+			if (wake) wakesByWorkspaceId.set(workspaceId, wakes + 1);
 			// A recreated sandbox can move URLs; the old address must stop
 			// resolving a token or a cached client keeps authenticating with it.
 			const previous = accessByWorkspaceId.get(workspaceId);
@@ -95,10 +117,10 @@ export function wakeSandboxAccess(workspaceId: string): Promise<SandboxAccess> {
 			return access;
 		})
 		.finally(() => {
-			inflight.delete(workspaceId);
+			inflight.delete(key);
 		});
-	inflight.set(workspaceId, mint);
-	return mint;
+	inflight.set(key, request);
+	return request;
 }
 
 /** Forget a workspace that is gone; its URL stops carrying a token. */

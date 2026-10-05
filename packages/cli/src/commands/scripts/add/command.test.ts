@@ -13,10 +13,6 @@ mock.module("../../../lib/config", () => ({
 	readConfig: () => ({ organizationId: activeOrganizationId }),
 }));
 
-mock.module("../../../lib/settings/notify", () => ({
-	notifyDesktopSettingsChanged: async () => false,
-}));
-
 const { default: addScriptCommand } = await import("./command");
 const { default: scriptsMeta } = await import("../meta");
 
@@ -40,10 +36,13 @@ beforeEach(() => {
 	previousOrgOverride = process.env.SUPERSET_ORGANIZATION_ID;
 	delete process.env.SUPERSET_ORGANIZATION_ID;
 	activeOrganizationId = "org-a";
+	// Port 9 (discard) has no listener, so no desktop app acknowledges.
+	process.env.DESKTOP_NOTIFICATIONS_PORT = "9";
 	createLocalSettingsDb(home.dir);
 });
 
 afterEach(() => {
+	delete process.env.DESKTOP_NOTIFICATIONS_PORT;
 	if (previousOrgOverride === undefined)
 		delete process.env.SUPERSET_ORGANIZATION_ID;
 	else process.env.SUPERSET_ORGANIZATION_ID = previousOrgOverride;

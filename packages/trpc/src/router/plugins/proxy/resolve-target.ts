@@ -15,7 +15,6 @@ import {
 import { installedPlugin } from "../connections";
 import {
 	type PluginManifest,
-	pluginConnector,
 	resolveTemplateDeep,
 	resolveUrlTemplate,
 	supersetExtension,
@@ -71,6 +70,11 @@ export interface TargetRequest {
 }
 
 function connectUrl(slug: string, organizationId: string | null): string {
+	const methods = getConnector(slug)?.methods ?? [];
+	if (methods.length && methods.every((method) => method.type === "api_key")) {
+		return `${env.NEXT_PUBLIC_WEB_URL}/connect/${slug}`;
+	}
+
 	const params = new URLSearchParams({ method: "oauth2" });
 	if (organizationId) params.set("organizationId", organizationId);
 	return `${env.NEXT_PUBLIC_API_URL}/api/connectors/${slug}/connect?${params}`;
@@ -90,6 +94,7 @@ async function pinnedConnection(
 
 function remoteBinding(
 	manifest: PluginManifest,
+	slug: string | undefined,
 	scope: TemplateScope,
 	authMethod: string | null,
 ): { url: string; headers: Record<string, string> } | null {
@@ -97,7 +102,6 @@ function remoteBinding(
 	const mcp = extension?.mcp;
 	if (!mcp?.url) return null;
 
-	const slug = pluginConnector(manifest);
 	const connector = slug ? getConnector(slug) : undefined;
 	const method = authMethod
 		? connector?.methods.find((entry) => entry.type === authMethod)
@@ -139,7 +143,7 @@ export async function resolveTarget(
 		plugin: install.manifest.name,
 		version: install.manifest.version,
 	};
-	const slug = pluginConnector(install.manifest);
+	const slug = install.connector;
 	// A hosted server runs against a first-party connection, so only a
 	// first-party manifest may claim one: otherwise any marketplace could
 	// publish a plugin named "gmail" and be handed the real Gmail tools.
@@ -148,7 +152,7 @@ export async function resolveTarget(
 		: undefined;
 
 	if (!slug) {
-		const binding = remoteBinding(install.manifest, {}, null);
+		const binding = remoteBinding(install.manifest, slug, {}, null);
 		if (!binding) {
 			throw new PluginTargetError(`"${request.plugin}" exposes no tools.`, 404);
 		}
@@ -209,7 +213,7 @@ export async function resolveTarget(
 	const scope: TemplateScope = {
 		config: { access_token: secrets.accessToken, ...secrets.config },
 	};
-	const binding = remoteBinding(install.manifest, scope, authMethod);
+	const binding = remoteBinding(install.manifest, slug, scope, authMethod);
 	if (!binding) {
 		throw new PluginTargetError(
 			`"${request.plugin}" declares no mcp url and has no first-party server.`,

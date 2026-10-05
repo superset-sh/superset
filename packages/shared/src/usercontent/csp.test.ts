@@ -35,3 +35,35 @@ describe("pageContentSecurityPolicy", () => {
 		);
 	});
 });
+
+describe("pageContentSecurityPolicy connect-src", () => {
+	it("admits the realtime origin over both ws and https", () => {
+		const policy = pageContentSecurityPolicy(
+			["'none'"],
+			"https://realtime.example",
+		);
+		const connectSrc = policy
+			.split("; ")
+			.find((directive) => directive.startsWith("connect-src"));
+		expect(connectSrc).toBe(
+			"connect-src wss://realtime.example https://realtime.example",
+		);
+	});
+
+	it("stays closed when no realtime origin is configured", () => {
+		const policy = pageContentSecurityPolicy(["'none'"]);
+		const connectSrc = policy
+			.split("; ")
+			.find((directive) => directive.startsWith("connect-src"));
+		expect(connectSrc).toBe("connect-src 'none'");
+	});
+
+	it("admits no other host", () => {
+		const policy = pageContentSecurityPolicy(
+			["'none'"],
+			"https://realtime.example",
+		);
+		expect(policy).not.toContain("connect-src 'self'");
+		expect(policy).not.toContain("*");
+	});
+});

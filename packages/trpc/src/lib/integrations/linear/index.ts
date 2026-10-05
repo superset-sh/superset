@@ -1,4 +1,8 @@
 export {
+	mapPriorityFromLinear,
+	mapPriorityToLinear,
+} from "../../../router/integration/linear/api";
+export {
 	callLinear,
 	callLinearForConnection,
 	isLinearAuthError,
@@ -7,8 +11,11 @@ export {
 	refreshLinearToken,
 } from "../../../router/integration/linear/refresh";
 export {
+	type RevokeOutcome,
+	revokeLinearConnection,
+	SYNC_SUSPENDED,
+} from "../../../router/integration/linear/revoke";
+export {
 	getLinearClient,
 	linearClientFor,
-	mapPriorityFromLinear,
-	mapPriorityToLinear,
 } from "../../../router/integration/linear/utils";

@@ -25,8 +25,21 @@ export interface FileTicketClaims {
 	exp: number;
 }
 
+export interface PageConnectTicketClaims {
+	pageId: string;
+	userId: string;
+	name: string;
+	image: string | null;
+	organizationIds: string[];
+	author: boolean;
+	writable: boolean;
+	nonce: string;
+	exp: number;
+}
+
 const PAGE_KIND = "page";
 const FILE_KIND = "file";
+const PAGE_CONNECT_KIND = "page-connect";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -155,6 +168,71 @@ export async function verifyPageTicket(
 		pageId,
 		exp,
 		...(version !== undefined ? { version: version as number } : {}),
+	};
+}
+
+export async function signPageConnectTicket(
+	secret: string,
+	claims: PageConnectTicketClaims,
+): Promise<string> {
+	return signClaims(secret, {
+		kind: PAGE_CONNECT_KIND,
+		pageId: claims.pageId,
+		userId: claims.userId,
+		name: claims.name,
+		image: claims.image,
+		organizationIds: claims.organizationIds,
+		author: claims.author,
+		writable: claims.writable,
+		nonce: claims.nonce,
+		exp: claims.exp,
+	});
+}
+
+export async function verifyPageConnectTicket(
+	secrets: string | readonly string[],
+	ticket: string,
+	now: number = Date.now(),
+): Promise<PageConnectTicketClaims | null> {
+	const wire = await verifyClaims(secrets, ticket, now);
+	if (!wire) return null;
+	const {
+		kind,
+		pageId,
+		userId,
+		name,
+		image,
+		organizationIds,
+		author,
+		writable,
+		nonce,
+		exp,
+	} = wire as Record<string, unknown> & { exp: number };
+	if (
+		kind !== PAGE_CONNECT_KIND ||
+		typeof pageId !== "string" ||
+		typeof userId !== "string" ||
+		typeof name !== "string" ||
+		!(image === null || typeof image === "string") ||
+		!Array.isArray(organizationIds) ||
+		organizationIds.some((id) => typeof id !== "string") ||
+		typeof author !== "boolean" ||
+		typeof writable !== "boolean" ||
+		typeof nonce !== "string" ||
+		nonce.length === 0
+	) {
+		return null;
+	}
+	return {
+		pageId,
+		userId,
+		name,
+		image,
+		organizationIds: organizationIds as string[],
+		author,
+		writable,
+		nonce,
+		exp,
 	};
 }
 

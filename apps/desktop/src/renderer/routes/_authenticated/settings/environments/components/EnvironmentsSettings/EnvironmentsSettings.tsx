@@ -13,14 +13,14 @@ import {
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
+	EnvironmentEditorDialog,
+	type EnvironmentEditorSeed,
+} from "renderer/routes/_authenticated/components/EnvironmentEditorDialog";
+import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import {
-	EnvironmentEditorDialog,
-	type EnvironmentEditorSeed,
-} from "./components/EnvironmentEditorDialog";
 import { EnvironmentSecrets } from "./components/EnvironmentSecrets";
 
 interface EnvironmentsSettingsProps {
@@ -160,6 +160,7 @@ export function EnvironmentsSettings({
 												),
 												hooksRepositoryId: environment.hooksRepositoryId,
 												repositoriesFrozen: environment.sourceKind !== "image",
+												region: environment.region,
 											},
 										})
 									}

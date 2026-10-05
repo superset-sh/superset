@@ -2,7 +2,7 @@
 title: "Best IDE for OpenAI Codex in 2026: Where to Run It"
 description: "The best places to run OpenAI Codex in 2026, from the CLI and IDE extension to the Codex cloud app, Conductor, and Superset for parallel worktree sessions."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "roundup"
 competitors:
   - vs-code
@@ -28,7 +28,7 @@ This guide covers each option, including how to get parallel Codex runs with Git
 
 | Where you run Codex | Best for | Parallel tasks on one repo? | Main tradeoff |
 |---|---|---|---|
-| **Superset** | Running many local Codex tasks at once | Yes -- one Git worktree per task | Not a single-file editor experience |
+| **Superset** | Running many local Codex tasks at once | Git worktrees for local branch-based workspaces | Not a single-file editor experience |
 | **Codex CLI** | The scriptable, local Codex | Manual (worktrees yourself) | You manage isolation and review |
 | **Codex IDE extension** | Editing alongside Codex | Limited | In-editor, single working copy |
 | **Codex cloud / app** | Fire-and-forget parallel tasks | Yes -- isolated cloud sandboxes | Runs in OpenAI's cloud, tied to a plan |
@@ -71,7 +71,7 @@ For the direct comparison, see [Superset vs Conductor](/compare/superset-vs-cond
 
 ### Superset
 
-Superset runs the Codex CLI as a first-class agent, giving every task its own Git worktree, branch, and persistent terminal, so multiple Codex tasks can run on the same repository at once without collisions -- locally, or on your own remote hosts. Around that it adds a built-in diff and file editor, an in-app browser, port management, and MCP tooling. If your goal is parallel local Codex runs with real worktree isolation rather than cloud sandboxes, this is the fit.
+Superset runs the Codex CLI as a first-class agent, using separate Git worktrees and terminals for new local branch-based workspaces, so multiple Codex tasks can run on the same repository at once in separate working directories -- locally, or on your own remote hosts. Around that it adds a built-in diff and file editor, an in-app browser, port management, and MCP tooling. If your goal is parallel local Codex runs with real worktree isolation rather than cloud sandboxes, this is the fit. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ## How To Choose
 
@@ -112,7 +112,7 @@ For a single or scripted task, the Codex CLI. For editing alongside it, the IDE 
 
 ### How do I run Codex with Git worktrees?
 
-Give each Codex task its own worktree so tasks do not share a working directory. You can set this up manually, or use a workspace like Superset or Conductor that creates a worktree per task automatically.
+Give each Codex task its own worktree so tasks do not share a working directory. You can set this up manually, or use a workspace like Superset, which creates worktrees for new local branch-based workspaces.
 
 ### Can I run Codex over SSH?
 

@@ -1,0 +1,1 @@
+ALTER TABLE "environments" ADD COLUMN "region" text DEFAULT 'sfo1' NOT NULL;

@@ -1,6 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useFormat } from "@superset/i18n/react";
-import type { OrganizationRole } from "@superset/shared/auth";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -24,17 +23,9 @@ import { InvitationActions } from "./components/InvitationActions";
 
 interface PendingInvitationsProps {
 	visibleItems?: SettingItemId[] | null;
-	currentUserRole: OrganizationRole;
-	organizationId: string;
-	organizationName: string;
 }
 
-export function PendingInvitations({
-	visibleItems,
-	currentUserRole,
-	organizationId,
-	organizationName,
-}: PendingInvitationsProps) {
+export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 	const { formatDate: formatLocaleDate } = useFormat();
 
 	const { t } = useLingui();
@@ -80,13 +71,7 @@ export function PendingInvitations({
 							query={searchQuery}
 						/>
 					</h3>
-					{showInvite && (
-						<InviteMemberButton
-							currentUserRole={currentUserRole}
-							organizationId={organizationId}
-							organizationName={organizationName}
-						/>
-					)}
+					{showInvite && <InviteMemberButton />}
 				</div>
 				<div className="space-y-2 border rounded-lg">
 					{[1, 2, 3].map((i) => (
@@ -115,13 +100,7 @@ export function PendingInvitations({
 						query={searchQuery}
 					/>
 				</h3>
-				{showInvite && (
-					<InviteMemberButton
-						currentUserRole={currentUserRole}
-						organizationId={organizationId}
-						organizationName={organizationName}
-					/>
-				)}
+				{showInvite && <InviteMemberButton />}
 			</div>
 			{invitations.length === 0 ? (
 				<div className="text-center py-12 text-muted-foreground border rounded-lg">

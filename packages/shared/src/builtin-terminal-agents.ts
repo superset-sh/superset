@@ -66,7 +66,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		resumeCommand: "claude --dangerously-skip-permissions --resume",
 		forkCommand:
 			"claude --dangerously-skip-permissions --resume {sessionId} --fork-session",
-		nonInteractiveCommand: "claude -p",
+		nonInteractiveCommand: "claude --strict-mcp-config -p",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -278,6 +278,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		// Print mode cannot show the workspace trust prompt and fails in an
 		// untrusted directory without this.
 		nonInteractiveCommand: "devin --respect-workspace-trust false -p",
+	}),
+	createBuiltinTerminalAgent({
+		id: "ufo",
+		label: "UFO",
+		description:
+			"UFO's workspace assistant for local and remote terminal workflows.",
+		command: "ufo",
+		resumeCommand: "ufo --resume",
 	}),
 ] as const;
 

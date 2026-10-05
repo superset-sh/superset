@@ -23,7 +23,7 @@ export function installCopyOnSelect(
 
 	const subscription = terminal.onSelectionChange(() => {
 		const text = getTerminalSelectionForCopy(terminal);
-		if (!text) {
+		if (!text && !(terminal.hasSelection?.() ?? !!terminal.getSelection())) {
 			lastCopied = null;
 			return;
 		}

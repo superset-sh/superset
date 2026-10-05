@@ -25,6 +25,16 @@ mock.module("@superset/trpc/connectors", () => ({
 	connectionBotToken: mock(async () => "bot-token"),
 }));
 
+// The plan gate is exercised on the route, not here: these cases are about
+// how one delivery fans out across connections.
+mock.module("@superset/trpc/sync-policy", () => ({
+	organizationSyncs: mock(() => undefined),
+	organizationSyncsNow: mock(async () => true),
+	syncingOrganizationIds: mock(
+		async (organizationIds: string[]) => new Set(organizationIds),
+	),
+}));
+
 mock.module("@superset/trpc/integrations/linear", () => ({
 	getLinearClient: mock(async () => null),
 	linearClientFor: mock(async () => null),

@@ -1,10 +1,10 @@
 import type { AgentCredentialKind } from "@superset/db/schema";
+import { gatewayBaseUrl } from "@superset/shared/agent-credentials";
 
 const TIMEOUT_MS = 10_000;
 const ANTHROPIC_DEFAULT = "https://api.anthropic.com";
 const OPENAI_DEFAULT = "https://api.openai.com";
-export const GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
-const GATEWAY_DEFAULT = GATEWAY_BASE_URL;
+const GATEWAY_ORIGIN = "https://ai-gateway.vercel.sh";
 
 export interface ValidationResult {
 	ok: boolean;
@@ -79,9 +79,11 @@ export async function validateAgentCredential(input: {
 	const { agent, kind, value, baseUrl, provider } = input;
 	// The gateway's model list is public, so it can never tell a good key from
 	// a bad one; credits is the cheapest call there that actually authenticates.
+	// It lives at the gateway's root, not under the per-agent path the base
+	// URL points at.
 	if (provider === "gateway") {
 		return probe(
-			endpoint(baseUrl, GATEWAY_DEFAULT, "/v1/credits"),
+			`${new URL(baseUrl || gatewayBaseUrl(agent) || GATEWAY_ORIGIN).origin}/v1/credits`,
 			{ Authorization: `Bearer ${value}` },
 			{
 				message: "Vercel AI Gateway rejected this key.",

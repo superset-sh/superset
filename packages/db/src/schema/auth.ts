@@ -10,8 +10,11 @@ import {
 	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { taskTrackerValues } from "./enums";
 
 export const authSchema = pgSchema("auth");
+
+export const taskTracker = authSchema.enum("task_tracker", taskTrackerValues);
 
 export const users = authSchema.table(
 	"users",
@@ -126,6 +129,7 @@ export const organizations = authSchema.table(
 		metadata: text("metadata"),
 		stripeCustomerId: text("stripe_customer_id"),
 		allowedDomains: text("allowed_domains").array().default([]).notNull(),
+		taskTracker: taskTracker("task_tracker").notNull().default("superset"),
 	},
 	(table) => [
 		uniqueIndex("organizations_slug_idx").on(table.slug),

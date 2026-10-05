@@ -2,9 +2,12 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import type { IconType } from "react-icons";
 import { GoIssueOpened } from "react-icons/go";
 import {
+	HiOutlineClipboardDocumentList,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
 	HiOutlineViewColumns,
@@ -12,18 +15,20 @@ import {
 } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { CreateTaskDialog } from "renderer/routes/_authenticated/_dashboard/components/CreateTaskDialog";
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
-import { WindowControlsInset } from "renderer/routes/_authenticated/_dashboard/components/WindowControlsInset";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
+import { RunInWorkspacePopoverV2 } from "../../../RunInWorkspacePopoverV2";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import type { SelectedIssue } from "../GitHubIssuesContent";
 import { AssigneeFilter } from "./components/AssigneeFilter";
-import { CreateTaskDialog } from "./components/CreateTaskDialog";
-import { LinearProjectFilter } from "./components/LinearProjectFilter";
+import { CreateLinearIssueDialog } from "./components/CreateLinearIssueDialog";
+import { LinearAssigneeFilter } from "./components/LinearAssigneeFilter";
+import { LinearTeamFilter } from "./components/LinearTeamFilter";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
-import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
 import { RunIssuesInWorkspacePopover } from "./components/RunIssuesInWorkspacePopover";
 import { StatusFilter } from "./components/StatusFilter";
 
@@ -35,7 +40,7 @@ export type TabValue =
 	| "started"
 	| "completed"
 	| "canceled";
-export type TaskSource = "tasks" | "issues";
+export type TaskSource = "tasks" | "linear" | "issues";
 
 interface TasksTopBarProps {
 	currentTab: TabValue;
@@ -54,16 +59,19 @@ interface TasksTopBarProps {
 	onTaskSourceChange: (taskSource: TaskSource) => void;
 	projectFilters: string[];
 	onProjectFiltersChange: (projectIds: string[]) => void;
-	linearProjectFilter: string | null;
-	onLinearProjectFilterChange: (projectId: string | null) => void;
+	linearTeamFilter: string | null;
+	onLinearTeamFilterChange: (teamId: string | null) => void;
+	linearAssigneeFilter: string | null;
+	onLinearAssigneeFilterChange: (assignee: string | null) => void;
 	includeClosedIssues: boolean;
 	onIncludeClosedIssuesChange: (includeClosed: boolean) => void;
 }
 
-const TASK_SOURCES = [
-	{ value: "tasks" as const, Icon: SiLinear },
-	{ value: "issues" as const, Icon: GoIssueOpened },
-] as const;
+const TASK_SOURCES: ReadonlyArray<{ value: TaskSource; Icon: IconType }> = [
+	{ value: "tasks", Icon: HiOutlineClipboardDocumentList },
+	{ value: "linear", Icon: SiLinear },
+	{ value: "issues", Icon: GoIssueOpened },
+];
 
 export function TasksTopBar({
 	currentTab,
@@ -82,25 +90,35 @@ export function TasksTopBar({
 	onTaskSourceChange,
 	projectFilters,
 	onProjectFiltersChange,
-	linearProjectFilter,
-	onLinearProjectFilterChange,
+	linearTeamFilter,
+	onLinearTeamFilterChange,
+	linearAssigneeFilter,
+	onLinearAssigneeFilterChange,
 	includeClosedIssues,
 	onIncludeClosedIssuesChange,
 }: TasksTopBarProps) {
 	const { t } = useLingui();
+	const navigate = useNavigate();
 	const taskSourceLabels: Record<TaskSource, string> = {
 		tasks: t({
-			message: "Linear",
+			message: "Tasks",
 		}),
+		linear: t({ message: "Linear" }),
 		issues: t({
 			message: "GitHub issues",
 		}),
 	};
 	const showTaskOnlyControls = taskSource === "tasks";
+	const showLinear = taskSource === "linear";
+	const showViewControls = showTaskOnlyControls || showLinear;
 	const showIssues = taskSource === "issues";
 	const taskSelectedCount = selectedTasks.length;
 	const issueSelectedCount = selectedIssues.length;
-	const selectedCount = showIssues ? issueSelectedCount : taskSelectedCount;
+	const selectedCount = showIssues
+		? issueSelectedCount
+		: showTaskOnlyControls
+			? taskSelectedCount
+			: 0;
 	const selectedIssueProjectIds = new Set(
 		selectedIssues.map((issue) => issue.projectId),
 	);
@@ -109,17 +127,17 @@ export function TasksTopBar({
 			? (selectedIssueProjectIds.values().next().value ?? null)
 			: null;
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+	const [isCreateLinearIssueOpen, setIsCreateLinearIssueOpen] = useState(false);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const hasSelection = selectedCount > 0;
 
 	return (
 		<>
-			<div
-				data-tasks-toolbar
-				className="@container min-w-0 shrink-0 border-b border-border px-4 py-2"
-			>
-				<div className="flex flex-col items-stretch gap-2 @4xl:flex-row @4xl:items-center @4xl:justify-between">
+			<PageHeader
+				className="@container h-auto min-h-12 shadow-[inset_0_-1px_0_var(--border)]"
+				contentClassName="flex-col items-stretch gap-2 py-2 @4xl:flex-row @4xl:items-center"
+				start={
 					<div className="flex min-w-0 items-center gap-3 overflow-x-auto hide-scrollbar">
 						{hasSelection ? (
 							<>
@@ -185,13 +203,21 @@ export function TasksTopBar({
 
 								<div className="h-4 w-px shrink-0 bg-border" />
 
-								{showTaskOnlyControls ? (
+								{showLinear ? (
 									<>
-										<LinearProjectFilter
-											value={linearProjectFilter}
-											onChange={onLinearProjectFilterChange}
+										<LinearTeamFilter
+											value={linearTeamFilter}
+											onChange={onLinearTeamFilterChange}
 										/>
+										<StatusFilter value={currentTab} onChange={onTabChange} />
 										<div className="h-4 w-px shrink-0 bg-border" />
+										<LinearAssigneeFilter
+											value={linearAssigneeFilter}
+											onChange={onLinearAssigneeFilterChange}
+										/>
+									</>
+								) : showTaskOnlyControls ? (
+									<>
 										<StatusFilter value={currentTab} onChange={onTabChange} />
 										<div className="h-4 w-px shrink-0 bg-border" />
 										<AssigneeFilter
@@ -220,22 +246,28 @@ export function TasksTopBar({
 							</>
 						)}
 					</div>
-
-					{/* Window-drag leaf standing in for the hidden TopBar. */}
-					<div className="drag hidden min-w-0 flex-1 self-stretch @4xl:block" />
-
+				}
+				end={
 					<div className="flex shrink-0 items-center gap-2">
-						{showTaskOnlyControls && (
+						{showViewControls && (
 							<>
 								<Button
 									variant="outline"
 									size="sm"
 									className="h-8 gap-1.5 px-3"
-									onClick={() => setIsCreateTaskOpen(true)}
+									onClick={() =>
+										showLinear
+											? setIsCreateLinearIssueOpen(true)
+											: setIsCreateTaskOpen(true)
+									}
 								>
 									<HiOutlinePencilSquare className="size-4" />
 									<span className="hidden @4xl:inline">
-										<Trans>New task</Trans>
+										{showLinear ? (
+											<Trans>New issue</Trans>
+										) : (
+											<Trans>New task</Trans>
+										)}
 									</span>
 								</Button>
 
@@ -295,31 +327,48 @@ export function TasksTopBar({
 									? t({
 											message: "Search GitHub issues…",
 										})
-									: t({
-											message: "Search tasks…",
-										})
+									: showLinear
+										? t({ message: "Search Linear…" })
+										: t({
+												message: "Search tasks…",
+											})
 							}
 							label={
 								showIssues
 									? t({
 											message: "Search GitHub issues",
 										})
-									: t({
-											message: "Search tasks",
-										})
+									: showLinear
+										? t({ message: "Search Linear" })
+										: t({
+												message: "Search tasks",
+											})
 							}
 						/>
 					</div>
-					<WindowControlsInset />
-				</div>
-			</div>
+				}
+			/>
+
+			<CreateLinearIssueDialog
+				open={isCreateLinearIssueOpen}
+				onOpenChange={setIsCreateLinearIssueOpen}
+				defaultTeamId={linearTeamFilter}
+			/>
 
 			<CreateTaskDialog
 				open={isCreateTaskOpen}
 				onOpenChange={setIsCreateTaskOpen}
-				currentTab={currentTab}
-				searchQuery={searchQuery}
-				assigneeFilter={assigneeFilter}
+				onCreated={(task) => {
+					const search: Record<string, string> = {};
+					if (currentTab !== "all") search.tab = currentTab;
+					if (assigneeFilter) search.assignee = assigneeFilter;
+					if (searchQuery) search.search = searchQuery;
+					navigate({
+						to: "/tasks/$taskId",
+						params: { taskId: task.id },
+						search,
+					});
+				}}
 			/>
 		</>
 	);

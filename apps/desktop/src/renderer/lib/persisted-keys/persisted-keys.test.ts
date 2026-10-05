@@ -8,7 +8,7 @@ import {
 	LanguageVariant,
 	ScriptTarget,
 	SyntaxKind,
-} from "typescript";
+} from "@typescript/typescript6";
 import { PERSISTED_KEY_REGISTRY } from "./persisted-key-registry.test-data";
 import { DEAD_KEYS, sweepDeadPersistedKeys } from "./persisted-keys";
 

@@ -10,7 +10,7 @@ import { fetchStarHistory } from "./star-history";
 
 const CACHE_KEY = "github";
 const CACHE_TTL_SECONDS = 30 * 60;
-const STAR_HISTORY_CACHE_KEY = "star-history";
+const STAR_HISTORY_CACHE_KEY = "star-history:v2";
 // Stargazer pages are ~140 requests for this repo, so this is the expensive
 // growth source; /starchart refreshes on the same cadence.
 const STAR_HISTORY_CACHE_TTL_SECONDS = 6 * 60 * 60;
@@ -143,6 +143,7 @@ async function fetchStarHistoryStats(): Promise<StarHistoryStats> {
 	const history = await fetchStarHistory({
 		token: env.GITHUB_TOKEN,
 		timeoutMs: GITHUB_REQUEST_TIMEOUT_MS,
+		totalTimeoutMs: 50_000,
 	});
 	if (!history) {
 		return { available: false, reason: "GitHub API error" };
@@ -165,5 +166,6 @@ export function fetchStarHistoryCached(): Promise<StarHistoryStats> {
 		STAR_HISTORY_CACHE_KEY,
 		STAR_HISTORY_CACHE_TTL_SECONDS,
 		fetchStarHistoryStats,
+		{ staleTtlSeconds: 7 * 24 * 60 * 60 },
 	);
 }

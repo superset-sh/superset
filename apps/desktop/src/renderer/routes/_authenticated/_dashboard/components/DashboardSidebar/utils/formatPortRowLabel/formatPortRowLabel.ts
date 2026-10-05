@@ -9,8 +9,8 @@ export function formatPortRowLabel({
 	port,
 	forward,
 }: {
-	port: DashboardSidebarPort;
-	forward: PortForward | null;
+	port: Pick<DashboardSidebarPort, "port" | "hostType">;
+	forward: Pick<PortForward, "status"> | null;
 }): { text: string; title?: string } {
 	if (port.hostType === "local-device") {
 		return { text: `localhost:${port.port}` };

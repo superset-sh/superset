@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { usePullRequestPaneIntent } from "renderer/stores/pull-request-pane-intent";
 
 /**
@@ -13,7 +14,7 @@ export function usePullRequestPaneIntentOpener({
 }: {
 	workspaceId: string;
 	isLayoutReady: boolean;
-	openPullRequestPane: (prNumber: number) => void;
+	openPullRequestPane: (ref: PullRequestRef) => void;
 }): void {
 	const pendingIntent = usePullRequestPaneIntent((s) => s.intent);
 
@@ -22,6 +23,9 @@ export function usePullRequestPaneIntentOpener({
 		if (pendingIntent?.workspaceId !== workspaceId) return;
 		const intent = usePullRequestPaneIntent.getState().consume(workspaceId);
 		if (!intent) return;
-		openPullRequestPane(intent.prNumber);
+		openPullRequestPane({
+			repoFullName: intent.repoFullName,
+			number: intent.number,
+		});
 	}, [pendingIntent, workspaceId, isLayoutReady, openPullRequestPane]);
 }

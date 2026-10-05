@@ -26,6 +26,7 @@ export interface PageFrameHandle {
 
 interface PageFrameProps {
 	src: string;
+	insetTop: number;
 	onMessage: (message: FrameMessage) => void;
 	onLoadEnd: () => void;
 	onError: () => void;
@@ -40,7 +41,7 @@ function sameOrigin(url: string, src: string): boolean {
 }
 
 export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
-	function PageFrame({ src, onMessage, onLoadEnd, onError }, ref) {
+	function PageFrame({ src, insetTop, onMessage, onLoadEnd, onError }, ref) {
 		const webViewRef = useRef<WebView>(null);
 		const openLink = useOpenLink();
 
@@ -75,6 +76,9 @@ export const PageFrame = forwardRef<PageFrameHandle, PageFrameProps>(
 				onLoadEnd={onLoadEnd}
 				onError={onError}
 				onHttpError={onError}
+				contentInset={{ top: insetTop, left: 0, right: 0, bottom: 0 }}
+				contentInsetAdjustmentBehavior="never"
+				automaticallyAdjustContentInsets={false}
 				onShouldStartLoadWithRequest={(request) => {
 					if (!request.isTopFrame) return true;
 					if (sameOrigin(request.url, src)) return true;

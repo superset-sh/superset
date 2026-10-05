@@ -15,7 +15,7 @@ export type SettingsSection =
 	| "git"
 	| "agents"
 	| "terminal"
-	| "links"
+	| "files"
 	| "experimental"
 	| "integrations"
 	| "billing"

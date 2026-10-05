@@ -37,10 +37,6 @@ export const env = createEnv({
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
-		// Set once a provider's traffic is routed through Hookdeck. While it
-		// is absent every webhook route verifies the provider's own
-		// signature, exactly as it always has.
-		HOOKDECK_SIGNING_SECRET: z.string().min(1).optional(),
 		SLACK_CLIENT_ID: z.string().min(1),
 		SLACK_CLIENT_SECRET: z.string().min(1),
 		SLACK_SIGNING_SECRET: z.string(),
@@ -48,7 +44,7 @@ export const env = createEnv({
 		// every other environment keeps booting.
 		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
-		ANTHROPIC_API_KEY: z.string(),
+		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_URL: z.string().url(),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),

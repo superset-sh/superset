@@ -133,7 +133,7 @@ export const githubRouter = router({
 	}),
 
 	/**
-	 * Everything one pull request view needs, in a single round trip.
+	 * Everything one pull request view needs.
 	 *
 	 * Deliberately GraphQL and deliberately live: mergeability, per-viewer
 	 * capabilities, reviewer states and whether a check is required exist
@@ -162,6 +162,25 @@ export const githubRouter = router({
 				});
 			}
 
+			// Both connections page at 100; anything past the first page must be
+			// fetched before grading, or a failing check or open thread there is
+			// silently invisible. Review requests come from REST because every
+			// GraphQL Team field needs the read:org scope, which tokens minted by
+			// editors and GitHub Desktop lack.
+			const [restThreads, restContexts, requested] = await Promise.all([
+				drainReviewThreads(octokit, input, pr.reviewThreads?.pageInfo),
+				drainCheckContexts(
+					octokit,
+					input,
+					pr.statusCheckRollup?.contexts?.pageInfo,
+				),
+				octokit.pulls.listRequestedReviewers({
+					owner: input.owner,
+					repo: input.repo,
+					pull_number: input.pullNumber,
+				}),
+			]);
+
 			const reviewers = new Map<
 				string,
 				{
@@ -172,15 +191,19 @@ export const githubRouter = router({
 				}
 			>();
 			// Requested first, so an actual review overwrites the placeholder.
-			for (const node of pr.reviewRequests?.nodes ?? []) {
-				const who = node?.requestedReviewer;
-				if (!who) continue;
-				const login = who.login ?? who.name;
-				if (!login) continue;
-				reviewers.set(login, {
-					login,
-					avatarUrl: who.avatarUrl ?? null,
-					isTeam: who.login === undefined,
+			for (const user of requested.data.users) {
+				reviewers.set(user.login, {
+					login: user.login,
+					avatarUrl: user.avatar_url,
+					isTeam: false,
+					state: "REQUESTED",
+				});
+			}
+			for (const team of requested.data.teams) {
+				reviewers.set(team.name, {
+					login: team.name,
+					avatarUrl: null,
+					isTeam: true,
 					state: "REQUESTED",
 				});
 			}
@@ -194,18 +217,6 @@ export const githubRouter = router({
 					state: node.state,
 				});
 			}
-
-			// Both connections page at 100; anything past the first page must be
-			// fetched before grading, or a failing check or open thread there is
-			// silently invisible.
-			const [restThreads, restContexts] = await Promise.all([
-				drainReviewThreads(octokit, input, pr.reviewThreads?.pageInfo),
-				drainCheckContexts(
-					octokit,
-					input,
-					pr.statusCheckRollup?.contexts?.pageInfo,
-				),
-			]);
 			const contextNodes = (pr.statusCheckRollup?.contexts?.nodes ?? []).concat(
 				restContexts,
 			);
@@ -475,8 +486,8 @@ async function pullRequestNodeId(
 }
 
 /**
- * One round trip for the whole view. `isRequired` is asked per pull request
- * because a check is only required relative to the branch rules it runs under.
+ * `isRequired` is asked per pull request because a check is only required
+ * relative to the branch rules it runs under.
  */
 const PULL_REQUEST_DETAIL_QUERY = `
 query($owner: String!, $name: String!, $number: Int!) {
@@ -499,15 +510,6 @@ query($owner: String!, $name: String!, $number: Int!) {
 			}
 			latestOpinionatedReviews(first: 20) {
 				nodes { state author { login avatarUrl } }
-			}
-			reviewRequests(first: 20) {
-				nodes {
-					requestedReviewer {
-						__typename
-						... on User { login avatarUrl }
-						... on Team { name avatarUrl }
-					}
-				}
 			}
 			reviewThreads(first: 100) {
 				pageInfo { hasNextPage endCursor }
@@ -605,16 +607,6 @@ interface PullRequestDetailQuery {
 				nodes: ({
 					state: string;
 					author: { login: string; avatarUrl: string | null } | null;
-				} | null)[];
-			} | null;
-			reviewRequests: {
-				nodes: ({
-					requestedReviewer: {
-						__typename: string;
-						login?: string;
-						name?: string;
-						avatarUrl?: string | null;
-					} | null;
 				} | null)[];
 			} | null;
 			reviewThreads: ReviewThreadsConnection | null;

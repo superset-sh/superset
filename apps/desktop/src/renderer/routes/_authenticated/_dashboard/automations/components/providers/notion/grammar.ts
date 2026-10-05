@@ -13,17 +13,24 @@ export type NotionConfig = Extract<TriggerConfigInput, { kind: "notion" }>;
  * event names its own words and slots, and the row renders them in order.
  */
 
-export type Slot = "dataSources" | "pages" | "actor" | "mentionedUser";
+export type Slot =
+	| "account"
+	| "dataSources"
+	| "pages"
+	| "actor"
+	| "mentionedUser";
 
 export type SentencePart = { text: string } | { slot: Slot };
 
 export const NOTION_SENTENCES: Record<NotionTriggerEvent, SentencePart[]> = {
 	"data_source.content_updated": [
 		{ text: "Rows changed in" },
+		{ slot: "account" },
 		{ slot: "dataSources" },
 	],
 	"comment.created": [
 		{ text: "Comment added in" },
+		{ slot: "account" },
 		{ slot: "dataSources" },
 		{ text: "on" },
 		{ slot: "pages" },
@@ -34,6 +41,7 @@ export const NOTION_SENTENCES: Record<NotionTriggerEvent, SentencePart[]> = {
 		{ text: "Comment mentions" },
 		{ slot: "mentionedUser" },
 		{ text: "in" },
+		{ slot: "account" },
 		{ slot: "dataSources" },
 		{ text: "on" },
 		{ slot: "pages" },

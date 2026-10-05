@@ -81,12 +81,17 @@ cloud_setup_main() {
   # workspaces that collided would silently share one database.
   export SUPERSET_WORKSPACE_NAME="cloud-${SUPERSET_SANDBOX_WORKSPACE_ID}"
 
+  step_install_dependencies || step_failed "Install dependencies"
   step_setup_neon_branch || step_failed "Set up Neon branch"
   allocate_port_base || step_failed "Allocate port base"
   step_write_env || step_failed "Write .env file"
   step_seed_env_placeholders || step_failed "Seed .env placeholders"
   ( set -a; . "$ROOT_DIR/.env"; set +a; NODE_ENV=development bun run db:seed-dev ) ||
     step_failed "Seed dev account"
+  ( set -a; . "$ROOT_DIR/.env"; set +a; bun run db:seed-cloud-auth-token ) ||
+    step_failed "Seed personal auth token"
+  ( set -a; . "$ROOT_DIR/.env"; set +a; bun run db:seed-cloud-mobile-token ) ||
+    step_failed "Seed mobile dev token"
 
   print_summary "Cloud setup"
 }

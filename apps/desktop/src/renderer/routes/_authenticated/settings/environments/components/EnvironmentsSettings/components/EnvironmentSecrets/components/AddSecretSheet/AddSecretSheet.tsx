@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { isCloudWorkspaceIgnoredEnvName } from "@superset/shared/agent-credentials";
 import {
 	validateSecretKey,
 	validateSecretValue,
@@ -20,6 +22,7 @@ import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiOutlineArrowDownTray,
+	HiOutlineExclamationTriangle,
 	HiOutlineQuestionMarkCircle,
 	HiOutlineTrash,
 	HiPlus,
@@ -320,7 +323,9 @@ export function AddSecretSheet({
 										className={`flex-1 font-mono text-sm mt-[1px] ${
 											entryErrors[entry.id]
 												? "border-destructive focus-visible:ring-destructive"
-												: ""
+												: isCloudWorkspaceIgnoredEnvName(entry.key.trim())
+													? "border-warning focus-visible:ring-warning"
+													: ""
 										}`}
 									/>
 									<Textarea
@@ -348,6 +353,14 @@ export function AddSecretSheet({
 								{entryErrors[entry.id] ? (
 									<p className="text-xs text-destructive pl-1">
 										{entryErrors[entry.id]}
+									</p>
+								) : isCloudWorkspaceIgnoredEnvName(entry.key.trim()) ? (
+									<p className="flex items-start gap-1.5 text-xs text-warning pl-1">
+										<HiOutlineExclamationTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+										<Trans>
+											Cloud workspaces ignore this variable. Agents sign in
+											under Settings › Agents instead.
+										</Trans>
 									</p>
 								) : null}
 							</div>

@@ -115,6 +115,7 @@ function connectSrcOrigins(): string {
 		process.env.REALTIME_URL || "https://realtime.superset.sh",
 		process.env.SANDBOX_GATE_ORIGIN ||
 			"https://*.sandbox.supersetusercontent.com",
+		process.env.R2_ENDPOINT || "https://*.r2.cloudflarestorage.com",
 	];
 	return [
 		...new Set(origins.flatMap((url) => [url, url.replace(/^http/, "ws")])),

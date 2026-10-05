@@ -1,8 +1,8 @@
 ---
-title: "Superset vs Emdash (2026): Two Agentic Development Environments Compared"
-description: "Compare Superset and Emdash for running AI coding agents in parallel Git worktrees. See how these agentic development environments differ in surfaces, automation, and team features."
+title: "Superset vs Emdash: parallel tasks, remote hosts, and automation"
+description: "Compare Superset and Emdash for parallel coding agents, scheduled tasks, remote development, desktop platforms, and licensing."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-22
 type: "1v1"
 competitors:
   - emdash
@@ -15,98 +15,50 @@ keywords:
   - worktree agent workspace
 ---
 
-Superset and Emdash are two of the closest comparisons in the agent-orchestration space. Both are desktop apps that run many CLI coding agents in parallel, both isolate every task in its own Git worktree, and both wrap the core with diff review, an in-app browser, and scheduled automations. Emdash (YC W26) is open source under Apache-2.0 and leans into breadth -- 30+ agent providers and a dozen issue-tracker integrations. Superset leans into surfaces and teams: CLI, MCP server, TypeScript SDK, Slack bot, cloud workspaces, and an enterprise track.
-
----
+Superset and Emdash both organize coding agents into worktrees, provide diff review, and schedule recurring tasks. Emdash supports macOS, Windows, and Linux under an Apache-2.0 license. Superset offers an iPhone app for continuing work on a connected host.
 
 ## At a Glance
 
-| | **Superset** | **Emdash** |
+| Requirement | Superset | Emdash |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs multiple coding agents in parallel, each task in its own branch and worktree |
-| **Category** | Local-first agent workspace with remote/cloud hosts | Open-source agentic development environment (ADE) |
-| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | 30+ providers (Claude Code, Codex, Cursor, Copilot, Amp, Droid, OpenCode, Goose, Kimi, and more) |
-| **Isolation** | Automatic Git worktree per task | Automatic Git worktree per task |
-| **Issue trackers** | GitHub and Linear integrations | 12 integrations (Linear, GitHub, Jira, GitLab, Asana, Notion, Trello, and more) |
-| **Remote** | Remote and cloud workspaces across your network devices | SSH remote projects and ephemeral remote tasks |
-| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Scheduled (cron) automations with run history |
-| **Surfaces** | Desktop app, CLI, MCP server | Desktop app (macOS, Windows, Linux) |
-| **License** | Source-available (ELv2) | Open source (Apache-2.0) |
+| Parallel tasks | Workspaces with separate branches and worktrees | Tasks with separate branches and worktrees |
+| Desktop | macOS; experimental Linux; Windows unavailable | macOS, Windows, Linux |
+| Scheduling | Pro automations on a selected host | Scheduled tasks with run history |
+| Remote work | Connected hosts with membership controls | SSH projects and provisioned workspaces |
+| Source license | Elastic License 2.0 | Apache-2.0 |
 
----
+Emdash's [documentation](https://emdash.com/docs) covers agent providers, issue intake, previews, and review. Its [automation reference](https://emdash.com/docs/automations) describes scheduled and manual runs. It also offers [cloud workspaces](https://emdash.com/cloud) and an [enterprise plan](https://emdash.com/enterprise).
 
-## What Is Superset?
+## Superset requirements
 
-Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+Superset runs CLI coding agents in separate workspaces, with terminals and diff review in one app. Desktop supports macOS and an experimental Linux AppImage. Windows is not yet available. Superset is source-available under Elastic License 2.0.
 
-## What Is Emdash?
+To use [Superset on iPhone](/mobile), you need iOS 26 or later, Pro, and a host that stays online. Remote access and automations also require a paid plan. See [pricing](/pricing) and [remote access setup](https://docs.superset.sh/remote-access).
 
-Emdash is an open-source agentic development environment from General Action (YC W26). Each task gets its own Git branch and worktree, keeping the branch, terminal, conversation, and review state together, with tmux support for long-running sessions and terminal state that survives restarts. It auto-detects 30+ installed agent CLIs, pulls tasks in from a dozen issue trackers, and wraps the loop with a diff view (unified and split, staging, in-place edits, push-and-create-PR), CI-check monitoring, an in-app browser with isolated per-task profiles, a prompts/skills library, MCP-server management for agents, and cron-scheduled automations. It runs on macOS, Windows, and Linux, supports SSH remote projects and ephemeral per-task remote workspaces, and is free under Apache-2.0.
+## Try it in your repository
 
-## Key Differences
+Run one of your usual tasks in each app with the same agent and model. Open the diff, ask for a correction, and run your project's checks. Compare how much setup and review each app takes. The [parallel-task guide](/blog/parallel-coding-agents-guide) has prompts you can use.
 
-### Overlap First, Honestly
+![Reviewing a change in Superset.](/images/readme/diff-viewer.png)
 
-The core loop is nearly identical: pick a task, get a worktree, run your agent of choice, watch the diff, review, push a PR. Both have in-app browsers, both schedule recurring agent runs, both handle multiple GitHub accounts, and both persist sessions across restarts. Choosing between them is about the edges, not the center.
+## Which should you choose?
 
-### Breadth of Integrations vs Breadth of Surfaces
+Choose Superset if you want to continue Claude Code or Codex sessions from your iPhone and review changes before returning to your desk. Try the [mobile walkthrough](/blog/claude-code-codex-iphone), then the [maintenance automation](/blog/scheduled-agent-maintenance).
 
-Emdash's edge is intake: 30+ agent providers auto-detected, and issues flowing in from Linear, GitHub, Jira, GitLab, Asana, Monday, Notion, Trello, Plane, Featurebase, Plain, and Forgejo. If your work arrives from many trackers and your team runs exotic agents, Emdash probably supports it today. Superset's edge is output surfaces: beyond the desktop app there is a CLI, an MCP server, a TypeScript SDK, and a Slack bot, so the same orchestration can be scripted, embedded in other tools, and driven from chat. Emdash has no CLI, SDK, or public API; its automation is what the app's UI offers.
+Choose Emdash if its supported desktop platforms, Apache-2.0 license, or documented issue integrations are decisive. Test the particular provider and tracker you need instead of selecting by the largest advertised integration count.
 
-### Automation Depth
-
-Both schedule agent runs. Emdash's automations are cron-based with a clean run history and a convert-run-to-task flow. Superset's automations add programmatic control -- a TypeScript SDK for building agent pipelines, an MCP server so other agents can drive Superset, and Slack triggers -- which matters when scheduled runs need to compose into larger workflows rather than fire independently.
-
-### Remote and Team
-
-Emdash covers remote work with SSH: persistent remote projects and ephemeral per-task remote workspaces provisioned by your own scripts. Superset's remote access and cloud workspaces put whole workspaces on your own devices and network, with the same UI local or remote. On teams, Emdash is a free single-player tool; Superset has unlimited-user Pro plans, Slack-based team workflows, and an enterprise tier with SSO and audit logs.
-
-### Licensing
-
-Emdash is Apache-2.0, fully open source and free, with no paid tiers as of August 2026. Superset is source-available under ELv2 with free and paid plans. If a permissive OSS license is a hard requirement, Emdash has the cleaner answer; if you want a vendor with a support contract, that is Superset's model.
-
----
-
-## Pricing
-
-Superset offers a free tier and Pro at $20/seat/month. Emdash is free and open source with no paid tiers. Both are bring-your-own-agent: you pay Anthropic, OpenAI, or other providers for the underlying agents either way.
-
----
-
-## Which Should You Choose?
-
-**Choose Superset if you:**
-
-- Want CLI, MCP server, SDK, and Slack surfaces around the same orchestration core
-- Need automations that compose programmatically, not just fire on a schedule
-- Want cloud workspaces and team/enterprise features (SSO, audit logs)
-- Prefer a supported commercial product
-
-**Choose Emdash if you:**
-
-- Want a free, Apache-2.0 open-source ADE
-- Pull tasks from trackers like Jira, Asana, Notion, or Trello that Superset does not integrate
-- Run niche agent CLIs that Emdash already auto-detects
-- Only need the desktop app and are happy with cron automations
-
-**Verdict:** Emdash is one of the strongest open-source options in this category -- broad provider support, real diff review, an in-app browser, and scheduled automations, all free. Superset is the better fit when the desktop app is not enough: scriptable surfaces (CLI, MCP, SDK, Slack), cloud workspaces, and team features turn the same worktree-orchestration core into something a whole engineering org can standardize on.
-
----
+Both products offer ways to inspect agent output. Use the same task and acceptance checks to decide which makes that review easier for your team. Emdash describes its core desktop app as free; cloud and enterprise are separate offerings whose current terms should be checked. Superset's paid feature requirements are listed on [pricing](/pricing). Agent-provider usage is separate.
 
 ## Frequently Asked Questions
 
-### Do Superset and Emdash both use Git worktrees?
+### Can Emdash schedule recurring work?
 
-Yes. Both create an isolated branch and worktree per task automatically. The isolation model is the same in practice; the differences are in surfaces, integrations, and team features.
+Yes. Emdash documents scheduled tasks with run history and manual runs. Superset also supports automations.
 
-### Is Emdash open source?
+### Does Emdash support remote development?
 
-Yes. Emdash is Apache-2.0 licensed and free, developed by General Action (YC W26). Superset is source-available under the Elastic License 2.0 with a free tier and paid plans.
+Yes. Its documentation covers SSH and provisioned remote workspaces, and it has a cloud offering.
 
-### Which supports more agents?
+### Is Superset open source under the same license?
 
-Emdash's docs list 30+ auto-detected providers, from Claude Code and Codex to Goose, Droid, and Kimi. Superset runs Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and any custom terminal agent. In practice both run the mainstream agents; Emdash enumerates a longer tail.
-
-### Can both schedule recurring agent runs?
-
-Yes. Emdash has cron-scheduled automations with run history inside the app. Superset's automations add a TypeScript SDK, an MCP server, and a Slack bot, so scheduled sessions can be scripted and integrated into larger pipelines.
+No. Superset is source-available under Elastic License 2.0. Emdash uses Apache-2.0. Read the licenses if redistribution or service hosting is part of your requirements.

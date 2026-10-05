@@ -314,6 +314,20 @@ describe("githubRequestError", () => {
 		expect(error.code).toBe("TOO_MANY_REQUESTS");
 	});
 
+	test("an Octokit request that never reached GitHub is unavailable, not a 500", () => {
+		const socketError = Object.assign(
+			new Error("connect EHOSTUNREACH 140.82.121.6:443"),
+			{ code: "EHOSTUNREACH" },
+		);
+		const fetchError = new TypeError("fetch failed", { cause: socketError });
+		const requestError = Object.assign(new Error(socketError.message), {
+			status: 500,
+			cause: fetchError,
+		});
+		const error = githubRequestError(requestError, credentials) as TRPCError;
+		expect(error.code).toBe("SERVICE_UNAVAILABLE");
+	});
+
 	test("anything else passes through untouched", () => {
 		const original = new Error("Validation Failed");
 		expect(githubRequestError(original, credentials)).toBe(original);

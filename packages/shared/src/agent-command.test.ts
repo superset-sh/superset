@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { getBuiltinAgentDefinition } from "./agent-catalog";
 import {
 	AGENT_LABELS,
 	AGENT_TYPES,
@@ -6,6 +8,39 @@ import {
 	buildAgentPromptCommand,
 } from "./agent-command";
 import { getPresetById } from "./host-agent-presets";
+
+describe("UFO launches", () => {
+	it("passes a multiline prompt literally as one positional argument", () => {
+		const prompt =
+			"Review `echo unsafe` and $(echo unsafe)\nKeep 'quotes' and $variables";
+		const command = buildAgentPromptCommand({
+			prompt,
+			randomId: "ufo-test",
+			agent: "ufo",
+		});
+		const result = spawnSync(
+			"bash",
+			["-c", `ufo() { printf '%s\\0' "$@"; }\n${command}`],
+			{ encoding: "utf8" },
+		);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toBe(`${prompt}\0`);
+	});
+
+	it("provides local launch and ID-based resume without unverified modes", () => {
+		expect(getPresetById("ufo")).toMatchObject({
+			command: "ufo",
+			args: [],
+			promptArgs: [],
+			promptTransport: "argv",
+			resumeArgs: ["--resume"],
+			forkArgs: [],
+		});
+		expect(
+			getBuiltinAgentDefinition("ufo").nonInteractiveCommand,
+		).toBeUndefined();
+	});
+});
 
 describe("buildAgentPromptCommand", () => {
 	it("adds `--` before codex prompt payload", () => {

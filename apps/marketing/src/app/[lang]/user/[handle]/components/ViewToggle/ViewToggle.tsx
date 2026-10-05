@@ -7,14 +7,14 @@ interface ViewToggleProps {
 
 export function ViewToggle({ handle }: ViewToggleProps) {
 	return (
-		<div className="inline-flex items-stretch border border-border font-mono text-[0.6rem] uppercase tracking-[0.12em]">
-			<span className="px-2.5 py-1 bg-foreground/[0.06] text-foreground">
+		<div className="inline-flex items-stretch border border-border rounded-[2px] text-sm">
+			<span className="inline-flex min-h-11 items-center px-3 py-2 bg-foreground/[0.06] text-foreground">
 				<Trans>Human</Trans>
 			</span>
 			<Link
 				href={`/md/user/${handle}`}
 				prefetch={false}
-				className="px-2.5 py-1 text-muted-foreground hover:text-brand transition-colors border-l border-border"
+				className="inline-flex min-h-11 items-center px-3 py-2 text-muted-foreground hover:text-brand transition-colors border-l border-border"
 			>
 				<Trans>Agent</Trans>
 			</Link>

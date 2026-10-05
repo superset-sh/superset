@@ -11,6 +11,7 @@ import { buildSubmitPrompt } from "./buildSubmitPrompt";
 import {
 	fetchGitHubIssueBody,
 	fetchInternalTaskBody,
+	fetchLinearIssueBody,
 	fetchPrBody,
 } from "./fetchers";
 import { useNewWorkspacePromptContextStore } from "./store";
@@ -69,9 +70,15 @@ export function useNewWorkspacePromptContext(args: {
 				store.register(`task:${taskId}`, () =>
 					fetchInternalTaskBody({ taskId }),
 				);
+			} else if (issue.source === "linear" && activeOrganizationId) {
+				const identifier = issue.slug;
+				const organizationId = activeOrganizationId;
+				store.register(`linear-issue:${identifier}`, () =>
+					fetchLinearIssueBody({ organizationId, identifier }),
+				);
 			}
 		}
-	}, [projectId, hostUrl, linkedPR, linkedIssues]);
+	}, [projectId, hostUrl, linkedPR, linkedIssues, activeOrganizationId]);
 
 	return useMemo<NewWorkspacePromptContextApi>(
 		() => ({

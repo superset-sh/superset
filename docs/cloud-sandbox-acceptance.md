@@ -125,7 +125,7 @@ Dev API (`bun dev`), Neon dev branch, real Vercel project.
   for the dev stack; the PTY allowlist is unchanged. (117-line `.env` with the
   multi-line PEM intact; in-sandbox API `get-session` → 200)
 - [x] **6.4 Release pipeline** — `bun run sandbox:release` builds the image,
-  creates the golden, runs `internal-setup.sh`, probes a fork, writes the
+  creates the golden, runs `satya-setup.sh`, probes a fork, writes the
   `environments` rows (`provider = vercel`). (93s end to end)
 - [ ] **6.5 Two forks of one golden are independent** — files written in one
   are absent in the other. (not run)

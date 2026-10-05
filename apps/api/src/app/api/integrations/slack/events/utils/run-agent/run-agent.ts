@@ -242,7 +242,7 @@ export async function formatErrorForSlack(
 	}
 	try {
 		const anthropic = new Anthropic({
-			apiKey: env.ANTHROPIC_API_KEY,
+			apiKey: env.SERVER_ANTHROPIC_API_KEY,
 			timeout: Math.min(ERROR_REWRITE_TIMEOUT_MS, remaining - 5_000),
 			maxRetries: 0,
 		});
@@ -731,7 +731,7 @@ export async function runSlackAgent(
 	params: RunSlackAgentParams,
 ): Promise<SlackAgentResult> {
 	const anthropic = new Anthropic({
-		apiKey: env.ANTHROPIC_API_KEY,
+		apiKey: env.SERVER_ANTHROPIC_API_KEY,
 		timeout: MODEL_CALL_TIMEOUT_MS,
 		maxRetries: 1,
 	});
@@ -920,6 +920,7 @@ ${agentContext}`;
 						},
 					],
 					...([
+						"claude-sonnet-5-5",
 						"claude-sonnet-5",
 						"claude-sonnet-4-6",
 						"claude-opus-5",

@@ -2,7 +2,6 @@ export {
 	HEARTBEAT_INTERVAL_MS,
 	IDLE_TTL_MS,
 	MAX_CONSECUTIVE_FAILURES,
-	MAX_HOLD_MS,
 	MAX_WATCHERS,
 	type PageWatchApi,
 	type PageWatchDeps,

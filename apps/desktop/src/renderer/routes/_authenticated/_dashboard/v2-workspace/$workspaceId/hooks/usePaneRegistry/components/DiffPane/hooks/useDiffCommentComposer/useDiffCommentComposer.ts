@@ -12,8 +12,8 @@ import {
 	formatAgentPromptWithFileContext,
 	useSendToTerminalAgent,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
+import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/components/AgentSessionPicker";
 import type { ChangesetFile } from "../../../../../useChangeset";
-import type { AgentTarget } from "../../../AgentCommentComposer";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 interface ComposerState {

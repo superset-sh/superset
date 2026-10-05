@@ -8,6 +8,7 @@ export {
 	PromptInput,
 	type PromptInputAttachment,
 	type PromptInputCommand,
+	type PromptInputHandle,
 	type PromptInputProps,
 	type PromptInputSubmitPayload,
 } from "./PromptInput";

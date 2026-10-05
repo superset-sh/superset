@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Server } from "@superset/pty-daemon";
+import type { SessionMeta } from "@superset/pty-daemon/protocol";
 import { hostAgentConfigs, workspaces } from "../../src/db/schema";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
 import {
@@ -42,9 +43,9 @@ describe("Local workspace launch retries", () => {
 		const server = new Server({
 			socketPath,
 			daemonVersion: "0.0.0-local-retry-test",
-			spawnPty: () => {
+			spawnPty: ({ meta }) => {
 				spawned++;
-				return createFakePty(5200 + spawned, writes);
+				return createFakePty(5200 + spawned, writes, meta);
 			},
 		});
 
@@ -112,7 +113,7 @@ describe("Local workspace launch retries", () => {
 	}, 20_000);
 });
 
-function createFakePty(pid: number, writes: string[]) {
+function createFakePty(pid: number, writes: string[], meta: SessionMeta) {
 	const dataCallbacks: Array<(data: Buffer) => void> = [];
 	const exitCallbacks: Array<
 		(info: { code: number | null; signal: number | null }) => void
@@ -120,6 +121,10 @@ function createFakePty(pid: number, writes: string[]) {
 
 	return {
 		pid,
+		meta,
+		pause() {},
+		resume() {},
+		dispose() {},
 		write(data: string | Uint8Array) {
 			const text =
 				typeof data === "string" ? data : Buffer.from(data).toString("utf-8");
@@ -132,7 +137,10 @@ function createFakePty(pid: number, writes: string[]) {
 				for (const callback of dataCallbacks) callback(echoed);
 			});
 		},
-		resize() {},
+		resize(cols: number, rows: number) {
+			meta.cols = cols;
+			meta.rows = rows;
+		},
 		kill() {
 			for (const callback of exitCallbacks.splice(0)) {
 				callback({ code: null, signal: null });

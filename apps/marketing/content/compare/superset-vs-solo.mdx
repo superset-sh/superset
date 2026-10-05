@@ -2,7 +2,7 @@
 title: "Superset vs Solo (2026): Agent Workspace vs Process Dashboard"
 description: "Compare Superset and Solo (soloterm.com): parallel coding agents in Git worktrees vs Aaron Francis's native dashboard for agents and your dev stack."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - solo
@@ -15,7 +15,7 @@ keywords:
   - ai agent workspace
 ---
 
-Superset and Solo both put your coding agents in one window, but they manage different things. Superset manages the work: each task gets a Git worktree, an agent, diffs, and review. Solo -- Aaron Francis's native terminal workspace -- manages the environment: your dev servers, databases, queue workers, and agents run as supervised processes with auto-restart, crash notifications, and a rich MCP surface agents use to coordinate. Solo's own compare pages say it plainly: it is "not a git-worktree orchestrator," and it positions itself as complementary to tools like Superset rather than a replacement.
+Superset and Solo both put your coding agents in one window, but they manage different things. Superset manages the work: new local branch-based workspaces get Git worktrees, with terminals, diffs, and review. Solo -- Aaron Francis's native terminal workspace -- manages the environment: your dev servers, databases, queue workers, and agents run as supervised processes with auto-restart, crash notifications, and a rich MCP surface agents use to coordinate. Solo's own compare pages say it plainly: it is "not a git-worktree orchestrator," and it positions itself as complementary to tools like Superset rather than a replacement.
 
 ---
 
@@ -23,14 +23,14 @@ Superset and Solo both put your coding agents in one window, but they manage dif
 
 | | **Superset** | **Solo** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs agents and your whole dev stack as supervised processes in one native window |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs agents and your whole dev stack as supervised processes in one native window |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Native process dashboard / terminal workspace (Tauri, "not an IDE. On purpose.") |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code, Codex, Gemini CLI, Amp, OpenCode, Aider, Goose, Copilot, Kimi, custom |
-| **Isolation** | Automatic Git worktree per task | None -- one shared checkout ("not a git-worktree orchestrator") |
+| **Isolation** | Git worktrees for local branch-based workspaces | None -- one shared checkout ("not a git-worktree orchestrator") |
 | **Process management** | Run scripts, port detection, restartable dev-server pane | Stack auto-detection, one-click start, auto-restart, crash alerts, CPU/memory tracking |
 | **Agent coordination** | CLI, MCP server, SDK; orchestrating agents spawn workers | 40+ MCP tools: shared todos, scratchpads, locks, timers, agent spawning |
 | **Diff review / PRs** | Built-in diff/file editor, PR flow | None -- does not review code or manage branches |
-| **Platforms** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS and Windows (Linux coming); local only |
+| **Platforms** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | macOS and Windows (Linux coming); local only |
 | **License / pricing** | Source-available (ELv2); free tier + Pro $20/seat/mo | Proprietary; free (4 projects) / Pro $99/yr / Team $69-99/seat/yr |
 
 ---
@@ -47,7 +47,7 @@ Solo is a native desktop terminal workspace from Aaron Francis -- "the workspace
 
 ### Work Isolation vs Environment Health
 
-Superset's unit is the task: worktree, branch, agent, diff, merge -- parallel agents cannot collide because each has its own checkout. Solo's unit is the process: everything runs in one shared checkout, kept healthy by supervision. Solo is upfront that parallel agents in the same project share the working tree unless you hand-create worktrees (its "linked checkouts" then share todos across them, but Solo will not create or manage the checkouts). For parallel agent coding, that is the decisive difference.
+Superset’s local branch-based workspaces separate working directories and branches, with terminals and diff review attached. Worktrees do not prevent merge conflicts or isolate shared services. Solo's unit is the process: everything runs in one shared checkout, kept healthy by supervision. Solo is upfront that parallel agents in the same project share the working tree unless you hand-create worktrees (its "linked checkouts" then share todos across them, but Solo will not create or manage the checkouts). For parallel agent coding, that is the decisive difference.
 
 ### The Review Gap
 
@@ -97,7 +97,7 @@ Only partially -- Solo itself says it is not a git-worktree orchestrator and pos
 
 ### Does Solo support Git worktrees?
 
-It does not create or manage them. If you make worktrees yourself, Solo's "linked checkouts" share project todos and scratchpads across them. Superset creates and manages a worktree per task automatically.
+It does not create or manage them. If you make worktrees yourself, Solo's "linked checkouts" share project todos and scratchpads across them. Superset creates and manages worktrees for new local branch-based workspaces.
 
 ### Which agents does each support?
 

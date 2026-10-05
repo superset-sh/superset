@@ -3,8 +3,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
+import { resolveHostAgentConfig } from "../../../terminal-agents/agent-config";
 import { queryProcedure, router } from "../../index";
-import { resolveHostAgentConfig } from "../agents/agents";
 import { resolveDefaultAccountEnv } from "../usage/default-account";
 import { listAgentSlashCommands } from "./discovery";
 

@@ -15,17 +15,23 @@ export const V2_AGENT_CONFIGS_QUERY_KEY = ["host-agent-configs"] as const;
  * restart. Acting on an external edit means refocusing the app, so focus is
  * the earliest moment the fresh value can matter.
  */
-export function useV2AgentConfigs(hostUrl: string | null) {
-	return useQuery({
+export function v2AgentConfigsQueryOptions(hostUrl: string | null) {
+	return {
 		queryKey: [...V2_AGENT_CONFIGS_QUERY_KEY, hostUrl] as const,
-		enabled: !!hostUrl,
-		queryFn: () => {
-			if (!hostUrl) return [] as HostAgentConfig[];
+		queryFn: (): Promise<HostAgentConfig[]> | HostAgentConfig[] => {
+			if (!hostUrl) return [];
 			return getHostServiceClientByUrl(
 				hostUrl,
 			).settings.agentConfigs.list.query();
 		},
 		staleTime: 30_000,
+	};
+}
+
+export function useV2AgentConfigs(hostUrl: string | null) {
+	return useQuery({
+		...v2AgentConfigsQueryOptions(hostUrl),
+		enabled: !!hostUrl,
 		refetchOnWindowFocus: "always",
 	});
 }

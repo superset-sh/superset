@@ -1,0 +1,1 @@
+export { isViewerAlone } from "./isViewerAlone";

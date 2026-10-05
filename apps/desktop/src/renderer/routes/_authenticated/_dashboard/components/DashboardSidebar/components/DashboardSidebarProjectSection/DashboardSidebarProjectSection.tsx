@@ -80,6 +80,7 @@ export function DashboardSidebarProjectSection({
 			projectName={project.name}
 			hostIds={projectHostIds}
 			onDeleted={leaveProjectIfActive}
+			onHide={hideProject}
 		/>
 	);
 

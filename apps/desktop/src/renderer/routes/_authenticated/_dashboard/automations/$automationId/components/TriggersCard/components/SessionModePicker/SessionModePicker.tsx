@@ -11,28 +11,22 @@ import { ChipButton } from "../../../../../components/TriggerSentence/components
 
 /**
  * Whether each run starts its own agent session or continues the one the
- * previous run left behind.
- *
- * Only offered with a pinned workspace, which is where that session lives —
- * an automation that branches a workspace per run has nothing to continue,
- * and the API refuses the combination.
+ * previous run left behind. Only rendered for a pinned workspace, which is
+ * where that session lives.
  */
 export function SessionModePicker({
 	continueAgentSession,
-	pinnedWorkspaceId,
 	disabled,
 	onChange,
 	className,
 }: {
 	continueAgentSession: boolean;
-	pinnedWorkspaceId: string | null;
 	disabled?: boolean;
 	onChange: (continueAgentSession: boolean) => void;
 	className?: string;
 }) {
-	const pinned = pinnedWorkspaceId !== null;
 	const label = i18n._(
-		continueAgentSession && pinned
+		continueAgentSession
 			? msg({
 					message: "continuing the last session",
 				})
@@ -43,23 +37,12 @@ export function SessionModePicker({
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild disabled={disabled || !pinned}>
-				<span
-					title={
-						pinned
-							? undefined
-							: i18n._(
-									msg({
-										message:
-											"Pin a workspace to continue its agent session between runs",
-									}),
-								)
-					}
-				>
+			<DropdownMenuTrigger asChild disabled={disabled}>
+				<span>
 					<ChipButton
 						label={label}
 						empty={!continueAgentSession}
-						disabled={disabled || !pinned}
+						disabled={disabled}
 						className={className}
 					/>
 				</span>

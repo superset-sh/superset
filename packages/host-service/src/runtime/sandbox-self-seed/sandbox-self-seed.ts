@@ -8,6 +8,7 @@ import {
 	type CloudAgentLaunch,
 	readCloudAgentLaunch,
 } from "@superset/shared/cloud-agent-launch";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
 	SANDBOX_PATHS,
 	type SandboxRepository,
@@ -26,6 +27,7 @@ import {
 	waitForManagedEnv,
 } from "../sandbox-managed-env/sandbox-managed-env.ts";
 import { resolveScript, shellSingleQuote } from "../setup/config";
+import { buildStartHookEnv } from "./utils/buildStartHookEnv";
 
 /**
  * Makes a sandbox describe its own workspace, instead of being described from
@@ -188,7 +190,7 @@ export async function runSandboxStartHook(
 		["-lc", commands.map((one) => `{ ${one}; }`).join("\n")],
 		{
 			cwd: existsSync(configured) ? configured : identity.hooksPath,
-			env: { ...process.env, ...getManagedEnv(), IS_SANDBOX: "1" },
+			env: buildStartHookEnv(process.env, getManagedEnv()),
 			stdio: ["ignore", log, log],
 			detached: true,
 		},
@@ -384,12 +386,31 @@ export function runSandboxSelfSeed(
 			index === 0
 				? identity.workspaceId
 				: sandboxRepositoryWorkspaceId(identity.workspaceId, repo.path);
+		const parsed = parseGitHubRemote(repo.url);
+		const repoFields = parsed
+			? {
+					repoProvider: parsed.provider,
+					repoOwner: parsed.owner,
+					repoName: parsed.name,
+					repoUrl: parsed.url,
+					remoteName: "origin",
+				}
+			: {};
 		const existing = db
-			.select({ id: workspaces.id })
+			.select({ projectId: workspaces.projectId })
 			.from(workspaces)
 			.where(eq(workspaces.id, id))
 			.get();
-		if (existing) return;
+		if (existing) {
+			// Boxes seeded before the repo identity was recorded.
+			if (parsed && existing.projectId) {
+				db.update(projects)
+					.set({ ...repoFields, updatedAt: now })
+					.where(eq(projects.id, existing.projectId))
+					.run();
+			}
+			return;
+		}
 		const projectId = crypto.randomUUID();
 		const worktreePath = sandboxCheckoutDir(root, repo.path);
 		db.insert(projects)
@@ -397,6 +418,7 @@ export function runSandboxSelfSeed(
 				id: projectId,
 				repoPath: worktreePath,
 				name: index === 0 ? identity.projectName : repo.path,
+				...repoFields,
 				createdAt: now,
 				updatedAt: now,
 			})

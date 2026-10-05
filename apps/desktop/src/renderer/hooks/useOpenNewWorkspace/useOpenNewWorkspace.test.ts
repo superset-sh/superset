@@ -44,13 +44,21 @@ const { useNewWorkspaceDraftStore } = await import(
 const { useNewWorkspaceModalStore } = await import(
 	"renderer/stores/new-workspace-modal"
 );
-const { useOpenNewWorkspace, useOpenNewWorkspaceForLocalProject } =
-	await import("./useOpenNewWorkspace");
+const { useV2WorkspaceCreateDefaultsStore } = await import(
+	"renderer/stores/v2-workspace-create-defaults"
+);
+const {
+	useOpenNewSession,
+	useOpenNewWorkspace,
+	useOpenNewWorkspaceForLocalProject,
+} = await import("./useOpenNewWorkspace");
 
 beforeEach(() => {
 	navigate.mockClear();
 	v2Enabled = true;
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: null });
 	useNewWorkspaceDraftStore.getState().resetDraft();
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId(null);
 });
 afterEach(cleanup);
 afterAll(async () => {
@@ -92,6 +100,90 @@ test("ordinary new workspace navigation preserves the selected remote host", () 
 	const { result } = renderHook(useOpenNewWorkspace);
 	act(() => result.current("existing-project"));
 	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
+});
+
+test("project handoff leaves the cloud host for the local machine", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	const { result } = renderHook(useOpenNewWorkspace);
+	act(() => result.current("project-a"));
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "this-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		hostId: "this-machine",
+		selectedProjectId: "project-a",
+	});
+});
+
+test("project handoff leaves a remembered cloud host before the page restores it", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	const { result } = renderHook(useOpenNewWorkspace);
+	act(() => result.current("project-a"));
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "this-machine" },
+		}),
+	);
+});
+
+test("project handoff keeps a draft remote host over a remembered cloud host", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "other-machine" });
+	const { result } = renderHook(useOpenNewWorkspace);
+	act(() => result.current("project-a"));
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { projectId: "project-a", host: "other-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
+});
+
+test("session handoff keeps a draft remote host over a remembered cloud host", () => {
+	useV2WorkspaceCreateDefaultsStore.getState().setLastHostId("cloud");
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "other-machine" });
+	const { result } = renderHook(useOpenNewSession);
+	act(() => result.current());
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { session: true, host: "other-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("other-machine");
+});
+
+test("new workspace without a project keeps the cloud host", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	const { result } = renderHook(useOpenNewWorkspace);
+	act(() => result.current());
+	expect(useNewWorkspaceDraftStore.getState().hostId).toBe("cloud");
+});
+
+test("session handoff leaves the cloud host and selects the session", () => {
+	useNewWorkspaceDraftStore.getState().updateDraft({ hostId: "cloud" });
+	const { result } = renderHook(useOpenNewSession);
+	act(() => result.current());
+	expect(navigate).toHaveBeenCalledWith(
+		expect.objectContaining({
+			search: { session: true, host: "this-machine" },
+		}),
+	);
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		hostId: "this-machine",
+		isSession: true,
+	});
+});
+
+test("session handoff re-selects the session when the URL already asks for it", () => {
+	useNewWorkspaceDraftStore.getState().selectProject("project-a");
+	const { result } = renderHook(useOpenNewSession);
+	act(() => result.current());
+	expect(useNewWorkspaceDraftStore.getState()).toMatchObject({
+		isSession: true,
+		selectedProjectId: null,
+	});
 });
 
 test("v1 local project handoff still opens the project modal", () => {

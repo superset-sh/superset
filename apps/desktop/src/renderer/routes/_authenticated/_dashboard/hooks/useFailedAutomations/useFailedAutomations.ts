@@ -4,7 +4,8 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useAutomationFailuresStore } from "renderer/stores/automation-failures";
 
-const FAILURE_BADGE_POLL_MS = 120_000;
+// Realtime nudges keep it current; this bounds staleness from a missed one.
+const LATEST_RUNS_STALE_MS = 10 * 60_000;
 
 const FAILED_STATUSES: SelectAutomationRun["status"][] = [
 	"skipped_offline",
@@ -15,25 +16,19 @@ export interface AutomationLastRun {
 	status: SelectAutomationRun["status"];
 	/** createdAt as epoch ms; NaN-free (unparseable rows are dropped). */
 	at: number;
-	v2WorkspaceId: string | null;
+	/** The run's host or cloud workspace; both open at the same route. */
+	workspaceId: string | null;
 	chatSessionId: string | null;
 	terminalSessionId: string | null;
 }
 
 interface FailedAutomations {
-	/** Most recent run status per automation (absent = no runs yet). */
-	lastRunStatusById: Map<string, SelectAutomationRun["status"]>;
 	/** Most recent run per automation, with its workspace/session links. */
 	lastRunById: Map<string, AutomationLastRun>;
 	/** Automations whose most recent run failed. */
 	failedIds: Set<string>;
 	/** How many of the current user's failures the user hasn't seen yet. */
 	myFailedCount: number;
-	/** The org has at least one automation, so the list is worth reaching. */
-	hasAutomations: boolean;
-	/** The list has not loaded yet, so `hasAutomations` is not yet known. */
-	automationsPending: boolean;
-	/** Clear the failure badge by acknowledging the user's current failures. */
 	markMyFailuresSeen: () => void;
 }
 
@@ -49,53 +44,31 @@ export function useFailedAutomations(): FailedAutomations {
 
 	const { data: runRows = [] } = cloudTrpc.automation.latestRuns.useQuery(
 		undefined,
-		{ refetchInterval: FAILURE_BADGE_POLL_MS, staleTime: 30_000 },
+		{ staleTime: LATEST_RUNS_STALE_MS },
 	);
-	const { data: automationRows = [], isPending: automationsPending } =
-		cloudTrpc.automation.list.useQuery(undefined, {
-			refetchInterval: FAILURE_BADGE_POLL_MS,
-			staleTime: 30_000,
-		});
 
-	const { lastRunStatusById, lastRunById, failedIds, myFailureTimes } =
-		useMemo(() => {
-			const latest = new Map<string, AutomationLastRun>();
-			for (const run of runRows) {
-				const at = new Date(run.createdAt).getTime();
-				if (!Number.isFinite(at)) continue;
-				latest.set(run.automationId, {
-					status: run.status,
-					at,
-					v2WorkspaceId: run.v2WorkspaceId ?? null,
-					chatSessionId: run.chatSessionId ?? null,
-					terminalSessionId: run.terminalSessionId ?? null,
-				});
+	const { lastRunById, failedIds, myFailureTimes } = useMemo(() => {
+		const lastRunById = new Map<string, AutomationLastRun>();
+		const failedIds = new Set<string>();
+		const myFailureTimes: number[] = [];
+		for (const run of runRows) {
+			const at = new Date(run.createdAt).getTime();
+			if (!Number.isFinite(at)) continue;
+			lastRunById.set(run.automationId, {
+				status: run.status,
+				at,
+				workspaceId: run.v2WorkspaceId ?? run.cloudWorkspaceId ?? null,
+				chatSessionId: run.chatSessionId ?? null,
+				terminalSessionId: run.terminalSessionId ?? null,
+			});
+			if (!FAILED_STATUSES.includes(run.status)) continue;
+			failedIds.add(run.automationId);
+			if (currentUserId && run.ownerUserId === currentUserId) {
+				myFailureTimes.push(at);
 			}
-			const lastRunStatusById = new Map<
-				string,
-				SelectAutomationRun["status"]
-			>();
-			const failedIds = new Set<string>();
-			for (const [id, run] of latest) {
-				lastRunStatusById.set(id, run.status);
-				if (FAILED_STATUSES.includes(run.status)) failedIds.add(id);
-			}
-			// createdAt of each of the current user's failing runs.
-			const myFailureTimes = currentUserId
-				? automationRows
-						.filter(
-							(a) => a.ownerUserId === currentUserId && failedIds.has(a.id),
-						)
-						.map((a) => latest.get(a.id)?.at ?? 0)
-						.filter((at) => Number.isFinite(at))
-				: [];
-			return {
-				lastRunStatusById,
-				lastRunById: latest,
-				failedIds,
-				myFailureTimes,
-			};
-		}, [runRows, automationRows, currentUserId]);
+		}
+		return { lastRunById, failedIds, myFailureTimes };
+	}, [runRows, currentUserId]);
 
 	const myFailedCount = useMemo(
 		() => myFailureTimes.filter((at) => at > lastSeenFailureAt).length,
@@ -103,17 +76,9 @@ export function useFailedAutomations(): FailedAutomations {
 	);
 
 	const markMyFailuresSeen = useCallback(() => {
-		const newest = myFailureTimes.reduce((max, at) => Math.max(max, at), 0);
+		const newest = Math.max(0, ...myFailureTimes);
 		if (newest > 0) markFailuresSeen(newest);
 	}, [myFailureTimes, markFailuresSeen]);
 
-	return {
-		lastRunStatusById,
-		lastRunById,
-		failedIds,
-		myFailedCount,
-		hasAutomations: automationRows.length > 0,
-		automationsPending,
-		markMyFailuresSeen,
-	};
+	return { lastRunById, failedIds, myFailedCount, markMyFailuresSeen };
 }

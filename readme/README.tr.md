@@ -286,7 +286,7 @@ Neon hesabı veya üçüncü taraf kimlik bilgileri gerekmez. `setup.local.sh`, 
 yerel bir Postgres + Electric yığını başlatır ve bir geliştirme hesabı oluşturur.
 **"Sign in as dev"** düğmesiyle (veya `admin@local.test` / `supersetdev`) oturum açın.
 
-Önkoşullar: [Bun](https://bun.sh/) v1.3.14+ (`.bun-version` dosyasında sabitlenmiştir), `docker`, `jq` ve `bun dev` komutunun yerel HTTPS proxy'si olarak çalıştırdığı `caddy` (`brew install jq caddy && caddy trust`).
+Önkoşullar: [Bun](https://bun.sh/) v1.4.2+ (`.bun-version` dosyasında sabitlenmiştir), `docker`, `jq` ve `bun dev` komutunun yerel HTTPS proxy'si olarak çalıştırdığı `caddy` (`brew install jq caddy && caddy trust`).
 
 Tam kılavuz için [**DEVELOPMENT.md**](../DEVELOPMENT.md) dosyasına bakın: kurulum betiğinin ne yaptığı, gerçek servislerle manuel kurulum, yaygın komutlar, sorun giderme ve masaüstü uygulamasının nasıl derleneceği. Katkı süreci [**CONTRIBUTING.md**](../CONTRIBUTING.md) dosyasındadır.
 

@@ -1,1 +1,0 @@
-export { PluginIcon } from "./PluginIcon";

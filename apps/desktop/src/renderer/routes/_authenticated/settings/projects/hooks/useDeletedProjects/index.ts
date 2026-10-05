@@ -1,0 +1,1 @@
+export { useDeletedProjects } from "./useDeletedProjects";

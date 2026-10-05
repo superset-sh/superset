@@ -10,7 +10,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { join } from "node:path";
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import {
 	mainExternalizedDependencies,
 	requiredMaterializedNodeModules,

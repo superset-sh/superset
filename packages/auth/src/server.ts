@@ -3,11 +3,15 @@ import { expo } from "@better-auth/expo";
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { stripe } from "@better-auth/stripe";
 import { db } from "@superset/db/client";
-import { members, subscriptions } from "@superset/db/schema";
+import {
+	githubInstallations,
+	members,
+	subscriptions,
+	tasks,
+} from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
-import { WelcomeEmail } from "@superset/email/emails/activation/00-welcome";
 import { MemberAddedBillingEmail } from "@superset/email/emails/billing/member-added";
 import { MemberRemovedBillingEmail } from "@superset/email/emails/billing/member-removed";
 import { PaymentFailedEmail } from "@superset/email/emails/billing/payment-failed";
@@ -28,7 +32,12 @@ import {
 	createAuthMiddleware,
 	getSessionFromCtx,
 } from "better-auth/api";
-import { bearer, customSession, organization } from "better-auth/plugins";
+import {
+	bearer,
+	customSession,
+	oneTimeToken,
+	organization,
+} from "better-auth/plugins";
 import { jwt } from "better-auth/plugins/jwt";
 import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -84,6 +93,33 @@ const PENDING_DELETION_ALLOWED_PATH_PREFIXES = [
 ];
 
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
+
+/**
+ * Backfills GitHub for a paying organization. Its deliveries are dropped at the
+ * webhook while an org is on the free plan, so whatever changed in the gap is
+ * missing until this job replays it.
+ */
+async function resumeGatedSyncs(organizationId: string): Promise<void> {
+	const installation = await db.query.githubInstallations.findFirst({
+		where: eq(githubInstallations.organizationId, organizationId),
+		columns: { id: true },
+	});
+	if (!installation) return;
+
+	try {
+		await qstash.publishJSON({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
+			body: { installationDbId: installation.id, organizationId },
+			retries: 3,
+		});
+	} catch (error) {
+		console.error(
+			"[stripe/subscription-complete] Failed to queue integration backfill:",
+			error,
+		);
+	}
+}
+
 const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
 const desktopDevOrigins =
 	process.env.NODE_ENV === "development"
@@ -173,6 +209,14 @@ export const auth = betterAuth({
 	user: userOptions,
 	hooks: {
 		before: createAuthMiddleware(async (ctx) => {
+			// See the oneTimeToken() comment above: the plugin is always registered,
+			// so this is what actually keeps it dev-only.
+			if (
+				ctx.path.startsWith("/one-time-token") &&
+				process.env.NODE_ENV !== "development"
+			) {
+				throw new APIError("NOT_FOUND");
+			}
 			if (
 				PENDING_DELETION_ALLOWED_PATH_PREFIXES.some((prefix) =>
 					ctx.path.startsWith(prefix),
@@ -251,6 +295,7 @@ export const auth = betterAuth({
 		github: {
 			clientId: env.GH_CLIENT_ID,
 			clientSecret: env.GH_CLIENT_SECRET,
+			prompt: "select_account",
 		},
 		google: {
 			clientId: env.GOOGLE_CLIENT_ID,
@@ -326,17 +371,13 @@ export const auth = betterAuth({
 
 					// The welcome email is unconditional in BOTH arms. Gating it is
 					// what invalidated experiment 387868: a6beb048b changed the control
-					// condition mid-flight and the run became unreadable.
+					// condition mid-flight and the run became unreadable. The `welcome`
+					// automation sends it, because only automation sends get Resend's
+					// unsubscribe link and List-Unsubscribe headers.
 					try {
-						const { error } = await resend.emails.send({
-							from: "Superset <noreply@superset.sh>",
-							replyTo: "support@superset.sh",
-							to: user.email,
-							subject: "Welcome to Superset",
-							react: WelcomeEmail({
-								userName: user.name,
-								userEmail: user.email,
-							}),
+						const { error } = await resend.events.send({
+							event: "user.welcome",
+							email: user.email,
 						});
 						// Resend reports API failures in `error` rather than throwing.
 						if (error) throw new Error(error.message);
@@ -402,7 +443,7 @@ export const auth = betterAuth({
 				definePayload: async ({
 					user,
 				}: {
-					user: { id: string };
+					user: { id: string; name?: string | null; image?: string | null };
 					session: Record<string, unknown>;
 				}) => {
 					const userMemberships = await db.query.members.findMany({
@@ -412,7 +453,15 @@ export const auth = betterAuth({
 					const organizationIds = [
 						...new Set(userMemberships.map((m) => m.organizationId)),
 					];
-					return { sub: user.id, organizationIds };
+					// A Worker that attributes content to a person has to read
+					// who they are from the signed token; a caller-supplied name
+					// is a name they chose for someone else.
+					return {
+						sub: user.id,
+						organizationIds,
+						name: user.name ?? null,
+						image: user.image ?? null,
+					};
 				},
 			},
 		}),
@@ -631,6 +680,18 @@ export const auth = betterAuth({
 				},
 
 				beforeDeleteTeam: async ({ team }) => {
+					const [teamTask] = await db
+						.select({ id: tasks.id })
+						.from(tasks)
+						.where(eq(tasks.teamId, team.id))
+						.limit(1);
+					if (teamTask) {
+						throw new APIError("BAD_REQUEST", {
+							message:
+								"This team still has tasks. Move or delete them before deleting the team.",
+						});
+					}
+
 					// Linear-style: deleting a team would otherwise orphan any
 					// members who were only in this team. Re-home them into the
 					// next-oldest team in the org before the FK cascade fires.
@@ -1008,6 +1069,14 @@ export const auth = betterAuth({
 			},
 		}),
 		bearer(),
+		// Lets a cloud sandbox's mobile build redeem a token minted directly in
+		// its own branch (seed-cloud-mobile-token.ts) for a real session, instead
+		// of a human signing in. Registered unconditionally — a ternary on this
+		// array defeats better-auth's tuple-based plugin type inference for the
+		// whole Session type (broke packages/trpc/src/router/automation/automation.ts
+		// when tried) — and blocked outside development in the `before` hook below
+		// instead, so /one-time-token/* 404s anywhere but dev.
+		oneTimeToken({ expiresIn: 60 * 24 * 30 }),
 		customSession(
 			async ({ user, session: baseSession }) => {
 				const session = baseSession as typeof sessions.$inferSelect;
@@ -1169,6 +1238,8 @@ export const auth = betterAuth({
 					stripeSubscription,
 					plan,
 				}) => {
+					await resumeGatedSyncs(subscription.referenceId);
+
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
 					});

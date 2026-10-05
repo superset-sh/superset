@@ -18,7 +18,6 @@ export interface QuitCleanupDeps {
 	stopHostServices: () => void;
 	teardownTerminalHost: () => Promise<void>;
 	disposeTerminalHostClient: () => void;
-	shutdownPersistence: () => void;
 	disposeTray: () => void;
 	forceExit: (code: number) => void;
 	scheduleTimer?: (callback: () => void, delayMs: number) => void;
@@ -33,7 +32,6 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 		stopHostServices,
 		teardownTerminalHost,
 		disposeTerminalHostClient,
-		shutdownPersistence,
 		disposeTray,
 		forceExit,
 		scheduleTimer = (callback, delayMs) => {
@@ -49,7 +47,6 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 		} else if (isUpdateInstalling) {
 			disposeTerminalHostClient();
 		}
-		shutdownPersistence();
 		disposeTray();
 	} catch (error) {
 		logError("[main] Cleanup during quit failed:", error);

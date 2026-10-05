@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chat streaming and motion</title>
+<style>
+  :root { --sp-measure: 68ch; }
+  main { max-width: 1120px; margin: 0 auto; padding: 48px 24px 96px; }
+  main > p, main > ul, main > ol, section > p, section > ul, section > ol { max-width: var(--sp-measure); }
+  .lede { font-size: 1.125rem; color: var(--sp-text); }
+  .meta { color: var(--sp-muted); font-size: 0.875rem; margin-top: -8px; }
+  h2 { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--sp-border); }
+  h3 { margin-top: 32px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin: 32px 0 8px; }
+  .stat .value { font-size: 2rem; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .label { color: var(--sp-muted); font-size: 0.875rem; margin-top: 4px; }
+  .stat .was { color: var(--sp-muted); font-size: 0.875rem; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 8px; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figure img { width: 100%; height: auto; display: block; border: 1px solid var(--sp-border); border-radius: var(--sp-radius); }
+  figcaption { color: var(--sp-muted); font-size: 0.8125rem; margin-top: 6px; }
+  .wide { overflow-x: auto; }
+  table { min-width: 560px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .qa dt { font-weight: 600; margin-top: 20px; }
+  .qa dd { margin: 6px 0 0; max-width: var(--sp-measure); }
+  code { font-size: 0.875em; }
+</style>
+</head>
+<body class="auto">
+<main>
+
+<h1>Chat streaming and motion</h1>
+<p class="meta">Branch <code>chat-shimmer-motion</code> · 9 commits on <code>e5ecb289fe</code> · not pushed · 2026-10-05</p>
+
+<p class="lede">The ACP chat now streams replies smoothly and follows the reference transcript's layout: one live clock line under the prompt, one-line reasoning and tool rows, and runs of steps on a rail. It started as the shimmer fix (PR&nbsp;1 of the chat polish series) and grew when the live chat still felt off next to the reference.</p>
+
+<div class="stats">
+  <div class="stat"><div class="value">17&nbsp;ms</div><div class="label">median time between screen updates while a reply streams</div><div class="was">was 51 ms</div></div>
+  <div class="stat"><div class="value">37</div><div class="label">largest jump of text in one update, in characters</div><div class="was">was 145</div></div>
+  <div class="stat"><div class="value">1</div><div class="label">live indicator per turn: the clock under the prompt</div><div class="was">was 2, one of which flickered</div></div>
+</div>
+
+<h2>Before and after</h2>
+<p>A running turn with a reasoning row, two running tool calls and the working line. The sweep is frozen mid-label in every capture. The before shots come from the base commit with a scripted agent; the after shots are real agent turns.</p>
+
+<div class="pair">
+  <figure><img src="img/before-dark.png" alt="Before: brain-icon Thinking trigger, tool rows with kind icons, separate Working line at the bottom" /><figcaption>Before, dark. The band was the page background, so the sweep read as a dark notch. "Working…" sits apart at the bottom.</figcaption></figure>
+  <figure><img src="img/before-light.png" alt="Before, light theme" /><figcaption>Before, light. The notch reads as a washed-out gap.</figcaption></figure>
+</div>
+<div class="pair">
+  <figure><img src="img/rail-running-dark.png" alt="After: clock line under the prompt, a run of commands on a rail with a dashed ring on the running step" /><figcaption>After, dark. The clock sweeps under the prompt; the run's summary sweeps; the running step turns its ring on the rail.</figcaption></figure>
+  <figure><img src="img/rail-running-light.png" alt="After, light theme" /><figcaption>After, light.</figcaption></figure>
+</div>
+<div class="pair">
+  <figure><img src="img/rail-settled-dark.png" alt="Settled turn: Worked for 15s, Ran 3 commands folded, reply below" /><figcaption>Settled. The clock stays as "Worked for 15s" and the run folds to its summary.</figcaption></figure>
+  <figure><img src="img/rail-running-reduced.png" alt="Reduced motion: same running turn with no sweep and a still ring" /><figcaption>Reduced motion. Labels are plain muted text and the ring holds still.</figcaption></figure>
+</div>
+<div class="pair">
+  <figure><img src="img/reply-dark.png" alt="A finished reply after a single ls call shown as one mono line" /><figcaption>A finished reply, dark: a single call is one mono line with nothing under it; prose is 14px on a 24px line with 16px between paragraphs.</figcaption></figure>
+  <figure><img src="img/reply-light.png" alt="The same reply in the light theme" /><figcaption>The same reply, light.</figcaption></figure>
+</div>
+
+<h2>What changed</h2>
+
+<h3>The loader</h3>
+<ul>
+  <li>The band is now the foreground colour over a base of the foreground at 40%, so the sweep reads as a highlight. A first pass kept the grey <code>muted-foreground</code> base, and in dark the band was barely visible over it.</li>
+  <li>The sweep is a CSS keyframe behind an <code>animate-shimmer</code> token in <code>packages/ui/src/motion.css</code>, instead of a per-frame <code>motion/react</code> animation. The desktop renderer imports that file because it doesn't load the <code>packages/ui</code> theme sheet.</li>
+  <li>The repeat value used <code>padding-box</code>, which isn't a repeat keyword, so both layers tiled. It's <code>no-repeat</code> now.</li>
+  <li>Reduced motion renders plain muted text with no animation. The public API and the 2&nbsp;s default are unchanged.</li>
+  <li>Tempo follows the reference: the clock sweeps at 1&nbsp;s, while thinking, running titles and run summaries sweep at 1.6&nbsp;s.</li>
+</ul>
+<div class="pair">
+  <figure><img src="img/loader-first-pass-dark.png" alt="First pass: branch components above, reference recreation below; the branch sweep is faint" /><figcaption>First pass, dark: branch components (top) against a recreation of the reference CSS (bottom). Our sweep barely shows.</figcaption></figure>
+  <figure><img src="img/loader-final-dark.png" alt="Final: branch and reference rows render the same" /><figcaption>Final, dark: the two render the same at the same point in the sweep. The light theme matches too.</figcaption></figure>
+</div>
+
+<h3>Streaming</h3>
+<ul>
+  <li>Replies used to arrive in bursts: nothing for 0.3 to 0.5&nbsp;s, then up to 145 characters at once. Text now appears a whole word at a time at a steady pace, never below 90 characters a second, and closes on a backlog in about a quarter second.</li>
+  <li>Each new paragraph fades in over 320&nbsp;ms. The reference fades each word; why we don't is under the performance finding below.</li>
+  <li>The streaming paragraph is keyed like the block it becomes, so a finished paragraph keeps its DOM.</li>
+  <li>Empty blocks between paragraphs used to add a second gap. They are hidden now, so paragraphs sit 16&nbsp;px apart.</li>
+</ul>
+
+<h3>One live line per turn</h3>
+<ul>
+  <li>The clock moved from above the prompt to directly under it. It sweeps while the turn runs and stays as "Worked for 8s" at half strength.</li>
+  <li>The separate "Working…" line at the bottom is gone. In one measured turn it mounted, unmounted after 95&nbsp;ms and mounted again later, restarting its sweep each time.</li>
+</ul>
+
+<h3>Layout</h3>
+<ul>
+  <li>The column is 56rem with 16&nbsp;px row gutters and a 4&nbsp;px row rhythm. Prose is 14&nbsp;px on a 24&nbsp;px line at 78% strength and sits closer under work than under the prompt.</li>
+  <li>The prompt bubble is a 10% foreground fill: a pill when it fits one line, 12&nbsp;px corners otherwise, up to 36rem wide.</li>
+  <li>Copy, branch and time show under a turn's last reply once it has settled. Before, every reply reserved an invisible row for them, which left about 30&nbsp;px of dead space under each one.</li>
+</ul>
+
+<h3>Rows</h3>
+<ul>
+  <li><strong>Reasoning</strong> is one line: "Thinking..." sweeping until the thought has words, then its first paragraph at half strength, pulsing while it streams. Click to read the whole thought.</li>
+  <li><strong>A tool call</strong> is one line with no output preview and no "Show detail" link. Commands are 13&nbsp;px mono, files are a small mono chip. A running call turns a dashed ring and sweeps its title; a settled one sits at half strength. Click the line to see what the call produced.</li>
+  <li><strong>A run</strong> of two or more calls sits under a summary line, with the steps on a rail that branches to each row. The summary sweeps while a step runs.</li>
+  <li>The shared timeline in <code>packages/chat</code> kept a running call out of its run until it settled, so a live step showed as a separate line and jumped into the run when it finished. It now joins as soon as it starts.</li>
+</ul>
+<p>No user-facing strings were added. Four strings left with the old rows and are removed from every catalog: "Working…", "Show detail", "Hide detail" and "+N more lines".</p>
+
+<h2>Your questions</h2>
+<dl class="qa">
+  <dt>Why did the sleep tool call have a detail dropdown under it?</dt>
+  <dd>Our row printed a preview under the title. For <code>sleep 8</code> that was the agent's own description of the command, "Pause for eight seconds", not output. It also added "Show detail" whenever the call had content behind it. The reference has neither, so both are gone and the row itself is the disclosure.</dd>
+  <dt>When is the rail from the comparison page used?</dt>
+  <dd>In the reference, two or more work steps in a row between pieces of prose form a group: a summary line with the steps on a rail. It stays open while live and folds once the agent writes prose. A single call renders as one plain line with no header. Ours follows the same rule, except that our runs fold when the turn ends rather than when prose arrives.</dd>
+  <dt>Is the dashed ring real?</dt>
+  <dd>The component exists in the reference source, but it never renders: the rows that would show it always opt out of the icon, so a running tool there is static. The page's recreation draws it. We kept ours because the original spec asked for it.</dd>
+  <dt>And "Preparing a handoff" with the Braille spinner?</dt>
+  <dd>That only appears when handing a conversation to another agent. Nothing in our chat needs it.</dd>
+</dl>
+
+<h2>Performance finding, not fixed here</h2>
+<p>Inserting any element in the desktop renderer triggers a style recalculation that can cover the whole document: about 6,500 elements and roughly 40&nbsp;ms per insertion. Growing an existing text node does not. I traced it with invalidation tracking, reproduced it in-page by appending one span per frame into the transcript, and bisected the stylesheet by deleting rules.</p>
+<div class="wide">
+<table>
+  <thead><tr><th>Rules present</th><th class="num">Insertions in 3&nbsp;s</th><th class="num">Style work</th><th class="num">Whole-document recalcs</th></tr></thead>
+  <tbody>
+    <tr><td>All rules</td><td class="num">69</td><td class="num">2,764&nbsp;ms</td><td class="num">70</td></tr>
+    <tr><td>Without the 14 <code>group-has-*</code> variants</td><td class="num">286</td><td class="num">2,456&nbsp;ms</td><td class="num">0</td></tr>
+    <tr><td>Without any <code>:has()</code> rule</td><td class="num">357</td><td class="num">36&nbsp;ms</td><td class="num">0</td></tr>
+    <tr><td>All rules, text-node growth only</td><td class="num">361</td><td class="num">170&nbsp;ms</td><td class="num">4</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li>The <code>group-has-*</code> variants put <code>:has()</code> on an ancestor of the styled element. Removing any one subset of the 14 was not enough; only removing all of them stopped the whole-document recalcs.</li>
+  <li>The remaining element-level <code>has-*</code> rules still cost about 4 to 10&nbsp;ms per insertion.</li>
+  <li>The <code>body:has(…) .drag</code> overlay rule from #7932 contributes too, but deleting it alone only cut whole-document recalcs from 45 to 35 during a real reply.</li>
+  <li>This is why the fade is per paragraph. Per-word spans insert elements every frame and capped the reveal near 20&nbsp;fps: a median of 58&nbsp;ms between updates and jumps of up to 436 characters.</li>
+</ul>
+<p>The fix is an app-wide audit of <code>:has()</code> usage, which belongs in its own PR. It would also speed up anything else that adds DOM nodes per frame.</p>
+
+<h2>Verification</h2>
+<ul>
+  <li>The <code>packages/ui</code>, <code>packages/chat</code> and desktop <code>ChatSession</code> tests pass.</li>
+  <li>The full desktop suite has 209 failures. The same 209 fail on the base commit in this checkout, and none are in the chat.</li>
+  <li>The <code>packages/ui</code> and <code>packages/chat-ui</code> typechecks pass. <code>packages/chat</code> and the desktop app show no errors in changed files. Their remaining errors are a path-casing artifact of this worktree and a duplicate <code>@better-auth/core</code> install, both present on the base commit. Only the final tree was typechecked, not each commit.</li>
+  <li><code>bun run check:i18n</code> fails on main because of an unrelated <code>greeting</code> id in <code>apps/marketing/src/app/providers.test.tsx</code>. The catalogs here equal the extractor's output minus that entry.</li>
+  <li>Driven live over CDP in an ACP chat with a real agent, in both themes. Computed styles: the clock sweeps at 1&nbsp;s, the summary and running title at 1.6&nbsp;s, and the ring at <code>spin-slow 3.6s linear infinite</code>. With reduced motion emulated, all of them compute to <code>animation: none</code>.</li>
+</ul>
+
+<h2>Not done yet</h2>
+<ul>
+  <li>The model name on the clock line ("Claude Opus 5.5 working for 12s") needs new strings and translations in 17 locales.</li>
+  <li>The run summary says "Ran 2 commands" while a step is still running, where the reference switches to the present tense.</li>
+  <li>The reference's step-arrival choreography isn't ported: steps sliding onto the rail, the rail growing, the branch drawing in.</li>
+  <li>Runs fold when the turn ends rather than as soon as the agent writes prose.</li>
+  <li>Per-word fading should wait for the <code>:has()</code> audit.</li>
+</ul>
+
+<h2>Commits</h2>
+<div class="wide">
+<table>
+  <thead><tr><th>Commit</th><th>What</th></tr></thead>
+  <tbody>
+    <tr><td><code>d1f1844b41</code></td><td>Text shimmer sweeps a foreground highlight, in CSS</td></tr>
+    <tr><td><code>5bef044a1a</code></td><td>Busy labels share one tempo and one weight</td></tr>
+    <tr><td><code>8cdc3c11ff</code></td><td>A running tool call shows a slowly turning dashed ring</td></tr>
+    <tr><td><code>37b28aed65</code></td><td>Shimmer base at 40% foreground so the sweep shows in dark</td></tr>
+    <tr><td><code>ce3fd31d30</code></td><td>Running ring uses the CircleDashed glyph, dimmed</td></tr>
+    <tr><td><code>e50e6bb157</code></td><td>Replies stream a word at a time and fade in by block</td></tr>
+    <tr><td><code>5d47e4d31c</code></td><td>One live clock line under the prompt, and the transcript's measure</td></tr>
+    <tr><td><code>35df536ad5</code></td><td>One-line reasoning and tool rows, runs of steps on a rail</td></tr>
+    <tr><td><code>0ce80d2a84</code></td><td>A running tool call joins the run it continues</td></tr>
+  </tbody>
+</table>
+</div>
+
+</main>
+</body>
+</html>

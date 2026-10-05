@@ -1,5 +1,6 @@
 import type { LinkSharedEvent, SlackEvent } from "@slack/types";
 import { Client } from "@upstash/qstash";
+import { after } from "next/server";
 
 import { env } from "@/env";
 import { verifySlackSignature } from "../verify-signature";
@@ -102,12 +103,13 @@ export async function POST(request: Request) {
 		};
 		if (isAutomationEvent(envelope)) {
 			try {
-				const outcome = await processAutomationEvent(envelope);
-				if (outcome.status === "dispatched" && outcome.matched > 0) {
-					console.log(
-						`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
-						event_id,
-					);
+				for (const outcome of await processAutomationEvent(envelope)) {
+					if (outcome.status === "dispatched" && outcome.matched > 0) {
+						console.log(
+							`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
+							event_id,
+						);
+					}
 				}
 			} catch (error) {
 				console.error("[slack/events] processAutomationEvent failed:", error);
@@ -221,42 +223,45 @@ export async function POST(request: Request) {
 		}
 
 		if (event.type === "link_shared") {
-			processLinkShared({
-				event: event as LinkSharedEvent,
-				teamId: team_id,
-				eventId: event_id,
-			}).catch((err: unknown) => {
-				console.error("[slack/events] Process link shared error:", err);
-			});
+			after(() =>
+				processLinkShared({
+					event: event as LinkSharedEvent,
+					teamId: team_id,
+					eventId: event_id,
+				}).catch((err: unknown) => {
+					console.error("[slack/events] Process link shared error:", err);
+				}),
+			);
 		}
 
 		if (event.type === "entity_details_requested") {
-			processEntityDetails({
-				event: event as EntityDetailsRequestedEvent,
-				teamId: team_id,
-				eventId: event_id,
-			}).catch((err: unknown) => {
-				console.error("[slack/events] Process entity details error:", err);
-			});
+			after(() =>
+				processEntityDetails({
+					event: event as EntityDetailsRequestedEvent,
+					teamId: team_id,
+					eventId: event_id,
+				}).catch((err: unknown) => {
+					console.error("[slack/events] Process entity details error:", err);
+				}),
+			);
 		}
 
 		if (event.type === "app_home_opened") {
-			const appHomeEvent = event as { user?: string; tab?: string };
-			if (
-				typeof appHomeEvent.user !== "string" ||
-				typeof appHomeEvent.tab !== "string"
-			) {
+			const { user, tab } = event as { user?: string; tab?: string };
+			if (typeof user !== "string" || typeof tab !== "string") {
 				console.error("[slack/events] Invalid app home opened payload shape");
 				return new Response("ok", { status: 200 });
 			}
 
-			processAppHomeOpened({
-				event: { user: appHomeEvent.user, tab: appHomeEvent.tab },
-				teamId: team_id,
-				eventId: event_id,
-			}).catch((err: unknown) => {
-				console.error("[slack/events] Process app home opened error:", err);
-			});
+			after(() =>
+				processAppHomeOpened({
+					event: { user, tab },
+					teamId: team_id,
+					eventId: event_id,
+				}).catch((err: unknown) => {
+					console.error("[slack/events] Process app home opened error:", err);
+				}),
+			);
 		}
 	}
 

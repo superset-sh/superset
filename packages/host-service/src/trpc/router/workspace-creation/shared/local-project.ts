@@ -1,6 +1,6 @@
 import { statSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { projects } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import { projectNotSetupError } from "./project-helpers";
@@ -13,7 +13,9 @@ export function findLocalProject(
 	projectId: string,
 ): LocalProject | undefined {
 	return ctx.db.query.projects
-		.findFirst({ where: eq(projects.id, projectId) })
+		.findFirst({
+			where: and(eq(projects.id, projectId), isNull(projects.deletedAt)),
+		})
 		.sync();
 }
 

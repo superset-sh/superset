@@ -17,6 +17,8 @@ interface SettingsListSidebarProps<T> {
 	toolbar?: ReactNode;
 	/** Rendered between the filter and the grouped list — typically a list-row-style "Add" trigger. */
 	listHeader?: ReactNode;
+	/** Rendered after the grouped list. */
+	listFooter?: ReactNode;
 	groups: Array<SettingsListGroup<T>>;
 	filterRow: (row: T, query: string) => boolean;
 	getRowKey: (row: T) => string;
@@ -31,6 +33,7 @@ export function SettingsListSidebar<T>({
 	hideFilterWhenEmpty,
 	toolbar,
 	listHeader,
+	listFooter,
 	groups,
 	filterRow,
 	getRowKey,
@@ -98,6 +101,8 @@ export function SettingsListSidebar<T>({
 						</nav>
 					</div>
 				))}
+
+				{listFooter}
 			</div>
 		</div>
 	);

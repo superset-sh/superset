@@ -8,6 +8,7 @@ import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { isMissingProcedureError } from "@/lib/host-service/errors";
 import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
+import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 import {
 	type PendingWorkspaceCreateInput,
 	usePendingWorkspaceCreatesStore,
@@ -146,6 +147,7 @@ export function useCreateTerminalWorkspace() {
 					model,
 					effort,
 				});
+				useAppReviewStore.getState().recordWorkspaceCreated();
 				return { workspaceId };
 			} catch (error) {
 				// A transport failure proves nothing about the worktree: the

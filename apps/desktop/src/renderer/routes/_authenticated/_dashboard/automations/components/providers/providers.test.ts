@@ -8,9 +8,8 @@ const HERE = import.meta.dir;
 
 /**
  * Every sentence file — `providers/slack/slack.tsx`. All of them, not one per
- * directory: `google` holds both `gmail.tsx` and `googleCalendar.tsx`, and a
- * check that stopped at the first file would have passed while the second was
- * unwired.
+ * directory: a directory can hold more than one provider, and a check that
+ * stopped at the first file would pass while the second was unwired.
  */
 function sentenceFiles(): { provider: string; source: string }[] {
 	return readdirSync(HERE)

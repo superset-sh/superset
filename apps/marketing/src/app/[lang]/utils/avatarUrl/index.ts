@@ -1,1 +1,1 @@
-export { avatarUrl } from "./avatarUrl";
+export { avatarId, avatarUrl } from "./avatarUrl";

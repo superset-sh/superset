@@ -1,0 +1,4 @@
+[data-radix-popper-content-wrapper]:has(> [data-cloud-hover-card="placed"]) {
+	transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+	will-change: transform;
+}

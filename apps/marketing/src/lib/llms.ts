@@ -7,7 +7,13 @@ import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
 import { getCategoryPages } from "./category";
 import { getComparisonPages } from "./compare";
-import { PRODUCT_SUMMARY } from "./product-facts";
+import {
+	PRODUCT_DISAMBIGUATION,
+	PRODUCT_ISOLATION_SUMMARY,
+	PRODUCT_LICENSE,
+	PRODUCT_PLATFORM_SUMMARY,
+	PRODUCT_SUMMARY,
+} from "./product-facts";
 
 export { API_URL, MCP_SERVER_URL };
 
@@ -37,9 +43,10 @@ export function buildCompanyFactsSection(): string[] {
 		"",
 		`- **What it is**: a local-first desktop workspace for orchestrating any CLI-based coding agent. Each task runs in an isolated Git worktree, and Superset provides the stable workflow around the agents.`,
 		`- **Company**: built by ${COMPANY.NAME} in San Francisco, founded by three former YC CTOs (see ${baseUrl}/team).`,
-		`- **License**: source-available under Elastic License 2.0 (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
-		`- **Not Apache Superset**: Superset (superset.sh) is unrelated to Apache Superset, the business-intelligence tool.`,
-		`- **Platforms**: macOS today, experimental Linux AppImage; Windows is not yet available. There is also a CLI, a TypeScript SDK, and an MCP server for programmatic control.`,
+		`- **License**: source-available under ${PRODUCT_LICENSE} (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
+		`- **Not Apache Superset**: ${PRODUCT_DISAMBIGUATION}`,
+		`- **Desktop platforms**: ${PRODUCT_PLATFORM_SUMMARY} There is also a CLI, a TypeScript SDK, and an MCP server for programmatic control.`,
+		`- **Isolation**: ${PRODUCT_ISOLATION_SUMMARY}`,
 		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys.`,
 		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, and Cursor Agent.`,
 	];

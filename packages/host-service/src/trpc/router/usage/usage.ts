@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { MAX_BACKFILL_DAYS } from "@superset/trpc/leaderboard-periods";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
@@ -78,6 +79,10 @@ function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
 	});
 	return promise;
 }
+
+export const leaderboardPayloadInput = z.object({
+	days: z.number().int().min(1).max(MAX_BACKFILL_DAYS),
+});
 
 export const usageRouter = router({
 	sessionAccount: queryProcedure
@@ -382,7 +387,7 @@ export const usageRouter = router({
 
 	leaderboardPayload: queryProcedure
 		.meta({ timeoutMs: 120_000 })
-		.input(z.object({ days: z.number().int().min(1).max(90) }))
+		.input(leaderboardPayloadInput)
 		.query(
 			offLoop({
 				task: leaderboardPayloadTask,

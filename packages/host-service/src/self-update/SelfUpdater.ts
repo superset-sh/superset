@@ -10,6 +10,7 @@ import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { HostInstallSource } from "@superset/shared/host-version";
 import { acquireInstallUpdateLock } from "@superset/shared/install-update-lock";
+import semver from "semver";
 
 export type SelfUpdatePhase = "idle" | "downloading" | "restarting" | "failed";
 
@@ -110,6 +111,7 @@ export class SelfUpdater {
 	private target: string | null = null;
 	private startedAt: number | null = null;
 	private error: string | null = null;
+	private checking = false;
 	private releaseLock: (() => void) | null = null;
 
 	constructor(private readonly deps: SelfUpdaterDeps) {}
@@ -158,6 +160,44 @@ export class SelfUpdater {
 			})
 			.finally(() => this.unlock());
 		return this.status();
+	}
+
+	async checkForUpdates(): Promise<void> {
+		const root = this.installRoot();
+		if (
+			!root ||
+			this.checking ||
+			this.phase === "downloading" ||
+			this.phase === "restarting"
+		)
+			return;
+		this.checking = true;
+		try {
+			const result = await this.deps.runCliUpdate(
+				join(root, "bin", "superset"),
+				["update", "--check", "--json"],
+			);
+			if (!result.ok)
+				throw new Error(
+					tail(result.stderr || result.stdout) || "Update check failed",
+				);
+			const parsed = parseUpdateOutput(result.stdout);
+			if (!parsed || !semver.valid(parsed.target))
+				throw new Error("Invalid update check response");
+			if (
+				!semver.valid(this.deps.currentVersion) ||
+				!semver.gt(parsed.target, this.deps.currentVersion)
+			)
+				return;
+			const lastResult = this.readMarker();
+			if (lastResult?.to === parsed.target && lastResult.outcome !== "updated")
+				return;
+			this.start({ version: parsed.target });
+		} catch (error) {
+			this.deps.log(`[self-update] automatic check failed: ${String(error)}`);
+		} finally {
+			this.checking = false;
+		}
 	}
 
 	private unlock(): void {

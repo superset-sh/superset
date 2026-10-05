@@ -74,6 +74,27 @@ describe("installCopyOnSelect", () => {
 		expect(writeText).toHaveBeenCalledWith("foo\nbar");
 	});
 
+	it("copies an empty string for selected spaces", async () => {
+		const writeText = mock(() => Promise.resolve());
+		restores.push(stubClipboard(writeText), stubFocus(true));
+		const { terminal, fireSelectionChange } = createTerminalStub("   ");
+		installCopyOnSelect(terminal, undefined, writeText);
+		fireSelectionChange();
+		await Promise.resolve();
+		expect(writeText).toHaveBeenCalledWith("");
+	});
+
+	it("copies selected empty cells even when their raw text is empty", async () => {
+		const writeText = mock(() => Promise.resolve());
+		restores.push(stubClipboard(writeText), stubFocus(true));
+		const { terminal, fireSelectionChange } = createTerminalStub("");
+		terminal.hasSelection = () => true;
+		installCopyOnSelect(terminal, undefined, writeText);
+		fireSelectionChange();
+		await Promise.resolve();
+		expect(writeText).toHaveBeenCalledWith("");
+	});
+
 	it("ignores a cleared selection", async () => {
 		const writeText = mock(() => Promise.resolve());
 		restores.push(stubClipboard(writeText), stubFocus(true));

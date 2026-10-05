@@ -92,6 +92,7 @@ const contentSecurityPolicy = [
 const config: NextConfig = {
 	reactStrictMode: true,
 	reactCompiler: true,
+	cacheComponents: true,
 	typescript: { ignoreBuildErrors: true },
 
 	// getInterBold reads the font through process.cwd(), which the tracer
@@ -102,6 +103,15 @@ const config: NextConfig = {
 			"./public/fonts/Inter-Bold.ttf",
 		],
 		"/[lang]/user/[handle]/opengraph-image": ["./public/fonts/Inter-Bold.ttf"],
+	},
+
+	// The OG image routes read public/ by a runtime path, so the tracer copies
+	// all of it into every function. They never read these.
+	outputFileTracingExcludes: {
+		"*": [
+			"./public/**/*.{mov,mp4,gif}",
+			"./public/{images,blog,hero,app-icons,media}/**",
+		],
 	},
 
 	// Compiles @lingui/react/macro at build time. Version must stay in

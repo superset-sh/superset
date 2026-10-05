@@ -12,6 +12,7 @@ import {
 	StarChart,
 } from "@superset/ui/star-chart";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
@@ -61,7 +62,10 @@ function formatWeekDate(date: string, locale: string): string {
 	);
 }
 
+export const instant = false;
+
 export default async function StarChartPage() {
+	await connection();
 	await initServerI18n();
 
 	const { t, i18n } = useLingui();

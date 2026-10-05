@@ -9,8 +9,8 @@ import {
 } from "@superset/ui/dialog";
 import { Switch } from "@superset/ui/switch";
 import { LuTrash2 } from "react-icons/lu";
-import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
-import type { CatalogPlugin } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
+import { PluginIcon } from "renderer/components/PluginIcon";
+import type { CatalogPlugin } from "renderer/hooks/usePluginCatalog";
 
 interface ManageInstalledDialogProps {
 	open: boolean;

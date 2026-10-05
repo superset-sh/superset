@@ -1,0 +1,1 @@
+export { parsePullRequestPatch } from "./parsePullRequestPatch";

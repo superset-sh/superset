@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { resolveDayRange, resolveWindow } from "./periods";
+import { daysSinceLaunch, resolveDayRange, resolveWindow } from "./periods";
 
 const THURSDAY = new Date("2026-08-20T12:00:00.000Z");
 
@@ -154,5 +154,29 @@ describe("resolveWindow", () => {
 		expect(
 			resolveWindow({ period: "all", from: "2026-08-25", to: "1900-01-01" }),
 		).toEqual({ from: "2025-08-25", to: "2026-08-25" });
+	});
+});
+
+describe("daysSinceLaunch", () => {
+	test("counts launch day itself, so a same-day join still asks for it", () => {
+		expect(daysSinceLaunch(new Date("2026-07-29T23:59:00.000Z"))).toBe(1);
+	});
+
+	test("is inclusive of both ends", () => {
+		expect(daysSinceLaunch(new Date("2026-07-31T00:00:00.000Z"))).toBe(3);
+	});
+
+	test("reaches past the 30-day backfill once launch is that old", () => {
+		expect(daysSinceLaunch(new Date("2026-09-18T12:00:00.000Z"))).toBe(52);
+	});
+
+	test("ignores the local clock's offset from UTC", () => {
+		expect(daysSinceLaunch(new Date("2026-08-01T00:30:00.000Z"))).toBe(
+			daysSinceLaunch(new Date("2026-08-01T23:30:00.000Z")),
+		);
+	});
+
+	test("a clock set before launch still asks for one day", () => {
+		expect(daysSinceLaunch(new Date("2026-01-01T00:00:00.000Z"))).toBe(1);
 	});
 });

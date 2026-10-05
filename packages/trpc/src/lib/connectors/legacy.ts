@@ -20,8 +20,8 @@ export interface LegacyConnectionMapping {
 /**
  * The `connections` row a legacy `integration_connections` row becomes.
  *
- * The id is kept. `automation_events` dedupes on it and Linear, Gmail and
- * Calendar build their event and resource keys from it, so a new id would make
+ * The id is kept. `automation_events` dedupes on it and Linear and Gmail
+ * build their event and resource keys from it, so a new id would make
  * every past delivery look new and could fire its automations again.
  *
  * The old `config` moves to `state` unchanged: it is the same

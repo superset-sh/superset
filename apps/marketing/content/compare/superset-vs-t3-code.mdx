@@ -2,7 +2,7 @@
 title: "Superset vs T3 Code (2026): Comparing Coding Agent Control Planes"
 description: "Compare Superset and T3 Code for orchestrating AI coding agents in Git worktrees. See how a mature agent workspace differs from an early open-source control plane."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - t3-code
@@ -25,13 +25,13 @@ Note that T3 Code is a distinct product from T3 Chat, the AI chat app. For that 
 
 | | **Superset** | **T3 Code** |
 |---|---|---|
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, browser, and automation | A control plane that runs coding agents, each thread on its own branch/worktree |
-| **Isolation** | Automatic Git worktree per task | Git worktree per agent thread (worktree/local toggle) |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, review, browser, and automation | A control plane that runs coding agents, each thread on its own branch/worktree |
+| **Isolation** | Git worktrees for local branch-based workspaces | Git worktree per agent thread (worktree/local toggle) |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, Mistral Vibe, and more) | Claude Code, Codex, OpenCode, Cursor (more planned) |
 | **Maturity** | Established, with SOC 2 and remote/cloud workspaces | Very early alpha (expect rapid change) |
 | **Review tooling** | Built-in diff/file editor, staging, commit | Inline diff review, one-button commit/push/PR |
 | **Remote / cloud** | Remote and cloud workspaces across your network devices | Local desktop and CLI launcher |
-| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Windows, Linux) plus `npx` launcher |
+| **Platform** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | Desktop (macOS, Windows, Linux) plus `npx` launcher |
 | **License** | Source-available (ELv2) | Open source (MIT) |
 
 ---
@@ -98,7 +98,7 @@ No. T3 Chat is the AI chat app; T3 Code is a separate control plane for coding a
 
 ### Do both use Git worktrees?
 
-Yes. Both give each agent thread its own branch and worktree (T3 Code offers a per-thread worktree-or-local toggle). The isolation model is shared; the products differ in maturity and surrounding features.
+Yes. Both support worktree-backed tasks; Superset creates worktrees for new local branch-based workspaces (T3 Code offers a per-thread worktree-or-local toggle). The isolation model is shared; the products differ in maturity and surrounding features.
 
 ### Is T3 Code production ready?
 

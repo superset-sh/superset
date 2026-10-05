@@ -56,6 +56,8 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 			(taskPage?.items ?? []).map(({ task }) => ({
 				id: task.id,
 				slug: task.slug,
+				externalProvider: task.externalProvider,
+				externalKey: task.externalKey,
 				title: task.title,
 				description: task.description,
 				labels: task.labels,

@@ -26,7 +26,9 @@ instead of consulting the file map. Taken verbatim from upstream —
 guide](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/setup/).
 Temporary until the change lands in Metro.
 
-**Guard test:** `apps/mobile/metro-worklets-patch.test.ts`.
+**Guard test:** `apps/mobile/metro-worklets-patch.test.ts`. It checks every
+metro in `bun.lock`, not only the top-level one: `@expo/metro` pins its own
+exact metro, and that nested copy is the one `expo export` bundles with.
 
 **Regenerating after a version bump** (~5 min): upstream keeps one patch per
 Metro version. Find yours with `bun why metro --top`, then:
@@ -402,3 +404,15 @@ bun test apps/desktop/src/pierre-trees-lookup-patch.test.ts
 **Removing:** delete the patch, the `patchedDependencies` entry and the guard
 test once @pierre/trees ships a release whose segment walk stops at a file
 node.
+
+## expo-observe (`expo-observe@<version>.patch`)
+
+**Why:** its podspec asks for `swift_version = '6.0'`, and the package keeps
+mutable global state (`Observability.swift`) that Swift 6 treats as an error
+rather than a warning. Under Xcode 26.3 that fails every local iOS build in a
+package nobody imports directly — `expo-observe` arrives as a transitive Expo
+SDK dependency. The patch drops that one line to `'5.0'`, which downgrades the
+diagnostic and changes no codegen: the package uses no Swift-6-only syntax.
+
+**Guard:** `apps/mobile/expo-observe-swift-version-patch.test.ts`. Check
+whether upstream relaxed the podspec before re-applying after an SDK bump.

@@ -3,15 +3,16 @@ import { rm } from "node:fs/promises";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
+import { restoreProject } from "../../../projects/project-deletion";
 import type { HostServiceContext } from "../../../types";
 import { persistLocalProject } from "./utils/persist-project";
 import {
+	adoptLocalRepo,
 	cloneRepoInto,
 	cloneTemplateInto,
 	initEmptyRepo,
 	initLocalRepoInPlace,
 	type ResolvedRepo,
-	resolveLocalRepo,
 	tryRevParseGitRoot,
 } from "./utils/resolve-repo";
 
@@ -77,12 +78,13 @@ async function persistFromResolved(
 
 export async function createFromClone(
 	ctx: HostServiceContext,
-	args: { name: string; parentDir: string; url: string },
+	args: { name: string; parentDir: string; url: string; signal?: AbortSignal },
 ): Promise<CreateResult> {
 	const resolved = await cloneRepoInto(
 		args.url,
 		args.parentDir,
 		ctx.credentials,
+		args.signal,
 	);
 	return persistFromResolved(ctx, {
 		name: args.name,
@@ -100,9 +102,9 @@ async function resolveOrInitLocalRepo(
 	repoPath: string,
 	initIfNeeded: boolean,
 ): Promise<ResolvedRepo> {
-	if (!initIfNeeded) return resolveLocalRepo(repoPath);
+	if (!initIfNeeded) return adoptLocalRepo(repoPath);
 	const root = await tryRevParseGitRoot(repoPath);
-	return root ? resolveLocalRepo(root) : initLocalRepoInPlace(repoPath);
+	return root ? adoptLocalRepo(root) : initLocalRepoInPlace(repoPath);
 }
 
 export async function createFromImportLocal(
@@ -122,6 +124,7 @@ export async function createFromImportLocal(
 		.findFirst({ where: eq(projects.repoPath, resolved.repoPath) })
 		.sync();
 	if (existing) {
+		restoreProject(ctx, existing.id);
 		return {
 			projectId: existing.id,
 			repoPath: resolved.repoPath,

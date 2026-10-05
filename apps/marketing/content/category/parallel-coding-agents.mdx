@@ -2,7 +2,7 @@
 title: "Parallel Coding Agents: The Complete Guide"
 description: "What parallel coding agents are, why one agent session stops being enough, and how to run many agents on one repository without losing track of any of them."
 date: 2026-08-17
-lastUpdated: 2026-08-17
+lastUpdated: 2026-09-23
 keywords:
   - parallel coding agents
   - parallel ai coding agents
@@ -86,6 +86,29 @@ Three kinds of tools support parallel coding agents today, and they compose rath
 
 For a full comparison across all three layers, see [Best AI Coding Tools and Agents](/compare/best-ai-coding-agents-2026).
 
+## A reproducible isolation check
+
+We checked this on September 23, 2026 with Git 2.52.0 in a temporary repository: two task branches changed the same line independently. The main checkout stayed unchanged. After merging the first branch, merging the second returned a conflict in `README.md`. No coding agent was involved in this check; it tests Git isolation, not agent performance.
+
+To repeat the check in a disposable repository, commit a one-line `README.md`, then create two worktrees:
+
+```bash
+git worktree add -b task-a ../task-a
+git worktree add -b task-b ../task-b
+```
+
+Change the same line to different text in each worktree and commit each change on its own branch. In the original checkout, run:
+
+```bash
+git merge --ff-only task-a
+git merge --no-edit task-b
+git diff --name-only --diff-filter=U
+```
+
+The last command should list `README.md`. Use `git merge --abort` to leave that deliberate conflict. The [Git reference](https://git-scm.com/docs/git-worktree) explains which repository state worktrees share.
+
+For real tasks, give dev servers separate ports and use separate test data where needed. Review and test the combined branch after integration, even when Git merges it without a conflict. The [three-task walkthrough](/blog/parallel-coding-agents-guide) covers prompts, previews, and review; the [Claude Code guide](/compare/multiple-claude-code-agents-parallel) covers session setup.
+
 ## Where Superset fits
 
 Superset is a workspace built specifically for this workflow: every task gets an isolated worktree with a persistent terminal, any CLI agent works, and monitoring, diff review, port handling, automations, and an MCP server for programmatic control sit on top. If the problems in this guide are the ones you are hitting, that is exactly what it exists for. [Download it](/download) or read [how it compares](/compare) to everything else in the space.
@@ -94,7 +117,7 @@ Superset is a workspace built specifically for this workflow: every task gets an
 
 ### What are parallel coding agents?
 
-Running more than one AI coding agent at the same time, each on its own task, typically with each agent isolated in its own Git worktree and branch so their changes never collide. The point is throughput: you review and direct while agents work concurrently.
+Running more than one AI coding agent at the same time, each on its own task, typically with each agent in its own Git worktree and branch so they edit separate working files. Changes can still conflict when merged. The point is throughput: you review and direct while agents work concurrently.
 
 ### Do I need special tooling to run agents in parallel?
 
@@ -102,7 +125,7 @@ Not to start. Two terminal tabs and two Git worktrees are enough to try it. Tool
 
 ### How do parallel agents avoid conflicts?
 
-Isolation. Each agent works in its own Git worktree on its own branch, so edits never touch another agent's files. Conflicts only surface at merge time, where Git handles them the same way it handles human branches.
+Give each agent its own working directory and branch, and assign tasks with limited overlap. Worktrees do not restrict an agent's filesystem permissions or isolate shared services. Merge conflicts and behavioral conflicts can still occur, so review the combined diff and run the relevant tests after integration.
 
 ### How many coding agents can I run at once?
 

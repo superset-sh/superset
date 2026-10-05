@@ -270,4 +270,47 @@ describe("git router integration", () => {
 		expect(branches.all).toContain("feature/new");
 		expect(branches.all).not.toContain("feature/old");
 	});
+
+	test("renameBranch renames the caller's branch when it exists, even if the row still holds an older one", async () => {
+		await scenario.repo.git.checkoutLocalBranch("feature/older");
+		await scenario.repo.git.checkoutLocalBranch("feature/checked-out");
+		await scenario.repo.commit("work", { "h.txt": "h" });
+		scenario.host.db
+			.update(workspaces)
+			.set({ branch: "feature/older" })
+			.where(eq(workspaces.id, scenario.workspaceId))
+			.run();
+
+		await scenario.host.trpc.git.renameBranch.mutate({
+			workspaceId: scenario.workspaceId,
+			oldName: "feature/checked-out",
+			newName: "feature/renamed",
+		});
+
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).toContain("feature/renamed");
+		expect(branches.all).toContain("feature/older");
+		expect(branches.all).not.toContain("feature/checked-out");
+	});
+
+	test("renameBranch renames the branch the workspace holds now, not the name the caller last saw", async () => {
+		await scenario.repo.git.checkoutLocalBranch("feature/renamed-by-ai");
+		await scenario.repo.commit("work", { "g.txt": "g" });
+		scenario.host.db
+			.update(workspaces)
+			.set({ branch: "feature/renamed-by-ai" })
+			.where(eq(workspaces.id, scenario.workspaceId))
+			.run();
+
+		const result = await scenario.host.trpc.git.renameBranch.mutate({
+			workspaceId: scenario.workspaceId,
+			oldName: "feature/stale",
+			newName: "feature/mine",
+		});
+
+		expect(result.name).toBe("feature/mine");
+		const branches = await scenario.repo.git.branchLocal();
+		expect(branches.all).toContain("feature/mine");
+		expect(branches.all).not.toContain("feature/renamed-by-ai");
+	});
 });

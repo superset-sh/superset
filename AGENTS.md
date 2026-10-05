@@ -189,10 +189,31 @@ or type it first; a comment is the last resort for what the code genuinely canno
 constraint that lives outside the repo, or a trap the next reader would walk into. Rationale goes
 in the commit message and the PR.
 
+## Tests
+
+CI runs every suite on each push, and the whole run is meant to stay near two minutes. A test
+earns its place by catching a regression quickly.
+
+- **No real waiting.** A test that needs more than bun's default 5 s timeout is too slow. Do not
+  raise the timeout: pass the delay, clock or retry count in and test with a small value. Never
+  wait for a real network or process timeout to fire.
+- **One test per behaviour.** Stress, fuzz and "adversarial" suites that build many real git
+  repositories or processes do not go in the repo. When a probe finds a bug, keep the one
+  regression test for it.
+- **Any order, clean checkout.** Suites run with `bun test --isolate`, in an order that differs
+  between machines, with no root `.env`. Do not `mock.module` a module that other files import for
+  real (`env`, a client, a logger). Give the code its input instead: a parameter, a placeholder in
+  the package's test preload, or a local server.
+- **A flaky test is a broken test.** Fix the cause or delete it. Do not add retries or longer
+  timeouts.
+- **Node-only suites** (real PTYs, `node:test`) are `*.node-test.ts` files run by a turbo task, so
+  they run beside the bun suites and not after them.
+
 ## Further reading
 
-- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, ticket
-  format, and more. Read the matching `SKILL.md` when a task fits its description.
+- `.agents/skills/`: CDP UI verification, mobile simulator verification, DB migrations, tRPC
+  compatibility, ticket format, and more. Read the matching `SKILL.md` when a task fits its
+  description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
 - `docs/plugins.md`: authoring, publishing, and installing marketplace plugins — the manifest
   contract, the credential proxy, and which files are generated.
@@ -200,6 +221,8 @@ in the commit message and the PR.
   and missing one fails silently.
 - `docs/deploy-workflows.md`: read before writing or testing a deploy workflow step. `run:` has
   no `pipefail` by default, and production secrets exist only in GitHub.
+- `packages/trpc/AGENTS.md`: read before changing any tRPC procedure, in `packages/trpc` or
+  `packages/host-service`. Released desktop, mobile, and CLI builds still call it.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the
@@ -207,3 +230,37 @@ in the commit message and the PR.
   you find a new one.
 - `docs/cloud-sandbox-considerations.md`: what cloud sandboxes still owe before they leave the
   team — billing, credential blast radius, untested behaviour.
+
+## Contributor responsibility
+
+Contributors are responsible for every change they submit, including agent-generated code.
+They must understand the changes, review the diff, and verify the behavior before requesting
+review.
+
+- Ask for clarification when a request lacks enough context to make a correct change.
+- Explain changes and validation so the contributor can review and understand the result.
+- Agents may write commit messages and PR descriptions, commit changes, push branches, create
+  PRs, and address review feedback when authorized by the user.
+- Only post replies to reviewers when the user explicitly authorizes it.
+- Never claim that checks passed or behavior was verified unless it actually was.
+
+## Code standards
+
+- Keep code comments concise (usually 1-2 lines)
+- Avoid redundant or excessive inline commentary
+- Use ASD-STE100 Simplified Technical English, simple wordings
+
+### Examples
+
+```c++
+  // Good (no comment)
+
+  std::string module_name =
+    fmt::format("{}_{:x}", name_, std::hash<std::string>{}(source_));
+
+  // Bad (excessive comment for explicit code)
+
+  // The module cache is keyed on this name, so it has to include the source:
+  // two kernels sharing a name but not a body would otherwise both run
+  // whichever was compiled first. Same fix as 3833 on the Metal side.
+```

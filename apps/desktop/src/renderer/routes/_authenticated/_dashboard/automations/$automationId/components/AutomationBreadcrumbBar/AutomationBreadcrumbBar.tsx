@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/breadcrumb";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 
 interface AutomationBreadcrumbBarProps {
 	/** Omitted when the automation could not be loaded — the crumb stops at the list. */
@@ -26,31 +27,34 @@ export function AutomationBreadcrumbBar({
 	children,
 }: AutomationBreadcrumbBarProps) {
 	return (
-		<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
-			<Breadcrumb>
-				<BreadcrumbList className="text-sm">
-					<BreadcrumbItem>
-						<BreadcrumbLink asChild>
-							<Link to="/automations">
-								<Trans>Automations</Trans>
-							</Link>
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					{name !== undefined && (
-						<>
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<BreadcrumbPage className="font-medium">{name}</BreadcrumbPage>
-							</BreadcrumbItem>
-						</>
-					)}
-				</BreadcrumbList>
-			</Breadcrumb>
-
-			{/* Window-drag leaf standing in for the hidden TopBar. */}
-			<div className="drag h-full min-w-0 flex-1" />
-
-			{children && <div className="flex items-center gap-1">{children}</div>}
-		</header>
+		<PageHeader
+			className="shadow-[inset_0_-1px_0_var(--border)]"
+			start={
+				<Breadcrumb>
+					<BreadcrumbList className="text-sm">
+						<BreadcrumbItem>
+							<BreadcrumbLink asChild>
+								<Link to="/automations">
+									<Trans>Automations</Trans>
+								</Link>
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						{name !== undefined && (
+							<>
+								<BreadcrumbSeparator />
+								<BreadcrumbItem>
+									<BreadcrumbPage className="font-medium">
+										{name}
+									</BreadcrumbPage>
+								</BreadcrumbItem>
+							</>
+						)}
+					</BreadcrumbList>
+				</Breadcrumb>
+			}
+			end={
+				children && <div className="flex items-center gap-1">{children}</div>
+			}
+		/>
 	);
 }

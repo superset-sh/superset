@@ -61,6 +61,7 @@ export const cleanupGitOps = {
 		repoPath: string;
 		worktreePath: string;
 		gitEnv: GitTaskEnv;
+		force?: boolean;
 	}): Promise<{ stillRegistered: boolean; removeError?: string }> {
 		// Generous timeout: removal recursively deletes the worktree
 		// directory, which can take a while for large trees (node_modules

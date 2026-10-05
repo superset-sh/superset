@@ -9,23 +9,26 @@ export interface NavLink {
 	external?: boolean;
 }
 
-export const MOBILE_LINK: NavLink = {
-	href: "/mobile",
-	label: <Trans>Mobile</Trans>,
-	description: <Trans>Run your agents from your phone.</Trans>,
-};
-
-export function productLinks(isMobileLaunched: boolean): NavLink[] {
-	if (!isMobileLaunched) return PRODUCT_LINKS;
-	const [overview, ...rest] = PRODUCT_LINKS;
-	return overview ? [overview, MOBILE_LINK, ...rest] : [MOBILE_LINK];
-}
-
-const PRODUCT_LINKS: NavLink[] = [
+export const PRODUCT_LINKS: NavLink[] = [
 	{
 		href: "/",
 		label: <Trans>Overview</Trans>,
 		description: <Trans>Orchestrate any coding agent.</Trans>,
+	},
+	{
+		href: "/mobile",
+		label: <Trans>Mobile</Trans>,
+		description: <Trans>Run your agents from your phone.</Trans>,
+	},
+	{
+		href: "/leaderboard",
+		label: <Trans>Leaderboard</Trans>,
+		description: (
+			<Trans>
+				See how your agent usage compares. Explore the models behind each
+				profile.
+			</Trans>
+		),
 	},
 	{
 		href: "/changelog",
@@ -65,6 +68,11 @@ export const RESOURCE_LINKS: NavLink[] = [
 		href: "/team",
 		label: <Trans>About</Trans>,
 		description: <Trans>The people behind Superset.</Trans>,
+	},
+	{
+		href: "/media",
+		label: <Trans>Media kit</Trans>,
+		description: <Trans>Logos, product images, and press contact.</Trans>,
 	},
 ];
 

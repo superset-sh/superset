@@ -56,6 +56,7 @@ describe("applyLoginShellEnvToProcess", () => {
 			PATH: "/usr/bin",
 			NODE_ENV: "development",
 			SUPERSET_HOST_INSTALL_SOURCE: "cli",
+			SUPERSET_HOST_AUTO_UPDATE: "true",
 			NODE_OPTIONS: "--inspect",
 			ELECTRON_RUN_AS_NODE: "1",
 			EDITOR: "vim",
@@ -66,6 +67,7 @@ describe("applyLoginShellEnvToProcess", () => {
 
 		expect(target.NODE_ENV).toBeUndefined();
 		expect(target.SUPERSET_HOST_INSTALL_SOURCE).toBeUndefined();
+		expect(target.SUPERSET_HOST_AUTO_UPDATE).toBeUndefined();
 		expect(target.NODE_OPTIONS).toBeUndefined();
 		expect(target.ELECTRON_RUN_AS_NODE).toBeUndefined();
 		expect(target.EDITOR).toBe("vim");

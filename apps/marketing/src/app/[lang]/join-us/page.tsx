@@ -63,9 +63,7 @@ export default async function JoinUsPage() {
 	const lang = await initServerI18n();
 	const i18n = getI18nInstance(lang);
 	const founderCount = formatNumber(4, {}, lang);
-	// Verified in PostHog on 2026-09-10: 54,570 identified desktop users,
-	// excluding test accounts. Cumulative adoption, rounded down.
-	const developerCount = formatNumber(50_000, {}, lang);
+	const developerCount = formatNumber(100_000, {}, lang);
 	const applyLabel = i18n._(
 		msg({ message: "Apply", context: "job application" }),
 	);
@@ -218,6 +216,14 @@ export default async function JoinUsPage() {
 							for (const board of document.querySelectorAll("waas-job-board")) {
 								board.showFilters = false;
 								const patch = () => {
+									const foundingEngineerIndex = board.filteredJobs.findIndex((job) => job.id === 91489);
+									if (foundingEngineerIndex > 0) {
+										board.filteredJobs = [
+											board.filteredJobs[foundingEngineerIndex],
+											...board.filteredJobs.slice(0, foundingEngineerIndex),
+											...board.filteredJobs.slice(foundingEngineerIndex + 1),
+										];
+									}
 									const detail = board.shadowRoot?.querySelector("waas-job-detail");
 									inject(detail?.shadowRoot, detailCss);
 									inject(detail?.shadowRoot?.querySelector("waas-apply-form")?.shadowRoot, formCss);

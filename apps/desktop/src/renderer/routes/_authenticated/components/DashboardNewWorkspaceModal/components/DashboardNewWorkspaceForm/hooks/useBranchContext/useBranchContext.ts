@@ -1,10 +1,10 @@
 import type { AppRouter } from "@superset/host-service";
+import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { CLOUD_HOST_ID } from "../../components/DevicePicker/DevicePicker";
 
 type SearchBranchesInput =
 	inferRouterInputs<AppRouter>["workspaceCreation"]["searchBranches"];

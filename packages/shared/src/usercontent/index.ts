@@ -6,9 +6,11 @@ export {
 	pageAssetResponsePolicy,
 } from "./file-policy";
 export {
+	injectHeadScriptTag,
 	injectScriptTag,
 	injectStyleTag,
 	RUNTIME_SCRIPT_PATH,
+	STORAGE_SCRIPT_PATH,
 } from "./inject";
 export {
 	fileOriginalKey,
@@ -28,14 +30,20 @@ export {
 export { PAGE_THEME_CSS } from "./theme";
 export {
 	type FileTicketClaims,
+	type PageConnectTicketClaims,
 	type PageTicketClaims,
 	signFileTicket,
+	signPageConnectTicket,
 	signPageTicket,
 	verifyFileTicket,
+	verifyPageConnectTicket,
 	verifyPageTicket,
 } from "./ticket";
 export {
 	fileUrl,
+	PAGE_THUMBNAIL_HEIGHT,
+	PAGE_THUMBNAIL_WIDTH,
+	pageFrameOrigin,
 	pageIdFromHost,
 	pageOrigin,
 	pageThumbnailUrl,

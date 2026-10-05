@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth/client";
 import { errorCopy, transportFailureKind } from "@/lib/errors";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
+import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 
 interface CreateCloudWorkspaceArgs {
 	/** Null means the repo's default branch, resolved by the branch query. */
@@ -87,6 +88,7 @@ export function useCreateCloudWorkspace() {
 				model,
 				effort,
 			});
+			useAppReviewStore.getState().recordWorkspaceCreated();
 			// Seed the list before navigating: the workspace screen decides
 			// between "provisioning" and "not found" off this cache, and even
 			// one refetch round trip is long enough to flash the wrong one.

@@ -2,7 +2,7 @@
 title: "Superset vs Windsurf (2026): Parallel Agent Orchestration vs AI IDE"
 description: "Compare Superset and Windsurf, now Devin Desktop, for AI-assisted development. See how parallel worktree orchestration differs from an AI-powered IDE."
 date: 2026-02-18
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - windsurf
@@ -27,8 +27,8 @@ Note: as of mid-2026, Windsurf is now Devin Desktop, and the original Cascade ag
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI-powered IDE with an agent command center |
 | **AI approach** | Agent-agnostic -- Claude Code, Codex, OpenCode, Cursor, Gemini, or any CLI agent | Devin Local plus ACP agents (Codex, Claude, OpenCode) |
-| **Parallelism** | Core feature -- 100+ agents across isolated worktrees | Manages local and cloud agents from a Kanban command center |
-| **Isolation** | Automatic Git worktree per task | Cloud isolated; local mechanism not clearly documented |
+| **Parallelism** | Core feature -- multiple agents across isolated worktrees | Manages local and cloud agents from a Kanban command center |
+| **Isolation** | Git worktrees for local branch-based workspaces | Cloud isolated; local mechanism not clearly documented |
 | **Editor** | Works alongside any editor (VS Code, Cursor, JetBrains, Xcode) | You use the Devin Desktop IDE |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free tier, Pro $20/mo, Max $200/mo |
 | **License** | Source-available (ELv2) | Closed source |
@@ -55,7 +55,7 @@ Devin Desktop is an editor: you work inside its IDE, with Devin Local and a comm
 
 ### Isolation Model
 
-Superset makes a local Git worktree per task the default, so many agents can work the same repository at once without collisions. Devin Desktop manages multiple agents from its command center and runs autonomous work in the cloud (isolated remotely), but its local per-agent isolation mechanism is not clearly documented. If local worktree isolation is the point, that is Superset's core.
+Superset creates Git worktrees for new local branch-based workspaces, so many agents can work the same repository at once in separate working directories. Devin Desktop manages multiple agents from its command center and runs autonomous work in the cloud (isolated remotely), but its local per-agent isolation mechanism is not clearly documented. If local worktree isolation is the point, that is Superset's core. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ### Hosting External Agents
 

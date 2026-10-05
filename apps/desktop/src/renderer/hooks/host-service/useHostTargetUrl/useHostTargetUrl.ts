@@ -1,7 +1,7 @@
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { resolveHostUrl } from "./resolveHostUrl";
 
 interface HostUrlContext {
 	machineId: string | null;
@@ -22,14 +22,19 @@ function useHostUrlContext(): HostUrlContext {
 	);
 }
 
-// Single source of routing truth for both hooks below.
 function resolveUrl(
 	hostId: string | null,
 	{ machineId, activeHostUrl, activeOrganizationId, relayUrl }: HostUrlContext,
 ): string | null {
-	if (hostId === null || hostId === machineId) return activeHostUrl;
+	if (hostId === null) return activeHostUrl;
 	if (!activeOrganizationId) return null;
-	return `${relayUrl}/hosts/${buildHostRoutingKey(activeOrganizationId, hostId)}`;
+	return resolveHostUrl({
+		hostId,
+		machineId,
+		activeHostUrl,
+		organizationId: activeOrganizationId,
+		relayUrl,
+	});
 }
 
 /**

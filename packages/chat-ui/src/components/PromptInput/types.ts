@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 export type ComposerChip = {
 	label: string;
@@ -93,17 +93,37 @@ export type PromptInputDictation = {
 	onError?(error: PromptInputDictationError): void;
 };
 
+export type PromptInputHandle = {
+	appendText(text: string): void;
+	openFileDialog(): void;
+	focus(): void;
+};
+
 export type PromptInputProps = {
+	ref?: Ref<PromptInputHandle>;
 	placeholder?: string;
 	mentionProviders: ComposerMentionProvider[];
 	commands: PromptInputCommand[];
 	status?: "ready" | "streaming";
+	submitWhileStreaming?: boolean;
 	placement?: "top" | "bottom";
 	// Enables the mic button; the app owns speech-to-text.
 	dictation?: PromptInputDictation;
 	toolbar?: ReactNode;
+	toolbarEnd?: ReactNode;
+	// Text to open with, read once on mount. A host that persists drafts hands
+	// back what it stored; the composer owns the editor state from then on.
+	defaultValue?: string;
+	// Plain text of the composer as it is typed, for persisting a draft.
+	onChange?: (text: string) => void;
 	onSubmit?: (payload: PromptInputSubmitPayload) => void;
 	onStop?: () => void;
+	header?: ReactNode;
+	onAddFiles?: (files: File[]) => void;
+	allowEmptySubmit?: boolean;
+	clearOnSubmit?: boolean;
+	hideSubmit?: boolean;
+	autoFocus?: boolean;
 	onMentionHighlight?: (entry: ComposerMentionEntry | null) => void;
 	onAttachmentClick?: (attachment: PromptInputAttachment) => void;
 	onChipClick?: (chip: ComposerChip) => void;

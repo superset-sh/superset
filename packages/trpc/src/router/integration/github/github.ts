@@ -9,13 +9,29 @@ import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
-import { protectedProcedure, userError } from "../../../trpc";
+import { installationOctokit } from "../../../lib/sandbox/clone-token";
+import { organizationSyncsNow } from "../../../lib/sync-policy/syncPolicy";
+import {
+	planRequiredError,
+	protectedProcedure,
+	userError,
+} from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { findInstalledRepository } from "./find-installed-repository";
+import { getPullRequestDiff } from "./get-pull-request-diff";
+import {
+	type PullRequestDetail,
+	toChecks,
+	toChecksStatus,
+	toPullRequestState,
+	toReviewDecision,
+} from "./pull-request-shape";
 import { listGithubRepositories } from "./trigger-options";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
+	getPullRequestDiff,
 	getInstallation: protectedProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
@@ -68,6 +84,16 @@ export const githubRouter = {
 					code: "NOT_FOUND",
 					message: "GitHub installation not found",
 					i18nKey: "serverError.integration.githubInstallationNotFound",
+				});
+			}
+
+			// The webhook drops this organization's deliveries, so a backfill here
+			// would go stale the moment it finished.
+			if (!(await organizationSyncsNow(input.organizationId))) {
+				throw planRequiredError({
+					message: "GitHub sync requires the Pro plan.",
+					i18nKey: "serverError.integration.githubSyncRequiresThePro",
+					requiredPlan: "pro",
 				});
 			}
 
@@ -250,6 +276,8 @@ export const githubRouter = {
 					title: githubPullRequests.title,
 					state: githubPullRequests.state,
 					isDraft: githubPullRequests.isDraft,
+					additions: githubPullRequests.additions,
+					deletions: githubPullRequests.deletions,
 					reviewDecision: githubPullRequests.reviewDecision,
 					checksStatus: githubPullRequests.checksStatus,
 					checks: githubPullRequests.checks,
@@ -292,14 +320,73 @@ export const githubRouter = {
 					number: row.number,
 					url: row.url,
 					title: row.title,
-					state: row.state,
+					state: toPullRequestState(row.state, row.mergedAt),
 					isDraft: row.isDraft,
-					reviewDecision: row.reviewDecision,
-					checksStatus: row.checksStatus,
-					checks: row.checks ?? [],
-					mergedAt: row.mergedAt,
+					additions: row.additions,
+					deletions: row.deletions,
+					reviewDecision: toReviewDecision(row.reviewDecision),
+					checksStatus: toChecksStatus(row.checksStatus),
+					checks: toChecks(row.checks),
 					updatedAt: row.updatedAt,
 				})),
+			};
+		}),
+
+	/**
+	 * One pull request by its own identity, repository and number, for a
+	 * detail pane that has no host in the loop: the webhook row supplies
+	 * everything but the description, which comes from GitHub with the
+	 * installation's token.
+	 */
+	getPullRequest: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				repoFullName: z.string().min(1),
+				number: z.number().int().positive(),
+			}),
+		)
+		.query(async ({ ctx, input }): Promise<PullRequestDetail> => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const { installation, repo } = await findInstalledRepository(
+				input.organizationId,
+				input.repoFullName,
+			);
+			const [owner, name] = repo.fullName.split("/");
+			const [row, octokit] = await Promise.all([
+				db.query.githubPullRequests.findFirst({
+					where: and(
+						eq(githubPullRequests.repositoryId, repo.id),
+						eq(githubPullRequests.prNumber, input.number),
+					),
+				}),
+				installationOctokit(installation.installationId),
+			]);
+			const { data: pr } = await octokit.request(
+				"GET /repos/{owner}/{repo}/pulls/{pull_number}",
+				{ owner: owner ?? "", repo: name ?? "", pull_number: input.number },
+			);
+			return {
+				repoFullName: repo.fullName,
+				number: pr.number,
+				url: pr.html_url,
+				title: pr.title,
+				body: pr.body ?? "",
+				state: toPullRequestState(pr.state, pr.merged_at),
+				isDraft: pr.draft ?? false,
+				author: pr.user
+					? { login: pr.user.login, avatarUrl: pr.user.avatar_url ?? null }
+					: null,
+				head: {
+					ref: pr.head.ref,
+					repoFullName: pr.head.repo?.full_name ?? null,
+				},
+				base: { ref: pr.base.ref },
+				reviewDecision: toReviewDecision(row?.reviewDecision ?? null),
+				checksStatus: toChecksStatus(row?.checksStatus ?? "none"),
+				checks: toChecks(row?.checks ?? null),
+				createdAt: pr.created_at,
+				updatedAt: pr.updated_at,
 			};
 		}),
 

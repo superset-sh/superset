@@ -6,10 +6,9 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useIsMobileLaunched } from "../../../../providers/MobileLaunchProvider";
 import {
 	type NavLink,
-	productLinks,
+	PRODUCT_LINKS,
 	RESOURCE_LINKS,
 	TOP_LEVEL_LINKS,
 } from "../../constants";
@@ -21,7 +20,6 @@ interface MobileNavProps {
 
 export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 	const { t } = useLingui();
-	const isMobileLaunched = useIsMobileLaunched();
 	const [isOpen, setIsOpen] = useState(false);
 	const close = () => setIsOpen(false);
 
@@ -45,7 +43,7 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 			<AnimatePresence>
 				{isOpen && (
 					<m.div
-						className="absolute inset-x-0 top-14 border-t border-border bg-background/95 backdrop-blur-sm"
+						className="absolute inset-x-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-background"
 						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: "auto" }}
 						exit={{ opacity: 0, height: 0 }}
@@ -54,7 +52,7 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 						<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-6">
 							<MobileSection
 								title={<Trans>Product</Trans>}
-								links={productLinks(isMobileLaunched)}
+								links={PRODUCT_LINKS}
 								onNavigate={close}
 							/>
 							<MobileSection

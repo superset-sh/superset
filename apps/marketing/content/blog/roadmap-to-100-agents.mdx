@@ -1,5 +1,5 @@
 ---
-title: "Our plan for running 100 Parallel Coding Agents"
+title: "Our Plan for Running 100 Coding Agents"
 description: "An attempt to crystallize our plans for 2026"
 author: satya
 date: 2026-02-02
@@ -11,12 +11,10 @@ category: Product
 Right now at Superset, we're able to reliably manage 5-7 coding agents in parallel - whether that's Claude Code, Codex,
 etc. - at a time. Our goal is to be able to manage 100 coding agents in parallel each by the end of 2026.
 
-Most people believe that the path from seven to 100 agents is better models, faster inference, and smarter agents. It's
-not. Agent compute is already cheap enough, you can run hundreds of agents a month all for less than the cost of one
-engineer.
+For us, the immediate limit is how much attention each agent needs.
 
 What's stopping us is every agent needs a human to review its code, give feedback, and decide what to work on next.
-Scale the agents all you want - it's the humans that don't scale.
+Adding agents also adds review and coordination work.
 
 # Mapping out the problem
 
@@ -32,7 +30,7 @@ review their work than they spend doing it.
 At 100 agents, this model completely breaks. You can't review 100 diffs a day. You can't context-switch between 100
 streams of work.
 
-The fix is straightforward: pull the human out of steps where they're not needed, and make the remaining steps faster.
+Our plan is to automate checks that do not need human judgment and prepare the remaining decisions for review.
 
 # How we'll improve it
 
@@ -61,9 +59,7 @@ with its work or is sufficiently stuck. Your review becomes a final sign-off, no
 
 ### Stacking review agents and automated testing
 
-Since you don't care how long an agent takes when you're running dozens of them, there's no downside to stacking checks.
-Run five different review agents, each looking for different classes of issues, with a final agent consolidating the
-feedback. Each layer increases the odds that problems are found and resolved before you ever see the code.
+Several review agents could check different classes of issues, with one consolidating their findings. Those checks cost time and compute, so we need to measure which ones catch useful problems before adding more.
 
 The same logic applies to testing. Giving agents access to the browser through tools like
 [BrowserUse](https://browser-use.com/) or [Maestro](https://maestro.mobile.dev/) tests lets them verify their own work
@@ -72,8 +68,7 @@ visually, catching UI regressions, layout issues, and interaction bugs that are 
 ### Long-running agents
 
 Most agent workflows today are one-shot: you give a task, the agent works, it comes back. But agents should be able to
-run longer loops: trying an approach, hitting an issue, adjusting, and iterating until they're confident or genuinely
-stuck. [Ralph loops](https://ghuntley.com/loop/) are a popular pattern for this: treat the agent's work as clay on a
+run longer loops: trying an approach, checking the result, and adjusting until the task is complete or they need help. [Ralph loops](https://ghuntley.com/loop/) are a popular pattern for this: treat the agent's work as clay on a
 wheel, refining iteratively, rather than laying bricks in a line.
 
 The result is fewer interruptions and higher-quality output when the agent does surface. An agent that's been iterating
@@ -82,9 +77,7 @@ for an hour and is confident in its solution is far easier to review than one th
 ## Make it fast to review agents' work
 
 Most developer tools today are human-driven: you open a diff, you spin up a dev server, you navigate to the right page.
-Agents plug into these tools, but the human is still doing the legwork. We want to shift the paradigm towards
-agent-driven UIs - interfaces that agents orchestrate for the human's benefit, where each review takes seconds, not
-minutes.
+Agents plug into these tools, but the human is still doing the legwork. We want agents to prepare the review: open the relevant page, explain the change, and show the checks they ran.
 
 ### Investing in agent-driven UIs
 
@@ -104,7 +97,7 @@ world, the tools need to meet you differently. Agents should be annotating their
 triaged by an agent, not presented as a raw log for you to parse. The tools we use every day were designed for human
 authors. Adapting them for human reviewers of agent work is a different design problem.
 
-### Reducing friction to zero
+### Make common decisions easier
 
 Every interaction between you and an agent should be as lightweight as possible. You should be able to click yes or no
 for straightforward changes. Agents should prep multiple-choice questions ("I found three approaches to this, which do
@@ -112,8 +105,7 @@ you prefer?") so you're choosing instead of typing. When an agent does need writ
 prefill a draft response based on the context, so you're editing instead of writing from scratch. Quick actions like
 "create PR" or "deploy to staging" should also be easy to reach.
 
-The goal isn't just faster review. It's making the interaction so lightweight that you can do it from your phone
-between meetings.
+We want routine reviews to be short enough to handle from your phone between meetings.
 
 ## Have agents be more proactive
 
@@ -140,14 +132,14 @@ execute on a schedule or in response to events without anyone initiating them.
 ### Beyond code
 
 Even outside of code, this pattern is taking hold. [Circleback](https://circleback.ai/) listens to your meetings and
-doesn't just take notes: it extracts action items, creates Linear tickets for feature requests mentioned in product
+extracts action items from its notes, creates Linear tickets for feature requests mentioned in product
 demos, and updates your CRM after sales calls. The meeting ends and the downstream work is already in motion.
 
 We don't have all of this figured out yet. Some of it is live, some is on our roadmap, and some is still taking shape.
 But the throughput framing gives us a clear test for every feature we build: does this reduce the time a human spends
 per agent interaction? 
 
-If you're running agents at scale and hitting these walls, we'd love to compare notes, reach out to us at team@superset.sh
+If you're running agents at scale and hitting these limits, we'd like to compare notes. Reach us at team@superset.sh.
 
 ---
 

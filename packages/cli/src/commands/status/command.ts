@@ -5,6 +5,7 @@ import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
 import { checkHostHealth } from "../../lib/host/health";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
+import { verifyManifestOwner } from "../../lib/host/manifest-liveness";
 import { resolveOrganizationFromContext } from "../../lib/resolve-org";
 
 async function fetchHostName(
@@ -59,6 +60,22 @@ export default command({
 					hostId: localHostId,
 				},
 				message: `Stale manifest for ${organization.name} (pid ${manifest.pid} is dead)`,
+			};
+		}
+
+		// A live pid alone doesn't prove it's ours — OSes recycle pids, and a
+		// leftover manifest can point at an unrelated process that happens to
+		// share the pid.
+		if (!(await verifyManifestOwner(manifest))) {
+			return {
+				data: {
+					running: false,
+					stale: true,
+					pid: manifest.pid,
+					organizationId: organization.id,
+					hostId: localHostId,
+				},
+				message: `Stale manifest for ${organization.name} (pid ${manifest.pid} belongs to a different process)`,
 			};
 		}
 

@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { basename, resolve as resolvePath } from "node:path";
 import {
 	type ParsedGitHubRemote,
@@ -6,9 +5,9 @@ import {
 } from "@superset/shared/github-remote";
 import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { projects, tagFolderSettings, workspaces } from "../../../db/schema";
+import { projects } from "../../../db/schema";
 import type { TagSettingSnapshot } from "../../../events/types";
 import {
 	emitProjectChanged,
@@ -16,16 +15,20 @@ import {
 	toProjectSnapshot,
 	updateLocalProject,
 } from "../../../projects/local-project-store";
+import {
+	listDeletedProjects,
+	purgeDeletedProject,
+	readDeletionImpact,
+	restoreProject,
+	softDeleteProject,
+} from "../../../projects/project-deletion";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import {
 	deleteTagFolderSetting,
 	getAllTagFolderSettings,
 	upsertTagFolderSetting,
 } from "../../../tag-folders";
-import {
-	emitLocalWorkspaceDeleted,
-	updateLocalWorkspace,
-} from "../../../workspaces/local-workspace-store";
+import { updateLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import {
 	normalizeSparseCheckoutPaths,
@@ -44,6 +47,7 @@ import { getGitHubRemotes } from "./utils/git-remote";
 import { listGitHubRepositories } from "./utils/github-repositories";
 import { persistLocalProject } from "./utils/persist-project";
 import {
+	adoptLocalRepo,
 	cloneRepoInto,
 	type ResolvedRepo,
 	resolveLocalRepo,
@@ -90,6 +94,7 @@ export const projectRouter = router({
 		return ctx.db
 			.select()
 			.from(projects)
+			.where(isNull(projects.deletedAt))
 			.all()
 			.map((row) => ({
 				id: row.id,
@@ -208,7 +213,9 @@ export const projectRouter = router({
 			const row = ctx.db
 				.select()
 				.from(projects)
-				.where(eq(projects.id, input.projectId))
+				.where(
+					and(eq(projects.id, input.projectId), isNull(projects.deletedAt)),
+				)
 				.get();
 			if (!row) return null;
 			return {
@@ -490,7 +497,12 @@ export const projectRouter = router({
 				cloneUrl.toLowerCase() === expectedUrlLower;
 
 			const localProject = ctx.db.query.projects
-				.findFirst({ where: eq(projects.repoPath, gitRoot) })
+				.findFirst({
+					where: and(
+						eq(projects.repoPath, gitRoot),
+						isNull(projects.deletedAt),
+					),
+				})
 				.sync();
 
 			// A local-DB row keyed by this repo's git root is authoritative:
@@ -628,7 +640,7 @@ export const projectRouter = router({
 				]),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ ctx, input, signal }) => {
 			switch (input.mode.kind) {
 				case "empty":
 					return createFromEmpty(ctx, {
@@ -646,6 +658,7 @@ export const projectRouter = router({
 						name: input.name,
 						parentDir: input.mode.parentDir,
 						url: input.mode.url,
+						signal,
 					});
 				case "importLocal":
 					return createFromImportLocal(ctx, {
@@ -686,6 +699,7 @@ export const projectRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			restoreProject(ctx, input.projectId);
 			const existing = ctx.db
 				.select({ id: projects.id, repoPath: projects.repoPath })
 				.from(projects)
@@ -776,7 +790,7 @@ export const projectRouter = router({
 							`${parsed.owner}/${parsed.name}`,
 						);
 					} else {
-						resolved = await resolveLocalRepo(input.mode.repoPath);
+						resolved = await adoptLocalRepo(input.mode.repoPath);
 					}
 
 					// Each on-disk repo path maps to at most one project in the
@@ -822,85 +836,46 @@ export const projectRouter = router({
 		}),
 
 	/**
-	 * Project-delete saga. Local is reality — the local deletes are the
-	 * commit point, run first, and are fully offline-capable:
-	 *
-	 *   1. Ownership check: an id this host doesn't serve is a no-op —
-	 *      never a legacy cloud delete.
-	 *
-	 *   2. Best-effort `git worktree remove` for each worktree workspace so
-	 *      subsequent worktree commands aren't confused. Local workspaces
-	 *      live on the repo itself and have nothing to remove.
-	 *
-	 *   3. Local DB rows (workspaces + project). A failure here surfaces as
-	 *      an error — the local table is what the UI lists from, so a
-	 *      swallowed failure would toast "Deleted" over a surviving row.
-	 *
-	 * The on-disk repo directory is NEVER auto-removed. The user's code is
-	 * their code; deletion of the working tree must be an explicit action,
-	 * not a side-effect of project removal. Returns repoPath so a future
-	 * UI can offer an explicit "delete files too" follow-up.
+	 * Soft delete: the project and its live workspaces disappear for
+	 * everyone on this device, teardown runs and terminals stop, and the
+	 * worktrees stay on disk so `restore` can undo it until the purge sweep
+	 * runs. The repository folder is never removed.
 	 */
 	remove: machineOnlyProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const localProject = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, input.projectId) })
-				.sync();
-			if (!localProject) return { success: true, repoPath: null };
-
-			// The project-row delete below cascades tombstones away — removing a
-			// project intentionally drops its workspace history. Sweep worktrees
-			// for live rows AND stranded tombstones (crash-interrupted deletes
-			// whose worktree survives): once the cascade runs, the startup
-			// reconciler can no longer see them.
-			const localWorkspaces = ctx.db
-				.select()
-				.from(workspaces)
-				.where(eq(workspaces.projectId, input.projectId))
-				.all()
-				.filter((ws) => ws.archivedAt == null || existsSync(ws.worktreePath));
-
-			for (const ws of localWorkspaces) {
-				if (ws.type === "local" || ws.worktreePath === localProject.repoPath)
-					continue;
-				try {
-					const git = await ctx.git(localProject.repoPath);
-					await git.raw(["worktree", "remove", ws.worktreePath]);
-				} catch (err) {
-					console.warn("[project.remove] failed to remove worktree", {
-						projectId: input.projectId,
-						worktreePath: ws.worktreePath,
-						err,
-					});
-				}
-			}
-
-			try {
-				// The project cascade removes its workspaces. Folder settings have no
-				// FK because the same scope column also holds Sessions, so delete both
-				// owners in one transaction: neither can survive a partial failure.
-				ctx.db.transaction((tx) => {
-					tx.delete(projects).where(eq(projects.id, input.projectId)).run();
-					tx.delete(tagFolderSettings)
-						.where(eq(tagFolderSettings.scope, input.projectId))
-						.run();
-				});
-				// Events describe committed state and must not escape the transaction.
-				for (const ws of localWorkspaces) emitLocalWorkspaceDeleted(ctx, ws);
-				ctx.eventBus.broadcastTagFoldersChanged({
-					scope: input.projectId,
-					settings: [],
-					occurredAt: Date.now(),
-				});
-				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);
-			} catch (err) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to delete project locally: ${err instanceof Error ? err.message : String(err)}`,
-				});
-			}
-
-			return { success: true, repoPath: localProject.repoPath };
+			const deleted = await softDeleteProject(ctx, input.projectId);
+			return { success: true, repoPath: deleted?.repoPath ?? null };
 		}),
+
+	restore: machineOnlyProcedure
+		.input(z.object({ projectId: z.string().uuid() }))
+		.mutation(({ ctx, input }) => {
+			const restored = restoreProject(ctx, input.projectId);
+			if (!restored) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project not found",
+				});
+			}
+			return restored;
+		}),
+
+	purge: machineOnlyProcedure
+		.input(z.object({ projectId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!(await purgeDeletedProject(ctx, input.projectId))) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Only a deleted project can be deleted permanently",
+				});
+			}
+			return { success: true };
+		}),
+
+	listDeleted: protectedProcedure.query(({ ctx }) => listDeletedProjects(ctx)),
+
+	deletionImpact: protectedProcedure
+		.input(z.object({ projectId: z.string().uuid() }))
+		.query(({ ctx, input }) => readDeletionImpact(ctx, input.projectId)),
 });

@@ -287,7 +287,7 @@ worktree для разработки.
 локальный стек Postgres + Electric через Docker и создаёт dev-аккаунт. Войдите
 кнопкой **"Sign in as dev"** (или `admin@local.test` / `supersetdev`).
 
-Требования: [Bun](https://bun.sh/) v1.3.14+ (зафиксирован в `.bun-version`), `docker`, `jq` и `caddy`, который `bun dev` запускает как локальный HTTPS-прокси (`brew install jq caddy && caddy trust`).
+Требования: [Bun](https://bun.sh/) v1.4.2+ (зафиксирован в `.bun-version`), `docker`, `jq` и `caddy`, который `bun dev` запускает как локальный HTTPS-прокси (`brew install jq caddy && caddy trust`).
 
 Полное руководство — в [**DEVELOPMENT.md**](../DEVELOPMENT.md): что делает скрипт настройки, ручная настройка с реальными сервисами, частые команды, устранение неполадок и сборка десктопного приложения. Процесс участия описан в [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

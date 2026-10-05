@@ -1,10 +1,10 @@
-import { cn } from "@superset/ui/utils";
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import { WindowChromeScope } from "renderer/routes/_authenticated/_dashboard/components/WindowChromeScope";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { PullRequestListToggle } from "./components/PullRequestListToggle";
 import { PullRequestsView } from "./components/PullRequestsView";
 import {
@@ -26,6 +26,7 @@ const MIN_DETAIL_PANE_WIDTH = 420;
 export type PullRequestsSearch = {
 	search?: string;
 	project?: string;
+	repo?: string;
 	projects?: string;
 	author?: string;
 	review?: string;
@@ -38,6 +39,7 @@ export const Route = createFileRoute(
 	component: PullRequestsLayout,
 	validateSearch: (search: Record<string, unknown>): PullRequestsSearch => ({
 		search: typeof search.search === "string" ? search.search : undefined,
+		repo: typeof search.repo === "string" ? search.repo : undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
 		projects: typeof search.projects === "string" ? search.projects : undefined,
 		author: typeof search.author === "string" ? search.author : undefined,
@@ -58,7 +60,7 @@ export const Route = createFileRoute(
  * always reveals the other, since hiding both would leave nothing on screen.
  */
 function PullRequestsLayout() {
-	const { search, project, projects, author, review, state } =
+	const { search, project, repo, projects, author, review, state } =
 		Route.useSearch();
 	const params = useParams({ strict: false }) as { prNumber?: string };
 	const selectedPrNumber = params.prNumber
@@ -75,9 +77,6 @@ function PullRequestsLayout() {
 	const isResizingList = usePullRequestsSplitViewStore((s) => s.isResizing);
 	const setIsResizingList = usePullRequestsSplitViewStore(
 		(s) => s.setIsResizing,
-	);
-	const isAppSidebarCollapsed = useWorkspaceSidebarStore((s) =>
-		s.isCollapsed(),
 	);
 	// Stable identity: effects downstream key off this array.
 	const initialProjects = useMemo(
@@ -118,16 +117,14 @@ function PullRequestsLayout() {
 			initialState={state}
 			selectedPrNumber={selectedPrNumber}
 			selectedPrProjectId={project ?? null}
+			selectedPrRepo={repo ?? null}
 		/>
 	);
 
 	return (
 		<div
 			ref={rootRef}
-			className={cn(
-				"flex h-full min-h-0 min-w-0 flex-1 overflow-hidden",
-				isAppSidebarCollapsed && "rounded-tl-[8px] bg-sidebar dark:bg-muted/35",
-			)}
+			className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden"
 		>
 			{!isListCollapsed && (
 				<ResizablePanel
@@ -142,27 +139,19 @@ function PullRequestsLayout() {
 					onDoubleClickHandle={() =>
 						setListWidth(DEFAULT_PULL_REQUESTS_LIST_WIDTH)
 					}
-					className={cn(
-						"flex min-h-0 flex-col bg-background",
-						isAppSidebarCollapsed && "rounded-tl-[8px]",
-					)}
+					className="flex min-h-0 flex-col bg-background"
 				>
 					{listContent}
 				</ResizablePanel>
 			)}
 			{!isDetailCollapsed && (
-				<div
-					className={cn(
-						"flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
-						isAppSidebarCollapsed && isListCollapsed && "rounded-tl-[8px]",
-					)}
-				>
-					{params.prNumber === undefined && (
-						<div className="flex shrink-0 items-center justify-end px-4 pt-2">
-							<PullRequestListToggle />
-						</div>
-					)}
-					<Outlet />
+				<div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+					<WindowChromeScope enabled={isListCollapsed}>
+						{params.prNumber === undefined && (
+							<PageHeader end={<PullRequestListToggle />} />
+						)}
+						<Outlet />
+					</WindowChromeScope>
 				</div>
 			)}
 		</div>

@@ -24,6 +24,14 @@ export default function FilterLayout() {
 				}}
 			/>
 			<Stack.Screen name="sort" options={{ title: t({ message: "Sort" }) }} />
+			<Stack.Screen
+				name="status"
+				options={{ title: t({ message: "Status" }) }}
+			/>
+			<Stack.Screen
+				name="creator"
+				options={{ title: t({ message: "Created by" }) }}
+			/>
 		</Stack>
 	);
 }

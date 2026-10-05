@@ -153,7 +153,7 @@ export const INTEGRATIONS = [
 		description: () =>
 			i18n._(
 				msg({
-					message: "Trigger automations from Google Calendar and Gmail.",
+					message: "Trigger automations from Gmail.",
 				}),
 			),
 		category: () =>
@@ -163,7 +163,7 @@ export const INTEGRATIONS = [
 				}),
 			),
 		webPath: "/integrations/google",
-		triggerKinds: ["google_calendar", "gmail"],
+		triggerKinds: ["gmail"],
 	},
 ] as const satisfies readonly Integration[];
 

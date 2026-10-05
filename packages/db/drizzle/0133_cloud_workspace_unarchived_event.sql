@@ -1,0 +1,1 @@
+ALTER TYPE "public"."cloud_workspace_activity_event" ADD VALUE 'unarchived' BEFORE 'joined';

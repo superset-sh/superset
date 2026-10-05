@@ -29,7 +29,7 @@ export interface CloudWorkspaceItem extends HostWorkspaceItem {
  * sandbox self-seeds its workspace as `local`. `hostReachable` is false so
  * decoration that needs the host (diff stats) waits for the workspace to open.
  */
-function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
+export function itemFromCloudRow(cloud: CloudWorkspaceRow): CloudWorkspaceItem {
 	return {
 		id: cloud.id,
 		organizationId: cloud.organizationId,

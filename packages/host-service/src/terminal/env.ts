@@ -20,6 +20,7 @@ export {
 
 import fs from "node:fs";
 import os from "node:os";
+import { resolveSupersetHomeDir } from "@superset/agent-setup";
 import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
@@ -31,7 +32,7 @@ import {
 	getStrictShellEnvironment,
 } from "./clean-shell-env.ts";
 import { stripTerminalRuntimeEnv } from "./env-strip.ts";
-import { getShellBootstrapEnv } from "./shell-launch.ts";
+import { getShellBootstrapEnv, resolveLaunchShell } from "./shell-launch.ts";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;
@@ -202,6 +203,41 @@ interface BuildV2TerminalEnvParams {
 	 * forward-only). See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
+}
+
+/**
+ * The env for anything this host launches on the user's behalf, PTY or not.
+ * Everything a caller cannot know better than the host — the shell snapshot,
+ * the launch shell, the org and run mode — is filled in here so a second
+ * launch path cannot drift from the terminal's.
+ */
+export function buildHostLaunchEnv(params: {
+	cwd: string;
+	workspaceId: string;
+	workspacePath: string;
+	rootPath: string;
+	terminalId?: string;
+	themeType?: "dark" | "light";
+	hostAgentHookUrl?: string;
+}): Record<string, string> {
+	const baseEnv = getTerminalBaseEnv();
+	return buildV2TerminalEnv({
+		baseEnv,
+		shell: resolveLaunchShell(baseEnv),
+		supersetHomeDir: resolveSupersetHomeDir(),
+		organizationId: process.env.ORGANIZATION_ID || "",
+		themeType: params.themeType,
+		cwd: params.cwd,
+		terminalId: params.terminalId ?? "",
+		workspaceId: params.workspaceId,
+		workspacePath: params.workspacePath,
+		rootPath: params.rootPath,
+		supersetEnv:
+			process.env.NODE_ENV === "development" ? "development" : "production",
+		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
+		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+		hostAgentHookUrl: params.hostAgentHookUrl,
+	});
 }
 
 /**

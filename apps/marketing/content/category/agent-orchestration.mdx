@@ -2,7 +2,7 @@
 title: "AI Agent Orchestration for Software Development"
 description: "What agent orchestration means for coding: the primitives (isolation, sessions, review, scheduling, programmatic control), the patterns, and when you actually need it."
 date: 2026-08-17
-lastUpdated: 2026-08-17
+lastUpdated: 2026-09-23
 keywords:
   - agent orchestration
   - ai agent orchestration
@@ -30,7 +30,7 @@ You do not need orchestration to run one agent, and you barely need it for two. 
 - More than one person (or agent) needs to see what the fleet is doing.
 - Losing a session's state (a laptop sleep, an app restart) costs real work.
 
-If your agents stop the moment you close your laptop lid, you have sessions, not orchestration.
+A local machine must remain awake for its agents to keep executing. To continue work while your laptop is closed, run it on an available remote host.
 
 ## The primitives
 
@@ -42,7 +42,7 @@ Each unit of work gets its own working directory and branch, almost always a [Gi
 
 ### Persistent sessions
 
-Agent sessions need to survive the app restarting, the terminal closing, and the machine sleeping. Without persistence, orchestration degrades into re-prompting. In Superset this is a terminal daemon that owns the sessions; the app is just a view onto them.
+Session persistence separates the agent process from the app window. In Superset, a terminal daemon owns the sessions, so restarting the app does not need to restart the agent. Persistence does not keep a sleeping or powered-off host executing work. See the [terminal daemon implementation](/blog/terminal-daemon-deep-dive).
 
 ### Status and monitoring
 
@@ -65,6 +65,20 @@ Recurring prompts on a schedule: nightly dependency bumps, morning triage of new
 An API for the whole loop, so scripts and other agents can create workspaces, launch agents with a prompt, read terminals, and collect results. The emerging standard here is [MCP](https://docs.superset.sh/mcp-server) (Model Context Protocol): expose orchestration as tools, and any MCP-capable agent can drive it. This is how agent-managing-agents setups work in practice, and Superset ships an MCP server, a [CLI](https://docs.superset.sh/cli/getting-started), and a [TypeScript SDK](https://docs.superset.sh/sdk/getting-started) for exactly this.
 
 ![The superset CLI menu: agents, automations, hosts, projects, tasks, terminals, and workspaces, all scriptable from any shell](/changelog/2026-08-09-cli-browser.png)
+
+## What Superset orchestrates
+
+Superset (superset.sh) is a source-available workspace for CLI coding agents. It is unrelated to Apache Superset, the business-intelligence product. Claude Code, Codex, and OpenCode provide the coding agents; Superset provides workspaces, terminals, review, and scheduling around them.
+
+| Fact | Where to verify it |
+|---|---|
+| Source-available under Elastic License 2.0, not OSI-approved open source | [Repository license](https://github.com/superset-sh/superset/blob/main/LICENSE.md) |
+| macOS desktop; experimental Linux AppImage; Windows unavailable | [Downloads](/download) |
+| Free tier plus paid seats; agent-provider usage is separate | [Current plans](/pricing) |
+| Automations require Pro or Enterprise and an available target host | [Automation requirements](https://docs.superset.sh/automations) |
+| Worktrees separate working files, not process permissions, ports, or databases | [Git worktree reference](https://git-scm.com/docs/git-worktree) |
+
+For a first scheduled task, use the [maintenance-check walkthrough](/blog/scheduled-agent-maintenance). It includes a bounded prompt and explains how to inspect the result. An automation run marked **created** means its workspace was created; inspect the agent output to know whether the checks passed.
 
 ## Common patterns
 
@@ -114,7 +128,7 @@ Yes. Expose orchestration as MCP tools and any MCP-capable agent can create work
 
 ### How do scheduled agent runs work?
 
-You define a prompt, an agent, and a schedule; the orchestrator creates a fresh workspace at the appointed time, runs the agent, and leaves the result for review. Superset calls these automations. Typical uses: nightly dependency bumps, issue triage, recurring cleanup passes.
+You define a prompt, an agent, a target host, and a schedule. Superset Automations require Pro or Enterprise. If the host is offline when dispatch occurs, the run fails and the schedule advances; retry after the host is available. A created workspace is not evidence that the agent succeeded. Read its output before accepting the result.
 
 ### What should I look for in an agent orchestration tool?
 

@@ -87,6 +87,7 @@ async function getSandbox(name: string): Promise<Sandbox | null> {
 export interface SandboxEnvironment {
 	sourceKind: "image" | "fork";
 	sourceRef: string;
+	region: string;
 }
 
 /** Everything the box needs to become one workspace; nothing of it is a create-time env. */
@@ -187,7 +188,7 @@ export async function provisionSandbox(args: {
 			: await Sandbox.create({
 					...config,
 					image: args.environment.sourceRef,
-					region: env.VERCEL_SANDBOX_REGION as SandboxRegion,
+					region: args.environment.region as SandboxRegion,
 					resources: { vcpus: IMAGE_SANDBOX_VCPUS },
 				}));
 	await writeIdentity(sandbox, args.claim.identity);
@@ -338,7 +339,8 @@ export async function wakeSandbox(args: {
 	claim: SandboxClaim;
 }): Promise<{
 	hostTarget: string;
-	wasRunning: boolean;
+	/** The session was stopped, so every process on the box started from this claim. */
+	booted: boolean;
 }> {
 	try {
 		const sandbox = await Sandbox.get({
@@ -376,7 +378,7 @@ export async function wakeSandbox(args: {
 			hostTarget,
 			claim: args.claim,
 		});
-		return { hostTarget, wasRunning };
+		return { hostTarget, booted: !wasRunning };
 	} catch (error) {
 		if (isUnavailable(error))
 			throw new SandboxUnavailableError(args.providerSandboxId, error);
@@ -435,7 +437,7 @@ export async function promoteSandboxToEnvironment(args: {
 	goldenName: string;
 	/** What restarts the source: it boots the same way a wake does. */
 	claim: SandboxClaim;
-}): Promise<string> {
+}): Promise<{ goldenName: string; region: string }> {
 	const source = await Sandbox.get({
 		...credentials(),
 		name: args.sourceSandbox,
@@ -465,7 +467,7 @@ export async function promoteSandboxToEnvironment(args: {
 		await writeIdentity(source, args.claim.identity);
 		await runBoot(source, args.claim.hostSecret);
 	}
-	return args.goldenName;
+	return { goldenName: args.goldenName, region: source.region };
 }
 
 /**
@@ -495,6 +497,12 @@ export async function waitForStopSnapshot(
  * does to the box it keeps, so it costs storage rather than compute until
  * someone resumes it to look or deletes it.
  */
+export async function sandboxExists(
+	providerSandboxId: string,
+): Promise<boolean> {
+	return (await getSandbox(providerSandboxId)) !== null;
+}
+
 export async function stopSandbox(providerSandboxId: string): Promise<void> {
 	const sandbox = await getSandbox(providerSandboxId);
 	if (!sandbox || sandbox.status !== "running") return;

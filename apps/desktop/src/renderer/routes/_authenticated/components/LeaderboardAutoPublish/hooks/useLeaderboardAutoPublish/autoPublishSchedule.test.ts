@@ -16,6 +16,7 @@ describe("isPublishDue", () => {
 			handle: "me",
 			lastPublishedAt: NOW - HOUR,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(isPublishDue(state, NOW)).toBe(false);
 	});
@@ -25,6 +26,7 @@ describe("isPublishDue", () => {
 			handle: "me",
 			lastPublishedAt: NOW - PUBLISH_INTERVAL_MS,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(isPublishDue(state, NOW)).toBe(true);
 	});
@@ -32,7 +34,12 @@ describe("isPublishDue", () => {
 	it("fires on a machine that has never published", () => {
 		expect(
 			isPublishDue(
-				{ handle: "me", lastPublishedAt: 0, lastPayloadHash: null },
+				{
+					handle: "me",
+					lastPublishedAt: 0,
+					lastPayloadHash: null,
+					pendingBackfill: false,
+				},
 				NOW,
 			),
 		).toBe(true);
@@ -43,6 +50,7 @@ describe("isPublishDue", () => {
 			handle: "me",
 			lastPublishedAt: NOW + 10 * DAY,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(isPublishDue(state, NOW)).toBe(true);
 	});
@@ -52,7 +60,12 @@ describe("publishWindowDays", () => {
 	it("backfills the full window on a first publish", () => {
 		expect(
 			publishWindowDays(
-				{ handle: "me", lastPublishedAt: 0, lastPayloadHash: null },
+				{
+					handle: "me",
+					lastPublishedAt: 0,
+					lastPayloadHash: null,
+					pendingBackfill: false,
+				},
 				NOW,
 			),
 		).toBe(30);
@@ -63,6 +76,7 @@ describe("publishWindowDays", () => {
 			handle: "me",
 			lastPublishedAt: NOW - PUBLISH_INTERVAL_MS,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(publishWindowDays(state, NOW)).toBe(2);
 	});
@@ -72,6 +86,7 @@ describe("publishWindowDays", () => {
 			handle: "me",
 			lastPublishedAt: NOW - 6 * DAY,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(publishWindowDays(state, NOW)).toBe(7);
 	});
@@ -81,6 +96,7 @@ describe("publishWindowDays", () => {
 			handle: "me",
 			lastPublishedAt: NOW - 400 * DAY,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(publishWindowDays(state, NOW)).toBe(30);
 	});
@@ -90,6 +106,7 @@ describe("publishWindowDays", () => {
 			handle: "me",
 			lastPublishedAt: NOW + 5 * DAY,
 			lastPayloadHash: "a",
+			pendingBackfill: false,
 		};
 		expect(publishWindowDays(state, NOW)).toBe(2);
 	});
@@ -125,5 +142,40 @@ describe("hashPayload", () => {
 		expect(
 			hashPayload({ days: [], factoryDays: [{ agentPrsMerged: 1 }] }),
 		).not.toBe(hashPayload({ days: [], factoryDays: [{ agentPrsMerged: 2 }] }));
+	});
+});
+
+describe("publishWindowDays with an unfinished join backfill", () => {
+	const pending = {
+		handle: "me",
+		lastPublishedAt: 0,
+		lastPayloadHash: null,
+		pendingBackfill: true,
+	};
+
+	it("retries from launch day instead of the 30-day ceiling", () => {
+		expect(
+			publishWindowDays(pending, Date.parse("2026-09-18T12:00:00.000Z")),
+		).toBe(52);
+	});
+
+	it("still reaches launch day when the retry lands days after the join", () => {
+		expect(
+			publishWindowDays(pending, Date.parse("2026-09-21T12:00:00.000Z")),
+		).toBe(55);
+	});
+
+	it("outranks the rolling window a recent publish would otherwise pick", () => {
+		const at = Date.parse("2026-09-18T12:00:00.000Z");
+		expect(
+			publishWindowDays(
+				{
+					...pending,
+					lastPublishedAt: at - PUBLISH_INTERVAL_MS,
+					lastPayloadHash: "a",
+				},
+				at,
+			),
+		).toBe(52);
 	});
 });

@@ -139,8 +139,13 @@ export function formatRelativeTime(
 			return formatter.format(Math.round(diffMs / ms), unit);
 		}
 	}
-	return formatter.format(0, "second");
+	return new Intl.RelativeTimeFormat(locale, {
+		...options,
+		numeric: "auto",
+	}).format(0, "second");
 }
+
+const MINUTE_MS = 60 * 1000;
 
 // Compact age for dense UI: "3d", "2w", "5m". Locale-aware via
 // `style: "narrow"`, which most locales render without a leading article.
@@ -149,10 +154,90 @@ export function formatCompactRelativeTime(
 	now: Date | number = Date.now(),
 	locale = getActiveLocale(),
 ): string {
-	return formatRelativeTime(
+	const diffMs =
+		(date instanceof Date ? date.getTime() : date) -
+		(now instanceof Date ? now.getTime() : now);
+	if (Math.abs(diffMs) < MINUTE_MS) {
+		return formatRelativeTime(date, date, { numeric: "auto" }, locale);
+	}
+	const narrow = formatRelativeTime(
 		date,
 		now,
 		{ numeric: "always", style: "narrow" },
 		locale,
 	);
+	// French and Russian narrow past forms are a bare sign ("-5 min"), which
+	// reads as a negative number.
+	return /^[-+\u2212]/.test(narrow)
+		? formatRelativeTime(
+				date,
+				now,
+				{ numeric: "always", style: "short" },
+				locale,
+			)
+		: narrow;
+}
+
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const WEEK_MS = 7 * DAY_MS;
+const YEAR_MS = 365 * DAY_MS;
+
+function ageUnit(
+	elapsedMs: number,
+): [Intl.NumberFormatOptions["unit"], number] | null {
+	if (elapsedMs >= YEAR_MS) return ["year", Math.floor(elapsedMs / YEAR_MS)];
+	if (elapsedMs >= 2 * WEEK_MS)
+		return ["week", Math.floor(elapsedMs / WEEK_MS)];
+	if (elapsedMs >= DAY_MS) return ["day", Math.floor(elapsedMs / DAY_MS)];
+	if (elapsedMs >= HOUR_MS) return ["hour", Math.floor(elapsedMs / HOUR_MS)];
+	if (elapsedMs >= MINUTE_MS)
+		return ["minute", Math.floor(elapsedMs / MINUTE_MS)];
+	return null;
+}
+
+const formatUnit = (
+	locale: string,
+	unit: Intl.NumberFormatOptions["unit"],
+	count: number,
+	unitDisplay: "narrow" | "short",
+) =>
+	new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay }).format(
+		count,
+	);
+
+// Days hand over to weeks at two weeks, so English never needs a third digit.
+export function formatAge(
+	date: Date | number,
+	now: Date | number = Date.now(),
+	locale = getActiveLocale(),
+): string {
+	const elapsedMs =
+		(now instanceof Date ? now.getTime() : now) -
+		(date instanceof Date ? date.getTime() : date);
+	const age = ageUnit(elapsedMs);
+	if (!age) {
+		return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+			0,
+			"second",
+		);
+	}
+	const [unit, count] = age;
+	const narrow = formatUnit(locale, unit, count, "narrow");
+	// Some locales have no narrow form for a unit and fall back to English
+	// letters ("4w" in Japanese).
+	const isLatinScript = new Intl.Locale(locale).maximize().script === "Latn";
+	return !isLatinScript && /[a-z]/i.test(narrow)
+		? formatUnit(locale, unit, count, "short")
+		: narrow;
+}
+
+export function formatRelativePeriod(
+	{ unit, count }: { unit: "day" | "week" | "month" | "year"; count: number },
+	locale = getActiveLocale(),
+): string {
+	const label = new Intl.RelativeTimeFormat(locale, {
+		numeric: "auto",
+	}).format(-count, unit);
+	return label.charAt(0).toLocaleUpperCase(locale) + label.slice(1);
 }

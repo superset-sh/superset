@@ -72,8 +72,8 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	if (!isLinearPayload(accepted.payload)) {
-		// The body outlives the event row by seven days at most — its partition
-		// is dropped well before retention touches the row that points at it.
+		// Bodies are kept at least a day and nothing reads one after the
+		// 75-minute sweep, so a row this far along with no body never had one.
 		// Nothing to process and nothing a retry would recover.
 		const error =
 			accepted.payload === null ? "payload missing" : "payload unusable";

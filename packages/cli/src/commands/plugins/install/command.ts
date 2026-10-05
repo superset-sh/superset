@@ -19,8 +19,13 @@ import {
 	installPlugin,
 } from "../../../lib/plugins/install";
 import { pluginConnector } from "../../../lib/plugins/marketplace";
+import {
+	refreshPluginConnectionsCache,
+	syncPluginMcpServers,
+} from "../../../lib/plugins/mcp-servers";
 
 export default command({
+	sandbox: false,
 	description:
 		"Install a plugin: materialize its skills locally and record it on your account",
 	args: [
@@ -121,12 +126,19 @@ export default command({
 			}
 		}
 
+		// Again at the end, because this command can connect an account itself and
+		// a connector's second account is what splits one MCP entry into two.
+		await refreshPluginConnectionsCache(ctx.api);
+		const mcp = syncPluginMcpServers();
+
 		const next =
 			connection === "authorize in a browser"
 				? ` Authorize it: superset plugins connect ${name}`
 				: accountError
 					? ` Its skills work, but tools will not until the account install succeeds: ${accountError}`
-					: "";
+					: mcp.error
+						? ` Its skills work, but no agent can reach its tools until the MCP config is writable: ${mcp.error}`
+						: "";
 
 		return {
 			data: [

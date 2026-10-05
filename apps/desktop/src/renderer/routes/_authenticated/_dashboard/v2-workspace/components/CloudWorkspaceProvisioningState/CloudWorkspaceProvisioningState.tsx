@@ -1,12 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
-import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Check, Cloud, GitBranch, Loader2 } from "lucide-react";
+import { AlertCircle, Cloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { CloudWorkspaceRow } from "renderer/hooks/useCloudWorkspaces";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { provisioningSince } from "renderer/routes/_authenticated/_dashboard/utils/provisioningSince";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 /**
  * A warm sandbox is up in a second or two; the first ones after an image
@@ -15,50 +13,29 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
  */
 const STUCK_AFTER_SECONDS = 45;
 
-/** Younger than this, a ready workspace on this screen is still being created. */
-const RECENTLY_CREATED_MS = 10 * 60_000;
-
 interface CloudWorkspaceProvisioningStateProps {
 	workspaceId: string;
 	name: string;
-	branch: string;
 	status: CloudWorkspaceRow["status"];
-	createdAt: Date;
 }
 
 /**
- * What a cloud workspace shows between "created" and "openable".
- *
+ * A cloud workspace while its sandbox is being made, or after that failed.
  * The route navigates here the moment the row exists, so this screen — not a
- * toast, and not the host-unreachable takeover — is where the sandbox coming
- * up is visible. Its steps are read off the row's status and the host fan-out
- * rather than a timer, so they can't claim progress that hasn't happened.
+ * toast — is where the wait is visible.
  */
 export function CloudWorkspaceProvisioningState({
 	workspaceId,
 	name,
-	branch,
 	status,
-	createdAt,
 }: CloudWorkspaceProvisioningStateProps) {
 	const { t } = useLingui();
-	const elapsed = useElapsedSeconds({ status, createdAt });
+	const [since] = useState(() => provisioningSince(workspaceId));
+	const elapsed = useElapsedSeconds(since);
 
 	if (status === "failed") {
-		return (
-			<CloudWorkspaceFailedState
-				workspaceId={workspaceId}
-				name={name}
-				branch={branch}
-			/>
-		);
+		return <CloudWorkspaceFailedState workspaceId={workspaceId} name={name} />;
 	}
-
-	// `ready` means the provider handed back a preview URL, which is a step
-	// short of host-service answering on it. Until the workspace shows up in
-	// the fan-out this route keeps rendering, so the second step is the honest
-	// place to be.
-	const sandboxReady = status !== "provisioning";
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
@@ -83,34 +60,6 @@ export function CloudWorkspaceProvisioningState({
 							})}
 					</p>
 				</div>
-
-				{branch && (
-					<div className="flex w-full items-center gap-2">
-						<GitBranch
-							className="size-3 shrink-0 text-muted-foreground/80"
-							strokeWidth={2}
-							aria-hidden="true"
-						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-							{branch}
-						</code>
-					</div>
-				)}
-
-				<ul className="flex w-full flex-col gap-2">
-					<StepRow
-						label={t({
-							message: "Creating sandbox",
-						})}
-						state={sandboxReady ? "done" : "active"}
-					/>
-					<StepRow
-						label={t({
-							message: "Connecting to the workspace",
-						})}
-						state={sandboxReady ? "active" : "pending"}
-					/>
-				</ul>
 
 				<span className="font-mono text-[11px] tabular-nums text-muted-foreground/80">
 					{formatElapsed(elapsed)}
@@ -140,28 +89,11 @@ export function CloudWorkspaceProvisioningState({
 function CloudWorkspaceFailedState({
 	workspaceId,
 	name,
-	branch,
 }: {
 	workspaceId: string;
 	name: string;
-	branch: string;
 }) {
 	const { t } = useLingui();
-	const navigate = useNavigate();
-	const utils = cloudTrpc.useUtils();
-	const [isDeleting, setIsDeleting] = useState(false);
-
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			await apiTrpcClient.cloudWorkspace.delete.mutate({ id: workspaceId });
-			await utils.cloudWorkspace.list.invalidate();
-			await navigate({ to: "/v2-workspaces" });
-		} catch (error) {
-			console.error("[cloud-workspace] failed to delete", error);
-			setIsDeleting(false);
-		}
-	};
 
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
@@ -188,19 +120,6 @@ function CloudWorkspaceFailedState({
 					</p>
 				</div>
 
-				{branch && (
-					<div className="flex w-full items-center gap-2">
-						<GitBranch
-							className="size-3 shrink-0 text-muted-foreground/80"
-							strokeWidth={2}
-							aria-hidden="true"
-						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
-							{branch}
-						</code>
-					</div>
-				)}
-
 				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
 					<p className="select-text cursor-text text-[12px] leading-relaxed text-destructive/90">
 						<Trans>
@@ -214,61 +133,17 @@ function CloudWorkspaceFailedState({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={isDeleting}
-					onClick={() => void handleDelete()}
+					onClick={() =>
+						useDeleteWorkspaceIntent.getState().request({
+							workspaceId,
+							workspaceName: name || t({ message: "Untitled workspace" }),
+						})
+					}
 				>
-					{isDeleting
-						? t({
-								message: "Removing…",
-							})
-						: t({
-								message: "Remove workspace",
-							})}
+					<Trans>Remove workspace</Trans>
 				</Button>
 			</div>
 		</div>
-	);
-}
-
-type StepState = "done" | "active" | "pending";
-
-function StepRow({ label, state }: { label: string; state: StepState }) {
-	return (
-		<li
-			className={cn(
-				"flex items-center gap-2.5 text-[13px] leading-tight transition-colors duration-300",
-				state === "done" && "text-foreground/80",
-				state === "active" && "text-foreground",
-				state === "pending" && "text-muted-foreground/55",
-			)}
-		>
-			<StepIcon state={state} />
-			<span>{label}</span>
-		</li>
-	);
-}
-
-function StepIcon({ state }: { state: StepState }) {
-	if (state === "done") {
-		return (
-			<span className="grid size-3.5 shrink-0 place-items-center rounded-full bg-foreground/85 text-background">
-				<Check className="size-2" strokeWidth={3.5} aria-hidden="true" />
-			</span>
-		);
-	}
-	if (state === "active") {
-		return (
-			<Loader2
-				className="size-3.5 shrink-0 animate-spin text-foreground/70"
-				strokeWidth={2}
-				aria-hidden="true"
-			/>
-		);
-	}
-	return (
-		<span className="grid size-3.5 shrink-0 place-items-center">
-			<span className="size-1.5 rounded-full bg-muted-foreground/35" />
-		</span>
 	);
 }
 
@@ -278,34 +153,11 @@ function formatElapsed(seconds: number): string {
 	return `${minutes}:${(total % 60).toString().padStart(2, "0")}`;
 }
 
-/**
- * A workspace being created counts from its `createdAt`, so leaving and coming
- * back does not restart the wait, and the count carries on into "Connecting".
- * An older workspace shows this screen while its sleeping sandbox wakes; that
- * wait counts from when the screen appeared. Decided once per mount, so the
- * status turning ready mid-wait does not move the start.
- */
-function useElapsedSeconds({
-	status,
-	createdAt,
-}: {
-	status: CloudWorkspaceRow["status"];
-	createdAt: Date;
-}): number {
-	const [startedAt] = useState(() => {
-		const now = Date.now();
-		const created = createdAt.getTime();
-		return status === "provisioning" || now - created < RECENTLY_CREATED_MS
-			? created
-			: now;
-	});
-	const [elapsed, setElapsed] = useState(() => (Date.now() - startedAt) / 1000);
+function useElapsedSeconds(since: number): number {
+	const [now, setNow] = useState(Date.now);
 	useEffect(() => {
-		const id = window.setInterval(
-			() => setElapsed((Date.now() - startedAt) / 1000),
-			250,
-		);
+		const id = window.setInterval(() => setNow(Date.now()), 250);
 		return () => window.clearInterval(id);
-	}, [startedAt]);
-	return elapsed;
+	}, []);
+	return (now - since) / 1000;
 }

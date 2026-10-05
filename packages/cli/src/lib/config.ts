@@ -10,8 +10,12 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { env } from "./env";
+
+/** A token this close to `auth.expiresAt` is treated as expired. */
+export const AUTH_REFRESH_LEEWAY_MS = 5 * 60 * 1000;
 
 export type SupersetConfig = {
 	auth?: {
@@ -60,8 +64,9 @@ export function resolveOrganizationId(
 
 export function writeConfig(config: SupersetConfig): void {
 	ensureDir();
+	const configPath = resolveWriteTarget(SUPERSET_CONFIG_PATH);
 	const tempPath = join(
-		SUPERSET_HOME_DIR,
+		dirname(configPath),
 		`.${randomUUID()}.${process.pid}.config.tmp`,
 	);
 	writeFileSync(tempPath, JSON.stringify(config, null, 2), { mode: 0o600 });
@@ -69,7 +74,7 @@ export function writeConfig(config: SupersetConfig): void {
 		chmodSync(tempPath, 0o600);
 	} catch {}
 	try {
-		renameSync(tempPath, SUPERSET_CONFIG_PATH);
+		renameSync(tempPath, configPath);
 	} catch (error) {
 		try {
 			unlinkSync(tempPath);
@@ -77,7 +82,7 @@ export function writeConfig(config: SupersetConfig): void {
 		throw error;
 	}
 	try {
-		chmodSync(SUPERSET_CONFIG_PATH, 0o600);
+		chmodSync(configPath, 0o600);
 	} catch {}
 }
 

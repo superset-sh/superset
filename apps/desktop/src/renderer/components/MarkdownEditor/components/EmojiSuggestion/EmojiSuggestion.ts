@@ -64,7 +64,8 @@ export const EmojiSuggestion = Emoji.configure({
 					const clientRect = props.clientRect;
 					popup = tippy("body", {
 						getReferenceClientRect: () => clientRect?.() ?? new DOMRect(),
-						appendTo: () => document.body,
+						appendTo: () =>
+							props.editor.view.dom.closest("[role=dialog]") ?? document.body,
 						content: component.element,
 						showOnCreate: !!props.query,
 						interactive: true,

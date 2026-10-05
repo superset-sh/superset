@@ -1,0 +1,1 @@
+export { CloudWorkspaceRecordView } from "./CloudWorkspaceRecordView";

@@ -1,3 +1,14 @@
+import { Trans } from "@lingui/react/macro";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -44,11 +55,11 @@ export function SecretRow({
 }: SecretRowProps) {
 	const [isRevealed, setIsRevealed] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [confirmingDelete, setConfirmingDelete] = useState(false);
 
 	const [valueHovered, setValueHovered] = useState(false);
 
 	const handleDelete = useCallback(async () => {
-		if (!confirm(`Delete environment variable "${secret.key}"?`)) return;
 		setIsDeleting(true);
 		try {
 			await apiTrpcClient.environment.secrets.remove.mutate({
@@ -171,13 +182,38 @@ export function SecretRow({
 						<DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
 					)}
 					<DropdownMenuItem
-						onClick={handleDelete}
-						className="text-destructive focus:text-destructive"
+						onSelect={() => setConfirmingDelete(true)}
+						variant="destructive"
 					>
 						Delete
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			<AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							<Trans>Delete {secret.key}?</Trans>
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							<Trans>
+								Workspaces started from this environment will stop receiving it.
+							</Trans>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>
+							<Trans>Cancel</Trans>
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => void handleDelete()}
+							variant="destructive"
+						>
+							<Trans>Delete</Trans>
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

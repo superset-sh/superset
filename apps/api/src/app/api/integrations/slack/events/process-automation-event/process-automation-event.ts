@@ -1,6 +1,6 @@
 import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { accountConnection } from "@superset/trpc/connectors";
+import { accountConnections } from "@superset/trpc/connectors";
 
 import {
 	type IngestOutcome,
@@ -12,6 +12,7 @@ import {
 	normalizeSlackDelivery,
 	type SlackAutomationEnvelope,
 } from "./normalizeSlackDelivery";
+import { recordForEachConnection } from "./recordForEachConnection";
 
 export type { SlackAutomationEnvelope } from "./normalizeSlackDelivery";
 
@@ -40,24 +41,36 @@ export function isAutomationEvent(envelope: {
 }
 
 /**
- * Records a Slack event and enqueues a run for every trigger it satisfies.
+ * Records a Slack event and enqueues a run for every trigger it satisfies,
+ * once per connection on the workspace.
  *
- * Awaited by the route rather than queued: it is a handful of indexed reads
- * and one insert, well inside Slack's three-second window, and queueing would
- * add a job route only to defer the same work by a few hundred milliseconds.
+ * One workspace can be connected by several people, and each of those is a
+ * separate account a trigger may be pinned to. Resolving to a single
+ * connection bound every delivery to whichever row was touched last, so a
+ * trigger pinned to any other one silently stopped matching.
+ *
+ * Sequential rather than concurrent, for the reason Linear's fan-out
+ * documents: neon-http opens a connection per query, and asking for all of
+ * them at one instant starves the proxy's pool. The work per connection is a
+ * handful of indexed reads and one insert, which is what keeps this inside
+ * Slack's three-second window while it stays awaited on the request path.
  */
 export async function processAutomationEvent(
 	envelope: SlackAutomationEnvelope,
-): Promise<IngestOutcome> {
-	const connection = await accountConnection("slack", envelope.team_id);
-	if (!connection) return { status: "skipped", reason: "unknown workspace" };
+): Promise<IngestOutcome[]> {
+	const subscribers = await accountConnections("slack", envelope.team_id);
+	if (subscribers.length === 0) {
+		return [{ status: "skipped", reason: "unknown workspace" }];
+	}
 
-	return ingestAutomationEvent(
-		db,
-		normalizeSlackDelivery({
-			organizationId: connection.organizationId,
-			connectionId: connection.id,
-			envelope,
-		}),
+	return recordForEachConnection(subscribers, (connection) =>
+		ingestAutomationEvent(
+			db,
+			normalizeSlackDelivery({
+				organizationId: connection.organizationId,
+				connectionId: connection.id,
+				envelope,
+			}),
+		),
 	);
 }

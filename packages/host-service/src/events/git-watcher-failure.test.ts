@@ -1,11 +1,11 @@
-import { afterEach, expect, test } from "bun:test";
-import type { FSWatcher } from "node:fs";
+import { afterEach, expect, spyOn, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import simpleGit from "simple-git";
 import { GitStatusStore } from "../trpc/router/git/utils/git-status-store/git-status-store";
+import { GitDirectoryWatcher } from "./git-directory-watcher";
 import { GitWatcher } from "./git-watcher";
 
 type Batch = { events: FsWatchEvent[] };
@@ -29,11 +29,24 @@ class Stream implements AsyncIterable<Batch>, AsyncIterator<Batch> {
 	}
 }
 interface Internals {
-	watched: Map<string, { watcher: FSWatcher }>;
+	watched: Map<string, { watcher: GitDirectoryHandle }>;
 	pendingBatches: Map<string, unknown>;
 	interest: Map<string, number>;
 	rescan(): Promise<void>;
 }
+type GitDirectoryHandle = ReturnType<GitDirectoryWatcher["watch"]>;
+const failGitDirectory = new WeakMap<GitDirectoryHandle, () => void>();
+const watchGitDirectory = GitDirectoryWatcher.prototype.watch;
+spyOn(GitDirectoryWatcher.prototype, "watch").mockImplementation(function (
+	this: GitDirectoryWatcher,
+	path,
+	onChange,
+	onError,
+) {
+	const handle = watchGitDirectory.call(this, path, onChange, onError);
+	failGitDirectory.set(handle, onError);
+	return handle;
+});
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
 	for (const cleanup of cleanups.splice(0)) await cleanup();
@@ -117,8 +130,7 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 			if (failure === "reject") streams[0]?.reject(new Error("stream failed"));
 			if (failure === "end")
 				streams[0]?.resolve({ done: true, value: undefined });
-			if (failure === "git")
-				oldWatcher?.emit("error", new Error("native watcher failed"));
+			if (failure === "git" && oldWatcher) failGitDirectory.get(oldWatcher)?.();
 		}
 		await waitFor(() => states.includes(false));
 		expect(internals.watched.size).toBe(0);
@@ -141,7 +153,9 @@ for (const failure of ["reject", "end", "subscribe", "git"] as const) {
 		await internals.rescan();
 		expect(internals.watched.has(workspaceId)).toBe(true);
 		// A late error on the replaced watcher must not drop its replacement.
-		oldWatcher?.emit("error", new Error("late old watcher error"));
+		const failOldWatcher = oldWatcher && failGitDirectory.get(oldWatcher);
+		if (failure !== "subscribe") expect(failOldWatcher).toBeDefined();
+		failOldWatcher?.();
 		expect(internals.watched.has(workspaceId)).toBe(true);
 		expect(states.at(-1)).toBe(true);
 		const reattached = computations;

@@ -23,6 +23,7 @@ describe("isPublicRoute", () => {
 		"/automations/automation-123",
 		"/page",
 		"/page/my-published-page",
+		"/robots.txt",
 	])("allows the exact public route or its children: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(true);
 	});

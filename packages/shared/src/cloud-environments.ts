@@ -14,21 +14,28 @@ export function startableCloudEnvironments<T extends SelectableEnvironment>(
 }
 
 /**
- * The environment a cloud workspace starts from, by id or name; undefined on
- * a miss, so each caller phrases that failure itself. Nothing requested takes
- * the first environment that carries repositories.
+ * The environment a cloud workspace starts from, by id (names change and can
+ * differ only by case); undefined on a miss, so each caller phrases that
+ * failure itself. Nothing requested takes the only environment that carries
+ * repositories, never a guess among several.
  */
 export function selectCloudEnvironment<T extends SelectableEnvironment>(
 	environments: T[],
 	requested: string | undefined,
 ): T | undefined {
-	if (requested === undefined)
-		return startableCloudEnvironments(environments)[0];
+	if (requested === undefined) {
+		const startable = startableCloudEnvironments(environments);
+		return startable.length === 1 ? startable[0] : undefined;
+	}
+	const wanted = requested.trim();
+	return environments.find((environment) => environment.id === wanted);
+}
 
-	const wanted = requested.trim().toLowerCase();
-	return environments.find(
-		(environment) =>
-			environment.id.toLowerCase() === wanted ||
-			environment.name.toLowerCase() === wanted,
-	);
+/** How a hint lists environments: the id to pass, then the name to recognize it by. */
+export function describeEnvironments(
+	environments: ReadonlyArray<SelectableEnvironment>,
+): string {
+	return environments
+		.map((environment) => `${environment.id} (${environment.name})`)
+		.join(", ");
 }

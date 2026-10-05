@@ -61,6 +61,8 @@ export function IssueLinkCommand({
 			(taskPage?.items ?? []).map(({ task }) => ({
 				id: task.id,
 				slug: task.slug,
+				externalProvider: task.externalProvider,
+				externalKey: task.externalKey,
 				title: task.title,
 				statusId: task.statusId,
 				priority: task.priority,
@@ -104,6 +106,7 @@ export function IssueLinkCommand({
 				{
 					keys: [
 						{ name: "slug", weight: 3 },
+						{ name: "externalKey", weight: 3 },
 						{ name: "title", weight: 2 },
 					],
 					threshold: 0.4,

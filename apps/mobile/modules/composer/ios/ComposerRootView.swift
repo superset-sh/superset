@@ -6,6 +6,10 @@ import SwiftUI
 enum ComposerMetrics {
   /// Measured off frame 1: the pill's left edge sits ~12pt in, not 16.
   static let horizontalMargin: CGFloat = 12
+  /// Widest the cluster gets — tabs, keys, card — so an iPad or a wide
+  /// window centers it instead of stretching the card edge to edge. Matches
+  /// the app's `READABLE_WIDTH`; a phone never reaches it.
+  static let maxWidth: CGFloat = 720
   /// Gap between the composer and the bottom safe area, per frame 1.
   static let bottomGap: CGFloat = 8
   static let pillRadius: CGFloat = 26
@@ -28,6 +32,11 @@ enum ComposerMetrics {
   /// Frame 4: the expanded editor has a generous floor rather than growing up
   /// from one line — roughly four blank lines.
   static let editorMinHeight: CGFloat = 96
+  /// Two lines shorter than `editorMinHeight`, at the same ~24pt-per-line rate
+  /// the frame was measured at. The terminal screen opts into this floor to
+  /// leave more of the transcript visible when the composer is collapsed to
+  /// its minimum; it still grows to `maxLines` like the regular floor does.
+  static let editorMinHeightCompact: CGFloat = 48
   /// Frame 4: growth clamps rather than filling the screen. This is the whole
   /// bound — `lineLimit(1...n)` grows the field to n lines and scrolls after.
   /// A `.frame(maxHeight:)` is *not* the way to cap it: a max height makes the
@@ -293,6 +302,7 @@ struct ComposerRootView: View {
               model.commitSlashCommand(command)
             }
             .padding(.horizontal, ComposerMetrics.horizontalMargin)
+            .frame(maxWidth: ComposerMetrics.maxWidth)
             .transition(.composerContent)
           }
           VStack(spacing: ComposerMetrics.quickKeyGap) {
@@ -327,6 +337,7 @@ struct ComposerRootView: View {
             surface
               .padding(.horizontal, ComposerMetrics.horizontalMargin)
           }
+          .frame(maxWidth: ComposerMetrics.maxWidth)
           .padding(.bottom, ComposerMetrics.bottomGap)
           // Its own size, not its position — the keyboard moves this cluster
           // but does not resize it, so the caller gets a value that only
@@ -515,7 +526,12 @@ struct ComposerRootView: View {
       // The editor exists only while expanded, so this is the first moment it
       // can take first responder.
       .onAppear { isFocused = true }
-      .frame(minHeight: ComposerMetrics.editorMinHeight, alignment: .top)
+      .frame(
+        minHeight: model.compactEditor
+          ? ComposerMetrics.editorMinHeightCompact
+          : ComposerMetrics.editorMinHeight,
+        alignment: .top
+      )
       .padding(.horizontal, ComposerMetrics.textInset + ComposerMetrics.rowPadding)
       .padding(.bottom, ComposerMetrics.textInset)
   }

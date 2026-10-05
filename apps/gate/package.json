@@ -11,12 +11,12 @@
 	"dependencies": {
 		"@superset/shared": "workspace:*",
 		"jose": "6.2.2",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "5.20260801.1",
 		"@superset/typescript": "workspace:*",
-		"typescript": "6.0.3",
+		"typescript": "7.0.2",
 		"wrangler": "4.118.0"
 	}
 }

@@ -2,7 +2,7 @@
 title: "Superset vs Symphony (2026): Agent Workspace vs OpenAI's Tracker-Driven Orchestration"
 description: "Compare Superset and OpenAI's Symphony: an interactive workspace for parallel coding agents vs an open-source spec that turns tickets into autonomous Codex runs."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - symphony
@@ -23,12 +23,12 @@ Superset and Symphony both scale coding agents past one-at-a-time, from opposite
 
 | | **Superset** | **Symphony** |
 |---|---|---|
-| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Turns tracker tickets into isolated, autonomous Codex implementation runs |
+| **What it does** | Runs multiple AI agents in parallel with Git worktree isolation, chat, review, and browser | Turns tracker tickets into isolated, autonomous Codex implementation runs |
 | **Category** | Local-first agent workspace with remote/cloud hosts | Headless orchestration daemon (spec + reference implementation) |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Codex only (app-server protocol) |
 | **Control plane** | Workspace UI, CLI, MCP server, SDK | Your issue tracker (Linear, GitHub, Jira, Asana, GitLab) |
 | **Interaction** | Live terminals, chat, steering mid-run | None -- fully unattended; status dashboard is read-only |
-| **Isolation** | Git worktree per task on your machines | Git clone per issue in a contained workspace root |
+| **Isolation** | Git worktrees for local branch-based workspaces on your machines | Git clone per issue in a contained workspace root |
 | **Review** | Built-in diff/file editor, PR flow | On GitHub PRs; agents can land approved PRs themselves |
 | **Parallelism** | Many interactive agents at once | Concurrency caps per state (default 10 concurrent runs) |
 | **License / status** | Source-available (ELv2), shipping product | Apache-2.0; "low-key engineering preview" (v0.0.2) |
@@ -101,7 +101,7 @@ No. Symphony drives Codex through its app-server protocol exclusively. Superset 
 
 ### Does Symphony use Git worktrees?
 
-No -- it clones the repo into an isolated workspace per issue, contained within a workspace root. Superset uses a Git worktree per task, which shares the repository's object store and is cheaper to create.
+No -- it clones the repo into an isolated workspace per issue, contained within a workspace root. Superset uses a Git worktree for each new local branch-based workspace, which shares the repository's object store and is cheaper to create.
 
 ### Can Superset do tracker-driven autonomous runs?
 

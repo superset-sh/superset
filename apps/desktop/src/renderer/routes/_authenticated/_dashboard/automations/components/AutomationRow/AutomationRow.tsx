@@ -1,10 +1,10 @@
-import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
+import type { SelectUser } from "@superset/db/schema";
 import { i18n } from "@superset/i18n";
 import { formatCompactRelativeTime } from "@superset/i18n/format";
 import { useFormat } from "@superset/i18n/react";
+import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
 	describeSchedule,
 	formatDateTimeInTimezone,
@@ -25,11 +25,12 @@ import { TableCell, TableRow } from "@superset/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
+import { LuCloud, LuEllipsis, LuPlay, LuRotateCw } from "react-icons/lu";
+import { useCopyShareLink } from "renderer/routes/_authenticated/_dashboard/hooks/useCopyShareLink";
 import type { AutomationLastRun } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCopyAutomationLink } from "../../hooks/useCopyAutomationLink";
+import { RUN_STATUS_META } from "../../utils/runStatus";
 import { AutomationActionsMenuItems } from "./components/AutomationActionsMenuItems";
 
 type AutomationListItem = RouterOutputs["automation"]["list"][number];
@@ -46,59 +47,13 @@ interface AutomationRowProps {
 	/** Shared ticking clock so relative times stay fresh without per-row timers. */
 	now: Date;
 	isOwner: boolean;
+	canDelete: boolean;
 	/** True while a run/retry dispatch for this automation is in flight. */
 	isRetrying: boolean;
 	onRunNow: (automation: AutomationListItem) => void;
 	onToggleEnabled: (automation: AutomationListItem) => void;
 	onDelete: (automation: AutomationListItem) => void;
 }
-
-// A run's terminal success state is workspace creation — say so.
-const LAST_RUN_META: Record<
-	SelectAutomationRun["status"],
-	{ dot: string; label: MessageDescriptor; failed?: boolean }
-> = {
-	dispatched: {
-		dot: "bg-emerald-500",
-		label: msg({
-			message: "created",
-		}),
-	},
-	dispatching: {
-		dot: "bg-amber-500",
-		label: msg({
-			message: "creating",
-		}),
-	},
-	skipped_offline: {
-		dot: "bg-red-500",
-		label: msg({
-			message: "failed",
-		}),
-		failed: true,
-	},
-	dispatch_failed: {
-		dot: "bg-red-500",
-		label: msg({
-			message: "failed",
-		}),
-		failed: true,
-	},
-	// Neither created a workspace, so neither is `failed` — that flag offers to
-	// open one.
-	debounced: {
-		dot: "bg-slate-400",
-		label: msg({
-			message: "superseded",
-		}),
-	},
-	rejected: {
-		dot: "bg-amber-500",
-		label: msg({
-			message: "blocked",
-		}),
-	},
-};
 
 // Both directions come from Intl.RelativeTimeFormat: it renders the compact
 // "3d ago" / "in 2h" shape in every locale, so these need no catalog entries
@@ -126,6 +81,7 @@ export function AutomationRow({
 	lastRun,
 	now,
 	isOwner,
+	canDelete,
 	isRetrying,
 	onRunNow,
 	onToggleEnabled,
@@ -135,7 +91,7 @@ export function AutomationRow({
 
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const copyAutomationLink = useCopyAutomationLink();
+	const copyShareLink = useCopyShareLink();
 	// No rrule but some trigger means the automation is driven by events
 	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
@@ -160,11 +116,11 @@ export function AutomationRow({
 			search: { history: true },
 		});
 	const openLastRunWorkspace = () => {
-		if (!lastRun?.v2WorkspaceId) return;
-		localStorage.setItem("lastViewedWorkspaceId", lastRun.v2WorkspaceId);
+		if (!lastRun?.workspaceId) return;
+		localStorage.setItem("lastViewedWorkspaceId", lastRun.workspaceId);
 		navigate({
 			to: "/v2-workspace/$workspaceId",
-			params: { workspaceId: lastRun.v2WorkspaceId },
+			params: { workspaceId: lastRun.workspaceId },
 			search: {
 				terminalId: lastRun.terminalSessionId ?? undefined,
 			},
@@ -175,9 +131,10 @@ export function AutomationRow({
 		<AutomationActionsMenuItems
 			kind={kind}
 			isOwner={isOwner}
+			canDelete={canDelete}
 			enabled={automation.enabled}
 			onEdit={openDetail}
-			onCopyLink={() => copyAutomationLink(automation.id)}
+			onCopyLink={() => copyShareLink(`automations/${automation.id}`)}
 			onRunNow={() => onRunNow(automation)}
 			onToggleEnabled={() => onToggleEnabled(automation)}
 			onHistory={openHistory}
@@ -185,8 +142,8 @@ export function AutomationRow({
 		/>
 	);
 
-	const lastRunMeta = lastRun ? LAST_RUN_META[lastRun.status] : null;
-	const lastRunClickable = !!lastRun?.v2WorkspaceId;
+	const lastRunMeta = lastRun ? RUN_STATUS_META[lastRun.status] : null;
+	const lastRunClickable = !!lastRun?.workspaceId;
 
 	return (
 		<ContextMenu>
@@ -214,7 +171,12 @@ export function AutomationRow({
 							>
 								{automation.name}
 							</span>
-							{project ? (
+							{automation.targetHostId === CLOUD_HOST_ID ? (
+								<span className="ml-1 flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+									<LuCloud className="size-3.5 shrink-0" />
+									<Trans>Cloud</Trans>
+								</span>
+							) : project ? (
 								<span className="ml-1 flex min-w-0 shrink items-center gap-1.5 text-xs text-muted-foreground">
 									<ProjectThumbnail
 										projectName={project.name}
@@ -282,12 +244,7 @@ export function AutomationRow({
 						{lastRun && lastRunMeta ? (
 							(() => {
 								const cell = (
-									<span
-										className={cn(
-											"flex items-center gap-1.5",
-											lastRunMeta.failed && "text-red-600 dark:text-red-400",
-										)}
-									>
+									<span className="flex items-center gap-1.5">
 										<span
 											className={cn(
 												"inline-block size-1.5 shrink-0 rounded-full",
@@ -319,27 +276,7 @@ export function AutomationRow({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent>
-												{lastRunMeta.failed ? (
-													<Trans>
-														The last run failed. Open its workspace to see why
-													</Trans>
-												) : (
-													<Trans>Open the run's workspace</Trans>
-												)}
-											</TooltipContent>
-										</Tooltip>
-									);
-								}
-								if (lastRunMeta.failed) {
-									return (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<span className="block">{cell}</span>
-											</TooltipTrigger>
-											<TooltipContent>
-												<Trans>
-													The last run failed. Click the row to see why.
-												</Trans>
+												<Trans>Open the run's workspace</Trans>
 											</TooltipContent>
 										</Tooltip>
 									);

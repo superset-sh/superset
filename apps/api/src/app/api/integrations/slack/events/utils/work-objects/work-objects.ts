@@ -17,6 +17,7 @@ type TaskWithRelations = typeof tasks.$inferSelect & {
 };
 
 type TaskWithFullRelations = TaskWithRelations & {
+	labels: string[];
 	creator?: { id: string; name: string | null; email: string } | null;
 	organization?: { id: string; name: string; slug: string } | null;
 };
@@ -128,9 +129,9 @@ export function createTaskFlexpaneObject(
 		user?: { text: string; email?: string };
 	}> = [];
 
-	const labels = task.labels as string[] | null;
+	const labels = task.labels;
 	customFields.push(
-		labels && labels.length > 0
+		labels.length > 0
 			? {
 					key: "labels",
 					label: "Labels",

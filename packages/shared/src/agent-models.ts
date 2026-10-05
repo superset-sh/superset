@@ -83,6 +83,12 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	},
 	{ id: "anthropic/claude-fable-5", label: "Fable 5", provider: "Anthropic" },
 	{
+		id: "anthropic/claude-sonnet-5-5",
+		label: "Sonnet 5.5",
+		provider: "Anthropic",
+	},
+	{ id: "anthropic/claude-sonnet-5", label: "Sonnet 5", provider: "Anthropic" },
+	{
 		id: "anthropic/claude-sonnet-4-6",
 		label: "Sonnet 4.6",
 		provider: "Anthropic",
@@ -92,6 +98,7 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		label: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{ id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", provider: "OpenAI" },
 	{ id: "openai/gpt-6-astra", label: "GPT-6 Astra", provider: "OpenAI" },
 	{ id: "openai/gpt-6-sol", label: "GPT-6 Sol", provider: "OpenAI" },
 	{ id: "openai/gpt-6-luna", label: "GPT-6 Luna", provider: "OpenAI" },
@@ -103,9 +110,6 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	},
 	{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.5", label: "GPT-5.5", provider: "OpenAI" },
-	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
-	{ id: "openai/gpt-5.4", label: "GPT-5.4", provider: "OpenAI" },
-	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
 
 const LATEST_GROUP = "Latest";
@@ -114,7 +118,7 @@ const CURSOR_ANTHROPIC_GROUP = "Anthropic";
 const CURSOR_OPENAI_GROUP = "OpenAI";
 const CURSOR_OTHER_GROUP = "Other";
 const CURRENT_GROUP = "Current";
-const CODEX_RETIRING_GROUP = "Retiring 2026-08-31";
+const CODEX_RETIRING_GROUP = "Retiring 2026-10-14";
 
 export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	{
@@ -133,6 +137,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "claude-fable-5", label: "Fable 5", group: PINNED_GROUP },
 			{ id: "claude-opus-5-5", label: "Opus 5.5", group: PINNED_GROUP },
 			{ id: "claude-opus-5", label: "Opus 5", group: PINNED_GROUP },
+			{ id: "claude-sonnet-5-5", label: "Sonnet 5.5", group: PINNED_GROUP },
 			{ id: "claude-sonnet-5", label: "Sonnet 5", group: PINNED_GROUP },
 			{ id: "claude-opus-4-8", label: "Opus 4.8", group: PINNED_GROUP },
 			{ id: "claude-opus-4-7", label: "Opus 4.7", group: PINNED_GROUP },
@@ -148,27 +153,24 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		models: [
 			// Availability is account-dependent; ids are verified against Codex's
 			// live catalog (`codex app-server` → `model/list`).
+			{ id: "gpt-6.1-sol", label: "GPT-6.1 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-6-astra", label: "GPT-6 Astra", group: CURRENT_GROUP },
 			{ id: "gpt-6-sol", label: "GPT-6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-6-luna", label: "GPT-6 Luna", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", group: CURRENT_GROUP },
 			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", group: CURRENT_GROUP },
-			{ id: "gpt-5.5", label: "GPT-5.5", group: CURRENT_GROUP },
-			// Superseded by gpt-5.6-terra/luna; the header dates the retirement
+			// Superseded by the GPT-6 family; the header dates the retirement
 			// so it reaches the person picking rather than only this file.
-			{ id: "gpt-5.4", label: "GPT-5.4", group: CODEX_RETIRING_GROUP },
-			{
-				id: "gpt-5.3-codex",
-				label: "GPT-5.3 Codex",
-				group: CODEX_RETIRING_GROUP,
-			},
+			{ id: "gpt-5.5", label: "GPT-5.5", group: CODEX_RETIRING_GROUP },
 		],
 	},
 	{
 		presetId: "gemini",
 		modelFlag: "--model",
 		models: [
+			{ id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
+			{ id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
 			{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 			{ id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
 		],
@@ -177,6 +179,24 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "copilot",
 		modelFlag: "--model",
 		models: [
+			{ id: "auto", label: "Auto" },
+			{ id: "claude-opus-5.5", label: "Claude Opus 5.5" },
+			{ id: "claude-opus-5", label: "Claude Opus 5" },
+			{ id: "claude-fable-5.1", label: "Claude Fable 5.1" },
+			{ id: "claude-sonnet-5.5", label: "Claude Sonnet 5.5" },
+			{ id: "claude-sonnet-5", label: "Claude Sonnet 5" },
+			{ id: "claude-sonnet-4.6", label: "Claude Sonnet 4.6" },
+			{ id: "claude-haiku-4.5", label: "Claude Haiku 4.5" },
+			{ id: "gpt-6-astra", label: "GPT-6 Astra" },
+			{ id: "gpt-6-sol", label: "GPT-6 Sol" },
+			{ id: "gpt-6-luna", label: "GPT-6 Luna" },
+			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
+			{ id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
+			{ id: "grok-4.7", label: "Grok 4.7" },
+			{ id: "kimi-k3", label: "Kimi K3" },
 			{ id: "claude-fable-5", label: "Claude Fable 5" },
 			{ id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
 			{ id: "gpt-5.1", label: "GPT-5.1" },
@@ -189,7 +209,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// cursor-agent has no effort flag: every effort level is its own
 			// model id, and these are each family's default level. The effort
 			// picker swaps in the sibling id (`CURSOR_EFFORT_VARIANTS`). Ids
-			// verified against a live account's `--list-models` (2026-09-04);
+			// verified against a live account's `--list-models` (2026-09-26);
 			// the list is account-dependent and unknown ids are rejected by
 			// the CLI, not silently ignored. "auto" is the only id free-plan
 			// accounts can use (besides composer) — named models fail there
@@ -197,6 +217,11 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// choice in the picker.
 			{ id: "auto", label: "Auto" },
 			{ id: "composer-2.5", label: "Composer 2.5" },
+			{
+				id: "claude-opus-5-5-medium",
+				label: "Opus 5.5",
+				group: CURSOR_ANTHROPIC_GROUP,
+			},
 			{
 				id: "claude-fable-5-1-thinking-high",
 				label: "Fable 5.1",
@@ -260,6 +285,12 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 				label: "Grok 4.6",
 				group: CURSOR_OTHER_GROUP,
 			},
+			{ id: "grok-4.7-high", label: "Grok 4.7", group: CURSOR_OTHER_GROUP },
+			{
+				id: "muse-spark-1.3-high",
+				label: "Muse Spark 1.3",
+				group: CURSOR_OTHER_GROUP,
+			},
 			{ id: "kimi-k3-max", label: "Kimi K3", group: CURSOR_OTHER_GROUP },
 			{ id: "glm-5.2-high", label: "GLM 5.2", group: CURSOR_OTHER_GROUP },
 		],
@@ -272,11 +303,20 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
 			// same models.dev catalog but need an authed anthropic provider to
 			// appear in that listing; `claude-fable-5-1` was checked against
-			// models.dev directly (2026-09-01).
+			// models.dev directly (2026-09-01), the gpt-6 family likewise
+			// (2026-09-23).
+			{ id: "anthropic/claude-opus-5-5", label: "Claude Opus 5.5" },
+			{ id: "anthropic/claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+			{ id: "anthropic/claude-sonnet-5", label: "Claude Sonnet 5" },
 			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
 			{ id: "anthropic/claude-fable-5-1", label: "Claude Fable 5.1" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
+			{ id: "anthropic/claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
+			{ id: "google/gemini-3.8-flash", label: "Gemini 3.8 Flash" },
+			{ id: "openai/gpt-6-astra", label: "GPT-6 Astra" },
+			{ id: "openai/gpt-6-sol", label: "GPT-6 Sol" },
+			{ id: "openai/gpt-6-luna", label: "GPT-6 Luna" },
 			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
 			{ id: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra" },
 			{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna" },
@@ -289,10 +329,14 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// OMP accepts configured role aliases as well as exact
 			// provider/model selectors. Exact ids verified against
 			// `omp models --json` in OMP 18.0.1; `claude-fable-5-1` against the
-			// catalog bundled in OMP 18.1.2.
+			// catalog bundled in OMP 18.1.2; the gpt-6 family against
+			// pi-catalog 18.2.11.
 			{ id: "@smol", label: "Configured fast model" },
 			{ id: "@slow", label: "Configured slow model" },
 			{ id: "@plan", label: "Configured plan model" },
+			{ id: "anthropic/claude-opus-5-5", label: "Claude Opus 5.5" },
+			{ id: "anthropic/claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+			{ id: "anthropic/claude-sonnet-5", label: "Claude Sonnet 5" },
 			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
 			{ id: "anthropic/claude-fable-5-1", label: "Claude Fable 5.1" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
@@ -300,6 +344,9 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 				id: "anthropic/claude-sonnet-4-6",
 				label: "Claude Sonnet 4.6",
 			},
+			{ id: "openai-codex/gpt-6-astra", label: "GPT-6 Astra" },
+			{ id: "openai-codex/gpt-6-sol", label: "GPT-6 Sol" },
+			{ id: "openai-codex/gpt-6-luna", label: "GPT-6 Luna" },
 			{ id: "openai-codex/gpt-5.6-sol", label: "GPT-5.6 Sol" },
 			{ id: "openai-codex/gpt-5.6-terra", label: "GPT-5.6 Terra" },
 			{ id: "openai-codex/gpt-5.6-luna", label: "GPT-5.6 Luna" },
@@ -404,6 +451,24 @@ const CURSOR_GPT_LEVELS = [
 const CURSOR_EFFORT_VARIANTS: Readonly<
 	Record<string, Readonly<Record<string, string>>>
 > = {
+	"claude-opus-5-5-medium": cursorEffortVariants(
+		"claude-opus-5-5",
+		CURSOR_CLAUDE_LEVELS,
+	),
+	"grok-4.7-high": cursorEffortVariants("grok-4.7", [
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+	]),
+	"muse-spark-1.3-high": cursorEffortVariants("muse-spark-1.3", [
+		"minimal",
+		"low",
+		"medium",
+		"high",
+		"xhigh",
+		"max",
+	]),
 	"claude-fable-5-1-thinking-high": cursorEffortVariants(
 		"claude-fable-5-1-thinking",
 		CURSOR_CLAUDE_LEVELS,
@@ -523,12 +588,13 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
-			// Per-model support comes from Codex's live model catalog. GPT-6 Sol
-			// supports `ultra`; GPT-6 Luna supports up to `max`.
+			// Per-model support comes from Codex's live model catalog. GPT-6
+			// Astra and Sol support `ultra`; GPT-6 Luna supports up to `max`.
 			{
 				id: "max",
 				label: "Max",
 				models: [
+					"gpt-6.1-sol",
 					"gpt-6-astra",
 					"gpt-6-sol",
 					"gpt-6-luna",
@@ -540,7 +606,13 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{
 				id: "ultra",
 				label: "Ultra",
-				models: ["gpt-6-sol", "gpt-5.6-sol", "gpt-5.6-terra"],
+				models: [
+					"gpt-6.1-sol",
+					"gpt-6-astra",
+					"gpt-6-sol",
+					"gpt-5.6-sol",
+					"gpt-5.6-terra",
+				],
 			},
 		],
 	},
@@ -580,6 +652,7 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 		effortFlag: null,
 		efforts: [
 			{ id: "none", label: "None" },
+			{ id: "minimal", label: "Minimal" },
 			{ id: "low", label: "Low" },
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },

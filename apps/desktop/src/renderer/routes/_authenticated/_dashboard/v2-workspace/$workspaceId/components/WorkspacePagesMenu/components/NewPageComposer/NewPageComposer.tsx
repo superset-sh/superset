@@ -6,12 +6,12 @@ import { useSendToTerminalAgent } from "renderer/hooks/host-service/useSendToTer
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import {
+	AgentSessionPicker,
+	useAgentSessionTarget,
+} from "renderer/routes/_authenticated/_dashboard/components/AgentSessionPicker";
 import { buildPageAgentPrompt } from "renderer/routes/_authenticated/_dashboard/utils/pageAgentPrompt";
 import type { CreateNewAgentSession } from "../../../../hooks/useAgentSessionLauncher";
-import {
-	AgentPickerSelect,
-	useDiffCommentTarget,
-} from "../../../../hooks/usePaneRegistry/components/AgentCommentComposer";
 
 interface NewPageComposerProps {
 	workspaceId: string;
@@ -39,7 +39,7 @@ export function NewPageComposer({
 	);
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const { data: configs = [] } = useV2AgentConfigs(hostUrl);
-	const { value, resolved, onValueChange } = useDiffCommentTarget({
+	const { value, resolved, onValueChange } = useAgentSessionTarget({
 		sessions,
 		configs,
 	});
@@ -121,7 +121,8 @@ export function NewPageComposer({
 				className="block w-full resize-none bg-transparent px-2.5 pt-2 text-[13px] leading-snug text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
 			/>
 			<div className="flex items-center gap-1.5 px-1.5 pb-1.5 pt-1">
-				<AgentPickerSelect
+				<AgentSessionPicker
+					workspaceId={workspaceId}
 					value={value}
 					onValueChange={onValueChange}
 					sessions={sessions}

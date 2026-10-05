@@ -1,0 +1,1 @@
+ALTER TABLE "cloud_workspaces" ADD COLUMN "base_branch" text NOT NULL;

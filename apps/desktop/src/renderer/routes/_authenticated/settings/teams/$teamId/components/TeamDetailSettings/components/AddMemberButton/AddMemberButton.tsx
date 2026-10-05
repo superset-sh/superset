@@ -5,11 +5,11 @@ import { Checkbox } from "@superset/ui/checkbox";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
-import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { HiOutlinePaperAirplane, HiOutlinePlus } from "react-icons/hi2";
+import { HiOutlinePlus, HiOutlineUserPlus } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useInviteMember } from "renderer/routes/_authenticated/hooks/useInviteMember";
 
 interface OrgUser {
 	id: string;
@@ -36,6 +36,7 @@ export function AddMemberButton({
 	const [query, setQuery] = useState("");
 	const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 	const utils = cloudTrpc.useUtils();
+	const inviteMember = useInviteMember();
 
 	// Snapshot of who was a member when the popover opened. Sort against this
 	// so toggling a checkbox doesn't reorder the row under the cursor.
@@ -156,16 +157,21 @@ export function AddMemberButton({
 						})
 					)}
 				</div>
-				<div className="border-t p-1">
-					<Link
-						to="/settings/organization"
-						onClick={() => setIsOpen(false)}
-						className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-					>
-						<HiOutlinePaperAirplane className="h-4 w-4" />
-						<Trans>Invite people...</Trans>
-					</Link>
-				</div>
+				{inviteMember && (
+					<div className="border-t p-1">
+						<button
+							type="button"
+							onClick={() => {
+								setIsOpen(false);
+								inviteMember();
+							}}
+							className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+						>
+							<HiOutlineUserPlus className="h-4 w-4" />
+							<Trans>Invite member</Trans>
+						</button>
+					</div>
+				)}
 			</PopoverContent>
 		</Popover>
 	);

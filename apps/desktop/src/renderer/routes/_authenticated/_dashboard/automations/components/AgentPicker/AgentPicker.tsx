@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { getPresetById } from "@superset/shared/host-agent-presets";
+import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,8 +14,7 @@ import { HiCheck } from "react-icons/hi2";
 import { LuCpu, LuSettings } from "react-icons/lu";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
-import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAutomationAgentChoices } from "../../hooks/useAutomationAgentChoices";
 import {
 	matchAgentChoice,
 	portableAgentValue,
@@ -42,8 +42,7 @@ export function AgentPicker({
 }: AgentPickerProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const hostUrl = useHostUrl(hostId);
-	const { agents } = useV2AgentChoices(hostUrl);
+	const { agents } = useAutomationAgentChoices(hostId);
 	const isDark = useIsDarkTheme();
 	const hostMatch = matchAgentChoice(agents, value);
 	const presetMatch = hostMatch ? null : getPresetById(value);
@@ -100,13 +99,19 @@ export function AgentPicker({
 						</DropdownMenuItem>
 					);
 				})}
-				<DropdownMenuSeparator />
-				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/agents" })}>
-					<LuSettings className="size-4 shrink-0" />
-					<span className="flex-1">
-						<Trans>Configure agents…</Trans>
-					</span>
-				</DropdownMenuItem>
+				{hostId !== CLOUD_HOST_ID && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							onSelect={() => navigate({ to: "/settings/agents" })}
+						>
+							<LuSettings className="size-4 shrink-0" />
+							<span className="flex-1">
+								<Trans>Configure agents…</Trans>
+							</span>
+						</DropdownMenuItem>
+					</>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

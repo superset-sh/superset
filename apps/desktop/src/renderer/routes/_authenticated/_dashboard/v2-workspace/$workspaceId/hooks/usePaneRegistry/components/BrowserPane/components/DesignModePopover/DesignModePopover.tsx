@@ -9,11 +9,11 @@ import { useSendToTerminalAgent } from "renderer/hooks/host-service/useSendToTer
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import type { DesignModePayload } from "shared/browser-design-mode";
 import {
-	AgentPickerSelect,
-	useDiffCommentTarget,
-} from "../../../AgentCommentComposer";
+	AgentSessionPicker,
+	useAgentSessionTarget,
+} from "renderer/routes/_authenticated/_dashboard/components/AgentSessionPicker";
+import type { DesignModePayload } from "shared/browser-design-mode";
 import {
 	buildDesignModePrompt,
 	shortDesignModeElementLabel,
@@ -77,7 +77,7 @@ export function DesignModePopover({
 	);
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const { data: configs = [] } = useV2AgentConfigs(hostUrl);
-	const { value, resolved, onValueChange } = useDiffCommentTarget({
+	const { value, resolved, onValueChange } = useAgentSessionTarget({
 		sessions,
 		configs,
 	});
@@ -240,7 +240,8 @@ export function DesignModePopover({
 							<Trans>Pick a different element (esc)</Trans>
 						</TooltipContent>
 					</Tooltip>
-					<AgentPickerSelect
+					<AgentSessionPicker
+						workspaceId={workspaceId}
 						value={value}
 						onValueChange={onValueChange}
 						sessions={sessions}

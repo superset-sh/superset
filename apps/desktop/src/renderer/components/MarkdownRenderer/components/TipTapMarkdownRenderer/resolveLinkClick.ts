@@ -1,7 +1,7 @@
 import type {
-	ClickPolicy,
 	LinkAction,
 	ModifierEvent,
+	UrlLinkAction,
 } from "renderer/lib/clickPolicy";
 
 export interface LinkClickEvent extends ModifierEvent {
@@ -18,13 +18,13 @@ const WEB_URL = /^https?:\/\//i;
 
 export function resolveLinkClick(
 	event: LinkClickEvent,
-	getAction: ClickPolicy["getAction"],
+	getAction: UrlLinkAction,
 ): ResolvedLinkClick {
 	if (event.button !== 0) return { kind: "none" };
 	const target = event.target as HTMLElement | null;
 	const href = target?.closest?.("a")?.getAttribute("href");
 	if (!href || !WEB_URL.test(href)) return { kind: "none" };
-	const action = getAction(event);
+	const action = getAction(event, href);
 	if (action === null) return { kind: "unbound" };
 	return { kind: "open", url: href, action };
 }

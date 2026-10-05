@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import {
+	chmodSync,
 	existsSync,
 	mkdtempSync,
 	readFileSync,
@@ -7,7 +8,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { acquireInstallUpdateLock } from "./install-update-lock";
 
 const dirs: string[] = [];
@@ -46,4 +47,20 @@ test("an incomplete lock is never silently removed", () => {
 		"Install update locked",
 	);
 	expect(existsSync(`${path}.update-lock`)).toBe(true);
+});
+
+test("explains an unwritable install parent without creating a fallback lock", () => {
+	if (process.getuid?.() === 0) return;
+	const path = root();
+	const parent = dirname(path);
+	chmodSync(parent, 0o500);
+	try {
+		expect(() => acquireInstallUpdateLock(path)).toThrow(
+			"needs write and search access",
+		);
+		expect(existsSync(`${path}.update-lock`)).toBe(false);
+	} finally {
+		chmodSync(parent, 0o700);
+	}
+	acquireInstallUpdateLock(path)();
 });

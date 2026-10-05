@@ -5,6 +5,7 @@ import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
 import {
 	type PersistableTransaction,
 	useOptimisticActions,
@@ -120,6 +121,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [orgMembers, hostUserRows, userMap, t]);
 
+	const isOrgOwner = useIsOrganizationOwner();
 	const isOwner = useMemo(() => {
 		if (!currentUserId) return false;
 		return (
@@ -238,7 +240,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					/>
 				</section>
 
-				{isOwner ? (
+				{isOwner || isOrgOwner ? (
 					<DeleteHostSection
 						hostId={hostId}
 						hostName={host.name}

@@ -1,0 +1,1 @@
+export { PullRequestDetailContent } from "./PullRequestDetailContent";

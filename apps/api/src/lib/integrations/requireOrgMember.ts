@@ -1,19 +1,18 @@
 import { auth } from "@superset/auth/server";
 import { findOrgMembership } from "@superset/db/utils";
 
-import { createSignedState } from "@/lib/oauth-state";
-
 export type OrgMember = {
 	organizationId: string;
 	userId: string;
-	/** Signed OAuth state carrying the pair through the provider round-trip. */
-	state: string;
 };
 
 /**
  * The connect-route preamble: who is asking, for which organization, and
  * whether they belong to it. Returns the error response to send when a check
  * fails.
+ *
+ * It deliberately hands back no state token: a state is only ever minted by
+ * `beginOAuthFlow`, which binds it to the asking browser in the same step.
  */
 export async function requireOrgMember(
 	request: Request,
@@ -44,9 +43,5 @@ export async function requireOrgMember(
 		);
 	}
 
-	return {
-		organizationId,
-		userId: session.user.id,
-		state: createSignedState({ organizationId, userId: session.user.id }),
-	};
+	return { organizationId, userId: session.user.id };
 }

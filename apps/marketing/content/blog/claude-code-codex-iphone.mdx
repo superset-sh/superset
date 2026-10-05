@@ -1,0 +1,106 @@
+---
+title: "Manage Claude Code and Codex from your iPhone"
+description: "Connect an iPhone to your Superset workspaces, unblock Claude Code or Codex, and inspect changes. Includes Pro requirements, host setup, and offline troubleshooting."
+author: kiet
+date: 2026-09-22
+unlisted: true
+category: Engineering
+image: /images/blog/superset-mobile/diffs.png
+relatedSlugs:
+  - superset-mobile
+  - parallel-coding-agents-guide
+  - scheduled-agent-maintenance
+keywords:
+  - claude code iphone
+  - codex iphone
+  - coding agents from phone
+---
+
+Your agent asks a question just as you leave your desk. Open Superset on your iPhone, reply in the same terminal, and check the diff when the change is ready.
+
+Claude Code and Codex keep running on your computer. Superset Mobile gives you access to those workspaces from your phone.
+
+## What you need
+
+- An iPhone running **iOS 26 or later** and **Superset Pro**.
+- A host computer with your repository and an authenticated coding agent.
+- The same Superset account and organization on both devices.
+
+The host must stay awake and online. Closing your laptop can put it to sleep and disconnect the session. For work that needs to continue overnight, use a computer that stays on.
+
+Your agent subscription or API usage is billed separately. See [plans](/pricing). Android is on the [waitlist](/mobile#android).
+
+<StoreBadges source="blog_claude_code_codex_iphone" androidHref="/mobile#android" />
+
+## Connect your computer
+
+In Superset desktop, open **Settings → Remote Access** and enable **Allow remote access to this device via relay**. Enable it before starting work: changing this setting restarts the host service and interrupts running terminals.
+
+On a dedicated host, use the CLI:
+
+```bash
+superset auth login
+superset start --daemon
+superset status
+```
+
+See [remote access setup](https://docs.superset.sh/remote-access) for host permissions and connection settings.
+
+## Start a task on desktop
+
+Create a workspace in your repository and start Claude Code or Codex. For a small search-copy change, try:
+
+```text
+Propose a clearer message for the search screen's no-results state.
+Ask me to approve the wording before editing. Then change the message
+and any existing test that asserts it. Run the relevant check.
+Do not commit, push, or merge.
+```
+
+Replace the example with a task from your project. Asking for a proposal gives you a chance to choose the wording before the agent edits it.
+
+## Reply from your iPhone
+
+Open the connected host in Superset Mobile, then open the workspace. Read the proposal in its terminal and send your approval or a revision.
+
+You're continuing the session on your computer. You don't need to start a new chat or paste in the conversation. Try sending a message from your phone before leaving your desk to check the connection.
+
+## Review the diff
+
+Open **Files changed** to see what the agent edited. Check the message and its test result, then ask for any corrections in the terminal.
+
+<video controls playsInline preload="metadata" poster="/videos/blog/phone-diff-review/poster.jpg" aria-label="Inspect a sample diff and mark the file viewed in Superset Mobile" className="mx-auto max-h-[640px] w-auto rounded-xl">
+  <source src="/videos/blog/phone-diff-review/demo.mp4" type="video/mp4" />
+  Your browser can [download the diff-review recording](/videos/blog/phone-diff-review/demo.mp4).
+</video>
+
+Inspect the diff, then mark the file as viewed.
+
+For a larger change, continue the review on desktop. Open the same workspace, run any remaining checks, and commit or open a pull request when you're ready.
+
+## If you can't connect
+
+- **Host offline:** check that the computer is awake, online, and running the host service.
+- **Host missing:** check your account, organization, and host membership on both devices.
+- **Terminal works but the agent doesn't:** check the agent's login, usage limits, and repository setup on the host.
+- **Session stopped after changing remote access:** reopen the workspace and check the terminal before resuming.
+
+## Frequently asked questions
+
+### Does Claude Code or Codex run on the iPhone?
+
+The agent runs on your connected computer. The iPhone lets you send instructions and review its work.
+
+### Can I use Claude Code and Codex together?
+
+Yes. Install and authenticate both on the host, then use separate workspaces for independent tasks. You can open either workspace from your phone.
+
+### Will work continue if my laptop is closed?
+
+Only if it stays awake and connected. Use another host that stays online if you need work to continue while your laptop sleeps.
+
+### Is the mobile app free?
+
+It's free to download. Mobile access requires Superset Pro, and agent usage is billed separately by its provider.
+
+For several tasks at once, follow the [parallel coding workflow](/blog/parallel-coding-agents-guide). To run work on a schedule, see the [maintenance automation guide](/blog/scheduled-agent-maintenance).

@@ -12,6 +12,8 @@ export interface AutomationDraft {
 	targetHostId: string | null;
 	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
+	cloudWorkspaceId: string | null;
+	environmentId: string | null;
 	tags: string[];
 	continueAgentSession: boolean;
 	triggers: DraftTrigger[];
@@ -27,6 +29,7 @@ export interface AutomationDraft {
 export function useAutomationDraft(
 	saved: AutomationDraft,
 	commit: (draft: AutomationDraft) => undefined | Promise<unknown>,
+	knownConnectionIds?: readonly string[],
 ) {
 	const [draft, setDraft] = useState(saved);
 	const [dirty, setDirty] = useState(false);
@@ -42,9 +45,15 @@ export function useAutomationDraft(
 	}
 
 	const problems = useMemo(
-		() => describeTriggerProblems(draft.triggers),
-		[draft.triggers],
+		() => describeTriggerProblems(draft.triggers, { knownConnectionIds }),
+		[draft.triggers, knownConnectionIds],
 	);
+
+	const standingProblems = useMemo(
+		() => problems.filter((problem) => problem.field === "connectionId"),
+		[problems],
+	);
+	const visible = submitted ? problems : standingProblems;
 
 	const edit = (patch: Partial<AutomationDraft>) => {
 		setDraft((current) => ({ ...current, ...patch }));
@@ -73,12 +82,10 @@ export function useAutomationDraft(
 		saving,
 		// Every trigger is incomplete the instant it is added, so complaints wait
 		// for a save attempt rather than landing before the work.
-		shownProblems: submitted ? problems : [],
-		banner: submitted ? summarizeTriggerProblems(problems) : null,
+		shownProblems: visible,
+		banner: summarizeTriggerProblems(visible),
 		edit,
 		editTriggers: (triggers: DraftTrigger[]) => edit({ triggers }),
-		addTrigger: (config: DraftTrigger["config"]) =>
-			edit({ triggers: [...draft.triggers, { config }] }),
 		save,
 		discard: () => {
 			setDraft(saved);

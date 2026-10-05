@@ -35,11 +35,13 @@ config.resolver.unstable_enablePackageExports = true;
 config.resolver.extraNodeModules = {
 	"@superset/alert-prompt": path.resolve(projectRoot, "modules/alert-prompt"),
 	"@superset/composer": path.resolve(projectRoot, "modules/composer"),
+	"@superset/symbol-button": path.resolve(projectRoot, "modules/symbol-button"),
 	"@superset/attachments-sheet": path.resolve(
 		projectRoot,
 		"modules/attachments-sheet",
 	),
 	"@superset/paste-input": path.resolve(projectRoot, "modules/paste-input"),
+	"@superset/title-press": path.resolve(projectRoot, "modules/title-press"),
 };
 
 // Worklets Bundle Mode (react-native-streamdown): resolves the generated

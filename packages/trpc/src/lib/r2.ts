@@ -189,11 +189,12 @@ export async function deleteObjects(
 export async function presignedGetUrl(
 	key: string,
 	expiresInSeconds = 60 * 60,
+	signingDate?: Date,
 ): Promise<string> {
 	return getSignedUrl(
 		s3(),
 		new GetObjectCommand({ Bucket: bucketName("private"), Key: key }),
-		{ expiresIn: expiresInSeconds },
+		{ expiresIn: expiresInSeconds, signingDate },
 	);
 }
 

@@ -2033,6 +2033,69 @@ function projectRefresher(manager: PullRequestRuntimeManager) {
 	return accessible.refreshProject.bind(accessible);
 }
 
+test("revalidates unchanged PRs after the polling cache expires without falling back", async () => {
+	const db = createRealDb();
+	seedProject(db);
+	seedWorkspace(db, {
+		id: "ws-conditional",
+		branch: "feature",
+		upstreamOwner: REPO.owner,
+		upstreamRepo: REPO.name,
+		upstreamBranch: "feature",
+	});
+	const node = makePrNode({ number: 42, headRef: "feature", headSha: "sha" });
+	let requests = 0;
+	let notModified = 0;
+	let fallbacks = 0;
+	const manager = createManager(db, {
+		git: defaultBranchGit("main"),
+		execGh: async (args) => {
+			if (args.includes("graphql")) return {};
+			requests += 1;
+			if (args.includes('If-None-Match: "unchanged"')) {
+				notModified += 1;
+				throw Object.assign(new Error("gh: HTTP 304"), {
+					code: 1,
+					stdout: 'HTTP/2.0 304 Not Modified\r\nEtag: "unchanged"\r\n\r\n',
+				});
+			}
+			const endpoint = args.find((arg) => arg.startsWith("repos/"));
+			const body = endpoint?.endsWith("/pulls")
+				? [node]
+				: endpoint?.endsWith("/check-runs")
+					? { check_runs: [] }
+					: [];
+			return args.includes("--include")
+				? `HTTP/2.0 200 OK\r\nEtag: "unchanged"\r\n\r\n${JSON.stringify(body)}`
+				: body;
+		},
+		github: async () => {
+			fallbacks += 1;
+			throw new Error("304 must not reach Octokit");
+		},
+	});
+	try {
+		setSystemTime(new Date("2026-10-04T12:00:00Z"));
+		await projectRefresher(manager)(PROJECT_ID);
+		const initialRequests = requests;
+		expect(initialRequests).toBeGreaterThan(0);
+		setSystemTime(new Date("2026-10-04T12:05:01Z"));
+		await projectRefresher(manager)(PROJECT_ID);
+		expect(notModified).toBe(initialRequests);
+		expect(requests).toBe(initialRequests * 2);
+		expect(fallbacks).toBe(0);
+		const [snapshot] = await manager.getPullRequestsByWorkspaces([
+			"ws-conditional",
+		]);
+		expect(snapshot?.pullRequest?.number).toBe(42);
+		expect(snapshot?.error).toBeNull();
+	} finally {
+		setSystemTime();
+		manager.stop();
+		db.$client.close();
+	}
+});
+
 // gh answers for one open PR: the head lookup / open sweep return the node,
 // and the four detail calls return empty but well-formed payloads.
 function ghAnsweringPr(

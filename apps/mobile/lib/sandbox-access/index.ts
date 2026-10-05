@@ -1,4 +1,5 @@
 export {
+	addressSandboxAccess,
 	clearSandboxAccess,
 	ensureSandboxAccess,
 	getSandboxAccess,

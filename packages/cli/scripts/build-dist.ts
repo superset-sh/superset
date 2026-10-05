@@ -7,6 +7,7 @@
  *   lib/node                     — Standalone Node.js runtime
  *   lib/host-service.js          — Bundled host-service entry
  *   lib/agent-templates/         — Agent-setup templates (+ plugin/ = repo Claude plugin)
+ *   lib/chat-migrations/         — chat.db Drizzle migrations
  *   lib/node_modules/            — Full native addon packages (JS wrappers + bindings)
  *     better-sqlite3/
  *     node-pty/
@@ -450,6 +451,12 @@ async function main(): Promise<void> {
 	cpSync(migrationsSrc, join(stagingRoot, "share", "migrations"), {
 		recursive: true,
 	});
+
+	cpSync(
+		join(dirname(hostServiceBundle), "chat-migrations"),
+		join(stagingRoot, "lib", "chat-migrations"),
+		{ recursive: true },
+	);
 
 	// Agent-setup templates ship side-by-side with host-service.js (resolved
 	// by resolveAgentTemplatesDir in host-service) so headless hosts can

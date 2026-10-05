@@ -2,7 +2,7 @@
 title: "Claude Code vs Codex (2026): Comparing the Top Coding Agents"
 description: "Compare Claude Code and OpenAI Codex for AI coding in 2026, across surfaces, parallelism, and pricing, plus how to run either or both in parallel with Superset."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - claude-code
@@ -63,7 +63,7 @@ There is no universal winner. Claude Code is prized for deep, reliable single-ta
 
 ## Running Claude Code and Codex in Parallel
 
-If you use both agents, or run several sessions of either, the bottleneck becomes isolation and review. Superset runs Claude Code and Codex (and OpenCode, Cursor, Gemini, and more) as first-class agents, each in its own Git worktree, so multiple sessions work the same repository without collisions. It adds built-in diff review, an in-app browser, MCP, and remote and cloud workspaces, and hands off to your editor. See [Superset vs Claude Code](/compare/superset-vs-claude-code), [Superset vs Codex](/compare/superset-vs-codex), and the guide to running [multiple agents in parallel](/compare/multiple-claude-code-agents-parallel).
+If you use both agents, or run several sessions of either, the bottleneck becomes isolation and review. Superset runs Claude Code and Codex (and OpenCode, Cursor, Gemini, and more) in local branch-based workspaces with separate Git worktrees, so multiple sessions work the same repository in separate working directories. It adds built-in diff review, an in-app browser, MCP, and remote and cloud workspaces, and hands off to your editor. See [Superset vs Claude Code](/compare/superset-vs-claude-code), [Superset vs Codex](/compare/superset-vs-codex), and the guide to running [multiple agents in parallel](/compare/multiple-claude-code-agents-parallel). Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ## Which Should You Choose?
 

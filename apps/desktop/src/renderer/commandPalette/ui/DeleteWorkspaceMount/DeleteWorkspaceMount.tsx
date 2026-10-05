@@ -1,4 +1,8 @@
+import { useEffect } from "react";
+import { useArchivingCloudWorkspaceIds } from "renderer/hooks/useArchivingCloudWorkspaceIds";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useArchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useArchiveCloudWorkspace";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
@@ -19,8 +23,23 @@ export function DeleteWorkspaceMount() {
 	const setOpen = useDeleteWorkspaceIntent((s) => s.setOpen);
 	const close = useDeleteWorkspaceIntent((s) => s.close);
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
+	const { workspaces: cloudWorkspaces = [] } = useCloudWorkspaces();
+	const archiving = useArchivingCloudWorkspaceIds();
+	const archive = useArchiveCloudWorkspace();
+	const cloudTarget =
+		target &&
+		(archiving.includes(target.workspaceId) ||
+			cloudWorkspaces.some((row) => row.id === target.workspaceId))
+			? target
+			: null;
 
-	if (!target) return null;
+	useEffect(() => {
+		if (!cloudTarget) return;
+		close(cloudTarget.workspaceId);
+		archive({ id: cloudTarget.workspaceId, name: cloudTarget.workspaceName });
+	}, [cloudTarget, close, archive]);
+
+	if (!target || cloudTarget) return null;
 	// Callbacks bind the rendered target's id: a dialog whose destroy is
 	// still in flight after a new request replaced the target keeps its own
 	// id, so its settle can't touch the new target's dialog.

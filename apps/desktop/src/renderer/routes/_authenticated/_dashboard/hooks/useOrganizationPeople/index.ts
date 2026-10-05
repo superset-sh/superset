@@ -1,0 +1,1 @@
+export { useOrganizationPeople } from "./useOrganizationPeople";

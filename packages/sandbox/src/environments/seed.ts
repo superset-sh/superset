@@ -5,6 +5,7 @@ import {
 	SHARED_ENVIRONMENT_NAME,
 	SHARED_ENVIRONMENT_ORGANIZATION_ID,
 } from "@superset/shared/constants";
+import { and, eq } from "drizzle-orm";
 
 const SHARED_ORGANIZATION = {
 	id: SHARED_ENVIRONMENT_ORGANIZATION_ID,
@@ -20,19 +21,27 @@ export async function seedSharedEnvironments(
 		.values(SHARED_ORGANIZATION)
 		.onConflictDoNothing({ target: organizations.id });
 
-	await db
-		.insert(environments)
-		.values({
+	const shared = await db.query.environments.findFirst({
+		where: and(
+			eq(environments.organizationId, SHARED_ENVIRONMENT_ORGANIZATION_ID),
+			eq(environments.name, SHARED_ENVIRONMENT_NAME),
+		),
+		columns: { id: true },
+	});
+	if (shared) {
+		await db
+			.update(environments)
+			.set({ provider: "vercel", sourceRef: imageRef, archivedAt: null })
+			.where(eq(environments.id, shared.id));
+	} else {
+		await db.insert(environments).values({
 			organizationId: SHARED_ENVIRONMENT_ORGANIZATION_ID,
 			name: SHARED_ENVIRONMENT_NAME,
 			provider: "vercel",
 			sourceKind: "image",
 			sourceRef: imageRef,
-		})
-		.onConflictDoUpdate({
-			target: [environments.organizationId, environments.name],
-			set: { provider: "vercel", sourceRef: imageRef, archivedAt: null },
 		});
+	}
 
 	return { imageRef };
 }

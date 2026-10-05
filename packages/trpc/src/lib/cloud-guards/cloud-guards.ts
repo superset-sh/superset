@@ -20,6 +20,22 @@ export async function assertCloudAccess(ctx: {
 	userId: string;
 	session: { user: { id: string; email: string } } | null;
 }): Promise<void> {
+	const { enabled, account } = await cloudAccess(ctx);
+	if (enabled) return;
+
+	throw userError({
+		code: "FORBIDDEN",
+		message: `Cloud sandboxes are not enabled for ${account || "this account"}. Ask the Superset team for access.`,
+		i18nKey: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
+		params: { account: account || "this account" },
+	});
+}
+
+/** `enabled` is undefined when PostHog could not answer. */
+export async function cloudAccess(ctx: {
+	userId: string;
+	session: { user: { id: string; email: string } } | null;
+}): Promise<{ enabled: boolean | undefined; account: string }> {
 	const account = (await currentEmail(ctx))?.trim().toLowerCase() ?? "";
 	const enabled = await posthog.isFeatureEnabled(
 		FEATURE_FLAGS.CLOUD_WORKSPACES,
@@ -32,14 +48,7 @@ export async function assertCloudAccess(ctx: {
 			sendFeatureFlagEvents: false,
 		},
 	);
-	if (enabled) return;
-
-	throw userError({
-		code: "FORBIDDEN",
-		message: `Cloud sandboxes are not enabled for ${account || "this account"}. Ask the Superset team for access.`,
-		i18nKey: "serverError.cloudWorkspace.cloudSandboxesAreInternalOnly",
-		params: { account: account || "this account" },
-	});
+	return { enabled, account };
 }
 
 /**

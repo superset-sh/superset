@@ -1,0 +1,1 @@
+export { TruncateStart } from "./TruncateStart";

@@ -1,0 +1,1 @@
+export { renameFilePanePaths } from "./renameFilePanePaths";

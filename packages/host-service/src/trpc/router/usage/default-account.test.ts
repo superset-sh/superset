@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
+	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -70,6 +73,21 @@ describe("host-wide default account pointers", () => {
 		expect(
 			readFileSync(join(home, "state", "default-claude-config-dir"), "utf8"),
 		).toBe(selected);
+	});
+
+	it("writes through a symlinked pointer instead of replacing it", () => {
+		const dotfiles = mkdtempSync(join(tmpdir(), "superset-pointer-dotfiles-"));
+		const real = join(dotfiles, "default-claude-config-dir");
+		writeFileSync(real, "");
+		const stateDir = join(home, "state");
+		mkdirSync(stateDir, { recursive: true });
+		const pointerPath = join(stateDir, "default-claude-config-dir");
+		symlinkSync(real, pointerPath);
+
+		syncDefaultAccountPointer("claude", "/Users/kietho/.claude-work");
+
+		expect(lstatSync(pointerPath).isSymbolicLink()).toBe(true);
+		expect(readFileSync(real, "utf8")).toBe("/Users/kietho/.claude-work");
 	});
 
 	it("treats an existing empty pointer as an explicit system-default choice", () => {

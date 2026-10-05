@@ -2,88 +2,86 @@ import { useNavigate } from "@tanstack/react-router";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import type { PortForward } from "shared/types";
 import { usePortForward } from "../../providers/PortForwardsProvider";
 import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
 
-interface UsePortOpenActionsResult {
-	canOpenInBrowser: boolean;
-	portUrl: string;
-	isOpenExternalPending: boolean;
-	portOpenAction: LinkAction;
-	openExternal: () => void;
-	openInApp: (target: "new-tab" | "current-tab") => void;
-	openInBrowser: () => void;
-	openWorkspace: () => void;
-	openPrimary: () => void;
+type OpenablePort = Pick<
+	DashboardSidebarPort,
+	"port" | "hostType" | "workspaceId" | "terminalId"
+>;
+
+/**
+ * Where this machine reaches the port, or null when it can't: a remote port
+ * opens like a local one only once the main process forwards it, and the
+ * local port number may differ from the remote one.
+ */
+export function getPortBrowserUrl(
+	port: Pick<DashboardSidebarPort, "port" | "hostType">,
+	forward: Pick<PortForward, "status"> | null,
+): string | null {
+	const localPort =
+		forward?.status.state === "active" ? forward.status.localPort : null;
+	if (port.hostType !== "local-device" && localPort === null) return null;
+	return `http://localhost:${localPort ?? port.port}`;
 }
 
-export function usePortOpenActions(
-	port: DashboardSidebarPort,
-): UsePortOpenActionsResult {
+/**
+ * Opens a port the way a plain click does: in the browser configured under
+ * Settings → Links → Ports, or, for a remote port that isn't forwarded, by
+ * jumping to the terminal that serves it.
+ */
+export function usePortOpener() {
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { preferences } = useV2UserPreferences();
-	// A remote port opens like a local one once the main process forwards it
-	// to this machine; the local port number may differ from the remote one.
-	const forward = usePortForward(port);
-	const activeForward =
-		forward?.status.state === "active" ? forward.status : null;
-	const canOpenInBrowser =
-		port.hostType === "local-device" || activeForward !== null;
-	const portUrl = `http://localhost:${activeForward?.localPort ?? port.port}`;
 
-	const openExternal = () => {
-		if (!canOpenInBrowser || openUrl.isPending) return;
-		openUrl.mutate(portUrl);
+	const openExternal = (url: string) => {
+		if (!openUrl.isPending) openUrl.mutate(url);
 	};
 
-	const openInApp = (target: "new-tab" | "current-tab") => {
-		if (!canOpenInBrowser) return;
+	const openPort = (
+		port: OpenablePort,
+		forward: Pick<PortForward, "status"> | null,
+	) => {
+		const url = getPortBrowserUrl(port, forward);
+		if (url === null) {
+			void navigateToV2Workspace(port.workspaceId, navigate, {
+				search: {
+					terminalId: port.terminalId,
+					focusRequestId: crypto.randomUUID(),
+				},
+			});
+			return;
+		}
+		if (preferences.portOpenAction === "external") {
+			openExternal(url);
+			return;
+		}
 		void navigateToV2Workspace(port.workspaceId, navigate, {
 			search: {
-				openUrl: portUrl,
-				openUrlTarget: target,
+				openUrl: url,
+				openUrlTarget:
+					preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
 				openUrlRequestId: crypto.randomUUID(),
 			},
 		});
 	};
 
-	// Where a plain click opens the port is configurable under
-	// Settings → Links → Ports.
-	const openInBrowser = () => {
-		if (preferences.portOpenAction === "external") {
-			openExternal();
-			return;
-		}
-		openInApp(
-			preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
-		);
-	};
+	return { openPort, openExternal };
+}
 
-	const openWorkspace = () => {
-		void navigateToV2Workspace(port.workspaceId, navigate, {
-			search: {
-				terminalId: port.terminalId,
-				focusRequestId: crypto.randomUUID(),
-			},
-		});
-	};
-
-	// Opening the port is the primary action; a remote port that is not
-	// forwarded can't open a local browser tab, so clicking it jumps to the
-	// workspace instead.
-	const openPrimary = canOpenInBrowser ? openInBrowser : openWorkspace;
+export function usePortOpenActions(port: DashboardSidebarPort) {
+	const forward = usePortForward(port);
+	const { openPort, openExternal } = usePortOpener();
+	const browserUrl = getPortBrowserUrl(port, forward);
 
 	return {
-		canOpenInBrowser,
-		portUrl,
-		isOpenExternalPending: openUrl.isPending,
-		portOpenAction: preferences.portOpenAction,
-		openExternal,
-		openInApp,
-		openInBrowser,
-		openWorkspace,
-		openPrimary,
+		canOpenInBrowser: browserUrl !== null,
+		portUrl: browserUrl ?? `http://localhost:${port.port}`,
+		openExternal: () => {
+			if (browserUrl !== null) openExternal(browserUrl);
+		},
+		openPrimary: () => openPort(port, forward),
 	};
 }

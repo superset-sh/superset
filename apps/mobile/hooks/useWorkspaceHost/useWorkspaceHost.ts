@@ -47,6 +47,8 @@ export interface WorkspaceHostResult {
 	cloud: CloudWorkspaceRow | null;
 	/** Cloud only: the API could not address or wake the sandbox. Attempts continue. */
 	sandboxUnreachable: boolean;
+	/** Cloud only: addressed, but not yet woken since it was opened. */
+	sandboxWaking: boolean;
 	retrySandbox: () => void;
 	/** True while no host has answered yet. */
 	isResolving: boolean;
@@ -73,8 +75,8 @@ export function useWorkspaceHost(
 	);
 	const {
 		target: sandbox,
-		isReady: sandboxReady,
 		isError: sandboxUnreachable,
+		isWaking: sandboxWaking,
 		retry: retrySandbox,
 	} = useSandboxAccess(cloud);
 
@@ -115,32 +117,30 @@ export function useWorkspaceHost(
 			// the workspace; the sandbox's own row is scratch that a rename
 			// never reaches. Live git state still comes from the sandbox.
 			const workspace = servedRow ? { ...servedRow, name: cloud.name } : null;
+			const host: OrgHost | null = sandbox
+				? {
+						organizationId: cloud.organizationId,
+						machineId: cloud.id,
+						name: "Cloud",
+						version: null,
+						platform: null,
+						installSource: null,
+						// A sandbox is reachable or it isn't; there is no offline
+						// device behind it to report on.
+						isOnline: true,
+					}
+				: null;
 			return {
 				workspace,
-				host: workspace
-					? {
-							organizationId: cloud.organizationId,
-							machineId: cloud.id,
-							name: "Cloud",
-							version: null,
-							platform: null,
-							installSource: null,
-							// A sandbox is reachable or it isn't; there is no offline
-							// device behind it to report on.
-							isOnline: true,
-						}
-					: null,
+				host,
 				cloud,
-				sandboxUnreachable:
-					!workspace && (sandboxUnreachable || served?.isError === true),
+				sandboxUnreachable: !host && sandboxUnreachable,
+				sandboxWaking,
 				retrySandbox: () => {
 					retrySandbox();
 					void served?.refetch();
 				},
-				isResolving:
-					!workspace &&
-					cloud.status === "ready" &&
-					(!sandboxReady || served?.isLoading === true),
+				isResolving: !host && cloud.status === "ready",
 			};
 		}
 		let workspace: HostWorkspaceRow | null = null;
@@ -163,14 +163,15 @@ export function useWorkspaceHost(
 			host,
 			cloud: null,
 			sandboxUnreachable: false,
+			sandboxWaking: false,
 			retrySandbox,
 			isResolving,
 		};
 	}, [
 		cloud,
 		sandbox,
-		sandboxReady,
 		sandboxUnreachable,
+		sandboxWaking,
 		retrySandbox,
 		targets,
 		queries,

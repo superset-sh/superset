@@ -1,3 +1,4 @@
 export default {
-	description: "Inspect the environments cloud workspaces start from",
+	audience: "internal",
+	description: "Manage the environments cloud workspaces start from",
 };

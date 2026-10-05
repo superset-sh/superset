@@ -2,6 +2,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { formatStarCount } from "@superset/shared/github-stars";
+import { useId } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -17,10 +18,9 @@ interface StarPaceChartProps {
 	granularity: "day" | "week";
 }
 
-const GRADIENT_ID = "star-pace-partial-gradient";
-
 export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 	const { t, i18n } = useLingui();
+	const gradientId = useId();
 
 	const chartConfig = {
 		displayValue: {
@@ -50,10 +50,13 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 			: 100;
 
 	return (
-		<ChartContainer config={chartConfig} className="h-[160px] w-full">
+		<ChartContainer
+			config={chartConfig}
+			className="h-[160px] w-full min-w-0 aspect-auto"
+		>
 			<BarChart data={data} margin={{ left: 0, right: 12, top: 4, bottom: 0 }}>
 				<defs>
-					<linearGradient id={GRADIENT_ID} x1="0" y1="1" x2="0" y2="0">
+					<linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
 						<stop
 							offset={`${confirmedPct}%`}
 							stopColor="var(--color-displayValue)"
@@ -141,7 +144,7 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 							key={d.date}
 							fill={
 								d.isPartial
-									? `url(#${GRADIENT_ID})`
+									? `url(#${gradientId})`
 									: "var(--color-displayValue)"
 							}
 						/>

@@ -10,15 +10,20 @@ const DOWNLOAD = "https://superset.sh/download";
 interface WelcomeEmailProps {
 	userName?: string;
 	userEmail?: string;
+	unsubscribeUrl?: string;
 }
 
-export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
+export function WelcomeEmail({
+	userEmail,
+	unsubscribeUrl,
+}: WelcomeEmailProps = {}) {
 	const assets = `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails`;
 
 	return (
 		<EmailLayout
 			preview="They do the work. You review the diffs."
 			recipientEmail={userEmail}
+			unsubscribeUrl={unsubscribeUrl}
 		>
 			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-3">
 				Welcome to Superset

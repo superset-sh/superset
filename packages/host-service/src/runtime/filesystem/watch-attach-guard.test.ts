@@ -129,3 +129,46 @@ test("a second attach queued behind a failing one is refused without touching na
 	]);
 	expect(inner.subscribe).toHaveBeenCalledTimes(1);
 });
+
+test("cancelling initialization does not put the next attach into backoff", async () => {
+	const controller = new AbortController();
+	let first = true;
+	const { guard, attach } = createGuard(async () => {
+		if (first) {
+			first = false;
+			controller.abort();
+			throw controller.signal.reason;
+		}
+		return async () => {};
+	});
+	await expect(
+		guard.subscribe(
+			{ absolutePath: ROOT, signal: controller.signal },
+			() => {},
+		),
+	).rejects.toThrow();
+	expect(guard.isBackingOff(ROOT)).toBe(false);
+	await expect(attach()).resolves.toBeFunction();
+});
+
+test("a cancelled caller queued behind an attach never reaches the watcher", async () => {
+	let release: () => void = () => {};
+	const pending = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const { guard, inner, attach } = createGuard(async () => {
+		await pending;
+		return async () => {};
+	});
+	const first = attach();
+	const controller = new AbortController();
+	const second = guard
+		.subscribe({ absolutePath: ROOT, signal: controller.signal }, () => {})
+		.catch((error) => error);
+	controller.abort();
+	release();
+	await first;
+	expect(await second).toBe(controller.signal.reason);
+	expect(inner.subscribe).toHaveBeenCalledTimes(1);
+	expect(guard.isBackingOff(ROOT)).toBe(false);
+});

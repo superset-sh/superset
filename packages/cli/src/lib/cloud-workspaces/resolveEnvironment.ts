@@ -1,5 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
 import {
+	describeEnvironments,
 	type SelectableEnvironment,
 	selectCloudEnvironment,
 	startableCloudEnvironments,
@@ -17,7 +18,7 @@ export function resolveCloudEnvironment<T extends SelectableEnvironment>(
 	if (startable.length === 0) {
 		throw new CLIError(
 			"No environment with repositories in this organization",
-			"Create one in Settings → Environments before creating a cloud workspace",
+			"Create one with: superset environments create",
 		);
 	}
 
@@ -26,8 +27,10 @@ export function resolveCloudEnvironment<T extends SelectableEnvironment>(
 		throw new CLIError(
 			selected
 				? `Environment "${selected.name}" has no repositories`
-				: `No environment "${requested}" in this organization`,
-			`Start from one with repositories: ${startable.map((environment) => environment.name).join(", ")}`,
+				: requested === undefined
+					? "Several environments in this organization; pass --environment"
+					: `No environment ${requested} in this organization`,
+			`Start from one of: ${describeEnvironments(startable)}`,
 		);
 	}
 	return selected;

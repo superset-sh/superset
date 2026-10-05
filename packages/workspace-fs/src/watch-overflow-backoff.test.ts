@@ -71,6 +71,11 @@ async function subscribeWithEvents(
 			if (event.kind === "overflow") overflowTimes.push(Date.now());
 		}
 	});
+	expect(events).toEqual([
+		{ kind: "overflow", absolutePath: rootPath, isDirectory: true },
+	]);
+	events.length = 0;
+	overflowTimes.length = 0;
 	const internal = manager as unknown as FsWatcherManagerInternal;
 	const state = internal.watchers.get(rootPath);
 	if (!state) throw new Error("watcher state missing");
@@ -278,6 +283,8 @@ describe("FSEvents overflow rescan backoff", () => {
 				events.push(...batch.events);
 			},
 		);
+		expect(overflowEvents(events)).toHaveLength(1);
+		events.length = 0;
 		const internal = manager as unknown as FsWatcherManagerInternal;
 		const state = internal.watchers.get(rootPath);
 		if (!state) throw new Error("watcher state missing");

@@ -3,6 +3,7 @@ import { i18n } from "@superset/i18n";
 import { BsMicrosoftTeams } from "react-icons/bs";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { AccountSlot } from "../components/AccountSlot";
 import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
@@ -16,9 +17,11 @@ function renderSlot(
 	config: MicrosoftTeamsConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, state, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled, account }: SentenceContext,
 ) {
 	switch (slot) {
+		case "account":
+			return <AccountSlot key={index} account={account} after="›" />;
 		case "teams":
 			return (
 				<ScopeChip

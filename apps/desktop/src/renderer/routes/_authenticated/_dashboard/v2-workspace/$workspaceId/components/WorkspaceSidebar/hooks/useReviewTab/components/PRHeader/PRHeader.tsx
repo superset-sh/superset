@@ -2,6 +2,10 @@ import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import { LuArrowRight, LuArrowUpRight } from "react-icons/lu";
+import {
+	type PullRequestRef,
+	pullRequestRefFromUrl,
+} from "renderer/lib/github/pullRequestRef";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import type { NormalizedPR } from "../../types";
 
@@ -33,7 +37,7 @@ interface PRHeaderProps {
 	 * Opens the PR's summary pane in the workspace. Without it the title is
 	 * a plain GitHub link, for hosts that have no pane store to open into.
 	 */
-	onOpenPullRequest?: (prNumber: number) => void;
+	onOpenPullRequest?: (ref: PullRequestRef) => void;
 }
 
 const titleClass =
@@ -58,7 +62,11 @@ export function PRHeader({ pr, onOpenPullRequest }: PRHeaderProps) {
 			{onOpenPullRequest ? (
 				<button
 					type="button"
-					onClick={() => onOpenPullRequest(pr.number)}
+					onClick={() => {
+						const ref = pullRequestRefFromUrl(pr.url);
+						if (ref) onOpenPullRequest(ref);
+						else window.open(pr.url, "_blank");
+					}}
 					className={titleClass}
 				>
 					{titleContent}

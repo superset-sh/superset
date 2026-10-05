@@ -1,0 +1,1 @@
+export { LinearIssueBoard } from "./LinearIssueBoard";

@@ -66,6 +66,13 @@ export function removeManifest(organizationId: string): void {
 	if (existsSync(path)) rmSync(path);
 }
 
+export function removeManifestIfOwnedBy(
+	organizationId: string,
+	pid: number,
+): void {
+	if (readManifest(organizationId)?.pid === pid) removeManifest(organizationId);
+}
+
 export function isProcessAlive(pid: number): boolean {
 	if (!pid) return false;
 	try {

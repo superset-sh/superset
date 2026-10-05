@@ -1,0 +1,1 @@
+export { RecordLabelChip } from "./RecordLabelChip";

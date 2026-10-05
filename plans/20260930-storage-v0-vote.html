@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lunch vote</title>
+    <style>
+      main {
+        max-width: 36rem;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 4rem;
+      }
+      .bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        padding: 0.6rem 0.9rem;
+        margin: 1.25rem 0 1.75rem;
+        background: var(--sp-surface);
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+      }
+      .dot {
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--sp-muted);
+        margin-right: 0.4rem;
+        vertical-align: baseline;
+      }
+      .dot.on { background: var(--sp-chart-1); }
+      .dot.off { background: var(--sp-chart-5); }
+      .flash { animation: flash 0.9s ease-out; }
+      @keyframes flash {
+        from { background: var(--sp-chart-1); opacity: 0.25; }
+        to { background: transparent; opacity: 1; }
+      }
+      .options { display: grid; gap: 0.6rem; margin: 1.5rem 0; }
+      button.option {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 0.4rem 1rem;
+        width: 100%;
+        padding: 0.8rem 1.05rem;
+        font: inherit;
+        text-align: left;
+        color: var(--sp-text);
+        background: var(--sp-surface);
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        cursor: pointer;
+      }
+      button.option:hover:not(:disabled) { border-color: var(--sp-accent); }
+      button.option[aria-pressed="true"] {
+        border-color: var(--sp-accent);
+        box-shadow: inset 3px 0 0 var(--sp-accent);
+      }
+      button.option:disabled { cursor: not-allowed; opacity: 0.55; }
+      .count { font-variant-numeric: tabular-nums; color: var(--sp-muted); font-size: 0.9rem; }
+      .meter {
+        grid-column: 1 / -1;
+        height: 3px;
+        background: var(--sp-border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .meter span {
+        display: block;
+        height: 100%;
+        background: var(--sp-accent);
+        transition: width 0.3s ease;
+      }
+      .voters { color: var(--sp-muted); font-size: 0.85rem; line-height: 1.8; }
+      .notice {
+        background: var(--sp-surface);
+        border: 1px solid var(--sp-border);
+        border-left: 3px solid var(--sp-accent);
+        border-radius: var(--sp-radius);
+        padding: 0.7rem 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+      .log {
+        margin-top: 2.5rem;
+        font-family: var(--sp-font-mono);
+        font-size: 0.78rem;
+        color: var(--sp-muted);
+        white-space: pre-wrap;
+        max-height: 11rem;
+        overflow-y: auto;
+        border-top: 1px solid var(--sp-border);
+        padding-top: 0.75rem;
+      }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <h1>Lunch vote</h1>
+      <p>
+        One vote each, shared with everyone who opens this page. Change it
+        whenever — the last one counts.
+      </p>
+
+      <div class="bar">
+        <span id="conn"><span class="dot" id="dot"></span><span id="connText">connecting…</span></span>
+        <span id="refreshed">never refreshed</span>
+        <span id="reads">0 reads</span>
+      </div>
+
+      <div class="notice" id="notice" hidden></div>
+      <div class="options" id="options"></div>
+      <p class="voters" id="voters"></p>
+
+      <div class="log" id="log"></div>
+    </main>
+
+    <script>
+      const OPTIONS = ["Tacos", "Ramen", "Pizza", "Salad"];
+      const KEY = "lunch-vote";
+
+      const el = (id) => document.getElementById(id);
+      const storage = window.superset?.storage ?? null;
+
+      let records = [];
+      let mine = null;
+      let busy = false;
+      let reads = 0;
+      let available = false;
+
+      function log(line) {
+        const stamp = new Date().toLocaleTimeString();
+        el("log").textContent = `${stamp}  ${line}\n` + el("log").textContent;
+      }
+
+      function notice(message) {
+        el("notice").textContent = message ?? "";
+        el("notice").hidden = !message;
+      }
+
+      function setConnection(state, text) {
+        el("dot").className = `dot ${state}`;
+        el("connText").textContent = text;
+      }
+
+      function render({ flash = false } = {}) {
+        const tally = new Map(OPTIONS.map((option) => [option, 0]));
+        for (const record of records) {
+          if (tally.has(record.value)) {
+            tally.set(record.value, tally.get(record.value) + 1);
+          }
+        }
+        const total = records.length || 1;
+
+        el("options").replaceChildren(
+          ...OPTIONS.map((option) => {
+            const votes = tally.get(option);
+            const button = document.createElement("button");
+            button.className = "option";
+            button.type = "button";
+            button.disabled = !available || busy;
+            button.setAttribute("aria-pressed", String(mine === option));
+
+            const label = document.createElement("span");
+            label.textContent = option;
+
+            const count = document.createElement("span");
+            count.className = "count";
+            count.textContent = votes === 1 ? "1 vote" : `${votes} votes`;
+
+            const meter = document.createElement("span");
+            meter.className = "meter";
+            const fill = document.createElement("span");
+            fill.style.width = `${Math.round((votes / total) * 100)}%`;
+            meter.append(fill);
+
+            button.append(label, count, meter);
+            button.addEventListener("click", () => vote(option));
+            return button;
+          }),
+        );
+
+        const named = records
+          .filter((record) => tally.has(record.value))
+          .map((record) => `${record.name} → ${record.value}`);
+        el("voters").textContent = named.join(" · ");
+
+        el("reads").textContent = reads === 1 ? "1 read" : `${reads} reads`;
+        el("refreshed").textContent = `refreshed ${new Date().toLocaleTimeString()}`;
+        if (flash) {
+          const bar = document.querySelector(".bar");
+          bar.classList.remove("flash");
+          void bar.offsetWidth;
+          bar.classList.add("flash");
+        }
+      }
+
+      async function vote(option) {
+        if (!available || busy) return;
+        busy = true;
+        const previous = mine;
+        mine = option;
+        render();
+        try {
+          await storage.set(KEY, option);
+          notice("");
+          log(`wrote "${option}"`);
+        } catch (error) {
+          mine = previous;
+          const message =
+            error.code === "quota_exceeded"
+              ? "That vote is too large to store."
+              : error.code === "unauthenticated"
+                ? "Sign in to vote."
+                : `Could not save the vote: ${error.message}`;
+          notice(message);
+          log(`write failed (${error.code ?? "unknown"})`);
+          busy = false;
+          render();
+          return;
+        }
+        try {
+          records = await storage.getAll(KEY);
+          reads += 1;
+        } catch (error) {
+          log(`refresh after the write failed (${error.code ?? "unknown"})`);
+        }
+        busy = false;
+        render();
+      }
+
+      async function start() {
+        render();
+
+        available = storage ? await storage.ready : false;
+        if (!available) {
+          setConnection("off", "storage unavailable — read-only preview");
+          log("no host answered the handshake");
+          render();
+          return;
+        }
+
+        setConnection("on", "connected");
+        log("handshake answered");
+
+        try {
+          [mine, records] = await Promise.all([
+            storage.get(KEY),
+            storage.getAll(KEY),
+          ]);
+          reads += 1;
+        } catch (error) {
+          notice(`Could not read the votes: ${error.message}`);
+          log(`read failed (${error.code ?? "unknown"})`);
+        }
+        render();
+
+        storage.subscribe(KEY, (next) => {
+          const changed =
+            next.length !== records.length ||
+            next.some(
+              (record, index) =>
+                records[index]?.userId !== record.userId ||
+                records[index]?.value !== record.value,
+            );
+          records = next;
+          reads += 1;
+          if (changed) log(`refreshed — ${next.length} vote(s)`);
+          render({ flash: changed });
+        });
+      }
+
+      start();
+    </script>
+  </body>
+</html>

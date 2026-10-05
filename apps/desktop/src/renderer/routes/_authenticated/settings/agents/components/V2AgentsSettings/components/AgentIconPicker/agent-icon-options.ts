@@ -28,4 +28,5 @@ export const AGENT_ICON_OPTIONS: readonly AgentIconOption[] = [
 	{ id: "fx", label: "fx" },
 	{ id: "agy", label: "Antigravity" },
 	{ id: "kiro", label: "Kiro" },
+	{ id: "ufo", label: "UFO" },
 ];

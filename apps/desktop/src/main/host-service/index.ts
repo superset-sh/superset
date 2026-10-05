@@ -18,6 +18,7 @@ import {
 	PskHostAuthProvider,
 	resolveBrowserBridgeFromEnv,
 	startTerminalReaper,
+	startVitalsLog,
 } from "@superset/host-service";
 import {
 	initTerminalBaseEnv,
@@ -131,6 +132,7 @@ async function main(): Promise<void> {
 
 			// Orphan reaping + port detection for terminals no renderer has attached.
 			startTerminalReaper(db);
+			startVitalsLog();
 
 			if (env.ORGANIZATION_ID) {
 				const manifest: HostServiceManifest = {

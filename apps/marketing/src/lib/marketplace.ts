@@ -1046,10 +1046,6 @@ export const marketplaceSubmissionLinks = {
 	agent: buildIssueUrl("[Marketplace] Agent config submission"),
 };
 
-export function getAllThemeSlugs(): string[] {
-	return themeListings.map((theme) => theme.slug);
-}
-
 export function getThemeListing(slug: string): ThemeListing | undefined {
 	return themeListings.find((theme) => theme.slug === slug);
 }

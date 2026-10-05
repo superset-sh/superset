@@ -1,6 +1,11 @@
 import { db } from "@superset/db/client";
 import { pages, pageVersions } from "@superset/db/schema";
-import { pageThumbnailKey, pageViewUrl } from "@superset/shared/usercontent";
+import {
+	PAGE_THUMBNAIL_HEIGHT,
+	PAGE_THUMBNAIL_WIDTH,
+	pageThumbnailKey,
+	pageViewUrl,
+} from "@superset/shared/usercontent";
 import { Client } from "@upstash/qstash";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -17,8 +22,6 @@ export const pageThumbnailJobSchema = z.object({
 
 export type PageThumbnailJob = z.infer<typeof pageThumbnailJobSchema>;
 
-const CAPTURE_WIDTH = 1280;
-const CAPTURE_HEIGHT = 880;
 const JPEG_QUALITY = 75;
 const CAPTURE_TICKET_TTL_SECONDS = 5 * 60;
 
@@ -123,7 +126,10 @@ export async function generatePageThumbnail({
 			},
 			body: JSON.stringify({
 				url,
-				viewport: { width: CAPTURE_WIDTH, height: CAPTURE_HEIGHT },
+				viewport: {
+					width: PAGE_THUMBNAIL_WIDTH,
+					height: PAGE_THUMBNAIL_HEIGHT,
+				},
 				screenshotOptions: { type: "jpeg", quality: JPEG_QUALITY },
 				gotoOptions: { waitUntil: "load", timeout: 15_000 },
 				waitForTimeout: 500,

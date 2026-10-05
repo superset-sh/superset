@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import { connections } from "@superset/db/schema";
 import { refreshLinearToken } from "@superset/trpc/integrations/linear";
+import { organizationSyncs } from "@superset/trpc/sync-policy";
 import { and, eq, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
 	);
 	if (rejected) return rejected;
 
+	// A connection whose deliveries the webhook drops has nothing to keep fresh.
 	const stale = await db
 		.select({ id: connections.id })
 		.from(connections)
@@ -22,6 +24,7 @@ export async function POST(request: Request) {
 				isNull(connections.disconnectedAt),
 				isNotNull(connections.refreshToken),
 				lt(connections.tokenExpiresAt, sql`now() + interval '90 minutes'`),
+				organizationSyncs(connections.organizationId),
 			),
 		);
 

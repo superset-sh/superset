@@ -21,6 +21,59 @@ const { terminalMeasurementsChanged, tryPersistRuntimeState } = await import(
 	"./terminal-runtime"
 );
 
+test("new theme assignments reset query overrides while identical assignments preserve them", async () => {
+	const { getDefaultTerminalAppearance } = await import("./appearance");
+	const appearance = getDefaultTerminalAppearance();
+	const entries = (
+		terminalRuntimeRegistry as unknown as { entries: Map<string, unknown> }
+	).entries;
+	const terminalId = "color-reset-review";
+	const key = `${terminalId}\u0000${terminalId}`;
+	const sent: Array<{ type: string; resetOverrides?: boolean }> = [];
+	entries.set(key, {
+		terminalId,
+		instanceId: terminalId,
+		runtime: {
+			container: null,
+			wrapper: { style: { setProperty() {} } },
+			terminal: {
+				options: { ...appearance, theme: appearance.theme },
+				rows: 24,
+				refresh() {},
+			},
+			ligaturesEnabled: appearance.ligatures,
+		},
+		transport: {
+			connectionState: "open",
+			_socket: {
+				readyState: WebSocket.OPEN,
+				send(data: string) {
+					sent.push(JSON.parse(data));
+				},
+			},
+		},
+	});
+	try {
+		const selectionOnlyChange = {
+			...appearance,
+			theme: { ...appearance.theme, selectionBackground: "#123456" },
+		};
+		terminalRuntimeRegistry.updateAppearance(terminalId, selectionOnlyChange);
+		terminalRuntimeRegistry.updateAppearance(terminalId, selectionOnlyChange);
+		terminalRuntimeRegistry.updateAllAppearances({
+			...selectionOnlyChange,
+			theme: { ...selectionOnlyChange.theme },
+		});
+		expect(
+			sent
+				.filter((message) => message.type === "colors")
+				.map((message) => message.resetOverrides),
+		).toEqual([true, false, true]);
+	} finally {
+		entries.delete(key);
+	}
+});
+
 interface FakeStorageState {
 	values: Map<string, string>;
 	storage: Storage;
@@ -537,7 +590,7 @@ describe("terminal replacement history", () => {
 });
 
 describe("terminalRuntimeRegistry copy selection", () => {
-	test("uses the same copy policy without treating selected spaces as no selection", () => {
+	test("uses the same Ghostty whitespace policy", () => {
 		const entries = (
 			terminalRuntimeRegistry as unknown as { entries: Map<string, unknown> }
 		).entries;
@@ -572,7 +625,7 @@ describe("terminalRuntimeRegistry copy selection", () => {
 			);
 			selection = "   ";
 			expect(terminalRuntimeRegistry.getSelection(terminalId, terminalId)).toBe(
-				"   ",
+				"",
 			);
 		} finally {
 			entries.delete(key);

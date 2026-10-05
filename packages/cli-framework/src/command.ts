@@ -1,7 +1,10 @@
 import type { GenericBuilderInternals, TypeOf } from "./option";
 
+export type Audience = "internal" | "public";
+
 export type CommandResult =
 	| { data?: unknown; message?: string }
+	| { raw: string; data?: never; message?: never }
 	| unknown[]
 	| undefined;
 
@@ -19,6 +22,15 @@ export type CommandConfig<
 > = {
 	description: string;
 	aliases?: string[];
+	audience?: Audience;
+	/** false hides the command inside a cloud workspace, where it cannot work. */
+	sandbox?: false;
+	/**
+	 * Keeps the command out of help and completion while leaving it runnable.
+	 * For commands another program invokes rather than a person — making one
+	 * internal instead would make it absent, not quiet.
+	 */
+	hidden?: boolean;
 	skipMiddleware?: TSkip;
 	options?: TOpts;
 	args?: TArgs;

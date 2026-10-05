@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "streamdown/styles.css";
+@import "../../../../packages/ui/src/motion.css";
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/chat-ui/src/**/*.{ts,tsx}";
 /* @superset/panes renders inside this app with its own class names. Without
    this scan any utility used only there (PANE_MIN_SIZE_CLASS_NAME's
    min-w-[260px], the pane header's @container) never gets generated and
@@ -90,7 +92,7 @@
 	--destructive-foreground: oklch(0.985 0 0);
 	--warning: oklch(0.554 0.113 86.265);
 	--warning-foreground: oklch(0.985 0 0);
-	--success: oklch(0.596 0.145 163.225);
+	--success: oklch(0.728863 0.211937 147.822201);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
 	--ring: oklch(0.708 0 0);
@@ -288,6 +290,18 @@
 	}
 
 	.no-drag {
+		-webkit-app-region: no-drag;
+	}
+
+	/* The OS eats clicks on drag regions, so an open overlay could never be
+	   dismissed by clicking a header. */
+	body:has(
+		[role="menu"][data-state="open"],
+		[role="listbox"][data-state="open"],
+		[role="dialog"][data-state="open"],
+		[role="alertdialog"][data-state="open"]
+	)
+	.drag {
 		-webkit-app-region: no-drag;
 	}
 

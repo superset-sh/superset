@@ -2,6 +2,7 @@ import { microsoftCredentials } from "@superset/trpc/integrations/microsoft-team
 import { z } from "zod";
 
 import { env } from "@/env";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
@@ -9,10 +10,10 @@ import { IDENTITY_REDIRECT_URI, IDENTITY_SCOPES } from "../identityFlow";
 
 const SETTINGS_URL = `${env.NEXT_PUBLIC_WEB_URL}/integrations/microsoft-teams`;
 
-function back(error?: string): Response {
+function settingsUrl(error?: string): string {
 	const url = new URL(SETTINGS_URL);
 	if (error) url.searchParams.set("error", error);
-	return Response.redirect(url.toString());
+	return url.toString();
 }
 
 const idTokenClaims = z.object({
@@ -35,11 +36,12 @@ const idTokenClaims = z.object({
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
 		params: ["code"],
-		redirect: back,
+		redirect: settingsUrl,
 		denied: "identity_denied",
+		cookie: STATE_COOKIES.microsoftTeamsIdentity,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, exit, fail } = callback;
 
 	const { clientId, clientSecret } = microsoftCredentials();
 	const response = await fetch(
@@ -64,7 +66,7 @@ export async function GET(request: Request) {
 			: undefined;
 	if (!response.ok || typeof idToken !== "string") {
 		console.error("[microsoft-teams/identity] token exchange failed:", body);
-		return back("identity_failed");
+		return fail("identity_failed");
 	}
 
 	// Straight from the token endpoint over TLS with our client secret, so
@@ -73,7 +75,7 @@ export async function GET(request: Request) {
 	const claims = idTokenClaims.safeParse(decodeJwtPayload(idToken));
 	if (!claims.success || claims.data.aud !== clientId) {
 		console.error("[microsoft-teams/identity] unexpected id token claims");
-		return back("identity_failed");
+		return fail("identity_failed");
 	}
 
 	await upsertIdentity({
@@ -87,7 +89,7 @@ export async function GET(request: Request) {
 		displayName: claims.data.name ?? null,
 	});
 
-	return back();
+	return exit(settingsUrl());
 }
 
 function decodeJwtPayload(token: string): unknown {

@@ -22,9 +22,20 @@ import { verifyOrgMembership } from "./utils";
  * with `needsReauth`, because a trigger built on one will not fire until the
  * user reconnects, and "not connected" would send them to the wrong button.
  */
+export interface ProviderAccount {
+	id: string;
+	/** What to call this account: the nickname if it has one, else the identity. */
+	label: string | null;
+	/** The provider's own label, so a renamed row can still show who it is. */
+	identity: string | null;
+	nickname: string | null;
+	needsReauth: boolean;
+}
+
 export interface ProviderConnection {
 	connected: boolean;
 	needsReauth: boolean;
+	accounts: ProviderAccount[];
 }
 
 export const connectionStatusProcedure = protectedProcedure
@@ -35,6 +46,10 @@ export const connectionStatusProcedure = protectedProcedure
 
 			const [connectorRows, installation] = await Promise.all([
 				db.query.connections.findMany({
+					// Oldest first, and stable: the editor pins a new trigger to the
+					// first account, and an unordered read returns heap order, which
+					// moves every time a row is updated — a token refresh is an update.
+					orderBy: (row, { asc }) => [asc(row.createdAt), asc(row.id)],
 					where: and(
 						eq(connections.organizationId, input.organizationId),
 						or(
@@ -43,9 +58,13 @@ export const connectionStatusProcedure = protectedProcedure
 						),
 					),
 					columns: {
+						id: true,
 						connector: true,
 						connectedByUserId: true,
 						disconnectedAt: true,
+						externalAccountLabel: true,
+						externalUserLabel: true,
+						nickname: true,
 					},
 				}),
 				db.query.githubInstallations.findFirst({
@@ -62,15 +81,31 @@ export const connectionStatusProcedure = protectedProcedure
 				)
 					continue;
 				const needsReauth = row.disconnectedAt !== null;
+				let entry = connected[row.connector];
+				if (!entry) {
+					entry = { connected: false, needsReauth: false, accounts: [] };
+					connected[row.connector] = entry;
+				}
+				const identity =
+					row.externalUserLabel ?? row.externalAccountLabel ?? null;
+				entry.accounts.push({
+					id: row.id,
+					label: row.nickname ?? identity,
+					identity,
+					nickname: row.nickname,
+					needsReauth,
+				});
 				// A live row wins over an expired one for the same connector.
-				if (connected[row.connector]?.connected && needsReauth) continue;
-				connected[row.connector] = { connected: !needsReauth, needsReauth };
+				if (entry.connected && needsReauth) continue;
+				entry.connected = !needsReauth;
+				entry.needsReauth = needsReauth;
 			}
 
 			// A suspended installation still has a row, and delivers nothing.
 			connected.github = {
 				connected: installation !== undefined && !installation.suspended,
 				needsReauth: false,
+				accounts: [],
 			};
 
 			return connected;

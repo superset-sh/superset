@@ -19,19 +19,23 @@
 		"./config": {
 			"types": "./src/config.ts",
 			"default": "./src/config.ts"
+		},
+		"./write-file-if-changed": {
+			"types": "./src/write-file-if-changed.ts",
+			"default": "./src/write-file-if-changed.ts"
 		}
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test --isolate"
 	},
 	"dependencies": {
 		"@superset/shared": "workspace:*"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"bun-types": "1.3.14",
-		"typescript": "6.0.3"
+		"bun-types": "1.4.2",
+		"typescript": "7.0.2"
 	}
 }

@@ -11,7 +11,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useIsOrganizationOwner } from "renderer/routes/_authenticated/hooks/useIsOrganizationOwner";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -62,7 +62,8 @@ export function useDashboardSidebarProjectSectionActions({
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
-	const canDeleteProject = useIsOrganizationOwner();
+	const canDeleteProject =
+		useProjectDeletionHosts(projectHostIds).hostIds.length > 0;
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	// Hiding or deleting the project you are inside would leave the view
 	// pointing at a workspace the sidebar no longer shows (or that no longer

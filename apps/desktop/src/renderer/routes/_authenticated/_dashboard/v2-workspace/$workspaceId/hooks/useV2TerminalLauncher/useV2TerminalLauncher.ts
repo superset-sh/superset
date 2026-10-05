@@ -1,5 +1,7 @@
 import { useWorkspaceClient } from "@superset/workspace-client";
 import { useCallback, useMemo } from "react";
+import { useTerminalAppearance } from "renderer/hooks/useTerminalAppearance";
+import { terminalQueryColors } from "renderer/lib/terminal/terminal-query-colors";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
@@ -43,6 +45,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 	const { workspace } = useWorkspace();
 	const { trpcClient } = useWorkspaceClient();
 	const activeTheme = useTheme();
+	const appearance = useTerminalAppearance();
 	const themeType = resolveTerminalThemeType({
 		activeThemeType: activeTheme?.type,
 	});
@@ -59,6 +62,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 					terminalId,
 					workspaceId,
 					themeType,
+					colors: terminalQueryColors(appearance.theme),
 					initialCommand: options?.command,
 					cwd: options?.cwd,
 				},
@@ -66,7 +70,7 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 			);
 			return terminalId;
 		},
-		[trpcClient, workspaceId, themeType],
+		[trpcClient, workspaceId, themeType, appearance.theme],
 	);
 
 	const mint = useCallback((): string => crypto.randomUUID(), []);

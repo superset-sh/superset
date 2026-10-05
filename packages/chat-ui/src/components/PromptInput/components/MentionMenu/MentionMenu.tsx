@@ -12,6 +12,7 @@ export type MentionMenuProps = {
 	onHighlight: (index: number) => void;
 	onSelect: (entry: ComposerMentionEntry) => void;
 	onSelectionChange?: (entry: ComposerMentionEntry | null) => void;
+	className?: string;
 };
 
 export function MentionMenu({
@@ -20,6 +21,7 @@ export function MentionMenu({
 	onHighlight,
 	onSelect,
 	onSelectionChange,
+	className,
 }: MentionMenuProps) {
 	const flatEntries = sections.flatMap((section) => section.entries);
 
@@ -35,7 +37,10 @@ export function MentionMenu({
 	return (
 		<div
 			role="listbox"
-			className="relative z-50 w-full rounded-2xl bg-popover/95 p-1.5 shadow-xl ring-1 ring-border backdrop-blur-sm"
+			className={cn(
+				"relative z-50 w-full rounded-2xl bg-popover/95 p-1.5 shadow-xl ring-1 ring-border backdrop-blur-sm",
+				className,
+			)}
 		>
 			<div className="scroll-fade max-h-96 overflow-y-auto">
 				{sections.map((section) => (

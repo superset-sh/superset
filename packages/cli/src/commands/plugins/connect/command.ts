@@ -11,8 +11,13 @@ import {
 	missingInputsError,
 	parseInputs,
 } from "../../../lib/plugins/inputs";
+import {
+	refreshPluginConnectionsCache,
+	syncPluginMcpServers,
+} from "../../../lib/plugins/mcp-servers";
 
 export default command({
+	sandbox: false,
 	description: "Connect an account to an installed plugin",
 	args: [
 		positional("plugin")
@@ -114,11 +119,20 @@ export default command({
 				slug,
 				inputs: provided,
 			});
+
+			// A second account on this connector turns its one MCP entry into one
+			// per account, so the configs have to be rewritten here, not at the
+			// next install.
+			await refreshPluginConnectionsCache(ctx.api);
+			const mcp = syncPluginMcpServers();
+
 			return {
 				data: [
 					{ plugin: name, status: "connected", detail: created.connectionId },
 				],
-				message: `Connected ${slug} for ${name}.`,
+				message: mcp.error
+					? `Connected ${slug} for ${name}, but the agent MCP config could not be written: ${mcp.error}`
+					: `Connected ${slug} for ${name}.`,
 			};
 		}
 

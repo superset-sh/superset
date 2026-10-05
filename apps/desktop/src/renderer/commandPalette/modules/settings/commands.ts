@@ -3,10 +3,10 @@ import { msg } from "@lingui/core/macro";
 import {
 	BeakerIcon,
 	BellIcon,
-	BookmarkIcon,
 	BuildingIcon,
 	ChartBarIcon,
 	CreditCardIcon,
+	FileTextIcon,
 	FolderIcon,
 	GitBranchIcon,
 	KeyboardIcon,
@@ -113,10 +113,11 @@ const TABS: SettingsTab[] = [
 		keywords: ["hotkeys", "shortcuts"],
 	},
 	{
-		id: "links",
-		title: msg({ message: "Links" }),
-		path: "/settings/links",
-		icon: BookmarkIcon,
+		id: "files",
+		title: msg({ message: "Files & Editor" }),
+		path: "/settings/files",
+		keywords: ["links", "files", "folders", "editor", "auto save"],
+		icon: FileTextIcon,
 	},
 	{
 		id: "permissions",

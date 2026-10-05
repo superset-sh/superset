@@ -4,20 +4,22 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev",
 		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"test:integration": "bun scripts/storage-integration.ts",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@sentry/cloudflare": "10.68.0",
 		"@superset/shared": "workspace:*",
-		"hono": "4.13.5",
+		"hono": "4.13.7",
 		"partyserver": "0.5.9"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "5.20260801.1",
 		"@superset/typescript": "workspace:*",
-		"typescript": "6.0.3",
+		"jose": "6.2.2",
+		"typescript": "7.0.2",
 		"wrangler": "4.118.0"
 	}
 }

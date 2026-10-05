@@ -1,5 +1,4 @@
 import { Trans } from "@lingui/react/macro";
-import Link from "next/link";
 import type {
 	LeaderboardMetric,
 	StandingRow,
@@ -10,6 +9,7 @@ interface LeaderboardTableProps {
 	rows: StandingRow[];
 	metric: LeaderboardMetric;
 	isLoading?: boolean;
+	onClearSearch?: () => void;
 	emptyReason?: "board" | "search";
 	viewerHandle?: string | null;
 	pinnedRow?: StandingRow | null;
@@ -21,6 +21,7 @@ export function LeaderboardTable({
 	rows,
 	metric,
 	isLoading,
+	onClearSearch,
 	emptyReason = "board",
 	viewerHandle = null,
 	pinnedRow = null,
@@ -28,7 +29,7 @@ export function LeaderboardTable({
 }: LeaderboardTableProps) {
 	if (isLoading) {
 		return (
-			<div className="border border-border">
+			<div aria-busy="true" className="border border-border">
 				{["a", "b", "c", "d", "e", "f", "g", "h"].map((key) => (
 					<div
 						key={key}
@@ -56,48 +57,42 @@ export function LeaderboardTable({
 						<Trans>Opt in from Superset under Settings → Account.</Trans>
 					)}
 				</p>
-				<Link
-					href="/download"
-					className="inline-block mt-5 border border-border px-4 py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-brand hover:border-brand/50 transition-colors"
-				>
-					<Trans>Download Superset and publish yours</Trans>
-				</Link>
+				{emptyReason === "search" ? (
+					<button
+						type="button"
+						onClick={onClearSearch}
+						className="min-h-11 mt-5 border border-border px-4 py-2 text-sm text-brand hover:border-brand/50"
+					>
+						<Trans>Clear search</Trans>
+					</button>
+				) : null}
 			</div>
 		);
 	}
 
 	return (
-		<div className="border border-border overflow-x-auto">
-			<table className="w-full min-w-[640px] border-collapse">
+		<div className="rounded-[2px] border border-border overflow-x-auto">
+			<table className="w-full table-fixed sm:table-auto border-collapse">
 				<thead>
 					<tr className="border-b border-border bg-foreground/[0.02]">
-						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 w-14">
+						<th className="text-left font-medium text-xs text-muted-foreground px-2 sm:px-4 py-3 w-10 sm:w-14">
 							#
 						</th>
-						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
+						<th className="text-left font-medium text-xs text-muted-foreground px-2 sm:px-4 py-3">
 							<Trans>Developer</Trans>
 						</th>
-						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden md:table-cell">
+						<th className="text-left font-medium text-xs text-muted-foreground px-2 sm:px-4 py-3 hidden md:table-cell">
 							<Trans>Tier</Trans>
 						</th>
-						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden sm:table-cell">
+						<th className="text-right font-medium text-xs text-muted-foreground px-2 sm:px-4 py-3 hidden sm:table-cell">
 							<Trans>Sessions</Trans>
 						</th>
-						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
+						<th className="w-24 sm:w-auto text-right font-medium text-xs text-muted-foreground px-2 sm:px-4 py-3">
 							{metric === "cost" ? <Trans>Cost</Trans> : <Trans>Tokens</Trans>}
 						</th>
 					</tr>
 				</thead>
 				<tbody>
-					{rows.map((row) => (
-						<LeaderboardRow
-							key={row.handle}
-							row={row}
-							metric={metric}
-							isViewer={row.handle === viewerHandle}
-							pixelClassName={pixelClassName}
-						/>
-					))}
 					{pinnedRow && (
 						<LeaderboardRow
 							row={pinnedRow}
@@ -107,6 +102,15 @@ export function LeaderboardTable({
 							pixelClassName={pixelClassName}
 						/>
 					)}
+					{rows.map((row) => (
+						<LeaderboardRow
+							key={row.handle}
+							row={row}
+							metric={metric}
+							isViewer={row.handle === viewerHandle}
+							pixelClassName={pixelClassName}
+						/>
+					))}
 				</tbody>
 			</table>
 		</div>

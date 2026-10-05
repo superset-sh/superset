@@ -30,17 +30,10 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
-	/**
-	 * Cloud rows are also project-less, so a null `projectId` alone does not
-	 * mean "session". Only sessions may be grouped by tag.
-	 */
+	/** Only sessions may be grouped by tag. */
 	isSessionWorkspace?: boolean;
 	workspaceName: string;
 	branch: string;
-	/** The chip currently shown, so "Remove PR link" knows which PR to hide. */
-	pullRequestUrl?: string | null;
-	/** Cloud rows source their chip from the cloud table, not their host. */
-	isCloudWorkspace?: boolean;
 	isPinned?: boolean;
 }
 
@@ -50,8 +43,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 	isSessionWorkspace = false,
 	workspaceName,
 	branch,
-	pullRequestUrl = null,
-	isCloudWorkspace = false,
 	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const { t } = useLingui();
@@ -85,12 +76,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const {
-		createSection,
-		moveWorkspaceToSection,
-		setWorkspacePinned,
-		setWorkspaceSuppressedPullRequest,
-	} = useDashboardSidebarState();
+	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
+		useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -270,16 +257,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleRemovePullRequest = async () => {
-		// A cloud row's chip is local state; its sandbox is told too when open.
-		if (isCloudWorkspace && pullRequestUrl) {
-			setWorkspaceSuppressedPullRequest(workspaceId, projectId, pullRequestUrl);
-		}
 		if (!workspaceHostUrl) {
-			if (!isCloudWorkspace) {
-				showHostServiceUnavailableToast(hostService, {
-					action: "removePrLink",
-				});
-			}
+			showHostServiceUnavailableToast(hostService, {
+				action: "removePrLink",
+			});
 			return;
 		}
 		try {

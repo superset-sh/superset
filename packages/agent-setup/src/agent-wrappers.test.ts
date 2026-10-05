@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v19",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v20",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -68,6 +68,7 @@ const {
 	createMastraWrapper,
 	createOmpExtension,
 	createPiExtension,
+	createUfoWrapper,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
@@ -925,6 +926,38 @@ exit 0
 		expect(wrapper).toContain("# Superset wrapper for mastracode");
 		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("runs UFO with its identity, original arguments, and exit status", () => {
+		createUfoWrapper();
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		mkdirSync(realBinDir, { recursive: true });
+		writeFileSync(
+			path.join(realBinDir, "ufo"),
+			'#!/bin/bash\nprintf "%s\\0" "$SUPERSET_AGENT_ID" "$@"\nexit 23\n',
+			{ mode: 0o755 },
+		);
+		const result = spawnSync(
+			path.join(TEST_BIN_DIR, "ufo"),
+			["--resume", "conversation-id", "Keep $variables\nand 'quotes'"],
+			{
+				encoding: "utf8",
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:/usr/bin:/bin`,
+					SUPERSET_AGENT_ID: "",
+					SUPERSET_TERMINAL_ID: "",
+				},
+			},
+		);
+		expect(result.status).toBe(23);
+		expect(result.stdout.split("\0")).toEqual([
+			"ufo",
+			"--resume",
+			"conversation-id",
+			"Keep $variables\nand 'quotes'",
+			"",
+		]);
 	});
 
 	it("creates amp wrapper passthrough", () => {

@@ -57,15 +57,17 @@ export function StarChart({ points }: StarChartProps) {
 	const deltas = useMemo(
 		() =>
 			computePeriodDeltas(
-				filteredPoints,
+				sourcePoints,
 				granularity === "day" ? DAY_MS : WEEK_MS,
+			).filter((delta) =>
+				filteredPoints.some((point) => point.date === delta.date),
 			),
-		[filteredPoints, granularity],
+		[sourcePoints, filteredPoints, granularity],
 	);
 
 	return (
-		<div className="space-y-6">
-			<div className="flex justify-end gap-2">
+		<div className="min-w-0 space-y-6">
+			<div className="flex flex-wrap justify-end gap-2">
 				<ToggleGroup
 					type="single"
 					variant="outline"

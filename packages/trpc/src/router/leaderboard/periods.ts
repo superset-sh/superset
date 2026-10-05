@@ -10,6 +10,12 @@ export type LeaderboardPeriod = (typeof LEADERBOARD_PERIODS)[number];
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const LEADERBOARD_LAUNCH_DAY = "2026-07-29";
+
+export const MAX_BACKFILL_DAYS = 90;
+
 export function isDayKey(value: string): boolean {
 	if (!DAY_KEY.test(value)) return false;
 	const parsed = new Date(`${value}T00:00:00.000Z`);
@@ -46,6 +52,16 @@ function addDays(date: Date, days: number): Date {
 	const next = new Date(date);
 	next.setUTCDate(next.getUTCDate() + days);
 	return next;
+}
+
+export function daysSinceLaunch(now: Date = new Date()): number {
+	const today = Date.UTC(
+		now.getUTCFullYear(),
+		now.getUTCMonth(),
+		now.getUTCDate(),
+	);
+	const launch = parseDayKey(LEADERBOARD_LAUNCH_DAY).getTime();
+	return Math.max(1, Math.round((today - launch) / DAY_MS) + 1);
 }
 
 export function resolveDayRange(

@@ -63,6 +63,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 					sameAs: sameAs.length > 0 ? sameAs : undefined,
 				}}
 				publishedTime={new Date(post.date).toISOString()}
+				modifiedTime={post.lastUpdated}
 				url={url}
 				image={post.image}
 			/>
@@ -81,8 +82,10 @@ export default async function BlogPostPage({ params }: PageProps) {
 	);
 }
 
-export async function generateStaticParams() {
-	return getAllSlugs().map((slug) => ({ slug }));
+export function generateStaticParams() {
+	return getAllSlugs()
+		.slice(0, 1)
+		.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -111,6 +114,7 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: post.date,
+			modifiedTime: post.lastUpdated ?? post.date,
 			authors: [post.author.name],
 			...(post.image && { images: [post.image] }),
 		},
