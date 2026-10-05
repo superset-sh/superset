@@ -34,43 +34,112 @@ interface BrowserLocation {
 	name: string;
 	/** Path relative to the user's home directory. */
 	relativePath: string;
+	/** macOS Keychain service that holds the cookie-encryption password. */
+	safeStorageService?: string;
 }
 
+function macBrowser(
+	key: string,
+	name: string,
+	dir: string,
+	safeStorageService: string,
+): BrowserLocation {
+	return {
+		key,
+		name,
+		relativePath: `Library/Application Support/${dir}`,
+		safeStorageService,
+	};
+}
+
+/**
+ * Chromium channels of one vendor share a Keychain item. Ungoogled Chromium
+ * uses the same dir and Keychain item as Chromium, so the Chromium row covers it.
+ */
+const MAC_BROWSERS: BrowserLocation[] = [
+	macBrowser("chrome", "Google Chrome", "Google/Chrome", "Chrome Safe Storage"),
+	macBrowser(
+		"chrome-beta",
+		"Chrome Beta",
+		"Google/Chrome Beta",
+		"Chrome Safe Storage",
+	),
+	macBrowser(
+		"chrome-dev",
+		"Chrome Dev",
+		"Google/Chrome Dev",
+		"Chrome Safe Storage",
+	),
+	macBrowser(
+		"chrome-canary",
+		"Chrome Canary",
+		"Google/Chrome Canary",
+		"Chrome Safe Storage",
+	),
+	macBrowser("chromium", "Chromium", "Chromium", "Chromium Safe Storage"),
+	macBrowser(
+		"edge",
+		"Microsoft Edge",
+		"Microsoft Edge",
+		"Microsoft Edge Safe Storage",
+	),
+	macBrowser(
+		"edge-beta",
+		"Microsoft Edge Beta",
+		"Microsoft Edge Beta",
+		"Microsoft Edge Safe Storage",
+	),
+	macBrowser(
+		"edge-dev",
+		"Microsoft Edge Dev",
+		"Microsoft Edge Dev",
+		"Microsoft Edge Safe Storage",
+	),
+	macBrowser(
+		"edge-canary",
+		"Microsoft Edge Canary",
+		"Microsoft Edge Canary",
+		"Microsoft Edge Safe Storage",
+	),
+	macBrowser(
+		"brave",
+		"Brave",
+		"BraveSoftware/Brave-Browser",
+		"Brave Safe Storage",
+	),
+	macBrowser(
+		"brave-beta",
+		"Brave Beta",
+		"BraveSoftware/Brave-Browser-Beta",
+		"Brave Safe Storage",
+	),
+	macBrowser(
+		"brave-nightly",
+		"Brave Nightly",
+		"BraveSoftware/Brave-Browser-Nightly",
+		"Brave Safe Storage",
+	),
+	macBrowser("arc", "Arc", "Arc/User Data", "Arc Safe Storage"),
+	macBrowser("dia", "Dia", "Dia/User Data", "Dia Safe Storage"),
+	macBrowser("comet", "Comet", "Comet", "Comet Safe Storage"),
+	macBrowser("aside", "Aside", "Aside", "Aside Safe Storage"),
+	macBrowser("helium", "Helium", "net.imput.helium", "Helium Storage Key"),
+	macBrowser("vivaldi", "Vivaldi", "Vivaldi", "Vivaldi Safe Storage"),
+	macBrowser("opera", "Opera", "com.operasoftware.Opera", "Opera Safe Storage"),
+	macBrowser(
+		"opera-gx",
+		"Opera GX",
+		"com.operasoftware.OperaGX",
+		"Opera Safe Storage",
+	),
+	macBrowser("thorium", "Thorium", "Thorium", "Thorium Safe Storage"),
+	macBrowser("yandex", "Yandex", "Yandex/YandexBrowser", "Yandex Safe Storage"),
+	macBrowser("whale", "Naver Whale", "Naver/Whale", "Whale Safe Storage"),
+	macBrowser("sidekick", "Sidekick", "Sidekick", "Sidekick Safe Storage"),
+];
+
 export function browserLocations(platform: NodeJS.Platform): BrowserLocation[] {
-	if (platform === "darwin") {
-		const base = "Library/Application Support";
-		return [
-			{
-				key: "chrome",
-				name: "Google Chrome",
-				relativePath: `${base}/Google/Chrome`,
-			},
-			{
-				key: "chrome-beta",
-				name: "Chrome Beta",
-				relativePath: `${base}/Google/Chrome Beta`,
-			},
-			{
-				key: "chrome-canary",
-				name: "Chrome Canary",
-				relativePath: `${base}/Google/Chrome Canary`,
-			},
-			{ key: "chromium", name: "Chromium", relativePath: `${base}/Chromium` },
-			{
-				key: "edge",
-				name: "Microsoft Edge",
-				relativePath: `${base}/Microsoft Edge`,
-			},
-			{
-				key: "brave",
-				name: "Brave",
-				relativePath: `${base}/BraveSoftware/Brave-Browser`,
-			},
-			{ key: "arc", name: "Arc", relativePath: `${base}/Arc/User Data` },
-			{ key: "dia", name: "Dia", relativePath: `${base}/Dia/User Data` },
-			{ key: "comet", name: "Comet", relativePath: `${base}/Comet` },
-		];
-	}
+	if (platform === "darwin") return MAC_BROWSERS;
 
 	if (platform === "win32") {
 		const localAppData = process.env.LOCALAPPDATA;
@@ -210,10 +279,15 @@ function readProfileDisplayNames(userDataDir: string): Map<string, string> {
 	return names;
 }
 
+/** Directory name we report for a profile stored in the user-data dir itself. */
+const ROOT_PROFILE_NAME = "Default";
+
 /**
  * Lists the profiles inside a browser that have a `History` database on disk.
  * A profile directory is any subdirectory containing a `History` file, which is
  * how Chrome lays out both the "Default" profile and additional "Profile N"s.
+ * Opera has no "Default" subdirectory and keeps its only profile in the
+ * user-data dir itself.
  */
 export function listProfilesWithHistory(
 	browser: ChromiumBrowser,
@@ -222,21 +296,29 @@ export function listProfilesWithHistory(
 
 	const displayNames = readProfileDisplayNames(browser.userDataDir);
 
-	return (
-		safeReadDirNames(browser.userDataDir)
-			.filter((dirName) => !EXCLUDED_PROFILE_DIRS.has(dirName))
-			.filter((dirName) =>
-				existsSync(path.join(browser.userDataDir, dirName, "History")),
-			)
-			.map((dirName) => ({
-				browser,
-				directoryName: dirName,
-				displayName: displayNames.get(dirName) ?? dirName,
-				profileDir: path.join(browser.userDataDir, dirName),
-			}))
-			// Arc (and similar) mark internal profiles with a "__" display name.
-			.filter((profile) => !profile.displayName.startsWith("__"))
-	);
+	const profiles: ChromiumProfile[] = safeReadDirNames(browser.userDataDir)
+		.filter((dirName) => !EXCLUDED_PROFILE_DIRS.has(dirName))
+		.filter((dirName) =>
+			existsSync(path.join(browser.userDataDir, dirName, "History")),
+		)
+		.map((dirName) => ({
+			browser,
+			directoryName: dirName,
+			displayName: displayNames.get(dirName) ?? dirName,
+			profileDir: path.join(browser.userDataDir, dirName),
+		}));
+
+	if (existsSync(path.join(browser.userDataDir, "History"))) {
+		profiles.unshift({
+			browser,
+			directoryName: ROOT_PROFILE_NAME,
+			displayName: ROOT_PROFILE_NAME,
+			profileDir: browser.userDataDir,
+		});
+	}
+
+	// Arc (and similar) mark internal profiles with a "__" display name.
+	return profiles.filter((profile) => !profile.displayName.startsWith("__"));
 }
 
 /**

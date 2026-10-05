@@ -7,6 +7,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import Database from "better-sqlite3";
 import type { Session } from "electron";
+import { browserLocations } from "./chromium-profiles";
 
 const execFileAsync = promisify(execFile);
 
@@ -23,19 +24,6 @@ const KDF_KEY_LENGTH = 16;
 const AES_IV = Buffer.alloc(16, 0x20); // 16 spaces
 /** Newer Chrome prepends a 32-byte SHA-256(host) to the plaintext. */
 const HOST_HASH_PREFIX_LENGTH = 32;
-
-/** Keychain service that stores each browser's cookie-encryption password. */
-const SAFE_STORAGE_SERVICE: Record<string, string> = {
-	chrome: "Chrome Safe Storage",
-	"chrome-beta": "Chrome Safe Storage",
-	"chrome-canary": "Chrome Safe Storage",
-	chromium: "Chromium Safe Storage",
-	edge: "Microsoft Edge Safe Storage",
-	brave: "Brave Safe Storage",
-	arc: "Arc Safe Storage",
-	dia: "Dia Safe Storage",
-	comet: "Comet Safe Storage",
-};
 
 export interface ImportedCookie {
 	url: string;
@@ -70,7 +58,10 @@ interface ChromeCookieRow {
 }
 
 export function safeStorageServiceFor(browserKey: string): string | null {
-	return SAFE_STORAGE_SERVICE[browserKey] ?? null;
+	return (
+		browserLocations("darwin").find((location) => location.key === browserKey)
+			?.safeStorageService ?? null
+	);
 }
 
 /**

@@ -10,7 +10,7 @@ export default command({
 		host: string().desc("Host the workspace lives on (default: this machine)"),
 		pane: string().required().desc("Pane ID (from `superset browser list`)"),
 		from: string().desc(
-			"Source browser to import from, e.g. 'Comet', 'Chrome' (matches the browser name)",
+			"Source browser to import from, e.g. 'Comet', 'Chrome' (an exact browser name wins, else a partial match)",
 		),
 		profile: string().desc(
 			"Profile name to disambiguate when the browser has several",
@@ -26,7 +26,7 @@ export default command({
 		if (sources.length === 0) {
 			throw new CLIError(
 				"No Chromium browsers found to import from",
-				"Superset can import from Chrome, Edge, Brave, Arc, Dia, or Comet.",
+				"Superset can import from Chromium-based browsers such as Chrome, Edge, Brave, Arc, Dia, Comet, Aside, Helium, Vivaldi, and Opera.",
 			);
 		}
 
@@ -42,11 +42,18 @@ export default command({
 
 		const from = options.from.toLowerCase();
 		const profile = options.profile?.toLowerCase();
-		const matches = sources.filter(
-			(s) =>
-				s.browserName.toLowerCase().includes(from) &&
-				(!profile || s.profileName.toLowerCase().includes(profile)),
+		const profileMatches = sources.filter(
+			(s) => !profile || s.profileName.toLowerCase().includes(profile),
 		);
+		const exact = profileMatches.filter(
+			(s) => s.browserName.toLowerCase() === from,
+		);
+		const matches =
+			exact.length > 0
+				? exact
+				: profileMatches.filter((s) =>
+						s.browserName.toLowerCase().includes(from),
+					);
 
 		if (matches.length === 0) {
 			throw new CLIError(

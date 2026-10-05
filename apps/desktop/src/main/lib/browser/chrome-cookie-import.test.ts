@@ -38,6 +38,9 @@ describe("safeStorageServiceFor", () => {
 		expect(safeStorageServiceFor("chrome")).toBe("Chrome Safe Storage");
 		expect(safeStorageServiceFor("brave")).toBe("Brave Safe Storage");
 		expect(safeStorageServiceFor("arc")).toBe("Arc Safe Storage");
+		expect(safeStorageServiceFor("aside")).toBe("Aside Safe Storage");
+		expect(safeStorageServiceFor("helium")).toBe("Helium Storage Key");
+		expect(safeStorageServiceFor("opera-gx")).toBe("Opera Safe Storage");
 		expect(safeStorageServiceFor("unknown")).toBeNull();
 	});
 });
