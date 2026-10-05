@@ -55,14 +55,14 @@ export function AgentAccountSection({
 
 	// Running agents keep the account their terminal started with, so offer
 	// to restart this project's agents when the account they use changed.
-	const offerRestart = async (next: UsageAccount | undefined) => {
-		if (!next || (next.selection ?? "") === effectiveSelection) return;
+	const offerRestart = async (nextSelection: string, accountLabel: string) => {
+		if (nextSelection === effectiveSelection) return;
 		const count = await countRestartCandidates(agent, projectId).catch(() => 0);
 		if (count === 0) return;
 		setRestartPrompt({
 			agent,
 			providerLabel: AGENT_LABELS[agent],
-			accountLabel: label(next),
+			accountLabel,
 			count,
 		});
 	};
@@ -84,12 +84,14 @@ export function AgentAccountSection({
 					}),
 				);
 			}
+			const next = account
+				? accounts.find(
+						(item) => (item.selection ?? "") === (account.selection ?? ""),
+					)
+				: hostDefault;
 			void offerRestart(
-				account
-					? accounts.find(
-							(item) => (item.selection ?? "") === (account.selection ?? ""),
-						)
-					: hostDefault,
+				(account ? account.selection : hostDefault?.selection) ?? "",
+				next ? label(next) : t({ message: "Default" }),
 			);
 		},
 		onError: (err) =>
