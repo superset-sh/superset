@@ -893,6 +893,9 @@ msgstr "{hiddenCount, plural, one {Pokaż # kolejną ramkę} few {Pokaż # kolej
 msgid "{hostName} is offline"
 msgstr "{hostName} jest offline"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} jest offline. Jego użycie pojawi się tutaj po ponownym połączeniu."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} aby ukryć"
 
@@ -2919,6 +2922,9 @@ msgstr "Boxy działają tam, gdzie utworzono środowisko; migawka istnieje tylko
 
 msgid "Branch"
 msgstr "Gałąź"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Zachowanie gałęzi dla nowych obszarów roboczych na hoście {selectedHostName}. Projekty mogą nadpisać prefiks osobno."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Zachowanie gałęzi dla nowych obszarów roboczych na tym urządzeniu. Projekty mogą nadpisać prefiks osobno."
@@ -12974,6 +12980,9 @@ msgstr "Usunięto {credential} dla {agentLabel}."
 
 msgid "Removed {removedLabel}."
 msgstr "Usunięto {removedLabel}."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Usuwa tego agenta tylko z hosta {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Usuwa tego agenta tylko z tego urządzenia."

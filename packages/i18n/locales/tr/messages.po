@@ -893,6 +893,9 @@ msgstr "{hiddenCount, plural, one {# çerçeve daha göster} other {# çerçeve 
 msgid "{hostName} is offline"
 msgstr "{hostName} çevrimdışı"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} çevrimdışı. Yeniden bağlandığında kullanımı burada görünür."
+
 msgid "{hotkeyText} to hide"
 msgstr "gizlemek için {hotkeyText}"
 
@@ -2919,6 +2922,9 @@ msgstr "Kutular ortamın oluşturulduğu yerde çalışır; bir anlık görünt�
 
 msgid "Branch"
 msgstr "Dal"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "{selectedHostName} ana makinesindeki yeni çalışma alanları için dal davranışı. Projeler ön eki tek tek geçersiz kılabilir."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Bu cihazdaki yeni çalışma alanları için dal davranışı. Projeler ön eki tek tek geçersiz kılabilir."
@@ -12974,6 +12980,9 @@ msgstr "{agentLabel} için {credential} kaldırıldı."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} kaldırıldı."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Bu ajanı yalnızca {hostName} ana makinesinden kaldırır."
 
 msgid "Removes this agent from this device only."
 msgstr "Bu ajanı yalnızca bu cihazdan kaldırır."

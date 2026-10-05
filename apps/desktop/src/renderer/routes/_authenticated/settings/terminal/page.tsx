@@ -1,11 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, retainSearchParams } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
+import {
+	type SettingsHostSearch,
+	validateSettingsHostSearch,
+} from "../hooks/useSettingsHost";
 import { getVisibleItemsForSection } from "../utils/settings-search";
 import { TerminalSettings } from "./components/TerminalSettings";
 
-export type TerminalSettingsSearch = {
+export type TerminalSettingsSearch = SettingsHostSearch & {
 	editPresetId?: string;
 	createProjectId?: string;
 };
@@ -15,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/settings/terminal/")({
 	validateSearch: (
 		search: Record<string, unknown>,
 	): TerminalSettingsSearch => ({
+		...validateSettingsHostSearch(search),
 		editPresetId:
 			typeof search.editPresetId === "string" ? search.editPresetId : undefined,
 		createProjectId:
@@ -22,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/settings/terminal/")({
 				? search.createProjectId
 				: undefined,
 	}),
+	search: { middlewares: [retainSearchParams(["hostId"])] },
 });
 
 function TerminalSettingsPage() {

@@ -33,6 +33,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSettingsHost } from "renderer/routes/_authenticated/settings/hooks/useSettingsHost";
 import {
 	AgentDetailHeader,
 	AgentLaunchFields,
@@ -55,12 +56,11 @@ export function AgentDetail({
 }: AgentDetailProps) {
 	const { t } = useLingui();
 	const hostService = useLocalHostService();
-	const { activeHostUrl } = hostService;
+	const { hostUrl, isLocal: isLocalHost, hostName } = useSettingsHost();
 	const isCustom = config.presetId === "custom";
 	const hasBundledDefault = getPresetById(config.presetId) !== undefined;
-	const isHooksSetupTarget = (AGENT_TYPES as readonly string[]).includes(
-		config.presetId,
-	);
+	const isHooksSetupTarget =
+		isLocalHost && (AGENT_TYPES as readonly string[]).includes(config.presetId);
 
 	const electronUtils = electronTrpc.useUtils();
 	const disabledHooksQuery =
@@ -131,7 +131,7 @@ export function AgentDetail({
 				>["settings"]["agentConfigs"]["update"]["mutate"]
 			>[0]["patch"],
 		) => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "saveAgent",
@@ -139,7 +139,7 @@ export function AgentDetail({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
 		onSuccess: (updated) => onChanged(updated),
@@ -156,7 +156,7 @@ export function AgentDetail({
 
 	const removeMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "removeAgent",
@@ -164,7 +164,7 @@ export function AgentDetail({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.remove.mutate({ id: config.id });
 		},
 		onSuccess: () => onDeleted(),
@@ -181,7 +181,7 @@ export function AgentDetail({
 
 	const restoreDefaultMutation = useMutation({
 		mutationFn: () => {
-			if (!activeHostUrl) {
+			if (!hostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
 						action: "restoreAgentDefaults",
@@ -189,7 +189,7 @@ export function AgentDetail({
 				);
 			}
 			return getHostServiceClientByUrl(
-				activeHostUrl,
+				hostUrl,
 			).settings.agentConfigs.restoreDefault.mutate({ id: config.id });
 		},
 		onSuccess: (updated) => {
@@ -436,7 +436,13 @@ export function AgentDetail({
 								<Trans>Delete agent</Trans>
 							</div>
 							<p className="text-sm text-muted-foreground mt-0.5">
-								<Trans>Removes this agent from this device only.</Trans>
+								{isLocalHost ? (
+									<Trans>Removes this agent from this device only.</Trans>
+								) : (
+									<Trans>
+										Removes this agent from the host {hostName} only.
+									</Trans>
+								)}
 							</p>
 						</div>
 						<Button

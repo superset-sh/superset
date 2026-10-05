@@ -9,8 +9,8 @@
 //
 // Provider plumbing: workspaceTrpc needs a WorkspaceClientProvider with a
 // real host URL. Settings routes are *outside* any per-workspace provider
-// (they're org-level), so we mount our own here using the active org's
-// host URL from LocalHostServiceProvider. Without this wrapping, hooks
+// (they're org-level), so we mount our own here using the host selected by
+// the page's `?hostId=` param (this device by default). Without this wrapping, hooks
 // fall through to electron-trpc and fail with "no procedure on path
 // terminal.daemon.*" — there's no such namespace on electron-trpc.
 
@@ -38,8 +38,9 @@ import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { SettingsHostSelect } from "renderer/routes/_authenticated/settings/components/SettingsHostSelect";
+import { useSettingsHost } from "renderer/routes/_authenticated/settings/hooks/useSettingsHost";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const REFETCH_WHILE_OPEN_MS = 5_000;
@@ -47,10 +48,13 @@ const REFETCH_WHILE_OPEN_MS = 5_000;
 export function V2SessionsSection() {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
-	const { activeHostUrl } = useLocalHostService();
-	if (!activeHostUrl) {
+	const { hostUrl } = useSettingsHost();
+	if (!hostUrl) {
 		return (
 			<div className="space-y-1">
+				<div className="flex justify-end">
+					<SettingsHostSelect />
+				</div>
 				<h3 className="text-sm font-medium">
 					<HighlightText
 						text={t({
@@ -68,10 +72,10 @@ export function V2SessionsSection() {
 	return (
 		<WorkspaceClientProvider
 			cacheKey="settings-daemon"
-			key={activeHostUrl}
-			hostUrl={activeHostUrl}
-			headers={() => getHostServiceHeaders(activeHostUrl)}
-			wsToken={() => getHostServiceWsToken(activeHostUrl)}
+			key={hostUrl}
+			hostUrl={hostUrl}
+			headers={() => getHostServiceHeaders(hostUrl)}
+			wsToken={() => getHostServiceWsToken(hostUrl)}
 		>
 			<V2SessionsSectionInner />
 		</WorkspaceClientProvider>
@@ -264,6 +268,7 @@ function V2SessionsSectionInner() {
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2 shrink-0">
+						<SettingsHostSelect />
 						<Button
 							variant="default"
 							size="sm"

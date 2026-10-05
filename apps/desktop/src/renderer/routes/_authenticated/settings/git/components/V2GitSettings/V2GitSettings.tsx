@@ -6,18 +6,11 @@ import {
 } from "@superset/shared/workspace-launch";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
-import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { BranchPrefixControl } from "../../../components/BranchPrefixControl";
-import {
-	HostSelect,
-	type HostSelectOption,
-} from "../../../components/HostSelect";
+import { SettingsHostSelect } from "../../../components/SettingsHostSelect";
 import { SettingsRow } from "../../../components/SettingsRow";
 import {
 	useSetV2WorktreeBaseDir,
@@ -25,72 +18,24 @@ import {
 	V2WorktreeLocationPicker,
 } from "../../../components/V2WorktreeLocationPicker";
 import { useDefaultWorktreePath } from "../../../components/WorktreeLocationPicker";
-
-interface V2GitSettingsProps {
-	hostId: string | null;
-}
+import { useSettingsHost } from "../../../hooks/useSettingsHost";
 
 /**
  * v2 Git settings — host-wide branch-prefix default for whichever device the
  * picker has selected. Per-host setting; the dropdown only appears when the
  * user has 2+ devices in this org.
  */
-export function V2GitSettings({ hostId }: V2GitSettingsProps) {
+export function V2GitSettings() {
 	const { t } = useLingui();
-	const navigate = useNavigate();
 	const hostService = useLocalHostService();
-	const { machineId } = hostService;
-	const { currentDeviceName, localHostId, otherHosts } =
-		useWorkspaceHostOptions();
-	const targetHostUrl = useHostUrl(hostId);
-	const targetHostId = hostId ?? machineId;
+	const {
+		hostUrl: targetHostUrl,
+		hostName: selectedHostName,
+		isLocal,
+		isOnline: isHostOnline,
+	} = useSettingsHost();
 	const queryClient = useQueryClient();
-
-	const hostOptions = useMemo<HostSelectOption[]>(() => {
-		const thisDeviceLabel = t({
-			message: "This device",
-		});
-		const options: HostSelectOption[] = [];
-		if (localHostId) {
-			options.push({
-				id: localHostId,
-				name: currentDeviceName ?? thisDeviceLabel,
-				isLocal: true,
-				isOnline: true,
-			});
-		}
-		for (const host of otherHosts) {
-			options.push({
-				id: host.id,
-				name: host.name,
-				isLocal: false,
-				isOnline: host.isOnline,
-			});
-		}
-		if (targetHostId && !options.some((o) => o.id === targetHostId)) {
-			options.push({
-				id: targetHostId,
-				name: targetHostId === machineId ? thisDeviceLabel : targetHostId,
-				isLocal: targetHostId === machineId,
-				isOnline: targetHostId === machineId,
-			});
-		}
-		return options;
-	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId, t]);
-
-	const selectedHost = useMemo(
-		() => hostOptions.find((o) => o.id === targetHostId) ?? null,
-		[hostOptions, targetHostId],
-	);
-	const hasMultipleHosts = hostOptions.length > 1;
-	const isRemoteTarget = Boolean(selectedHost && !selectedHost.isLocal);
-	const isHostOnline = selectedHost?.isOnline ?? true;
-	const thisDeviceLower = t({
-		message: "this device",
-	});
-	const selectedHostName = selectedHost?.isLocal
-		? thisDeviceLower
-		: (selectedHost?.name ?? thisDeviceLower);
+	const isRemoteTarget = !isLocal;
 
 	const worktreeQuery = useV2WorktreeLocationSettings(targetHostUrl, {
 		enabled: isHostOnline,
@@ -179,25 +124,21 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 						<Trans>Git &amp; worktrees</Trans>
 					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						<Trans>
-							Branch behavior for new workspaces on this device. Projects can
-							override the prefix individually.
-						</Trans>
+						{isLocal ? (
+							<Trans>
+								Branch behavior for new workspaces on this device. Projects can
+								override the prefix individually.
+							</Trans>
+						) : (
+							<Trans>
+								Branch behavior for new workspaces on the host{" "}
+								{selectedHostName}. Projects can override the prefix
+								individually.
+							</Trans>
+						)}
 					</p>
 				</div>
-				{hasMultipleHosts && targetHostId ? (
-					<HostSelect
-						value={targetHostId}
-						options={hostOptions}
-						onValueChange={(nextHostId) => {
-							void navigate({
-								to: "/settings/git",
-								search: { hostId: nextHostId },
-								replace: true,
-							});
-						}}
-					/>
-				) : null}
+				<SettingsHostSelect />
 			</header>
 
 			<section>

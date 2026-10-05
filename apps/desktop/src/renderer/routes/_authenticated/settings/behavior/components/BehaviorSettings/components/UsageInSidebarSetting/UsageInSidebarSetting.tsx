@@ -1,11 +1,15 @@
-import { Trans } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
-export function UsageSidebarToggle() {
+export function UsageInSidebarSetting() {
+	const { t } = useLingui();
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
-	const { data: usageInSidebarEnabled, isLoading: isUsageInSidebarLoading } =
+	const { data: usageInSidebarEnabled, isLoading } =
 		electronTrpc.settings.getShowUsageInSidebar.useQuery();
 	const setShowUsageInSidebar =
 		electronTrpc.settings.setShowUsageInSidebar.useMutation({
@@ -29,25 +33,32 @@ export function UsageSidebarToggle() {
 		});
 
 	return (
-		<div className="flex shrink-0 items-center gap-3">
-			<Label
-				htmlFor="usage-in-sidebar"
-				className="text-xs text-muted-foreground"
-			>
-				<Trans>Show usage tab on sidebar</Trans>
-			</Label>
-			<span id="usage-in-sidebar-description" className="sr-only">
-				<Trans>
-					Show a Usage button in the home sidebar, under Pull requests
-				</Trans>
-			</span>
+		<div className="flex items-center justify-between gap-6">
+			<div className="min-w-0 flex-1 space-y-0.5">
+				<Label htmlFor="usage-in-sidebar" className="text-sm font-medium">
+					<HighlightText
+						text={t({
+							message: "Show usage tab on sidebar",
+						})}
+						query={searchQuery}
+					/>
+				</Label>
+				<p className="text-xs text-muted-foreground">
+					<HighlightText
+						text={t({
+							message:
+								"Show a Usage button in the home sidebar, under Pull requests",
+						})}
+						query={searchQuery}
+					/>
+				</p>
+			</div>
 			<Switch
 				id="usage-in-sidebar"
-				aria-describedby="usage-in-sidebar-description"
 				checked={usageInSidebarEnabled ?? false}
 				onCheckedChange={(enabled) => setShowUsageInSidebar.mutate({ enabled })}
 				disabled={
-					isUsageInSidebarLoading ||
+					isLoading ||
 					usageInSidebarEnabled === undefined ||
 					setShowUsageInSidebar.isPending
 				}

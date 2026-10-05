@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider/LocalHostServiceProvider";
+import { useSettingsHost } from "../../hooks/useSettingsHost";
 import { UsageWorkspacesPage } from "../components/UsageWorkspacesPage";
 import { useRecordUsageSection } from "../hooks/useRecordUsageSection";
 
@@ -10,8 +10,8 @@ export const Route = createFileRoute(
 });
 
 function WorkspacesUsagePage() {
-	const { activeHostUrl } = useLocalHostService();
+	const { hostUrl } = useSettingsHost();
 	useRecordUsageSection("token");
 
-	return <UsageWorkspacesPage hostUrl={activeHostUrl} />;
+	return <UsageWorkspacesPage hostUrl={hostUrl} />;
 }

@@ -893,6 +893,9 @@ msgstr "{hiddenCount, plural, one {Показать ещё # кадр} few {По
 msgid "{hostName} is offline"
 msgstr "{hostName} офлайн"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} не в сети. Данные об использовании появятся здесь после повторного подключения."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} — скрыть"
 
@@ -2919,6 +2922,9 @@ msgstr "Боксы работают там, где было создано ок�
 
 msgid "Branch"
 msgstr "Ветка"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Поведение веток для новых рабочих областей на хосте {selectedHostName}. Проекты могут переопределять префикс по отдельности."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Поведение веток для новых рабочих областей на этом устройстве. Проекты могут переопределять префикс по отдельности."
@@ -12974,6 +12980,9 @@ msgstr "{credential} для {agentLabel} удалено."
 
 msgid "Removed {removedLabel}."
 msgstr "{removedLabel} удалён."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Удаляет этого агента только с хоста {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Удаляет этого агента только с этого устройства."

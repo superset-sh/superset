@@ -893,6 +893,9 @@ msgstr "{hiddenCount, plural, one {Hiện thêm # frame} other {Hiện thêm # f
 msgid "{hostName} is offline"
 msgstr "{hostName} đang ngoại tuyến"
 
+msgid "{hostName} is offline. Its usage appears here when it reconnects."
+msgstr "{hostName} đang ngoại tuyến. Mức sử dụng sẽ hiện ở đây khi máy kết nối lại."
+
 msgid "{hotkeyText} to hide"
 msgstr "{hotkeyText} để ẩn"
 
@@ -2919,6 +2922,9 @@ msgstr "Box chạy ở nơi environment được tạo; snapshot chỉ tồn t�
 
 msgid "Branch"
 msgstr "Nhánh"
+
+msgid "Branch behavior for new workspaces on the host {selectedHostName}. Projects can override the prefix individually."
+msgstr "Hành vi nhánh cho workspace mới trên máy chủ {selectedHostName}. Từng dự án có thể ghi đè tiền tố riêng."
 
 msgid "Branch behavior for new workspaces on this device. Projects can override the prefix individually."
 msgstr "Hành vi nhánh cho workspace mới trên thiết bị này. Từng dự án có thể ghi đè tiền tố riêng."
@@ -12974,6 +12980,9 @@ msgstr "Đã xóa {credential} của {agentLabel}."
 
 msgid "Removed {removedLabel}."
 msgstr "Đã gỡ {removedLabel}."
+
+msgid "Removes this agent from the host {hostName} only."
+msgstr "Chỉ gỡ agent này khỏi máy chủ {hostName}."
 
 msgid "Removes this agent from this device only."
 msgstr "Chỉ gỡ agent này khỏi thiết bị này."
