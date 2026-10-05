@@ -2,6 +2,7 @@
 	"hasCompletedOnboarding": true,
 	"bypassPermissionsModeAccepted": true,
 	"theme": "dark",
+	"copyOnSelect": false,
 	"customApiKeyResponses": {
 		"approved": ["-see-network-routing"],
 		"rejected": []

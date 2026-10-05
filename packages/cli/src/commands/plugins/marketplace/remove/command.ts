@@ -2,6 +2,7 @@ import { positional } from "@superset/cli-framework";
 import { command } from "../../../../lib/command";
 
 export default command({
+	sandbox: false,
 	description: "Remove a marketplace from your account",
 	args: [positional("name").required().desc("Marketplace name")],
 	run: async ({ ctx, args }) => {

@@ -11,12 +11,17 @@ import {
 	buildFishPromptCommandString,
 	type ParsedPromptHeredocCommand,
 	parsePromptHeredocCommand,
+	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import {
 	createScanState,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
+import {
+	type TerminalColors,
+	terminalColorsSchema,
+} from "@superset/shared/terminal-colors";
 import {
 	boundTranscriptText,
 	buildBoundedTerminalSessionTranscript,
@@ -32,22 +37,18 @@ import type { Hono } from "hono";
 import { getSupervisor } from "../daemon/index.ts";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
-import {
-	hostAgentConfigs,
-	projects,
-	terminalAgentBindings,
-	terminalSessions,
-	workspaces,
-} from "../db/schema.ts";
+import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { issueAttributionToken } from "../terminal-agents/attribution-token.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
+import { terminalHarnessSession } from "../terminal-agents/harness-session-ref.ts";
+import { readHarnessTranscriptOffLoop } from "../terminal-agents/harness-sessions/read-off-loop.ts";
+import { matchesAgentBinding } from "../terminal-agents/matches-agent-binding.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
-import {
-	resolveDefaultAccountEnv,
-	resolveDefaultAccountTerminalEnv,
-} from "../trpc/router/usage/default-account.ts";
+import type { TerminalAgentStore } from "../terminal-agents/store.ts";
+import type { TerminalAgentBinding } from "../terminal-agents/types.ts";
+import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -58,14 +59,13 @@ import {
 	onDaemonDisconnect,
 } from "./daemon-client-singleton.ts";
 import {
-	buildV2TerminalEnv,
+	buildHostLaunchEnv,
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
 	shellLaunchExpectsReadyMarker,
 	waitForTerminalBaseEnv,
 } from "./env.ts";
-import { readHarnessTranscript } from "./harness-transcript.ts";
 import {
 	TerminalLifecycleOperations,
 	terminalLifecycleState,
@@ -75,6 +75,7 @@ import {
 	getShellReadyMarkerEvidence,
 	recordShellReadyMarkerEvidence,
 } from "./shell-ready-evidence.ts";
+import { TerminalColorAuthority } from "./TerminalColorAuthority";
 import {
 	createModeTracker,
 	type ModeTracker,
@@ -99,8 +100,10 @@ interface PtyDataDisposer {
 
 interface DaemonPty {
 	pid: number;
+	writeOrThrow(data: string): void;
 	write(data: string): void;
 	resize(cols: number, rows: number): void;
+	setColors(colors: TerminalColors, resetOverrides?: boolean): void;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -113,15 +116,23 @@ function makeDaemonPty(
 	sessionId: string,
 	pid: number,
 ): DaemonPty {
+	const writeOrThrow = (data: string) =>
+		daemon.input(sessionId, Buffer.from(data, "utf8"));
 	return {
 		pid,
+		writeOrThrow,
 		write(data) {
 			try {
-				daemon.input(sessionId, Buffer.from(data, "utf8"));
+				writeOrThrow(data);
 			} catch {
 				// Daemon socket died before the disconnect sweep ran; a throw
 				// here would escape the WS input handler uncaught.
 			}
+		},
+		setColors(colors, resetOverrides) {
+			try {
+				daemon.setColors(sessionId, colors, resetOverrides);
+			} catch {}
 		},
 		resize(cols, rows) {
 			try {
@@ -193,6 +204,7 @@ function getHostAgentHookUrl(): string {
 
 type TerminalClientMessage =
 	| { type: "input"; data: string }
+	| { type: "colors"; colors: TerminalColors; resetOverrides?: boolean }
 	| { type: "resize"; cols: number; rows: number }
 	// The client's current keyboard-focus state, sent on every attach. A
 	// reattaching client may hold focus the program last heard it lost (or
@@ -237,6 +249,10 @@ type TerminalServerMessage =
 	  }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null }
+	// The PTY's size, the smallest box across visible clients. Sent to every
+	// client when it changes, and to a client after each of its resizes, so a
+	// client larger than the PTY can say why its output is narrower.
+	| { type: "size"; cols: number; rows: number }
 	// Sequence anchor for seq-aware clients (`?seq=` on the attach URL). Sent
 	// once per attach, AFTER any host-synthesized bytes (mode preamble,
 	// restored notice) and BEFORE catch-up/live PTY bytes. The client sets its
@@ -524,6 +540,7 @@ interface TerminalSession {
 	/** Unsubscribe from the daemon's output/exit stream when disposed. */
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
+	colorAuthority: TerminalColorAuthority<TerminalSocket>;
 	/**
 	 * Legacy replay FIFO for clients that attach without `?seq=` (pre-seq
 	 * renderers, raw WS consumers): fills only while zero sockets are
@@ -874,6 +891,7 @@ export type TerminalSessionErrorKind =
 	| "TERMINAL_START_FAILED";
 
 export type TerminalSessionError = {
+	inputStaged?: true;
 	kind: TerminalSessionErrorKind;
 	error: string;
 	/** Retained for the attach route and websocket, which branch on it. */
@@ -1130,27 +1148,87 @@ async function getOrAdoptSession({
 	}
 }
 
-/**
- * Public "send a follow-up to whatever runs in this terminal" path. Frames
- * the text as a bracketed paste when the running program has that mode on,
- * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
- * rather than premature Enter presses.
- */
-export async function writeFramedInputToSession({
-	terminalId,
-	workspaceId,
-	text,
-	submit,
-	db,
-	eventBus,
-}: {
+interface SessionMessageInput {
 	terminalId: string;
 	workspaceId: string;
 	text: string;
 	submit: boolean;
 	db: HostDb;
 	eventBus?: EventBus;
+	signal?: AbortSignal;
+}
+
+interface AgentMessageTarget {
+	store: Pick<TerminalAgentStore, "get">;
+	binding: TerminalAgentBinding;
+	acquireDelivery?: () => Promise<{ isValid: () => boolean } | null>;
+}
+
+export async function isAgentTerminalAlive(input: {
+	terminalId: string;
+	workspaceId: string;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<boolean> {
+	const session = await getOrAdoptSession(input);
+	return !("error" in session) && !session.exited;
+}
+
+export function writeFramedInputToSession(input: SessionMessageInput) {
+	return writeSessionMessage(input);
+}
+
+export async function sendAgentMessage({
+	terminalAgentStore,
+	expectedAgent,
+	acquireDelivery,
+	...input
+}: SessionMessageInput & {
+	terminalAgentStore: Pick<TerminalAgentStore, "get">;
+	expectedAgent?: TerminalAgentBinding;
+	acquireDelivery?: AgentMessageTarget["acquireDelivery"];
 }): Promise<{ success: true } | TerminalSessionError> {
+	const binding = expectedAgent ?? terminalAgentStore.get(input.terminalId);
+	if (
+		!binding ||
+		binding.endedAt !== undefined ||
+		binding.terminalId !== input.terminalId ||
+		!isCurrentAgent({ store: terminalAgentStore, binding })
+	) {
+		return {
+			kind: "SESSION_NOT_ACTIVE",
+			error: "No agent is running in this terminal",
+		};
+	}
+	if (binding.workspaceId !== input.workspaceId) {
+		return {
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: "Agent does not belong to this workspace",
+		};
+	}
+	return writeSessionMessage(input, {
+		store: terminalAgentStore,
+		binding,
+		acquireDelivery,
+	});
+}
+
+function isCurrentAgent({ store, binding }: AgentMessageTarget): boolean {
+	return matchesAgentBinding(store.get(binding.terminalId), binding);
+}
+
+async function writeSessionMessage(
+	{
+		terminalId,
+		workspaceId,
+		text,
+		submit,
+		signal,
+		db,
+		eventBus,
+	}: SessionMessageInput,
+	agent?: AgentMessageTarget,
+): Promise<{ success: true } | TerminalSessionError> {
 	const session = await getOrAdoptSession({
 		terminalId,
 		workspaceId,
@@ -1168,28 +1246,69 @@ export async function writeFramedInputToSession({
 	const previous = session.followUpWriteChain ?? Promise.resolve();
 	const task = previous.then(
 		async (): Promise<{ success: true } | TerminalSessionError> => {
+			if (signal?.aborted || (agent && !isCurrentAgent(agent))) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error: "Terminal input target is no longer current",
+				};
+			}
 			if (session.exited) {
 				return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
 			}
-			const framed = session.modeTracker.isBracketedPasteActive()
-				? `\x1b[200~${text}\x1b[201~`
-				: text;
-			if (!submit) {
-				session.pty.write(framed);
-				return { success: true };
+			const permit = await agent?.acquireDelivery?.();
+			const targetIsCurrent = () =>
+				!signal?.aborted &&
+				(!agent || isCurrentAgent(agent)) &&
+				(!agent?.acquireDelivery || permit?.isValid() === true);
+			if (session.exited || !targetIsCurrent()) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error: "Terminal input target is no longer current",
+				};
 			}
-			if (text.length > 0) {
-				session.pty.write(framed);
-				await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
-				if (session.exited) {
+			const message = agent ? sanitizePromptForPty(text) : text;
+			const framed =
+				agent || session.modeTracker.isBracketedPasteActive()
+					? `\x1b[200~${message}\x1b[201~`
+					: message;
+			const write = (data: string) =>
+				agent ? session.pty.writeOrThrow(data) : session.pty.write(data);
+			let inputStaged: true | undefined;
+			try {
+				if (!submit) {
+					inputStaged = true;
+					write(framed);
+					return { success: true };
+				}
+				if (text.length > 0) {
+					inputStaged = true;
+					write(framed);
+					await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
+					if (session.exited) {
+						return {
+							kind: "SESSION_EXITED",
+							error: "Terminal session has exited",
+							inputStaged,
+						};
+					}
+				}
+				if (!targetIsCurrent()) {
 					return {
-						kind: "SESSION_EXITED",
-						error: "Terminal session has exited",
+						kind: "SESSION_NOT_ACTIVE",
+						error: "Terminal input target is no longer current",
+						inputStaged,
 					};
 				}
+				write("\r");
+				return { success: true };
+			} catch (error) {
+				return {
+					kind: "SESSION_NOT_ACTIVE",
+					error:
+						error instanceof Error ? error.message : "Terminal input failed",
+					inputStaged,
+				};
 			}
-			session.pty.write("\r");
-			return { success: true };
 		},
 	);
 	session.followUpWriteChain = task.then(
@@ -1225,39 +1344,6 @@ export async function snapshotSession({
 	});
 	if ("error" in session) return session;
 	return { success: true, ...session.modeTracker.snapshot(maxLines) };
-}
-
-/**
- * The env a bound agent was launched with, so its session store is read from
- * the provider account it is pinned to rather than the default directory.
- * Best effort: an unknown binding just means the default.
- */
-function agentLaunchEnv(
-	db: HostDb,
-	definitionId: string | null | undefined,
-): Record<string, string> | undefined {
-	if (!definitionId) return undefined;
-	const row = db
-		.select({
-			envJson: hostAgentConfigs.envJson,
-			presetId: hostAgentConfigs.presetId,
-		})
-		.from(hostAgentConfigs)
-		.where(eq(hostAgentConfigs.id, definitionId))
-		.get();
-	if (!row) return undefined;
-	// Overlaid the same way the launch does it: the Usage tab's default
-	// account injects CLAUDE_CONFIG_DIR without touching per-agent env, and
-	// reading only the latter would look in the wrong account's directory.
-	const accountEnv = resolveDefaultAccountEnv(db, row.presetId);
-	try {
-		const parsed = JSON.parse(row.envJson) as Record<string, string>;
-		const agentEnv =
-			typeof parsed === "object" && parsed !== null ? parsed : {};
-		return { ...accountEnv, ...agentEnv };
-	} catch {
-		return { ...accountEnv };
-	}
 }
 
 export interface TerminalTranscript {
@@ -1298,42 +1384,22 @@ export async function transcriptSession({
 		eventBus,
 	});
 	if ("error" in session) return session;
+	const budget = maxChars ?? TERMINAL_HANDOFF_MAX_CHARS;
 
 	// The harness's own store first when it keeps one: same conversation,
 	// already structured, without redraw artefacts or a retention ceiling.
 	// Only while the agent still owns the terminal, though — once its session
 	// ends the terminal is a shell again, and its old conversation would
 	// describe work the terminal is no longer doing.
-	const binding = db
-		.select({
-			agentId: terminalAgentBindings.agentId,
-			agentSessionId: terminalAgentBindings.agentSessionId,
-			definitionId: terminalAgentBindings.definitionId,
-			endedAt: terminalAgentBindings.endedAt,
-		})
-		.from(terminalAgentBindings)
-		.where(eq(terminalAgentBindings.terminalId, terminalId))
-		.get();
-	const worktreePath = db
-		.select({ path: workspaces.worktreePath })
-		.from(workspaces)
-		.where(eq(workspaces.id, workspaceId))
-		.get()?.path;
-	const harness = binding?.endedAt
-		? null
-		: readHarnessTranscript({
-				agentId: binding?.agentId,
-				agentSessionId: binding?.agentSessionId,
-				worktreePath,
-				env: agentLaunchEnv(db, binding?.definitionId),
-			});
+	const bound = terminalHarnessSession(db, terminalId);
+	const harness =
+		bound && !bound.endedAt
+			? await readHarnessTranscriptOffLoop(bound.ref, budget)
+			: null;
 	if (harness) {
 		return {
 			success: true,
-			text: boundTranscriptText(
-				harness.text,
-				maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
-			),
+			text: boundTranscriptText(harness.text, budget),
 			source: "harness",
 			streamBytes: 0,
 		};
@@ -1346,10 +1412,7 @@ export async function transcriptSession({
 			new TextDecoder().decode(raw),
 			{ cols: screen.cols, rows: screen.rows },
 		);
-		const text = boundTranscriptText(
-			reconstructed,
-			maxChars ?? TERMINAL_HANDOFF_MAX_CHARS,
-		);
+		const text = boundTranscriptText(reconstructed, budget);
 		if (text.trim()) {
 			return {
 				success: true,
@@ -1656,12 +1719,12 @@ function effectiveDims(
 function applyEffectiveDims(
 	session: TerminalSession,
 	options: { force?: boolean } = {},
-) {
-	if (session.exited) return;
+): boolean {
+	if (session.exited) return false;
 	const next = effectiveDims(session);
-	if (!next) return;
+	if (!next) return false;
 	const changed = next.cols !== session.cols || next.rows !== session.rows;
-	if (!changed && !options.force) return;
+	if (!changed && !options.force) return false;
 	if (changed) {
 		session.lastResizeSeq = session.outputSeq;
 		// Whatever follows is laid out for the new size; hidden clients still
@@ -1677,6 +1740,12 @@ function applyEffectiveDims(
 	session.modeTracker.resize(next.cols, next.rows);
 	session.cols = next.cols;
 	session.rows = next.rows;
+	if (changed) broadcastMessage(session, ptySizeMessage(session));
+	return changed;
+}
+
+function ptySizeMessage(session: TerminalSession): TerminalServerMessage {
+	return { type: "size", cols: session.cols, rows: session.rows };
 }
 
 /**
@@ -1726,6 +1795,7 @@ function resumeHiddenSocket(session: TerminalSession, ws: TerminalSocket) {
  */
 function detachSocket(session: TerminalSession, ws: TerminalSocket) {
 	session.sockets.delete(ws);
+	session.colorAuthority.remove(ws);
 	if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
 	releaseSocketDims(session, ws);
 }
@@ -2833,6 +2903,7 @@ interface CreateTerminalSessionOptions {
 	terminalId: string;
 	workspaceId: string;
 	themeType?: "dark" | "light";
+	colors?: TerminalColors;
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
@@ -2920,6 +2991,7 @@ async function createTerminalSessionUnlocked({
 	terminalId,
 	workspaceId,
 	themeType,
+	colors,
 	db,
 	eventBus,
 	initialCommand,
@@ -3018,21 +3090,13 @@ async function createTerminalSessionUnlocked({
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
 	const ptyEnv = {
-		...buildV2TerminalEnv({
-			baseEnv,
-			shell,
-			supersetHomeDir,
-			organizationId: process.env.ORGANIZATION_ID || "",
+		...buildHostLaunchEnv({
 			themeType,
 			cwd,
 			terminalId,
 			workspaceId,
 			workspacePath: workspace.worktreePath,
 			rootPath,
-			supersetEnv:
-				process.env.NODE_ENV === "development" ? "development" : "production",
-			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 			hostAgentHookUrl: getHostAgentHookUrl(),
 		}),
 		// Usage-tab default account: provider CLIs typed or preset-launched in
@@ -3088,6 +3152,7 @@ async function createTerminalSessionUnlocked({
 					cols,
 					rows,
 					env: ptyEnv,
+					colors,
 				});
 			} catch (err) {
 				// After host-service restart the daemon may already own this
@@ -3214,6 +3279,9 @@ async function createTerminalSessionUnlocked({
 		rows,
 		unsubscribeDaemon: null,
 		sockets: new Set(),
+		colorAuthority: new TerminalColorAuthority((colors, resetOverrides) =>
+			pty.setColors(colors, resetOverrides),
+		),
 		buffer: [],
 		bufferBytes: 0,
 		// Adopted sessions kept a live shell — nothing was restored.
@@ -3515,6 +3583,12 @@ export function registerWorkspaceTerminalRoute({
 			// never queues behind Chromium's 6-per-origin HTTP socket pool.
 			const createRequested = c.req.query("create") === "1";
 			const requestedThemeType = parseThemeType(c.req.query("themeType"));
+			let requestedColors: TerminalColors | undefined;
+			try {
+				requestedColors = terminalColorsSchema.parse(
+					JSON.parse(c.req.query("colors") ?? "null"),
+				);
+			} catch {}
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -3593,6 +3667,7 @@ export function registerWorkspaceTerminalRoute({
 							terminalId,
 							workspaceId: requestedWorkspaceId,
 							themeType: requestedThemeType,
+							colors: requestedColors,
 							db,
 							eventBus,
 						});
@@ -3634,6 +3709,7 @@ export function registerWorkspaceTerminalRoute({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
 					themeType: requestedThemeType,
+					colors: requestedColors,
 					db,
 					eventBus,
 					adoptOnly: true,
@@ -3662,6 +3738,7 @@ export function registerWorkspaceTerminalRoute({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
 					themeType: requestedThemeType,
+					colors: requestedColors,
 					db,
 					eventBus,
 					restoredNotice: true,
@@ -3739,6 +3816,18 @@ export function registerWorkspaceTerminalRoute({
 
 					if (session.exited) return;
 
+					if (message.type === "colors") {
+						const parsed = terminalColorsSchema.safeParse(message.colors);
+						if (parsed.success && session.sockets.has(ws)) {
+							session.colorAuthority.update(
+								ws,
+								parsed.data,
+								message.resetOverrides === true,
+							);
+						}
+						return;
+					}
+
 					if (message.type === "input") {
 						session.pty.write(message.data);
 						return;
@@ -3795,7 +3884,8 @@ export function registerWorkspaceTerminalRoute({
 						const needsForcedNudge =
 							session.pendingRepaintNudge !== null && dimsUnchanged;
 						clearPendingRepaintNudge(session);
-						applyEffectiveDims(session, { force: true });
+						const changed = applyEffectiveDims(session, { force: true });
+						if (!changed) sendMessage(ws, ptySizeMessage(session));
 						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},

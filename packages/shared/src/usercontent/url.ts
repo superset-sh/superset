@@ -8,6 +8,9 @@ export function pageOrigin(baseUrl: string, pageId: string): string {
 }
 
 export const THUMBNAIL_FILENAME = "thumbnail.jpg";
+/** The 1.91:1 card that Open Graph, Slack and the pages grid all show. */
+export const PAGE_THUMBNAIL_WIDTH = 1200;
+export const PAGE_THUMBNAIL_HEIGHT = 630;
 export const TICKET_QUERY_PARAM = "ticket";
 export const TICKET_PATH_PREFIX = "~";
 
@@ -59,6 +62,11 @@ const PAGE_ID_LABEL =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** The page id a request host names, or null for the apex or a bad label. */
+export function pageFrameOrigin(baseUrl: string, pageId: string): string {
+	const base = new URL(baseUrl);
+	return `${base.protocol}//${pageId}.${base.host}`;
+}
+
 export function pageIdFromHost(host: string, baseHost: string): string | null {
 	const suffix = `.${baseHost}`;
 	if (!host.endsWith(suffix)) return null;

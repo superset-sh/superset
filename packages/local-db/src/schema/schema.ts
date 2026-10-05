@@ -14,6 +14,7 @@ import type {
 	AgentPresetOverrideEnvelope,
 	BranchPrefixMode,
 	ExternalApp,
+	FileAutoSaveMode,
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
@@ -228,6 +229,7 @@ export const settings = sqliteTable("settings", {
 	notificationVolume: integer("notification_volume"),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
+	fileAutoSave: text("file_auto_save").$type<FileAutoSaveMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
 	useCompactTerminalAddButton: integer("use_compact_terminal_add_button", {
 		mode: "boolean",

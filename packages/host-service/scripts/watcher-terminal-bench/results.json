@@ -1,0 +1,471 @@
+{
+	"date": "2026-09-25",
+	"environment": {
+		"os": "macOS 26.6.2",
+		"architecture": "arm64",
+		"node": "v26.7.0",
+		"bun": "1.3.11"
+	},
+	"initialization": {
+		"baseline": "19bf0e8c6f4bf1f145de95d9a7caaabf13770578",
+		"fileCount": 50000,
+		"cancel": false,
+		"workspaceCount": 2,
+		"durationMs": 5000,
+		"results": [
+			{
+				"scansStarted": 4,
+				"scansStartedAfterCancel": null,
+				"variant": "before",
+				"round": 0,
+				"echoMs": {
+					"samples": 463,
+					"p50": 0.3256249999994907,
+					"p95": 13.071332999999868,
+					"p99": 126.82508299999972,
+					"max": 169.76837500000056
+				},
+				"outputAgeMs": {
+					"samples": 610,
+					"p50": 0,
+					"p95": 6,
+					"p99": 90,
+					"max": 164
+				},
+				"attachMs": {
+					"samples": 240,
+					"p50": 0.4847089999993841,
+					"p95": 7.0694579999999405,
+					"p99": 119.30100000000039,
+					"max": 159.4733329999999
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 168.820735,
+				"eventLoopP99Ms": 4.669439,
+				"allWatchersReadyMs": 373.29299999999995,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5201.491375,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 2,
+				"scansStartedAfterCancel": null,
+				"variant": "after",
+				"round": 0,
+				"echoMs": {
+					"samples": 459,
+					"p50": 0.37049999999908323,
+					"p95": 4.2359579999993,
+					"p99": 6.50958399999945,
+					"max": 8.509250000000975
+				},
+				"outputAgeMs": {
+					"samples": 615,
+					"p50": 0,
+					"p95": 2,
+					"p99": 3,
+					"max": 5
+				},
+				"attachMs": {
+					"samples": 239,
+					"p50": 0.48804200000085984,
+					"p95": 3.077166999999463,
+					"p99": 4.551749999998719,
+					"max": 5.151832999999897
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 7.127039,
+				"eventLoopP99Ms": 3.379199,
+				"allWatchersReadyMs": 240.70983299999997,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5201.82675,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 2,
+				"scansStartedAfterCancel": null,
+				"variant": "after",
+				"round": 1,
+				"echoMs": {
+					"samples": 461,
+					"p50": 0.35041699999783305,
+					"p95": 4.703125,
+					"p99": 8.898708000000624,
+					"max": 16.91137499999968
+				},
+				"outputAgeMs": {
+					"samples": 606,
+					"p50": 0,
+					"p95": 2,
+					"p99": 3,
+					"max": 9
+				},
+				"attachMs": {
+					"samples": 239,
+					"p50": 0.4666670000005979,
+					"p95": 2.372457999998005,
+					"p99": 4.740625000000364,
+					"max": 5.274083000000246
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 9.158655,
+				"eventLoopP99Ms": 3.264511,
+				"allWatchersReadyMs": 228.24741699999998,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5199.001084,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 4,
+				"scansStartedAfterCancel": null,
+				"variant": "before",
+				"round": 1,
+				"echoMs": {
+					"samples": 466,
+					"p50": 0.28358400000070105,
+					"p95": 49.84058300000106,
+					"p99": 206.93887499999983,
+					"max": 249.10704199999964
+				},
+				"outputAgeMs": {
+					"samples": 584,
+					"p50": 0,
+					"p95": 9,
+					"p99": 97,
+					"max": 140
+				},
+				"attachMs": {
+					"samples": 239,
+					"p50": 0.4052080000001297,
+					"p95": 35.99279200000092,
+					"p99": 204.40354099999968,
+					"max": 246.5502919999999
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 134.348799,
+				"eventLoopP99Ms": 3.428351,
+				"allWatchersReadyMs": 720.9035,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5200.774,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 4,
+				"scansStartedAfterCancel": null,
+				"variant": "before",
+				"round": 2,
+				"echoMs": {
+					"samples": 472,
+					"p50": 0.27554199999940465,
+					"p95": 44.96129199999996,
+					"p99": 243.84341700000004,
+					"max": 284.86504200000127
+				},
+				"outputAgeMs": {
+					"samples": 581,
+					"p50": 0,
+					"p95": 8,
+					"p99": 212,
+					"max": 274
+				},
+				"attachMs": {
+					"samples": 241,
+					"p50": 0.3787910000028205,
+					"p95": 15.865874999999505,
+					"p99": 223.81587500000023,
+					"max": 264.77237500000047
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 149.028863,
+				"eventLoopP99Ms": 2.889727,
+				"allWatchersReadyMs": 677.685208,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5200.59375,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 2,
+				"scansStartedAfterCancel": null,
+				"variant": "after",
+				"round": 2,
+				"echoMs": {
+					"samples": 471,
+					"p50": 0.270249999994121,
+					"p95": 0.7462910000031115,
+					"p99": 2.576167000006535,
+					"max": 4.668458000000101
+				},
+				"outputAgeMs": {
+					"samples": 588,
+					"p50": 0,
+					"p95": 1,
+					"p99": 1,
+					"max": 4
+				},
+				"attachMs": {
+					"samples": 241,
+					"p50": 0.36083399999915855,
+					"p95": 0.7359169999981532,
+					"p99": 1.3524580000012065,
+					"max": 1.4550000000017462
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 3.477503,
+				"eventLoopP99Ms": 1.906687,
+				"allWatchersReadyMs": 205.427708,
+				"liveWatchers": 2,
+				"cancelledAt": null,
+				"cancelHandledDelayMs": null,
+				"elapsedMs": 5200.336667,
+				"stderr": ""
+			}
+		]
+	},
+	"cancellation": {
+		"baseline": "19bf0e8c6f4bf1f145de95d9a7caaabf13770578",
+		"fileCount": 5000,
+		"cancel": true,
+		"workspaceCount": 12,
+		"durationMs": 5000,
+		"results": [
+			{
+				"scansStarted": 24,
+				"scansStartedAfterCancel": 20,
+				"variant": "before",
+				"round": 0,
+				"echoMs": {
+					"samples": 475,
+					"p50": 0.19604200000048877,
+					"p95": 1.7609170000000631,
+					"p99": 150.5501250000002,
+					"max": 192.44366600000012
+				},
+				"outputAgeMs": {
+					"samples": 623,
+					"p50": 0,
+					"p95": 1,
+					"p99": 67,
+					"max": 140
+				},
+				"attachMs": {
+					"samples": 242,
+					"p50": 0.3467080000000351,
+					"p95": 2.394749999999931,
+					"p99": 125.58337500000016,
+					"max": 164.43408399999998
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 144.703487,
+				"eventLoopP99Ms": 1.861631,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372177152,
+				"cancelHandledDelayMs": 21,
+				"elapsedMs": 5201.222957999999,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 0,
+				"scansStartedAfterCancel": 0,
+				"variant": "after",
+				"round": 0,
+				"echoMs": {
+					"samples": 476,
+					"p50": 0.19679200000064156,
+					"p95": 0.3343329999988782,
+					"p99": 0.48787499999889405,
+					"max": 5.704250000000684
+				},
+				"outputAgeMs": {
+					"samples": 618,
+					"p50": 0,
+					"p95": 1,
+					"p99": 1,
+					"max": 2
+				},
+				"attachMs": {
+					"samples": 242,
+					"p50": 0.34604200000103447,
+					"p95": 0.4778329999990092,
+					"p99": 0.8092500000002474,
+					"max": 5.2117920000000595
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 4.952063,
+				"eventLoopP99Ms": 1.736703,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372182515,
+				"cancelHandledDelayMs": 0,
+				"elapsedMs": 5200.693708,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 0,
+				"scansStartedAfterCancel": 0,
+				"variant": "after",
+				"round": 1,
+				"echoMs": {
+					"samples": 476,
+					"p50": 0.1736670000027516,
+					"p95": 0.3546660000029078,
+					"p99": 0.5469579999989946,
+					"max": 5.793625000000247
+				},
+				"outputAgeMs": {
+					"samples": 634,
+					"p50": 0,
+					"p95": 1,
+					"p99": 1,
+					"max": 4
+				},
+				"attachMs": {
+					"samples": 241,
+					"p50": 0.33775000000059663,
+					"p95": 0.5378749999981665,
+					"p99": 0.7015419999988808,
+					"max": 5.081791999999041
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 4.939775,
+				"eventLoopP99Ms": 1.840127,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372187892,
+				"cancelHandledDelayMs": 1,
+				"elapsedMs": 5201.410959,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 24,
+				"scansStartedAfterCancel": 20,
+				"variant": "before",
+				"round": 1,
+				"echoMs": {
+					"samples": 475,
+					"p50": 0.18958399999974063,
+					"p95": 0.7227920000004815,
+					"p99": 136.64287500000137,
+					"max": 176.73595800000112
+				},
+				"outputAgeMs": {
+					"samples": 614,
+					"p50": 0,
+					"p95": 1,
+					"p99": 66,
+					"max": 136
+				},
+				"attachMs": {
+					"samples": 241,
+					"p50": 0.3604169999998703,
+					"p95": 0.7209999999977299,
+					"p99": 107.5248750000028,
+					"max": 147.703333999998
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 135.790591,
+				"eventLoopP99Ms": 1.793023,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372193290,
+				"cancelHandledDelayMs": 21,
+				"elapsedMs": 5201.480375,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 24,
+				"scansStartedAfterCancel": 20,
+				"variant": "before",
+				"round": 2,
+				"echoMs": {
+					"samples": 477,
+					"p50": 0.18979200000103447,
+					"p95": 2.5070419999974547,
+					"p99": 137.74441600000137,
+					"max": 180.38683300000048
+				},
+				"outputAgeMs": {
+					"samples": 620,
+					"p50": 0,
+					"p95": 1,
+					"p99": 47,
+					"max": 117
+				},
+				"attachMs": {
+					"samples": 241,
+					"p50": 0.35720900000160327,
+					"p95": 0.8351669999974547,
+					"p99": 107.9935000000005,
+					"max": 148.73249999999825
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 126.353407,
+				"eventLoopP99Ms": 1.793023,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372198682,
+				"cancelHandledDelayMs": 22,
+				"elapsedMs": 5200.966709,
+				"stderr": ""
+			},
+			{
+				"scansStarted": 0,
+				"scansStartedAfterCancel": 0,
+				"variant": "after",
+				"round": 2,
+				"echoMs": {
+					"samples": 474,
+					"p50": 0.19499999999970896,
+					"p95": 0.38066600000092876,
+					"p99": 0.548624999995809,
+					"max": 4.969832999999198
+				},
+				"outputAgeMs": {
+					"samples": 643,
+					"p50": 0,
+					"p95": 1,
+					"p99": 1,
+					"max": 3
+				},
+				"attachMs": {
+					"samples": 242,
+					"p50": 0.36570799999753945,
+					"p95": 0.6270829999994021,
+					"p99": 0.7712919999976293,
+					"max": 1.1889159999991534
+				},
+				"pendingEchoes": 0,
+				"type": "metrics",
+				"eventLoopMaxMs": 4.694015,
+				"eventLoopP99Ms": 1.756159,
+				"allWatchersReadyMs": null,
+				"liveWatchers": 0,
+				"cancelledAt": 1790372204041,
+				"cancelHandledDelayMs": 0,
+				"elapsedMs": 5200.997375,
+				"stderr": ""
+			}
+		]
+	}
+}

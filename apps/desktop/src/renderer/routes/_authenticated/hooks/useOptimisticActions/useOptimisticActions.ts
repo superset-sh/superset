@@ -1,4 +1,6 @@
+import { useLingui } from "@lingui/react/macro";
 import type { TaskPriority, V2UsersHostRole } from "@superset/db/enums";
+import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -72,27 +74,19 @@ function parseUsersHostsKey(rowKey: string): {
 	return { userId, hostId };
 }
 
-function getErrorMessage(error: unknown): string {
-	if (error instanceof Error && error.message.trim()) {
-		return error.message;
-	}
-
-	if (typeof error === "string" && error.trim()) {
-		return error;
-	}
-
-	return "The local change was rolled back.";
-}
-
 function useOptimisticMutationRunner() {
+	const { t } = useLingui();
 	const reportFailure = useCallback(
 		(scope: string, title: string, error: unknown) => {
 			console.error(`[${scope}] ${title}:`, error);
 			toast.error(title, {
-				description: getErrorMessage(error),
+				description: errorMessage(
+					error,
+					t({ message: "The local change was rolled back." }),
+				),
 			});
 		},
-		[],
+		[t],
 	);
 
 	return useCallback(
@@ -208,6 +202,7 @@ export function useOptimisticActions() {
 	const queryClient = useQueryClient();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
+	const { t } = useLingui();
 	const runMutation = useOptimisticMutationRunner();
 	const patchTaskCaches = useTaskCachePatcher();
 	const utils = cloudTrpc.useUtils();
@@ -341,56 +336,64 @@ export function useOptimisticActions() {
 		return {
 			tasks: {
 				updateTitle: (taskId: string, title: string) =>
-					runTaskMutation("Failed to update task title", () =>
+					runTaskMutation(t({ message: "Failed to update task title" }), () =>
 						updateTask(taskId, { title }),
 					),
 				updateDescription: (taskId: string, description: string) =>
-					runTaskMutation("Failed to update task description", () =>
-						updateTask(taskId, { description }),
+					runTaskMutation(
+						t({ message: "Failed to update task description" }),
+						() => updateTask(taskId, { description }),
 					),
 				updateStatus: (taskId: string, statusId: string) =>
-					runTaskMutation("Failed to update task status", () => {
-						const statusName = utils.task.statuses.list
-							.getData()
-							?.find((status) => status.id === statusId)?.name;
-						return updateTask(
-							taskId,
-							{ statusId },
-							statusName === undefined ? undefined : { statusName },
-						);
-					}),
+					runTaskMutation(
+						t({ message: "Failed to update task status" }),
+						() => {
+							const statusName = utils.task.statuses.list
+								.getData()
+								?.find((status) => status.id === statusId)?.name;
+							return updateTask(
+								taskId,
+								{ statusId },
+								statusName === undefined ? undefined : { statusName },
+							);
+						},
+					),
 				updatePriority: (taskId: string, priority: TaskPriority) =>
-					runTaskMutation("Failed to update task priority", () =>
-						updateTask(taskId, { priority }),
+					runTaskMutation(
+						t({ message: "Failed to update task priority" }),
+						() => updateTask(taskId, { priority }),
 					),
 				updateAssignee: (taskId: string, assigneeId: string | null) =>
-					runTaskMutation("Failed to update task assignee", () => {
-						const member = assigneeId
-							? utils.organization.listMembers
-									.getData()
-									?.find((entry) => entry.user.id === assigneeId)
-							: undefined;
-						return updateTask(
-							taskId,
-							{
-								assigneeId,
-								assigneeExternalId: null,
-								assigneeDisplayName: null,
-								assigneeAvatarUrl: null,
-							},
-							{
-								assignee: member
-									? {
-											id: member.user.id,
-											name: member.user.name,
-											image: member.user.image,
-										}
-									: null,
-							},
-						);
-					}),
+					runTaskMutation(
+						t({ message: "Failed to update task assignee" }),
+						() => {
+							const member = assigneeId
+								? utils.organization.listMembers
+										.getData()
+										?.find((entry) => entry.user.id === assigneeId)
+								: undefined;
+							return updateTask(
+								taskId,
+								{
+									assigneeId,
+									assigneeExternalId: null,
+									assigneeDisplayName: null,
+									assigneeAvatarUrl: null,
+								},
+								{
+									assignee: member
+										? {
+												id: member.user.id,
+												name: member.user.name,
+												image: member.user.image,
+											}
+										: null,
+								},
+							);
+						},
+					),
 				deleteTask: (taskId: string) =>
-					runTaskMutation("Failed to delete task", () => {
+					runTaskMutation(t({ message: "Failed to delete task" }), () => {
 						const rollback = patchTaskCaches(taskId, {
 							row: () => null,
 							detail: () => null,
@@ -425,28 +428,35 @@ export function useOptimisticActions() {
 				// write to a name nothing reads.
 				renameWorkspace: (workspaceId: string, name: string) =>
 					sandboxIds.has(workspaceId)
-						? runWorkspaceMutation("Failed to rename workspace", () => {
-								const rollback = patchCloudWorkspaceName(workspaceId, name);
-								return makeTransaction(
-									"update",
-									apiTrpcClient.cloudWorkspace.rename
-										.mutate({ id: workspaceId, name })
-										.catch((error) => {
-											rollback();
-											throw error;
-										})
-										.finally(() => {
-											void utils.cloudWorkspace.list.invalidate();
-										}),
-								);
-							})
-						: trackedWorkspaceWrite("Failed to rename workspace", workspaceId, {
-								name,
-							}),
+						? runWorkspaceMutation(
+								t({ message: "Failed to rename workspace" }),
+								() => {
+									const rollback = patchCloudWorkspaceName(workspaceId, name);
+									return makeTransaction(
+										"update",
+										apiTrpcClient.cloudWorkspace.rename
+											.mutate({ id: workspaceId, name })
+											.catch((error) => {
+												rollback();
+												throw error;
+											})
+											.finally(() => {
+												void utils.cloudWorkspace.list.invalidate();
+											}),
+									);
+								},
+							)
+						: trackedWorkspaceWrite(
+								t({ message: "Failed to rename workspace" }),
+								workspaceId,
+								{
+									name,
+								},
+							),
 			},
 			v2Hosts: {
 				deleteHost: (hostId: string) =>
-					runHostsMutation("Failed to delete host", () =>
+					runHostsMutation(t({ message: "Failed to delete host" }), () =>
 						makeTransaction(
 							"delete",
 							apiTrpcClient.host.delete.mutate({ hostId }).finally(() => {
@@ -455,7 +465,7 @@ export function useOptimisticActions() {
 						),
 					),
 				renameHost: (hostId: string, name: string) =>
-					runHostsMutation("Failed to rename host", () =>
+					runHostsMutation(t({ message: "Failed to rename host" }), () =>
 						makeTransaction(
 							"update",
 							apiTrpcClient.host.rename.mutate({ hostId, name }).finally(() => {
@@ -471,7 +481,7 @@ export function useOptimisticActions() {
 					organizationId: string;
 					role?: V2UsersHostRole;
 				}) =>
-					runUsersHostsMutation("Failed to add member", () =>
+					runUsersHostsMutation(t({ message: "Failed to add member" }), () =>
 						makeTransaction(
 							"insert",
 							apiTrpcClient.host.addMember
@@ -486,19 +496,22 @@ export function useOptimisticActions() {
 						),
 					),
 				removeMember: (rowKey: string) =>
-					runUsersHostsMutation("Failed to remove member", () => {
-						const { userId, hostId } = parseUsersHostsKey(rowKey);
-						return makeTransaction(
-							"delete",
-							apiTrpcClient.host.removeMember
-								.mutate({ hostId, userId })
-								.finally(() => {
-									void utils.host.invalidate();
-								}),
-						);
-					}),
+					runUsersHostsMutation(
+						t({ message: "Failed to remove member" }),
+						() => {
+							const { userId, hostId } = parseUsersHostsKey(rowKey);
+							return makeTransaction(
+								"delete",
+								apiTrpcClient.host.removeMember
+									.mutate({ hostId, userId })
+									.finally(() => {
+										void utils.host.invalidate();
+									}),
+							);
+						},
+					),
 				setMemberRole: (rowKey: string, role: V2UsersHostRole) =>
-					runUsersHostsMutation("Failed to update role", () => {
+					runUsersHostsMutation(t({ message: "Failed to update role" }), () => {
 						const { userId, hostId } = parseUsersHostsKey(rowKey);
 						return makeTransaction(
 							"update",
@@ -518,6 +531,7 @@ export function useOptimisticActions() {
 		queryClient,
 		runMutation,
 		sandboxIds,
+		t,
 		trackWorkspaceTransaction,
 		utils,
 	]);

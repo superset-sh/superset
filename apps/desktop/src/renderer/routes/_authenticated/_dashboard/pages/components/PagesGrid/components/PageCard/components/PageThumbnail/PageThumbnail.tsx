@@ -1,9 +1,12 @@
+import { cn } from "@superset/ui/utils";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { THUMBNAIL_ASPECT_RATIO } from "../../../../constants";
 
 interface PageThumbnailProps {
 	src: string | null;
+	/** Takes the height its container gives it instead of the capture's aspect ratio, cropping from the top. */
+	fill?: boolean;
 }
 
 /**
@@ -11,7 +14,7 @@ interface PageThumbnailProps {
  * usercontent origin; one that has not been captured yet 404s, and the card
  * shows a placeholder until the next list refetch.
  */
-export function PageThumbnail({ src }: PageThumbnailProps) {
+export function PageThumbnail({ src, fill = false }: PageThumbnailProps) {
 	const [failed, setFailed] = useState<{ src: string; at: number } | null>(
 		null,
 	);
@@ -24,8 +27,11 @@ export function PageThumbnail({ src }: PageThumbnailProps) {
 
 	return (
 		<div
-			className="relative w-full overflow-hidden bg-muted/40"
-			style={{ aspectRatio: THUMBNAIL_ASPECT_RATIO }}
+			className={cn(
+				"relative w-full overflow-hidden bg-muted/40",
+				fill && "min-h-0 flex-1",
+			)}
+			style={fill ? undefined : { aspectRatio: THUMBNAIL_ASPECT_RATIO }}
 		>
 			{showImage ? (
 				<img

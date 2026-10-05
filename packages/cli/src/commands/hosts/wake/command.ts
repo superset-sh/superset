@@ -32,6 +32,7 @@ function runLocally(cmd: string, signal: AbortSignal): Promise<number> {
 }
 
 export default command({
+	sandbox: false,
 	description: "Wake a host by running its configured wake command locally",
 	args: [positional("host").required().desc("Host name or id")],
 	options: {

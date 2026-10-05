@@ -4,6 +4,7 @@ import { resolveHost } from "../../../lib/host/resolve";
 import { resolveOrganizationFromContext } from "../../../lib/resolve-org";
 
 export default command({
+	sandbox: false,
 	description: "Set (or clear) the command used to wake a host",
 	args: [
 		positional("host").required().desc("Host name or id"),

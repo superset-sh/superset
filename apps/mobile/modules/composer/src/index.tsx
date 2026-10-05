@@ -26,6 +26,7 @@ interface NativeComposerViewProps {
 	slashCommands?: ComposerSlashCommand[];
 	showAttachments?: boolean;
 	autocapitalization?: "sentences" | "never";
+	compactEditor?: boolean;
 	isSending?: boolean;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
@@ -322,6 +323,12 @@ interface ComposerBaseProps {
 	/** `never` for the terminal — a shell command is not a sentence. */
 	autocapitalization?: "sentences" | "never";
 	/**
+	 * Shrinks the expanded editor's floor by two lines, so the terminal screen
+	 * can leave more of the transcript on screen when the composer is at its
+	 * smallest. Omit for the generous floor the reference frames show.
+	 */
+	compactEditor?: boolean;
+	/**
 	 * A submit is in flight. Send becomes a grey spinner and the mic steps
 	 * aside. The caller owns this because only it knows when delivery finished.
 	 */
@@ -436,6 +443,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			slashCommands,
 			showAttachments = true,
 			autocapitalization = "sentences",
+			compactEditor = false,
 			isSending = false,
 			onSubmit,
 			onAttachmentsPress,
@@ -489,6 +497,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				slashCommands={slashCommands}
 				showAttachments={showAttachments}
 				autocapitalization={autocapitalization}
+				compactEditor={compactEditor}
 				isSending={isSending}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}

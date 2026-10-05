@@ -5,7 +5,11 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
-import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
+import { acpHarnessForPreset } from "renderer/lib/acpHarness";
+import {
+	findLinkedAgent,
+	resolvePresetLaunchCommands,
+} from "renderer/lib/agent-launch-command";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -18,6 +22,7 @@ import { getPresetsForTriggerField } from "shared/preset-trigger-selection";
 import { quote } from "shell-quote";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
+import type { OpenAgentChat } from "../useAgentSessionLauncher";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 function makeTerminalPane(
@@ -80,11 +85,13 @@ function buildFocusedTerminalCommand({
 interface UseV2PresetExecutionArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	launcher: TerminalLauncher;
+	openAgentChat: OpenAgentChat;
 }
 
 export function useV2PresetExecution({
 	store,
 	launcher,
+	openAgentChat,
 }: UseV2PresetExecutionArgs) {
 	const { t } = useLingui();
 	const { workspace } = useWorkspace();
@@ -167,6 +174,19 @@ export function useV2PresetExecution({
 				hasActiveTab: !!activeTabId,
 				hasActiveTerminal: !!activeTerminal,
 			});
+
+			const linkedAgent = findLinkedAgent(agents, preset.agentId);
+			if (
+				linkedAgent &&
+				acpHarnessForPreset(linkedAgent.presetId) &&
+				(plan === "new-tab-single" || plan === "active-tab-single")
+			) {
+				const chat = await openAgentChat({
+					configId: linkedAgent.id,
+					placement: plan === "active-tab-single" ? "split-pane" : "new-tab",
+				});
+				if (chat) return;
+			}
 
 			// Sessions for every pane this plan creates are spun up in parallel
 			// before any of them land in the store, so background tabs (e.g.
@@ -292,6 +312,8 @@ export function useV2PresetExecution({
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
 			sendToTerminal,
+			agents,
+			openAgentChat,
 		],
 	);
 

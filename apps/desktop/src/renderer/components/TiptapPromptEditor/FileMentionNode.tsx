@@ -41,6 +41,14 @@ export const FileMentionNode = Node.create({
 				parseHTML: (el) => el.getAttribute("data-path"),
 				renderHTML: (attrs) => ({ "data-path": attrs.path }),
 			},
+			// Restored from a bare `@token` rather than picked from the file list,
+			// so it must serialize back to that same bare token.
+			fromText: {
+				default: false,
+				parseHTML: (el) => el.getAttribute("data-from-text") === "true",
+				renderHTML: (attrs) =>
+					attrs.fromText ? { "data-from-text": "true" } : {},
+			},
 		};
 	},
 

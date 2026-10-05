@@ -12,16 +12,17 @@ const NEWEST_FIRST = [desc(connections.updatedAt), desc(connections.id)];
  * Two live connections match one lookup, so there is no single account to run
  * under. Picking the newest would silently bind tool calls to whichever was
  * touched last — behaviour people would come to rely on before anyone noticed
- * it was arbitrary. Callers surface this as a conflict the user resolves by
- * disconnecting one.
+ * it was arbitrary.
  */
 export class AmbiguousConnectionError extends Error {
 	constructor(
 		readonly connector: string,
 		readonly connectionIds: string[],
 	) {
+		// Reaches a shell as often as a fetch, so it names both ways rather than
+		// only the query parameter a CLI user cannot type.
 		super(
-			`More than one ${connector} connection matches; disconnect the one you do not want.`,
+			`More than one ${connector} account is connected. Name one: --account <id> from the CLI, or ?connection=<id> on the endpoint.`,
 		);
 		this.name = "AmbiguousConnectionError";
 	}

@@ -7,12 +7,28 @@
 		"source": "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb",
 		"version": "153.0.8010.36"
 	},
+	"claude": {
+		"sha256": "1e08503dbdf3c2cb0d706d32f3408277388d1c76ef108673e8fe42c1b322925b",
+		"suffix": "",
+		"dest": "/usr/local/share/superset/media/claude-2.1.280",
+		"mode": "0755",
+		"source": "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/2.1.280/linux-x64/claude",
+		"version": "2.1.280"
+	},
 	"cli": {
 		"sha256": "66be5ff609582623dc943c2a6405553268c9b57d8ad215d2056cde9f746186ab",
 		"suffix": "",
 		"dest": "/usr/local/share/superset/media/superset-1.29.0",
 		"mode": "0755",
 		"version": "1.29.0"
+	},
+	"codex": {
+		"sha256": "9e2d29a713b94478b240dec2f10e11324cd05fad76dc43e7c639bdf8a1337a6b",
+		"suffix": ".tar.gz",
+		"dest": "/usr/local/share/superset/media/codex-0.159.2.tar.gz",
+		"mode": "0644",
+		"source": "https://github.com/openai/codex/releases/download/rust-v0.159.2/codex-package-x86_64-unknown-linux-musl.tar.gz",
+		"version": "0.159.2"
 	},
 	"font-bold": {
 		"sha256": "e490660ad75e0b152c93b1604c2ea1a4ea675f1b8a3fe0d005b1998568f99f1f",

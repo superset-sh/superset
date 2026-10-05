@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import { SparklesIcon } from "lucide-react";
+import { LightbulbIcon } from "lucide-react";
 import { track } from "renderer/lib/analytics";
 import { DismissSuggestionsButton } from "../DismissSuggestionsButton";
 import type { SamplePrompt, SamplePromptTier } from "./constants";
@@ -37,7 +37,7 @@ export function SamplePrompts({
 						onSelect(sample.prompt);
 					}}
 				>
-					<SparklesIcon className="size-3.5 shrink-0" />
+					<LightbulbIcon className="size-3.5 shrink-0" />
 					{t(sample.label)}
 				</button>
 			))}

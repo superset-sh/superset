@@ -6,6 +6,7 @@ import { installConsoleTimestamps } from "./log-timestamps";
 import {
 	ConfigFileSessionTokenSource,
 	JwtApiAuthProvider,
+	SandboxApiAuthProvider,
 } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
@@ -13,7 +14,9 @@ import { provisionAgentIntegrations } from "./runtime/agent-provisioning";
 import { processStartedAt, recordBootStamp } from "./runtime/boot-stamps";
 import { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 import { applyLoginShellEnvToProcess } from "./runtime/login-shell-env";
+import { startSandboxAgentStatusReporter } from "./runtime/sandbox-agent-status";
 import { startSandboxCredentialRefresh } from "./runtime/sandbox-credential-refresh";
+import { startVitalsLog } from "./runtime/vitals";
 import { detachFromLaunchDirectory } from "./runtime/working-directory";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 import { configureSelfUpdater } from "./self-update";
@@ -75,6 +78,10 @@ async function main(): Promise<void> {
 			: undefined,
 		apiUrl: env.SUPERSET_API_URL,
 	});
+	const apiAuthProvider =
+		env.SUPERSET_HOST_RUN_MODE === "sandbox"
+			? new SandboxApiAuthProvider()
+			: authProvider;
 
 	const {
 		app,
@@ -83,6 +90,7 @@ async function main(): Promise<void> {
 		db,
 		launchSandboxAgent,
 		resumeCrashedAgents,
+		terminalAgentStore,
 	} = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
@@ -96,7 +104,7 @@ async function main(): Promise<void> {
 			browserBridge: resolveBrowserBridgeFromEnv(env),
 		},
 		providers: {
-			auth: authProvider,
+			auth: apiAuthProvider,
 			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
 			credentials: new LocalGitCredentialProvider(),
 		},
@@ -146,6 +154,7 @@ async function main(): Promise<void> {
 		recordBootStamp("host.listening");
 
 		startTerminalReaper(db);
+		startVitalsLog();
 		// A cloud workspace created with an agent starts it now: the pty daemon
 		// and event bus are up, and a person opening the workspace sees the
 		// agent's terminal the way they would on their own machine.
@@ -159,6 +168,12 @@ async function main(): Promise<void> {
 				apiUrl: env.SUPERSET_API_URL,
 				workspaceId: sandboxWorkspaceId,
 				hostSecret: env.HOST_SERVICE_SECRET,
+			});
+			startSandboxAgentStatusReporter({
+				apiUrl: env.SUPERSET_API_URL,
+				workspaceId: sandboxWorkspaceId,
+				hostSecret: env.HOST_SERVICE_SECRET,
+				store: terminalAgentStore,
 			});
 		}
 
@@ -180,7 +195,7 @@ async function main(): Promise<void> {
 	// Standalone only: this process owns its listener and relay socket, so it
 	// can hand the port to a successor build (system.update). The desktop
 	// entry never registers this and its host-service stays non-updatable.
-	configureSelfUpdater({
+	const selfUpdater = configureSelfUpdater({
 		stopServing: async () => {
 			// Cancel registration retries before replacing this process.
 			relayAbort.abort();
@@ -200,6 +215,13 @@ async function main(): Promise<void> {
 			]);
 		},
 	});
+	if (env.SUPERSET_HOST_AUTO_UPDATE && selfUpdater.status().updatable) {
+		const timer = setInterval(
+			() => void selfUpdater.checkForUpdates(),
+			60 * 60_000,
+		);
+		timer.unref();
+	}
 }
 
 void main().catch(async (error) => {

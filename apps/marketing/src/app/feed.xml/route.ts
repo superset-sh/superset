@@ -1,8 +1,8 @@
 import { COMPANY } from "@superset/shared/constants";
-import { getBlogPosts } from "@/lib/blog";
+import { getListedBlogPosts } from "@/lib/blog";
 
 export async function GET() {
-	const posts = getBlogPosts();
+	const posts = getListedBlogPosts();
 	const baseUrl = COMPANY.MARKETING_URL;
 
 	const escapeXml = (str: string) =>

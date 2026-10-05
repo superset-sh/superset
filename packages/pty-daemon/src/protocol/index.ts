@@ -8,6 +8,7 @@ export type {
 	ClientMessage,
 	ClosedMessage,
 	CloseMessage,
+	ColorsMessage,
 	ErrorMessage,
 	ExitMessage,
 	HelloAckMessage,

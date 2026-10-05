@@ -1,4 +1,5 @@
 export const SLACK_MODELS = [
+	{ value: "claude-sonnet-5-5", label: "Sonnet 5.5" },
 	{ value: "claude-sonnet-5", label: "Sonnet 5" },
 	{ value: "claude-sonnet-4-6", label: "Sonnet 4.6" },
 	{ value: "claude-opus-5", label: "Opus 5" },

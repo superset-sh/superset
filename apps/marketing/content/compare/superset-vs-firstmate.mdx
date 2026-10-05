@@ -2,7 +2,7 @@
 title: "Superset vs Firstmate (2026): Agent Workspace vs the DIY Agent Distro"
 description: "Compare Superset and Firstmate for orchestrating parallel coding agents. A purpose-built desktop workspace vs an open-source agent distro that runs on tmux."
 date: 2026-08-07
-lastUpdated: 2026-08-07
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - firstmate
@@ -23,11 +23,11 @@ Superset and Firstmate both answer "how do I get one conversation to fan out int
 
 | | **Superset** | **Firstmate** |
 |---|---|---|
-| **What it is** | Desktop workspace that runs 100+ AI agents in parallel with worktree isolation, chat, review, and browser | An "agent distro": instructions, skills, and scripts that make one agent orchestrate a crew |
+| **What it is** | Desktop workspace that runs multiple AI agents in parallel with worktree isolation, chat, review, and browser | An "agent distro": instructions, skills, and scripts that make one agent orchestrate a crew |
 | **Form factor** | App (desktop, CLI, MCP server) | A cloned Git repo; nothing to install |
 | **Core model** | Workspace per task (worktree + terminals + review) | "First mate" agent spawns crewmate sessions, each in its own tmux window and worktree |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code, Codex, OpenCode, Pi, Grok, Kimi |
-| **Isolation** | Automatic Git worktree per task | Disposable Git worktree per crewmate |
+| **Isolation** | Git worktrees for local branch-based workspaces | Disposable Git worktree per crewmate |
 | **Session backend** | Built-in persistent terminals | tmux (or experimental Herdr/Zellij/cmux/Orca backends) |
 | **Remote** | Remote and cloud workspaces across your network devices | Persistent "secondmates" on local or SSH-reachable hosts |
 | **Review / UI** | Built-in diff/file editor, browser, chat | None -- output is PRs, local merges, or reports; you review in your own tools |
@@ -97,7 +97,7 @@ No. Firstmate is a repository of instructions, skills, and scripts -- an "agent 
 
 ### Do both use Git worktrees?
 
-Yes. Firstmate gives each crewmate a disposable worktree (or delegates worktree management to Orca when used as a backend). Superset creates an isolated worktree per task automatically and attaches persistent terminals and diff review to it.
+Yes. Firstmate gives each crewmate a disposable worktree (or delegates worktree management to Orca when used as a backend). Superset creates a worktree for each new local branch-based workspace and attaches persistent terminals and diff review to it.
 
 ### Can Firstmate and Superset be used together?
 

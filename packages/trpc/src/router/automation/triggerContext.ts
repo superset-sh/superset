@@ -27,14 +27,35 @@ type TriggerEvent = Pick<
  */
 export function promptWithTriggerContext(
 	prompt: string,
-	context: {
-		automationId: string;
-		triggerId: string | null;
-		scheduledFor: Date | null;
-	},
+	context: TriggerRunContext,
 	event: TriggerEvent | null,
+	/** Cuts the event payload further until the whole prompt fits. */
+	maxLength = Number.POSITIVE_INFINITY,
 ): string {
-	const payload = event ? boundedPayload(providerPayload(event)) : null;
+	let payloadChars = MAX_PAYLOAD_CHARS;
+	let result = buildPrompt(prompt, context, event, payloadChars);
+	while (result.length > maxLength && payloadChars > 0) {
+		payloadChars = Math.max(0, payloadChars - (result.length - maxLength) - 64);
+		result = buildPrompt(prompt, context, event, payloadChars);
+	}
+	return result;
+}
+
+interface TriggerRunContext {
+	automationId: string;
+	triggerId: string | null;
+	scheduledFor: Date | null;
+}
+
+function buildPrompt(
+	prompt: string,
+	context: TriggerRunContext,
+	event: TriggerEvent | null,
+	payloadChars: number,
+): string {
+	const payload = event
+		? boundedPayload(providerPayload(event), payloadChars)
+		: null;
 	const triggerContext = !event
 		? { schedule: { scheduledFor: context.scheduledFor?.toISOString() } }
 		: event.provider === "webhook"
@@ -114,16 +135,19 @@ function providerPayload(event: TriggerEvent): unknown {
 	});
 }
 
-function boundedPayload(payload: unknown): {
+function boundedPayload(
+	payload: unknown,
+	maxChars: number,
+): {
 	value: unknown;
 	truncated: boolean;
 } {
 	const serialized = JSON.stringify(payload);
-	if (serialized === undefined || serialized.length <= MAX_PAYLOAD_CHARS) {
+	if (serialized === undefined || serialized.length <= maxChars) {
 		return { value: payload, truncated: false };
 	}
 	return {
-		value: `${serialized.slice(0, MAX_PAYLOAD_CHARS)}…`,
+		value: `${serialized.slice(0, maxChars)}…`,
 		truncated: true,
 	};
 }

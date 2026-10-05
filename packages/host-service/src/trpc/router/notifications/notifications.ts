@@ -4,10 +4,13 @@ import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { verifyAttributionToken } from "../../../terminal-agents/attribution-token";
+import { recordTerminalAgentTranscriptPath } from "../../../terminal-agents/persistence";
+import { isTrustedTranscriptPath } from "../../../terminal-agents/transcript-path";
 import type { HostServiceContext } from "../../../types";
 import { touchLocalWorkspaceActivity } from "../../../workspaces/local-workspace-store";
 import { publicProcedure, router } from "../../index";
 import { captureSessionAccount } from "../usage/session-account/session-account";
+import { continueWorkspaceNaming } from "../workspace-creation/utils/workspace-naming-job";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
 // AgentIdentity broadcast carries only meaningful fields.
@@ -45,6 +48,7 @@ const hookInput = z.object({
 	accountProfile: z.string().max(4096).optional(),
 	apiKey: z.boolean().optional(),
 	attributionToken: z.string().max(128).optional(),
+	transcriptPath: z.string().max(4096).optional(),
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -168,15 +172,6 @@ export const notificationsRouter = router({
 		const agent = normalizeAgentIdentity(input.agent);
 		const preview = trimOrUndefined(input.preview);
 
-		ctx.eventBus.broadcastAgentLifecycle({
-			workspaceId: terminalSession.originWorkspaceId,
-			eventType,
-			terminalId: input.terminalId,
-			...(agent ? { agent } : {}),
-			...(preview ? { preview } : {}),
-			occurredAt,
-		});
-
 		const prior = ctx.terminalAgentStore.get(input.terminalId);
 		const account =
 			verifyAttributionToken(input.terminalId, input.attributionToken) &&
@@ -205,6 +200,27 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
 		});
+		const transcriptPath = trimOrUndefined(input.transcriptPath);
+		if (
+			agent?.sessionId &&
+			transcriptPath &&
+			isTrustedTranscriptPath(transcriptPath)
+		) {
+			recordTerminalAgentTranscriptPath(ctx.db, {
+				terminalId: input.terminalId,
+				agentSessionId: agent.sessionId,
+				transcriptPath,
+			});
+		}
+
+		ctx.eventBus.broadcastAgentLifecycle({
+			workspaceId: terminalSession.originWorkspaceId,
+			eventType,
+			terminalId: input.terminalId,
+			...(agent ? { agent } : {}),
+			...(preview ? { preview } : {}),
+			occurredAt,
+		});
 
 		// Every lifecycle event is activity for the sidebar's "Last active"
 		// ranking. Best-effort: a failed write must not fail the hook, which
@@ -218,6 +234,18 @@ export const notificationsRouter = router({
 		} catch (err) {
 			console.warn(
 				`[notifications.hook] failed to record activity for workspace ${terminalSession.originWorkspaceId}:`,
+				err,
+			);
+		}
+
+		try {
+			continueWorkspaceNaming(ctx, terminalSession.originWorkspaceId, {
+				eventType,
+				agentReply: preview,
+			});
+		} catch (err) {
+			console.warn(
+				`[notifications.hook] failed to schedule naming for workspace ${terminalSession.originWorkspaceId}:`,
 				err,
 			);
 		}

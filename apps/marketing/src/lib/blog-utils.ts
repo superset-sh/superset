@@ -20,12 +20,14 @@ export interface BlogPost {
 	description?: string;
 	author: Person;
 	date: string;
+	lastUpdated?: string;
 	category: BlogCategory;
 	image?: string;
 	relatedSlugs?: string[];
 	faq?: Array<{ question: string; answer: string }>;
 	keywords?: string[];
 	draft?: boolean;
+	unlisted?: boolean;
 	content: string;
 }
 

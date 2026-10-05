@@ -26,6 +26,7 @@ export function Workspace<TData>({
 	onInteractionStateChange,
 	paneActions,
 	contextMenuActions,
+	onPaneError,
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
@@ -143,6 +144,7 @@ export function Workspace<TData>({
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}
+					onPaneError={onPaneError}
 					onSplitResizeDragging={onSplitResizeDragging}
 				/>
 			) : (

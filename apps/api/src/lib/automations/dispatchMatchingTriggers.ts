@@ -3,24 +3,22 @@ import {
 	automationEvents,
 	automations,
 	automationTriggers,
-	subscriptions,
 } from "@superset/db/schema";
 import { findProviderIdentity } from "@superset/db/utils";
 import {
+	accountAllows,
 	configHasMeScope,
 	type MatchableEvent,
 	resolveMeScopes,
 	triggerMatches,
 } from "@superset/shared/automation-matching";
 import {
-	ACTIVE_SUBSCRIPTION_STATUSES,
-	type PlanTier,
 	planAllowsTriggerKind,
-	planTierFromSubscription,
 	requiredPlanForTriggerKind,
 } from "@superset/shared/billing";
+import { organizationPlan } from "@superset/trpc/billing";
 import { Client } from "@upstash/qstash";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { env } from "@/env";
 
 const qstash = new Client({
@@ -59,10 +57,11 @@ export async function dispatchMatchingTriggers(params: {
 	/**
 	 * Restrict candidates to one member's automations. This is the per-user
 	 * isolation for providers whose connection is per member: a Google
-	 * connection is one person's calendar and mailbox, and without this
-	 * narrowing their events would match every org member's triggers.
+	 * connection is one person's mailbox, and without this narrowing their
+	 * events would match every org member's triggers.
 	 */
 	ownerUserId?: string;
+	integrationConnectionId?: string | null;
 }): Promise<{ matched: number; considered: number }> {
 	const { event } = params;
 
@@ -81,6 +80,7 @@ export async function dispatchMatchingTriggers(params: {
 		.select({
 			triggerId: automationTriggers.id,
 			config: automationTriggers.config,
+			connectionId: automationTriggers.connectionId,
 			automationId: automations.id,
 			ownerUserId: automations.ownerUserId,
 		})
@@ -103,6 +103,15 @@ export async function dispatchMatchingTriggers(params: {
 				params.ownerUserId
 					? eq(automations.ownerUserId, params.ownerUserId)
 					: undefined,
+				params.integrationConnectionId
+					? or(
+							isNull(automationTriggers.connectionId),
+							eq(
+								automationTriggers.connectionId,
+								params.integrationConnectionId,
+							),
+						)
+					: isNull(automationTriggers.connectionId),
 			),
 		);
 
@@ -140,7 +149,9 @@ export async function dispatchMatchingTriggers(params: {
 	);
 
 	const matched = resolved.filter(
-		(candidate) => triggerMatches(candidate.config, event).matches,
+		(candidate) =>
+			accountAllows(candidate.connectionId, params.integrationConnectionId) &&
+			triggerMatches(candidate.config, event).matches,
 	);
 
 	if (matched.length === 0) {
@@ -166,26 +177,6 @@ export async function dispatchMatchingTriggers(params: {
 
 	await markDispatched(params.eventId);
 	return { matched: matched.length, considered: candidates.length };
-}
-
-/**
- * The org's plan as billing.activePlan resolves it: the newest subscription
- * in a paying status, else free. Unrecognized plan names read as free — the
- * gate must fail closed on a plan string this build doesn't know.
- */
-async function organizationPlan(organizationId: string): Promise<PlanTier> {
-	const [subscription] = await db
-		.select({ plan: subscriptions.plan, status: subscriptions.status })
-		.from(subscriptions)
-		.where(
-			and(
-				eq(subscriptions.referenceId, organizationId),
-				inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
-			),
-		)
-		.orderBy(desc(subscriptions.createdAt))
-		.limit(1);
-	return planTierFromSubscription(subscription);
 }
 
 /**

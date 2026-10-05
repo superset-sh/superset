@@ -57,7 +57,9 @@ export default function proxy(req: NextRequest) {
 
 export const config = {
 	matcher: [
-		"/((?!_next|ingest|monitoring|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-		"/(api|trpc)(.*)",
+		"/api/trpc/(.*)",
+		"/api/auth/((?!jwks$|oauth2/token$).*)",
+		"/api/desktop/version",
+		"/api/proxy/linear-image",
 	],
 };

@@ -47,9 +47,13 @@ export type ChatSession = {
 	retryPrompt(clientId: string): void;
 	discardPrompt(clientId: string): void;
 	loadOlder(): Promise<void>;
-	cancelTurn(turnId: string): Promise<void>;
+	removeQueuedPrompt(itemId: string): Promise<void>;
+	steerQueuedPrompt(itemId: string): Promise<void>;
+	resumeQueue(): Promise<void>;
+	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
 	setMode(modeId: string): Promise<void>;
+	setConfigOption(configId: string, value: string): Promise<void>;
 };
 
 function confirmEchoes(outbox: Outbox, batch: readonly Envelope[]): void {
@@ -237,8 +241,20 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		});
 	}, [client, pageSize]);
 
+	const removeQueuedPrompt = useCallback(
+		(itemId: string) => client.removeQueuedPrompt(itemId),
+		[client],
+	);
+	const steerQueuedPrompt = useCallback(
+		(itemId: string) => client.steerQueuedPrompt(itemId),
+		[client],
+	);
+
+	const resumeQueue = useCallback(() => client.resumeQueue(), [client]);
+
 	const cancelTurn = useCallback(
-		(turnId: string) => client.cancelTurn(turnId),
+		(turnId: string, options?: { pauseQueue?: boolean }) =>
+			client.cancelTurn(turnId, options),
 		[client],
 	);
 	const respondToApproval = useCallback(
@@ -248,6 +264,12 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	);
 	const setMode = useCallback(
 		(modeId: string) => client.setMode(modeId),
+		[client],
+	);
+
+	const setConfigOption = useCallback(
+		(configId: string, value: string) =>
+			client.setConfigOption(configId, value),
 		[client],
 	);
 
@@ -261,8 +283,12 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		retryPrompt,
 		discardPrompt,
 		loadOlder,
+		removeQueuedPrompt,
+		steerQueuedPrompt,
+		resumeQueue,
 		cancelTurn,
 		respondToApproval,
 		setMode,
+		setConfigOption,
 	};
 }

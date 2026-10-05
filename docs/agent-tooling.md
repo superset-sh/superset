@@ -34,6 +34,16 @@ Everything else links to those:
 Agents other than Claude Code should read the relevant `.agents/skills/*/SKILL.md` when its
 description matches the task.
 
+## UFO
+
+Install with `curl -fsSL https://ufo.ai/ufo | sh` and complete `ufo login` in a
+terminal. Add the UFO preset in Settings → Agents. Launches run in the local
+workspace with a positional prompt; resume uses `ufo --resume <conversation-id>`.
+The wrapper reports launch identity, but UFO has no verified native lifecycle
+hooks for turn completion or permission notifications. Automatic session-ID
+discovery, usage history, model presets, and unattended one-shot runs are not
+integrated. These command forms were checked against UFO v0.1.90's `--help`.
+
 ## Provider accounts (multi-login)
 
 The Usage tab can hold several Claude Code / Codex logins and pick which one agents use. A login

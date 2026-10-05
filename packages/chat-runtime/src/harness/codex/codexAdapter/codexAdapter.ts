@@ -106,6 +106,7 @@ type InFlightItem = {
 };
 
 export type CodexAdapterOptions = SpawnCodexOptions & {
+	launch?: () => Promise<Pick<SpawnCodexOptions, "command" | "args" | "env">>;
 	minVersion?: string;
 	clientVersion?: string;
 	now?: () => number;
@@ -204,15 +205,17 @@ export class CodexAdapter implements HarnessAdapter {
 	private async bootstrap(startOptions: HarnessStartOptions): Promise<void> {
 		this.emitSession({ status: "starting" });
 		try {
+			const launch = await this.options.launch?.();
+			if (this.disposed) return;
 			const client = new CodexRpcClient({
 				clientVersion: this.options.clientVersion,
 				createTransport: (handlers) =>
 					(this.options.createTransport ?? spawnCodexTransport)(
 						{
-							command: this.options.command,
-							args: this.options.args,
+							command: launch?.command ?? this.options.command,
+							args: launch?.args ?? this.options.args,
 							cwd: startOptions.cwd,
-							env: this.options.env,
+							env: launch?.env ?? this.options.env,
 						},
 						handlers,
 					),

@@ -1,0 +1,1 @@
+export { TerminalColorAuthority } from "./TerminalColorAuthority";

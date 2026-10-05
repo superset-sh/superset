@@ -35,6 +35,16 @@ export function basename(rel: string): string {
 	return i < 0 ? trimmed : trimmed.slice(i + 1);
 }
 
+export function moveDestinationPath(
+	sourcePath: string,
+	directoryPath: string | null,
+): string {
+	const directory = stripTrailingSlash(directoryPath ?? "");
+	const name = basename(sourcePath);
+	const destination = directory ? `${directory}/${name}` : name;
+	return sourcePath.endsWith("/") ? `${destination}/` : destination;
+}
+
 /** Resolve a watcher deletion to Pierre's canonical path and entry type. */
 export function resolveDeleteTreePath(
 	known: Set<string>,

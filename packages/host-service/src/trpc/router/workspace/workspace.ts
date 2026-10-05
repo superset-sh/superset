@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
@@ -11,6 +11,7 @@ import {
 	toCloudShape,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
+import { cancelAndWaitWorkspaceTitleCommit } from "../../../workspaces/workspace-title-jobs";
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
 import { destroyWorkspace } from "../workspace-cleanup";
@@ -46,8 +47,22 @@ export const workspaceRouter = router({
 	list: protectedProcedure
 		.input(z.object({ includeArchived: z.boolean().default(false) }).optional())
 		.query(({ ctx, input }) => {
+			const deletedProjectIds = new Set(
+				ctx.db
+					.select({ id: projects.id })
+					.from(projects)
+					.where(isNotNull(projects.deletedAt))
+					.all()
+					.map((project) => project.id),
+			);
 			const rows = input?.includeArchived
-				? ctx.db.select().from(workspaces).all()
+				? ctx.db
+						.select()
+						.from(workspaces)
+						.all()
+						.filter(
+							(row) => !row.projectId || !deletedProjectIds.has(row.projectId),
+						)
 				: ctx.db
 						.select()
 						.from(workspaces)
@@ -134,6 +149,8 @@ export const workspaceRouter = router({
 					tags: getWorkspaceTags(ctx.db, current.id, ctx.userId),
 				};
 			}
+			if (patch.name !== undefined || patch.branch !== undefined)
+				await cancelAndWaitWorkspaceTitleCommit(ctx.db, input.id);
 			const updated = updateLocalWorkspace(
 				{ db: ctx.db, eventBus: ctx.eventBus, userId: ctx.userId },
 				input.id,

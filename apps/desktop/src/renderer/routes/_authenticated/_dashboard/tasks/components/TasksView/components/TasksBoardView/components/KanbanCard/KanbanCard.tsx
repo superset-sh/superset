@@ -64,7 +64,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 		>
 			{/* Row 1: Slug + Assignee avatar */}
 			<div className="flex items-center justify-between gap-2 mb-1">
-				<span className="text-xs text-muted-foreground font-medium">
+				<span className="font-mono text-xs text-muted-foreground font-medium">
 					{task.slug}
 				</span>
 				{assigneeName && (

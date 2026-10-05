@@ -1,3 +1,4 @@
+import type { TerminalColors } from "@superset/shared/terminal-colors";
 // Client for the pty-daemon Unix-socket protocol.
 //
 // host-service holds a single long-lived DaemonClient. PTYs are owned by the
@@ -97,6 +98,7 @@ export class DaemonClient {
 	private negotiated: number | null = null;
 	private connected = false;
 	private modeSnapshots = false;
+	private colorQueries = false;
 
 	constructor(opts: DaemonClientOptions) {
 		this.opts = opts;
@@ -124,6 +126,10 @@ export class DaemonClient {
 
 	get isConnected(): boolean {
 		return this.connected && this.socket !== null && !this.socket.destroyed;
+	}
+
+	get supportsColorQueries(): boolean {
+		return this.colorQueries;
 	}
 
 	get supportsModeSnapshots(): boolean {
@@ -212,6 +218,11 @@ export class DaemonClient {
 	}
 
 	/** Fire-and-forget; daemon validates dims. */
+	setColors(id: string, colors: TerminalColors, resetOverrides = false): void {
+		if (this.colorQueries)
+			this.send({ type: "colors", id, colors, resetOverrides });
+	}
+
 	resize(id: string, cols: number, rows: number): void {
 		this.send({ type: "resize", id, cols, rows });
 	}
@@ -319,6 +330,7 @@ export class DaemonClient {
 			throw new Error(`daemon handshake unexpected reply: ${ack.type}`);
 		}
 		this.modeSnapshots = ack.supportsModeSnapshots === true;
+		this.colorQueries = ack.supportsColorQueries === true;
 		this.daemonVersion = ack.daemonVersion;
 		this.negotiated = ack.protocol;
 	}

@@ -1,11 +1,19 @@
 import { useCallback } from "react";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
+import {
+	type LinearIssueReference,
+	linkedIssueFromLinear,
+} from "renderer/routes/_authenticated/utils/linkedIssueFromLinear";
 import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import type {
 	DashboardNewWorkspaceDraft,
 	LinkedIssue,
 	LinkedPR,
 } from "../../../../../DashboardNewWorkspaceDraftContext";
+
+function seedsWorkspaceNames(issue: LinkedIssue): boolean {
+	return issue.source === "internal" || issue.source === "linear";
+}
 
 /**
  * Bundle of handlers that mutate `linkedIssues` / `linkedPR` on the draft.
@@ -20,6 +28,30 @@ export function useLinkedContext(
 	linkedIssues: LinkedIssue[],
 	updateDraft: (patch: Partial<DashboardNewWorkspaceDraft>) => void,
 ) {
+	const addSeedingIssue = useCallback(
+		(issue: LinkedIssue) => {
+			if (linkedIssues.some((linked) => linked.slug === issue.slug)) return;
+			const patch: Partial<DashboardNewWorkspaceDraft> = {
+				linkedIssues: [...linkedIssues, issue],
+			};
+			// Seed the workspace/branch fields from the issue so the branch
+			// matches the provider's format (Linear autolinks it back to the
+			// issue). Never overwrite something the user already typed.
+			const draft = useNewWorkspaceDraftStore.getState();
+			if (!draft.branchNameEdited && !draft.branchName.trim()) {
+				patch.branchName = deriveBranchName(issue);
+				patch.branchNameEdited = true;
+				patch.branchNameFromProvider = !!issue.branch?.trim();
+			}
+			if (!draft.workspaceNameEdited && !draft.workspaceName.trim()) {
+				patch.workspaceName = issue.title;
+				patch.workspaceNameEdited = true;
+			}
+			updateDraft(patch);
+		},
+		[linkedIssues, updateDraft],
+	);
+
 	const addLinkedIssue = useCallback(
 		(
 			slug: string,
@@ -27,30 +59,22 @@ export function useLinkedContext(
 			taskId: string | undefined,
 			url?: string,
 			branch?: string,
-		) => {
-			if (linkedIssues.some((issue) => issue.slug === slug)) return;
-			const patch: Partial<DashboardNewWorkspaceDraft> = {
-				linkedIssues: [
-					...linkedIssues,
-					{ slug, title, source: "internal", taskId, url, branch },
-				],
-			};
-			// Seed the workspace/branch fields from the issue so the branch
-			// matches the provider's format (Linear autolinks it back to the
-			// issue). Never overwrite something the user already typed.
-			const draft = useNewWorkspaceDraftStore.getState();
-			if (!draft.branchNameEdited && !draft.branchName.trim()) {
-				patch.branchName = deriveBranchName({ slug, title, branch });
-				patch.branchNameEdited = true;
-				patch.branchNameFromProvider = !!branch?.trim();
-			}
-			if (!draft.workspaceNameEdited && !draft.workspaceName.trim()) {
-				patch.workspaceName = title;
-				patch.workspaceNameEdited = true;
-			}
-			updateDraft(patch);
-		},
-		[linkedIssues, updateDraft],
+		) =>
+			addSeedingIssue({
+				slug,
+				title,
+				source: "internal",
+				taskId,
+				url,
+				branch,
+			}),
+		[addSeedingIssue],
+	);
+
+	const addLinkedLinearIssue = useCallback(
+		(issue: LinearIssueReference) =>
+			addSeedingIssue(linkedIssueFromLinear(issue)),
+		[addSeedingIssue],
 	);
 
 	const addLinkedGitHubIssue = useCallback(
@@ -83,9 +107,9 @@ export function useLinkedContext(
 			// Clear the seeded names, but only when they still match what the
 			// issue seeded — a user edit sticks. When another internal issue is
 			// still linked, hand the seed to it instead of going blank.
-			if (removed?.source === "internal") {
+			if (removed && seedsWorkspaceNames(removed)) {
 				const draft = useNewWorkspaceDraftStore.getState();
-				const next = remaining.find((i) => i.source === "internal");
+				const next = remaining.find(seedsWorkspaceNames);
 				const seededBranch = deriveBranchName({
 					slug: removed.slug,
 					title: removed.title,
@@ -133,6 +157,7 @@ export function useLinkedContext(
 
 	return {
 		addLinkedIssue,
+		addLinkedLinearIssue,
 		addLinkedGitHubIssue,
 		removeLinkedIssue,
 		setLinkedPR,

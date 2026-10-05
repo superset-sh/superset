@@ -20,6 +20,7 @@ import {
 	hostServiceQueryRetry,
 	hostServiceQueryRetryDelay,
 } from "renderer/lib/host-service-client";
+import superjson from "superjson";
 import { electronReactClient } from "../../lib/trpc-client";
 
 // In Electron, blurring the BrowserWindow keeps document.visibilityState
@@ -39,7 +40,7 @@ focusManager.setEventListener((handleFocus) => {
 });
 
 // Bump when query response shapes change — invalidates the persisted cache.
-const PERSIST_BUSTER = "v1";
+const PERSIST_BUSTER = "v2";
 
 // Shared QueryClient for tRPC hooks and router loaders
 const queryClient = new QueryClient({
@@ -82,6 +83,10 @@ const persister = createAsyncStoragePersister({
 		},
 	},
 	key: "superset-rq-cache",
+	// Query data carries Dates (tRPC's superjson transformer); plain JSON would
+	// restore them as strings.
+	serialize: superjson.stringify,
+	deserialize: (cached) => superjson.parse(cached),
 });
 
 // Whitelist of queryKey prefixes worth persisting — anything else (auth
@@ -93,8 +98,9 @@ const PERSIST_KEY_PREFIXES = new Set([
 	"dashboard-sidebar", // sidebar per-workspace PR state (badges/checks)
 ]);
 // tRPC queries persisted by procedure path: the host roster, so the sidebar
-// fans out to remote hosts on a cold or offline boot before the cloud answers.
-const PERSIST_TRPC_PATHS = new Set(["host.roster"]);
+// fans out to remote hosts on a cold or offline boot before the cloud answers,
+// and the cloud workspace list, so the Cloud section draws before it does.
+const PERSIST_TRPC_PATHS = new Set(["host.roster", "cloudWorkspace.list"]);
 
 export function ElectronTRPCProvider({
 	children,

@@ -1,0 +1,36 @@
+---
+title: "Send a UI change to your coding agent"
+description: "Use Superset Design Mode to select an element in your preview and send its element context to your coding agent."
+author: kiet
+date: 2026-09-24
+unlisted: true
+category: Product
+relatedSlugs:
+  - send-pr-feedback-to-your-agent
+  - review-agent-work-with-pages
+---
+
+When a button looks wrong, pointing at it is easier than describing where it lives. Superset's Design Mode lets you select an element in the browser preview and send a change request to your coding agent.
+
+## Select the element you want to change
+
+Open your repository in a Superset workspace, start its development server, and open the URL in a browser pane. Click **Design** in the browser toolbar, then click the element you want to change.
+
+A prompt card opens beside the selection. Describe one change, choose your agent, and send it to an existing terminal or a new session. For example:
+
+```text
+Make this button use the same spacing as the other buttons in this form.
+Keep its label and click behavior unchanged.
+```
+
+Superset sends the selected element's DOM and computed styles. A cropped screenshot and React component metadata are included when available. You can keep using the CLI agent you already use for the project.
+
+See the [Design Mode demonstration](https://docs.superset.sh/browser#design-mode) for the element picker and prompt card.
+
+## Check the result in the preview
+
+Read the agent's diff, reload the preview, and check the button at the screen sizes your app supports. Try its click behavior too. The screenshot gives the agent context; the preview lets you check what it actually changed.
+
+For browser checks you want to delegate, agents can also [read and interact with the workspace's browser pane](https://docs.superset.sh/browser#drive-it-from-the-cli-and-agents).
+
+[Download Superset](/download) and try one UI change in a repository you already work on.

@@ -28,6 +28,7 @@ interface MarkdownPage {
 	title: string;
 	url: string;
 	date?: string;
+	lastUpdated?: string;
 	author?: string;
 	description?: string;
 	content: string;
@@ -221,6 +222,7 @@ async function loadPage(
 			title: post.title,
 			url: `${baseUrl}/blog/${post.slug}`,
 			date: post.date,
+			lastUpdated: post.lastUpdated,
 			author: post.author.name,
 			description: post.description,
 			content: stripMdxSyntax(post.content),
@@ -323,13 +325,14 @@ export async function GET(
 			title: page.title,
 			description: page.description ?? page.title,
 			canonical,
-			lastUpdated: page.date,
+			lastUpdated: page.lastUpdated ?? page.date,
 		}),
 		`# ${page.title}`,
 		"",
 		...(page.description ? [page.description, ""] : []),
 		`URL: ${canonical}`,
 		...(page.date ? [`Date: ${page.date}`] : []),
+		...(page.lastUpdated ? [`Last updated: ${page.lastUpdated}`] : []),
 		...(page.author ? [`Author: ${page.author}`] : []),
 		"",
 		page.content,

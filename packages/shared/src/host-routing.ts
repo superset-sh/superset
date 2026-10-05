@@ -54,3 +54,6 @@ export function buildUpstreamHeaders(
 	headers[SUPERSET_USER_ID_HEADER] = userId;
 	return headers;
 }
+
+/** The host id for the cloud. A cloud workspace has no `v2_hosts` row. */
+export const CLOUD_HOST_ID = "cloud";

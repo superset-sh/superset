@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `file_auto_save` text;

@@ -67,6 +67,7 @@ export function useLeaderboardAutoPublish(): void {
 				handle,
 				lastPublishedAt: Date.now(),
 				lastPayloadHash: hash,
+				pendingBackfill: false,
 			});
 		} catch (error) {
 			console.warn("[leaderboard] auto-publish failed (will retry):", error);

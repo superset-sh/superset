@@ -25,13 +25,14 @@ export {
 	type PageHeaderOwner,
 	type PageHeaderPage,
 	type PageHeaderVersion,
-	PageSharePopover,
+	PageShareButton,
 	PageTitleMenu,
 	PageVersionBanner,
 	type PageVisibility,
 	RenamePageDialog,
 } from "./components/PageHeader";
 export { useFramePointerDown } from "./hooks/useFramePointerDown";
+export { usePageStorageConnect } from "./hooks/usePageStorageConnect";
 export {
 	type CommentDraft,
 	type CommentIntent,

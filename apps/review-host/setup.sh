@@ -134,6 +134,7 @@ ExecStart=/opt/review-host/run.sh
 BindReadOnlyPaths=/opt/review-host/machine-id:/etc/machine-id
 Restart=always
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target

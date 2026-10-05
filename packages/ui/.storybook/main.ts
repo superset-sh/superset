@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 const config: StorybookConfig = {
 	stories: [
 		{ directory: "../src/components", files: "**/*.stories.@(ts|tsx)" },
+		{ directory: "../src/atoms", files: "**/*.stories.@(ts|tsx)" },
 		{
 			directory: "../../chat-ui/src/components",
 			files: "**/*.stories.@(ts|tsx)",

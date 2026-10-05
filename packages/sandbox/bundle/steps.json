@@ -32,5 +32,6 @@
 		]
 	},
 	{ "name": "install-host", "assets": ["host-service"] },
-	{ "name": "install-cli", "assets": ["cli"] }
+	{ "name": "install-cli", "assets": ["cli"] },
+	{ "name": "install-agent-clis", "assets": ["claude", "codex"] }
 ]

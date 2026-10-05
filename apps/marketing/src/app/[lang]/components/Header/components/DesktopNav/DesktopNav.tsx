@@ -13,10 +13,9 @@ import {
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
 import { useState } from "react";
-import { useIsMobileLaunched } from "../../../../providers/MobileLaunchProvider";
 import {
 	type NavLink,
-	productLinks,
+	PRODUCT_LINKS,
 	RESOURCE_LINKS,
 	TOP_LEVEL_LINKS,
 } from "../../constants";
@@ -27,7 +26,6 @@ const triggerClass = cn(
 );
 
 export function DesktopNav() {
-	const isMobileLaunched = useIsMobileLaunched();
 	// Radix's NavigationMenu is uncontrolled by default, so a hover-opened
 	// trigger and a click on that same trigger both race to set its shared
 	// internal `value`. A click toggles, so clicking a menu that hover just
@@ -52,7 +50,7 @@ export function DesktopNav() {
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="flex w-[320px] flex-col gap-1 p-2">
-							{productLinks(isMobileLaunched).map((link) => (
+							{PRODUCT_LINKS.map((link) => (
 								<NavListItem key={link.href} link={link} />
 							))}
 						</ul>

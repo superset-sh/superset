@@ -7,6 +7,7 @@ import {
 import { subDays } from "date-fns";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { liftSuspension } from "@/lib/github/suspension";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { githubApp } from "../../octokit";
 
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
 	}
 
 	try {
+		await liftSuspension(installation);
+
 		const octokit = await githubApp.getInstallationOctokit(
 			Number(installation.installationId),
 		);

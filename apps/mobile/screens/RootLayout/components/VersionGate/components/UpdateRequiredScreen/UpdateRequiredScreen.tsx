@@ -55,7 +55,7 @@ export function UpdateRequiredScreen({
 
 			<Button
 				size="lg"
-				className="w-4/5"
+				className="w-4/5 max-w-sm"
 				onPress={() => openUrl(COMPANY.APP_STORE_URL)}
 			>
 				<Text>

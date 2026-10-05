@@ -1,6 +1,7 @@
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiSentry } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
+import { AccountSlot } from "../components/AccountSlot";
 import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
@@ -27,9 +28,11 @@ function renderSlot(
 	config: SentryConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, state, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled, account }: SentenceContext,
 ) {
 	switch (slot) {
+		case "account":
+			return <AccountSlot key={index} account={account} after="›" />;
 		case "projects":
 			return (
 				<ScopeChip

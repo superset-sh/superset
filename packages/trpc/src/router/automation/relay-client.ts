@@ -49,12 +49,33 @@ function parseTrpcErrorMessage(rawBody: string): string | null {
  * using SuperJSON transformer, and the server response is
  * `{ result: { data: { json: <output> } } }`.
  */
-export async function relayMutation<TInput, TOutput>(
+export function relayMutation<TInput, TOutput>(
 	options: RelayClientOptions,
 	procedure: string,
 	input: TInput,
 ): Promise<TOutput> {
-	const url = `${options.relayUrl}/hosts/${options.hostId}/trpc/${procedure}`;
+	return hostServiceMutation(
+		{
+			baseUrl: `${options.relayUrl}/hosts/${options.hostId}`,
+			headers: { authorization: `Bearer ${options.jwt}` },
+			timeoutMs: options.timeoutMs,
+		},
+		procedure,
+		input,
+	);
+}
+
+/** {@link relayMutation} against any host-service base URL, such as a sandbox's. */
+export async function hostServiceMutation<TInput, TOutput>(
+	options: {
+		baseUrl: string;
+		headers: Record<string, string>;
+		timeoutMs?: number;
+	},
+	procedure: string,
+	input: TInput,
+): Promise<TOutput> {
+	const url = `${options.baseUrl}/trpc/${procedure}`;
 	const encoded = SuperJSON.serialize(input);
 
 	const controller = new AbortController();
@@ -67,10 +88,7 @@ export async function relayMutation<TInput, TOutput>(
 	try {
 		response = await fetch(url, {
 			method: "POST",
-			headers: {
-				"content-type": "application/json",
-				authorization: `Bearer ${options.jwt}`,
-			},
+			headers: { "content-type": "application/json", ...options.headers },
 			body: JSON.stringify(encoded),
 			signal: controller.signal,
 		});

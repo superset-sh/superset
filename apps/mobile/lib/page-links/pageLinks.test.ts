@@ -48,4 +48,20 @@ describe("pageSlugFromUrl", () => {
 		expect(pageSlugFromUrl("not a url", WEB)).toBe(null);
 		expect(pageSlugFromUrl("", WEB)).toBe(null);
 	});
+
+	test("leaves custom-scheme urls to expo-router", () => {
+		expect(pageSlugFromUrl("superset://pages/deploy-notes", WEB)).toBe(null);
+		expect(pageSlugFromUrl("superset:///workspace/ws-1?tab=t-1", WEB)).toBe(
+			null,
+		);
+	});
+
+	test("leaves the dev-client launch url untouched", () => {
+		expect(
+			pageSlugFromUrl(
+				"superset://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081",
+				WEB,
+			),
+		).toBe(null);
+	});
 });

@@ -14,13 +14,14 @@ export type SentryConfig = Extract<TriggerConfigInput, { kind: "sentry" }>;
  * its opening words.
  */
 
-export type Slot = "projects" | "level";
+export type Slot = "account" | "projects" | "level";
 
 export type SentencePart = { text: string } | { slot: Slot };
 
 function sentence(opening: string): SentencePart[] {
 	return [
 		{ text: opening },
+		{ slot: "account" },
 		{ slot: "projects" },
 		{ text: "with level" },
 		{ slot: "level" },

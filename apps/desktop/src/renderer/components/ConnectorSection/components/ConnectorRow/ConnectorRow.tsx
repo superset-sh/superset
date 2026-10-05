@@ -1,9 +1,10 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ReactNode } from "react";
-import { LuCheck, LuLock, LuUnplug } from "react-icons/lu";
+import { LuCheck, LuLock, LuPlus, LuUnplug } from "react-icons/lu";
 import { useConnector } from "../../hooks/useConnector";
 
 interface ConnectorRowProps {
@@ -23,16 +24,25 @@ export function ConnectorRow({
 	canConnect = true,
 	onConnect,
 }: ConnectorRowProps) {
-	const { connector, connection, isPending, disconnect } = useConnector(
-		slug,
-		organizationId,
-	);
+	const { t } = useLingui();
+	const { connector, connection, connections, isPending, disconnect } =
+		useConnector(slug, organizationId);
 
 	if (isPending || !connector) return null;
 
 	const who = connection?.externalUserLabel;
 	const where = connection?.externalAccountLabel;
-	const account = who && where ? `${who} · ${where}` : (who ?? where ?? "");
+	const account =
+		connections.length > 1
+			? t({
+					message: plural(connections.length, {
+						one: "# account connected",
+						other: "# accounts connected",
+					}),
+				})
+			: who && where
+				? `${who} · ${where}`
+				: (who ?? where ?? "");
 
 	return (
 		<div className="flex items-center gap-3 py-3.5">
@@ -51,15 +61,31 @@ export function ConnectorRow({
 						<LuCheck className="size-3" />
 						<Trans>Connected</Trans>
 					</Badge>
-					<Button
-						variant="ghost"
-						size="sm"
-						disabled={disconnect.isPending}
-						onClick={() => disconnect.mutate({ connectionId: connection.id })}
-					>
-						<LuUnplug className="mr-1.5 size-3.5" />
-						<Trans>Disconnect</Trans>
-					</Button>
+					{connections.length > 1 ? (
+						<Button variant="ghost" size="sm" onClick={onConnect}>
+							<Trans>Manage accounts</Trans>
+						</Button>
+					) : (
+						<>
+							{connector.scope === "user" && (
+								<Button variant="ghost" size="sm" onClick={onConnect}>
+									<LuPlus className="mr-1.5 size-3.5" />
+									<Trans>Add account</Trans>
+								</Button>
+							)}
+							<Button
+								variant="ghost"
+								size="sm"
+								disabled={disconnect.isPending}
+								onClick={() =>
+									disconnect.mutate({ connectionId: connection.id })
+								}
+							>
+								<LuUnplug className="mr-1.5 size-3.5" />
+								<Trans>Disconnect</Trans>
+							</Button>
+						</>
+					)}
 				</div>
 			) : canConnect ? (
 				<Button

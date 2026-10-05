@@ -26,5 +26,11 @@ export interface HarnessAdapter {
 	cancelTurn(): void;
 	respondToApproval(approvalId: string, decision: Decision): void;
 	setMode(modeId: string): void;
+	setConfigOption?(configId: string, value: string): void;
+	/**
+	 * Branch this session, returning the harness id of the copy. Absent, or
+	 * null, when the harness cannot: the agent has to advertise it.
+	 */
+	fork?(): Promise<string | null>;
 	dispose(): Promise<void>;
 }

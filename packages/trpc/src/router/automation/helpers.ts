@@ -308,6 +308,8 @@ export const automationBaseColumns = {
 	targetHostId: automations.targetHostId,
 	v2ProjectId: automations.v2ProjectId,
 	v2WorkspaceId: automations.v2WorkspaceId,
+	cloudWorkspaceId: automations.cloudWorkspaceId,
+	environmentId: automations.environmentId,
 	tags: automations.tags,
 	continueAgentSession: automations.continueAgentSession,
 	enabled: automations.enabled,
@@ -361,6 +363,51 @@ export async function automationNotFound(
 			organizationName: elsewhere.organizationName,
 			organizationId: elsewhere.organizationId,
 		},
+	});
+}
+
+/** Deleting runs nothing on anyone's machine, so an organization owner may do it for any automation. */
+export async function requireAutomationDeleteAccess(
+	userId: string,
+	organizationId: string,
+	id: string,
+) {
+	const [automation] = await db
+		.select({ ownerUserId: automations.ownerUserId })
+		.from(automations)
+		.where(
+			and(
+				eq(automations.id, id),
+				eq(automations.organizationId, organizationId),
+			),
+		)
+		.limit(1);
+	if (!automation) {
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Automation not found",
+			i18nKey: "serverError.automation.automationNotFound",
+		});
+	}
+	if (automation.ownerUserId === userId) return;
+
+	const [membership] = await db
+		.select({ role: members.role })
+		.from(members)
+		.where(
+			and(
+				eq(members.organizationId, organizationId),
+				eq(members.userId, userId),
+			),
+		)
+		.limit(1);
+	if (membership?.role === "owner") return;
+
+	throw userError({
+		code: "FORBIDDEN",
+		message:
+			"Only the owner or an organization owner can delete this automation",
+		i18nKey: "serverError.automation.onlyTheOwnerOrAnOrganizationOwner",
 	});
 }
 

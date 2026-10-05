@@ -54,9 +54,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const { data: membersData, isPending } =
 		cloudTrpc.organization.listMembers.useQuery({ includeDeactivated: true });
 
-	const { data: orgData } = cloudTrpc.organization.list.useQuery(undefined);
-	const organization = orgData?.find((org) => org.id === activeOrganizationId);
-
 	const members: TeamMember[] = useMemo(() => {
 		if (!activeOrganizationId) return [];
 		return (membersData ?? [])
@@ -111,16 +108,9 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 			<div className="flex-1 overflow-auto">
 				<div className="p-8 space-y-12">
-					{currentUserRole && activeOrganizationId && organization?.name && (
-						<div className="max-w-5xl">
-							<PendingInvitations
-								visibleItems={visibleItems}
-								currentUserRole={currentUserRole}
-								organizationId={activeOrganizationId}
-								organizationName={organization.name}
-							/>
-						</div>
-					)}
+					<div className="max-w-5xl">
+						<PendingInvitations visibleItems={visibleItems} />
+					</div>
 
 					<div className="max-w-5xl space-y-4">
 						<h3 className="text-lg font-semibold">

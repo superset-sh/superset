@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	test,
+} from "bun:test";
 import { readSettingsRow } from "../../lib/settings";
 import { writeSettings } from "../../lib/settings/local-settings";
 import {
@@ -15,9 +23,11 @@ mock.module("../../lib/config", () => ({
 	readConfig: () => ({ organizationId: activeOrganizationId }),
 }));
 
-mock.module("../../lib/settings/notify", () => ({
-	notifyDesktopSettingsChanged: async () => desktopRefreshed,
-}));
+const desktop = Bun.serve({
+	port: 0,
+	fetch: () => new Response(null, { status: desktopRefreshed ? 200 : 503 }),
+});
+afterAll(() => desktop.stop(true));
 
 const { default: addCommand } = await import("./add/command");
 const { default: listCommand } = await import("./list/command");
@@ -62,10 +72,12 @@ beforeEach(() => {
 	delete process.env.SUPERSET_ORGANIZATION_ID;
 	activeOrganizationId = "org-a";
 	desktopRefreshed = false;
+	process.env.DESKTOP_NOTIFICATIONS_PORT = String(desktop.port);
 	createLocalSettingsDb(home.dir);
 });
 
 afterEach(() => {
+	delete process.env.DESKTOP_NOTIFICATIONS_PORT;
 	if (previousOrgOverride === undefined)
 		delete process.env.SUPERSET_ORGANIZATION_ID;
 	else process.env.SUPERSET_ORGANIZATION_ID = previousOrgOverride;

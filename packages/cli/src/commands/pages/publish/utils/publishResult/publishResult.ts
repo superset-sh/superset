@@ -14,7 +14,6 @@ export function publishResult({
 	unanchored,
 	watching,
 	watchNote,
-	openNote,
 }: {
 	page: { id: string; title: string; version: number; url: string } & Record<
 		string,
@@ -30,7 +29,6 @@ export function publishResult({
 	unanchored: boolean;
 	watching: boolean;
 	watchNote: string | null;
-	openNote: string | null;
 }): { data: Record<string, unknown>; message: string } {
 	const republish = `superset pages publish ${
 		/\s/.test(path) ? JSON.stringify(path) : path
@@ -59,7 +57,6 @@ export function publishResult({
 		);
 	}
 	if (watchNote) lines.push(watchNote);
-	if (openNote) lines.push(openNote);
 
 	return {
 		data: {
@@ -68,7 +65,6 @@ export function publishResult({
 			...(unanchored ? { republish } : {}),
 			watching,
 			...(watchNote ? { watchNote } : {}),
-			...(openNote ? { openNote } : {}),
 			assets: { uploaded: assets.uploaded, reused: assets.reused },
 		},
 		message: lines.join("\n"),

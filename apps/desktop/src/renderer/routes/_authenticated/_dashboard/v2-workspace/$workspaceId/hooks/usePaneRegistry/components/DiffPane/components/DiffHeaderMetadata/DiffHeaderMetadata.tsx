@@ -8,7 +8,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { LuCheck, LuCopy, LuExternalLink, LuUndo2, LuX } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
-import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
+import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/components/DiscardConfirmDialog";
 import type { ChangesetFile } from "../../../../../useChangeset";
 import { useDiffHeaderHover } from "../../hooks/useDiffHeaderHover";
 

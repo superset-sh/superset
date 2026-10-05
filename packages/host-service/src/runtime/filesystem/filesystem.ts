@@ -6,8 +6,11 @@ import {
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
 import { projects, workspaces } from "../../db/schema.ts";
-import { listGitIgnoredDirs } from "../git/index.ts";
 import { WatchAttachGuard } from "./watch-attach-guard.ts";
+import {
+	scanGitIgnoredDirectories,
+	scanNestedRepositories,
+} from "./watcher-scans.ts";
 
 export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
@@ -30,8 +33,9 @@ export class ProjectNotFoundError extends Error {
 export class WorkspaceFilesystemManager {
 	private readonly db: HostDb;
 	private readonly watcherManager = new FsWatcherManager({
-		listGitIgnoredDirs,
 		useDefaultIgnores: false,
+		listGitIgnoredDirs: scanGitIgnoredDirectories,
+		findNestedRepoRoots: scanNestedRepositories,
 	});
 	private readonly watchAttachGuard = new WatchAttachGuard(this.watcherManager);
 	private readonly serviceCache = new Map<string, FsHostService>();

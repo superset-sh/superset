@@ -25,6 +25,16 @@ const GET = async (req: Request) => {
 			}
 		}
 	}
+	if (url.pathname.endsWith("/jwks")) {
+		const response = await _GET(req);
+		if (!response.ok) return response;
+		const headers = new Headers(response.headers);
+		headers.set(
+			"Cache-Control",
+			"public, s-maxage=300, stale-while-revalidate=3600",
+		);
+		return new Response(response.body, { status: response.status, headers });
+	}
 	return _GET(req);
 };
 

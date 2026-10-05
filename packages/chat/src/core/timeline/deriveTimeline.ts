@@ -1,5 +1,10 @@
 import type { Turn } from "../../protocol/envelope";
-import type { ApprovalRequest, Item, ToolCall } from "../../protocol/items";
+import type {
+	ApprovalRequest,
+	Item,
+	ToolCall,
+	UserMessage,
+} from "../../protocol/items";
 import type { SessionSnapshot, StoredItem } from "../reducer/reducer";
 
 export type TimelineEntry =
@@ -17,8 +22,8 @@ function byStartThenId(a: Item, b: Item): number {
 	return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
-function isSettledToolCall(item: Item): item is ToolCall {
-	return item.kind === "tool_call" && (item as ToolCall).status !== "running";
+function isToolCall(item: Item): item is ToolCall {
+	return item.kind === "tool_call";
 }
 
 export function collapseWorkLog(items: readonly Item[]): TimelineEntry[] {
@@ -34,7 +39,7 @@ export function collapseWorkLog(items: readonly Item[]): TimelineEntry[] {
 	};
 
 	for (const item of items) {
-		if (isSettledToolCall(item)) {
+		if (isToolCall(item)) {
 			run.push(item);
 			continue;
 		}
@@ -45,9 +50,12 @@ export function collapseWorkLog(items: readonly Item[]): TimelineEntry[] {
 	return entries;
 }
 
-export function deriveTimeline(snapshot: SessionSnapshot): TurnGroup[] {
+export function deriveTimeline(
+	snapshot: Pick<SessionSnapshot, "items" | "turns">,
+): TurnGroup[] {
 	const itemsByTurn = new Map<string, Item[]>();
 	for (const stored of snapshot.items.values() as Iterable<StoredItem>) {
+		if (isQueuedPrompt(stored.item) || isDiscardedPrompt(stored.item)) continue;
 		const bucket = itemsByTurn.get(stored.turnId);
 		if (bucket) bucket.push(stored.item);
 		else itemsByTurn.set(stored.turnId, [stored.item]);
@@ -81,7 +89,7 @@ function firstItemStart(group: TurnGroup): number {
 }
 
 export function derivePendingApprovals(
-	snapshot: SessionSnapshot,
+	snapshot: Pick<SessionSnapshot, "items">,
 ): ApprovalRequest[] {
 	const pending: ApprovalRequest[] = [];
 	for (const stored of snapshot.items.values()) {
@@ -93,4 +101,24 @@ export function derivePendingApprovals(
 	}
 	pending.sort(byStartThenId);
 	return pending;
+}
+
+function isQueuedPrompt(item: Item): item is UserMessage {
+	return item.kind === "user_message" && (item as UserMessage).queued === true;
+}
+
+function isDiscardedPrompt(item: Item): boolean {
+	return (
+		item.kind === "user_message" && (item as UserMessage).discarded === true
+	);
+}
+
+export function deriveQueuedPrompts(
+	snapshot: Pick<SessionSnapshot, "items">,
+): UserMessage[] {
+	const queued: UserMessage[] = [];
+	for (const stored of snapshot.items.values()) {
+		if (isQueuedPrompt(stored.item)) queued.push(stored.item);
+	}
+	return queued;
 }

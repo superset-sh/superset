@@ -26,21 +26,33 @@ import {
 	KEY_BACKSPACE_COMMAND,
 	KEY_DELETE_COMMAND,
 	KEY_ENTER_COMMAND,
+	KEY_ESCAPE_COMMAND,
 	type LexicalNode,
 	PASTE_COMMAND,
 } from "lexical";
 import {
 	ArrowUpIcon,
 	MicIcon,
+	PaperclipIcon,
 	RefreshCcwIcon,
 	SquareIcon,
 	XIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useComposerDropZone } from "../../../ComposerDropZone";
 import { useDictation } from "../../hooks/useDictation";
-import { useMentionSources } from "../../hooks/useMentionSources";
+import {
+	type MentionSection,
+	useMentionSources,
+} from "../../hooks/useMentionSources";
 import { MentionChipNode } from "../../nodes/mentionChipNode";
 import type {
 	ComposerActionContext,
@@ -75,7 +87,10 @@ function matchCommandToken(text: string) {
 }
 
 export type ComposerBodyProps = Required<
-	Pick<PromptInputProps, "placeholder" | "status" | "placement">
+	Pick<
+		PromptInputProps,
+		"placeholder" | "status" | "submitWhileStreaming" | "placement"
+	>
 > &
 	Pick<
 		PromptInputProps,
@@ -83,11 +98,21 @@ export type ComposerBodyProps = Required<
 		| "commands"
 		| "dictation"
 		| "toolbar"
+		| "toolbarEnd"
+		| "defaultValue"
+		| "onChange"
 		| "onSubmit"
 		| "onStop"
 		| "onMentionHighlight"
 		| "onAttachmentClick"
 		| "onChipClick"
+		| "ref"
+		| "header"
+		| "onAddFiles"
+		| "allowEmptySubmit"
+		| "clearOnSubmit"
+		| "hideSubmit"
+		| "autoFocus"
 	>;
 
 function $insertChipAtSelection(chip: ComposerChip) {
@@ -125,16 +150,55 @@ export function ComposerBody({
 	commands,
 	dictation,
 	status,
+	submitWhileStreaming,
 	placement,
 	toolbar,
+	toolbarEnd,
+	defaultValue,
+	onChange,
 	onSubmit,
 	onStop,
 	onMentionHighlight,
 	onAttachmentClick,
 	onChipClick,
+	ref,
+	header,
+	onAddFiles,
+	allowEmptySubmit,
+	clearOnSubmit,
+	hideSubmit,
+	autoFocus,
 }: ComposerBodyProps) {
 	const { t } = useLingui();
 	const [editor] = useLexicalComposerContext();
+	const focusAtEnd = useCallback(() => {
+		editor.update(() => $getRoot().selectEnd());
+		editor.focus();
+	}, [editor]);
+	useImperativeHandle(
+		ref,
+		() => ({
+			appendText(text: string) {
+				editor.update(() => {
+					const root = $getRoot();
+					const separator = root.getTextContent().trim() === "" ? "" : "\n";
+					root.selectEnd();
+					const selection = $getSelection();
+					if ($isRangeSelection(selection)) {
+						selection.insertRawText(`${separator}${text}`);
+					}
+				});
+				editor.focus();
+			},
+			openFileDialog() {
+				fileInputRef.current?.click();
+			},
+			focus() {
+				focusAtEnd();
+			},
+		}),
+		[editor, focusAtEnd],
+	);
 	const [attachments, setAttachments] = useState<PromptInputAttachment[]>([]);
 	const [isEmpty, setIsEmpty] = useState(true);
 	const [dragging, setDragging] = useState(false);
@@ -149,12 +213,61 @@ export function ComposerBody({
 	const rootRef = useRef<HTMLDivElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	// Lexical command listeners register once; this ref bridges them to live React state.
-	const stateRef = useRef({ attachments, onChipClick, onSubmit, status });
-	stateRef.current = { attachments, onChipClick, onSubmit, status };
+	const stateRef = useRef({
+		attachments,
+		onChipClick,
+		onStop,
+		onSubmit,
+		status,
+		submitWhileStreaming,
+		allowEmptySubmit,
+		clearOnSubmit,
+	});
+	stateRef.current = {
+		attachments,
+		onChipClick,
+		onStop,
+		onSubmit,
+		status,
+		submitWhileStreaming,
+		allowEmptySubmit,
+		clearOnSubmit,
+	};
+
+	// A draft the host had stored. Read once: after mount the editor is the
+	// only writer, and re-applying would fight what is being typed.
+	const seeded = useRef(false);
+	useEffect(() => {
+		if (seeded.current) return;
+		seeded.current = true;
+		if (!defaultValue) return;
+		editor.update(() => {
+			const root = $getRoot();
+			if (root.getTextContent() !== "") return;
+			root.selectEnd();
+			const selection = $getSelection();
+			if ($isRangeSelection(selection)) selection.insertText(defaultValue);
+		});
+	}, [defaultValue, editor]);
+
+	const onChangeRef = useRef(onChange);
+	onChangeRef.current = onChange;
+	useEffect(
+		() =>
+			editor.registerUpdateListener(({ editorState }) => {
+				const text = editorState.read(() => $getRoot().getTextContent());
+				onChangeRef.current?.(text);
+			}),
+		[editor],
+	);
 
 	const addFiles = (files: FileList | File[]) => {
 		const incoming = Array.from(files);
 		if (incoming.length === 0) return;
+		if (onAddFiles) {
+			onAddFiles(incoming);
+			return;
+		}
 		setAttachments((previous) => [
 			...previous,
 			...incoming.map((file) => ({
@@ -191,9 +304,28 @@ export function ComposerBody({
 		mentionQuery != null || browseOpen,
 		mentionQuery ?? "",
 	);
+	const browseSections = useMemo<MentionSection[]>(
+		() => [
+			{
+				providerId: "add",
+				title: t({ message: "Add" }),
+				isLoading: false,
+				entries: [
+					{
+						id: "attach-files",
+						label: t({ message: "Attach files" }),
+						icon: <PaperclipIcon className="size-4" />,
+						select: (ctx) => ctx.attachFiles(),
+					},
+				],
+			},
+			...sections.filter((section) => section.entries.length > 0),
+		],
+		[sections, t],
+	);
 	const browseEntries = useMemo(
-		() => sections.flatMap((section) => section.entries),
-		[sections],
+		() => browseSections.flatMap((section) => section.entries),
+		[browseSections],
 	);
 
 	useEffect(() => {
@@ -258,7 +390,11 @@ export function ComposerBody({
 	};
 
 	const submit = () => {
-		if (stateRef.current.status === "streaming") return;
+		if (
+			stateRef.current.status === "streaming" &&
+			!stateRef.current.submitWhileStreaming
+		)
+			return;
 		const { text, mentions } = editor.getEditorState().read(() => ({
 			text: $getRoot().getTextContent().trim(),
 			mentions: $collectChips(),
@@ -266,8 +402,11 @@ export function ComposerBody({
 		const files = stateRef.current.attachments.map(
 			(attachment) => attachment.file,
 		);
-		if (!text && files.length === 0) return;
+		if (!text && files.length === 0 && !stateRef.current.allowEmptySubmit) {
+			return;
+		}
 		stateRef.current.onSubmit?.({ text, files, mentions });
+		if (!stateRef.current.clearOnSubmit) return;
 		editor.update(() => $getRoot().clear());
 		setAttachments((previous) => {
 			for (const attachment of previous) releaseAttachment(attachment);
@@ -307,6 +446,17 @@ export function ComposerBody({
 				if (event?.shiftKey) return false;
 				event?.preventDefault();
 				submitRef.current();
+				return true;
+			},
+			COMMAND_PRIORITY_LOW,
+		);
+		const unregisterEscape = editor.registerCommand<KeyboardEvent | null>(
+			KEY_ESCAPE_COMMAND,
+			(event) => {
+				const { status, onStop } = stateRef.current;
+				if (status !== "streaming" || !onStop) return false;
+				event?.preventDefault();
+				onStop();
 				return true;
 			},
 			COMMAND_PRIORITY_LOW,
@@ -384,6 +534,7 @@ export function ComposerBody({
 		return () => {
 			unregisterText();
 			unregisterEnter();
+			unregisterEscape();
 			unregisterDrop();
 			unregisterPaste();
 			unregisterClick();
@@ -495,7 +646,11 @@ export function ComposerBody({
 		return () => document.removeEventListener("pointerdown", onPointerDown);
 	}, []);
 
-	const canSend = !isEmpty || attachments.length > 0;
+	const canSend = allowEmptySubmit || !isEmpty || attachments.length > 0;
+
+	useEffect(() => {
+		if (autoFocus) focusAtEnd();
+	}, [autoFocus, focusAtEnd]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target; keyboard users attach via the file picker button
@@ -538,7 +693,8 @@ export function ComposerBody({
 			>
 				{browseOpen && (
 					<MentionMenu
-						sections={sections}
+						sections={browseSections}
+						className="max-w-80"
 						selectedIndex={browseIndex}
 						onHighlight={setBrowseIndex}
 						onSelectionChange={onMentionHighlight}
@@ -571,6 +727,7 @@ export function ComposerBody({
 					<Trans>Drop to attach</Trans>
 				</span>
 			</div>
+			{header}
 			<AttachmentPills
 				attachments={attachments}
 				onAttachmentClick={onAttachmentClick}
@@ -595,9 +752,14 @@ export function ComposerBody({
 			/>
 			<div className="relative px-4 pt-3.5 pb-1">
 				<PlainTextPlugin
-					contentEditable={<ContentEditable className="prompt-input-editor" />}
+					contentEditable={
+						<ContentEditable
+							className="prompt-input-editor"
+							spellCheck={false}
+						/>
+					}
 					placeholder={
-						<span className="pointer-events-none absolute top-3.5 left-4 text-sm text-muted-foreground/70">
+						<span className="pointer-events-none absolute top-3.5 left-4 text-sm leading-[1.625] text-muted-foreground/70">
 							{placeholder}
 						</span>
 					}
@@ -757,6 +919,7 @@ export function ComposerBody({
 					<>
 						{toolbar}
 						<div className="flex-1" />
+						{toolbarEnd}
 						{dictation && status !== "streaming" && (
 							<button
 								type="button"
@@ -772,7 +935,8 @@ export function ComposerBody({
 								<MicIcon className="size-4.5" />
 							</button>
 						)}
-						{status === "streaming" ? (
+						{hideSubmit ? null : status === "streaming" &&
+							!(submitWhileStreaming && canSend) ? (
 							<button
 								type="button"
 								aria-label={t({

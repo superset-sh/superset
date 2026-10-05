@@ -12,6 +12,15 @@ export const PROTOCOL_SCHEMES = {
 	PROD: "superset",
 } as const;
 
+const IOS_TEAM_ID = "NV9657CS5A";
+const IOS_BUNDLE_ID = "sh.superset.mobile";
+
+export const IOS_APP = {
+	TEAM_ID: IOS_TEAM_ID,
+	BUNDLE_ID: IOS_BUNDLE_ID,
+	APP_ID: `${IOS_TEAM_ID}.${IOS_BUNDLE_ID}`,
+} as const;
+
 // Company
 // Root domain flips the whole brand at cutover. Default keeps superset.sh so
 // nothing changes until NEXT_PUBLIC_ROOT_DOMAIN is set (e.g. boid.so). All
@@ -20,6 +29,7 @@ export const PROTOCOL_SCHEMES = {
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh";
 const MARKETING_URL =
 	process.env.NEXT_PUBLIC_MARKETING_URL || `https://${ROOT_DOMAIN}`;
+const APP_STORE_ID = "6788926383";
 
 export const COMPANY = {
 	NAME: "Superset",
@@ -39,7 +49,8 @@ export const COMPANY = {
 	TEAM_MAIL_TO: `mailto:team@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
-	APP_STORE_URL: "https://apps.apple.com/app/id6788926383",
+	APP_STORE_ID,
+	APP_STORE_URL: `https://apps.apple.com/app/id${APP_STORE_ID}`,
 	STATUS_URL: `https://status.${ROOT_DOMAIN}`,
 	TRUST_URL: `https://trust.${ROOT_DOMAIN}`,
 	JOIN_US_URL: `${MARKETING_URL}/join-us`,
@@ -111,8 +122,6 @@ export const FEATURE_FLAGS = {
 	 * hash the site's single distinct id to one side.
 	 */
 	MOBILE_LAUNCH: "mobile-launch",
-	/** Gates access to the experimental mobile-first agents UI on web. */
-	WEB_AGENTS_UI_ACCESS: "web-agents-ui-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
@@ -201,13 +210,20 @@ export const FEATURE_FLAGS = {
 	 * desktop-local; the flag controls visibility, not capability.
 	 */
 	PLUGINS: "plugins",
-	PAGES: "pages",
 	/**
 	 * Lock Screen / Dynamic Island agent card on iOS. Off by default while the
 	 * card is still being worked on; the flag's release conditions decide who
 	 * sees it, so a new build ships with it dark and no release widens it.
 	 */
 	MOBILE_LIVE_ACTIVITY: "mobile-live-activity",
+	/**
+	 * Shows the ACP chat pane: a chat UI that attaches to a Claude/Codex
+	 * session in the workspace over the Agent Client Protocol. UI-only: the
+	 * flag decides who sees the pane, not what the host can do. Off, unloaded,
+	 * or offline all mean "no pane" — flips take effect live. Audience is a
+	 * release condition on the flag, so widening never needs a release.
+	 */
+	ACP_CHAT: "acp-chat",
 } as const;
 
 /**
@@ -224,9 +240,24 @@ export const LAUNCHED_TRIGGER_KINDS = [
 	"sentry",
 	"notion",
 	"microsoft_teams",
-	"google_calendar",
 	"gmail",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
+
+/**
+ * A run that tried and broke. Separate from MISSED_RUN_STATUSES because most
+ * of what used to read as "failed" was a schedule firing at a sleeping
+ * laptop, which is not a failure and is rarely worth retrying hours later.
+ */
+export const FAILED_RUN_STATUSES = ["dispatch_failed"] as const;
+
+/** A run that never started: no host was online when its schedule came due. */
+export const MISSED_RUN_STATUSES = ["skipped_offline"] as const;
+
+/** Everything that did not produce a workspace, failed or missed. */
+export const UNSUCCESSFUL_RUN_STATUSES = [
+	...FAILED_RUN_STATUSES,
+	...MISSED_RUN_STATUSES,
+] as const;
 
 /**
  * What a cloud workspace sandbox holds in place of a real model API key. The

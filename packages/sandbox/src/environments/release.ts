@@ -16,7 +16,7 @@
  *      internal organization's environment -> the new golden + bundle + the
  *      setup and start overrides; the previous golden deleted
  *
- *   SUPERSET_INTERNAL_ORGANIZATION_ID=… bun run release [--production] [--skip-image] [--keep-old]
+ *   SUPERSET_INTERNAL_ORGANIZATION_ID=… SUPERSET_INTERNAL_ENVIRONMENT_ID=… bun run release [--production] [--skip-image] [--keep-old]
  *
  * Needs VERCEL_SANDBOX_*, SANDBOX_GATE_SECRET, CDN_R2_* and, for the image,
  * Docker with Buildx. Rows go to DATABASE_URL, or with
@@ -26,6 +26,7 @@
  * Fails loudly and leaves the golden and probe up for inspection when any
  * check fails; the previous rows stay live.
  */
+
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +42,7 @@ import {
 	type SandboxIdentity,
 	sandboxCheckoutDir,
 } from "@superset/shared/sandbox-contract";
+import { DEFAULT_SANDBOX_REGION } from "@superset/shared/sandbox-regions";
 import { Sandbox } from "@vercel/sandbox";
 
 // The provisioning code imports the API env schema; an operator running this
@@ -50,8 +52,10 @@ process.env.SKIP_ENV_VALIDATION ??= "1";
 const SKIP_IMAGE = process.argv.includes("--skip-image");
 const KEEP_OLD = process.argv.includes("--keep-old");
 const PRODUCTION = process.argv.includes("--production");
+/** The environment the release rebuilds; without it, the release creates one named INTERNAL_NAME. */
+const ENVIRONMENT_ID = process.env.SUPERSET_INTERNAL_ENVIRONMENT_ID;
 const INTERNAL_NAME =
-	process.env.SUPERSET_INTERNAL_ENVIRONMENT_NAME ?? "Superset";
+	process.env.SUPERSET_INTERNAL_ENVIRONMENT_NAME ?? "Satya's Superset";
 const ORGANIZATION_ID = process.env.SUPERSET_INTERNAL_ORGANIZATION_ID;
 const ENV_FILE = process.env.SUPERSET_INTERNAL_ENV_FILE;
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -61,6 +65,7 @@ const REPO_DIR = sandboxCheckoutDir(SANDBOX_PATHS.workspace, REPO_PATH);
 const REPO_FULL_NAME = "superset-sh/superset";
 /** The monorepo branch the golden is built from; its `.superset/config.json` supplies `start`. */
 const BRANCH = process.env.SUPERSET_INTERNAL_BRANCH ?? "main";
+const REGION = DEFAULT_SANDBOX_REGION;
 
 const started = Date.now();
 const at = () => `${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s`;
@@ -144,7 +149,7 @@ const {
 const { probeBox, checkWakeLog } = await import("./probe");
 
 const setupScript = readFileSync(
-	join(import.meta.dir, "internal-setup.sh"),
+	join(import.meta.dir, "satya-setup.sh"),
 	"utf8",
 );
 const setupHook = [setupScript];
@@ -176,7 +181,11 @@ for (;;) {
 		await provisionSandbox({
 			name: golden,
 			kind: "environment",
-			environment: { sourceKind: "image", sourceRef: SANDBOX_IMAGE_NAME },
+			environment: {
+				sourceKind: "image",
+				sourceRef: SANDBOX_IMAGE_NAME,
+				region: REGION,
+			},
 			claim: {
 				identity: identityFor(goldenWorkspaceId, SANDBOX_IMAGE_NAME),
 				hostSecret: goldenSecret,
@@ -256,7 +265,7 @@ const setup = await runLong(
 );
 for (const line of setup.logs
 	.split("\n")
-	.filter((l) => l.includes("[internal-setup]")))
+	.filter((l) => l.includes("[satya-setup]")))
 	log(`  ${line.trim()}`);
 if (setup.code !== 0)
 	fail(`setup hook exited ${setup.code}; ${golden} left for inspection`);
@@ -280,6 +289,13 @@ const checks: Array<[label: string, command: string, expect: RegExp]> = [
 		/ok/,
 	],
 	["neonctl", "neonctl --version", /^\d+\.\d+/m],
+	["vercel", "vercel --version", /\d+\.\d+\.\d+/],
+	["wrangler", "wrangler --version", /\d+\.\d+\.\d+/],
+	["eas-cli", "eas --version", /\d+\.\d+\.\d+/],
+	["psql", "psql --version", /\d+\.\d+/],
+	["ntn", "ntn --version", /\d+\.\d+\.\d+/],
+	["lim", "lim --version", /\d+\.\d+\.\d+/],
+	["stripe", "stripe --version", /\d+\.\d+\.\d+/],
 ];
 let failed = 0;
 for (const [label, command, expect] of checks) {
@@ -342,10 +358,13 @@ if (ENV_FILE) {
 const probe = `ws-release-probe-${Date.now().toString(36)}`;
 const probeWorkspaceId = randomUUID();
 const probeSecret = await sandboxHostSecretFor(probeWorkspaceId);
+// Our server key stands in for a person's sign-in, so the probe exercises
+// the swap the way a signed-in box does.
+const probeSignInKey = probeEnv.SERVER_ANTHROPIC_API_KEY;
 const { networkPolicy, managedEnv } = await deriveSandboxCredentials({
 	workspaceId: probeWorkspaceId,
 	environmentEnv: probeEnv,
-	userAgentEnv: {},
+	userAgentEnv: probeSignInKey ? { ANTHROPIC_API_KEY: probeSignInKey } : {},
 	githubToken: null,
 	gitAuthor: { name: "Superset release", email: "noreply@superset.sh" },
 });
@@ -358,7 +377,7 @@ const probeClaim = {
 log(`probe: provisioning ${probe} as a fork of ${golden}`);
 await provisionSandbox({
 	name: probe,
-	environment: { sourceKind: "fork", sourceRef: golden },
+	environment: { sourceKind: "fork", sourceRef: golden, region: REGION },
 	claim: probeClaim,
 });
 await wakeSandbox({ providerSandboxId: probe, claim: probeClaim });
@@ -370,7 +389,7 @@ let probeFailed = await probeBox({
 	branch: BRANCH,
 	primaryPath: REPO_PATH,
 	expectDependencies: true,
-	expectAnthropicRule: Boolean(probeEnv.ANTHROPIC_API_KEY),
+	expectAnthropicRule: Boolean(probeSignInKey),
 	gate: process.env.SANDBOX_GATE_ORIGIN
 		? { workspaceId: probeWorkspaceId, userId: randomUUID() }
 		: null,
@@ -445,38 +464,45 @@ log(
 	`rows: ${SHARED_ENVIRONMENT_NAME} -> image ${SANDBOX_IMAGE_NAME}, bundle ${bundle.sha256.slice(0, 12)}`,
 );
 
-const previous = await db.query.environments.findFirst({
-	where: (row, { and: both, eq: equals }) =>
-		both(
-			equals(row.organizationId, ORGANIZATION_ID as string),
-			equals(row.name, INTERNAL_NAME),
-		),
-});
-await dbWs.transaction(async (tx) => {
-	const [internal] = await tx
-		.insert(environments)
-		.values({
-			organizationId: ORGANIZATION_ID as string,
-			name: INTERNAL_NAME,
-			provider: "vercel",
-			sourceKind: "fork",
-			sourceRef: golden,
-			bundleSha: bundle.sha256,
-			hooksRepositoryId: monorepo.id,
+const previous = ENVIRONMENT_ID
+	? await db.query.environments.findFirst({
+			where: (row, { and: both, eq: equals }) =>
+				both(
+					equals(row.id, ENVIRONMENT_ID),
+					equals(row.organizationId, ORGANIZATION_ID as string),
+				),
 		})
-		.onConflictDoUpdate({
-			target: [environments.organizationId, environments.name],
-			set: {
-				provider: "vercel",
-				sourceKind: "fork",
-				sourceRef: golden,
-				bundleSha: bundle.sha256,
-				hooksRepositoryId: monorepo.id,
-				archivedAt: null,
-			},
-		})
-		.returning({ id: environments.id });
-	if (!internal) throw new Error(`${INTERNAL_NAME} row missing after upsert`);
+	: undefined;
+if (ENVIRONMENT_ID && !previous)
+	fail(
+		`rows: environment ${ENVIRONMENT_ID} is not in organization ${ORGANIZATION_ID}; ${golden} left for inspection`,
+	);
+const fromGolden = {
+	provider: "vercel" as const,
+	sourceKind: "fork" as const,
+	sourceRef: golden,
+	region: REGION,
+	bundleSha: bundle.sha256,
+	hooksRepositoryId: monorepo.id,
+	archivedAt: null,
+};
+const internal = await dbWs.transaction(async (tx) => {
+	const [internal] = previous
+		? await tx
+				.update(environments)
+				.set(fromGolden)
+				.where(eq(environments.id, previous.id))
+				.returning({ id: environments.id, name: environments.name })
+		: await tx
+				.insert(environments)
+				.values({
+					organizationId: ORGANIZATION_ID as string,
+					name: INTERNAL_NAME,
+					...fromGolden,
+				})
+				.returning({ id: environments.id, name: environments.name });
+	if (!internal)
+		throw new Error("internal environment row missing after write");
 	await tx
 		.delete(environmentRepositories)
 		.where(eq(environmentRepositories.environmentId, internal.id));
@@ -484,10 +510,15 @@ await dbWs.transaction(async (tx) => {
 		environmentId: internal.id,
 		repositoryId: monorepo.id,
 	});
+	return internal;
 });
 log(
-	`rows: ${INTERNAL_NAME} -> fork of ${golden}, bundle ${bundle.sha256.slice(0, 12)}`,
+	`rows: ${internal.name} (${internal.id}) -> fork of ${golden}, bundle ${bundle.sha256.slice(0, 12)}`,
 );
+if (!previous)
+	log(
+		`rows: created; set SUPERSET_INTERNAL_ENVIRONMENT_ID=${internal.id} so the next release updates it`,
+	);
 
 if (
 	previous &&

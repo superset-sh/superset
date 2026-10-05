@@ -286,7 +286,7 @@ Es sind weder ein Neon-Konto noch Zugangsdaten von Drittanbietern nötig. `setup
 einen lokalen Postgres-+-Electric-Stack über Docker und legt ein Dev-Konto an. Melde dich
 mit dem Button **„Sign in as dev“** an (oder `admin@local.test` / `supersetdev`).
 
-Voraussetzungen: [Bun](https://bun.sh/) v1.3.14+ (in `.bun-version` gepinnt), `docker`, `jq` und `caddy`, das `bun dev` als lokalen HTTPS-Proxy verwendet (`brew install jq caddy && caddy trust`).
+Voraussetzungen: [Bun](https://bun.sh/) v1.4.2+ (in `.bun-version` gepinnt), `docker`, `jq` und `caddy`, das `bun dev` als lokalen HTTPS-Proxy verwendet (`brew install jq caddy && caddy trust`).
 
 Siehe [**DEVELOPMENT.md**](../DEVELOPMENT.md) für die komplette Anleitung: was das Setup-Skript macht, manuelles Setup gegen echte Dienste, gängige Befehle, Fehlerbehebung und wie man die Desktop-App baut. Der Contribution-Prozess steht in [**CONTRIBUTING.md**](../CONTRIBUTING.md).
 

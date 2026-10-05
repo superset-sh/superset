@@ -5,14 +5,16 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, FileText, LayoutGrid, Plus } from "lucide-react";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
+import { env } from "renderer/env.renderer";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { usePagePolicy } from "renderer/lib/clickPolicy";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import {
-	isPaneModifier,
-	useOpenPage,
-} from "renderer/routes/_authenticated/_dashboard/hooks/useOpenPage";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { usePageFavorites } from "renderer/routes/_authenticated/_dashboard/hooks/usePageFavorites";
+import { usePagesList } from "renderer/routes/_authenticated/_dashboard/hooks/usePagesList";
+import { pagesListInput } from "renderer/routes/_authenticated/_dashboard/utils/pagesListInput";
 import type { CreateNewAgentSession } from "../../hooks/useAgentSessionLauncher";
+import type { PagePaneData } from "../../types";
 import { NewPageComposer } from "./components/NewPageComposer";
 import { PagesMenuRow } from "./components/PagesMenuRow";
 import {
@@ -21,20 +23,24 @@ import {
 } from "./stores/pagesMenuSeenStore";
 import { type MenuPage, selectMenuPages } from "./utils/selectMenuPages";
 
+const MENU_PAGE_LIMIT = 200;
+
 interface WorkspacePagesMenuProps {
 	workspaceId: string;
+	onOpenPage: (page: PagePaneData, placement: "split" | "tab") => void;
 	onCreateNewAgentSession: CreateNewAgentSession;
 	onFocusAgentTerminal: (terminalId: string) => void;
 }
 
 export function WorkspacePagesMenu({
 	workspaceId,
+	onOpenPage,
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 }: WorkspacePagesMenuProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const openPage = useOpenPage();
+	const pagePolicy = usePagePolicy("4-tier");
 	const utils = cloudTrpc.useUtils();
 	const { favoritePageIds } = usePageFavorites();
 	const seenAt = usePagesMenuSeenAt(workspaceId);
@@ -43,12 +49,24 @@ export function WorkspacePagesMenu({
 	const [open, setOpen] = useState(false);
 	const [composing, setComposing] = useState(false);
 
-	const workspacePagesQuery = cloudTrpc.page.list.useQuery(
-		{ workspaceId },
-		{ staleTime: 60_000 },
+	// This menu orders by publish time, not creation time, so it takes one
+	// large batch rather than the grid's scroll-sized one. Built once because
+	// `invalidate` matches a cached query by its input — a different `limit`
+	// here than below and neither a publish nor opening the menu would refresh.
+	const workspaceFilter = useMemo(
+		() => ({ workspaceId, limit: MENU_PAGE_LIMIT }),
+		[workspaceId],
 	);
-	const orgPagesQuery = cloudTrpc.page.list.useQuery(
-		{},
+	const workspaceListInput = useMemo(
+		() => pagesListInput(workspaceFilter),
+		[workspaceFilter],
+	);
+	const workspacePagesQuery = usePagesList(workspaceFilter, {
+		staleTime: 60_000,
+	});
+	// Only the pins, by id — this menu never needed the rest of the org.
+	const pinnedPagesQuery = usePagesList(
+		{ ids: favoritePageIds, limit: MENU_PAGE_LIMIT },
 		{ enabled: open && favoritePageIds.length > 0, staleTime: 60_000 },
 	);
 
@@ -57,25 +75,30 @@ export function WorkspacePagesMenu({
 		"page-watch:changed",
 		workspaceId,
 		useCallback(() => {
-			void utils.page.list.invalidate({ workspaceId });
-		}, [utils, workspaceId]),
+			void utils.page.listPaginated.invalidate(workspaceListInput);
+		}, [utils, workspaceListInput]),
 	);
 
 	const { workspace, pinned, hasNew } = useMemo(
 		() =>
 			selectMenuPages({
-				workspacePages: workspacePagesQuery.data ?? [],
-				orgPages: orgPagesQuery.data ?? [],
+				workspacePages: workspacePagesQuery.items,
+				orgPages: pinnedPagesQuery.items,
 				favoritePageIds,
 				seenAt,
 			}),
-		[workspacePagesQuery.data, orgPagesQuery.data, favoritePageIds, seenAt],
+		[
+			workspacePagesQuery.items,
+			pinnedPagesQuery.items,
+			favoritePageIds,
+			seenAt,
+		],
 	);
 
 	const handleOpenChange = (next: boolean) => {
 		setOpen(next);
 		if (next) {
-			void utils.page.list.invalidate({ workspaceId });
+			void utils.page.listPaginated.invalidate(workspaceListInput);
 			return;
 		}
 		setComposing(false);
@@ -84,9 +107,20 @@ export function WorkspacePagesMenu({
 
 	const handleOpenPage = (page: MenuPage, event: MouseEvent) => {
 		handleOpenChange(false);
-		openPage(
-			{ id: page.id, slug: page.slug, title: page.title },
-			isPaneModifier(event) ? { inPane: true } : undefined,
+		const action = pagePolicy.getAction(event) ?? "pane";
+		if (action === "external") {
+			const url = new URL(
+				`/page/${encodeURIComponent(page.slug)}`,
+				env.NEXT_PUBLIC_WEB_URL,
+			).toString();
+			electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
+				console.error("[WorkspacePagesMenu] Failed to open page:", url, error);
+			});
+			return;
+		}
+		onOpenPage(
+			{ pageId: page.id, slug: page.slug, title: page.title },
+			action === "newTab" ? "tab" : "split",
 		);
 	};
 

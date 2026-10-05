@@ -1,0 +1,77 @@
+---
+title: Safer file editing, instant workspaces, and GPT-6
+date: 2026-09-28
+image: /changelog/2026-09-28-save-conflict-hero.png
+---
+
+## Safer File Editing <PRBadge url="https://github.com/superset-sh/superset/pull/7711" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7693" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7692" />
+
+Edit files next to your agents without losing work when a script or agent changes the same file.
+
+- A banner tells you when the file changed on disk, with **Compare** to see both versions side by side
+- Save conflicts offer **Keep editing**, **Reload from disk**, or **Overwrite file**, instead of silently replacing the newer version
+- Turn on auto save after a delay, on focus change, or on window change in **Settings → General**, contributed by [@theblondealex](https://github.com/theblondealex)
+- Double-click to rename and drag to move files in the file tree, contributed by [@theblondealex](https://github.com/theblondealex)
+
+![Editor banner saying the file changed on disk, with a Compare link](/changelog/2026-09-28-file-changed-banner.png)
+
+Docs: [Editor](https://docs.superset.sh/docs/editor).
+
+## Workspaces Start Instantly <PRBadge url="https://github.com/superset-sh/superset/pull/7518" />
+
+New workspaces and sessions open in about a second instead of waiting 5 to 20 seconds for an agent to name them. Your agent starts right away, and a name arrives a few seconds later.
+
+- Linked GitHub issues and pull requests in your prompt help pick the name
+- Questions and short prompts get a name too, refined after the agent's first reply
+- Renaming a workspace yourself always wins
+
+Docs: [Workspaces](https://docs.superset.sh/docs/workspaces).
+
+## GPT-6 and Claude Opus 5.5 <PRBadge url="https://github.com/superset-sh/superset/pull/7741" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7783" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7894" />
+
+Pick GPT-6 Astra, Sol, or Luna and Claude Opus 5.5 from the model picker when you start an agent, contributed by [@haydenfd](https://github.com/haydenfd).
+
+- GPT-6 works in Codex, OpenCode, and OMP, with Ultra effort on GPT-6 Astra in Codex
+- Usage tracks costs for the new models
+- Retired models no longer show up in the picker
+
+## Superset for iPhone Is on the App Store
+
+Superset Mobile is live. Check on your agents, review diffs, and read Pages from your phone. Get it from the [App Store](https://apps.apple.com/app/id6788926383) or read the [launch post](https://superset.sh/blog/superset-mobile).
+
+![Superset Mobile running a coding agent on an iPhone](/images/blog/superset-mobile/hero.png)
+
+- Setup in **Settings → Mobile** is now two steps with Remote Access turned on in place <PRBadge url="https://github.com/superset-sh/superset/pull/7697" />
+- The app tells a computer that never connected apart from one that went offline, and says what to do next <PRBadge url="https://github.com/superset-sh/superset/pull/7661" />
+- The ⋯ menu on a workspace can rename, pin, share, or delete it, and workspace details list its pull requests <PRBadge url="https://github.com/superset-sh/superset/pull/7816" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7782" />
+
+![Mobile settings with a QR code to install the app and a Remote Access toggle](/changelog/2026-09-28-mobile-settings.png)
+
+## Improvements
+
+- **Clone from your GitHub repositories** - search the repositories your GitHub login can reach when you add a project, contributed by [@theblondealex](https://github.com/theblondealex) <PRBadge url="https://github.com/superset-sh/superset/pull/7694" />
+- **Sign in without leaving Settings** - sign in to Claude Code and Codex accounts from a terminal inside **Settings → Usage** <PRBadge url="https://github.com/superset-sh/superset/pull/7740" />
+- **Page links unfurl in Slack** - posted page links show a title and preview to people who can open them <PRBadge url="https://github.com/superset-sh/superset/pull/7817" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7821" />
+- **Stop a page watcher** - stop an agent watching a page from its row in the watcher menu; public pages show a globe on the Share button <PRBadge url="https://github.com/superset-sh/superset/pull/7820" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7766" />
+- **Rejoin the leaderboard with your full history** - choose to publish everything since launch or the last 30 days <PRBadge url="https://github.com/superset-sh/superset/pull/7651" />
+- **Google Calendar triggers removed** - nobody used them; Gmail triggers stay <PRBadge url="https://github.com/superset-sh/superset/pull/7796" />
+- **Desktop 1.29.0 or later is required** - older versions show an update screen <PRBadge url="https://github.com/superset-sh/superset/pull/7786" />
+
+---
+
+**Bug fixes**
+
+- Continue with another agent now carries over the whole Claude conversation, not only the last few seconds <PRBadge url="https://github.com/superset-sh/superset/pull/7825" />
+- Copying from a rendered preview copies the text instead of Markdown, contributed by [@andyst-dev](https://github.com/andyst-dev) <PRBadge url="https://github.com/superset-sh/superset/pull/7591" />
+- Terminal copies trim trailing whitespace like Ghostty, contributed by [@nrutman](https://github.com/nrutman) <PRBadge url="https://github.com/superset-sh/superset/pull/7709" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7868" />
+- Terminal file links jump to their line and column, and URLs stop at their real end <PRBadge url="https://github.com/superset-sh/superset/pull/7712" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7717" />
+- Agents keep paste mode after a host restart <PRBadge url="https://github.com/superset-sh/superset/pull/7691" />
+- The sidebar keeps its order and group members, keyboard navigation includes pinned workspaces (contributed by [@Ymirke](https://github.com/Ymirke)), and you can drop rows beside workspace pills <PRBadge url="https://github.com/superset-sh/superset/pull/7723" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7851" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7833" />
+- Clicking a tab's close button no longer starts a drag <PRBadge url="https://github.com/superset-sh/superset/pull/7714" />
+- Long session names and dialog text wrap instead of overflowing, contributed by [@Official-Krish](https://github.com/Official-Krish) and [@kotaesaki](https://github.com/kotaesaki) <PRBadge url="https://github.com/superset-sh/superset/pull/7707" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7837" />
+- Links on a page open without blanking it, and opening a page no longer switches workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/7718" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7790" />
+- Symlinked files open in the viewer, and managed configs update the file a symlink points to instead of replacing the link <PRBadge url="https://github.com/superset-sh/superset/pull/7696" /> <PRBadge url="https://github.com/superset-sh/superset/pull/7897" />
+- Diffs no longer run custom Git text filters <PRBadge url="https://github.com/superset-sh/superset/pull/7903" />
+- Team review requests show without extra GitHub permissions <PRBadge url="https://github.com/superset-sh/superset/pull/7788" />
+- Large repositories with many ignore rules load files faster, contributed by [@allthehatz](https://github.com/allthehatz) <PRBadge url="https://github.com/superset-sh/superset/pull/7860" />
+- Fixed the Notion plugin failing to connect <PRBadge url="https://github.com/superset-sh/superset/pull/7727" />

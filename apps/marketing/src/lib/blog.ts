@@ -39,12 +39,16 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			description: data.description,
 			author,
 			date: dateValue,
+			lastUpdated: normalizeContentDate(data.lastUpdated, {
+				fallbackToNow: false,
+			}),
 			category: data.category ?? "News",
 			image: data.image,
 			relatedSlugs: data.relatedSlugs,
 			faq: data.faq,
 			keywords: data.keywords,
 			draft: data.draft === true,
+			unlisted: data.unlisted === true,
 			content,
 		};
 	} catch {
@@ -68,6 +72,10 @@ export function getBlogPosts(): BlogPost[] {
 		const dateB = new Date(b.date);
 		return dateB.getTime() - dateA.getTime();
 	});
+}
+
+export function getListedBlogPosts(): BlogPost[] {
+	return getBlogPosts().filter((post) => !post.unlisted);
 }
 
 export function getBlogPost(slug: string): BlogPost | undefined {
@@ -101,10 +109,10 @@ export function getRelatedPosts({
 	if (relatedSlugs && relatedSlugs.length > 0) {
 		return relatedSlugs
 			.map((s) => getBlogPost(s))
-			.filter((post): post is BlogPost => post !== undefined);
+			.filter((post): post is BlogPost => post !== undefined && !post.unlisted);
 	}
 
-	return getBlogPosts()
+	return getListedBlogPosts()
 		.filter((post) => post.slug !== slug)
 		.slice(0, MAX_RELATED_POSTS);
 }

@@ -6,6 +6,8 @@
  *   bun run assets themes            prebuilt GTK, icon and cursor theme tarballs
  *   bun run assets wallpapers        eight photos, cropped to the display
  *   bun run assets host-service      the runtime tarball from this checkout
+ *   bun run assets claude [version]  Claude Code's native binary (default: stable)
+ *   bun run assets codex [version]   Codex's standalone package (default: latest)
  *   bun run assets all
  *
  * Each producer writes its files to .cache/assets/<sha256><suffix>, then
@@ -269,8 +271,8 @@ async function wallpapers(): Promise<void> {
 
 // --- host-service runtime -------------------------------------------------
 /**
- * The runtime tarball: host-service's bundle, its migrations, the agent
- * templates, pty-daemon, the native modules installed for linux/amd64 against
+ * The runtime tarball: host-service's bundle, its and chat.db's migrations, the agent
+ * templates, pty-daemon, the ACP adapters, the native modules installed for linux/amd64 against
  * the image's Node, and a pre-migrated host.db template so first boot copies
  * a file instead of running migrations. Built in the image's own Node so the
  * natives match.
@@ -282,11 +284,17 @@ function hostService(): void {
 			"utf8",
 		),
 	) as { version: string; dependencies: Record<string, string> };
-	const natives = ["better-sqlite3", "node-pty"].map((dep) => {
+	const pinned = (dep: string) => {
 		const version = pkg.dependencies[dep];
 		if (!version) throw new Error(`${dep} is not a host-service dependency`);
 		return `${dep}@${version}`;
-	});
+	};
+	const natives = ["better-sqlite3", "node-pty"].map(pinned);
+	const acpAdapters = [
+		"@agentclientprotocol/claude-agent-acp",
+		"@agentclientprotocol/codex-acp",
+		"pi-acp",
+	];
 	for (const [dir, script] of [
 		["packages/host-service", "build:host"],
 		["packages/pty-daemon", "build:daemon"],
@@ -324,8 +332,16 @@ function hostService(): void {
 			// host-service resolves the daemon side by side with itself, the way the desktop ships it.
 			"cp /out/stage/pty-daemon/pty-daemon.js /rt/pty-daemon.js",
 			"cd /rt && npm init -y >/dev/null && npm pkg set type=module >/dev/null",
-			`npm install ${natives.join(" ")} @parcel/watcher @xterm/headless --no-audit --no-fund >/dev/null`,
+			`npm install ${[...natives, ...acpAdapters.map(pinned)].join(" ")} @parcel/watcher @xterm/headless --no-audit --no-fund >/dev/null`,
+			// The adapters bring their own claude and codex binaries (~650 MB); host-service points them at the box's pinned CLIs instead.
+			"rm -rf node_modules/@anthropic-ai/claude-agent-sdk-linux-* node_modules/@openai/codex-linux-*",
 			"test -d node_modules/node-pty/prebuilds/linux-x64 || (echo 'node-pty prebuild missing' && exit 1)",
+			...acpAdapters.map(
+				(adapter) =>
+					`test -f node_modules/${adapter}/dist/index.js || (echo '${adapter} missing' && exit 1)`,
+			),
+			// chat.db migrates on the first /chat-v3 request, after release: apply every journaled migration here.
+			'cd /rt && node -e \'const fs=require("node:fs");const D=require("better-sqlite3");const d=new D(":memory:");for(const e of JSON.parse(fs.readFileSync("/rt/chat-migrations/meta/_journal.json","utf8")).entries)d.exec(fs.readFileSync("/rt/chat-migrations/"+e.tag+".sql","utf8").replaceAll("--> statement-breakpoint",""));d.close()\'',
 			// The schema, baked: run host-service once against a throwaway path so the template carries every migration.
 			"cd /rt && ORGANIZATION_ID=00000000-0000-0000-0000-000000000000 HOST_DB_PATH=/rt/host.db.template HOST_MIGRATIONS_FOLDER=/rt/drizzle AUTH_TOKEN=build SUPERSET_API_URL=https://example.invalid SUPERSET_HOST_RUN_MODE=sandbox SUPERSET_SANDBOX_WORKSPACE_ID=00000000-0000-0000-0000-000000000000 SUPERSET_SANDBOX_WORKSPACE_PATH=/workspace PORT=4879 node -e '" +
 				'const {spawn}=require("node:child_process");const p=spawn("node",["host-service.js"],{stdio:["ignore","pipe","pipe"]});let out="";const done=c=>{try{p.kill("SIGTERM")}catch{}process.exit(c)};const w=ch=>{out+=ch;if(out.includes("Initialized at"))setTimeout(()=>done(0),2000)};p.stdout.on("data",w);p.stderr.on("data",w);setTimeout(()=>{console.error(out.slice(-800));done(1)},60000)\'',
@@ -398,7 +414,76 @@ function cli(): void {
 	console.log(`cli ${pkg.version} sha256 ${hash}`);
 }
 
-export const producers: Record<string, () => Promise<void> | void> = {
+// --- Agent CLIs -------------------------------------------------------------
+const CLAUDE_RELEASES =
+	"https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases";
+
+async function fetchText(url: string): Promise<string> {
+	return new TextDecoder().decode(await fetchBytes(url)).trim();
+}
+
+/** Claude Code's native linux-x64 binary; defaults to the `stable` channel. */
+async function claude(version?: string): Promise<void> {
+	const pinned = version ?? (await fetchText(`${CLAUDE_RELEASES}/stable`));
+	const manifest = JSON.parse(
+		await fetchText(`${CLAUDE_RELEASES}/${pinned}/manifest.json`),
+	) as { platforms: Record<string, { checksum: string }> };
+	const expected = manifest.platforms["linux-x64"]?.checksum;
+	if (!expected) throw new Error(`claude ${pinned}: no linux-x64 build`);
+	const source = `${CLAUDE_RELEASES}/${pinned}/linux-x64/claude`;
+	const { sha256: hash } = cache(await fetchBytes(source), "");
+	if (hash !== expected)
+		throw new Error(`claude ${pinned}: sha256 ${hash}, manifest ${expected}`);
+	rewriteRows({
+		claude: {
+			sha256: hash,
+			suffix: "",
+			dest: `${SANDBOX_PATHS.media}/claude-${pinned}`,
+			mode: "0755",
+			source,
+			version: pinned,
+		},
+	});
+}
+
+/** Codex's standalone package (binary, rg, bwrap); defaults to the latest release. */
+async function codex(version?: string): Promise<void> {
+	const tag = version ? `tags/rust-v${version}` : "latest";
+	const release = JSON.parse(
+		await fetchText(
+			`https://api.github.com/repos/openai/codex/releases/${tag}`,
+		),
+	) as {
+		tag_name: string;
+		assets: { name: string; digest: string; browser_download_url: string }[];
+	};
+	const pinned = release.tag_name.replace(/^rust-v/, "");
+	const asset = release.assets.find(
+		(a) => a.name === "codex-package-x86_64-unknown-linux-musl.tar.gz",
+	);
+	if (!asset) throw new Error(`codex ${pinned}: no linux package`);
+	const { sha256: hash } = cache(
+		await fetchBytes(asset.browser_download_url),
+		".tar.gz",
+	);
+	if (`sha256:${hash}` !== asset.digest)
+		throw new Error(`codex ${pinned}: sha256 ${hash}, release ${asset.digest}`);
+	rewriteRows({
+		codex: {
+			sha256: hash,
+			suffix: ".tar.gz",
+			dest: `${SANDBOX_PATHS.media}/codex-${pinned}.tar.gz`,
+			mode: "0644",
+			source: asset.browser_download_url,
+			version: pinned,
+		},
+	});
+}
+
+export const producers: Record<
+	string,
+	(version?: string) => Promise<void> | void
+> = {
 	chrome,
 	fonts,
 	themes,
@@ -406,6 +491,8 @@ export const producers: Record<string, () => Promise<void> | void> = {
 	"host-service": hostService,
 	go,
 	cli,
+	claude,
+	codex,
 };
 
 if (import.meta.main) {
@@ -419,6 +506,6 @@ if (import.meta.main) {
 	}
 	for (const name of names) {
 		console.log(`--- ${name}`);
-		await producers[name]?.();
+		await producers[name]?.(process.argv[3]);
 	}
 }

@@ -63,6 +63,35 @@ the filesystem snapshot with no processes, so host-service is started again)
 and extends a running one so it never hits the idle stop while someone is in
 it. `resolveSandboxAddress` is the one place that knows the difference.
 
+**A box's agent status doesn't come from the box.** A host row's dot is a
+live subscription to that host's terminal bindings; the sidebar deliberately
+opens no such socket to a sandbox, since holding one keeps the VM awake all
+day. Instead the box reports its own status — the most urgent of its
+terminals, from the same lifecycle events — to
+`POST /api/cloud-workspaces/:id/agent-status` with its host secret, coalesced
+and capped at one report per five seconds (`sandbox-agent-status` in
+host-service). The row keeps the last value (`agent_status`,
+`agent_status_at`) so a cold client sees it at once, and the realtime nudge
+carries it so open clients patch their cache rather than refetch the list.
+A closed box's dot is therefore at most a few seconds behind; the open box's
+own subscribers stay live as before. Reaches a box only through a
+host-service release.
+
+**Nobody on the box knows who is in it.** A host is one person's machine, so
+a workspace row implies its owner and the sidebar never had to say. A cloud
+workspace is opened by any member of the organization, and host-service inside
+it sees only tickets, not people; the only thing that knows who opened a box
+is the API that minted the ticket. So `cloudWorkspace.access` with `wake`
+(the open workspace's keepalive, every ten minutes) upserts
+`cloud_workspace_presence` (workspace, user, first/last seen) and the list
+returns each row's creator and everyone who has opened it. A person is
+"active" while their last wake is under fifteen minutes old; the presence
+change rides the same realtime patch as the agent status, so open clients
+update the row without a list refetch. Addressing a listed workspace
+(`wake: false`) records nothing: every sidebar addresses every ready box.
+**Open:** presence is only ever written, never trimmed; the CLI and MCP count
+as being in a box because they wake it too.
+
 **A woken sandbox answers seconds after the wake, and every pane reconnects
 at once.** A resumed session has no processes; `wake` starts host-service
 and returns before it listens. The open workspace's hook therefore holds the
@@ -106,16 +135,14 @@ host-service verified Ed25519 tokens itself. `health.check` stays public on
 purpose — it is how the API tells a booting sandbox from a dead one — so
 probe the gate on a guarded route (`/events`), not on health.
 
-**Model credentials never enter a sandbox.** The organization's keys are
-injected into egress by the sandbox firewall: a `transform` rule on
-`api.anthropic.com` / `api.openai.com` sets the auth header, and the sandbox
-env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
+**Model credentials never enter a sandbox.** The person's sign-in is injected
+into egress by the sandbox firewall: a rule on `api.anthropic.com` /
+`api.openai.com` that matches the auth header carrying
+`SANDBOX_CREDENTIAL_PLACEHOLDER` and replaces it. The placeholder must still be
 *set* — an unset key reads as "not logged in" and produces no request to
-rewrite. A workspace that brings its own credential for a provider — an
-environment variable, or the person's own sign-in (`agent_credentials`) —
-gets no rule for that provider, so its credential reaches the API untouched;
-a Claude subscription token counts as Anthropic being provided, since a rule
-would otherwise add a second, conflicting auth header to its requests.
+rewrite. An environment variable by a credential's name is ignored and never
+reaches the box; a cloud workspace has no way to carry an app's own provider
+key.
 
 **The firewall terminates TLS for the domains it rewrites, and the terminal
 must trust its CA.** The CA is in the image's system bundle, which curl, git,
@@ -134,6 +161,14 @@ model and GitHub ones, the API resolves that to the workspace's creator, and
 `SANDBOX_ALLOWED_PROCEDURES` is the list of things it may then call. A header
 rule applies to every process in the box, so that list is the boundary —
 widen it deliberately, and never to a procedure that can grant more access.
+A box acts in its own organization only. In `packages/trpc/src/trpc.ts`,
+`jwtProcedure` drops the creator's other memberships, both builders refuse an
+organization header that names one, and `protectedProcedure` keeps the box's
+organization as the active one; `user.myOrganizations` lists only the box's.
+Archiving the box from inside it
+(`workspaces delete`) cuts off the box's API access at once and stops the box
+about a minute later: put the box's own id last when deleting several, and
+unarchive from a signed-in client.
 
 **Docker is installed but not started.** An environment whose repository needs
 containers starts it from its own `start` command, which is also where it
@@ -216,8 +251,8 @@ their baked host-service.
 and `/etc/profile.d/superset.sh` exports `DISPLAY`, so `xdg-open` spawns
 cleanly and exits 0 — on a display no one is looking at. Nothing in the spawn
 result distinguishes that from a browser opening on the user's laptop, so a
-CLI that opens a URL as a side effect (`pages publish` opening the page it
-created, `auth login` opening the consent screen) has to rule the sandbox out
+CLI that opens a URL as a side effect (`auth login` opening the consent
+screen) has to rule the sandbox out
 before spawning rather than react to a failure. `canReachDesktop()` in
 `packages/cli/src/lib/open-url.ts` is that check: `IS_SANDBOX` (set by
 host-service in sandbox-mode PTY env), `SSH_CONNECTION` or `SSH_TTY`. It is
@@ -225,13 +260,43 @@ deliberately not `shouldOpenBrowser()` from `lib/auth.ts`, whose extra TTY
 test is right for an interactive login prompt and wrong for an agent running
 the CLI with piped stdout.
 
+**A box has no agents until something lists them. Worked around, Open.**
+`agents.run` finds its agent in host-service's `host_agent_configs` table, and
+only a list call (`settings.agentConfigs.list`) or the first-boot launch fills
+it with the built-in presets. The desktop lists on every open, so a machine
+someone uses never shows this. A box that nobody opened and that launched no
+agent answers "No host agent config matching 'claude'". Automation dispatch
+lists before it runs (`cloudDispatch.ts`); `superset agents create` into such a
+box still fails. Still owed: `agents.run` fills the table itself (a host-service
+release), and a decision on which agents a box offers — the list fills every
+preset, but the image installs only Claude and Codex.
+
+**Runtime files the desktop passes as env have to ship in the tarball.** The
+bundle does not inline host-service's migration folders, so the desktop hands
+them over as env (`HOST_MIGRATIONS_FOLDER`,
+`SUPERSET_CHAT_V3_MIGRATIONS`). The sandbox boot sets only the first. Without
+chat.db's migrations, every `/chat-v3` request threw on the first migrate, and
+ACP chat in a cloud workspace showed "started but never prompted" over
+`Unexpected token 'I', "Internal S"... is not valid JSON`. Fixed: the runtime
+tarball (and the CLI bundle, same gap) ships `chat-migrations/` next to
+`host-service.js`, which looks there when the env is unset. Reaches a box only
+through a host-service runtime release.
+
+**Packages host-service resolves at runtime have to be installed in the
+tarball.** The ACP harnesses find their adapter (`@agentclientprotocol/*-acp`,
+`pi-acp`) with `require.resolve`, so the bundle cannot inline it, and the
+tarball installed only the natives. The harness registry came up empty and ACP
+chat on a box failed with `unknown harness claude-acp`. Fixed: the runtime bake
+installs each adapter at host-service's pinned version and fails if one is
+missing. The CLI bundle has the same gap.
+
 ## Lifecycle
 
-**Delete is not wired.** The generic delete routes to the owning host, which
-for a cloud workspace deletes the row *inside* the sandbox and leaves the
+**Delete was not wired.** The generic delete routed to the owning host, which
+for a cloud workspace deleted the row *inside* the sandbox and left the
 sandbox running (and billing) plus the `cloud_workspaces` row intact — the
-workspace reappears on the next refetch. It needs to call
-`cloudWorkspace.delete`. **Open.**
+workspace reappeared on the next refetch. **Fixed:** `useDestroyWorkspace`
+sends a cloud workspace to `cloudWorkspace.delete`.
 
 **Sidebar affordances are driven by local state, not by the row.** Visibility,
 pinning and ordering live in `v2WorkspaceLocalState`; a section that renders
@@ -359,7 +424,7 @@ and the release poll until `currentSnapshotId` has changed and the status is
 **Snapshots exist only in the region they were taken.** Forking a golden into
 another region is refused (`snapshot_region_mismatch`), and failover regions
 don't replicate it. Forks therefore inherit the golden's region and only
-image-created sandboxes get `VERCEL_SANDBOX_REGION` — passing the setting on
+image-created sandboxes take the environment's `region` — passing a region on
 a fork was what failed every workspace once the goldens moved to sfo1.
 
 **The firewall policy is live-updatable and forks carry it.** Credential
@@ -367,7 +432,7 @@ brokering (`networkPolicy` with `transform` rules) can be set at create, on a
 fork, or changed on a running sandbox, and a fork copies the source's policy
 unless overridden. Both Blaxel limitations — routing fixed at creation, forks
 unable to have the proxy at all — are gone, which is why every sandbox now
-brokers the organization's keys. A custom policy denies everything it doesn't
+brokers its model credentials at the firewall. A custom policy denies everything it doesn't
 list: the `"*": []` catch-all is what keeps npm, git and the rest reachable.
 
 **A fork copies the source's config; every field we pass is an override.**
@@ -476,6 +541,39 @@ and provider. Keep the workspace id on both sides: a provisioning failure is
 recorded against the API and a runtime failure against the sandbox, and that id
 is the only thing that joins the two halves of one broken workspace.
 
+## Running this repo's own dev stack inside a sandbox
+
+Reproducing an app bug end to end from a cloud workspace means bringing up
+`apps/web` + `apps/api` inside the sandbox. Three of the documented ways to do
+that do not exist there (found driving GHSA-2cp5-f6gg-w5fp, 2026-09-24).
+
+**The app assumes:** `./.superset/setup.local.sh` can stand up Postgres,
+neon-proxy and Redis with `docker compose`, which is the whole point of the
+zero-credential local path in `DEVELOPMENT.md`.
+
+**A sandbox is:** a container with no Docker daemon — `/var/run/docker.sock`
+does not exist. Nothing in the local stack comes up.
+
+**What we did:** created a throwaway Neon project, migrated it from scratch and
+pointed a `.env` built from `.env.local.example` at it. Never the workspace's
+own `.env`: it carries real provider secrets, and its `DATABASE_URL` is a live
+branch.
+
+**Postgres over TCP is not reachable either.** `bun run db:migrate`
+(drizzle-kit, node-postgres, port 5432) fails against Neon with `password
+authentication failed for user 'neondb_owner'` while the *same* credentials
+work over Neon's HTTP and WebSocket drivers — so the error names the wrong
+cause and costs an hour. Apply migrations through
+`drizzle-orm/neon-serverless/migrator` instead; the HTTP driver alone cannot,
+because drizzle runs every pending migration in one multi-statement
+transaction.
+
+**`/etc/hosts` is read-only, even under sudo.** Pointing a provider hostname at
+a local stand-in — the usual way to drive an OAuth callback without a real
+provider secret — has to go through the resolver instead: a `--require`
+preload patching `dns.lookup` for Node, `--host-resolver-rules` for Chrome.
+Binding 443 and using sudo otherwise work.
+
 ## Shared memory is 64 MB
 
 **The app assumes:** `/dev/shm` is sized like a desktop (half of RAM). Chromium
@@ -490,3 +588,35 @@ shared memory there.
 
 **What we did:** `superset-desktop-init` remounts `/dev/shm` at 50% of RAM
 at boot, after which four windows open without a crash.
+
+## A black renderer survives a full display restart — open
+
+**The app assumes:** a BrowserWindow that logs `did-finish-load` and stays
+responsive to `Runtime.evaluate` is painting. `main.ts` only guards against one
+failure mode here — a GPU process restart leaving stale compositor layers — by
+calling `webContents.invalidate()` plus a 1px resize nudge on
+`child-process-gone` (type `GPU`), rate-limited to once per 10s.
+
+**A sandbox is:** on this display (software compositing via llvmpipe/SwiftShader,
+`disableHardwareAcceleration()` always on for Linux), the window went fully
+black — frame, titlebar, and OS window controls intact, zero DOM paint — after
+some combination of repeated `Page.reload()` over CDP and killing/relaunching
+the Electron process a few times in one session (2026-10-02). Once black, it
+stayed black across: killing just Electron and relaunching (3 attempts), a full
+`superset-desktop-init` restart (fresh Xvnc + fresh D-Bus + fresh window
+manager), and reverting an unrelated DB change that briefly looked like a
+suspect. A sibling `google-chrome` window on the *same* display, launched at
+the same time, rendered fine — ruling out the display/compositor stack itself.
+`document.body.innerText` was empty but `document.documentElement.outerHTML`
+was ~390KB and `readyState` was `"complete"`; no `Runtime.exceptionThrown`, no
+`console.error`, no Crashpad dump. An OS-level `xdotool windowsize` nudge and a
+CDP `Emulation.setDeviceMetricsOverride` round-trip (the two things available
+without a `--inspect`'d main process) did not reproduce what `forceRepaint()`
+does and did not unblack it.
+
+**What we did:** nothing that worked. Logged the repro shape so the next person
+doesn't re-spend a session on it; the next thing to try is attaching to the
+*main* process (`--inspect`) and calling `webContents.invalidate()` /
+`win.setSize()` directly rather than simulating it from outside, or watching
+`app.on("child-process-gone")` / `render-process-gone` across a CDP-reload
+loop to catch the actual GPU-process death this is presumably downstream of.

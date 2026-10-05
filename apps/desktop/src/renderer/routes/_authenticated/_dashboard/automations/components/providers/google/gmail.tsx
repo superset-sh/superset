@@ -5,6 +5,7 @@ import { SiGmail } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { SelectChip } from "../../TriggerSentence/components/SelectChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { AccountSlot } from "../components/AccountSlot";
 import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
@@ -19,9 +20,11 @@ function renderSlot(
 	config: GmailConfig,
 	slot: GmailSlot,
 	index: number,
-	{ set, mark, options, state, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled, account }: SentenceContext,
 ) {
 	switch (slot) {
+		case "account":
+			return <AccountSlot key={index} before="in" account={account} />;
 		case "from":
 			return (
 				<ScopeChip
@@ -37,7 +40,7 @@ function renderSlot(
 					)}
 					anyLabel={i18n._(
 						msg({
-							message: "Any sender",
+							message: "any sender",
 						}),
 					)}
 					allowCustom={{
@@ -60,12 +63,12 @@ function renderSlot(
 					options={[]}
 					emptyLabel={i18n._(
 						msg({
-							message: "Any recipient",
+							message: "any recipient",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							message: "Any recipient",
+							message: "any recipient",
 						}),
 					)}
 					allowCustom={{
@@ -108,12 +111,12 @@ function renderSlot(
 					options={options.google?.labels ?? []}
 					emptyLabel={i18n._(
 						msg({
-							message: "Any label",
+							message: "any label",
 						}),
 					)}
 					anyLabel={i18n._(
 						msg({
-							message: "Any label",
+							message: "any label",
 						}),
 					)}
 					state={state}

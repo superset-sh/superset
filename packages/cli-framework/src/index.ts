@@ -1,9 +1,13 @@
-export type { CommandConfig, CommandResult } from "./command";
+export type { Audience, CommandConfig, CommandResult } from "./command";
 export { createCommand } from "./command";
+export {
+	generateBashCompletion,
+	generateZshCompletion,
+} from "./completion";
 export type { CliConfig } from "./config";
 export { defineConfig } from "./config";
 export { CLIError, suggestSimilar } from "./errors";
-export type { CommandNode } from "./help";
+export type { CliDescription, CommandNode } from "./help";
 export {
 	generateCommandHelp,
 	generateGroupHelp,
@@ -22,6 +26,13 @@ export { camelToKebab, isAgentMode, parseArgv } from "./parser";
 export type { CommandsPluginOptions } from "./plugin";
 export { createCommandsPlugin } from "./plugin";
 export type { CliCommand, CliGroup } from "./router";
-export { buildTree, routeCommand } from "./router";
+export { buildTree, filterByAudience, routeCommand } from "./router";
 export type { CommandTree, RunOptions } from "./runner";
-export { run } from "./runner";
+export { formatError, introspectCli, run } from "./runner";
+export type {
+	CliSchema,
+	SchemaArg,
+	SchemaCommand,
+	SchemaOption,
+} from "./schema";
+export { generateSchema } from "./schema";

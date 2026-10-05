@@ -1,3 +1,4 @@
+import type { ActiveAgentStatus } from "@superset/shared/agent-status";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import {
 	createContext,
@@ -41,6 +42,8 @@ export interface SidebarWorkspaceStatusEntry {
 	statuses: ReadonlyMap<string, PaneStatus>;
 	/** Populated only for the active workspace — the only row that shows it. */
 	diffStats: DiffStats | null;
+	/** When the host reported `status`, for mark-seen; null when derived from bindings. */
+	reportedAt: number | null;
 }
 
 const EMPTY_ENTRY: SidebarWorkspaceStatusEntry = {
@@ -49,6 +52,7 @@ const EMPTY_ENTRY: SidebarWorkspaceStatusEntry = {
 	bindings: new Map(),
 	statuses: new Map(),
 	diffStats: null,
+	reportedAt: null,
 };
 
 /**
@@ -115,6 +119,10 @@ const StatusStoreContext = createContext<SidebarWorkspaceStatusStore | null>(
 export interface SidebarStatusWorkspaceRef {
 	id: string;
 	hostId: string;
+	/** Null means idle or never reported. */
+	reportedStatus?: ActiveAgentStatus | null;
+	/** The reporting host's clock, epoch ms. */
+	reportedAt?: number | null;
 }
 
 interface WorkspaceStatusTarget {
@@ -140,6 +148,7 @@ function entriesEqual(
 	return (
 		left.status === right.status &&
 		left.isUnread === right.isUnread &&
+		left.reportedAt === right.reportedAt &&
 		(left.diffStats === right.diffStats ||
 			(left.diffStats !== null &&
 				right.diffStats !== null &&
@@ -171,6 +180,26 @@ export function DashboardSidebarWorkspaceStatusProvider({
 	const [store] = useState(() => new SidebarWorkspaceStatusStore());
 	const queryClient = useQueryClient();
 	const { cache: hostWorkspacesCache } = useHostWorkspaces();
+	// Off the fingerprinted targets: a change here must not re-run the subscriptions.
+	const reportedByWorkspaceId = useMemo(
+		() =>
+			new Map(
+				workspaces.map(
+					(workspace) =>
+						[
+							workspace.id,
+							{
+								status: workspace.reportedStatus ?? null,
+								at: workspace.reportedAt ?? null,
+							},
+						] as const,
+				),
+			),
+		[workspaces],
+	);
+	const workspaceSeenAt = useV2NotificationStore(
+		(state) => state.workspaceSeenAt,
+	);
 
 	const computedTargets = useMemo<WorkspaceStatusTarget[]>(
 		() =>
@@ -326,16 +355,32 @@ export function DashboardSidebarWorkspaceStatusProvider({
 					break;
 				}
 			}
+			const report =
+				target.hostUrl === null
+					? reportedByWorkspaceId.get(target.workspaceId)
+					: undefined;
+			const reported =
+				report?.status === "review" &&
+				report.at !== null &&
+				(workspaceSeenAt[target.workspaceId] ?? 0) >= report.at
+					? null
+					: (report?.status ?? null);
 			const candidate: SidebarWorkspaceStatusEntry = {
 				status: getHighestPriorityStatus([
 					hasManualUnread ? "review" : undefined,
+					reported ?? undefined,
 					...statuses.values(),
 				]),
-				isUnread: hasManualUnread || hasAttentionTerminal,
+				isUnread:
+					hasManualUnread ||
+					hasAttentionTerminal ||
+					reported === "review" ||
+					reported === "failed",
 				bindings,
 				statuses,
 				diffStats:
 					target.workspaceId === activeWorkspaceId ? activeDiffStats : null,
+				reportedAt: report?.at ?? null,
 			};
 			const previousEntry = previous.get(target.workspaceId);
 			next.set(
@@ -354,6 +399,8 @@ export function DashboardSidebarWorkspaceStatusProvider({
 		terminalSeenAt,
 		activeWorkspaceId,
 		activeDiffStats,
+		reportedByWorkspaceId,
+		workspaceSeenAt,
 	]);
 
 	store.replaceEntries(entries);
@@ -407,10 +454,17 @@ export function useMarkSidebarWorkspaceTerminalsSeen(
 	const markTerminalSeen = useV2NotificationStore(
 		(state) => state.markTerminalSeen,
 	);
+	const markWorkspaceSeen = useV2NotificationStore(
+		(state) => state.markWorkspaceSeen,
+	);
 	return useCallback(() => {
 		// Host-clock only: "seen through the binding's last event".
-		for (const binding of store.get(workspaceId).bindings.values()) {
+		const entry = store.get(workspaceId);
+		for (const binding of entry.bindings.values()) {
 			markTerminalSeen(binding.terminalId, binding.lastEventAt);
 		}
-	}, [store, workspaceId, markTerminalSeen]);
+		if (entry.reportedAt !== null) {
+			markWorkspaceSeen(workspaceId, entry.reportedAt);
+		}
+	}, [store, workspaceId, markTerminalSeen, markWorkspaceSeen]);
 }

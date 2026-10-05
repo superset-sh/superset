@@ -1,6 +1,6 @@
-import { useLingui } from "@lingui/react/macro";
 import type { TaskPriority } from "@superset/db/enums";
 import type { ReactNode } from "react";
+import { usePriorityLabels } from "renderer/routes/_authenticated/_dashboard/tasks/hooks/usePriorityLabels";
 import { ALL_PRIORITIES } from "../../utils/sorting";
 import { PriorityIcon } from "./PriorityIcon";
 
@@ -23,24 +23,7 @@ export function PriorityMenuItems({
 	onSelect,
 	MenuItem,
 }: PriorityMenuItemsProps) {
-	const { t } = useLingui();
-	const priorityLabels: Record<TaskPriority, string> = {
-		none: t({
-			message: "No priority",
-		}),
-		urgent: t({
-			message: "Urgent",
-		}),
-		high: t({
-			message: "High",
-		}),
-		medium: t({
-			message: "Medium",
-		}),
-		low: t({
-			message: "Low",
-		}),
-	};
+	const priorityLabels = usePriorityLabels();
 	return (
 		<>
 			{ALL_PRIORITIES.map((priority) => {

@@ -94,14 +94,29 @@ describe("popoverPlacement pinSize", () => {
 		const blockTop = 300;
 		const blockHeight = 120;
 		const cardHeight = 180;
+		const visible = 800 - 340;
 		const { top } = popoverPlacement({
 			point: { x: 40, y: blockTop + blockHeight },
-			container: { width: 390, height: 800 - 340 },
+			container: { width: 390, height: visible },
 			height: cardHeight,
 			pinSize: blockHeight,
 		});
 		expect(top + cardHeight).toBeLessThanOrEqual(blockTop);
 		expect(top).toBeGreaterThanOrEqual(EDGE);
+		expect(top + cardHeight).toBeLessThanOrEqual(visible);
+	});
+
+	test("a block under the keyboard pins its card to the visible bottom", () => {
+		const cardHeight = 180;
+		const visible = 611;
+		const { top } = popoverPlacement({
+			point: { x: 40, y: 717 + 26 },
+			container: { width: 440, height: visible },
+			height: cardHeight,
+			pinSize: 26,
+			maxWidth: 440,
+		});
+		expect(top).toBe(visible - cardHeight - EDGE);
 	});
 
 	test("a taller pin pushes a flipped card further up", () => {

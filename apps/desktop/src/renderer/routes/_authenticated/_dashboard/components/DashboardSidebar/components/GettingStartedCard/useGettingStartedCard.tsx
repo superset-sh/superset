@@ -28,7 +28,6 @@ export function useGettingStartedCard(): SidebarCardEntry | null {
 		});
 	const { data: automations } = cloudTrpc.automation.list.useQuery(undefined, {
 		enabled: visible,
-		refetchInterval: 60_000,
 	});
 	const completed =
 		(tried & 1) | (remoteEnabled ? 2 : 0) | (automations?.length ? 4 : 0);

@@ -12,8 +12,8 @@
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
-		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0",
+		"@lingui/core": "6.8.0",
+		"@lingui/react": "6.8.0",
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@radix-ui/react-collapsible": "1.1.12",
 		"@radix-ui/react-scroll-area": "1.2.10",
@@ -28,12 +28,12 @@
 		"fumadocs-mdx": "15.2.0",
 		"fumadocs-ui": "16.13.0",
 		"lucide-react": "0.563.0",
-		"next": "16.3.3",
+		"next": "16.3.6",
 		"posthog-js": "1.310.1",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"tailwind-merge": "3.5.0",
-		"zod": "4.4.3"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@lingui/swc-plugin": "6.6.0",
@@ -46,6 +46,6 @@
 		"postcss": "8.5.25",
 		"tailwindcss": "4.2.2",
 		"tailwindcss-animate": "1.0.7",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	}
 }

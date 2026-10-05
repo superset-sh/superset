@@ -25,6 +25,8 @@ export const nativeWebGlobals = {
 	Event: globalThis.Event,
 	MessageEvent: globalThis.MessageEvent,
 	EventTarget: globalThis.EventTarget,
+	AbortController: globalThis.AbortController,
+	AbortSignal: globalThis.AbortSignal,
 };
 
 process.env.NODE_ENV = "test";

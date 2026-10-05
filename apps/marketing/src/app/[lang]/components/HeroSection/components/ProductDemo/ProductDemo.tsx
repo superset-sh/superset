@@ -2,7 +2,7 @@
 
 import { useLingui } from "@lingui/react/macro";
 import { m, useScroll, useTransform } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
@@ -15,24 +15,12 @@ const SELECTOR_WIDTH = 240;
 // Undocked hero state: larger than the container and pushed down
 const HERO_SCALE = 1.08;
 const HERO_Y = 56;
-// The 8% hero oversize needs enough viewport gutter to remain fully visible.
-// Between the lg layout switch and this width, keep the mockup fitted instead.
-const HERO_EXPANSION_MEDIA_QUERY = "(min-width: 1440px)";
 
 export function ProductDemo() {
 	const [activeOption, setActiveOption] = useState<ActiveDemo>(
 		"Orchestrate Parallel Agents",
 	);
-	const [hasHeroExpansionRoom, setHasHeroExpansionRoom] = useState(false);
 	const { t } = useLingui();
-
-	useEffect(() => {
-		const mq = window.matchMedia(HERO_EXPANSION_MEDIA_QUERY);
-		const update = () => setHasHeroExpansionRoom(mq.matches);
-		update();
-		mq.addEventListener("change", update);
-		return () => mq.removeEventListener("change", update);
-	}, []);
 
 	// Scroll-scrubbed progress, tied 1:1 to scroll so it never drifts
 	const { scrollY } = useScroll();
@@ -69,13 +57,14 @@ export function ProductDemo() {
 
 			{/* Mockup: oversized, lower hero state that docks as you scroll */}
 			<div className="relative flex-1 min-w-0">
+				{/* The 8% oversize needs viewport gutter, so below 1440px the
+				    stylesheet cancels the transform. A media query in JS would only
+				    apply after hydration and make the mockup jump on load. */}
 				<m.div
-					className="relative"
+					className="relative max-[1440px]:transform-none!"
 					style={{
-						// Keep these style keys mounted so Framer Motion can attach the
-						// scroll-linked values when the media query changes after hydration.
-						scale: hasHeroExpansionRoom ? mockupScale : 1,
-						y: hasHeroExpansionRoom ? mockupY : 0,
+						scale: mockupScale,
+						y: mockupY,
 						transformOrigin: "100% 100%",
 					}}
 				>

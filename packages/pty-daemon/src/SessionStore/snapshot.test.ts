@@ -193,3 +193,45 @@ describe("handoff snapshot", () => {
 		clearSnapshot(p);
 	});
 });
+
+test("disk handoff carries color defaults, overrides and pending query", () => {
+	const store = new SessionStore();
+	const session = store.add("colors", fakePty(100, { cols: 80, rows: 24 }));
+	session.colors.configure({
+		foreground: "#eeeeee",
+		background: "#151110",
+		cursor: "#ffffff",
+	});
+	session.colors.feed(
+		Buffer.from("\x1b]11;#123456\x07\x1b]11;?\x1b"),
+		() => {},
+	);
+	const snapshot = serializeSessions({
+		sessions: store.all(),
+		fdIndexBySessionId: new Map([["colors", 3]]),
+	});
+	const p = tmpPath();
+	try {
+		writeSnapshot(p, snapshot);
+		const saved = readSnapshot(p).sessions[0];
+		if (!saved?.colors) throw new Error("missing color snapshot");
+		const restored = new SessionStore().add(
+			"colors",
+			fakePty(100, { cols: 80, rows: 24 }),
+		);
+		restored.colors.restore(saved.colors);
+		const replies: string[] = [];
+		expect(
+			restored.colors
+				.feed(Buffer.from("\\"), (reply) => replies.push(reply.toString()))
+				.toString(),
+		).toBe("\x1b]\x07");
+		expect(replies).toEqual(["\x1b]11;rgb:1212/3434/5656\x1b\\"]);
+		restored.colors.feed(Buffer.from("\x1b]111\x07\x1b]11;?\x07"), (reply) =>
+			replies.push(reply.toString()),
+		);
+		expect(replies.at(-1)).toBe("\x1b]11;rgb:1515/1111/1010\x1b\\");
+	} finally {
+		clearSnapshot(p);
+	}
+});

@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { LeaderboardPanel } from "@/app/[lang]/components/LeaderboardPanel";
 import {
 	buildModelColors,
 	ModelBars,
@@ -14,15 +15,8 @@ import {
 	formatTokens,
 	formatUsd,
 } from "@/app/[lang]/utils/formatUsage";
-import { Panel } from "./components/Panel";
 
-export function StatsBody({
-	stats,
-	pixelClassName,
-}: {
-	stats: LeaderboardStats;
-	pixelClassName: string;
-}) {
+export function StatsBody({ stats }: { stats: LeaderboardStats }) {
 	const { t, i18n } = useLingui();
 	const { totals, tokenSplit, models } = stats;
 	const colors = buildModelColors([
@@ -40,7 +34,6 @@ export function StatsBody({
 	return (
 		<div className="space-y-6">
 			<StatStrip
-				pixelClassName={pixelClassName}
 				stats={[
 					{
 						label: t({
@@ -76,16 +69,16 @@ export function StatsBody({
 				]}
 			/>
 
-			<Panel
+			<LeaderboardPanel
 				title={t({
 					message: "Token breakdown",
 				})}
 			>
 				<TokenSplitBar split={tokenSplit} />
-			</Panel>
+			</LeaderboardPanel>
 
 			<div className="grid gap-6 md:grid-cols-2">
-				<Panel
+				<LeaderboardPanel
 					title={t({
 						message: "Popular models",
 					})}
@@ -94,8 +87,8 @@ export function StatsBody({
 					})}
 				>
 					<ModelBars rows={toUserRows(models.byUsers, i18n)} colors={colors} />
-				</Panel>
-				<Panel
+				</LeaderboardPanel>
+				<LeaderboardPanel
 					title={t({ message: "Top models" })}
 					meta={t({ message: "by spend" })}
 				>
@@ -103,8 +96,8 @@ export function StatsBody({
 						rows={toSpendRows(models.bySpend, i18n.locale)}
 						colors={colors}
 					/>
-				</Panel>
-				<Panel
+				</LeaderboardPanel>
+				<LeaderboardPanel
 					title={t({
 						message: "Model volume",
 					})}
@@ -117,7 +110,7 @@ export function StatsBody({
 						rows={toTokenRows(models.byTokens, i18n.locale)}
 						colors={colors}
 					/>
-				</Panel>
+				</LeaderboardPanel>
 			</div>
 		</div>
 	);

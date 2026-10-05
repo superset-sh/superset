@@ -1,25 +1,23 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
-import { Silkscreen } from "next/font/google";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ContributionGraph } from "@/app/[lang]/components/ContributionGraph";
-import { FactoryBackdrop } from "@/app/[lang]/components/FactoryBackdrop";
+import { LeaderboardBackLink } from "@/app/[lang]/components/LeaderboardBackLink";
+import { LeaderboardLayout } from "@/app/[lang]/components/LeaderboardLayout";
+import { LeaderboardPanel } from "@/app/[lang]/components/LeaderboardPanel";
 import {
 	buildModelColors,
 	ModelBars,
 	toTokenRows,
 } from "@/app/[lang]/components/ModelBars";
 import { StatStrip } from "@/app/[lang]/components/StatStrip";
-import { tierRgb } from "@/app/[lang]/components/TierBadge";
-import { TierIcon } from "@/app/[lang]/components/TierIcon";
 import { TierObjectives } from "@/app/[lang]/components/TierObjectives";
 import { TierTube } from "@/app/[lang]/components/TierTube";
 import { TokenSplitBar } from "@/app/[lang]/components/TokenSplitBar";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
-import { avatarUrl } from "@/app/[lang]/utils/avatarUrl";
 import {
 	dayCount,
 	formatCount,
@@ -29,19 +27,13 @@ import {
 } from "@/app/[lang]/utils/formatUsage";
 import { initServerI18n } from "@/app/i18n-server";
 import { AchievementShelf } from "./components/AchievementShelf";
-import { ProfileLinks } from "./components/ProfileLinks";
+import { ModelMix } from "./components/ModelMix";
+import { ProfileIdentity } from "./components/ProfileIdentity";
 import { ProfileUnavailable } from "./components/ProfileUnavailable";
-import { ShareButtons } from "./components/ShareButtons";
 import { ViewToggle } from "./components/ViewToggle";
 import { loadProfile } from "./utils/loadProfile";
 
-const pixel = Silkscreen({
-	weight: ["400", "700"],
-	subsets: ["latin"],
-	display: "swap",
-});
-
-export const revalidate = 300;
+export const instant = false;
 
 interface PageProps {
 	params: Promise<{ handle: string }>;
@@ -57,7 +49,7 @@ export async function generateMetadata({
 	if (lookup.state === "missing") {
 		return { title: "Not found", robots: { index: false } };
 	}
-	if (lookup.state === "rate-limited") {
+	if (lookup.state === "rate-limited" || lookup.state === "unavailable") {
 		return { title: "Try again shortly", robots: { index: false } };
 	}
 
@@ -94,6 +86,7 @@ export async function generateMetadata({
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
+	await connection();
 	const locale = await initServerI18n();
 
 	const { t } = useLingui();
@@ -101,7 +94,9 @@ export default async function UserProfilePage({ params }: PageProps) {
 	const lookup = await loadProfile(handle);
 
 	if (lookup.state === "missing") notFound();
-	if (lookup.state === "rate-limited") return <ProfileUnavailable />;
+	if (lookup.state === "rate-limited" || lookup.state === "unavailable") {
+		return <ProfileUnavailable rateLimited={lookup.state === "rate-limited"} />;
+	}
 
 	const { profile } = lookup;
 	const colors = buildModelColors([profile.models]);
@@ -117,79 +112,21 @@ export default async function UserProfilePage({ params }: PageProps) {
 	});
 
 	const tier = profile.factory?.tier ?? 0;
-	const tint = tier >= 1 ? tierRgb(tier) : undefined;
 
 	return (
-		<main className="relative min-h-screen">
-			<FactoryBackdrop halfWidth={384} glow={false} grid={false} />
+		<LeaderboardLayout wide>
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+				<LeaderboardBackLink />
+				<ViewToggle handle={profileHandle} />
+			</div>
 
-			<div className="relative max-w-3xl mx-auto px-6 py-10 md:py-14">
-				<div className="flex justify-end mb-6">
-					<ViewToggle handle={profileHandle} />
-				</div>
-
-				<header className="text-center">
-					<div className="relative mx-auto w-fit">
-						<Image
-							src={avatarUrl(profile.handle)}
-							alt=""
-							width={72}
-							height={72}
-							unoptimized
-							className="size-18 rounded-[3px] bg-foreground/[0.04]"
-							style={
-								tint
-									? {
-											boxShadow: `0 0 0 1px rgba(${tint},0.45), 0 0 28px rgba(${tint},0.22)`,
-										}
-									: undefined
-							}
-						/>
-						{tier >= 1 && (
-							<span
-								className="absolute -bottom-2 -right-2 flex size-7 items-center justify-center border border-border bg-background"
-								style={{ color: `rgb(${tint})` }}
-							>
-								<TierIcon tier={tier} size={18} />
-							</span>
-						)}
-					</div>
-					<h1
-						className={`${pixel.className} text-2xl md:text-3xl text-foreground mt-5 leading-tight`}
-					>
-						{profile.name ?? profile.handle}
-					</h1>
-					<p className="font-mono text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground mt-2.5">
-						{`@${profileHandle}`}
-						<span className="mx-2 text-muted-foreground/40">·</span>
-						<Link
-							href="/leaderboard"
-							className="hover:text-brand transition-colors"
-						>
-							<Trans>
-								rank #{rank} of {total}
-							</Trans>
-						</Link>
-					</p>
-
-					{profile.bio && (
-						<p className="max-w-md mx-auto text-sm text-foreground/80 leading-relaxed mt-5">
-							{profile.bio}
-						</p>
-					)}
-
-					<ProfileLinks
-						githubHandle={profile.githubHandle}
-						xHandle={profile.xHandle}
-						websiteUrl={profile.websiteUrl}
-					/>
-
-					<div className="mt-7">
-						<ShareButtons url={shareUrl} text={shareText} />
-					</div>
-				</header>
-
-				<div className="mt-10 md:mt-12 space-y-6">
+			<div className="grid items-start gap-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
+				<ProfileIdentity
+					profile={profile}
+					shareUrl={shareUrl}
+					shareText={shareText}
+				/>
+				<div className="min-w-0 space-y-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
 					<TierTube
 						subject="you"
 						position={
@@ -197,14 +134,20 @@ export default async function UserProfilePage({ params }: PageProps) {
 								? profile.factory.tier + Math.min(0.9, profile.factory.progress)
 								: 0
 						}
-						pixelClassName={pixel.className}
-						footer={<TierObjectives tier={tier} axes={profile.axes} />}
+						footer={
+							<>
+								<TierObjectives tier={tier} axes={profile.axes} />
+								<Link
+									href="/the-production-run"
+									className="inline-flex min-h-11 items-center px-5 pb-2 text-xs text-muted-foreground transition-colors hover:text-brand"
+								>
+									<Trans>How tiers work →</Trans>
+								</Link>
+							</>
+						}
 					/>
 
-					<AchievementShelf awards={profile.awards} />
-
 					<StatStrip
-						pixelClassName={pixel.className}
 						stats={[
 							{
 								label: t({
@@ -250,38 +193,33 @@ export default async function UserProfilePage({ params }: PageProps) {
 						]}
 					/>
 
-					<section className="border border-border p-5">
-						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							<Trans>Contributions</Trans>
-						</h2>
+					<LeaderboardPanel title={<Trans>Contributions</Trans>}>
 						<ContributionGraph
 							daily={profile.daily}
 							endDay={new Date().toISOString().slice(0, 10)}
 							rgb="210,86,17"
 						/>
-					</section>
+					</LeaderboardPanel>
 
-					<section className="border border-border p-5">
-						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							<Trans>Models</Trans>
-						</h2>
+					<LeaderboardPanel
+						title={<Trans>Models</Trans>}
+						meta={t({ message: "All time" })}
+					>
+						<ModelMix models={profile.models} locale={locale} />
 						<ModelBars
-							rows={toTokenRows(
-								profile.models.map((model) => ({ ...model, usd: model.usd })),
-								locale,
-							)}
+							rows={toTokenRows(profile.models, locale)}
 							colors={colors}
 						/>
-					</section>
+					</LeaderboardPanel>
 
-					<section className="border border-border p-5">
-						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							<Trans>Token breakdown</Trans>
-						</h2>
+					<LeaderboardPanel title={<Trans>Token breakdown</Trans>}>
 						<TokenSplitBar split={profile.tokenSplit} />
-					</section>
+					</LeaderboardPanel>
 				</div>
+				<aside className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
+					<AchievementShelf awards={profile.awards} />
+				</aside>
 			</div>
-		</main>
+		</LeaderboardLayout>
 	);
 }

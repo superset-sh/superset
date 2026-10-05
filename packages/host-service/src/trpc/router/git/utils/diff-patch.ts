@@ -38,6 +38,7 @@ const MAX_STDERR_BYTES = 64 * 1024;
 const BASE_ARGS = [
 	"--no-color",
 	"--no-ext-diff",
+	"--no-textconv",
 	"--find-renames",
 	`--unified=${PATCH_CONTEXT_LINES}`,
 ];

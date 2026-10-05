@@ -68,6 +68,13 @@ export function useWorkspaceHeaderActions(
 
 	const deleteWorkspace = () => {
 		if (!workspace) return;
+		if (isCloud) {
+			// The screen stays: it turns into the archived state, with Unarchive.
+			void cloud
+				.archive(workspace.id)
+				.catch(() => Alert.alert(t({ message: "Archive failed" })));
+			return;
+		}
 		if (!host) {
 			Alert.alert(
 				t({
@@ -83,7 +90,6 @@ export function useWorkspaceHeaderActions(
 				type: workspace.type,
 				hostId: host.machineId,
 				hostUrl: hostServiceUrl(host.organizationId, host.machineId),
-				isCloud,
 			},
 			// Nothing on this screen outlives the workspace: every panel below
 			// reads a row that is now gone, and the host placeholder it falls
@@ -93,21 +99,28 @@ export function useWorkspaceHeaderActions(
 		);
 	};
 
-	const copyId = () => {
-		if (workspace) void Clipboard.setStringAsync(workspace.id);
+	const copyId = (onCopied?: () => void) => {
+		if (workspace) void Clipboard.setStringAsync(workspace.id).then(onCopied);
 	};
 
-	const shareWorkspace = () => {
+	const copyLink = (onCopied?: () => void) => {
 		if (!workspace) return;
-		void Share.share({
-			url: workspaceShareUrl(workspace.id),
-		});
+		void Clipboard.setStringAsync(workspaceShareUrl(workspace.id)).then(
+			onCopied,
+		);
+	};
+
+	// `anchor` places the iPad share popover; iPhone ignores it.
+	const shareWorkspace = (anchor?: number) => {
+		if (!workspace) return;
+		void Share.share({ url: workspaceShareUrl(workspace.id) }, { anchor });
 	};
 
 	return {
 		renameWorkspace,
 		deleteWorkspace,
 		copyId,
+		copyLink,
 		shareWorkspace,
 	};
 }

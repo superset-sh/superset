@@ -17,10 +17,18 @@ const POLL_MS = 10_000;
  * `refetchIntervalInBackground` stays false, so a window left open overnight
  * asks for nothing.
  */
+export interface ProviderAccount {
+	id: string;
+	label: string | null;
+	identity: string | null;
+	needsReauth: boolean;
+}
+
 export function useProviderConnections(organizationId: string): {
 	connected: Record<string, boolean>;
 	/** Connected once, but the refresh failed: the fix is Reconnect, not Connect. */
 	needsReauth: Record<string, boolean>;
+	accounts: Record<string, ProviderAccount[]>;
 	isPending: boolean;
 } {
 	const query = cloudTrpc.integration.connectionStatus.useQuery(
@@ -39,10 +47,12 @@ export function useProviderConnections(organizationId: string): {
 	return useMemo(() => {
 		const connected: Record<string, boolean> = {};
 		const needsReauth: Record<string, boolean> = {};
+		const accounts: Record<string, ProviderAccount[]> = {};
 		for (const [provider, state] of Object.entries(query.data ?? {})) {
 			connected[provider] = state.connected;
 			needsReauth[provider] = state.needsReauth;
+			accounts[provider] = state.accounts;
 		}
-		return { connected, needsReauth, isPending: query.isPending };
+		return { connected, needsReauth, accounts, isPending: query.isPending };
 	}, [query.data, query.isPending]);
 }

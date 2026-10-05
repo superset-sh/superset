@@ -64,11 +64,6 @@ export function getChangelogEntry(slug: string): ChangelogEntry | undefined {
 	return entry?.draft ? undefined : entry;
 }
 
-export function getAllChangelogSlugs(): string[] {
-	// Drafts are excluded so they're never statically generated.
-	return getChangelogEntries().map((entry) => entry.slug);
-}
-
 export function extractToc(
 	content: string,
 ): { id: string; text: string; level: number }[] {

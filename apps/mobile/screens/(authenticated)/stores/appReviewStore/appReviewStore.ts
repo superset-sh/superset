@@ -2,45 +2,79 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-const MOMENT_DEDUPE_MS = 60 * 60 * 1000;
-
 /**
- * Tally of moments Superset did something for the user (a merged pull
- * request, a session an agent finished for them) plus when we last asked
- * for an App Store rating. Moments closer than an hour apart count once, so
- * an agent stopping several times while the user watches is one moment.
+ * What the user has done on their phone (messages sent to a session,
+ * workspaces created) plus when we last asked for an App Store rating.
+ * `actedSinceHome` is memory-only: it is what makes the next return to Home
+ * the moment to ask, and a cold launch never counts as a return.
  */
 interface AppReviewStore {
-	positiveMoments: number;
-	lastMomentAt: number | null;
+	messagesSent: number;
+	workspacesCreated: number;
+	actedSinceHome: boolean;
 	lastPromptedAt: number | null;
 	lastPromptedVersion: string | null;
-	recordPositiveMoment: (now: number) => number;
+	recordMessageSent: () => void;
+	recordWorkspaceCreated: () => void;
+	clearActedSinceHome: () => void;
 	markPrompted: (now: number, version: string) => void;
 }
 
+type PersistedAppReview = Pick<
+	AppReviewStore,
+	| "messagesSent"
+	| "workspacesCreated"
+	| "lastPromptedAt"
+	| "lastPromptedVersion"
+>;
+
 export const useAppReviewStore = create<AppReviewStore>()(
 	persist(
-		(set, get) => ({
-			positiveMoments: 0,
-			lastMomentAt: null,
+		(set) => ({
+			messagesSent: 0,
+			workspacesCreated: 0,
+			actedSinceHome: false,
 			lastPromptedAt: null,
 			lastPromptedVersion: null,
-			recordPositiveMoment: (now) => {
-				const { positiveMoments, lastMomentAt } = get();
-				if (lastMomentAt !== null && now - lastMomentAt < MOMENT_DEDUPE_MS) {
-					return positiveMoments;
-				}
-				const next = positiveMoments + 1;
-				set({ positiveMoments: next, lastMomentAt: now });
-				return next;
-			},
+			recordMessageSent: () =>
+				set((state) => ({
+					messagesSent: state.messagesSent + 1,
+					actedSinceHome: true,
+				})),
+			recordWorkspaceCreated: () =>
+				set((state) => ({
+					workspacesCreated: state.workspacesCreated + 1,
+					actedSinceHome: true,
+				})),
+			clearActedSinceHome: () => set({ actedSinceHome: false }),
 			markPrompted: (now, version) =>
 				set({ lastPromptedAt: now, lastPromptedVersion: version }),
 		}),
 		{
 			name: "app-review-v1",
+			version: 1,
 			storage: createJSONStorage(() => AsyncStorage),
+			partialize: ({
+				messagesSent,
+				workspacesCreated,
+				lastPromptedAt,
+				lastPromptedVersion,
+			}): PersistedAppReview => ({
+				messagesSent,
+				workspacesCreated,
+				lastPromptedAt,
+				lastPromptedVersion,
+			}),
+			migrate: (persisted) => {
+				const { lastPromptedAt = null, lastPromptedVersion = null } =
+					(persisted ?? {}) as Partial<PersistedAppReview>;
+				return {
+					messagesSent: 0,
+					workspacesCreated: 0,
+					lastPromptedAt,
+					lastPromptedVersion,
+				};
+			},
 		},
 	),
 );

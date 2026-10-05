@@ -1,1 +1,0 @@
-export { LinearProjectFilter } from "./LinearProjectFilter";

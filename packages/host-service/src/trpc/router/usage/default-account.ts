@@ -38,6 +38,21 @@ function supersetHomeDir(): string {
 }
 
 /**
+ * Mirror of agent-setup's resolveWriteTarget, not imported for the reason
+ * above. Without it, renaming onto a pointer a user symlinked into a
+ * dotfiles repo would replace the link with a regular file.
+ */
+function resolveWriteTarget(filePath: string): string {
+	try {
+		return realpathSync(filePath);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT" && code !== "ELOOP") throw error;
+		return filePath;
+	}
+}
+
+/**
  * Mirror of agent-setup's resolveAmbientCodexHome. New terminals preserve the
  * user's real Codex home separately from the profile Superset injects, so a
  * nested host-service can recover it without importing agent-setup here.
@@ -89,7 +104,7 @@ export function syncDefaultAccountPointer(
 	try {
 		const dir = join(supersetHomeDir(), "state");
 		mkdirSync(dir, { recursive: true });
-		const pointerPath = defaultAccountPointerPath(agent);
+		const pointerPath = resolveWriteTarget(defaultAccountPointerPath(agent));
 		temporaryPath = temporaryPointerPath(pointerPath);
 		writeFileSync(temporaryPath, selection ?? "");
 		renameSync(temporaryPath, pointerPath);

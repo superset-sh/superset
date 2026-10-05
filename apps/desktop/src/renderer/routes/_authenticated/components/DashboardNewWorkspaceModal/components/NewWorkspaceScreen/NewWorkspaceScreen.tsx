@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { PromptInputHandle } from "@superset/chat-ui/PromptInput";
 import {
 	getAgentEffortSupport,
 	getAgentEfforts,
@@ -6,15 +7,13 @@ import {
 	getAgentModeSupport,
 } from "@superset/shared/agent-models";
 import { startableCloudEnvironments } from "@superset/shared/cloud-environments";
+import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
-	PromptInput,
 	PromptInputButton,
-	PromptInputFooter,
-	PromptInputSubmit,
-	PromptInputTools,
 	useProviderAttachments,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Button } from "@superset/ui/button";
+import { applyAttachmentConstraints } from "@superset/ui/lib/attachment-constraints";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
 import { Spinner } from "@superset/ui/spinner";
@@ -29,6 +28,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
+import { HiOutlineCheckCircle } from "react-icons/hi2";
 import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentModelSelect } from "renderer/components/AgentModelSelect";
@@ -36,7 +36,6 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
-import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
@@ -52,6 +51,8 @@ import { track } from "renderer/lib/analytics";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
+import { PageHeader } from "renderer/routes/_authenticated/_dashboard/components/PageHeader";
+import { AgentComposer } from "renderer/routes/_authenticated/components/AgentComposer";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
@@ -69,12 +70,12 @@ import {
 	useNewWorkspacePromptCardsVariant,
 } from "../../hooks/useNewWorkspacePromptCardsVariant";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
-import { CLOUD_HOST_ID } from "../DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { CheckoutPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/CheckoutPickerPill";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { EnvironmentPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/EnvironmentPickerPill";
 import { GitHubIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand";
+import { LinearIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinearIssueLinkCommand";
 import { LinkedGitHubIssuePill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedPRPill";
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
@@ -150,6 +151,21 @@ export function NewWorkspaceScreen({
 		resetKey,
 	} = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
+	const composerRef = useRef<PromptInputHandle>(null);
+	const addAttachments = useCallback(
+		(files: File[] | FileList) => {
+			const accepted = applyAttachmentConstraints({
+				files,
+				currentCount: attachments.files.length,
+				constraints: { maxFiles: 5, maxFileSize: 10 * 1024 * 1024 },
+				onError: (error) => toast.error(error.message),
+			});
+			if (accepted.length > 0) attachments.add(accepted);
+		},
+		[attachments],
+	);
+	const addAttachmentsRef = useRef(addAttachments);
+	addAttachmentsRef.current = addAttachments;
 	const hostService = useLocalHostService();
 	const { activeHostUrl, machineId } = hostService;
 	const relayUrl = useRelayUrl();
@@ -194,8 +210,7 @@ export function NewWorkspaceScreen({
 		track("new_workspace_screen_shown");
 	}, [isOpen]);
 
-	// Drag-over affordance for the page-wide drop zone (the actual drop is
-	// handled by PromptInput's globalDrop). dragover fires continuously while a
+	// Page-wide drop zone. dragover fires continuously while a
 	// drag is over the window, so a short timeout self-heals every missed-event
 	// case (Esc-cancelled drags, drops outside the window) that an enter/leave
 	// counter gets permanently stuck on.
@@ -223,6 +238,7 @@ export function NewWorkspaceScreen({
 		};
 		const onDragOver = (e: DragEvent) => {
 			if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+			e.preventDefault();
 			setIsDraggingFiles(true);
 			if (timer !== null) window.clearTimeout(timer);
 			timer = window.setTimeout(() => setIsDraggingFiles(false), 200);
@@ -232,6 +248,10 @@ export function NewWorkspaceScreen({
 			if (timer !== null) window.clearTimeout(timer);
 			timer = null;
 			setIsDraggingFiles(false);
+			const files = e.dataTransfer?.files;
+			if (e.defaultPrevented || !files || files.length === 0) return;
+			e.preventDefault();
+			addAttachmentsRef.current(files);
 		};
 		const onChange = (e: Event) => {
 			if (e.target instanceof HTMLInputElement && e.target.type === "file") {
@@ -339,11 +359,13 @@ export function NewWorkspaceScreen({
 	);
 	const {
 		addLinkedIssue,
+		addLinkedLinearIssue,
 		addLinkedGitHubIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,
 	} = useLinkedContext(draft.linkedIssues, updateDraft);
+	const linkTaskLabel = t({ message: "Link task" });
 
 	// Restore the last-used launch host once per mount, like the modal does.
 	// A host named in the URL (the sidebar's Cloud "+") wins, and applies when
@@ -403,9 +425,6 @@ export function NewWorkspaceScreen({
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
 		const id = draft.hostId ?? machineId;
-		// A cloud workspace's sandbox doesn't exist yet, and "cloud" is a
-		// sentinel — resolving it would address a machine that isn't there.
-		if (id === CLOUD_HOST_ID) return null;
 		if (!id || !activeOrganizationId) return null;
 		return (
 			resolveHostUrl({
@@ -550,6 +569,7 @@ export function NewWorkspaceScreen({
 	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
+		selectedPresetId,
 		modelSupport ? selectedModel : null,
 		effortForLaunch,
 		modeSupport ? selectedMode : null,
@@ -652,7 +672,7 @@ export function NewWorkspaceScreen({
 	useEffect(() => {
 		if (!isOpen) return;
 		const handler = (e: KeyboardEvent) => {
-			if (e.repeat) return;
+			if (e.repeat || e.defaultPrevented) return;
 			if (!isEnterSubmit(e, { requireMod: true })) return;
 			e.preventDefault();
 			handleSubmit();
@@ -680,58 +700,54 @@ export function NewWorkspaceScreen({
 					</motion.div>
 				)}
 			</AnimatePresence>
-			{/* no-drag + clear of the page's window-drag strip (which ends at
-			    right-12) so the button actually receives clicks. */}
-			<div
-				className="no-drag absolute top-2.5 z-10 flex items-center gap-0.5"
-				// Clear of the window-controls overlay on Windows and Linux; zero
-				// extra where there is none.
-				style={{
-					right: "calc(0.75rem + (100vw - env(titlebar-area-width, 100vw)))",
-				}}
-			>
-				{selectedProject && !needsSetup && (
-					<Tooltip>
-						<TooltipTrigger asChild>
+			<PageHeader
+				className="sticky top-0 z-10 w-full bg-background"
+				end={
+					<div className="flex items-center gap-0.5">
+						{selectedProject && !needsSetup && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										aria-label={t({
+											message: "Update naming instructions",
+										})}
+										className="size-7 text-muted-foreground"
+										onClick={handleGoToNamingInstructions}
+									>
+										<Settings2Icon className="size-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>
+									<Trans>
+										Update naming instructions for {selectedProject.name}
+									</Trans>
+								</TooltipContent>
+							</Tooltip>
+						)}
+						<PromptHistoryCommand
+							onSelect={applyPrompt}
+							tooltipLabel={t({
+								message: "Previous prompts",
+							})}
+						>
 							<Button
 								type="button"
 								variant="ghost"
 								size="icon"
 								aria-label={t({
-									message: "Update naming instructions",
+									message: "Previous prompts",
 								})}
 								className="size-7 text-muted-foreground"
-								onClick={handleGoToNamingInstructions}
 							>
-								<Settings2Icon className="size-4" />
+								<HistoryIcon className="size-4" />
 							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							<Trans>
-								Update naming instructions for {selectedProject.name}
-							</Trans>
-						</TooltipContent>
-					</Tooltip>
-				)}
-				<PromptHistoryCommand
-					onSelect={applyPrompt}
-					tooltipLabel={t({
-						message: "Previous prompts",
-					})}
-				>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label={t({
-							message: "Previous prompts",
-						})}
-						className="size-7 text-muted-foreground"
-					>
-						<HistoryIcon className="size-4" />
-					</Button>
-				</PromptHistoryCommand>
-			</div>
+						</PromptHistoryCommand>
+					</div>
+				}
+			/>
 			<div className="flex flex-1 flex-col items-center justify-center gap-8">
 				<SupersetIcon className="h-10 w-auto text-muted-foreground/70" />
 				<h1 className="text-center text-3xl font-medium text-foreground/90">
@@ -788,88 +804,77 @@ export function NewWorkspaceScreen({
 								</motion.div>
 							)}
 					</AnimatePresence>
-					<PromptInput
+					<AgentComposer
+						allowEmptySubmit
+						autoFocus
+						clearOnSubmit={false}
+						className="w-full"
+						defaultValue={draft.prompt}
+						header={
+							(draft.linkedPR ||
+								draft.linkedIssues.length > 0 ||
+								visibleFiles.length > 0) && (
+								<div className="flex items-start gap-2 self-stretch overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+									{draft.linkedPR && (
+										<div className="shrink-0">
+											<LinkedPRPill
+												prNumber={draft.linkedPR.prNumber}
+												title={draft.linkedPR.title}
+												state={draft.linkedPR.state}
+												onRemove={removeLinkedPR}
+											/>
+										</div>
+									)}
+									{draft.linkedIssues.map((issue) => (
+										<div key={issue.url ?? issue.slug} className="shrink-0">
+											{issue.source === "github" && issue.number != null ? (
+												<LinkedGitHubIssuePill
+													issueNumber={issue.number}
+													title={issue.title}
+													state={issue.state ?? "open"}
+													onRemove={() => removeLinkedIssue(issue.slug)}
+												/>
+											) : (
+												<LinkedIssuePill
+													slug={issue.slug}
+													title={issue.title}
+													url={issue.url}
+													taskId={issue.taskId}
+													onRemove={() => removeLinkedIssue(issue.slug)}
+												/>
+											)}
+										</div>
+									))}
+									{visibleFiles.map((file) => {
+										const sourcePath = file.filename
+											? newWorkspaceAttachmentPaths.get(file.filename) || null
+											: null;
+										return (
+											<AttachmentCard
+												key={file.id}
+												file={file}
+												hostUrl={uploadTarget}
+												onRemove={(id) => attachments.remove(id)}
+												onOpenFile={
+													sourcePath
+														? () => openInFinderMutation.mutate(sourcePath)
+														: null
+												}
+											/>
+										);
+									})}
+								</div>
+							)
+						}
+						hideSubmit
+						key={`${resetKey}-${promptSeed}-${placeholderRoll}`}
+						onAddFiles={addAttachments}
+						onChange={(prompt) => updateDraft({ prompt })}
 						onSubmit={handleSubmit}
-						multiple
-						globalDrop
-						maxFiles={5}
-						maxFileSize={10 * 1024 * 1024}
-						onError={(error) => toast.error(error.message)}
-						className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
-					>
-						{(draft.linkedPR ||
-							draft.linkedIssues.length > 0 ||
-							visibleFiles.length > 0) && (
-							<div className="flex items-start gap-2 self-stretch overflow-x-auto px-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-								{draft.linkedPR && (
-									<div className="shrink-0">
-										<LinkedPRPill
-											prNumber={draft.linkedPR.prNumber}
-											title={draft.linkedPR.title}
-											state={draft.linkedPR.state}
-											onRemove={removeLinkedPR}
-										/>
-									</div>
-								)}
-								{draft.linkedIssues.map((issue) => (
-									<div key={issue.url ?? issue.slug} className="shrink-0">
-										{issue.source === "github" && issue.number != null ? (
-											<LinkedGitHubIssuePill
-												issueNumber={issue.number}
-												title={issue.title}
-												state={issue.state ?? "open"}
-												onRemove={() => removeLinkedIssue(issue.slug)}
-											/>
-										) : (
-											<LinkedIssuePill
-												slug={issue.slug}
-												title={issue.title}
-												url={issue.url}
-												taskId={issue.taskId}
-												onRemove={() => removeLinkedIssue(issue.slug)}
-											/>
-										)}
-									</div>
-								))}
-								{visibleFiles.map((file) => {
-									const sourcePath = file.filename
-										? newWorkspaceAttachmentPaths.get(file.filename) || null
-										: null;
-									return (
-										<AttachmentCard
-											key={file.id}
-											file={file}
-											hostUrl={launchHostUrl}
-											onRemove={(id) => attachments.remove(id)}
-											onOpenFile={
-												sourcePath
-													? () => openInFinderMutation.mutate(sourcePath)
-													: null
-											}
-										/>
-									);
-								})}
-							</div>
-						)}
-						<MarkdownEditor
-							key={`${resetKey}-${promptSeed}-${placeholderRoll}`}
-							content={draft.prompt}
-							onChange={(markdown) => updateDraft({ prompt: markdown })}
-							onPasteFiles={(files) => attachments.add(files)}
-							onEnterSubmit={handleSubmit}
-							autoFocus={draft.prompt ? "end" : "start"}
-							placeholder={promptPlaceholder}
-							className="flex flex-col min-h-[80px] max-h-[min(50vh,600px)] px-3 pt-3"
-							editorClassName="overflow-y-auto text-sm"
-							features={{
-								slashCommand: false,
-								emoji: false,
-								fileMention: false,
-								bubbleMenu: false,
-							}}
-						/>
-						<PromptInputFooter>
-							<PromptInputTools className="gap-1.5">
+						placeholder={promptPlaceholder}
+						ref={composerRef}
+						toolbar={
+							<div className="flex min-w-0 items-center gap-1.5">
 								<AgentSelect<WorkspaceCreateAgent>
 									agents={v2Agents}
 									value={selectedAgent}
@@ -919,23 +924,32 @@ export function NewWorkspaceScreen({
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
-							</PromptInputTools>
+							</div>
+						}
+						toolbarEnd={
 							<div className="flex items-center gap-2">
 								<IssueLinkCommand
 									onSelect={addLinkedIssue}
-									tooltipLabel={t({
-										message: "Link issue",
-									})}
+									tooltipLabel={linkTaskLabel}
 								>
 									<PromptInputButton
-										aria-label={t({
-											message: "Link issue",
-										})}
+										aria-label={linkTaskLabel}
+										className={`${PILL_BUTTON_CLASS} w-[22px]`}
+									>
+										<HiOutlineCheckCircle className="size-3.5" />
+									</PromptInputButton>
+								</IssueLinkCommand>
+								<LinearIssueLinkCommand
+									onSelect={addLinkedLinearIssue}
+									tooltipLabel={t({ message: "Link Linear issue" })}
+								>
+									<PromptInputButton
+										aria-label={t({ message: "Link Linear issue" })}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<SiLinear className="size-3.5" />
 									</PromptInputButton>
-								</IssueLinkCommand>
+								</LinearIssueLinkCommand>
 								<GitHubIssueLinkCommand
 									onSelect={(issue) =>
 										addLinkedGitHubIssue(
@@ -984,7 +998,7 @@ export function NewWorkspaceScreen({
 												message: "Add attachment",
 											})}
 											className={`${PILL_BUTTON_CLASS} w-[22px]`}
-											onClick={() => attachments.openFileDialog()}
+											onClick={() => composerRef.current?.openFileDialog()}
 										>
 											<PaperclipIcon className="size-3.5" />
 										</PromptInputButton>
@@ -993,7 +1007,7 @@ export function NewWorkspaceScreen({
 										<Trans>Add attachment</Trans>
 									</TooltipContent>
 								</Tooltip>
-								<PromptInputSubmit
+								<PromptInputButton
 									className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
 									disabled={needsSetup || isCreating}
 									onClick={(e) => {
@@ -1006,10 +1020,10 @@ export function NewWorkspaceScreen({
 									) : (
 										<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 									)}
-								</PromptInputSubmit>
+								</PromptInputButton>
 							</div>
-						</PromptInputFooter>
-					</PromptInput>
+						}
+					/>
 					<div className="mt-2 flex items-center justify-between gap-2">
 						<div className="flex min-w-0 flex-1 items-center gap-2">
 							<DevicePicker

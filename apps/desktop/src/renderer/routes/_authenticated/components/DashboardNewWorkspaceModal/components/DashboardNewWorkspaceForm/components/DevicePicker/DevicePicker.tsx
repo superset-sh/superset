@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -62,12 +63,6 @@ interface DevicePickerProps {
 	 */
 	disabled?: boolean;
 }
-
-/**
- * Sentinel host id for "run this in a cloud sandbox". Not a machine id: a
- * sandbox is created per workspace and has no host row to point at.
- */
-export const CLOUD_HOST_ID = "cloud";
 
 function getSelectedIcon(hostId: string | null, machineId: string | null) {
 	if (hostId === CLOUD_HOST_ID) {

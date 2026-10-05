@@ -4,10 +4,10 @@
  * bug worth fixing.
  *
  * The filesystem section also pins the intended sandbox policy in both
- * directions: reads are host-wide (viewing files a terminal/agent referenced
- * outside the workspace), mutations are confined to the workspace root. An
- * "allows" test failing means the read policy regressed, not that a defense
- * appeared.
+ * directions: reads and file edits are host-wide (files a terminal/agent
+ * referenced outside the workspace), structural mutations are confined to the
+ * workspace root. An "allows"/"edits" test failing means that policy
+ * regressed, not that a defense appeared.
  *
  * Categories:
  *   - sandbox / path traversal in workspace-fs operations
@@ -22,6 +22,7 @@ import { randomUUID } from "node:crypto";
 import {
 	existsSync,
 	mkdirSync,
+	readFileSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
@@ -33,7 +34,7 @@ import { projects, workspaces } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
 import { createGitFixture, type GitFixture } from "../helpers/git-fixture";
 
-describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", () => {
+describe("bug-hunt: filesystem sandbox (structural mutations confined, reads and edits host-wide)", () => {
 	let host: TestHost;
 	let repo: GitFixture;
 	const projectId = randomUUID();
@@ -62,18 +63,20 @@ describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", (
 		repo.dispose();
 	});
 
-	test("writeFile rejects '..' traversal escaping the workspace root", async () => {
-		const escapeWritePath = `${repo.repoPath}/../escape.txt`;
-		await expect(
-			host.trpc.filesystem.writeFile.mutate({
+	test("writeFile edits paths outside the workspace root", async () => {
+		const sibling = join(repo.repoPath, "..", `outside-write-${randomUUID()}`);
+		writeFileSync(sibling, "before");
+		try {
+			await host.trpc.filesystem.writeFile.mutate({
 				workspaceId,
-				absolutePath: escapeWritePath,
-				content: "should not exist",
-				options: { create: true, overwrite: true },
-			}),
-		).rejects.toThrow();
-		// Sibling of repoPath must not have been written.
-		expect(existsSync(escapeWritePath)).toBe(false);
+				absolutePath: sibling,
+				content: "after",
+				options: { create: false, overwrite: true },
+			});
+			expect(readFileSync(sibling, "utf8")).toBe("after");
+		} finally {
+			rmSync(sibling, { force: true });
+		}
 	});
 
 	test("readFile allows viewing paths outside the workspace root", async () => {
@@ -92,7 +95,7 @@ describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", (
 		}
 	});
 
-	test("readFile still rejects in-workspace symlinks that escape the root", async () => {
+	test("readFile allows in-workspace symlinks that resolve outside the root", async () => {
 		const outside = join(repo.repoPath, "..", `symlink-target-${randomUUID()}`);
 		writeFileSync(outside, "secret");
 		const link = join(repo.repoPath, "innocent-looking.txt");
@@ -104,7 +107,7 @@ describe("bug-hunt: filesystem sandbox (mutations confined, reads host-wide)", (
 					absolutePath: link,
 					encoding: "utf8",
 				}),
-			).rejects.toThrow();
+			).resolves.toMatchObject({ kind: "text", content: "secret" });
 		} finally {
 			rmSync(link, { force: true });
 			rmSync(outside, { force: true });

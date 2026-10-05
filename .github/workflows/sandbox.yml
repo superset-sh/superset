@@ -11,7 +11,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "packages/sandbox/bundle/**"
+      - "packages/sandbox/**"
       - "packages/shared/src/sandbox-contract.ts"
   workflow_dispatch:
     inputs:
@@ -27,7 +27,7 @@ jobs:
   boot-twice:
     name: Boot twice
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -64,6 +64,12 @@ jobs:
           CDN_R2_BUCKET: ${{ secrets.CDN_R2_BUCKET }}
           CDN_URL: ${{ secrets.CDN_URL }}
         run: bun run build --dry
+
+      # Keeps the builder's layers on a persistent disk between runs.
+      - name: Set up the Docker builder
+        uses: useblacksmith/setup-docker-builder@19215110ab936351210feebdfa5b440b4493e184 # v2.2.0
+        with:
+          cache-key: sandbox-image
 
       - name: Build the image locally
         working-directory: packages/sandbox
@@ -138,7 +144,17 @@ jobs:
 
   production-release:
     name: Production release
-    if: github.event_name == 'workflow_dispatch' && inputs.run == 'production-release' && github.ref == 'refs/heads/main'
+    # A merge that touches the image or the bundle releases it. Without this the
+    # bundle moved on every merge while the image and the goldens only moved when
+    # someone remembered, so every new box booted an image older than the bundle
+    # it then fetched. host-service is deliberately not here: a box picks one up
+    # by hash from `bundle/assets.json`, so what reaches a box is the version
+    # bump in that file, which is already a `packages/sandbox/**` change.
+    if: |
+      github.ref == 'refs/heads/main' && (
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && inputs.run == 'production-release')
+      )
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 120
@@ -165,10 +181,10 @@ jobs:
         working-directory: packages/sandbox
         env:
           SUPERSET_INTERNAL_ORGANIZATION_ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+          SUPERSET_INTERNAL_ENVIRONMENT_ID: 1dcfb8ac-da71-4860-b2a2-9cf24878f703
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
-          VERCEL_SANDBOX_REGION: sfo1
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
           VERCEL_SANDBOX_TOKEN: ${{ secrets.VERCEL_SANDBOX_TOKEN }}

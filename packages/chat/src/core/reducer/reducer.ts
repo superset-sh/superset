@@ -38,23 +38,51 @@ export function emptySnapshot(): SessionSnapshot {
 	};
 }
 
-type MutableSnapshot = {
+type MapKey = "turns" | "items" | "liveStreams";
+
+type Draft = {
+	base: SessionSnapshot;
 	session: SessionState | null;
-	turns: Map<string, Turn>;
-	items: Map<string, StoredItem>;
-	liveStreams: Map<string, string>;
 	cursor: Cursor | null;
 	pendingReset: string | null;
+	turns?: Map<string, Turn>;
+	items?: Map<string, StoredItem>;
+	liveStreams?: Map<string, string>;
 };
 
-function thaw(snapshot: SessionSnapshot): MutableSnapshot {
+function startDraft(base: SessionSnapshot): Draft {
 	return {
-		session: snapshot.session,
-		turns: new Map(snapshot.turns),
-		items: new Map(snapshot.items),
-		liveStreams: new Map(snapshot.liveStreams),
-		cursor: snapshot.cursor,
-		pendingReset: snapshot.pendingReset,
+		base,
+		session: base.session,
+		cursor: base.cursor,
+		pendingReset: base.pendingReset,
+	};
+}
+
+function readable<K extends MapKey>(draft: Draft, key: K): SessionSnapshot[K] {
+	return (draft[key] ?? draft.base[key]) as SessionSnapshot[K];
+}
+
+function writable<K extends MapKey>(
+	draft: Draft,
+	key: K,
+): NonNullable<Draft[K]> {
+	if (!draft[key]) {
+		(draft as Record<MapKey, unknown>)[key] = new Map(
+			draft.base[key] as ReadonlyMap<string, unknown>,
+		);
+	}
+	return draft[key] as NonNullable<Draft[K]>;
+}
+
+function finishDraft(draft: Draft): SessionSnapshot {
+	return {
+		session: draft.session,
+		turns: readable(draft, "turns"),
+		items: readable(draft, "items"),
+		liveStreams: readable(draft, "liveStreams"),
+		cursor: draft.cursor,
+		pendingReset: draft.pendingReset,
 	};
 }
 
@@ -73,20 +101,23 @@ function snapshotTextFor(channel: DeltaChannel, item: Item): string {
 	return "";
 }
 
-function applyDurable(draft: MutableSnapshot, event: DurableEvent): void {
+function applyDurable(draft: Draft, event: DurableEvent): void {
 	switch (event.type) {
 		case "item": {
-			draft.items.set(event.item.id, {
+			writable(draft, "items").set(event.item.id, {
 				item: event.item,
 				turnId: event.turnId,
 			});
 			for (const channel of ["text", "tool_input", "terminal"] as const) {
-				draft.liveStreams.delete(streamKey(channel, event.item.id));
+				const key = streamKey(channel, event.item.id);
+				if (readable(draft, "liveStreams").has(key)) {
+					writable(draft, "liveStreams").delete(key);
+				}
 			}
 			return;
 		}
 		case "turn": {
-			draft.turns.set(event.turn.id, event.turn);
+			writable(draft, "turns").set(event.turn.id, event.turn);
 			return;
 		}
 		case "session": {
@@ -96,7 +127,7 @@ function applyDurable(draft: MutableSnapshot, event: DurableEvent): void {
 	}
 }
 
-function applyEnvelope(draft: MutableSnapshot, envelope: Envelope): void {
+function applyEnvelope(draft: Draft, envelope: Envelope): void {
 	if (isResetEnvelope(envelope)) {
 		draft.pendingReset = envelope.reset.reason;
 		return;
@@ -117,14 +148,15 @@ function applyEnvelope(draft: MutableSnapshot, envelope: Envelope): void {
 	if (isDeltaEnvelope(envelope)) {
 		const delta = envelope.delta;
 		const key = streamKey(delta.type, delta.itemId);
-		const existing = draft.liveStreams.get(key);
+		const streams = writable(draft, "liveStreams");
+		const existing = streams.get(key);
 		if (existing !== undefined) {
-			draft.liveStreams.set(key, existing + delta.append);
+			streams.set(key, existing + delta.append);
 			return;
 		}
-		const stored = draft.items.get(delta.itemId);
+		const stored = readable(draft, "items").get(delta.itemId);
 		const base = stored ? snapshotTextFor(delta.type, stored.item) : "";
-		draft.liveStreams.set(key, base + delta.append);
+		streams.set(key, base + delta.append);
 	}
 }
 
@@ -133,9 +165,9 @@ export function reduceMany(
 	envelopes: readonly Envelope[],
 ): SessionSnapshot {
 	if (envelopes.length === 0) return prev;
-	const draft = thaw(prev);
+	const draft = startDraft(prev);
 	for (const envelope of envelopes) applyEnvelope(draft, envelope);
-	return draft;
+	return finishDraft(draft);
 }
 
 export function reduce(

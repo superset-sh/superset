@@ -2,7 +2,7 @@
 title: "Superset vs Cline (2026): Agent Workspace vs In-Editor Agent"
 description: "Compare Superset and Cline for AI coding. See how an editor-independent workspace running parallel agents differs from an autonomous agent embedded in VS Code."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - cline
@@ -25,8 +25,8 @@ Cline is a popular open-source autonomous coding agent that lives inside VS Code
 | **Category** | Agent orchestration workspace | In-editor autonomous agent |
 | **Home** | Standalone desktop app | VS Code (and forks) extension |
 | **AI approach** | Agent-agnostic: Claude Code, Codex, Aider, Superset Chat, any CLI agent | Model-agnostic: Anthropic, OpenRouter, Bedrock, and more via your keys |
-| **Parallelism** | Core feature: 100+ agents across isolated Git worktrees | One agent per editor window/session |
-| **Isolation** | Git worktree per task | Works in your open workspace folder |
+| **Parallelism** | Core feature: multiple agents across isolated Git worktrees | One agent per editor window/session |
+| **Isolation** | Git worktrees for local branch-based workspaces | Works in your open workspace folder |
 | **Pricing** | Free tier + Pro $20/seat/mo (bring your own API keys) | Free, open source; bring your own API keys |
 
 ---
@@ -51,11 +51,11 @@ Cline is embedded in VS Code: its context is your open editor window. Superset s
 
 ### One Agent vs Many in Parallel
 
-Cline runs one agent session per editor window. Superset is built to run 100+ agents at once, each isolated in its own Git worktree, so parallel tasks never collide over the same files or branch. That is the difference between an in-editor assistant and a multi-agent orchestrator.
+Cline runs one agent session per editor window. Superset organizes tasks in local branch-based workspaces with separate Git worktrees. Working files are separate, but merge conflicts and shared-service interference remain possible; concurrency depends on host resources and provider limits. That is the difference between an in-editor assistant and a multi-agent orchestrator. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ### Worktree Isolation
 
-Cline operates in your currently open workspace folder. Superset gives every task its own Git worktree, so an experimental refactor and a hotfix can run at the same time on the same repo without interfering. Isolation is the core primitive Superset is built around.
+Cline operates in your currently open workspace folder. Superset gives new local branch-based workspaces separate Git worktrees for independent tasks. Shared services and merge conflicts still require coordination. Isolation is the core primitive Superset is built around.
 
 ### Privacy
 
@@ -97,7 +97,7 @@ No. Superset is a standalone desktop workspace, not an editor extension. It runs
 
 ### Does Cline support running multiple agents in parallel?
 
-Cline runs one agent per editor session. For many concurrent tasks, you would open multiple windows, but they share your workspace folder. Superset instead isolates each agent in its own Git worktree so parallel work does not collide.
+Cline runs one agent per editor session. For many concurrent tasks, you would open multiple windows, but they share your workspace folder. Superset gives new local branch-based workspaces separate Git worktrees so parallel work uses separate working directories.
 
 ### Are Superset and Cline both bring-your-own-key?
 

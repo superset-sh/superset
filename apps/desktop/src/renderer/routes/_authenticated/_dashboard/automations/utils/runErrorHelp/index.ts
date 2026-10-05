@@ -1,1 +1,5 @@
-export { dispatchErrorCode, runErrorHelp } from "./runErrorHelp";
+export {
+	describeRunError,
+	dispatchErrorCode,
+	runErrorHelp,
+} from "./runErrorHelp";

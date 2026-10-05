@@ -50,7 +50,9 @@ toast.error = ((title: string) => {
 	toastErrors.push(title);
 }) as typeof toast.error;
 
+const actualCloudTrpc = await import("renderer/lib/cloud-trpc");
 mock.module("renderer/lib/cloud-trpc", () => ({
+	...actualCloudTrpc,
 	cloudTrpc: {
 		useUtils: () => ({ billing: { activePlan: { ensureData, fetch } } }),
 		billing: { activePlan: { useQuery: () => ({ data: cachedPlan }) } },

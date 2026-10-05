@@ -4,9 +4,13 @@ import { AuthorAvatar } from "../AuthorAvatar";
 
 interface BlogCardProps {
 	post: BlogPost;
+	headingLevel?: "h2" | "h3";
 }
 
-export function BlogCard({ post }: BlogCardProps) {
+export function BlogCard({
+	post,
+	headingLevel: Heading = "h2",
+}: BlogCardProps) {
 	const formattedDate = formatBlogDate(post.date);
 
 	return (
@@ -21,9 +25,9 @@ export function BlogCard({ post }: BlogCardProps) {
 						{formattedDate}
 					</time>
 				</div>
-				<h2 className="text-lg font-medium text-foreground mb-2 group-hover:text-foreground/90">
+				<Heading className="text-lg font-medium text-foreground mb-2 group-hover:text-foreground/90">
 					{post.title}
-				</h2>
+				</Heading>
 				{post.description && (
 					<p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3">
 						{post.description}

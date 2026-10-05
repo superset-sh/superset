@@ -4,159 +4,91 @@ import {
 	MAX_PINGS_PER_THREAD,
 	selectThreadsToDeliver,
 } from "./trigger.ts";
-import type { WatchedThread, WatchedThreadComment } from "./types.ts";
+import type { WatchedThread } from "./types.ts";
 
-const T0 = 1_800_000_000_000;
-
-function comment(
-	over: Partial<WatchedThreadComment> & { at: number },
-): WatchedThreadComment {
+function thread(id: string, ids = [id]): WatchedThread {
 	return {
-		id: `c${over.at}`,
-		body: "body",
-		authorKind: over.authorKind ?? "human",
-		authorName: over.authorName ?? "Sarah",
-		createdAt: new Date(over.at),
+		id,
+		anchorKind: "page",
+		anchor: null,
+		anchorText: null,
+		resolved: false,
+		version: 1,
+		comments: ids.map((id) => ({
+			id,
+			body: id,
+			authorKind: "human",
+			authorName: "Human",
+			createdAt: new Date(0),
+		})),
 	};
 }
-
-function thread(over: Partial<WatchedThread> = {}): WatchedThread {
-	return {
-		id: over.id ?? "t1",
-		anchorKind: "element",
-		anchor: { path: "div > p", tag: "p" },
-		anchorText: "axis",
-		resolved: over.resolved ?? false,
-		version: over.version ?? 1,
-		comments: over.comments ?? [comment({ at: T0 + 1000 })],
-	};
-}
-
-const entry = (cursor: number, pings = new Map<string, number>()) => ({
-	cursor,
+const entry = (ids: string[] = [], pings = new Map<string, number>()) => ({
+	seenCommentIds: new Set(ids),
 	pings,
 });
-
 describe("selectThreadsToDeliver", () => {
-	it("fires on a human comment newer than the cursor", () => {
-		const result = selectThreadsToDeliver([thread()], entry(T0));
-		expect(result.fired.map((t) => t.id)).toEqual(["t1"]);
-		expect(result.firedCursor).toBe(T0 + 1000);
-	});
-
-	it("does not fire twice on the same comment", () => {
-		const threads = [thread()];
-		const first = selectThreadsToDeliver(threads, entry(T0));
-		const second = selectThreadsToDeliver(threads, {
-			cursor: first.firedCursor,
-			pings: first.pings,
-		});
-		expect(second.fired).toEqual([]);
-	});
-
-	it("never fires on an agent's own reply", () => {
+	it("deduplicates IDs, not timestamps or host wall clocks", () => {
 		const result = selectThreadsToDeliver(
-			[
-				thread({
-					comments: [comment({ at: T0 + 5000, authorKind: "agent" })],
-				}),
-			],
-			entry(T0),
+			[thread("thread", ["seen", "new"])],
+			entry(["seen"]),
 		);
-		expect(result.fired).toEqual([]);
-		expect(result.firedCursor).toBe(0);
+		expect(result.commentIds).toEqual(["new"]);
+		expect(result.fired).toHaveLength(1);
 	});
-
-	it("does not let an agent reply advance the cursor past an unseen human one", () => {
+	it("does not deliver already acknowledged comments", () => {
+		expect(
+			selectThreadsToDeliver([thread("seen")], entry(["seen"])).fired,
+		).toEqual([]);
+	});
+	it("does not react to agent replies", () => {
+		const t = thread("agent");
+		for (const c of t.comments) c.authorKind = "agent";
+		expect(selectThreadsToDeliver([t], entry()).fired).toEqual([]);
+	});
+	it("retains unseen resolved comments for later reopening", () => {
+		const t = thread("resolved");
+		t.resolved = true;
+		expect(selectThreadsToDeliver([t], entry()).commentIds).toEqual([]);
+		t.resolved = false;
+		expect(selectThreadsToDeliver([t], entry()).commentIds).toEqual([
+			"resolved",
+		]);
+	});
+	it("preserves ping ceiling and separately acknowledges suppressed IDs", () => {
 		const result = selectThreadsToDeliver(
-			[
-				thread({
-					comments: [
-						comment({ at: T0 + 1000 }),
-						comment({ at: T0 + 9000, authorKind: "agent" }),
-					],
-				}),
-			],
-			entry(T0),
+			[thread("capped"), thread("live")],
+			entry([], new Map([["capped", MAX_PINGS_PER_THREAD]])),
 		);
-		expect(result.fired.map((t) => t.id)).toEqual(["t1"]);
-		expect(result.firedCursor).toBe(T0 + 1000);
+		expect(result.fired.map((t) => t.id)).toEqual(["live"]);
+		expect(result.suppressed).toEqual(["capped"]);
+		expect(result.commentIds).toEqual(["capped", "live"]);
+		expect([...result.pings]).toEqual([["live", 1]]);
 	});
-
-	it("skips resolved threads", () => {
-		const result = selectThreadsToDeliver(
-			[thread({ resolved: true })],
-			entry(T0),
+	it("bounds a large thread batch without accidentally acknowledging unsent comments", () => {
+		const t = thread(
+			"large",
+			Array.from({ length: 1001 }, (_, i) => `${i}`),
 		);
-		expect(result.fired).toEqual([]);
+		const first = selectThreadsToDeliver([t], entry());
+		expect(first.commentIds).toHaveLength(1000);
+		expect(first.fired[0]?.comments).toHaveLength(1000);
+		const second = selectThreadsToDeliver(
+			[t],
+			entry(first.commentIds, first.pings),
+		);
+		expect(second.commentIds).toEqual(["1000"]);
 	});
-
-	it("stops pinging a thread once it hits the ping ceiling", () => {
-		let pings = new Map<string, number>();
-		let cursor = T0;
-
-		for (let i = 1; i <= MAX_PINGS_PER_THREAD; i += 1) {
-			const result = selectThreadsToDeliver(
-				[thread({ comments: [comment({ at: T0 + i * 1000 })] })],
-				{ cursor, pings },
-			);
-			expect(result.fired.length).toBe(1);
-			pings = result.pings;
-			cursor = result.firedCursor;
-		}
-
-		const over = selectThreadsToDeliver(
-			[
-				thread({
-					comments: [comment({ at: T0 + (MAX_PINGS_PER_THREAD + 1) * 1000 })],
-				}),
-			],
-			{ cursor, pings },
-		);
-		expect(over.fired).toEqual([]);
-		expect(over.suppressed).toEqual(["t1"]);
-	});
-
-	it("reports a suppressed thread's cursor separately so it can skip without a send", () => {
-		const pings = new Map([["t1", MAX_PINGS_PER_THREAD]]);
-		const result = selectThreadsToDeliver(
-			[thread({ comments: [comment({ at: T0 + 4000 })] })],
-			{ cursor: T0, pings },
-		);
-		expect(result.fired).toEqual([]);
-		expect(result.suppressedCursor).toBe(T0 + 4000);
-		expect(result.firedCursor).toBe(0);
-	});
-
-	it("batches every firing thread into one delivery", () => {
-		const result = selectThreadsToDeliver(
-			[
-				thread({ id: "t1", comments: [comment({ at: T0 + 1000 })] }),
-				thread({ id: "t2", comments: [comment({ at: T0 + 2000 })] }),
-			],
-			entry(T0),
-		);
-		expect(result.fired.map((t) => t.id)).toEqual(["t1", "t2"]);
-		expect(result.firedCursor).toBe(T0 + 2000);
+	it("bounds page batches while leaving excess threads for later", () => {
+		const threads = Array.from({ length: 1001 }, (_, i) => thread(`${i}`));
+		const result = selectThreadsToDeliver(threads, entry());
+		expect(result.commentIds).toHaveLength(1000);
+		expect(result.pings.size).toBe(1000);
 	});
 });
-
 describe("agentIsBusy", () => {
-	it("treats a working agent as busy", () => {
-		expect(agentIsBusy("Start")).toBe(true);
-	});
-
-	it("treats an agent waiting on a permission prompt as busy", () => {
-		expect(agentIsBusy("PermissionRequest")).toBe(true);
-	});
-
-	it("treats a stopped or failed agent as free", () => {
-		expect(agentIsBusy("Stop")).toBe(false);
-		expect(agentIsBusy("Failed")).toBe(false);
-	});
-
-	it("treats an unknown or absent event as free rather than blocking forever", () => {
-		expect(agentIsBusy(undefined)).toBe(false);
-		expect(agentIsBusy("SomethingNew")).toBe(false);
-	});
+	for (const type of ["Start", "PermissionRequest"])
+		it(`holds ${type}`, () => expect(agentIsBusy(type)).toBe(true));
+	for (const type of ["Stop", "Failed", "Attached", undefined])
+		it(`allows ${type}`, () => expect(agentIsBusy(type)).toBe(false));
 });

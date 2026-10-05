@@ -12,7 +12,7 @@ export default command({
 		host: string().desc("Create on this host (machineId)"),
 		local: boolean().desc("Create on this machine"),
 		environment: string().desc(
-			"Environment a cloud workspace starts from (id or name; defaults to the first with repositories)",
+			"Environment ID a cloud workspace starts from (see: superset environments list); required when several have repositories",
 		),
 		project: string().desc(
 			"Project ID, for a workspace on a host. Required with --local or --host unless --session",

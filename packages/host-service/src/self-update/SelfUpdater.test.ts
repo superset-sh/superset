@@ -70,6 +70,17 @@ function harness(overrides: Partial<SelfUpdaterDeps> = {}): Harness {
 		stateDir,
 		runCliUpdate: async (_bin, args) => {
 			h.calls.push(`cli ${args.join(" ")}`);
+			if (args.includes("--check")) {
+				return {
+					ok: true,
+					stdout: JSON.stringify({
+						current: "1.22.0",
+						target: "1.27.0",
+						upToDate: false,
+					}),
+					stderr: "",
+				};
+			}
 			// Simulate what `superset update --keep-backup` leaves behind.
 			mkdirSync(join(`${root}.bak`, "lib"), { recursive: true });
 			writeFileSync(join(`${root}.bak`, "lib", "version"), "old");
@@ -420,5 +431,88 @@ describe("parseUpdateOutput", () => {
 		).toEqual({ updated: false, target: "2" });
 		expect(parseUpdateOutput("nothing")).toBeNull();
 		expect(parseUpdateOutput('{"message":"x"}')).toBeNull();
+	});
+});
+
+describe("automatic host updates", () => {
+	for (const target of ["1.22.0", "1.21.0", "invalid"]) {
+		test(`does not install ${target}`, async () => {
+			const calls: string[][] = [];
+			const h = harness({
+				runCliUpdate: async (_bin, args) => {
+					calls.push(args);
+					return { ok: true, stdout: JSON.stringify({ target }), stderr: "" };
+				},
+			});
+			await h.updater.checkForUpdates();
+			expect(calls).toEqual([["update", "--check", "--json"]]);
+			expect(h.updater.status().phase).toBe("idle");
+		});
+	}
+	test("installs a newer release using the existing restart flow", async () => {
+		const h = harness();
+		await h.updater.checkForUpdates();
+		await settle(h);
+		expect(h.calls[0]).toBe("cli update --check --json");
+		expect(h.calls[1]).toBe("cli update --json --keep-backup --version 1.27.0");
+		expect(h.exitCode).toBe(0);
+	});
+	test("skips a previously rolled-back release", async () => {
+		const h = harness();
+		writeFileSync(
+			updateMarkerPath(h.stateDir),
+			JSON.stringify({
+				outcome: "rolled-back",
+				from: "1.22.0",
+				to: "1.27.0",
+				at: Date.now(),
+			}),
+		);
+		await h.updater.checkForUpdates();
+		expect(h.calls).toEqual(["cli update --check --json"]);
+	});
+	test("does not check desktop installs", async () => {
+		const h = harness({ installSource: "desktop" });
+		await h.updater.checkForUpdates();
+		expect(h.calls).toEqual([]);
+	});
+	test("a failed check can retry without stopping the host", async () => {
+		let checks = 0;
+		const h = harness({
+			runCliUpdate: async () => {
+				checks++;
+				throw new Error("offline");
+			},
+		});
+		await h.updater.checkForUpdates();
+		await h.updater.checkForUpdates();
+		expect(checks).toBe(2);
+		expect(h.updater.status().phase).toBe("idle");
+		expect(h.exitCode).toBeNull();
+	});
+	test("coalesces overlapping checks", async () => {
+		let checks = 0;
+		let finish!: (value: {
+			ok: boolean;
+			stdout: string;
+			stderr: string;
+		}) => void;
+		const h = harness({
+			runCliUpdate: async () => {
+				checks++;
+				return new Promise((resolve) => {
+					finish = resolve;
+				});
+			},
+		});
+		const first = h.updater.checkForUpdates();
+		await h.updater.checkForUpdates();
+		expect(checks).toBe(1);
+		finish({
+			ok: true,
+			stdout: JSON.stringify({ target: "1.22.0" }),
+			stderr: "",
+		});
+		await first;
 	});
 });

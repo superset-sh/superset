@@ -349,6 +349,9 @@ export class HostTunnel extends Server<RelayEnv> {
 		if (!state) return;
 
 		if (state.kind === "host") {
+			const currentHost = this.hostConn();
+			if (currentHost && currentHost.id !== conn.id) return;
+
 			// Tags, not state: tags are assigned synchronously at accept, so a
 			// replacement host socket still mid-onConnect is never torn down.
 			for (const other of this.getConnections()) {

@@ -14,6 +14,27 @@ import { webhooks } from "./webhooks";
 
 export const maxDuration = 60;
 
+const INSTALLATION_LIFECYCLE_EVENTS = new Set([
+	"installation",
+	"installation_repositories",
+]);
+
+/**
+ * Pings and a few org-level events carry no installation, and an installation
+ * this deployment never saw has no organization.
+ */
+async function findInstallation(
+	payload: GithubPayload,
+): Promise<{ organizationId: string } | null> {
+	const installationId = payload.installation?.id;
+	if (installationId === undefined) return null;
+	const installation = await db.query.githubInstallations.findFirst({
+		where: eq(githubInstallations.installationId, String(installationId)),
+		columns: { organizationId: true },
+	});
+	return installation ?? null;
+}
+
 export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("x-hub-signature-256");
@@ -39,6 +60,16 @@ export async function POST(request: Request) {
 	} catch {
 		console.error("[github/webhook] Invalid JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
+
+	// Iced organizations are not filtered here: `integrations/jobs/suspend`
+	// suspends their installations and GitHub stops delivering, which costs
+	// this route nothing per event. An installation this deployment never saw
+	// is dropped before the delivery is recorded, unless the event is the one
+	// that would tell us about it.
+	const installation = await findInstallation(payload as GithubPayload);
+	if (!installation && !INSTALLATION_LIFECYCLE_EVENTS.has(eventType ?? "")) {
+		return Response.json({ success: true, status: "unknown_installation" });
 	}
 
 	// Store verified event with idempotent handling
@@ -81,20 +112,6 @@ export async function POST(request: Request) {
 			// biome-ignore lint/suspicious/noExplicitAny: GitHub webhook event types are complex unions
 		} as any);
 
-		// Pings and a few org-level events carry no installation, and an
-		// installation this deployment never saw has no organization: neither
-		// is recorded as an automation event.
-		const installationId = (payload as GithubPayload).installation?.id;
-		const installation =
-			installationId === undefined
-				? undefined
-				: await db.query.githubInstallations.findFirst({
-						where: eq(
-							githubInstallations.installationId,
-							String(installationId),
-						),
-						columns: { organizationId: true },
-					});
 		outcome = installation
 			? await ingestAutomationEvent(
 					db,

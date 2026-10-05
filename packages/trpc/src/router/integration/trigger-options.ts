@@ -65,7 +65,16 @@ export const triggerOptionsRouter = {
 	 * the editor stays usable and the sentence shows what it can.
 	 */
 	triggerOptions: protectedProcedure
-		.input(z.object({ organizationId: z.uuid(), group: z.string() }))
+		// An enum, not a free string: an unknown group used to come back as {},
+		// which reads exactly like a provider the org has not connected.
+		.input(
+			z.object({
+				organizationId: z.uuid(),
+				group: z.enum(
+					Object.keys(triggerOptionSources) as [string, ...string[]],
+				),
+			}),
+		)
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
 			const sources = triggerOptionSources[input.group] ?? {};

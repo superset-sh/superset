@@ -90,6 +90,13 @@ describe("buildTaskListOrderBy", () => {
 		expect(renderOne(tiebreak).sql.toLowerCase()).toContain("asc");
 	});
 
+	test("createdAt sorts on an expression so the org index is used", () => {
+		const [primary] = buildTaskListOrderBy("createdAt", "asc");
+		expect(renderOne(primary).sql.toLowerCase()).toContain(
+			"+ interval '0 seconds'",
+		);
+	});
+
 	test("priority desc ranks urgent highest via enum-derived CASE", () => {
 		const [primary] = buildTaskListOrderBy("priority", "desc");
 		const { sql, params } = renderOne(primary);

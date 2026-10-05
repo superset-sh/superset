@@ -9,6 +9,8 @@ import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, PullRequestPaneData } from "../../types";
 import { openPullRequestPaneInStore } from "./openPullRequestPaneInStore";
 
+const REPO = "superset-sh/superset";
+
 function paneLayout(paneId: string): LayoutNode {
 	return { type: "pane", paneId };
 }
@@ -16,7 +18,7 @@ function paneLayout(paneId: string): LayoutNode {
 function workspaceState(existing?: {
 	tabId: string;
 	paneId: string;
-	prNumber: number;
+	data: PullRequestPaneData;
 }): WorkspaceState<PaneViewerData> {
 	return {
 		version: 1,
@@ -46,9 +48,7 @@ function workspaceState(existing?: {
 								[existing.paneId]: {
 									id: existing.paneId,
 									kind: "pull-request",
-									data: {
-										prNumber: existing.prNumber,
-									} as PaneViewerData,
+									data: existing.data as PaneViewerData,
 								},
 							},
 						},
@@ -66,19 +66,25 @@ function findPullRequestPanes(store: StoreApi<WorkspaceStore<PaneViewerData>>) {
 	);
 }
 
+function paneData(store: StoreApi<WorkspaceStore<PaneViewerData>>) {
+	return findPullRequestPanes(store)[0]?.pane.data as
+		| PullRequestPaneData
+		| undefined;
+}
+
 describe("openPullRequestPaneInStore", () => {
 	it("splits the active pane when no pull-request pane exists", () => {
 		const store = createWorkspaceStore<PaneViewerData>({
 			initialState: workspaceState(),
 		});
 
-		openPullRequestPaneInStore(store, 42);
+		openPullRequestPaneInStore(store, { repoFullName: REPO, number: 42 });
 
 		const state = store.getState();
 		expect(state.tabs).toHaveLength(1);
 		const panes = findPullRequestPanes(store);
 		expect(panes).toHaveLength(1);
-		expect((panes[0]?.pane.data as PullRequestPaneData).prNumber).toBe(42);
+		expect(paneData(store)).toEqual({ repoFullName: REPO, number: 42 });
 		expect(state.tabs[0]?.activePaneId).toBe(panes[0]?.pane.id);
 		expect(state.tabs[0]?.layout.type).toBe("split");
 	});
@@ -88,12 +94,12 @@ describe("openPullRequestPaneInStore", () => {
 			initialState: workspaceState({
 				tabId: "tab-2",
 				paneId: "pr-pane",
-				prNumber: 42,
+				data: { repoFullName: REPO, number: 42 },
 			}),
 		});
 		const before = store.getState().tabs[1]?.panes["pr-pane"]?.data;
 
-		openPullRequestPaneInStore(store, 42);
+		openPullRequestPaneInStore(store, { repoFullName: REPO, number: 42 });
 
 		const state = store.getState();
 		expect(state.activeTabId).toBe("tab-2");
@@ -107,15 +113,35 @@ describe("openPullRequestPaneInStore", () => {
 			initialState: workspaceState({
 				tabId: "tab-2",
 				paneId: "pr-pane",
-				prNumber: 42,
+				data: { repoFullName: REPO, number: 42 },
 			}),
 		});
 
-		openPullRequestPaneInStore(store, 43);
+		openPullRequestPaneInStore(store, { repoFullName: REPO, number: 43 });
 
-		const panes = findPullRequestPanes(store);
-		expect(panes).toHaveLength(1);
-		expect((panes[0]?.pane.data as PullRequestPaneData).prNumber).toBe(43);
+		expect(findPullRequestPanes(store)).toHaveLength(1);
+		expect(paneData(store)).toEqual({ repoFullName: REPO, number: 43 });
 		expect(store.getState().activeTabId).toBe("tab-2");
+	});
+
+	it("retargets when the same number belongs to another repository", () => {
+		const store = createWorkspaceStore<PaneViewerData>({
+			initialState: workspaceState({
+				tabId: "tab-2",
+				paneId: "pr-pane",
+				data: { repoFullName: REPO, number: 42 },
+			}),
+		});
+
+		openPullRequestPaneInStore(store, {
+			repoFullName: "superset-sh/docs",
+			number: 42,
+		});
+
+		expect(findPullRequestPanes(store)).toHaveLength(1);
+		expect(paneData(store)).toEqual({
+			repoFullName: "superset-sh/docs",
+			number: 42,
+		});
 	});
 });

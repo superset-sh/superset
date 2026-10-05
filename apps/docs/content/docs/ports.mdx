@@ -19,13 +19,7 @@ Superset does not assign per-workspace port ranges. It discovers listening ports
 
 ## Port Labels
 
-Add friendly names to automatically detected ports with a workspace
-configuration file. Useful for:
-
-- Providing meaningful labels for your team
-- Making common dev-server ports easier to scan in the UI
-
-Create `.superset/ports.json` in your repository:
+Label detected ports by creating `.superset/ports.json` in your repository:
 
 ```json
 {
@@ -42,19 +36,15 @@ Create `.superset/ports.json` in your repository:
 - `label` - Display text shown in tooltip
 
 **Behavior:**
-- Dynamic port discovery is still authoritative
-- `ports.json` only labels ports that Superset already detects as listening
+- Labels apply only to ports detected as listening
 - Ports without a matching label still appear
-- Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
 - Ports can be opened at `localhost:PORT` from the browser action (remote workspace ports are [forwarded to your machine](#remote-access) first)
 
 **Error Handling:**
 
-If `ports.json` is malformed:
-- Labels from that file are ignored until fixed
-- Detected ports still appear without those labels
+If `ports.json` is malformed, detected ports still appear without labels until you fix the file.
 
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
@@ -62,11 +52,7 @@ If `ports.json` is malformed:
 
 ## Remote Access
 
-When a workspace lives on a [remote host](/remote-access), the sidebar lists ports listening **on that host**. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so `localhost:PORT` reaches the host. Only ports that the workspace started are forwarded. When you select another workspace, the forwards move to that workspace.
-
-If a local process already uses the port, the row shows **local port busy**. Stop the local process from the row (when a Superset workspace started it), or pick **Use another port** to map the remote port to a free local port. The row then shows the mapping, for example `3000 → localhost:54321`.
-
-Forwarding needs a host on the current relay running host-service 1.26 or newer. For other hosts, forward the port yourself.
+The desktop app forwards detected ports from the selected remote workspace to your machine. If a local port is busy, choose **Use another port** from its row. See [remote port forwarding](/remote-access#ports-on-a-remote-host) for requirements and behavior, or forward a port yourself below.
 
 ### Forward a port yourself
 
@@ -86,6 +72,4 @@ Both work for servers that only listen on loopback. If the server binds `0.0.0.0
 
 ## Discovery and Updates
 
-Port discovery runs in each host server, not in the desktop renderer. The host server watches terminal process trees, scans for listening ports, resolves any matching port label, and publishes `port:changed` events when ports appear or disappear.
-
-The desktop sidebar keeps one ports query per online host. It patches that cached host snapshot from port events, batching bursts so updates stay responsive without refetching every time a port changes. A slower fallback refetch still runs so the UI recovers if an event is missed during reconnect.
+The port list updates as workspace processes start and stop listening.

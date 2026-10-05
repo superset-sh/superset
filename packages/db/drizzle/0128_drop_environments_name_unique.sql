@@ -1,0 +1,1 @@
+ALTER TABLE "environments" DROP CONSTRAINT "environments_organization_id_name_unique";

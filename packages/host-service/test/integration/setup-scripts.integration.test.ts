@@ -3,8 +3,9 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Server } from "@superset/pty-daemon";
+import type { SessionMeta } from "@superset/pty-daemon/protocol";
 import { eq } from "drizzle-orm";
-import { workspaces } from "../../src/db/schema";
+import { projects, workspaces } from "../../src/db/schema";
 import { getProjectConfigPath } from "../../src/runtime/setup/config";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
 import {
@@ -42,6 +43,11 @@ describe("setup scripts integration", () => {
 		});
 		const daemonRoot = mkdtempSync(join(tmpdir(), "setup-scripts-daemon-"));
 		const socketPath = join(daemonRoot, "pty-daemon.sock");
+		scenario.host.db
+			.update(projects)
+			.set({ worktreeBaseDir: join(daemonRoot, "worktrees") })
+			.where(eq(projects.id, scenario.projectId))
+			.run();
 		const writes: string[] = [];
 		const spawned: Array<{
 			meta: {
@@ -55,7 +61,7 @@ describe("setup scripts integration", () => {
 			daemonVersion: "0.0.0-setup-scripts-test",
 			spawnPty: ({ meta }) => {
 				spawned.push({ meta });
-				return createFakePty(5200 + spawned.length, writes);
+				return createFakePty(5200 + spawned.length, writes, meta);
 			},
 		});
 
@@ -157,7 +163,7 @@ describe("setup scripts integration", () => {
 	}, 20_000);
 });
 
-function createFakePty(pid: number, writes: string[]) {
+function createFakePty(pid: number, writes: string[], meta: SessionMeta) {
 	const dataCallbacks: Array<(data: Buffer) => void> = [];
 	const exitCallbacks: Array<
 		(info: { code: number | null; signal: number | null }) => void
@@ -165,6 +171,10 @@ function createFakePty(pid: number, writes: string[]) {
 
 	return {
 		pid,
+		meta,
+		pause() {},
+		resume() {},
+		dispose() {},
 		write(data: string | Uint8Array) {
 			const text =
 				typeof data === "string" ? data : Buffer.from(data).toString("utf-8");
@@ -177,7 +187,10 @@ function createFakePty(pid: number, writes: string[]) {
 				for (const callback of dataCallbacks) callback(echoed);
 			});
 		},
-		resize() {},
+		resize(cols: number, rows: number) {
+			meta.cols = cols;
+			meta.rows = rows;
+		},
 		kill() {
 			for (const callback of exitCallbacks.splice(0)) {
 				callback({ code: null, signal: null });

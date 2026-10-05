@@ -32,18 +32,18 @@ export function LeaderboardRow({
 	return (
 		<tr
 			className={`border-b border-border/50 last:border-b-0 transition-colors ${
-				pinned ? "border-t-2 border-t-brand/40" : ""
+				pinned ? "border-b-2 border-b-brand/40" : ""
 			} ${isViewer ? "bg-brand/[0.06]" : "hover:bg-foreground/[0.02]"}`}
 		>
 			<td
-				className={`px-4 py-3 text-sm text-muted-foreground ${pixelClassName}`}
+				className={`px-2 sm:px-4 py-3 text-sm tabular-nums text-muted-foreground ${pixelClassName}`}
 			>
 				{row.rank}
 			</td>
-			<td className="px-4 py-3">
+			<td className="px-2 sm:px-4 py-3">
 				<Link
 					href={`/${row.handle}`}
-					className="flex items-center gap-3 min-w-0 group/row"
+					className="flex items-center gap-2 sm:gap-3 min-w-0 group/row"
 				>
 					<DeveloperAvatar handle={row.handle} />
 					<div className="min-w-0">
@@ -74,23 +74,23 @@ export function LeaderboardRow({
 					</div>
 				</Link>
 			</td>
-			<td className="px-4 py-3 hidden md:table-cell">
+			<td className="px-2 sm:px-4 py-3 hidden md:table-cell">
 				<TierGateHover
 					tier={row.tier ?? 0}
 					axes={row.axes}
 					handle={row.handle}
 				/>
 			</td>
-			<td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
+			<td className="px-2 sm:px-4 py-3 text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">
 				{formatCount(row.sessions, i18n.locale)}
 			</td>
 			<td
-				className={`px-4 py-3 text-right text-sm text-foreground ${pixelClassName}`}
+				className={`px-2 sm:px-4 py-3 text-right whitespace-nowrap font-medium tabular-nums text-sm text-foreground ${pixelClassName}`}
 			>
 				{metric === "cost"
 					? formatUsd(row.usd, i18n.locale)
 					: formatTokens(row.tokens, i18n.locale)}
-				{row.approximate && (
+				{metric === "cost" && row.approximate && (
 					<span
 						className="text-muted-foreground ml-1"
 						title={t({

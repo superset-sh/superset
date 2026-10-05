@@ -1,15 +1,12 @@
 import "../../../../styles/hljs-github.css";
 
 import { cn } from "@superset/ui/utils";
+import type { Fragment } from "@tiptap/pm/model";
 import { EditorState } from "@tiptap/pm/state";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type MutableRefObject, useEffect, useRef } from "react";
-import {
-	type LinkAction,
-	useInlineUrlPolicy,
-	useTerminalUrlPolicy,
-} from "renderer/lib/clickPolicy";
+import { type LinkAction, useUrlLinkAction } from "renderer/lib/clickPolicy";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useMarkdownStyle } from "renderer/stores";
 import { defaultConfig } from "../../styles/default/config";
@@ -73,6 +70,15 @@ function createSourceTracking(editor: Editor, value: string): SourceTracking {
 		lastEmitted: value,
 		merge: createMarkdownMerger(value, baseline),
 	};
+}
+
+function getSelectedEditorMarkdown(editor: Editor): string {
+	const storage = editor.storage as unknown as Record<
+		string,
+		{ serializer?: { serialize: (content: Fragment) => string } }
+	>;
+	const serializer = storage.markdown?.serializer;
+	return serializer?.serialize(editor.state.selection.content().content) ?? "";
 }
 
 function getEditorMarkdown(editor: Editor): string {
@@ -144,10 +150,10 @@ export function TipTapMarkdownRenderer({
 	const onSaveRef = useRef(onSave);
 	const sourceTrackingRef = useRef<SourceTracking | null>(null);
 
-	const paneUrlPolicy = useTerminalUrlPolicy();
-	const inlineUrlPolicy = useInlineUrlPolicy();
+	const getPaneUrlAction = useUrlLinkAction("4-tier");
+	const getInlineUrlAction = useUrlLinkAction("2-tier");
 	const linkClickRef = useRef({
-		getAction: inlineUrlPolicy.getAction,
+		getAction: getInlineUrlAction,
 		onOpenUrl,
 		onUnboundLinkClick,
 	});
@@ -155,7 +161,7 @@ export function TipTapMarkdownRenderer({
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
 	linkClickRef.current = {
-		getAction: (onOpenUrl ? paneUrlPolicy : inlineUrlPolicy).getAction,
+		getAction: onOpenUrl ? getPaneUrlAction : getInlineUrlAction,
 		onOpenUrl,
 		onUnboundLinkClick,
 	};
@@ -295,12 +301,21 @@ export function TipTapMarkdownRenderer({
 		</div>
 	);
 
+	// Radix's trigger calls preventDefault on the contextmenu event, which stops
+	// Chromium emitting the webContents event that attachEditContextMenu uses to
+	// build the native edit menu. Wrapping an editable view would trade its
+	// Paste/Cut/Undo and spellcheck for this menu's copy actions.
 	if (editable) {
 		return content;
 	}
 
 	return (
-		<SelectionContextMenu selectAllContainerRef={articleRef}>
+		<SelectionContextMenu
+			getMarkdownSelection={() =>
+				editor ? getSelectedEditorMarkdown(editor) : ""
+			}
+			selectAllContainerRef={articleRef}
+		>
 			{content}
 		</SelectionContextMenu>
 	);

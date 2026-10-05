@@ -73,6 +73,7 @@ export class WatchAttachGuard implements WatchAttacher {
 		await previous;
 
 		try {
+			options.signal?.throwIfAborted();
 			const failure = this.failures.get(key);
 			if (failure && this.now() < failure.retryAt) {
 				throw new WatchAttachBackoffError(key, failure.retryAt, failure.cause);
@@ -81,7 +82,10 @@ export class WatchAttachGuard implements WatchAttacher {
 			this.failures.delete(key);
 			return unsubscribe;
 		} catch (error) {
-			if (!(error instanceof WatchAttachBackoffError)) {
+			if (
+				!options.signal?.aborted &&
+				!(error instanceof WatchAttachBackoffError)
+			) {
 				this.recordFailure(key, error);
 			}
 			throw error;

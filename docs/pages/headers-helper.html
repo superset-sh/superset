@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Headers helper — how plugin MCP entries authenticate</title>
+    <style>
+      :root {
+        --sp-measure: 76ch;
+        --warn: var(--sp-chart-3);
+        --ok: var(--sp-chart-2);
+      }
+      body {
+        padding: 3rem 1.5rem 6rem;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+      }
+      .lede {
+        max-width: var(--sp-measure);
+        color: var(--sp-muted);
+        font-size: 1.05rem;
+        margin: 0 0 2.5rem;
+      }
+      h2 {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        margin: 3.25rem 0 1.1rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--sp-border);
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 1.5rem 0 0.5rem;
+        letter-spacing: -0.01em;
+      }
+      p {
+        max-width: var(--sp-measure);
+      }
+      code {
+        font-family: var(--sp-font-mono);
+        font-size: 0.86em;
+      }
+      pre {
+        background: var(--sp-code-bg);
+        border-radius: 8px;
+        padding: 0.9rem 1rem;
+        overflow-x: auto;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        margin: 0 0 1rem;
+      }
+      pre code {
+        font-size: inherit;
+      }
+      .cap {
+        font-family: var(--sp-font-mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--sp-muted);
+        margin: 0 0 0.45rem;
+      }
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.82rem;
+        margin-bottom: 1.25rem;
+      }
+      .step {
+        border: 1px solid var(--sp-border);
+        border-radius: 7px;
+        padding: 0.35rem 0.6rem;
+        background: var(--sp-surface);
+      }
+      .arrow {
+        color: var(--sp-muted);
+      }
+      .scroller {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        min-width: 40rem;
+      }
+      th {
+        text-align: left;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        padding: 0 1.25rem 0.5rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.6rem 1.25rem 0.6rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        vertical-align: top;
+      }
+      th:last-child,
+      td:last-child {
+        padding-right: 0;
+      }
+      ul.tight {
+        margin: 0.4rem 0 1rem;
+        padding-left: 1.1rem;
+      }
+      ul.tight li {
+        margin-bottom: 0.45rem;
+        max-width: var(--sp-measure);
+      }
+      .pill {
+        font-family: var(--sp-font-mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 0.14rem 0.45rem;
+        border-radius: 3px;
+        border: 1px solid currentColor;
+      }
+      .yes {
+        color: var(--ok);
+      }
+      .no {
+        color: var(--warn);
+      }
+      .note {
+        border-left: 2px solid var(--warn);
+        padding-left: 1rem;
+        max-width: var(--sp-measure);
+      }
+      .foot {
+        margin-top: 3rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--sp-border);
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+        max-width: var(--sp-measure);
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <h1>Headers helper</h1>
+      <p class="lede">
+        How a plugin's MCP entry gets a credential without one ever being
+        written to disk — what we put in the config, what runs, and what comes
+        back. This is also what makes one entry per connected account
+        affordable, because otherwise each entry needs its own browser trip.
+      </p>
+
+      <h2>The value we write</h2>
+      <p>
+        One field on the shared config, renamed by each dialect writer. The
+        command is the same for both agents — the credential does not differ by
+        agent, only the key name does.
+      </p>
+
+      <p class="cap">~/.claude.json</p>
+      <pre><code>"mcpServers": {
+  "linear-lu-1": {
+    "type": "http",
+    "url": "https://api.superset.sh/mcp/plugins/superset/linear?connection=conn-work",
+    "headersHelper": "/Users/you/.superset/bin/superset auth mcp-headers"
+  }
+}</code></pre>
+
+      <p class="cap">~/.codex/config.toml</p>
+      <pre><code>[mcp_servers.linear-lu-1]
+url = "https://api.superset.sh/mcp/plugins/superset/linear?connection=conn-work"
+http_headers_helper = "/Users/you/.superset/bin/superset auth mcp-headers"</code></pre>
+
+      <p>
+        The path is the managed shim at <code>~/.superset/bin/superset</code>,
+        not the bare word <code>superset</code>. The agent runs this command
+        itself, and its environment is not the Superset terminal's — a bare name
+        would resolve only when the agent happened to inherit our PATH.
+      </p>
+
+      <p>
+        It sits under <code>auth</code> rather than a group of its own, because
+        what it prints is the CLI's own credential and nothing about MCP. It is
+        hidden from <code>--help</code>: the audience is an agent reading a
+        config we wrote, not a person at a prompt.
+      </p>
+
+      <h2>What runs, and what it returns</h2>
+      <div class="flow">
+        <span class="step">agent opens the server</span>
+        <span class="arrow">→</span>
+        <span class="step">runs the helper command</span>
+        <span class="arrow">→</span>
+        <span class="step">reads JSON from stdout</span>
+        <span class="arrow">→</span>
+        <span class="step">merges into request headers</span>
+        <span class="arrow">→</span>
+        <span class="step">calls the proxy</span>
+      </div>
+
+      <p class="cap">superset auth mcp-headers</p>
+      <pre><code>{"Authorization":"Bearer sk_live_…"}</code></pre>
+
+      <p>
+        Stdout is the whole contract: a JSON object of string keys to string
+        values, nothing else. The credential comes from the auth the CLI already
+        holds, which is why there is nothing new to provision and nothing new to
+        rotate.
+      </p>
+
+      <h2>Where the account list comes from</h2>
+      <p>
+        One entry per account needs the account list, and every writer of agent
+        config runs where that list is not reachable: the desktop's is the main
+        process, and the host-service's reconcile runs at session start in a
+        terminal. So the renderer pushes what it can see into a cache beside the
+        install ledger, and both writers read it from there.
+      </p>
+
+      <p class="cap">~/.superset/plugins/connections.json</p>
+      <pre><code>{
+  "connections": [
+    { "connector": "linear", "connectionId": "conn-work", "externalUserId": "lu-1" },
+    { "connector": "linear", "connectionId": "conn-personal", "externalUserId": "lu-2" }
+  ]
+}</code></pre>
+
+      <p>
+        A cache, never a source of truth. An absent or unparseable file reads as
+        no connections, which is the one-entry-per-connector shape — wrong only
+        until the next sync, and never a failed write. The renderer watches the
+        whole set rather than hooking the connect and disconnect mutations, so a
+        connection made on the web or from another machine lands here too.
+      </p>
+
+      <p>
+        Both writers fill it from <code>connectors.status</code> and nowhere
+        else, because the entry names are built from
+        <code>externalUserId</code> and only that procedure carries it. A writer
+        that fell back to connection ids would rename every entry the other had
+        just named, and each rename orphans whatever the agent stored against the
+        old name.
+      </p>
+
+      <h2>How the two agents differ</h2>
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Claude Code</th>
+              <th>Codex</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Config key</td>
+              <td><code>headersHelper</code></td>
+              <td><code>http_headers_helper</code></td>
+            </tr>
+            <tr>
+              <td>When it runs</td>
+              <td>Fresh on every connection</td>
+              <td>
+                Cached, and <b>re-run when the server rejects</b> — token
+                refresh is built in
+              </td>
+            </tr>
+            <tr>
+              <td>Limits</td>
+              <td>Not documented</td>
+              <td>10s timeout, 64KB of output</td>
+            </tr>
+            <tr>
+              <td>Alternatives it also supports</td>
+              <td>
+                <code>${VAR}</code> expansion inside <code>headers</code>
+              </td>
+              <td>
+                <code>env_http_headers</code>,
+                <code>bearer_token_env_var</code>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Codex's is the stronger implementation: it keys a cache on a refresh
+        epoch and calls the helper again on an <code>insufficient_scope</code>
+        challenge, so an expired credential repairs itself mid-session. Claude
+        re-runs per connection, so a session started before a rotation keeps the
+        old value until it reconnects.
+      </p>
+
+      <h2>Why a helper rather than a header</h2>
+      <p>
+        The config could carry <code>"Authorization": "Bearer …"</code>
+        directly, and both agents would accept it. Three reasons not to:
+      </p>
+      <ul class="tight">
+        <li>
+          A long-lived secret at rest in <code>~/.claude.json</code> and
+          <code>~/.codex/config.toml</code>, readable by every process the user
+          runs — and profile sharing copies <code>mcpServers</code> between
+          accounts, so the token travels with it.
+        </li>
+        <li>
+          Rotation becomes ours to own, across every machine that ever synced.
+        </li>
+        <li>
+          Claude deliberately reads some credential variables as
+          <b>empty</b> inside a remote <code>url</code> or <code>headers</code> —
+          <code>ANTHROPIC_API_KEY</code>, <code>AWS_BEARER_TOKEN_BEDROCK</code>,
+          <code>NPM_TOKEN</code> and others — so the env-var route has a silent
+          failure mode where the server simply receives <code>Bearer </code>.
+        </li>
+      </ul>
+
+      <h2>What it unlocks</h2>
+      <p>
+        Each config entry authorizes separately: Claude stores credentials keyed
+        <code>&lt;name&gt;|&lt;hash of the config&gt;</code>, so N entries means N
+        browser round-trips, and any change to a URL or name orphans that
+        entry's token. One developer machine was measured at five plugin entries
+        with <b>one</b> ever authorized.
+      </p>
+      <p>
+        Splitting a connector into one entry per account would have multiplied
+        exactly that. With the helper no entry needs OAuth at all, which is why
+        the two changes shipped together rather than in sequence.
+      </p>
+
+      <h2>State</h2>
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>Piece</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <code>headersHelper</code> on the shared config, renamed per
+                dialect
+              </td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td><code>superset auth mcp-headers</code></td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td>One entry per account, pinned, named by external user id</td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td>
+                Desktop and host-service both passing <code>connections</code>
+                and the helper path
+              </td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td>A config rewrite when an account connects or disconnects</td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td>The helper omitted on a cloud box, which needs none</td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+            <tr>
+              <td>
+                The CLI writing MCP entries from <code>plugins install</code>,
+                <code>connect</code>, <code>enable</code>,
+                <code>disable</code>, <code>uninstall</code> and
+                <code>sync</code>
+              </td>
+              <td><span class="pill yes">done</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        The CLI hangs off <code>syncPlugins()</code>, the one function every
+        plugin mutation there already called to converge skills — so install,
+        connect, enable, disable, uninstall and <code>plugins sync</code> all
+        gained MCP entries at once, and each reaps what it should. It also
+        refreshes the account cache from the API wherever it has a client, which
+        is what lets a machine the desktop never ran on split a two-account
+        connector at all. <code>plugins sync</code> itself stays offline and
+        reads the cache.
+      </p>
+
+      <h2>Worth deciding</h2>
+      <ul class="tight">
+        <li>
+          <b>Which credential does the helper print?</b> Today the CLI's own
+          bearer. A short-lived token minted for this purpose would narrow the
+          blast radius, at the cost of a mint endpoint and an expiry the agents
+          have to survive — which Codex does by design and Claude does by
+          reconnecting.
+        </li>
+        <li>
+          <b>Which credential does a cloud box use?</b> None of ours: the
+          firewall adds one naming the workspace, and the CLI there resolves its
+          bearer to the empty string. So the helper is omitted entirely when
+          <code>SUPERSET_SANDBOX_WORKSPACE_ID</code> is set, rather than written
+          and left to print <code>Bearer </code> at every call.
+        </li>
+        <li>
+          <b>Does the helper belong on non-plugin entries too?</b> Nothing else
+          we write needs Superset auth today, so this stays scoped to the plugin
+          proxy.
+        </li>
+      </ul>
+
+      <p class="foot">
+        Keys and behaviours verified against each agent's own source and docs
+        rather than assumed: Claude's <code>headersHelper</code> from the MCP
+        documentation, Codex's <code>http_headers_helper</code> from
+        <code>codex-rs/config/src/mcp_types.rs</code> and
+        <code>rmcp-client/src/http_headers.rs</code>. Written from this
+        worktree, 2026-10-01; revised 2026-10-02 once the wiring landed.
+      </p>
+    </main>
+  </body>
+</html>

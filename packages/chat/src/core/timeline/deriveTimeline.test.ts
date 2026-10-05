@@ -5,6 +5,7 @@ import { emptySnapshot, reduceMany } from "../reducer/reducer";
 import {
 	collapseWorkLog,
 	derivePendingApprovals,
+	deriveQueuedPrompts,
 	deriveTimeline,
 } from "./deriveTimeline";
 
@@ -42,7 +43,7 @@ function env(item: Item, turnId: string): DurableEnvelope {
 }
 
 describe("collapseWorkLog", () => {
-	test("collapses runs of settled tool calls and leaves singles inline", () => {
+	test("collapses runs of tool calls and leaves singles inline", () => {
 		const items: Item[] = [
 			message("m1", 1),
 			toolCall("tc1", "completed", 2),
@@ -63,13 +64,15 @@ describe("collapseWorkLog", () => {
 		expect(run.items.map((i) => i.id)).toEqual(["tc1", "tc2", "tc3"]);
 	});
 
-	test("running tool calls stay inline and break runs", () => {
+	test("a running tool call joins the run it continues", () => {
 		const entries = collapseWorkLog([
 			toolCall("tc1", "completed", 1),
 			toolCall("tc2", "running", 2),
-			toolCall("tc3", "completed", 3),
 		]);
-		expect(entries.map((e) => e.kind)).toEqual(["item", "item", "item"]);
+		expect(entries.map((e) => e.kind)).toEqual(["tool_run"]);
+		const run = entries[0];
+		if (run?.kind !== "tool_run") throw new Error("expected tool_run");
+		expect(run.items.map((i) => i.id)).toEqual(["tc1", "tc2"]);
 	});
 });
 
@@ -133,5 +136,50 @@ describe("derivePendingApprovals", () => {
 			"a1",
 			"a2",
 		]);
+	});
+});
+
+describe("deriveQueuedPrompts", () => {
+	function prompt(id: string, extra: Record<string, unknown> = {}): Item {
+		return {
+			kind: "user_message",
+			id,
+			startedAtMs: 1,
+			content: [{ type: "text", text: id }],
+			...extra,
+		};
+	}
+
+	test("moves queued prompts out of the timeline and drops discarded ones", () => {
+		const snapshot = reduceMany(emptySnapshot(), [
+			env(prompt("sent"), "t1"),
+			env(prompt("waiting", { queued: true }), "q1"),
+			env(prompt("dropped", { queued: true }), "q2"),
+			env(prompt("dropped", { discarded: true }), "q2"),
+		]);
+
+		expect(deriveQueuedPrompts(snapshot).map((item) => item.id)).toEqual([
+			"waiting",
+		]);
+		const timelineIds = deriveTimeline(snapshot).flatMap((group) =>
+			group.entries.flatMap((entry) =>
+				entry.kind === "item" ? [entry.item.id] : [],
+			),
+		);
+		expect(timelineIds).toEqual(["sent"]);
+	});
+
+	test("an older page cannot bring back a discarded prompt", () => {
+		const latest = reduceMany(emptySnapshot(), [
+			env(prompt("dropped", { discarded: true }), "q2"),
+		]);
+		const older = reduceMany(emptySnapshot(), [
+			env(prompt("dropped", { queued: true }), "q2"),
+		]);
+		const merged = {
+			...latest,
+			items: new Map([...older.items, ...latest.items]),
+		};
+		expect(deriveQueuedPrompts(merged)).toEqual([]);
 	});
 });

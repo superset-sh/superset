@@ -109,6 +109,7 @@ function resolveInstallRoot(): string {
 }
 
 export default command({
+	sandbox: false,
 	description: "Update the Superset CLI and host service to the latest release",
 	skipMiddleware: true,
 	options: {

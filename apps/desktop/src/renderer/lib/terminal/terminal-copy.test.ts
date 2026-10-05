@@ -47,11 +47,11 @@ describe("trimTerminalSelection", () => {
 		);
 	});
 	it("preserves CRLF and mixed line endings", () => {
-		expect(trimTerminalSelection("a  \r\nb  \nc  \r\n")).toBe("a\r\nb\nc\r\n");
+		expect(trimTerminalSelection("a  \r\nb  \nc  \r\n")).toBe("a\r\nb\nc");
 	});
-	it("preserves explicitly selected whitespace", () => {
-		expect(trimTerminalSelection("   ")).toBe("   ");
-		expect(trimTerminalSelection("  \r\n\t ")).toBe("  \r\n\t ");
+	it("trims explicitly selected whitespace", () => {
+		expect(trimTerminalSelection("   ")).toBe("");
+		expect(trimTerminalSelection("  \r\n\t ")).toBe("\r\n\t");
 	});
 	it("preserves spaces inside an unwrapped logical line", () => {
 		expect(trimTerminalSelection("first   continued  \nlast")).toBe(
@@ -68,50 +68,50 @@ describe("getTerminalSelectionForCopy", () => {
 			getTerminalSelectionForCopy(terminalStub("foo   \nbar  ", { mode })),
 		).toBe("foo\nbar");
 	});
-	it("preserves rectangular and unknown selections in both drag directions", () => {
+	it("trims rectangular and unknown selections in both drag directions", () => {
 		for (const mode of [3, 99]) {
 			const terminal = terminalStub("a   \nlong", { mode });
-			expect(getTerminalSelectionForCopy(terminal)).toBe("a   \nlong");
+			expect(getTerminalSelectionForCopy(terminal)).toBe("a\nlong");
 			terminal.getSelectionPosition = () => ({
 				start: { x: 9, y: 0 },
 				end: { x: 1, y: 2 },
 			});
-			expect(getTerminalSelectionForCopy(terminal)).toBe("a   \nlong");
+			expect(getTerminalSelectionForCopy(terminal)).toBe("a\nlong");
 		}
 	});
-	it("preserves spaces at a partial selection boundary", () => {
+	it("trims spaces at a partial selection boundary", () => {
 		expect(
 			getTerminalSelectionForCopy(
 				terminalStub("foo   \nbar  ", { remainder: "next" }),
 			),
-		).toBe("foo\nbar  ");
+		).toBe("foo\nbar");
 	});
-	it("preserves spaces before a soft-wrap continuation", () => {
+	it("trims spaces at the selected end before a soft-wrap continuation", () => {
 		expect(
 			getTerminalSelectionForCopy(
 				terminalStub("foo   \nbar  ", { wrapped: true }),
 			),
-		).toBe("foo\nbar  ");
+		).toBe("foo\nbar");
 	});
-	it("preserves a single-line selection exactly", () => {
+	it("trims a single-line selection", () => {
 		expect(
 			getTerminalSelectionForCopy(terminalStub("abc  ", { singleLine: true })),
-		).toBe("abc  ");
+		).toBe("abc");
 	});
-	it("preserves a single logical line spanning soft-wrapped rows", () => {
+	it("trims a single logical line spanning soft-wrapped rows", () => {
 		expect(getTerminalSelectionForCopy(terminalStub("wrapped text  "))).toBe(
-			"wrapped text  ",
+			"wrapped text",
 		);
 	});
-	it("fails conservatively when selection mode or bounds are unavailable", () => {
+	it("trims raw text when selection mode or bounds are unavailable", () => {
 		const terminal = terminalStub("foo   \nbar  ");
 		terminal.getSelectionPosition = () => undefined;
-		expect(getTerminalSelectionForCopy(terminal)).toBe("foo   \nbar  ");
+		expect(getTerminalSelectionForCopy(terminal)).toBe("foo\nbar");
 		expect(
 			getTerminalSelectionForCopy({
 				getSelection: () => "foo   \nbar  ",
 			} as XTerm),
-		).toBe("foo   \nbar  ");
+		).toBe("foo\nbar");
 	});
 });
 
@@ -148,13 +148,22 @@ describe("installTerminalCopyHandler", () => {
 		expect(event.defaultPrevented).toBe(false);
 		expect(write).not.toHaveBeenCalled();
 	});
-	it("writes whitespace-only selections rather than clearing the clipboard", () => {
+	it("clears the clipboard for a whitespace-only selection", () => {
 		const terminal = terminalStub("   ");
 		const setData = mock(() => {});
 		installTerminalCopyHandler(terminal);
 		terminal.element?.dispatchEvent(copyEvent({ setData }));
-		expect(setData).toHaveBeenCalledWith("text/plain", "   ");
+		expect(setData).toHaveBeenCalledWith("text/plain", "");
 	});
+	it("clears the clipboard when selected empty cells have no raw text", () => {
+		const terminal = terminalStub("");
+		terminal.hasSelection = () => true;
+		const setData = mock(() => {});
+		installTerminalCopyHandler(terminal);
+		terminal.element?.dispatchEvent(copyEvent({ setData }));
+		expect(setData).toHaveBeenCalledWith("text/plain", "");
+	});
+
 	it("uses the explicit writer when xterm has already canceled an event without clipboardData", () => {
 		const terminal = terminalStub("foo   \nbar  ");
 		terminal.element?.addEventListener("copy", (event) =>

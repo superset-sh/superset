@@ -4,6 +4,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import type { CellContext } from "@tanstack/react-table";
@@ -11,6 +12,7 @@ import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { AssigneeMenuItems } from "../../../../components/shared/AssigneeMenuItems";
 import type { TaskWithStatus } from "../../useTasksTable";
 
 interface AssigneeCellProps {
@@ -80,43 +82,19 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 				className="w-56"
 				onClick={(e) => e.stopPropagation()}
 			>
-				<div className="max-h-64 overflow-y-auto">
-					<DropdownMenuItem
-						onSelect={() => handleSelectUser(null)}
-						className="flex items-center gap-2"
-					>
-						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
-						<span className="text-sm">
-							<Trans>No assignee</Trans>
-						</span>
-						{!assigneeId && !task.assigneeExternalId && (
-							<span className="ml-auto text-xs text-muted-foreground">✓</span>
-						)}
-					</DropdownMenuItem>
-					{isLoadingMembers && (
-						<div className="px-2 py-1.5 text-sm text-muted-foreground">
-							<Trans>Loading members...</Trans>
-						</div>
-					)}
-					{users.map((user) => (
-						<DropdownMenuItem
-							key={user.id}
-							onSelect={() => handleSelectUser(user.id)}
-							className="flex items-center gap-2"
-						>
-							<Avatar size="xs" fullName={user.name} image={user.image} />
-							<div className="flex flex-col">
-								<span className="text-sm">{user.name}</span>
-								<span className="text-xs text-muted-foreground">
-									{user.email}
-								</span>
-							</div>
-							{user.id === assigneeId && (
-								<span className="ml-auto text-xs text-muted-foreground">✓</span>
-							)}
-						</DropdownMenuItem>
-					))}
-				</div>
+				{isLoadingMembers && (
+					<div className="px-2 py-1.5 text-sm text-muted-foreground">
+						<Trans>Loading members...</Trans>
+					</div>
+				)}
+				<AssigneeMenuItems
+					users={users}
+					currentAssigneeId={assigneeId}
+					hasExternalAssignee={!!task.assigneeExternalId}
+					onSelect={handleSelectUser}
+					MenuItem={DropdownMenuItem}
+					MenuSeparator={DropdownMenuSeparator}
+				/>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

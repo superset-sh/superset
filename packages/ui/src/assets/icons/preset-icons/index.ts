@@ -31,6 +31,8 @@ import piWhiteIcon from "./pi-white.svg";
 import polygraphIcon from "./polygraph.svg";
 import polygraphWhiteIcon from "./polygraph-white.svg";
 import supersetIcon from "./superset.svg";
+import ufoIcon from "./ufo.svg";
+import ufoWhiteIcon from "./ufo-white.svg";
 import vibeIcon from "./vibe.svg";
 
 export interface PresetIconSet {
@@ -56,6 +58,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
+	ufo: { light: ufoIcon, dark: ufoWhiteIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
@@ -118,5 +121,7 @@ export {
 	polygraphIcon,
 	polygraphWhiteIcon,
 	supersetIcon,
+	ufoIcon,
+	ufoWhiteIcon,
 	vibeIcon,
 };

@@ -5,7 +5,7 @@ import { createContext } from "@/trpc/context";
 const LEADERBOARD_CACHE_SECONDS = 300;
 const STATS_CACHE_SECONDS = 3600;
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const handler = (req: Request) =>
 	fetchRequestHandler({

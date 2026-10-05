@@ -7,7 +7,8 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup/write-file-if-changed";
 import { CLIError } from "@superset/cli-framework";
 import {
 	builtInThemes,
@@ -16,7 +17,7 @@ import {
 	type Theme,
 } from "@superset/shared/themes";
 import { notifyDesktopSettingsChanged } from "./notify";
-import { getAppStatePath, getSupersetHomeDir } from "./paths";
+import { getAppStatePath } from "./paths";
 
 export const SYSTEM_THEME_ID = "system";
 
@@ -95,9 +96,9 @@ export async function writeThemeState(
 	} as ThemeState;
 	const next = { ...appState, themeState };
 
-	const path = getAppStatePath();
+	const path = resolveWriteTarget(getAppStatePath());
 	const tempPath = join(
-		getSupersetHomeDir(),
+		dirname(path),
 		`.${randomUUID()}.${process.pid}.app-state.tmp`,
 	);
 	writeFileSync(tempPath, JSON.stringify(next, null, 2), { mode: 0o600 });

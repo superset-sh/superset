@@ -333,6 +333,8 @@ function TaskRow({
 	taskData: {
 		id: string;
 		slug: string;
+		externalProvider: string | null;
+		externalKey: string | null;
 		title: string;
 		statusColor: string;
 		statusType: string;
@@ -349,7 +351,7 @@ function TaskRow({
 			onSelect={onSelect}
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
-			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
+			<span className="font-mono text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
 				{task?.slug ??
 					i18n._(
 						msg({

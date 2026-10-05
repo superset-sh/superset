@@ -1,6 +1,8 @@
-import type { CommandConfig } from "./command";
+import type { Audience, CommandConfig } from "./command";
 import { CLIError } from "./errors";
 import {
+	type CliDescription,
+	type CommandNode,
 	generateCommandHelp,
 	generateGroupHelp,
 	generateRootHelp,
@@ -8,13 +10,18 @@ import {
 } from "./help";
 import { runInteractiveHelp } from "./interactive-help";
 import type { MiddlewareFn } from "./middleware";
-import type { GenericBuilderInternals, ProcessedBuilderConfig } from "./option";
-import { formatOutput } from "./output";
+import type {
+	BuilderConfig,
+	GenericBuilderInternals,
+	ProcessedBuilderConfig,
+} from "./option";
+import { formatOutput, isRawResult } from "./output";
 import { camelToKebab, isAgentMode, parseArgv } from "./parser";
 import {
 	buildTree,
 	type CliCommand,
 	type CliGroup,
+	filterByAudience,
 	routeCommand,
 } from "./router";
 
@@ -30,6 +37,39 @@ export interface RunOptions {
 	tree: CommandTree;
 	globals?: Record<string, GenericBuilderInternals>;
 	help?: HelpBranding;
+	audiences?: Audience[];
+	sandbox?: boolean;
+}
+
+interface ActiveCli {
+	name: string;
+	version: string;
+	tree: { groups: CliGroup[]; commands: CliCommand[] };
+	globals: Record<string, ProcessedBuilderConfig>;
+}
+
+let activeCli: ActiveCli | undefined;
+
+/**
+ * The running CLI's command tree with every node populated, for commands
+ * that describe the CLI itself (`schema`, `completion`). The root node's
+ * options are the globals. Built from the same audience-filtered tree the
+ * runner routes on, so it never lists a command this run cannot execute.
+ */
+export function introspectCli(): CliDescription {
+	if (!activeCli) {
+		throw new Error("introspectCli() is only available while a command runs");
+	}
+	const { root, commandMap } = buildTree(
+		activeCli.tree.groups,
+		activeCli.tree.commands,
+	);
+	root.options = activeCli.globals;
+	for (const [key, cmd] of commandMap) {
+		const node = getNode(root, key.split("/"));
+		if (node) populateNodeForHelp(node, cmd);
+	}
+	return { name: activeCli.name, version: activeCli.version, root };
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -41,11 +81,18 @@ export async function run(opts: RunOptions): Promise<void> {
 	try {
 		await execute(opts, opts.tree, ac.signal);
 	} catch (error) {
+		if (isBrokenPipe(error)) return;
 		await handleError(error, opts.name, ac.signal);
 	} finally {
+		activeCli = undefined;
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
 	}
+}
+
+/** The reader stopped early (`superset schema | head`): nothing to report. */
+function isBrokenPipe(error: unknown): boolean {
+	return (error as { code?: unknown } | null)?.code === "EPIPE";
 }
 
 function formatZodIssues(message: string): string | null {
@@ -195,10 +242,7 @@ function splitArgsForRouting(
 	return { segments, passthrough };
 }
 
-function getNode(
-	root: import("./help").CommandNode,
-	path: string[],
-): import("./help").CommandNode | undefined {
+function getNode(root: CommandNode, path: string[]): CommandNode | undefined {
 	let node = root;
 	for (const segment of path) {
 		const child = node.children.get(segment);
@@ -209,7 +253,7 @@ function getNode(
 }
 
 function populateNodeForHelp(
-	node: import("./help").CommandNode,
+	node: CommandNode,
 	cmd: CommandConfig,
 	optionConfigs?: Record<string, ProcessedBuilderConfig>,
 ): void {
@@ -231,6 +275,19 @@ function populateNodeForHelp(
 	}
 }
 
+function assertEnumValue(
+	argName: string,
+	value: string,
+	config: BuilderConfig,
+): void {
+	if (config.enumVals && !config.enumVals.includes(value)) {
+		throw new CLIError(
+			`<${argName}>: invalid value "${value}"`,
+			`Valid values: ${config.enumVals.join(", ")}`,
+		);
+	}
+}
+
 async function execute(
 	opts: RunOptions,
 	loaded: CommandTree,
@@ -241,7 +298,14 @@ async function execute(
 	const { name, version } = opts;
 	const { middleware } = loaded;
 	const globalConfigs = processGlobals(opts.globals);
-	const { root, commandMap } = buildTree(loaded.groups, loaded.commands);
+	const visible = filterByAudience(
+		loaded.groups,
+		loaded.commands,
+		opts.audiences ?? ["public"],
+		opts.sandbox ?? false,
+	);
+	const { root, commandMap } = buildTree(visible.groups, visible.commands);
+	activeCli = { name, version, tree: visible, globals: globalConfigs };
 
 	// EXPERIMENT: bare invocation on a TTY opens the interactive help browser
 	// instead of dumping static help. Agents/CI keep the static output.
@@ -363,12 +427,13 @@ async function execute(
 		for (const posConfig of positionalConfigs) {
 			const argName = posConfig.name ?? `arg${posIdx}`;
 			if (posConfig.isVariadic) {
-				argsResult[argName] = parsed.positionals.slice(posIdx);
+				const values = parsed.positionals.slice(posIdx);
+				for (const value of values) {
+					assertEnumValue(`${argName}...`, value, posConfig);
+				}
+				argsResult[argName] = values;
 				consumedVariadic = true;
-				if (
-					posConfig.isRequired &&
-					(argsResult[argName] as string[]).length === 0
-				) {
+				if (posConfig.isRequired && values.length === 0) {
 					throw new CLIError(`Missing required argument: <${argName}...>`);
 				}
 				break;
@@ -377,6 +442,7 @@ async function execute(
 			if (posConfig.isRequired && value === undefined) {
 				throw new CLIError(`Missing required argument: <${argName}>`);
 			}
+			if (value !== undefined) assertEnumValue(argName, value, posConfig);
 			argsResult[argName] = value;
 			posIdx++;
 		}
@@ -423,7 +489,9 @@ async function execute(
 		});
 		// All command output must leave through writeStream; a bare console.log
 		// here reintroduces truncation for any payload past the pipe buffer.
-		if (output) await writeStream(process.stdout, `${output}\n`, signal);
+		if (!output) return;
+		const text = isRawResult(result) ? output : `${output}\n`;
+		await writeStream(process.stdout, text, signal);
 	}
 }
 

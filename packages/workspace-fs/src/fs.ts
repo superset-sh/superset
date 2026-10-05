@@ -335,23 +335,31 @@ async function withPathLock<T>(
 	}
 }
 
+async function resolveWriteTarget(absolutePath: string): Promise<string> {
+	try {
+		return await fs.realpath(absolutePath);
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT" && code !== "ELOOP") throw error;
+		return absolutePath;
+	}
+}
+
 async function writeAtomically({
-	rootPath,
 	absolutePath,
 	content,
 	encoding,
 }: {
-	rootPath: string;
 	absolutePath: string;
 	content: string | Uint8Array;
 	encoding?: string;
 }): Promise<void> {
-	const tempPath = `${absolutePath}.superset-tmp-${randomUUID()}`;
-	await assertParentWithinRoot(rootPath, tempPath);
+	const targetPath = await resolveWriteTarget(absolutePath);
+	const tempPath = `${targetPath}.superset-tmp-${randomUUID()}`;
 
 	let sourceMode: number | undefined;
 	try {
-		const currentStats = await fs.stat(absolutePath);
+		const currentStats = await fs.stat(targetPath);
 		sourceMode = currentStats.mode;
 	} catch (error) {
 		if (!isEnoent(error)) {
@@ -366,7 +374,7 @@ async function writeAtomically({
 		if (sourceMode !== undefined) {
 			await fs.chmod(tempPath, sourceMode);
 		}
-		await fs.rename(tempPath, absolutePath);
+		await fs.rename(tempPath, targetPath);
 	} finally {
 		await fs.rm(tempPath, { force: true });
 	}
@@ -377,11 +385,11 @@ async function writeAtomically({
 // per-entry stat calls bounds how much zombie work continues after an abort.
 const LIST_DIRECTORY_STAT_BATCH_SIZE = 16;
 
-// Read-only operations (listDirectory, readFile, getMetadata) are not
-// confined to the workspace root: terminals and agents routinely reference
-// files anywhere on the host, and viewing them is within the caller's trust
-// model (statPath/browseHost already expose arbitrary host paths). Mutations
-// remain strictly confined to the root.
+// listDirectory, readFile, getMetadata and writeFile are not confined to the
+// workspace root: terminals and agents routinely reference files anywhere on
+// the host, and viewing or editing them is within the caller's trust model
+// (the same caller can run any command in a terminal). Structural mutations
+// (create, delete, move, copy) remain confined to the root.
 export async function listDirectory({
 	absolutePath,
 	signal,
@@ -432,7 +440,6 @@ export async function listDirectory({
 }
 
 export async function readFile({
-	rootPath,
 	absolutePath,
 	offset,
 	maxBytes,
@@ -445,13 +452,6 @@ export async function readFile({
 	encoding?: string;
 }): Promise<FsReadResult> {
 	const targetPath = normalizeAbsolutePath(absolutePath);
-	// Explicit outside-root paths are readable, but a path that lexically sits
-	// inside the workspace must also physically resolve there — otherwise a
-	// malicious repo symlink (docs/config.yml -> ~/.ssh/id_rsa) could disguise
-	// a sensitive host file as a workspace file.
-	if (isPathWithinRoot(rootPath, targetPath)) {
-		await assertRealpathWithinRoot(rootPath, targetPath);
-	}
 
 	const fileHandle = await fs.open(targetPath, "r");
 	try {
@@ -533,22 +533,19 @@ export async function getMetadata({
 }
 
 export async function writeFile({
-	rootPath,
 	absolutePath,
 	content,
 	encoding,
 	options,
 	precondition,
 }: {
-	rootPath: string;
 	absolutePath: string;
 	content: string | Uint8Array;
 	encoding?: string;
 	options?: { create: boolean; overwrite: boolean };
 	precondition?: { ifMatch: string };
 }): Promise<FsWriteResult> {
-	const targetPath = ensureWithinRoot({ rootPath, absolutePath });
-	await assertRealpathWithinRoot(rootPath, targetPath);
+	const targetPath = normalizeAbsolutePath(absolutePath);
 
 	const create = options?.create ?? true;
 	const overwrite = options?.overwrite ?? true;
@@ -562,7 +559,7 @@ export async function writeFile({
 	const execute = async (): Promise<FsWriteResult> => {
 		if (precondition?.ifMatch !== undefined) {
 			try {
-				const stats = await fs.lstat(targetPath);
+				const stats = await fs.stat(targetPath);
 				const currentRevision = toRevision(stats);
 				if (currentRevision !== precondition.ifMatch) {
 					return { ok: false, reason: "conflict", currentRevision };
@@ -601,7 +598,6 @@ export async function writeFile({
 		}
 
 		await writeAtomically({
-			rootPath,
 			absolutePath: targetPath,
 			content,
 			encoding,
@@ -913,7 +909,10 @@ export async function movePath({
 	});
 
 	await fs.access(destinationPath).then(
-		() => {
+		async () => {
+			if (await isCaseOnlyRenameOfSameEntry(sourcePath, destinationPath)) {
+				return;
+			}
 			throw new Error(`Destination already exists: ${destinationPath}`);
 		},
 		(error: NodeJS.ErrnoException) => {
@@ -925,6 +924,23 @@ export async function movePath({
 
 	await fs.rename(sourcePath, destinationPath);
 	return { fromAbsolutePath: sourcePath, toAbsolutePath: destinationPath };
+}
+
+// On a case-insensitive volume, `Foo.ts` -> `foo.ts` finds the source itself
+// at the destination. The directory then lists a single entry under the
+// source's name; two hard links on a case-sensitive volume list both names,
+// and renaming one onto the other is a silent no-op in POSIX.
+async function isCaseOnlyRenameOfSameEntry(
+	sourcePath: string,
+	destinationPath: string,
+): Promise<boolean> {
+	if (sourcePath === destinationPath) return false;
+	if (sourcePath.toLowerCase() !== destinationPath.toLowerCase()) return false;
+	const names = await fs.readdir(path.dirname(destinationPath));
+	return (
+		names.includes(path.basename(sourcePath)) &&
+		!names.includes(path.basename(destinationPath))
+	);
 }
 
 export async function copyPath({

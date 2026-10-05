@@ -3,35 +3,18 @@
 <title>Superset social preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..600&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=block" rel="stylesheet">
 <style>
-  html,body{margin:0;background:#0a0a0a}
-  body{width:1200px;height:630px;overflow:hidden;position:relative;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-feature-settings:"cv01","ss03";color:#fff;-webkit-font-smoothing:antialiased}
-  /* Brand-orange light streaks, Raycast-style */
-  .streaks{position:absolute;inset:-200px;overflow:hidden;pointer-events:none}
-  .streak{position:absolute;top:-40%;height:180%;width:220px;transform:rotate(-34deg);filter:blur(9px);background:linear-gradient(90deg,rgba(210,86,17,0),rgba(158,64,10,.35) 18%,rgba(210,86,17,.75) 42%,rgba(232,128,74,.95) 50%,rgba(210,86,17,.75) 58%,rgba(158,64,10,.35) 82%,rgba(210,86,17,0));opacity:.9}
-  .s1{left:60px;width:140px;opacity:.5}
-  .s2{left:520px;width:90px;opacity:.55}
-  .s3{left:1040px;width:300px;opacity:.95}
-  .s4{left:1400px;width:120px;opacity:.7}
-  .vignette{position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% 45%,rgba(10,10,10,0) 30%,rgba(10,10,10,.55) 70%,#0a0a0a 100%)}
-  .darken{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.25),rgba(10,10,10,.1) 40%,rgba(10,10,10,.5))}
-  .grain{position:absolute;inset:0;opacity:.3;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");background-size:220px 220px}
-  .top{position:absolute;left:0;right:0;top:54px;display:flex;flex-direction:column;align-items:center;gap:26px}
-  h1{margin:0;font-size:50px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;word-spacing:.08em;text-align:center;white-space:nowrap;background:linear-gradient(180deg,#ffffff 20%,#c9c9c9);-webkit-background-clip:text;background-clip:text;color:transparent}
-  h1 .br{padding:.04em .22em;background-image:linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a),linear-gradient(#e8804a,#e8804a);background-repeat:no-repeat;background-size:.15em 4px,4px .15em,.15em 4px,4px .15em,.15em 4px,4px .15em,.15em 4px,4px .15em;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%}
-  .win{position:absolute;left:50%;top:286px;transform:translateX(-50%);width:1080px;height:420px;border-radius:12px;background:#0f0f0f;border:1px solid rgba(232,128,74,.55);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 60px rgba(210,86,17,.28),0 30px 90px rgba(0,0,0,.65);overflow:hidden}
+  html,body{margin:0;background:#08090a}
+  body{width:1200px;height:630px;overflow:hidden;position:relative}
+  .head{position:absolute;left:64px;top:40px;display:flex;align-items:center;gap:30px}
+  .wm{height:44px;width:283px;display:block}
+  .head p{margin:0;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-feature-settings:"cv01","ss03";font-size:59px;font-weight:500;letter-spacing:-0.025em;word-spacing:.08em;color:#d4d2cf;-webkit-font-smoothing:antialiased}
+  .win{position:absolute;left:64px;top:146px;width:1160px;border-radius:12px 0 0 0;border:1px solid #2a2b2d;box-shadow:0 0 0 1px rgba(0,0,0,.7),0 30px 80px rgba(0,0,0,.7);overflow:hidden}
   .win img{display:block;width:100%;height:auto}
-  .fade{position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(180deg,rgba(10,10,10,0),rgba(10,10,10,.9) 70%,#0a0a0a)}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:150px;background:linear-gradient(180deg,rgba(8,9,10,0),rgba(8,9,10,.85) 75%,#08090a)}
 </style></head><body>
-<div class="streaks"><div class="streak s1"></div><div class="streak s2"></div><div class="streak s3"></div><div class="streak s4"></div></div>
-<div class="vignette"></div>
-<div class="darken"></div>
-<div class="grain"></div>
-<div class="top">
-  <img src="../../public/title.svg" alt="Superset" style="height:70px">
-  <h1>Bring Any Agent. <span class="br">Orchestrate Them All.</span></h1>
-</div>
-<div class="win"><img src="screenshot.png" alt="Superset workspace with Claude and Codex tabs"></div>
+<div class="head"><svg class="wm" viewBox="149 75 412 64" aria-label="Superset"><title>Superset</title><path fill="#EAE8E6" d="M174.599 75H187.4V87.7999H174.599V75ZM161.8 75H174.599V87.7999H161.8V75ZM149 87.7999H161.8V100.6H149V87.7999ZM149 100.6H161.8V113.4H149V100.6ZM161.8 100.6H174.599V113.4H161.8V100.6ZM174.599 100.6H187.4V113.4H174.599V100.6ZM174.599 113.4H187.4V126.2H174.599V113.4ZM174.599 126.2H187.4V139H174.599V126.2ZM161.8 126.2H174.599V139H161.8V126.2ZM149 126.2H161.8V139H149V126.2ZM149 75H161.8V87.7999H149V75ZM200.15 75H212.95V87.7999H200.15V75ZM200.15 87.7999H212.95V100.6H200.15V87.7999ZM200.15 100.6H212.95V113.4H200.15V100.6ZM200.15 113.4H212.95V126.2H200.15V113.4ZM200.15 126.2H212.95V139H200.15V126.2ZM212.95 126.2H225.749V139H212.95V126.2ZM225.749 126.2H238.55V139H225.749V126.2ZM225.749 113.4H238.55V126.2H225.749V113.4ZM225.749 100.6H238.55V113.4H225.749V100.6ZM225.749 87.7999H238.55V100.6H225.749V87.7999ZM225.749 75H238.55V87.7999H225.749V75ZM251.3 75H264.099V87.7999H251.3V75ZM251.3 87.7999H264.099V100.6H251.3V87.7999ZM251.3 100.6H264.099V113.4H251.3V100.6ZM251.3 113.4H264.099V126.2H251.3V113.4ZM251.3 126.2H264.099V139H251.3V126.2ZM264.099 75H276.9V87.7999H264.099V75ZM276.9 75H289.7V87.7999H276.9V75ZM276.9 87.7999H289.7V100.6H276.9V87.7999ZM276.9 100.6H289.7V113.4H276.9V100.6ZM264.099 100.6H276.9V113.4H264.099V100.6ZM302.45 75H315.249V87.7999H302.45V75ZM302.45 87.7999H315.249V100.6H302.45V87.7999ZM302.45 100.6H315.249V113.4H302.45V100.6ZM302.45 113.4H315.249V126.2H302.45V113.4ZM302.45 126.2H315.249V139H302.45V126.2ZM315.249 75H328.05V87.7999H315.249V75ZM315.249 126.2H328.05V139H315.249V126.2ZM315.249 100.6H328.05V113.4H315.249V100.6ZM328.05 75H340.85V87.7999H328.05V75ZM328.05 126.2H340.85V139H328.05V126.2ZM353.6 126.2H366.399V139H353.6V126.2ZM353.6 113.4H366.399V126.2H353.6V113.4ZM353.6 100.6H366.399V113.4H353.6V100.6ZM353.6 87.7999H366.399V100.6H353.6V87.7999ZM353.6 75H366.399V87.7999H353.6V75ZM366.399 75H379.2V87.7999H366.399V75ZM379.2 75H392V87.7999H379.2V75ZM379.2 87.7999H392V100.6H379.2V87.7999ZM366.399 100.6H379.2V113.4H366.399V100.6ZM379.2 113.4H392V126.2H379.2V113.4ZM379.2 126.2H392V139H379.2V126.2ZM430.35 75H443.15V87.7999H430.35V75ZM417.549 75H430.35V87.7999H417.549V75ZM404.75 87.7999H417.549V100.6H404.75V87.7999ZM404.75 100.6H417.549V113.4H404.75V100.6ZM417.549 100.6H430.35V113.4H417.549V100.6ZM430.35 100.6H443.15V113.4H430.35V100.6ZM430.35 113.4H443.15V126.2H430.35V113.4ZM430.35 126.2H443.15V139H430.35V126.2ZM417.549 126.2H430.35V139H417.549V126.2ZM404.75 126.2H417.549V139H404.75V126.2ZM404.75 75H417.549V87.7999H404.75V75ZM455.9 75H468.7V87.7999H455.9V75ZM455.9 87.7999H468.7V100.6H455.9V87.7999ZM455.9 100.6H468.7V113.4H455.9V100.6ZM455.9 113.4H468.7V126.2H455.9V113.4ZM455.9 126.2H468.7V139H455.9V126.2ZM468.7 75H481.5V87.7999H468.7V75ZM468.7 126.2H481.5V139H468.7V126.2ZM468.7 100.6H481.5V113.4H468.7V100.6ZM481.5 75H494.299V87.7999H481.5V75ZM481.5 126.2H494.299V139H481.5V126.2ZM507.049 75H519.85V87.7999H507.049V75ZM519.85 75H532.65V87.7999H519.85V75ZM532.65 75H545.449V87.7999H532.65V75ZM519.85 87.7999H532.65V100.6H519.85V87.7999ZM519.85 100.6H532.65V113.4H519.85V100.6ZM519.85 113.4H532.65V126.2H519.85V113.4ZM519.85 126.2H532.65V139H519.85V126.2Z"/></svg><p>Your agent&rsquo;s favorite IDE</p></div>
+<div class="win"><img src="screenshot.png" alt="Superset workspace with Claude, Codex and OpenCode tabs"></div>
 <div class="fade"></div>
 </body></html>

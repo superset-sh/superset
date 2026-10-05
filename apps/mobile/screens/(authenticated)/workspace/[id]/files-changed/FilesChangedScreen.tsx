@@ -26,6 +26,10 @@ import { errorCopy } from "@/lib/errors";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import {
+	anchorOf,
+	ToolbarAnchor,
+} from "@/screens/(authenticated)/components/ToolbarAnchor";
+import {
 	type ChangesetFile,
 	useWorkspaceChangeset,
 } from "../hooks/useWorkspaceChangeset";
@@ -314,6 +318,7 @@ export function FilesChangedScreen() {
 	}, [contentWidths.maxOffset, maxScrollX, scrollX]);
 
 	const panStartX = useRef(0);
+	const shareAnchorRef = useRef<View>(null);
 	const panResponder = useMemo(
 		() =>
 			PanResponder.create({
@@ -360,9 +365,10 @@ export function FilesChangedScreen() {
 	);
 
 	const onCommentMenu = useCallback(
-		(comment: DraftComment) => {
+		(comment: DraftComment, anchor: number | null) => {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
+					anchor: anchor ?? undefined,
 					options: [
 						t({ message: "Edit" }),
 						t({ message: "Delete" }),
@@ -659,7 +665,11 @@ export function FilesChangedScreen() {
 						<Stack.Toolbar.MenuAction
 							icon="square.and.arrow.up"
 							onPress={() => {
-								if (shareUrl) void Share.share({ url: shareUrl });
+								if (shareUrl)
+									void Share.share(
+										{ url: shareUrl },
+										{ anchor: anchorOf(shareAnchorRef) },
+									);
 							}}
 						>
 							{t({ message: "Share" })}
@@ -719,6 +729,7 @@ export function FilesChangedScreen() {
 					router.push(`/(authenticated)/workspace/${workspaceId}/jump-to-file`)
 				}
 			/>
+			<ToolbarAnchor ref={shareAnchorRef} />
 		</View>
 	);
 }

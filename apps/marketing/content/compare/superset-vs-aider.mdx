@@ -2,7 +2,7 @@
 title: "Superset vs Aider (2026): Agent Workspace vs Terminal Pair Programmer"
 description: "Compare Superset and Aider for AI coding. See how a local-first workspace that runs many agents in parallel differs from a single terminal pair-programming CLI."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - aider
@@ -24,7 +24,7 @@ Aider is one of the most popular open-source AI pair programmers: a single, focu
 |---|---|---|
 | **Category** | Agent orchestration workspace | Terminal AI pair programmer |
 | **AI approach** | Agent-agnostic: runs Claude Code, Codex, Aider, Superset Chat, or any CLI agent | Model-agnostic: Claude, GPT, Gemini, DeepSeek, or local models |
-| **Parallelism** | Core feature: 100+ agents across isolated Git worktrees | One interactive session per terminal |
+| **Parallelism** | Core feature: multiple agents across isolated Git worktrees | One interactive session per terminal |
 | **Interface** | Desktop app: terminals, diff/file editor, chat, in-app browser | Command-line REPL in your terminal |
 | **Git model** | Isolated worktree per task | Auto-commits to your current branch |
 | **Pricing** | Free tier + Pro $20/seat/mo (bring your own API keys) | Free, open source (Apache-2.0); bring your own API keys |
@@ -80,8 +80,8 @@ Aider is free and open source (Apache-2.0). You only pay for the model API you p
 - Prefer a minimal CLI over a full application
 
 **Choose Superset if you:**
-- Want to run Aider and other agents across 10+ tasks in parallel
-- Need isolated Git worktrees so parallel work never collides
+- Want to run Aider and other agents across independent tasks in parallel
+- Need isolated Git worktrees so parallel work uses separate working directories
 - Want a diff editor, chat, browser preview, and MCP tooling around your agents
 - Use any editor and do not want your workflow tied to a single tool
 

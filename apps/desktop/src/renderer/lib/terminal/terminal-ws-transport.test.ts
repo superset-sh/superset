@@ -124,9 +124,8 @@ afterAll(() => {
 	);
 });
 
-const { connect, createTransport, disconnect, park, reconnect } = await import(
-	"./terminal-ws-transport"
-);
+const { connect, createTransport, disconnect, park, reconnect, sendColors } =
+	await import("./terminal-ws-transport");
 
 // `window` is aliased to `globalThis` by the xterm-env-polyfill preload, and
 // `globalThis.addEventListener` is absent on Linux CI runtimes, so the transport's
@@ -852,4 +851,77 @@ describe("terminal-ws-transport", () => {
 		expect(transport.logs).toHaveLength(0);
 		expect(transport.title).toBeUndefined();
 	});
+});
+
+test("attach synchronizes configured colors and later theme updates use the same channel", () => {
+	const terminal = createMockTerminal();
+	terminal.options = {
+		theme: { foreground: "#eae8e6", background: "#151110", cursor: "#ffffff" },
+	};
+	const transport = createTransport();
+	connect(transport, terminal, "ws://host/terminal/colors");
+	const socket = FakeRelaySocket.instances.at(-1);
+	if (!socket) throw new Error("missing socket");
+	socket.open();
+	sendColors(transport, terminal.options.theme);
+	expect(socket.sent).toEqual([]);
+	socket.message(JSON.stringify({ type: "attached", terminalId: "colors" }));
+	let messages = socket.sent.map((payload) => JSON.parse(payload));
+	expect(messages[0]).toMatchObject({
+		type: "colors",
+		colors: { background: "#151110" },
+		resetOverrides: false,
+	});
+	sendColors(transport, { background: "#ffffff", foreground: "#000000" }, true);
+	messages = socket.sent.map((payload) => JSON.parse(payload));
+	expect(messages.at(-1)).toMatchObject({
+		type: "colors",
+		colors: { background: "#ffffff" },
+		resetOverrides: true,
+	});
+	disconnect(transport);
+});
+
+test("a disconnected appearance reset is sent once on reconnect even with unchanged RGB", () => {
+	const terminal = createMockTerminal();
+	terminal.options = {
+		theme: { background: "#151110", foreground: "#eae8e6" },
+	};
+	const transport = createTransport();
+	connect(transport, terminal, "ws://host/terminal/colors-reconnect");
+	const socket = FakeRelaySocket.instances.at(-1);
+	if (!socket) throw new Error("missing socket");
+	socket.open();
+	socket.message(
+		JSON.stringify({ type: "attached", terminalId: "colors-reconnect" }),
+	);
+	socket.close();
+	terminal.options.theme = {
+		...terminal.options.theme,
+		selectionBackground: "#445566",
+	};
+	const before = socket.sent.length;
+	sendColors(transport, terminal.options.theme, true);
+	sendColors(transport, terminal.options.theme);
+	expect(socket.sent).toHaveLength(before);
+	expect(transport._pendingColorReset).toBe(true);
+	socket.open();
+	socket.message(
+		JSON.stringify({ type: "attached", terminalId: "colors-reconnect" }),
+	);
+	const messages = socket.sent
+		.map((payload) => JSON.parse(payload))
+		.filter((message) => message.type === "colors");
+	expect(messages.map((message) => message.resetOverrides)).toEqual([
+		false,
+		true,
+	]);
+	expect(messages[1].colors).toEqual(messages[0].colors);
+	expect(transport._pendingColorReset).toBe(false);
+	sendColors(transport, terminal.options.theme);
+	expect(JSON.parse(socket.sent.at(-1) ?? "null")).toMatchObject({
+		type: "colors",
+		resetOverrides: false,
+	});
+	disconnect(transport);
 });

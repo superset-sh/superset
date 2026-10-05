@@ -2,7 +2,7 @@
 title: "Superset vs cmux (2026): Agent Terminal vs Agent Orchestrator"
 description: "Compare Superset and cmux for running AI coding agents. See how a native terminal for agents differs from a Git worktree orchestration workspace."
 date: 2026-07-13
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-24
 type: "1v1"
 competitors:
   - cmux
@@ -15,7 +15,7 @@ keywords:
   - ai coding terminal
 ---
 
-Superset and cmux both help you run many AI coding agents at once, but they sit in different categories. cmux is a native terminal built for agents: it makes concurrent sessions visible and controllable in one polished macOS app. Superset is an orchestration workspace: it gives every task its own Git worktree and layers review, browser, and automation around the agents. One organizes your agent sessions; the other isolates and manages the work each agent does.
+Superset and cmux both help you run many AI coding agents at once, but they sit in different categories. cmux is a native terminal built for agents: it makes concurrent sessions visible and controllable in one polished macOS app. Superset is an orchestration workspace: it creates separate Git worktrees for new local branch-based workspaces and adds review, browser, and automation around the agents. One organizes your agent sessions; the other isolates and manages the work each agent does. Worktrees separate working files but do not sandbox processes or prevent merge conflicts; see [workspace types](https://docs.superset.sh/workspaces).
 
 ---
 
@@ -24,11 +24,11 @@ Superset and cmux both help you run many AI coding agents at once, but they sit 
 | | **Superset** | **cmux** |
 |---|---|---|
 | **Category** | Agent orchestration workspace | Native terminal for AI agents |
-| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, and browser | Runs agent sessions in vertical tabs and split panes with notifications and an embedded browser |
-| **Isolation** | Automatic Git worktree per task | None built in -- isolation is left to the agent or to you |
+| **What it does** | Runs multiple agents in parallel with Git worktree isolation, review, and browser | Runs agent sessions in vertical tabs and split panes with notifications and an embedded browser |
+| **Isolation** | Git worktrees for local branch-based workspaces | None built in -- isolation is left to the agent or to you |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Any terminal agent (Claude Code, Codex, OpenCode, Gemini, Aider, Goose, and more) |
 | **Review tooling** | Built-in diff/file editor, staging, and commit | Terminal-native; review happens in the agent or your editor |
-| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS only |
+| **Platform** | Desktop (macOS; experimental Linux AppImage; Windows unavailable), CLI, MCP server | macOS only |
 | **License** | Source-available (ELv2) | Open source (GPL-3.0) |
 
 ---
@@ -47,7 +47,7 @@ cmux is a native macOS terminal built specifically for running AI coding agents.
 
 ### Organizing Sessions vs Isolating Work
 
-This is the core distinction. cmux is a terminal: it makes your agent sessions easy to see, split, and switch between, but it does not isolate what each agent changes. If two agents work on the same repository, they share one working directory unless you set up isolation yourself. Superset makes a Git worktree per task the default, so every agent gets its own branch and directory automatically. cmux answers "how do I see all my agents?"; Superset answers "how do I run agents on the same repo without collisions?"
+This is the core distinction. cmux is a terminal: it makes your agent sessions easy to see, split, and switch between, but it does not isolate what each agent changes. If two agents work on the same repository, they share one working directory unless you set up isolation yourself. Superset creates a Git worktree and branch for each new local branch-based workspace. cmux answers "how do I see all my agents?"; Superset answers "how do I run agents on the same repo in separate working directories?"
 
 ### Review and Merge Flow
 
@@ -59,7 +59,7 @@ Superset extends past a single machine with remote and cloud workspaces, schedul
 
 ### Platform
 
-cmux is macOS only today. Superset ships on macOS now, with Windows and Linux planned, and also runs as a CLI and MCP server. If you need anything beyond macOS, that is a practical difference.
+cmux is macOS only today. Superset supports macOS and an experimental Linux AppImage, plus CLI and MCP surfaces. Windows is not available.
 
 ---
 
@@ -85,7 +85,7 @@ Superset offers a free tier and Pro at $20/seat/month. cmux is free and open sou
 - Like an embedded browser and a scriptable API in your terminal
 - Prefer a fully open-source GPL tool
 
-**Verdict:** These tools are not really substitutes. cmux is the best fit if your goal is a beautiful native terminal that keeps many agent sessions organized. Superset is the better fit if your goal is running multiple agents on the same repository without collisions, with review and orchestration built in. Many developers will end up using a terminal like cmux alongside an orchestrator like Superset.
+**Verdict:** These tools are not really substitutes. cmux is the best fit if your goal is a beautiful native terminal that keeps many agent sessions organized. Superset is the better fit if your goal is running multiple agents on the same repository in separate working directories, with review and orchestration built in. Many developers will end up using a terminal like cmux alongside an orchestrator like Superset.
 
 ---
 
@@ -97,7 +97,7 @@ The native macOS cmux terminal does not isolate tasks in Git worktrees itself --
 
 ### Is cmux only for macOS?
 
-Yes. The cmux agent terminal is macOS only today. Superset ships on macOS now with Windows and Linux planned, plus CLI and MCP surfaces.
+Yes. The cmux agent terminal is macOS only today. Superset supports macOS and experimental Linux; Windows is not available. Superset also offers CLI and MCP surfaces.
 
 ### Can I use cmux and Superset together?
 

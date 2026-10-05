@@ -65,6 +65,7 @@ export async function GET() {
 					"",
 					`URL: ${baseUrl}/blog/${post.slug}`,
 					`Date: ${post.date}`,
+					...(post.lastUpdated ? [`Last updated: ${post.lastUpdated}`] : []),
 					`Author: ${post.author.name}`,
 					"",
 					stripMdxSyntax(post.content),

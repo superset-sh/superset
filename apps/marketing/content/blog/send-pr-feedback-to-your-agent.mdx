@@ -1,0 +1,38 @@
+---
+title: "Send PR feedback to your coding agent"
+description: "Select lines in a pull request diff and send feedback to an agent in Superset, then review its changes beside the PR checks."
+author: kiet
+date: 2026-09-24
+unlisted: true
+category: Product
+relatedSlugs:
+  - change-ui-with-your-coding-agent
+  - review-agent-work-with-pages
+---
+
+You found the change you want in a PR. Send the feedback from the diff instead of copying the file path and surrounding code into another terminal.
+
+Superset's Pull requests view brings the PR's code and review context into the app. Connect GitHub for your project, then open **Pull requests** in the sidebar.
+
+## Give feedback on the relevant lines
+
+Select a PR, open its **Code** tab, and select the lines you want to discuss. Write the change you want the agent to make:
+
+```text
+Handle an empty result here and add a test for it.
+Follow the error-handling pattern already used in this file.
+```
+
+Send the comment to a running agent in the linked workspace, or start a new agent session there. If the PR has no workspace yet, Superset creates a PR-checkout workspace and launches the agent with your feedback. The agent receives the file and line range, including which side of the diff you selected.
+
+Posting the comment to GitHub is optional. You can send instructions to your agent without adding them to the public review thread.
+
+## Review the revision
+
+Inspect the resulting patch and run the relevant tests. The PR's **Summary** tab shows its description, review status, and CI checks. Use **Start Workspace** when you want to run the branch yourself.
+
+When the result is ready, the PR view offers squash, merge, and rebase actions through your GitHub connection. You keep the decision about what gets merged.
+
+The [pull request guide](https://docs.superset.sh/pull-requests) covers the controls. For a batch of existing comments, try the [PR feedback recipe](https://docs.superset.sh/recipes/pr-feedback).
+
+[Download Superset](/download) and try sending one review comment to an agent.

@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "superhuman",
+	"version": "1.0.0",
+	"description": "Work your inbox from Superhuman: find and read threads, triage what needs you, draft replies in your voice, and schedule from your calendar.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["superhuman", "email", "mail", "inbox", "calendar"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Superhuman",
+				"category": "Communication",
+				"icon": "superhuman"
+			},
+			"connector": {
+				"slug": "superhuman_mcp"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.mail.superhuman.com/mcp"
+			}
+		}
+	}
+}

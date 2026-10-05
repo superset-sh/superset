@@ -146,7 +146,7 @@ describe("tag folders router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("project removal atomically cleans its folder rows but keeps Sessions", async () => {
+	test("purging a deleted project atomically cleans its folder rows but keeps Sessions", async () => {
 		host = await createTestHost();
 		const sentMessages: string[] = [];
 		host.eventBus.handleOpen({
@@ -170,6 +170,8 @@ describe("tag folders router integration", () => {
 		sentMessages.length = 0;
 
 		await host.trpc.project.remove.mutate({ projectId: project.id });
+		expect(await host.trpc.tagFolders.list.query()).toHaveLength(2);
+		await host.trpc.project.purge.mutate({ projectId: project.id });
 		expect(sentMessages.map((message) => JSON.parse(message))).toContainEqual({
 			type: "tag-folders:changed",
 			scope: project.id,

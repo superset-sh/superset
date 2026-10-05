@@ -1,110 +1,133 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
-import { useMemo, useState } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { useHostUrls } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useProjectDeletionHosts } from "renderer/routes/_authenticated/hooks/useProjectDeletionHosts";
+import { useRestoreProject } from "renderer/routes/_authenticated/hooks/useRestoreProject";
+import {
+	isDeletableTarget,
+	type ProjectDeletionTarget,
+	summarizeOthersActivity,
+} from "./useDeleteProject.utils";
+
+const UNDO_TOAST_MS = 10_000;
 
 interface UseDeleteProjectOptions {
 	projectId: string;
 	projectName: string;
-	/** Hosts serving this project — the delete fans out to each. */
 	hostIds: string[];
+	open: boolean;
 	onDeleted?: () => void;
 }
 
-/**
- * Deletes a project from every reachable host that serves it. Projects are
- * local per host, so an unreachable host keeps its copy; the caller shows
- * that in the confirmation so nobody is surprised later.
- */
 export function useDeleteProject({
 	projectId,
 	projectName,
 	hostIds,
+	open,
 	onDeleted,
 }: UseDeleteProjectOptions) {
 	const { t } = useLingui();
+	const permissions = useProjectDeletionHosts(hostIds);
+	const { hosts } = useKnownHosts();
 	const hostUrls = useHostUrls(hostIds);
-	const reachableHosts = useMemo(
-		() =>
-			hostUrls.filter(
-				(host): host is { hostId: string; url: string; isLocal: boolean } =>
-					host.url !== null,
-			),
-		[hostUrls],
-	);
-	const { workspaces } = useHostWorkspaces();
-	// The main workspace is the repository checkout itself and survives;
-	// only worktrees are removed from disk. Count only hosts the delete will
-	// actually reach — an offline device keeps its worktrees, and the dialog
-	// says so separately. A remote host keeps a relay URL while offline, so
-	// the workspace's own reachability flag is the second gate.
-	const worktreeCount = useMemo(() => {
-		const reachableHostIds = new Set(reachableHosts.map((host) => host.hostId));
-		return workspaces.filter(
-			(workspace) =>
-				workspace.projectId === projectId &&
-				workspace.type === "worktree" &&
-				workspace.hostReachable &&
-				reachableHostIds.has(workspace.hostId),
-		).length;
-	}, [workspaces, projectId, reachableHosts]);
-	const [isDeleting, setIsDeleting] = useState(false);
-
-	const deleteProject = async (): Promise<boolean> => {
-		if (reachableHosts.length === 0) {
-			toast.error(
-				t({
-					message: "No host serving this project is reachable right now",
+	const restoreProject = useRestoreProject();
+	const queryClient = useQueryClient();
+	const targets: ProjectDeletionTarget[] = hostUrls.map((host) => {
+		const known = hosts.find((entry) => entry.machineId === host.hostId);
+		return {
+			...host,
+			name:
+				known?.name ??
+				(host.isLocal ? t({ message: "This device" }) : host.hostId),
+			canDelete: permissions.hostIds.includes(host.hostId),
+			isOnline: host.url !== null && (host.isLocal || !!known?.isOnline),
+		};
+	});
+	const deletable = targets.filter(isDeletableTarget);
+	const impact = useQueries({
+		queries: deletable.map((target) => ({
+			queryKey: ["project-deletion-impact", target.hostId, projectId],
+			enabled: open,
+			staleTime: 0,
+			queryFn: () =>
+				getHostServiceClientByUrl(target.url).project.deletionImpact.query({
+					projectId,
 				}),
-			);
-			return false;
-		}
+		})),
+	});
+	const othersActivityByHost = new Map(
+		deletable.map((target, index) => [
+			target.hostId,
+			summarizeOthersActivity(impact[index]?.data ?? [], permissions.userId),
+		]),
+	);
+	const memberName = (userId: string | null) =>
+		permissions.organizationMembers.find((member) => member.userId === userId)
+			?.user.name ?? null;
+	const [isDeleting, setIsDeleting] = useState(false);
+	const inFlight = useRef(false);
+
+	const deleteProject = async (selectedHostIds: string[]): Promise<boolean> => {
+		if (inFlight.current) return false;
+		const selected = deletable.filter((target) =>
+			selectedHostIds.includes(target.hostId),
+		);
+		if (selected.length === 0) return false;
+		inFlight.current = true;
 		setIsDeleting(true);
 		try {
 			const results = await Promise.allSettled(
-				reachableHosts.map((host) =>
-					getHostServiceClientByUrl(host.url).project.remove.mutate({
+				selected.map((target) =>
+					getHostServiceClientByUrl(target.url).project.remove.mutate({
 						projectId,
 					}),
 				),
 			);
-			const failed = results.filter((r) => r.status === "rejected");
-			if (failed.length === results.length) {
-				const first = failed[0] as PromiseRejectedResult;
-				throw first.reason instanceof Error
-					? first.reason
-					: new Error(String(first.reason));
-			}
-			const skipped = hostIds.length - reachableHosts.length;
-			if (failed.length > 0 || skipped > 0) {
+			void queryClient.invalidateQueries({ queryKey: ["deleted-projects"] });
+			const deletedUrls = selected
+				.filter((_, index) => results[index]?.status === "fulfilled")
+				.map((target) => target.url);
+			const failed = results.find(
+				(result): result is PromiseRejectedResult =>
+					result.status === "rejected",
+			);
+			if (deletedUrls.length === 0 && failed) throw failed.reason;
+			const undo = {
+				label: t({ message: "Undo" }),
+				onClick: () =>
+					void restoreProject({
+						projectId,
+						projectName,
+						hostUrls: deletedUrls,
+					}),
+			};
+			if (failed) {
 				toast.warning(
 					t({
-						message: `Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+						message: `Deleted "${projectName}" from ${deletedUrls.length} of ${selected.length} devices. The others keep their copy.`,
 					}),
+					{ action: undo, duration: UNDO_TOAST_MS },
 				);
-			} else {
-				toast.success(
-					t({
-						message: `Deleted "${projectName}"`,
-					}),
-				);
+				return false;
 			}
+			toast.success(
+				t({
+					message: `Deleted "${projectName}". You can restore it from Settings → Projects for 30 days.`,
+				}),
+				{ action: undo, duration: UNDO_TOAST_MS },
+			);
 			onDeleted?.();
 			return true;
 		} catch (err) {
-			toast.error(
-				errorMessage(
-					err,
-					t({
-						message: "Failed to delete",
-					}),
-				),
-			);
+			toast.error(errorMessage(err, t({ message: "Failed to delete" })));
 			return false;
 		} finally {
+			inFlight.current = false;
 			setIsDeleting(false);
 		}
 	};
@@ -112,8 +135,9 @@ export function useDeleteProject({
 	return {
 		deleteProject,
 		isDeleting,
-		worktreeCount,
-		reachableHostCount: reachableHosts.length,
-		hostCount: hostIds.length,
+		isReady: permissions.isReady,
+		targets,
+		othersActivityByHost,
+		memberName,
 	};
 }

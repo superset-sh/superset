@@ -4,6 +4,7 @@ import {
 	asc,
 	desc,
 	eq,
+	getTableColumns,
 	gte,
 	ilike,
 	inArray,
@@ -15,6 +16,7 @@ import {
 import { QueryBuilder } from "drizzle-orm/pg-core";
 import { taskStatuses, tasks } from "./schema";
 import { type TaskPriority, taskPriorityValues } from "./schema/enums";
+import { escapeLikePattern } from "./utils/like";
 
 export const taskStatusTypeValues = [
 	"backlog",
@@ -36,9 +38,27 @@ export type TaskListSortBy = (typeof taskListSortByValues)[number];
 export const taskListSortOrderValues = ["asc", "desc"] as const;
 export type TaskListSortOrder = (typeof taskListSortOrderValues)[number];
 
+/** Written out because drizzle leaves columns unqualified in a single-table select, where a bare "id" would bind to task_labels. */
+export const taskLabelNames = sql<
+	string[]
+>`coalesce((select jsonb_agg(label.name order by label.name) from task_label_assignments assignment join task_labels label on label.id = assignment.label_id where assignment.task_id = "tasks"."id"), '[]'::jsonb)`;
+
+const { legacyLabels: _legacyLabels, ...taskTableColumns } =
+	getTableColumns(tasks);
+
+/** A task's columns with its label names, for selecting whole tasks. */
+export const taskColumns = { ...taskTableColumns, labels: taskLabelNames };
+
+/**
+ * Sort by this rather than the column: with an org filter and a LIMIT, Postgres otherwise walks the
+ * global created_at index through every organization's tasks (99s for a 93k-task org on 7M rows).
+ */
+export const taskCreatedAtSortKey = sql`${tasks.createdAt} + interval '0 seconds'`;
+
 export interface TaskListFilters {
 	organizationId: string;
 	includeDeleted?: boolean;
+	nativeOnly?: boolean;
 	statusId?: string;
 	statusType?: TaskStatusType;
 	assigneeId?: string;
@@ -53,10 +73,6 @@ export interface TaskListFilters {
 	dueDateTo?: Date;
 }
 
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
-}
-
 export function buildTaskListConditions(
 	filters: TaskListFilters,
 ): SQL<unknown>[] {
@@ -66,6 +82,19 @@ export function buildTaskListConditions(
 
 	if (!filters.includeDeleted) {
 		conditions.push(isNull(tasks.deletedAt));
+	}
+
+	if (filters.nativeOnly) {
+		const nativeStatuses = new QueryBuilder()
+			.select({ id: taskStatuses.id })
+			.from(taskStatuses)
+			.where(
+				and(
+					eq(taskStatuses.organizationId, filters.organizationId),
+					isNull(taskStatuses.externalProvider),
+				),
+			);
+		conditions.push(inArray(tasks.statusId, nativeStatuses));
 	}
 
 	if (filters.statusId) {
@@ -97,9 +126,9 @@ export function buildTaskListConditions(
 		conditions.push(eq(tasks.priority, filters.priority));
 	}
 
-	if (filters.labels && filters.labels.length > 0) {
+	for (const name of filters.labels ?? []) {
 		conditions.push(
-			sql`${tasks.labels} @> ${JSON.stringify(filters.labels)}::jsonb`,
+			sql`exists (select 1 from task_label_assignments assignment join task_labels label on label.id = assignment.label_id where assignment.task_id = "tasks"."id" and label.name = ${name.trim().toLowerCase()})`,
 		);
 	}
 
@@ -167,7 +196,7 @@ export function buildTaskListOrderBy(
 			case "priority":
 				return dir(priorityRank());
 			default:
-				return dir(tasks.createdAt);
+				return dir(taskCreatedAtSortKey);
 		}
 	})();
 	return [primary, asc(tasks.id)];

@@ -122,15 +122,14 @@ export function TaskContextMenu({
 						</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-56">
-						<div className="max-h-64 overflow-y-auto">
-							<AssigneeMenuItems
-								users={users}
-								currentAssigneeId={task.assigneeId}
-								hasExternalAssignee={!!task.assigneeExternalId}
-								onSelect={handleAssigneeChange}
-								MenuItem={ContextMenuItem}
-							/>
-						</div>
+						<AssigneeMenuItems
+							users={users}
+							currentAssigneeId={task.assigneeId}
+							hasExternalAssignee={!!task.assigneeExternalId}
+							onSelect={handleAssigneeChange}
+							MenuItem={ContextMenuItem}
+							MenuSeparator={ContextMenuSeparator}
+						/>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 

@@ -5,6 +5,7 @@ import {
 	formatStarCount,
 	type StarHistoryPoint,
 } from "@superset/shared/github-stars";
+import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -24,6 +25,7 @@ export function StarHistoryChart({
 	granularity,
 }: StarHistoryChartProps) {
 	const { t, i18n } = useLingui();
+	const gradientId = useId();
 
 	const chartConfig = {
 		stars: {
@@ -38,13 +40,16 @@ export function StarHistoryChart({
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="h-[360px] w-full">
+		<ChartContainer
+			config={chartConfig}
+			className="h-[360px] w-full min-w-0 aspect-auto"
+		>
 			<AreaChart
 				data={data}
 				margin={{ left: 0, right: 12, top: 12, bottom: 0 }}
 			>
 				<defs>
-					<linearGradient id="starHistoryFill" x1="0" y1="0" x2="0" y2="1">
+					<linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
 						<stop
 							offset="0%"
 							stopColor="var(--color-stars)"
@@ -121,7 +126,7 @@ export function StarHistoryChart({
 					type="monotone"
 					stroke="var(--color-stars)"
 					strokeWidth={2}
-					fill="url(#starHistoryFill)"
+					fill={`url(#${gradientId})`}
 					dot={false}
 					activeDot={{ r: 4 }}
 					isAnimationActive={false}

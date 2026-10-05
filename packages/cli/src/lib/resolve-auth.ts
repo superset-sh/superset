@@ -2,6 +2,7 @@ import { CLIError } from "@superset/cli-framework";
 import { type ApiClient, createApiClient } from "./api-client";
 import { refreshAccessToken } from "./auth";
 import {
+	AUTH_REFRESH_LEEWAY_MS,
 	readConfig,
 	resolveOrganizationId,
 	type SupersetConfig,
@@ -16,8 +17,6 @@ export type ResolvedAuth = {
 	bearer: string;
 	authSource: AuthSource;
 };
-
-const REFRESH_LEEWAY_MS = 5 * 60 * 1000;
 
 export async function resolveAuth(
 	apiKeyOption: string | undefined,
@@ -39,7 +38,7 @@ export async function resolveAuth(
 		authSource = "config";
 	} else if (config.auth) {
 		const auth = config.auth;
-		if (auth.expiresAt - REFRESH_LEEWAY_MS < Date.now()) {
+		if (auth.expiresAt - AUTH_REFRESH_LEEWAY_MS < Date.now()) {
 			if (!auth.refreshToken) {
 				throw new CLIError("Session expired", "Run: superset auth login");
 			}

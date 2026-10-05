@@ -169,7 +169,12 @@ describe("chat commands", () => {
 		expect(runtime.commands.getSession({ sessionId: "missing" })).toEqual({
 			session: null,
 			cursor: null,
+			live: false,
 		});
+		// A running session reports its process; the row alone cannot say so.
+		expect(
+			runtime.commands.getSession({ sessionId: created.sessionId }).live,
+		).toBe(true);
 		await runtime.dispose();
 	});
 

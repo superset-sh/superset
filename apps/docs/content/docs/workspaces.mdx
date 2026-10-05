@@ -5,7 +5,7 @@ description: Isolated environments for each git branch
 
 ## Core Concept
 
-Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports. The exception: [sessions](#sessions), which get a managed scratch folder instead of a branch.
+A workspace gives a task its own directory, terminals, and ports. Local project workspaces use isolated git worktrees; cloud workspaces use separate clones. [Sessions](#sessions) use a managed scratch folder without requiring a project.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -19,13 +19,19 @@ Press **⌘N** or click "New Workspace". Create from:
 
 In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly. The prompt box also keeps a searchable history of your previous prompts; click the history icon to reuse one.
 
-If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
+If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise the workspace opens right away as **New workspace** (or **New session**), and Superset names it in the background from your prompt and any linked GitHub issue or pull request, usually within a few seconds. The branch gets the generated name plus a short unique suffix; the worktree folder keeps the name it was created with. If the first name is vague or naming fails, Superset tries again after the agent's next reply. The branch is renamed only while it is unpushed. Renaming the workspace yourself stops automatic naming. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
 
-Each workspace gets:
+Each new branch-based workspace gets:
 - Own git branch
 - Own working directory
 - Own terminal sessions
 - Workspace-scoped port detection and controls
+
+New local worktrees use `<worktrees path>/<project name>/<branch>` directories. Existing worktrees keep their paths.
+
+### Cloud Workspaces
+
+When cloud workspaces are available to your account, Superset creates a new working branch from the selected base. For multiple repositories, it uses the same working branch name in each. Attach images to the initial prompt to give the agent visual context when it starts.
 
 ## Import Worktrees
 
@@ -46,6 +52,8 @@ either `--project <id>` or `--session`; omitting both is an error:
 superset workspaces create --session --local --agent claude --prompt "…"
 ```
 
+On iPhone, choose **No project** in the composer's project picker, or tap **+** beside **No project** on Home. Sending your prompt creates a session on the selected online host.
+
 Automations can run in session mode too; see [Automations](/automations).
 
 ## Pin Workspaces
@@ -55,6 +63,9 @@ Keep active workspaces at the top of the sidebar:
 - Right-click a workspace and choose **Pin to Sidebar** (or **Unpin**)
 - Drag into the **Pinned** section to pin, drag within it to reorder, drag out to unpin
 - Sessions work the same way
+- Pinned project workspaces show a project-name prefix, such as `project/workspace`
+
+If sorting or filtering prevents a sidebar drag, the notice offers an action to restore manual ordering or clear filters.
 
 ## List and Board Views
 
@@ -88,6 +99,16 @@ Select multiple workspaces within a project to act on them at once:
 - While workspaces are selected, the Projects header becomes a toolbar with **Move**, **Ungroup**, **Delete**, and **Clear**
 - **Move** puts the selection into a new or existing group; **Ungroup** removes grouped members from their group
 - Bulk delete previews every workspace and flags dirty or unpushed changes before you confirm
+
+## Delete a Project
+
+Right-click a project in the sidebar and choose **Delete Project…**, or use **Delete project** in the project's settings. An organization owner or the owner of the device can delete a project.
+
+- Choose the devices to delete it from. The dialog shows what other people have running on each device. If someone else has terminals or agents running, you type the project name to confirm.
+- Deleting stops the project's terminals and agents and archives its workspaces. Worktrees stay on disk while the project can be restored.
+- From the sidebar, **Hide from sidebar** removes the project only for you.
+- Click **Undo** in the toast, or restore the project from **Settings → Projects → Recently deleted** for 30 days. After 30 days, Superset removes the project and its clean worktrees. Worktrees with uncommitted changes and the repository folder stay on disk.
+- **Delete permanently** on the Recently deleted page removes the project now.
 
 ## Use Cases
 

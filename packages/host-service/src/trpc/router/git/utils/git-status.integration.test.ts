@@ -210,6 +210,31 @@ describe("getGitStatusSnapshot (integration)", () => {
 		expect(untracked.every((file) => file.deletions === null)).toBe(true);
 	});
 
+	test("lists an intent-to-add rename once when rename detection also runs", async () => {
+		const body = Array.from({ length: 40 }, (_, i) => `line ${i}\n`).join("");
+		await writeFile(join(repo, "old.txt"), body);
+		await writeFile(join(repo, "other.txt"), "other\n");
+		await git.raw(["add", "--", "old.txt", "other.txt"]);
+		await git.raw(["commit", "-m", "add files"]);
+
+		rmSync(join(repo, "old.txt"));
+		await writeFile(join(repo, "new.txt"), `${body}edited\n`);
+		await git.raw(["add", "--intent-to-add", "--", "new.txt"]);
+		rmSync(join(repo, "other.txt"));
+		await writeFile(join(repo, "scratch.txt"), "notes\n");
+
+		const { snapshot } = await getGitStatusSnapshot({
+			git,
+			worktreePath: repo,
+		});
+
+		const paths = snapshot.unstaged.map((file) => file.path).sort();
+		expect(paths).toEqual(["new.txt", "other.txt", "scratch.txt"]);
+		expect(
+			snapshot.unstaged.find((file) => file.path === "new.txt"),
+		).toMatchObject({ status: "renamed", oldPath: "old.txt" });
+	});
+
 	test("keeps tracked-file statuses alongside untracked expansion", async () => {
 		await writeFile(join(repo, "README.md"), "hello\nworld\n");
 		await mkdir(join(repo, "newdir"), { recursive: true });

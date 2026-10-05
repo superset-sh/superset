@@ -1,8 +1,17 @@
 import { useLingui } from "@lingui/react/macro";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Stack, usePathname } from "expo-router";
+import { Platform } from "react-native";
 import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
+import { useRealtimeNudges } from "@/hooks/useRealtimeNudges";
 import { useSession } from "@/lib/auth/client";
+
+export const unstable_settings = { anchor: "(home)" };
+
+// iPad shows a form sheet as a fixed-size centered card, so a partial detent
+// only shrinks the card and clips what is inside it.
+const sheetDetents = (phoneDetents: number[]) =>
+	Platform.OS === "ios" && Platform.isPad ? [1.0] : phoneDetents;
 
 const pageScreenOptions = {
 	headerShown: true,
@@ -29,6 +38,7 @@ const glassHeaderOptions = {
 
 export default function AuthenticatedLayout() {
 	usePrimeRelayUrl();
+	useRealtimeNudges();
 
 	const { t } = useLingui();
 	const { data: session } = useSession();
@@ -55,19 +65,9 @@ export default function AuthenticatedLayout() {
 				options={{ ...pageScreenOptions, title: t({ message: "Pages" }) }}
 			/>
 			<Stack.Screen
-				name="pages/filter"
-				options={{
-					presentation: "formSheet",
-					title: t({ message: "Filter" }),
-					sheetAllowedDetents: [0.4],
-					sheetGrabberVisible: true,
-					...glassHeaderOptions,
-				}}
-			/>
-			<Stack.Screen
 				name="pages/[slug]/index"
 				options={{
-					...pageScreenOptions,
+					...glassHeaderOptions,
 					title: "",
 					headerBackTitle: t({ message: "Pages" }),
 				}}
@@ -77,19 +77,18 @@ export default function AuthenticatedLayout() {
 				options={{
 					presentation: "formSheet",
 					title: "",
-					sheetAllowedDetents: [0.6, 1.0],
+					sheetAllowedDetents: sheetDetents([0.6, 1.0]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
 			/>
 			<Stack.Screen
-				name="pages/[slug]/quick"
+				name="pages/[slug]/comment"
 				options={{
-					presentation: "formSheet",
-					title: t({ message: "Quick feedback" }),
-					sheetAllowedDetents: [0.6],
-					sheetGrabberVisible: true,
-					...glassHeaderOptions,
+					presentation: "transparentModal",
+					headerShown: false,
+					animation: "fade",
+					contentStyle: { backgroundColor: "transparent" },
 				}}
 			/>
 			<Stack.Screen
@@ -106,7 +105,7 @@ export default function AuthenticatedLayout() {
 				options={{
 					presentation: "formSheet",
 					title: t({ message: "Share page" }),
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
@@ -158,7 +157,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/commits"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({ message: "Commits" }),
@@ -168,7 +167,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/line-comment"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({
@@ -180,7 +179,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/finish-review"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({
@@ -192,9 +191,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/actions"
 				options={{
 					presentation: "formSheet",
-					// Half height is the whole sheet when there is nothing but Info;
-					// the full detent is what the pages grid needs to be scrollable.
-					sheetAllowedDetents: [0.65, 1.0],
+					sheetAllowedDetents: [1.0],
 					sheetGrabberVisible: true,
 					// The workspace name is the sheet's own centred headline, so
 					// the bar carries no title — only the native close button.
@@ -206,7 +203,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/sessions"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.5],
+					sheetAllowedDetents: sheetDetents([0.5]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({ message: "Sessions" }),
@@ -216,7 +213,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/new-session"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.5],
+					sheetAllowedDetents: sheetDetents([0.5]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({
@@ -228,7 +225,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/pull-requests"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.5],
+					sheetAllowedDetents: sheetDetents([0.5]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
@@ -246,7 +243,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/pull-request/[pullRequestId]/checks"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
@@ -255,7 +252,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/pull-request/[pullRequestId]/reviewers"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.5],
+					sheetAllowedDetents: sheetDetents([0.5]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
@@ -264,7 +261,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/pull-request/[pullRequestId]/check"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.6],
+					sheetAllowedDetents: sheetDetents([0.6]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 				}}
@@ -273,7 +270,7 @@ export default function AuthenticatedLayout() {
 				name="workspace/[id]/jump-to-file"
 				options={{
 					presentation: "formSheet",
-					sheetAllowedDetents: [0.75],
+					sheetAllowedDetents: sheetDetents([0.75]),
 					sheetGrabberVisible: true,
 					...glassHeaderOptions,
 					title: t({

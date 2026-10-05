@@ -4,16 +4,20 @@ import path from "node:path";
 import { promisify } from "node:util";
 import {
 	createManagedSkills,
+	mcpHeadersHelperCommand,
+	readPluginConnections,
 	resolveDisabledSkillIds,
 	syncManagedMcpServers,
+	writePluginConnections,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
 import { getBundledPluginDir } from "@superset/agent-setup/config";
 import { settings } from "@superset/local-db";
 import {
+	desiredPluginMcpServers,
 	getPluginByName,
 	type InstalledPlugin,
-	type PluginMcpServerConfig,
+	type PluginConnectionRef,
 	SUPERSET_MANAGED_SKILLS,
 } from "@superset/shared/plugins";
 import log from "electron-log/main";
@@ -48,6 +52,7 @@ async function runPluginCli(args: string[]): Promise<void> {
 	try {
 		await execFileAsync(cli, ["plugins", ...args, "--json"], {
 			timeout: 60_000,
+			env: { ...process.env, SUPERSET_CLI_AUDIENCE: "internal" },
 		});
 	} catch (error) {
 		log.warn(
@@ -72,25 +77,17 @@ function saveInstalledPlugins(next: InstalledPlugin[]): void {
 		.run();
 }
 
-function desiredMcpServers(
-	installed: InstalledPlugin[],
-): Record<string, PluginMcpServerConfig> {
-	const desired: Record<string, PluginMcpServerConfig> = {};
-	for (const install of installed) {
-		// Disabled installs and unknown names (a catalog entry removed after
-		// install) contribute nothing, so their servers reap on the next sync.
-		// Per-agent skipping of servers the user configured themselves happens
-		// inside syncManagedMcpServers, scoped to each agent's own config.
-		if (install.enabled === false) continue;
-		const plugin = getPluginByName(install.name);
-		if (!plugin) continue;
-		Object.assign(desired, plugin.mcpServers);
-	}
-	return desired;
-}
-
-export function syncInstalledPluginMcpServers(): void {
-	syncManagedMcpServers(desiredMcpServers(getInstalledPlugins()));
+/** Absent `connections` (boot, an install) falls back to the last synced set. */
+export function syncInstalledPluginMcpServers(
+	connections?: readonly PluginConnectionRef[],
+): void {
+	if (connections) writePluginConnections(connections);
+	syncManagedMcpServers(
+		desiredPluginMcpServers(getInstalledPlugins(), {
+			connections: connections ?? readPluginConnections(),
+			headersHelper: mcpHeadersHelperCommand(),
+		}),
+	);
 }
 
 /** Returns the updated install list; unknown plugin names return null. */

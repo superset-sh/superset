@@ -5,6 +5,8 @@ import { accountConnection } from "@superset/trpc/connectors";
 import { headers } from "next/headers";
 import { env } from "@/env";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
+import { unfurlLinks } from "../events/process-link-shared";
+import type { ConnectPayload } from "../events/utils/generate-connect-url";
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -15,7 +17,7 @@ export async function GET(request: Request) {
 		return new Response("Missing token or signature", { status: 400 });
 	}
 
-	let payload: { slackUserId: string; teamId: string; exp: number };
+	let payload: ConnectPayload;
 	try {
 		const decoded = Buffer.from(token, "base64url").toString("utf-8");
 		const expectedSig = createHmac("sha256", env.SLACK_SIGNING_SECRET)
@@ -81,6 +83,19 @@ export async function GET(request: Request) {
 		// A Slack user id is only unique within a workspace.
 		externalScopeId: payload.teamId,
 	});
+
+	if (payload.unfurl) {
+		await unfurlLinks({
+			connection,
+			teamId: payload.teamId,
+			slackUserId: payload.slackUserId,
+			channel: payload.unfurl.channel,
+			ts: payload.unfurl.ts,
+			urls: [payload.unfurl.url],
+		}).catch((error: unknown) => {
+			console.error("[slack/link] Failed to unfurl after linking:", error);
+		});
+	}
 
 	return Response.redirect(
 		`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack/linked`,

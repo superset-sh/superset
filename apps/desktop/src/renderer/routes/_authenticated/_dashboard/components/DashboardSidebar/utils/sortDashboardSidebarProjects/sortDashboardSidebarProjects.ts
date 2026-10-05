@@ -1,21 +1,13 @@
+import {
+	getWorkspaceActivityTime,
+	toTime,
+} from "@superset/shared/workspace-activity";
 import type { SidebarProjectSortMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarWorkspace,
 } from "../../types";
-
-// Timestamps are typed as Date but can arrive as ISO strings at runtime
-// (IndexedDB snapshots, persisted query caches). Sorting is cosmetic, so
-// coerce instead of trusting the type — a bad value must never throw
-// mid-render and take the sidebar down with it (that is what got the first
-// version of this feature reverted).
-function toTime(value: Date | string | number | null | undefined): number {
-	if (value == null) return Number.NaN;
-	if (value instanceof Date) return value.getTime();
-	if (typeof value === "number") return value;
-	return new Date(value).getTime();
-}
 
 // An item with no usable timestamp sinks below everything dated. Mapping
 // NaN to -Infinity keeps the comparator a consistent total order instead of
@@ -27,21 +19,6 @@ function rankTime(time: number): number {
 function newest(times: number[]): number {
 	const known = times.filter((time) => !Number.isNaN(time));
 	return known.length > 0 ? Math.max(...known) : Number.NaN;
-}
-
-/**
- * When a workspace was last active. The host stamps `lastActivityAt` on
- * agent lifecycle events and it alone ranks the row once present; only rows
- * from a host that predates the column fall back to `updatedAt`. Deliberately
- * not `max` of the two: `updatedAt` moves on renames and bulk moves, and
- * housekeeping must not jump a workspace to the top of "Last active".
- */
-export function getWorkspaceActivityTime(
-	workspace: DashboardSidebarWorkspace,
-): number {
-	const activity = workspace.lastActivityAt;
-	if (typeof activity === "number" && !Number.isNaN(activity)) return activity;
-	return toTime(workspace.updatedAt);
 }
 
 function makeStableComparator<Item>(

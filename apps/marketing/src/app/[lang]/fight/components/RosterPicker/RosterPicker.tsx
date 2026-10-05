@@ -40,7 +40,7 @@ export function RosterPicker({ seated, onPick }: RosterPickerProps) {
 			abort.current = controller;
 			fetchSearch(term, { period: "all" }, controller.signal).then((rows) => {
 				if (controller.signal.aborted) return;
-				setResults(rows.map(fromStandingRow));
+				setResults((rows ?? []).map(fromStandingRow));
 				setBusy(false);
 			});
 		}, DEBOUNCE_MS);
@@ -58,8 +58,8 @@ export function RosterPicker({ seated, onPick }: RosterPickerProps) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center justify-between gap-4">
-				<span className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<span className="text-xs font-medium text-muted-foreground">
 					{searching ? "leaderboard" : "the regulars"}
 				</span>
 				<div className="relative w-full max-w-[15rem]">
@@ -77,7 +77,7 @@ export function RosterPicker({ seated, onPick }: RosterPickerProps) {
 						aria-label={translate(
 							msg({ message: "Search the leaderboard for a fighter" }),
 						)}
-						className="w-full border border-border bg-transparent pl-8 pr-8 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-foreground placeholder:text-muted-foreground/50 placeholder:normal-case focus:outline-none focus:border-brand/60 transition-colors"
+						className="w-full border border-border bg-transparent pl-8 pr-8 min-h-11 rounded-[2px] py-2 text-sm text-foreground placeholder:text-muted-foreground/50 placeholder:normal-case focus:outline-none focus:border-brand/60 transition-colors"
 					/>
 					{busy && (
 						<span className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[0.7rem] text-muted-foreground/60">

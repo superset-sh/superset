@@ -9,6 +9,13 @@ export type WorkspaceSort = "updatedAt" | "createdAt";
 /** Cloud is a place you scope to, not a machine you own. */
 export type WorkspaceScope = "cloud" | "host";
 
+export type CloudStatusFilter = "active" | "archived";
+
+export type CloudCreatorFilter =
+	| "me"
+	| "anyone"
+	| { userId: string; name: string; image: string | null };
+
 export const SORT_OPTIONS: {
 	value: WorkspaceSort;
 	label: MessageDescriptor;
@@ -27,11 +34,15 @@ interface WorkspacesFilterStore {
 	hostFilter: string | null;
 	scope: WorkspaceScope;
 	sort: WorkspaceSort;
+	cloudStatus: CloudStatusFilter;
+	cloudCreator: CloudCreatorFilter;
 	/** False until AsyncStorage has answered — the saved filter isn't here yet. */
 	hasHydrated: boolean;
 	setHostFilter: (machineId: string | null) => void;
 	setScopeCloud: () => void;
 	setSort: (sort: WorkspaceSort) => void;
+	setCloudStatus: (status: CloudStatusFilter) => void;
+	setCloudCreator: (creator: CloudCreatorFilter) => void;
 }
 
 export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
@@ -40,6 +51,8 @@ export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
 			hostFilter: null,
 			scope: "host",
 			sort: "updatedAt",
+			cloudStatus: "active",
+			cloudCreator: "me",
 			hasHydrated: false,
 			// Picking a machine is also how you leave Cloud; the machine is
 			// remembered either way so Cloud → machine returns you where you were.
@@ -47,14 +60,17 @@ export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
 				set({ hostFilter: machineId, scope: "host" }),
 			setScopeCloud: () => set({ scope: "cloud" }),
 			setSort: (sort) => set({ sort }),
+			setCloudStatus: (cloudStatus) => set({ cloudStatus }),
+			setCloudCreator: (cloudCreator) => set({ cloudCreator }),
 		}),
 		{
 			name: "workspaces-filter",
 			storage: createJSONStorage(() => AsyncStorage),
-			partialize: ({ hostFilter, scope, sort }) => ({
+			partialize: ({ hostFilter, scope, sort, cloudCreator }) => ({
 				hostFilter,
 				scope,
 				sort,
+				cloudCreator,
 			}),
 			// Rehydration is async — measured at ~165ms on a cold start — so
 			// readers see the defaults first and the home screen would spend that

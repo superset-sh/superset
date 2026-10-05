@@ -3,5 +3,6 @@ import type { SessionSnapshot, TurnGroup } from "../../core";
 import { deriveTimeline } from "../../core";
 
 export function useTimeline(snapshot: SessionSnapshot): TurnGroup[] {
-	return useMemo(() => deriveTimeline(snapshot), [snapshot]);
+	const { items, turns } = snapshot;
+	return useMemo(() => deriveTimeline({ items, turns }), [items, turns]);
 }

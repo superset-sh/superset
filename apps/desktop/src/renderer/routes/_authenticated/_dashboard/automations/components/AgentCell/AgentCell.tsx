@@ -1,8 +1,7 @@
 import { getPresetById } from "@superset/shared/host-agent-presets";
 import { LuCpu } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
-import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useAutomationAgentChoices } from "../../hooks/useAutomationAgentChoices";
 import { matchAgentChoice } from "../../utils/agentIdentity";
 
 export function AgentCell({
@@ -12,8 +11,7 @@ export function AgentCell({
 	agentId: string;
 	hostId: string | null;
 }) {
-	const hostUrl = useHostUrl(hostId);
-	const { agents } = useV2AgentChoices(hostUrl);
+	const { agents } = useAutomationAgentChoices(hostId);
 	const hostMatch = matchAgentChoice(agents, agentId);
 	const presetMatch = hostMatch ? null : getPresetById(agentId);
 	const label = hostMatch?.label ?? presetMatch?.label ?? agentId;

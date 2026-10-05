@@ -73,7 +73,7 @@ export function AccountPendingDeletionScreen() {
 			<View className="w-full items-center gap-3">
 				<Button
 					size="lg"
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 					onPress={isReactivating ? undefined : handleReactivate}
 				>
 					<Text>
@@ -89,7 +89,7 @@ export function AccountPendingDeletionScreen() {
 				<Button
 					variant="outline"
 					size="lg"
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 					onPress={() => Linking.openURL(COMPANY.MAIL_TO)}
 				>
 					<Text>
@@ -99,7 +99,7 @@ export function AccountPendingDeletionScreen() {
 				<Button
 					variant="ghost"
 					size="lg"
-					className="w-4/5"
+					className="w-4/5 max-w-sm"
 					onPress={isSigningOut ? undefined : () => void signOut()}
 				>
 					<Text>

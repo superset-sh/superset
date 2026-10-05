@@ -52,4 +52,19 @@ describe("assertPageWritable", () => {
 		const row = page({ visibility: "just_me" });
 		expect(codeOf(() => assertPageWritable(row, OTHER))).toBe("NOT_FOUND");
 	});
+
+	test("a taken-down page refuses its own creator", () => {
+		const row = page({ takenDownAt: new Date() });
+		expect(codeOf(() => assertPageWritable(row, OWNER))).toBe("FORBIDDEN");
+	});
+
+	test("a taken-down just_me page still answers NOT_FOUND to an outsider", () => {
+		const row = page({ visibility: "just_me", takenDownAt: new Date() });
+		expect(codeOf(() => assertPageWritable(row, OTHER))).toBe("NOT_FOUND");
+	});
+
+	test("a page that was never taken down is unaffected", () => {
+		const row = page({ takenDownAt: null });
+		expect(codeOf(() => assertPageWritable(row, OWNER))).toBeUndefined();
+	});
 });

@@ -513,16 +513,7 @@ export function OrganizationSettings({
 
 					{showMembersSection && (
 						<section className="space-y-6">
-							{currentUserRole &&
-								activeOrganizationId &&
-								organization?.name && (
-									<PendingInvitations
-										visibleItems={visibleItems}
-										currentUserRole={currentUserRole}
-										organizationId={activeOrganizationId}
-										organizationName={organization.name}
-									/>
-								)}
+							<PendingInvitations visibleItems={visibleItems} />
 
 							{showMembersList && (
 								<div>

@@ -12,14 +12,15 @@
 	},
 	"dependencies": {
 		"@lexical/react": "0.41.0",
-		"@lingui/core": "6.6.0",
-		"@lingui/react": "6.6.0",
+		"@lingui/core": "6.8.0",
+		"@lingui/react": "6.8.0",
 		"@shadcn/react": "0.2.1",
 		"@superset/chat": "workspace:*",
 		"@superset/i18n": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"lexical": "0.41.0",
-		"lucide-react": "0.563.0"
+		"lucide-react": "0.563.0",
+		"streamdown": "2.5.0"
 	},
 	"devDependencies": {
 		"@storybook/react-vite": "10.4.2",
@@ -30,7 +31,7 @@
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"storybook": "10.4.2",
-		"typescript": "6.0.3"
+		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
 		"react": "19.2.3"

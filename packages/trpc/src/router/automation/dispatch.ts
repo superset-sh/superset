@@ -4,26 +4,38 @@ import type { AutomationRunErrorCode } from "@superset/db/enums";
 import {
 	automationEvents,
 	automationRuns,
-	automations,
 	githubRepositories,
 	type SelectAutomation,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
 } from "@superset/db/schema";
+import { CLOUD_AGENT_PROMPT_MAX_LENGTH } from "@superset/shared/cloud-agent-launch";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	CLOUD_HOST_ID,
+} from "@superset/shared/host-routing";
 import {
 	deduplicateBranchName,
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
+import { runInCloud } from "./cloudDispatch";
 import { RelayDispatchError, relayMutation } from "./relay-client";
+import {
+	type AgentRunResult,
+	classifyDispatchError,
+	describeError,
+	nonForkPullRequest,
+	previousRunTerminal,
+	type RunWorkspace,
+	replacePin,
+} from "./run";
 import { promptWithTriggerContext } from "./triggerContext";
-
-type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
@@ -56,6 +68,8 @@ export type DispatchableAutomation = Pick<
 	| "targetHostId"
 	| "v2ProjectId"
 	| "v2WorkspaceId"
+	| "cloudWorkspaceId"
+	| "environmentId"
 	| "tags"
 	| "continueAgentSession"
 >;
@@ -134,6 +148,28 @@ export async function dispatchAutomation(
 		};
 	}
 
+	if (automation.targetHostId === CLOUD_HOST_ID) {
+		return dispatchRun(
+			automation,
+			cause,
+			CLOUD_HOST_ID,
+			async (_run, placed) => {
+				const event = await causeEvent(cause);
+				return runInCloud({
+					automation,
+					prompt: runPrompt(
+						automation,
+						cause,
+						event,
+						CLOUD_AGENT_PROMPT_MAX_LENGTH,
+					),
+					event,
+					placed,
+				});
+			},
+		);
+	}
+
 	const candidates = await resolveCandidateHosts(automation);
 	if (candidates.length === 0) {
 		const error = "no host available";
@@ -172,23 +208,7 @@ export async function dispatchAutomation(
 		};
 	}
 
-	const [run] = await db
-		.insert(automationRuns)
-		.values({
-			automationId: automation.id,
-			organizationId: automation.organizationId,
-			title: automation.name,
-			...cause,
-			hostId: host.machineId,
-			status: "dispatching",
-		})
-		.onConflictDoNothing(runDedupTarget(cause))
-		.returning();
-
-	if (!run) return { status: "conflict" };
-
-	let workspaceId: string | null = null;
-	try {
+	return dispatchRun(automation, cause, host.machineId, async (run, placed) => {
 		const jwt = await mintUserJwt({
 			userId: automation.ownerUserId,
 			organizationIds: [automation.organizationId],
@@ -202,22 +222,7 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		const event = cause.eventId
-			? ((await db.query.automationEvents.findFirst({
-					where: eq(automationEvents.id, cause.eventId),
-					columns: {
-						provider: true,
-						eventType: true,
-						title: true,
-						url: true,
-						actorLogin: true,
-						ref: true,
-						repositoryId: true,
-						payload: true,
-						receivedAt: true,
-					},
-				})) ?? null)
-			: null;
+		const event = await causeEvent(cause);
 		const pullRequest = event
 			? await pullRequestToCheckOut(event, automation.v2ProjectId)
 			: null;
@@ -232,24 +237,19 @@ export async function dispatchAutomation(
 				runId: run.id,
 				pullRequest,
 			});
+			placed({ v2WorkspaceId: created.workspaceId });
 			return created.workspaceId;
 		};
 
-		const prompt = promptWithTriggerContext(
-			automation.prompt,
-			{
-				automationId: automation.id,
-				triggerId: cause.triggerId,
-				scheduledFor: cause.scheduledFor,
-			},
-			event,
-		);
+		const prompt = runPrompt(automation, cause, event);
 
 		// Opt-in, and only for a pinned workspace: that is where a session from
 		// a previous run can still be alive.
 		const continueTerminalId =
 			automation.continueAgentSession && automation.v2WorkspaceId
-				? await previousRunTerminal(automation.id, automation.v2WorkspaceId)
+				? await previousRunTerminal(automation.id, {
+						v2WorkspaceId: automation.v2WorkspaceId,
+					})
 				: undefined;
 
 		const runAgent = (targetWorkspaceId: string) =>
@@ -267,16 +267,16 @@ export async function dispatchAutomation(
 					: {}),
 			});
 
-		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
+		const stalePin = automation.v2WorkspaceId;
+		if (stalePin) placed({ v2WorkspaceId: stalePin });
+		const workspaceId = stalePin ?? (await createFreshWorkspace());
 
-		let result: AgentRunResult;
 		try {
-			result = await runAgent(workspaceId);
+			return await runAgent(workspaceId);
 		} catch (err) {
 			// Fall back only when the host says the pinned workspace is gone:
 			// tRPC NOT_FOUND (404) naming the pinned id. Other NOT_FOUNDs
 			// (agent config, attachments) rethrow.
-			const stalePin = automation.v2WorkspaceId;
 			const pinGone =
 				stalePin !== null &&
 				stalePin === workspaceId &&
@@ -284,33 +284,52 @@ export async function dispatchAutomation(
 				err.status === 404 &&
 				err.message.includes(stalePin);
 			if (!pinGone) throw err;
-			// Clear the pin (CAS so a concurrent repin is never erased) and use
-			// a fresh workspace from here on.
-			await db
-				.update(automations)
-				// The session to continue lived in that workspace, so the flag
-				// goes with the pin — the same rule the API applies on update.
-				.set({ v2WorkspaceId: null, continueAgentSession: false })
-				.where(
-					and(
-						eq(automations.id, automation.id),
-						eq(automations.v2WorkspaceId, stalePin),
-					),
-				);
-			// Don't let the outer catch record the dead id if fresh-create throws.
-			workspaceId = null;
-			workspaceId = await createFreshWorkspace();
-			result = await runAgent(workspaceId);
+			await replacePin(automation.id, { v2WorkspaceId: stalePin }, null);
+			// Don't let a failed fresh create record the dead id.
+			placed(null);
+			return runAgent(await createFreshWorkspace());
 		}
+	});
+}
 
+/** Inserts the run and always settles it, so no run stays in `dispatching`. */
+async function dispatchRun(
+	automation: DispatchableAutomation,
+	cause: RunCause,
+	hostId: string,
+	start: (
+		run: { id: string },
+		placed: (workspace: RunWorkspace | null) => void,
+	) => Promise<AgentRunResult | null>,
+): Promise<DispatchOutcome> {
+	const [run] = await db
+		.insert(automationRuns)
+		.values({
+			automationId: automation.id,
+			organizationId: automation.organizationId,
+			title: automation.name,
+			...cause,
+			hostId,
+			status: "dispatching",
+		})
+		.onConflictDoNothing(runDedupTarget(cause))
+		.returning();
+
+	if (!run) return { status: "conflict" };
+
+	let workspace = null as RunWorkspace | null;
+	try {
+		const session = await start(run, (placed) => {
+			workspace = placed;
+		});
 		await db
 			.update(automationRuns)
 			.set({
 				status: "dispatched",
-				sessionKind: result.kind,
+				sessionKind: session?.kind ?? null,
 				chatSessionId: null,
-				terminalSessionId: result.sessionId,
-				v2WorkspaceId: workspaceId,
+				terminalSessionId: session?.sessionId ?? null,
+				...workspace,
 				dispatchedAt: new Date(),
 			})
 			.where(eq(automationRuns.id, run.id));
@@ -319,17 +338,52 @@ export async function dispatchAutomation(
 		const errorCode = classifyDispatchError(err);
 		await db
 			.update(automationRuns)
-			.set({
-				status: "dispatch_failed",
-				v2WorkspaceId: workspaceId,
-				error,
-				errorCode,
-			})
+			.set({ status: "dispatch_failed", ...workspace, error, errorCode })
 			.where(eq(automationRuns.id, run.id));
+		nudge(automation.organizationId, "automation_runs");
 		return { status: "dispatch_failed", runId: run.id, error, errorCode };
 	}
 
+	nudge(automation.organizationId, "automation_runs");
 	return { status: "dispatched", runId: run.id };
+}
+
+function runPrompt(
+	automation: DispatchableAutomation,
+	cause: RunCause,
+	event: Awaited<ReturnType<typeof causeEvent>>,
+	maxLength?: number,
+): string {
+	return promptWithTriggerContext(
+		automation.prompt,
+		{
+			automationId: automation.id,
+			triggerId: cause.triggerId,
+			scheduledFor: cause.scheduledFor,
+		},
+		event,
+		maxLength,
+	);
+}
+
+async function causeEvent(cause: RunCause) {
+	if (!cause.eventId) return null;
+	return (
+		(await db.query.automationEvents.findFirst({
+			where: eq(automationEvents.id, cause.eventId),
+			columns: {
+				provider: true,
+				eventType: true,
+				title: true,
+				url: true,
+				actorLogin: true,
+				ref: true,
+				repositoryId: true,
+				payload: true,
+				receivedAt: true,
+			},
+		})) ?? null
+	);
 }
 
 async function resolveCandidateHosts(
@@ -464,18 +518,17 @@ async function recordUndispatched(
 		})
 		.onConflictDoNothing(runDedupTarget(cause))
 		.returning({ id: automationRuns.id });
+	if (row) nudge(automation.organizationId, "automation_runs");
 	return row;
 }
 
 /**
  * The pull request a run should be checked out on, or null to branch fresh.
  *
- * Only for a GitHub event that names one, and only when the automation's
- * project really is that repository: a trigger watching one repo can dispatch
- * into a project pointed at another, and PR numbers are per-repository, so an
- * unchecked number would check out an unrelated pull request. Fork pull
- * requests are refused for the same reason `includeForks` is a literal false —
- * their head is attacker-controlled content the agent would then run in.
+ * Only when the automation's project really is the event's repository: a
+ * trigger watching one repo can dispatch into a project pointed at another,
+ * and PR numbers are per-repository, so an unchecked number would check out
+ * an unrelated pull request.
  *
  * `pr` has been on `workspaces.create` since 0.1.0, well under the host floor,
  * so there is no version to gate on.
@@ -484,22 +537,10 @@ async function pullRequestToCheckOut(
 	event: { provider: string; repositoryId: string | null; payload: unknown },
 	projectId: string | null,
 ): Promise<number | null> {
-	if (event.provider !== "github") return null;
 	// A session automation has no project, and so no repository to check out in.
 	if (projectId === null || event.repositoryId === null) return null;
-
-	const payload = event.payload as {
-		pull_request?: { number?: number; head?: { repo?: { fork?: boolean } } };
-	} | null;
-	// Only a PR-shaped payload carries the head repository, and its absence is
-	// not evidence of absence: an `issue_comment` on a fork PR is
-	// indistinguishable from one on a local PR, which is why the matcher's
-	// `isFork` is false for both. So require a positive "not a fork" rather
-	// than refusing only an explicit one — a comment event names a PR number
-	// it cannot prove is safe, and must not check one out.
-	if (payload?.pull_request?.head?.repo?.fork !== false) return null;
-	const number = payload.pull_request.number;
-	if (number === undefined) return null;
+	const pullRequest = nonForkPullRequest(event);
+	if (!pullRequest) return null;
 
 	const [project] = await db
 		.select({ repoCloneUrl: v2Projects.repoCloneUrl })
@@ -521,7 +562,7 @@ async function pullRequestToCheckOut(
 	// GitHub slugs are case-insensitive, on both sides of the comparison.
 	return repository.fullName.toLowerCase() ===
 		`${parsed.owner}/${parsed.name}`.toLowerCase()
-		? number
+		? pullRequest.number
 		: null;
 }
 
@@ -678,64 +719,4 @@ async function runAgentOnHost(args: {
 				: {}),
 		},
 	);
-}
-
-/**
- * The terminal this automation's own last run left in its pinned workspace,
- * for the host to deliver into instead of launching beside it.
- *
- * Deliberately the automation's own previous run rather than any live agent in
- * the workspace: a person may be working in there too, and a scheduled prompt
- * must never land in a session they started. An unpinned automation branches a
- * fresh workspace per run and so has nothing to continue.
- *
- * The host decides in the end — this only nominates, and a stale nomination
- * costs a launch, which is the old behaviour.
- */
-async function previousRunTerminal(
-	automationId: string,
-	workspaceId: string,
-): Promise<string | undefined> {
-	const [previous] = await db
-		.select({ terminalSessionId: automationRuns.terminalSessionId })
-		.from(automationRuns)
-		.where(
-			and(
-				eq(automationRuns.automationId, automationId),
-				eq(automationRuns.v2WorkspaceId, workspaceId),
-				eq(automationRuns.status, "dispatched"),
-				eq(automationRuns.sessionKind, "terminal"),
-				isNotNull(automationRuns.terminalSessionId),
-			),
-		)
-		// createdAt rather than dispatchedAt: it matches automation_runs_history_idx.
-		.orderBy(desc(automationRuns.createdAt))
-		.limit(1);
-	return previous?.terminalSessionId ?? undefined;
-}
-
-/**
- * The host's failure, as something a client can branch on.
- *
- * Matched on the host's wording here rather than in each client: the desktop
- * used to grep these strings itself, which breaks the moment the message is
- * translated, and left three packages coupled through prose. This is still a
- * string match, but it is one, on the server, next to the transport that
- * produced it — swap it for a typed cause once the host floor carries one.
- */
-function classifyDispatchError(err: unknown): AutomationRunErrorCode | null {
-	if (!(err instanceof RelayDispatchError)) return null;
-	if (err.message.includes("No host agent config matching")) {
-		return "agent_not_found";
-	}
-	if (err.status === 404 && err.message.includes("not found on this host")) {
-		return "workspace_not_found";
-	}
-	return null;
-}
-
-function describeError(err: unknown, context: string): string {
-	if (err instanceof RelayDispatchError) return `${context}: ${err.message}`;
-	if (err instanceof Error) return `${context}: ${err.message}`;
-	return `${context}: unknown error`;
 }

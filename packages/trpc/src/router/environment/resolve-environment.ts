@@ -9,6 +9,7 @@ export interface ResolvedEnvironment {
 	provider: string;
 	sourceKind: "image" | "fork";
 	sourceRef: string;
+	region: string;
 	bundleSha: string | null;
 	hooksRepositoryId: string | null;
 	envs: Record<string, string>;
@@ -51,6 +52,7 @@ export async function resolveEnvironment(
 		provider: row.provider,
 		sourceKind: row.sourceKind,
 		sourceRef: row.sourceRef,
+		region: row.region,
 		bundleSha: row.bundleSha,
 		hooksRepositoryId: row.hooksRepositoryId,
 		envs,

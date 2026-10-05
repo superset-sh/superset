@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 description: Learn how Superset collects, uses, and protects your personal information.
-lastUpdated: 2026-08-13
+lastUpdated: 2026-09-29
 ---
 
 ## 1. Introduction
@@ -15,6 +15,7 @@ Please read this policy carefully. If you do not agree with the terms of this Pr
 ### 2.1 Information You Provide
 
 - **Account Data:** When you sign up for our waitlist or create an account (including via Sign in with Apple, GitHub, or Google), we may collect your name, email address, and other contact information.
+- **Connected Accounts:** If you connect a third-party account (such as Google, GitHub, Linear, Notion, Sentry, or Slack), we store the access credentials for that account and the data the connected service returns for the features you use. Section 5 describes Google data in full.
 - **User Content:** Messages, tasks, and attachments (such as images) you send to AI agents through our applications are transmitted to and stored by our services so they can be delivered to your workspaces and synced across your devices.
 - **Communications:** When you contact us for support or feedback, we collect the information you provide in those communications.
 - **Payment Data:** If you make a purchase, payment information is processed by our third-party payment processors. We do not store your full payment card details.
@@ -54,15 +55,69 @@ We do not sell your personal information. We may share your information in the f
 - **Protection of Rights:** To protect our rights, privacy, safety, or property, or that of our users or the public.
 - **Business Transfers:** In connection with a merger, acquisition, or sale of assets.
 
-## 5. Data Retention
+## 5. Google User Data
+
+This section describes how Superset accesses, uses, stores, and shares data from your Google Account. It adds to the rest of this policy, and it controls if the two ever disagree.
+
+### 5.1 Sign in with Google
+
+If you sign in with Google, we receive your Google account identifier, email address, name, and profile picture. We use them to create your Superset account, to sign you in, and to show you to your teammates. Signing in with Google gives us no access to your Gmail, Calendar, Drive, or any other Google service.
+
+### 5.2 Connecting a Google Account
+
+Connecting a Google Account is optional and separate from signing in. You connect it so that Superset can work with your Gmail for you: to start an automation when mail arrives, and to let an AI agent read, search, organize, draft, and send mail when you ask it to.
+
+We request these Google API scopes, and we use each one only for the purpose listed:
+
+- `openid`, `email`: identify which Google Account you connected, and show its address in Superset.
+- `gmail.readonly`: read message headers and labels, so an automation can start when new mail arrives, and read the messages and attachments you ask an agent to open.
+- `gmail.compose`, `gmail.modify`: create and send drafts, and change labels or read state, when you ask an agent to.
+- `gmail.labels`: create, rename, and delete Gmail labels at your request.
+- `gmail.settings.basic`: read and manage the Gmail filters you ask an agent to set up.
+- `https://mail.google.com/`: Google grants some mailbox operations only under full mail access, including permanently deleting a message or a thread.
+
+Our Google consent screen also requests read-only Calendar access (`calendar.readonly`). Superset does not read your calendar, and we will update this policy before any feature does.
+
+### 5.3 Google Data We Store
+
+- **Credentials:** The access token and refresh token for the connected account. We encrypt them with AES-256-GCM before we write them to our database, and we use them only to call the Google APIs listed in Section 5.2.
+- **Account details:** The connected mailbox address, your Google account identifier, your Google profile name, and the scopes you granted, so we can show you which account is connected and keep the connection working.
+- **Mail metadata for automations:** When a message starts an automation, we record its subject, sender, To and Cc addresses, date, message and thread identifiers, Gmail labels, and whether it has an attachment.
+
+**We do not store the body of your messages, and we do not store your attachments.** An agent fetches that content from Gmail when you ask it to, and it stays in your mailbox.
+
+### 5.4 How We Use and Share Google Data
+
+- We use Google data only to run the features you turn on. We do not use it for any other purpose.
+- When you ask an AI agent to work with your mail, the message content and attachments it fetches are sent to our AI provider to carry out your request, and are returned to you in that conversation. Our AI providers do not use this data to train their models. Section 4 and our [Subprocessors](/subprocessors) page describe the providers we use.
+- Mail from a connected account is scoped to the person who connected it. Only that member's automations can match its messages.
+- No one at Superset reads your Google data, except where you ask us to fix a problem, where it is needed to investigate abuse or a security incident, or where the law requires it.
+
+### 5.5 Limited Use
+
+Superset's use of data received from Google APIs follows the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including its Limited Use requirements. We do not:
+
+- Use Google user data for advertising of any kind, including personalized, targeted, or retargeted advertising.
+- Sell or transfer Google user data to data brokers, information resellers, or any other party that resells data.
+- Use Google user data for credit assessment, lending, or any similar decision.
+- Use Google user data to train or improve generalized or non-personalized artificial intelligence or machine learning models.
+- Transfer Google user data to anyone except as needed to provide or improve the features you use, to comply with the law, or as part of a merger or acquisition, after we give you notice and obtain your consent where that is required.
+
+### 5.6 Retention and Deletion of Google Data
+
+- You can disconnect a Google Account at any time, from Settings → Integrations in the desktop app or the Integrations page on the web app. When you disconnect, we revoke our access with Google, stop watching the mailbox, and delete the stored tokens.
+- You can also remove our access directly at [myaccount.google.com/permissions](https://myaccount.google.com/permissions). Our access ends immediately, and we stop receiving mail notifications.
+- The mail metadata described in Section 5.3 stays with your organization's records until the organization or your account is deleted. Sections 6 and 8 describe that. To have it deleted sooner, email [privacy@superset.sh](mailto:privacy@superset.sh).
+
+## 6. Data Retention
 
 We retain your personal information for as long as necessary to fulfill the purposes for which it was collected, comply with our legal obligations, resolve disputes, and enforce our agreements. When data is no longer needed, we securely delete or anonymize it.
 
-## 6. Data Security
+## 7. Data Security
 
 We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
 
-## 7. Your Rights
+## 8. Your Rights
 
 Depending on your location, you may have certain rights regarding your personal information, including:
 
@@ -74,23 +129,23 @@ Depending on your location, you may have certain rights regarding your personal 
 
 You can delete your account at any time from Settings in our mobile application, from Settings → Account → Delete account in our desktop application, or from your account settings on our website. Your account is deactivated immediately and permanently deleted after a 30-day recovery period, during which you can restore it by signing back in. After deletion, content you created in shared organizations is retained in de-identified form as part of those organizations' records. To exercise your other rights, please contact us using the information provided below.
 
-## 8. Cookies and Tracking Technologies
+## 9. Cookies and Tracking Technologies
 
 We use cookies and similar tracking technologies to collect information about your browsing activities. You can control cookies through your browser settings. Note that disabling cookies may affect the functionality of our website.
 
-## 9. Third-Party Links
+## 10. Third-Party Links
 
 Our services may contain links to third-party websites or services. We are not responsible for the privacy practices of these third parties. We encourage you to review the privacy policies of any third-party sites you visit.
 
-## 10. Children's Privacy
+## 11. Children's Privacy
 
 Our services are not intended for individuals under the age of 16. We do not knowingly collect personal information from children. If we become aware that we have collected data from a child without parental consent, we will take steps to delete that information.
 
-## 11. Changes to This Policy
+## 12. Changes to This Policy
 
 We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the "Last updated" date. Your continued use of our services after such changes constitutes acceptance of the updated policy.
 
-## 12. Contact Us
+## 13. Contact Us
 
 If you have any questions about this Privacy Policy or our data practices, please contact us at:
 

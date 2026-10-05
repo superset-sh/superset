@@ -28,6 +28,7 @@ import {
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { resolveWriteTarget } from "@superset/agent-setup";
 import type { HostDb } from "../../../../db";
 import { resolveDefaultAccountEnv } from "../../usage/default-account";
 
@@ -91,19 +92,23 @@ function resolveTrustTarget(
  * Same-directory tmp write + rename, so a crash never truncates the store.
  * The replacement keeps the store's existing mode — these files can sit next
  * to credentials, so a user-tightened mode must survive the rewrite — and a
- * brand-new store starts owner-only.
+ * brand-new store starts owner-only. `~/.codex/config.toml` is one of the
+ * files people most often symlink into a dotfiles repo, and rename would
+ * replace the link, so the write follows it to the same target agent-setup's
+ * writeFileIfChanged resolves.
  */
 async function atomicWrite(file: string, content: string): Promise<void> {
-	const mode = await stat(file).then(
+	const target = resolveWriteTarget(file);
+	const mode = await stat(target).then(
 		(info) => info.mode & 0o777,
 		() => 0o600,
 	);
-	const tmpDir = await mkdtemp(join(dirname(file), ".superset-trust-"));
+	const tmpDir = await mkdtemp(join(dirname(target), ".superset-trust-"));
 	const tmpFile = join(tmpDir, "next");
 	try {
 		await writeFile(tmpFile, content);
 		await chmod(tmpFile, mode);
-		await rename(tmpFile, file);
+		await rename(tmpFile, target);
 	} finally {
 		await rm(tmpDir, { recursive: true, force: true });
 	}

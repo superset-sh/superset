@@ -156,7 +156,7 @@ export function buildHomeView({
 			type: "section",
 			text: {
 				type: "mrkdwn",
-				text: "*DM the bot* — Start a direct message with Superset for instant access to AI assistance.\n\n*@mention in channels* — Mention <@superset> in any channel to get help in context.\n\n*Link unfurling* — Paste a Superset task link and it will automatically preview in the conversation.",
+				text: "*DM the bot* — Start a direct message with Superset for instant access to AI assistance.\n\n*@mention in channels* — Mention <@superset> in any channel to get help in context.\n\n*Link unfurling* — Paste a Superset task or page link and it will automatically preview in the conversation.",
 			},
 		},
 		{ type: "divider" },

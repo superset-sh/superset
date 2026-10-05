@@ -48,6 +48,10 @@ export const createAutomationSchema = z
 		// workspaces.create — no project means session).
 		v2ProjectId: z.string().uuid().nullish(),
 		v2WorkspaceId: z.string().uuid().nullish(),
+		// With targetHostId "cloud": a cloud workspace to reuse every run, and
+		// the environment to start one from each run (or when the pin is gone).
+		cloudWorkspaceId: z.string().uuid().nullish(),
+		environmentId: z.string().uuid().nullish(),
 		// Workspace tags applied to each run's created workspace, so runs file
 		// themselves into the matching sidebar folders.
 		tags: workspaceTagsInputSchema.optional(),
@@ -80,6 +84,8 @@ export const updateAutomationSchema = z.object({
 	// the existing project.
 	v2ProjectId: z.string().uuid().nullish(),
 	v2WorkspaceId: z.string().uuid().nullish(),
+	cloudWorkspaceId: z.string().uuid().nullish(),
+	environmentId: z.string().uuid().nullish(),
 	// Full replacement of the tag set; undefined keeps the existing tags.
 	tags: workspaceTagsInputSchema.optional(),
 	continueAgentSession: z.boolean().optional(),
@@ -100,6 +106,22 @@ export const listRunsSchema = z.object({
 	automationId: z.string().uuid(),
 	limit: z.number().int().min(1).max(100).default(20),
 });
+
+export const listOrgRunsSchema = z.object({
+	limit: z.number().int().min(1).max(100).default(50),
+	/** Narrows to one automation; the detail page's history is this list filtered. */
+	automationId: z.string().uuid().optional(),
+	// createdAt stays the database's own text form: a JS Date truncates
+	// Postgres microseconds to milliseconds, and the keyset comparison then
+	// skips every row sharing the truncated millisecond.
+	cursor: z
+		.object({ createdAt: z.string().min(1), id: z.string().uuid() })
+		.optional(),
+	status: z.enum(["all", "failed", "missed"]).default("all"),
+	scope: z.enum(["all", "mine"]).default("all"),
+});
+
+export const runPayloadSchema = z.object({ runId: z.string().uuid() });
 
 export const parseRruleSchema = z.object({
 	rrule: rruleBody,

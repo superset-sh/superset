@@ -55,8 +55,10 @@ export default async function LegalPage({ params }: PageProps) {
 	);
 }
 
-export async function generateStaticParams() {
-	return getAllLegalSlugs().map((slug) => ({ slug }));
+export function generateStaticParams() {
+	return getAllLegalSlugs()
+		.slice(0, 1)
+		.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({

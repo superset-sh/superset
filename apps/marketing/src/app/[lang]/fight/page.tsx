@@ -3,23 +3,20 @@ import { Trans } from "@lingui/react/macro";
 import { getI18nInstance } from "@superset/i18n/server";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
-import { Silkscreen } from "next/font/google";
-import { FactoryBackdrop } from "@/app/[lang]/components/FactoryBackdrop";
+import { cacheLife } from "next/cache";
+import { LeaderboardBackLink } from "@/app/[lang]/components/LeaderboardBackLink";
+import { LeaderboardHeader } from "@/app/[lang]/components/LeaderboardHeader";
+import { LeaderboardLayout } from "@/app/[lang]/components/LeaderboardLayout";
 import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import { initServerI18n } from "@/app/i18n-server";
 import { FightArena } from "./components/FightArena";
+import { FightWordmark } from "./components/FightWordmark";
 import { HOUSE_FIGHTERS } from "./constants";
 import type { Fighter } from "./utils/simulateFight";
 import { fromParticipant } from "./utils/toFighter";
 
-const pixel = Silkscreen({
-	weight: ["400", "700"],
-	subsets: ["latin"],
-	display: "swap",
-});
-
-export const revalidate = 300;
+export const instant = false;
 
 interface PageProps {
 	searchParams: Promise<{ a?: string; b?: string }>;
@@ -37,6 +34,12 @@ async function resolveMatchup(
 	return [left, right];
 }
 
+async function loadParticipant(handle: string) {
+	"use cache";
+	cacheLife({ revalidate: 300 });
+	return fetchParticipant(handle, { period: "30d" });
+}
+
 async function resolveFighter(handle?: string): Promise<Fighter | null> {
 	if (!handle) return null;
 	const normalized = handle.trim().toLowerCase();
@@ -44,7 +47,7 @@ async function resolveFighter(handle?: string): Promise<Fighter | null> {
 	const house = HOUSE_FIGHTERS.find((entry) => entry.handle === normalized);
 	if (house) return house;
 
-	const profile = await fetchParticipant(normalized, { period: "30d" });
+	const profile = await loadParticipant(normalized);
 	return profile ? fromParticipant(profile) : null;
 }
 
@@ -64,19 +67,9 @@ export async function generateMetadata({
 					}),
 				)
 			: i18n._(msg({ message: "Super Fights" }));
-	const description =
-		left && right
-			? i18n._(
-					msg({
-						message: `${left.name} and ${right.name} settle it as terminal dinosaurs. Stats decide the winner.`,
-					}),
-				)
-			: i18n._(
-					msg({
-						message:
-							"Pick two developers, watch their agent usage stats fight it out as terminal dinosaurs. Same two handles always produce the same fight.",
-					}),
-				);
+	const description = i18n._(
+		msg({ message: "Your stats, settled in mortal combat" }),
+	);
 
 	return {
 		title,
@@ -102,23 +95,16 @@ export default async function FightPage({ searchParams }: PageProps) {
 	const [left, right] = await resolveMatchup(a, b);
 
 	return (
-		<main className="relative min-h-screen">
-			<FactoryBackdrop />
-
-			<div className="relative max-w-4xl mx-auto px-6 py-10 md:py-14">
-				<header className="text-center pt-6 md:pt-10 mb-10 md:mb-14">
-					<h1
-						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
-					>
-						<Trans>Super Fights</Trans>
-					</h1>
-					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
-						<Trans>Your stats, settled in combat</Trans>
-					</p>
-				</header>
-
-				<FightArena initialA={left} initialB={right} />
+		<LeaderboardLayout>
+			<div className="mb-6">
+				<LeaderboardHeader
+					title={<FightWordmark />}
+					description={<Trans>Your stats, settled in mortal combat</Trans>}
+					navigation={<LeaderboardBackLink />}
+				/>
 			</div>
-		</main>
+
+			<FightArena initialA={left} initialB={right} />
+		</LeaderboardLayout>
 	);
 }

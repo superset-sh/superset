@@ -1,23 +1,25 @@
 import {
+	mergePresenceByUser,
 	parseRealtimeNudgeMessage,
 	REALTIME_NUDGE_KINDS,
 	type RealtimeNudgeKind,
+	type RealtimeUpdate,
 	realtimeNudgesPath,
 } from "@superset/shared/realtime";
 import { createRelaySocket } from "@superset/workspace-client";
 import { useEffect } from "react";
 import { env } from "renderer/env.renderer";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
-import { getJwt } from "renderer/lib/auth-client";
+import { ensureFreshJwt } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 /**
  * One socket per window to the realtime Worker. The API sends a nudge after
- * it writes hosts or cloud workspaces, and this refetches the matching
- * queries, which is why neither polls. A reopen refetches
- * everything once, since nudges sent while the socket was down are gone.
- * Rendered inside the providers: the subscription needs the active
- * organization.
+ * it writes hosts, cloud workspaces or automation runs: a kind refetches the matching query,
+ * a patch is applied to the cache without one, which is why neither polls.
+ * A reopen refetches everything once, since nudges sent while the socket
+ * was down are gone. Rendered inside the providers: the subscription needs
+ * the active organization.
  */
 export function RealtimeNudges() {
 	const organizationId = useActiveOrganizationId();
@@ -25,6 +27,7 @@ export function RealtimeNudges() {
 
 	useEffect(() => {
 		if (!organizationId) return;
+
 		// A hidden window marks the query stale and refetches on focus, the way
 		// its polls used to pause in the background.
 		const invalidate = (kinds: readonly RealtimeNudgeKind[]) => {
@@ -37,15 +40,52 @@ export function RealtimeNudges() {
 						void utils.host.roster.invalidate(undefined, options);
 						break;
 					case "cloud_workspaces":
-						void utils.cloudWorkspace.list.invalidate(undefined, options);
+						void utils.cloudWorkspace.invalidate(undefined, options);
+						void utils.suggestion.invalidate(undefined, options);
+						void utils.taskLabel.list.invalidate(undefined, options);
+						void utils.taskProject.list.invalidate(undefined, options);
+						break;
+					case "automation_runs":
+						void utils.automation.latestRuns.invalidate(undefined, options);
+						void utils.automation.listRuns.invalidate(undefined, options);
+						void utils.automation.listOrgRuns.invalidate(undefined, options);
+						void utils.automation.orgRunStats.invalidate(undefined, options);
 						break;
 				}
 			}
 		};
+
+		const patch = (updates: readonly RealtimeUpdate[]) => {
+			if (updates.length === 0) return;
+			utils.cloudWorkspace.list.setData({ organizationId }, (rows) =>
+				rows?.map((row) => {
+					const update = updates.find((u) => u.workspaceId === row.id);
+					if (!update) return row;
+					return {
+						...row,
+						...(update.agentStatusAt !== undefined && {
+							agentStatus: update.agentStatus ?? null,
+							agentStatusAt: new Date(update.agentStatusAt),
+						}),
+						...(update.presence && {
+							presence: mergePresenceByUser(
+								row.presence,
+								update.presence.map((person) => ({
+									...person,
+									lastSeenAt: new Date(person.lastSeenAt),
+								})),
+								(person) => person.lastSeenAt.getTime(),
+							),
+						}),
+					};
+				}),
+			);
+		};
+
 		const socket = createRelaySocket({
 			buildUrl: () =>
 				`${env.REALTIME_URL}${realtimeNudgesPath(organizationId)}`,
-			getToken: () => getJwt(),
+			getToken: () => ensureFreshJwt(),
 			minReconnectionDelay: 1_000,
 			maxReconnectionDelay: 30_000,
 		});
@@ -58,7 +98,9 @@ export function RealtimeNudges() {
 		});
 		socket.addEventListener("message", (event) => {
 			const message = parseRealtimeNudgeMessage(event.data);
-			if (message) invalidate(message.kinds);
+			if (!message) return;
+			patch(message.updates);
+			invalidate(message.kinds);
 		});
 		return () => socket.close(1000, "unsubscribed");
 	}, [organizationId, utils]);

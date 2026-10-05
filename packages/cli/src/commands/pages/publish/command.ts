@@ -1,14 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { OFFERED_VISIBILITIES } from "@superset/trpc/page-schema";
 import { command } from "../../../lib/command";
-import {
-	canReachDesktop,
-	desktopWorkspaceLink,
-	openUrl,
-} from "../../../lib/open-url";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
 	collectDirectoryPublish,
@@ -213,27 +207,6 @@ export default command({
 			}
 		}
 
-		let openNote: string | null = null;
-		if (page.version === 1 && workspaceId) {
-			if (canReachDesktop()) {
-				try {
-					await openUrl(
-						desktopWorkspaceLink(workspaceId, {
-							pageId: page.id,
-							pageSlug: page.slug,
-							focusRequestId: randomUUID(),
-						}),
-					);
-				} catch (error) {
-					openNote = `Could not open the page: ${
-						error instanceof Error ? error.message : String(error)
-					}`;
-				}
-			} else {
-				openNote = "Not opening the page: no desktop reachable from here";
-			}
-		}
-
 		return publishResult({
 			page,
 			path: args.path as string,
@@ -242,7 +215,6 @@ export default command({
 			unanchored,
 			watching,
 			watchNote,
-			openNote,
 		});
 	},
 });

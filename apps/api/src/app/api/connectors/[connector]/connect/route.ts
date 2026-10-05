@@ -12,10 +12,8 @@ import {
 import { encryptSecret } from "@superset/trpc/integrations/plugins";
 
 import { env } from "@/env";
+import { beginOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
-import { createSignedState } from "@/lib/oauth-state";
-
-export const STATE_COOKIE = "connector_oauth_state";
 
 export async function GET(
 	request: Request,
@@ -49,29 +47,31 @@ export async function GET(
 			{ status: 400 },
 		);
 
-	let target: string;
-	let state: string;
 	try {
 		const redirect = redirectUriFor(slug);
 		const wantsPkce =
 			method.type === "oauth2" &&
 			(await resolveEndpoints(slug, method, redirect)).pkce;
 		const codeVerifier = wantsPkce ? createCodeVerifier() : null;
-		state = codeVerifier
-			? createSignedState({
-					organizationId: member.organizationId,
-					userId: member.userId,
-					codeVerifier: await encryptSecret(codeVerifier),
-				})
-			: member.state;
 
-		target = (
-			await authorizeUrl(slug, method, {
-				redirectUri: redirect,
-				state,
-				codeVerifier,
-			})
-		).url;
+		return await beginOAuthFlow({
+			cookie: STATE_COOKIES.connectors,
+			payload: {
+				organizationId: member.organizationId,
+				userId: member.userId,
+				...(codeVerifier
+					? { codeVerifier: await encryptSecret(codeVerifier) }
+					: {}),
+			},
+			authorizeUrl: async (state) =>
+				(
+					await authorizeUrl(slug, method, {
+						redirectUri: redirect,
+						state,
+						codeVerifier,
+					})
+				).url,
+		});
 	} catch (error) {
 		if (error instanceof MissingConnectorEnvError) {
 			console.error(`[connectors/${slug}] ${error.message}`);
@@ -79,13 +79,4 @@ export async function GET(
 		}
 		throw error;
 	}
-
-	const secure = env.NEXT_PUBLIC_API_URL.startsWith("https") ? " Secure;" : "";
-	return new Response(null, {
-		status: 302,
-		headers: {
-			Location: target,
-			"Set-Cookie": `${STATE_COOKIE}=${state}; HttpOnly;${secure} SameSite=Lax; Path=/api/connectors; Max-Age=600`,
-		},
-	});
 }

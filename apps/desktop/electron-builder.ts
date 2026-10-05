@@ -95,6 +95,8 @@ const config: Configuration = {
 		// before building (required for Bun 1.3+ isolated installs).
 		...packagedNodeModuleCopies,
 		"!**/.DS_Store",
+		"!**/node_modules/@anthropic-ai/claude-agent-sdk-*/**",
+		"!**/node_modules/@openai/codex*/**",
 	],
 
 	// Rebuild native modules for Electron's Node.js version

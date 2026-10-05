@@ -10,8 +10,8 @@ import type { Fighter, Side } from "../../utils/simulateFight";
 import { simulateFight } from "../../utils/simulateFight";
 import { fromViewer } from "../../utils/toFighter";
 import { CombatLog } from "../CombatLog";
-import { DinoSprite, type FrameName, RUN_CYCLE } from "../DinoSprite";
 import { FighterPanel } from "../FighterPanel";
+import { FighterSprite, type FrameName, RUN_CYCLE } from "../FighterSprite";
 import { FighterStage } from "../FighterStage";
 import { ImpactBurst } from "../ImpactBurst";
 import { RosterPicker } from "../RosterPicker";
@@ -215,8 +215,8 @@ export function FightArena({ initialA, initialB }: FightArenaProps) {
 		return (
 			<div className="fight-select flex flex-col gap-9">
 				<style>{`
-					.fight-select { --stage-dino: 7rem; }
-					@media (min-width: 768px) { .fight-select { --stage-dino: 10rem; } }
+					.fight-select { --stage-fighter: 7rem; }
+					@media (min-width: 768px) { .fight-select { --stage-fighter: 10rem; } }
 					@keyframes fight-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 					@keyframes fight-pulse { 0%,100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
 					@keyframes fight-card-hop { 0%,100% { transform: translateY(0); } 35% { transform: translateY(-8px); } 60% { transform: translateY(0); } 78% { transform: translateY(-3px); } }
@@ -226,9 +226,9 @@ export function FightArena({ initialA, initialB }: FightArenaProps) {
 					.fight-pulse { animation: fight-pulse 1.5s ease-in-out infinite; }
 					.fight-vs { animation: fight-vs 1.5s ease-in-out infinite; }
 					.fight-ready { animation: fight-ready 1.5s ease-in-out infinite; }
-					.fight-card:hover:not(:disabled) .fight-card-dino { animation: fight-card-hop 620ms ease-in-out; }
+					.fight-card:hover:not(:disabled) .fight-card-sprite { animation: fight-card-hop 620ms ease-in-out; }
 					@media (prefers-reduced-motion: reduce) {
-						.fight-bob, .fight-pulse, .fight-vs, .fight-ready, .fight-card-dino { animation: none !important; }
+						.fight-bob, .fight-pulse, .fight-vs, .fight-ready, .fight-card-sprite { animation: none !important; }
 					}
 				`}</style>
 
@@ -348,8 +348,8 @@ export function FightArena({ initialA, initialB }: FightArenaProps) {
 					100% { opacity: 0; transform: translateX(-50%) scaleX(3.4); }
 				}
 				@keyframes fight-speed { 0% { opacity: 0; transform: scaleX(0.2); } 40% { opacity: 0.9; } 100% { opacity: 0; transform: scaleX(1.6); } }
-				.fight-stage { --dino: 5.5rem; --spread: 4.5rem; }
-				@media (min-width: 768px) { .fight-stage { --dino: 8rem; --spread: 12rem; } }
+				.fight-stage { --fighter: 5.5rem; --spread: 4.5rem; }
+				@media (min-width: 768px) { .fight-stage { --fighter: 8rem; --spread: 12rem; } }
 				.fight-bob { animation: fight-bob 1.1s steps(2,end) infinite; }
 				.fight-shake { animation: fight-shake 300ms ease-in-out; }
 				.fight-shake-hard { animation: fight-shake-hard 420ms ease-in-out; }
@@ -419,7 +419,7 @@ export function FightArena({ initialA, initialB }: FightArenaProps) {
 					/>
 				)}
 
-				<div className="fight-stage relative h-64 md:h-72">
+				<div className="fight-stage relative h-64 md:h-72 bg-[radial-gradient(ellipse_at_25%_85%,rgba(182,156,218,0.08),transparent_45%),radial-gradient(ellipse_at_75%_85%,rgba(131,200,163,0.08),transparent_45%)]">
 					<div
 						aria-hidden="true"
 						className="absolute inset-x-0 bottom-14 h-px bg-border"
@@ -516,13 +516,14 @@ export function FightArena({ initialA, initialB }: FightArenaProps) {
 										/>
 									)}
 
-									<DinoSprite
+									<FighterSprite
+										identity={fighter.handle}
 										frame={frameFor(side)}
 										rgb={rgb}
 										facing={side === "a" ? "right" : "left"}
 										flash={defending && impact}
-										title={`${fighter.name} as a terminal dinosaur`}
-										style={{ width: "var(--dino)" }}
+										title={fighter.name}
+										style={{ width: "var(--fighter)" }}
 										className={`relative z-10 h-auto origin-bottom transition-opacity duration-700 ${
 											down && koSettled ? "opacity-70" : ""
 										}`}

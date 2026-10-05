@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pages: persistent storage via window.superset.storage</title>
+    <style>
+      main {
+        max-width: var(--sp-measure);
+        margin: 0 auto;
+        padding: 3rem 1.25rem 5rem;
+      }
+      .kicker {
+        color: var(--sp-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+        margin-bottom: 0.5rem;
+      }
+      .tldr {
+        background: var(--sp-surface);
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0 2rem;
+      }
+      .tldr p { margin: 0; }
+      figure { margin: 2rem 0; }
+      figure svg { max-width: 100%; height: auto; }
+      figcaption {
+        color: var(--sp-muted);
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+      .bucket {
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        padding: 1.1rem 1.35rem 0.6rem;
+        margin: 1.25rem 0;
+      }
+      .bucket h3 { margin-top: 0; }
+      .bucket .how {
+        color: var(--sp-muted);
+        font-size: 0.85rem;
+        font-family: var(--sp-font-mono);
+      }
+      .bucket ul { margin: 0.75rem 0; }
+      .bucket li { margin: 0.4rem 0; }
+      table { font-size: 0.92rem; }
+      td:first-child code { white-space: nowrap; }
+      .phase {
+        display: grid;
+        grid-template-columns: 2.2rem 1fr;
+        gap: 0 0.9rem;
+        margin: 1.25rem 0;
+      }
+      .phase .n {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        border: 1px solid var(--sp-border);
+        background: var(--sp-surface);
+        display: grid;
+        place-items: center;
+        font-family: var(--sp-font-mono);
+        font-size: 0.85rem;
+      }
+      .phase h4 { margin: 0.2rem 0 0.35rem; }
+      .phase p, .phase ul { margin-top: 0.25rem; grid-column: 2; }
+      .overflow { overflow-x: auto; }
+      pre { overflow-x: auto; }
+      details.impl {
+        border: 1px solid var(--sp-border);
+        border-radius: var(--sp-radius);
+        margin: 2.5rem 0;
+      }
+      details.impl > summary {
+        cursor: pointer;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 1.15rem;
+        list-style: none;
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+        user-select: none;
+      }
+      details.impl > summary::-webkit-details-marker { display: none; }
+      details.impl > summary::before {
+        content: "▸";
+        color: var(--sp-muted);
+        font-size: 0.9em;
+        transition: transform 0.15s ease;
+      }
+      details.impl[open] > summary::before { transform: rotate(90deg); }
+      details.impl > summary .hint {
+        font-weight: 400;
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+      }
+      details.impl > .impl-body {
+        padding: 0 1.25rem 1.25rem;
+        border-top: 1px solid var(--sp-border);
+      }
+      details.impl h3 { margin-top: 2rem; }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <p class="kicker">Design proposal · Pages · September 28, 2026</p>
+      <h1>Persistent storage for pages, injected on <code>window</code></h1>
+      <p>
+        Today a page is a read-only broadcast: it can render, sort, and filter
+        what was baked into it, and keep private per-browser state in
+        <code>localStorage</code>, but one reader's click is invisible to
+        everyone else. This proposal adds a small persistent JSON store to
+        every page, exposed to page script as
+        <code>window.superset.storage</code>, held in one durable object per
+        page, quota-limited, and live for everyone reading it: pages become
+        two-way surfaces the whole organization writes to through one link.
+      </p>
+
+      <div class="tldr">
+        <p>
+          <strong>TL;DR:</strong> a published page can keep one small JSON slot
+          per person per key, and read everyone's. The page opens a socket
+          straight to its own <code>PageHub</code> durable object, which holds
+          the records in SQLite and pushes changes to every viewer, so neither
+          our API nor Postgres is in a read or a write and there is no schema
+          change at all. Access comes from the page's R2 manifest, which the
+          realtime Worker reads after verifying the viewer's JWT locally. One
+          slot per person means two people writing at once touch different
+          rows, so no CRDT. Shipped shape and its costs in section 2; the use
+          cases that justify it first.
+        </p>
+      </div>
+
+      <h2>1 · Use cases</h2>
+      <p>
+        Since agents author pages, storage means an agent can ship a tiny
+        working app instead of a document. The use cases fall into three
+        buckets, and the third is the reason to build it.
+      </p>
+
+      <div class="bucket">
+        <h3>Collect a signal from the org</h3>
+        <p class="how">each viewer writes their own record · the page derives a view from getAll()</p>
+        <ul>
+          <li>
+            <strong>Votes and polls</strong> — "which design variant?",
+            "which name do we ship?". A design-shotgun comparison board that
+            collects the verdict itself instead of comments trickling in.
+          </li>
+          <li>
+            <strong>RSVPs and signups</strong> — offsite attendance, on-call
+            swaps, workshop slots.
+          </li>
+          <li>
+            <strong>Claiming</strong> — a bug-bash or migration checklist
+            where each row has a claim button; a claim is your record on that
+            row's key, so double-claims can't happen.
+          </li>
+          <li>
+            <strong>Estimation poker</strong> — hidden per-person estimates,
+            revealed when everyone's record is in.
+          </li>
+          <li>
+            <strong>Retro boards</strong> — each person's cards are their own
+            records; grouping is derived on read.
+          </li>
+          <li>
+            <strong>Lightweight approvals</strong> — a release-readiness page
+            where each stakeholder stamps ✅/❌ with a note; the page
+            <em>is</em> the sign-off record, versioned like everything else.
+          </li>
+          <li>
+            <strong>Onboarding checklists</strong> — each new hire checks off
+            their own steps; the author sees who's stuck where.
+          </li>
+        </ul>
+      </div>
+
+      <div class="bucket">
+        <h3>Remember the reader</h3>
+        <p class="how">each viewer reads their own records back</p>
+        <ul>
+          <li>
+            <strong>Cross-device continuity</strong> — the filter you set on
+            desktop is the filter your phone shows. <code>localStorage</code>
+            only remembers one browser.
+          </li>
+          <li>
+            <strong>Read-tracking on recurring pages</strong> — a daily
+            digest that collapses what you've already seen.
+          </li>
+          <li>
+            <strong>Preferences that survive republishing</strong> — storage
+            keys to the page, not the version, so your column sort outlives
+            the agent's nightly republish.
+          </li>
+        </ul>
+      </div>
+
+      <div class="bucket">
+        <h3>Close the loop back to agents — the headline</h3>
+        <p class="how">humans click · the publishing agent reads structured answers back and acts</p>
+        <p>
+          Pinned comments already flow back to the watching agent, but they
+          are free text, one thread at a time. Storage gives that channel
+          structure: an agent publishes a triage page listing 40 flaky tests,
+          teammates click <em>fix / ignore / needs owner</em> on each row,
+          and the agent reads the rows back and executes the decisions — no
+          comment parsing, no form service, no separate backend. The same
+          shape covers variant picks, feature-flag ramp approvals, "which
+          PRs land today", and incident action-item assignment.
+        </p>
+        <p>
+          The page becomes a <strong>form the org fills out and an agent
+          executes</strong>. That is what no static HTML artifact elsewhere
+          can do, and it makes agents more capable rather than pages merely
+          prettier — so v1's definition of done is this loop (agent-side
+          read of a page's storage ships with viewer-side writes), not the
+          poll.
+        </p>
+      </div>
+
+      <p>
+        The common thread: none of these justify standing up a real app, all
+        of them die without shared state, and all fit inside a slot of
+        JSON per person, kept live. The voting page used as the worked example
+        below is just the smallest demo of the first bucket.
+      </p>
+
+      <details class="impl">
+        <summary>2 · How it works <span class="hint">— as built: the page talks to its own hub, with the API out of the hot path</span></summary>
+        <div class="impl-body">
+
+          <h3>The shape</h3>
+          <p>
+            A page is served under a policy that lets its script reach exactly
+            one host: its own storage hub. Everything else a page renders is
+            still in the document.
+          </p>
+          <pre><code>host (has the viewer's JWT)
+  │  POST /v2/page/&lt;id&gt;/storage/ticket
+  ▼
+realtime Worker ── verifies the JWT against the API's JWKS
+  │             ── reads the page's manifest from R2 (no database)
+  │             ── signs {pageId, userId, name, image, author, writable, nonce, exp 60s}
+  ▼
+host posts the one ticket into the frame
+  │
+  ▼
+page opens its own socket ──▶ PageHub (one per page)
+                              ├─ spends the nonce (SQLite, not memory)
+                              ├─ checks Origin is this page's frame origin
+                              ├─ pins identity to the connection
+                              ├─ upserts a visits row, replies hello
+                              └─ pushes records to every connection on change</code></pre>
+          <p>
+            Neither our API nor Postgres is in a read or a write. The API
+            keeps the manifest write it already did, one nudge after it, and
+            the cross-page account purge.
+          </p>
+
+          <h3>Where access comes from</h3>
+          <p>
+            The manifest, which every page already has in R2 and which the
+            usercontent Worker already treats as its whole authorization
+            source. It gains two fields, <code>organizationId</code> and
+            <code>createdByUserId</code>; taken down is already "no manifest".
+            The rule is a pure function with tests: an organization page opens
+            to a member, a <code>just_me</code> page only to its author, and a
+            manifest with no organization authorizes nobody.
+          </p>
+          <p>
+            That last case is what lets this ship in one merge. A manifest
+            written before these fields existed answers
+            <code>{ fallback: true }</code> rather than refusing, and the host
+            serves that page over the bridge it already had. Deploy order
+            stops being load-bearing, and the backfill upgrades pages to the
+            direct path as it runs instead of gating the release. The bridge
+            is deleted in a follow-up once every manifest carries the fields.
+          </p>
+          <p>
+            When access changes, <code>writePageManifest</code> nudges the
+            hub, which re-reads and closes the connections that no longer
+            pass with a terminal <code>revoked</code>. No manifest means
+            deleted or taken down, and the records go with it. A slow timed
+            re-read covers a lost nudge.
+          </p>
+
+          <h3>The page-facing API</h3>
+          <pre><code>const store = window.superset?.storage;
+if (await store?.ready) {
+  store.viewer;    // { userId, name, image }
+  store.author;    // true for the page's author
+  store.writable;  // whether this viewer may write
+
+  await store.set("lunch-vote", "Ramen");   // my slot under this key
+  const mine = await store.get("lunch-vote");
+  const all = await store.getAll("lunch-vote");
+  store.subscribe("lunch-vote", (records) => render(records));
+}</code></pre>
+          <p>
+            One slot per person per key: you write yours, you read everyone's.
+            Two people writing at once touch different rows, so there is
+            nothing to merge and no CRDT. Codes are stable and branched on
+            rather than parsed from prose:
+            <code>quota_exceeded</code>, <code>rate_limited</code>,
+            <code>unauthenticated</code>, <code>invalid</code>,
+            <code>unavailable</code>, and <code>revoked</code>, which is
+            terminal. A page must still render from zero records, because
+            there is no host in the thumbnail renderer or a
+            <code>file://</code> preview.
+          </p>
+
+          <h3>Data model and limits</h3>
+          <pre><code>-- inside PageHub(pageId), in Cloudflare
+records (key, user_id, value, size_bytes, updated_at, PRIMARY KEY (key, user_id))
+visits  (user_id PRIMARY KEY, name, image, first_seen_at, last_seen_at)
+spent_nonces (nonce PRIMARY KEY, spent_at)</code></pre>
+          <p>
+            The records hold opaque ids; name and image come from the
+            person's <code>visits</code> row at read time, so a rename lands
+            the next time they open the page and the hub holds nothing
+            personal. 64 KiB a value, 500 keys a person, 4 MiB a page, plus a
+            per-connection call budget because page script can now reach its
+            own hub on CPU we are billed for. Because the hub is one object
+            per page it is also the only writer, so the counts it measures
+            cannot be stale by the time it writes.
+          </p>
+
+          <h3>What this cost, stated plainly</h3>
+          <ul>
+            <li>
+              The page CSP opens one hole, to our realtime origin only. The
+              skill's "no network" line becomes "a page can reach its own
+              hub".
+            </li>
+            <li>
+              A credential crosses into untrusted page script. It is
+              single-use, spent at upgrade, scoped to one page and expires in
+              a minute; the host's JWT never enters the frame. The nonce is
+              in SQLite because a hibernation inside that minute would
+              otherwise make it replayable.
+            </li>
+            <li>
+              Identity must come from the signed token. An earlier revision
+              took the display name from the request body, which let any
+              member attribute their records to a teammate.
+            </li>
+            <li>
+              No table means no cross-page query. Account purge sweeps the
+              pages in the organizations the person belonged to, which leaves
+              one gap: someone who leaves an organization and later deletes
+              their account keeps their records on that organization's pages.
+            </li>
+            <li>
+              The JWT's organization list is hourly, so a removed member
+              keeps access until it expires, as with the org nudge socket
+              today.
+            </li>
+          </ul>
+
+          <h3>Still open</h3>
+          <ul>
+            <li>
+              The runtime gives up on its handshake after two seconds. On the
+              web the iframe is in the server-rendered HTML and starts
+              loading before the bundle hydrates, so a slow load can leave
+              storage permanently unavailable for that view. Raising the
+              deadline stalls a legitimately host-less viewer for just as
+              long, so the fix is an explicit negative hello rather than a
+              bigger number.
+            </li>
+            <li>
+              Whether to keep the bridge fallback at all, or delete it and
+              make the backfill a hard precondition of the Worker deploy.
+            </li>
+            <li>
+              Presence rides the same socket and is its own change, with the
+              cloud presence stack lifted to <code>packages/ui</code>.
+            </li>
+          </ul>
+
+          <p>
+            Diagrams and the full non-negotiables list are on the agreed
+            walkthrough:
+            <a href="https://app.superset.sh/page/page-storage-on-the-hub-walkthrough-hu3bjh">Page storage on the hub</a>.
+          </p>
+        </div>
+      </details>
+      <details class="impl">
+        <summary>3 · Prior art: Claude's artifact db <span class="hint">— claude.ai already ships this shape; what we take from it</span></summary>
+        <div class="impl-body">
+          <p>
+            Published claude.ai artifacts get a <code>window.claude</code>
+            API injected by the hosting shell, and
+            <code>await claude.use("db")</code> hands page script a
+            persistent, realtime, Firestore-style document store shared by
+            the artifact's viewers — documents and collections, get/set/
+            update/delete, filtered queries, and <code>onSnapshot</code>
+            subscriptions with latency compensation. Claude the agent can
+            read and write the same rows from outside the page, so
+            "publish a form, humans fill it, agent reads structured answers
+            and acts" is a shipped loop there today.
+          </p>
+
+          <h3>The architectures converge</h3>
+          <p>
+            Their design and this proposal make the same three moves,
+            independently: the page is sandboxed with no network of its own;
+            a host-injected runtime bridges calls out
+            (<code>claude.use()</code> there,
+            <code>window.superset.storage</code> here); and identity comes
+            from the signed-in shell, never from the page or its URL.
+            Their realtime contract is also ours: delivery "rides a realtime
+            stream when available and falls back to periodic refresh" —
+            push with a polling floor. That an independent team landed on
+            the same shape is the strongest available evidence the shape is
+            right.
+          </p>
+
+          <h3>Voting is their canonical example too</h3>
+          <p>
+            Their access rules are declarative, fixed at publish, keyed on
+            sharing level, and their own documentation uses exactly the
+            per-viewer-record shape this proposal hardcodes:
+          </p>
+          <pre><code>db: { rules: [
+  { path: "votes", read: "view", write: "owner" },   // everyone reads
+  { path: "votes/{self}", write: "interact" },       // each writes only their own
+]}</code></pre>
+          <p>
+            Our v1 is that rule as the only mode. If we ever generalize,
+            their rules syntax is the blessed path — no need to invent one.
+          </p>
+
+          <h3>Rules of theirs worth adopting from day one</h3>
+          <ul>
+            <li>
+              <strong>"Can't see" equals "doesn't exist".</strong> They have
+              deliberately no permission-denied and no not-found on reads: a
+              document a viewer cannot see behaves identically to one that
+              was never written. Kills a whole class of probing.
+            </li>
+            <li>
+              <strong>Named-quota errors.</strong> Every cap rejects with a
+              stable code and a message naming which cap
+              (<code>quota_exceeded</code>, <code>resource_exhausted</code>)
+              so pages can tell viewers what happened instead of failing
+              silently.
+            </li>
+            <li>
+              <strong>No transactions, and say so.</strong> They ship
+              last-writer-wins plus one cooperative TTL-lease primitive, and
+              shape the data model (per-viewer paths, derive-on-read) so
+              conflicts don't arise. Same call here.
+            </li>
+            <li>
+              <strong>Private-from-the-owner subtrees.</strong> Their
+              per-viewer paths are hidden even from the artifact's owner,
+              which enables sealed votes and planning poker (write
+              privately, copy to a shared path when <em>you</em> reveal).
+              Worth keeping in mind for our v2.
+            </li>
+          </ul>
+
+          <h3>What we deliberately don't copy in v1</h3>
+          <p>
+            Queries, subscriptions-with-64-cap, leases, nested collections,
+            and the rules engine are three years of surface area serving use
+            cases we don't have yet. Our flat per-viewer-record API is the
+            ~10% that serves every launch use case, with their contract as
+            the map for wherever we grow next. Competitively this also
+            frames the stakes: Superset's pitch for pages over artifacts is
+            "the org's surface — listed, versioned, comments wired to
+            agents." Interactivity is now a dimension where artifacts are
+            ahead; this proposal closes it.
+          </p>
+        </div>
+      </details>
+    </main>
+  </body>
+</html>

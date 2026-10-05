@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { PageWatchStatus } from "../../../page-watch/index.ts";
+import { listTerminalSessions } from "../../../terminal/terminal.ts";
 import { protectedProcedure, router } from "../../index";
 
 const assignInputSchema = z.object({
@@ -18,10 +19,36 @@ const listInputSchema = z
 	.object({ workspaceId: z.string().min(1).optional() })
 	.optional();
 
+export interface PageWatchStatusWithSession extends PageWatchStatus {
+	sessionTitle: string | null;
+}
+
+/**
+ * The watching terminal's tab name, as the person watching it reads it — a
+ * rename if they gave one, else the title the agent set. A viewer listing
+ * watchers across hosts cannot ask each host for its terminals, so the name
+ * travels with the watch row rather than being joined to it.
+ */
+function withSessionTitles(
+	statuses: PageWatchStatus[],
+): PageWatchStatusWithSession[] {
+	if (statuses.length === 0) return [];
+	const titles = new Map(
+		listTerminalSessions().map((session) => [
+			session.terminalId,
+			session.title,
+		]),
+	);
+	return statuses.map((status) => ({
+		...status,
+		sessionTitle: titles.get(status.terminalId) ?? null,
+	}));
+}
+
 export const pageWatchRouter = router({
 	assign: protectedProcedure
 		.input(assignInputSchema)
-		.mutation(async ({ ctx, input }): Promise<PageWatchStatus[]> => {
+		.mutation(async ({ ctx, input }): Promise<PageWatchStatusWithSession[]> => {
 			try {
 				await ctx.runtime.pageWatch.assign(input);
 			} catch (error) {
@@ -30,7 +57,7 @@ export const pageWatchRouter = router({
 					message: error instanceof Error ? error.message : "Cannot watch page",
 				});
 			}
-			return ctx.runtime.pageWatch.list(input.workspaceId);
+			return withSessionTitles(ctx.runtime.pageWatch.list(input.workspaceId));
 		}),
 
 	unwatch: protectedProcedure
@@ -42,7 +69,7 @@ export const pageWatchRouter = router({
 
 	getAll: protectedProcedure
 		.input(listInputSchema)
-		.query(({ ctx, input }): PageWatchStatus[] =>
-			ctx.runtime.pageWatch.list(input?.workspaceId),
+		.query(({ ctx, input }): PageWatchStatusWithSession[] =>
+			withSessionTitles(ctx.runtime.pageWatch.list(input?.workspaceId)),
 		),
 });

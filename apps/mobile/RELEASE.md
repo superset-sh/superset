@@ -11,6 +11,14 @@ getting unstuck when App Review rejects or stalls it.
   Keep it on the `1.x` line; bump the **patch** number for routine releases and
   the minor for visible feature drops. Large version jumps (1.x to 2.0) and long
   gaps between submissions both draw extra scrutiny from App Review.
+- Bump the patch version in both files as soon as a version is submitted for
+  review. App Store Connect refuses uploads to a version once it is approved,
+  and every native merge to `main` uploads a build, so a stale version fails
+  the upload job in `deploy.yml` from the first merge after approval (build 41
+  on 2026-09-18). Expo's guidance is the same: bump when the production build
+  is submitted. `fingerprint.config.js` keeps versions out of the runtime
+  fingerprint, so a bump neither forces a native build nor cuts installed
+  builds off from updates.
 - Build numbers auto-increment on EAS (`appVersionSource: "remote"` plus
   `autoIncrement: true` in the `production` profile). Never set them by hand.
 - Submit often. A small diff against the last approved build is the cheapest
@@ -21,9 +29,11 @@ getting unstuck when App Review rejects or stalls it.
 
 Authenticate once per machine: `eas login` (or `EXPO_TOKEN` in CI, with
 `--non-interactive`). Submissions use the App Store Connect API key stored in
-EAS credentials, so no Apple password is needed locally. Keep the demo-account
-credentials in your secret store (1Password) and export them into the shell
-for the metadata push rather than typing them into the command.
+EAS credentials, so no Apple password is needed locally. The demo-account
+credentials live in 1Password; copy them into `APP_REVIEW_EMAIL` and
+`APP_REVIEW_PASSWORD` in the main checkout's root `.env`, which
+`store.config.js` loads. Without them the push blanks the sign-in App Review
+uses.
 
 ```bash
 cd apps/mobile
@@ -39,10 +49,12 @@ eas submit --platform ios --profile production --latest
 #    build. APP_REVIEW_VIDEO_URL is optional but worth it: a two-minute screen
 #    recording of sign-in and the main flows is the single most effective
 #    thing in the notes.
-eas metadata:push   # with APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD / APP_REVIEW_VIDEO_URL exported
+eas metadata:push   # from the main checkout; APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD come from the root .env
 
 # 4. In App Store Connect, attach the processed build to the version and
 #    press "Submit for Review".
+
+# 5. Bump the patch version on main (see Versioning).
 ```
 
 Before pressing submit, run the pre-flight below. Most first-submission

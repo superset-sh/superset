@@ -337,55 +337,6 @@ export const microsoftTeamsTriggerConfigSchema = z.object({
 	messageFilter: textFilterSchema.nullable().default(null),
 });
 
-/**
- * Google Calendar events carry different filters, so the config is a union on
- * the event: a change carries the external-attendee narrowing, a starting-soon
- * fire carries how far ahead it fires, and a cancellation carries neither.
- */
-export const googleCalendarTriggerEventValues = [
-	"event.created",
-	"event.updated",
-	"event.cancelled",
-	"event.starting_soon",
-	"event.ended",
-] as const;
-export type GoogleCalendarTriggerEvent =
-	(typeof googleCalendarTriggerEventValues)[number];
-
-const googleCalendarCommon = {
-	kind: z.literal("google_calendar"),
-	calendars: triggerScopeSchema,
-	// Anyone on the event: organizer, creator or invitee. Ids are email
-	// addresses, since that is what a calendar event names people by.
-	attendee: triggerScopeSchema,
-	titleFilter: textFilterSchema.nullable().default(null),
-};
-
-const googleCalendarChangeEvent = z.object({
-	...googleCalendarCommon,
-	event: z.enum(["event.created", "event.updated"]),
-	// A boolean rather than a scope: false is "do not narrow", true requires
-	// someone from outside the connected account's domain to be on the event.
-	hasExternalAttendee: z.boolean().default(false),
-});
-
-const googleCalendarStartingSoonEvent = z.object({
-	...googleCalendarCommon,
-	event: z.literal("event.starting_soon"),
-	minutesBefore: z.number().int().min(1).max(1440).default(15),
-});
-
-const googleCalendarSimpleEvent = z.object({
-	...googleCalendarCommon,
-	event: z.enum(["event.cancelled", "event.ended"]),
-});
-
-export const googleCalendarTriggerConfigSchema = z.union([
-	googleCalendarChangeEvent,
-	googleCalendarStartingSoonEvent,
-	googleCalendarSimpleEvent,
-]);
-
 export const gmailTriggerEventValues = ["message.received"] as const;
 export type GmailTriggerEvent = (typeof gmailTriggerEventValues)[number];
 
@@ -411,6 +362,7 @@ export const draftTriggerSchema = z.object({
 	// a save updates in place rather than deleting and recreating, which would
 	// otherwise roll a webhook trigger's key and lose a schedule's next run.
 	id: z.string().uuid().optional(),
+	connectionId: z.string().uuid().nullish(),
 	config: z.union([
 		scheduleTriggerConfigSchema,
 		webhookTriggerConfigSchema,
@@ -420,12 +372,39 @@ export const draftTriggerSchema = z.object({
 		sentryTriggerConfigSchema,
 		notionTriggerConfigSchema,
 		microsoftTeamsTriggerConfigSchema,
-		googleCalendarTriggerConfigSchema,
 		gmailTriggerConfigSchema,
 	]),
 });
 export type DraftTrigger = z.infer<typeof draftTriggerSchema>;
 export type TriggerConfigInput = DraftTrigger["config"];
+
+export const TRIGGER_KIND_CONNECTOR: Record<string, string | null> = {
+	schedule: null,
+	webhook: null,
+	github: null,
+	slack: "slack",
+	linear: "linear",
+	sentry: "sentry",
+	notion: "notion",
+	microsoft_teams: "microsoft_teams",
+	gmail: "google",
+};
+
+export function triggerKindsForConnector(connector: string): string[] {
+	return Object.entries(TRIGGER_KIND_CONNECTOR)
+		.filter(([, slug]) => slug === connector)
+		.map(([kind]) => kind);
+}
+
+export function accountToPinTo(
+	previousConnectionIds: string[],
+	connectionId: string,
+): string | null {
+	if (previousConnectionIds.includes(connectionId)) return null;
+	const [existing, ...rest] = previousConnectionIds;
+	if (!existing || rest.length > 0) return null;
+	return existing;
+}
 
 /**
  * The trigger kinds the AUTOMATION_EVENT_TRIGGERS flag payload enables. Off,
@@ -464,7 +443,6 @@ type ScopeNoun =
 	| "dataSource"
 	| "team"
 	| "project"
-	| "calendar"
 	| "sender";
 
 type ScopeChoice = "anyone" | "anySender";
@@ -487,7 +465,7 @@ function scopeChoiceLabel(choice: ScopeChoice): string {
 		case "anySender":
 			return i18n._(
 				msg({
-					message: "Any sender",
+					message: "any sender",
 				}),
 			);
 	}
@@ -551,10 +529,6 @@ const REQUIREMENTS: Partial<
 		person("actor"),
 	],
 	sentry: [{ field: "projects", noun: "project" }],
-	google_calendar: [
-		{ field: "calendars", noun: "calendar" },
-		person("attendee"),
-	],
 	// The sender is the primary scope, as the repository is for GitHub: a
 	// mailbox-wide trigger has to be chosen ("Any sender"), never arrived at by
 	// leaving the chip empty.
@@ -566,9 +540,11 @@ const REQUIREMENTS: Partial<
  * loop rather than schema refinements, so each rule carries a message the form
  * can put next to the field it belongs to — and so the draft/savable split
  * survives: the schema stays satisfiable by a half-configured trigger.
+ *
  */
 export function describeTriggerProblems(
 	triggers: DraftTrigger[],
+	options: { knownConnectionIds?: readonly string[] } = {},
 ): TriggerProblem[] {
 	// An empty set is legal: an automation starts untitled with no triggers
 	// and simply never fires until one is added.
@@ -633,6 +609,22 @@ export function describeTriggerProblems(
 					),
 				});
 			}
+		}
+
+		if (
+			options.knownConnectionIds &&
+			trigger.connectionId &&
+			!options.knownConnectionIds.includes(trigger.connectionId)
+		) {
+			problems.push({
+				index,
+				field: "connectionId",
+				message: i18n._(
+					msg({
+						message: "That account is no longer connected — choose another.",
+					}),
+				),
+			});
 		}
 	});
 

@@ -1,6 +1,7 @@
+import { Trans } from "@lingui/react/macro";
 import { tierLabel, tierRgb } from "@/app/[lang]/components/TierBadge";
 import { buildKit, type Fighter } from "../../utils/simulateFight";
-import { DinoSprite } from "../DinoSprite";
+import { FighterSprite } from "../FighterSprite";
 
 const EMPTY_RGB = "120,120,128";
 
@@ -26,16 +27,13 @@ export function FighterStage({
 		>
 			<div className="relative">
 				<div className="fight-bob">
-					<DinoSprite
+					<FighterSprite
+						identity={fighter?.handle}
 						frame="stand"
 						rgb={rgb}
 						facing={right ? "left" : "right"}
-						title={
-							fighter
-								? `${fighter.name} as a terminal dinosaur`
-								: "An empty fighter slot"
-						}
-						style={{ width: "var(--stage-dino)" }}
+						title={fighter ? fighter.name : "An empty fighter slot"}
+						style={{ width: "var(--stage-fighter)" }}
 						className={`h-auto ${fighter ? "" : "opacity-25"}`}
 					/>
 				</div>
@@ -85,7 +83,7 @@ export function FighterStage({
 				</div>
 			) : (
 				<p className="mt-4 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
-					choose your dino
+					<Trans>Choose a fighter</Trans>
 				</p>
 			)}
 		</div>

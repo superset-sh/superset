@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import {
 	githubRepoSlug,
 	type StarHistory,
@@ -37,27 +39,29 @@ type CacheableRequestInit = RequestInit & {
 	next?: { revalidate?: number };
 };
 
-// A stalled GitHub connection would otherwise sit on the caller's budget —
-// the admin procedure's is 60 seconds and a cold walk already spends ~25 of
-// them. Left to the caller rather than always on: the marketing page reaches
-// this through Next's fetch, where an AbortSignal risks its data cache, and a
-// public page re-walking every stargazer page per visitor is the worse
-// failure. `timeoutMs` is per request, not for the whole walk.
+// Abort signals bypass Next's fetch cache, so callers opt into deadlines.
 function withTimeout(
 	init: CacheableRequestInit,
 	timeoutMs: number | undefined,
+	signal?: AbortSignal,
 ): CacheableRequestInit {
-	if (timeoutMs === undefined) return init;
-	return { ...init, signal: AbortSignal.timeout(timeoutMs) };
+	const signals = [
+		signal,
+		timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs),
+	].filter((value): value is AbortSignal => value !== undefined);
+	return signals.length ? { ...init, signal: AbortSignal.any(signals) } : init;
 }
 
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+	await delay(ms, undefined, { signal }).catch((error) => {
+		if (!signal?.aborted) throw error;
+	});
 }
 
 async function fetchRepoMeta(
 	slug: string,
 	timeoutMs?: number,
+	signal?: AbortSignal,
 ): Promise<{ stars: number; createdAt: string } | null> {
 	try {
 		const init: CacheableRequestInit = {
@@ -66,7 +70,7 @@ async function fetchRepoMeta(
 		};
 		const response = await fetch(
 			`https://api.github.com/repos/${slug}`,
-			withTimeout(init, timeoutMs),
+			withTimeout(init, timeoutMs, signal),
 		);
 		if (!response.ok) {
 			console.error(
@@ -93,6 +97,7 @@ async function fetchPageEntries(
 	page: number,
 	token: string,
 	timeoutMs?: number,
+	signal?: AbortSignal,
 ): Promise<string[] | null> {
 	try {
 		const init: CacheableRequestInit = {
@@ -105,7 +110,7 @@ async function fetchPageEntries(
 		};
 		const response = await fetch(
 			`https://api.github.com/repos/${slug}/stargazers?per_page=${PER_PAGE}&page=${page}`,
-			withTimeout(init, timeoutMs),
+			withTimeout(init, timeoutMs, signal),
 		);
 		if (!response.ok) return null;
 		const entries = (await response.json()) as Array<{ starred_at: string }>;
@@ -120,17 +125,22 @@ async function fetchPages(
 	pages: number[],
 	token: string,
 	timeoutMs?: number,
+	signal?: AbortSignal,
 ): Promise<Map<number, string[] | null>> {
 	const results = new Map<number, string[] | null>();
 	for (let i = 0; i < pages.length; i += FETCH_CONCURRENCY) {
+		if (signal?.aborted) break;
 		const batch = pages.slice(i, i + FETCH_CONCURRENCY);
 		const entries = await Promise.all(
-			batch.map((page) => fetchPageEntries(slug, page, token, timeoutMs)),
+			batch.map((page) =>
+				fetchPageEntries(slug, page, token, timeoutMs, signal),
+			),
 		);
 		batch.forEach((page, j) => {
 			results.set(page, entries[j] ?? null);
 		});
-		if (i + FETCH_CONCURRENCY < pages.length) await sleep(BATCH_DELAY_MS);
+		if (i + FETCH_CONCURRENCY < pages.length)
+			await sleep(BATCH_DELAY_MS, signal);
 	}
 	return results;
 }
@@ -143,25 +153,26 @@ async function fetchPagesWithRetry(
 	pages: number[],
 	token: string,
 	timeoutMs?: number,
+	signal?: AbortSignal,
 ): Promise<{ results: Map<number, string[] | null>; failedCount: number }> {
-	const results = await fetchPages(slug, pages, token, timeoutMs);
-	const failed = pages.filter((page) => results.get(page) === null);
+	const results = await fetchPages(slug, pages, token, timeoutMs, signal);
+	const failed = pages.filter((page) => !results.get(page));
 
 	// Retry even a total failure — a secondary rate limit can throttle an
 	// entire in-flight batch at once, which looks identical to "every page
 	// failed" but is just as transient as a partial failure.
-	if (failed.length > 0) {
+	if (failed.length > 0 && !signal?.aborted) {
 		console.warn(
 			`[star-history] Retrying ${failed.length}/${pages.length} failed stargazers pages...`,
 		);
-		await sleep(3000);
-		const retried = await fetchPages(slug, failed, token, timeoutMs);
+		await sleep(3000, signal);
+		const retried = await fetchPages(slug, failed, token, timeoutMs, signal);
 		for (const [page, entries] of retried) {
 			if (entries !== null) results.set(page, entries);
 		}
 	}
 
-	const failedCount = pages.filter((page) => results.get(page) === null).length;
+	const failedCount = pages.filter((page) => !results.get(page)).length;
 	return { results, failedCount };
 }
 
@@ -176,7 +187,6 @@ function startOfDayUTC(date: Date): Date {
 function bucketDailyFromTimestamps(
 	starredAts: string[],
 	createdAt: string,
-	totalStars: number,
 ): StarHistoryPoint[] {
 	const times = starredAts
 		.map((s) => new Date(s).getTime())
@@ -200,17 +210,6 @@ function bucketDailyFromTimestamps(
 		});
 	}
 
-	const last = points.at(-1);
-	if (last) {
-		// Covers stars that landed between the fetch and now, or drift from a
-		// bounded (<10%) count of pages that failed even after retry.
-		last.stars = Math.max(last.stars, totalStars);
-	} else {
-		points.push({
-			date: new Date(now).toISOString().slice(0, 10),
-			stars: totalStars,
-		});
-	}
 	return points;
 }
 
@@ -278,6 +277,7 @@ async function getStarHistoryFallback(
 	totalPages: number,
 	token: string,
 	timeoutMs?: number,
+	signal?: AbortSignal,
 ): Promise<StarHistoryPoint[] | null> {
 	const pages = samplePages(totalPages);
 	const { results, failedCount } = await fetchPagesWithRetry(
@@ -285,10 +285,11 @@ async function getStarHistoryFallback(
 		pages,
 		token,
 		timeoutMs,
+		signal,
 	);
 	if (failedCount / pages.length > 1 - MIN_SUCCESS_RATE) {
 		console.error(
-			`[star-history] Too many failed stargazers pages (${failedCount}/${pages.length}); skipping star history.`,
+			`[star-history] Incomplete stargazers history (${failedCount}/${pages.length} failed); skipping star history.`,
 		);
 		return null;
 	}
@@ -315,10 +316,16 @@ async function getStarHistoryFallback(
 export async function fetchStarHistory({
 	token,
 	timeoutMs,
+	totalTimeoutMs,
 }: {
 	token?: string;
 	timeoutMs?: number;
+	totalTimeoutMs?: number;
 }): Promise<StarHistory | null> {
+	const signal =
+		totalTimeoutMs === undefined
+			? undefined
+			: AbortSignal.timeout(totalTimeoutMs);
 	let slug: string;
 	try {
 		slug = githubRepoSlug();
@@ -326,7 +333,7 @@ export async function fetchStarHistory({
 		console.error("[star-history] Invalid GitHub URL:", error);
 		return null;
 	}
-	const meta = await fetchRepoMeta(slug, timeoutMs);
+	const meta = await fetchRepoMeta(slug, timeoutMs, signal);
 	if (!meta) return null;
 
 	// The stargazers endpoint requires an authenticated request (with at
@@ -345,16 +352,17 @@ export async function fetchStarHistory({
 			pages,
 			token,
 			timeoutMs,
+			signal,
 		);
-		if (failedCount / pages.length > 1 - MIN_SUCCESS_RATE) {
+		if (failedCount > 0) {
 			console.warn(
-				`[star-history] Too many failed stargazers pages (${failedCount}/${pages.length}); skipping star history.`,
+				`[star-history] Incomplete stargazers history (${failedCount}/${pages.length} failed); skipping star history.`,
 			);
 			return { points: [], totalStars: meta.stars };
 		}
 		const starredAts = pages.flatMap((page) => results.get(page) ?? []);
 		return {
-			points: bucketDailyFromTimestamps(starredAts, meta.createdAt, meta.stars),
+			points: bucketDailyFromTimestamps(starredAts, meta.createdAt),
 			totalStars: meta.stars,
 		};
 	}
@@ -365,6 +373,7 @@ export async function fetchStarHistory({
 		totalPages,
 		token,
 		timeoutMs,
+		signal,
 	);
 	return { points: points ?? [], totalStars: meta.stars };
 }

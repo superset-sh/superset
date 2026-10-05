@@ -143,6 +143,16 @@ describe("reduce", () => {
 		expect(displayText(snapshot, "m1")).toBe("authoritative");
 	});
 
+	test("a delta leaves the items and turns maps as they were", () => {
+		seqCounter = 0;
+		const seeded = reduce(emptySnapshot(), itemEvent(agentMessage("m1", "")));
+		const streamed = reduce(seeded, textDelta("m1", "hi"));
+		expect(streamed.items).toBe(seeded.items);
+		expect(streamed.turns).toBe(seeded.turns);
+		expect(displayText(streamed, "m1")).toBe("hi");
+		expect(displayText(seeded, "m1")).toBe("");
+	});
+
 	test("dropping all deltas still converges via snapshots", () => {
 		seqCounter = 0;
 		const withDeltas = reduceMany(emptySnapshot(), [

@@ -65,7 +65,14 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 	return (
 		<div className="space-y-3">
 			<div className="space-y-1.5">
-				{hasCustomAlias && <div className="text-sm font-medium">{name}</div>}
+				{hasCustomAlias && (
+					<div
+						className="text-sm font-medium break-words line-clamp-2"
+						title={name}
+					>
+						{name}
+					</div>
+				)}
 				<div className="space-y-0.5">
 					<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 						<Trans>Branch</Trans>

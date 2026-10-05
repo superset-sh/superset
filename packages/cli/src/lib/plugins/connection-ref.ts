@@ -3,10 +3,10 @@ import { CLIError } from "@superset/cli-framework";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * The plugin to act on. Credentials now live on the connector a plugin names,
- * and a person holds one connection per connector — so the plugin name is the
- * handle again, and a connection id no longer identifies which plugin was
- * meant (one connector can back several).
+ * The plugin to act on. Credentials live on the connector a plugin names, and
+ * a connection id does not identify a plugin — one connector can back several.
+ * So the plugin name is the handle, and an id picks between accounts on it:
+ * `--plugin <name> --account <id>`.
  */
 export function resolvePluginName(opts: {
 	plugin?: string;
@@ -17,7 +17,7 @@ export function resolvePluginName(opts: {
 	if (!opts.plugin && legacy && UUID.test(legacy)) {
 		throw new CLIError(
 			"--connection takes a plugin name now, not a connection id.",
-			"Run: superset mcp tools --plugin <name>",
+			"To pick an account, pass the id to --account: superset mcp tools --plugin <name> --account <id>",
 		);
 	}
 

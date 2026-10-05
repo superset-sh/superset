@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multiple connections per plugin</title>
+    <style>
+      :root {
+        --sp-measure: 74ch;
+        --work: var(--sp-chart-1);
+        --personal: var(--sp-chart-3);
+      }
+      body {
+        padding: 3rem 1.5rem 6rem;
+      }
+      main {
+        max-width: 1020px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: clamp(1.9rem, 4vw, 2.6rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+      }
+      .lede {
+        max-width: var(--sp-measure);
+        font-size: 1.1rem;
+        color: var(--sp-muted);
+        margin: 0 0 3.5rem;
+      }
+      h2 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        margin: 4rem 0 1.25rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--sp-border);
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 0 0 0.4rem;
+        letter-spacing: -0.01em;
+      }
+      p {
+        max-width: var(--sp-measure);
+      }
+      code,
+      .mono {
+        font-family: var(--sp-font-mono);
+        font-size: 0.87em;
+      }
+      .stage {
+        margin: 1.5rem 0 0.75rem;
+      }
+      .stage svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .stage-head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .tag {
+        font-family: var(--sp-font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.15rem 0.45rem;
+        border: 1px solid var(--sp-border);
+        border-radius: 3px;
+        color: var(--sp-muted);
+      }
+      .tag.bad {
+        border-color: var(--personal);
+        color: var(--personal);
+      }
+      .tag.good {
+        border-color: var(--work);
+        color: var(--work);
+      }
+      .legend {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        color: var(--sp-muted);
+        margin: 0.5rem 0 0;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .swatch {
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 50%;
+      }
+      .nodebox {
+        fill: var(--sp-surface);
+        stroke: var(--sp-border);
+      }
+      .wire {
+        fill: none;
+        stroke: var(--sp-border);
+        stroke-width: 1.5;
+      }
+      .nodelabel {
+        font-family: var(--sp-font-sans);
+        font-size: 12.5px;
+        font-weight: 600;
+        fill: var(--sp-text);
+      }
+      .nodesub {
+        font-family: var(--sp-font-mono);
+        font-size: 10.5px;
+        fill: var(--sp-muted);
+      }
+      .lanelabel {
+        font-family: var(--sp-font-mono);
+        font-size: 10.5px;
+        letter-spacing: 0.06em;
+      }
+      .verdict {
+        font-family: var(--sp-font-sans);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+      .scroller {
+        overflow-x: auto;
+      }
+      th {
+        text-align: left;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sp-muted);
+        font-weight: 600;
+        padding: 0 1rem 0.6rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.7rem 1rem 0.7rem 0;
+        border-bottom: 1px solid var(--sp-border);
+        vertical-align: top;
+      }
+      td:last-child,
+      th:last-child {
+        padding-right: 0;
+      }
+      .cols {
+        display: grid;
+        gap: 2.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        margin-top: 1.5rem;
+      }
+      .card h3 {
+        margin-bottom: 0.6rem;
+      }
+      .card p {
+        margin: 0 0 0.6rem;
+        font-size: 0.94rem;
+      }
+      .rec {
+        font-family: var(--sp-font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--work);
+      }
+      ul.tight {
+        margin: 0.5rem 0 0;
+        padding-left: 1.1rem;
+      }
+      ul.tight li {
+        margin-bottom: 0.4rem;
+        max-width: var(--sp-measure);
+      }
+      .decided li strong {
+        font-weight: 600;
+      }
+      .note {
+        border-left: 2px solid var(--sp-border);
+        padding-left: 1rem;
+        color: var(--sp-muted);
+        font-size: 0.94rem;
+        max-width: var(--sp-measure);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pulse {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body class="auto">
+    <main>
+      <h1>Multiple connections per plugin</h1>
+      <p class="lede">
+        One person, two accounts on the same connector &mdash; work and personal.
+        Today the second connection does not add a choice, it removes one: the
+        plugin stops resolving, and every inbound event fires every trigger the
+        owner has. This is the flow, what breaks in it, and the two decisions
+        left.
+      </p>
+
+      <h2>Where an event goes today</h2>
+      <div class="stage">
+        <div class="stage-head">
+          <h3>Today</h3>
+          <span class="tag bad">both accounts match</span>
+        </div>
+        <p>
+          Every provider normalizer already stamps the connection onto the event
+          row. The matcher never reads it, so the two lanes converge and are
+          indistinguishable by the time a run is enqueued.
+        </p>
+        <svg viewBox="0 0 840 300" role="img" aria-label="Today: events from the work and the personal connection both reach the same trigger and both start a run.">
+          <path class="wire" d="M20,150 H308 C328,150 328,75 348,75 H478 C508,75 508,150 528,150 H828" />
+          <path class="wire" d="M20,150 H308 C328,150 328,225 348,225 H478 C508,225 508,150 528,150 H828" />
+
+          <circle class="pulse" r="5.5" fill="var(--work)">
+            <animateMotion dur="3.2s" repeatCount="indefinite" path="M20,150 H308 C328,150 328,75 348,75 H478 C508,75 508,150 528,150 H828" />
+          </circle>
+          <circle class="pulse" r="5.5" fill="var(--personal)">
+            <animateMotion dur="3.2s" begin="0.45s" repeatCount="indefinite" path="M20,150 H308 C328,150 328,225 348,225 H478 C508,225 508,150 528,150 H828" />
+          </circle>
+
+          <g>
+            <rect class="nodebox" x="8" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="24" y="145">Provider event</text>
+            <text class="nodesub" x="24" y="161">webhook / push</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="178" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="194" y="145">Normalize</text>
+            <text class="nodesub" x="194" y="161">stamps conn id</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="348" y="52" width="130" height="46" rx="5" stroke="var(--work)" />
+            <text class="lanelabel" x="364" y="70" fill="var(--work)">WORK</text>
+            <text class="nodesub" x="364" y="86">connection A</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="348" y="202" width="130" height="46" rx="5" stroke="var(--personal)" />
+            <text class="lanelabel" x="364" y="220" fill="var(--personal)">PERSONAL</text>
+            <text class="nodesub" x="364" y="236">connection B</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="528" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="544" y="145">Matcher</text>
+            <text class="nodesub" x="544" y="161">org, kind, owner</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="698" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="714" y="145">Trigger &rarr; run</text>
+            <text class="nodesub" x="714" y="161">runs twice</text>
+          </g>
+          <text class="verdict" x="763" y="200" text-anchor="middle" fill="var(--personal)">wrong account, silently</text>
+        </svg>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head">
+          <h3>Proposed</h3>
+          <span class="tag good">pinned account passes</span>
+        </div>
+        <p>
+          The trigger records which connection it listens to. The matcher compares
+          it to the connection already on the event, and the other account stops
+          one step short of a run.
+        </p>
+        <svg viewBox="0 0 840 300" role="img" aria-label="Proposed: the matcher compares the event's connection to the trigger's pinned connection, so only the work account reaches a run.">
+          <path class="wire" d="M20,150 H308 C328,150 328,75 348,75 H478 C508,75 508,150 528,150 H828" />
+          <path class="wire" d="M20,150 H308 C328,150 328,225 348,225 H478 C508,225 508,150 528,150 H828" stroke-dasharray="4 4" />
+
+          <circle class="pulse" r="5.5" fill="var(--work)">
+            <animateMotion dur="3.2s" repeatCount="indefinite" path="M20,150 H308 C328,150 328,75 348,75 H478 C508,75 508,150 528,150 H828" />
+          </circle>
+          <circle class="pulse" r="5.5" fill="var(--personal)">
+            <animateMotion dur="3.2s" begin="0.45s" repeatCount="indefinite" path="M20,150 H308 C328,150 328,225 348,225 H478 C508,225 508,150 520,150" />
+            <animate attributeName="opacity" dur="3.2s" begin="0.45s" repeatCount="indefinite" values="1;1;1;0;0" keyTimes="0;0.72;0.86;0.92;1" />
+          </circle>
+
+          <g>
+            <rect class="nodebox" x="8" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="24" y="145">Provider event</text>
+            <text class="nodesub" x="24" y="161">webhook / push</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="178" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="194" y="145">Normalize</text>
+            <text class="nodesub" x="194" y="161">stamps conn id</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="348" y="52" width="130" height="46" rx="5" stroke="var(--work)" />
+            <text class="lanelabel" x="364" y="70" fill="var(--work)">WORK</text>
+            <text class="nodesub" x="364" y="86">pinned on trigger</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="348" y="202" width="130" height="46" rx="5" stroke="var(--sp-border)" />
+            <text class="lanelabel" x="364" y="220" fill="var(--sp-muted)">PERSONAL</text>
+            <text class="nodesub" x="364" y="236">not pinned here</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="528" y="127" width="130" height="46" rx="5" stroke="var(--work)" />
+            <text class="nodelabel" x="544" y="145">Matcher</text>
+            <text class="nodesub" x="544" y="161">+ connection</text>
+          </g>
+          <g>
+            <rect class="nodebox" x="698" y="127" width="130" height="46" rx="5" />
+            <text class="nodelabel" x="714" y="145">Trigger &rarr; run</text>
+            <text class="nodesub" x="714" y="161">runs once</text>
+          </g>
+          <text class="verdict" x="524" y="200" text-anchor="end" fill="var(--sp-muted)">dropped here</text>
+        </svg>
+        <p class="legend">
+          <span><i class="swatch" style="background: var(--work)"></i> work connection</span>
+          <span><i class="swatch" style="background: var(--personal)"></i> personal connection</span>
+          <span>animation loops; static for reduced-motion readers</span>
+        </p>
+      </div>
+
+      <h2>What is already in place</h2>
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>Piece</th>
+              <th>Where</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Two live connections per user per connector</td>
+              <td><code>connections_user_connector_unique</code> is on <code>(org, connector, user, external_account_id)</code></td>
+              <td>Storable today</td>
+            </tr>
+            <tr>
+              <td>Connection stamped on every event</td>
+              <td><code>automationEvents.integrationConnectionId</code>, set by every normalizer &mdash; Linear, Slack, Notion, Sentry, Teams, Gmail</td>
+              <td>Recorded, never read for matching</td>
+            </tr>
+            <tr>
+              <td>Per-connection pin on the MCP proxy</td>
+              <td><code>?connection=&lt;id&gt;</code> &rarr; <code>pinnedConnection()</code> in <code>resolve-target.ts</code></td>
+              <td>Works; nothing ever sets it</td>
+            </tr>
+            <tr>
+              <td>Connections as a list in the API</td>
+              <td><code>plugins.list</code> returns <code>connections[]</code> and <code>accounts[]</code></td>
+              <td>Shape already anticipates several</td>
+            </tr>
+            <tr>
+              <td>Chips in the trigger sentence</td>
+              <td><code>TriggerSentence</code> with <code>ScopeChip</code>, <code>SelectChip</code></td>
+              <td>An account chip fits the existing grammar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>What breaks</h2>
+      <ul class="tight">
+        <li>
+          <strong>Resolution refuses to choose.</strong> <code>userConnection()</code>
+          reads two rows and <code>single()</code> throws
+          <code>AmbiguousConnectionError</code> &mdash; &ldquo;disconnect the one you
+          do not want.&rdquo; So connecting a second account does not enable it, it
+          takes the plugin down.
+        </li>
+        <li>
+          <strong>The matcher narrows one level too shallow.</strong>
+          <code>dispatchMatchingTriggers</code> filters on
+          <code>(organizationId, kind, enabled, ownerUserId)</code>. Its own comment
+          explains why <code>ownerUserId</code> exists &mdash; &ldquo;a Google
+          connection is one person&rsquo;s mailbox&rdquo; &mdash; and that argument
+          repeats one level down: with two mailboxes, both fire every trigger the
+          owner has.
+        </li>
+        <li>
+          <strong>Triggers have nowhere to say which account.</strong> No trigger
+          config carries a connection, and the editor never asks.
+        </li>
+      </ul>
+
+      <h2>Settled</h2>
+      <ul class="tight decided">
+        <li><strong>The shape of the need:</strong> work and personal on one connector, same person.</li>
+        <li><strong>Selection is per call,</strong> not a single default the user switches.</li>
+        <li><strong>An account is visible in the tool surface,</strong> so the agent cannot be vague about which one it acted as.</li>
+        <li><strong>The automation ask is about event routing first.</strong> Tool access inside a run comes later.</li>
+        <li><strong>The prompt is asked whenever the owner has 2+ connections</strong> for a connector &mdash; not only when the prompt mentions that plugin &mdash; once per trigger.</li>
+        <li><strong>Connecting a second account pins existing triggers to the first.</strong> An unrelated action must not change what a running automation reacts to; the new account fires nothing until someone asks it to.</li>
+      </ul>
+
+      <h2>Open: where the pin lives</h2>
+      <div class="cols">
+        <div class="card">
+          <p class="rec">Recommended</p>
+          <h3>A column on <code>automation_triggers</code></h3>
+          <p>
+            <code>connection_id</code>, narrowed in SQL beside the existing
+            <code>ownerUserId</code> clause. A mis-match leaks a personal inbox
+            into a work automation&rsquo;s run &mdash; the same class of boundary
+            that clause already guards in SQL rather than in JS. An FK makes a
+            disconnect detectable instead of dangling.
+          </p>
+          <p>
+            Cost: a migration, and an explicit disconnect path, so a disconnect
+            cannot silently widen a trigger back to &ldquo;any&rdquo;.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Inside the trigger <code>config</code></h3>
+          <p>
+            Consistent with how scopes already work: the matcher already loads
+            every <code>(org, kind)</code> candidate and filters in JS, and the
+            editor and save path carry <code>config</code> for free. No migration.
+          </p>
+          <p>
+            Cost: no referential integrity, and the narrowing sits in the same JS
+            as <code>{mode:"me"}</code> resolution &mdash; a config-shape bug or an
+            unmigrated row fails <em>open</em>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>On the automation, not the trigger</h3>
+          <p>
+            One picker in the settings card, and it hands you the tool-access pin
+            later for free.
+          </p>
+          <p>
+            Cost: an automation with a Linear trigger and a Slack trigger needs two
+            values anyway, so it becomes a map &mdash; and the ask reads as per
+            trigger.
+          </p>
+        </div>
+      </div>
+
+      <h2>Open: how per-account tools appear</h2>
+      <div class="cols">
+        <div class="card">
+          <h3>Per-connection entries in the agent config</h3>
+          <p>
+            Literally <code>gmail-work</code> and <code>gmail-personal</code> in
+            the agent&rsquo;s MCP config.
+          </p>
+          <p>
+            Cost: <code>desiredMcpServers()</code> is built from the static catalog
+            with no network, at boot. Per-connection entries make plugin
+            provisioning depend on a live API call, and every connect or disconnect
+            has to re-sync every machine.
+          </p>
+        </div>
+        <div class="card">
+          <p class="rec">Recommended</p>
+          <h3>One entry, per-account tools from the proxy</h3>
+          <p>
+            The config stays <code>gmail</code> &rarr; bare URL, exactly as now.
+            The proxy, seeing two live connections, advertises the tool set once
+            per account under an account-qualified name and resolves the connection
+            itself.
+          </p>
+          <p>
+            Same thing the agent sees &mdash; the account is in the tool name &mdash;
+            with no config churn and nothing new to provision offline.
+          </p>
+        </div>
+      </div>
+
+      <h2>Not yet decided</h2>
+      <p class="note">
+        Tool access during an automation run is deliberately out of scope for now:
+        whether a run sees only its pinned account, or all of them with the choice
+        stated in context. Worth settling before the tool surface ships, because a
+        scheduled run is the case where acting as the wrong account is least likely
+        to be noticed.
+      </p>
+    </main>
+  </body>
+</html>

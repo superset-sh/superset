@@ -8,7 +8,11 @@ export function GET() {
 		"",
 		"> Official documentation for Superset — run parallel AI coding agents in isolated Git worktrees on your machine.",
 		"",
-		"Each page is available as markdown at /llms.mdx/<path>. The full corpus is at /llms-full.txt.",
+		"Fetch the relevant Markdown pages linked below. Each page includes its source URL and description, followed by the full documentation content.",
+		"",
+		"Any documentation page is available as Markdown at https://docs.superset.sh/llms.mdx/<path>, for example https://docs.superset.sh/llms.mdx/cli/getting-started.",
+		"",
+		"The full documentation corpus is available at https://docs.superset.sh/llms-full.txt.",
 		"",
 		"## Pages",
 		"",
@@ -17,7 +21,7 @@ export function GET() {
 				typeof page.data.description === "string" && page.data.description
 					? `: ${page.data.description}`
 					: "";
-			return `- [${page.data.title}](https://docs.superset.sh${page.url})${description}`;
+			return `- [${page.data.title}](https://docs.superset.sh/llms.mdx${page.url})${description}`;
 		}),
 	];
 

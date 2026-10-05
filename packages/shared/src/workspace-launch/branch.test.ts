@@ -62,6 +62,26 @@ describe("sanitizeSegment", () => {
 		expect(sanitizeSegment("hello-world", 5)).toBe("hello");
 	});
 
+	test("removes every leading hyphen and dot", () => {
+		// A component starting with "." is not a valid git ref.
+		expect(sanitizeSegment("- .gitignore cleanup")).toBe("gitignore-cleanup");
+	});
+
+	test("does not end in a dot or .lock after truncating", () => {
+		// Git rejects a ref ending in "." or a component ending in ".lock".
+		expect(
+			sanitizeSegment("update the changelog for v2.4. then tag it", 30),
+		).toBe("update-the-changelog-for-v2.4");
+		expect(sanitizeSegment("please regenerate the bun.lock file", 30)).toBe(
+			"please-regenerate-the-bun",
+		);
+		expect(sanitizeSegment("fix the build-step", 14)).toBe("fix-the-build");
+	});
+
+	test("removes a repeated .lock suffix", () => {
+		expect(sanitizeSegment("a.lock.lock")).toBe("a");
+	});
+
 	test("can preserve case when requested", () => {
 		expect(sanitizeSegment("  Hello World  ", 50, { preserveCase: true })).toBe(
 			"Hello-World",
@@ -159,6 +179,11 @@ describe("truncateBranchName", () => {
 
 	test("drops trailing slash after truncation", () => {
 		expect(truncateBranchName("feature/test", 8)).toBe("feature");
+	});
+
+	test("does not end in a dot or .lock after truncation", () => {
+		expect(truncateBranchName("feature/v1.2.3", 11)).toBe("feature/v1");
+		expect(truncateBranchName("fix/bun.lockfile", 12)).toBe("fix/bun");
 	});
 });
 

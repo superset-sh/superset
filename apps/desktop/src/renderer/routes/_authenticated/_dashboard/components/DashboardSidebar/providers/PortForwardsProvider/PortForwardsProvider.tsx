@@ -35,17 +35,29 @@ export function PortForwardsProvider({ children }: { children: ReactNode }) {
 	);
 }
 
+/** Finds the forward for any sidebar port, or null when none runs for it. */
+export function usePortForwardLookup(): (
+	port: Pick<
+		DashboardSidebarPort,
+		"hostType" | "hostUrl" | "workspaceId" | "port"
+	>,
+) => PortForward | null {
+	const byId = useContext(PortForwardsContext);
+	return (port) => {
+		if (!byId || port.hostType !== "remote-device") return null;
+		return (
+			byId.get(
+				portForwardId({
+					hostUrl: port.hostUrl,
+					workspaceId: port.workspaceId,
+					remotePort: port.port,
+				}),
+			) ?? null
+		);
+	};
+}
+
 /** The forward for a sidebar port row, or null when none runs for it. */
 export function usePortForward(port: DashboardSidebarPort): PortForward | null {
-	const byId = useContext(PortForwardsContext);
-	if (!byId || port.hostType !== "remote-device") return null;
-	return (
-		byId.get(
-			portForwardId({
-				hostUrl: port.hostUrl,
-				workspaceId: port.workspaceId,
-				remotePort: port.port,
-			}),
-		) ?? null
-	);
+	return usePortForwardLookup()(port);
 }

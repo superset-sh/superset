@@ -7,6 +7,7 @@ import {
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
+import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 
 const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`;
@@ -14,10 +15,11 @@ const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`;
 export async function GET(request: Request) {
 	const callback = await resolveCallback(request, {
 		params: ["code"],
-		redirect: (error) => Response.redirect(`${settingsUrl}?error=${error}`),
+		redirect: (error) => `${settingsUrl}?error=${error}`,
+		cookie: STATE_COOKIES.slack,
 	});
 	if (callback instanceof Response) return callback;
-	const { organizationId, userId, params } = callback;
+	const { organizationId, userId, params, exit, fail } = callback;
 
 	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 	const client = new WebClient();
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
 
 		if (!tokenData.ok || !tokenData.access_token || !tokenData.team?.id) {
 			console.error("[slack/callback] Slack API error:", tokenData.error);
-			return Response.redirect(`${settingsUrl}?error=slack_api_error`);
+			return fail("slack_api_error");
 		}
 
 		// This flow asks for bot scopes only, so `access_token` is the workspace
@@ -72,9 +74,7 @@ export async function GET(request: Request) {
 			const owner = result.conflict.ownerEmail
 				? `&owner=${encodeURIComponent(result.conflict.ownerEmail)}`
 				: "";
-			return Response.redirect(
-				`${settingsUrl}?error=workspace_already_linked${owner}`,
-			);
+			return exit(`${settingsUrl}?error=workspace_already_linked${owner}`);
 		}
 
 		console.log("[slack/callback] Connected workspace:", {
@@ -89,9 +89,9 @@ export async function GET(request: Request) {
 			properties: { team_id: tokenData.team.id },
 		});
 
-		return Response.redirect(settingsUrl);
+		return exit(settingsUrl);
 	} catch (error) {
 		console.error("[slack/callback] Token exchange failed:", error);
-		return Response.redirect(`${settingsUrl}?error=token_exchange_failed`);
+		return fail("token_exchange_failed");
 	}
 }

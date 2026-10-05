@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "stripe",
+	"version": "1.0.0",
+	"description": "Work with payments in Stripe: trace charges and subscriptions, read billing data, and search Stripe's docs.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["stripe", "payments", "billing", "subscriptions", "invoices"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Stripe",
+				"category": "Data & APIs",
+				"icon": "stripe"
+			},
+			"connector": {
+				"slug": "stripe"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.stripe.com"
+			}
+		}
+	}
+}

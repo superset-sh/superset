@@ -1,0 +1,30 @@
+{
+	"$schema": "https://superset.sh/schemas/plugin/1.0.0.json",
+	"name": "sentry",
+	"version": "1.0.0",
+	"description": "Debug with production error context: search issues, read stack traces, and manage alerts in Sentry.",
+	"author": {
+		"name": "Superset",
+		"url": "https://superset.sh"
+	},
+	"homepage": "https://docs.superset.sh",
+	"repository": "https://github.com/superset-sh/superset",
+	"license": "MIT",
+	"keywords": ["sentry", "errors", "monitoring", "debugging", "observability"],
+	"extensions": {
+		"superset": {
+			"interface": {
+				"displayName": "Sentry",
+				"category": "Developer tools",
+				"icon": "sentry"
+			},
+			"connector": {
+				"slug": "sentry_mcp"
+			},
+			"mcp": {
+				"type": "streamable-http",
+				"url": "https://mcp.sentry.dev/mcp"
+			}
+		}
+	}
+}

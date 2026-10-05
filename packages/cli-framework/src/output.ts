@@ -3,11 +3,28 @@ export type OutputFlags = {
 	quiet: boolean;
 };
 
+/**
+ * Output that is a document, not data: printed as-is under --json and
+ * --quiet. It carries nothing else, so a data result that happens to have a
+ * `raw` field is still data.
+ */
+export function isRawResult(result: unknown): result is { raw: string } {
+	return (
+		typeof result === "object" &&
+		result !== null &&
+		"raw" in result &&
+		typeof result.raw === "string" &&
+		!("data" in result) &&
+		!("message" in result)
+	);
+}
+
 export function formatOutput(
 	result: unknown,
 	display: ((data: unknown) => string) | undefined,
 	flags: OutputFlags,
 ): string {
+	if (isRawResult(result)) return result.raw;
 	const data = isResultWithData(result) ? result.data : result;
 	const message = isResultWithMessage(result) ? result.message : undefined;
 
@@ -45,6 +62,8 @@ function isResultWithMessage(result: unknown): result is { message: string } {
 }
 
 function extractIds(data: unknown): string {
+	if (isPaginatedEnvelope(data)) return extractIds(data.items);
+
 	if (Array.isArray(data)) {
 		return data
 			.map((item) => {
@@ -61,6 +80,16 @@ function extractIds(data: unknown): string {
 	}
 
 	return JSON.stringify(data);
+}
+
+function isPaginatedEnvelope(data: unknown): data is { items: unknown[] } {
+	return (
+		typeof data === "object" &&
+		data !== null &&
+		"items" in data &&
+		"nextCursor" in data &&
+		Array.isArray((data as { items: unknown }).items)
+	);
 }
 
 const URL_CELL = /^https?:\/\/\S+$/;

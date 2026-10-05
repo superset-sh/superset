@@ -66,17 +66,6 @@ export function getComparisonPage(slug: string): ComparisonPage | undefined {
 	return parseFrontmatter(filePath) ?? undefined;
 }
 
-export function getAllComparisonSlugs(): string[] {
-	if (!fs.existsSync(COMPARE_DIR)) {
-		return [];
-	}
-
-	return fs
-		.readdirSync(COMPARE_DIR)
-		.filter((f) => f.endsWith(".mdx"))
-		.map((f) => f.replace(".mdx", ""));
-}
-
 export function extractCompareToc(content: string): TocItem[] {
 	const headingRegex = /^(#{2,3})\s+(.+)$/gm;
 	const toc: TocItem[] = [];

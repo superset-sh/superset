@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import type { AutomationRunErrorCode } from "@superset/db/enums";
+import { i18n } from "@superset/i18n";
 
 const HELP: Record<AutomationRunErrorCode, MessageDescriptor> = {
 	host_offline: msg({
@@ -14,6 +15,18 @@ const HELP: Record<AutomationRunErrorCode, MessageDescriptor> = {
 	workspace_not_found: msg({
 		message:
 			"The workspace this automation is pinned to no longer exists on its host. Pin a different one in the automation's settings.",
+	}),
+	cloud_not_ready: msg({
+		message:
+			"The cloud workspace should have started but didn't answer in time. The next run tries again.",
+	}),
+	cloud_access_denied: msg({
+		message:
+			"The automation's owner can't use cloud workspaces in this organization anymore. Ask them to check their access, or run the automation on a device.",
+	}),
+	cloud_environment_unusable: msg({
+		message:
+			"The environment this automation starts cloud workspaces from was archived or has no repositories. Pick another environment in the automation's settings.",
 	}),
 	no_instructions: msg({
 		message:
@@ -42,4 +55,18 @@ export function dispatchErrorCode(error: unknown): string | null {
 	return typeof data?.automationErrorCode === "string"
 		? data.automationErrorCode
 		: null;
+}
+
+/**
+ * How a failed run reads wherever it is shown. Leads with the plain-language
+ * fix and keeps the raw host error for bug reports; both run lists call this
+ * so the same run never reads two ways.
+ */
+export function describeRunError(run: {
+	error?: string | null;
+	errorCode?: string | null;
+}): string {
+	const error = run.error ?? "";
+	const help = runErrorHelp(run.errorCode);
+	return help ? `${i18n._(help)}\n\n(${error})` : error;
 }

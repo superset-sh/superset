@@ -79,7 +79,7 @@ export function PageTitleMenu({
 					size="xs"
 					variant="ghost"
 					className={cn(
-						"min-w-0",
+						"min-w-0 shrink",
 						compact
 							? "-ml-1 h-5 gap-1 px-1 font-[inherit] text-xs"
 							: "gap-1.5 font-medium text-sm",
@@ -91,7 +91,7 @@ export function PageTitleMenu({
 							compact ? "size-3" : "size-3.5",
 						)}
 					/>
-					<span className="truncate">{page.title}</span>
+					<span className="min-w-0 truncate">{page.title}</span>
 					<ChevronDown
 						className={cn(
 							"shrink-0 text-muted-foreground",

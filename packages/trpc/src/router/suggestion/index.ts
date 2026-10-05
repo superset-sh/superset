@@ -1,0 +1,1 @@
+export { suggestionRouter } from "./suggestion";

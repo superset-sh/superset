@@ -1,0 +1,1 @@
+export { CloudWorkspaceRecordTopBar } from "./CloudWorkspaceRecordTopBar";

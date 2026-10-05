@@ -1,15 +1,8 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { db } from "@superset/db/client";
-import {
-	dealRedemptions,
-	members,
-	organizations,
-	subscriptions,
-	users,
-} from "@superset/db/schema";
+import { dealRedemptions } from "@superset/db/schema";
 import { YcDealCodeEmail } from "@superset/email/emails/billing/yc-deal-code";
-import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Resend } from "resend";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -59,94 +52,9 @@ function generateCode(): string {
 }
 
 type Outcome = {
-	status: "granted" | "code_sent" | "pending";
-	organizationId?: string;
-	stripeSubscriptionId?: string;
+	status: "code_sent" | "pending";
 	promotionCode?: string;
 };
-
-/**
- * Rejecting the redemption makes Bookface show `message` to the founder and
- * not count the redemption, so they can retry after fixing the problem.
- */
-class RejectRedemption extends Error {
-	constructor(
-		message: string,
-		readonly httpStatus: number,
-	) {
-		super(message);
-	}
-}
-
-async function grantSubscription(
-	organizationId: string,
-	payload: Payload,
-): Promise<Outcome> {
-	const org = await db.query.organizations.findFirst({
-		where: eq(organizations.id, organizationId),
-	});
-	if (!org) throw new Error(`Organization ${organizationId} not found`);
-
-	let customerId = org.stripeCustomerId;
-	if (!customerId) {
-		const customer = await stripeClient.customers.create({
-			name: org.name,
-			email: payload.email ?? undefined,
-			metadata: { organizationId: org.id, organizationSlug: org.slug ?? "" },
-		});
-		customerId = customer.id;
-		await db
-			.update(organizations)
-			.set({ stripeCustomerId: customerId })
-			.where(eq(organizations.id, org.id));
-	}
-
-	const seatCount = await db.$count(
-		members,
-		eq(members.organizationId, org.id),
-	);
-
-	const subscription = await stripeClient.subscriptions.create({
-		customer: customerId,
-		items: [
-			{
-				price: env.STRIPE_PRO_MONTHLY_PRICE_ID,
-				quantity: Math.max(seatCount, 1),
-			},
-		],
-		discounts: [{ coupon: env.YC_BOOKFACE_COUPON_ID }],
-		metadata: {
-			source: SOURCE,
-			organizationId: org.id,
-			ycRedemptionId: String(payload.id),
-		},
-	});
-
-	// The better-auth Stripe plugin's customer.subscription.created handler
-	// cannot resolve an org from a customer id (it only does that when the
-	// plugin is configured with `organization.enabled`, which we don't set), so
-	// a subscription created through the API never reaches our table. Write the
-	// row here. Later updates and cancels do reconcile through the plugin,
-	// which finds this row by stripeSubscriptionId.
-	const item = subscription.items.data[0];
-	await db.insert(subscriptions).values({
-		plan: "pro",
-		referenceId: org.id,
-		stripeCustomerId: customerId,
-		stripeSubscriptionId: subscription.id,
-		status: subscription.status,
-		periodStart: item ? new Date(item.current_period_start * 1000) : null,
-		periodEnd: item ? new Date(item.current_period_end * 1000) : null,
-		seats: item?.quantity ?? Math.max(seatCount, 1),
-		billingInterval: item?.price.recurring?.interval ?? "month",
-	});
-
-	return {
-		status: "granted",
-		organizationId: org.id,
-		stripeSubscriptionId: subscription.id,
-	};
-}
 
 async function sendCode(email: string, payload: Payload): Promise<Outcome> {
 	const promotionCode = await stripeClient.promotionCodes.create({
@@ -180,41 +88,6 @@ async function sendCode(email: string, payload: Payload): Promise<Outcome> {
 async function resolveOutcome(payload: Payload): Promise<Outcome> {
 	const email = payload.email?.trim().toLowerCase();
 	if (!email) return { status: "pending" };
-
-	const user = await db.query.users.findFirst({
-		where: sql`lower(${users.email}) = ${email}`,
-	});
-
-	if (user) {
-		const ownerships = await db.query.members.findMany({
-			where: and(eq(members.userId, user.id), eq(members.role, "owner")),
-		});
-		const orgIds = ownerships.map((m) => m.organizationId);
-
-		if (orgIds.length > 0) {
-			const activeSubs = await db.query.subscriptions.findMany({
-				where: and(
-					inArray(subscriptions.referenceId, orgIds),
-					inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
-				),
-			});
-			const subscribed = new Set(activeSubs.map((s) => s.referenceId));
-			const eligible = orgIds.filter((id) => !subscribed.has(id));
-
-			if (eligible.length === 1 && eligible[0]) {
-				return grantSubscription(eligible[0], payload);
-			}
-			if (eligible.length === 0) {
-				throw new RejectRedemption(
-					"Looks like your org is already on a paid plan. Email kiet@superset.sh and we'll apply the 6 free months.",
-					409,
-				);
-			}
-			// More than one eligible org: we can't pick for them, so fall
-			// through to the code path and let them redeem on the right org.
-		}
-	}
-
 	return sendCode(email, payload);
 }
 
@@ -262,12 +135,6 @@ export async function POST(request: Request) {
 	try {
 		outcome = await resolveOutcome(payload);
 	} catch (error) {
-		if (error instanceof RejectRedemption) {
-			return Response.json(
-				{ message: error.message },
-				{ status: error.httpStatus },
-			);
-		}
 		console.error(
 			`[yc-deals/webhook] Failed to process redemption ${externalRedemptionId}:`,
 			error,
@@ -290,8 +157,6 @@ export async function POST(request: Request) {
 			companyName: company?.name ?? null,
 			companyBatch: company?.batch ?? null,
 			status: outcome.status,
-			organizationId: outcome.organizationId ?? null,
-			stripeSubscriptionId: outcome.stripeSubscriptionId ?? null,
 			promotionCode: outcome.promotionCode ?? null,
 			payload: rawPayload,
 		})

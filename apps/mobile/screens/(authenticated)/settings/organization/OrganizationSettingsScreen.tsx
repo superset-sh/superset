@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useReadableInset } from "@/hooks/useReadableInset";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
@@ -29,10 +30,13 @@ export function OrganizationSettingsScreen() {
 		[members],
 	);
 
+	// 24pt (px-6) on a phone; a centered column on iPad.
+	const readableInset = useReadableInset(24);
 	return (
 		<ScrollView
 			className="bg-background flex-1"
-			contentContainerClassName="px-6 pb-12"
+			contentContainerClassName="pb-12"
+			contentContainerStyle={{ paddingHorizontal: readableInset }}
 		>
 			<View className="items-center gap-2 py-8">
 				<OrganizationAvatar

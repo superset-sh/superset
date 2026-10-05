@@ -195,8 +195,12 @@ export async function resolveClientIdentity(
 	method: ConnectorMethod,
 	redirectUri: string,
 ): Promise<ClientIdentity> {
-	if (server.metadata.client_id_metadata_document_supported) {
-		return { clientId: clientMetadataUrl(connectorSlug) };
+	const metadataUrl = clientMetadataUrl(connectorSlug);
+	if (
+		server.metadata.client_id_metadata_document_supported &&
+		new URL(metadataUrl).protocol === "https:"
+	) {
+		return { clientId: metadataUrl };
 	}
 
 	const existing = await storedClient(server.issuer, redirectUri);

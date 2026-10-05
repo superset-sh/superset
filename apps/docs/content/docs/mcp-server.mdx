@@ -332,14 +332,26 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `pages_list` | List published pages in the organization (optionally scoped to one workspace) |
+| `pages_list` | Search and paginate pages, optionally scoped to one workspace |
 | `pages_get` | Get one page's metadata by id or slug (title, visibility, URL, served version) |
 | `pages_versions` | List a page's version history, newest first |
 | `pages_pull` | Get a download URL for a page's HTML, plus that version's metadata |
-| `pages_publish` | Publish an HTML document (passed inline, not as a path) and get its public URL |
+| `pages_publish` | Publish an HTML document (passed inline, not as a path) and get its shareable URL |
 | `pages_comments_list` | List comment threads on a page, with replies and resolved state |
 | `pages_comments_reply` | Post a reply into a comment thread |
 | `pages_comments_resolve` | Mark a comment thread resolved, or reopen it |
+
+`pages_list` returns `{ items, nextCursor }`, ordered newest-created first.
+Pass `search` to match title, slug, or description, `limit` for 1–200 rows
+(default 50), and the returned `nextCursor` as `cursor` to continue. Keep
+fetching until `nextCursor` is null. `scope` accepts `all` (default), `team`
+for shared pages, or `mine` for your private pages.
+
+`pages_publish` accepts `visibility: "just_me"`, `"org"` (the default for new
+pages), or `"everyone"` for anonymous read-only access. Pass `workspaceId` and
+`entryPath` together to link the page to a workspace. Both are optional;
+outside a workspace, save the returned `id` and pass it as `pageId` when
+publishing updates. Otherwise each publish creates a separate page.
 
 ### Automations
 
@@ -386,7 +398,7 @@ Once connected, you can ask your AI agent to:
 - "Create a task for fixing the login bug"
 - "List all my assigned tasks"
 - "Create a workspace for the auth feature on my MacBook"
-- "Schedule a daily automation that triages new Linear issues at 9am"
+- "Schedule a daily automation that triages new Linear issues at 9 a.m."
 - "Pause the nightly cleanup automation"
 - "Show me the last 10 runs of my Linear triage automation"
 - "Answer the two threads handed to me on the launch-plan page"

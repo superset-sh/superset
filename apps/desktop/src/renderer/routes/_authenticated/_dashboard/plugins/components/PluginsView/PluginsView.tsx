@@ -9,11 +9,11 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuSettings2 } from "react-icons/lu";
-import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import { PluginIcon } from "renderer/components/PluginIcon";
 import {
 	type CatalogPlugin,
 	usePluginCatalog,
-} from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginCatalog";
+} from "renderer/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
 import { ManageInstalledDialog } from "./components/ManageInstalledDialog";
 import { PluginCard } from "./components/PluginCard";
@@ -110,7 +110,7 @@ export function PluginsView() {
 	);
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 pb-16">
+		<div className="mx-auto w-full max-w-3xl px-6 pt-4 pb-16">
 			<Tabs defaultValue="plugins">
 				<TabsList className="mb-6">
 					<TabsTrigger value="plugins">

@@ -80,6 +80,23 @@ describe("i18n error contract", () => {
 			shape: { message: "boom", code: -32603, data: {} },
 			error: new Error("boom"),
 		});
-		expect(shape.data).toMatchObject({ i18nKey: null, i18nParams: null });
+		expect(shape.data).toMatchObject({
+			i18nKey: null,
+			i18nParams: null,
+			pageStorageCode: null,
+		});
+	});
+
+	test("formatError carries a page storage code into shape.data", () => {
+		const err = new TRPCError({
+			code: "FORBIDDEN",
+			message: "quota_exceeded: a page stores at most 262144 bytes",
+			cause: { pageStorageCode: "quota_exceeded" },
+		});
+		const shape = formatError({
+			shape: { message: err.message, code: -32603, data: {} },
+			error: err,
+		});
+		expect(shape.data.pageStorageCode).toBe("quota_exceeded");
 	});
 });

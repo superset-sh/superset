@@ -4,6 +4,7 @@
  * check talks to the box the way a client would (its published ports) or
  * the way the boot runner left it (its log and run directory).
  */
+import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import {
 	SANDBOX_PATHS,
 	SANDBOX_PORTS,
@@ -148,12 +149,18 @@ export async function probeBox(args: ProbeArgs): Promise<number> {
 		JSON.stringify(rfb),
 	);
 	if (args.expectAnthropicRule) {
-		const code = (
-			await run(
-				"curl -s -o /dev/null -w '%{http_code}' --max-time 15 -H 'x-api-key: placeholder' -H 'anthropic-version: 2023-06-01' https://api.anthropic.com/v1/models",
-			)
-		).trim();
-		check("firewall swaps the Anthropic header", code === "200", code);
+		const models = (key: string) =>
+			run(
+				`curl -s -o /dev/null -w '%{http_code}' --max-time 15 -H 'x-api-key: ${key}' -H 'anthropic-version: 2023-06-01' https://api.anthropic.com/v1/models`,
+			).then((code) => code.trim());
+		const swapped = await models(SANDBOX_CREDENTIAL_PLACEHOLDER);
+		check(
+			"firewall swaps the Anthropic placeholder",
+			swapped === "200",
+			swapped,
+		);
+		const passed = await models("not-the-placeholder");
+		check("firewall leaves another key alone", passed === "401", passed);
 	}
 	if (args.gate) {
 		const access = await mintSandboxGateAccess({

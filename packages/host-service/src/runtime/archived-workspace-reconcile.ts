@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
-import { workspaces } from "../db/schema";
+import { projects, workspaces } from "../db/schema";
 import { destroyWorkspace } from "../trpc/router/workspace-cleanup";
 import type { HostServiceContext } from "../types";
 
@@ -16,10 +16,13 @@ import type { HostServiceContext } from "../types";
 export async function runArchivedWorkspaceReconcile(
 	ctx: HostServiceContext,
 ): Promise<void> {
+	// A soft-deleted project keeps its workspaces' worktrees on disk so it
+	// can be restored; those tombstones are not interrupted deletes.
 	const archived = ctx.db
 		.select({ id: workspaces.id, worktreePath: workspaces.worktreePath })
 		.from(workspaces)
-		.where(isNotNull(workspaces.archivedAt))
+		.leftJoin(projects, eq(projects.id, workspaces.projectId))
+		.where(and(isNotNull(workspaces.archivedAt), isNull(projects.deletedAt)))
 		.all();
 	if (archived.length === 0) return;
 

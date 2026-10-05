@@ -8,7 +8,8 @@ import { create } from "zustand";
  */
 export interface PullRequestPaneIntent {
 	workspaceId: string;
-	prNumber: number;
+	repoFullName: string;
+	number: number;
 }
 
 interface PullRequestPaneIntentState {

@@ -3,6 +3,7 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { XIcon } from "lucide-react";
+import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import { LinearIcon } from "renderer/components/icons/LinearIcon";
 
 interface LinkedIssuePillProps {
@@ -22,6 +23,7 @@ export function LinkedIssuePill({
 }: LinkedIssuePillProps) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
+	const isLinear = url?.startsWith("https://linear.app/") ?? false;
 
 	const handleClick = () => {
 		// Prefer internal navigation over external URL for better UX
@@ -70,7 +72,11 @@ export function LinkedIssuePill({
 			style={{ cursor: taskId || url ? "pointer" : "default" }}
 		>
 			<div className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/10 p-0.5">
-				<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
+				{isLinear ? (
+					<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
+				) : (
+					<HiOutlineClipboardDocumentList className="size-4 text-muted-foreground transition-opacity group-hover:opacity-0" />
+				)}
 				<Button
 					aria-label={t({
 						message: "Remove linked issue",
@@ -96,9 +102,7 @@ export function LinkedIssuePill({
 				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
 					<span className="max-w-[80px] truncate">{slug}</span>
 					<span>·</span>
-					<span>
-						<Trans>Linear</Trans>
-					</span>
+					<span>{isLinear ? <Trans>Linear</Trans> : <Trans>Task</Trans>}</span>
 				</div>
 			</div>
 		</div>

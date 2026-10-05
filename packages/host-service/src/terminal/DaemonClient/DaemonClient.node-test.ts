@@ -519,3 +519,122 @@ async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 		await new Promise((r) => setTimeout(r, 25));
 	}
 }
+
+test("color queries complete on a real PTY before delayed renderer attachment", async () => {
+	const client = new DaemonClient({ socketPath: sockPath });
+	await client.connect();
+	const script = [
+		"import os, select, time, tty",
+		"tty.setraw(0)",
+		"os.write(1, b'\\x1b]11;?\\x1b\\\\')",
+		"deadline = time.monotonic() + 0.150",
+		"reply = b''",
+		"while not reply.endswith(b'\\x1b\\\\') and time.monotonic() < deadline:",
+		"    if select.select([0], [], [], max(0, deadline-time.monotonic()))[0]: reply += os.read(0, 1024)",
+		"os.write(1, b'PROBE=' + reply.hex().encode() + b'\\n')",
+		"draft = b''",
+		"while not draft.endswith(b'\\n'): draft += os.read(0, 1024)",
+		"os.write(1, b'DRAFT=' + draft)",
+		"time.sleep(0.2)",
+	].join("\n");
+	const id = `colors-${crypto.randomUUID()}`;
+	try {
+		assert.equal(client.supportsColorQueries, true);
+		await client.open(id, {
+			shell: "/usr/bin/python3",
+			argv: ["-u", "-c", script],
+			cols: 80,
+			rows: 24,
+			env: { COLORFGBG: "15;0" },
+			colors: {
+				foreground: "#eeeeee",
+				background: "#151110",
+				cursor: "#ffffff",
+			},
+		});
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+		let output = "";
+		client.subscribe(
+			id,
+			{ replay: true },
+			{
+				onOutput: (bytes) => {
+					output += bytes.toString();
+				},
+				onExit() {},
+			},
+		);
+		await client.waitForReplay(id);
+		assert.ok(
+			output.includes(
+				`PROBE=${Buffer.from("\x1b]11;rgb:1515/1111/1010\x1b\\").toString("hex")}`,
+			),
+			output,
+		);
+		assert.ok(!output.includes("\x1b]11;?"), output);
+		client.input(id, Buffer.from("user-marker\n"));
+		await waitFor(() => output.includes("DRAFT="), 3000);
+		assert.ok(output.includes("DRAFT=user-marker\n"), output);
+	} finally {
+		await client.close(id).catch(() => {});
+		await client.dispose();
+	}
+});
+
+test("color updates are sent only when the daemon advertises ownership", async () => {
+	for (const capable of [false, true]) {
+		const socketPath = path.join(
+			os.tmpdir(),
+			`color-cap-${crypto.randomUUID()}.sock`,
+		);
+		const received: string[] = [];
+		const colorResets: boolean[] = [];
+		const fake = net.createServer((socket) => {
+			const decoder = new FrameDecoder();
+			socket.on("data", (bytes) => {
+				decoder.push(bytes);
+				for (const frame of decoder.drain()) {
+					const msg = frame.message as {
+						type: string;
+						resetOverrides?: boolean;
+					};
+					received.push(msg.type);
+					if (msg.type === "colors")
+						colorResets.push(msg.resetOverrides === true);
+					if (msg.type === "hello")
+						socket.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: 2,
+								daemonVersion: "test",
+								...(capable ? { supportsColorQueries: true } : {}),
+							}),
+						);
+					if (msg.type === "list")
+						socket.write(encodeFrame({ type: "list-reply", sessions: [] }));
+				}
+			});
+		});
+		await new Promise<void>((resolve) => fake.listen(socketPath, resolve));
+		const client = new DaemonClient({ socketPath });
+		try {
+			await client.connect();
+			client.setColors("t", {
+				foreground: "#ffffff",
+				background: "#000000",
+				cursor: "#ffffff",
+			});
+			client.setColors(
+				"t",
+				{ foreground: "#ffffff", background: "#000000", cursor: "#ffffff" },
+				true,
+			);
+			await client.list();
+			assert.equal(received.includes("colors"), capable);
+			assert.deepEqual(colorResets, capable ? [false, true] : []);
+		} finally {
+			await client.dispose();
+			await new Promise<void>((resolve) => fake.close(() => resolve()));
+		}
+	}
+});

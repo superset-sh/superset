@@ -9,16 +9,20 @@
  * longer than one keepalive.
  *
  * What does reach the box is the managed environment: the environment's own
- * variables and the placeholders the CLIs need to be willing to make a
- * request at all, pushed into host-service after boot and held in memory.
+ * variables minus any provider credential, which a cloud workspace ignores,
+ * and the placeholders the CLIs need to be willing to make a request at all,
+ * pushed into host-service after boot and held in memory.
  */
-import { agentCredentialToEnv } from "@superset/shared/agent-credentials";
+import {
+	agentCredentialToEnv,
+	CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
+} from "@superset/shared/agent-credentials";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import {
 	SANDBOX_API_CREDENTIAL_HEADER,
 	sandboxApiCredential,
 } from "@superset/shared/sandbox-gate";
-import type { NetworkPolicy } from "@vercel/sandbox";
+import type { NetworkPolicy, NetworkPolicyRule } from "@vercel/sandbox";
 import { env } from "../../env";
 
 export interface SandboxCredentialInputs {
@@ -78,34 +82,42 @@ export interface SandboxCredentials {
 	managedEnv: Record<string, string>;
 }
 
-type HeaderRule = { transform: Array<{ headers: Record<string, string> }> };
-
-function rule(headers: Record<string, string>): HeaderRule[] {
+function rule(headers: Record<string, string>): NetworkPolicyRule[] {
 	return [{ transform: [{ headers }] }];
 }
 
-/**
- * The precedence for a model provider: the person's own sign-in beats the
- * environment's variable, which beats the organization's key. Whichever
- * wins becomes the header rule; the box only ever sees the placeholder.
- */
+/** Sets `header` only on a request that presents the placeholder in it. */
+function swap(
+	header: string,
+	placeholder: string,
+	value: string,
+): NetworkPolicyRule[] {
+	return [
+		{
+			match: {
+				headers: [{ key: { exact: header }, value: { exact: placeholder } }],
+			},
+			transform: [{ headers: { [header]: value } }],
+		},
+	];
+}
+
+/** A model credential is the person's sign-in and nothing else. */
 export async function deriveSandboxCredentials(
 	inputs: SandboxCredentialInputs,
 ): Promise<SandboxCredentials> {
-	const allow: Record<string, HeaderRule[]> = {};
+	const allow: Record<string, NetworkPolicyRule[]> = {};
 	const managedEnv: Record<string, string> = {};
 
-	// The environment's variables reach the box as they are, minus the ones
-	// that are credentials for a brokered provider, which become rules.
-	const brokeredKeys = new Set([
-		"ANTHROPIC_API_KEY",
-		"CLAUDE_CODE_OAUTH_TOKEN",
-		"OPENAI_API_KEY",
+	// GitHub tokens are dropped too: git and gh on the box speak through the
+	// installation rule.
+	const ignored = new Set<string>([
+		...CLOUD_WORKSPACE_IGNORED_ENV_NAMES,
 		"GH_TOKEN",
 		"GITHUB_TOKEN",
 	]);
 	for (const [key, value] of Object.entries(inputs.environmentEnv)) {
-		if (!brokeredKeys.has(key)) managedEnv[key] = value;
+		if (!ignored.has(key)) managedEnv[key] = value;
 	}
 	// git reads these over any user.name in a config file, so a commit on the
 	// box is the person's without writing one; set after the environment's
@@ -115,31 +127,56 @@ export async function deriveSandboxCredentials(
 	managedEnv.GIT_COMMITTER_NAME = inputs.gitAuthor.name;
 	managedEnv.GIT_COMMITTER_EMAIL = inputs.gitAuthor.email;
 
-	const pick = (key: string): string | undefined =>
-		inputs.userAgentEnv[key] || inputs.environmentEnv[key] || undefined;
+	const signIn = inputs.userAgentEnv;
+	const hostOf = (baseUrl: string | undefined, fallback: string): string => {
+		try {
+			return baseUrl ? new URL(baseUrl).hostname : fallback;
+		} catch {
+			return fallback;
+		}
+	};
 
-	// Anthropic: an OAuth token (a subscription) authenticates with a bearer,
-	// an API key with x-api-key. The CLI decides which header it sends from
-	// which placeholder variable is set, so exactly one is set.
-	const oauth = pick("CLAUDE_CODE_OAUTH_TOKEN");
-	const anthropicKey = pick("ANTHROPIC_API_KEY") ?? env.ANTHROPIC_API_KEY;
-	if (oauth) {
-		allow["api.anthropic.com"] = rule({ Authorization: `Bearer ${oauth}` });
-		managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
-	} else if (anthropicKey) {
-		allow["api.anthropic.com"] = rule({ "x-api-key": anthropicKey });
+	// Anthropic: an OAuth token (a subscription) and a gateway key both
+	// authenticate with a bearer, an API key with x-api-key. The CLI decides
+	// which header it sends from which placeholder variable is set, so exactly
+	// one is set.
+	const anthropicHost = hostOf(signIn.ANTHROPIC_BASE_URL, "api.anthropic.com");
+	const anthropicBearer =
+		signIn.CLAUDE_CODE_OAUTH_TOKEN || signIn.ANTHROPIC_AUTH_TOKEN;
+	if (anthropicBearer) {
+		allow[anthropicHost] = swap(
+			"authorization",
+			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
+			`Bearer ${anthropicBearer}`,
+		);
+		if (signIn.CLAUDE_CODE_OAUTH_TOKEN) {
+			managedEnv.CLAUDE_CODE_OAUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		} else {
+			managedEnv.ANTHROPIC_AUTH_TOKEN = SANDBOX_CREDENTIAL_PLACEHOLDER;
+		}
+	} else if (signIn.ANTHROPIC_API_KEY) {
+		allow[anthropicHost] = swap(
+			"x-api-key",
+			SANDBOX_CREDENTIAL_PLACEHOLDER,
+			signIn.ANTHROPIC_API_KEY,
+		);
 		managedEnv.ANTHROPIC_API_KEY = SANDBOX_CREDENTIAL_PLACEHOLDER;
 	}
-	const anthropicBase = pick("ANTHROPIC_BASE_URL");
-	if (anthropicBase) managedEnv.ANTHROPIC_BASE_URL = anthropicBase;
+	if (signIn.ANTHROPIC_BASE_URL) {
+		managedEnv.ANTHROPIC_BASE_URL = signIn.ANTHROPIC_BASE_URL;
+	}
 
-	const openaiKey = pick("OPENAI_API_KEY") ?? env.OPENAI_API_KEY;
-	if (openaiKey) {
-		allow["api.openai.com"] = rule({ Authorization: `Bearer ${openaiKey}` });
+	if (signIn.OPENAI_API_KEY) {
+		allow[hostOf(signIn.OPENAI_BASE_URL, "api.openai.com")] = swap(
+			"authorization",
+			`Bearer ${SANDBOX_CREDENTIAL_PLACEHOLDER}`,
+			`Bearer ${signIn.OPENAI_API_KEY}`,
+		);
 		managedEnv.OPENAI_API_KEY = SANDBOX_CREDENTIAL_PLACEHOLDER;
 	}
-	const openaiBase = pick("OPENAI_BASE_URL");
-	if (openaiBase) managedEnv.OPENAI_BASE_URL = openaiBase;
+	if (signIn.OPENAI_BASE_URL) {
+		managedEnv.OPENAI_BASE_URL = signIn.OPENAI_BASE_URL;
+	}
 
 	// GitHub: git speaks Basic with the token as the password, gh and the
 	// REST API speak bearer. Both are the installation token, scoped to the

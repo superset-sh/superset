@@ -73,6 +73,7 @@ export class TunnelClient {
 	private pingTimer: ReturnType<typeof setInterval> | null = null;
 	private watchdogTimer: ReturnType<typeof setInterval> | null = null;
 	private lastInboundAt = 0;
+	private connectedAt = 0;
 	private notOpenSince: number | null = null;
 	private relayUrl: string;
 	private lastAttemptOpened = true;
@@ -129,6 +130,7 @@ export class TunnelClient {
 
 		control.addEventListener("open", () => {
 			this.lastInboundAt = Date.now();
+			this.connectedAt = this.lastInboundAt;
 			this.lastAttemptOpened = true;
 			console.log(
 				`[host-service:tunnel] control connected for ${this.options.hostId}`,
@@ -149,12 +151,19 @@ export class TunnelClient {
 		});
 
 		control.addEventListener("close", (event) => {
-			const described = describeRelayClose(event.code) ?? "";
-			if (event.code === 1008 || described) {
-				console.warn(
-					`[host-service:tunnel] relay closed control (${event.code} ${described}): ${event.reason ?? ""}; partysocket will retry`,
-				);
-			}
+			const now = Date.now();
+			console.warn("[host-service:tunnel] control closed", {
+				timestamp: new Date(now).toISOString(),
+				hostId: this.options.hostId,
+				code: event.code,
+				description: describeRelayClose(event.code),
+				reason: event.reason,
+				wasClean: event.wasClean,
+				connectedForMs: this.connectedAt ? now - this.connectedAt : null,
+				inboundSilenceMs: this.lastInboundAt ? now - this.lastInboundAt : null,
+				retrying: !this.closed,
+			});
+			this.connectedAt = 0;
 		});
 
 		this.pingTimer = setInterval(() => {

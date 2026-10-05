@@ -10,7 +10,6 @@ import {
 } from "../../../lib/connectors";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgMembership } from "../utils";
-import { stopChannel } from "./calendar";
 import { stopMailboxWatch } from "./gmail";
 import { findGoogleConnection, googleConfigOf } from "./state";
 
@@ -33,7 +32,7 @@ export const googleRouter = {
 			return {
 				id: connection.id,
 				// The Google account's address; the connection is that person's
-				// calendars and mailbox, not the organization's.
+				// mailbox, not the organization's.
 				email: connection.externalAccountId,
 				connectedByUserId: connection.connectedByUserId,
 				connectedAt: connection.createdAt,
@@ -51,9 +50,9 @@ export const googleRouter = {
 				ctx.session.user.id,
 			);
 			if (connection) {
-				// Best effort: Google keeps pushing to a channel until it is stopped
-				// or expires, and the push route would only reject those with a
-				// missing connection. A failure here must not block the disconnect.
+				// Best effort: Google keeps pushing until the watch is stopped or
+				// expires, and the push route would only reject pushes for a missing
+				// connection. A failure here must not block the disconnect.
 				const config = googleConfigOf(connection.state);
 				await Promise.allSettled([
 					// The grant outlives the row unless it is revoked: without this
@@ -62,16 +61,6 @@ export const googleRouter = {
 					revokeGrant(
 						(await decryptOptional(connection.refreshToken)) ??
 							(await decryptSecret(connection.accessToken)),
-					),
-					...Object.values(config.calendars ?? {}).flatMap((state) =>
-						state.channelId && state.resourceId
-							? [
-									stopChannel(connection.id, {
-										id: state.channelId,
-										resourceId: state.resourceId,
-									}),
-								]
-							: [],
 					),
 					config.gmail?.watchExpiresAt
 						? stopMailboxWatch(connection.id)

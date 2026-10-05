@@ -1,3 +1,7 @@
+import {
+	pageReportReasonValues,
+	pageReportStatusValues,
+} from "@superset/db/schema";
 import { z } from "zod";
 
 export const OFFERED_VISIBILITIES = ["just_me", "org", "everyone"] as const;
@@ -88,9 +92,77 @@ export const createPageSchema = z
 
 export type CreatePageInput = z.infer<typeof createPageSchema>;
 
-export const listPagesSchema = z
+export const PAGE_LIST_DEFAULT_LIMIT = 50;
+export const PAGE_LIST_MAX_LIMIT = 200;
+
+/**
+ * `MAX_FAVORITE_PAGE_IDS` on the desktop, which is where the only unbounded
+ * caller comes from: pins live in renderer storage, so the pinned tab asks for
+ * them by id rather than by a column the server could filter on.
+ */
+export const PAGE_LIST_MAX_IDS = 200;
+
+export const PAGE_LIST_SCOPES = ["all", "team", "mine"] as const;
+
+export type PageListScope = (typeof PAGE_LIST_SCOPES)[number];
+
+/**
+ * An empty search is the cleared search box, not a request for pages whose
+ * title contains "". Normalising here rather than at each caller keeps a
+ * client from having to strip the key to get the unfiltered list back.
+ */
+const searchField = z
+	.string()
+	.max(200)
+	.transform((value) => value.trim())
+	.transform((value) => (value.length === 0 ? undefined : value))
+	.optional();
+
+const pageListFilterFields = {
+	workspaceId: pageFields.workspaceId.optional(),
+	search: searchField,
+	scope: z.enum(PAGE_LIST_SCOPES).default("all"),
+	authorId: z.string().uuid().optional(),
+	ids: z.array(pageFields.id).max(PAGE_LIST_MAX_IDS).optional(),
+} as const;
+
+/**
+ * `page.list`'s input before pagination. Released desktop, mobile and CLI
+ * builds still call it and expect every page back as a bare array.
+ */
+export const legacyListPagesSchema = z
 	.object({ workspaceId: pageFields.workspaceId.optional() })
 	.optional();
+
+export const listPagesSchema = z
+	.object({
+		...pageListFilterFields,
+		cursor: z.string().max(256).optional(),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(PAGE_LIST_MAX_LIMIT)
+			.default(PAGE_LIST_DEFAULT_LIMIT),
+	})
+	.optional();
+
+/**
+ * The tab counts. They are a separate query because they are counts over the
+ * whole filtered set, which a paginated list can no longer derive from what it
+ * has loaded.
+ */
+export const pageCountsSchema = z
+	.object({
+		workspaceId: pageListFilterFields.workspaceId,
+		search: pageListFilterFields.search,
+		authorId: pageListFilterFields.authorId,
+		pinnedIds: pageListFilterFields.ids,
+	})
+	.optional();
+
+export type ListPagesInput = z.infer<typeof listPagesSchema>;
+export type PageCountsInput = z.infer<typeof pageCountsSchema>;
 
 const pageRefFieldsSchema = z.object({
 	id: pageFields.id.optional(),
@@ -126,6 +198,30 @@ export const setSharedVersionSchema = z.object({
 export const deletePageSchema = z.object({
 	id: pageFields.id,
 	onlyIfEmpty: z.boolean().optional(),
+});
+
+export const reportPageSchema = z.object({
+	slug: pageFields.slug,
+	reason: z.enum(pageReportReasonValues),
+	details: z.string().max(4000).optional(),
+	reporterEmail: z.string().email().max(320).optional(),
+});
+
+export const listPageReportsSchema = z.object({
+	status: z.enum(pageReportStatusValues).optional(),
+	limit: z.number().int().positive().max(200).default(50),
+	cursor: z.string().datetime().optional(),
+});
+
+export const reviewPageReportSchema = z.object({
+	id: pageFields.id,
+	status: z.enum(["upheld", "dismissed"]),
+	note: z.string().max(2000).optional(),
+});
+
+export const takedownPageSchema = z.object({
+	id: pageFields.id,
+	note: z.string().max(2000).optional(),
 });
 
 export const pullPageSchema = pageRefFieldsSchema
