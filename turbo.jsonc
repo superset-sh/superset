@@ -15,7 +15,9 @@
 		"POSTHOG_API_KEY",
 		"POSTHOG_PROJECT_ID",
 		"KV_REST_API_URL",
-		"KV_REST_API_TOKEN"
+		"KV_REST_API_TOKEN",
+		"S3_ENDPOINT",
+		"S3_PRESIGN_ENDPOINT"
 	],
 	"globalPassThroughEnv": [
 		"NODE_ENV",
@@ -33,7 +35,7 @@
 	],
 	"tasks": {
 		"build": {
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/.env"],
 			"dependsOn": ["^build"],
 			"outputs": [
 				".next/**",
