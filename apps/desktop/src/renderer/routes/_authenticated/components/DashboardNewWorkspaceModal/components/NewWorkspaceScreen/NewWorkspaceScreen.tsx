@@ -748,9 +748,9 @@ export function NewWorkspaceScreen({
 					</div>
 				}
 			/>
-			<div className="flex flex-1 flex-col items-center justify-center gap-8">
-				<SupersetIcon className="h-10 w-auto text-muted-foreground/70" />
-				<h1 className="text-center text-3xl font-medium text-foreground/90">
+			<div className="flex flex-1 flex-col items-center justify-center gap-5">
+				<SupersetIcon className="h-14 w-auto text-foreground/80" />
+				<h1 className="text-center text-4xl font-semibold tracking-tight text-foreground">
 					<Trans>What should we build next?</Trans>
 				</h1>
 				<GitHubStarPill surface="new_workspace" reserveSpace />
