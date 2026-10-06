@@ -542,6 +542,26 @@ export class PullRequestRuntimeManager {
 	// User-initiated "Remove PR Link". Recording the removed PR id keeps the
 	// refresh sweep from re-linking it while its branch still matches; a
 	// different PR on the branch (or an explicit re-link) still links.
+	/** Every PR an unarchived workspace has linked, as `owner/name` and number. */
+	async listLinkedPullRequests(): Promise<
+		{ repository: string; number: number }[]
+	> {
+		const workspaceIds = this.db
+			.select({ id: workspaces.id, archivedAt: workspaces.archivedAt })
+			.from(workspaces)
+			.all()
+			.filter((row) => row.archivedAt == null)
+			.map((row) => row.id);
+		const histories =
+			await this.getPullRequestHistoryByWorkspaces(workspaceIds);
+		return histories.flatMap((history) =>
+			history.pullRequests.map((pullRequest) => ({
+				repository: `${pullRequest.repoOwner}/${pullRequest.repoName}`,
+				number: pullRequest.number,
+			})),
+		);
+	}
+
 	unlinkWorkspacePullRequest(workspaceId: string): void {
 		const workspace = this.db
 			.select({ pullRequestId: workspaces.pullRequestId })
