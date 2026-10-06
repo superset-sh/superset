@@ -106,104 +106,120 @@ export function ModelPicker({
 	};
 
 	return (
-		<DropdownMenu onOpenChange={setOpen} open={open}>
-			<DropdownMenuTrigger asChild>
-				<button className={cn(PILL_TRIGGER_CLASS, "group")} type="button">
-					{agentIcon ? (
-						<img
-							alt=""
-							className="size-3.5 shrink-0 object-contain"
-							src={agentIcon}
-						/>
-					) : null}
-					<span className="truncate">{pillLabel}</span>
-					{effortLabel ? (
-						<span className="shrink-0 text-muted-foreground">
-							{effortLabel}
-						</span>
-					) : null}
-					{fastOn ? <LuZap className="size-3 shrink-0 fill-current" /> : null}
-					<LuChevronDown className={PILL_CHEVRON_CLASS} />
+		<div className="flex min-w-0 items-center gap-0.5">
+			{fast ? (
+				<button
+					aria-label={fast.label}
+					aria-pressed={fastOn}
+					className={cn(
+						"flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-foreground/[0.07] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+						fastOn ? "text-amber-500" : "text-muted-foreground/70",
+					)}
+					onClick={() => onSelect(fast.id, fastOn ? "off" : "on")}
+					title={fast.label}
+					type="button"
+				>
+					<LuZap className={cn("size-3.5", fastOn && "fill-current")} />
 				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				align="end"
-				className={cn(
-					MENU_PANEL_CLASS,
-					"flex w-[296px] flex-col overflow-hidden p-0",
-				)}
-				onKeyDownCapture={sendTypingToSearch}
-				side="top"
-			>
-				{showsModels ? (
-					<ModelPanel
-						agentSwitcher={
-							agentSwitcher && {
-								...agentSwitcher,
-								onSwitch: (presetId, picked) => {
-									setOpen(false);
-									agentSwitcher.onSwitch(presetId, picked);
-								},
-							}
-						}
-						model={model}
-						onPick={(modelId) => {
-							if (model) pick(model, modelId);
-						}}
-						searchRef={searchRef}
-					/>
-				) : null}
-				{settings.length > 0 ? (
-					<div
-						className={cn(
-							"flex flex-col gap-px p-1",
-							showsModels && "border-t",
-						)}
-					>
-						{effort ? (
-							<EffortSliderCard
-								effort={effort}
-								fast={fast}
-								onSelect={onSelect}
+			) : null}
+			<DropdownMenu onOpenChange={setOpen} open={open}>
+				<DropdownMenuTrigger asChild>
+					<button className={cn(PILL_TRIGGER_CLASS, "group")} type="button">
+						{agentIcon ? (
+							<img
+								alt=""
+								className="size-3.5 shrink-0 object-contain"
+								src={agentIcon}
 							/>
 						) : null}
-						{rows.map((option) => (
-							<DropdownMenuSub key={option.id}>
-								<DropdownMenuSubTrigger className={TRAIT_ROW_CLASS}>
-									<span className="min-w-0 flex-1 truncate">
-										{option.label}
-									</span>
-									<span className="max-w-28 truncate text-muted-foreground">
-										{currentLabel(option)}
-									</span>
-								</DropdownMenuSubTrigger>
-								{/* Portaled: the panel's backdrop-blur would otherwise contain and clip it. */}
-								<DropdownMenuPortal>
-									<DropdownMenuSubContent
-										className={cn(MENU_PANEL_CLASS, "w-[200px]")}
-									>
-										{option.options.map((entry) => (
-											<DropdownMenuItem
-												className={MENU_ROW_CLASS}
-												key={entry.id}
-												onSelect={() => pick(option, entry.id)}
-												title={entry.description}
-											>
-												<span className="min-w-0 flex-1 truncate">
-													{entry.label}
-												</span>
-												{entry.id === option.currentValue ? (
-													<LuCheck className="size-3.5 shrink-0" />
-												) : null}
-											</DropdownMenuItem>
-										))}
-									</DropdownMenuSubContent>
-								</DropdownMenuPortal>
-							</DropdownMenuSub>
-						))}
-					</div>
-				) : null}
-			</DropdownMenuContent>
-		</DropdownMenu>
+						<span className="truncate">{pillLabel}</span>
+						{effortLabel ? (
+							<span className="shrink-0 text-muted-foreground">
+								{effortLabel}
+							</span>
+						) : null}
+						<LuChevronDown className={PILL_CHEVRON_CLASS} />
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align="end"
+					className={cn(
+						MENU_PANEL_CLASS,
+						"flex w-[296px] flex-col overflow-hidden p-0",
+					)}
+					onKeyDownCapture={sendTypingToSearch}
+					side="top"
+				>
+					{showsModels ? (
+						<ModelPanel
+							agentSwitcher={
+								agentSwitcher && {
+									...agentSwitcher,
+									onSwitch: (presetId, picked) => {
+										setOpen(false);
+										agentSwitcher.onSwitch(presetId, picked);
+									},
+								}
+							}
+							model={model}
+							onPick={(modelId) => {
+								if (model) pick(model, modelId);
+							}}
+							searchRef={searchRef}
+						/>
+					) : null}
+					{settings.length > 0 ? (
+						<div
+							className={cn(
+								"flex flex-col gap-px p-1",
+								showsModels && "border-t",
+							)}
+						>
+							{effort ? (
+								<EffortSliderCard
+									effort={effort}
+									fast={fast}
+									onSelect={onSelect}
+								/>
+							) : null}
+							{rows.map((option) => (
+								<DropdownMenuSub key={option.id}>
+									<DropdownMenuSubTrigger className={TRAIT_ROW_CLASS}>
+										<span className="min-w-0 flex-1 truncate">
+											{option.label}
+										</span>
+										<span className="max-w-28 truncate text-muted-foreground">
+											{currentLabel(option)}
+										</span>
+									</DropdownMenuSubTrigger>
+									{/* Portaled: the panel's backdrop-blur would otherwise contain and clip it. */}
+									<DropdownMenuPortal>
+										<DropdownMenuSubContent
+											className={cn(MENU_PANEL_CLASS, "w-[200px]")}
+										>
+											{option.options.map((entry) => (
+												<DropdownMenuItem
+													className={MENU_ROW_CLASS}
+													key={entry.id}
+													onSelect={() => pick(option, entry.id)}
+													title={entry.description}
+												>
+													<span className="min-w-0 flex-1 truncate">
+														{entry.label}
+													</span>
+													{entry.id === option.currentValue ? (
+														<LuCheck className="size-3.5 shrink-0" />
+													) : null}
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuSubContent>
+									</DropdownMenuPortal>
+								</DropdownMenuSub>
+							))}
+						</div>
+					) : null}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
 	);
 }
