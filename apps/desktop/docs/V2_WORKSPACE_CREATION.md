@@ -159,8 +159,8 @@ The router entrypoint is `packages/host-service/src/trpc/router/workspace-creati
 
 **`create`** (fork from a base branch):
 1. Ensure local project (clone if missing).
-2. Resolve start point — either `buildStartPointFromHint(baseBranch, baseBranchSource)` when the picker supplied a hint, or `resolveStartPoint(git, baseBranch)` probing full refnames. Both return a `ResolvedRef`.
-3. If remote-tracking, `git fetch origin <branch>` for freshness.
+2. Resolve start point — either `buildStartPointFromHint(baseBranch, baseBranchSource)` when the picker supplied a hint, or `resolveStartPoint(git, baseBranch)` probing full refnames. Both return a `ResolvedRef`. A remote-qualified explicit base (`origin/main`) has its `origin/` prefix stripped before the remote-tracking probe, so it resolves to `origin/main` rather than double-prefixing to `refs/remotes/origin/origin/main` and missing. An explicit base that still matches no local or remote-tracking ref (a genuine typo) fails with `BAD_REQUEST` — it never silently forks from the primary worktree's HEAD.
+3. If remote-tracking, `git fetch origin <branch>` for freshness. A failed fetch aborts the create — freshness is established, not attempted, or the workspace would fork from a stale tracking ref while reporting success.
 4. `git worktree add --no-track -b <newBranch> <path> <startPoint>` — `--no-track` since the new branch is intentionally untethered.
 5. `ensureV2Host` → cloud `v2Workspace.create` → rollback worktree on cloud failure.
 6. Insert local `workspaces` row.
