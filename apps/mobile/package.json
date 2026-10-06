@@ -111,7 +111,7 @@
 		"expo-system-ui": "57.0.4",
 		"expo-updates": "57.0.24",
 		"expo-web-browser": "57.0.3",
-		"katex": "0.17.0",
+		"katex": "0.18.2",
 		"lucide-react-native": "0.562.0",
 		"posthog-react-native": "4.63.2",
 		"react": "19.2.3",
