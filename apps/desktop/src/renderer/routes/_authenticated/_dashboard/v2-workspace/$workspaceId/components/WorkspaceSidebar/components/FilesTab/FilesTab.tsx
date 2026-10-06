@@ -24,6 +24,7 @@ import {
 	Search,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
+import { useContentSearchStore } from "renderer/commandPalette/ui/ContentSearch/contentSearchStore";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
 import {
 	ShadowClickHint,
@@ -37,7 +38,8 @@ import {
 } from "renderer/lib/pierreTree";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/PierreRowContextMenu";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
-import { setFileDragData } from "../../utils/setFileDragData";
+import type { OpenFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { ContentSearchView } from "./components/ContentSearchView";
 import { FileMenuItems } from "./components/FileMenuItems";
 import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
 import { FilesTabHeaderButton } from "./components/FilesTabHeaderButton";
@@ -63,7 +65,7 @@ const TREE_STYLE = createPierreTreeStyle({
 type GitStatusData = inferRouterOutputs<AppRouter>["git"]["getStatus"];
 
 interface FilesTabProps {
-	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
+	onSelectFile: OpenFile;
 	selectedFilePath?: string;
 	pendingReveal?: {
 		path: string;
@@ -83,6 +85,11 @@ export function FilesTab({
 	onSearch,
 }: FilesTabProps) {
 	const { t } = useLingui();
+	const contentSearchOpen = useContentSearchStore(
+		(state) => state.open && state.target?.workspaceId === workspaceId,
+	);
+	const openContentSearch = useContentSearchStore((state) => state.openFor);
+	const closeContentSearch = useContentSearchStore((state) => state.close);
 	// Shares the query cache with V2WorkspacePage's workspace.get query, so
 	// the first render after a workspace switch typically already has cached
 	// data from React Query (the parent route resolves it first). staleTime
@@ -189,26 +196,6 @@ export function FilesTab({
 	);
 
 	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
-
-	// Pierre stamps its own drag with the tree-relative path and
-	// `effectAllowed = "move"`, which terminals (dropEffect "copy") reject.
-	const handleRowDragStart = useCallback(
-		(event: React.DragEvent<HTMLDivElement>) => {
-			if (event.defaultPrevented || !rootPath) return;
-			for (const node of event.nativeEvent.composedPath()) {
-				if (!(node instanceof HTMLElement)) continue;
-				const treePath = node.getAttribute("data-item-path");
-				if (!treePath) continue;
-				setFileDragData(
-					event.dataTransfer,
-					toAbs(rootPath, treePath),
-					"copyMove",
-				);
-				return;
-			}
-		},
-		[rootPath],
-	);
 
 	// Push live git status updates into Pierre.
 	useEffect(() => {
@@ -328,6 +315,16 @@ export function FilesTab({
 		);
 	}
 
+	if (contentSearchOpen) {
+		return (
+			<ContentSearchView
+				workspaceId={workspaceId}
+				onClose={closeContentSearch}
+				onSelectFile={onSelectFile}
+			/>
+		);
+	}
+
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
 		// biome-ignore lint/a11y/useKeyWithClickEvents: click target is the empty background below the rows, used only to clear the selection; keyboard users move between rows directly and never land on it
@@ -336,7 +333,6 @@ export function FilesTab({
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
 			onClick={handleTreeBackgroundClick}
-			onDragStart={handleRowDragStart}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}
@@ -364,6 +360,11 @@ export function FilesTab({
 								</button>
 							)}
 							<div className="ml-auto flex items-center gap-0.5">
+								<FilesTabHeaderButton
+									icon={Search}
+									label={t({ message: "Search in Files" })}
+									onClick={() => openContentSearch({ workspaceId })}
+								/>
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label={t({

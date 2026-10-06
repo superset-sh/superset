@@ -134,6 +134,10 @@ export interface SearchContentOptions {
 	includeHidden?: boolean;
 	includePattern?: string;
 	excludePattern?: string;
+	isCaseSensitive?: boolean;
+	isWordMatch?: boolean;
+	isRegExp?: boolean;
+	maxCountPerFile?: number;
 	limit?: number;
 	runRipgrep?: (
 		args: string[],
@@ -561,9 +565,14 @@ async function searchContentWithRipgrep({
 	includeHidden,
 	includePattern,
 	excludePattern,
+	isCaseSensitive,
+	isWordMatch,
+	isRegExp,
+	maxCountPerFile,
 	limit,
 	runRipgrep,
-}: Required<Omit<SearchContentOptions, "runRipgrep">> & {
+}: Omit<Required<SearchContentOptions>, "isCaseSensitive" | "runRipgrep"> & {
+	isCaseSensitive: boolean | undefined;
 	runRipgrep: NonNullable<SearchContentOptions["runRipgrep"]>;
 }): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
@@ -572,14 +581,17 @@ async function searchContentWithRipgrep({
 		"--json",
 		"--line-number",
 		"--column",
-		"--fixed-strings",
-		"--smart-case",
 		"--no-messages",
 		"--max-filesize",
 		`${Math.floor(MAX_KEYWORD_FILE_SIZE_BYTES / 1024)}K`,
 		"--max-count",
-		String(KEYWORD_SEARCH_MAX_COUNT_PER_FILE),
+		String(safeSearchLimit(maxCountPerFile)),
 	];
+	if (isRegExp) args.push("--engine", "auto");
+	else args.push("--fixed-strings");
+	if (isCaseSensitive === undefined) args.push("--smart-case");
+	else args.push(isCaseSensitive ? "--case-sensitive" : "--ignore-case");
+	if (isWordMatch) args.push("--word-regexp");
 
 	if (includeHidden) {
 		args.push("--hidden", "--no-ignore");
@@ -597,7 +609,7 @@ async function searchContentWithRipgrep({
 		args.push("--glob", `!${normalizePathForGlob(pattern)}`);
 	}
 
-	args.push(query, ".");
+	args.push("--", query, ".");
 
 	try {
 		const { stdout } = await runRipgrep(args, {
@@ -636,13 +648,16 @@ async function searchContentWithRipgrep({
 			}
 
 			const pathData = "path" in data ? data.path : null;
-			const relativePath =
+			const rawRelativePath =
 				typeof pathData === "object" &&
 				pathData !== null &&
 				"text" in pathData &&
 				typeof pathData.text === "string"
 					? pathData.text
 					: null;
+			const relativePath = rawRelativePath
+				? normalizePathForGlob(rawRelativePath)
+				: null;
 
 			if (!relativePath) {
 				continue;
@@ -672,7 +687,10 @@ async function searchContentWithRipgrep({
 					"start" in firstSubmatch &&
 					typeof firstSubmatch.start === "number"
 				) {
-					column = firstSubmatch.start + 1;
+					column =
+						Buffer.from(lineText)
+							.subarray(0, firstSubmatch.start)
+							.toString("utf8").length + 1;
 				}
 			}
 
@@ -718,16 +736,33 @@ async function searchContentWithScan({
 	index,
 	query,
 	pathMatcher,
+	isCaseSensitive,
+	isWordMatch,
+	isRegExp,
+	maxCountPerFile,
 	limit,
 }: {
 	index: SearchIndexEntry[];
 	query: string;
 	pathMatcher: PathFilterMatcher;
+	isCaseSensitive: boolean | undefined;
+	isWordMatch: boolean;
+	isRegExp: boolean;
+	maxCountPerFile: number;
 	limit: number;
 }): Promise<InternalContentMatch[]> {
 	const safeLimit = safeSearchLimit(limit);
+	const safeMaxCountPerFile = safeSearchLimit(maxCountPerFile);
 	const maxCandidates = safeLimit * KEYWORD_SEARCH_CANDIDATE_MULTIPLIER;
-	const lowerNeedle = query.toLowerCase();
+	const caseSensitive = isCaseSensitive ?? /\p{Lu}/u.test(query);
+	const escapedQuery = isRegExp
+		? query
+		: query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const wordCharacter = "[\\p{L}\\p{N}_]";
+	const source = isWordMatch
+		? `(?<!${wordCharacter})(?:${escapedQuery})(?!${wordCharacter})`
+		: escapedQuery;
+	const matcher = new RegExp(source, `gu${caseSensitive ? "" : "i"}`);
 	const matches: InternalContentMatch[] = [];
 
 	for (const item of index) {
@@ -754,31 +789,32 @@ async function searchContentWithScan({
 			}
 
 			const lines = buffer.toString("utf8").split(/\r?\n/);
+			let fileMatchCount = 0;
 			for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-				if (matches.length >= maxCandidates) {
+				if (
+					matches.length >= maxCandidates ||
+					fileMatchCount >= safeMaxCountPerFile
+				) {
 					break;
 				}
 
 				const line = lines[lineIndex] ?? "";
-				const lowerLine = line.toLowerCase();
-				let fromIndex = 0;
-
-				while (matches.length < maxCandidates) {
-					const matchIndex = lowerLine.indexOf(lowerNeedle, fromIndex);
-					if (matchIndex === -1) {
+				matcher.lastIndex = 0;
+				for (const match of line.matchAll(matcher)) {
+					if (
+						matches.length >= maxCandidates ||
+						fileMatchCount >= safeMaxCountPerFile
+					)
 						break;
-					}
-
 					matches.push({
 						absolutePath: item.absolutePath,
 						relativePath: item.relativePath,
 						name: item.name,
 						line: lineIndex + 1,
-						column: matchIndex + 1,
+						column: (match.index ?? 0) + 1,
 						preview: formatPreviewLine(line),
 					});
-
-					fromIndex = matchIndex + lowerNeedle.length;
+					fileMatchCount++;
 				}
 			}
 		} catch {}
@@ -1122,6 +1158,10 @@ export async function searchContent({
 	includeHidden = true,
 	includePattern = "",
 	excludePattern = "",
+	isCaseSensitive,
+	isWordMatch = false,
+	isRegExp = false,
+	maxCountPerFile = KEYWORD_SEARCH_MAX_COUNT_PER_FILE,
 	limit = 20,
 	runRipgrep = defaultRunRipgrep,
 }: SearchContentOptions): Promise<FsContentMatch[]> {
@@ -1130,10 +1170,6 @@ export async function searchContent({
 		return [];
 	}
 
-	const index = await getSearchIndex({
-		rootPath,
-		includeHidden,
-	});
 	const pathMatcher = createPathFilterMatcher({
 		includePattern,
 		excludePattern,
@@ -1147,14 +1183,26 @@ export async function searchContent({
 			includeHidden,
 			includePattern,
 			excludePattern,
+			isCaseSensitive,
+			isWordMatch,
+			isRegExp,
+			maxCountPerFile,
 			limit,
 			runRipgrep,
 		});
 	} catch {
+		const index = await getSearchIndex({
+			rootPath,
+			includeHidden,
+		});
 		internalMatches = await searchContentWithScan({
 			index,
 			query: trimmedQuery,
 			pathMatcher,
+			isCaseSensitive,
+			isWordMatch,
+			isRegExp,
+			maxCountPerFile,
 			limit,
 		});
 	}

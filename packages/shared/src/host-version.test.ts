@@ -8,7 +8,7 @@ import {
 
 describe("deriveHostVersionState", () => {
 	test("same version is current", () => {
-		expect(deriveHostVersionState("1.27.0", "1.27.0")).toBe("current");
+		expect(deriveHostVersionState("1.37.0", "1.37.0")).toBe("current");
 	});
 
 	test("older than the client but above the floor is behind", () => {
@@ -29,11 +29,11 @@ describe("deriveHostVersionState", () => {
 	});
 
 	test("newer than the client is ahead", () => {
-		expect(deriveHostVersionState("1.28.0", "1.27.0")).toBe("ahead");
+		expect(deriveHostVersionState("1.38.0", "1.37.0")).toBe("ahead");
 	});
 
 	test("canary suffixes still compare on the base version", () => {
-		expect(deriveHostVersionState("1.27.0", "1.27.0-canary.20260907")).toBe(
+		expect(deriveHostVersionState("1.37.0", "1.37.0-canary.20260907")).toBe(
 			"current",
 		);
 	});
@@ -42,7 +42,7 @@ describe("deriveHostVersionState", () => {
 		expect(deriveHostVersionState(null, "1.27.0")).toBe("unknown");
 		expect(deriveHostVersionState("", "1.27.0")).toBe("unknown");
 		expect(deriveHostVersionState("garbage", "1.27.0")).toBe("unknown");
-		expect(deriveHostVersionState("1.27.0", null)).toBe("unknown");
+		expect(deriveHostVersionState("1.37.0", null)).toBe("unknown");
 	});
 
 	test("a host below the floor is incompatible even with an unknown client", () => {

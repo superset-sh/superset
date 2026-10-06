@@ -294,6 +294,10 @@ export const createFilesystemRouter = () => {
 					includeHidden: z.boolean().optional(),
 					includePattern: z.string().optional(),
 					excludePattern: z.string().optional(),
+					isCaseSensitive: z.boolean().optional(),
+					isWordMatch: z.boolean().optional(),
+					isRegExp: z.boolean().optional(),
+					maxCountPerFile: z.number().optional(),
 					limit: z.number().optional(),
 				}),
 			)
@@ -310,6 +314,10 @@ export const createFilesystemRouter = () => {
 						includeHidden: input.includeHidden,
 						includePattern: input.includePattern,
 						excludePattern: input.excludePattern,
+						isCaseSensitive: input.isCaseSensitive,
+						isWordMatch: input.isWordMatch,
+						isRegExp: input.isRegExp,
+						maxCountPerFile: input.maxCountPerFile,
 						limit: input.limit,
 					}),
 				);

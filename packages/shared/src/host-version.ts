@@ -28,8 +28,11 @@ import semver from "semver";
  * every current caller uses; hosts without it render a blank terminal pane
  * with no error (#6525). Host-service versions were unified with the app's
  * at that point, so the jump from the old 0.8.x line is intentional.
+ *
+ * 1.37.0 — workspace content search gained case, whole-word, and regular
+ * expression options used by the desktop search panel.
  */
-export const MIN_HOST_SERVICE_VERSION = "1.21.0";
+export const MIN_HOST_SERVICE_VERSION = "1.37.0";
 
 /**
  * What spawned the host-service, which decides how it can be updated:
