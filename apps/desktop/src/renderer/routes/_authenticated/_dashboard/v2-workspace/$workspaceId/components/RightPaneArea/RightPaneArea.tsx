@@ -31,7 +31,6 @@ interface RightPaneAreaProps {
 	onBeforeCloseTab: (tab: Tab<PaneViewerData>) => boolean | Promise<boolean>;
 	onInteractionStateChange?: (state: WorkspaceInteractionState) => void;
 	runButton: ReactNode;
-	pagesMenu: ReactNode;
 	isExpanded: boolean;
 	onToggleExpanded: () => void;
 	onMergeIntoCenter: () => void;
@@ -48,7 +47,6 @@ export function RightPaneArea({
 	onBeforeCloseTab,
 	onInteractionStateChange,
 	runButton,
-	pagesMenu,
 	isExpanded,
 	onToggleExpanded,
 	onMergeIntoCenter,
@@ -75,7 +73,6 @@ export function RightPaneArea({
 			)}
 			renderTabBarTrailing={() => (
 				<div className="flex items-center gap-1">
-					{pagesMenu}
 					{runButton}
 					<RightPaneHeaderButton
 						label={t({ message: "Merge into center" })}

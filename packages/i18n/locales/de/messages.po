@@ -700,9 +700,6 @@ msgstr "{actor} hat die Verknüpfung mit dem Arbeitsbereich {workspace} aufgehob
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} bisher · ~{projected} erwartet"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# Terminal-Sitzung im Hintergrund} other {# Terminal-Sitzungen im Hintergrund}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {# Commit hinter main, Rebase nötig} other {# Commits hinter main, Rebase nötig}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize} px · Zeilenhöhe {0}"
 
 msgid "{provider} logo"
 msgstr "{provider}-Logo"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# Nachricht wartet in der Warteschlange} other {# Nachrichten warten in der Warteschlange}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent} % gelesen"
@@ -2009,9 +2009,6 @@ msgstr "Alle deine Daten werden nach {ACCOUNT_DELETION_GRACE_DAYS} Tagen endgül
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Alle offenen Terminal-Sitzungen werden beendet und laufende Host-Dienste gestoppt. Nutze stattdessen “Superset schließen”, wenn die Dienste für den nächsten Start weiterlaufen sollen."
 
-msgid "All pages"
-msgstr "Alle Seiten"
-
 msgid "All plans"
 msgstr "Alle Tarife"
 
@@ -2761,14 +2758,20 @@ msgstr "Zurück zum Leaderboard"
 msgid "Background"
 msgstr "Hintergrund"
 
+msgid "Background processes"
+msgstr "Hintergrundprozesse"
+
 msgid "Background processes in chat"
 msgstr "Hintergrundprozesse im Chat"
+
+msgid "Background task"
+msgstr "Hintergrundaufgabe"
 
 msgid "Background terminal memory"
 msgstr "Speicher für Hintergrund-Terminals"
 
-msgid "Background terminal sessions"
-msgstr "Terminal-Sitzungen im Hintergrund"
+msgid "Background work and pages"
+msgstr "Hintergrundarbeit und Seiten"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Terminal schließen"
 
 msgid "Close Terminal"
 msgstr "Terminal schließen"
-
-msgid "Close terminal session"
-msgstr "Terminal-Sitzung schließen"
 
 msgid "Close the current pane"
 msgstr "Den aktuellen Bereich schließen"
@@ -4857,6 +4857,9 @@ msgstr "Automatisierungen konnten nicht geladen werden"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Mitwirkende konnten nicht geladen werden — gib stattdessen einen Benutzernamen ein."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Frühere Nachrichten konnten nicht geladen werden. Erneut versuchen"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Issues konnten nicht geladen werden: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Arbeitsbereich konnte nicht gestartet werden"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Terminal des Agenten konnte nicht gestoppt werden"
+
+msgid "Couldn't stop the background task"
+msgstr "Die Hintergrundaufgabe konnte nicht gestoppt werden"
 
 msgid "Couldn't stop the chat"
 msgstr "Chat konnte nicht gestoppt werden"
@@ -6647,9 +6653,6 @@ msgstr "Terminal-Verlauf konnte nicht gelöscht werden"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Port {0} konnte nicht geschlossen werden"
-
-msgid "Failed to close terminal session"
-msgstr "Terminal-Sitzung konnte nicht geschlossen werden"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Verbindung zu Google fehlgeschlagen. Bitte versuche es erneut."
@@ -9102,9 +9105,6 @@ msgstr "die Agenten-Einstellungen laden"
 msgid "Load diff"
 msgstr "Diff laden"
 
-msgid "Load earlier messages"
-msgstr "Frühere Nachrichten laden"
-
 msgid "Load more"
 msgstr "Mehr laden"
 
@@ -9188,9 +9188,6 @@ msgstr "Repositories werden geladen..."
 
 msgid "Loading review..."
 msgstr "Review wird geladen..."
-
-msgid "Loading sessions…"
-msgstr "Sitzungen werden geladen…"
 
 msgid "Loading terminal scripts..."
 msgstr "Terminal-Skripte werden geladen..."
@@ -10179,9 +10176,6 @@ msgstr "Keine Autoren gefunden."
 msgid "No automations match"
 msgstr "Keine passenden Automatisierungen"
 
-msgid "No background terminal sessions"
-msgstr "Keine Terminal-Sitzungen im Hintergrund"
-
 msgid "No branches found"
 msgstr "Keine Branches gefunden"
 
@@ -10819,6 +10813,9 @@ msgstr "Nichts muss erneut ausgeführt werden"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "In den letzten 30 Tagen wurde noch nichts veröffentlicht. Dein Rang erscheint, sobald die Nutzung von diesem Rechner synchronisiert wird — Veröffentlichung als <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Nichts läuft"
 
 msgid "Nothing was missed"
 msgstr "Nichts wurde verpasst"
@@ -15295,6 +15292,12 @@ msgstr "Stoppen"
 msgid "Stop {0}"
 msgstr "{0} stoppen"
 
+msgid "Stop {label}"
+msgstr "{label} stoppen"
+
+msgid "Stop all agent background processes"
+msgstr "Alle Hintergrundprozesse der Agenten stoppen"
+
 msgid "Stop dictation"
 msgstr "Diktat beenden"
 
@@ -16690,9 +16693,6 @@ msgstr "Alle vorgemerkten Änderungen werden aus dem Index entfernt und zurückg
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Damit werden alle gestageden Änderungen aus dem Index genommen und zurückgesetzt. Gestagede neue Dateien werden gelöscht. Das lässt sich nicht rückgängig machen."
 
-msgid "This workspace"
-msgstr "Dieser Arbeitsbereich"
-
 msgid "This workspace has no project to branch from"
 msgstr "Dieser Workspace hat kein Projekt, von dem aus verzweigt werden kann"
 
@@ -18065,6 +18065,9 @@ msgstr "Auswahl der Akzentfarbe eines Arbeitsbereichs"
 
 msgid "Workspace actions"
 msgstr "Arbeitsbereich-Aktionen"
+
+msgid "Workspace activity"
+msgstr "Workspace-Aktivität"
 
 msgid "Workspace agents"
 msgstr "Arbeitsbereich-Agenten"

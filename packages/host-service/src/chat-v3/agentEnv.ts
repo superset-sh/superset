@@ -54,6 +54,7 @@ export async function buildChatAgentEnv(options: {
 	db: HostDb;
 	cwd: string;
 	workspaceId: string;
+	terminalId?: string;
 }): Promise<Record<string, string>> {
 	await waitForTerminalBaseEnv();
 	const paths = workspacePaths(options.db, options.workspaceId);
@@ -62,6 +63,7 @@ export async function buildChatAgentEnv(options: {
 			...buildHostLaunchEnv({
 				cwd: options.cwd,
 				workspaceId: options.workspaceId,
+				terminalId: options.terminalId,
 				workspacePath: paths.workspacePath || options.cwd,
 				rootPath: paths.rootPath,
 			}),

@@ -700,9 +700,6 @@ msgstr "{actor} melepas tautan workspace {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} sejauh ini · ~{projected} diperkirakan"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# sesi terminal latar belakang} other {# sesi terminal latar belakang}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Tertinggal # commit dari main, perlu rebase} other {Tertinggal # commit dari main, perlu rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · tinggi baris {0}"
 
 msgid "{provider} logo"
 msgstr "Logo {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# pesan menunggu dalam antrean} other {# pesan menunggu dalam antrean}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% dibaca"
@@ -2009,9 +2009,6 @@ msgstr "Semua data Anda akan dihapus permanen setelah {ACCOUNT_DELETION_GRACE_DA
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Semua sesi terminal yang terbuka akan dimatikan dan host-service yang berjalan akan dihentikan. Pakai “Close Superset” kalau Anda ingin layanannya tetap berjalan untuk peluncuran berikutnya."
 
-msgid "All pages"
-msgstr "Semua halaman"
-
 msgid "All plans"
 msgstr "Semua paket"
 
@@ -2761,14 +2758,20 @@ msgstr "Kembali ke papan peringkat"
 msgid "Background"
 msgstr "Latar belakang"
 
+msgid "Background processes"
+msgstr "Proses latar belakang"
+
 msgid "Background processes in chat"
 msgstr "Proses latar belakang di chat"
+
+msgid "Background task"
+msgstr "Tugas latar belakang"
 
 msgid "Background terminal memory"
 msgstr "Memori terminal latar belakang"
 
-msgid "Background terminal sessions"
-msgstr "Sesi terminal latar belakang"
+msgid "Background work and pages"
+msgstr "Pekerjaan latar belakang dan halaman"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Tutup terminal"
 
 msgid "Close Terminal"
 msgstr "Tutup Terminal"
-
-msgid "Close terminal session"
-msgstr "Tutup sesi terminal"
 
 msgid "Close the current pane"
 msgstr "Tutup panel saat ini"
@@ -4857,6 +4857,9 @@ msgstr "Tidak bisa memuat otomatisasi"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Tidak bisa memuat kontributor — ketik username saja."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Tidak dapat memuat pesan sebelumnya. Coba lagi"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Tidak bisa memuat issue: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Tidak bisa memulai workspace"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Tidak dapat menghentikan terminal agen"
+
+msgid "Couldn't stop the background task"
+msgstr "Tidak dapat menghentikan tugas latar belakang"
 
 msgid "Couldn't stop the chat"
 msgstr "Tidak dapat menghentikan obrolan"
@@ -6647,9 +6653,6 @@ msgstr "Gagal membersihkan riwayat terminal"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Gagal menutup port {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Gagal menutup sesi terminal"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Gagal terhubung ke Google. Silakan coba lagi."
@@ -9102,9 +9105,6 @@ msgstr "memuat pengaturan agen"
 msgid "Load diff"
 msgstr "Muat diff"
 
-msgid "Load earlier messages"
-msgstr "Muat pesan sebelumnya"
-
 msgid "Load more"
 msgstr "Muat lagi"
 
@@ -9188,9 +9188,6 @@ msgstr "Memuat repositori..."
 
 msgid "Loading review..."
 msgstr "Memuat review..."
-
-msgid "Loading sessions…"
-msgstr "Memuat sesi…"
 
 msgid "Loading terminal scripts..."
 msgstr "Memuat skrip terminal..."
@@ -10179,9 +10176,6 @@ msgstr "Tidak ada penulis ditemukan."
 msgid "No automations match"
 msgstr "Tidak ada otomatisasi yang cocok"
 
-msgid "No background terminal sessions"
-msgstr "Tidak ada sesi terminal latar belakang"
-
 msgid "No branches found"
 msgstr "Tidak ada branch ditemukan"
 
@@ -10819,6 +10813,9 @@ msgstr "Tidak ada yang perlu dicoba ulang"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Belum ada yang dipublikasikan dalam 30 hari terakhir. Peringkat Anda muncul setelah penggunaan dari mesin ini tersinkron, dipublikasikan sebagai <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Tidak ada yang berjalan"
 
 msgid "Nothing was missed"
 msgstr "Tidak ada yang terlewat"
@@ -15295,6 +15292,12 @@ msgstr "Hentikan"
 msgid "Stop {0}"
 msgstr "Hentikan {0}"
 
+msgid "Stop {label}"
+msgstr "Hentikan {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Hentikan semua proses latar belakang agen"
+
 msgid "Stop dictation"
 msgstr "Hentikan dikte"
 
@@ -16690,9 +16693,6 @@ msgstr "Ini akan mengeluarkan semua perubahan dari staging dan membatalkannya. F
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Ini akan meng-unstage dan mengembalikan semua perubahan yang di-stage. File baru yang di-stage akan dihapus. Ini tidak bisa dibatalkan."
 
-msgid "This workspace"
-msgstr "Workspace ini"
-
 msgid "This workspace has no project to branch from"
 msgstr "Ruang kerja ini tidak memiliki proyek untuk dicabangkan"
 
@@ -18065,6 +18065,9 @@ msgstr "Pemilih warna aksen workspace"
 
 msgid "Workspace actions"
 msgstr "Aksi workspace"
+
+msgid "Workspace activity"
+msgstr "Aktivitas workspace"
 
 msgid "Workspace agents"
 msgstr "Agen workspace"

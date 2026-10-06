@@ -384,7 +384,14 @@ export function usePaneRegistry({
 						message: "Terminal",
 					}),
 				titleSource: (pane) => {
-					const { terminalId } = pane.data as TerminalPaneData;
+					const { terminalId, agentSurface, chatTitle } =
+						pane.data as TerminalPaneData;
+					if (agentSurface === "acp") {
+						return {
+							subscribe: () => () => {},
+							getSnapshot: () => chatTitle,
+						};
+					}
 					const instanceId = pane.id;
 					return {
 						subscribe: (callback) =>

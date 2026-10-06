@@ -149,6 +149,10 @@ function applyEnvelope(draft: Draft, envelope: Envelope): void {
 		const delta = envelope.delta;
 		const key = streamKey(delta.type, delta.itemId);
 		const streams = writable(draft, "liveStreams");
+		if (delta.type === "background") {
+			streams.set(key, delta.append);
+			return;
+		}
 		const existing = streams.get(key);
 		if (existing !== undefined) {
 			streams.set(key, existing + delta.append);

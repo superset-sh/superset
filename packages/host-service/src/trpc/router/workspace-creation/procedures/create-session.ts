@@ -38,6 +38,7 @@ const createSessionInputSchema = z.object({
 	agents: z.array(agentLaunchSchema).optional(),
 	command: z.string().min(1).optional(),
 	namingPrompt: z.string().min(1).optional(),
+	namingAgent: z.string().min(1).optional(),
 	// Sessions render in a flat lane (no per-project folders), but the tags
 	// are stored so listings and future consumers see them — automation
 	// dispatch sends its tag set for sessions and worktrees alike.
@@ -95,7 +96,7 @@ export const createSession = protectedProcedure
 		const composerPrompt =
 			input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
 		const wantAi = input.name === undefined && !!composerPrompt;
-		const namingAgent = input.agents?.[0]?.agent;
+		const namingAgent = input.agents?.[0]?.agent ?? input.namingAgent;
 
 		const typedName = input.name?.trim();
 		const folderCandidate =

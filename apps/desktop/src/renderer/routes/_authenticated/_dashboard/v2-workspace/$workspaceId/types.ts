@@ -59,6 +59,8 @@ export interface TerminalPaneData {
 	/** A model picked from the curated catalog, whose id the agent may not share. */
 	chatModelLabel?: string;
 	chatModeId?: string;
+	chatTitle?: string;
+	cliTitle?: string;
 }
 
 export interface BrowserPaneData {

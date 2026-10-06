@@ -700,9 +700,6 @@ msgstr "{actor} unlinked the workspace {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} so far · ~{projected} projected"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · {0} line height"
 
 msgid "{provider} logo"
 msgstr "{provider} logo"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% read"
@@ -2009,9 +2009,6 @@ msgstr "All of your data will be permanently deleted after {ACCOUNT_DELETION_GRA
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 
-msgid "All pages"
-msgstr "All pages"
-
 msgid "All plans"
 msgstr "All plans"
 
@@ -2761,14 +2758,20 @@ msgstr "Back to the leaderboard"
 msgid "Background"
 msgstr "Background"
 
+msgid "Background processes"
+msgstr "Background processes"
+
 msgid "Background processes in chat"
 msgstr "Background processes in chat"
+
+msgid "Background task"
+msgstr "Background task"
 
 msgid "Background terminal memory"
 msgstr "Background terminal memory"
 
-msgid "Background terminal sessions"
-msgstr "Background terminal sessions"
+msgid "Background work and pages"
+msgstr "Background work and pages"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Close terminal"
 
 msgid "Close Terminal"
 msgstr "Close Terminal"
-
-msgid "Close terminal session"
-msgstr "Close terminal session"
 
 msgid "Close the current pane"
 msgstr "Close the current pane"
@@ -4857,6 +4857,9 @@ msgstr "Couldn't load automations"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Couldn't load contributors — type a username instead."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Couldn't load earlier messages. Retry"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Couldn't load issues: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Couldn't start workspace"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Couldn't stop the agent's terminal"
+
+msgid "Couldn't stop the background task"
+msgstr "Couldn't stop the background task"
 
 msgid "Couldn't stop the chat"
 msgstr "Couldn't stop the chat"
@@ -6647,9 +6653,6 @@ msgstr "Failed to clear terminal history"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Failed to close port {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Failed to close terminal session"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Failed to connect to Google. Please try again."
@@ -9102,9 +9105,6 @@ msgstr "load agent settings"
 msgid "Load diff"
 msgstr "Load diff"
 
-msgid "Load earlier messages"
-msgstr "Load earlier messages"
-
 msgid "Load more"
 msgstr "Load more"
 
@@ -9188,9 +9188,6 @@ msgstr "Loading repositories..."
 
 msgid "Loading review..."
 msgstr "Loading review..."
-
-msgid "Loading sessions…"
-msgstr "Loading sessions…"
 
 msgid "Loading terminal scripts..."
 msgstr "Loading terminal scripts..."
@@ -10179,9 +10176,6 @@ msgstr "No authors found."
 msgid "No automations match"
 msgstr "No automations match"
 
-msgid "No background terminal sessions"
-msgstr "No background terminal sessions"
-
 msgid "No branches found"
 msgstr "No branches found"
 
@@ -10819,6 +10813,9 @@ msgstr "Nothing needs a retry"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Nothing running"
 
 msgid "Nothing was missed"
 msgstr "Nothing was missed"
@@ -15295,6 +15292,12 @@ msgstr "Stop"
 msgid "Stop {0}"
 msgstr "Stop {0}"
 
+msgid "Stop {label}"
+msgstr "Stop {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Stop all agent background processes"
+
 msgid "Stop dictation"
 msgstr "Stop dictation"
 
@@ -16690,9 +16693,6 @@ msgstr "This will unstage and revert all staged changes. Staged new files will b
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 
-msgid "This workspace"
-msgstr "This workspace"
-
 msgid "This workspace has no project to branch from"
 msgstr "This workspace has no project to branch from"
 
@@ -18065,6 +18065,9 @@ msgstr "Workspace accent-color picker"
 
 msgid "Workspace actions"
 msgstr "Workspace actions"
+
+msgid "Workspace activity"
+msgstr "Workspace activity"
 
 msgid "Workspace agents"
 msgstr "Workspace agents"

@@ -211,7 +211,6 @@ export function SessionView({
 			void respondToApproval(approvalId, decision),
 		[respondToApproval],
 	);
-	const onLoadOlder = useCallback(() => void loadOlder(), [loadOlder]);
 	const onSetConfigOption = useCallback(
 		(configId: string, value: string) => void setConfigOption(configId, value),
 		[setConfigOption],
@@ -260,7 +259,7 @@ export function SessionView({
 	// The stream is ready well before the agent is: the harness still has to
 	// spawn and, when resuming, replay the whole transcript. Showing an empty
 	// pane through that reads as a broken chat rather than a loading one.
-	const booting = sessionState?.status === "starting" && timeline.length === 0;
+	const booting = sessionState?.status === "starting";
 	const loadingTranscript = session.status === "loading" || booting;
 
 	// w-full because the pane lays its children out in a row: without it this
@@ -302,7 +301,7 @@ export function SessionView({
 								hasOlder={session.hasOlder}
 								onDiscardPrompt={session.discardPrompt}
 								onFork={onFork ? forkWithTranscript : undefined}
-								onLoadOlder={onLoadOlder}
+								onLoadOlder={loadOlder}
 								onRespond={onRespond}
 								onRetryPrompt={session.retryPrompt}
 								outbox={session.outbox}

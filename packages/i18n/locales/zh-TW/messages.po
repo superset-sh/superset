@@ -700,9 +700,6 @@ msgstr "{actor} 取消關聯工作區 {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "目前{actual} · 預計約{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {#個背景終端會話} other {#個背景終端會話}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {落後main #個提交，需要變基} other {落後main #個提交，需要變基}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · 行高{0}"
 
 msgid "{provider} logo"
 msgstr "{provider}標誌"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {佇列中有 # 則訊息等待} other {佇列中有 # 則訊息等待}}"
 
 msgid "{readPercent}% read"
 msgstr "已讀{readPercent}%"
@@ -2009,9 +2009,6 @@ msgstr "你的所有資料將在{ACCOUNT_DELETION_GRACE_DAYS}天後被永久刪�
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "所有開啟的終端會話都會被結束，正在執行的主機服務也會停止。如果希望服務繼續執行以便下次啟動，請改用「關閉Superset」。"
 
-msgid "All pages"
-msgstr "所有頁面"
-
 msgid "All plans"
 msgstr "全部方案"
 
@@ -2761,14 +2758,20 @@ msgstr "返回排行榜"
 msgid "Background"
 msgstr "背景"
 
+msgid "Background processes"
+msgstr "背景處理程序"
+
 msgid "Background processes in chat"
 msgstr "聊天中的背景處理程序"
+
+msgid "Background task"
+msgstr "背景工作"
 
 msgid "Background terminal memory"
 msgstr "背景終端記憶體"
 
-msgid "Background terminal sessions"
-msgstr "背景終端會話"
+msgid "Background work and pages"
+msgstr "背景工作與頁面"
 
 msgid "Backlog"
 msgstr "待規劃"
@@ -3784,9 +3787,6 @@ msgstr "關閉終端"
 
 msgid "Close Terminal"
 msgstr "關閉終端"
-
-msgid "Close terminal session"
-msgstr "關閉終端會話"
 
 msgid "Close the current pane"
 msgstr "關閉目前窗格"
@@ -4857,6 +4857,9 @@ msgstr "無法載入自動化"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "無法載入貢獻者，請直接輸入使用者名稱。"
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "無法載入較早的訊息。重試"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "無法載入議題：{msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "無法啟動工作區"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "無法停止該代理的終端機"
+
+msgid "Couldn't stop the background task"
+msgstr "無法停止背景工作"
 
 msgid "Couldn't stop the chat"
 msgstr "無法停止聊天"
@@ -6647,9 +6653,6 @@ msgstr "清除終端歷史失敗"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "關閉埠{0}失敗"
-
-msgid "Failed to close terminal session"
-msgstr "關閉終端會話失敗"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "連線Google失敗。請重試。"
@@ -9102,9 +9105,6 @@ msgstr "載入代理程式設定"
 msgid "Load diff"
 msgstr "載入差異"
 
-msgid "Load earlier messages"
-msgstr "載入更早的訊息"
-
 msgid "Load more"
 msgstr "載入更多"
 
@@ -9188,9 +9188,6 @@ msgstr "正在載入儲存庫..."
 
 msgid "Loading review..."
 msgstr "正在載入評審..."
-
-msgid "Loading sessions…"
-msgstr "正在載入會話…"
 
 msgid "Loading terminal scripts..."
 msgstr "正在載入終端指令碼..."
@@ -10179,9 +10176,6 @@ msgstr "未找到作者。"
 msgid "No automations match"
 msgstr "沒有匹配的自動化"
 
-msgid "No background terminal sessions"
-msgstr "沒有背景終端會話"
-
 msgid "No branches found"
 msgstr "未找到分支"
 
@@ -10819,6 +10813,9 @@ msgstr "沒有需要重試的執行"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "最近 30 天尚未發佈任何資料。這台機器的用量同步後即會顯示你的排名，將以 <0>{handle}</0> 發佈。"
+
+msgid "Nothing running"
+msgstr "沒有正在執行的項目"
 
 msgid "Nothing was missed"
 msgstr "沒有錯過的執行"
@@ -15295,6 +15292,12 @@ msgstr "停止"
 msgid "Stop {0}"
 msgstr "停止{0}"
 
+msgid "Stop {label}"
+msgstr "停止 {label}"
+
+msgid "Stop all agent background processes"
+msgstr "停止所有代理程式背景處理程序"
+
 msgid "Stop dictation"
 msgstr "停止語音輸入"
 
@@ -16690,9 +16693,6 @@ msgstr "這將取消暫存並還原所有已暫存的變更。已暫存的新檔
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
 
-msgid "This workspace"
-msgstr "此工作區"
-
 msgid "This workspace has no project to branch from"
 msgstr "此工作區沒有可供分叉的專案"
 
@@ -18065,6 +18065,9 @@ msgstr "工作區強調色選擇器"
 
 msgid "Workspace actions"
 msgstr "工作區操作"
+
+msgid "Workspace activity"
+msgstr "工作區活動"
 
 msgid "Workspace agents"
 msgstr "工作區代理程式"

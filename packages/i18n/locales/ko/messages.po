@@ -700,9 +700,6 @@ msgstr "{actor} 님이 워크스페이스 {workspace}의 연결을 해제했습�
 msgid "{actual} so far · ~{projected} projected"
 msgstr "현재 {actual} · 예상 ~{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {백그라운드 터미널 세션 #개} other {백그라운드 터미널 세션 #개}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {main보다 커밋 #개 뒤처짐, 리베이스 필요} other {main보다 커밋 #개 뒤처짐, 리베이스 필요}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · 줄 높이 {0}"
 
 msgid "{provider} logo"
 msgstr "{provider} 로고"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {대기열에서 대기 중인 메시지 #개} other {대기열에서 대기 중인 메시지 #개}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% 읽음"
@@ -2009,9 +2009,6 @@ msgstr "모든 데이터가 {ACCOUNT_DELETION_GRACE_DAYS}일 후에 영구적으
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "열려 있는 모든 터미널 세션이 종료되고 실행 중인 호스트 서비스가 모두 중지됩니다. 다음 실행까지 서비스를 계속 실행하려면 “Superset 닫기”를 사용하세요."
 
-msgid "All pages"
-msgstr "모든 페이지"
-
 msgid "All plans"
 msgstr "전체 플랜"
 
@@ -2761,14 +2758,20 @@ msgstr "리더보드로 돌아가기"
 msgid "Background"
 msgstr "배경"
 
+msgid "Background processes"
+msgstr "백그라운드 프로세스"
+
 msgid "Background processes in chat"
 msgstr "채팅 안의 백그라운드 프로세스"
+
+msgid "Background task"
+msgstr "백그라운드 작업"
 
 msgid "Background terminal memory"
 msgstr "백그라운드 터미널 메모리"
 
-msgid "Background terminal sessions"
-msgstr "백그라운드 터미널 세션"
+msgid "Background work and pages"
+msgstr "백그라운드 작업 및 페이지"
 
 msgid "Backlog"
 msgstr "백로그"
@@ -3784,9 +3787,6 @@ msgstr "터미널 닫기"
 
 msgid "Close Terminal"
 msgstr "터미널 닫기"
-
-msgid "Close terminal session"
-msgstr "터미널 세션 닫기"
 
 msgid "Close the current pane"
 msgstr "현재 패널을 닫습니다"
@@ -4857,6 +4857,9 @@ msgstr "자동화를 불러오지 못했습니다"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "기여자를 불러오지 못했습니다 — 대신 사용자 이름을 입력하세요."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "이전 메시지를 불러올 수 없습니다. 다시 시도"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "이슈를 불러오지 못했습니다: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "워크스페이스를 시작하지 못했습니다"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "에이전트의 터미널을 중지할 수 없습니다"
+
+msgid "Couldn't stop the background task"
+msgstr "백그라운드 작업을 중지할 수 없습니다"
 
 msgid "Couldn't stop the chat"
 msgstr "채팅을 중지할 수 없습니다"
@@ -6647,9 +6653,6 @@ msgstr "터미널 기록을 지우지 못했습니다"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "포트 {0}을(를) 닫지 못했습니다"
-
-msgid "Failed to close terminal session"
-msgstr "터미널 세션을 닫지 못했습니다"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Google에 연결하지 못했습니다. 다시 시도해 주세요."
@@ -9102,9 +9105,6 @@ msgstr "에이전트 설정을 불러올"
 msgid "Load diff"
 msgstr "차이 불러오기"
 
-msgid "Load earlier messages"
-msgstr "이전 메시지 불러오기"
-
 msgid "Load more"
 msgstr "더 보기"
 
@@ -9188,9 +9188,6 @@ msgstr "리포지토리를 불러오는 중..."
 
 msgid "Loading review..."
 msgstr "리뷰를 불러오는 중..."
-
-msgid "Loading sessions…"
-msgstr "세션을 불러오는 중…"
 
 msgid "Loading terminal scripts..."
 msgstr "터미널 스크립트를 불러오는 중..."
@@ -10179,9 +10176,6 @@ msgstr "작성자를 찾을 수 없습니다."
 msgid "No automations match"
 msgstr "일치하는 자동화가 없습니다"
 
-msgid "No background terminal sessions"
-msgstr "백그라운드 터미널 세션 없음"
-
 msgid "No branches found"
 msgstr "브랜치를 찾을 수 없습니다"
 
@@ -10819,6 +10813,9 @@ msgstr "재시도가 필요한 항목이 없습니다"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "최근 30일 동안 게시된 사용량이 아직 없습니다. 이 기기의 사용량이 동기화되면 <0>{handle}</0>(으)로 게시되며 순위가 표시됩니다."
+
+msgid "Nothing running"
+msgstr "실행 중인 항목 없음"
 
 msgid "Nothing was missed"
 msgstr "놓친 실행이 없습니다"
@@ -15295,6 +15292,12 @@ msgstr "중지"
 msgid "Stop {0}"
 msgstr "{0} 정지"
 
+msgid "Stop {label}"
+msgstr "{label} 중지"
+
+msgid "Stop all agent background processes"
+msgstr "모든 에이전트 백그라운드 프로세스 중지"
+
 msgid "Stop dictation"
 msgstr "받아쓰기 중지"
 
@@ -16690,9 +16693,6 @@ msgstr "스테이징된 모든 변경을 스테이징 해제하고 되돌립니�
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
 
-msgid "This workspace"
-msgstr "이 워크스페이스"
-
 msgid "This workspace has no project to branch from"
 msgstr "이 워크스페이스에는 분기할 프로젝트가 없습니다"
 
@@ -18065,6 +18065,9 @@ msgstr "워크스페이스 강조 색상 선택기"
 
 msgid "Workspace actions"
 msgstr "워크스페이스 동작"
+
+msgid "Workspace activity"
+msgstr "워크스페이스 활동"
 
 msgid "Workspace agents"
 msgstr "워크스페이스 에이전트"

@@ -700,9 +700,6 @@ msgstr "{actor} odłączył(a) obszar roboczy {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} dotąd · ~{projected} prognozowane"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# sesja terminala w tle} few {# sesje terminala w tle} many {# sesji terminala w tle} other {# sesji terminala w tle}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Za main o # commit, wymaga rebase} few {Za main o # commity, wymaga rebase} many {Za main o # commitów, wymaga rebase} other {Za main o # commita, wymaga rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize} px · interlinia {0}"
 
 msgid "{provider} logo"
 msgstr "logo {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# wiadomość czeka w kolejce} few {# wiadomości czekają w kolejce} many {# wiadomości czeka w kolejce} other {# wiadomości czeka w kolejce}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% przeczytane"
@@ -2009,9 +2009,6 @@ msgstr "Wszystkie Twoje dane zostaną trwale usunięte po {ACCOUNT_DELETION_GRAC
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Wszystkie otwarte sesje terminala zostaną zabite, a działające usługi hosta zatrzymane. Użyj „Zamknij Superset”, jeśli usługi mają działać dalej do następnego uruchomienia."
 
-msgid "All pages"
-msgstr "Wszystkie strony"
-
 msgid "All plans"
 msgstr "Wszystkie plany"
 
@@ -2761,14 +2758,20 @@ msgstr "Wróć do rankingu"
 msgid "Background"
 msgstr "Tło"
 
+msgid "Background processes"
+msgstr "Procesy w tle"
+
 msgid "Background processes in chat"
 msgstr "Procesy w tle na czacie"
+
+msgid "Background task"
+msgstr "Zadanie w tle"
 
 msgid "Background terminal memory"
 msgstr "Pamięć terminali w tle"
 
-msgid "Background terminal sessions"
-msgstr "Sesje terminala w tle"
+msgid "Background work and pages"
+msgstr "Praca w tle i strony"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Zamknij terminal"
 
 msgid "Close Terminal"
 msgstr "Zamknij terminal"
-
-msgid "Close terminal session"
-msgstr "Zamknij sesję terminala"
 
 msgid "Close the current pane"
 msgstr "Zamknij bieżący panel"
@@ -4857,6 +4857,9 @@ msgstr "Nie udało się wczytać automatyzacji"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Nie udało się wczytać współtwórców — wpisz nazwę użytkownika."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Nie udało się wczytać wcześniejszych wiadomości. Ponów"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Nie udało się wczytać zgłoszeń: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Nie udało się uruchomić obszaru roboczego"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Nie udało się zatrzymać terminala agenta"
+
+msgid "Couldn't stop the background task"
+msgstr "Nie udało się zatrzymać zadania w tle"
 
 msgid "Couldn't stop the chat"
 msgstr "Nie udało się zatrzymać czatu"
@@ -6647,9 +6653,6 @@ msgstr "Nie udało się wyczyścić historii terminala"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Nie udało się zamknąć portu {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Nie udało się zamknąć sesji terminala"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Nie udało się połączyć z Google. Spróbuj ponownie."
@@ -9102,9 +9105,6 @@ msgstr "wczytać ustawień agenta"
 msgid "Load diff"
 msgstr "Wczytaj różnice"
 
-msgid "Load earlier messages"
-msgstr "Wczytaj wcześniejsze wiadomości"
-
 msgid "Load more"
 msgstr "Wczytaj więcej"
 
@@ -9188,9 +9188,6 @@ msgstr "Wczytywanie repozytoriów..."
 
 msgid "Loading review..."
 msgstr "Wczytywanie przeglądu..."
-
-msgid "Loading sessions…"
-msgstr "Wczytywanie sesji…"
 
 msgid "Loading terminal scripts..."
 msgstr "Wczytywanie skryptów terminala..."
@@ -10179,9 +10176,6 @@ msgstr "Nie znaleziono autorów."
 msgid "No automations match"
 msgstr "Brak pasujących automatyzacji"
 
-msgid "No background terminal sessions"
-msgstr "Brak sesji terminala w tle"
-
 msgid "No branches found"
 msgstr "Nie znaleziono gałęzi"
 
@@ -10819,6 +10813,9 @@ msgstr "Nic nie wymaga ponowienia"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nic jeszcze nie opublikowano w ciągu ostatnich 30 dni. Twoja pozycja pojawi się, gdy zsynchronizuje się użycie z tej maszyny — publikacja jako <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Nic nie jest uruchomione"
 
 msgid "Nothing was missed"
 msgstr "Nic nie zostało pominięte"
@@ -15295,6 +15292,12 @@ msgstr "Zatrzymaj"
 msgid "Stop {0}"
 msgstr "Zatrzymaj {0}"
 
+msgid "Stop {label}"
+msgstr "Zatrzymaj {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Zatrzymaj wszystkie procesy agentów w tle"
+
 msgid "Stop dictation"
 msgstr "Zatrzymaj dyktowanie"
 
@@ -16690,9 +16693,6 @@ msgstr "Spowoduje to usunięcie wszystkich przygotowanych zmian z indeksu i ich 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Usunie to z indeksu i cofnie wszystkie zaindeksowane zmiany. Zaindeksowane nowe pliki zostaną usunięte. Tej operacji nie można cofnąć."
 
-msgid "This workspace"
-msgstr "Ten obszar roboczy"
-
 msgid "This workspace has no project to branch from"
 msgstr "Ten obszar roboczy nie ma projektu, z którego można się rozgałęzić"
 
@@ -18065,6 +18065,9 @@ msgstr "Wybór koloru akcentu obszaru roboczego"
 
 msgid "Workspace actions"
 msgstr "Akcje obszaru roboczego"
+
+msgid "Workspace activity"
+msgstr "Aktywność obszaru roboczego"
 
 msgid "Workspace agents"
 msgstr "Agenci obszaru roboczego"

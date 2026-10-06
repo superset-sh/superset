@@ -8,6 +8,7 @@ import { resolveAttachmentPath } from "../trpc/router/attachments/storage";
 import { ACP_HARNESSES } from "./acpCatalogue";
 import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
+import type { ChatAgentBridge } from "./chatAgentBridge";
 
 async function resolveAttachment(attachmentId: string) {
 	const resolved = resolveAttachmentPath(attachmentId);
@@ -28,6 +29,7 @@ function resolveAdapterEntry(packageName: string): string {
 export function acpHarnessFactory(
 	harness: string,
 	db: HostDb,
+	agents?: ChatAgentBridge,
 ): HarnessFactory | null {
 	const entry = ACP_HARNESSES[harness];
 	if (!entry) return null;
@@ -49,6 +51,7 @@ export function acpHarnessFactory(
 			...(entry.fullAccessModeId
 				? { defaultModeId: entry.fullAccessModeId }
 				: {}),
+			onSpawn: (pid) => agents?.spawned(options.sessionId, pid),
 			launch: async () => {
 				const cli = await resolveAgentCli({
 					binary: entry.binary,
@@ -59,6 +62,7 @@ export function acpHarnessFactory(
 							db,
 							cwd: options.cwd,
 							workspaceId: options.scopeId,
+							terminalId: options.terminalId,
 						}),
 				});
 				const env = cli.env;
@@ -83,10 +87,13 @@ export function acpHarnessFactory(
 		});
 }
 
-export function acpHarnessEntries(db: HostDb): [string, HarnessFactory][] {
+export function acpHarnessEntries(
+	db: HostDb,
+	agents?: ChatAgentBridge,
+): [string, HarnessFactory][] {
 	const entries: [string, HarnessFactory][] = [];
 	for (const harness of Object.keys(ACP_HARNESSES)) {
-		const factory = acpHarnessFactory(harness, db);
+		const factory = acpHarnessFactory(harness, db, agents);
 		if (factory) entries.push([harness, factory]);
 	}
 	return entries;

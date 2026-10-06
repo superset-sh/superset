@@ -61,4 +61,47 @@ describe("transcriptRows", () => {
 		expect(rows.map((row) => row.kind)).toEqual(["item", "working", "item"]);
 		expect(rows[0]?.groupStart).toBe(true);
 	});
+
+	test("a tool run collapses once the turn moves past it, not before", () => {
+		const tool = (id: string, status: "running" | "completed") => ({
+			id,
+			kind: "tool_call" as const,
+			title: id,
+			toolKind: "execute" as const,
+			toolName: "Bash",
+			status,
+			content: [],
+			startedAtMs: 3,
+		});
+		const reply = {
+			kind: "item" as const,
+			item: {
+				id: "a1",
+				kind: "agent_message" as const,
+				text: "ok",
+				startedAtMs: 4,
+			},
+		};
+		const running = { id: "t1", status: "running" as const, startedAtMs: 2 };
+		const collapsedFlags = (entries: TurnGroup["entries"]) =>
+			transcriptRows([{ turnId: "t1", turn: running, entries }], [], new Set())
+				.filter((row) => row.kind === "tool_run")
+				.map((row) => row.kind === "tool_run" && row.defaultCollapsed);
+
+		expect(
+			collapsedFlags([{ kind: "tool_run", items: [tool("b1", "completed")] }]),
+		).toEqual([false]);
+		expect(
+			collapsedFlags([
+				{ kind: "tool_run", items: [tool("b1", "completed")] },
+				reply,
+			]),
+		).toEqual([true]);
+		expect(
+			collapsedFlags([
+				{ kind: "tool_run", items: [tool("b1", "running")] },
+				reply,
+			]),
+		).toEqual([false]);
+	});
 });

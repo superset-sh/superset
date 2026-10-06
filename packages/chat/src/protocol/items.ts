@@ -120,6 +120,7 @@ export const toolCallSchema = z.looseObject({
 		.optional(),
 	rawInput: z.unknown().optional(),
 	rawOutput: z.unknown().optional(),
+	subagent: z.boolean().optional(),
 });
 export type ToolCall = z.infer<typeof toolCallSchema>;
 

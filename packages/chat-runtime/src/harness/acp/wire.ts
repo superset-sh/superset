@@ -168,6 +168,10 @@ export const acpSubagentUpdateSchema = z.looseObject({
 });
 export type AcpSubagentUpdate = z.infer<typeof acpSubagentUpdateSchema>;
 
+export const acpSessionInfoUpdateSchema = z.looseObject({
+	title: z.string().nullable().optional(),
+});
+
 /** A selectable value, or — when it carries `options` — a group of them. */
 const acpConfigSelectOptionSchema = z.looseObject({
 	value: z.string().optional(),

@@ -700,9 +700,6 @@ msgstr "{actor} đã hủy liên kết không gian làm việc {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} đến hiện tại · dự kiến ~{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# phiên terminal chạy nền} other {# phiên terminal chạy nền}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Chậm hơn main # commit, cần rebase} other {Chậm hơn main # commit, cần rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · chiều cao dòng {0}"
 
 msgid "{provider} logo"
 msgstr "Logo {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# tin nhắn đang chờ trong hàng đợi} other {# tin nhắn đang chờ trong hàng đợi}}"
 
 msgid "{readPercent}% read"
 msgstr "đã đọc {readPercent}%"
@@ -2009,9 +2009,6 @@ msgstr "Toàn bộ dữ liệu của bạn sẽ bị xóa vĩnh viễn sau {ACCO
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Mọi phiên terminal đang mở sẽ bị kết thúc và các host-service đang chạy sẽ bị dừng. Hãy dùng “Đóng Superset” nếu bạn muốn các dịch vụ tiếp tục chạy cho lần khởi động sau."
 
-msgid "All pages"
-msgstr "Tất cả trang"
-
 msgid "All plans"
 msgstr "Tất cả các gói"
 
@@ -2761,14 +2758,20 @@ msgstr "Quay lại bảng xếp hạng"
 msgid "Background"
 msgstr "Nền"
 
+msgid "Background processes"
+msgstr "Tiến trình nền"
+
 msgid "Background processes in chat"
 msgstr "Tiến trình nền trong chat"
+
+msgid "Background task"
+msgstr "Tác vụ nền"
 
 msgid "Background terminal memory"
 msgstr "Bộ nhớ terminal chạy nền"
 
-msgid "Background terminal sessions"
-msgstr "Phiên terminal chạy nền"
+msgid "Background work and pages"
+msgstr "Tác vụ nền và trang"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Đóng terminal"
 
 msgid "Close Terminal"
 msgstr "Đóng terminal"
-
-msgid "Close terminal session"
-msgstr "Đóng phiên terminal"
 
 msgid "Close the current pane"
 msgstr "Đóng khung hiện tại"
@@ -4857,6 +4857,9 @@ msgstr "Không thể tải tự động hóa"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Không thể tải danh sách người đóng góp — hãy nhập tên người dùng."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Không thể tải các tin nhắn trước đó. Thử lại"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Không thể tải issue: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Không khởi động được workspace"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Không thể dừng terminal của tác nhân"
+
+msgid "Couldn't stop the background task"
+msgstr "Không thể dừng tác vụ nền"
 
 msgid "Couldn't stop the chat"
 msgstr "Không thể dừng trò chuyện"
@@ -6647,9 +6653,6 @@ msgstr "Không thể xóa lịch sử terminal"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Không thể đóng cổng {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Không thể đóng phiên terminal"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Không thể kết nối tới Google. Vui lòng thử lại."
@@ -9102,9 +9105,6 @@ msgstr "tải cài đặt agent"
 msgid "Load diff"
 msgstr "Tải diff"
 
-msgid "Load earlier messages"
-msgstr "Tải tin nhắn cũ hơn"
-
 msgid "Load more"
 msgstr "Tải thêm"
 
@@ -9188,9 +9188,6 @@ msgstr "Đang tải repository..."
 
 msgid "Loading review..."
 msgstr "Đang tải review..."
-
-msgid "Loading sessions…"
-msgstr "Đang tải phiên…"
 
 msgid "Loading terminal scripts..."
 msgstr "Đang tải script terminal..."
@@ -10179,9 +10176,6 @@ msgstr "Không tìm thấy tác giả nào."
 msgid "No automations match"
 msgstr "Không có tự động hóa nào khớp"
 
-msgid "No background terminal sessions"
-msgstr "Không có phiên terminal nào chạy nền"
-
 msgid "No branches found"
 msgstr "Không tìm thấy nhánh nào"
 
@@ -10819,6 +10813,9 @@ msgstr "Không có gì cần chạy lại"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Chưa có gì được công khai trong 30 ngày qua. Thứ hạng của bạn sẽ xuất hiện khi dữ liệu sử dụng từ máy này đồng bộ, công khai dưới tên <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Không có gì đang chạy"
 
 msgid "Nothing was missed"
 msgstr "Không có lần chạy nào bị bỏ lỡ"
@@ -15295,6 +15292,12 @@ msgstr "Dừng"
 msgid "Stop {0}"
 msgstr "Dừng {0}"
 
+msgid "Stop {label}"
+msgstr "Dừng {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Dừng tất cả tiến trình nền của tác tử"
+
 msgid "Stop dictation"
 msgstr "Dừng đọc chính tả"
 
@@ -16690,9 +16693,6 @@ msgstr "Thao tác này sẽ bỏ staging và hoàn tác mọi thay đổi đã �
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Thao tác này sẽ bỏ stage và hoàn nguyên toàn bộ thay đổi đã stage. Các tệp mới đã stage sẽ bị xóa. Không thể hoàn tác."
 
-msgid "This workspace"
-msgstr "Workspace này"
-
 msgid "This workspace has no project to branch from"
 msgstr "Workspace này không có dự án để tạo nhánh"
 
@@ -18065,6 +18065,9 @@ msgstr "Bộ chọn màu nhấn cho workspace"
 
 msgid "Workspace actions"
 msgstr "Hành động workspace"
+
+msgid "Workspace activity"
+msgstr "Hoạt động của không gian làm việc"
 
 msgid "Workspace agents"
 msgstr "Agent của workspace"

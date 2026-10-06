@@ -12,6 +12,7 @@ import {
 	resumeQueueInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
+	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { initTRPC, TRPCError } from "@trpc/server";
@@ -111,6 +112,12 @@ export function createChatRouter(
 			.input(cancelTurnInputSchema)
 			.mutation(({ input }) =>
 				guarded(() => runtime.commands.cancelTurn(input)),
+			),
+
+		stopBackgroundTask: t.procedure
+			.input(stopBackgroundTaskInputSchema)
+			.mutation(({ input }) =>
+				guarded(() => runtime.commands.stopBackgroundTask(input)),
 			),
 
 		respondToApproval: t.procedure

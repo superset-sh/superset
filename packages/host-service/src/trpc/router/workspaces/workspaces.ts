@@ -134,6 +134,7 @@ const createInputSchema = z
 		waitForSetupBeforeAgents: z.boolean().optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
+		namingAgent: z.string().min(1).optional(),
 		id: z.string().uuid().optional(),
 		// Adopt the worktree git already has at this path instead of
 		// inferring the path from `branch`. When present, `branch` is
@@ -702,7 +703,7 @@ export const workspacesRouter = router({
 				input.worktreePath === undefined &&
 				input.name === undefined &&
 				!!composerPrompt;
-			const namingAgent = input.agents?.[0]?.agent;
+			const namingAgent = input.agents?.[0]?.agent ?? input.namingAgent;
 
 			const git = await ctx.git(repoPath);
 			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);

@@ -59,6 +59,7 @@ export type SessionClient = {
 	steerQueuedPrompt(itemId: string): Promise<void>;
 	resumeQueue(): Promise<void>;
 	cancelTurn(turnId: string, options?: { pauseQueue?: boolean }): Promise<void>;
+	stopBackgroundTask(taskId: string): Promise<boolean>;
 	respondToApproval(approvalId: string, decision: Decision): Promise<void>;
 	setMode(modeId: string): Promise<void>;
 	setConfigOption(configId: string, value: string): Promise<void>;
@@ -122,6 +123,13 @@ export function createSessionClient(
 				...(cancelOptions?.pauseQueue ? { pauseQueue: true } : {}),
 			});
 		},
+
+		stopBackgroundTask: (taskId) =>
+			options.transport.stopBackgroundTask({
+				commandId: mintId(),
+				sessionId,
+				taskId,
+			}),
 
 		respondToApproval: async (approvalId, decision) => {
 			await options.transport.respondToApproval({

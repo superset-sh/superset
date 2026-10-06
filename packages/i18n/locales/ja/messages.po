@@ -700,9 +700,6 @@ msgstr "{actor}がワークスペース {workspace} のリンクを解除しま�
 msgid "{actual} so far · ~{projected} projected"
 msgstr "現時点で{actual} · 予測は約{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {#件のバックグラウンドターミナルセッション} other {#件のバックグラウンドターミナルセッション}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {mainより#コミット遅れています。リベースが必要です} other {mainより#コミット遅れています。リベースが必要です}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · 行の高さ {0}"
 
 msgid "{provider} logo"
 msgstr "{provider}のロゴ"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {キューで待機中のメッセージ #件} other {キューで待機中のメッセージ #件}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}%読了"
@@ -2009,9 +2009,6 @@ msgstr "すべてのデータは{ACCOUNT_DELETION_GRACE_DAYS}日後に完全に�
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "開いているターミナルセッションはすべて終了し、実行中のhost-serviceも停止します。次回の起動までサービスを実行し続けたい場合は、「Supersetを閉じる」を使用してください。"
 
-msgid "All pages"
-msgstr "すべてのページ"
-
 msgid "All plans"
 msgstr "すべてのプラン"
 
@@ -2761,14 +2758,20 @@ msgstr "リーダーボードに戻る"
 msgid "Background"
 msgstr "背景"
 
+msgid "Background processes"
+msgstr "バックグラウンドプロセス"
+
 msgid "Background processes in chat"
 msgstr "チャット内のバックグラウンドプロセス"
+
+msgid "Background task"
+msgstr "バックグラウンドタスク"
 
 msgid "Background terminal memory"
 msgstr "バックグラウンドターミナルのメモリ"
 
-msgid "Background terminal sessions"
-msgstr "バックグラウンドターミナルセッション"
+msgid "Background work and pages"
+msgstr "バックグラウンド作業とページ"
 
 msgid "Backlog"
 msgstr "バックログ"
@@ -3784,9 +3787,6 @@ msgstr "ターミナルを閉じる"
 
 msgid "Close Terminal"
 msgstr "ターミナルを閉じる"
-
-msgid "Close terminal session"
-msgstr "ターミナルセッションを閉じる"
 
 msgid "Close the current pane"
 msgstr "現在のペインを閉じる"
@@ -4857,6 +4857,9 @@ msgstr "オートメーションを読み込めませんでした"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "コントリビューターを読み込めませんでした — ユーザー名を入力してください。"
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "以前のメッセージを読み込めませんでした。再試行"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Issueを読み込めませんでした: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "ワークスペースを開始できませんでした"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "エージェントのターミナルを停止できませんでした"
+
+msgid "Couldn't stop the background task"
+msgstr "バックグラウンドタスクを停止できませんでした"
 
 msgid "Couldn't stop the chat"
 msgstr "チャットを停止できませんでした"
@@ -6647,9 +6653,6 @@ msgstr "ターミナル履歴のクリアに失敗しました"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "ポート{0}を閉じられませんでした"
-
-msgid "Failed to close terminal session"
-msgstr "ターミナルセッションを閉じられませんでした"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Googleに接続できませんでした。もう一度お試しください。"
@@ -9102,9 +9105,6 @@ msgstr "エージェント設定を読み込む"
 msgid "Load diff"
 msgstr "差分を読み込む"
 
-msgid "Load earlier messages"
-msgstr "以前のメッセージを読み込む"
-
 msgid "Load more"
 msgstr "もっと見る"
 
@@ -9188,9 +9188,6 @@ msgstr "リポジトリを読み込み中..."
 
 msgid "Loading review..."
 msgstr "レビューを読み込み中..."
-
-msgid "Loading sessions…"
-msgstr "セッションを読み込み中…"
 
 msgid "Loading terminal scripts..."
 msgstr "ターミナルスクリプトを読み込み中..."
@@ -10179,9 +10176,6 @@ msgstr "作成者が見つかりません。"
 msgid "No automations match"
 msgstr "一致するオートメーションがありません"
 
-msgid "No background terminal sessions"
-msgstr "バックグラウンドのターミナルセッションはありません"
-
 msgid "No branches found"
 msgstr "ブランチが見つかりません"
 
@@ -10819,6 +10813,9 @@ msgstr "再実行が必要なものはありません"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "直近30日に公開された実績はまだありません。このマシンの利用状況が同期されるとランクが表示されます(<0>{handle}</0>として公開)。"
+
+msgid "Nothing running"
+msgstr "実行中のものはありません"
 
 msgid "Nothing was missed"
 msgstr "未実行はありません"
@@ -15295,6 +15292,12 @@ msgstr "停止"
 msgid "Stop {0}"
 msgstr "{0}を停止"
 
+msgid "Stop {label}"
+msgstr "{label} を停止"
+
+msgid "Stop all agent background processes"
+msgstr "エージェントのバックグラウンドプロセスをすべて停止"
+
 msgid "Stop dictation"
 msgstr "音声入力を停止"
 
@@ -16690,9 +16693,6 @@ msgstr "ステージされたすべての変更をステージから外して元
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "ステージ済みの変更をすべてステージ解除して元に戻します。ステージ済みの新規ファイルは削除されます。元に戻せません。"
 
-msgid "This workspace"
-msgstr "このワークスペース"
-
 msgid "This workspace has no project to branch from"
 msgstr "このワークスペースには分岐元のプロジェクトがありません"
 
@@ -18065,6 +18065,9 @@ msgstr "ワークスペースのアクセントカラーピッカー"
 
 msgid "Workspace actions"
 msgstr "ワークスペースの操作"
+
+msgid "Workspace activity"
+msgstr "ワークスペースのアクティビティ"
 
 msgid "Workspace agents"
 msgstr "ワークスペースのエージェント"

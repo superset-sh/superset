@@ -91,11 +91,16 @@ export function AgentTerminalPane({
 				modelId={data.chatModelId}
 				modelLabel={data.chatModelLabel}
 				modeId={data.chatModeId}
-				onAgentSessionChanged={(sessionId) => {
-					if (!data.agent) return;
+				onSessionInfo={({ harnessSessionId, title }) => {
+					const rebound = harnessSessionId !== undefined && data.agent;
+					const retitled = title !== undefined && title !== data.chatTitle;
+					if (!rebound && !retitled) return;
 					ctx.actions.updateData({
 						...data,
-						agent: { ...data.agent, sessionId },
+						...(rebound
+							? { agent: { ...rebound, sessionId: harnessSessionId } }
+							: {}),
+						...(retitled ? { chatTitle: title } : {}),
 					});
 				}}
 				onSwitchAgent={({ presetId, label, model, modeId, handoffPrompt }) => {
@@ -128,6 +133,7 @@ export function AgentTerminalPane({
 				}
 				onOpenFile={onOpenFile}
 				sessionId={data.acpSessionId ?? null}
+				terminalId={data.terminalId}
 				workspaceId={workspaceId}
 			/>
 		);

@@ -6,6 +6,7 @@ import {
 	reduceMany,
 } from "@superset/chat/core";
 import type { DurableEnvelope, UserMessage } from "@superset/chat/protocol";
+import { isDurableEnvelope } from "@superset/chat/protocol";
 import type { FakeHarnessScript } from "../../harness/fake";
 import type { ChatRuntime } from "../../index";
 import {
@@ -104,6 +105,41 @@ describe("LiveSession", () => {
 		expect(snapshot.items.get(result.itemId)?.turnId).toBe("t1");
 		expect(snapshot.items.size).toBe(2);
 		expect(snapshot.session?.status).toBe("idle");
+		await runtime.dispose();
+	});
+
+	test("a queued prompt is counted by the time it is published", async () => {
+		const countsAtPublish: number[] = [];
+		const { harnesses } = fakeHarnessRegistry({
+			turns: [[{ kind: "turn", turn: turn("t1") }]],
+		});
+		const runtime = createTestRuntime({
+			harnesses,
+			observer: {
+				started: () => {},
+				stopped: () => {},
+				published: (envelope, session) => {
+					if (!isDurableEnvelope(envelope)) return;
+					const { event } = envelope;
+					if (
+						event.type === "item" &&
+						event.item.kind === "user_message" &&
+						(event.item as UserMessage).queued
+					) {
+						countsAtPublish.push(session.queuedCount);
+					}
+				},
+			},
+		});
+		const { sessionId } = runtime.commands.createSession({
+			commandId: randomUUID(),
+			scopeId: "workspace-1",
+			harness: FAKE_HARNESS,
+			cwd: "/tmp/workspace",
+		});
+		sendPrompt(runtime, sessionId, "first");
+		sendPrompt(runtime, sessionId, "second");
+		expect(countsAtPublish).toEqual([1]);
 		await runtime.dispose();
 	});
 

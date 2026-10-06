@@ -12,6 +12,7 @@ import {
 } from "@superset/chat-ui/MessageScroller";
 import { ScrollToBottomButton } from "@superset/chat-ui/ScrollToBottomButton";
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { cn } from "@superset/ui/utils";
 import {
 	type CSSProperties,
@@ -29,6 +30,7 @@ import {
 } from "../../constants";
 import type { ChatForkTarget } from "../../types";
 import { TurnGroupSection } from "./components/TurnGroupSection";
+import { useLoadOlderOnReach } from "./hooks/useLoadOlderOnReach";
 import { useScrollAnchorKey } from "./hooks/useScrollAnchorKey";
 import { useScrollbarGutter } from "./hooks/useScrollbarGutter";
 import { lastReplyKeys } from "./utils/lastReplyKeys";
@@ -53,7 +55,7 @@ export type TranscriptProps = {
 	approvals: ApprovalRequest[];
 	outbox: OutboxEntry[];
 	hasOlder: boolean;
-	onLoadOlder: () => void;
+	onLoadOlder: () => Promise<boolean>;
 	onRespond: (approvalId: string, decision: Decision) => void;
 	onFork?: ((target: ChatForkTarget) => void) | undefined;
 	canForkToWorktree?: boolean;
@@ -99,6 +101,7 @@ export function Transcript({
 }: TranscriptProps) {
 	const { t } = useLingui();
 	const [viewportRef, scrollbarGutter] = useScrollbarGutter<HTMLDivElement>();
+	const olderPages = useLoadOlderOnReach({ hasOlder, onLoadOlder });
 	const scroller = useMessageScroller();
 	const scrollerRef = useRef(scroller);
 	scrollerRef.current = scroller;
@@ -220,12 +223,17 @@ export function Transcript({
 					<div
 						className={cn(
 							CHAT_COLUMN_CLASSNAME,
-							"flex items-center gap-2 px-4 pt-4",
+							"flex h-10 items-center justify-center",
 						)}
+						ref={olderPages.sentinelRef}
 					>
-						<Button onClick={onLoadOlder} size="sm" variant="ghost">
-							<Trans>Load earlier messages</Trans>
-						</Button>
+						{olderPages.failed ? (
+							<Button onClick={olderPages.retry} size="sm" variant="ghost">
+								<Trans>Couldn't load earlier messages. Retry</Trans>
+							</Button>
+						) : (
+							olderPages.loading && <Spinner className="size-4" />
+						)}
 					</div>
 				)}
 				<MessageScroller.Content

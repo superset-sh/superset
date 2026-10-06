@@ -11,6 +11,7 @@ import type {
 	ResumeQueueInput,
 	SetConfigOptionInput,
 	SetModeInput,
+	StopBackgroundTaskInput,
 } from "@superset/chat/protocol";
 import {
 	cancelTurnInputSchema,
@@ -26,6 +27,7 @@ import {
 	resumeQueueInputSchema,
 	setConfigOptionInputSchema,
 	setModeInputSchema,
+	stopBackgroundTaskInputSchema,
 } from "@superset/chat/protocol";
 import { z } from "zod";
 import type { ChatDb, ChatSessionRow } from "../../db";
@@ -83,6 +85,7 @@ export type ChatCommands = {
 	steerQueuedPrompt(input: QueuedPromptInput): void;
 	resumeQueue(input: ResumeQueueInput): void;
 	cancelTurn(input: CancelTurnInput): void;
+	stopBackgroundTask(input: StopBackgroundTaskInput): Promise<boolean>;
 	respondToApproval(input: RespondToApprovalInput): void;
 	setMode(input: SetModeInput): void;
 	setConfigOption(input: SetConfigOptionInput): void;
@@ -138,6 +141,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 						modeId: parsed.modeId,
 						modelId: parsed.modelId,
 						resume: parsed.resume,
+						terminalId: parsed.terminalId,
 					});
 				} catch (error) {
 					options.journal.discard(sessionId);
@@ -179,6 +183,16 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			options.dedupe.run(`resumeQueue:${parsed.commandId}`, () => {
 				options.live.require(parsed.sessionId).resumeQueue();
 			});
+		},
+
+		stopBackgroundTask(input) {
+			const parsed: StopBackgroundTaskInput =
+				stopBackgroundTaskInputSchema.parse(input);
+			return options.dedupe.run(`stopBackgroundTask:${parsed.commandId}`, () =>
+				options.live
+					.require(parsed.sessionId)
+					.stopBackgroundTask(parsed.taskId),
+			);
 		},
 
 		cancelTurn(input) {
@@ -224,7 +238,8 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 		 */
 		async forkSession(input) {
 			const parsed = forkSessionCommandSchema.parse(input);
-			const forked = await options.live.require(parsed.sessionId).fork();
+			const live = options.live.require(parsed.sessionId);
+			const forked = await live.fork();
 			if (!forked) return null;
 			const source = options.sessions.get(parsed.sessionId);
 			if (!source) return null;
@@ -234,6 +249,7 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				cwd: parsed.cwd,
 				harness: parsed.harness ?? source.harness,
 				resume: { harnessSessionId: forked },
+				terminalId: live.terminalId,
 			});
 		},
 

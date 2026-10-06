@@ -700,9 +700,6 @@ msgstr "{actor} {workspace} çalışma alanının bağlantısını kaldırdı"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "şu ana kadar {actual} · ~{projected} öngörülüyor"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# arka plan terminal oturumu} other {# arka plan terminal oturumu}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {main dalının # commit gerisinde, rebase gerekiyor} other {main dalının # commit gerisinde, rebase gerekiyor}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · {0} satır yüksekliği"
 
 msgid "{provider} logo"
 msgstr "{provider} logosu"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {Kuyrukta bekleyen # mesaj} other {Kuyrukta bekleyen # mesaj}}"
 
 msgid "{readPercent}% read"
 msgstr "%{readPercent} okundu"
@@ -2009,9 +2009,6 @@ msgstr "Tüm verileriniz {ACCOUNT_DELETION_GRACE_DAYS} gün sonra kalıcı olara
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Açık tüm terminal oturumları sonlandırılacak ve çalışan host hizmetleri durdurulacak. Hizmetlerin sonraki açılış için çalışmaya devam etmesini istiyorsanız “Superset'i kapat” seçeneğini kullanın."
 
-msgid "All pages"
-msgstr "Tüm sayfalar"
-
 msgid "All plans"
 msgstr "Tüm planlar"
 
@@ -2761,14 +2758,20 @@ msgstr "Lider tablosuna dön"
 msgid "Background"
 msgstr "Arka plan"
 
+msgid "Background processes"
+msgstr "Arka plan işlemleri"
+
 msgid "Background processes in chat"
 msgstr "Sohbette arka plan süreçleri"
+
+msgid "Background task"
+msgstr "Arka plan görevi"
 
 msgid "Background terminal memory"
 msgstr "Arka plan terminal belleği"
 
-msgid "Background terminal sessions"
-msgstr "Arka plan terminal oturumları"
+msgid "Background work and pages"
+msgstr "Arka plan işleri ve sayfalar"
 
 msgid "Backlog"
 msgstr "Bekleyen işler"
@@ -3784,9 +3787,6 @@ msgstr "Terminali kapat"
 
 msgid "Close Terminal"
 msgstr "Terminali kapat"
-
-msgid "Close terminal session"
-msgstr "Terminal oturumunu kapat"
 
 msgid "Close the current pane"
 msgstr "Geçerli bölmeyi kapat"
@@ -4857,6 +4857,9 @@ msgstr "Otomasyonlar yüklenemedi"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Katkıda bulunanlar yüklenemedi — bunun yerine bir kullanıcı adı yazın."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Önceki mesajlar yüklenemedi. Yeniden dene"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Issue'lar yüklenemedi: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Çalışma alanı başlatılamadı"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Aracının terminali durdurulamadı"
+
+msgid "Couldn't stop the background task"
+msgstr "Arka plan görevi durdurulamadı"
 
 msgid "Couldn't stop the chat"
 msgstr "Sohbet durdurulamadı"
@@ -6647,9 +6653,6 @@ msgstr "Terminal geçmişi temizlenemedi"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "{0} portu kapatılamadı"
-
-msgid "Failed to close terminal session"
-msgstr "Terminal oturumu kapatılamadı"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Google'a bağlanılamadı. Lütfen yeniden deneyin."
@@ -9102,9 +9105,6 @@ msgstr "ajan ayarlarını yükleme"
 msgid "Load diff"
 msgstr "Farkı yükle"
 
-msgid "Load earlier messages"
-msgstr "Daha eski mesajları yükle"
-
 msgid "Load more"
 msgstr "Daha fazla yükle"
 
@@ -9188,9 +9188,6 @@ msgstr "Depolar yükleniyor..."
 
 msgid "Loading review..."
 msgstr "İnceleme yükleniyor..."
-
-msgid "Loading sessions…"
-msgstr "Oturumlar yükleniyor…"
 
 msgid "Loading terminal scripts..."
 msgstr "Terminal betikleri yükleniyor..."
@@ -10179,9 +10176,6 @@ msgstr "Yazar bulunamadı."
 msgid "No automations match"
 msgstr "Eşleşen otomasyon yok"
 
-msgid "No background terminal sessions"
-msgstr "Arka plan terminal oturumu yok"
-
 msgid "No branches found"
 msgstr "Dal bulunamadı"
 
@@ -10819,6 +10813,9 @@ msgstr "Yeniden denenecek bir şey yok"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Son 30 günde henüz hiçbir şey yayınlanmadı. Bu makinedeki kullanım eşitlendiğinde sıralamanız görünür; <0>{handle}</0> olarak yayınlanıyor."
+
+msgid "Nothing running"
+msgstr "Çalışan bir şey yok"
 
 msgid "Nothing was missed"
 msgstr "Hiçbir şey kaçırılmadı"
@@ -15295,6 +15292,12 @@ msgstr "Durdur"
 msgid "Stop {0}"
 msgstr "Durdur: {0}"
 
+msgid "Stop {label}"
+msgstr "{label} öğesini durdur"
+
+msgid "Stop all agent background processes"
+msgstr "Tüm ajan arka plan işlemlerini durdur"
+
 msgid "Stop dictation"
 msgstr "Sesle yazmayı durdur"
 
@@ -16690,9 +16693,6 @@ msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Bu işlem, hazırlanmış tüm değişiklikleri hazırlıktan çıkarır ve geri alır. Hazırlanmış yeni dosyalar silinir. Bu geri alınamaz."
 
-msgid "This workspace"
-msgstr "Bu çalışma alanı"
-
 msgid "This workspace has no project to branch from"
 msgstr "Bu çalışma alanının çatallanacak bir projesi yok"
 
@@ -18065,6 +18065,9 @@ msgstr "Çalışma alanı vurgu rengi seçici"
 
 msgid "Workspace actions"
 msgstr "Çalışma alanı eylemleri"
+
+msgid "Workspace activity"
+msgstr "Çalışma alanı etkinliği"
 
 msgid "Workspace agents"
 msgstr "Çalışma alanı ajanları"

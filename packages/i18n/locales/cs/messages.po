@@ -700,9 +700,6 @@ msgstr "{actor} zrušil(a) propojení pracovního prostoru {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "zatím {actual} · odhad ~{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# relace terminálu na pozadí} few {# relace terminálu na pozadí} many {# relace terminálu na pozadí} other {# relací terminálu na pozadí}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Zaostává za main o # commit, je potřeba rebase} few {Zaostává za main o # commity, je potřeba rebase} many {Zaostává za main o # commitu, je potřeba rebase} other {Zaostává za main o # commitů, je potřeba rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize} px · výška řádku {0}"
 
 msgid "{provider} logo"
 msgstr "logo {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# zpráva čeká ve frontě} few {# zprávy čekají ve frontě} many {# zprávy čeká ve frontě} other {# zpráv čeká ve frontě}}"
 
 msgid "{readPercent}% read"
 msgstr "přečteno {readPercent} %"
@@ -2009,9 +2009,6 @@ msgstr "Všechna vaše data budou po {ACCOUNT_DELETION_GRACE_DAYS} dnech trvale 
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Všechny otevřené relace terminálu budou ukončeny a všechny běžící host-services zastaveny. Pokud chcete, aby služby běžely dál do příštího spuštění, použijte místo toho „Zavřít Superset“."
 
-msgid "All pages"
-msgstr "Všechny stránky"
-
 msgid "All plans"
 msgstr "Všechny tarify"
 
@@ -2761,14 +2758,20 @@ msgstr "Zpět na žebříček"
 msgid "Background"
 msgstr "Pozadí"
 
+msgid "Background processes"
+msgstr "Procesy na pozadí"
+
 msgid "Background processes in chat"
 msgstr "Procesy na pozadí v chatu"
+
+msgid "Background task"
+msgstr "Úloha na pozadí"
 
 msgid "Background terminal memory"
 msgstr "Paměť terminálů na pozadí"
 
-msgid "Background terminal sessions"
-msgstr "Relace terminálu na pozadí"
+msgid "Background work and pages"
+msgstr "Práce na pozadí a stránky"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Zavřít terminál"
 
 msgid "Close Terminal"
 msgstr "Zavřít terminál"
-
-msgid "Close terminal session"
-msgstr "Zavřít relaci terminálu"
 
 msgid "Close the current pane"
 msgstr "Zavřít aktuální panel"
@@ -4857,6 +4857,9 @@ msgstr "Nepodařilo se načíst automatizace"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Nepodařilo se načíst přispěvatele — zadejte uživatelské jméno."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Starší zprávy se nepodařilo načíst. Zkusit znovu"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Nepodařilo se načíst issues: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Pracovní prostor se nepodařilo spustit"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Terminál agenta se nepodařilo zastavit"
+
+msgid "Couldn't stop the background task"
+msgstr "Úlohu na pozadí se nepodařilo zastavit"
 
 msgid "Couldn't stop the chat"
 msgstr "Chat se nepodařilo zastavit"
@@ -6647,9 +6653,6 @@ msgstr "Nepodařilo se vymazat historii terminálu"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Nepodařilo se zavřít port {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Nepodařilo se zavřít relaci terminálu"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Nepodařilo se připojit ke Google. Zkuste to prosím znovu."
@@ -9102,9 +9105,6 @@ msgstr "načíst nastavení agenta"
 msgid "Load diff"
 msgstr "Načíst diff"
 
-msgid "Load earlier messages"
-msgstr "Načíst starší zprávy"
-
 msgid "Load more"
 msgstr "Načíst další"
 
@@ -9188,9 +9188,6 @@ msgstr "Načítám repozitáře..."
 
 msgid "Loading review..."
 msgstr "Načítám revizi..."
-
-msgid "Loading sessions…"
-msgstr "Načítám relace…"
 
 msgid "Loading terminal scripts..."
 msgstr "Načítám terminálové skripty..."
@@ -10179,9 +10176,6 @@ msgstr "Nenalezeni žádní autoři."
 msgid "No automations match"
 msgstr "Žádná automatizace neodpovídá"
 
-msgid "No background terminal sessions"
-msgstr "Žádné relace terminálu na pozadí"
-
 msgid "No branches found"
 msgstr "Nenalezeny žádné větve"
 
@@ -10819,6 +10813,9 @@ msgstr "Není co opakovat"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Za posledních 30 dní zatím nebylo nic publikováno. Vaše pozice se objeví, jakmile se synchronizuje využití z tohoto počítače; publikujete jako <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Nic neběží"
 
 msgid "Nothing was missed"
 msgstr "Nic nebylo zmeškáno"
@@ -15295,6 +15292,12 @@ msgstr "Zastavit"
 msgid "Stop {0}"
 msgstr "Zastavit {0}"
 
+msgid "Stop {label}"
+msgstr "Zastavit {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Zastavit všechny procesy agentů na pozadí"
+
 msgid "Stop dictation"
 msgstr "Zastavit diktování"
 
@@ -16690,9 +16693,6 @@ msgstr "Tím se všechny připravené změny odeberou z indexu a vrátí zpět. 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Tímto zrušíte přípravu a vrátíte všechny připravené změny. Připravené nové soubory budou smazány. Tuto akci nelze vrátit zpět."
 
-msgid "This workspace"
-msgstr "Tento pracovní prostor"
-
 msgid "This workspace has no project to branch from"
 msgstr "Tento pracovní prostor nemá projekt, ze kterého by šlo větvit"
 
@@ -18065,6 +18065,9 @@ msgstr "Výběr akcentní barvy pracovního prostoru"
 
 msgid "Workspace actions"
 msgstr "Akce pracovního prostoru"
+
+msgid "Workspace activity"
+msgstr "Aktivita pracovního prostoru"
 
 msgid "Workspace agents"
 msgstr "Agenti pracovního prostoru"

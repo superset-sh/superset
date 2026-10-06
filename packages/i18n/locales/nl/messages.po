@@ -700,9 +700,6 @@ msgstr "{actor} heeft de koppeling met workspace {workspace} verwijderd"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} tot nu toe · ~{projected} verwacht"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# terminalsessie op de achtergrond} other {# terminalsessies op de achtergrond}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {# commit achter op main, rebase nodig} other {# commits achter op main, rebase nodig}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · regelhoogte {0}"
 
 msgid "{provider} logo"
 msgstr "logo van {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# bericht wacht in de wachtrij} other {# berichten wachten in de wachtrij}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% gelezen"
@@ -2009,9 +2009,6 @@ msgstr "Al je gegevens worden na {ACCOUNT_DELETION_GRACE_DAYS} dagen definitief 
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Alle open terminalsessies worden beëindigd en draaiende hostservices worden gestopt. Gebruik “Superset sluiten” als je wilt dat de services blijven draaien voor de volgende keer."
 
-msgid "All pages"
-msgstr "Alle pagina's"
-
 msgid "All plans"
 msgstr "Alle plannen"
 
@@ -2761,14 +2758,20 @@ msgstr "Terug naar de ranglijst"
 msgid "Background"
 msgstr "Achtergrond"
 
+msgid "Background processes"
+msgstr "Achtergrondprocessen"
+
 msgid "Background processes in chat"
 msgstr "Achtergrondprocessen in chat"
+
+msgid "Background task"
+msgstr "Achtergrondtaak"
 
 msgid "Background terminal memory"
 msgstr "Geheugen voor terminals op de achtergrond"
 
-msgid "Background terminal sessions"
-msgstr "Terminalsessies op de achtergrond"
+msgid "Background work and pages"
+msgstr "Achtergrondwerk en pagina's"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Terminal sluiten"
 
 msgid "Close Terminal"
 msgstr "Terminal sluiten"
-
-msgid "Close terminal session"
-msgstr "Terminalsessie sluiten"
 
 msgid "Close the current pane"
 msgstr "Het huidige paneel sluiten"
@@ -4857,6 +4857,9 @@ msgstr "Kan automatiseringen niet laden"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Kan contributors niet laden — typ in plaats daarvan een gebruikersnaam."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Eerdere berichten konden niet worden geladen. Opnieuw proberen"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Kan issues niet laden: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Kan werkruimte niet starten"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Kon de terminal van de agent niet stoppen"
+
+msgid "Couldn't stop the background task"
+msgstr "Kan de achtergrondtaak niet stoppen"
 
 msgid "Couldn't stop the chat"
 msgstr "Kon de chat niet stoppen"
@@ -6647,9 +6653,6 @@ msgstr "Wissen van terminalgeschiedenis mislukt"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Sluiten van poort {0} mislukt"
-
-msgid "Failed to close terminal session"
-msgstr "Sluiten van terminalsessie mislukt"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Verbinden met Google mislukt. Probeer het opnieuw."
@@ -9102,9 +9105,6 @@ msgstr "agentinstellingen laden"
 msgid "Load diff"
 msgstr "Diff laden"
 
-msgid "Load earlier messages"
-msgstr "Eerdere berichten laden"
-
 msgid "Load more"
 msgstr "Meer laden"
 
@@ -9188,9 +9188,6 @@ msgstr "Repository's laden..."
 
 msgid "Loading review..."
 msgstr "Review laden..."
-
-msgid "Loading sessions…"
-msgstr "Sessies laden…"
 
 msgid "Loading terminal scripts..."
 msgstr "Terminalscripts laden..."
@@ -10179,9 +10176,6 @@ msgstr "Geen auteurs gevonden."
 msgid "No automations match"
 msgstr "Geen overeenkomende automatiseringen"
 
-msgid "No background terminal sessions"
-msgstr "Geen terminalsessies op de achtergrond"
-
 msgid "No branches found"
 msgstr "Geen branches gevonden"
 
@@ -10819,6 +10813,9 @@ msgstr "Niets hoeft opnieuw te worden geprobeerd"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nog niets gepubliceerd in de laatste 30 dagen. Je positie verschijnt zodra het gebruik van deze machine is gesynchroniseerd, gepubliceerd als <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Er draait niets"
 
 msgid "Nothing was missed"
 msgstr "Er is niets gemist"
@@ -15295,6 +15292,12 @@ msgstr "Stoppen"
 msgid "Stop {0}"
 msgstr "{0} stoppen"
 
+msgid "Stop {label}"
+msgstr "{label} stoppen"
+
+msgid "Stop all agent background processes"
+msgstr "Alle achtergrondprocessen van agents stoppen"
+
 msgid "Stop dictation"
 msgstr "Dicteren stoppen"
 
@@ -16690,9 +16693,6 @@ msgstr "Dit haalt alle gestagede wijzigingen uit staging en draait ze terug. Ges
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Hiermee worden alle gestagede wijzigingen ge-unstaged en teruggedraaid. Gestagede nieuwe bestanden worden verwijderd. Dit kan niet ongedaan worden gemaakt."
 
-msgid "This workspace"
-msgstr "Deze werkruimte"
-
 msgid "This workspace has no project to branch from"
 msgstr "Deze workspace heeft geen project om vanaf af te splitsen"
 
@@ -18065,6 +18065,9 @@ msgstr "Kiezer voor de accentkleur van een werkruimte"
 
 msgid "Workspace actions"
 msgstr "Werkruimte-acties"
+
+msgid "Workspace activity"
+msgstr "Werkruimte-activiteit"
 
 msgid "Workspace agents"
 msgstr "Werkruimte-agents"

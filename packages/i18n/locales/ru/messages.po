@@ -700,9 +700,6 @@ msgstr "{actor} отвязал(а) рабочее пространство {work
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} на данный момент · прогноз ~{projected}"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# фоновая сессия терминала} few {# фоновые сессии терминала} many {# фоновых сессий терминала} other {# фоновой сессии терминала}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {Отстаёт от main на # коммит, нужен rebase} few {Отстаёт от main на # коммита, нужен rebase} many {Отстаёт от main на # коммитов, нужен rebase} other {Отстаёт от main на # коммитов, нужен rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · высота строки {0}"
 
 msgid "{provider} logo"
 msgstr "логотип {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# сообщение ждёт в очереди} few {# сообщения ждут в очереди} many {# сообщений ждут в очереди} other {# сообщения ждут в очереди}}"
 
 msgid "{readPercent}% read"
 msgstr "прочитано {readPercent}%"
@@ -2009,9 +2009,6 @@ msgstr "Все ваши данные будут безвозвратно уда�
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Все открытые сессии терминала будут завершены, а работающие службы хоста остановлены. Если нужно, чтобы службы продолжили работу до следующего запуска, используйте «Закрыть Superset»."
 
-msgid "All pages"
-msgstr "Все страницы"
-
 msgid "All plans"
 msgstr "Все тарифы"
 
@@ -2761,14 +2758,20 @@ msgstr "Вернуться к рейтингу"
 msgid "Background"
 msgstr "Фон"
 
+msgid "Background processes"
+msgstr "Фоновые процессы"
+
 msgid "Background processes in chat"
 msgstr "Фоновые процессы в чате"
+
+msgid "Background task"
+msgstr "Фоновая задача"
 
 msgid "Background terminal memory"
 msgstr "Память фоновых терминалов"
 
-msgid "Background terminal sessions"
-msgstr "Фоновые сессии терминала"
+msgid "Background work and pages"
+msgstr "Фоновая работа и страницы"
 
 msgid "Backlog"
 msgstr "Бэклог"
@@ -3784,9 +3787,6 @@ msgstr "Закрыть терминал"
 
 msgid "Close Terminal"
 msgstr "Закрыть терминал"
-
-msgid "Close terminal session"
-msgstr "Закрыть сессию терминала"
 
 msgid "Close the current pane"
 msgstr "Закрыть текущую панель"
@@ -4857,6 +4857,9 @@ msgstr "Не удалось загрузить автоматизации"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Не удалось загрузить контрибьюторов — введите имя пользователя вручную."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Не удалось загрузить более ранние сообщения. Повторить"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Не удалось загрузить задачи: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Не удалось запустить рабочую область"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Не удалось остановить терминал агента"
+
+msgid "Couldn't stop the background task"
+msgstr "Не удалось остановить фоновую задачу"
 
 msgid "Couldn't stop the chat"
 msgstr "Не удалось остановить чат"
@@ -6647,9 +6653,6 @@ msgstr "Не удалось очистить историю терминала"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Не удалось закрыть порт {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Не удалось закрыть сессию терминала"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Не удалось подключиться к Google. Попробуйте ещё раз."
@@ -9102,9 +9105,6 @@ msgstr "загрузить настройки агента"
 msgid "Load diff"
 msgstr "Загрузить diff"
 
-msgid "Load earlier messages"
-msgstr "Загрузить более ранние сообщения"
-
 msgid "Load more"
 msgstr "Показать ещё"
 
@@ -9188,9 +9188,6 @@ msgstr "Загрузка репозиториев..."
 
 msgid "Loading review..."
 msgstr "Загрузка ревью..."
-
-msgid "Loading sessions…"
-msgstr "Загрузка сессий…"
 
 msgid "Loading terminal scripts..."
 msgstr "Загрузка скриптов терминала..."
@@ -10179,9 +10176,6 @@ msgstr "Авторы не найдены."
 msgid "No automations match"
 msgstr "Нет подходящих автоматизаций"
 
-msgid "No background terminal sessions"
-msgstr "Нет фоновых сессий терминала"
-
 msgid "No branches found"
 msgstr "Ветки не найдены"
 
@@ -10819,6 +10813,9 @@ msgstr "Повторять нечего"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "За последние 30 дней ещё ничего не опубликовано. Ваше место появится, как только синхронизируется использование с этой машины; публикация как <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Ничего не запущено"
 
 msgid "Nothing was missed"
 msgstr "Ничего не пропущено"
@@ -15295,6 +15292,12 @@ msgstr "Остановить"
 msgid "Stop {0}"
 msgstr "Остановить {0}"
 
+msgid "Stop {label}"
+msgstr "Остановить {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Остановить все фоновые процессы агентов"
+
 msgid "Stop dictation"
 msgstr "Остановить диктовку"
 
@@ -16690,9 +16693,6 @@ msgstr "Все индексированные изменения будут уд
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Это снимет индексацию и откатит все проиндексированные изменения. Проиндексированные новые файлы будут удалены. Отменить нельзя."
 
-msgid "This workspace"
-msgstr "Эта рабочая область"
-
 msgid "This workspace has no project to branch from"
 msgstr "В этом рабочем пространстве нет проекта для ответвления"
 
@@ -18065,6 +18065,9 @@ msgstr "Выбор акцентного цвета рабочей области
 
 msgid "Workspace actions"
 msgstr "Действия с рабочей областью"
+
+msgid "Workspace activity"
+msgstr "Активность рабочего пространства"
 
 msgid "Workspace agents"
 msgstr "Агенты рабочей области"

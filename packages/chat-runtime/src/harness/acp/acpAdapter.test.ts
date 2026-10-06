@@ -3,6 +3,7 @@ import type { Item } from "@superset/chat/protocol";
 import { AGENT_DEFAULT_MODE } from "@superset/chat/protocol";
 import type { AdapterEvent } from "../types";
 import { AcpAdapter, type AcpAdapterOptions } from "./acpAdapter";
+import { AIR_CLIENT_META } from "./air";
 import type { AcpTransport, AcpTransportHandlers } from "./rpcClient";
 
 /**
@@ -22,6 +23,7 @@ class FakeAcpAgent {
 	sessionCapabilities: Record<string, unknown> | null = { fork: {} };
 	/** Replay history with v2's whole-message variants instead of chunks. */
 	wholeMessageReplay = false;
+	foreignUpdateDuringLoad: Record<string, unknown> | null = null;
 	newSessionConfigOptions: Array<Record<string, unknown>> | null = null;
 	/** v1's session/new `modes` block; v2 agents report the mode as a config option. */
 	newSessionModes: Record<string, unknown> | null = null;
@@ -47,6 +49,10 @@ class FakeAcpAgent {
 
 	private respond(id: number, result: unknown): void {
 		this.deliver({ jsonrpc: "2.0", id, result });
+	}
+
+	exit(code: number): void {
+		this.handlers.onExit(code, null);
 	}
 
 	notify(sessionId: string, update: Record<string, unknown>): void {
@@ -175,6 +181,9 @@ class FakeAcpAgent {
 					sessionUpdate: "agent_message_chunk",
 					content: { type: "text", text: "Shipped." },
 				});
+				if (this.foreignUpdateDuringLoad) {
+					this.notify("other-session", this.foreignUpdateDuringLoad);
+				}
 				// ACP returns null after replaying history; adapter keeps the id.
 				this.respond(frame.id as number, null);
 			} else if (frame.method === "session/prompt") {
@@ -217,7 +226,7 @@ function startAdapter(
 	selections: { modelId?: string; modeId?: string } = {},
 	adapterOptions: Pick<
 		AcpAdapterOptions,
-		"defaultModeId" | "selectionWaitMs"
+		"defaultModeId" | "selectionWaitMs" | "backgroundDetailIntervalMs"
 	> = {},
 ): { adapter: AcpAdapter; events: AdapterEvent[] } {
 	let counter = 0;
@@ -371,6 +380,24 @@ describe("AcpAdapter", () => {
 		await flush();
 
 		expect(agent.sent.map((f) => f.method)).toContain("session/load");
+		await adapter.dispose();
+	});
+
+	it("keeps another session's updates out of a replay", async () => {
+		const agent = new FakeAcpAgent();
+		agent.foreignUpdateDuringLoad = {
+			sessionUpdate: "tool_call",
+			toolCallId: "stray-1",
+			title: "ls",
+			kind: "execute",
+			status: "pending",
+		};
+		const { adapter, events } = startAdapter(agent, "sess-1");
+		await flush();
+
+		expect(
+			itemsOf(events).some((i) => i.kind === "tool_call" && i.id === "stray-1"),
+		).toBe(false);
 		await adapter.dispose();
 	});
 
@@ -1192,7 +1219,281 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
-	it("names the subagent a subagent_update announces, once", async () => {
+	it("lists a background task from its spawn until it ends", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "async_task_spawned",
+			asyncTaskId: "task-1",
+			name: "bun run dev",
+			canStop: true,
+		});
+		await flush();
+		agent.notify("sess-1", {
+			sessionUpdate: "async_task_state_update",
+			asyncTaskId: "task-1",
+			state: "completed",
+		});
+		await flush();
+
+		const lists = events.flatMap((event) =>
+			event.kind === "session" && event.session.backgroundTasks
+				? [event.session.backgroundTasks.map((task) => task.name)]
+				: [],
+		);
+		expect(lists).toEqual([["bun run dev"], []]);
+
+		await adapter.dispose();
+	});
+
+	it("shows a subagent from its spawn until its state ends, keeping its session out of the transcript", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(
+			agent,
+			undefined,
+			{},
+			{
+				backgroundDetailIntervalMs: 0,
+			},
+		);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Count files",
+			task: "Count the files",
+		});
+		agent.notify("child-1", {
+			sessionUpdate: "tool_call",
+			toolCallId: "bash-1",
+			title: "find . | wc -l",
+			kind: "execute",
+			status: "pending",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_state_update",
+			subagentSessionId: "child-1",
+			state: "completed",
+		});
+		await flush();
+
+		const toolCalls = itemsOf(events).filter((i) => i.kind === "tool_call");
+		expect(toolCalls.map((i) => i.id)).not.toContain("bash-1");
+		expect(toolCalls.at(-1)).toMatchObject({
+			title: "Count files",
+			subagent: true,
+			status: "completed",
+		});
+		const lists = events.flatMap((event) =>
+			event.kind === "session" && event.session.backgroundTasks
+				? [
+						event.session.backgroundTasks.map(
+							(task) => `${task.kind}:${task.name}`,
+						),
+					]
+				: [],
+		);
+		expect(lists).toEqual([["subagent:Count files"], []]);
+		const steps = events.flatMap((event) =>
+			event.kind === "delta" && event.delta.type === "background"
+				? [event.delta]
+				: [],
+		);
+		expect(steps).toEqual([
+			{
+				type: "background",
+				itemId: "subagent:child-1",
+				append: "find . | wc -l",
+			},
+		]);
+
+		await adapter.dispose();
+	});
+
+	it("drops a parent update for a subagent call it never opened, but keeps an untitled new call", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "agent-1",
+			status: "completed",
+			_meta: { claudeCode: { toolName: "Agent" } },
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call_update",
+			toolCallId: "read-1",
+			kind: "read",
+			status: "in_progress",
+		});
+		await flush();
+
+		const ids = itemsOf(events)
+			.filter((i) => i.kind === "tool_call")
+			.map((i) => i.id);
+		expect(ids).not.toContain("agent-1");
+		expect(ids).toContain("read-1");
+
+		await adapter.dispose();
+	});
+
+	it("fails running subagents when the agent process exits", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Review",
+		});
+		await flush();
+		agent.exit(1);
+		await flush();
+
+		const statuses = itemsOf(events).flatMap((i) =>
+			i.kind === "tool_call" && i.subagent === true ? [i.status] : [],
+		);
+		expect(statuses).toEqual(["running", "failed"]);
+
+		await adapter.dispose();
+	});
+
+	it("takes the chat title only from its own session", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("child-1", {
+			sessionUpdate: "session_info_update",
+			title: "Count files",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "session_info_update",
+			title: "Fix the docs",
+		});
+		await flush();
+
+		const titles = events.flatMap((event) =>
+			event.kind === "session" && event.session.title
+				? [event.session.title]
+				: [],
+		);
+		expect(titles).toEqual(["Fix the docs"]);
+
+		await adapter.dispose();
+	});
+
+	it("shows a failed subagent spawn the parent never opened", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "tool_call",
+			toolCallId: "agent-1",
+			title: "Agent",
+			status: "failed",
+			_meta: { claudeCode: { toolName: "Agent" } },
+		});
+		await flush();
+
+		expect(
+			itemsOf(events).some((i) => i.kind === "tool_call" && i.id === "agent-1"),
+		).toBe(true);
+
+		await adapter.dispose();
+	});
+
+	it("keeps a finished subagent finished when a late spawn arrives", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		const spawn = {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Review",
+		};
+		agent.notify("sess-1", spawn);
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_state_update",
+			subagentSessionId: "child-1",
+			state: "completed",
+		});
+		agent.notify("sess-1", spawn);
+		await flush();
+
+		const statuses = itemsOf(events).flatMap((i) =>
+			i.kind === "tool_call" && i.subagent === true ? [i.status] : [],
+		);
+		expect(statuses).toEqual(["running", "completed"]);
+
+		await adapter.dispose();
+	});
+
+	it("keeps updates from a session it does not track out of the transcript", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("other-session", {
+			sessionUpdate: "tool_call",
+			toolCallId: "stray-1",
+			title: "ls",
+			kind: "execute",
+			status: "pending",
+		});
+		await flush();
+
+		expect(
+			itemsOf(events).some((i) => i.kind === "tool_call" && i.id === "stray-1"),
+		).toBe(false);
+
+		await adapter.dispose();
+	});
+
+	it("shows a disconnected subagent as failed", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_spawned",
+			subagentSessionId: "child-1",
+			name: "Review",
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "subagent_state_update",
+			subagentSessionId: "child-1",
+			state: "disconnected",
+		});
+		await flush();
+
+		const statuses = itemsOf(events).flatMap((i) =>
+			i.kind === "tool_call" && i.subagent === true ? [i.status] : [],
+		);
+		expect(statuses).toEqual(["running", "failed"]);
+		await adapter.dispose();
+	});
+
+	it("refuses to stop a task it does not know", async () => {
+		const agent = new FakeAcpAgent();
+		const { adapter } = startAdapter(agent);
+		await flush();
+
+		expect(await adapter.stopBackgroundTask("unknown")).toBe(false);
+		expect(agent.sent.map((f) => f.method)).not.toContain(
+			"_session/async_task/stop",
+		);
+		await adapter.dispose();
+	});
+
+	it("folds a v2 subagent_update into the same lifecycle", async () => {
 		const agent = new FakeAcpAgent();
 		const { adapter, events } = startAdapter(agent);
 		await flush();
@@ -1201,25 +1502,18 @@ describe("AcpAdapter on protocol v2", () => {
 			sessionUpdate: "subagent_update",
 			sessionId: "child-1",
 			title: "Test runner",
-			description: "Runs the suite",
 		});
-		await flush();
-
-		const notices = itemsOf(events).filter((i) => i.kind === "notice");
-		expect(notices.length).toBe(1);
-		expect(
-			notices[0] && "noticeKind" in notices[0] ? notices[0].noticeKind : "",
-		).toBe("info");
-		expect(textOf(notices[0])).toBe("Subagent Test runner: Runs the suite");
-
-		// Later updates only patch metadata, so they must not re-announce.
 		agent.notify("sess-1", {
 			sessionUpdate: "subagent_update",
 			sessionId: "child-1",
-			state: { state: "idle" },
+			state: { state: "completed" },
 		});
 		await flush();
-		expect(itemsOf(events).filter((i) => i.kind === "notice").length).toBe(1);
+
+		const statuses = itemsOf(events).flatMap((i) =>
+			i.kind === "tool_call" && i.subagent === true ? [i.status] : [],
+		);
+		expect(statuses).toEqual(["running", "completed"]);
 
 		await adapter.dispose();
 	});
@@ -1344,7 +1638,7 @@ describe("AcpAdapter on protocol v2", () => {
 		expect(params.info?.name).toBe("superset");
 		expect(params.info?.version).toBeString();
 		// v2 renamed the field; v1 agents still read the old name.
-		expect(params.capabilities).toEqual({});
+		expect(params.capabilities).toEqual({ _meta: AIR_CLIENT_META });
 		expect(params.clientCapabilities).toBeDefined();
 
 		await adapter.dispose();

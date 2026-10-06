@@ -25,7 +25,6 @@ import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications
 import { useStore } from "zustand";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
-import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
 import { ChangesControl } from "./components/ChangesControl";
 import { CloudWorkspaceTabBarControls } from "./components/CloudWorkspaceTabBarControls";
 import { RightPaneArea, type RightPaneKind } from "./components/RightPaneArea";
@@ -33,9 +32,9 @@ import { V2NotificationStatusIndicator } from "./components/V2NotificationStatus
 import { V2PresetsBar } from "./components/V2PresetsBar";
 import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
+import { WorkspaceActivityMenu } from "./components/WorkspaceActivityMenu";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
-import { WorkspacePagesMenu } from "./components/WorkspacePagesMenu";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useAgentSessionLauncher } from "./hooks/useAgentSessionLauncher";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
@@ -499,9 +498,12 @@ function V2WorkspaceContent() {
 		/>
 	);
 
-	const pagesMenu = (
-		<WorkspacePagesMenu
+	const activityMenu = (
+		<WorkspaceActivityMenu
 			workspaceId={workspaceId}
+			store={store}
+			linkedStores={linkedPaneStores}
+			isLayoutReady={isLayoutReady && isRightLayoutReady}
 			onOpenPage={openPagePane}
 			onCreateNewAgentSession={createNewAgentSession}
 			onFocusAgentTerminal={focusAgentTerminal}
@@ -518,7 +520,6 @@ function V2WorkspaceContent() {
 			onBeforeCloseTab={onBeforeCloseRightTab}
 			onInteractionStateChange={onWorkspaceInteractionStateChange}
 			runButton={workspaceRunButton}
-			pagesMenu={pagesMenu}
 			isExpanded={isRightPaneAreaExpanded}
 			onToggleExpanded={toggleRightPaneAreaExpanded}
 			onMergeIntoCenter={mergeRightPaneAreaIntoCenter}
@@ -576,16 +577,7 @@ function V2WorkspaceContent() {
 								renderTabBarTrailing={() => (
 									<div className="flex items-center gap-1">
 										<CloudWorkspaceTabBarControls workspaceId={workspaceId} />
-										{/* Until the pane layout hydrates, tabs read as empty and
-									    every running terminal miscounts as "background", so the
-									    button would flash a bogus count on navigation. */}
-										{isLayoutReady && isRightLayoutReady && (
-											<BackgroundTerminalsButton
-												workspaceId={workspaceId}
-												store={store}
-												linkedStores={linkedPaneStores}
-											/>
-										)}
+										{activityMenu}
 										{isLayoutReady && (
 											<ChangesControl
 												workspaceId={workspaceId}
@@ -645,7 +637,6 @@ function V2WorkspaceContent() {
 								<WorkspaceSidebar
 									workspaceId={workspaceId}
 									runButton={workspaceRunButton}
-									pagesMenu={pagesMenu}
 									onSelectFile={openFilePaneFromTreeClick}
 									onSelectDiffFile={openDiffPane}
 									onOpenComment={openCommentPane}

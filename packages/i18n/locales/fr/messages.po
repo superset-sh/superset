@@ -700,9 +700,6 @@ msgstr "{actor} a délié l’espace de travail {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} à ce jour · ~{projected} projetées"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# session de terminal en arrière-plan} other {# sessions de terminal en arrière-plan}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {En retard de # commit sur main, rebase nécessaire} other {En retard de # commits sur main, rebase nécessaire}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize} px · interligne {0}"
 
 msgid "{provider} logo"
 msgstr "Logo {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# message en attente dans la file} other {# messages en attente dans la file}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent} % lu"
@@ -2009,9 +2009,6 @@ msgstr "Toutes vos données seront définitivement supprimées après {ACCOUNT_D
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Toutes les sessions de terminal ouvertes seront interrompues et les services hôtes en cours seront arrêtés. Utilisez plutôt « Fermer Superset » si vous voulez que les services continuent de tourner pour le prochain lancement."
 
-msgid "All pages"
-msgstr "Toutes les pages"
-
 msgid "All plans"
 msgstr "Tous les forfaits"
 
@@ -2761,14 +2758,20 @@ msgstr "Retour au classement"
 msgid "Background"
 msgstr "Arrière-plan"
 
+msgid "Background processes"
+msgstr "Processus en arrière-plan"
+
 msgid "Background processes in chat"
 msgstr "Processus en arrière-plan dans le chat"
+
+msgid "Background task"
+msgstr "Tâche en arrière-plan"
 
 msgid "Background terminal memory"
 msgstr "Mémoire des terminaux en arrière-plan"
 
-msgid "Background terminal sessions"
-msgstr "Sessions de terminal en arrière-plan"
+msgid "Background work and pages"
+msgstr "Travail en arrière-plan et pages"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Fermer le terminal"
 
 msgid "Close Terminal"
 msgstr "Fermer le terminal"
-
-msgid "Close terminal session"
-msgstr "Fermer la session de terminal"
 
 msgid "Close the current pane"
 msgstr "Fermer le volet actuel"
@@ -4857,6 +4857,9 @@ msgstr "Impossible de charger les automatisations"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Impossible de charger les contributeurs — saisissez plutôt un nom d'utilisateur."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Impossible de charger les messages précédents. Réessayer"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Impossible de charger les issues : {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Impossible de démarrer l'espace de travail"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Impossible d'arrêter le terminal de l'agent"
+
+msgid "Couldn't stop the background task"
+msgstr "Impossible d'arrêter la tâche en arrière-plan"
 
 msgid "Couldn't stop the chat"
 msgstr "Impossible d'arrêter la discussion"
@@ -6647,9 +6653,6 @@ msgstr "Échec de l'effacement de l'historique du terminal"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Échec de la fermeture du port {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Échec de la fermeture de la session de terminal"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Échec de la connexion à Google. Veuillez réessayer."
@@ -9102,9 +9105,6 @@ msgstr "charger les paramètres de l'agent"
 msgid "Load diff"
 msgstr "Charger le diff"
 
-msgid "Load earlier messages"
-msgstr "Charger les messages précédents"
-
 msgid "Load more"
 msgstr "Charger plus"
 
@@ -9188,9 +9188,6 @@ msgstr "Chargement des dépôts..."
 
 msgid "Loading review..."
 msgstr "Chargement de la revue..."
-
-msgid "Loading sessions…"
-msgstr "Chargement des sessions…"
 
 msgid "Loading terminal scripts..."
 msgstr "Chargement des scripts de terminal..."
@@ -10179,9 +10176,6 @@ msgstr "Aucun auteur trouvé."
 msgid "No automations match"
 msgstr "Aucune automatisation ne correspond"
 
-msgid "No background terminal sessions"
-msgstr "Aucune session de terminal en arrière-plan"
-
 msgid "No branches found"
 msgstr "Aucune branche trouvée"
 
@@ -10819,6 +10813,9 @@ msgstr "Rien à relancer"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Rien de publié sur les 30 derniers jours pour l'instant. Votre rang apparaîtra dès que l'usage de cette machine sera synchronisé, publié sous <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Rien en cours d'exécution"
 
 msgid "Nothing was missed"
 msgstr "Rien n'a été manqué"
@@ -15295,6 +15292,12 @@ msgstr "Arrêter"
 msgid "Stop {0}"
 msgstr "Arrêter {0}"
 
+msgid "Stop {label}"
+msgstr "Arrêter {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Arrêter tous les processus en arrière-plan des agents"
+
 msgid "Stop dictation"
 msgstr "Arrêter la dictée"
 
@@ -16690,9 +16693,6 @@ msgstr "Toutes les modifications indexées seront désindexées et annulées. Le
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Cette action désindexera et annulera toutes les modifications indexées. Les nouveaux fichiers indexés seront supprimés. Cette action est irréversible."
 
-msgid "This workspace"
-msgstr "Cet espace de travail"
-
 msgid "This workspace has no project to branch from"
 msgstr "Cet espace de travail n'a aucun projet depuis lequel dupliquer"
 
@@ -18065,6 +18065,9 @@ msgstr "Sélecteur de couleur d'accent de l'espace de travail"
 
 msgid "Workspace actions"
 msgstr "Actions de l'espace de travail"
+
+msgid "Workspace activity"
+msgstr "Activité de l'espace de travail"
 
 msgid "Workspace agents"
 msgstr "Agents des espaces de travail"

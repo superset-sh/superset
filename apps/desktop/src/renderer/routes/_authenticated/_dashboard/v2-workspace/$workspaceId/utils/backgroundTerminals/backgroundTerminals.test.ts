@@ -3,11 +3,10 @@ import {
 	getAttachedTerminalIdsKey,
 	getBackgroundTerminalRefetchInterval,
 	getBackgroundTerminalSessions,
-	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
-} from "./BackgroundTerminalsButton.utils";
+} from "./backgroundTerminals";
 
-describe("BackgroundTerminalsButton utils", () => {
+describe("backgroundTerminals", () => {
 	test("keeps the attached terminal key stable across tab object churn", () => {
 		type WorkspaceTabs = Parameters<typeof getAttachedTerminalIdsKey>[0];
 		const makeTabs = (): WorkspaceTabs => [
@@ -42,12 +41,6 @@ describe("BackgroundTerminalsButton utils", () => {
 				["attached"],
 			).map((session) => session.terminalId),
 		).toEqual(["new", "old"]);
-	});
-
-	test("deduplicates optimistic background terminal markers and ignores attached terminals", () => {
-		expect(
-			getUnattachedTerminalIds(["term-b", "term-a", "term-b"], ["term-a"]),
-		).toEqual(["term-b"]);
 	});
 
 	test("polls slowly while closed and fast while open", () => {

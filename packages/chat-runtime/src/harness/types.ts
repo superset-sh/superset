@@ -32,5 +32,6 @@ export interface HarnessAdapter {
 	 * null, when the harness cannot: the agent has to advertise it.
 	 */
 	fork?(): Promise<string | null>;
+	stopBackgroundTask?(taskId: string): Promise<boolean>;
 	dispose(): Promise<void>;
 }

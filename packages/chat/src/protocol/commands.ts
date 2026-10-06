@@ -17,6 +17,7 @@ export const createSessionInputSchema = z.object({
 	modeId: z.string().optional(),
 	modelId: z.string().optional(),
 	resume: z.object({ harnessSessionId: z.string().min(1) }).optional(),
+	terminalId: z.string().min(1).optional(),
 });
 export type CreateSessionInput = z.infer<typeof createSessionInputSchema>;
 
@@ -50,6 +51,14 @@ export const cancelTurnInputSchema = z.object({
 	pauseQueue: z.boolean().optional(),
 });
 export type CancelTurnInput = z.infer<typeof cancelTurnInputSchema>;
+
+export const stopBackgroundTaskInputSchema = z.object({
+	...commandBaseFields,
+	taskId: z.string().min(1),
+});
+export type StopBackgroundTaskInput = z.infer<
+	typeof stopBackgroundTaskInputSchema
+>;
 
 export const respondToApprovalInputSchema = z.object({
 	...commandBaseFields,

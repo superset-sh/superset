@@ -84,7 +84,9 @@ export function transcriptRows(
 				groupStart,
 				items: entry.items,
 				defaultCollapsed:
-					turnSettled &&
+					(turnSettled ||
+						(index < group.entries.length - 1 &&
+							!entry.items.some((tool) => tool.status === "running"))) &&
 					!entry.items.some((tool) => pendingApprovalTargets.has(tool.id)),
 			});
 		});

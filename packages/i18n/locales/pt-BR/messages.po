@@ -700,9 +700,6 @@ msgstr "{actor} desvinculou o espaço de trabalho {workspace}"
 msgid "{actual} so far · ~{projected} projected"
 msgstr "{actual} até agora · ~{projected} projetadas"
 
-msgid "{backgroundCount, plural, one {# background terminal session} other {# background terminal sessions}}"
-msgstr "{backgroundCount, plural, one {# sessão de terminal em segundo plano} other {# sessões de terminal em segundo plano}}"
-
 msgid "{behindCount, plural, one {Behind main by # commit, needs rebase} other {Behind main by # commits, needs rebase}}"
 msgstr "{behindCount, plural, one {# commit atrás da main, precisa de rebase} other {# commits atrás da main, precisa de rebase}}"
 
@@ -1024,6 +1021,9 @@ msgstr "{previewSize}px · altura de linha {0}"
 
 msgid "{provider} logo"
 msgstr "logo da {provider}"
+
+msgid "{queued, plural, one {# message waiting in the queue} other {# messages waiting in the queue}}"
+msgstr "{queued, plural, one {# mensagem aguardando na fila} other {# mensagens aguardando na fila}}"
 
 msgid "{readPercent}% read"
 msgstr "{readPercent}% lido"
@@ -2009,9 +2009,6 @@ msgstr "Todos os seus dados serão excluídos permanentemente depois de {ACCOUNT
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "Todas as sessões de terminal abertas serão encerradas e os serviços de host em execução serão parados. Use “Fechar o Superset” se quiser que os serviços continuem rodando para a próxima abertura."
 
-msgid "All pages"
-msgstr "Todas as páginas"
-
 msgid "All plans"
 msgstr "Todos os planos"
 
@@ -2761,14 +2758,20 @@ msgstr "Voltar ao ranking"
 msgid "Background"
 msgstr "Fundo"
 
+msgid "Background processes"
+msgstr "Processos em segundo plano"
+
 msgid "Background processes in chat"
 msgstr "Processos em segundo plano no chat"
+
+msgid "Background task"
+msgstr "Tarefa em segundo plano"
 
 msgid "Background terminal memory"
 msgstr "Memória dos terminais em segundo plano"
 
-msgid "Background terminal sessions"
-msgstr "Sessões de terminal em segundo plano"
+msgid "Background work and pages"
+msgstr "Trabalho em segundo plano e páginas"
 
 msgid "Backlog"
 msgstr "Backlog"
@@ -3784,9 +3787,6 @@ msgstr "Fechar terminal"
 
 msgid "Close Terminal"
 msgstr "Fechar terminal"
-
-msgid "Close terminal session"
-msgstr "Fechar a sessão de terminal"
 
 msgid "Close the current pane"
 msgstr "Fechar o painel atual"
@@ -4857,6 +4857,9 @@ msgstr "Não foi possível carregar as automações"
 msgid "Couldn't load contributors — type a username instead."
 msgstr "Não foi possível carregar os contribuidores — digite um nome de usuário."
 
+msgid "Couldn't load earlier messages. Retry"
+msgstr "Não foi possível carregar as mensagens anteriores. Tentar novamente"
+
 msgid "Couldn't load issues: {msg}"
 msgstr "Não foi possível carregar as issues: {msg}"
 
@@ -4979,6 +4982,9 @@ msgstr "Não foi possível iniciar a área de trabalho"
 
 msgid "Couldn't stop the agent's terminal"
 msgstr "Não foi possível parar o terminal do agente"
+
+msgid "Couldn't stop the background task"
+msgstr "Não foi possível parar a tarefa em segundo plano"
 
 msgid "Couldn't stop the chat"
 msgstr "Não foi possível parar o chat"
@@ -6647,9 +6653,6 @@ msgstr "Falha ao limpar o histórico do terminal"
 #. placeholder {0}: port.port
 msgid "Failed to close port {0}"
 msgstr "Falha ao fechar a porta {0}"
-
-msgid "Failed to close terminal session"
-msgstr "Falha ao fechar a sessão de terminal"
 
 msgid "Failed to connect to Google. Please try again."
 msgstr "Falha ao conectar ao Google. Tente novamente."
@@ -9102,9 +9105,6 @@ msgstr "carregar as configurações do agente"
 msgid "Load diff"
 msgstr "Carregar o diff"
 
-msgid "Load earlier messages"
-msgstr "Carregar mensagens anteriores"
-
 msgid "Load more"
 msgstr "Carregar mais"
 
@@ -9188,9 +9188,6 @@ msgstr "Carregando os repositórios..."
 
 msgid "Loading review..."
 msgstr "Carregando a revisão..."
-
-msgid "Loading sessions…"
-msgstr "Carregando as sessões…"
 
 msgid "Loading terminal scripts..."
 msgstr "Carregando os scripts de terminal..."
@@ -10179,9 +10176,6 @@ msgstr "Nenhum autor encontrado."
 msgid "No automations match"
 msgstr "Nenhuma automação corresponde"
 
-msgid "No background terminal sessions"
-msgstr "Nenhuma sessão de terminal em segundo plano"
-
 msgid "No branches found"
 msgstr "Nenhuma branch encontrada"
 
@@ -10819,6 +10813,9 @@ msgstr "Nada precisa de nova tentativa"
 
 msgid "Nothing published in the last 30 days yet. Your rank appears once usage from this machine syncs, publishing as <0>{handle}</0>."
 msgstr "Nada publicado nos últimos 30 dias ainda. Sua posição aparece assim que o uso desta máquina sincronizar, publicando como <0>{handle}</0>."
+
+msgid "Nothing running"
+msgstr "Nada em execução"
 
 msgid "Nothing was missed"
 msgstr "Nada foi perdido"
@@ -15295,6 +15292,12 @@ msgstr "Parar"
 msgid "Stop {0}"
 msgstr "Parar {0}"
 
+msgid "Stop {label}"
+msgstr "Parar {label}"
+
+msgid "Stop all agent background processes"
+msgstr "Parar todos os processos em segundo plano dos agentes"
+
 msgid "Stop dictation"
 msgstr "Parar ditado"
 
@@ -16690,9 +16693,6 @@ msgstr "Isso removerá da preparação e reverterá todas as alterações prepar
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "Isso remove do stage e reverte todas as alterações no stage. Arquivos novos no stage serão excluídos. Não dá para desfazer."
 
-msgid "This workspace"
-msgstr "Esta área de trabalho"
-
 msgid "This workspace has no project to branch from"
 msgstr "Este workspace não tem projeto do qual ramificar"
 
@@ -18065,6 +18065,9 @@ msgstr "Seletor de cor de destaque da área de trabalho"
 
 msgid "Workspace actions"
 msgstr "Ações da área de trabalho"
+
+msgid "Workspace activity"
+msgstr "Atividade da área de trabalho"
 
 msgid "Workspace agents"
 msgstr "Agentes da área de trabalho"

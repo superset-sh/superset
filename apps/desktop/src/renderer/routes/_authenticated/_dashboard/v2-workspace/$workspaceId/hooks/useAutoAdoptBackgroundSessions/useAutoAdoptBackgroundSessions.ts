@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { getTerminalBackgroundMarkerIdsKey } from "renderer/lib/terminal/terminal-background-intents";
 import type { StoreApi } from "zustand/vanilla";
+import type { PaneViewerData } from "../../types";
 import {
 	getAttachedTerminalIdsKey,
 	getBackgroundTerminalSessions,
 	parseAttachedTerminalIdsKey,
-} from "../../components/BackgroundTerminalsButton/BackgroundTerminalsButton.utils";
-import type { PaneViewerData } from "../../types";
+} from "../../utils/backgroundTerminals";
 import { isTerminalReplacementCancelled } from "../../utils/cancelledTerminalReplacements";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
