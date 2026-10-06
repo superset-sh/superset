@@ -93,10 +93,14 @@ Do NOT proceed with the PR. Instead, present findings to the user:
 
     gh pr create \
       --title "<PR title>" \
+      --assignee superset-home \
       --body "$(cat <<'EOF'
     <paste PR body from a template below>
     EOF
     )"
+
+- Assigning `superset-home` starts a review of the PR in a cloud workspace. The findings
+  are published as a Superset page.
 
 # PR Titles
 

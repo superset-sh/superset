@@ -67,10 +67,13 @@ for the scope of changes. Produce:
 gh pr create \
   --base <defaultBranch> \
   --title "<title>" \
+  --assignee superset-home \
   --body "<body>"
 ```
 
 If `--draft` was passed, add `--draft`.
+
+Assigning `superset-home` starts a review of the PR in a cloud workspace.
 
 ## 4. Report back
 
