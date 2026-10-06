@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} en attente"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "Actions de {0}"
 
@@ -372,6 +372,14 @@ msgstr "branche de {0}"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} ne peut pas encore se connecter de cette façon."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "{0} créée"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "{0} supprimée"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "Documentation de {0}"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0} activé"
 
@@ -404,6 +412,10 @@ msgstr "{0} en échec"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{0} fichiers existent déjà dans {where}. Voulez-vous les remplacer ?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "{0} importée"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "{0} des visiteurs"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "Options de {0}"
 
@@ -858,6 +871,9 @@ msgstr "{failing} vérifications sur {total} en échec"
 
 msgid "{focusShortcutText} to focus"
 msgstr "{focusShortcutText} pour activer"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest} de plus"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dév.} other {dév.}}"
@@ -1405,6 +1421,9 @@ msgstr "Un fichier nommé « {firstName} » existe déjà dans {where}. Voulez-v
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Une réduction ciblée des plantages, des blocages et des échecs de reconnexion dans toute l'application."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "Un dossier contenant un SKILL.md que tout agent que vous utilisez peut charger. Vous rédigez les instructions ensuite."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Une refonte complète du style : des lignes plus denses, des pastilles de port et d'agent sous chaque espace de travail, un arrêt général en un clic."
 
@@ -1878,8 +1897,17 @@ msgstr "Les agents peuvent surveiller les vérifications de CI, suivre les serve
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "Les agents terminent les tickets courants sans intervention en cours de tâche."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "Les agents l'invoquent avec <0>/{slug}</0> dans Claude Code ou <1>${slug}</1> dans Codex."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Les agents chargent leur propre aperçu, pilotent l'interface et joignent des captures d'écran comme preuve avant de marquer le travail comme prêt pour la revue."
+
+msgid "Agents pick it up in new sessions."
+msgstr "Les agents la prennent en compte dans les nouvelles sessions."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "Les agents s'en servent pour décider quand utiliser la compétence : précisez donc quand elle s'applique."
 
 msgid "Agents running at once"
 msgstr "Agents lancés en parallèle"
@@ -3475,11 +3503,17 @@ msgstr "Choisir un dossier"
 msgid "Choose a parent directory"
 msgstr "Choisir un répertoire parent"
 
+msgid "Choose a project"
+msgstr "Choisir un projet"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Choisissez un projet dans Issues GitHub avant d'ouvrir une issue."
 
 msgid "Choose a section."
 msgstr "Choisissez une section."
+
+msgid "Choose a skill folder"
+msgstr "Choisir un dossier de compétence"
 
 msgid "Choose agent"
 msgstr "Choisir un agent"
@@ -4638,11 +4672,17 @@ msgstr "Impossible de créer le projet"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Impossible de créer le projet. Essayez un autre nom ou consultez les logs."
 
+msgid "Could not create skill"
+msgstr "Impossible de créer la compétence"
+
 msgid "Could not delete account"
 msgstr "Impossible de supprimer le compte"
 
 msgid "Could not delete file"
 msgstr "Impossible de supprimer le fichier"
+
+msgid "Could not delete skill"
+msgstr "Impossible de supprimer la compétence"
 
 msgid "Could not delete this page"
 msgstr "Impossible de supprimer cette page"
@@ -4655,6 +4695,9 @@ msgstr "Impossible d'oublier {domain}"
 
 msgid "Could not import from browser"
 msgstr "Impossible d'importer depuis le navigateur"
+
+msgid "Could not import skill"
+msgstr "Impossible d'importer la compétence"
 
 msgid "Could not leave the queue"
 msgstr "Impossible de quitter la file"
@@ -4680,6 +4723,9 @@ msgstr "Impossible de charger les plugins. Vérifiez votre connexion et réessay
 
 msgid "Could not load presets from the host"
 msgstr "Impossible de charger les préréglages depuis l'hôte"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "Impossible de charger les compétences. Actualisez pour réessayer."
 
 msgid "Could not load this diff"
 msgstr "Impossible de charger ce diff"
@@ -5129,6 +5175,9 @@ msgstr "Créer un projet…"
 msgid "Create pull request"
 msgstr "Créer la pull request"
 
+msgid "Create skill"
+msgstr "Créer la compétence"
+
 msgid "Create task"
 msgstr "Créer la tâche"
 
@@ -5487,6 +5536,7 @@ msgstr "Supprimer « {title} » ?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "Supprimer {0} ?"
 
@@ -6684,7 +6734,7 @@ msgstr "Échec de la connexion à Slack. Veuillez réessayer."
 msgid "Failed to copy branch name: {0}"
 msgstr "Échec de la copie du nom de la branche : {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "Échec de la copie du markdown : {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "Échec du déplacement des espaces de travail : {0}"
 msgid "Failed to open {name}"
 msgstr "Échec de l'ouverture de {name}"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "Échec de l'ouverture du fichier : {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "Échec de la reprise de {0}"
 msgid "Failed to reveal in Finder"
 msgstr "Échec de l'affichage dans le Finder"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Échec de l'affichage dans le Finder : {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "Échec de l'import : {message}"
 msgid "Import from file"
 msgstr "Importer depuis un fichier"
 
+msgid "Import from folder…"
+msgstr "Importer depuis un dossier…"
+
 msgid "Import from v1"
 msgstr "Importer depuis la v1"
 
@@ -9299,6 +9352,9 @@ msgstr "Faible"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "Moins de mémoire avec de nombreux terminaux ouverts, un Git plus fluide dans les gros dépôts et moins de CPU en arrière-plan."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "Uniquement des minuscules, des chiffres et des tirets simples."
+
 msgid "Machine resources"
 msgstr "Ressources de la machine"
 
@@ -9383,9 +9439,6 @@ msgstr "Gérez les paramètres de votre compte"
 
 msgid "Manage your organization's branding and members."
 msgstr "Gérez l'identité visuelle et les membres de votre organisation."
-
-msgid "Managed"
-msgstr "Géré"
 
 msgid "Managed by your organization admin."
 msgstr "Géré par l'administrateur de votre organisation."
@@ -10012,6 +10065,12 @@ msgstr "Nouvelle session"
 msgid "New shell"
 msgstr "Nouveau shell"
 
+msgid "New skill"
+msgstr "Nouvelle compétence"
+
+msgid "New skill…"
+msgstr "Nouvelle compétence…"
+
 msgid "New stars"
 msgstr "Nouvelles étoiles"
 
@@ -10459,6 +10518,9 @@ msgstr "Aucune invitation en attente"
 msgid "No people found."
 msgstr "Aucune personne trouvée."
 
+msgid "No personal skills yet."
+msgstr "Aucune compétence personnelle pour l'instant."
+
 msgid "No plugins available yet."
 msgstr "Aucun plugin disponible pour le moment."
 
@@ -10579,6 +10641,16 @@ msgstr "Aucun raccourci ne correspond à « {searchQuery} »"
 
 msgid "No sites are signed in"
 msgstr "Aucun site connecté"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "Aucune compétence dans ce projet pour l'instant. Ajoutez-en une et tout agent qui y travaille pourra l'utiliser."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "Aucune compétence ne correspond à \"{0}\""
+
+msgid "No skills yet. Add one to get started."
+msgstr "Aucune compétence pour l'instant. Ajoutez-en une pour commencer."
 
 msgid "No stack frames"
 msgstr "Aucune frame de pile"
@@ -11094,6 +11166,9 @@ msgstr "Ouvrir un éditeur de prompt multiligne pour le terminal actif"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Ouvrez un panneau ou faites-en glisser un ici depuis le centre."
+
+msgid "Open a project to see its skills."
+msgstr "Ouvrez un projet pour voir ses compétences."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "Ouvrez une pull request pour voir l'état de la revue, les vérifications et les commentaires."
@@ -11938,6 +12013,9 @@ msgstr "Choisir un autre élément (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "Choisir un dossier sur le disque et l'ajouter comme projet"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "Choisissez un dossier contenant un SKILL.md"
 
 msgid "Pick a folder…"
 msgstr "Choisir un dossier…"
@@ -12816,6 +12894,9 @@ msgstr "Actualiser les pull requests"
 
 msgid "Refresh repositories"
 msgstr "Actualiser les dépôts"
+
+msgid "Refresh skills"
+msgstr "Actualiser les compétences"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Actualisé au prochain lancement de Claude Code."
@@ -14007,6 +14088,9 @@ msgstr "Rechercher dans les paramètres..."
 msgid "Search sites…"
 msgstr "Rechercher des sites…"
 
+msgid "Search skills"
+msgstr "Rechercher des compétences"
+
 msgid "Search tasks"
 msgstr "Rechercher des tâches"
 
@@ -14066,6 +14150,9 @@ msgstr "Sections"
 
 msgid "Security"
 msgstr "Sécurité"
+
+msgid "See {foldedList}"
+msgstr "Voir {foldedList}"
 
 msgid "See all downloads"
 msgstr "Voir tous les téléchargements"
@@ -14521,6 +14608,9 @@ msgstr "Shimmer · Libellé shimmer"
 msgid "Ship It"
 msgstr "Livré"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Fournies avec Superset et maintenues à jour dans tous les agents que vous utilisez. Désactivez-en une pour l'exclure des nouvelles sessions."
+
 msgid "Shortcut already in use"
 msgstr "Raccourci déjà utilisé"
 
@@ -14835,9 +14925,6 @@ msgstr "Compétence"
 
 msgid "Skills"
 msgstr "Compétences"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "Les compétences sont fournies avec le plugin Superset et sont tenues à jour automatiquement dans chaque agent que vous utilisez. Cliquez sur l'une d'elles pour la prévisualiser."
 
 msgid "Skip"
 msgstr "Passer"
@@ -16612,6 +16699,9 @@ msgstr "Cela supprime l'hôte, ses accès et ses espaces de travail. Les fichier
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "Le projet et ses espaces de travail seront supprimés pour tout le monde sur les appareils sélectionnés, et leurs terminaux et agents seront arrêtés."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "Le dossier de la compétence est supprimé du disque. Les agents ne la voient plus dans les nouvelles sessions."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Cela supprime le worktree du disque et ferme l'espace de travail."
 
@@ -17900,6 +17990,9 @@ msgstr "Qu'est-ce que Superset Enterprise ?"
 msgid "What is wrong?"
 msgstr "Quel est le problème ?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "Ce qu'elle fait, et quand un agent doit y recourir"
+
 msgid "What platforms does Superset run on?"
 msgstr "Sur quelles plateformes Superset fonctionne-t-il ?"
 
@@ -18450,6 +18543,9 @@ msgstr "Vos tokens"
 
 msgid "Your version: {currentVersion}"
 msgstr "Votre version : {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "Les vôtres dans tous les projets, sur cette machine."
 
 msgid "Zap"
 msgstr "Éclair"

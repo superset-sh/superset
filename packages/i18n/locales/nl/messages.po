@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} in behandeling"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "Acties voor {0}"
 
@@ -372,6 +372,14 @@ msgstr "{0} aftakking"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} kan nog niet op deze manier worden ingelogd."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "{0} aangemaakt"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "{0} verwijderd"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "Documentatie van {0}"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0} ingeschakeld"
 
@@ -404,6 +412,10 @@ msgstr "{0} mislukt"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{0} bestanden bestaan al in {where}. Wil je ze vervangen?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "{0} geïmporteerd"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "{0} van de bezoekers"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "Opties voor {0}"
 
@@ -858,6 +871,9 @@ msgstr "{failing} van {total} checks mislukt"
 
 msgid "{focusShortcutText} to focus"
 msgstr "{focusShortcutText} om te focussen"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest} meer"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dev} other {devs}}"
@@ -1405,6 +1421,9 @@ msgstr "Er bestaat al een bestand met de naam '{firstName}' in {where}. Wil je h
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Een gerichte opruiming van crashes, vastlopers en mislukte herverbindingen door de hele app."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "Een map met een SKILL.md die elke agent die je gebruikt kan laden. De instructies schrijf je hierna."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Een volledige restyling: dichtere rijen, poort- en agentchips onder elke werkruimte, alles stoppen met één klik."
 
@@ -1878,8 +1897,17 @@ msgstr "Agents kunnen CI-checks volgen, dev-servers meelezen en langlopende proc
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "Agents voltooien routinetickets zonder tussentijds ingrijpen."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "Agents roepen hem aan als <0>/{slug}</0> in Claude Code of <1>${slug}</1> in Codex."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agents laden hun eigen preview, bedienen de UI en voegen screenshotbewijs toe voordat ze werk klaarzetten voor review."
+
+msgid "Agents pick it up in new sessions."
+msgstr "Agents pikken hem op in nieuwe sessies."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "Agents lezen dit om te bepalen wanneer ze de skill gebruiken, dus zeg wanneer hij van toepassing is."
 
 msgid "Agents running at once"
 msgstr "Agents die tegelijk draaien"
@@ -3475,11 +3503,17 @@ msgstr "Kies een map"
 msgid "Choose a parent directory"
 msgstr "Kies een bovenliggende map"
 
+msgid "Choose a project"
+msgstr "Kies een project"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Kies een project bij GitHub-issues voordat je een issue opent."
 
 msgid "Choose a section."
 msgstr "Kies een onderdeel."
+
+msgid "Choose a skill folder"
+msgstr "Kies een skillmap"
 
 msgid "Choose agent"
 msgstr "Kies agent"
@@ -4638,11 +4672,17 @@ msgstr "Kan project niet aanmaken"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Kan project niet aanmaken. Probeer een andere naam of bekijk de logs."
 
+msgid "Could not create skill"
+msgstr "Kan skill niet aanmaken"
+
 msgid "Could not delete account"
 msgstr "Kan account niet verwijderen"
 
 msgid "Could not delete file"
 msgstr "Kan bestand niet verwijderen"
+
+msgid "Could not delete skill"
+msgstr "Kan skill niet verwijderen"
 
 msgid "Could not delete this page"
 msgstr "Kan deze pagina niet verwijderen"
@@ -4655,6 +4695,9 @@ msgstr "Kan {domain} niet vergeten"
 
 msgid "Could not import from browser"
 msgstr "Importeren uit browser mislukt"
+
+msgid "Could not import skill"
+msgstr "Kan skill niet importeren"
 
 msgid "Could not leave the queue"
 msgstr "Kan de wachtrij niet verlaten"
@@ -4680,6 +4723,9 @@ msgstr "Plugins konden niet worden geladen. Controleer je verbinding en probeer 
 
 msgid "Could not load presets from the host"
 msgstr "Kan presets van de host niet laden"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "Skills konden niet worden geladen. Vernieuw om het opnieuw te proberen."
 
 msgid "Could not load this diff"
 msgstr "Kan deze diff niet laden"
@@ -5129,6 +5175,9 @@ msgstr "Project maken…"
 msgid "Create pull request"
 msgstr "Pull request aanmaken"
 
+msgid "Create skill"
+msgstr "Skill aanmaken"
+
 msgid "Create task"
 msgstr "Taak aanmaken"
 
@@ -5487,6 +5536,7 @@ msgstr "“{title}” verwijderen?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "{0} verwijderen?"
 
@@ -6684,7 +6734,7 @@ msgstr "Verbinden met Slack mislukt. Probeer het opnieuw."
 msgid "Failed to copy branch name: {0}"
 msgstr "Kopiëren van branchnaam mislukt: {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "Kopiëren van markdown mislukt: {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "Verplaatsen van werkruimtes mislukt: {0}"
 msgid "Failed to open {name}"
 msgstr "Openen van {name} mislukt"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "Openen van bestand mislukt: {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "Hervatten van {0} mislukt"
 msgid "Failed to reveal in Finder"
 msgstr "Tonen in Finder mislukt"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Tonen in Finder mislukt: {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "Importeren mislukt: {message}"
 msgid "Import from file"
 msgstr "Importeren uit bestand"
 
+msgid "Import from folder…"
+msgstr "Importeren uit map…"
+
 msgid "Import from v1"
 msgstr "Importeren uit v1"
 
@@ -9299,6 +9352,9 @@ msgstr "Laag"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "Minder geheugen met veel terminals open, soepeler git in grote repo's en minder CPU op de achtergrond."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "Alleen kleine letters, cijfers en enkele streepjes."
+
 msgid "Machine resources"
 msgstr "Machineresources"
 
@@ -9383,9 +9439,6 @@ msgstr "Beheer je accountinstellingen"
 
 msgid "Manage your organization's branding and members."
 msgstr "Beheer de branding en leden van je organisatie."
-
-msgid "Managed"
-msgstr "Beheerd"
 
 msgid "Managed by your organization admin."
 msgstr "Beheerd door de beheerder van je organisatie."
@@ -10012,6 +10065,12 @@ msgstr "Nieuwe sessie"
 msgid "New shell"
 msgstr "Nieuwe shell"
 
+msgid "New skill"
+msgstr "Nieuwe skill"
+
+msgid "New skill…"
+msgstr "Nieuwe skill…"
+
 msgid "New stars"
 msgstr "Nieuwe sterren"
 
@@ -10459,6 +10518,9 @@ msgstr "Geen openstaande uitnodigingen"
 msgid "No people found."
 msgstr "Geen personen gevonden."
 
+msgid "No personal skills yet."
+msgstr "Nog geen persoonlijke skills."
+
 msgid "No plugins available yet."
 msgstr "Nog geen plugins beschikbaar."
 
@@ -10579,6 +10641,16 @@ msgstr "Geen sneltoetsen gevonden voor \"{searchQuery}\""
 
 msgid "No sites are signed in"
 msgstr "Je bent op geen enkele site ingelogd"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "Nog geen skills in dit project. Voeg er een toe en elke agent die erin werkt kan hem gebruiken."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "Geen skills gevonden voor \"{0}\""
+
+msgid "No skills yet. Add one to get started."
+msgstr "Nog geen skills. Voeg er een toe om te beginnen."
 
 msgid "No stack frames"
 msgstr "Geen stackframes"
@@ -11094,6 +11166,9 @@ msgstr "Een prompt-editor met meerdere regels openen voor de actieve terminal"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Open een paneel of sleep er een hierheen vanuit het midden."
+
+msgid "Open a project to see its skills."
+msgstr "Open een project om de skills ervan te zien."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "Open een pull request om reviewstatus, checks en opmerkingen te zien."
@@ -11938,6 +12013,9 @@ msgstr "Kies een ander element (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "Kies een map op schijf en voeg die toe als project"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "Kies een map met een SKILL.md erin"
 
 msgid "Pick a folder…"
 msgstr "Kies een map…"
@@ -12816,6 +12894,9 @@ msgstr "Pull requests vernieuwen"
 
 msgid "Refresh repositories"
 msgstr "Repositories vernieuwen"
+
+msgid "Refresh skills"
+msgstr "Skills vernieuwen"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Wordt vernieuwd zodra Claude Code opnieuw draait."
@@ -14007,6 +14088,9 @@ msgstr "Instellingen zoeken..."
 msgid "Search sites…"
 msgstr "Sites doorzoeken…"
 
+msgid "Search skills"
+msgstr "Skills zoeken"
+
 msgid "Search tasks"
 msgstr "Taken zoeken"
 
@@ -14066,6 +14150,9 @@ msgstr "Secties"
 
 msgid "Security"
 msgstr "Security"
+
+msgid "See {foldedList}"
+msgstr "{foldedList} bekijken"
 
 msgid "See all downloads"
 msgstr "Alle downloads bekijken"
@@ -14521,6 +14608,9 @@ msgstr "Shimmer · Shimmer-label"
 msgid "Ship It"
 msgstr "Geleverd"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Worden met Superset meegeleverd en blijven in elke agent die je gebruikt up-to-date. Schakel er een uit om hem buiten nieuwe sessies te houden."
+
 msgid "Shortcut already in use"
 msgstr "Sneltoets al in gebruik"
 
@@ -14835,9 +14925,6 @@ msgstr "Skill"
 
 msgid "Skills"
 msgstr "Skills"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "Skills worden met de Superset-plugin meegeleverd en blijven automatisch up-to-date in elke agent die je gebruikt. Klik op een skill voor een voorbeeld."
 
 msgid "Skip"
 msgstr "Overslaan"
@@ -16612,6 +16699,9 @@ msgstr "Hiermee worden de host, de toegang en de werkruimtes verwijderd. Bestand
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "Hiermee worden het project en de workspaces voor iedereen op de geselecteerde apparaten verwijderd en worden hun terminals en agents gestopt."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "Dit verwijdert de skillmap van de schijf. Agents zien hem niet meer in nieuwe sessies."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Hiermee verwijder je de worktree van de schijf en sluit je de werkruimte."
 
@@ -17900,6 +17990,9 @@ msgstr "Wat is Superset Enterprise?"
 msgid "What is wrong?"
 msgstr "Wat is er mis?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "Wat hij doet, en wanneer een agent hem moet pakken"
+
 msgid "What platforms does Superset run on?"
 msgstr "Op welke platforms draait Superset?"
 
@@ -18450,6 +18543,9 @@ msgstr "Je tokens"
 
 msgid "Your version: {currentVersion}"
 msgstr "Jouw versie: {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "Van jou, in elk project op deze machine."
 
 msgid "Zap"
 msgstr "Bliksem"

@@ -56,6 +56,7 @@ const LITERAL_IDENTIFIERS = new Set([
 	"you@example.com",
 	"acme-inc",
 	"my-project",
+	"release-notes",
 	"yourhandle",
 	"about:blank",
 	"work",

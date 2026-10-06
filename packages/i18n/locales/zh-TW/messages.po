@@ -357,7 +357,7 @@ msgstr "{0}{actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1}待更新"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "{0}的操作"
 
@@ -372,6 +372,14 @@ msgstr "{0} 分支"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}還不能用這種方式登入。"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "已建立{0}"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "已刪除{0}"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "{0} 文件"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0}已啟用"
 
@@ -404,6 +412,10 @@ msgstr "{0}個失敗"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{where}中已存在{0}個檔案。是否要替換它們？"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "已匯入{0}"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "佔訪客的 {0}"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "{0}選項"
 
@@ -858,6 +871,9 @@ msgstr "{total}項檢查中有{failing}項失敗"
 
 msgid "{focusShortcutText} to focus"
 msgstr "{focusShortcutText}聚焦"
+
+msgid "{foldedRest} more"
+msgstr "另外{foldedRest}個"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted}{count, plural, one {位開發者} other {位開發者}}"
@@ -1405,6 +1421,9 @@ msgstr "{where}中已存在名為「{firstName}」的檔案。是否要替換它
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "集中清理全應用的崩潰、卡死和重連失敗。"
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "一個包含SKILL.md的資料夾，你使用的每個代理程式都能載入。接下來由你撰寫說明。"
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "整體重做樣式：更緊湊的行、每個工作區下方的埠和代理程式標籤、一鍵全部停止。"
 
@@ -1878,8 +1897,17 @@ msgstr "代理程式可以在工作的同時盯著CI檢查、追蹤開發伺服�
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "代理程式無需中途干預即可完成常規工單。"
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "代理程式在Claude Code中以<0>/{slug}</0>、在Codex中以<1>${slug}</1>呼叫它。"
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "代理程式自己載入預覽、操作介面，並在標記為待審查之前附上截圖證據。"
+
+msgid "Agents pick it up in new sessions."
+msgstr "代理程式會在新會話中使用它。"
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "代理程式會讀取這段內容來判斷何時使用這個技能，所以請說明它適用的情況。"
 
 msgid "Agents running at once"
 msgstr "同時執行的代理程式數"
@@ -3475,11 +3503,17 @@ msgstr "選擇資料夾"
 msgid "Choose a parent directory"
 msgstr "選擇父目錄"
 
+msgid "Choose a project"
+msgstr "選擇專案"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "開啟議題前，請先在GitHub議題中選擇一個專案。"
 
 msgid "Choose a section."
 msgstr "選擇一個分區。"
+
+msgid "Choose a skill folder"
+msgstr "選擇技能資料夾"
 
 msgid "Choose agent"
 msgstr "選擇代理程式"
@@ -4638,11 +4672,17 @@ msgstr "無法建立專案"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "無法建立專案。請換一個名稱，或檢視日誌。"
 
+msgid "Could not create skill"
+msgstr "無法建立技能"
+
 msgid "Could not delete account"
 msgstr "無法刪除帳戶"
 
 msgid "Could not delete file"
 msgstr "無法刪除檔案"
+
+msgid "Could not delete skill"
+msgstr "無法刪除技能"
 
 msgid "Could not delete this page"
 msgstr "無法刪除這個頁面"
@@ -4655,6 +4695,9 @@ msgstr "無法忘記{domain}"
 
 msgid "Could not import from browser"
 msgstr "無法從瀏覽器匯入"
+
+msgid "Could not import skill"
+msgstr "無法匯入技能"
 
 msgid "Could not leave the queue"
 msgstr "無法移出佇列"
@@ -4680,6 +4723,9 @@ msgstr "無法載入外掛。請檢查連線後再試一次。"
 
 msgid "Could not load presets from the host"
 msgstr "無法從主機載入預設"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "無法載入技能。請重新整理後再試一次。"
 
 msgid "Could not load this diff"
 msgstr "無法載入這個差異"
@@ -5129,6 +5175,9 @@ msgstr "建立專案…"
 msgid "Create pull request"
 msgstr "建立拉取請求"
 
+msgid "Create skill"
+msgstr "建立技能"
+
 msgid "Create task"
 msgstr "建立任務"
 
@@ -5487,6 +5536,7 @@ msgstr "刪除「{title}」？"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "刪除{0}？"
 
@@ -6684,7 +6734,7 @@ msgstr "連線Slack失敗。請重試。"
 msgid "Failed to copy branch name: {0}"
 msgstr "複製分支名失敗：{0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "複製Markdown失敗：{0}"
 
@@ -6846,7 +6896,7 @@ msgstr "移動工作區失敗：{0}"
 msgid "Failed to open {name}"
 msgstr "開啟{name}失敗"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "開啟檔案失敗：{0}"
 
@@ -6966,7 +7016,7 @@ msgstr "恢復{0}失敗"
 msgid "Failed to reveal in Finder"
 msgstr "在Finder中顯示失敗"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "在Finder中顯示失敗：{0}"
 
@@ -8221,6 +8271,9 @@ msgstr "匯入失敗：{message}"
 msgid "Import from file"
 msgstr "從檔案匯入"
 
+msgid "Import from folder…"
+msgstr "從資料夾匯入…"
+
 msgid "Import from v1"
 msgstr "從v1匯入"
 
@@ -9299,6 +9352,9 @@ msgstr "低"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "開很多終端時佔用更低的記憶體，大儲存庫裡的git更順，背景CPU更少。"
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "只能使用小寫字母、數字和單一連字號。"
+
 msgid "Machine resources"
 msgstr "機器資源"
 
@@ -9383,9 +9439,6 @@ msgstr "管理你的帳戶設定"
 
 msgid "Manage your organization's branding and members."
 msgstr "管理組織的品牌形象和成員。"
-
-msgid "Managed"
-msgstr "託管"
 
 msgid "Managed by your organization admin."
 msgstr "由你所在組織的管理員管理。"
@@ -10012,6 +10065,12 @@ msgstr "新建會話"
 msgid "New shell"
 msgstr "新增 Shell"
 
+msgid "New skill"
+msgstr "新增技能"
+
+msgid "New skill…"
+msgstr "新增技能…"
+
 msgid "New stars"
 msgstr "新增星標"
 
@@ -10459,6 +10518,9 @@ msgstr "沒有待處理的邀請"
 msgid "No people found."
 msgstr "未找到成員。"
 
+msgid "No personal skills yet."
+msgstr "還沒有個人技能。"
+
 msgid "No plugins available yet."
 msgstr "尚無可用的外掛。"
 
@@ -10579,6 +10641,16 @@ msgstr "沒有找到與「{searchQuery}」匹配的快速鍵"
 
 msgid "No sites are signed in"
 msgstr "沒有已登入的站點"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "這個專案還沒有技能。新增一個後，在此專案中工作的每個代理程式都能使用。"
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "沒有匹配「{0}」的技能"
+
+msgid "No skills yet. Add one to get started."
+msgstr "還沒有技能。新增一個即可開始。"
 
 msgid "No stack frames"
 msgstr "沒有堆疊框架"
@@ -11094,6 +11166,9 @@ msgstr "為目前終端開啟多行提示詞編輯器"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "開啟一個窗格，或從中間拖一個到這裡。"
+
+msgid "Open a project to see its skills."
+msgstr "開啟專案即可查看它的技能。"
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "建立拉取請求後即可檢視評審狀態、檢查和評論。"
@@ -11938,6 +12013,9 @@ msgstr "選擇其他元素（esc）"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "選擇磁碟上的資料夾並將其新增為專案"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "請選擇一個包含SKILL.md的資料夾"
 
 msgid "Pick a folder…"
 msgstr "選擇資料夾…"
@@ -12816,6 +12894,9 @@ msgstr "重新整理拉取請求"
 
 msgid "Refresh repositories"
 msgstr "重新整理儲存庫"
+
+msgid "Refresh skills"
+msgstr "重新整理技能"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "下次執行 Claude Code 時重新整理。"
@@ -14007,6 +14088,9 @@ msgstr "搜尋設定..."
 msgid "Search sites…"
 msgstr "搜尋站點…"
 
+msgid "Search skills"
+msgstr "搜尋技能"
+
 msgid "Search tasks"
 msgstr "搜尋任務"
 
@@ -14066,6 +14150,9 @@ msgstr "分區"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "See {foldedList}"
+msgstr "查看{foldedList}"
 
 msgid "See all downloads"
 msgstr "查看所有下載選項"
@@ -14521,6 +14608,9 @@ msgstr "微光 · 微光標籤"
 msgid "Ship It"
 msgstr "交付"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "隨Superset一起提供，並在你使用的每個代理程式中保持最新。關閉某個技能後，新會話中就不會再使用它。"
+
 msgid "Shortcut already in use"
 msgstr "快速鍵已被使用"
 
@@ -14835,9 +14925,6 @@ msgstr "技能"
 
 msgid "Skills"
 msgstr "技能"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "技能隨Superset外掛一起提供，並會在你使用的每個代理程式中自動保持最新。點選一個即可預覽。"
 
 msgid "Skip"
 msgstr "跳過"
@@ -16612,6 +16699,9 @@ msgstr "這將移除該主機、其存取權限及其工作區。機器上的檔
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "這會為所選裝置上的所有人移除此專案及其工作區，並停止其終端機和代理。"
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "這會從磁碟刪除該技能資料夾。新會話中代理程式將不再看到它。"
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "這將從磁碟中移除該 worktree 並關閉工作區。"
 
@@ -17900,6 +17990,9 @@ msgstr "什麼是Superset Enterprise？"
 msgid "What is wrong?"
 msgstr "哪裡有問題？"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "它能做什麼，以及代理程式應在何時使用它"
+
 msgid "What platforms does Superset run on?"
 msgstr "Superset支援哪些平臺？"
 
@@ -18450,6 +18543,9 @@ msgstr "你的 token 數"
 
 msgid "Your version: {currentVersion}"
 msgstr "你的版本：{currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "屬於你的技能，適用於這台電腦上的每個專案。"
 
 msgid "Zap"
 msgstr "閃電"

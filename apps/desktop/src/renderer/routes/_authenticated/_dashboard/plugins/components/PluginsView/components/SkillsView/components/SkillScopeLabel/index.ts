@@ -1,0 +1,1 @@
+export { SkillScopeLabel } from "./SkillScopeLabel";

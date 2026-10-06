@@ -5,47 +5,51 @@ import type {
 	SaveResult,
 	SharedFileDocument,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/fileDocumentStore";
+import type { SkillListItem } from "../../../../hooks/useSkills";
 
 interface UseSkillDocumentParams {
-	name: string;
+	skill: Pick<SkillListItem, "id" | "ref" | "name" | "path"> | null;
 }
 
-/**
- * Loads/saves a bundled skill's SKILL.md through the `plugins` router and
- * exposes it as a SharedFileDocument so the shared FileEditPane can host it.
- * Unlike the workspace fileDocumentStore this is a plain hook, not a
- * module-singleton store — only one skill is ever open at a time here, and
- * there's no concurrent writer to conflict with, so conflict/orphaned/
- * hasExternalChange stay permanently inert.
- */
-export function useSkillDocument({ name }: UseSkillDocumentParams) {
-	const utils = electronTrpc.useUtils();
-	const { data, isLoading, error } =
-		electronTrpc.plugins.getSkillContent.useQuery(
-			{ name },
-			{ enabled: name !== "" },
-		);
+const NO_SKILL = { kind: "managed", name: "" } as const;
 
-	// Local edit state is scoped to `name` and reset synchronously (during
+/**
+ * Loads/saves a skill's SKILL.md through the `skills` router and exposes it
+ * as a SharedFileDocument so the shared FileEditPane can host it. Unlike the
+ * workspace fileDocumentStore this is a plain hook, not a module-singleton
+ * store — only one skill is ever open at a time here, and there's no
+ * concurrent writer to conflict with, so conflict/orphaned/hasExternalChange
+ * stay permanently inert.
+ */
+export function useSkillDocument({ skill }: UseSkillDocumentParams) {
+	const utils = electronTrpc.useUtils();
+	const id = skill?.id ?? "";
+	const ref = skill?.ref ?? NO_SKILL;
+	const { data, isLoading, error } = electronTrpc.skills.getContent.useQuery(
+		ref,
+		{ enabled: skill !== null },
+	);
+
+	// Local edit state is scoped to `id` and reset synchronously (during
 	// render, not an effect) whenever it changes — otherwise a leftover draft
 	// from the previously previewed skill would briefly show up as the next
 	// skill's editable content if it's reopened before an in-flight autosave
 	// (see SkillPreviewDialog's close handler) has resolved.
 	const [local, setLocal] = useState<{
-		name: string;
+		id: string;
 		draft: string | null;
 		saveError: Error | null;
-	}>(() => ({ name, draft: null, saveError: null }));
-	if (local.name !== name) {
-		setLocal({ name, draft: null, saveError: null });
+	}>(() => ({ id, draft: null, saveError: null }));
+	if (local.id !== id) {
+		setLocal({ id, draft: null, saveError: null });
 	}
-	const draft = local.name === name ? local.draft : null;
-	const saveError = local.name === name ? local.saveError : null;
+	const draft = local.id === id ? local.draft : null;
+	const saveError = local.id === id ? local.saveError : null;
 
 	const savedContent = data?.content ?? null;
-	const path = data?.path ?? null;
+	const path = data?.path ?? skill?.path ?? null;
 
-	const writeMutation = electronTrpc.plugins.writeSkillContent.useMutation();
+	const writeMutation = electronTrpc.skills.write.useMutation();
 
 	const content: ContentState = useMemo(() => {
 		if (isLoading) return { kind: "loading" };
@@ -58,9 +62,9 @@ export function useSkillDocument({ name }: UseSkillDocumentParams) {
 
 	const setContent = useCallback(
 		(next: string) => {
-			setLocal({ name, draft: next, saveError: null });
+			setLocal({ id, draft: next, saveError: null });
 		},
-		[name],
+		[id],
 	);
 
 	const save = useCallback(async (): Promise<SaveResult> => {
@@ -69,41 +73,41 @@ export function useSkillDocument({ name }: UseSkillDocumentParams) {
 		}
 		const savingDraft = draft;
 		try {
-			await writeMutation.mutateAsync({ name, content: savingDraft });
+			await writeMutation.mutateAsync({ ref, content: savingDraft });
 			// Awaited, not fire-and-forget: clearing the draft below makes
 			// `content` fall back to `savedContent`, so the refetch must land
 			// first or the view would flash back to the pre-save text until it
 			// does.
-			await utils.plugins.getSkillContent.invalidate({ name });
+			await utils.skills.getContent.invalidate(ref);
+			// The description on the card comes from the frontmatter just saved.
+			void utils.skills.list.invalidate();
 			// Only clear the draft if it still matches what was just sent —
 			// typing more during the in-flight save must not discard those
 			// newer, still-unsaved edits.
 			setLocal((prev) =>
-				prev.name === name && prev.draft === savingDraft
+				prev.id === id && prev.draft === savingDraft
 					? { ...prev, draft: null, saveError: null }
 					: prev,
 			);
 			return { status: "saved", revision: "" };
 		} catch (err) {
-			const error =
+			const saveFailure =
 				err instanceof Error ? err : new Error("Failed to save skill");
 			setLocal((prev) =>
-				prev.name === name ? { ...prev, saveError: error } : prev,
+				prev.id === id ? { ...prev, saveError: saveFailure } : prev,
 			);
-			return { status: "error", error };
+			return { status: "error", error: saveFailure };
 		}
-	}, [draft, savedContent, writeMutation, name, utils]);
+	}, [draft, savedContent, writeMutation, ref, id, utils]);
 
 	const clearSaveError = useCallback(() => {
-		setLocal((prev) =>
-			prev.name === name ? { ...prev, saveError: null } : prev,
-		);
-	}, [name]);
+		setLocal((prev) => (prev.id === id ? { ...prev, saveError: null } : prev));
+	}, [id]);
 
 	const document: SharedFileDocument = {
-		id: `skill:${name}`,
+		id: `skill:${id}`,
 		workspaceId: "skills",
-		absolutePath: path ?? name,
+		absolutePath: path ?? skill?.name ?? "",
 		content,
 		dirty,
 		pendingSave: writeMutation.isPending,
@@ -116,8 +120,8 @@ export function useSkillDocument({ name }: UseSkillDocumentParams) {
 		setContent,
 		save,
 		reload: async () => {
-			setLocal({ name, draft: null, saveError: null });
-			await utils.plugins.getSkillContent.invalidate({ name });
+			setLocal({ id, draft: null, saveError: null });
+			await utils.skills.getContent.invalidate(ref);
 		},
 		compareWithDisk: async () => {},
 		loadUnlimited: async () => {},

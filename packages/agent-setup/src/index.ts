@@ -126,6 +126,26 @@ export {
 	reconcileMcpServers,
 } from "./reconcile-mcp-servers";
 export {
+	createUserSkill,
+	deleteUserSkill,
+	findSkillRoot,
+	importUserSkill,
+	linkedSkillRoots,
+	linkSkillFromRoots,
+	listUserSkills,
+	parseSkillFrontmatter,
+	parseSkillInterface,
+	readSkillMetadata,
+	SkillExistsError,
+	type SkillMetadata,
+	SkillNameError,
+	SkillSourceError,
+	skillRootsUnder,
+	type UserSkill,
+	type UserSkillScope,
+	writableSkillRoot,
+} from "./user-skills";
+export {
 	resolveWriteTarget,
 	writeFileIfChanged,
 } from "./write-file-if-changed";

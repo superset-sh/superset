@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} bekliyor"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "{0} eylemleri"
 
@@ -372,6 +372,14 @@ msgstr "{0} dalı"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} henüz bu şekilde oturum açamıyor."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "{0} oluşturuldu"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "{0} silindi"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "{0} Belgeleri"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0} etkin"
 
@@ -404,6 +412,10 @@ msgstr "{0} başarısız"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{where} konumunda {0} dosya zaten var. Bunları değiştirmek istiyor musunuz?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "{0} içe aktarıldı"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "ziyaretçilerin {0}"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "{0} seçenekleri"
 
@@ -858,6 +871,9 @@ msgstr "{total} kontrolden {failing} tanesi başarısız"
 
 msgid "{focusShortcutText} to focus"
 msgstr "Odaklanmak için {focusShortcutText}"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest} tane daha"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {geliştirici} other {geliştirici}}"
@@ -1405,6 +1421,9 @@ msgstr "{where} konumunda '{firstName}' adlı bir dosya zaten var. Değiştirmek
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Uygulama genelinde çökmelerin, donmaların ve yeniden bağlanma hatalarının odaklı biçimde azaltılması."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "Kullandığınız her ajanın yükleyebileceği bir SKILL.md içeren klasör. Yönergeleri bir sonraki adımda yazarsınız."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Baştan sona yeni bir stil: daha yoğun satırlar, her çalışma alanının altında port ve ajan çipleri, her şey için tek tıkla durdurma."
 
@@ -1878,8 +1897,17 @@ msgstr "Ajanlar CI kontrollerini izleyebilir, geliştirme sunucularını takip e
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "Ajanlar rutin biletleri görev ortasında müdahale olmadan tamamlar."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "Ajanlar bunu Claude Code'da <0>/{slug}</0>, Codex'te <1>${slug}</1> olarak çağırır."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Ajanlar kendi önizlemelerini yükler, arayüzü kullanır ve işi incelemeye hazır işaretlemeden önce ekran görüntüsü kanıtı ekler."
+
+msgid "Agents pick it up in new sessions."
+msgstr "Ajanlar yeni oturumlarda kullanmaya başlar."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "Ajanlar beceriyi ne zaman kullanacaklarına buna bakarak karar verir; bu yüzden ne zaman geçerli olduğunu belirtin."
 
 msgid "Agents running at once"
 msgstr "Aynı anda çalışan ajanlar"
@@ -3475,11 +3503,17 @@ msgstr "Bir klasör seçin"
 msgid "Choose a parent directory"
 msgstr "Bir üst dizin seçin"
 
+msgid "Choose a project"
+msgstr "Proje seçin"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Bir issue açmadan önce GitHub issue'ları bölümünden bir proje seçin."
 
 msgid "Choose a section."
 msgstr "Bir bölüm seçin."
+
+msgid "Choose a skill folder"
+msgstr "Beceri klasörü seçin"
 
 msgid "Choose agent"
 msgstr "Ajan seçin"
@@ -4638,11 +4672,17 @@ msgstr "Proje oluşturulamadı"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Proje oluşturulamadı. Lütfen farklı bir ad deneyin veya günlükleri kontrol edin."
 
+msgid "Could not create skill"
+msgstr "Beceri oluşturulamadı"
+
 msgid "Could not delete account"
 msgstr "Hesap silinemedi"
 
 msgid "Could not delete file"
 msgstr "Dosya silinemedi"
+
+msgid "Could not delete skill"
+msgstr "Beceri silinemedi"
 
 msgid "Could not delete this page"
 msgstr "Bu sayfa silinemedi"
@@ -4655,6 +4695,9 @@ msgstr "{domain} unutulamadı"
 
 msgid "Could not import from browser"
 msgstr "Tarayıcıdan içe aktarılamadı"
+
+msgid "Could not import skill"
+msgstr "Beceri içe aktarılamadı"
 
 msgid "Could not leave the queue"
 msgstr "Kuyruktan çıkılamadı"
@@ -4680,6 +4723,9 @@ msgstr "Eklentiler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin."
 
 msgid "Could not load presets from the host"
 msgstr "Host'tan hazır ayarlar yüklenemedi"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "Beceriler yüklenemedi. Tekrar denemek için yenileyin."
 
 msgid "Could not load this diff"
 msgstr "Bu fark yüklenemedi"
@@ -5129,6 +5175,9 @@ msgstr "Proje oluştur…"
 msgid "Create pull request"
 msgstr "Pull request oluştur"
 
+msgid "Create skill"
+msgstr "Beceri oluştur"
+
 msgid "Create task"
 msgstr "Görev oluştur"
 
@@ -5487,6 +5536,7 @@ msgstr "“{title}” silinsin mi?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "{0} silinsin mi?"
 
@@ -6684,7 +6734,7 @@ msgstr "Slack'e bağlanılamadı. Lütfen yeniden deneyin."
 msgid "Failed to copy branch name: {0}"
 msgstr "Dal adı kopyalanamadı: {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "Markdown kopyalanamadı: {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "Çalışma alanları taşınamadı: {0}"
 msgid "Failed to open {name}"
 msgstr "{name} açılamadı"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "Dosya açılamadı: {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "{0} sürdürülemedi"
 msgid "Failed to reveal in Finder"
 msgstr "Finder'da gösterilemedi"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Finder'da gösterilemedi: {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "İçe aktarma başarısız: {message}"
 msgid "Import from file"
 msgstr "Dosyadan içe aktar"
 
+msgid "Import from folder…"
+msgstr "Klasörden içe aktar…"
+
 msgid "Import from v1"
 msgstr "v1'den içe aktar"
 
@@ -9299,6 +9352,9 @@ msgstr "Düşük"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "Çok sayıda terminal açıkken daha az bellek, büyük depolarda daha akıcı git ve daha az arka plan CPU kullanımı."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "Yalnızca küçük harf, rakam ve tek tire."
+
 msgid "Machine resources"
 msgstr "Makine kaynakları"
 
@@ -9383,9 +9439,6 @@ msgstr "Hesap ayarlarınızı yönetin"
 
 msgid "Manage your organization's branding and members."
 msgstr "Kuruluşunuzun marka görünümünü ve üyelerini yönetin."
-
-msgid "Managed"
-msgstr "Yönetilen"
 
 msgid "Managed by your organization admin."
 msgstr "Kuruluş yöneticiniz tarafından yönetiliyor."
@@ -10012,6 +10065,12 @@ msgstr "Yeni oturum"
 msgid "New shell"
 msgstr "Yeni kabuk"
 
+msgid "New skill"
+msgstr "Yeni beceri"
+
+msgid "New skill…"
+msgstr "Yeni beceri…"
+
 msgid "New stars"
 msgstr "Yeni yıldızlar"
 
@@ -10459,6 +10518,9 @@ msgstr "Bekleyen davet yok"
 msgid "No people found."
 msgstr "Kişi bulunamadı."
 
+msgid "No personal skills yet."
+msgstr "Henüz kişisel beceri yok."
+
 msgid "No plugins available yet."
 msgstr "Henüz kullanılabilir eklenti yok."
 
@@ -10579,6 +10641,16 @@ msgstr "\"{searchQuery}\" ile eşleşen kısayol bulunamadı"
 
 msgid "No sites are signed in"
 msgstr "Oturum açılmış site yok"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "Bu projede henüz beceri yok. Bir tane ekleyin; projede çalışan her ajan kullanabilsin."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "\"{0}\" ile eşleşen beceri yok"
+
+msgid "No skills yet. Add one to get started."
+msgstr "Henüz beceri yok. Başlamak için bir tane ekleyin."
 
 msgid "No stack frames"
 msgstr "Yığın çerçevesi yok"
@@ -11094,6 +11166,9 @@ msgstr "Etkin terminal için çok satırlı istem düzenleyicisini aç"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Bir bölme açın veya ortadan buraya sürükleyin."
+
+msgid "Open a project to see its skills."
+msgstr "Becerilerini görmek için bir proje açın."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "İnceleme durumunu, kontrolleri ve yorumları görmek için bir pull request açın."
@@ -11938,6 +12013,9 @@ msgstr "Farklı bir öğe seç (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "Diskte bir klasör seçip proje olarak ekleyin"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "İçinde SKILL.md bulunan bir klasör seçin"
 
 msgid "Pick a folder…"
 msgstr "Bir klasör seçin…"
@@ -12816,6 +12894,9 @@ msgstr "Pull request'leri yenile"
 
 msgid "Refresh repositories"
 msgstr "Depoları yenile"
+
+msgid "Refresh skills"
+msgstr "Becerileri yenile"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Claude Code bir sonraki çalıştığında yenilenir."
@@ -14007,6 +14088,9 @@ msgstr "Ayarlarda ara..."
 msgid "Search sites…"
 msgstr "Sitelerde ara…"
 
+msgid "Search skills"
+msgstr "Becerilerde ara"
+
 msgid "Search tasks"
 msgstr "Görevlerde ara"
 
@@ -14066,6 +14150,9 @@ msgstr "Bölümler"
 
 msgid "Security"
 msgstr "Güvenlik"
+
+msgid "See {foldedList}"
+msgstr "{foldedList} göster"
 
 msgid "See all downloads"
 msgstr "Tüm indirmeleri gör"
@@ -14521,6 +14608,9 @@ msgstr "Shimmer · Shimmer etiketi"
 msgid "Ship It"
 msgstr "Teslim edildi"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Superset ile birlikte gelir ve kullandığınız her ajanda güncel kalır. Yeni oturumların dışında tutmak için birini kapatın."
+
 msgid "Shortcut already in use"
 msgstr "Kısayol zaten kullanımda"
 
@@ -14835,9 +14925,6 @@ msgstr "Beceri"
 
 msgid "Skills"
 msgstr "Beceriler"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "Beceriler Superset eklentisiyle gelir ve kullandığınız her ajanda otomatik olarak güncel tutulur. Önizlemek için birine tıklayın."
 
 msgid "Skip"
 msgstr "Atla"
@@ -16612,6 +16699,9 @@ msgstr "Bu işlem host'u, erişimini ve çalışma alanlarını kaldırır. Maki
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "Bu işlem, seçili cihazlardaki herkes için projeyi ve çalışma alanlarını kaldırır ve terminallerini ve ajanlarını durdurur."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "Bu işlem beceri klasörünü diskten siler. Ajanlar yeni oturumlarda artık görmez."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Bu, worktree'yi diskten kaldırır ve çalışma alanını kapatır."
 
@@ -17900,6 +17990,9 @@ msgstr "Superset Enterprise nedir?"
 msgid "What is wrong?"
 msgstr "Sorun nedir?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "Ne yaptığı ve bir ajanın ne zaman başvurması gerektiği"
+
 msgid "What platforms does Superset run on?"
 msgstr "Superset hangi platformlarda çalışıyor?"
 
@@ -18450,6 +18543,9 @@ msgstr "Token'larınız"
 
 msgid "Your version: {currentVersion}"
 msgstr "Sürümünüz: {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "Bu makinedeki her projede sizin becerileriniz."
 
 msgid "Zap"
 msgstr "Şimşek"

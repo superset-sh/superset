@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} 대기 중"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "{0} 작업"
 
@@ -372,6 +372,14 @@ msgstr "{0} 분기"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0}은(는) 아직 이 방식으로 로그인할 수 없습니다."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "{0} 생성됨"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "{0} 삭제됨"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "{0} 문서"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0} 활성화됨"
 
@@ -404,6 +412,10 @@ msgstr "{0} 실패"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{where}에 파일 {0}개가 이미 있습니다. 바꿀까요?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "{0} 가져옴"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "방문자의 {0}"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "{0} 옵션"
 
@@ -858,6 +871,9 @@ msgstr "검사 {total}개 중 {failing}개 실패"
 
 msgid "{focusShortcutText} to focus"
 msgstr "포커스하려면 {focusShortcutText}"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest}개 더"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "개발자 {formatted}{count, plural, one {명} other {명}}"
@@ -1405,6 +1421,9 @@ msgstr "{where}에 '{firstName}'(이)라는 파일이 이미 있습니다. 바�
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "앱 전반의 크래시, 멈춤, 재연결 실패를 집중적으로 줄입니다."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "사용 중인 모든 에이전트가 불러올 수 있는 SKILL.md가 들어 있는 폴더입니다. 지침은 다음 단계에서 작성합니다."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "전면 재단장입니다. 더 촘촘한 행, 워크스페이스마다 표시되는 포트와 에이전트 칩, 클릭 한 번으로 전부 중지."
 
@@ -1878,8 +1897,17 @@ msgstr "에이전트가 작업하는 동안 CI 검사를 지켜보고, 개발 �
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "에이전트가 작업 중간 개입 없이 일상적인 티켓을 완료합니다."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "에이전트는 Claude Code에서 <0>/{slug}</0>, Codex에서 <1>${slug}</1>로 호출합니다."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "에이전트가 직접 미리 보기를 띄우고, UI를 조작하고, 리뷰 준비 표시를 하기 전에 스크린샷 증거를 첨부합니다."
+
+msgid "Agents pick it up in new sessions."
+msgstr "새 세션부터 에이전트가 사용합니다."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "에이전트는 이 설명을 읽고 스킬을 언제 쓸지 결정하므로, 어떤 경우에 해당하는지 적어 주세요."
 
 msgid "Agents running at once"
 msgstr "동시에 실행 중인 에이전트"
@@ -3475,11 +3503,17 @@ msgstr "폴더 선택"
 msgid "Choose a parent directory"
 msgstr "상위 디렉터리 선택"
 
+msgid "Choose a project"
+msgstr "프로젝트 선택"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "이슈를 열기 전에 GitHub 이슈 화면에서 프로젝트를 선택하세요."
 
 msgid "Choose a section."
 msgstr "섹션을 선택하세요."
+
+msgid "Choose a skill folder"
+msgstr "스킬 폴더 선택"
 
 msgid "Choose agent"
 msgstr "에이전트 선택"
@@ -4638,11 +4672,17 @@ msgstr "프로젝트를 만들 수 없습니다"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "프로젝트를 만들 수 없습니다. 다른 이름을 사용하거나 로그를 확인해 주세요."
 
+msgid "Could not create skill"
+msgstr "스킬을 생성할 수 없습니다"
+
 msgid "Could not delete account"
 msgstr "계정을 삭제할 수 없습니다"
 
 msgid "Could not delete file"
 msgstr "파일을 삭제할 수 없습니다"
+
+msgid "Could not delete skill"
+msgstr "스킬을 삭제할 수 없습니다"
 
 msgid "Could not delete this page"
 msgstr "이 페이지를 삭제할 수 없습니다"
@@ -4655,6 +4695,9 @@ msgstr "{domain}을(를) 잊지 못했습니다"
 
 msgid "Could not import from browser"
 msgstr "브라우저에서 가져오지 못했습니다"
+
+msgid "Could not import skill"
+msgstr "스킬을 가져올 수 없습니다"
 
 msgid "Could not leave the queue"
 msgstr "대기열에서 나갈 수 없습니다"
@@ -4680,6 +4723,9 @@ msgstr "플러그인을 불러오지 못했습니다. 연결을 확인하고 다
 
 msgid "Could not load presets from the host"
 msgstr "호스트에서 프리셋을 불러올 수 없습니다"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "스킬을 불러오지 못했습니다. 새로 고침하여 다시 시도하세요."
 
 msgid "Could not load this diff"
 msgstr "이 차이를 불러올 수 없습니다"
@@ -5129,6 +5175,9 @@ msgstr "프로젝트 만들기…"
 msgid "Create pull request"
 msgstr "풀 리퀘스트 만들기"
 
+msgid "Create skill"
+msgstr "스킬 생성"
+
 msgid "Create task"
 msgstr "작업 만들기"
 
@@ -5487,6 +5536,7 @@ msgstr "“{title}”을(를) 삭제할까요?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "{0}을(를) 삭제할까요?"
 
@@ -6684,7 +6734,7 @@ msgstr "Slack에 연결하지 못했습니다. 다시 시도해 주세요."
 msgid "Failed to copy branch name: {0}"
 msgstr "브랜치 이름을 복사하지 못했습니다: {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "markdown을 복사하지 못했습니다: {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "워크스페이스를 옮기지 못했습니다: {0}"
 msgid "Failed to open {name}"
 msgstr "{name}을(를) 열지 못했습니다"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "파일을 열지 못했습니다: {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "{0}을(를) 재개하지 못했습니다"
 msgid "Failed to reveal in Finder"
 msgstr "Finder에서 표시하지 못했습니다"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Finder에 표시하지 못했습니다: {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "가져오기 실패: {message}"
 msgid "Import from file"
 msgstr "파일에서 가져오기"
 
+msgid "Import from folder…"
+msgstr "폴더에서 가져오기…"
+
 msgid "Import from v1"
 msgstr "v1에서 가져오기"
 
@@ -9299,6 +9352,9 @@ msgstr "낮음"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "터미널을 많이 열어도 메모리를 덜 쓰고, 큰 리포지토리에서 git이 더 매끄럽고, 백그라운드 CPU 사용이 줄어듭니다."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "소문자, 숫자, 단일 하이픈만 사용할 수 있습니다."
+
 msgid "Machine resources"
 msgstr "머신 리소스"
 
@@ -9383,9 +9439,6 @@ msgstr "계정 설정을 관리합니다"
 
 msgid "Manage your organization's branding and members."
 msgstr "조직의 브랜딩과 멤버를 관리합니다."
-
-msgid "Managed"
-msgstr "관리됨"
 
 msgid "Managed by your organization admin."
 msgstr "조직 관리자가 관리합니다."
@@ -10012,6 +10065,12 @@ msgstr "새 세션"
 msgid "New shell"
 msgstr "새 셸"
 
+msgid "New skill"
+msgstr "새 스킬"
+
+msgid "New skill…"
+msgstr "새 스킬…"
+
 msgid "New stars"
 msgstr "신규 스타"
 
@@ -10459,6 +10518,9 @@ msgstr "대기 중인 초대가 없습니다"
 msgid "No people found."
 msgstr "사용자를 찾을 수 없습니다."
 
+msgid "No personal skills yet."
+msgstr "아직 개인 스킬이 없습니다."
+
 msgid "No plugins available yet."
 msgstr "아직 사용할 수 있는 플러그인이 없습니다."
 
@@ -10579,6 +10641,16 @@ msgstr "\"{searchQuery}\"과(와) 일치하는 단축키가 없습니다"
 
 msgid "No sites are signed in"
 msgstr "로그인한 사이트가 없습니다"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "이 프로젝트에는 아직 스킬이 없습니다. 하나 추가하면 이 프로젝트에서 작업하는 모든 에이전트가 사용할 수 있습니다."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "\"{0}\"과(와) 일치하는 스킬이 없습니다"
+
+msgid "No skills yet. Add one to get started."
+msgstr "아직 스킬이 없습니다. 하나 추가해 시작하세요."
 
 msgid "No stack frames"
 msgstr "스택 프레임 없음"
@@ -11094,6 +11166,9 @@ msgstr "활성 터미널의 여러 줄 프롬프트 작성기를 엽니다"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "창을 열거나 가운데에서 여기로 끌어 오세요."
+
+msgid "Open a project to see its skills."
+msgstr "프로젝트를 열면 해당 스킬이 표시됩니다."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "리뷰 상태, 검사, 코멘트를 보려면 풀 리퀘스트를 여세요."
@@ -11938,6 +12013,9 @@ msgstr "다른 요소 선택 (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "디스크에서 폴더를 선택해 프로젝트로 추가합니다"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "SKILL.md가 들어 있는 폴더를 선택하세요"
 
 msgid "Pick a folder…"
 msgstr "폴더 선택…"
@@ -12816,6 +12894,9 @@ msgstr "풀 리퀘스트 새로 고침"
 
 msgid "Refresh repositories"
 msgstr "리포지토리 새로 고침"
+
+msgid "Refresh skills"
+msgstr "스킬 새로 고침"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
@@ -14007,6 +14088,9 @@ msgstr "설정 검색..."
 msgid "Search sites…"
 msgstr "사이트 검색…"
 
+msgid "Search skills"
+msgstr "스킬 검색"
+
 msgid "Search tasks"
 msgstr "작업 검색"
 
@@ -14066,6 +14150,9 @@ msgstr "섹션"
 
 msgid "Security"
 msgstr "보안"
+
+msgid "See {foldedList}"
+msgstr "{foldedList} 보기"
 
 msgid "See all downloads"
 msgstr "전체 다운로드 보기"
@@ -14521,6 +14608,9 @@ msgstr "시머 · 시머 레이블"
 msgid "Ship It"
 msgstr "출시"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Superset과 함께 제공되며 사용 중인 모든 에이전트에서 최신 상태로 유지됩니다. 끄면 새 세션에서 제외됩니다."
+
 msgid "Shortcut already in use"
 msgstr "이미 사용 중인 단축키"
 
@@ -14835,9 +14925,6 @@ msgstr "스킬"
 
 msgid "Skills"
 msgstr "스킬"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "스킬은 Superset 플러그인에 포함되어 있으며 사용하는 모든 에이전트에서 자동으로 최신 상태로 유지됩니다. 미리 보려면 클릭하세요."
 
 msgid "Skip"
 msgstr "건너뛰기"
@@ -16612,6 +16699,9 @@ msgstr "호스트와 그 접근 권한, 워크스페이스가 제거됩니다. �
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "선택한 기기의 모든 사용자에게서 프로젝트와 작업 공간을 제거하고 터미널과 에이전트를 중지합니다."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "스킬 폴더를 디스크에서 삭제합니다. 새 세션부터 에이전트에게 표시되지 않습니다."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "worktree를 디스크에서 제거하고 워크스페이스를 닫습니다."
 
@@ -17900,6 +17990,9 @@ msgstr "Superset Enterprise란 무엇인가요?"
 msgid "What is wrong?"
 msgstr "무엇이 문제인가요?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "무엇을 하는지, 에이전트가 언제 사용해야 하는지"
+
 msgid "What platforms does Superset run on?"
 msgstr "Superset은 어떤 플랫폼에서 실행되나요?"
 
@@ -18450,6 +18543,9 @@ msgstr "내 토큰"
 
 msgid "Your version: {currentVersion}"
 msgstr "현재 버전: {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "이 컴퓨터의 모든 프로젝트에서 쓰는 내 스킬입니다."
 
 msgid "Zap"
 msgstr "번개"

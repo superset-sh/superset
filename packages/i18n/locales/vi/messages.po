@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} đang chờ"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "Hành động {0}"
 
@@ -372,6 +372,14 @@ msgstr "nhánh {0}"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} chưa thể đăng nhập theo cách này."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "Đã tạo {0}"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "Đã xóa {0}"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "Tài liệu {0}"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "Đã bật {0}"
 
@@ -404,6 +412,10 @@ msgstr "{0} đang lỗi"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{0} tệp đã tồn tại trong {where}. Bạn có muốn thay thế chúng không?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "Đã nhập {0}"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "{0} số khách truy cập"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "Tùy chọn {0}"
 
@@ -858,6 +871,9 @@ msgstr "{failing}/{total} check đang thất bại"
 
 msgid "{focusShortcutText} to focus"
 msgstr "{focusShortcutText} để focus"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest} skill khác"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dev} other {dev}}"
@@ -1405,6 +1421,9 @@ msgstr "Đã có tệp tên '{firstName}' trong {where}. Bạn có muốn thay t
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Đợt tập trung xử lý crash, treo và lỗi kết nối lại trên toàn ứng dụng."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "Một thư mục có SKILL.md mà mọi agent bạn dùng đều nạp được. Bạn sẽ viết hướng dẫn ở bước tiếp theo."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Thiết kế lại toàn bộ: hàng dày hơn, chip cổng và agent dưới mỗi workspace, dừng mọi thứ chỉ với một cú nhấp."
 
@@ -1878,8 +1897,17 @@ msgstr "Agent có thể theo dõi các check CI, tail server dev và giữ các 
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "Agent hoàn thành các ticket thường ngày mà không cần can thiệp giữa chừng."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "Agent gọi skill này bằng <0>/{slug}</0> trong Claude Code hoặc <1>${slug}</1> trong Codex."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agent tự mở bản xem trước, thao tác giao diện và đính kèm ảnh chụp làm bằng chứng trước khi đánh dấu sẵn sàng review."
+
+msgid "Agents pick it up in new sessions."
+msgstr "Agent sẽ dùng skill này ở các phiên mới."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "Agent đọc phần này để quyết định khi nào dùng skill, nên hãy nói rõ khi nào nó áp dụng."
 
 msgid "Agents running at once"
 msgstr "Số agent chạy cùng lúc"
@@ -3475,11 +3503,17 @@ msgstr "Chọn thư mục"
 msgid "Choose a parent directory"
 msgstr "Chọn một thư mục cha"
 
+msgid "Choose a project"
+msgstr "Chọn dự án"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Chọn một dự án trong mục Issue GitHub trước khi mở một issue."
 
 msgid "Choose a section."
 msgstr "Chọn một mục."
+
+msgid "Choose a skill folder"
+msgstr "Chọn thư mục skill"
 
 msgid "Choose agent"
 msgstr "Chọn agent"
@@ -4638,11 +4672,17 @@ msgstr "Không thể tạo dự án"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Không thể tạo dự án. Hãy thử tên khác hoặc xem log."
 
+msgid "Could not create skill"
+msgstr "Không thể tạo skill"
+
 msgid "Could not delete account"
 msgstr "Không thể xóa tài khoản"
 
 msgid "Could not delete file"
 msgstr "Không thể xóa tệp"
+
+msgid "Could not delete skill"
+msgstr "Không thể xóa skill"
 
 msgid "Could not delete this page"
 msgstr "Không thể xóa trang này"
@@ -4655,6 +4695,9 @@ msgstr "Không thể quên {domain}"
 
 msgid "Could not import from browser"
 msgstr "Không thể nhập từ trình duyệt"
+
+msgid "Could not import skill"
+msgstr "Không thể nhập skill"
 
 msgid "Could not leave the queue"
 msgstr "Không thể rời hàng đợi"
@@ -4680,6 +4723,9 @@ msgstr "Không tải được plugin. Hãy kiểm tra kết nối và thử lạ
 
 msgid "Could not load presets from the host"
 msgstr "Không thể tải preset từ host"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "Không tải được skill. Hãy làm mới để thử lại."
 
 msgid "Could not load this diff"
 msgstr "Không thể tải diff này"
@@ -5129,6 +5175,9 @@ msgstr "Tạo dự án…"
 msgid "Create pull request"
 msgstr "Tạo pull request"
 
+msgid "Create skill"
+msgstr "Tạo skill"
+
 msgid "Create task"
 msgstr "Tạo tác vụ"
 
@@ -5487,6 +5536,7 @@ msgstr "Xóa “{title}”?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "Xóa {0}?"
 
@@ -6684,7 +6734,7 @@ msgstr "Không thể kết nối tới Slack. Vui lòng thử lại."
 msgid "Failed to copy branch name: {0}"
 msgstr "Không thể sao chép tên nhánh: {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "Không thể sao chép markdown: {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "Không thể di chuyển workspace: {0}"
 msgid "Failed to open {name}"
 msgstr "Không thể mở {name}"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "Không thể mở tệp: {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "Không thể resume {0}"
 msgid "Failed to reveal in Finder"
 msgstr "Không thể hiện trong Finder"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Không thể hiện trong Finder: {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "Nhập thất bại: {message}"
 msgid "Import from file"
 msgstr "Nhập từ tệp"
 
+msgid "Import from folder…"
+msgstr "Nhập từ thư mục…"
+
 msgid "Import from v1"
 msgstr "Nhập từ v1"
 
@@ -9299,6 +9352,9 @@ msgstr "Thấp"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "Ít bộ nhớ hơn khi mở nhiều terminal, git mượt hơn trong repo lớn và CPU nền thấp hơn."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "Chỉ dùng chữ thường, chữ số và dấu gạch ngang đơn."
+
 msgid "Machine resources"
 msgstr "Tài nguyên máy"
 
@@ -9383,9 +9439,6 @@ msgstr "Quản lý cài đặt tài khoản của bạn"
 
 msgid "Manage your organization's branding and members."
 msgstr "Quản lý nhận diện thương hiệu và thành viên của tổ chức."
-
-msgid "Managed"
-msgstr "Được quản lý"
 
 msgid "Managed by your organization admin."
 msgstr "Do admin tổ chức của bạn quản lý."
@@ -10012,6 +10065,12 @@ msgstr "Phiên mới"
 msgid "New shell"
 msgstr "Shell mới"
 
+msgid "New skill"
+msgstr "Skill mới"
+
+msgid "New skill…"
+msgstr "Skill mới…"
+
 msgid "New stars"
 msgstr "Star mới"
 
@@ -10459,6 +10518,9 @@ msgstr "Không có lời mời nào đang chờ"
 msgid "No people found."
 msgstr "Không tìm thấy ai."
 
+msgid "No personal skills yet."
+msgstr "Chưa có skill cá nhân nào."
+
 msgid "No plugins available yet."
 msgstr "Chưa có plugin nào."
 
@@ -10579,6 +10641,16 @@ msgstr "Không có phím tắt nào khớp \"{searchQuery}\""
 
 msgid "No sites are signed in"
 msgstr "Không có trang nào đang đăng nhập"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "Dự án này chưa có skill nào. Thêm một skill và mọi agent làm việc trong dự án đều dùng được."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "Không có skill nào khớp \"{0}\""
+
+msgid "No skills yet. Add one to get started."
+msgstr "Chưa có skill nào. Thêm một skill để bắt đầu."
 
 msgid "No stack frames"
 msgstr "Không có stack frame"
@@ -11094,6 +11166,9 @@ msgstr "Mở ô soạn prompt nhiều dòng cho terminal đang mở"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Mở một ngăn, hoặc kéo một ngăn từ giữa vào đây."
+
+msgid "Open a project to see its skills."
+msgstr "Mở một dự án để xem các skill của nó."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "Hãy mở một pull request để xem trạng thái review, check và bình luận."
@@ -11938,6 +12013,9 @@ msgstr "Chọn phần tử khác (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "Chọn một thư mục trên ổ đĩa và thêm nó làm dự án"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "Chọn một thư mục có chứa SKILL.md"
 
 msgid "Pick a folder…"
 msgstr "Chọn một thư mục…"
@@ -12816,6 +12894,9 @@ msgstr "Làm mới pull request"
 
 msgid "Refresh repositories"
 msgstr "Làm mới repository"
+
+msgid "Refresh skills"
+msgstr "Làm mới skill"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
@@ -14007,6 +14088,9 @@ msgstr "Tìm trong cài đặt..."
 msgid "Search sites…"
 msgstr "Tìm trang…"
 
+msgid "Search skills"
+msgstr "Tìm skill"
+
 msgid "Search tasks"
 msgstr "Tìm tác vụ"
 
@@ -14066,6 +14150,9 @@ msgstr "Các mục"
 
 msgid "Security"
 msgstr "Bảo mật"
+
+msgid "See {foldedList}"
+msgstr "Xem {foldedList}"
 
 msgid "See all downloads"
 msgstr "Xem tất cả bản tải xuống"
@@ -14521,6 +14608,9 @@ msgstr "Shimmer · Shimmer Label"
 msgid "Ship It"
 msgstr "Đã giao"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Đi kèm Superset và luôn được cập nhật trong mọi agent bạn dùng. Tắt một skill để nó không xuất hiện ở các phiên mới."
+
 msgid "Shortcut already in use"
 msgstr "Phím tắt đã được dùng"
 
@@ -14835,9 +14925,6 @@ msgstr "Skill"
 
 msgid "Skills"
 msgstr "Skill"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "Skill đi kèm plugin Superset và được tự động cập nhật trong mọi agent bạn dùng. Nhấp vào một skill để xem trước."
 
 msgid "Skip"
 msgstr "Bỏ qua"
@@ -16612,6 +16699,9 @@ msgstr "Thao tác này gỡ host, quyền truy cập và các workspace của n�
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "Thao tác này xóa dự án và các workspace của nó cho mọi người trên các thiết bị đã chọn, đồng thời dừng terminal và agent của họ."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "Thao tác này xóa thư mục skill khỏi ổ đĩa. Agent sẽ không thấy nó ở các phiên mới nữa."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Thao tác này xóa worktree khỏi ổ đĩa và đóng workspace."
 
@@ -17900,6 +17990,9 @@ msgstr "Superset Enterprise là gì?"
 msgid "What is wrong?"
 msgstr "Vấn đề là gì?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "Skill làm gì, và khi nào agent nên dùng đến"
+
 msgid "What platforms does Superset run on?"
 msgstr "Superset chạy trên những nền tảng nào?"
 
@@ -18450,6 +18543,9 @@ msgstr "Token của bạn"
 
 msgid "Your version: {currentVersion}"
 msgstr "Phiên bản của bạn: {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "Của bạn trong mọi dự án, trên máy này."
 
 msgid "Zap"
 msgstr "Tia chớp"

@@ -5,6 +5,10 @@
 	"type": "module",
 	"exports": {
 		"./terminal-colors": "./src/terminal-colors.ts",
+		"./skills": {
+			"types": "./src/skills.ts",
+			"default": "./src/skills.ts"
+		},
 		"./connectors": {
 			"types": "./src/connectors/index.ts",
 			"default": "./src/connectors/index.ts"

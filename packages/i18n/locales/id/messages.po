@@ -357,7 +357,7 @@ msgstr "{0} {actorVerb}"
 msgid "{0} → {1} pending"
 msgstr "{0} → {1} tertunda"
 
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} actions"
 msgstr "Aksi {0}"
 
@@ -372,6 +372,14 @@ msgstr "cabang {0}"
 #. placeholder {0}: params?.agent
 msgid "{0} cannot be signed in this way yet."
 msgstr "{0} belum bisa masuk dengan cara ini."
+
+#. placeholder {0}: skill.displayName
+msgid "{0} created"
+msgstr "{0} dibuat"
+
+#. placeholder {0}: skill.displayName
+msgid "{0} deleted"
+msgstr "{0} dihapus"
 
 #. placeholder {0}: formatNumber(participants)
 msgid "{0} developers are ranked by agent usage. Your last 30 days are already counted, just hidden. Token counts and model names only, no repo names, file paths or prompts."
@@ -388,7 +396,7 @@ msgstr "Dokumentasi {0}"
 
 #. placeholder {0}: displayName(variables.name)
 #. placeholder {0}: plugin.interface.displayName
-#. placeholder {0}: skill.name
+#. placeholder {0}: skill.displayName
 msgid "{0} enabled"
 msgstr "{0} aktif"
 
@@ -404,6 +412,10 @@ msgstr "{0} gagal"
 #. placeholder {0}: collisions.length
 msgid "{0} files already exist in {where}. Do you want to replace them?"
 msgstr "{0} file sudah ada di {where}. Ingin menggantinya?"
+
+#. placeholder {0}: result.skill.displayName
+msgid "{0} imported"
+msgstr "{0} diimpor"
 
 #. placeholder {0}: displayName(variables.name)
 msgid "{0} installed"
@@ -478,6 +490,7 @@ msgid "{0} of visitors"
 msgstr "{0} dari pengunjung"
 
 #. placeholder {0}: plugin.interface.displayName
+#. placeholder {0}: skill.displayName
 msgid "{0} options"
 msgstr "Opsi {0}"
 
@@ -858,6 +871,9 @@ msgstr "{failing} dari {total} check gagal"
 
 msgid "{focusShortcutText} to focus"
 msgstr "{focusShortcutText} untuk fokus"
+
+msgid "{foldedRest} more"
+msgstr "{foldedRest} lainnya"
 
 msgid "{formatted} {count, plural, one {dev} other {devs}}"
 msgstr "{formatted} {count, plural, one {dev} other {dev}}"
@@ -1405,6 +1421,9 @@ msgstr "File bernama '{firstName}' sudah ada di {where}. Ingin menggantinya?"
 msgid "A focused burn-down of crashes, hangs, and reconnect failures across the app."
 msgstr "Pembersihan terfokus atas crash, hang, dan kegagalan sambung ulang di seluruh aplikasi."
 
+msgid "A folder with a SKILL.md that every agent you use can load. You write the instructions next."
+msgstr "Folder berisi SKILL.md yang bisa dimuat setiap agen yang Anda pakai. Instruksinya Anda tulis setelah ini."
+
 msgid "A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything."
 msgstr "Perombakan gaya menyeluruh: baris lebih padat, chip port dan agen di bawah tiap workspace, hentikan semuanya dengan satu klik."
 
@@ -1878,8 +1897,17 @@ msgstr "Agen bisa memantau check CI, mengikuti log dev server, dan menjaga prose
 msgid "Agents complete routine tickets with no mid-task intervention."
 msgstr "Agen menyelesaikan tiket rutin tanpa intervensi di tengah tugas."
 
+msgid "Agents invoke it as <0>/{slug}</0> in Claude Code or <1>${slug}</1> in Codex."
+msgstr "Agen memanggilnya sebagai <0>/{slug}</0> di Claude Code atau <1>${slug}</1> di Codex."
+
 msgid "Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review."
 msgstr "Agen memuat pratinjaunya sendiri, mengendalikan UI, dan melampirkan bukti tangkapan layar sebelum menandai pekerjaan siap direview."
+
+msgid "Agents pick it up in new sessions."
+msgstr "Agen mulai memakainya di sesi baru."
+
+msgid "Agents read this to decide when to use the skill, so say when it applies."
+msgstr "Agen membaca ini untuk memutuskan kapan memakai skill, jadi sebutkan kapan skill ini berlaku."
 
 msgid "Agents running at once"
 msgstr "Agen yang berjalan sekaligus"
@@ -3475,11 +3503,17 @@ msgstr "Pilih folder"
 msgid "Choose a parent directory"
 msgstr "Pilih direktori induk"
 
+msgid "Choose a project"
+msgstr "Pilih proyek"
+
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Pilih proyek dari issue GitHub sebelum membuka sebuah issue."
 
 msgid "Choose a section."
 msgstr "Pilih sebuah bagian."
+
+msgid "Choose a skill folder"
+msgstr "Pilih folder skill"
 
 msgid "Choose agent"
 msgstr "Pilih agen"
@@ -4638,11 +4672,17 @@ msgstr "Tidak bisa membuat proyek"
 msgid "Could not create project. Please try a different name or check the logs."
 msgstr "Tidak bisa membuat proyek. Coba nama lain atau periksa log."
 
+msgid "Could not create skill"
+msgstr "Tidak bisa membuat skill"
+
 msgid "Could not delete account"
 msgstr "Tidak bisa menghapus akun"
 
 msgid "Could not delete file"
 msgstr "Tidak bisa menghapus file"
+
+msgid "Could not delete skill"
+msgstr "Tidak bisa menghapus skill"
 
 msgid "Could not delete this page"
 msgstr "Tidak bisa menghapus halaman ini"
@@ -4655,6 +4695,9 @@ msgstr "Tidak bisa melupakan {domain}"
 
 msgid "Could not import from browser"
 msgstr "Tidak bisa mengimpor dari browser"
+
+msgid "Could not import skill"
+msgstr "Tidak bisa mengimpor skill"
 
 msgid "Could not leave the queue"
 msgstr "Tidak bisa keluar dari antrean"
@@ -4680,6 +4723,9 @@ msgstr "Tidak dapat memuat plugin. Periksa koneksi Anda dan coba lagi."
 
 msgid "Could not load presets from the host"
 msgstr "Tidak bisa memuat preset dari host"
+
+msgid "Could not load skills. Refresh to try again."
+msgstr "Tidak dapat memuat skill. Segarkan untuk mencoba lagi."
 
 msgid "Could not load this diff"
 msgstr "Tidak bisa memuat diff ini"
@@ -5129,6 +5175,9 @@ msgstr "Buat proyek…"
 msgid "Create pull request"
 msgstr "Buat pull request"
 
+msgid "Create skill"
+msgstr "Buat skill"
+
 msgid "Create task"
 msgstr "Buat tugas"
 
@@ -5487,6 +5536,7 @@ msgstr "Hapus “{title}”?"
 
 #. placeholder {0}: organization.name
 #. placeholder {0}: secret.key
+#. placeholder {0}: skill?.displayName
 msgid "Delete {0}?"
 msgstr "Hapus {0}?"
 
@@ -6684,7 +6734,7 @@ msgstr "Gagal terhubung ke Slack. Silakan coba lagi."
 msgid "Failed to copy branch name: {0}"
 msgstr "Gagal menyalin nama branch: {0}"
 
-#. placeholder {0}: errorMessage( err, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( err, t({ message: "Unknown error" }), )
 msgid "Failed to copy markdown: {0}"
 msgstr "Gagal menyalin markdown: {0}"
 
@@ -6846,7 +6896,7 @@ msgstr "Gagal memindahkan workspace: {0}"
 msgid "Failed to open {name}"
 msgstr "Gagal membuka {name}"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to open file: {0}"
 msgstr "Gagal membuka file: {0}"
 
@@ -6966,7 +7016,7 @@ msgstr "Gagal melanjutkan {0}"
 msgid "Failed to reveal in Finder"
 msgstr "Gagal menampilkan di Finder"
 
-#. placeholder {0}: errorMessage( error, t({ message: "Unknown error", }), )
+#. placeholder {0}: errorMessage( error, t({ message: "Unknown error" }), )
 msgid "Failed to reveal in Finder: {0}"
 msgstr "Gagal menampilkan di Finder: {0}"
 
@@ -8221,6 +8271,9 @@ msgstr "Impor gagal: {message}"
 msgid "Import from file"
 msgstr "Impor dari file"
 
+msgid "Import from folder…"
+msgstr "Impor dari folder…"
+
 msgid "Import from v1"
 msgstr "Impor dari v1"
 
@@ -9299,6 +9352,9 @@ msgstr "Rendah"
 msgid "Lower memory with many terminals open, smoother git in big repos, and less background CPU."
 msgstr "Memori lebih rendah saat banyak terminal terbuka, git lebih mulus di repo besar, dan CPU latar belakang lebih hemat."
 
+msgid "Lowercase letters, numbers and single dashes only."
+msgstr "Hanya huruf kecil, angka, dan tanda hubung tunggal."
+
 msgid "Machine resources"
 msgstr "Sumber daya mesin"
 
@@ -9383,9 +9439,6 @@ msgstr "Kelola pengaturan akun Anda"
 
 msgid "Manage your organization's branding and members."
 msgstr "Kelola identitas dan anggota organisasi Anda."
-
-msgid "Managed"
-msgstr "Terkelola"
 
 msgid "Managed by your organization admin."
 msgstr "Dikelola oleh admin organisasi Anda."
@@ -10012,6 +10065,12 @@ msgstr "Sesi baru"
 msgid "New shell"
 msgstr "Shell baru"
 
+msgid "New skill"
+msgstr "Skill baru"
+
+msgid "New skill…"
+msgstr "Skill baru…"
+
 msgid "New stars"
 msgstr "Star baru"
 
@@ -10459,6 +10518,9 @@ msgstr "Tidak ada undangan tertunda"
 msgid "No people found."
 msgstr "Tidak ada orang ditemukan."
 
+msgid "No personal skills yet."
+msgstr "Belum ada skill pribadi."
+
 msgid "No plugins available yet."
 msgstr "Belum ada plugin yang tersedia."
 
@@ -10579,6 +10641,16 @@ msgstr "Tidak ada pintasan yang cocok dengan \"{searchQuery}\""
 
 msgid "No sites are signed in"
 msgstr "Tidak ada situs yang sedang masuk"
+
+msgid "No skills in this project yet. Add one and every agent working in it can use it."
+msgstr "Belum ada skill di proyek ini. Tambahkan satu, dan setiap agen yang bekerja di dalamnya bisa memakainya."
+
+#. placeholder {0}: search.trim()
+msgid "No skills match \"{0}\""
+msgstr "Tidak ada skill yang cocok dengan \"{0}\""
+
+msgid "No skills yet. Add one to get started."
+msgstr "Belum ada skill. Tambahkan satu untuk memulai."
 
 msgid "No stack frames"
 msgstr "Tidak ada stack frame"
@@ -11094,6 +11166,9 @@ msgstr "Buka komposer prompt multibaris untuk terminal aktif"
 
 msgid "Open a pane, or drag one here from the center."
 msgstr "Buka panel, atau seret panel ke sini dari tengah."
+
+msgid "Open a project to see its skills."
+msgstr "Buka proyek untuk melihat skill-nya."
 
 msgid "Open a pull request to view review status, checks, and comments."
 msgstr "Buka sebuah pull request untuk melihat status review, check, dan komentar."
@@ -11938,6 +12013,9 @@ msgstr "Pilih elemen lain (esc)"
 
 msgid "Pick a folder on disk and add it as a project"
 msgstr "Pilih folder di disk dan tambahkan sebagai proyek"
+
+msgid "Pick a folder that contains a SKILL.md"
+msgstr "Pilih folder yang berisi SKILL.md"
 
 msgid "Pick a folder…"
 msgstr "Pilih folder…"
@@ -12816,6 +12894,9 @@ msgstr "Segarkan pull request"
 
 msgid "Refresh repositories"
 msgstr "Segarkan repositori"
+
+msgid "Refresh skills"
+msgstr "Segarkan skill"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
@@ -14007,6 +14088,9 @@ msgstr "Cari pengaturan..."
 msgid "Search sites…"
 msgstr "Cari situs…"
 
+msgid "Search skills"
+msgstr "Cari skill"
+
 msgid "Search tasks"
 msgstr "Cari tugas"
 
@@ -14066,6 +14150,9 @@ msgstr "Bagian"
 
 msgid "Security"
 msgstr "Keamanan"
+
+msgid "See {foldedList}"
+msgstr "Lihat {foldedList}"
 
 msgid "See all downloads"
 msgstr "Lihat semua unduhan"
@@ -14521,6 +14608,9 @@ msgstr "Shimmer · Label Shimmer"
 msgid "Ship It"
 msgstr "Rilis"
 
+msgid "Ship with Superset and stay up to date in every agent you use. Switch one off to keep it out of new sessions."
+msgstr "Disertakan bersama Superset dan selalu diperbarui di setiap agen yang Anda pakai. Nonaktifkan satu agar tidak ikut di sesi baru."
+
 msgid "Shortcut already in use"
 msgstr "Pintasan sudah dipakai"
 
@@ -14835,9 +14925,6 @@ msgstr "Skill"
 
 msgid "Skills"
 msgstr "Skill"
-
-msgid "Skills ship with the Superset plugin and are kept up to date automatically in every agent you use. Click one to preview it."
-msgstr "Skill hadir bersama plugin Superset dan selalu diperbarui otomatis di setiap agen yang Anda pakai. Klik salah satu untuk melihat pratinjaunya."
 
 msgid "Skip"
 msgstr "Lewati"
@@ -16612,6 +16699,9 @@ msgstr "Ini menghapus host, aksesnya, dan workspace-nya. File di mesin itu tetap
 msgid "This removes the project and its workspaces for everyone on the selected devices, and stops their terminals and agents."
 msgstr "Ini menghapus proyek dan workspace-nya untuk semua orang di perangkat yang dipilih, serta menghentikan terminal dan agennya."
 
+msgid "This removes the skill folder from disk. Agents stop seeing it in new sessions."
+msgstr "Ini menghapus folder skill dari disk. Agen tidak lagi melihatnya di sesi baru."
+
 msgid "This removes the worktree from disk and closes the workspace."
 msgstr "Ini menghapus worktree dari disk dan menutup workspace."
 
@@ -17900,6 +17990,9 @@ msgstr "Apa itu Superset Enterprise?"
 msgid "What is wrong?"
 msgstr "Apa masalahnya?"
 
+msgid "What it does, and when an agent should reach for it"
+msgstr "Apa fungsinya, dan kapan agen sebaiknya memakainya"
+
 msgid "What platforms does Superset run on?"
 msgstr "Superset berjalan di platform apa saja?"
 
@@ -18450,6 +18543,9 @@ msgstr "Token Anda"
 
 msgid "Your version: {currentVersion}"
 msgstr "Versi Anda: {currentVersion}"
+
+msgid "Yours in every project, on this machine."
+msgstr "Milik Anda di setiap proyek, di mesin ini."
 
 msgid "Zap"
 msgstr "Petir"

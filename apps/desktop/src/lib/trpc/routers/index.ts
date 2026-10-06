@@ -26,6 +26,7 @@ import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
 import { createScreenshotsRouter } from "./screenshots";
 import { createSettingsRouter } from "./settings";
+import { createSkillsRouter } from "./skills";
 import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
@@ -57,6 +58,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		external: createExternalRouter(),
 		githubStar: createGithubStarRouter(),
 		settings: createSettingsRouter(),
+		skills: createSkillsRouter(getWindow),
 		system: createSystemRouter(),
 		config: createConfigRouter(),
 		device: createDeviceRouter(),

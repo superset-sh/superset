@@ -16,9 +16,9 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
- * Skills can ship their own artwork as `skills/<name>/icon.svg|png` in the
- * plugin bundle (served as data URIs by plugins.listSkillIcons); skills
- * without one get a per-skill default glyph.
+ * Skills can ship their own artwork (`icon.svg|png` in the skill folder, or
+ * the `icon_small` their agents/openai.yaml names); bundled skills without
+ * one get a per-skill default glyph.
  */
 const DEFAULT_SKILL_ICONS: Record<string, IconType> = {
 	"10x": LuRocket,
@@ -35,18 +35,28 @@ const DEFAULT_SKILL_ICONS: Record<string, IconType> = {
 
 interface SkillIconProps {
 	skillName: string;
+	/** `undefined` looks the icon up by skill name; `null` means the skill has none. */
+	iconDataUri?: string | null;
+	brandColor?: string | null;
 	className?: string;
 }
 
-export function SkillIcon({ skillName, className }: SkillIconProps) {
-	const { data: icons } = electronTrpc.plugins.listSkillIcons.useQuery();
-	const iconUri = icons?.[skillName];
+export function SkillIcon({
+	skillName,
+	iconDataUri,
+	brandColor,
+	className,
+}: SkillIconProps) {
+	const { data: icons } = electronTrpc.skills.listIcons.useQuery(undefined, {
+		enabled: iconDataUri === undefined,
+	});
+	const resolved = iconDataUri === undefined ? icons?.[skillName] : iconDataUri;
 	const Icon = DEFAULT_SKILL_ICONS[skillName] ?? LuBookOpen;
 
-	if (iconUri !== undefined) {
+	if (resolved) {
 		return (
 			<img
-				src={iconUri}
+				src={resolved}
 				alt=""
 				className={cn(
 					"shrink-0 rounded-md object-contain",
@@ -62,7 +72,10 @@ export function SkillIcon({ skillName, className }: SkillIconProps) {
 				className ?? "size-8",
 			)}
 		>
-			<Icon className="size-1/2 text-muted-foreground" />
+			<Icon
+				className="size-1/2 text-muted-foreground"
+				style={brandColor ? { color: brandColor } : undefined}
+			/>
 		</div>
 	);
 }

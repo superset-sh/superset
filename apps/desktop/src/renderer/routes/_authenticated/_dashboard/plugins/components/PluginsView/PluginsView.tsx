@@ -2,7 +2,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { PLUGIN_CATEGORIES } from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { Skeleton } from "@superset/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -15,9 +14,10 @@ import {
 	usePluginCatalog,
 } from "renderer/hooks/usePluginCatalog";
 import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
+import { CardGridSkeleton } from "./components/CardGridSkeleton";
 import { ManageInstalledDialog } from "./components/ManageInstalledDialog";
 import { PluginCard } from "./components/PluginCard";
-import { SkillsList } from "./components/SkillsList";
+import { SkillsView } from "./components/SkillsView";
 
 export function PluginsView() {
 	const { t } = useLingui();
@@ -72,27 +72,6 @@ export function PluginsView() {
 		),
 	})).filter(({ plugins }) => plugins.length > 0);
 
-	const skeletonCards = (
-		<section className="flex flex-col gap-3">
-			<Skeleton className="h-5 w-24" />
-			<div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-				{Array.from({ length: 6 }, (_, index) => (
-					<div
-						// biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-						key={index}
-						className="flex items-center gap-3 rounded-lg p-3"
-					>
-						<Skeleton className="size-9 shrink-0 rounded-lg" />
-						<div className="flex min-w-0 flex-1 flex-col gap-1.5">
-							<Skeleton className="h-4 w-28" />
-							<Skeleton className="h-3 w-full max-w-56" />
-						</div>
-					</div>
-				))}
-			</div>
-		</section>
-	);
-
 	const renderCard = (plugin: CatalogPlugin) => (
 		<PluginCard
 			key={plugin.name}
@@ -143,7 +122,7 @@ export function PluginsView() {
 						/>
 					</div>
 
-					{isCatalogLoading && skeletonCards}
+					{isCatalogLoading && <CardGridSkeleton />}
 
 					{!isCatalogLoading && installedPlugins.length > 0 && (
 						<section className="flex flex-col gap-3">
@@ -258,18 +237,8 @@ export function PluginsView() {
 					/>
 				</TabsContent>
 
-				<TabsContent value="skills" className="flex flex-col gap-6">
-					<div>
-						<h1 className="text-2xl font-semibold text-foreground">
-							<Trans>Skills</Trans>
-						</h1>
-						<p className="mt-1 text-sm text-muted-foreground">
-							<Trans>
-								Reusable instructions your agents pick up automatically
-							</Trans>
-						</p>
-					</div>
-					<SkillsList />
+				<TabsContent value="skills">
+					<SkillsView />
 				</TabsContent>
 			</Tabs>
 		</div>

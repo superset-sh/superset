@@ -14,6 +14,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
@@ -26,79 +27,47 @@ import {
 	LuEllipsis,
 	LuExternalLink,
 	LuFolderOpen,
+	LuTrash2,
 } from "react-icons/lu";
 import { FileEditPane } from "renderer/components/FileEditPane";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { SkillIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/SkillIcon";
-import { useSkillMutations } from "../../hooks/useSkillMutations";
+import { useSkillFileActions } from "../../hooks/useSkillFileActions";
+import type { SkillListItem } from "../../hooks/useSkills";
+import { SkillScopeLabel } from "../SkillScopeLabel";
 import { useSkillDocument } from "./hooks/useSkillDocument";
 
 interface SkillPreviewDialogProps {
-	skill: { name: string; description: string } | null;
+	skill: SkillListItem | null;
+	isBusy: boolean;
 	onClose: () => void;
+	onDelete: (skill: SkillListItem) => void;
+	onSetEnabled: (name: string, enabled: boolean) => void;
 }
 
 export function SkillPreviewDialog({
 	skill,
+	isBusy,
 	onClose,
+	onDelete,
+	onSetEnabled,
 }: SkillPreviewDialogProps) {
 	const { t } = useLingui();
-	const { document, path } = useSkillDocument({ name: skill?.name ?? "" });
-	const { disabledSkills, setEnabled, isBusy } = useSkillMutations();
-	const isEnabled = skill !== null && !disabledSkills.has(skill.name);
+	const { document, path } = useSkillDocument({ skill });
+	const { openInEditor, revealInFinder } = useSkillFileActions();
 	const { copyToClipboard } = useCopyToClipboard();
 	const initialFocusRef = useRef<HTMLDivElement>(null);
-
-	const handleOpen = async () => {
-		if (!path) return;
-		try {
-			await electronTrpcClient.external.openFileInEditor.mutate({ path });
-		} catch (error) {
-			toast.error(
-				t({
-					message: `Failed to open file: ${errorMessage(
-						error,
-						t({
-							message: "Unknown error",
-						}),
-					)}`,
-				}),
-			);
-		}
-	};
-
-	const handleRevealInFinder = async () => {
-		if (!path) return;
-		try {
-			await electronTrpcClient.external.openInFinder.mutate(path);
-		} catch (error) {
-			toast.error(
-				t({
-					message: `Failed to reveal in Finder: ${errorMessage(
-						error,
-						t({
-							message: "Unknown error",
-						}),
-					)}`,
-				}),
-			);
-		}
-	};
+	const isManaged = skill?.ref.kind === "managed";
 
 	const handleCopyMarkdown = () => {
 		if (document.content.kind !== "text") return;
 		toast.promise(copyToClipboard(document.content.value), {
-			success: t({
-				message: "Markdown copied",
-			}),
+			success: t({ message: "Markdown copied" }),
 			error: (err: unknown) =>
 				t({
 					message: `Failed to copy markdown: ${errorMessage(
 						err,
-						t({
-							message: "Unknown error",
-						}),
+						t({ message: "Unknown error" }),
 					)}`,
 				}),
 		});
@@ -141,23 +110,35 @@ export function SkillPreviewDialog({
 					<DialogHeader className="flex-1">
 						<DialogTitle className="flex items-center gap-2">
 							{skill !== null && (
-								<SkillIcon skillName={skill.name} className="size-7" />
+								<SkillIcon
+									skillName={skill.name}
+									iconDataUri={skill.iconDataUri}
+									brandColor={skill.brandColor}
+									className="size-7"
+								/>
 							)}
-							{skill?.name}
+							{skill?.displayName}
 							<Badge
 								variant="outline"
 								className="h-4 rounded px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase"
 							>
 								<Trans>Skill</Trans>
 							</Badge>
-							<Badge variant="secondary">
-								<Trans>Managed</Trans>
-							</Badge>
+							{skill !== null && (
+								<Badge variant="secondary">
+									<SkillScopeLabel scope={skill.scope} />
+								</Badge>
+							)}
 						</DialogTitle>
 						<DialogDescription>{skill?.description}</DialogDescription>
+						{skill !== null && (
+							<p className="truncate font-mono text-xs text-muted-foreground">
+								{skill.displayDir}
+							</p>
+						)}
 					</DialogHeader>
 					<div className="flex shrink-0 items-center gap-3">
-						{skill !== null && (
+						{skill !== null && isManaged && (
 							<Tooltip delayDuration={700}>
 								{/* The Switch has its own data-state (checked/unchecked) that
 								    its styling depends on; asChild directly on it would let
@@ -166,19 +147,19 @@ export function SkillPreviewDialog({
 								<TooltipTrigger asChild>
 									<span className="inline-flex">
 										<Switch
-											checked={isEnabled}
+											checked={skill.enabled}
 											disabled={isBusy}
 											aria-label={t({
-												message: `${skill.name} enabled`,
+												message: `${skill.displayName} enabled`,
 											})}
 											onCheckedChange={(checked) =>
-												setEnabled(skill.name, checked)
+												onSetEnabled(skill.name, checked)
 											}
 										/>
 									</span>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									{isEnabled ? (
+									{skill.enabled ? (
 										<Trans>Disable skill</Trans>
 									) : (
 										<Trans>Enable skill</Trans>
@@ -193,21 +174,20 @@ export function SkillPreviewDialog({
 										variant="ghost"
 										size="icon-xs"
 										className="text-muted-foreground"
-										aria-label={t({
-											message: `${skill.name} actions`,
-										})}
+										aria-label={t({ message: `${skill.displayName} actions` })}
 									>
 										<LuEllipsis className="size-4" />
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
-									<DropdownMenuItem onSelect={handleOpen} disabled={!path}>
+									<DropdownMenuItem
+										onSelect={() => void openInEditor(path ?? skill.path)}
+									>
 										<LuExternalLink className="size-4" />
-										<Trans>Open</Trans>
+										<Trans>Open in editor</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
-										onSelect={handleRevealInFinder}
-										disabled={!path}
+										onSelect={() => void revealInFinder(path ?? skill.path)}
 									>
 										<LuFolderOpen className="size-4" />
 										<Trans>Reveal in Finder</Trans>
@@ -219,6 +199,19 @@ export function SkillPreviewDialog({
 										<LuCopy className="size-4" />
 										<Trans>Copy Markdown</Trans>
 									</DropdownMenuItem>
+									{!isManaged && (
+										<>
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												variant="destructive"
+												disabled={isBusy}
+												onSelect={() => onDelete(skill)}
+											>
+												<LuTrash2 className="size-4" />
+												<Trans>Delete</Trans>
+											</DropdownMenuItem>
+										</>
+									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
@@ -232,7 +225,7 @@ export function SkillPreviewDialog({
 				</div>
 				<div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border/60 bg-background">
 					{skill !== null && (
-						<FileEditPane document={document} filePath={path ?? skill.name} />
+						<FileEditPane document={document} filePath={path ?? skill.path} />
 					)}
 				</div>
 			</DialogContent>

@@ -246,8 +246,16 @@ export const SUPERSET_MANAGED_SKILLS = [
 	{ name: "doctor", description: "Diagnose and fix Superset problems" },
 	{ name: "feedback", description: "Report bugs and request features" },
 	{
+		name: "integrations",
+		description: "List and call the tools your connected integrations expose",
+	},
+	{
 		name: "orchestrate",
 		description: "Coordinate multiple coding agents across workspaces",
+	},
+	{
+		name: "page",
+		description: "Publish a page to a shareable link and answer its comments",
 	},
 	{
 		name: "plugins",

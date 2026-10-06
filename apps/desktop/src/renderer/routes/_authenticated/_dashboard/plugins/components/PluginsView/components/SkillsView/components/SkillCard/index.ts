@@ -1,0 +1,1 @@
+export { SkillCard } from "./SkillCard";

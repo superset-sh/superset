@@ -16,6 +16,16 @@ Everything else links to those:
 | `.cursor/commands` | `../.agents/commands` |
 | `.codex/commands`, `.codex/prompts` | `../.agents/commands` |
 
+## Skills page
+
+The desktop's Skills page (Plugins → Skills) reads the same directories. Project lists
+`<repo>/.agents|.claude|.codex/skills`, Personal lists them under `~`, and System is the bundled
+`plugins/superset/skills` set (toggle and edit only). A skill reachable from several of those
+directories is listed once, by real path. New and imported skills are written to
+`.agents/skills/<name>` and linked from `.claude/skills/<name>` unless that directory already
+resolves to `.agents/skills` (as in this repo): Codex reads `.agents/skills` natively, Claude Code
+reads only its own directory. Shared logic: `packages/agent-setup/src/user-skills.ts`.
+
 ## Per-tool notes
 
 - **Codex** layers trusted repo settings from `.codex/config.toml`; launch it normally from the repo
