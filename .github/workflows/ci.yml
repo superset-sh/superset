@@ -10,6 +10,7 @@ jobs:
   sherif:
     name: Sherif
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -35,6 +36,7 @@ jobs:
   vale:
     name: Vale prose lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -59,6 +61,7 @@ jobs:
   version-sync:
     name: Version Sync
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -90,6 +93,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -131,6 +135,7 @@ jobs:
   test:
     name: Test
     runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -176,6 +181,7 @@ jobs:
   page-storage:
     name: Page storage integration
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -208,6 +214,7 @@ jobs:
   typecheck:
     name: Typecheck
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1

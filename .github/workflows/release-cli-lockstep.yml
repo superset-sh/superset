@@ -24,6 +24,7 @@ jobs:
     name: Tag matching cli-v release
     if: startsWith(github.event.release.tag_name, 'desktop-v')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
