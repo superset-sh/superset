@@ -63,6 +63,7 @@ describe("forwardedHotkeys", () => {
 		"NEW_BROWSER",
 		"OPEN_DIFF_VIEWER",
 		"QUICK_OPEN",
+		"SEARCH_IN_FILES",
 		"OPEN_COMMAND_PALETTE",
 		"CHECK_RESOURCES",
 		"NEW_WORKSPACE",

@@ -39,6 +39,11 @@ const SECTIONS: CommandSection[] = [
 				"file picker",
 				"quick open",
 			]),
+			command("files.searchContents", "Search in Files", "workspace", [
+				"content",
+				"find",
+				"grep",
+			]),
 			command("workspace.linkTask", "Link task", "workspace", [
 				"issue",
 				"linear",
@@ -172,6 +177,11 @@ function flatIds(sections: CommandSection[]): string[] {
 }
 
 describe("rankSections", () => {
+	test("'grep' surfaces workspace content search", () => {
+		const ranked = rankSections(SECTIONS, "grep");
+		expect(flatIds(ranked)[0]).toBe("files.searchContents");
+	});
+
 	test("'them' surfaces Toggle theme, not the delete-workspace command", () => {
 		const ranked = rankSections(SECTIONS, "them");
 		expect(flatIds(ranked)[0]).toBe("actions.toggleTheme");

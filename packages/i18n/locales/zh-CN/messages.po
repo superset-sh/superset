@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "“{0}”已删除"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "“{0}”会在{providerName}上被标记为关闭。你随时可以在这里重新打开它。"
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "“{0}”会在 GitHub 上被标记为关闭。你随时可以在这里重新打开它。"
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "无效的标签"
 msgid "Invalid OAuth response. Please try again."
 msgstr "OAuth响应无效。请重试。"
 
+msgid "Invalid regular expression"
+msgstr "无效的正则表达式"
+
 msgid "Invalid Request"
 msgstr "无效请求"
 
@@ -9422,11 +9425,17 @@ msgstr "市场"
 msgid "Marking ready for review..."
 msgstr "正在标记为可评审…"
 
+msgid "Match case"
+msgstr "区分大小写"
+
 msgid "Match existing patterns"
 msgstr "沿用现有模式"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "让快捷键匹配键盘上的标签（例如⌘Z始终触发标有“Z”的按键——在QWERTZ上是物理KeyY）。关闭后，快捷键锚定在物理按键位置，忽略当前输入源。"
+
+msgid "Match whole word"
+msgstr "全字匹配"
 
 msgid "Max"
 msgstr "最大"
@@ -13937,6 +13946,9 @@ msgstr "最近 28 天的搜索展示和点击，查询词分为我们的品牌�
 msgid "Search in {frameTitle}…"
 msgstr "在{frameTitle}中搜索…"
 
+msgid "Search in Files"
+msgstr "在文件中搜索"
+
 msgid "Search issues..."
 msgstr "搜索议题..."
 
@@ -14642,6 +14654,9 @@ msgstr "在侧边栏显示用量选项卡"
 
 msgid "showArrow opt-in"
 msgstr "showArrow按需开启"
+
+msgid "Showing the first 500 results."
+msgstr "正在显示前 500 个结果。"
 
 msgid "Shown"
 msgstr "已显示"
@@ -17433,6 +17448,9 @@ msgstr "用于新智能体"
 
 msgid "Use global default"
 msgstr "使用全局默认值"
+
+msgid "Use regular expression"
+msgstr "使用正则表达式"
 
 msgid "Use Superset on mobile"
 msgstr "在手机上使用 Superset"

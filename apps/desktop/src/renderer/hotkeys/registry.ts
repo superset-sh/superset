@@ -84,6 +84,15 @@ export const HOTKEYS_REGISTRY = {
 			message: "Search and open files in the current workspace",
 		}),
 	},
+	SEARCH_IN_FILES: {
+		key: {
+			mac: L("meta+shift+f"),
+			windows: L("ctrl+shift+f"),
+			linux: L("ctrl+shift+f"),
+		},
+		label: msg({ message: "Search in Files" }),
+		category: "Navigation",
+	},
 
 	// Workspace switching
 	JUMP_TO_WORKSPACE_1: {

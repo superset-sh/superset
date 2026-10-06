@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" silindi"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\" {providerName}'da kapalı olarak işaretlenecek. Buradan istediğiniz zaman yeniden açabilirsiniz."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\" GitHub'da kapalı olarak işaretlenecek. Buradan istediğiniz zaman yeniden açabilirsiniz."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Geçersiz etiket"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Geçersiz OAuth yanıtı. Lütfen yeniden deneyin."
 
+msgid "Invalid regular expression"
+msgstr "Geçersiz düzenli ifade"
+
 msgid "Invalid Request"
 msgstr "Geçersiz istek"
 
@@ -9422,11 +9425,17 @@ msgstr "Pazar yeri"
 msgid "Marking ready for review..."
 msgstr "İncelemeye hazır olarak işaretleniyor…"
 
+msgid "Match case"
+msgstr "Büyük/küçük harf eşleştir"
+
 msgid "Match existing patterns"
 msgstr "Mevcut desenlere uy"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Kısayolları klavyenizdeki etiketlerle eşleştirin (örn. ⌘Z her zaman \"Z\" etiketli tuşta çalışır — QWERTZ'de fiziksel KeyY). Kapalıyken kısayollar fiziksel tuş konumlarına sabitlenir ve geçerli giriş kaynağını yok sayar."
+
+msgid "Match whole word"
+msgstr "Tam sözcüğü eşleştir"
 
 msgid "Max"
 msgstr "En yüksek"
@@ -13937,6 +13946,9 @@ msgstr "Son 28 günün arama gösterimleri ve tıklamaları; sorgular markamız,
 msgid "Search in {frameTitle}…"
 msgstr "Şurada ara: {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Dosyalarda Ara"
+
 msgid "Search issues..."
 msgstr "Issue ara..."
 
@@ -14642,6 +14654,9 @@ msgstr "Kenar çubuğunda kullanım sekmesini göster"
 
 msgid "showArrow opt-in"
 msgstr "showArrow açık"
+
+msgid "Showing the first 500 results."
+msgstr "İlk 500 sonuç gösteriliyor."
 
 msgid "Shown"
 msgstr "Gösterilen"
@@ -17433,6 +17448,9 @@ msgstr "Yeni ajanlar için kullan"
 
 msgid "Use global default"
 msgstr "Genel varsayılanı kullan"
+
+msgid "Use regular expression"
+msgstr "Düzenli ifade kullan"
 
 msgid "Use Superset on mobile"
 msgstr "Superset’i mobilde kullanın"

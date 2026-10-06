@@ -6,6 +6,7 @@ import type { SearchPatchEvent } from "./search";
 import {
 	invalidateAllSearchIndexes,
 	patchSearchIndexesForRoot,
+	searchContent,
 	searchFiles,
 } from "./search";
 
@@ -240,5 +241,151 @@ describe("searchFiles", () => {
 		expect(paths).toContain(flatPath);
 		expect(paths).toContain(nestedPath);
 		expect(paths).toHaveLength(2);
+	});
+});
+
+describe("searchContent", () => {
+	it("maps literal search options to ripgrep without building an index", async () => {
+		let capturedArgs: string[] = [];
+		const results = await searchContent({
+			rootPath: path.join(os.tmpdir(), "workspace-fs-missing-root"),
+			query: "source",
+			isCaseSensitive: false,
+			isWordMatch: true,
+			limit: 10,
+			runRipgrep: async (args) => {
+				capturedArgs = args;
+				return { stdout: "" };
+			},
+		});
+
+		expect(results).toEqual([]);
+		expect(capturedArgs).toContain("--fixed-strings");
+		expect(capturedArgs).toContain("--ignore-case");
+		expect(capturedArgs).toContain("--word-regexp");
+		expect(capturedArgs.slice(-3)).toEqual(["--", "source", "."]);
+	});
+
+	it("passes regular expressions through to ripgrep", async () => {
+		let capturedArgs: string[] = [];
+		await searchContent({
+			rootPath: path.join(os.tmpdir(), "workspace-fs-missing-root"),
+			query: "source.+map",
+			isCaseSensitive: true,
+			isRegExp: true,
+			runRipgrep: async (args) => {
+				capturedArgs = args;
+				return { stdout: "" };
+			},
+		});
+
+		expect(capturedArgs).not.toContain("--fixed-strings");
+		expect(capturedArgs).toContain("auto");
+		expect(capturedArgs).toContain("--case-sensitive");
+	});
+
+	it("normalizes ripgrep paths and byte columns", async () => {
+		const rootPath = await createTempRoot();
+		const results = await searchContent({
+			rootPath,
+			query: "source",
+			runRipgrep: async () => ({
+				stdout: `${JSON.stringify({
+					type: "match",
+					data: {
+						path: { text: "./src/unicode.ts" },
+						lines: { text: "é source\n" },
+						line_number: 4,
+						submatches: [{ start: 3 }],
+					},
+				})}\n`,
+			}),
+		});
+
+		expect(results).toEqual([
+			{
+				absolutePath: path.join(rootPath, "src/unicode.ts"),
+				relativePath: "src/unicode.ts",
+				line: 4,
+				column: 3,
+				preview: "é source",
+			},
+		]);
+	});
+
+	it("keeps whole-word and case options in the scanner fallback", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(
+			path.join(rootPath, "source.ts"),
+			"source SOURCE sourceCode\n",
+		);
+
+		const results = await searchContent({
+			rootPath,
+			query: "source",
+			isCaseSensitive: false,
+			isWordMatch: true,
+			limit: 10,
+			runRipgrep: async () => {
+				throw new Error("rg unavailable");
+			},
+		});
+
+		expect(results.map((result) => result.column)).toEqual([1, 8]);
+	});
+
+	it("allows search views to raise the per-file result cap", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(
+			path.join(rootPath, "many.ts"),
+			"source\nsource\nsource\nsource\n",
+		);
+
+		const results = await searchContent({
+			rootPath,
+			query: "source",
+			maxCountPerFile: 4,
+			limit: 10,
+			runRipgrep: async () => {
+				throw new Error("rg unavailable");
+			},
+		});
+
+		expect(results).toHaveLength(4);
+	});
+
+	it("applies regular expressions in the scanner fallback", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(
+			path.join(rootPath, "patterns.ts"),
+			"sourceMap\nsource\ntarget\n",
+		);
+
+		const results = await searchContent({
+			rootPath,
+			query: "source(Map)?",
+			isRegExp: true,
+			limit: 10,
+			runRipgrep: async () => {
+				throw new Error("rg unavailable");
+			},
+		});
+
+		expect(results.map((result) => result.line)).toEqual([1, 2]);
+	});
+
+	it("rejects invalid regular expressions when using the scanner fallback", async () => {
+		const rootPath = await createTempRoot();
+
+		await expect(
+			searchContent({
+				rootPath,
+				query: "(",
+				isRegExp: true,
+				runRipgrep: async () => {
+					throw new Error("rg unavailable");
+				},
+			}),
+		).rejects.toThrow();
 	});
 });

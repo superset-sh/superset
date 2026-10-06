@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" dihapus"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\" akan ditandai ditutup di {providerName}. Anda bisa membukanya lagi dari sini kapan saja."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\" akan ditandai ditutup di GitHub. Anda bisa membukanya lagi dari sini kapan saja."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Label tidak valid"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Respons OAuth tidak valid. Silakan coba lagi."
 
+msgid "Invalid regular expression"
+msgstr "Ekspresi reguler tidak valid"
+
 msgid "Invalid Request"
 msgstr "Permintaan Tidak Valid"
 
@@ -9422,11 +9425,17 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Menandai siap ditinjau…"
 
+msgid "Match case"
+msgstr "Cocokkan huruf besar/kecil"
+
 msgid "Match existing patterns"
 msgstr "Ikuti pola yang ada"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Cocokkan pintasan dengan label pada keyboard Anda (mis. ⌘Z selalu aktif pada tombol berlabel \"Z\" — KeyY fisik di QWERTZ). Saat mati, pintasan terikat pada posisi tombol fisik dan mengabaikan sumber input saat ini."
+
+msgid "Match whole word"
+msgstr "Cocokkan seluruh kata"
 
 msgid "Max"
 msgstr "Maks"
@@ -13937,6 +13946,9 @@ msgstr "Tayangan dan klik pencarian 28 hari terakhir, dengan kueri dibagi menjad
 msgid "Search in {frameTitle}…"
 msgstr "Cari di {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Cari dalam File"
+
 msgid "Search issues..."
 msgstr "Cari issue..."
 
@@ -14642,6 +14654,9 @@ msgstr "Tampilkan tab penggunaan di bilah samping"
 
 msgid "showArrow opt-in"
 msgstr "showArrow opsional"
+
+msgid "Showing the first 500 results."
+msgstr "Menampilkan 500 hasil pertama."
 
 msgid "Shown"
 msgstr "Ditampilkan"
@@ -17433,6 +17448,9 @@ msgstr "Pakai untuk agen baru"
 
 msgid "Use global default"
 msgstr "Pakai bawaan global"
+
+msgid "Use regular expression"
+msgstr "Gunakan ekspresi reguler"
 
 msgid "Use Superset on mobile"
 msgstr "Gunakan Superset di ponsel"

@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "«{0}» удалена"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "«{0}» будет отмечен как закрытый на {providerName}. Открыть заново можно отсюда в любой момент."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "«{0}» будет отмечен как закрытый на GitHub. Открыть заново можно отсюда в любой момент."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Недопустимая метка"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Некорректный ответ OAuth. Попробуйте ещё раз."
 
+msgid "Invalid regular expression"
+msgstr "Недопустимое регулярное выражение"
+
 msgid "Invalid Request"
 msgstr "Некорректный запрос"
 
@@ -9422,11 +9425,17 @@ msgstr "Маркетплейс"
 msgid "Marking ready for review..."
 msgstr "Помечается как готово к ревью…"
 
+msgid "Match case"
+msgstr "Учитывать регистр"
+
 msgid "Match existing patterns"
 msgstr "Следуй существующим шаблонам"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Привязывать сочетания к обозначениям на вашей клавиатуре (например, ⌘Z всегда срабатывает на клавише с надписью «Z» — физическая KeyY на QWERTZ). Когда выключено, сочетания привязаны к физическим позициям клавиш и не зависят от текущего источника ввода."
+
+msgid "Match whole word"
+msgstr "Слово целиком"
 
 msgid "Max"
 msgstr "Макс."
@@ -13937,6 +13946,9 @@ msgstr "Показы и клики в поиске за последние 28 д
 msgid "Search in {frameTitle}…"
 msgstr "Поиск в {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Поиск в файлах"
+
 msgid "Search issues..."
 msgstr "Поиск задач..."
 
@@ -14642,6 +14654,9 @@ msgstr "Показывать вкладку использования на бо
 
 msgid "showArrow opt-in"
 msgstr "showArrow по желанию"
+
+msgid "Showing the first 500 results."
+msgstr "Показаны первые 500 результатов."
 
 msgid "Shown"
 msgstr "Показанные"
@@ -17433,6 +17448,9 @@ msgstr "Использовать для новых агентов"
 
 msgid "Use global default"
 msgstr "Использовать общий по умолчанию"
+
+msgid "Use regular expression"
+msgstr "Использовать регулярное выражение"
 
 msgid "Use Superset on mobile"
 msgstr "Используйте Superset на телефоне"

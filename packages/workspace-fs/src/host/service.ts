@@ -284,6 +284,10 @@ export function createFsHostService(
 				includeHidden: input.includeHidden,
 				includePattern: input.includePattern,
 				excludePattern: input.excludePattern,
+				isCaseSensitive: input.isCaseSensitive,
+				isWordMatch: input.isWordMatch,
+				isRegExp: input.isRegExp,
+				maxCountPerFile: input.maxCountPerFile,
 				limit: input.limit,
 				runRipgrep: options.runRipgrep,
 			});

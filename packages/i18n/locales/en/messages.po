@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" deleted"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Invalid label"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Invalid OAuth response. Please try again."
 
+msgid "Invalid regular expression"
+msgstr "Invalid regular expression"
+
 msgid "Invalid Request"
 msgstr "Invalid Request"
 
@@ -9422,11 +9425,17 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Marking ready for review..."
 
+msgid "Match case"
+msgstr "Match case"
+
 msgid "Match existing patterns"
 msgstr "Match existing patterns"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
+
+msgid "Match whole word"
+msgstr "Match whole word"
 
 msgid "Max"
 msgstr "Max"
@@ -13937,6 +13946,9 @@ msgstr "Search impressions and clicks for the last 28 days, with queries split i
 msgid "Search in {frameTitle}…"
 msgstr "Search in {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Search in Files"
+
 msgid "Search issues..."
 msgstr "Search issues..."
 
@@ -14642,6 +14654,9 @@ msgstr "Show usage tab on sidebar"
 
 msgid "showArrow opt-in"
 msgstr "showArrow opt-in"
+
+msgid "Showing the first 500 results."
+msgstr "Showing the first 500 results."
 
 msgid "Shown"
 msgstr "Shown"
@@ -17433,6 +17448,9 @@ msgstr "Use for new agents"
 
 msgid "Use global default"
 msgstr "Use global default"
+
+msgid "Use regular expression"
+msgstr "Use regular expression"
 
 msgid "Use Superset on mobile"
 msgstr "Use Superset on mobile"

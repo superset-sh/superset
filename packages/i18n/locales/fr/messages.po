@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "« {0} » supprimée"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\" sera marquée comme fermée sur {providerName}. Vous pourrez la rouvrir d'ici à tout moment."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\" sera marquée comme fermée sur GitHub. Vous pourrez la rouvrir d'ici à tout moment."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Libellé non valide"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Réponse OAuth invalide. Veuillez réessayer."
 
+msgid "Invalid regular expression"
+msgstr "Expression régulière non valide"
+
 msgid "Invalid Request"
 msgstr "Requête invalide"
 
@@ -9422,11 +9425,17 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Marquage comme prêt pour la revue…"
 
+msgid "Match case"
+msgstr "Respecter la casse"
+
 msgid "Match existing patterns"
 msgstr "Suivre les modèles existants"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Faire correspondre les raccourcis aux libellés de votre clavier (par ex. ⌘Z se déclenche toujours sur la touche marquée « Z » — physiquement KeyY sur un clavier QWERTZ). Lorsque cette option est désactivée, les raccourcis sont liés aux positions physiques des touches et ignorent la source de saisie actuelle."
+
+msgid "Match whole word"
+msgstr "Mot entier"
 
 msgid "Max"
 msgstr "Max"
@@ -13937,6 +13946,9 @@ msgstr "Impressions et clics de recherche sur les 28 derniers jours, requêtes r
 msgid "Search in {frameTitle}…"
 msgstr "Rechercher dans {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Rechercher dans les fichiers"
+
 msgid "Search issues..."
 msgstr "Rechercher des issues..."
 
@@ -14642,6 +14654,9 @@ msgstr "Afficher l’onglet d’utilisation dans la barre latérale"
 
 msgid "showArrow opt-in"
 msgstr "showArrow en option"
+
+msgid "Showing the first 500 results."
+msgstr "Affichage des 500 premiers résultats."
 
 msgid "Shown"
 msgstr "Affichés"
@@ -17433,6 +17448,9 @@ msgstr "Utiliser pour les nouveaux agents"
 
 msgid "Use global default"
 msgstr "Utiliser la valeur globale par défaut"
+
+msgid "Use regular expression"
+msgstr "Utiliser une expression régulière"
 
 msgid "Use Superset on mobile"
 msgstr "Utiliser Superset sur mobile"

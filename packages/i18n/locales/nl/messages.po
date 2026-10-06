@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\" verwijderd"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\" wordt op {providerName} als gesloten gemarkeerd. Je kunt hem hier op elk moment heropenen."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\" wordt op GitHub als gesloten gemarkeerd. Je kunt hem hier op elk moment heropenen."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "Ongeldig label"
 msgid "Invalid OAuth response. Please try again."
 msgstr "Ongeldig OAuth-antwoord. Probeer het opnieuw."
 
+msgid "Invalid regular expression"
+msgstr "Ongeldige reguliere expressie"
+
 msgid "Invalid Request"
 msgstr "Ongeldig verzoek"
 
@@ -9422,11 +9425,17 @@ msgstr "Marketplace"
 msgid "Marking ready for review..."
 msgstr "Markeren als klaar voor review…"
 
+msgid "Match case"
+msgstr "Hoofdlettergevoelig"
+
 msgid "Match existing patterns"
 msgstr "Volg bestaande patronen"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "Koppel sneltoetsen aan de opschriften op je toetsenbord (bijv. ⌘Z werkt altijd op de toets met \"Z\" — fysiek KeyY op QWERTZ). Staat dit uit, dan zijn sneltoetsen aan fysieke toetsposities gekoppeld en negeren ze de huidige invoerbron."
+
+msgid "Match whole word"
+msgstr "Heel woord"
 
 msgid "Max"
 msgstr "Max"
@@ -13937,6 +13946,9 @@ msgstr "Zoekvertoningen en klikken van de laatste 28 dagen, met zoekopdrachten g
 msgid "Search in {frameTitle}…"
 msgstr "Zoeken in {frameTitle}…"
 
+msgid "Search in Files"
+msgstr "Zoeken in bestanden"
+
 msgid "Search issues..."
 msgstr "Issues zoeken..."
 
@@ -14642,6 +14654,9 @@ msgstr "Gebruikstabblad tonen in zijbalk"
 
 msgid "showArrow opt-in"
 msgstr "showArrow inschakelen"
+
+msgid "Showing the first 500 results."
+msgstr "De eerste 500 resultaten worden weergegeven."
 
 msgid "Shown"
 msgstr "Weergegeven"
@@ -17433,6 +17448,9 @@ msgstr "Gebruiken voor nieuwe agents"
 
 msgid "Use global default"
 msgstr "Globale standaard gebruiken"
+
+msgid "Use regular expression"
+msgstr "Reguliere expressie gebruiken"
 
 msgid "Use Superset on mobile"
 msgstr "Gebruik Superset op je mobiel"

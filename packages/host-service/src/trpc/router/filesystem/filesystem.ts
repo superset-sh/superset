@@ -537,6 +537,10 @@ export const filesystemRouter = router({
 				includeHidden: z.boolean().optional(),
 				includePattern: z.string().optional(),
 				excludePattern: z.string().optional(),
+				isCaseSensitive: z.boolean().optional(),
+				isWordMatch: z.boolean().optional(),
+				isRegExp: z.boolean().optional(),
+				maxCountPerFile: z.number().optional(),
 				limit: z.number().optional(),
 			}),
 		)

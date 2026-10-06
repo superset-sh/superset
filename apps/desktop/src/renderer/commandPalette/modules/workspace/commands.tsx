@@ -4,9 +4,11 @@ import {
 	FileIcon,
 	LinkIcon,
 	PlusIcon,
+	SearchIcon,
 	Trash2Icon,
 	ZapIcon,
 } from "lucide-react";
+import { useContentSearchStore } from "renderer/commandPalette/ui/ContentSearch/contentSearchStore";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
@@ -60,6 +62,18 @@ export const workspaceProvider: CommandProvider = {
 				hotkeyId: "QUICK_OPEN",
 				run: () =>
 					useQuickOpenStore.getState().openFor({
+						workspaceId: workspace.id,
+					}),
+			},
+			{
+				id: "files.searchContents",
+				title: msg({ message: "Search in Files" }),
+				section: "workspace",
+				icon: SearchIcon,
+				keywords: ["content", "find", "grep"],
+				hotkeyId: "SEARCH_IN_FILES",
+				run: () =>
+					useContentSearchStore.getState().openFor({
 						workspaceId: workspace.id,
 					}),
 			},

@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "「{0}」を削除しました"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "「{0}」は{providerName}上でクローズ済みになります。ここからいつでも再オープンできます。"
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "「{0}」はGitHub上でクローズ済みになります。ここからいつでも再オープンできます。"
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "無効なラベル"
 msgid "Invalid OAuth response. Please try again."
 msgstr "OAuthのレスポンスが無効です。もう一度お試しください。"
 
+msgid "Invalid regular expression"
+msgstr "正規表現が無効です"
+
 msgid "Invalid Request"
 msgstr "無効なリクエスト"
 
@@ -9422,11 +9425,17 @@ msgstr "マーケットプレイス"
 msgid "Marking ready for review..."
 msgstr "レビュー準備完了にしています…"
 
+msgid "Match case"
+msgstr "大文字と小文字を区別"
+
 msgid "Match existing patterns"
 msgstr "既存のパターンに合わせて"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "ショートカットをキーボードの刻印に合わせます(例: ⌘Zは常に「Z」と刻印されたキーで発火 — QWERTZでは物理KeyY)。オフの場合、ショートカットは物理キー位置に固定され、現在の入力ソースを無視します。"
+
+msgid "Match whole word"
+msgstr "単語単位で一致"
 
 msgid "Max"
 msgstr "最大"
@@ -13937,6 +13946,9 @@ msgstr "直近28日の検索表示回数とクリック数。クエリは自社�
 msgid "Search in {frameTitle}…"
 msgstr "{frameTitle}内を検索…"
 
+msgid "Search in Files"
+msgstr "ファイル内を検索"
+
 msgid "Search issues..."
 msgstr "Issueを検索..."
 
@@ -14642,6 +14654,9 @@ msgstr "サイドバーに使用状況タブを表示"
 
 msgid "showArrow opt-in"
 msgstr "showArrowで有効化"
+
+msgid "Showing the first 500 results."
+msgstr "最初の500件の結果を表示しています。"
 
 msgid "Shown"
 msgstr "表示中"
@@ -17433,6 +17448,9 @@ msgstr "新規エージェントに使用"
 
 msgid "Use global default"
 msgstr "グローバルのデフォルトを使用"
+
+msgid "Use regular expression"
+msgstr "正規表現を使用"
 
 msgid "Use Superset on mobile"
 msgstr "モバイルでSupersetを使う"

@@ -3,6 +3,7 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LuFile } from "react-icons/lu";
+import { useContentSearchStore } from "renderer/commandPalette/ui/ContentSearch/contentSearchStore";
 import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -12,7 +13,7 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useReviewCommentNavigation } from "../../hooks/useReviewCommentNavigation";
 import { useRowlessSidebarTabStore } from "../../state/rowlessSidebarTabStore";
-import type { CommentPaneData, DiffFocusSide } from "../../types";
+import type { CommentPaneData, DiffFocusSide, OpenFile } from "../../types";
 import {
 	DEFAULT_WORKSPACE_SIDEBAR_TAB,
 	setWorkspaceSidebarTab,
@@ -39,7 +40,7 @@ export interface PendingReveal {
 }
 
 interface WorkspaceSidebarProps {
-	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
+	onSelectFile: OpenFile;
 	onSelectDiffFile?: (
 		path: string,
 		openInNewTab?: boolean,
@@ -78,6 +79,9 @@ export function WorkspaceSidebar({
 	const { t } = useLingui();
 	const gitStatus = useWorkspaceGitStatus();
 	const collections = useCollections();
+	const contentSearchOpen = useContentSearchStore(
+		(state) => state.open && state.target?.workspaceId === workspaceId,
+	);
 	const { data: [localState] = [] } = useLiveQuery(
 		(query) =>
 			query
@@ -111,6 +115,12 @@ export function WorkspaceSidebar({
 		if (!isSidebarTabId(tab)) return;
 		setWorkspaceSidebarTab(collections, workspaceId, tab);
 	}
+
+	useEffect(() => {
+		if (contentSearchOpen) {
+			setWorkspaceSidebarTab(collections, workspaceId, "files");
+		}
+	}, [collections, contentSearchOpen, workspaceId]);
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [compact, setCompact] = useState(false);

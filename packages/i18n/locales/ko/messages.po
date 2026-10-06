@@ -43,8 +43,8 @@ msgid "\"{0}\" deleted"
 msgstr "\"{0}\"을(를) 삭제했습니다"
 
 #. placeholder {0}: data.title
-msgid "\"{0}\" will be marked closed on {providerName}. You can reopen it from here at any time."
-msgstr "\"{0}\"이(가) {providerName}에서 닫힘으로 표시됩니다. 언제든 여기에서 다시 열 수 있습니다."
+msgid "\"{0}\" will be marked closed on GitHub. You can reopen it from here at any time."
+msgstr "\"{0}\"이(가) GitHub에서 닫힘으로 표시됩니다. 언제든 여기에서 다시 열 수 있습니다."
 
 #. placeholder {0}: data.title
 #. placeholder {1}: data.base.ref
@@ -8462,6 +8462,9 @@ msgstr "잘못된 라벨"
 msgid "Invalid OAuth response. Please try again."
 msgstr "OAuth 응답이 올바르지 않습니다. 다시 시도해 주세요."
 
+msgid "Invalid regular expression"
+msgstr "잘못된 정규식"
+
 msgid "Invalid Request"
 msgstr "잘못된 요청"
 
@@ -9422,11 +9425,17 @@ msgstr "마켓플레이스"
 msgid "Marking ready for review..."
 msgstr "리뷰 준비 완료로 표시하는 중…"
 
+msgid "Match case"
+msgstr "대/소문자 구분"
+
 msgid "Match existing patterns"
 msgstr "기존 패턴을 따라 주세요"
 
 msgid "Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires on the key labeled \"Z\" — physical KeyY on QWERTZ). When off, shortcuts are anchored to physical key positions and ignore the current input source."
 msgstr "키보드에 인쇄된 문자에 맞춰 단축키를 매핑합니다(예: ⌘Z는 항상 \"Z\"라고 적힌 키에서 동작하며, QWERTZ에서는 물리 키 KeyY입니다). 끄면 단축키가 물리적 키 위치에 고정되며 현재 입력 소스를 무시합니다."
+
+msgid "Match whole word"
+msgstr "단어 단위로 일치"
 
 msgid "Max"
 msgstr "최대"
@@ -13937,6 +13946,9 @@ msgstr "최근 28일 검색 노출과 클릭. 검색어는 우리 브랜드, Apa
 msgid "Search in {frameTitle}…"
 msgstr "{frameTitle}에서 검색…"
 
+msgid "Search in Files"
+msgstr "파일에서 검색"
+
 msgid "Search issues..."
 msgstr "이슈 검색..."
 
@@ -14642,6 +14654,9 @@ msgstr "사이드바에 사용량 탭 표시"
 
 msgid "showArrow opt-in"
 msgstr "showArrow 선택 사용"
+
+msgid "Showing the first 500 results."
+msgstr "처음 500개 결과를 표시합니다."
 
 msgid "Shown"
 msgstr "표시됨"
@@ -17433,6 +17448,9 @@ msgstr "새 에이전트에 사용"
 
 msgid "Use global default"
 msgstr "전역 기본값 사용"
+
+msgid "Use regular expression"
+msgstr "정규식 사용"
 
 msgid "Use Superset on mobile"
 msgstr "모바일에서 Superset 사용하기"
