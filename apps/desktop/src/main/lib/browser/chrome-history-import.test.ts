@@ -5,6 +5,7 @@ import path from "node:path";
 import {
 	type ChromeUrlRow,
 	chromeTimeToUnixMs,
+	listLoginImportSources,
 	mapUrlRowsToEntries,
 	readHistoryFromProfile,
 } from "./chrome-history-import";
@@ -118,5 +119,37 @@ describe("readHistoryFromProfile", () => {
 		} finally {
 			rmSync(emptyDir, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("listLoginImportSources", () => {
+	const source = (browserKey: string, profileName: string) => ({
+		id: `${browserKey}/${profileName}`,
+		browserKey,
+		browserName: browserKey,
+		profileName,
+	});
+
+	it("drops browsers without a Keychain key and checks each browser once", async () => {
+		const checked: string[] = [];
+		const sources = await listLoginImportSources(
+			async (browserKey) => {
+				checked.push(browserKey);
+				return browserKey !== "brave";
+			},
+			[
+				source("aside", "Default"),
+				source("brave", "Default"),
+				source("dia", "Default"),
+				source("dia", "Work"),
+			],
+		);
+
+		expect(sources.map((s) => s.id)).toEqual([
+			"aside/Default",
+			"dia/Default",
+			"dia/Work",
+		]);
+		expect(checked).toEqual(["aside", "brave", "dia"]);
 	});
 });
