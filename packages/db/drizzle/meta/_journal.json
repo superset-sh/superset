@@ -1009,6 +1009,13 @@
       "when": 1791059309196,
       "tag": "0143_task_numbers_per_team",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1791403363715,
+      "tag": "0144_drop_task_external_columns",
+      "breakpoints": true
     }
   ]
 }
