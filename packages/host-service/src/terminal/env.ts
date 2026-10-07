@@ -57,6 +57,22 @@ const SANDBOX_FIREWALL_CA_KEYS = [
 	"GRPC_DEFAULT_SSL_ROOTS_FILE_PATH",
 ];
 
+const MANAGED_ENV_WRAPPER_OWNED_KEYS = new Set([
+	"SUPERSET_AGENT_ID",
+	"SUPERSET_AGENT_LAUNCH_ID",
+	"SUPERSET_NESTED_AGENT",
+]);
+
+function stripManagedEnvWrapperKeys(
+	managedEnv: Record<string, string>,
+): Record<string, string> {
+	return Object.fromEntries(
+		Object.entries(managedEnv).filter(
+			([key]) => !MANAGED_ENV_WRAPPER_OWNED_KEYS.has(key),
+		),
+	);
+}
+
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
 		return cachedMacosSystemCertAvailable;
@@ -330,7 +346,7 @@ export function buildV2TerminalEnv(
 		// The environment's variables and the credential placeholders arrive
 		// from the control plane after boot and live only in memory; a terminal
 		// opened before the first push gets none, and the next one gets them.
-		Object.assign(env, getManagedEnv());
+		Object.assign(env, stripManagedEnvWrapperKeys(getManagedEnv()));
 		for (const key of SANDBOX_FIREWALL_CA_KEYS) {
 			const value = process.env[key];
 			if (value) env[key] = value;

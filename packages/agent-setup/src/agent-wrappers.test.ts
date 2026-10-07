@@ -26,7 +26,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v20",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v21",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -416,6 +416,10 @@ describe("agent-wrappers opencode", () => {
 		});
 		expect(notify).not.toHaveBeenCalled();
 	});
+});
+
+it("passes nested suppression metadata to Muse hooks", () => {
+	expect(MUSE_HOOK_ENV_VARS).toContain("SUPERSET_NESTED_AGENT");
 });
 
 describe("agent-wrappers copilot", () => {
@@ -1218,9 +1222,9 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
-		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v6");
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v8");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v7");
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v7");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v9");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v8");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {

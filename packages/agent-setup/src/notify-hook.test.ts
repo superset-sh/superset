@@ -74,7 +74,11 @@ function fakeHostService(ignored: boolean) {
 	const server = Bun.serve({
 		port: 0,
 		fetch: async (req) => {
-			requests.push((await req.json()) as (typeof requests)[number]);
+			requests.push(
+				req.method === "POST"
+					? ((await req.json()) as (typeof requests)[number])
+					: { json: Object.fromEntries(new URL(req.url).searchParams) },
+			);
 			return Response.json({
 				result: { data: { json: { success: true, ignored } } },
 			});
@@ -103,8 +107,31 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 }
 
 describe("getNotifyScriptContent", () => {
+	it("does not dispatch nested main or subagent hooks to either host endpoint", async () => {
+		const host = fakeHostService(false);
+		try {
+			for (const input of [
+				{ hook_event_name: "SessionStart", session_id: "nested" },
+				{ hook_event_name: "SessionEnd", session_id: "nested" },
+				{ hook_event_name: "Stop", session_id: "nested" },
+				{ hook_event_name: "SubagentStart", agent_id: "nested-child" },
+			]) {
+				const result = await runNotifyHookAsync(input, {
+					SUPERSET_NESTED_AGENT: "1",
+					SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+					SUPERSET_TAB_ID: "legacy-tab",
+					SUPERSET_PORT: String(new URL(host.url).port),
+				});
+				expect(result.exitCode).toBe(0);
+			}
+			expect(host.requests).toEqual([]);
+		} finally {
+			host.stop();
+		}
+	});
+
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v20");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v21");
 	});
 
 	it("forwards the main session's transcript path with its identity", async () => {
@@ -413,6 +440,61 @@ describe("getNotifyScriptContent", () => {
 });
 
 describe("per-agent hook scripts dispatch to v2", () => {
+	for (const [template, agentId, eventArg, input, response] of [
+		[
+			"gemini-hook.template.sh",
+			"gemini",
+			"",
+			{ hook_event_name: "SessionEnd" },
+			"{}\n",
+		],
+		["copilot-hook.template.sh", "copilot", "sessionEnd", {}, "{}\n"],
+		[
+			"cursor-hook.template.sh",
+			"cursor-agent",
+			"PermissionRequest",
+			{},
+			'{"continue":true}\n',
+		],
+	] as const) {
+		it(`${template} suppresses nested dispatch without blocking its response`, async () => {
+			const host = fakeHostService(false);
+			const script = readFileSync(getTemplatePath(template), "utf-8")
+				.replaceAll("{{MARKER}}", "# test hook")
+				.replaceAll("{{DEFAULT_PORT}}", "48763");
+			try {
+				for (const terminalId of ["terminal-test", ""]) {
+					for (const nestedMarker of ["", "1"]) {
+						host.requests.length = 0;
+						const proc = Bun.spawn({
+							cmd: ["bash", "-c", script, "hook.sh", eventArg],
+							env: hookEnv({
+								SUPERSET_AGENT_ID: agentId,
+								SUPERSET_NESTED_AGENT: nestedMarker,
+								SUPERSET_TERMINAL_ID: terminalId,
+								SUPERSET_TAB_ID: "legacy-tab",
+								SUPERSET_HOST_AGENT_HOOK_URL: `${host.url}/trpc/notifications.hook`,
+								SUPERSET_PORT: String(new URL(host.url).port),
+							}),
+							stdin: Buffer.from(JSON.stringify(input)),
+							stdout: "pipe",
+							stderr: "pipe",
+						});
+						const [exitCode, stdout] = await Promise.all([
+							proc.exited,
+							new Response(proc.stdout).text(),
+						]);
+						expect(exitCode).toBe(0);
+						expect(stdout).toBe(response);
+						expect(host.requests).toHaveLength(nestedMarker ? 0 : 1);
+					}
+				}
+			} finally {
+				host.stop();
+			}
+		});
+	}
+
 	const buildExpectedV2Payload = (agentIdVar: string) =>
 		`PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$${agentIdVar}")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"`;
 
