@@ -1472,6 +1472,9 @@ msgstr "Kuruluşunuz için benzersiz bir tanımlayıcı (addan otomatik oluştur
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Vazgeç"
+
 msgid "About"
 msgstr "Hakkımızda"
 
@@ -3430,6 +3433,9 @@ msgstr "Vadesiz + birikim + Treasury zaman içinde; yatırım dilimleri basamakl
 msgid "Checking agents…"
 msgstr "Ajanlar denetleniyor…"
 
+msgid "Checking dictation settings"
+msgstr "Dikte ayarları kontrol ediliyor"
+
 msgid "Checking environments…"
 msgstr "Ortamlar kontrol ediliyor…"
 
@@ -4626,6 +4632,9 @@ msgstr "Bu sayfayı kimlerin görebileceği değiştirilemedi"
 msgid "Could not change who can see this workspace"
 msgstr "Bu çalışma alanını kimlerin görebileceği değiştirilemedi"
 
+msgid "Could not check dictation settings"
+msgstr "Dikte ayarları kontrol edilemedi"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Planınız kontrol edilemedi. Bağlantınızı kontrol edip tekrar deneyin."
 
@@ -4731,6 +4740,9 @@ msgstr "Bu pull request'i yüklemek için host'a erişilemedi."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Güncellemeyi başlatmak için ana makineye ulaşılamadı. Çevrimiçi olduğundan emin olup tekrar deneyin."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Transkripsiyon için Mac’e ulaşılamadı."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Sağlayıcıya ulaşılamadı. Yeniden deneyin."
@@ -7111,6 +7123,9 @@ msgstr "Rol güncellenemedi"
 
 msgid "Failed to update setting"
 msgstr "Ayar güncellenemedi"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Superwhisper ayarları güncellenemedi"
 
 msgid "Failed to update task assignee"
 msgstr "Görevin atanan kişisi güncellenemedi"
@@ -9723,6 +9738,9 @@ msgstr "model"
 msgid "Model"
 msgstr "Model"
 
+msgid "Model and language"
+msgstr "Model ve dil"
+
 msgid "Model context usage"
 msgstr "Model bağlam kullanımı"
 
@@ -10837,6 +10855,9 @@ msgstr "Verilmedi"
 
 msgid "Not included"
 msgstr "Dahil değil"
+
+msgid "Not installed"
+msgstr "Yüklü değil"
 
 msgid "Not loaded"
 msgstr "Yüklenmedi"
@@ -15670,6 +15691,15 @@ msgstr "iPhone'da Superset Mobile terminali"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, bulut çalışma alanları, otomasyonlar ve öncelikli destek."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Superwhisper içindeki Superset modu"
+
+msgid "Superset mode needs setup"
+msgstr "Superset modunun ayarlanması gerekiyor"
+
+msgid "Superset mode ready"
+msgstr "Superset modu hazır"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset'in başka bir tarayıcının verilerini okuyabilmesi için Tam Disk Erişimi gerekir. Sistem Ayarları'ndan verin, sonra yeniden denetleyin."
 
@@ -15706,6 +15736,30 @@ msgstr "Superset'in mobil uygulaması, bilgisayarımdan çok uzakta olsam bile a
 
 msgid "Supervised"
 msgstr "Gözetimli"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper kaydı okuyamadı."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper Mac’inizin modunu veya panosunu geri yükleyemedi."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper kaydı yazıya dökemedi."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Bu Mac’te Superwhisper diktesi devre dışı."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper zamanında yanıt vermedi. Mac’inizde Pro lisansı olduğundan emin olun."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Bu Mac’te Superwhisper yüklü değil."
+
+msgid "Superwhisper status"
+msgstr "Superwhisper durumu"
 
 msgid "Support"
 msgstr "Destek"
@@ -16410,6 +16464,9 @@ msgstr "{organization} için Superset host hizmeti beklenmedik şekilde durdu ({
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset host hizmeti beklenmedik şekilde durdu ({cause}) ve otomatik olarak yeniden başlatılamadı."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Superwhisper’daki Superset modu hazır değil."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "Ürünü site dışında taşıyan yüzeyler: depo, sürümler ve Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Şu kararsız testin izini sür…"
 msgid "Tracking"
 msgstr "İzleme"
 
+msgid "Transcription failed"
+msgstr "Transkripsiyon başarısız"
+
+msgid "Transcription on {name}"
+msgstr "{name} üzerinde transkripsiyon"
+
 msgid "Translated"
 msgstr "Çevrildi"
 
@@ -17562,6 +17625,9 @@ msgstr "Superset’i mobilde kullanın"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Pro ile Superset’i telefonunuzda kullanın."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Mobil dikte için Superwhisper kullan"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Paralel kodlama ajanları çalıştırmaya başlamak için masaüstü uygulamasını kullanın."

@@ -57,7 +57,7 @@ final class ComposerModel {
   /// mirror of the React Native hook.
   let dictation = ComposerDictation()
 
-  var isDictating: Bool { dictation.isActive }
+  var isDictating: Bool { dictation.isActive || dictation.isRemoteBusy }
 
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []

@@ -39,6 +39,20 @@ final class ComposerDictation {
     case finalizing
   }
 
+  enum Engine: String { case apple, file }
+
+  var selectedEngine: Engine = .apple
+  var isBlocked = false
+  var isRemoteBusy = false
+  var statusLabel = ""
+  @ObservationIgnored var onStart: (() -> Void)?
+  @ObservationIgnored var onStatusPress: (() -> Void)?
+  @ObservationIgnored var onAudio: ((String, Double) -> Void)?
+  @ObservationIgnored private var activeEngine: Engine = .apple
+  @ObservationIgnored private var audio: ComposerAudioRecording?
+  @ObservationIgnored private var limit: Task<Void, Never>?
+  @ObservationIgnored private var hasTap = false
+
   private(set) var state: State = .idle
 
   /// The last few loudness samples, oldest first, each 0–1.
@@ -56,7 +70,7 @@ final class ComposerDictation {
   @ObservationIgnored var onError: ((String) -> Void)?
 
   @ObservationIgnored private let engine = AVAudioEngine()
-  @ObservationIgnored private let recognizer = SFSpeechRecognizer()
+  @ObservationIgnored private lazy var recognizer = SFSpeechRecognizer()
   @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
   @ObservationIgnored private var task: SFSpeechRecognitionTask?
   @ObservationIgnored private var transcript = ""
@@ -90,6 +104,9 @@ final class ComposerDictation {
   @MainActor
   func start() {
     guard case .idle = state else { return }
+    guard !isBlocked else { onStatusPress?(); return }
+    activeEngine = selectedEngine
+    onStart?()
     setState(.preparing)
     Task { @MainActor in
       guard await requestAuthorization() else {
@@ -97,6 +114,7 @@ final class ComposerDictation {
         onError?(composerLocalized("Microphone access is not allowed"))
         return
       }
+      guard case .preparing = state else { return }
       do {
         try beginRecording()
       } catch {
@@ -113,18 +131,45 @@ final class ComposerDictation {
     // Let the recogniser flush what it has; `task` reports the final result.
     engine.inputNode.removeTap(onBus: 0)
     engine.stop()
+    hasTap = false
+    limit?.cancel()
+    limit = nil
+    if activeEngine == .file {
+      guard let audio else { settle(with: nil); return }
+      do {
+        let duration = try audio.finish()
+        self.audio = nil
+        settle(with: nil)
+        onAudio?(audio.url.absoluteString, duration)
+      } catch {
+        audio.discard()
+        self.audio = nil
+        settle(with: nil)
+        onError?(composerLocalized("Could not start dictation"))
+      }
+      return
+    }
     request?.endAudio()
     armBackstop()
+  }
+
+  @MainActor
+  func finishOnDetach() {
+    if activeEngine == .file { settle(with: nil) }
+    else if case .recording = state { stop() }
+    else if case .preparing = state { settle(with: nil) }
   }
 
   // MARK: - Internals
 
   @MainActor
   private func requestAuthorization() async -> Bool {
-    let speech = await withCheckedContinuation { continuation in
-      SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
+    if activeEngine == .apple {
+      let speech = await withCheckedContinuation { continuation in
+        SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
+      }
+      guard speech == .authorized else { return false }
     }
-    guard speech == .authorized else { return false }
     return await withCheckedContinuation { continuation in
       AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
     }
@@ -132,7 +177,8 @@ final class ComposerDictation {
 
   @MainActor
   private func beginRecording() throws {
-    guard let recognizer, recognizer.isAvailable else {
+    let speechRecognizer = activeEngine == .apple ? recognizer : nil
+    guard activeEngine == .file || speechRecognizer?.isAvailable == true else {
       throw NSError(domain: "ComposerDictation", code: 1)
     }
 
@@ -144,9 +190,9 @@ final class ComposerDictation {
     )
     try session.setActive(true, options: .notifyOthersOnDeactivation)
 
-    let request = SFSpeechAudioBufferRecognitionRequest()
+    let request = activeEngine == .apple ? SFSpeechAudioBufferRecognitionRequest() : nil
     // Interim results would rewrite the draft mid-sentence.
-    request.shouldReportPartialResults = false
+    request?.shouldReportPartialResults = false
     self.request = request
     transcript = ""
 
@@ -158,6 +204,8 @@ final class ComposerDictation {
     guard format.sampleRate > 0, format.channelCount > 0 else {
       throw NSError(domain: "ComposerDictation", code: 2)
     }
+    if activeEngine == .file { audio = try ComposerAudioRecording(format: format) }
+    let recording = audio
     pendingFrames = 0
     pendingPeak = 0
     // `installTap` raises an Objective-C exception rather than throwing, and
@@ -171,26 +219,36 @@ final class ComposerDictation {
     // failure path instead of taking the app down.
     try ComposerExceptionGuard.run {
       input.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
-        request.append(buffer)
+        request?.append(buffer)
+        recording?.append(buffer)
         self?.accumulate(buffer, sampleRate: buffer.format.sampleRate)
       }
     }
 
+    hasTap = true
     engine.prepare()
     try engine.start()
 
-    task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-      guard let self else { return }
-      if let result, result.isFinal {
-        self.transcript = result.bestTranscription.formattedString
-      }
-      // The task ending is authoritative: nothing can follow it.
-      if error != nil || result?.isFinal == true {
-        Task { @MainActor in self.settle(with: self.transcript) }
+    if let request, let recognizer = speechRecognizer {
+      task = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        guard let self else { return }
+        if let result, result.isFinal {
+          self.transcript = result.bestTranscription.formattedString
+        }
+        // The task ending is authoritative: nothing can follow it.
+        if error != nil || result?.isFinal == true {
+          Task { @MainActor in self.settle(with: self.transcript) }
+        }
       }
     }
-
     setState(.recording(startedAt: Date()))
+    if activeEngine == .file {
+      limit = Task { [weak self] in
+        try? await Task.sleep(for: .seconds(300))
+        guard !Task.isCancelled else { return }
+        self?.stop()
+      }
+    }
   }
 
   /// Called on the audio thread for every buffer. It folds each one into a
@@ -252,10 +310,15 @@ final class ComposerDictation {
     task?.cancel()
     task = nil
     request = nil
-    if engine.isRunning {
+    limit?.cancel()
+    limit = nil
+    audio?.discard()
+    audio = nil
+    if hasTap {
       engine.inputNode.removeTap(onBus: 0)
-      engine.stop()
+      hasTap = false
     }
+    engine.stop()
     try? AVAudioSession.sharedInstance().setActive(
       false,
       options: .notifyOthersOnDeactivation

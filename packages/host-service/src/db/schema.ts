@@ -135,6 +135,9 @@ export const projects = sqliteTable(
  * override of their own.
  */
 export const hostSettings = sqliteTable("host_settings", {
+	superwhisperEnabled: integer("superwhisper_enabled", { mode: "boolean" })
+		.notNull()
+		.default(false),
 	id: integer().primaryKey().default(1),
 	worktreeBaseDir: text("worktree_base_dir"),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),

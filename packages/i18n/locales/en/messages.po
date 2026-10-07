@@ -1472,6 +1472,9 @@ msgstr "A unique identifier for your organization (auto-generated from name)"
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Abandon"
+
 msgid "About"
 msgstr "About"
 
@@ -3430,6 +3433,9 @@ msgstr "Checking + savings + Treasury over time; fundraise tranches are the step
 msgid "Checking agents…"
 msgstr "Checking agents…"
 
+msgid "Checking dictation settings"
+msgstr "Checking dictation settings"
+
 msgid "Checking environments…"
 msgstr "Checking environments…"
 
@@ -4626,6 +4632,9 @@ msgstr "Could not change who can see this page"
 msgid "Could not change who can see this workspace"
 msgstr "Could not change who can see this workspace"
 
+msgid "Could not check dictation settings"
+msgstr "Could not check dictation settings"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Could not check your plan. Check your connection and try again."
 
@@ -4731,6 +4740,9 @@ msgstr "Could not reach the host to load this pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Could not reach the host to start the update. Check that it is online and try again."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Could not reach the Mac for transcription."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Could not reach the provider. Try again."
@@ -7111,6 +7123,9 @@ msgstr "Failed to update role"
 
 msgid "Failed to update setting"
 msgstr "Failed to update setting"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Failed to update Superwhisper settings"
 
 msgid "Failed to update task assignee"
 msgstr "Failed to update task assignee"
@@ -9723,6 +9738,9 @@ msgstr "model"
 msgid "Model"
 msgstr "Model"
 
+msgid "Model and language"
+msgstr "Model and language"
+
 msgid "Model context usage"
 msgstr "Model context usage"
 
@@ -10837,6 +10855,9 @@ msgstr "Not granted"
 
 msgid "Not included"
 msgstr "Not included"
+
+msgid "Not installed"
+msgstr "Not installed"
 
 msgid "Not loaded"
 msgstr "Not loaded"
@@ -15670,6 +15691,15 @@ msgstr "Superset Mobile terminal on iPhone"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, cloud workspaces, automations, and priority support."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Superset mode in Superwhisper"
+
+msgid "Superset mode needs setup"
+msgstr "Superset mode needs setup"
+
+msgid "Superset mode ready"
+msgstr "Superset mode ready"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 
@@ -15706,6 +15736,30 @@ msgstr "Superset's mobile app lets me keep my agents moving and unblock them fro
 
 msgid "Supervised"
 msgstr "Supervised"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper could not read the recording."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper could not restore your Mac's mode or clipboard."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper could not transcribe the recording."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Superwhisper dictation is disabled on this Mac."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Superwhisper is not installed on this Mac."
+
+msgid "Superwhisper status"
+msgstr "Superwhisper status"
 
 msgid "Support"
 msgstr "Support"
@@ -16410,6 +16464,9 @@ msgstr "The Superset host service for {organization} stopped unexpectedly ({caus
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "The Superset mode in Superwhisper is not ready."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Track down that flaky test…"
 msgid "Tracking"
 msgstr "Tracking"
 
+msgid "Transcription failed"
+msgstr "Transcription failed"
+
+msgid "Transcription on {name}"
+msgstr "Transcription on {name}"
+
 msgid "Translated"
 msgstr "Translated"
 
@@ -17562,6 +17625,9 @@ msgstr "Use Superset on mobile"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Use Superset on your phone with Pro."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Use Superwhisper for mobile dictation"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Use the desktop app to start running parallel coding agents."

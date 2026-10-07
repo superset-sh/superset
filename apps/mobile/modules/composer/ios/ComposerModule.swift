@@ -11,6 +11,9 @@ public final class ComposerModule: Module {
         "onSubmit",
         "onAttachmentsPress",
         "onDictationError",
+        "onDictationAudio",
+        "onDictationStart",
+        "onDictationStatusPress",
         "onModelPress",
         "onLaunchOptionPress",
         "onChipPress",
@@ -29,6 +32,19 @@ public final class ComposerModule: Module {
         "onAttachmentPress",
         "onExpandedChange"
       )
+
+      Prop("dictationEngine") { (view: ComposerAnchorView, engine: String) in
+        view.overlay.model.dictation.selectedEngine = ComposerDictation.Engine(rawValue: engine) ?? .apple
+      }
+      Prop("dictationBlocked") { (view: ComposerAnchorView, blocked: Bool) in
+        view.overlay.model.dictation.isBlocked = blocked
+      }
+      Prop("dictationRemoteBusy") { (view: ComposerAnchorView, busy: Bool) in
+        view.overlay.model.dictation.isRemoteBusy = busy
+      }
+      Prop("dictationStatus") { (view: ComposerAnchorView, label: String) in
+        view.overlay.model.dictation.statusLabel = label
+      }
 
       Prop("placeholder") { (view: ComposerAnchorView, placeholder: String) in
         view.overlay.model.placeholder = placeholder
@@ -207,6 +223,9 @@ final class ComposerAnchorView: ExpoView {
   private let onSubmit = EventDispatcher()
   private let onAttachmentsPress = EventDispatcher()
   private let onDictationError = EventDispatcher()
+  private let onDictationAudio = EventDispatcher()
+  private let onDictationStart = EventDispatcher()
+  private let onDictationStatusPress = EventDispatcher()
   private let onModelPress = EventDispatcher()
   private let onLaunchOptionPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
@@ -233,6 +252,11 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onDictationError = { [weak self] message in
       self?.onDictationError(["message": message])
     }
+    overlay.model.dictation.onAudio = { [weak self] uri, durationMs in
+      self?.onDictationAudio(["uri": uri, "durationMs": durationMs])
+    }
+    overlay.model.dictation.onStart = { [weak self] in self?.onDictationStart([:]) }
+    overlay.model.dictation.onStatusPress = { [weak self] in self?.onDictationStatusPress([:]) }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
     overlay.model.onLaunchOptionPress = { [weak self] id in
       self?.onLaunchOptionPress(["id": id])

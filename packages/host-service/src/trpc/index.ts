@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import type { DictationErrorKind } from "../dictation/superwhisper";
 import type { HostServiceContext } from "../types";
 import { readErrorDiagnostics } from "./error-diagnostics";
 import {
@@ -61,6 +62,20 @@ const t = initTRPC
 					teardownFailure,
 					projectNotSetup,
 					deleteInProgress,
+					dictation:
+						error.cause &&
+						"kind" in error.cause &&
+						[
+							"DISABLED",
+							"UNAVAILABLE",
+							"MODE_NOT_READY",
+							"INVALID_AUDIO",
+							"TIMEOUT",
+							"TRANSCRIPTION_FAILED",
+							"RESTORE_FAILED",
+						].includes(String(error.cause.kind))
+							? { kind: error.cause.kind as DictationErrorKind }
+							: undefined,
 				},
 			};
 		},

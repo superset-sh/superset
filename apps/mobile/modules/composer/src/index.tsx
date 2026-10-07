@@ -4,9 +4,14 @@ import { forwardRef, type Ref, useImperativeHandle, useRef } from "react";
 /** The imperative surface the native view exposes through its ref. */
 interface NativeComposerRef {
 	clear: () => void;
-	appendDraft: (text: string) => void;
+	appendDraft: (text: string) => Promise<void>;
 	focus: () => void;
 	blur: () => void;
+}
+
+export interface ComposerDictationAudio {
+	uri: string;
+	durationMs: number;
 }
 
 interface NativeComposerViewProps {
@@ -30,6 +35,13 @@ interface NativeComposerViewProps {
 	isSending?: boolean;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
+	dictationEngine?: "apple" | "file";
+	dictationBlocked?: boolean;
+	dictationRemoteBusy?: boolean;
+	dictationStatus?: string;
+	onDictationAudio?: (event: { nativeEvent: ComposerDictationAudio }) => void;
+	onDictationStart?: () => void;
+	onDictationStatusPress?: () => void;
 	onDictationError?: (event: { nativeEvent: { message: string } }) => void;
 	onModelPress?: () => void;
 	onLaunchOptionPress?: (event: { nativeEvent: { id: string } }) => void;
@@ -243,7 +255,7 @@ export interface ComposerHandle {
 	 * Appends to the draft, for dictation. The composer owns the base text and
 	 * does the join, so callers never have to read it back.
 	 */
-	appendDraft: (text: string) => void;
+	appendDraft: (text: string) => Promise<void>;
 	/**
 	 * Re-opens the composer after something else took first responder — an
 	 * attachments sheet, a picker — bringing the keyboard and draft back.
@@ -339,11 +351,14 @@ interface ComposerBaseProps {
 	 */
 	onSubmit?: (text: string) => void;
 	onAttachmentsPress?: () => void;
-	/**
-	 * Dictation runs natively — the composer owns the recogniser, the permission
-	 * prompt and the append — so there is no press to handle here. This only
-	 * surfaces a failure so the caller can show its own alert.
-	 */
+
+	dictationEngine?: "apple" | "file";
+	dictationBlocked?: boolean;
+	dictationRemoteBusy?: boolean;
+	dictationStatus?: string;
+	onDictationAudio?: (audio: ComposerDictationAudio) => void;
+	onDictationStart?: () => void;
+	onDictationStatusPress?: () => void;
 	onDictationError?: (message: string) => void;
 	onModelPress?: () => void;
 	onLaunchOptionPress?: (id: string) => void;
@@ -447,6 +462,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			isSending = false,
 			onSubmit,
 			onAttachmentsPress,
+			dictationEngine = "apple",
+			dictationBlocked = false,
+			dictationRemoteBusy = false,
+			dictationStatus = "",
+			onDictationAudio,
+			onDictationStart,
+			onDictationStatusPress,
 			onDictationError,
 			onModelPress,
 			onLaunchOptionPress,
@@ -472,7 +494,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 
 		useImperativeHandle(ref, () => ({
 			clear: () => nativeRef.current?.clear(),
-			appendDraft: (text: string) => nativeRef.current?.appendDraft(text),
+			appendDraft: async (text: string) => {
+				if (!nativeRef.current) throw new Error("Composer is not mounted");
+				await nativeRef.current.appendDraft(text);
+			},
 			focus: () => nativeRef.current?.focus(),
 			blur: () => nativeRef.current?.blur(),
 		}));
@@ -501,6 +526,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				isSending={isSending}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
+				dictationEngine={dictationEngine}
+				dictationBlocked={dictationBlocked}
+				dictationRemoteBusy={dictationRemoteBusy}
+				dictationStatus={dictationStatus}
+				onDictationAudio={(event) => onDictationAudio?.(event.nativeEvent)}
+				onDictationStart={onDictationStart}
+				onDictationStatusPress={onDictationStatusPress}
 				onDictationError={(event) =>
 					onDictationError?.(event.nativeEvent.message)
 				}

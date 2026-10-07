@@ -267,6 +267,13 @@
       "when": 1790492072422,
       "tag": "0037_project_soft_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1791114516693,
+      "tag": "0038_superwhisper_enabled",
+      "breakpoints": true
     }
   ]
 }

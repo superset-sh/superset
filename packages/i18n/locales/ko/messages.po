@@ -1472,6 +1472,9 @@ msgstr "조직의 고유 식별자 (이름에서 자동 생성)"
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "버리기"
+
 msgid "About"
 msgstr "회사 소개"
 
@@ -3430,6 +3433,9 @@ msgstr "입출금 + 예금 + Treasury 추이. 계단 구간은 투자 유치 트
 msgid "Checking agents…"
 msgstr "에이전트 확인하는 중…"
 
+msgid "Checking dictation settings"
+msgstr "받아쓰기 설정 확인 중"
+
 msgid "Checking environments…"
 msgstr "환경 확인 중…"
 
@@ -4626,6 +4632,9 @@ msgstr "이 페이지를 볼 수 있는 사람을 변경할 수 없습니다"
 msgid "Could not change who can see this workspace"
 msgstr "이 워크스페이스를 볼 수 있는 사람을 변경하지 못했습니다"
 
+msgid "Could not check dictation settings"
+msgstr "받아쓰기 설정을 확인할 수 없습니다"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "플랜을 확인할 수 없습니다. 연결 상태를 확인한 후 다시 시도하세요."
 
@@ -4731,6 +4740,9 @@ msgstr "호스트에 연결할 수 없어 이 풀 리퀘스트를 불러오지 �
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "업데이트를 시작하기 위해 호스트에 연결할 수 없습니다. 온라인 상태인지 확인한 후 다시 시도하세요."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "전사를 위해 Mac에 연결할 수 없습니다."
 
 msgid "Could not reach the provider. Try again."
 msgstr "제공사에 연결하지 못했습니다. 다시 시도하세요."
@@ -7111,6 +7123,9 @@ msgstr "역할을 업데이트하지 못했습니다"
 
 msgid "Failed to update setting"
 msgstr "설정을 업데이트하지 못했습니다"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Superwhisper 설정을 업데이트하지 못했습니다"
 
 msgid "Failed to update task assignee"
 msgstr "작업 담당자를 업데이트하지 못했습니다"
@@ -9723,6 +9738,9 @@ msgstr "모델"
 msgid "Model"
 msgstr "모델"
 
+msgid "Model and language"
+msgstr "모델 및 언어"
+
 msgid "Model context usage"
 msgstr "모델 컨텍스트 사용량"
 
@@ -10837,6 +10855,9 @@ msgstr "허용 안 됨"
 
 msgid "Not included"
 msgstr "미포함"
+
+msgid "Not installed"
+msgstr "설치되지 않음"
 
 msgid "Not loaded"
 msgstr "로드 안 됨"
@@ -15670,6 +15691,15 @@ msgstr "iPhone의 Superset Mobile 터미널"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, 클라우드 워크스페이스, 자동화, 우선 지원."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Superwhisper의 Superset 모드"
+
+msgid "Superset mode needs setup"
+msgstr "Superset 모드를 설정해야 합니다"
+
+msgid "Superset mode ready"
+msgstr "Superset 모드가 준비되었습니다"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "다른 브라우저의 데이터를 읽으려면 Superset에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 권한을 허용한 다음 다시 확인하세요."
 
@@ -15706,6 +15736,30 @@ msgstr "Superset 모바일 앱 덕분에 컴퓨터에서 멀리 떨어져 있어
 
 msgid "Supervised"
 msgstr "감독"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper가 녹음을 읽지 못했습니다."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper가 Mac의 모드 또는 클립보드를 복원하지 못했습니다."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper가 녹음을 전사하지 못했습니다."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "이 Mac에서 Superwhisper 받아쓰기가 비활성화되어 있습니다."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper가 제시간에 응답하지 않았습니다. Mac에 Pro 라이선스가 있는지 확인하세요."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "이 Mac에 Superwhisper가 설치되어 있지 않습니다."
+
+msgid "Superwhisper status"
+msgstr "Superwhisper 상태"
 
 msgid "Support"
 msgstr "지원"
@@ -16410,6 +16464,9 @@ msgstr "{organization}의 Superset 호스트 서비스가 예기치 않게 중�
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset 호스트 서비스가 예기치 않게 중지되었으며({cause}) 자동으로 다시 시작하지 못했습니다."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Superwhisper의 Superset 모드가 준비되지 않았습니다."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "사이트 밖에서 제품을 실어 나르는 곳: 저장소, 릴리스, Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "불안정한 테스트 추적하기…"
 msgid "Tracking"
 msgstr "추적 기간"
 
+msgid "Transcription failed"
+msgstr "전사 실패"
+
+msgid "Transcription on {name}"
+msgstr "{name}에서 전사 중"
+
 msgid "Translated"
 msgstr "번역됨"
 
@@ -17562,6 +17625,9 @@ msgstr "모바일에서 Superset 사용하기"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Pro로 휴대폰에서 Superset을 사용하세요."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "모바일 받아쓰기에 Superwhisper 사용"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "데스크톱 앱에서 병렬 코딩 에이전트를 실행하세요."

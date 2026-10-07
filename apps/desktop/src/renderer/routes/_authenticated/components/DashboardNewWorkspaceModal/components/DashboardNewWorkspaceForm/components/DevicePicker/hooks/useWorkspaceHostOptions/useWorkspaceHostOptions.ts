@@ -11,11 +11,14 @@ import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
+const NO_MEMBERS: never[] = [];
+
 export interface WorkspaceHostOption {
 	id: string;
 	name: string;
 	isOnline: boolean;
 	version: string | null;
+	platform: string | null;
 	versionState: HostVersionState;
 }
 
@@ -31,6 +34,8 @@ interface UseWorkspaceHostOptionsResult {
 	localHostIsOnline: boolean | null;
 	activeHostUrl: string | null;
 	otherHosts: WorkspaceHostOption[];
+	/** True once the host roster and memberships have loaded. */
+	settled: boolean;
 }
 
 export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
@@ -42,10 +47,10 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const activeOrganizationId = useActiveOrganizationId();
 	const currentUserId = session?.user?.id ?? null;
 
-	const { hosts: hostRows } = useKnownHosts();
+	const { hosts: hostRows, settled: hostRowsSettled } = useKnownHosts();
 
-	const { data: hostMemberRows = [] } =
-		cloudTrpc.host.listMembers.useQuery(undefined);
+	const hostMembersQuery = cloudTrpc.host.listMembers.useQuery(undefined);
+	const hostMemberRows = hostMembersQuery.data ?? NO_MEMBERS;
 
 	const accessibleHosts = useMemo(() => {
 		const accessibleHostIds = new Set(
@@ -64,6 +69,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 				name: host.name,
 				isOnline: host.isOnline,
 				version: host.version,
+				platform: host.platform,
 			}));
 	}, [activeOrganizationId, currentUserId, hostMemberRows, hostRows]);
 
@@ -81,6 +87,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 					name: host.name,
 					isOnline: host.isOnline,
 					version: host.version,
+					platform: host.platform,
 					versionState: deriveHostVersionState(host.version, appVersion),
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name)),
@@ -101,5 +108,6 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 		localHostIsOnline: localHost ? localHost.isOnline : null,
 		activeHostUrl,
 		otherHosts,
+		settled: hostRowsSettled && hostMembersQuery.data !== undefined,
 	};
 }

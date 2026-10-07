@@ -34,6 +34,7 @@ import { useHostsNeedingUpdateCount } from "renderer/hooks/host-version/useHosts
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
+import { useMacHostOptions } from "../../hooks/useMacHostOptions";
 import { getAllowedSectionsForVariant } from "../../utils/settings-search";
 import { settingsListItemClass } from "../SettingsListSidebar";
 
@@ -344,10 +345,15 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	const macHostKnown = useMacHostOptions().options.length > 0;
 	const allowedSections = useMemo(
 		() =>
-			getAllowedSectionsForVariant(isV2CloudEnabled, cloudWorkspacesEnabled),
-		[isV2CloudEnabled, cloudWorkspacesEnabled],
+			getAllowedSectionsForVariant(
+				isV2CloudEnabled,
+				cloudWorkspacesEnabled,
+				macHostKnown,
+			),
+		[isV2CloudEnabled, cloudWorkspacesEnabled, macHostKnown],
 	);
 
 	return (

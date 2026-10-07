@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getAllowedSectionsForVariant,
 	getVisibleItemsForSection,
 	getVisibleMatchCountBySection,
 	SETTING_ITEM_ID,
@@ -149,5 +150,77 @@ describe("settings search - mobile rollout", () => {
 		expect(
 			getVisibleMatchCountBySection("iPhone", false, false, true).mobile,
 		).toBe(1);
+	});
+});
+
+describe("settings search - Superwhisper", () => {
+	it("keeps Connections and dictation search visible without cloud workspaces", () => {
+		expect(getAllowedSectionsForVariant(true, false).has("connections")).toBe(
+			true,
+		);
+		expect(
+			getVisibleMatchCountBySection("Superwhisper", true, false).connections,
+		).toBe(1);
+		expect(
+			getVisibleMatchCountBySection("GitHub", true, false).connections,
+		).toBeUndefined();
+		expect(
+			getVisibleItemsForSection({
+				section: "connections",
+				searchQuery: "",
+				isV2: true,
+				cloudWorkspaces: false,
+			}),
+		).toEqual([SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER]);
+		expect(getAllowedSectionsForVariant(false, false).has("connections")).toBe(
+			false,
+		);
+	});
+
+	it("offers Connections without cloud workspaces only when a Mac is known", () => {
+		expect(
+			getAllowedSectionsForVariant(true, false, false).has("connections"),
+		).toBe(false);
+		expect(
+			getVisibleMatchCountBySection("Superwhisper", true, false, false, false)
+				.connections,
+		).toBeUndefined();
+		expect(
+			getVisibleItemsForSection({
+				section: "connections",
+				searchQuery: "",
+				isV2: true,
+				cloudWorkspaces: true,
+				macHostKnown: false,
+			}),
+		).toEqual([SETTING_ITEM_ID.CONNECTIONS]);
+	});
+
+	it.each([
+		"Superwhisper",
+		"mobile dictation",
+		"transcription",
+		"Mac",
+	])("finds the dictation setting in Connections for %s", (searchQuery) => {
+		const results = searchSettings(searchQuery);
+		expect(
+			results.find(
+				(item) => item.id === SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER,
+			)?.section,
+		).toBe("connections");
+		expect(
+			getVisibleItemsForSection({
+				section: "connections",
+				searchQuery,
+				isV2: true,
+			}),
+		).toContain(SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER);
+		expect(
+			getVisibleItemsForSection({
+				section: "connections",
+				searchQuery,
+				isV2: false,
+			}),
+		).not.toContain(SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER);
 	});
 });

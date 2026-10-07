@@ -1472,6 +1472,9 @@ msgstr "Jedinečný identifikátor vaší organizace (vygenerovaný z názvu)"
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Zahodit"
+
 msgid "About"
 msgstr "O nás"
 
@@ -3430,6 +3433,9 @@ msgstr "Běžný účet + spoření + Treasury v čase; schodky jsou tranše z i
 msgid "Checking agents…"
 msgstr "Kontroluji agenty…"
 
+msgid "Checking dictation settings"
+msgstr "Kontrola nastavení diktování"
+
 msgid "Checking environments…"
 msgstr "Kontrola prostředí…"
 
@@ -4626,6 +4632,9 @@ msgstr "Nepodařilo se změnit, kdo tuto stránku vidí"
 msgid "Could not change who can see this workspace"
 msgstr "Nepodařilo se změnit, kdo vidí tento pracovní prostor"
 
+msgid "Could not check dictation settings"
+msgstr "Nastavení diktování se nepodařilo zkontrolovat"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Nepodařilo se ověřit váš plán. Zkontrolujte připojení a zkuste to znovu."
 
@@ -4731,6 +4740,9 @@ msgstr "Nepodařilo se spojit s hostem a načíst tento pull request."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Nepodařilo se spojit s hostitelem a zahájit aktualizaci. Zkontrolujte, že je online, a zkuste to znovu."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Nepodařilo se spojit s Macem pro přepis."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Poskytovatele se nepodařilo kontaktovat. Zkuste to znovu."
@@ -7111,6 +7123,9 @@ msgstr "Roli se nepodařilo změnit"
 
 msgid "Failed to update setting"
 msgstr "Nepodařilo se změnit nastavení"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Nastavení Superwhisper se nepodařilo aktualizovat"
 
 msgid "Failed to update task assignee"
 msgstr "Řešitele úkolu se nepodařilo změnit"
@@ -9723,6 +9738,9 @@ msgstr "model"
 msgid "Model"
 msgstr "Model"
 
+msgid "Model and language"
+msgstr "Model a jazyk"
+
 msgid "Model context usage"
 msgstr "Využití kontextu modelu"
 
@@ -10837,6 +10855,9 @@ msgstr "Nepovoleno"
 
 msgid "Not included"
 msgstr "Není zahrnuto"
+
+msgid "Not installed"
+msgstr "Nenainstalováno"
 
 msgid "Not loaded"
 msgstr "Nenačteno"
@@ -15670,6 +15691,15 @@ msgstr "Terminál Superset Mobile na iPhonu"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, cloudové workspaces, automatizace a prioritní podpora."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Režim Superset v Superwhisper"
+
+msgid "Superset mode needs setup"
+msgstr "Režim Superset vyžaduje nastavení"
+
+msgid "Superset mode ready"
+msgstr "Režim Superset je připraven"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset potřebuje Plný přístup k disku, aby mohl číst data jiného prohlížeče. Povolte ho v Nastavení systému a zkontrolujte to znovu."
 
@@ -15706,6 +15736,30 @@ msgstr "Mobilní aplikace Superset mi umožňuje udržovat agenty v chodu a odbl
 
 msgid "Supervised"
 msgstr "Pod dohledem"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper nemohl přečíst nahrávku."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper nemohl obnovit režim nebo schránku vašeho Macu."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper nemohl přepsat nahrávku."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Diktování Superwhisper je na tomto Macu vypnuté."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper neodpověděl včas. Ověřte, že má na vašem Macu licenci Pro."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Superwhisper není na tomto Macu nainstalován."
+
+msgid "Superwhisper status"
+msgstr "Stav Superwhisper"
 
 msgid "Support"
 msgstr "Podpora"
@@ -16410,6 +16464,9 @@ msgstr "Host service Superset pro {organization} se nečekaně zastavila ({cause
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Host service Superset se nečekaně zastavila ({cause}) a nešlo ji automaticky restartovat."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Režim Superset v Superwhisper není připraven."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "Plochy mimo web, které nesou produkt: repozitář, vydání a Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Vypátrej ten nestabilní test…"
 msgid "Tracking"
 msgstr "Sleduji"
 
+msgid "Transcription failed"
+msgstr "Přepis se nezdařil"
+
+msgid "Transcription on {name}"
+msgstr "Přepis na {name}"
+
 msgid "Translated"
 msgstr "Přeloženo"
 
@@ -17562,6 +17625,9 @@ msgstr "Používejte Superset na mobilu"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Používejte Superset na telefonu s Pro."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Použít Superwhisper pro mobilní diktování"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Pro spouštění paralelních kódovacích agentů použijte desktopovou aplikaci."

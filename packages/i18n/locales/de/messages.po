@@ -1472,6 +1472,9 @@ msgstr "Eine eindeutige Kennung für deine Organisation (automatisch aus dem Nam
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Verwerfen"
+
 msgid "About"
 msgstr "Über uns"
 
@@ -3430,6 +3433,9 @@ msgstr "Giro + Sparen + Treasury im Zeitverlauf; Finanzierungstranchen sind die 
 msgid "Checking agents…"
 msgstr "Agenten werden geprüft…"
 
+msgid "Checking dictation settings"
+msgstr "Diktiereinstellungen werden geprüft"
+
 msgid "Checking environments…"
 msgstr "Umgebungen werden geprüft…"
 
@@ -4626,6 +4632,9 @@ msgstr "Es konnte nicht geändert werden, wer diese Seite sehen kann"
 msgid "Could not change who can see this workspace"
 msgstr "Konnte nicht ändern, wer diesen Arbeitsbereich sehen kann"
 
+msgid "Could not check dictation settings"
+msgstr "Diktiereinstellungen konnten nicht geprüft werden"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Dein Tarif konnte nicht überprüft werden. Prüfe deine Verbindung und versuche es erneut."
 
@@ -4731,6 +4740,9 @@ msgstr "Der Host war nicht erreichbar, um diesen Pull Request zu laden."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Der Host konnte nicht erreicht werden, um das Update zu starten. Prüfe, ob er online ist, und versuche es erneut."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Der Mac konnte für die Transkription nicht erreicht werden."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Der Anbieter war nicht erreichbar. Versuche es erneut."
@@ -7111,6 +7123,9 @@ msgstr "Rolle konnte nicht geändert werden"
 
 msgid "Failed to update setting"
 msgstr "Einstellung konnte nicht geändert werden"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Superwhisper-Einstellungen konnten nicht aktualisiert werden"
 
 msgid "Failed to update task assignee"
 msgstr "Zuweisung der Aufgabe konnte nicht geändert werden"
@@ -9723,6 +9738,9 @@ msgstr "Modell"
 msgid "Model"
 msgstr "Modell"
 
+msgid "Model and language"
+msgstr "Modell und Sprache"
+
 msgid "Model context usage"
 msgstr "Kontextnutzung des Modells"
 
@@ -10837,6 +10855,9 @@ msgstr "Nicht erteilt"
 
 msgid "Not included"
 msgstr "Nicht enthalten"
+
+msgid "Not installed"
+msgstr "Nicht installiert"
 
 msgid "Not loaded"
 msgstr "Nicht geladen"
@@ -15670,6 +15691,15 @@ msgstr "Terminal von Superset Mobile auf dem iPhone"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, Cloud-Workspaces, Automatisierungen und priorisierter Support."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Superset-Modus in Superwhisper"
+
+msgid "Superset mode needs setup"
+msgstr "Superset-Modus muss eingerichtet werden"
+
+msgid "Superset mode ready"
+msgstr "Superset-Modus ist bereit"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset braucht Festplattenvollzugriff, um die Daten eines anderen Browsers zu lesen. Erteile ihn in den Systemeinstellungen und prüfe dann erneut."
 
@@ -15706,6 +15736,30 @@ msgstr "Mit der mobilen Superset-App kann ich meine Agenten von überall aus am 
 
 msgid "Supervised"
 msgstr "Beaufsichtigt"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper konnte die Aufnahme nicht lesen."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper konnte den Modus oder die Zwischenablage deines Macs nicht wiederherstellen."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper konnte die Aufnahme nicht transkribieren."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Superwhisper-Diktieren ist auf diesem Mac deaktiviert."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper hat nicht rechtzeitig geantwortet. Prüfe, ob auf deinem Mac eine Pro-Lizenz vorhanden ist."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Superwhisper ist auf diesem Mac nicht installiert."
+
+msgid "Superwhisper status"
+msgstr "Superwhisper-Status"
 
 msgid "Support"
 msgstr "Support"
@@ -16410,6 +16464,9 @@ msgstr "Der Superset-Host-Dienst für {organization} wurde unerwartet beendet ({
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Der Superset-Host-Dienst wurde unerwartet beendet ({cause}) und konnte nicht automatisch neu gestartet werden."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Der Superset-Modus in Superwhisper ist nicht bereit."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "Die Flächen außerhalb der Website, die das Produkt tragen: das Repository, Releases und Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Diesem flaky Test auf den Grund gehen…"
 msgid "Tracking"
 msgstr "Erfassung"
 
+msgid "Transcription failed"
+msgstr "Transkription fehlgeschlagen"
+
+msgid "Transcription on {name}"
+msgstr "Transkription auf {name}"
+
 msgid "Translated"
 msgstr "Übersetzt"
 
@@ -17562,6 +17625,9 @@ msgstr "Superset auf dem Handy nutzen"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Nutze Superset mit Pro auf deinem Smartphone."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Superwhisper für mobile Diktate verwenden"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Nutze die Desktop-App, um parallele Coding-Agenten laufen zu lassen."

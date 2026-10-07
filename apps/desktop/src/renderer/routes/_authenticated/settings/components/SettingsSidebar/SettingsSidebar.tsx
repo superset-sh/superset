@@ -22,6 +22,7 @@ import {
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 import { COLLAPSED_WORKSPACE_SIDEBAR_WIDTH } from "renderer/stores/workspace-sidebar-state";
+import { useMacHostOptions } from "../../hooks/useMacHostOptions";
 import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
@@ -37,6 +38,7 @@ export function SettingsSidebar() {
 		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	const macHostKnown = useMacHostOptions().options.length > 0;
 	const normalizedSearchQuery = searchQuery.trim();
 	const matchCounts = normalizedSearchQuery
 		? getVisibleMatchCountBySection(
@@ -44,6 +46,7 @@ export function SettingsSidebar() {
 				isV2CloudEnabled,
 				cloudWorkspacesEnabled,
 				mobileEnabled,
+				macHostKnown,
 			)
 		: null;
 

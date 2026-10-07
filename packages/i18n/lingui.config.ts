@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineConfig } from "@lingui/cli";
 import { formatter } from "@lingui/format-po";
 
@@ -48,9 +49,9 @@ export default defineConfig({
 				"<rootDir>/src",
 			],
 			exclude: [
-				"<rootDir>/../../**/node_modules/**",
-				"<rootDir>/../../**/*.test.*",
-				"<rootDir>/../../**/*.stories.*",
+				resolve(import.meta.dirname, "../../**/node_modules/**"),
+				resolve(import.meta.dirname, "../../**/*.test.*"),
+				resolve(import.meta.dirname, "../../**/*.stories.*"),
 			],
 		},
 	],

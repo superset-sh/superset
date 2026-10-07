@@ -119,6 +119,7 @@ final class ComposerOverlayController {
   }
 
   func detach() {
+    MainActor.assumeIsolated { model.dictation.finishOnDetach() }
     guard let controller = hosting else { return }
     controller.willMove(toParent: nil)
     container?.removeFromSuperview()

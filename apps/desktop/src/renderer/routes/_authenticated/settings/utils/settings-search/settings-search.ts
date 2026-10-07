@@ -106,6 +106,7 @@ export const SETTING_ITEM_ID = {
 	ENVIRONMENTS_LIST: "environments-list",
 	AGENT_ACCOUNTS: "agent-accounts",
 	CONNECTIONS: "connections",
+	CONNECTIONS_SUPERWHISPER: "connections-superwhisper",
 	ENVIRONMENTS_SECRETS: "environments-secrets",
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
@@ -260,6 +261,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ENVIRONMENTS_LIST]: "v2",
 	[SETTING_ITEM_ID.AGENT_ACCOUNTS]: "v2",
 	[SETTING_ITEM_ID.CONNECTIONS]: "v2",
+	[SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER]: "v2",
 	[SETTING_ITEM_ID.ENVIRONMENTS_SECRETS]: "v2",
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
@@ -1808,6 +1810,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER,
+		section: "connections",
+		title: "Superwhisper",
+		description: "Transcribe mobile dictation on your Mac",
+		keywords: [
+			"dictation",
+			"mobile",
+			"transcription",
+			"Mac",
+			"voice",
+			"audio",
+			"Superset mode",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.ENVIRONMENTS_LIST,
 		section: "environments",
 		title: "Environments",
@@ -2000,13 +2017,21 @@ export function getVisibleItemsForSection(params: {
 	section: SettingsSection;
 	searchQuery: string;
 	isV2: boolean;
+	cloudWorkspaces?: boolean;
+	macHostKnown?: boolean;
 }): SettingItemId[] {
-	const { section, searchQuery, isV2 } = params;
+	const {
+		section,
+		searchQuery,
+		isV2,
+		cloudWorkspaces = true,
+		macHostKnown = true,
+	} = params;
 	const matched = searchQuery.trim()
 		? getMatchingItemsForSection(searchQuery, section)
 		: SETTINGS_ITEMS.filter((item) => item.section === section);
 	return matched
-		.filter((item) => isItemAllowedForVariant(item.id, isV2))
+		.filter((item) => isItemOffered(item, isV2, cloudWorkspaces, macHostKnown))
 		.map((item) => item.id);
 }
 
@@ -2019,17 +2044,28 @@ export function getVisibleItemsForSection(params: {
 const CLOUD_WORKSPACE_SECTIONS: ReadonlySet<SettingsSection> = new Set([
 	"environments",
 	"agentAccounts",
-	"connections",
+]);
+
+const CLOUD_WORKSPACE_ITEMS: ReadonlySet<SettingItemId> = new Set([
+	SETTING_ITEM_ID.CONNECTIONS,
+]);
+
+const MAC_HOST_ITEMS: ReadonlySet<SettingItemId> = new Set([
+	SETTING_ITEM_ID.CONNECTIONS_SUPERWHISPER,
 ]);
 
 function isItemOffered(
 	item: { id: SettingItemId; section: SettingsSection },
 	isV2: boolean,
 	cloudWorkspaces: boolean,
+	macHostKnown: boolean,
 ): boolean {
 	return (
 		isItemAllowedForVariant(item.id, isV2) &&
-		(cloudWorkspaces || !CLOUD_WORKSPACE_SECTIONS.has(item.section))
+		(cloudWorkspaces ||
+			(!CLOUD_WORKSPACE_SECTIONS.has(item.section) &&
+				!CLOUD_WORKSPACE_ITEMS.has(item.id))) &&
+		(macHostKnown || !MAC_HOST_ITEMS.has(item.id))
 	);
 }
 
@@ -2038,10 +2074,11 @@ export function getVisibleMatchCountBySection(
 	isV2: boolean,
 	cloudWorkspaces: boolean,
 	mobileEnabled = false,
+	macHostKnown = true,
 ): Partial<Record<SettingsSection, number>> {
 	const matches = searchSettings(query).filter(
 		(item) =>
-			isItemOffered(item, isV2, cloudWorkspaces) &&
+			isItemOffered(item, isV2, cloudWorkspaces, macHostKnown) &&
 			(item.section !== "mobile" || mobileEnabled),
 	);
 	const counts: Partial<Record<SettingsSection, number>> = {};
@@ -2059,10 +2096,12 @@ export function getVisibleMatchCountBySection(
 export function getAllowedSectionsForVariant(
 	isV2: boolean,
 	cloudWorkspaces: boolean,
+	macHostKnown = true,
 ): Set<SettingsSection> {
 	const sections = new Set<SettingsSection>();
 	for (const item of SETTINGS_ITEMS) {
-		if (isItemOffered(item, isV2, cloudWorkspaces)) sections.add(item.section);
+		if (isItemOffered(item, isV2, cloudWorkspaces, macHostKnown))
+			sections.add(item.section);
 	}
 	return sections;
 }

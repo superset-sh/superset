@@ -24,6 +24,7 @@ import {
 	FULL_WIDTH_SECTION_PATHS,
 	SettingsSidebar,
 } from "./components/SettingsSidebar";
+import { useMacHostOptions } from "./hooks/useMacHostOptions";
 import { useScrollReset } from "./hooks/useScrollReset";
 import { getVisibleMatchCountBySection } from "./utils/settings-search";
 
@@ -117,6 +118,7 @@ function SettingsLayout() {
 		useFeatureFlagEnabled(FEATURE_FLAGS.MOBILE_LAUNCH) === true;
 	const cloudWorkspacesEnabled =
 		useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES) === true;
+	const macHostKnown = useMacHostOptions().options.length > 0;
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
@@ -137,6 +139,7 @@ function SettingsLayout() {
 						isV2CloudEnabled,
 						cloudWorkspacesEnabled,
 						mobileEnabled,
+						macHostKnown,
 					)
 				: {},
 		[
@@ -145,6 +148,7 @@ function SettingsLayout() {
 			isV2CloudEnabled,
 			cloudWorkspacesEnabled,
 			mobileEnabled,
+			macHostKnown,
 		],
 	);
 	const totalMatches = Object.values(matchCounts).reduce(

@@ -1472,6 +1472,9 @@ msgstr "Уникальный идентификатор организации (
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Отменить"
+
 msgid "About"
 msgstr "О нас"
 
@@ -3430,6 +3433,9 @@ msgstr "Расчётный + сберегательный + Treasury во вре
 msgid "Checking agents…"
 msgstr "Проверка агентов…"
 
+msgid "Checking dictation settings"
+msgstr "Проверка настроек диктовки"
+
 msgid "Checking environments…"
 msgstr "Проверка окружений…"
 
@@ -4626,6 +4632,9 @@ msgstr "Не удалось изменить, кто видит эту стра�
 msgid "Could not change who can see this workspace"
 msgstr "Не удалось изменить, кто видит эту рабочую область"
 
+msgid "Could not check dictation settings"
+msgstr "Не удалось проверить настройки диктовки"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Не удалось проверить ваш тарифный план. Проверьте подключение и повторите попытку."
 
@@ -4731,6 +4740,9 @@ msgstr "Не удалось связаться с хостом, чтобы за�
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Не удалось связаться с хостом, чтобы начать обновление. Убедитесь, что он в сети, и попробуйте снова."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Не удалось подключиться к Mac для расшифровки."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Не удалось связаться с провайдером. Повторите попытку."
@@ -7111,6 +7123,9 @@ msgstr "Не удалось изменить роль"
 
 msgid "Failed to update setting"
 msgstr "Не удалось обновить настройку"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Не удалось обновить настройки Superwhisper"
 
 msgid "Failed to update task assignee"
 msgstr "Не удалось изменить исполнителя задачи"
@@ -9723,6 +9738,9 @@ msgstr "модель"
 msgid "Model"
 msgstr "Модель"
 
+msgid "Model and language"
+msgstr "Модель и язык"
+
 msgid "Model context usage"
 msgstr "Использование контекста модели"
 
@@ -10837,6 +10855,9 @@ msgstr "Не выдано"
 
 msgid "Not included"
 msgstr "Не входит"
+
+msgid "Not installed"
+msgstr "Не установлено"
 
 msgid "Not loaded"
 msgstr "Не загружено"
@@ -15670,6 +15691,15 @@ msgstr "Терминал Superset Mobile на iPhone"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, облачные рабочие пространства, автоматизации и приоритетная поддержка."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Режим Superset в Superwhisper"
+
+msgid "Superset mode needs setup"
+msgstr "Режим Superset требует настройки"
+
+msgid "Superset mode ready"
+msgstr "Режим Superset готов"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset нужен полный доступ к диску, чтобы читать данные другого браузера. Выдайте его в Системных настройках и проверьте снова."
 
@@ -15706,6 +15736,30 @@ msgstr "Мобильное приложение Superset позволяет мн
 
 msgid "Supervised"
 msgstr "Под присмотром"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper не удалось прочитать запись."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper не удалось восстановить режим или буфер обмена вашего Mac."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper не удалось расшифровать запись."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Диктовка Superwhisper отключена на этом Mac."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper не ответил вовремя. Проверьте наличие лицензии Pro на вашем Mac."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Superwhisper не установлен на этом Mac."
+
+msgid "Superwhisper status"
+msgstr "Состояние Superwhisper"
 
 msgid "Support"
 msgstr "Поддержка"
@@ -16410,6 +16464,9 @@ msgstr "Служба хоста Superset для {organization} неожидан�
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Служба хоста Superset неожиданно остановилась ({cause}), и её не удалось перезапустить автоматически."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Режим Superset в Superwhisper не готов."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "Площадки вне сайта, которые несут продукт: репозиторий, релизы и Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Найди причину нестабильного теста…"
 msgid "Tracking"
 msgstr "Отслеживание"
 
+msgid "Transcription failed"
+msgstr "Ошибка расшифровки"
+
+msgid "Transcription on {name}"
+msgstr "Расшифровка на {name}"
+
 msgid "Translated"
 msgstr "Переведено"
 
@@ -17562,6 +17625,9 @@ msgstr "Используйте Superset на телефоне"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Используйте Superset на телефоне с Pro."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Использовать Superwhisper для мобильной диктовки"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Используйте десктопное приложение, чтобы запускать параллельных кодовых агентов."

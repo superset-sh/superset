@@ -1472,6 +1472,9 @@ msgstr "Định danh duy nhất cho tổ chức của bạn (tự tạo từ tê
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "Bỏ"
+
 msgid "About"
 msgstr "Giới thiệu"
 
@@ -3430,6 +3433,9 @@ msgstr "Tài khoản thanh toán + tiết kiệm + Treasury theo thời gian; c�
 msgid "Checking agents…"
 msgstr "Đang kiểm tra agent…"
 
+msgid "Checking dictation settings"
+msgstr "Đang kiểm tra cài đặt đọc chính tả"
+
 msgid "Checking environments…"
 msgstr "Đang kiểm tra môi trường…"
 
@@ -4626,6 +4632,9 @@ msgstr "Không thể đổi ai được xem trang này"
 msgid "Could not change who can see this workspace"
 msgstr "Không thể thay đổi ai có thể xem workspace này"
 
+msgid "Could not check dictation settings"
+msgstr "Không thể kiểm tra cài đặt đọc chính tả"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "Không thể kiểm tra gói của bạn. Hãy kiểm tra kết nối và thử lại."
 
@@ -4731,6 +4740,9 @@ msgstr "Không kết nối được tới host để tải pull request này."
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "Không thể kết nối tới máy chủ để bắt đầu cập nhật. Hãy kiểm tra máy chủ đang trực tuyến rồi thử lại."
+
+msgid "Could not reach the Mac for transcription."
+msgstr "Không thể kết nối với Mac để phiên âm."
 
 msgid "Could not reach the provider. Try again."
 msgstr "Không kết nối được tới nhà cung cấp. Hãy thử lại."
@@ -7111,6 +7123,9 @@ msgstr "Không cập nhật được vai trò"
 
 msgid "Failed to update setting"
 msgstr "Không thể cập nhật cài đặt"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "Không thể cập nhật cài đặt Superwhisper"
 
 msgid "Failed to update task assignee"
 msgstr "Không cập nhật được người được giao"
@@ -9723,6 +9738,9 @@ msgstr "mô hình"
 msgid "Model"
 msgstr "Mô hình"
 
+msgid "Model and language"
+msgstr "Mô hình và ngôn ngữ"
+
 msgid "Model context usage"
 msgstr "Mức dùng ngữ cảnh của mô hình"
 
@@ -10837,6 +10855,9 @@ msgstr "Chưa cấp"
 
 msgid "Not included"
 msgstr "Không có"
+
+msgid "Not installed"
+msgstr "Chưa cài đặt"
 
 msgid "Not loaded"
 msgstr "Chưa tải"
@@ -15670,6 +15691,15 @@ msgstr "Terminal của Superset Mobile trên iPhone"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile, workspace đám mây, tự động hóa và hỗ trợ ưu tiên."
 
+msgid "Superset mode in Superwhisper"
+msgstr "Chế độ Superset trong Superwhisper"
+
+msgid "Superset mode needs setup"
+msgstr "Chế độ Superset cần được thiết lập"
+
+msgid "Superset mode ready"
+msgstr "Chế độ Superset đã sẵn sàng"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset cần quyền Full Disk Access để đọc dữ liệu của trình duyệt khác. Cấp quyền trong System Settings rồi kiểm tra lại."
 
@@ -15706,6 +15736,30 @@ msgstr "Ứng dụng di động Superset giúp tôi duy trì công việc của 
 
 msgid "Supervised"
 msgstr "Có giám sát"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper không thể đọc bản ghi âm."
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper không thể khôi phục chế độ hoặc bảng nhớ tạm của Mac."
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper không thể phiên âm bản ghi âm."
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "Đọc chính tả Superwhisper đã bị tắt trên Mac này."
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper không phản hồi kịp thời. Hãy kiểm tra xem Mac của bạn có giấy phép Pro hay không."
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "Superwhisper chưa được cài đặt trên Mac này."
+
+msgid "Superwhisper status"
+msgstr "Trạng thái Superwhisper"
 
 msgid "Support"
 msgstr "Hỗ trợ"
@@ -16410,6 +16464,9 @@ msgstr "Dịch vụ host Superset cho {organization} đã dừng bất ngờ ({c
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Dịch vụ host Superset đã dừng bất ngờ ({cause}) và không tự khởi động lại được."
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Chế độ Superset trong Superwhisper chưa sẵn sàng."
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "Các bề mặt ngoài trang web mang sản phẩm đi: kho mã, bản phát hành và Discord."
 
@@ -17033,6 +17090,12 @@ msgstr "Truy ra bài test chập chờn đó…"
 msgid "Tracking"
 msgstr "Theo dõi"
 
+msgid "Transcription failed"
+msgstr "Phiên âm thất bại"
+
+msgid "Transcription on {name}"
+msgstr "Đang phiên âm trên {name}"
+
 msgid "Translated"
 msgstr "Đã dịch"
 
@@ -17562,6 +17625,9 @@ msgstr "Dùng Superset trên điện thoại"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "Dùng Superset trên điện thoại với Pro."
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "Dùng Superwhisper cho đọc chính tả trên thiết bị di động"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "Dùng ứng dụng máy tính để chạy song song nhiều agent lập trình."

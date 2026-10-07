@@ -26,6 +26,7 @@ import { useAttachmentUploads } from "@/screens/(authenticated)/hooks/useAttachm
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+import { useHostDictation } from "@/screens/(authenticated)/hooks/useHostDictation";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { useComposerFocusStore } from "../../stores/composerFocusStore";
@@ -80,6 +81,11 @@ export function NewChatWidget({
 	const { targets, defaultTarget } = useNewChatTargets(workspaces);
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
+	const dictation = useHostDictation({
+		target: selectedTarget?.kind === "host" ? selectedTarget : null,
+		draftKey: HOME_DRAFT_KEY,
+		composerRef,
+	});
 	const isCloudTarget = selectedTarget?.kind === "cloud";
 	const isSessionTarget = selectedTarget?.projectId === null;
 	const cloudScope = useWorkspaceScope() === "cloud";
@@ -325,6 +331,7 @@ export function NewChatWidget({
 	// the native composer owns its own keyboard tracking, dimming and dismissal.
 	return (
 		<Composer
+			{...dictation}
 			ref={composerRef}
 			placeholder={t({
 				message: "What do you want to do?",

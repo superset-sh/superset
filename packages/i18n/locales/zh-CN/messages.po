@@ -1472,6 +1472,9 @@ msgstr "组织的唯一标识符（根据名称自动生成）"
 msgid "Aa"
 msgstr "Aa"
 
+msgid "Abandon"
+msgstr "放弃"
+
 msgid "About"
 msgstr "关于"
 
@@ -3430,6 +3433,9 @@ msgstr "活期+储蓄+国库账户随时间变化；台阶处为融资到账"
 msgid "Checking agents…"
 msgstr "正在检查智能体…"
 
+msgid "Checking dictation settings"
+msgstr "正在检查听写设置"
+
 msgid "Checking environments…"
 msgstr "正在检查环境…"
 
@@ -4626,6 +4632,9 @@ msgstr "无法更改谁可以查看这个页面"
 msgid "Could not change who can see this workspace"
 msgstr "无法更改谁可以查看此工作区"
 
+msgid "Could not check dictation settings"
+msgstr "无法检查听写设置"
+
 msgid "Could not check your plan. Check your connection and try again."
 msgstr "无法检查您的套餐。请检查网络连接后重试。"
 
@@ -4731,6 +4740,9 @@ msgstr "无法连接到主机以加载此拉取请求。"
 
 msgid "Could not reach the host to start the update. Check that it is online and try again."
 msgstr "无法连接主机以开始更新。请确认主机在线后重试。"
+
+msgid "Could not reach the Mac for transcription."
+msgstr "无法连接到Mac进行转录。"
 
 msgid "Could not reach the provider. Try again."
 msgstr "无法连接到提供商，请重试。"
@@ -7111,6 +7123,9 @@ msgstr "更新角色失败"
 
 msgid "Failed to update setting"
 msgstr "更新设置失败"
+
+msgid "Failed to update Superwhisper settings"
+msgstr "无法更新 Superwhisper 设置"
 
 msgid "Failed to update task assignee"
 msgstr "更新任务负责人失败"
@@ -9723,6 +9738,9 @@ msgstr "模型"
 msgid "Model"
 msgstr "模型"
 
+msgid "Model and language"
+msgstr "模型和语言"
+
 msgid "Model context usage"
 msgstr "模型上下文用量"
 
@@ -10837,6 +10855,9 @@ msgstr "未授予"
 
 msgid "Not included"
 msgstr "不包含"
+
+msgid "Not installed"
+msgstr "未安装"
 
 msgid "Not loaded"
 msgstr "未加载"
@@ -15670,6 +15691,15 @@ msgstr "iPhone 上的 Superset Mobile 终端"
 msgid "Superset Mobile, cloud workspaces, automations, and priority support."
 msgstr "Superset Mobile、云工作区、自动化和优先支持。"
 
+msgid "Superset mode in Superwhisper"
+msgstr "Superwhisper 中的 Superset 模式"
+
+msgid "Superset mode needs setup"
+msgstr "Superset 模式需要设置"
+
+msgid "Superset mode ready"
+msgstr "Superset 模式已就绪"
+
 msgid "Superset needs Full Disk Access to read another browser's data. Grant it in System Settings, then check again."
 msgstr "Superset需要“完全磁盘访问权限”才能读取其他浏览器的数据。请在系统设置中授予权限，然后重新检查。"
 
@@ -15706,6 +15736,30 @@ msgstr "Superset 手机应用让我可以随时随地推动智能体工作、解
 
 msgid "Supervised"
 msgstr "监督"
+
+msgid "Superwhisper"
+msgstr "Superwhisper"
+
+msgid "Superwhisper could not read the recording."
+msgstr "Superwhisper无法读取录音。"
+
+msgid "Superwhisper could not restore your Mac's mode or clipboard."
+msgstr "Superwhisper无法恢复Mac的模式或剪贴板。"
+
+msgid "Superwhisper could not transcribe the recording."
+msgstr "Superwhisper无法转录录音。"
+
+msgid "Superwhisper dictation is disabled on this Mac."
+msgstr "此Mac已禁用Superwhisper听写。"
+
+msgid "Superwhisper did not respond in time. Check that it has a Pro license on your Mac."
+msgstr "Superwhisper未及时响应。请检查Mac上是否具有Pro许可证。"
+
+msgid "Superwhisper is not installed on this Mac."
+msgstr "此Mac未安装Superwhisper。"
+
+msgid "Superwhisper status"
+msgstr "Superwhisper 状态"
 
 msgid "Support"
 msgstr "支持"
@@ -16410,6 +16464,9 @@ msgstr "{organization}的Superset主机服务意外停止（{cause}），且无�
 msgid "The Superset host service stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "Superset主机服务意外停止（{cause}），且无法自动重启。"
 
+msgid "The Superset mode in Superwhisper is not ready."
+msgstr "Superwhisper中的Superset模式尚未准备好。"
+
 msgid "The surfaces outside the site that carry the product: the repository, releases, and Discord."
 msgstr "站外承载产品的渠道：仓库、发布版本和 Discord。"
 
@@ -17033,6 +17090,12 @@ msgstr "揪出那个不稳定的测试…"
 msgid "Tracking"
 msgstr "已跟踪"
 
+msgid "Transcription failed"
+msgstr "转录失败"
+
+msgid "Transcription on {name}"
+msgstr "正在{name}上转录"
+
 msgid "Translated"
 msgstr "已翻译"
 
@@ -17562,6 +17625,9 @@ msgstr "在手机上使用 Superset"
 
 msgid "Use Superset on your phone with Pro."
 msgstr "通过 Pro 在手机上使用 Superset。"
+
+msgid "Use Superwhisper for mobile dictation"
+msgstr "使用 Superwhisper 进行移动听写"
 
 msgid "Use the desktop app to start running parallel coding agents."
 msgstr "使用桌面应用开始并行运行编码智能体。"

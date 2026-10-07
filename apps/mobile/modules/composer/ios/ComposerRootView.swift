@@ -257,7 +257,7 @@ struct ComposerRootView: View {
   /// Things the composer itself put on screen that take first responder away
   /// from the editor. While one is up, losing focus is not the user dismissing
   /// the composer, and closing underneath them would be wrong.
-  private var holdsOpen: Bool { model.dictation.isActive || viewing != nil }
+  private var holdsOpen: Bool { model.isDictating || viewing != nil }
 
   private func expand() {
     withAnimation(.snappy(duration: 0.3, extraBounce: 0.05)) { isExpanded = true }
@@ -603,13 +603,28 @@ struct ComposerRootView: View {
       .accessibilityLabel(composerLocalized("Transcribing"))
       .transition(.opacity)
     case .idle:
-      Button { model.dictation.start() } label: {
-        Image(systemName: "mic")
-          .font(.system(size: 17, weight: .regular))
+      if model.dictation.statusLabel.isEmpty {
+        Button { model.dictation.start() } label: {
+          Image(systemName: "mic")
+            .font(.system(size: 17, weight: .regular))
+        }
+        .buttonStyle(.composerControl)
+        .accessibilityLabel(composerLocalized("Dictate"))
+        .transition(.opacity)
+      } else {
+        Button { model.dictation.onStatusPress?() } label: {
+          Text(model.dictation.statusLabel)
+            .font(.system(size: 13))
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .padding(.horizontal, 12)
+            .frame(height: ComposerMetrics.controlDiameter)
+            .background(.white.opacity(0.12), in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(model.dictation.statusLabel)
+        .transition(.opacity)
       }
-      .buttonStyle(.composerControl)
-      .accessibilityLabel(composerLocalized("Dictate"))
-      .transition(.opacity)
     }
   }
 
