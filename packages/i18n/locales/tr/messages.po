@@ -16872,7 +16872,7 @@ msgid "Time range"
 msgstr "Zaman aralığı"
 
 msgid "Tint each project and its workspaces in the sidebar"
-msgstr "Kenar çubuğunda her projeyi ve çalışma alanlarını renklendir"
+msgstr "Kenar çubuğunda her projeyi ve projenin kendi çalışma alanlarını renklendir"
 
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
 msgstr "Her çalışma alanını projesinin rengiyle renklendirir. Kenar çubuğunda bir projeye sağ tıklayarak renk seçin."

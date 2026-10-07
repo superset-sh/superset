@@ -247,6 +247,7 @@ export function V2ProjectSettings({
 							projectId={projectId}
 							hostUrl={targetHostUrl}
 							color={projectColor}
+							onChanged={() => refetchHostProject()}
 						/>
 					</SettingsRow>
 				</SettingsSection>

@@ -16881,7 +16881,7 @@ msgid "Tint the header above each pane"
 msgstr "Tô màu tiêu đề phía trên mỗi ngăn"
 
 msgid "Tint the tab strip and mark the active tab"
-msgstr "Tô màu thanh tab và đánh dấu tab đang mở"
+msgstr "Tô màu thanh tab và đánh dấu tab đang hoạt động"
 
 msgid "Tints the project in the sidebar and in its workspaces."
 msgstr "Tô màu dự án trong thanh bên và trong các workspace của nó."

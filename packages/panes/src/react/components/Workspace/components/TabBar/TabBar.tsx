@@ -204,7 +204,7 @@ export function TabBar<TData>({
 			// children out with `no-drag` loses the carve-outs once they sit inside
 			// the masked/scrollable OverflowFadeContainer, which made the entire bar
 			// swallow clicks.
-			className="group/root-tabs flex h-12 min-w-0 shrink-0 items-stretch bg-muted/45 shadow-[inset_0_-1px_0_var(--border)] dark:bg-muted/35"
+			className="group/root-tabs flex h-12 min-w-0 shrink-0 items-stretch bg-[color-mix(in_oklab,var(--muted)_45%,var(--background))] shadow-[inset_0_-1px_0_var(--border)] dark:bg-[color-mix(in_oklab,var(--muted)_35%,var(--background))]"
 			style={{
 				backgroundImage: `var(${PANES_ACCENT_VARS.tabBarTint}, none)`,
 			}}

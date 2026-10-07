@@ -10,12 +10,14 @@ interface ProjectColorFieldProps {
 	projectId: string;
 	hostUrl: string | null;
 	color: string | null;
+	onChanged?: () => void;
 }
 
 export function ProjectColorField({
 	projectId,
 	hostUrl,
 	color,
+	onChanged,
 }: ProjectColorFieldProps) {
 	const { t } = useLingui();
 	const [isPending, setIsPending] = useState(false);
@@ -31,6 +33,7 @@ export function ProjectColorField({
 				projectId,
 				color: value === PROJECT_COLOR_DEFAULT ? null : value,
 			});
+			onChanged?.();
 		} catch (err) {
 			toast.error(errorMessage(err, t({ message: "Failed to set color" })));
 		} finally {

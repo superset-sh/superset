@@ -1,6 +1,8 @@
 import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import {
+	isItemAllowedForVariant,
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
@@ -56,10 +58,12 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
 		visibleItems,
 	);
-	const showProjectAccent = isItemVisible(
-		SETTING_ITEM_ID.APPEARANCE_PROJECT_ACCENT,
-		visibleItems,
-	);
+	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const showProjectAccent =
+		isItemAllowedForVariant(
+			SETTING_ITEM_ID.APPEARANCE_PROJECT_ACCENT,
+			isV2CloudEnabled,
+		) && isItemVisible(SETTING_ITEM_ID.APPEARANCE_PROJECT_ACCENT, visibleItems);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (

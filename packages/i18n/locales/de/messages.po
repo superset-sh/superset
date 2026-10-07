@@ -8118,7 +8118,7 @@ msgid "How should the agent's actions be approved?"
 msgstr "Wie sollen die Aktionen des Agenten freigegeben werden?"
 
 msgid "How strongly the color tints each surface"
-msgstr "Wie stark die Farbe jede Fläche tönt"
+msgstr "Wie stark die Farbe jede Fläche einfärbt"
 
 msgid "How the command opens."
 msgstr "Wie der Befehl geöffnet wird."
@@ -11836,7 +11836,7 @@ msgid "Palette"
 msgstr "Palette"
 
 msgid "Pane headers"
-msgstr "Bereichsköpfe"
+msgstr "Bereichskopfzeilen"
 
 msgid "Pane in current tab"
 msgstr "Bereich im aktuellen Tab"
@@ -16872,19 +16872,19 @@ msgid "Time range"
 msgstr "Zeitraum"
 
 msgid "Tint each project and its workspaces in the sidebar"
-msgstr "Jedes Projekt und seine Arbeitsbereiche in der Seitenleiste tönen"
+msgstr "Jedes Projekt und seine Arbeitsbereiche in der Seitenleiste einfärben"
 
 msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
-msgstr "Jeden Arbeitsbereich in der Farbe seines Projekts tönen. Wähle eine Farbe per Rechtsklick auf ein Projekt in der Seitenleiste."
+msgstr "Jeden Arbeitsbereich in der Farbe seines Projekts einfärben. Wähle eine Farbe per Rechtsklick auf ein Projekt in der Seitenleiste."
 
 msgid "Tint the header above each pane"
-msgstr "Den Kopf über jedem Bereich tönen"
+msgstr "Die Kopfzeile über jedem Bereich einfärben"
 
 msgid "Tint the tab strip and mark the active tab"
-msgstr "Die Tab-Leiste tönen und den aktiven Tab markieren"
+msgstr "Die Tab-Leiste einfärben und den aktiven Tab markieren"
 
 msgid "Tints the project in the sidebar and in its workspaces."
-msgstr "Tönt das Projekt in der Seitenleiste und in seinen Arbeitsbereichen."
+msgstr "Färbt das Projekt in der Seitenleiste und in seinen Arbeitsbereichen ein."
 
 msgid "Title"
 msgstr "Titel"
