@@ -1,0 +1,1 @@
+export { onePerName } from "./onePerName";

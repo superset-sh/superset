@@ -19,7 +19,7 @@ export function RightPaneHeaderButton({
 					type="button"
 					aria-label={label}
 					onClick={onClick}
-					className="no-drag flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+					className="no-drag flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
 				>
 					{children}
 				</button>

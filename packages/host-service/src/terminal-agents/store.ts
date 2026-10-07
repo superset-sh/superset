@@ -261,6 +261,7 @@ export class TerminalAgentStore extends EventEmitter {
 			workspaceId: input.workspaceId,
 			agentId: input.agentId,
 			agentSessionId: input.agentSessionId ?? prior?.agentSessionId,
+			account: input.account ?? (sameSession ? prior.account : undefined),
 			startedAt: sameSession ? prior.startedAt : input.occurredAt,
 			lastEventAt: input.occurredAt,
 			lastEventType: input.eventType,

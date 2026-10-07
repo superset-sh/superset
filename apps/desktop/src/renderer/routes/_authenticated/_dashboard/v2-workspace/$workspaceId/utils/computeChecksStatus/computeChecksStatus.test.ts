@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PullRequest } from "../../components/ChangesControl/utils/getPRFlowState";
+import type { PullRequest } from "../getPRFlowState";
 import { computeChecksRollup } from "./computeChecksStatus";
 
 type CheckRun = PullRequest["checks"][number];

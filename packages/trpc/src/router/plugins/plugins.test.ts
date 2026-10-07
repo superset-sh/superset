@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { pluginInstalls } from "@superset/db/schema";
+import { connections, pluginInstalls } from "@superset/db/schema";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 
@@ -56,6 +56,22 @@ mock.module("@superset/db/client", () => ({
 		select: () => ({
 			from: (table: unknown) => ({
 				where: (condition: SQL) => {
+					if (table === connections) {
+						return rows(
+							live
+								.filter(
+									(row) =>
+										row.connectedByUserId === USER_ID &&
+										row.disconnectedAt === null,
+								)
+								.map((row) => ({
+									id: row.id,
+									connector: row.connector,
+									account: null,
+									user: "me@superset.sh",
+								})),
+						);
+					}
 					if (table !== pluginInstalls) return rows([]);
 					const values = bound(condition);
 					return rows(
@@ -193,5 +209,45 @@ describe("plugins.uninstall", () => {
 
 		expect(result.disconnected).toBe(0);
 		expect(live[0]?.disconnectedAt).toBe(null);
+	});
+});
+
+describe("plugins.list", () => {
+	test("a connection without an install shows on its plugin's card, not a second card", async () => {
+		live = [connection("conn-mcp", "notion_mcp")];
+
+		const plugins = await caller.plugins.list();
+		const notion = plugins.filter(
+			(plugin) => plugin.connector === "notion_mcp",
+		);
+
+		expect(plugins.map((plugin) => plugin.name)).not.toContain("notion_mcp");
+		expect(notion).toHaveLength(1);
+		expect(notion[0]?.accounts).toEqual(["me@superset.sh"]);
+	});
+
+	test("a connection another install claims stays on that install only", async () => {
+		installs = [
+			install({
+				id: "install-notes-acme",
+				marketplace: "acme",
+				pluginName: "notes",
+				manifest: {
+					name: "notes",
+					version: "9.9.9",
+					extensions: { superset: { connector: { slug: "notion_mcp" } } },
+				},
+			}),
+		];
+		live = [connection("conn-mcp", "notion_mcp")];
+
+		const plugins = await caller.plugins.list();
+		const holders = plugins.filter((plugin) =>
+			plugin.connections.some((held) => held.id === "conn-mcp"),
+		);
+
+		expect(
+			holders.map((plugin) => `${plugin.marketplace}/${plugin.name}`),
+		).toEqual(["acme/notes"]);
 	});
 });

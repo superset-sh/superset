@@ -76,6 +76,10 @@ export class LiveSession {
 		return this.options.sessionId;
 	}
 
+	get scopeId(): string {
+		return this.options.scopeId;
+	}
+
 	get terminalId(): string | undefined {
 		return this.options.terminalId;
 	}

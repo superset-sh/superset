@@ -4,43 +4,18 @@ import type { UserMessage } from "@superset/chat/protocol";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import { ChevronRight } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { parseAttachmentTags } from "../../../../utils/attachmentTags";
 import { userMessageText } from "../../../../utils/userMessageText";
 import { AttachmentImage } from "./components/AttachmentImage";
 import { useFitsOneLine } from "./hooks/useFitsOneLine";
 
-/**
- * A harness bookkeeping turn: one muted line with the raw block behind a
- * disclosure, the way the CLI shows it. Rendering it as a user bubble puts
- * task ids and file paths in the middle of the conversation.
- */
-function BookkeepingRow({ label, text }: { label: string; text: string }) {
-	const [open, setOpen] = useState(false);
+function BookkeepingRow({ label }: { label: string }) {
 	return (
-		<Collapsible onOpenChange={setOpen} open={open}>
-			<CollapsibleTrigger className="flex w-full items-center gap-1.5 py-0.5 text-left text-muted-foreground/70 text-xs hover:text-foreground">
-				<ChevronRight
-					className={cn(
-						"size-3 shrink-0 transition-transform",
-						open && "rotate-90",
-					)}
-				/>
-				<span className="min-w-0 truncate">{label}</span>
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				<pre className="mt-1 ml-[18px] overflow-x-auto whitespace-pre-wrap border-border/60 border-l pl-3 font-mono text-[11px] text-muted-foreground/70">
-					{text}
-				</pre>
-			</CollapsibleContent>
-		</Collapsible>
+		<div className="flex min-w-0 items-center py-1 font-sans text-foreground/50 text-sm">
+			<span className="min-w-0 truncate first-letter:uppercase">{label}</span>
+		</div>
 	);
 }
 
@@ -65,7 +40,7 @@ export function UserMessageRow({
 	const { text, attachments } = parseAttachmentTags(raw);
 	const textRef = useRef<HTMLDivElement>(null);
 	const oneLine = useFitsOneLine(textRef);
-	if (note && !pending) return <BookkeepingRow label={note.label} text={raw} />;
+	if (note && !pending) return <BookkeepingRow label={note.label} />;
 
 	const images = attachments.filter((attachment) =>
 		attachment.type.startsWith("image/"),

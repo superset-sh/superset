@@ -459,6 +459,30 @@ describe("probeIdentity", () => {
 		expect(identity.user).toEqual({ id: "42", label: "h@tegon.ai" });
 	});
 
+	test("vercel_mcp asks the authorization server's userinfo endpoint", async () => {
+		const calls = respond({
+			sub: "user_abc",
+			email: "h@tegon.ai",
+			preferred_username: "harshith",
+		});
+
+		const identity = await probeIdentity(
+			"vercel_mcp",
+			connectorMethod(requireConnector("vercel_mcp")),
+			"vc-test",
+		);
+
+		expect(calls).toEqual([
+			{
+				url: "https://api.vercel.com/login/oauth/userinfo",
+				method: "GET",
+				auth: "Bearer vc-test",
+			},
+		]);
+		expect(identity.account).toEqual({ id: "user_abc", label: "h@tegon.ai" });
+		expect(identity.user).toEqual({ id: "user_abc", label: "harshith" });
+	});
+
 	test("superhuman_mcp reads the default account wherever the server lists it", async () => {
 		const calls: { method?: string; params?: { name?: string } }[] = [];
 		globalThis.fetch = (async (_url: string, init: RequestInit) => {

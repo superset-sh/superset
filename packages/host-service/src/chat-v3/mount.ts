@@ -103,6 +103,7 @@ function harnessRegistry(
 
 export type ChatV3Mount = {
 	runtime(): ChatRuntime;
+	closeScope(scopeId: string): Promise<void>;
 	dispose(): Promise<void>;
 };
 
@@ -132,6 +133,9 @@ export function createChatV3Mount(options: {
 
 	return {
 		runtime,
+		closeScope: async (scopeId) => {
+			await built?.commands.closeScope(scopeId);
+		},
 		dispose: async () => {
 			const current = built;
 			built = null;

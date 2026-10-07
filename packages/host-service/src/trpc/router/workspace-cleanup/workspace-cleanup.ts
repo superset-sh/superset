@@ -473,6 +473,13 @@ async function runDestroyPhases(
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
+	try {
+		await ctx.runtime.closeChats?.(input.workspaceId);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(`Failed to stop chat sessions: ${message}`);
+	}
+
 	// 3b. Worktree. Double-force unlocks the rare locked-worktree case and
 	//     clears stale metadata when the directory was manually removed.
 	//     Runs in the worker pool: the removal is a recursive delete of the

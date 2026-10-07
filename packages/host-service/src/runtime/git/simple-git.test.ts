@@ -7,7 +7,7 @@ import {
 	SIMPLE_GIT_UNSAFE_OPTION_FLAGS,
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS,
 } from "@superset/shared/simple-git-options";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 import { createUserSimpleGit } from "./simple-git";
 
 function makeBlockedGitEnv(workRoot: string): Record<string, string> {
@@ -85,9 +85,30 @@ describe("createUserSimpleGit", () => {
 		mkdirSync(repoPath);
 		execSync("git init", { cwd: repoPath, stdio: "ignore" });
 
-		const git = createUserSimpleGit(repoPath).env(makeBlockedGitEnv(workRoot));
+		const git = createUserSimpleGit(repoPath, {
+			env: makeBlockedGitEnv(workRoot),
+		});
 
 		const status = await git.raw(["status", "--short"]);
 		expect(status).toBe("");
+	});
+
+	test("passes the supplied GIT_* env through to git", async () => {
+		const repoPath = join(workRoot, "repo");
+		mkdirSync(repoPath);
+		execSync("git init", { cwd: repoPath, stdio: "ignore" });
+
+		const git = createUserSimpleGit(repoPath, {
+			env: {
+				...process.env,
+				GIT_CONFIG_COUNT: "1",
+				GIT_CONFIG_KEY_0: "superset.probe",
+				GIT_CONFIG_VALUE_0: "from-env",
+			},
+		});
+
+		expect((await git.raw(["config", "superset.probe"])).trim()).toBe(
+			"from-env",
+		);
 	});
 });

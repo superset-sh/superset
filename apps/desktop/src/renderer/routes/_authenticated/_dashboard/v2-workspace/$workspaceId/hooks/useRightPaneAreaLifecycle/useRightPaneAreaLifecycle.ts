@@ -2,9 +2,15 @@ import { transferTabToIndex, type WorkspaceStore } from "@superset/panes";
 import { useEffect } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { StoreApi } from "zustand/vanilla";
-import type { PaneViewerData } from "../../types";
+import type { DiffPaneData, PaneViewerData } from "../../types";
 
-const SIDEBAR_PANE_KINDS = new Set(["files", "changes-list", "review"]);
+const SIDEBAR_PANE_KINDS = new Set([
+	"files",
+	"changes-list",
+	"diff",
+	"review",
+	"pages-list",
+]);
 
 export function useRightPaneAreaLifecycle({
 	workspaceId,
@@ -59,7 +65,12 @@ export function useRightPaneAreaLifecycle({
 		const state = rightStore.getState();
 		state.addTab({ panes: [{ kind: "files", data: { kind: "files" } }] });
 		state.addTab({
-			panes: [{ kind: "changes-list", data: { kind: "changes-list" } }],
+			panes: [
+				{
+					kind: "diff",
+					data: { path: "", collapsedFiles: [] } as DiffPaneData,
+				},
+			],
 		});
 		const [first] = rightStore.getState().tabs;
 		if (first) rightStore.getState().setActiveTab(first.id);

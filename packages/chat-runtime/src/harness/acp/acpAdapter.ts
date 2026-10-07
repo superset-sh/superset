@@ -751,6 +751,7 @@ export class AcpAdapter implements HarnessAdapter {
 
 		if (variant === "usage_update") {
 			const usage = acpUsageUpdateSchema.safeParse(outer.data.update);
+			if (usage.success && usage.data.cost !== undefined) this.flushOpenText();
 			if (
 				usage.success &&
 				usage.data.cost !== undefined &&

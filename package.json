@@ -72,6 +72,7 @@
 		"tooling/*"
 	],
 	"overrides": {
+		"@modelcontextprotocol/sdk": "1.31.0",
 		"@tiptap/extension-dropcursor": "3.30.5",
 		"@tiptap/extension-floating-menu": "3.30.5",
 		"@tiptap/extension-gapcursor": "3.30.5",
@@ -86,7 +87,7 @@
 		"mdast-util-to-markdown": "2.1.2",
 		"next": "16.3.6",
 		"rollup": "4.62.3",
-		"shell-quote": "1.9.0"
+		"shell-quote": "1.11.0"
 	},
 	"trustedDependencies": [
 		"better-sqlite3",

@@ -40,4 +40,22 @@ describe("appendLaunchesToPaneLayout", () => {
 
 		expect(state.tabs).toHaveLength(0);
 	});
+
+	it("leaves a chat launch to the chat pane instead of a terminal tab", () => {
+		const state = appendLaunchesToPaneLayout({
+			existing: undefined,
+			terminals: [],
+			agents: [
+				{
+					ok: true,
+					kind: "terminal",
+					sessionId: "terminal-1",
+					label: "Claude",
+					chatSessionId: "chat-1",
+				},
+			],
+		});
+
+		expect(state.tabs).toHaveLength(0);
+	});
 });

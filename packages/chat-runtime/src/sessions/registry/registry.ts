@@ -109,8 +109,18 @@ export class LiveSessionRegistry {
 	}
 
 	async disposeAll(): Promise<void> {
-		const sessions = [...this.live.values()];
-		this.live.clear();
+		await this.disposeWhere(() => true);
+	}
+
+	async disposeScope(scopeId: string): Promise<string[]> {
+		return this.disposeWhere((session) => session.scopeId === scopeId);
+	}
+
+	private async disposeWhere(
+		matches: (session: LiveSession) => boolean,
+	): Promise<string[]> {
+		const sessions = [...this.live.values()].filter(matches);
+		for (const session of sessions) this.live.delete(session.sessionId);
 		for (const session of sessions) {
 			this.observe(() => this.options.observer?.stopped(session.sessionId));
 		}
@@ -119,5 +129,6 @@ export class LiveSessionRegistry {
 		);
 		const failure = results.find((result) => result.status === "rejected");
 		if (failure?.status === "rejected") throw failure.reason;
+		return sessions.map((session) => session.sessionId);
 	}
 }

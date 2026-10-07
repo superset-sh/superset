@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { acpHarnessForPreset } from "./acpHarness";
+import { acpHarnessForPreset, presetForAcpHarness } from "./acpHarness";
 
 describe("acpHarnessForPreset", () => {
 	it("maps a preset to its harness", () => {
@@ -18,5 +18,12 @@ describe("acpHarnessForPreset", () => {
 		expect(acpHarnessForPreset("amp")).toBeUndefined();
 		expect(acpHarnessForPreset(null)).toBeUndefined();
 		expect(acpHarnessForPreset(undefined)).toBeUndefined();
+	});
+});
+
+describe("presetForAcpHarness", () => {
+	it("maps a harness back to its preset", () => {
+		expect(presetForAcpHarness("claude-acp")).toBe("claude");
+		expect(presetForAcpHarness("claude-code")).toBeUndefined();
 	});
 });

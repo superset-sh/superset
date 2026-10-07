@@ -3,11 +3,12 @@ import { cn } from "@superset/ui/utils";
 import { GitCompareArrows } from "lucide-react";
 import { memo, useMemo } from "react";
 import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
+import { usePRFlowState } from "../../hooks/usePRFlowState";
 import { useWorkspaceGitStatus } from "../../providers/WorkspaceGitStatusProvider";
-import { changesPillStats } from "./changesPillStats";
+import { changesPillStats } from "../../utils/changesPillStats";
+import { ChangesStats } from "../ChangesStats";
 import { PRStatusGroup } from "./components/PRStatusGroup";
 import { ShipControl } from "./components/ShipControl";
-import { usePRFlowState } from "./hooks/usePRFlowState";
 
 interface ChangesControlProps {
 	workspaceId: string;
@@ -17,6 +18,7 @@ interface ChangesControlProps {
 	onToggleChanges: () => void;
 	/** Open or focus the pane showing the linked PR's summary. */
 	onOpenPullRequest: (ref: PullRequestRef) => void;
+	paneAreaStyle?: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export const ChangesControl = memo(function ChangesControl({
 	isChangesOpen,
 	onToggleChanges,
 	onOpenPullRequest,
+	paneAreaStyle = false,
 }: ChangesControlProps) {
 	const { t } = useLingui();
 	const status = useWorkspaceGitStatus();
@@ -61,7 +64,9 @@ export const ChangesControl = memo(function ChangesControl({
 		((flowState.kind === "busy" || flowState.kind === "error") &&
 			flowState.pr != null);
 	const visibleStats =
-		!hasPr && stats != null && stats.fileCount > 0 ? stats : null;
+		!paneAreaStyle && !hasPr && stats != null && stats.fileCount > 0
+			? stats
+			: null;
 
 	return (
 		<div className="flex h-7 items-stretch divide-x divide-border/60 overflow-hidden rounded-md border border-border/60 bg-muted/30 empty:hidden">
@@ -78,28 +83,18 @@ export const ChangesControl = memo(function ChangesControl({
 					)}
 				>
 					<GitCompareArrows className="size-3.5" />
-					{visibleStats.additions > 0 && (
-						<span className="tabular-nums text-emerald-600 [.dark_&]:text-[#34d399]">
-							+{visibleStats.additions}
-						</span>
-					)}
-					{visibleStats.deletions > 0 && (
-						<span className="tabular-nums text-red-600 [.dark_&]:text-[#f87171]">
-							−{visibleStats.deletions}
-						</span>
-					)}
-					{visibleStats.additions === 0 && visibleStats.deletions === 0 && (
-						<span className="tabular-nums">{visibleStats.fileCount}</span>
-					)}
+					<ChangesStats stats={visibleStats} />
 				</button>
 			)}
 			{flowState.kind === "no-pr" ? (
-				<ShipControl
-					workspaceId={workspaceId}
-					sync={flowState.sync}
-					onRefresh={onRetry}
-					compact={visibleStats != null}
-				/>
+				!paneAreaStyle && (
+					<ShipControl
+						workspaceId={workspaceId}
+						sync={flowState.sync}
+						onRefresh={onRetry}
+						compact={visibleStats != null}
+					/>
+				)
 			) : (
 				<PRStatusGroup
 					state={flowState}
@@ -109,6 +104,7 @@ export const ChangesControl = memo(function ChangesControl({
 					toggleLabel={label}
 					onToggleChanges={onToggleChanges}
 					onOpenPullRequest={onOpenPullRequest}
+					paneAreaStyle={paneAreaStyle}
 				/>
 			)}
 		</div>

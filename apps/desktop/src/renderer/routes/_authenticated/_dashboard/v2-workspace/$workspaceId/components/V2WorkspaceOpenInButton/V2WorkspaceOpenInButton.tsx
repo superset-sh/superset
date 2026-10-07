@@ -1,7 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceOpenInTarget } from "../../hooks/useWorkspaceOpenInTarget";
 import { V2OpenInMenuButton } from "../V2OpenInMenuButton";
 
 interface V2WorkspaceOpenInButtonProps {
@@ -11,34 +8,14 @@ interface V2WorkspaceOpenInButtonProps {
 export function V2WorkspaceOpenInButton({
 	workspaceId,
 }: V2WorkspaceOpenInButtonProps) {
-	const { machineId, activeHostUrl } = useLocalHostService();
-
-	const { workspaces } = useHostWorkspaces();
-	const workspace = workspaces.find((w) => w.id === workspaceId) ?? null;
-	const isLocalWorkspace = workspace !== null && workspace.hostId === machineId;
-
-	const workspaceQuery = useQuery({
-		queryKey: ["v2-open-in-workspace", activeHostUrl, workspaceId],
-		queryFn: () =>
-			getHostServiceClientByUrl(activeHostUrl as string).workspace.get.query({
-				id: workspaceId,
-			}),
-		enabled: !!workspace && !!activeHostUrl && isLocalWorkspace,
-	});
-
-	if (!workspace || !activeHostUrl || !isLocalWorkspace) {
-		return null;
-	}
-
-	if (!workspaceQuery.data?.worktreePath) {
-		return null;
-	}
+	const target = useWorkspaceOpenInTarget(workspaceId);
+	if (!target) return null;
 
 	return (
 		<V2OpenInMenuButton
-			branch={workspace.branch}
-			worktreePath={workspaceQuery.data.worktreePath}
-			projectId={workspace.projectId}
+			branch={target.branch}
+			worktreePath={target.worktreePath}
+			projectId={target.projectId}
 		/>
 	);
 }

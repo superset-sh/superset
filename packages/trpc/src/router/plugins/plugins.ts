@@ -50,6 +50,14 @@ function ambiguous(error: unknown): never {
 	throw error;
 }
 
+function accountLabels(
+	held: { account: string | null; user: string | null }[],
+): string[] {
+	return held
+		.map((connection) => connection.user ?? connection.account)
+		.filter((account): account is string => account !== null);
+}
+
 function notInstalled(name: string): TRPCError {
 	return userError({
 		code: "NOT_FOUND",
@@ -340,9 +348,7 @@ export const pluginsRouter = createTRPCRouter({
 				installedAt: row.installedAt as Date | null,
 				latestVersion: published ?? null,
 				connections: held_,
-				accounts: held_
-					.map((connection) => connection.user ?? connection.account)
-					.filter((account): account is string => account !== null),
+				accounts: accountLabels(held_),
 			};
 		});
 
@@ -356,47 +362,31 @@ export const pluginsRouter = createTRPCRouter({
 				.filter((slug): slug is string => slug !== undefined),
 		);
 
-		const orphaned = [...held.entries()]
-			.filter(([slug]) => !claimed.has(slug))
-			.map(([slug, rows]) => ({
-				name: slug,
-				version: "",
-				description: "",
-				marketplace: FIRST_PARTY,
-				displayName: slug,
-				category: "Developer tools",
-				icon: undefined,
-				connector: slug,
-				mcpUrl: null,
-				skills: [] as { name: string; description: string }[],
-				homepage: null,
-				author: null,
-				license: null,
-				installed: false,
-				enabled: false,
-				installedAt: null as Date | null,
-				latestVersion: null,
-				connections: rows,
-				accounts: rows
-					.map((connection) => connection.user ?? connection.account)
-					.filter((account): account is string => account !== null),
-			}));
-
 		const available = Object.values(FIRST_PARTY_MANIFESTS)
 			.filter(
 				(manifest) => !installedKeys.has(`${FIRST_PARTY}/${manifest.name}`),
 			)
-			.map((manifest) => ({
-				...describe(manifest as unknown as PluginManifest, FIRST_PARTY),
-				installed: false,
-				enabled: false,
-				installedAt: null as Date | null,
-				latestVersion: (manifest.version as string) ?? null,
-				connections: [] as { id: string; account: string | null }[],
-				accounts: [] as string[],
-			}));
+			.map((manifest) => {
+				const described = describe(
+					manifest as unknown as PluginManifest,
+					FIRST_PARTY,
+				);
+				const held_ =
+					described.connector && !claimed.has(described.connector)
+						? (held.get(described.connector) ?? [])
+						: [];
+				return {
+					...described,
+					installed: false,
+					enabled: false,
+					installedAt: null as Date | null,
+					latestVersion: (manifest.version as string) ?? null,
+					connections: held_,
+					accounts: accountLabels(held_),
+				};
+			});
 
-		return [...installed, ...orphaned, ...available];
+		return [...installed, ...available];
 	}),
 
 	install: protectedProcedure

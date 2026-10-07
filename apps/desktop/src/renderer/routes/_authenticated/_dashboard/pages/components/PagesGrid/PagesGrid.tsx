@@ -9,8 +9,8 @@ import {
 } from "@superset/ui/empty";
 import { Skeleton } from "@superset/ui/skeleton";
 import { LuFileText, LuPlus, LuSearchX } from "react-icons/lu";
+import { THUMBNAIL_ASPECT_RATIO } from "renderer/routes/_authenticated/_dashboard/components/PageThumbnail";
 import { PageCard, type PageCardItem } from "./components/PageCard";
-import { THUMBNAIL_ASPECT_RATIO } from "./constants";
 
 const SKELETON_KEYS = [
 	"skeleton-a",

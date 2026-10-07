@@ -6,6 +6,7 @@ import type { RouterOutputs } from "@superset/trpc";
 import { useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { onePerName } from "./utils/onePerName";
 
 type CatalogRow = RouterOutputs["plugins"]["list"][number];
 
@@ -67,7 +68,7 @@ export function usePluginCatalog() {
 	});
 
 	const plugins = useMemo(
-		() => (query.data ?? []).map(toCatalogPlugin),
+		() => onePerName((query.data ?? []).map(toCatalogPlugin)),
 		[query.data],
 	);
 

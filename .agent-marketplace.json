@@ -136,6 +136,26 @@
 			"category": "data & apis",
 			"source": "./plugins/posthog",
 			"version": "1.0.0"
+		},
+		{
+			"name": "google-calendar",
+			"description": "Read and manage your Google Calendar: find events, check free time, and schedule meetings.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "productivity",
+			"source": "./plugins/google-calendar",
+			"version": "1.0.0"
+		},
+		{
+			"name": "vercel",
+			"description": "Work with Vercel: inspect projects and deployments, read build and runtime logs, and search Vercel's docs.",
+			"author": {
+				"name": "Superset"
+			},
+			"category": "development",
+			"source": "./plugins/vercel",
+			"version": "1.0.0"
 		}
 	],
 	"featured": ["github", "linear"],

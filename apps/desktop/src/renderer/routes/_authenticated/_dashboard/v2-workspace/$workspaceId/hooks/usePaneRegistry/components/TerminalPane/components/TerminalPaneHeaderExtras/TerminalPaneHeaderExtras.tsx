@@ -4,11 +4,11 @@ import { cn } from "@superset/ui/utils";
 import { SquarePen } from "lucide-react";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type { SubagentPaneData } from "../../../../../../types";
+import { AccountUsage } from "../../../AccountUsage";
 import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "../../richInputOpenStore";
-import { TerminalAccountUsage } from "./components/TerminalAccountUsage";
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
 import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
@@ -58,7 +58,7 @@ export function TerminalPaneHeaderExtras({
 
 	return (
 		<div className="flex items-center gap-1">
-			<TerminalAccountUsage
+			<AccountUsage
 				key={`${workspaceId}:${terminalId}`}
 				workspaceId={workspaceId}
 				terminalId={terminalId}

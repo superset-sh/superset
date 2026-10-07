@@ -16,6 +16,7 @@ import {
 import type { AgentLifecycleEventType } from "../events";
 import { chatPortTerminalIds, portManager } from "../ports/port-manager";
 import { fanOutAgentLifecycle } from "../trpc/router/notifications/fan-out-agent-lifecycle";
+import type { SessionAccount } from "../trpc/router/usage/session-account/session-account";
 import type { HostServiceContext } from "../types";
 import { ACP_HARNESSES } from "./acpCatalogue";
 
@@ -43,6 +44,7 @@ type BoundChat = {
 	queuedPrompts: number;
 	pid?: number;
 	established?: true;
+	account?: SessionAccount;
 };
 
 function sameTasks(
@@ -65,6 +67,7 @@ function sameTasks(
 
 export type ChatAgentBridge = LiveSessionObserver & {
 	spawned(sessionId: string, pid: number): void;
+	accountCaptured(sessionId: string, account: SessionAccount): void;
 };
 
 export function agentIdForHarness(
@@ -125,6 +128,7 @@ export function createChatAgentBridge(
 			agentId: chat.agentId,
 			agentSessionId: chat.agentSessionId,
 			chatSessionId: chat.sessionId,
+			...(chat.account ? { account: chat.account } : {}),
 			occurredAt,
 		});
 
@@ -192,6 +196,13 @@ export function createChatAgentBridge(
 			const chat = current(sessionId);
 			if (!chat) return;
 			portManager.upsertSession(chat.terminalId, chat.workspaceId, pid);
+		},
+
+		accountCaptured(sessionId, account) {
+			const chat = chats.get(sessionId);
+			if (!chat) return;
+			chat.account = account;
+			if (current(sessionId)) attach(chat);
 		},
 
 		published(envelope: Envelope, session: LiveSession) {

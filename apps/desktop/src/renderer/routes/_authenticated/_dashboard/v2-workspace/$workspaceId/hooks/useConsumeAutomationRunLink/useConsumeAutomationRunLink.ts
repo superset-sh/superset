@@ -3,7 +3,10 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ConsumeSearch, PaneViewerData } from "../../types";
-import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
+import {
+	focusOrAddTerminalPane,
+	focusTerminalPane,
+} from "../../utils/focusTerminalPane";
 
 interface UseConsumeAutomationRunLinkArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
@@ -73,6 +76,7 @@ export function useConsumeAutomationRunLink({
 		consumedRef.current.add(key);
 		consumeSearch(["terminalId"]);
 		if (targetTerminalId === null) {
+			if (focusTerminalPane(store, terminalId)) return;
 			console.warn(
 				"[automation-run-link] Ignoring terminal link: not in this workspace and not resumed elsewhere",
 				{ terminalId, workspaceId },

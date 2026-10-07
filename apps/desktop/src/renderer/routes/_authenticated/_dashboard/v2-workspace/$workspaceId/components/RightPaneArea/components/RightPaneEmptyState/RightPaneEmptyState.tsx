@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	LuFileDiff,
+	LuFileText,
 	LuFolderTree,
 	LuGitPullRequestArrow,
 } from "react-icons/lu";
@@ -23,17 +24,17 @@ export function RightPaneEmptyState({ onAdd }: RightPaneEmptyStateProps) {
 					<LuFolderTree className="size-4" />
 					<Trans>Files</Trans>
 				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onAdd("changes-list")}
-				>
+				<Button variant="outline" size="sm" onClick={() => onAdd("diff")}>
 					<LuFileDiff className="size-4" />
 					<Trans>Changes</Trans>
 				</Button>
 				<Button variant="outline" size="sm" onClick={() => onAdd("review")}>
 					<LuGitPullRequestArrow className="size-4" />
 					<Trans>Review</Trans>
+				</Button>
+				<Button variant="outline" size="sm" onClick={() => onAdd("pages-list")}>
+					<LuFileText className="size-4" />
+					<Trans>Pages</Trans>
 				</Button>
 				<Button variant="outline" size="sm" onClick={() => onAdd("browser")}>
 					<TbWorld className="size-4" />

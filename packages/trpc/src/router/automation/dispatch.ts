@@ -11,6 +11,7 @@ import {
 	v2UsersHosts,
 } from "@superset/db/schema";
 import { CLOUD_AGENT_PROMPT_MAX_LENGTH } from "@superset/shared/cloud-agent-launch";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
 	buildHostRoutingKey,
@@ -22,6 +23,7 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq, sql } from "drizzle-orm";
+import { posthog } from "../../lib/analytics";
 import { nudge } from "../../lib/realtime";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { runInCloud } from "./cloudDispatch";
@@ -252,6 +254,8 @@ export async function dispatchAutomation(
 					})
 				: undefined;
 
+		const chatSurface = await acpChatEnabled(automation.ownerUserId);
+
 		const runAgent = (targetWorkspaceId: string) =>
 			runAgentOnHost({
 				relayUrl,
@@ -260,6 +264,7 @@ export async function dispatchAutomation(
 				workspaceId: targetWorkspaceId,
 				agent: automation.agent,
 				prompt,
+				...(chatSurface ? { surface: "chat" as const } : {}),
 				// Only the pinned workspace holds that session; the stale-pin
 				// recovery below branches a fresh one, which has none.
 				...(continueTerminalId && targetWorkspaceId === automation.v2WorkspaceId
@@ -696,6 +701,7 @@ async function runAgentOnHost(args: {
 	prompt: string;
 	/** See {@link previousRunTerminal}. */
 	continueTerminalId?: string;
+	surface?: "chat";
 }): Promise<AgentRunResult> {
 	return relayMutation<
 		{
@@ -703,6 +709,7 @@ async function runAgentOnHost(args: {
 			agent: string;
 			prompt: string;
 			continueTerminalId?: string;
+			surface?: "chat";
 		},
 		AgentRunResult
 	>(
@@ -717,6 +724,16 @@ async function runAgentOnHost(args: {
 			...(args.continueTerminalId
 				? { continueTerminalId: args.continueTerminalId }
 				: {}),
+			...(args.surface ? { surface: args.surface } : {}),
 		},
 	);
+}
+
+async function acpChatEnabled(userId: string): Promise<boolean> {
+	const enabled = await posthog
+		.isFeatureEnabled(FEATURE_FLAGS.ACP_CHAT, userId, {
+			sendFeatureFlagEvents: false,
+		})
+		.catch(() => undefined);
+	return enabled === true;
 }

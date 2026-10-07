@@ -19,3 +19,9 @@ export function acpHarnessForPreset(
 ): string | undefined {
 	return presetId ? ACP_HARNESS_BY_PRESET[presetId] : undefined;
 }
+
+export function presetForAcpHarness(harness: string): string | undefined {
+	return Object.entries(ACP_HARNESS_BY_PRESET).find(
+		([, candidate]) => candidate === harness,
+	)?.[0];
+}

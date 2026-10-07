@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import {
 	LuPanelRight,
 	LuPanelRightClose,
@@ -7,7 +8,13 @@ import {
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { HotkeyLabel } from "renderer/hotkeys";
 
-export function RightSidebarToggle() {
+interface RightSidebarToggleProps {
+	compact?: boolean;
+}
+
+export function RightSidebarToggle({
+	compact = false,
+}: RightSidebarToggleProps) {
 	const { preferences, setRightSidebarOpen } = useV2UserPreferences();
 	const isOpen = preferences.rightSidebarOpen;
 
@@ -34,7 +41,10 @@ export function RightSidebarToggle() {
 				<button
 					type="button"
 					onClick={toggle}
-					className="no-drag group flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					className={cn(
+						"no-drag group flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors",
+						compact ? "size-7" : "size-8",
+					)}
 				>
 					<span className="group-hover:hidden">{getToggleIcon(false)}</span>
 					<span className="hidden group-hover:block">

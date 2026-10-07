@@ -78,7 +78,7 @@ async function statusSnapshotFailure(
 ): Promise<Error> {
 	try {
 		await getGitStatusSnapshot({
-			git: createUserSimpleGit(worktreePath).env(env),
+			git: createUserSimpleGit(worktreePath, { env: env }),
 			worktreePath,
 		});
 	} catch (error) {
@@ -166,7 +166,7 @@ describe("git message locale", () => {
 			providerWithEnv(process.env as Record<string, string>),
 		)(repo);
 		const { snapshot } = await getGitStatusSnapshot({
-			git: createUserSimpleGit(repo).env(env),
+			git: createUserSimpleGit(repo, { env: env }),
 			worktreePath: repo,
 		});
 

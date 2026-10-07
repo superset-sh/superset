@@ -6,21 +6,19 @@ import {
 import { BsTerminalPlus } from "react-icons/bs";
 import {
 	LuFileDiff,
+	LuFiles,
+	LuFileText,
 	LuFolderTree,
 	LuGitPullRequestArrow,
 } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { TbWorld } from "react-icons/tb";
 import type { RightPaneKind } from "../../types";
 
 interface RightPaneAddMenuProps {
 	onAdd: (kind: RightPaneKind) => void;
-	isChatEnabled: boolean;
 }
 
-export function RightPaneAddMenu({
-	onAdd,
-	isChatEnabled,
-}: RightPaneAddMenuProps) {
+export function RightPaneAddMenu({ onAdd }: RightPaneAddMenuProps) {
 	return (
 		<>
 			<DropdownMenuItem className="gap-2" onClick={() => onAdd("files")}>
@@ -29,16 +27,28 @@ export function RightPaneAddMenu({
 					<Trans>Files</Trans>
 				</span>
 			</DropdownMenuItem>
-			<DropdownMenuItem className="gap-2" onClick={() => onAdd("changes-list")}>
+			<DropdownMenuItem className="gap-2" onClick={() => onAdd("diff")}>
 				<LuFileDiff className="size-4" />
 				<span>
 					<Trans>Changes</Trans>
+				</span>
+			</DropdownMenuItem>
+			<DropdownMenuItem className="gap-2" onClick={() => onAdd("changes-list")}>
+				<LuFiles className="size-4" />
+				<span>
+					<Trans>Files changed</Trans>
 				</span>
 			</DropdownMenuItem>
 			<DropdownMenuItem className="gap-2" onClick={() => onAdd("review")}>
 				<LuGitPullRequestArrow className="size-4" />
 				<span>
 					<Trans>Review</Trans>
+				</span>
+			</DropdownMenuItem>
+			<DropdownMenuItem className="gap-2" onClick={() => onAdd("pages-list")}>
+				<LuFileText className="size-4" />
+				<span>
+					<Trans>Pages</Trans>
 				</span>
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
@@ -48,14 +58,6 @@ export function RightPaneAddMenu({
 					<Trans>Browser</Trans>
 				</span>
 			</DropdownMenuItem>
-			{isChatEnabled && (
-				<DropdownMenuItem className="gap-2" onClick={() => onAdd("chat-v3")}>
-					<TbMessageCirclePlus className="size-4" />
-					<span>
-						<Trans>Chat v3</Trans>
-					</span>
-				</DropdownMenuItem>
-			)}
 			<DropdownMenuItem className="gap-2" onClick={() => onAdd("terminal")}>
 				<BsTerminalPlus className="size-4" />
 				<span>

@@ -29,6 +29,9 @@ msgstr ". {0}은(는) 아직 Stripe 구독으로 모델링되지 않았습니다
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr ". 각 카드에 표준 import 경로가 표시되며, 클릭하면 복사됩니다. 직접 만들기 전에 먼저 여기를 확인하세요."
 
+msgid "...and many more!"
+msgstr "…그 외 다수!"
+
 msgid "./"
 msgstr "./"
 
@@ -83,9 +86,6 @@ msgstr "({aliveCount}개 실행 중)"
 
 msgid "(Coming Soon)"
 msgstr "(출시 예정)"
-
-msgid "(disabled)"
-msgstr "(비활성화됨)"
 
 msgid "(edited)"
 msgstr "(수정됨)"
@@ -387,8 +387,8 @@ msgid "{0} Documentation"
 msgstr "{0} 문서"
 
 #. placeholder {0}: displayName(variables.name)
-#. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
+#. placeholder {0}: variables.name
 msgid "{0} enabled"
 msgstr "{0} 활성화됨"
 
@@ -2022,6 +2022,9 @@ msgstr "모든 데이터가 {ACCOUNT_DELETION_GRACE_DAYS}일 후에 영구적으
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "열려 있는 모든 터미널 세션이 종료되고 실행 중인 호스트 서비스가 모두 중지됩니다. 다음 실행까지 서비스를 계속 실행하려면 “Superset 닫기”를 사용하세요."
 
+msgid "All pages"
+msgstr "모든 페이지"
+
 msgid "All plans"
 msgstr "전체 플랜"
 
@@ -2771,6 +2774,9 @@ msgstr "페이지로 돌아가기"
 msgid "Back to the leaderboard"
 msgstr "리더보드로 돌아가기"
 
+msgid "Backed by"
+msgstr "투자자"
+
 msgid "Background"
 msgstr "배경"
 
@@ -3375,9 +3381,6 @@ msgstr "채팅 세션을 찾을 수 없습니다"
 
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "채팅 화면: 메시지, 추론, 제안"
-
-msgid "Chat v3"
-msgstr "Chat v3"
 
 msgid "Check again"
 msgstr "다시 확인"
@@ -4258,6 +4261,9 @@ msgstr "연결하면 에이전트가 사용자를 대신해 {name}에서 읽고 
 msgid "Connecting to the desktop…"
 msgstr "데스크톱에 연결하는 중…"
 
+msgid "Connecting to the host service…"
+msgstr "호스트 서비스에 연결하는 중…"
+
 msgid "Connecting to the workspace"
 msgstr "워크스페이스에 연결하는 중"
 
@@ -4884,6 +4890,9 @@ msgstr "이전 메시지를 불러올 수 없습니다. 다시 시도"
 
 msgid "Couldn't load issues: {msg}"
 msgstr "이슈를 불러오지 못했습니다: {msg}"
+
+msgid "Couldn't load pages"
+msgstr "페이지를 불러올 수 없습니다"
 
 msgid "Couldn't load pull requests: {msg}"
 msgstr "풀 리퀘스트를 불러오지 못했습니다: {msg}"
@@ -5851,9 +5860,6 @@ msgstr "비활성화됨"
 
 msgid "Disabled toggle"
 msgstr "비활성화된 토글"
-
-msgid "Disabling keeps a plugin installed but removes its servers from your agents. Changes take effect in new agent sessions."
-msgstr "비활성화하면 플러그인은 설치된 채로 남지만 서버는 에이전트에서 제거됩니다. 변경 사항은 새 에이전트 세션부터 적용됩니다."
 
 msgid "Discard"
 msgstr "버리기"
@@ -7556,6 +7562,9 @@ msgstr "기존 위치"
 msgid "from {price}/user/mo"
 msgstr "사용자당 월 {price}부터"
 
+msgid "From a hackathon project to the workspace for parallel coding agents."
+msgstr "해커톤 프로젝트에서 병렬 코딩 에이전트를 위한 워크스페이스로."
+
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "방문에서 다운로드, 계정, 유료 조직까지."
 
@@ -8111,6 +8120,9 @@ msgstr "등급 산정 방식 →"
 msgid "How to install {name} in Superset"
 msgstr "Superset에 {name} 설치하는 방법"
 
+msgid "How we build it, in long form."
+msgstr "어떻게 만드는지 자세히."
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "클라우드 워크스페이스 안에서 에이전트가 로그인하는 방식입니다. 다른 사람은 각자의 구독이나 API 키를 연결하며, 이 컴퓨터에서는 각 에이전트가 이미 있는 로그인을 계속 사용합니다."
 
@@ -8443,9 +8455,6 @@ msgstr "리포지토리를 연결하려면 Superset GitHub App을 설치하세�
 
 msgid "Install, authorize, and scope MCP servers across all your workspaces from one place, with centralized OAuth."
 msgstr "모든 워크스페이스의 MCP 서버를 한곳에서 설치하고, 인증하고, 범위를 지정하세요. OAuth도 중앙에서 관리합니다."
-
-msgid "Installed"
-msgstr "설치됨"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
@@ -9420,9 +9429,6 @@ msgstr "플랜 관리"
 msgid "Manage plan on the web"
 msgstr "웹에서 플랜 관리"
 
-msgid "Manage plugins"
-msgstr "플러그인 관리"
-
 msgid "Manage sessions"
 msgstr "세션 관리"
 
@@ -10024,9 +10030,6 @@ msgstr "새 브라우저"
 msgid "new challengers"
 msgstr "새 도전자"
 
-msgid "New chat"
-msgstr "새 채팅"
-
 msgid "New cloud workspace"
 msgstr "새 클라우드 워크스페이스"
 
@@ -10462,6 +10465,9 @@ msgstr "일치하는 모델이 없습니다"
 msgid "No matching org members."
 msgstr "일치하는 조직 멤버가 없습니다."
 
+msgid "No matching pages"
+msgstr "일치하는 페이지가 없습니다"
+
 msgid "No members yet"
 msgstr "아직 멤버가 없습니다"
 
@@ -10875,9 +10881,6 @@ msgstr "아직 아무것도 없습니다."
 msgid "Nothing here."
 msgstr "아무것도 없습니다."
 
-msgid "Nothing installed yet."
-msgstr "아직 설치된 항목이 없습니다."
-
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "실행 중인 것이 없습니다. 보관하고 새로 만드세요."
 
@@ -11190,9 +11193,6 @@ msgstr "변경 열기"
 
 msgid "Open Changes"
 msgstr "변경 열기"
-
-msgid "Open Chat v3"
-msgstr "Chat v3 열기"
 
 msgid "Open Command Palette"
 msgstr "명령 팔레트 열기"
@@ -11551,12 +11551,6 @@ msgstr "폴더 열기"
 msgid "Opening pages"
 msgstr "페이지 열기"
 
-msgid "Opening the chat…"
-msgstr "채팅을 여는 중…"
-
-msgid "Opening the conversation…"
-msgstr "대화를 여는 중…"
-
 msgid "Opening worktree..."
 msgstr "worktree를 여는 중..."
 
@@ -11689,6 +11683,9 @@ msgstr "다른 팀 멤버"
 
 msgid "Other ways to reach us"
 msgstr "다른 문의 방법"
+
+msgid "Our $11M seed round is led by Union Square Ventures, with Y Combinator, Paul Graham, and founders we admire."
+msgstr "1,100만 달러 규모의 시드 라운드는 Union Square Ventures가 주도했으며, Y Combinator, Paul Graham, 그리고 우리가 존경하는 창업자들이 함께했습니다."
 
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "2026년 8월 기준, 우리 팀과 가까이 지켜보는 팀들을 바탕으로 한 판단입니다. F3은 대부분 열렸고, F4는 대부분 닫혀 있습니다. 그 간극이 곧 해야 할 일입니다."
@@ -12743,6 +12740,9 @@ msgstr "병렬 코딩 에이전트 가이드 읽기"
 
 msgid "Read the setup guide"
 msgstr "설정 가이드 읽기"
+
+msgid "Read the source and every pull request."
+msgstr "소스 코드와 모든 풀 리퀘스트를 읽어 보세요."
 
 msgid "Reading {what}"
 msgstr "{what} 읽는 중"
@@ -14163,6 +14163,9 @@ msgstr "AI 에디터부터 코딩 에이전트, 클라우드 기반 AI 엔지니
 msgid "See how Superset compares to other tools"
 msgstr "다른 도구와 Superset 비교 보기"
 
+msgid "See how we work"
+msgstr "우리가 일하는 방식 보기"
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "다른 개발자와 에이전트 사용량을 비교하세요. 각 프로필에서 사용하는 모델을 살펴보세요."
 
@@ -14336,9 +14339,6 @@ msgstr "터미널에서 텍스트를 선택하면 끝의 공백이 제거된 상
 
 msgid "Send"
 msgstr "보내기"
-
-msgid "Send a message to start a {harness} session"
-msgstr "메시지를 보내 {harness} 세션을 시작하세요"
 
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "{organizationName}에 참여하도록 초대를 보냅니다. 48시간 후 만료됩니다."
@@ -15237,9 +15237,6 @@ msgstr "한 주에 늘어난 스타"
 msgctxt "project date"
 msgid "Start"
 msgstr "시작일"
-
-msgid "Start a {harness} session"
-msgstr "{harness} 세션 시작"
 
 msgid "Start a conversation to see messages here"
 msgstr "대화를 시작하면 메시지가 여기에 표시됩니다"
@@ -16149,6 +16146,9 @@ msgstr "에이전트가 대화를 복사하고 분기는 여기서 열립니다"
 msgid "The agent owns a task from ticket to diff. The human reviews the result, not the keystrokes. Attention shifts from writing code to specifying work and judging it. One engineer runs several agents at once in isolated workspaces."
 msgstr "에이전트가 티켓부터 차이까지 작업을 맡습니다. 사람은 키 입력이 아니라 결과를 리뷰합니다. 관심은 코드를 쓰는 데서 일을 명세하고 판단하는 데로 옮겨 갑니다. 엔지니어 한 명이 격리된 워크스페이스에서 여러 에이전트를 동시에 돌립니다."
 
+msgid "The agent stopped while resuming the conversation."
+msgstr "대화를 재개하는 중에 에이전트가 중지되었습니다."
+
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "이 자동화가 실행하도록 설정된 에이전트가 해당 호스트에 더 이상 존재하지 않습니다. 호스트의 에이전트가 초기화되었거나 제거되었을 수 있습니다. 자동화 설정에서 에이전트를 다시 선택하세요."
 
@@ -16235,12 +16235,6 @@ msgstr "다음 폴더는 git 저장소가 아닙니다. 초기화할까요?"
 
 msgid "The forecast"
 msgstr "전망"
-
-msgid "The founders"
-msgstr "창업자"
-
-msgid "The founders at the hackathon where Superset started <0>|</0> YC HQ, November 2025"
-msgstr "Superset이 시작된 해커톤의 창업자들 <0>|</0> YC 본사, 2025년 11월"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "핵심 흐름 전체(리포지토리 가져오기, 에이전트 실행, 차이 리뷰)가 이제 로그아웃 상태와 오프라인에서도 동작합니다."
@@ -16410,9 +16404,6 @@ msgstr "클라우드 워크스페이스가 부팅되는 시작점입니다 — �
 msgid "The Superset desktop app is available for macOS and Linux."
 msgstr "Superset 데스크톱 앱은 macOS와 Linux에서 사용할 수 있습니다."
 
-msgid "The Superset founders at a hackathon, YC HQ San Francisco"
-msgstr "샌프란시스코 YC 본사 해커톤에 참여한 Superset 창업자들"
-
 msgid "The Superset host service for {organization} stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "{organization}의 Superset 호스트 서비스가 예기치 않게 중지되었으며({cause}) 자동으로 다시 시작하지 못했습니다."
 
@@ -16424,6 +16415,9 @@ msgstr "사이트 밖에서 제품을 실어 나르는 곳: 저장소, 릴리스
 
 msgid "the target host"
 msgstr "대상 호스트"
+
+msgid "The team"
+msgstr "팀"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "팀 초대가 만료되었거나 존재하지 않습니다. 팀 소유자에게 새 링크를 요청하거나 URL이 올바르게 입력되었는지 확인하세요."
@@ -16525,8 +16519,11 @@ msgstr "이 자동화는 다른 조직에 있습니다"
 msgid "This cannot be undone."
 msgstr "되돌릴 수 없습니다."
 
-msgid "This chat's agent has stopped and can't be resumed."
-msgstr "이 채팅의 에이전트가 중지되어 이어갈 수 없습니다."
+msgid "This chat stopped because the conversation continued in a terminal."
+msgstr "대화가 터미널에서 계속되어 이 채팅이 중지되었습니다."
+
+msgid "This chat was stopped."
+msgstr "이 채팅이 중지되었습니다."
 
 msgid "This closes every terminal session — in this workspace and any others — and can't be undone. If they're only briefly stuck, waiting usually brings them back."
 msgstr "이 워크스페이스를 포함한 모든 워크스페이스의 터미널 세션이 닫히며 되돌릴 수 없습니다. 잠깐 멈춘 것뿐이라면 기다리는 것만으로 대개 복구됩니다."
@@ -16804,6 +16801,9 @@ msgstr "스테이징된 모든 변경을 스테이징 해제하고 되돌립니�
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "스테이징된 변경 사항을 모두 스테이징 해제하고 되돌립니다. 스테이징된 새 파일은 삭제됩니다. 되돌릴 수 없습니다."
+
+msgid "This workspace"
+msgstr "이 워크스페이스"
 
 msgid "This workspace has no project to branch from"
 msgstr "이 워크스페이스에는 분기할 프로젝트가 없습니다"
@@ -17245,10 +17245,6 @@ msgstr "선택한 워크스페이스 그룹 해제"
 
 msgid "Unified view"
 msgstr "통합 보기"
-
-#. placeholder {0}: plugin.interface.displayName
-msgid "Uninstall {0}"
-msgstr "{0} 제거"
 
 msgid "Uninstall failed"
 msgstr "제거 실패"
@@ -17833,6 +17829,9 @@ msgstr "관찰자"
 msgid "Wayfinding and disclosure"
 msgstr "길 찾기와 정보 펼침"
 
+msgid "We build in public, so you can see how we work before you talk to us."
+msgstr "우리는 공개적으로 만듭니다. 대화하기 전에 우리가 일하는 방식을 확인하세요."
+
 msgid "We couldn't charge {amountDue}. Update your payment method to keep this plan."
 msgstr "{amountDue}을(를) 청구하지 못했습니다. 이 플랜을 유지하려면 결제 수단을 업데이트하세요."
 
@@ -18023,8 +18022,8 @@ msgstr "페이지에 무엇을 표시할까요?"
 msgid "What should we build next?"
 msgstr "다음으로 무엇을 만들까요?"
 
-msgid "What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents."
-msgstr "Superset이 무엇이고, 누가 만들며, 누구를 위한 것인지. 병렬 코딩 에이전트를 위한 워크스페이스를 만드는 전 YC CTO 3인의 샌프란시스코 팀입니다."
+msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
+msgstr "Superset이 무엇이고, 누가 만들며, 누구를 위한 것인지. 병렬 코딩 에이전트를 위한 워크스페이스를 만드는, 전 YC CTO 3인이 이끄는 샌프란시스코 팀입니다."
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "콘텐츠 현황: 세션이 어느 페이지에서 시작되는지, 얼마나 발행되고 있는지."
@@ -18032,11 +18031,20 @@ msgstr "콘텐츠 현황: 세션이 어느 페이지에서 시작되는지, 얼�
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "작성 기준이 된 대상이 페이지에 더 이상 없어 핀이 없습니다."
 
+msgid "What we believe"
+msgstr "우리가 믿는 것"
+
+msgid "What we ship, every week."
+msgstr "매주 출시하는 것."
+
 msgid "What We're Building"
 msgstr "우리가 만들고 있는 것"
 
 msgid "What we're building now and next."
 msgstr "지금 만들고 있는 것과 다음에 만들 것."
+
+msgid "What we've shipped"
+msgstr "지금까지 출시한 것"
 
 msgid "What would you like to build with Superset in the cloud?"
 msgstr "클라우드의 Superset으로 무엇을 만들고 싶으신가요?"

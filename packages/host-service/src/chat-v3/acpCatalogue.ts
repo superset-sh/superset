@@ -79,3 +79,14 @@ export function cliFloor(harness: string): {
 		upgrade: entry?.upgrade,
 	};
 }
+
+const ACP_HARNESS_BY_PRESET: Record<string, string> = {
+	claude: "claude-acp",
+	codex: "codex-acp",
+	opencode: "opencode-acp",
+	pi: "pi-acp",
+};
+
+export function acpHarnessForPreset(presetId: string): string | undefined {
+	return ACP_HARNESS_BY_PRESET[presetId];
+}

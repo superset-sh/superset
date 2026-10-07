@@ -14,7 +14,7 @@
 	"dependencies": {
 		"@lingui/core": "6.8.0",
 		"@lingui/react": "6.8.0",
-		"@modelcontextprotocol/sdk": "1.30.0",
+		"@modelcontextprotocol/sdk": "1.31.0",
 		"@radix-ui/react-collapsible": "1.1.12",
 		"@radix-ui/react-scroll-area": "1.2.10",
 		"@sentry/nextjs": "10.68.0",

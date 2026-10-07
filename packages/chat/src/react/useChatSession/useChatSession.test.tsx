@@ -97,6 +97,7 @@ function Probe(props: {
 	client: SessionClient;
 	scheduler?: FrameScheduler;
 	pageSize?: number;
+	wait?: ReturnType<typeof createManualWait>["wait"];
 }) {
 	renders += 1;
 	latest = useChatSession({
@@ -104,6 +105,7 @@ function Probe(props: {
 		deltas: [],
 		scheduler: props.scheduler,
 		pageSize: props.pageSize,
+		wait: props.wait,
 	});
 	return null;
 }
@@ -113,7 +115,89 @@ function session(): ChatSession {
 	return latest;
 }
 
+function unreachableUntil(
+	transport: ChatTransport,
+	reachable: () => boolean,
+): { transport: ChatTransport; prompts: () => number } {
+	let prompts = 0;
+	const refuse = () => Promise.reject(new Error("fetch failed"));
+	const getSession: ChatTransport["getSession"] = (input) =>
+		reachable() ? transport.getSession(input) : refuse();
+	const prompt: ChatTransport["prompt"] = (input) => {
+		prompts += 1;
+		return reachable() ? transport.prompt(input) : refuse();
+	};
+	return {
+		transport: new Proxy(transport, {
+			get: (target, key) =>
+				key === "getSession"
+					? getSession
+					: key === "prompt"
+						? prompt
+						: Reflect.get(target, key),
+		}),
+		prompts: () => prompts,
+	};
+}
+
 describe("useChatSession", () => {
+	test("keeps retrying while the host is unreachable and loads once it answers", async () => {
+		const stack = await startStack();
+		let up = false;
+		const host = unreachableUntil(stack.transport, () => up);
+		const manual = createManualWait();
+		const client = stack.makeClient({
+			transport: host.transport,
+			wait: manual.wait,
+		});
+		const view = render(<Probe client={client} wait={manual.wait} />);
+
+		await domWaitFor(() => expect(manual.pendingCount()).toBeGreaterThan(0));
+		act(() => manual.flush());
+		await domWaitFor(() => expect(manual.pendingCount()).toBeGreaterThan(0));
+		expect(session().status).toBe("loading");
+		expect(session().unreachable).toBe(true);
+
+		up = true;
+		await domWaitFor(() => {
+			act(() => manual.flush());
+			expect(session().status).toBe("ready");
+		});
+		expect(session().unreachable).toBe(false);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
+	test("holds a prompt sent before the host connects and sends it once connected", async () => {
+		const stack = await startStack();
+		let up = false;
+		const host = unreachableUntil(stack.transport, () => up);
+		const manual = createManualWait();
+		const client = stack.makeClient({
+			transport: host.transport,
+			wait: manual.wait,
+		});
+		const view = render(<Probe client={client} wait={manual.wait} />);
+
+		act(() => {
+			session().sendPrompt([{ type: "text", text: "hello" }]);
+		});
+		expect(session().outbox.map((entry) => entry.state)).toEqual(["queued"]);
+		expect(host.prompts()).toBe(0);
+
+		up = true;
+		await domWaitFor(() => {
+			act(() => manual.flush());
+			expect(session().connection).toBe("open");
+		});
+		await domWaitFor(() => expect(session().outbox).toHaveLength(0));
+		expect(host.prompts()).toBe(1);
+		view.unmount();
+		client.close();
+		await stack.runtime.dispose();
+	});
+
 	test("seeds, streams a turn, and clears the outbox on clientId echo", async () => {
 		const stack = await startStack();
 		const always = createRecordingSink();

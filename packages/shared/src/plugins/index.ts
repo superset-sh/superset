@@ -6,7 +6,12 @@ export const DEFAULT_MARKETPLACE = "superset";
 export const DEFAULT_MARKETPLACE_REPO = "superset-sh/superset";
 export const DEFAULT_MARKETPLACE_REF = "main";
 
-export const SUPERSET_HOSTED_PLUGINS = ["gmail", "slack", "ynab"] as const;
+export const SUPERSET_HOSTED_PLUGINS = [
+	"gmail",
+	"google-calendar",
+	"slack",
+	"ynab",
+] as const;
 export type SupersetHostedPlugin = (typeof SUPERSET_HOSTED_PLUGINS)[number];
 
 export function isSupersetHosted(name: string): boolean {
@@ -372,6 +377,14 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		version: "1.1.5",
 		description: "Read, search, send, and organize mail in your Gmail account",
 		interface: { displayName: "Gmail", category: "Communication" },
+		auth: [{ type: "oauth2" }],
+		mcpServers: {},
+	},
+	{
+		name: "google-calendar",
+		version: "1.0.0",
+		description: "Read and manage your Google Calendar",
+		interface: { displayName: "Google Calendar", category: "Productivity" },
 		auth: [{ type: "oauth2" }],
 		mcpServers: {},
 	},

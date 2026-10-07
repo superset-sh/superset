@@ -4,10 +4,15 @@ import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
 import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
 import {
+	SiGooglecalendar,
 	SiGooglechrome,
 	SiGoogledocs,
 	SiGooglesheets,
-	SiStripe,
+	SiLinear,
+	SiNotion,
+	SiPosthog,
+	SiSentry,
+	SiSupabase,
 	SiVercel,
 } from "react-icons/si";
 import {
@@ -18,60 +23,47 @@ import circlebackIconUrl from "renderer/assets/icons/circleback-icon.png";
 import figmaIconUrl from "renderer/assets/icons/figma-icon.svg";
 import gmailIconUrl from "renderer/assets/icons/gmail-icon.svg";
 import granolaIconUrl from "renderer/assets/icons/granola-icon.svg";
-import linearIconUrl from "renderer/assets/icons/linear-icon.svg";
-import mondayIconUrl from "renderer/assets/icons/monday-icon.png";
+import mondayIconUrl from "renderer/assets/icons/monday-icon.svg";
 import neonIconUrl from "renderer/assets/icons/neon-icon.png";
-import notionIconUrl from "renderer/assets/icons/notion-icon.png";
-import posthogIconUrl from "renderer/assets/icons/posthog-icon.png";
-import sentryIconUrl from "renderer/assets/icons/sentry-icon.svg";
 import slackIconUrl from "renderer/assets/icons/slack-icon.svg";
-import supabaseIconUrl from "renderer/assets/icons/supabase-icon.png";
-import superhumanIconUrl from "renderer/assets/icons/superhuman-icon.png";
+import stripeIconUrl from "renderer/assets/icons/stripe-icon.svg";
 import ynabIconUrl from "renderer/assets/icons/ynab-icon.png";
+import { SuperhumanIcon } from "./components/SuperhumanIcon";
 
 /**
  * Per-plugin brand icons. Icons stay per-app rather than in the shared
  * catalog (same split as INTEGRATIONS — packages/shared isn't React-aware).
- * Three tiers: full-bleed marks that ship their own square art (Superset,
- * Linear, and white-tile logos), transparent color marks rendered inside a
- * tile, and tinted glyphs for the rest. Black-mark brands (GitHub, Notion,
- * Vercel) stay on the foreground token so they invert with the theme.
+ * Every mark sits at one size inside the same tile, so a logo that ships its
+ * own square art reads no larger than a transparent one. Black-mark brands
+ * stay on the foreground token so they invert with the theme.
  */
-
-/** Own square artwork — rendered edge to edge, no tile behind. */
-const FULL_BLEED_ICONS: Record<string, string> = {
-	linear: linearIconUrl,
-	posthog: posthogIconUrl,
-	notion: notionIconUrl,
-	supabase: supabaseIconUrl,
-	superhuman: superhumanIconUrl,
-	granola: granolaIconUrl,
-	monday: mondayIconUrl,
-	sentry: sentryIconUrl,
-};
-
-/** Transparent full-color marks — rendered inside the tile. */
 const IMAGE_ICONS: Record<string, string> = {
 	figma: figmaIconUrl,
 	slack: slackIconUrl,
 	neon: neonIconUrl,
 	circleback: circlebackIconUrl,
 	gmail: gmailIconUrl,
+	stripe: stripeIconUrl,
 	ynab: ynabIconUrl,
+	granola: granolaIconUrl,
+	monday: mondayIconUrl,
 };
 
-const PLUGIN_ICONS: Record<
-	string,
-	{ icon: IconType; color?: string; scale?: string }
-> = {
+const PLUGIN_ICONS: Record<string, { icon: IconType; color?: string }> = {
 	github: { icon: FaGithub },
-	stripe: { icon: SiStripe, color: "#635BFF" },
+	superhuman: { icon: SuperhumanIcon },
+	notion: { icon: SiNotion },
+	sentry: { icon: SiSentry },
+	posthog: { icon: SiPosthog },
+	linear: { icon: SiLinear },
+	supabase: { icon: SiSupabase, color: "#3ECF8E" },
 	context7: { icon: LuBookOpen },
 	playwright: { icon: LuDrama, color: "#2EAD33" },
 	"chrome-devtools": { icon: SiGooglechrome, color: "#4285F4" },
+	"google-calendar": { icon: SiGooglecalendar, color: "#4285F4" },
 	"google-docs": { icon: SiGoogledocs, color: "#4285F4" },
 	"google-sheets": { icon: SiGooglesheets, color: "#0F9D58" },
-	vercel: { icon: SiVercel, scale: "size-1/2" },
+	vercel: { icon: SiVercel },
 };
 
 /**
@@ -84,7 +76,7 @@ export function getPluginIconUrl(
 	isDark: boolean,
 ): string | undefined {
 	if (pluginName === "superset") return getPresetIcon("superset", isDark);
-	const artwork = FULL_BLEED_ICONS[pluginName] ?? IMAGE_ICONS[pluginName];
+	const artwork = IMAGE_ICONS[pluginName];
 	if (artwork !== undefined) return artwork;
 	const entry = PLUGIN_ICONS[pluginName];
 	const Icon = entry?.icon ?? LuPuzzle;
@@ -103,12 +95,10 @@ export function PluginIcon({ pluginName, className }: PluginIconProps) {
 	const supersetIcon = usePresetIcon("superset");
 	const size = className ?? "size-9";
 
-	const fullBleed =
-		pluginName === "superset" ? supersetIcon : FULL_BLEED_ICONS[pluginName];
-	if (fullBleed !== undefined) {
+	if (pluginName === "superset") {
 		return (
 			<img
-				src={fullBleed}
+				src={supersetIcon}
 				alt=""
 				className={cn("shrink-0 rounded-lg object-cover", size)}
 			/>
@@ -121,15 +111,19 @@ export function PluginIcon({ pluginName, className }: PluginIconProps) {
 	return (
 		<div
 			className={cn(
-				"flex shrink-0 items-center justify-center rounded-lg bg-muted/40 text-foreground",
+				"@container flex shrink-0 items-center justify-center rounded-lg bg-muted/40 text-foreground",
 				size,
 			)}
 		>
 			{imageIcon !== undefined ? (
-				<img src={imageIcon} alt="" className="size-3/5 object-contain" />
+				<img
+					src={imageIcon}
+					alt=""
+					className="size-3/5 object-contain @max-[1.5rem]:size-5/6"
+				/>
 			) : (
 				<Icon
-					className={entry?.scale ?? "size-2/3"}
+					className="size-3/5 @max-[1.5rem]:size-5/6"
 					style={entry?.color ? { color: entry.color } : undefined}
 				/>
 			)}

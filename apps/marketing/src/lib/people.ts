@@ -9,6 +9,7 @@ export const personSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	role: z.string().min(1, "Role is required"),
 	bio: z.string().optional(),
+	story: z.string().optional(),
 	twitter: z.string().optional(),
 	github: z.string().optional(),
 	linkedin: z.string().optional(),

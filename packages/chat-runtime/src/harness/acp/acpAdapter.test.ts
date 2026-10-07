@@ -1359,6 +1359,39 @@ describe("AcpAdapter on protocol v2", () => {
 		await adapter.dispose();
 	});
 
+	it("records a reply in full when the agent's cycle ends, not when the next item starts", async () => {
+		const agent = new FakeAcpAgent();
+		agent.holdPrompts = true;
+		const { adapter, events } = startAdapter(agent);
+		await flush();
+		adapter.prompt([{ type: "text", text: "say hi" }]);
+		await flush();
+
+		agent.notify("sess-1", {
+			sessionUpdate: "agent_message_chunk",
+			content: { type: "text", text: "Hello " },
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "agent_message_chunk",
+			content: { type: "text", text: "there." },
+		});
+		agent.notify("sess-1", {
+			sessionUpdate: "usage_update",
+			used: 10,
+			size: 100,
+			cost: { amount: 0.01, currency: "USD" },
+		});
+		await flush();
+
+		const recorded = events.flatMap((event) =>
+			event.kind === "item" && event.item.kind === "agent_message"
+				? [(event.item as { text: string }).text]
+				: [],
+		);
+		expect(recorded.at(-1)).toBe("Hello there.");
+		await adapter.dispose();
+	});
+
 	it("treats a steered turn as working until the steered reply streams", async () => {
 		const agent = new FakeAcpAgent();
 		agent.steeringOutcome = "injected";

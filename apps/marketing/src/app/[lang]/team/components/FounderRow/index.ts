@@ -1,0 +1,1 @@
+export { FounderRow } from "./FounderRow";

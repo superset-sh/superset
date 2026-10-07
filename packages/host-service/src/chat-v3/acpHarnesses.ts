@@ -5,6 +5,7 @@ import type { HarnessFactory } from "@superset/chat-runtime";
 import { createAcpAdapter } from "@superset/chat-runtime";
 import type { HostDb } from "../db";
 import { resolveAttachmentPath } from "../trpc/router/attachments/storage";
+import { captureSessionAccount } from "../trpc/router/usage/session-account/session-account";
 import { ACP_HARNESSES } from "./acpCatalogue";
 import { resolveAgentCli } from "./agentCli";
 import { buildChatAgentEnv } from "./agentEnv";
@@ -66,6 +67,20 @@ export function acpHarnessFactory(
 						}),
 				});
 				const env = cli.env;
+				void captureSessionAccount(
+					entry.binary,
+					(entry.binary === "codex" ? env.CODEX_HOME : env.CLAUDE_CONFIG_DIR) ??
+						"",
+					Boolean(
+						entry.binary === "codex"
+							? env.OPENAI_API_KEY
+							: env.ANTHROPIC_API_KEY,
+					),
+				)
+					.then((account) => {
+						if (account) agents?.accountCaptured(options.sessionId, account);
+					})
+					.catch(() => undefined);
 				if (!adapterEntry) {
 					return { command: cli.command, args: entry.args, env };
 				}

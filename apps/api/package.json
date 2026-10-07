@@ -15,7 +15,7 @@
 		"@anthropic-ai/sdk": "0.78.0",
 		"@better-auth/oauth-provider": "1.6.22",
 		"@linear/sdk": "68.1.1",
-		"@modelcontextprotocol/sdk": "1.30.0",
+		"@modelcontextprotocol/sdk": "1.31.0",
 		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
 		"@octokit/rest": "22.0.1",

@@ -63,7 +63,13 @@ interface CreateOutcome {
 	workspace: { id: string; projectId: string | null };
 	terminals: Array<{ terminalId: string; label?: string }>;
 	agents: Array<
-		| { ok: true; kind: "terminal"; sessionId: string; label: string }
+		| {
+				ok: true;
+				kind: "terminal";
+				sessionId: string;
+				label: string;
+				chatSessionId?: string;
+		  }
 		| { ok: false; error: string }
 	>;
 	/**

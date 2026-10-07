@@ -16,6 +16,7 @@
 						"openid",
 						"email",
 						"https://www.googleapis.com/auth/calendar.readonly",
+						"https://www.googleapis.com/auth/calendar.events",
 						"https://www.googleapis.com/auth/gmail.readonly",
 						"https://www.googleapis.com/auth/gmail.compose",
 						"https://www.googleapis.com/auth/gmail.modify",
@@ -758,6 +759,41 @@
 						"user": {
 							"id": "$.sub",
 							"label": "$.email"
+						}
+					},
+					"bind": {
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						}
+					}
+				}
+			]
+		},
+		"vercel_mcp": {
+			"displayName": "Vercel",
+			"icon": "vercel",
+			"category": "Developer tools",
+			"scope": "user",
+			"methods": [
+				{
+					"type": "oauth2",
+					"label": "OAuth 2.0",
+					"client": "dynamic",
+					"authorization_url": "https://mcp.vercel.com",
+					"scopes": ["openid", "email", "profile", "offline_access"],
+					"identity": {
+						"url": "https://api.vercel.com/login/oauth/userinfo",
+						"method": "GET",
+						"headers": {
+							"Authorization": "Bearer ${config.access_token}"
+						},
+						"account": {
+							"id": "$.sub",
+							"label": "$.email"
+						},
+						"user": {
+							"id": "$.sub",
+							"label": "$.preferred_username"
 						}
 					},
 					"bind": {

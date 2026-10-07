@@ -16,6 +16,8 @@ import {
 	bindResumedSession,
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
+	chatContinuationTarget,
+	chatLaunchTarget,
 	continuationTarget,
 	validateAgentEffortSelection,
 	validateAgentForkSelection,
@@ -1035,6 +1037,45 @@ describe("continuationTarget", () => {
 				...run,
 				workspaceId: "33333333-3333-3333-3333-333333333333",
 			}),
+		).toBeNull();
+	});
+	it("continues a chat bound to the terminal while its session is alive", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		const store = new TerminalAgentStore();
+		store.recordChatEvent({
+			terminalId,
+			workspaceId,
+			eventType: "Stop",
+			agentId: "claude",
+			chatSessionId: "chat-1",
+			occurredAt: Date.now(),
+		});
+		const live = (status: string) => ({ get: () => ({ state: { status } }) });
+
+		expect(chatContinuationTarget(db, store, live("idle"), run)).toEqual({
+			terminalId,
+			chatSessionId: "chat-1",
+			label: "Claude",
+		});
+		expect(chatContinuationTarget(db, store, live("dead"), run)).toBeNull();
+	});
+
+	it("launches a chat only when asked for one with an ACP harness", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		const launch = { workspaceId, agent: "claude", prompt: "go" };
+
+		expect(
+			chatLaunchTarget(db, { ...launch, surface: "chat", mode: "plan" }),
+		).toEqual({
+			harness: "claude-acp",
+			label: "Claude",
+			attachments: [],
+		});
+		expect(chatLaunchTarget(db, launch)).toBeNull();
+		expect(
+			chatLaunchTarget(db, { ...launch, surface: "chat", effort: "high" }),
 		).toBeNull();
 	});
 });

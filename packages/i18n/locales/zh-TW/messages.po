@@ -29,6 +29,9 @@ msgstr "。{0}尚未建模為Stripe訂閱"
 msgid ". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom."
 msgstr "匯出的每一個元件。每張卡片都會顯示規範的匯入路徑——點選即可複製。在自己動手寫元件之前，先看看這裡。"
 
+msgid "...and many more!"
+msgstr "……以及更多！"
+
 msgid "./"
 msgstr "./"
 
@@ -83,9 +86,6 @@ msgstr "（{aliveCount}個執行中）"
 
 msgid "(Coming Soon)"
 msgstr "（即將推出）"
-
-msgid "(disabled)"
-msgstr "（已停用）"
 
 msgid "(edited)"
 msgstr "（已編輯）"
@@ -387,8 +387,8 @@ msgid "{0} Documentation"
 msgstr "{0} 文件"
 
 #. placeholder {0}: displayName(variables.name)
-#. placeholder {0}: plugin.interface.displayName
 #. placeholder {0}: skill.name
+#. placeholder {0}: variables.name
 msgid "{0} enabled"
 msgstr "{0}已啟用"
 
@@ -2022,6 +2022,9 @@ msgstr "你的所有資料將在{ACCOUNT_DELETION_GRACE_DAYS}天後被永久刪�
 msgid "All open terminal sessions will be killed and any running host-services will be stopped. Use “Close Superset” instead if you want services to keep running for the next launch."
 msgstr "所有開啟的終端會話都會被結束，正在執行的主機服務也會停止。如果希望服務繼續執行以便下次啟動，請改用「關閉Superset」。"
 
+msgid "All pages"
+msgstr "所有頁面"
+
 msgid "All plans"
 msgstr "全部方案"
 
@@ -2771,6 +2774,9 @@ msgstr "返回頁面"
 msgid "Back to the leaderboard"
 msgstr "返回排行榜"
 
+msgid "Backed by"
+msgstr "投資方"
+
 msgid "Background"
 msgstr "背景"
 
@@ -3375,9 +3381,6 @@ msgstr "未找到聊天會話"
 
 msgid "Chat surfaces: messages, reasoning, suggestions"
 msgstr "聊天介面：訊息、推理、建議"
-
-msgid "Chat v3"
-msgstr "聊天v3"
 
 msgid "Check again"
 msgstr "重新檢查"
@@ -4258,6 +4261,9 @@ msgstr "連線後，你的代理可代表你在 {name} 中讀取和操作。繼�
 msgid "Connecting to the desktop…"
 msgstr "正在連線至桌面…"
 
+msgid "Connecting to the host service…"
+msgstr "正在連線至主機服務…"
+
 msgid "Connecting to the workspace"
 msgstr "正在連線工作區"
 
@@ -4884,6 +4890,9 @@ msgstr "無法載入較早的訊息。重試"
 
 msgid "Couldn't load issues: {msg}"
 msgstr "無法載入議題：{msg}"
+
+msgid "Couldn't load pages"
+msgstr "無法載入頁面"
 
 msgid "Couldn't load pull requests: {msg}"
 msgstr "無法載入拉取請求：{msg}"
@@ -5851,9 +5860,6 @@ msgstr "已停用"
 
 msgid "Disabled toggle"
 msgstr "停用的切換控制項"
-
-msgid "Disabling keeps a plugin installed but removes its servers from your agents. Changes take effect in new agent sessions."
-msgstr "停用會保留外掛的安裝，但會把它的伺服器從代理程式中移除。改動會在新的代理程式會話中生效。"
 
 msgid "Discard"
 msgstr "放棄"
@@ -7556,6 +7562,9 @@ msgstr "從"
 msgid "from {price}/user/mo"
 msgstr "{price}/使用者/月起"
 
+msgid "From a hackathon project to the workspace for parallel coding agents."
+msgstr "從一個黑客松專案，到平行程式設計代理的工作空間。"
+
 msgid "From a visit to a download to an account to a paying organization."
 msgstr "從造訪到下載、到帳號、到付費組織。"
 
@@ -8111,6 +8120,9 @@ msgstr "等級如何計算 →"
 msgid "How to install {name} in Superset"
 msgstr "如何在Superset中安裝{name}"
 
+msgid "How we build it, in long form."
+msgstr "我們如何打造它，深入介紹。"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "你的代理程式在雲端工作區中如何登入。其他人連接各自的訂閱或API金鑰；在這台機器上，每個代理程式繼續使用它上面已有的登入。"
 
@@ -8443,9 +8455,6 @@ msgstr "安裝Superset GitHub App以連線你的儲存庫。"
 
 msgid "Install, authorize, and scope MCP servers across all your workspaces from one place, with centralized OAuth."
 msgstr "在一處為所有工作區安裝、授權並劃定MCP伺服器的權限範圍，OAuth集中管理。"
-
-msgid "Installed"
-msgstr "已安裝"
 
 #. js-lingui-explicit-id
 msgid "serverError.plugins.marketplaceHasInstalls"
@@ -9420,9 +9429,6 @@ msgstr "管理方案"
 msgid "Manage plan on the web"
 msgstr "在網頁端管理方案"
 
-msgid "Manage plugins"
-msgstr "管理外掛"
-
 msgid "Manage sessions"
 msgstr "管理會話"
 
@@ -10024,9 +10030,6 @@ msgstr "新建瀏覽器"
 msgid "new challengers"
 msgstr "換對手"
 
-msgid "New chat"
-msgstr "新建聊天"
-
 msgid "New cloud workspace"
 msgstr "新建雲端工作區"
 
@@ -10462,6 +10465,9 @@ msgstr "沒有符合的模型"
 msgid "No matching org members."
 msgstr "沒有匹配的組織成員。"
 
+msgid "No matching pages"
+msgstr "沒有符合的頁面"
+
 msgid "No members yet"
 msgstr "暫無成員"
 
@@ -10875,9 +10881,6 @@ msgstr "這裡還沒有內容。"
 msgid "Nothing here."
 msgstr "這裡沒有內容。"
 
-msgid "Nothing installed yet."
-msgstr "還沒有安裝任何外掛。"
-
 msgid "Nothing is running. Archive it and create a new one."
 msgstr "沒有任何東西在執行。封存它，再建一個。"
 
@@ -11190,9 +11193,6 @@ msgstr "開啟更改"
 
 msgid "Open Changes"
 msgstr "開啟更改"
-
-msgid "Open Chat v3"
-msgstr "開啟Chat v3"
 
 msgid "Open Command Palette"
 msgstr "開啟命令面板"
@@ -11551,12 +11551,6 @@ msgstr "開啟資料夾"
 msgid "Opening pages"
 msgstr "開啟頁面"
 
-msgid "Opening the chat…"
-msgstr "正在開啟聊天…"
-
-msgid "Opening the conversation…"
-msgstr "正在開啟對話…"
-
 msgid "Opening worktree..."
 msgstr "正在開啟worktree..."
 
@@ -11689,6 +11683,9 @@ msgstr "其他團隊成員"
 
 msgid "Other ways to reach us"
 msgstr "其他聯絡方式"
+
+msgid "Our $11M seed round is led by Union Square Ventures, with Y Combinator, Paul Graham, and founders we admire."
+msgstr "我們 1,100 萬美元的種子輪由 Union Square Ventures 領投，Y Combinator、Paul Graham 以及我們敬佩的創辦人參與投資。"
 
 msgid "Our read as of August 2026, based on our own team and the teams we watch closely. F3 is mostly open. F4 is mostly closed. That gap is the work."
 msgstr "這是我們截至2026年8月的判斷，依據是我們自己的團隊和我們密切關注的團隊。F3大多已開啟，F4大多還沒開啟。這道差距就是要做的事。"
@@ -12743,6 +12740,9 @@ msgstr "閱讀並行編碼代理程式指南"
 
 msgid "Read the setup guide"
 msgstr "閱讀設定指南"
+
+msgid "Read the source and every pull request."
+msgstr "閱讀原始碼和每一個拉取請求。"
 
 msgid "Reading {what}"
 msgstr "正在讀取 {what}"
@@ -14163,6 +14163,9 @@ msgstr "看看Superset與其他AI編碼工具的對比，涵蓋AI編輯器、編
 msgid "See how Superset compares to other tools"
 msgstr "看看Superset與其他工具的對比"
 
+msgid "See how we work"
+msgstr "看看我們如何工作"
+
 msgid "See how your agent usage compares. Explore the models behind each profile."
 msgstr "比較你與其他開發者的代理程式用量，探索每個個人檔案使用的模型。"
 
@@ -14336,9 +14339,6 @@ msgstr "在終端中選取文字後立即複製到剪貼簿，並移除結尾空
 
 msgid "Send"
 msgstr "傳送"
-
-msgid "Send a message to start a {harness} session"
-msgstr "傳送訊息以開始{harness}會話"
 
 msgid "Send an invitation to join {organizationName}. Expires in 48 hours."
 msgstr "傳送加入{organizationName}的邀請。48小時後過期。"
@@ -15237,9 +15237,6 @@ msgstr "每週新增星標"
 msgctxt "project date"
 msgid "Start"
 msgstr "開始日期"
-
-msgid "Start a {harness} session"
-msgstr "開始一個{harness}會話"
 
 msgid "Start a conversation to see messages here"
 msgstr "開始一段對話，訊息會顯示在這裡"
@@ -16149,6 +16146,9 @@ msgstr "代理複製該對話，分支在此開啟"
 msgid "The agent owns a task from ticket to diff. The human reviews the result, not the keystrokes. Attention shifts from writing code to specifying work and judging it. One engineer runs several agents at once in isolated workspaces."
 msgstr "代理程式從工單一路負責到差異。人類審查結果，而不是擊鍵過程。注意力從寫程式碼轉向定義工作和判斷成果。一名工程師在隔離工作區裡同時跑好幾個代理程式。"
 
+msgid "The agent stopped while resuming the conversation."
+msgstr "恢復對話時代理已停止。"
+
 msgid "The agent this automation was set to run no longer exists on its host — the host's agents may have been reset or removed. Re-select an agent in the automation's settings."
 msgstr "這個自動化原本要執行的代理程式在它的主機上已不存在，該主機的代理程式可能被重置或刪除了。請在自動化的設定中重新選擇一個代理程式。"
 
@@ -16235,12 +16235,6 @@ msgstr "以下資料夾不是git儲存庫。要初始化它們嗎？"
 
 msgid "The forecast"
 msgstr "預測"
-
-msgid "The founders"
-msgstr "創始人"
-
-msgid "The founders at the hackathon where Superset started <0>|</0> YC HQ, November 2025"
-msgstr "創始人在Superset誕生的那場駭客松上 <0>|</0> YC總部，2025年11月"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "完整的核心流程（匯入儲存庫、執行代理程式、審查差異）現在在未登入和離線時也能用。"
@@ -16410,9 +16404,6 @@ msgstr "雲端工作區啟動的起點 — 一個基礎映像檔，或你已設�
 msgid "The Superset desktop app is available for macOS and Linux."
 msgstr "Superset 桌面應用程式支援 macOS 與 Linux。"
 
-msgid "The Superset founders at a hackathon, YC HQ San Francisco"
-msgstr "Superset創始人在駭客松現場，YC總部，舊金山"
-
 msgid "The Superset host service for {organization} stopped unexpectedly ({cause}) and could not be restarted automatically."
 msgstr "{organization}的Superset主機服務意外停止（{cause}），且無法自動重啟。"
 
@@ -16424,6 +16415,9 @@ msgstr "站外承載產品的管道：儲存庫、發行版本與 Discord。"
 
 msgid "the target host"
 msgstr "目標主機"
+
+msgid "The team"
+msgstr "團隊"
 
 msgid "The team invitation has either expired or doesn't exist. Request a new link from the team owner or check the URL to make sure it is entered correctly."
 msgstr "該團隊邀請已過期或不存在。請向團隊擁有者索取新連結，或檢查URL是否輸入正確。"
@@ -16525,8 +16519,11 @@ msgstr "此自動化位於其他組織"
 msgid "This cannot be undone."
 msgstr "此操作無法復原。"
 
-msgid "This chat's agent has stopped and can't be resumed."
-msgstr "此聊天的代理已停止，無法繼續。"
+msgid "This chat stopped because the conversation continued in a terminal."
+msgstr "由於對話已在終端機中繼續，此聊天已停止。"
+
+msgid "This chat was stopped."
+msgstr "此聊天已停止。"
 
 msgid "This closes every terminal session — in this workspace and any others — and can't be undone. If they're only briefly stuck, waiting usually brings them back."
 msgstr "這會關閉所有終端會話 — 包括此工作區和其他工作區中的 — 且無法復原。如果它們只是短暫卡住，等待通常就能恢復。"
@@ -16804,6 +16801,9 @@ msgstr "這將取消暫存並還原所有已暫存的變更。已暫存的新檔
 
 msgid "This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone."
 msgstr "這將取消暫存並還原所有已暫存的更改。已暫存的新檔案將被刪除。此操作無法復原。"
+
+msgid "This workspace"
+msgstr "此工作區"
 
 msgid "This workspace has no project to branch from"
 msgstr "此工作區沒有可供分叉的專案"
@@ -17245,10 +17245,6 @@ msgstr "取消選中工作區的群組"
 
 msgid "Unified view"
 msgstr "統一檢視"
-
-#. placeholder {0}: plugin.interface.displayName
-msgid "Uninstall {0}"
-msgstr "解除安裝{0}"
 
 msgid "Uninstall failed"
 msgstr "解除安裝失敗"
@@ -17833,6 +17829,9 @@ msgstr "關注者"
 msgid "Wayfinding and disclosure"
 msgstr "導航定位與內容展開"
 
+msgid "We build in public, so you can see how we work before you talk to us."
+msgstr "我們公開開發，在和我們交談之前，你就能看到我們如何工作。"
+
 msgid "We couldn't charge {amountDue}. Update your payment method to keep this plan."
 msgstr "我們無法扣取{amountDue}。請更新支付方式以保留此方案。"
 
@@ -18023,8 +18022,8 @@ msgstr "頁面應顯示什麼?"
 msgid "What should we build next?"
 msgstr "接下來做點什麼？"
 
-msgid "What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents."
-msgstr "Superset 是什麼、由誰打造、為誰而做。一支由三位前 YC CTO 組成的舊金山團隊，正在打造平行編碼代理的工作區。"
+msgid "What Superset is, who builds it, and who it's for. A San Francisco team, led by three ex-YC CTOs, building the workspace for parallel coding agents."
+msgstr "Superset 是什麼、由誰打造、為誰而做。一支由三位前 YC CTO 帶領的舊金山團隊，正在打造平行編碼代理的工作區。"
 
 msgid "What the content is doing: which pages sessions start on, and how much is being published."
 msgstr "內容的表現：工作階段從哪些頁面開始，以及發佈了多少。"
@@ -18032,11 +18031,20 @@ msgstr "內容的表現：工作階段從哪些頁面開始，以及發佈了多
 msgid "What these were written against is no longer on the page, so they have no pin."
 msgstr "這些評論所針對的內容已不在頁面上，因此沒有標記。"
 
+msgid "What we believe"
+msgstr "我們的信念"
+
+msgid "What we ship, every week."
+msgstr "我們每週發布的內容。"
+
 msgid "What We're Building"
 msgstr "我們正在構建什麼"
 
 msgid "What we're building now and next."
 msgstr "我們正在做什麼，接下來做什麼。"
+
+msgid "What we've shipped"
+msgstr "我們發布了什麼"
 
 msgid "What would you like to build with Superset in the cloud?"
 msgstr "您想用雲端 Superset 建構什麼？"

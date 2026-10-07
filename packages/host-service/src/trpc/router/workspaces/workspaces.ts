@@ -1299,7 +1299,12 @@ export const workspacesRouter = router({
 			// result.
 			let chainAgent: { fullCommand: string; label: string } | null = null;
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
-			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
+			if (
+				!alreadyExists &&
+				input.waitForSetupBeforeAgents &&
+				soleLaunch &&
+				soleLaunch.surface !== "chat"
+			) {
 				try {
 					chainAgent = buildTerminalAgentLaunch(ctx.db, {
 						workspaceId: workspaceRow.id,

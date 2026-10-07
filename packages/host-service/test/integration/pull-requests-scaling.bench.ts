@@ -1,6 +1,6 @@
 import { afterEach, describe, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import simpleGit, { type SimpleGit } from "simple-git";
+import { type SimpleGit, simpleGit } from "simple-git";
 import type { HostDb } from "../../src/db";
 import { workspaces } from "../../src/db/schema";
 import { GitWatcher } from "../../src/events/git-watcher";

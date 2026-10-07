@@ -77,7 +77,7 @@ import { DictationBar } from "../DictationBar";
 import { MentionMenu } from "../MentionMenu";
 
 const FOOTER_BUTTON_CLASS =
-	"flex size-[26px] shrink-0 items-center justify-center rounded-full transition-colors";
+	"flex size-[26px] shrink-0 items-center justify-center rounded-md transition-colors";
 const GHOST_FOOTER_BUTTON_CLASS = cn(
 	FOOTER_BUTTON_CLASS,
 	"cursor-pointer text-muted-foreground hover:bg-accent hover:text-foreground",

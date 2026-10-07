@@ -1,5 +1,6 @@
 import { transferAllTabs, Workspace } from "@superset/panes";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
@@ -35,9 +36,11 @@ import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceActivityMenu } from "./components/WorkspaceActivityMenu";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
+import { WorkspaceMoreMenu } from "./components/WorkspaceMoreMenu";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { useAgentSessionLauncher } from "./hooks/useAgentSessionLauncher";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
+import { useAutoAdoptChatSessions } from "./hooks/useAutoAdoptChatSessions";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
@@ -68,7 +71,11 @@ import { useWorkspacePaneOpeners } from "./hooks/useWorkspacePaneOpeners";
 import { WorkspaceGitStatusProvider } from "./providers/WorkspaceGitStatusProvider";
 import { FileDocumentStoreProvider } from "./state/fileDocumentStore";
 import type { ConsumeSearch, PaneViewerData } from "./types";
-import { findVisibleChangesPane } from "./utils/openChangesPaneInStore";
+import {
+	closeVisibleChangesPane,
+	findVisibleChangesPane,
+	openChangesPaneInStore,
+} from "./utils/openChangesPaneInStore";
 import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
 interface WorkspaceSearch {
@@ -254,6 +261,12 @@ function V2WorkspaceContent() {
 		workspaceId,
 		isLayoutReady: isLayoutReady && isRightLayoutReady,
 	});
+	useAutoAdoptChatSessions({
+		store,
+		linkedStores: linkedPaneStores,
+		workspaceId,
+		isLayoutReady: isLayoutReady && isRightLayoutReady,
+	});
 	useConsumeOpenUrlRequest({
 		store,
 		url: openUrl,
@@ -277,7 +290,6 @@ function V2WorkspaceContent() {
 	const {
 		openDiffPane,
 		addTerminalTab,
-		addChatV3Tab,
 		addBrowserTab,
 		openChangesPane,
 		toggleChangesPane,
@@ -334,6 +346,27 @@ function V2WorkspaceContent() {
 		store,
 		(state) => findVisibleChangesPane(state) != null,
 	);
+	const isRightChangesTabOpen = useStore(
+		rightStore,
+		(state) => findVisibleChangesPane(state) != null,
+	);
+	const openRightChangesTab = useCallback(() => {
+		setRightSidebarOpen(true);
+		openChangesPaneInStore(rightStore, "tab");
+	}, [rightStore, setRightSidebarOpen]);
+	const toggleRightChangesTab = useCallback(() => {
+		if (sidebarOpen && closeVisibleChangesPane(rightStore)) return;
+		openRightChangesTab();
+	}, [rightStore, sidebarOpen, openRightChangesTab]);
+	const openChanges = isRightPaneAreaEnabled
+		? openRightChangesTab
+		: openChangesPane;
+	const toggleChanges = isRightPaneAreaEnabled
+		? toggleRightChangesTab
+		: toggleChangesPane;
+	const isChangesOpen = isRightPaneAreaEnabled
+		? sidebarOpen && isRightChangesTabOpen
+		: isChangesPaneOpen;
 
 	usePullRequestPaneIntentOpener({
 		workspaceId,
@@ -348,7 +381,6 @@ function V2WorkspaceContent() {
 			panes: [{ kind: "desktop", data: { kind: "desktop" } }],
 		});
 	}, [store]);
-	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 	useRunPendingChatHandoff({
 		workspaceId,
 		isLayoutReady,
@@ -380,13 +412,14 @@ function V2WorkspaceContent() {
 				case "files":
 				case "changes-list":
 				case "review":
+				case "pages-list":
 					rightStore.getState().addTab({ panes: [{ kind, data: { kind } }] });
+					return;
+				case "diff":
+					openChangesPaneInStore(rightStore, "tab");
 					return;
 				case "browser":
 					rightOpeners.addBrowserTab();
-					return;
-				case "chat-v3":
-					rightOpeners.addChatV3Tab();
 					return;
 				case "terminal":
 					void rightOpeners.addTerminalTab();
@@ -471,7 +504,7 @@ function V2WorkspaceContent() {
 		matchedPresets,
 		executePreset,
 		addTerminalTab,
-		openChangesPane,
+		openChangesPane: openChanges,
 		paneRegistry,
 		launcher,
 		onBeforeCloseTab,
@@ -498,6 +531,32 @@ function V2WorkspaceContent() {
 		/>
 	);
 
+	const changesControl = isLayoutReady && (
+		<ChangesControl
+			workspaceId={workspaceId}
+			isChangesOpen={isChangesOpen}
+			onToggleChanges={toggleChanges}
+			onOpenPullRequest={openPullRequestPane}
+			paneAreaStyle={isRightPaneAreaEnabled}
+		/>
+	);
+
+	const workspaceControls = (
+		<>
+			{changesControl}
+			<WorkspaceMoreMenu
+				workspaceId={workspaceId}
+				projectId={workspace.projectId}
+				runDefinition={workspaceRun.definition}
+				isRunning={workspaceRun.isRunning}
+				isRunPending={workspaceRun.isPending}
+				canForceStop={workspaceRun.canForceStop}
+				onToggleRun={workspaceRun.toggleWorkspaceRun}
+				onForceStopRun={workspaceRun.forceStopWorkspaceRun}
+			/>
+		</>
+	);
+
 	const activityMenu = (
 		<WorkspaceActivityMenu
 			workspaceId={workspaceId}
@@ -507,6 +566,11 @@ function V2WorkspaceContent() {
 			onOpenPage={openPagePane}
 			onCreateNewAgentSession={createNewAgentSession}
 			onFocusAgentTerminal={focusAgentTerminal}
+			changes={
+				isRightPaneAreaEnabled
+					? { isOpen: isChangesOpen, onToggle: toggleChanges }
+					: undefined
+			}
 		/>
 	);
 
@@ -519,12 +583,11 @@ function V2WorkspaceContent() {
 			contextMenuActions={rightContextMenuActions}
 			onBeforeCloseTab={onBeforeCloseRightTab}
 			onInteractionStateChange={onWorkspaceInteractionStateChange}
-			runButton={workspaceRunButton}
+			workspaceControls={workspaceControls}
 			isExpanded={isRightPaneAreaExpanded}
 			onToggleExpanded={toggleRightPaneAreaExpanded}
 			onMergeIntoCenter={mergeRightPaneAreaIntoCenter}
 			onAdd={addRightPane}
-			isChatEnabled={isChatV3Enabled}
 			showWindowControls={!isMac}
 		/>
 	);
@@ -565,9 +628,8 @@ function V2WorkspaceContent() {
 								renderAddTabMenu={() => (
 									<AddTabMenu
 										onAddTerminal={addTerminalTab}
-										onAddChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 										onAddBrowser={addBrowserTab}
-										onAddChanges={openChangesPane}
+										onAddChanges={openChanges}
 										onAddDesktop={isSandbox ? addDesktopTab : undefined}
 										showPresetsBar={showPresetsBar}
 										onToggleShowPresetsBar={setShowPresetsBar}
@@ -575,24 +637,31 @@ function V2WorkspaceContent() {
 								)}
 								renderTabBarLeading={() => <WindowChrome />}
 								renderTabBarTrailing={() => (
-									<div className="flex items-center gap-1">
+									<div
+										className={cn(
+											"flex items-center gap-1",
+											isRightPaneAreaEnabled && "pr-1",
+										)}
+									>
 										<CloudWorkspaceTabBarControls workspaceId={workspaceId} />
 										{activityMenu}
-										{isLayoutReady && (
-											<ChangesControl
-												workspaceId={workspaceId}
-												isChangesOpen={isChangesPaneOpen}
-												onToggleChanges={toggleChangesPane}
-												onOpenPullRequest={openPullRequestPane}
-											/>
-										)}
-										{/* Open-in must not depend on the right sidebar being open,
-									    so it lives here rather than in the sidebar's top strip
-									    (#7167). Without an @container ancestor its branch label
-									    stays hidden, which keeps it compact for the tab bar. */}
-										<V2WorkspaceOpenInButton workspaceId={workspaceId} />
-										{(!isRightPaneAreaEnabled || !sidebarOpen) && (
-											<RightSidebarToggle />
+										{isRightPaneAreaEnabled ? (
+											!sidebarOpen && (
+												<>
+													{workspaceControls}
+													<RightSidebarToggle compact />
+												</>
+											)
+										) : (
+											<>
+												{changesControl}
+												{/* Open-in must not depend on the right sidebar being open,
+											    so it lives here rather than in the sidebar's top strip
+											    (#7167). Without an @container ancestor its branch label
+											    stays hidden, which keeps it compact for the tab bar. */}
+												<V2WorkspaceOpenInButton workspaceId={workspaceId} />
+												<RightSidebarToggle />
+											</>
 										)}
 										{!isMac && !sidebarOpen && <WindowControlsInset />}
 									</div>
@@ -600,8 +669,7 @@ function V2WorkspaceContent() {
 								renderEmptyState={() => (
 									<WorkspaceEmptyState
 										onOpenBrowser={addBrowserTab}
-										onOpenChanges={openChangesPane}
-										onOpenChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
+										onOpenChanges={openChanges}
 										onOpenQuickOpen={handleQuickOpen}
 										onOpenTerminal={addTerminalTab}
 									/>

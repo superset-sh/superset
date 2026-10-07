@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SessionClient, SessionStream, StreamStatus } from "../../client";
+import type {
+	SessionClient,
+	SessionStream,
+	StreamStatus,
+	Wait,
+} from "../../client";
+import {
+	DEFAULT_BACKOFF_INITIAL_MS,
+	DEFAULT_BACKOFF_MAX_MS,
+} from "../../client";
 import type { OutboxEntry, SessionSnapshot } from "../../core";
 import { emptySnapshot, Outbox, reduceMany } from "../../core";
 import type { Cursor } from "../../protocol/cursor";
@@ -22,6 +31,13 @@ const defaultScheduler: FrameScheduler = (flush) => {
 	return () => clearTimeout(timer);
 };
 
+const defaultWait: Wait = (callback, delayMs) => {
+	const timer = setTimeout(callback, delayMs);
+	return () => clearTimeout(timer);
+};
+
+const SEED_TIMEOUT_MS = 10_000;
+
 export const DEFAULT_DELTAS: readonly DeltaChannel[] = [
 	"text",
 	"tool_input",
@@ -33,6 +49,7 @@ export type UseChatSessionOptions = {
 	deltas?: readonly DeltaChannel[];
 	pageSize?: number;
 	scheduler?: FrameScheduler;
+	wait?: Wait;
 };
 
 export type ChatSessionStatus = "loading" | "ready";
@@ -41,6 +58,7 @@ export type ChatSession = {
 	snapshot: SessionSnapshot;
 	status: ChatSessionStatus;
 	connection: StreamStatus;
+	unreachable: boolean;
 	outbox: OutboxEntry[];
 	hasOlder: boolean;
 	sendPrompt(
@@ -79,11 +97,15 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot);
 	const [status, setStatus] = useState<ChatSessionStatus>("loading");
 	const [connection, setConnection] = useState<StreamStatus>("connecting");
+	const [unreachable, setUnreachable] = useState(false);
 	const [outboxEntries, setOutboxEntries] = useState<OutboxEntry[]>([]);
 	const [hasOlder, setHasOlder] = useState(false);
 
 	const schedulerRef = useRef(options.scheduler ?? defaultScheduler);
 	schedulerRef.current = options.scheduler ?? defaultScheduler;
+	const waitRef = useRef(options.wait ?? defaultWait);
+	waitRef.current = options.wait ?? defaultWait;
+	const connectedRef = useRef(false);
 
 	const pendingRef = useRef<Envelope[]>([]);
 	const cancelFlushRef = useRef<(() => void) | null>(null);
@@ -111,6 +133,11 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		setOutboxEntries(outbox.snapshot());
 		return outbox.subscribe(() => setOutboxEntries(outbox.snapshot()));
 	}, [outbox]);
+
+	useEffect(() => {
+		connectedRef.current = connection === "open";
+		if (connectedRef.current) void outbox.flush();
+	}, [connection, outbox]);
 
 	const commit = useCallback(() => {
 		cancelFlushRef.current = null;
@@ -161,15 +188,56 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		const deltas = deltasKey ? (deltasKey.split(",") as DeltaChannel[]) : [];
 
 		setStatus("loading");
+		setUnreachable(false);
 		setConnection("connecting");
 		setSnapshot(emptySnapshot());
 		setHasOlder(false);
 		nextBeforeRef.current = null;
 		pendingRef.current = [];
 
-		const seed = async () => {
-			const session = await client.getSession();
-			const page = await client.getItems({ limit: pageSize });
+		let cancelRetry: (() => void) | null = null;
+		const retry = (attempt: number) => {
+			const delayMs = Math.min(
+				DEFAULT_BACKOFF_INITIAL_MS * 2 ** attempt,
+				DEFAULT_BACKOFF_MAX_MS,
+			);
+			cancelRetry = waitRef.current(() => {
+				cancelRetry = null;
+				void seed(attempt + 1);
+			}, delayMs);
+		};
+
+		const timed = <T>(request: Promise<T>) =>
+			new Promise<T>((resolve, reject) => {
+				const cancelTimeout = waitRef.current(
+					() => reject(new Error("timed out")),
+					SEED_TIMEOUT_MS,
+				);
+				request.then(
+					(value) => {
+						cancelTimeout();
+						resolve(value);
+					},
+					(error: unknown) => {
+						cancelTimeout();
+						reject(error);
+					},
+				);
+			});
+
+		const seed = async (attempt: number) => {
+			let session: Awaited<ReturnType<SessionClient["getSession"]>>;
+			let page: Awaited<ReturnType<SessionClient["getItems"]>>;
+			try {
+				session = await timed(client.getSession());
+				page = await timed(client.getItems({ limit: pageSize }));
+			} catch {
+				if (cancelled) return;
+				setUnreachable(true);
+				retry(attempt);
+				return;
+			}
+			setUnreachable(false);
 			if (cancelled) return;
 			let seeded = emptySnapshot();
 			if (page.ok) {
@@ -189,10 +257,11 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 				onStatusChange: setConnection,
 			});
 		};
-		void seed();
+		void seed(0);
 
 		return () => {
 			cancelled = true;
+			cancelRetry?.();
 			cancelFlushRef.current?.();
 			cancelFlushRef.current = null;
 			pendingRef.current = [];
@@ -203,7 +272,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const sendPrompt = useCallback(
 		(content: UserContent[], steer?: { expectedTurnId: string }) => {
 			const entry = outbox.enqueue(content, steer);
-			void outbox.flush();
+			if (connectedRef.current) void outbox.flush();
 			return entry;
 		},
 		[outbox],
@@ -212,7 +281,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 	const retryPrompt = useCallback(
 		(clientId: string) => {
 			outbox.retry(clientId);
-			void outbox.flush();
+			if (connectedRef.current) void outbox.flush();
 		},
 		[outbox],
 	);
@@ -287,6 +356,7 @@ export function useChatSession(options: UseChatSessionOptions): ChatSession {
 		snapshot,
 		status,
 		connection,
+		unreachable,
 		outbox: outboxEntries,
 		hasOlder,
 		sendPrompt,

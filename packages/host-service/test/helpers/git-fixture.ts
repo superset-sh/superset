@@ -1,7 +1,8 @@
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import simpleGit, { type SimpleGit } from "simple-git";
+import type { SimpleGit } from "simple-git";
+import { createUserSimpleGit } from "../../src/runtime/git/simple-git";
 
 export interface GitFixture {
 	repoPath: string;
@@ -22,7 +23,7 @@ export async function createGitFixture(): Promise<GitFixture> {
 	const repoPath = realpathSync(
 		mkdtempSync(join(tmpdir(), "host-service-test-repo-")),
 	);
-	const git = simpleGit(repoPath);
+	const git = createUserSimpleGit(repoPath);
 
 	await git.init(["--initial-branch=main"]);
 	await git.addConfig("user.email", "test@superset.local");

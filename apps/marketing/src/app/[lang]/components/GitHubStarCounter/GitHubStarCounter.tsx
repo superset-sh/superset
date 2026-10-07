@@ -1,44 +1,8 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
-import { formatStarCount, githubRepoSlug } from "@superset/shared/github-stars";
-
-interface GitHubRepoResponse {
-	stargazers_count: number;
-}
-
-async function getGitHubStars(): Promise<number | null> {
-	try {
-		const response = await fetch(
-			`https://api.github.com/repos/${githubRepoSlug()}`,
-			{
-				headers: {
-					Accept: "application/vnd.github.v3+json",
-				},
-				next: {
-					revalidate: 3600, // Revalidate every hour
-				},
-			},
-		);
-
-		if (!response.ok) {
-			console.error(
-				"[marketing/GitHubStarCounter] Failed to fetch GitHub stars:",
-				response.status,
-			);
-			return null;
-		}
-
-		const data: GitHubRepoResponse = await response.json();
-		return data.stargazers_count;
-	} catch (error) {
-		console.error(
-			"[marketing/GitHubStarCounter] Error fetching GitHub stars:",
-			error,
-		);
-		return null;
-	}
-}
+import { formatStarCount } from "@superset/shared/github-stars";
+import { getGitHubStars } from "../../utils/getGitHubStars";
 
 export async function GitHubStarCounter() {
 	const { i18n } = useLingui();

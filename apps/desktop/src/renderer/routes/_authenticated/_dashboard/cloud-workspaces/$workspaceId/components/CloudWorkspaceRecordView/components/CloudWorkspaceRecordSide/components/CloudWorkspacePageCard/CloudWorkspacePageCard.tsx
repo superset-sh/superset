@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import { useFormat } from "@superset/i18n/react";
 import { Building2 } from "lucide-react";
-import { PageThumbnail } from "renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/components/PageThumbnail";
+import { PageThumbnail } from "renderer/routes/_authenticated/_dashboard/components/PageThumbnail";
 import type { CloudWorkspaceRecordPage } from "../../../../../../types";
 
 interface CloudWorkspacePageCardProps {
