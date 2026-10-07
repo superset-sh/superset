@@ -602,6 +602,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"colour",
 			"accent",
 			"tint",
+			"sidebar",
 			"tab",
 			"terminal",
 			"background",

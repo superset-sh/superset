@@ -61,14 +61,6 @@ export function DashboardSidebarProjectContextMenu({
 	const customColorInputRef = useRef<HTMLInputElement>(null);
 	return (
 		<>
-			<CustomColorInput
-				ref={customColorInputRef}
-				value={projectColor ?? "#64748b"}
-				onCommit={onSetColor}
-				tabIndex={-1}
-				aria-hidden
-				className="sr-only"
-			/>
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 				<ContextMenuContent
@@ -143,6 +135,14 @@ export function DashboardSidebarProjectContextMenu({
 					) : null}
 				</ContextMenuContent>
 			</ContextMenu>
+			<CustomColorInput
+				ref={customColorInputRef}
+				value={projectColor ?? "#64748b"}
+				onCommit={onSetColor}
+				tabIndex={-1}
+				aria-hidden
+				className="sr-only"
+			/>
 		</>
 	);
 }

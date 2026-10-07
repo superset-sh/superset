@@ -621,13 +621,6 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 	} as WorkspaceLocalStateRow;
 }
 
-/**
- * Heal a stored v2 user-preferences row against current defaults. Used by the
- * localStorage collection's read-time parser so rows persisted before a field
- * was added (top-level or nested in a LinkTierMap) don't surface as undefined
- * to consumers. Per-tier defaults vary by map, so we deep-merge each tier map
- * against its own default rather than relying on a single Zod default.
- */
 function healProjectAccentSettings(raw: unknown): ProjectAccentSettings {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}
@@ -645,6 +638,13 @@ function healProjectAccentSettings(raw: unknown): ProjectAccentSettings {
 	};
 }
 
+/**
+ * Heal a stored v2 user-preferences row against current defaults. Used by the
+ * localStorage collection's read-time parser so rows persisted before a field
+ * was added (top-level or nested in a LinkTierMap) don't surface as undefined
+ * to consumers. Per-tier defaults vary by map, so we deep-merge each tier map
+ * against its own default rather than relying on a single Zod default.
+ */
 export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}
