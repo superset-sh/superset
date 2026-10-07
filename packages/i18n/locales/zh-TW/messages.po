@@ -1392,8 +1392,8 @@ msgstr "更好用的應用程式內瀏覽器：預覽改動，點選任意元素
 msgid "A better Superset is ready"
 msgstr "更好的 Superset 已準備就緒"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "我們每週發布一次更新日誌。大多數人到職頭幾天就會向使用者發布功能。"
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "我們每週發布一次更新日誌。大多數新進同仁到職頭幾天就會向使用者發布功能。"
 
 msgid "A chat takes its name from the agent."
 msgstr "聊天的名稱來自代理程式。"
@@ -8311,9 +8311,6 @@ msgstr "空閒"
 msgid "Idle · branch pushed"
 msgstr "空閒 · 分支已推送"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "如果你想打造一款自己愛用的產品，就來和我們一起建構吧。"
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "如果你覺得Superset還不錯，一個GitHub星標能幫助更多開發者發現它。"
 
@@ -14385,6 +14382,9 @@ msgstr "所有工具名稱和引數見<0>可用工具參考</0>。"
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "想修改主題或做一個自己的，請檢視<0>自訂主題指南</0>。"
 
+msgid "See the open roles, or try Superset first."
+msgstr "查看空缺職位，或先試用 Superset。"
+
 msgid "See this gate on the scorecard"
 msgstr "在評分表中檢視這道關卡"
 
@@ -15300,7 +15300,7 @@ msgstr "速度"
 msgid "Spend"
 msgstr "支出"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
 msgstr "以團隊一員的身分，在舊金山和我們一起開發 5 天。"
 
 msgid "Split"
@@ -18135,8 +18135,8 @@ msgstr "我們正在打造一支扁平、人才密集的團隊，尋找那些有
 msgid "We're hiring"
 msgstr "我們在招聘"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "我們正在舊金山招募工程師。與我們一起打造第一個軟體工廠平台。"
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "我們正在舊金山招募工程師。來和我們一起打造工程師用來執行編碼代理的工具。"
 
 msgid "We're hiring in San Francisco"
 msgstr "我們在舊金山招聘"
@@ -18615,8 +18615,8 @@ msgstr "黃色"
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "可以。應徵最接近的職位，並告訴我們你想做什麼。附上儲存庫、PR 或展示。"
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "可以。應徵最適合的職位，並告訴我們你想做什麼。附上儲存庫、PR 或展示。"
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "有。免費版面向個人，包含1個使用者、本地工作區、桌面應用程式和CLI。無需信用卡。"
@@ -18630,7 +18630,7 @@ msgstr "需要。Superset是代理程式執行的工作區，不是模型提供�
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "可以。你隨時能在應用程式內的帳單設定裡升級、降級或取消。變更會在目前計費週期結束時生效。"
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "有。申請時不需要美國工作許可，但你需要願意搬到舊金山。"
 
 msgid "Yesterday"

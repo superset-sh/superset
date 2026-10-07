@@ -32,8 +32,8 @@ export function HowWeWork({ className = "" }: { className?: string }) {
 					}
 				>
 					<Trans>
-						A changelog goes out every week. Most people ship to users in their
-						first few days.
+						A changelog goes out every week. Most new hires ship to users in
+						their first few days.
 					</Trans>
 				</Principle>
 				<Principle

@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	const description = i18n._(
 		msg({
 			message:
-				"We're hiring engineers in San Francisco. Help us build the first software factory platform.",
+				"We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents.",
 		}),
 	);
 	return {
@@ -82,10 +82,10 @@ export default async function CareersPage() {
 						</Trans>
 					</p>
 				</section>
-				<OpenRoles applyLabel={applyLabel} className="mt-16 sm:mt-24" />
-				<section className="mt-16 sm:mt-20">
+				<section className="mt-12 sm:mt-16">
 					<PhotoFan photos={photos} />
 				</section>
+				<OpenRoles applyLabel={applyLabel} className="mt-16 sm:mt-20" />
 				<CompanyFacts lang={lang} className="mt-12 sm:mt-16" />
 				<HowWeWork className="mt-24 sm:mt-28" />
 				<TeamStrip className="mt-24 sm:mt-28" />

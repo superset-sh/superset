@@ -1392,8 +1392,8 @@ msgstr "Lepší vestavěný prohlížeč: prohlédněte si své změny a kliknut
 msgid "A better Superset is ready"
 msgstr "Lepší verze Superset je připravena"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Každý týden vydáváme changelog. Většina lidí dodá něco uživatelům už během prvních pár dní."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "Každý týden vydáváme changelog. Většina nových kolegů dodá něco uživatelům už během prvních pár dní."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat přebírá název od agenta."
@@ -8311,9 +8311,6 @@ msgstr "Nečinný"
 msgid "Idle · branch pushed"
 msgstr "Nečinné · větev odeslána"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "Pokud chcete vytvářet produkt, který rádi používáte, pojďte ho tvořit s námi."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Pokud se vám Superset zatím líbí, hvězda na GitHubu pomůže dalším vývojářům ho objevit."
 
@@ -14385,6 +14382,9 @@ msgstr "Všechny názvy nástrojů a parametry najdete v <0>přehledu dostupnýc
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "Podívejte se na <0>průvodce vlastními motivy</0>, jak motiv upravit nebo vytvořit svůj."
 
+msgid "See the open roles, or try Superset first."
+msgstr "Podívejte se na otevřené pozice, nebo si nejdřív vyzkoušejte Superset."
+
 msgid "See this gate on the scorecard"
 msgstr "Zobrazit tuto bránu v hodnoticí tabulce"
 
@@ -15300,8 +15300,8 @@ msgstr "Rychlost"
 msgid "Spend"
 msgstr "Výdaje"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
-msgstr "Strávte 5 dní tvorbou s námi v San Franciscu jako člen týmu."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
+msgstr "Strávte 5 dní v San Franciscu tvorbou s námi jako člen týmu."
 
 msgid "Split"
 msgstr "Rozdělit"
@@ -18135,8 +18135,8 @@ msgstr "Budujeme plochý tým plný talentů a hledáme lidi, kteří mají ší
 msgid "We're hiring"
 msgstr "Nabíráme"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "Nabíráme inženýry v San Franciscu. Pomozte nám postavit první platformu softwarové továrny."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "Nabíráme inženýry v San Franciscu. Pojďte stavět nástroje, kterými inženýři řídí kódovací agenty."
 
 msgid "We're hiring in San Francisco"
 msgstr "Nabíráme v San Franciscu"
@@ -18615,8 +18615,8 @@ msgstr "Žlutá"
 msgid "Yes, demote me"
 msgstr "Ano, degradovat mě"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Ano. Přihlaste se na nejbližší pozici a napište nám, co byste vytvořili. Přiložte repozitář, PR nebo demo."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ano. Přihlaste se na pozici, která vám nejlépe sedí, a napište nám, co byste vytvořili. Přiložte repozitář, PR nebo demo."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ano. Free pokrývá jednotlivce s 1 uživatelem, lokální pracovní prostory, desktopovou aplikaci a CLI. Bez platební karty."
@@ -18630,7 +18630,7 @@ msgstr "Ano. Superset je pracovní prostor, ve kterém vaši agenti běží, ne 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ano. Kdykoli můžete tarif zvýšit, snížit nebo zrušit v nastavení fakturace v aplikaci. Změny se projeví na konci aktuálního fakturačního období."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "Ano. K přihlášce nepotřebujete pracovní povolení v USA. Měli byste ale být ochotni přestěhovat se do San Francisca."
 
 msgid "Yesterday"

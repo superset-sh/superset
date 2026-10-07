@@ -18,7 +18,7 @@ export function CareersFAQ({ className = "" }: { className?: string }) {
 					<p>
 						<Trans>
 							Yes. You don't need US work authorization to apply. But you should
-							be willing to relocate to SF.
+							be willing to relocate to San Francisco.
 						</Trans>
 					</p>
 				</FAQDisclosure>
@@ -41,8 +41,8 @@ export function CareersFAQ({ className = "" }: { className?: string }) {
 				>
 					<p>
 						<Trans>
-							Yes. Apply to the closest role and tell us what you would build.
-							Include a repo, PR or demo.
+							Yes. Apply to the role that fits best and tell us what you would
+							build. Include a repo, PR or demo.
 						</Trans>
 					</p>
 				</FAQDisclosure>

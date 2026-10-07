@@ -1392,8 +1392,8 @@ msgstr "アプリ内ブラウザを改良します。変更をプレビューし
 msgid "A better Superset is ready"
 msgstr "新しいSupersetの準備ができました"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "毎週Changelogを公開しています。ほとんどのメンバーが入社して数日のうちにユーザーへリリースします。"
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "毎週Changelogを公開しています。ほとんどの新メンバーが入社して数日のうちにユーザーへリリースします。"
 
 msgid "A chat takes its name from the agent."
 msgstr "チャットの名前はエージェントから付けられます。"
@@ -8311,9 +8311,6 @@ msgstr "アイドル"
 msgid "Idle · branch pushed"
 msgstr "アイドル · ブランチをプッシュ済み"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "自分が使いたいと思えるプロダクトを作りたいなら、一緒に作りましょう。"
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Supersetを気に入っていただけたら、GitHubスターが他の開発者の発見につながります。"
 
@@ -14385,6 +14382,9 @@ msgstr "すべてのツール名とパラメータは<0>利用可能なツール
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "テーマを編集したり自作したりするには<0>カスタムテーマガイド</0>をご覧ください。"
 
+msgid "See the open roles, or try Superset first."
+msgstr "募集中のポジションを見るか、まずはSupersetを試してみてください。"
+
 msgid "See this gate on the scorecard"
 msgstr "このゲートをスコアカードで見る"
 
@@ -15300,7 +15300,7 @@ msgstr "速度"
 msgid "Spend"
 msgstr "支出"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
 msgstr "チームの一員として、サンフランシスコで5日間一緒に開発します。"
 
 msgid "Split"
@@ -18135,8 +18135,8 @@ msgstr "私たちはフラットで優秀な人材が集まるチームを作っ
 msgid "We're hiring"
 msgstr "採用中"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "サンフランシスコでエンジニアを募集中。最初のソフトウェアファクトリープラットフォームを一緒に作りましょう。"
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "サンフランシスコでエンジニアを募集中。エンジニアがコーディングエージェントを動かすためのツールを一緒に作りましょう。"
 
 msgid "We're hiring in San Francisco"
 msgstr "サンフランシスコで採用中"
@@ -18615,8 +18615,8 @@ msgstr "黄"
 msgid "Yes, demote me"
 msgstr "はい、降格します"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "はい。最も近いポジションに応募し、何を作りたいか教えてください。リポジトリ、PR、デモを添えてください。"
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "はい。最も合うポジションに応募し、何を作りたいか教えてください。リポジトリ、PR、デモを添えてください。"
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "はい。Freeプランは個人向けで、1ユーザー、ローカルワークスペース、デスクトップアプリ、CLIが使えます。クレジットカードは不要です。"
@@ -18630,7 +18630,7 @@ msgstr "はい。Supersetはエージェントが動くワークスペースで�
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "はい。アプリ内の請求設定から、いつでもアップグレード、ダウングレード、解約ができます。変更は現在の請求期間の終了時に適用されます。"
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "はい。応募に米国の就労許可は必要ありません。ただし、サンフランシスコへ移住する意思が必要です。"
 
 msgid "Yesterday"

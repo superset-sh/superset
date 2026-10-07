@@ -11,9 +11,7 @@ export function CareersCTA() {
 				<Trans>Come build it with us.</Trans>
 			</h2>
 			<p className="mx-auto mb-8 max-w-[34rem] text-muted-foreground">
-				<Trans>
-					If you want to build a product you love to use, come build it with us.
-				</Trans>
+				<Trans>See the open roles, or try Superset first.</Trans>
 			</p>
 			<div className="flex flex-wrap justify-center gap-3">
 				<Link

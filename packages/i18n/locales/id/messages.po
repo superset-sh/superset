@@ -1392,8 +1392,8 @@ msgstr "Browser dalam aplikasi yang lebih baik: lihat pratinjau perubahan Anda d
 msgid "A better Superset is ready"
 msgstr "Superset yang lebih baik sudah siap"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Changelog terbit setiap minggu. Kebanyakan orang sudah merilis ke pengguna dalam beberapa hari pertama."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "Changelog terbit setiap minggu. Kebanyakan karyawan baru sudah merilis ke pengguna dalam beberapa hari pertama."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat mengambil namanya dari agen."
@@ -8311,9 +8311,6 @@ msgstr "Idle"
 msgid "Idle · branch pushed"
 msgstr "Idle · branch sudah di-push"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "Jika Anda ingin membangun produk yang Anda senang gunakan, mari bangun bersama kami."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Kalau sejauh ini Anda menikmati Superset, satu star GitHub membantu developer lain menemukannya."
 
@@ -14385,6 +14382,9 @@ msgstr "Lihat <0>referensi alat yang tersedia</0> untuk tiap nama alat dan param
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "Lihat <0>panduan tema kustom</0> untuk mengedit tema atau membuat tema Anda sendiri."
 
+msgid "See the open roles, or try Superset first."
+msgstr "Lihat lowongan yang ada, atau coba Superset dulu."
+
 msgid "See this gate on the scorecard"
 msgstr "Lihat gerbang ini di kartu skor"
 
@@ -15300,8 +15300,8 @@ msgstr "Kecepatan"
 msgid "Spend"
 msgstr "Pengeluaran"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
-msgstr "Habiskan 5 hari membangun bersama kami di San Francisco, sebagai bagian dari tim."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
+msgstr "Habiskan 5 hari di San Francisco membangun bersama kami sebagai bagian dari tim."
 
 msgid "Split"
 msgstr "Bagi"
@@ -18135,8 +18135,8 @@ msgstr "Kami membangun tim dengan struktur organisasi yang datar dan penuh talen
 msgid "We're hiring"
 msgstr "Kami sedang merekrut"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "Kami merekrut engineer di San Francisco. Bantu kami membangun platform software factory pertama."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "Kami merekrut engineer di San Francisco. Mari bangun alat yang digunakan engineer untuk menjalankan agen coding."
 
 msgid "We're hiring in San Francisco"
 msgstr "Kami sedang merekrut di San Francisco"
@@ -18615,8 +18615,8 @@ msgstr "Kuning"
 msgid "Yes, demote me"
 msgstr "Ya, turunkan peran saya"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Ya. Lamar posisi yang paling mendekati dan ceritakan apa yang ingin Anda bangun. Sertakan repo, PR, atau demo."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ya. Lamar posisi yang paling sesuai dan ceritakan apa yang ingin Anda bangun. Sertakan repo, PR, atau demo."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ya. Paket gratis mencakup perorangan dengan 1 pengguna, workspace lokal, aplikasi desktop, dan CLI. Tanpa kartu kredit."
@@ -18630,7 +18630,7 @@ msgstr "Ya. Superset adalah workspace tempat agen Anda berjalan, bukan penyedia 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ya. Anda bisa upgrade, downgrade, atau membatalkan kapan saja dari pengaturan penagihan di dalam aplikasi. Perubahan berlaku di akhir periode penagihan Anda saat ini."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "Ya. Anda tidak memerlukan izin kerja AS untuk melamar. Namun Anda harus bersedia pindah ke San Francisco."
 
 msgid "Yesterday"

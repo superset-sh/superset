@@ -1392,8 +1392,8 @@ msgstr "Daha iyi bir uygulama içi tarayıcı: değişikliklerinizi önizleyin v
 msgid "A better Superset is ready"
 msgstr "Daha iyi bir Superset hazır"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Her hafta bir değişiklik günlüğü yayınlıyoruz. Çoğu kişi ilk birkaç gününde kullanıcılara bir şey yayınlıyor."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "Her hafta bir değişiklik günlüğü yayınlıyoruz. Yeni katılanların çoğu ilk birkaç gününde kullanıcılara bir şey yayınlıyor."
 
 msgid "A chat takes its name from the agent."
 msgstr "Sohbet adını ajandan alır."
@@ -8311,9 +8311,6 @@ msgstr "Boşta"
 msgid "Idle · branch pushed"
 msgstr "Boşta · dal push edildi"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "Severek kullandığınız bir ürün geliştirmek istiyorsanız, gelin birlikte geliştirelim."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Superset'ten şimdiye kadar memnunsanız, bir GitHub yıldızı diğer geliştiricilerin onu keşfetmesine yardımcı olur."
 
@@ -14385,6 +14382,9 @@ msgstr "Her araç adı ve parametresi için <0>kullanılabilir araçlar referans
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "Bir temayı düzenlemek veya kendinizinkini oluşturmak için <0>özel temalar rehberine</0> bakın."
 
+msgid "See the open roles, or try Superset first."
+msgstr "Açık pozisyonlara bakın ya da önce Superset'i deneyin."
+
 msgid "See this gate on the scorecard"
 msgstr "Bu eşiği puan tablosunda gör"
 
@@ -15300,8 +15300,8 @@ msgstr "Hız"
 msgid "Spend"
 msgstr "Harcama"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
-msgstr "Ekibin bir üyesi olarak San Francisco'da 5 gün boyunca bizimle birlikte geliştirin."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
+msgstr "Ekibin bir parçası olarak San Francisco'da 5 gün boyunca bizimle birlikte geliştirin."
 
 msgid "Split"
 msgstr "Böl"
@@ -18135,8 +18135,8 @@ msgstr "Hiyerarşisi olmayan ve çok yetenekli insanlardan oluşan bir ekip kuru
 msgid "We're hiring"
 msgstr "İşe alıyoruz"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "San Francisco'da mühendis arıyoruz. İlk yazılım fabrikası platformunu kurmamıza yardım edin."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "San Francisco'da mühendis arıyoruz. Mühendislerin kodlama ajanlarını çalıştırmak için kullandığı araçları birlikte geliştirelim."
 
 msgid "We're hiring in San Francisco"
 msgstr "San Francisco'da işe alıyoruz"
@@ -18615,8 +18615,8 @@ msgstr "Sarı"
 msgid "Yes, demote me"
 msgstr "Evet, rolümü düşür"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Evet. Size en yakın pozisyona başvurun ve ne geliştirmek istediğinizi anlatın. Bir depo, PR veya demo ekleyin."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Evet. Size en uygun pozisyona başvurun ve ne geliştirmek istediğinizi anlatın. Bir depo, PR veya demo ekleyin."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Evet. Ücretsiz plan; 1 kullanıcı, yerel çalışma alanları, masaüstü uygulaması ve CLI ile bireyleri kapsar. Kredi kartı gerekmez."
@@ -18630,7 +18630,7 @@ msgstr "Evet. Superset, ajanlarınızın çalıştığı çalışma alanıdır, 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Evet. Uygulama içindeki faturalandırma ayarlarından istediğiniz zaman yükseltebilir, düşürebilir veya iptal edebilirsiniz. Değişiklikler geçerli faturalandırma döneminizin sonunda geçerli olur."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "Evet. Başvurmak için ABD çalışma izni gerekmez. Ancak San Francisco'ya taşınmaya istekli olmalısınız."
 
 msgid "Yesterday"

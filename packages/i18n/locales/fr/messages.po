@@ -1392,8 +1392,8 @@ msgstr "Un meilleur navigateur intégré : prévisualisez vos changements et cli
 msgid "A better Superset is ready"
 msgstr "Une meilleure version de Superset est prête"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Un changelog est publié chaque semaine. La plupart des gens livrent aux utilisateurs dès leurs premiers jours."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "Un changelog est publié chaque semaine. La plupart des nouvelles recrues livrent aux utilisateurs dès leurs premiers jours."
 
 msgid "A chat takes its name from the agent."
 msgstr "Un chat prend son nom de l'agent."
@@ -8311,9 +8311,6 @@ msgstr "Inactif"
 msgid "Idle · branch pushed"
 msgstr "Inactif · branche poussée"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "Si vous voulez créer un produit que vous aimez utiliser, venez le construire avec nous."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Si Superset vous plaît jusqu'ici, une étoile GitHub aide d'autres développeurs à le découvrir."
 
@@ -14385,6 +14382,9 @@ msgstr "Consultez la <0>référence des outils disponibles</0> pour le nom et le
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "Consultez le <0>guide des thèmes personnalisés</0> pour modifier un thème ou créer le vôtre."
 
+msgid "See the open roles, or try Superset first."
+msgstr "Consultez les postes ouverts, ou essayez d'abord Superset."
+
 msgid "See this gate on the scorecard"
 msgstr "Voir cette porte dans le bilan"
 
@@ -15300,8 +15300,8 @@ msgstr "Vitesse"
 msgid "Spend"
 msgstr "Dépense"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
-msgstr "Passez 5 jours à construire avec nous à San Francisco, en tant que membre de l’équipe."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
+msgstr "Passez 5 jours à San Francisco à construire avec nous, en tant que membre de l’équipe."
 
 msgid "Split"
 msgstr "Côte à côte"
@@ -18135,8 +18135,8 @@ msgstr "Nous construisons une équipe sans hiérarchie et riche en talents, et n
 msgid "We're hiring"
 msgstr "Nous recrutons"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "Nous recrutons des ingénieurs à San Francisco. Aidez-nous à construire la première plateforme d'usine logicielle."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "Nous recrutons des ingénieurs à San Francisco. Venez construire les outils que les ingénieurs utilisent pour piloter leurs agents de code."
 
 msgid "We're hiring in San Francisco"
 msgstr "Nous recrutons à San Francisco"
@@ -18615,8 +18615,8 @@ msgstr "Jaune"
 msgid "Yes, demote me"
 msgstr "Oui, me rétrograder"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Oui. Postulez au poste le plus proche et dites-nous ce que vous construiriez. Joignez un dépôt, une PR ou une démo."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Oui. Postulez au poste qui vous correspond le mieux et dites-nous ce que vous construiriez. Joignez un dépôt, une PR ou une démo."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Oui. L'offre gratuite couvre les particuliers avec 1 utilisateur, les espaces de travail locaux, l'application de bureau et la CLI. Aucune carte bancaire requise."
@@ -18630,7 +18630,7 @@ msgstr "Oui. Superset est l'espace de travail dans lequel vos agents s'exécuten
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Oui. Vous pouvez passer à une offre supérieure ou inférieure, ou résilier à tout moment depuis les paramètres de facturation dans l'application. Les changements prennent effet à la fin de votre période de facturation en cours."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "Oui. Vous n’avez pas besoin d’une autorisation de travail aux États-Unis pour postuler. Mais vous devez être prêt à déménager à San Francisco."
 
 msgid "Yesterday"

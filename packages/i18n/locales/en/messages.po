@@ -1392,8 +1392,8 @@ msgstr "A better in-app browser: preview your changes and click any element to s
 msgid "A better Superset is ready"
 msgstr "A better Superset is ready"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "A changelog goes out every week. Most people ship to users in their first few days."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "A changelog goes out every week. Most new hires ship to users in their first few days."
 
 msgid "A chat takes its name from the agent."
 msgstr "A chat takes its name from the agent."
@@ -8311,9 +8311,6 @@ msgstr "Idle"
 msgid "Idle · branch pushed"
 msgstr "Idle · branch pushed"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "If you want to build a product you love to use, come build it with us."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 
@@ -14385,6 +14382,9 @@ msgstr "See the <0>available tools reference</0> for every tool name and paramet
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "See the <0>custom themes guide</0> to edit a theme or build your own."
 
+msgid "See the open roles, or try Superset first."
+msgstr "See the open roles, or try Superset first."
+
 msgid "See this gate on the scorecard"
 msgstr "See this gate on the scorecard"
 
@@ -15300,8 +15300,8 @@ msgstr "Speed"
 msgid "Spend"
 msgstr "Spend"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
-msgstr "Spend 5 days building with us in San Francisco, as a member of the team."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
+msgstr "Spend 5 days in San Francisco building with us as part of the team."
 
 msgid "Split"
 msgstr "Split"
@@ -18135,8 +18135,8 @@ msgstr "We're building a flat and talent-dense team, and we're looking for peopl
 msgid "We're hiring"
 msgstr "We're hiring"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "We're hiring engineers in San Francisco. Help us build the first software factory platform."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
 
 msgid "We're hiring in San Francisco"
 msgstr "We're hiring in San Francisco"
@@ -18615,8 +18615,8 @@ msgstr "Yellow"
 msgid "Yes, demote me"
 msgstr "Yes, demote me"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
@@ -18630,8 +18630,8 @@ msgstr "Yes. Superset is the workspace your agents run in, not a model provider.
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
-msgstr "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
+msgstr "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 
 msgid "Yesterday"
 msgstr "Yesterday"

@@ -31,8 +31,7 @@ export function HiringProcess({ className = "" }: { className?: string }) {
 			title: <Trans>Paid work trial</Trans>,
 			detail: (
 				<Trans>
-					Spend 5 days building with us in San Francisco, as a member of the
-					team.
+					Spend 5 days in San Francisco building with us as part of the team.
 				</Trans>
 			),
 		},

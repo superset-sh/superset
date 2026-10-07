@@ -1392,8 +1392,8 @@ msgstr "Een betere ingebouwde browser: bekijk je wijzigingen en klik op elk elem
 msgid "A better Superset is ready"
 msgstr "Een betere versie van Superset staat klaar"
 
-msgid "A changelog goes out every week. Most people ship to users in their first few days."
-msgstr "Elke week verschijnt er een changelog. De meeste mensen leveren in hun eerste dagen al op aan gebruikers."
+msgid "A changelog goes out every week. Most new hires ship to users in their first few days."
+msgstr "Elke week verschijnt er een changelog. De meeste nieuwe collega's leveren in hun eerste dagen al op aan gebruikers."
 
 msgid "A chat takes its name from the agent."
 msgstr "Een chat krijgt zijn naam van de agent."
@@ -8311,9 +8311,6 @@ msgstr "Inactief"
 msgid "Idle · branch pushed"
 msgstr "Inactief · branch gepusht"
 
-msgid "If you want to build a product you love to use, come build it with us."
-msgstr "Als je een product wilt bouwen dat je graag gebruikt, kom het dan samen met ons bouwen."
-
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Als Superset je tot nu toe bevalt, helpt een GitHub-ster andere ontwikkelaars het te ontdekken."
 
@@ -14385,6 +14382,9 @@ msgstr "Bekijk de <0>referentie van beschikbare tools</0> voor elke toolnaam en 
 msgid "See the <0>custom themes guide</0> to edit a theme or build your own."
 msgstr "Bekijk de <0>gids voor eigen thema's</0> om een thema aan te passen of zelf te maken."
 
+msgid "See the open roles, or try Superset first."
+msgstr "Bekijk de openstaande vacatures, of probeer Superset eerst."
+
 msgid "See this gate on the scorecard"
 msgstr "Bekijk deze drempel op de scorekaart"
 
@@ -15300,7 +15300,7 @@ msgstr "Snelheid"
 msgid "Spend"
 msgstr "Uitgaven"
 
-msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgid "Spend 5 days in San Francisco building with us as part of the team."
 msgstr "Bouw 5 dagen met ons mee in San Francisco, als lid van het team."
 
 msgid "Split"
@@ -18135,8 +18135,8 @@ msgstr "We bouwen een plat team vol toptalent en zoeken mensen met gekke ideeën
 msgid "We're hiring"
 msgstr "We zoeken mensen"
 
-msgid "We're hiring engineers in San Francisco. Help us build the first software factory platform."
-msgstr "We nemen engineers aan in San Francisco. Help ons het eerste softwarefabriek-platform te bouwen."
+msgid "We're hiring engineers in San Francisco. Come build the tools engineers use to run coding agents."
+msgstr "We nemen engineers aan in San Francisco. Kom de tools bouwen waarmee engineers hun coding agents aansturen."
 
 msgid "We're hiring in San Francisco"
 msgstr "We zoeken mensen in San Francisco"
@@ -18615,8 +18615,8 @@ msgstr "Geel"
 msgid "Yes, demote me"
 msgstr "Ja, degradeer mij"
 
-msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
-msgstr "Ja. Solliciteer op de vacature die het dichtst in de buurt komt en vertel ons wat je zou bouwen. Voeg een repo, PR of demo toe."
+msgid "Yes. Apply to the role that fits best and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ja. Solliciteer op de vacature die het best past en vertel ons wat je zou bouwen. Voeg een repo, PR of demo toe."
 
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ja. Free is voor individuen met 1 gebruiker, lokale werkruimtes, de desktop-app en de CLI. Geen creditcard nodig."
@@ -18630,7 +18630,7 @@ msgstr "Ja. Superset is de werkruimte waarin je agents draaien, geen modelprovid
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ja. Je kunt op elk moment upgraden, downgraden of opzeggen via de facturatie-instellingen in de app. Wijzigingen gaan in aan het eind van je huidige factuurperiode."
 
-msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to San Francisco."
 msgstr "Ja. Je hebt geen Amerikaanse werkvergunning nodig om te solliciteren. Maar je moet wel bereid zijn om naar San Francisco te verhuizen."
 
 msgid "Yesterday"
