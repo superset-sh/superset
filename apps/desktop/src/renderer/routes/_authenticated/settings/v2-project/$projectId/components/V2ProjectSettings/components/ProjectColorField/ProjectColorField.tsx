@@ -45,6 +45,7 @@ export function ProjectColorField({
 			selectedColor={color}
 			disabled={isPending}
 			onSelectColor={handleSelectColor}
+			className="max-w-64 justify-end"
 		/>
 	);
 }
