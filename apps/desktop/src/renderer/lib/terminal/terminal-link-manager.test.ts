@@ -5,6 +5,7 @@ import { TerminalLinkManager } from "./terminal-link-manager";
 function createMockTerminal() {
 	const registeredProviders: ILinkProvider[] = [];
 	const disposedProviders: ILinkProvider[] = [];
+	const selectionState = { hasSelection: false };
 	const terminal = {
 		options: {
 			linkHandler: null,
@@ -23,9 +24,10 @@ function createMockTerminal() {
 			},
 		},
 		cols: 80,
+		hasSelection: () => selectionState.hasSelection,
 	} as unknown as XTerm;
 
-	return { terminal, registeredProviders, disposedProviders };
+	return { terminal, registeredProviders, disposedProviders, selectionState };
 }
 
 describe("TerminalLinkManager", () => {
@@ -67,6 +69,39 @@ describe("TerminalLinkManager", () => {
 			url: "https://example.com",
 		});
 		expect(onLinkLeave).toHaveBeenCalled();
+	});
+
+	it("skips plain-click activation while text is selected, but not modifier clicks", () => {
+		const { terminal, selectionState } = createMockTerminal();
+		const manager = new TerminalLinkManager(terminal);
+		const onUrlClick = mock();
+
+		manager.setHandlers({
+			stat: async () => null,
+			onUrlClick,
+		});
+
+		const linkHandler = terminal.options.linkHandler;
+		const range = { start: { x: 1, y: 1 }, end: { x: 20, y: 1 } };
+
+		// Tail of a double-click word-select / intra-link drag: suppressed.
+		selectionState.hasSelection = true;
+		linkHandler?.activate({} as MouseEvent, "https://example.com", range);
+		expect(onUrlClick).not.toHaveBeenCalled();
+
+		// Shift-click extends the selection as a side effect but must still
+		// activate, else the shift binding would be unreachable.
+		linkHandler?.activate(
+			{ shiftKey: true } as MouseEvent,
+			"https://example.com",
+			range,
+		);
+		expect(onUrlClick).toHaveBeenCalledTimes(1);
+
+		// Plain click without a selection activates.
+		selectionState.hasSelection = false;
+		linkHandler?.activate({} as MouseEvent, "https://example.com", range);
+		expect(onUrlClick).toHaveBeenCalledTimes(2);
 	});
 
 	it("clears only the OSC link handler it installed", () => {
