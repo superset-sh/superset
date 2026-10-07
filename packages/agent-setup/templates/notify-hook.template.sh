@@ -164,10 +164,10 @@ dispatch_to_host() {
     case " $SEEN_HOOK_URLS " in *" $HOOK_URL "*) continue ;; esac
     SEEN_HOOK_URLS="$SEEN_HOOK_URLS $HOOK_URL"
 
-    RESPONSE=$(curl -sX POST "$HOOK_URL" \
+    RESPONSE=$(printf '%s' "$DISPATCH_PAYLOAD" | curl -sX POST "$HOOK_URL" \
       --connect-timeout 2 --max-time 5 \
       -H "Content-Type: application/json" \
-      -d "$DISPATCH_PAYLOAD" \
+      --data-binary @- \
       -w "|%{http_code}" 2>/dev/null)
     STATUS_CODE="${RESPONSE##*|}"
     BODY="${RESPONSE%|*}"
@@ -229,6 +229,84 @@ case "$EVENT_TYPE" in
     ;;
 esac
 
+BACKGROUND_TASKS_FIELD=""
+if [ "$AGENT_ID" = "claude" ] && [ "$EVENT_TYPE" = "Stop" ]; then
+  BACKGROUND_TASKS=$(printf '%s' "$INPUT" | awk '
+    {
+      n = split($0, ch, "")
+      for (i = 1; i <= n; i++) {
+        c = ch[i]
+        if (quoted) {
+          if (escaped) escaped = 0
+          else if (c == "\\") escaped = 1
+          else if (c == "\"") {
+            quoted = 0
+            if (keyString) key = substr($0, start, i - start + 1)
+            else if (capture && depth == 3 && field != "" && i - start < 4096) {
+              text = substr($0, start, i - start + 1)
+              if (field == "\"type\"") taskType = text
+              if (field == "\"status\"") taskStatus = text
+            }
+            field = ""
+            previous = "string"
+          }
+          continue
+        }
+        if (c ~ /[[:space:]]/) continue
+        if (key != "") {
+          if (c == ":") {
+            if (depth == 1 && key == "\"background_tasks\"") found = 1
+            if (capture && depth == 3 && (key == "\"type\"" || key == "\"status\"")) field = key
+            key = ""
+            previous = c
+            continue
+          }
+          key = ""
+        }
+        if (found && !capture) {
+          if (c != "[") exit
+          capture = 1
+          value = "["
+        }
+        if (c == "\"") {
+          quoted = 1
+          start = i
+          keyString = (depth == 1 || (capture && depth == 3)) && (previous == "{" || previous == ",")
+          continue
+        }
+        field = ""
+        if (c == "{" || c == "[") {
+          depth++
+          if (capture && depth == 3 && c == "{") {
+            taskType = ""
+            taskStatus = ""
+          }
+        }
+        if (c == "}" || c == "]") {
+          if (capture && depth == 3 && c == "}" && (taskType != "" || taskStatus != "")) {
+            task = "{"
+            if (taskType != "") task = task "\"type\":" taskType
+            if (taskStatus != "") task = task (taskType != "" ? "," : "") "\"status\":" taskStatus
+            task = task "}"
+            active = (taskType == "\"subagent\"" || taskType == "\"workflow\"") && (taskStatus == "\"running\"" || taskStatus == "\"pending\"")
+            if (count < 200) tasks[++count] = task
+            else if (active && !hasActive) tasks[200] = task
+            if (active) hasActive = 1
+          }
+          depth--
+          if (capture && depth == 1) {
+            for (j = 1; j <= count; j++) value = value (j > 1 ? "," : "") tasks[j]
+            print value "]"
+            exit
+          }
+        }
+        previous = c
+      }
+    }
+  ')
+  [ -n "$BACKGROUND_TASKS" ] && BACKGROUND_TASKS_FIELD=",\"backgroundTasks\":$BACKGROUND_TASKS"
+fi
+
 ATTRIBUTION_FIELD=""
 [ -n "$SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN" ] && ATTRIBUTION_FIELD=",\"attributionToken\":\"$(json_escape "$SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN")\""
 TRANSCRIPT_FIELD=""
@@ -265,7 +343,7 @@ case "$EVENT_TYPE" in
 esac
 
 if [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}$PREVIEW_FIELD$ACCOUNT_FIELD$TRANSCRIPT_FIELD$LAUNCH_FIELD$ATTRIBUTION_FIELD}}"
+  dispatch_to_host "{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}$PREVIEW_FIELD$ACCOUNT_FIELD$TRANSCRIPT_FIELD$LAUNCH_FIELD$ATTRIBUTION_FIELD$BACKGROUND_TASKS_FIELD}}"
   [ "$HOOK_ACCEPTED" = "1" ] && exit 0
   # Delivered somewhere (2xx) but no host owned the terminal: keep the
   # pre-existing "any 2xx wins" behavior and skip the v1 fallback.
