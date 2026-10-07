@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1個cookie——忘記此站點"
 
+msgid "1 hr"
+msgstr "1 小時"
+
 msgid "1 user"
 msgstr "1個使用者"
 
@@ -1319,6 +1322,9 @@ msgstr "10條以上並行工作流且不丟狀態"
 
 msgid "100% (retain everything)"
 msgstr "100%（全部留存）"
+
+msgid "15 min"
+msgstr "15 分鐘"
 
 msgid "1d ago"
 msgstr "1天前"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 files · +82 −172"
 
+msgid "5 days"
+msgstr "5 天"
+
 msgid "55 call sites pass {code}"
 msgstr "55 個呼叫位置傳入 {code}"
 
@@ -1382,6 +1391,9 @@ msgstr "更好用的應用程式內瀏覽器：預覽改動，點選任意元素
 
 msgid "A better Superset is ready"
 msgstr "更好的 Superset 已準備就緒"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "我們每週發布一次更新日誌。大多數人到職頭幾天就會向使用者發布功能。"
 
 msgid "A chat takes its name from the agent."
 msgstr "聊天的名稱來自代理程式。"
@@ -1441,6 +1453,9 @@ msgstr "需要新版本的Superset才能繼續。請更新到最新版本。"
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "以該分支建立新工作區，並將對話交給新的代理"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "一道實用的 TypeScript 題目，和我們每天解決的問題類似。不考演算法謎題。"
+
 msgid "A process is still running in this tab"
 msgstr "此分頁中仍有處理程序在執行"
 
@@ -1486,6 +1501,9 @@ msgstr "關於"
 
 msgid "About Superset"
 msgstr "關於Superset"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "從第一次通話到發出 offer 大約三週，最後是一次有薪工作試用。每一步都由創辦人參與，48 小時內給你回覆。"
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "當然可以。Superset不代理任何API呼叫。你直接用自己的API金鑰對接所選的AI提供商，成本和用量完全由你掌控。"
@@ -3020,6 +3038,9 @@ msgstr "麵包屑"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "將 {companyName} 引入您的團隊。與我們聯繫以進一步瞭解企業方案與部署選項。"
 
+msgid "Bring a link to something you built recently."
+msgstr "請帶上你最近做的作品連結。"
+
 msgid "Bring Any Agent."
 msgstr "帶上任意代理程式。"
 
@@ -3050,6 +3071,9 @@ msgstr "瀏覽 Superset 的共享佈景主題與未來的代理設定。"
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "瀏覽社群分享的 Superset 佈景主題檔案，包含 GitHub Dark Colorblind、Catppuccin、Ember 與 One Dark Pro。"
 
+msgid "Browse the repo ↗"
+msgstr "瀏覽儲存庫 ↗"
+
 msgid "Browse workspaces"
 msgstr "瀏覽工作區"
 
@@ -3077,6 +3101,9 @@ msgstr "瀏覽歷史"
 msgid "Bug"
 msgstr "蟲子"
 
+msgid "Build in public"
+msgstr "公開建構"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "共創 Superset 的雲端未來"
 
@@ -3085,6 +3112,9 @@ msgstr "打造最後一款軟體"
 
 msgid "Building the last piece of software."
 msgstr "打造最後一款軟體。"
+
+msgid "Built in Superset"
+msgstr "在 Superset 中建構"
 
 msgid "builtin"
 msgstr "內建"
@@ -3947,6 +3977,9 @@ msgstr "把所有提交合成一個"
 
 msgid "Combine sequences such as => and !==."
 msgstr "合併顯示=>和!==等序列。"
+
+msgid "Come build it with us."
+msgstr "來和我們一起建構吧。"
 
 msgid "Coming soon"
 msgstr "即將推出"
@@ -5824,6 +5857,9 @@ msgstr "描述（選填）"
 msgid "Design"
 msgstr "設計"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "在白板上設計一個複雜系統。"
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "設計模式——點選頁面中的任意元素即可傳送給代理程式"
 
@@ -6064,6 +6100,9 @@ msgstr "我需要自備編碼代理程式的訂閱嗎？"
 
 msgid "Do nothing"
 msgstr "不執行任何操作"
+
+msgid "Do you sponsor visas?"
+msgstr "你們提供簽證擔保嗎？"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "如何在Superset中安裝{name}"
 msgid "How we build it, in long form."
 msgstr "我們如何打造它，深入介紹。"
 
+msgid "How we hire"
+msgstr "招聘流程"
+
+msgid "How we work"
+msgstr "我們的工作方式"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "你的代理程式在雲端工作區中如何登入。其他人連接各自的訂閱或API金鑰；在這台機器上，每個代理程式繼續使用它上面已有的登入。"
 
@@ -8265,6 +8310,9 @@ msgstr "空閒"
 
 msgid "Idle · branch pushed"
 msgstr "空閒 · 分支已推送"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "如果你想打造一款自己愛用的產品，就來和我們一起建構吧。"
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "如果你覺得Superset還不錯，一個GitHub星標能幫助更多開發者發現它。"
@@ -8410,6 +8458,9 @@ msgstr "全部專案"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "短短幾個月，<0>數萬名工程師</0>把Superset當作主力IDE，他們來自Wix、DoorDash、Netflix這樣的公司。"
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "在舊金山辦公室實體上班，每週五天。你將直接與創辦人共事。"
 
 msgid "In progress"
 msgstr "進行中"
@@ -8578,6 +8629,9 @@ msgstr "打斷"
 
 msgid "Interrupted"
 msgstr "已中斷"
+
+msgid "Intro call"
+msgstr "初步通話"
 
 msgid "Invalid"
 msgstr "無效"
@@ -9633,11 +9687,17 @@ msgstr "常規工作從工單到上線的中位耗時不足一天。"
 msgid "Median time from previous"
 msgstr "距上一步中位耗時"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "免費的醫療與牙科保險、401(k)、無限休假、$5K 辦公設備補助，以及辦公室免費餐點。"
+
 msgid "Medium"
 msgstr "中"
 
 msgid "Medium severity"
 msgstr "中嚴重性"
+
+msgid "Meet the team"
+msgstr "認識團隊"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "認識 Superset 背後的團隊，為開發者打造平行編碼代理。"
@@ -10728,6 +10788,9 @@ msgstr "還沒有指派審查者。"
 
 msgid "No reviews"
 msgstr "沒有審查"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "沒有適合我的職位，還可以聯絡你們嗎？"
 
 msgid "No runs yet"
 msgstr "還沒有執行過"
@@ -11918,6 +11981,9 @@ msgstr "付費流失 — 同期群留存"
 msgid "Paid search"
 msgstr "付費搜尋"
 
+msgid "Paid work trial"
+msgstr "有薪工作試用"
+
 msgid "Palette"
 msgstr "調色盤"
 
@@ -12724,6 +12790,9 @@ msgstr "查詢字詞"
 msgid "Question"
 msgstr "問題"
 
+msgid "Questions"
+msgstr "常見問題"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "問題、回饋、支援，或者別的什麼都行。寫給我們，我們會轉給合適的人。"
 
@@ -12841,6 +12910,9 @@ msgstr "檢視更新日誌"
 
 msgid "Read the changelog →"
 msgstr "檢視更新日誌 →"
+
+msgid "Read the changelog ↗"
+msgstr "閱讀更新日誌 ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "閱讀並行編碼代理程式指南"
@@ -14304,6 +14376,9 @@ msgstr "收起"
 msgid "See More"
 msgstr "檢視更多"
 
+msgid "See open roles ↑"
+msgstr "查看空缺職位 ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "所有工具名稱和引數見<0>可用工具參考</0>。"
 
@@ -14730,6 +14805,9 @@ msgstr "使用Shiki高亮，行號可選"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "微光 · 微光標籤"
+
+msgid "Ship every week"
+msgstr "每週發布"
 
 msgid "Ship It"
 msgstr "交付"
@@ -15174,9 +15252,6 @@ msgstr "出了點問題。請重試，或聯絡support@superset.sh。"
 msgid "soon"
 msgstr "即將"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "很快，團隊就會並行執行數百個代理程式，組成自主生產並交付程式碼的軟體工廠。我們正在將 Superset 打造成團隊執行和管理這些工廠的平台，先從我們自己的工廠開始。"
-
 msgid "Sort"
 msgstr "排序"
 
@@ -15224,6 +15299,9 @@ msgstr "速度"
 
 msgid "Spend"
 msgstr "支出"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "以團隊一員的身分，在舊金山和我們一起開發 5 天。"
 
 msgid "Split"
 msgstr "分屏"
@@ -15751,8 +15829,8 @@ msgstr "Superset正在構建能自我改進的軟體。第一步，是給工程�
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset由一支位於加州舊金山的團隊打造。產品支援或帳戶問題，請發郵件至<0>{supportEmail}</0>，我們會在一個工作日內回覆。合作、媒體、企業版或其他任何事宜，請寫信至<1>{teamEmail}</1>。"
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset 就是在 Superset 中建構的，因此我們自己就是它的頭號使用者——你可以透過讓自己的工作更輕鬆來獲得報酬。如果你一直想打造一款自己愛用的產品，就來和我們一起建構吧。"
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset 就是在 Superset 中建構的，因此我們自己就是它的頭號使用者。你可以透過讓自己的工作更輕鬆來獲得報酬。"
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset的設計就是配合你現有的工具。我們原生支援深度連結到Cursor這類IDE，你可以直接在自己的IDE裡開啟工作區和檔案。"
@@ -15762,6 +15840,9 @@ msgstr "Superset是開源的。如果它今天幫到了你，一個GitHub星標�
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset是原始碼可見的：程式碼在GitHub上公開，採用Elastic License 2.0（ELv2），你可以在許可條款範圍內查閱並自行部署，但它不是OSI認可的開源許可。Superset與商業智慧工具Apache Superset沒有任何關係。"
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset 原始碼可見。每個拉取請求、審查和 bug 都在 GitHub 上公開。"
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset是F3到F4這段過渡期的工作臺：隔離工作區裡的並行代理程式、真正管得過來的代理程式叢集，以及一套用來審查非你所寫程式碼的介面。"
@@ -15965,6 +16046,9 @@ msgstr "正在同步..."
 msgid "System"
 msgstr "跟隨系統"
 
+msgid "System design"
+msgstr "系統設計"
+
 msgid "System memory"
 msgstr "系統記憶體"
 
@@ -16136,6 +16220,9 @@ msgstr "清理指令碼被訊號{signal}終止"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "清理指令碼在{seconds}秒後逾時"
+
+msgid "Technical interview"
+msgstr "技術面試"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "讓任意代理程式用<0>superset</0> CLI來建立工作區、執行任務或管理自動化。"
@@ -16373,6 +16460,9 @@ msgstr "以下資料夾不是git儲存庫。要初始化它們嗎？"
 
 msgid "The forecast"
 msgstr "預測"
+
+msgid "The founders"
+msgstr "創辦人"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "完整的核心流程（匯入儲存庫、執行代理程式、審查差異）現在在未登入和離線時也能用。"
@@ -18039,6 +18129,9 @@ msgstr "Windows和Linux支援就緒時我們會通知你。"
 msgid "We'll only use this to send your download link."
 msgstr "我們只會用它給你傳送下載連結。"
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "我們正在打造一支扁平、人才密集的團隊，尋找那些有瘋狂想法、並且敢於把它們發布出來的人。"
+
 msgid "We're hiring"
 msgstr "我們在招聘"
 
@@ -18135,6 +18228,9 @@ msgstr "歡迎使用Superset"
 
 msgid "Welcome to the new Superset"
 msgstr "歡迎使用全新的 Superset"
+
+msgid "What are the benefits?"
+msgstr "有哪些福利？"
 
 msgid "What builders say about Superset"
 msgstr "開發者怎麼評價Superset"
@@ -18519,6 +18615,9 @@ msgstr "黃色"
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "可以。應徵最接近的職位，並告訴我們你想做什麼。附上儲存庫、PR 或展示。"
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "有。免費版面向個人，包含1個使用者、本地工作區、桌面應用程式和CLI。無需信用卡。"
 
@@ -18530,6 +18629,9 @@ msgstr "需要。Superset是代理程式執行的工作區，不是模型提供�
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "可以。你隨時能在應用程式內的帳單設定裡升級、降級或取消。變更會在目前計費週期結束時生效。"
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "有。申請時不需要美國工作許可，但你需要願意搬到舊金山。"
 
 msgid "Yesterday"
 msgstr "昨天"
@@ -18576,6 +18678,9 @@ msgstr "最多可附加{MAX_ATTACHMENTS}個檔案"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "你可以在 30 天內從「設定 → 專案」還原。儲存庫資料夾永遠不會被刪除。"
+
+msgid "You can see how we work before you talk to us."
+msgstr "在與我們交流之前，你就能看到我們是如何工作的。"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

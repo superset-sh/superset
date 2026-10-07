@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1件のCookie — このサイトを削除"
 
+msgid "1 hr"
+msgstr "1時間"
+
 msgid "1 user"
 msgstr "1ユーザー"
 
@@ -1319,6 +1322,9 @@ msgstr "状態を取りこぼさない10以上の並行ワークストリーム"
 
 msgid "100% (retain everything)"
 msgstr "100%（全て維持）"
+
+msgid "15 min"
+msgstr "15分"
 
 msgid "1d ago"
 msgstr "1日前"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45ファイル · +82 −172"
 
+msgid "5 days"
+msgstr "5日間"
+
 msgid "55 call sites pass {code}"
 msgstr "55か所の呼び出し元が{code}を渡しています"
 
@@ -1382,6 +1391,9 @@ msgstr "アプリ内ブラウザを改良します。変更をプレビューし
 
 msgid "A better Superset is ready"
 msgstr "新しいSupersetの準備ができました"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "毎週Changelogを公開しています。ほとんどのメンバーが入社して数日のうちにユーザーへリリースします。"
 
 msgid "A chat takes its name from the agent."
 msgstr "チャットの名前はエージェントから付けられます。"
@@ -1441,6 +1453,9 @@ msgstr "続行するには新しいバージョンのSupersetが必要です。�
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "このブランチから新しいワークスペースを作り、会話を新しいエージェントに引き継ぎます"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "普段私たちが取り組んでいるような、実践的なTypeScriptの課題です。アルゴリズムパズルは出しません。"
+
 msgid "A process is still running in this tab"
 msgstr "このタブではプロセスがまだ実行中です"
 
@@ -1486,6 +1501,9 @@ msgstr "会社概要"
 
 msgid "About Superset"
 msgstr "Supersetについて"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "最初の面談からオファーまで約3週間で、最後は有給のワークトライアルです。すべてのステップを創業者が担当し、48時間以内にご連絡します。"
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "もちろんです。SupersetはAPI呼び出しを一切中継しません。選んだAIプロバイダーに対して、ご自身のAPIキーを直接使います。つまり、コストと使用量は完全に自分で管理できます。"
@@ -3020,6 +3038,9 @@ msgstr "Breadcrumb"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "{companyName}をチームに導入しましょう。エンタープライズプランと導入オプションの詳細はお問い合わせください。"
 
+msgid "Bring a link to something you built recently."
+msgstr "最近作ったもののリンクをお持ちください。"
+
 msgid "Bring Any Agent."
 msgstr "どのエージェントでも。"
 
@@ -3050,6 +3071,9 @@ msgstr "Superset向けに共有されたテーマと今後のエージェント�
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "GitHub Dark Colorblind、Catppuccin、Ember、One Dark Proなど、コミュニティが共有するSupersetのテーマファイルを閲覧できます。"
 
+msgid "Browse the repo ↗"
+msgstr "リポジトリを見る ↗"
+
 msgid "Browse workspaces"
 msgstr "ワークスペースを見る"
 
@@ -3077,6 +3101,9 @@ msgstr "閲覧履歴"
 msgid "Bug"
 msgstr "バグ"
 
+msgid "Build in public"
+msgstr "オープンに開発"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "クラウドでSupersetの未来を築く"
 
@@ -3085,6 +3112,9 @@ msgstr "最後のソフトウェアを作る"
 
 msgid "Building the last piece of software."
 msgstr "最後のソフトウェアを作る。"
+
+msgid "Built in Superset"
+msgstr "Supersetで開発"
 
 msgid "builtin"
 msgstr "ビルトイン"
@@ -3947,6 +3977,9 @@ msgstr "すべてのコミットを1つに統合"
 
 msgid "Combine sequences such as => and !==."
 msgstr "=> や !== などの並びを合字にします。"
+
+msgid "Come build it with us."
+msgstr "一緒に作りましょう。"
 
 msgid "Coming soon"
 msgstr "近日公開"
@@ -5824,6 +5857,9 @@ msgstr "説明（任意）"
 msgid "Design"
 msgstr "デザイン"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "ホワイトボードで複雑なシステムを設計します。"
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "デザインモード — ページ内の要素をクリックしてエージェントに送信します"
 
@@ -6064,6 +6100,9 @@ msgstr "コーディングエージェントの契約は自分で用意する必
 
 msgid "Do nothing"
 msgstr "何もしない"
+
+msgid "Do you sponsor visas?"
+msgstr "ビザのスポンサーはしていますか?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "Supersetに{name}をインストールする方法"
 msgid "How we build it, in long form."
 msgstr "どう作っているかを詳しく。"
 
+msgid "How we hire"
+msgstr "採用プロセス"
+
+msgid "How we work"
+msgstr "私たちの働き方"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "クラウドワークスペース内でエージェントがどうサインインするかの設定です。ほかの人は自分のサブスクリプションやAPIキーを接続します。このマシンでは、各エージェントはすでにあるログインをそのまま使い続けます。"
 
@@ -8265,6 +8310,9 @@ msgstr "アイドル"
 
 msgid "Idle · branch pushed"
 msgstr "アイドル · ブランチをプッシュ済み"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "自分が使いたいと思えるプロダクトを作りたいなら、一緒に作りましょう。"
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Supersetを気に入っていただけたら、GitHubスターが他の開発者の発見につながります。"
@@ -8410,6 +8458,9 @@ msgstr "すべてのプロジェクト"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "わずか数か月で、Wix、DoorDash、Netflixといった企業を含め<0>数万人のエンジニア</0>がSupersetを主要なIDEとして使っています。"
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "サンフランシスコのオフィスで週5日勤務。創業者と直接一緒に働きます。"
 
 msgid "In progress"
 msgstr "作業中"
@@ -8578,6 +8629,9 @@ msgstr "中断"
 
 msgid "Interrupted"
 msgstr "中断されました"
+
+msgid "Intro call"
+msgstr "カジュアル面談"
 
 msgid "Invalid"
 msgstr "入力エラー"
@@ -9633,11 +9687,17 @@ msgstr "定型作業のチケットから本番までの時間が中央値で1�
 msgid "Median time from previous"
 msgstr "前ステップからの時間の中央値"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "自己負担なしの医療・歯科保険、401(k)、無制限の休暇、$5Kのデスク手当、オフィスでの無料の食事。"
+
 msgid "Medium"
 msgstr "中"
 
 msgid "Medium severity"
 msgstr "重要度: 中"
+
+msgid "Meet the team"
+msgstr "チームを紹介"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "開発者向けの並列コーディングエージェントを作る、Supersetのチームを紹介します。"
@@ -10728,6 +10788,9 @@ msgstr "レビュアーはまだ割り当てられていません。"
 
 msgid "No reviews"
 msgstr "レビューなし"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "合うポジションがありません。それでも連絡してよいですか?"
 
 msgid "No runs yet"
 msgstr "実行はまだありません"
@@ -11918,6 +11981,9 @@ msgstr "有料チャーン — コホート残存"
 msgid "Paid search"
 msgstr "有料検索"
 
+msgid "Paid work trial"
+msgstr "有給ワークトライアル"
+
 msgid "Palette"
 msgstr "パレット"
 
@@ -12724,6 +12790,9 @@ msgstr "クエリ"
 msgid "Question"
 msgstr "質問"
 
+msgid "Questions"
+msgstr "よくある質問"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "ご質問、フィードバック、サポート、その他何でも。メッセージをお送りいただければ、適切な担当者にお繋ぎします。"
 
@@ -12841,6 +12910,9 @@ msgstr "Changelogを読む"
 
 msgid "Read the changelog →"
 msgstr "Changelogを読む →"
+
+msgid "Read the changelog ↗"
+msgstr "Changelogを読む ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "並列コーディングエージェントのガイドを読む"
@@ -14304,6 +14376,9 @@ msgstr "表示を減らす"
 msgid "See More"
 msgstr "もっと見る"
 
+msgid "See open roles ↑"
+msgstr "募集中のポジションを見る ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "すべてのツール名とパラメータは<0>利用可能なツールのリファレンス</0>をご覧ください。"
 
@@ -14730,6 +14805,9 @@ msgstr "Shikiでハイライト、行番号は任意"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer Label"
+
+msgid "Ship every week"
+msgstr "毎週リリース"
 
 msgid "Ship It"
 msgstr "出荷"
@@ -15174,9 +15252,6 @@ msgstr "問題が発生しました。もう一度お試しいただくか、sup
 msgid "soon"
 msgstr "まもなく"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "まもなく、チームは数百のエージェントを並列で動かすようになります。コードを自律的に生成して出荷するソフトウェア工場です。私たちは、自分たちの工場から始めて、チームがこうした工場を運営・管理する場所としてSupersetを作っています。"
-
 msgid "Sort"
 msgstr "並べ替え"
 
@@ -15224,6 +15299,9 @@ msgstr "速度"
 
 msgid "Spend"
 msgstr "支出"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "チームの一員として、サンフランシスコで5日間一緒に開発します。"
 
 msgid "Split"
 msgstr "分割"
@@ -15751,8 +15829,8 @@ msgstr "Supersetは自己改善するソフトウェアを作っています。�
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Supersetは、米国カリフォルニア州サンフランシスコを拠点とするチームが開発しています。製品サポートやアカウントに関するご質問は<0>{supportEmail}</0>までメールをお送りください。1営業日以内に返信します。パートナーシップ、取材、エンタープライズ、その他のご連絡は<1>{teamEmail}</1>までお願いします。"
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "SupersetはSupersetで開発されています。私たち自身が一番のユーザーなので、自分の生活を楽にすることで報酬を得られます。自分が使いたいと思えるプロダクトを作りたいなら、一緒に作りましょう。"
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "SupersetはSupersetで開発されています。私たち自身が一番のユーザーなので、自分の生活を楽にすることで報酬を得られます。"
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Supersetは既存のツールと併用できるように設計されています。CursorのようなIDEへのディープリンクをネイティブにサポートしているので、ワークスペースやファイルをそのままIDEで開けます。"
@@ -15762,6 +15840,9 @@ msgstr "Supersetはオープンソースです。今日役に立ったなら、G
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Supersetはソース公開型です。コードはElastic License 2.0(ELv2)のもとGitHubで公開されており、ライセンス条件の範囲で内容の確認やセルフホストができますが、OSI承認のオープンソースではありません。なお、SupersetはBIツールのApache Supersetとは無関係です。"
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Supersetはソース公開です。すべてのプルリクエスト、レビュー、バグがGitHubで公開されています。"
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Supersetは、F3からF4への移行のための作業台です。独立したワークスペースで動く並列エージェント、実際に監督できるフリート、そして自分が書いていないコードのためのレビュー画面。"
@@ -15965,6 +16046,9 @@ msgstr "同期中..."
 msgid "System"
 msgstr "システム"
 
+msgid "System design"
+msgstr "システム設計"
+
 msgid "System memory"
 msgstr "システムメモリ"
 
@@ -16136,6 +16220,9 @@ msgstr "ティアダウンがシグナル{signal}で終了しました"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "ティアダウンが{seconds}秒でタイムアウトしました"
+
+msgid "Technical interview"
+msgstr "技術面接"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "任意のエージェントに<0>superset</0> CLIを使わせて、ワークスペースの作成、タスクの実行、オートメーションの管理ができます。"
@@ -16373,6 +16460,9 @@ msgstr "次のフォルダはgitリポジトリではありません。初期化
 
 msgid "The forecast"
 msgstr "予測"
+
+msgid "The founders"
+msgstr "創業者"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "中核のループ(リポジトリのインポート、エージェントの実行、差分のレビュー)がサインアウト状態やオフラインでも動くようになりました。"
@@ -18039,6 +18129,9 @@ msgstr "WindowsとLinuxへの対応が整い次第お知らせします。"
 msgid "We'll only use this to send your download link."
 msgstr "ダウンロードリンクの送信にのみ使用します。"
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "私たちはフラットで優秀な人材が集まるチームを作っています。突拍子もないアイデアを持ち、それを本当にリリースしてしまうような人を探しています。"
+
 msgid "We're hiring"
 msgstr "採用中"
 
@@ -18135,6 +18228,9 @@ msgstr "Supersetへようこそ"
 
 msgid "Welcome to the new Superset"
 msgstr "新しいSupersetへようこそ"
+
+msgid "What are the benefits?"
+msgstr "福利厚生は?"
 
 msgid "What builders say about Superset"
 msgstr "ビルダーが語るSuperset"
@@ -18519,6 +18615,9 @@ msgstr "黄"
 msgid "Yes, demote me"
 msgstr "はい、降格します"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "はい。最も近いポジションに応募し、何を作りたいか教えてください。リポジトリ、PR、デモを添えてください。"
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "はい。Freeプランは個人向けで、1ユーザー、ローカルワークスペース、デスクトップアプリ、CLIが使えます。クレジットカードは不要です。"
 
@@ -18530,6 +18629,9 @@ msgstr "はい。Supersetはエージェントが動くワークスペースで�
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "はい。アプリ内の請求設定から、いつでもアップグレード、ダウングレード、解約ができます。変更は現在の請求期間の終了時に適用されます。"
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "はい。応募に米国の就労許可は必要ありません。ただし、サンフランシスコへ移住する意思が必要です。"
 
 msgid "Yesterday"
 msgstr "昨日"
@@ -18576,6 +18678,9 @@ msgstr "添付できるファイルは最大{MAX_ATTACHMENTS}件です"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "30 日間は「設定 → プロジェクト」から復元できます。リポジトリのフォルダーが削除されることはありません。"
+
+msgid "You can see how we work before you talk to us."
+msgstr "話をする前に、私たちの働き方を見ることができます。"
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

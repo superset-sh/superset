@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — quên trang này"
 
+msgid "1 hr"
+msgstr "1 giờ"
+
 msgid "1 user"
 msgstr "1 người dùng"
 
@@ -1319,6 +1322,9 @@ msgstr "10+ luồng công việc đồng thời mà không rớt trạng thái"
 
 msgid "100% (retain everything)"
 msgstr "100% (giữ toàn bộ)"
+
+msgid "15 min"
+msgstr "15 phút"
 
 msgid "1d ago"
 msgstr "1 ngày trước"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 tệp · +82 −172"
 
+msgid "5 days"
+msgstr "5 ngày"
+
 msgid "55 call sites pass {code}"
 msgstr "55 vị trí gọi truyền {code}"
 
@@ -1382,6 +1391,9 @@ msgstr "Trình duyệt trong ứng dụng tốt hơn: xem trước thay đổi v
 
 msgid "A better Superset is ready"
 msgstr "Phiên bản Superset tốt hơn đã sẵn sàng"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "Changelog được phát hành mỗi tuần. Hầu hết mọi người đã phát hành tới người dùng ngay trong vài ngày đầu."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat lấy tên từ agent."
@@ -1441,6 +1453,9 @@ msgstr "Cần phiên bản Superset mới để tiếp tục. Vui lòng cập nh
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Một workspace mới từ nhánh này, hội thoại được bàn giao cho tác nhân mới"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "Một bài toán TypeScript thực tế, giống những gì chúng tôi giải quyết hằng ngày. Không có câu đố thuật toán."
+
 msgid "A process is still running in this tab"
 msgstr "Vẫn còn một tiến trình đang chạy trong tab này"
 
@@ -1486,6 +1501,9 @@ msgstr "Giới thiệu"
 
 msgid "About Superset"
 msgstr "Về Superset"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "Khoảng ba tuần từ cuộc gọi đầu tiên đến khi nhận offer, kết thúc bằng một đợt làm thử có trả lương. Mọi bước đều có nhà sáng lập tham gia, và bạn sẽ nhận phản hồi trong vòng 48 giờ."
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "Hoàn toàn được. Superset không proxy bất kỳ lệnh gọi API nào. Bạn dùng khóa API của chính mình trực tiếp với nhà cung cấp AI bạn chọn. Nghĩa là bạn hoàn toàn kiểm soát chi phí và mức sử dụng."
@@ -3020,6 +3038,9 @@ msgstr "Breadcrumb"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "Đưa {companyName} đến với đội của bạn. Liên hệ với chúng tôi để tìm hiểu thêm về các gói enterprise và tùy chọn triển khai."
 
+msgid "Bring a link to something you built recently."
+msgstr "Mang theo đường dẫn tới một thứ bạn đã xây dựng gần đây."
+
 msgid "Bring Any Agent."
 msgstr "Mang mọi agent về đây."
 
@@ -3050,6 +3071,9 @@ msgstr "Duyệt các theme được chia sẻ và những cấu hình agent sắ
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "Duyệt các file theme Superset do cộng đồng chia sẻ, gồm GitHub Dark Colorblind, Catppuccin, Ember và One Dark Pro."
 
+msgid "Browse the repo ↗"
+msgstr "Xem repo ↗"
+
 msgid "Browse workspaces"
 msgstr "Duyệt workspace"
 
@@ -3077,6 +3101,9 @@ msgstr "Lịch sử duyệt web"
 msgid "Bug"
 msgstr "Bug"
 
+msgid "Build in public"
+msgstr "Xây dựng công khai"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "Xây dựng tương lai của Superset trên đám mây"
 
@@ -3085,6 +3112,9 @@ msgstr "Xây phần mềm cuối cùng"
 
 msgid "Building the last piece of software."
 msgstr "Xây phần mềm cuối cùng."
+
+msgid "Built in Superset"
+msgstr "Được xây dựng trong Superset"
 
 msgid "builtin"
 msgstr "tích hợp sẵn"
@@ -3947,6 +3977,9 @@ msgstr "Gộp toàn bộ commit"
 
 msgid "Combine sequences such as => and !==."
 msgstr "Ghép các chuỗi như => và !==."
+
+msgid "Come build it with us."
+msgstr "Hãy cùng chúng tôi tạo ra nó."
 
 msgid "Coming soon"
 msgstr "Sắp có"
@@ -5824,6 +5857,9 @@ msgstr "Mô tả (không bắt buộc)"
 msgid "Design"
 msgstr "Thiết kế"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "Thiết kế một hệ thống phức tạp trên bảng trắng."
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "Chế độ thiết kế — nhấp vào phần tử bất kỳ trong trang để gửi cho agent"
 
@@ -6064,6 +6100,9 @@ msgstr "Tôi có cần gói đăng ký coding agent riêng không?"
 
 msgid "Do nothing"
 msgstr "Không làm gì"
+
+msgid "Do you sponsor visas?"
+msgstr "Công ty có bảo lãnh visa không?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "Cách cài {name} trong Superset"
 msgid "How we build it, in long form."
 msgstr "Cách chúng tôi xây dựng, chi tiết."
 
+msgid "How we hire"
+msgstr "Cách chúng tôi tuyển dụng"
+
+msgid "How we work"
+msgstr "Cách chúng tôi làm việc"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "Cách các agent của bạn đăng nhập bên trong workspace cloud. Người khác kết nối gói đăng ký hoặc khóa API của riêng họ; trên máy này mỗi agent vẫn dùng phiên đăng nhập sẵn có."
 
@@ -8265,6 +8310,9 @@ msgstr "Rảnh"
 
 msgid "Idle · branch pushed"
 msgstr "Rảnh · đã push nhánh"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "Nếu bạn muốn xây dựng một sản phẩm mà mình yêu thích sử dụng, hãy cùng chúng tôi tạo ra nó."
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Nếu đến giờ bạn thấy Superset hữu ích, một star trên GitHub sẽ giúp các lập trình viên khác biết đến nó."
@@ -8410,6 +8458,9 @@ msgstr "Trong tất cả dự án"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Chỉ trong vài tháng, <0>hàng chục nghìn kỹ sư</0> dùng Superset làm IDE chính, tại các công ty như Wix, DoorDash và Netflix."
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "Làm việc trực tiếp tại văn phòng San Francisco, năm ngày mỗi tuần. Bạn làm việc trực tiếp với các nhà sáng lập."
 
 msgid "In progress"
 msgstr "Đang làm"
@@ -8578,6 +8629,9 @@ msgstr "Ngắt lời"
 
 msgid "Interrupted"
 msgstr "Bị gián đoạn"
+
+msgid "Intro call"
+msgstr "Cuộc gọi giới thiệu"
 
 msgid "Invalid"
 msgstr "Không hợp lệ"
@@ -9633,11 +9687,17 @@ msgstr "Thời gian trung vị từ ticket đến production dưới một ngày
 msgid "Median time from previous"
 msgstr "Thời gian trung vị từ bước trước"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "Bảo hiểm y tế và nha khoa miễn phí cho bạn, 401(k), nghỉ phép không giới hạn, $5K trang bị bàn làm việc và bữa ăn miễn phí tại văn phòng."
+
 msgid "Medium"
 msgstr "Trung bình"
 
 msgid "Medium severity"
 msgstr "Mức độ nghiêm trọng trung bình"
+
+msgid "Meet the team"
+msgstr "Gặp gỡ đội ngũ"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "Gặp gỡ đội ngũ đứng sau Superset, xây dựng các agent lập trình song song cho lập trình viên."
@@ -10728,6 +10788,9 @@ msgstr "Chưa gán người review nào."
 
 msgid "No reviews"
 msgstr "Chưa có review"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "Không có vị trí nào phù hợp với tôi. Tôi có nên liên hệ không?"
 
 msgid "No runs yet"
 msgstr "Chưa có lần chạy nào"
@@ -11918,6 +11981,9 @@ msgstr "Churn trả phí — tỷ lệ trụ lại theo nhóm"
 msgid "Paid search"
 msgstr "Tìm kiếm trả phí"
 
+msgid "Paid work trial"
+msgstr "Làm thử có trả lương"
+
 msgid "Palette"
 msgstr "Bảng màu"
 
@@ -12724,6 +12790,9 @@ msgstr "Truy vấn"
 msgid "Question"
 msgstr "Câu hỏi"
 
+msgid "Questions"
+msgstr "Câu hỏi"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Câu hỏi, góp ý, hỗ trợ hay bất cứ điều gì. Gửi một tin nhắn và chúng tôi sẽ chuyển đến đúng người."
 
@@ -12841,6 +12910,9 @@ msgstr "Đọc changelog"
 
 msgid "Read the changelog →"
 msgstr "Đọc changelog →"
+
+msgid "Read the changelog ↗"
+msgstr "Đọc changelog ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Đọc hướng dẫn về coding agent chạy song song"
@@ -14304,6 +14376,9 @@ msgstr "Xem ít hơn"
 msgid "See More"
 msgstr "Xem thêm"
 
+msgid "See open roles ↑"
+msgstr "Xem vị trí đang tuyển ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "Xem <0>tài liệu tham khảo các tool khả dụng</0> để biết tên và tham số của từng tool."
 
@@ -14730,6 +14805,9 @@ msgstr "Tô màu bằng Shiki, có thể kèm số dòng"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer Label"
+
+msgid "Ship every week"
+msgstr "Phát hành mỗi tuần"
 
 msgid "Ship It"
 msgstr "Đã giao"
@@ -15174,9 +15252,6 @@ msgstr "Đã xảy ra lỗi. Hãy thử lại hoặc liên hệ support@superset
 msgid "soon"
 msgstr "sắp tới"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Sắp tới, các nhóm sẽ chạy hàng trăm tác tử song song—những nhà máy phần mềm tự động tạo và phát hành mã. Chúng tôi đang biến Superset thành nơi các nhóm vận hành và quản lý những nhà máy đó, bắt đầu từ chính nhà máy của mình."
-
 msgid "Sort"
 msgstr "Sắp xếp"
 
@@ -15224,6 +15299,9 @@ msgstr "Tốc độ"
 
 msgid "Spend"
 msgstr "Chi tiêu"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "Dành 5 ngày cùng chúng tôi xây dựng sản phẩm tại San Francisco, với tư cách thành viên của nhóm."
 
 msgid "Split"
 msgstr "Chia đôi"
@@ -15751,8 +15829,8 @@ msgstr "Superset đang xây dựng phần mềm tự cải thiện. Nó bắt đ
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset được xây dựng bởi một đội ngũ tại San Francisco, California. Với hỗ trợ sản phẩm hoặc câu hỏi về tài khoản, hãy gửi email tới <0>{supportEmail}</0> và chúng tôi sẽ phản hồi trong vòng một ngày làm việc. Với hợp tác, báo chí, doanh nghiệp hoặc bất cứ điều gì khác, hãy viết tới <1>{teamEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset được xây dựng ngay trong Superset, nên chúng tôi chính là những người dùng hàng đầu—bạn được trả lương để giúp công việc của mình dễ dàng hơn. Nếu bạn từng muốn xây dựng một sản phẩm mà mình yêu thích sử dụng, hãy cùng chúng tôi tạo ra nó."
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset được xây dựng ngay trong Superset, nên chúng tôi chính là những người dùng hàng đầu. Bạn được trả lương để giúp công việc của mình dễ dàng hơn."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset được thiết kế để làm việc cùng công cụ sẵn có của bạn, chúng tôi hỗ trợ sẵn deep-link tới các IDE như Cursor để bạn mở workspace và tệp ngay trong IDE của mình."
@@ -15762,6 +15840,9 @@ msgstr "Superset là mã nguồn mở. Nếu hôm nay nó giúp được bạn, 
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset là source-available: mã nguồn công khai trên GitHub theo Elastic License 2.0 (ELv2), cho phép bạn xem và tự host theo các điều khoản của giấy phép, nhưng không phải mã nguồn mở được OSI công nhận. Superset không liên quan tới Apache Superset, công cụ business intelligence."
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset là source-available. Mọi pull request, review và bug đều công khai trên GitHub."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset là bàn làm việc cho bước chuyển F3 sang F4: agent chạy song song trong các workspace tách biệt, đội agent bạn thực sự giám sát được, và một nơi để review code bạn không viết."
@@ -15965,6 +16046,9 @@ msgstr "Đang đồng bộ..."
 msgid "System"
 msgstr "Hệ thống"
 
+msgid "System design"
+msgstr "Thiết kế hệ thống"
+
 msgid "System memory"
 msgstr "Bộ nhớ hệ thống"
 
@@ -16136,6 +16220,9 @@ msgstr "Teardown bị kết thúc bởi tín hiệu {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown quá thời gian sau {seconds}s"
+
+msgid "Technical interview"
+msgstr "Phỏng vấn kỹ thuật"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Bảo bất kỳ agent nào dùng CLI <0>superset</0> để tạo workspace, chạy tác vụ hoặc quản lý tự động hóa."
@@ -16373,6 +16460,9 @@ msgstr "Các thư mục sau không phải là repository git. Bạn có muốn k
 
 msgid "The forecast"
 msgstr "Dự báo"
+
+msgid "The founders"
+msgstr "Các nhà sáng lập"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "Toàn bộ vòng lặp cốt lõi (nhập repo, chạy agent, review diff) nay hoạt động cả khi chưa đăng nhập và ngoại tuyến."
@@ -18039,6 +18129,9 @@ msgstr "Chúng tôi sẽ báo cho bạn khi hỗ trợ Windows & Linux sẵn sà
 msgid "We'll only use this to send your download link."
 msgstr "Chúng tôi chỉ dùng địa chỉ này để gửi liên kết tải."
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "Chúng tôi đang xây dựng một đội ngũ phẳng, quy tụ những người thật giỏi, và tìm kiếm những người có ý tưởng điên rồ và đủ táo bạo để phát hành chúng."
+
 msgid "We're hiring"
 msgstr "Chúng tôi đang tuyển"
 
@@ -18135,6 +18228,9 @@ msgstr "Chào mừng đến với Superset"
 
 msgid "Welcome to the new Superset"
 msgstr "Chào mừng đến với Superset mới"
+
+msgid "What are the benefits?"
+msgstr "Phúc lợi gồm những gì?"
 
 msgid "What builders say about Superset"
 msgstr "Các nhà phát triển nói gì về Superset"
@@ -18519,6 +18615,9 @@ msgstr "Vàng"
 msgid "Yes, demote me"
 msgstr "Có, hạ quyền tôi"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "Có. Hãy ứng tuyển vào vị trí gần nhất và cho chúng tôi biết bạn muốn xây dựng gì. Kèm theo repo, PR hoặc demo."
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Có. Gói Free dành cho cá nhân với 1 người dùng, workspace cục bộ, ứng dụng máy tính và CLI. Không cần thẻ tín dụng."
 
@@ -18530,6 +18629,9 @@ msgstr "Có. Superset là nơi các agent của bạn chạy, không phải nhà
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Có. Bạn có thể nâng cấp, hạ cấp hoặc hủy bất cứ lúc nào trong phần cài đặt thanh toán của ứng dụng. Thay đổi có hiệu lực vào cuối kỳ thanh toán hiện tại."
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "Có. Bạn không cần giấy phép lao động tại Mỹ để ứng tuyển. Nhưng bạn cần sẵn sàng chuyển đến San Francisco."
 
 msgid "Yesterday"
 msgstr "Hôm qua"
@@ -18576,6 +18678,9 @@ msgstr "Bạn có thể đính kèm tối đa {MAX_ATTACHMENTS} tệp"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Bạn có thể khôi phục trong Cài đặt → Dự án trong 30 ngày. Thư mục repository không bao giờ bị xóa."
+
+msgid "You can see how we work before you talk to us."
+msgstr "Bạn có thể xem cách chúng tôi làm việc trước khi trò chuyện với chúng tôi."
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

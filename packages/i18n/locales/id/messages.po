@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — lupakan situs ini"
 
+msgid "1 hr"
+msgstr "1 jam"
+
 msgid "1 user"
 msgstr "1 pengguna"
 
@@ -1319,6 +1322,9 @@ msgstr "10+ alur kerja bersamaan tanpa kehilangan konteks"
 
 msgid "100% (retain everything)"
 msgstr "100% (mempertahankan semua)"
+
+msgid "15 min"
+msgstr "15 mnt"
 
 msgid "1d ago"
 msgstr "1h lalu"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 file · +82 −172"
 
+msgid "5 days"
+msgstr "5 hari"
+
 msgid "55 call sites pass {code}"
 msgstr "55 titik pemanggilan meneruskan {code}"
 
@@ -1382,6 +1391,9 @@ msgstr "Browser dalam aplikasi yang lebih baik: lihat pratinjau perubahan Anda d
 
 msgid "A better Superset is ready"
 msgstr "Superset yang lebih baik sudah siap"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "Changelog terbit setiap minggu. Kebanyakan orang sudah merilis ke pengguna dalam beberapa hari pertama."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat mengambil namanya dari agen."
@@ -1441,6 +1453,9 @@ msgstr "Versi baru Superset diperlukan untuk melanjutkan. Silakan perbarui ke ve
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Ruang kerja baru dari cabang ini, dengan percakapan diserahkan ke agen baru"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "Soal TypeScript yang praktis, seperti yang kami selesaikan setiap hari. Tanpa teka-teki algoritma."
+
 msgid "A process is still running in this tab"
 msgstr "Masih ada proses yang berjalan di tab ini"
 
@@ -1486,6 +1501,9 @@ msgstr "Tentang"
 
 msgid "About Superset"
 msgstr "Tentang Superset"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "Sekitar tiga minggu dari panggilan pertama hingga penawaran, diakhiri dengan uji coba kerja berbayar. Setiap tahap bersama pendiri, dan Anda mendapat kabar dalam 48 jam."
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "Tentu. Superset tidak mem-proxy panggilan API apa pun. Anda memakai kunci API Anda sendiri langsung dengan penyedia AI mana pun yang Anda pilih. Artinya Anda punya kendali penuh atas biaya dan penggunaan."
@@ -3020,6 +3038,9 @@ msgstr "Breadcrumb"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "Bawa {companyName} ke tim Anda. Hubungi kami untuk mempelajari lebih lanjut tentang paket enterprise dan opsi deployment."
 
+msgid "Bring a link to something you built recently."
+msgstr "Bawa tautan ke sesuatu yang baru-baru ini Anda bangun."
+
 msgid "Bring Any Agent."
 msgstr "Bawa Agen Apa Pun."
 
@@ -3050,6 +3071,9 @@ msgstr "Jelajahi tema bersama dan konfigurasi agen mendatang untuk Superset."
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "Jelajahi berkas tema Superset yang dibagikan komunitas, termasuk GitHub Dark Colorblind, Catppuccin, Ember, dan One Dark Pro."
 
+msgid "Browse the repo ↗"
+msgstr "Jelajahi repo ↗"
+
 msgid "Browse workspaces"
 msgstr "Jelajahi workspace"
 
@@ -3077,6 +3101,9 @@ msgstr "Riwayat penjelajahan"
 msgid "Bug"
 msgstr "Bug"
 
+msgid "Build in public"
+msgstr "Membangun secara terbuka"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "Bangun masa depan Superset di komputasi awan"
 
@@ -3085,6 +3112,9 @@ msgstr "Membangun perangkat lunak yang terakhir"
 
 msgid "Building the last piece of software."
 msgstr "Membangun perangkat lunak yang terakhir."
+
+msgid "Built in Superset"
+msgstr "Dibangun di Superset"
 
 msgid "builtin"
 msgstr "bawaan"
@@ -3947,6 +3977,9 @@ msgstr "Gabungkan semua commit"
 
 msgid "Combine sequences such as => and !==."
 msgstr "Gabungkan urutan seperti => dan !==."
+
+msgid "Come build it with us."
+msgstr "Mari bangun bersama kami."
 
 msgid "Coming soon"
 msgstr "Segera hadir"
@@ -5824,6 +5857,9 @@ msgstr "Deskripsi (opsional)"
 msgid "Design"
 msgstr "Desain"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "Rancang sistem yang kompleks di papan tulis."
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "Mode desain — klik elemen mana pun di halaman untuk mengirimkannya ke agen"
 
@@ -6064,6 +6100,9 @@ msgstr "Apakah saya perlu langganan agen coding sendiri?"
 
 msgid "Do nothing"
 msgstr "Tidak melakukan apa pun"
+
+msgid "Do you sponsor visas?"
+msgstr "Apakah Anda mensponsori visa?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "Cara memasang {name} di Superset"
 msgid "How we build it, in long form."
 msgstr "Cara kami membangunnya, secara mendalam."
 
+msgid "How we hire"
+msgstr "Cara kami merekrut"
+
+msgid "How we work"
+msgstr "Cara kami bekerja"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "Cara agen Anda masuk di dalam workspace cloud. Orang lain menghubungkan langganan atau kunci API mereka sendiri; di mesin ini setiap agen tetap memakai login yang sudah ada."
 
@@ -8265,6 +8310,9 @@ msgstr "Idle"
 
 msgid "Idle · branch pushed"
 msgstr "Idle · branch sudah di-push"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "Jika Anda ingin membangun produk yang Anda senang gunakan, mari bangun bersama kami."
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Kalau sejauh ini Anda menikmati Superset, satu star GitHub membantu developer lain menemukannya."
@@ -8410,6 +8458,9 @@ msgstr "Di semua proyek"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Hanya dalam beberapa bulan, <0>puluhan ribu engineer</0> memakai Superset sebagai IDE utama mereka, di perusahaan seperti Wix, DoorDash, dan Netflix."
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "Bekerja langsung di kantor San Francisco, lima hari seminggu. Anda bekerja langsung dengan para pendiri."
 
 msgid "In progress"
 msgstr "Sedang dikerjakan"
@@ -8578,6 +8629,9 @@ msgstr "Sela"
 
 msgid "Interrupted"
 msgstr "Dihentikan"
+
+msgid "Intro call"
+msgstr "Panggilan perkenalan"
 
 msgid "Invalid"
 msgstr "Tidak valid"
@@ -9633,11 +9687,17 @@ msgstr "Waktu median dari tiket ke produksi di bawah satu hari untuk pekerjaan r
 msgid "Median time from previous"
 msgstr "Waktu median dari langkah sebelumnya"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "Asuransi kesehatan dan gigi tanpa biaya, 401(k), cuti tanpa batas, tunjangan meja kerja $5K, dan makan gratis di kantor."
+
 msgid "Medium"
 msgstr "Sedang"
 
 msgid "Medium severity"
 msgstr "Tingkat keparahan sedang"
+
+msgid "Meet the team"
+msgstr "Kenali tim"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "Kenali tim di balik Superset, yang membangun agen coding paralel untuk developer."
@@ -10728,6 +10788,9 @@ msgstr "Belum ada reviewer yang ditugaskan."
 
 msgid "No reviews"
 msgstr "Tanpa review"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "Tidak ada posisi yang cocok untuk saya. Apakah saya tetap boleh menghubungi?"
 
 msgid "No runs yet"
 msgstr "Belum ada run"
@@ -11918,6 +11981,9 @@ msgstr "Churn berbayar — ketahanan kohor"
 msgid "Paid search"
 msgstr "Pencarian berbayar"
 
+msgid "Paid work trial"
+msgstr "Uji coba kerja berbayar"
+
 msgid "Palette"
 msgstr "Palet"
 
@@ -12724,6 +12790,9 @@ msgstr "Kueri"
 msgid "Question"
 msgstr "Pertanyaan"
 
+msgid "Questions"
+msgstr "Pertanyaan"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Pertanyaan, masukan, dukungan, atau apa pun. Kirim pesan dan kami akan meneruskannya ke orang yang tepat."
 
@@ -12841,6 +12910,9 @@ msgstr "Baca changelog"
 
 msgid "Read the changelog →"
 msgstr "Baca changelog →"
+
+msgid "Read the changelog ↗"
+msgstr "Baca changelog ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Baca panduan agen coding paralel"
@@ -14304,6 +14376,9 @@ msgstr "Lihat Lebih Sedikit"
 msgid "See More"
 msgstr "Lihat Selengkapnya"
 
+msgid "See open roles ↑"
+msgstr "Lihat lowongan ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "Lihat <0>referensi alat yang tersedia</0> untuk tiap nama alat dan parameternya."
 
@@ -14730,6 +14805,9 @@ msgstr "Disorot Shiki, dengan nomor baris opsional"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Label Shimmer"
+
+msgid "Ship every week"
+msgstr "Rilis setiap minggu"
 
 msgid "Ship It"
 msgstr "Rilis"
@@ -15174,9 +15252,6 @@ msgstr "Terjadi kesalahan. Coba lagi, atau hubungi support@superset.sh."
 msgid "soon"
 msgstr "sebentar lagi"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Tak lama lagi, tim akan menjalankan ratusan agen secara paralel—pabrik perangkat lunak yang secara mandiri menghasilkan dan merilis kode. Kami menjadikan Superset tempat tim menjalankan dan mengelola pabrik tersebut, dimulai dari pabrik kami sendiri."
-
 msgid "Sort"
 msgstr "Urutkan"
 
@@ -15224,6 +15299,9 @@ msgstr "Kecepatan"
 
 msgid "Spend"
 msgstr "Pengeluaran"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "Habiskan 5 hari membangun bersama kami di San Francisco, sebagai bagian dari tim."
 
 msgid "Split"
 msgstr "Bagi"
@@ -15751,8 +15829,8 @@ msgstr "Superset sedang membangun perangkat lunak yang memperbaiki dirinya sendi
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset dibangun oleh tim yang berbasis di San Francisco, California. Untuk dukungan produk atau pertanyaan akun, kirim email ke <0>{supportEmail}</0> dan kami akan membalas dalam satu hari kerja. Untuk kemitraan, media, enterprise, atau hal lainnya, tulis ke <1>{teamEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya—Anda dibayar untuk mempermudah pekerjaan Anda sendiri. Jika Anda ingin membangun produk yang Anda sukai dan senang gunakan, mari bangun bersama kami."
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset dibangun di dalam Superset, jadi kami sendiri adalah pengguna utamanya. Anda dibayar untuk mempermudah pekerjaan Anda sendiri."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset dirancang untuk bekerja dengan alat yang sudah Anda pakai; kami mendukung deep-link ke IDE seperti Cursor secara native sehingga Anda bisa membuka workspace dan file di IDE Anda."
@@ -15762,6 +15840,9 @@ msgstr "Superset bersifat open source. Kalau hari ini membantu Anda, satu star G
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset bersifat source-available: kodenya publik di GitHub dengan Elastic License 2.0 (ELv2), yang memungkinkan Anda memeriksanya dan meng-host sendiri sesuai ketentuan lisensinya, tapi bukan open source yang disetujui OSI. Superset tidak berhubungan dengan Apache Superset, alat business intelligence itu."
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset bersifat source-available. Setiap pull request, review, dan bug terbuka untuk publik di GitHub."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset adalah meja kerja untuk transisi F3 ke F4: agen paralel di workspace terisolasi, armada yang benar-benar bisa Anda awasi, dan permukaan review untuk kode yang tidak Anda tulis."
@@ -15965,6 +16046,9 @@ msgstr "Menyinkronkan..."
 msgid "System"
 msgstr "Sistem"
 
+msgid "System design"
+msgstr "Desain sistem"
+
 msgid "System memory"
 msgstr "Memori sistem"
 
@@ -16136,6 +16220,9 @@ msgstr "Teardown dihentikan oleh sinyal {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown kehabisan waktu setelah {seconds}d"
+
+msgid "Technical interview"
+msgstr "Wawancara teknis"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Minta agen mana pun memakai CLI <0>superset</0> untuk menjalankan workspace, run tugas, atau mengelola otomatisasi."
@@ -16373,6 +16460,9 @@ msgstr "Folder berikut bukan repositori git. Ingin menginisialisasinya?"
 
 msgid "The forecast"
 msgstr "Prakiraan"
+
+msgid "The founders"
+msgstr "Para pendiri"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "Alur inti lengkap (impor repo, jalankan agen, review diff) kini bekerja tanpa masuk dan tanpa koneksi."
@@ -18039,6 +18129,9 @@ msgstr "Kami akan memberi tahu Anda saat dukungan Windows & Linux siap."
 msgid "We'll only use this to send your download link."
 msgstr "Kami hanya memakainya untuk mengirim tautan unduhan Anda."
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "Kami membangun tim yang datar dan penuh talenta hebat, dan kami mencari orang yang punya ide gila dan cukup berani untuk merilisnya."
+
 msgid "We're hiring"
 msgstr "Kami sedang merekrut"
 
@@ -18135,6 +18228,9 @@ msgstr "Selamat datang di Superset"
 
 msgid "Welcome to the new Superset"
 msgstr "Selamat datang di Superset baru"
+
+msgid "What are the benefits?"
+msgstr "Apa saja tunjangannya?"
 
 msgid "What builders say about Superset"
 msgstr "Apa kata builder tentang Superset"
@@ -18519,6 +18615,9 @@ msgstr "Kuning"
 msgid "Yes, demote me"
 msgstr "Ya, turunkan peran saya"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ya. Lamar posisi yang paling mendekati dan ceritakan apa yang ingin Anda bangun. Sertakan repo, PR, atau demo."
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ya. Paket gratis mencakup perorangan dengan 1 pengguna, workspace lokal, aplikasi desktop, dan CLI. Tanpa kartu kredit."
 
@@ -18530,6 +18629,9 @@ msgstr "Ya. Superset adalah workspace tempat agen Anda berjalan, bukan penyedia 
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ya. Anda bisa upgrade, downgrade, atau membatalkan kapan saja dari pengaturan penagihan di dalam aplikasi. Perubahan berlaku di akhir periode penagihan Anda saat ini."
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "Ya. Anda tidak memerlukan izin kerja AS untuk melamar. Namun Anda harus bersedia pindah ke San Francisco."
 
 msgid "Yesterday"
 msgstr "Kemarin"
@@ -18576,6 +18678,9 @@ msgstr "Anda dapat melampirkan hingga {MAX_ATTACHMENTS} file"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Anda dapat memulihkannya dari Pengaturan → Proyek selama 30 hari. Folder repositori tidak pernah dihapus."
+
+msgid "You can see how we work before you talk to us."
+msgstr "Anda bisa melihat cara kami bekerja sebelum berbicara dengan kami."
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — zapomenout tento web"
 
+msgid "1 hr"
+msgstr "1 h"
+
 msgid "1 user"
 msgstr "1 uživatel"
 
@@ -1319,6 +1322,9 @@ msgstr "10+ souběžných proudů práce bez ztráty přehledu"
 
 msgid "100% (retain everything)"
 msgstr "100 % (udržet vše)"
+
+msgid "15 min"
+msgstr "15 min"
 
 msgid "1d ago"
 msgstr "před 1 d"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 souborů · +82 −172"
 
+msgid "5 days"
+msgstr "5 dní"
+
 msgid "55 call sites pass {code}"
 msgstr "55 míst volání předává {code}"
 
@@ -1382,6 +1391,9 @@ msgstr "Lepší vestavěný prohlížeč: prohlédněte si své změny a kliknut
 
 msgid "A better Superset is ready"
 msgstr "Lepší verze Superset je připravena"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "Každý týden vydáváme changelog. Většina lidí dodá něco uživatelům už během prvních pár dní."
 
 msgid "A chat takes its name from the agent."
 msgstr "Chat přebírá název od agenta."
@@ -1441,6 +1453,9 @@ msgstr "Pro pokračování je potřeba novější verze Superset. Aktualizujte p
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Nový pracovní prostor z této větve; konverzace se předá novému agentovi"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "Praktická úloha v TypeScriptu, jaké řešíme každý den. Žádné algoritmické hádanky."
+
 msgid "A process is still running in this tab"
 msgstr "V této kartě pořád běží proces"
 
@@ -1486,6 +1501,9 @@ msgstr "O nás"
 
 msgid "About Superset"
 msgstr "O Superset"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "Zhruba tři týdny od prvního hovoru po nabídku, na konci placená zkušební spolupráce. Každý krok probíhá se zakladatelem a odpověď dostanete do 48 hodin."
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "Rozhodně. Superset nepřeposílá žádná API volání. Vlastní API klíče používáte přímo u poskytovatelů AI, které si zvolíte. Máte tak plnou kontrolu nad náklady i využitím."
@@ -3020,6 +3038,9 @@ msgstr "Drobečková navigace"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "Přineste {companyName} svému týmu. Ozvěte se nám a zjistěte více o enterprise plánech a možnostech nasazení."
 
+msgid "Bring a link to something you built recently."
+msgstr "Přineste odkaz na něco, co jste nedávno vytvořili."
+
 msgid "Bring Any Agent."
 msgstr "Přiveďte jakéhokoli agenta."
 
@@ -3050,6 +3071,9 @@ msgstr "Procházejte sdílené motivy a budoucí konfigurace agentů pro Superse
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "Procházejte soubory motivů pro Superset sdílené komunitou, včetně GitHub Dark Colorblind, Catppuccin, Ember a One Dark Pro."
 
+msgid "Browse the repo ↗"
+msgstr "Prohlédnout repozitář ↗"
+
 msgid "Browse workspaces"
 msgstr "Procházet pracovní prostory"
 
@@ -3077,6 +3101,9 @@ msgstr "Historie prohlížení"
 msgid "Bug"
 msgstr "Brouk"
 
+msgid "Build in public"
+msgstr "Vyvíjíme veřejně"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "Tvořte budoucnost Superset v cloudu"
 
@@ -3085,6 +3112,9 @@ msgstr "Stavíme poslední kus softwaru"
 
 msgid "Building the last piece of software."
 msgstr "Stavíme poslední kus softwaru."
+
+msgid "Built in Superset"
+msgstr "Vytvořeno v Superset"
 
 msgid "builtin"
 msgstr "vestavěný"
@@ -3947,6 +3977,9 @@ msgstr "Spojí všechny commity"
 
 msgid "Combine sequences such as => and !==."
 msgstr "Spojovat sekvence jako => a !==."
+
+msgid "Come build it with us."
+msgstr "Pojďte ho tvořit s námi."
 
 msgid "Coming soon"
 msgstr "Již brzy"
@@ -5824,6 +5857,9 @@ msgstr "Popis (volitelné)"
 msgid "Design"
 msgstr "Design"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "Navrhněte složitý systém na tabuli."
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "Režim designu — klikněte na libovolný prvek stránky a pošlete ho agentovi"
 
@@ -6064,6 +6100,9 @@ msgstr "Potřebuji vlastní předplatné kódovacích agentů?"
 
 msgid "Do nothing"
 msgstr "Nedělat nic"
+
+msgid "Do you sponsor visas?"
+msgstr "Sponzorujete víza?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "Jak nainstalovat {name} do Superset"
 msgid "How we build it, in long form."
 msgstr "Jak to stavíme, podrobně."
 
+msgid "How we hire"
+msgstr "Jak nabíráme"
+
+msgid "How we work"
+msgstr "Jak pracujeme"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "Jak se vaši agenti přihlašují v cloudových pracovních prostorech. Ostatní připojují vlastní předplatné nebo API klíče; na tomto počítači každý agent dál používá přihlášení, které už na něm je."
 
@@ -8265,6 +8310,9 @@ msgstr "Nečinný"
 
 msgid "Idle · branch pushed"
 msgstr "Nečinné · větev odeslána"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "Pokud chcete vytvářet produkt, který rádi používáte, pojďte ho tvořit s námi."
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Pokud se vám Superset zatím líbí, hvězda na GitHubu pomůže dalším vývojářům ho objevit."
@@ -8410,6 +8458,9 @@ msgstr "Ve všech projektech"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Za pouhých pár měsíců používají Superset jako hlavní IDE <0>desítky tisíc inženýrů</0>, ve firmách jako Wix, DoorDash nebo Netflix."
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "Osobně v San Franciscu, pět dní v týdnu. Pracujete přímo se zakladateli."
 
 msgid "In progress"
 msgstr "Probíhá"
@@ -8578,6 +8629,9 @@ msgstr "Přerušit"
 
 msgid "Interrupted"
 msgstr "Přerušeno"
+
+msgid "Intro call"
+msgstr "Úvodní hovor"
 
 msgid "Invalid"
 msgstr "Neplatné"
@@ -9633,11 +9687,17 @@ msgstr "Mediánový čas od ticketu do produkce pod jeden den u rutinní práce.
 msgid "Median time from previous"
 msgstr "Medián času od předchozího"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "Zdravotní a zubní péče zdarma, 401(k), neomezené volno, příspěvek $5K na vybavení pracoviště a jídlo zdarma v kanceláři."
+
 msgid "Medium"
 msgstr "Střední"
 
 msgid "Medium severity"
 msgstr "Střední závažnost"
+
+msgid "Meet the team"
+msgstr "Poznejte tým"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "Poznejte tým za Supersetem, který staví paralelní kódovací agenty pro vývojáře."
@@ -10728,6 +10788,9 @@ msgstr "Zatím nejsou přiřazeni žádní recenzenti."
 
 msgid "No reviews"
 msgstr "Žádné revize"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "Žádná pozice mi nesedí. Mám se i tak ozvat?"
 
 msgid "No runs yet"
 msgstr "Zatím žádné běhy"
@@ -11918,6 +11981,9 @@ msgstr "Churn plateb — přežití kohort"
 msgid "Paid search"
 msgstr "Placené vyhledávání"
 
+msgid "Paid work trial"
+msgstr "Placená zkušební spolupráce"
+
 msgid "Palette"
 msgstr "Paleta"
 
@@ -12724,6 +12790,9 @@ msgstr "Dotaz"
 msgid "Question"
 msgstr "Otázka"
 
+msgid "Questions"
+msgstr "Otázky"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Dotazy, zpětná vazba, podpora nebo cokoli jiného. Napište nám a předáme to správnému člověku."
 
@@ -12841,6 +12910,9 @@ msgstr "Přečíst changelog"
 
 msgid "Read the changelog →"
 msgstr "Přečíst changelog →"
+
+msgid "Read the changelog ↗"
+msgstr "Přečíst changelog ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Přečíst průvodce paralelními kódovacími agenty"
@@ -14304,6 +14376,9 @@ msgstr "Zobrazit méně"
 msgid "See More"
 msgstr "Zobrazit více"
 
+msgid "See open roles ↑"
+msgstr "Zobrazit otevřené pozice ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "Všechny názvy nástrojů a parametry najdete v <0>přehledu dostupných nástrojů</0>."
 
@@ -14730,6 +14805,9 @@ msgstr "Zvýrazněno Shiki, volitelně s čísly řádků"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer Label"
+
+msgid "Ship every week"
+msgstr "Vydáváme každý týden"
 
 msgid "Ship It"
 msgstr "Dodáno"
@@ -15174,9 +15252,6 @@ msgstr "Něco se pokazilo. Zkuste to znovu nebo napište na support@superset.sh.
 msgid "soon"
 msgstr "brzy"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Brzy budou týmy spouštět stovky agentů paralelně — softwarové továrny, které samostatně vytvářejí a dodávají kód. Ze Superset děláme místo, kde týmy tyto továrny provozují a spravují, počínaje tou naší."
-
 msgid "Sort"
 msgstr "Řazení"
 
@@ -15224,6 +15299,9 @@ msgstr "Rychlost"
 
 msgid "Spend"
 msgstr "Výdaje"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "Strávte 5 dní tvorbou s námi v San Franciscu jako člen týmu."
 
 msgid "Split"
 msgstr "Rozdělit"
@@ -15751,8 +15829,8 @@ msgstr "Superset staví software, který se sám zlepšuje. Začíná to tím, �
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset staví tým se sídlem v San Franciscu v Kalifornii. S dotazy k produktu nebo účtu pište na <0>{supportEmail}</0> a ozveme se do jednoho pracovního dne. Partnerství, tisk, enterprise nebo cokoli dalšího směřujte na <1>{teamEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset vyvíjíme v Superset, takže jsme sami jeho největšími uživateli — dostáváte zaplaceno za to, že si usnadňujete život. Pokud jste někdy chtěli vytvářet produkt, který rádi používáte, pojďte ho tvořit s námi."
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset vyvíjíme v Superset, takže jsme sami jeho největšími uživateli. Dostáváte zaplaceno za to, že si usnadňujete život."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset je navržený tak, aby fungoval s vaším stávajícím nástrojem. Nativně podporujeme hluboké odkazy do IDE, jako je Cursor, takže si pracovní prostory a soubory otevřete ve svém IDE."
@@ -15762,6 +15840,9 @@ msgstr "Superset je open source. Pokud vám dnes pomohl, hvězda na GitHubu pom�
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset je source-available: kód je veřejně na GitHubu pod licencí Elastic License 2.0 (ELv2), která umožňuje si ho prohlédnout a za podmínek licence ho provozovat samostatně, ale nejde o open source schválený OSI. Superset nemá nic společného s Apache Superset, nástrojem pro business intelligence."
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset je source-available. Každý pull request, review i bug je veřejně na GitHubu."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset je pracovní stůl pro přechod z F3 na F4: paralelní agenti v izolovaných pracovních prostorech, flotily, které skutečně uhlídáte, a plocha pro revizi kódu, který jste nenapsali."
@@ -15965,6 +16046,9 @@ msgstr "Synchronizuji..."
 msgid "System"
 msgstr "Systémový"
 
+msgid "System design"
+msgstr "Návrh systému"
+
 msgid "System memory"
 msgstr "Systémová paměť"
 
@@ -16136,6 +16220,9 @@ msgstr "Teardown ukončen signálem {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown vypršel po {seconds} s"
+
+msgid "Technical interview"
+msgstr "Technický pohovor"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Řekněte libovolnému agentovi, ať použije CLI <0>superset</0> k vytváření pracovních prostorů, spouštění úkolů nebo správě automatizací."
@@ -16373,6 +16460,9 @@ msgstr "Následující složky nejsou git repozitáře. Chcete je inicializovat?
 
 msgid "The forecast"
 msgstr "Předpověď"
+
+msgid "The founders"
+msgstr "Zakladatelé"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "Celá základní smyčka (import repozitáře, spuštění agenta, revize rozdílů) teď funguje odhlášeně a offline."
@@ -18039,6 +18129,9 @@ msgstr "Dáme vám vědět, jakmile bude podpora Windows a Linuxu hotová."
 msgid "We'll only use this to send your download link."
 msgstr "Použijeme ho jen k odeslání odkazu ke stažení."
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "Budujeme plochý tým plný talentů a hledáme lidi, kteří mají šílené nápady a jsou dost šílení na to, aby je vydali."
+
 msgid "We're hiring"
 msgstr "Nabíráme"
 
@@ -18135,6 +18228,9 @@ msgstr "Vítejte v Superset"
 
 msgid "Welcome to the new Superset"
 msgstr "Vítejte v novém Superset"
+
+msgid "What are the benefits?"
+msgstr "Jaké jsou benefity?"
 
 msgid "What builders say about Superset"
 msgstr "Co o Superset říkají tvůrci"
@@ -18519,6 +18615,9 @@ msgstr "Žlutá"
 msgid "Yes, demote me"
 msgstr "Ano, degradovat mě"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ano. Přihlaste se na nejbližší pozici a napište nám, co byste vytvořili. Přiložte repozitář, PR nebo demo."
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ano. Free pokrývá jednotlivce s 1 uživatelem, lokální pracovní prostory, desktopovou aplikaci a CLI. Bez platební karty."
 
@@ -18530,6 +18629,9 @@ msgstr "Ano. Superset je pracovní prostor, ve kterém vaši agenti běží, ne 
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ano. Kdykoli můžete tarif zvýšit, snížit nebo zrušit v nastavení fakturace v aplikaci. Změny se projeví na konci aktuálního fakturačního období."
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "Ano. K přihlášce nepotřebujete pracovní povolení v USA. Měli byste ale být ochotni přestěhovat se do San Francisca."
 
 msgid "Yesterday"
 msgstr "Včera"
@@ -18576,6 +18678,9 @@ msgstr "Můžete přiložit nejvýše {MAX_ATTACHMENTS} souborů"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Můžete ho obnovit v Nastavení → Projekty po dobu 30 dnů. Složka repozitáře se nikdy nemaže."
+
+msgid "You can see how we work before you talk to us."
+msgstr "Než s námi začnete mluvit, můžete vidět, jak pracujeme."
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

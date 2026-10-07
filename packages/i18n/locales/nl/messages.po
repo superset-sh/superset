@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 cookie — deze site vergeten"
 
+msgid "1 hr"
+msgstr "1 u"
+
 msgid "1 user"
 msgstr "1 gebruiker"
 
@@ -1319,6 +1322,9 @@ msgstr "10+ gelijktijdige werkstromen zonder verlies van context"
 
 msgid "100% (retain everything)"
 msgstr "100% (alles behouden)"
+
+msgid "15 min"
+msgstr "15 min"
 
 msgid "1d ago"
 msgstr "1d geleden"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 bestanden · +82 −172"
 
+msgid "5 days"
+msgstr "5 dagen"
+
 msgid "55 call sites pass {code}"
 msgstr "55 aanroepplekken geven {code} door"
 
@@ -1382,6 +1391,9 @@ msgstr "Een betere ingebouwde browser: bekijk je wijzigingen en klik op elk elem
 
 msgid "A better Superset is ready"
 msgstr "Een betere versie van Superset staat klaar"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "Elke week verschijnt er een changelog. De meeste mensen leveren in hun eerste dagen al op aan gebruikers."
 
 msgid "A chat takes its name from the agent."
 msgstr "Een chat krijgt zijn naam van de agent."
@@ -1441,6 +1453,9 @@ msgstr "Er is een nieuwe versie van Superset nodig om verder te gaan. Werk bij n
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Een nieuwe workspace vanaf deze branch, met het gesprek overgedragen aan een nieuwe agent"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "Een praktisch TypeScript-probleem, zoals we ze elke dag oplossen. Geen algoritmepuzzels."
+
 msgid "A process is still running in this tab"
 msgstr "Er draait nog een proces in dit tabblad"
 
@@ -1486,6 +1501,9 @@ msgstr "Over ons"
 
 msgid "About Superset"
 msgstr "Over Superset"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "Ongeveer drie weken van eerste gesprek tot aanbod, afgesloten met een betaalde proefweek. Elke stap is met een oprichter, en je hoort binnen 48 uur van ons."
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "Zeker. Superset proxyt geen API-aanroepen. Je gebruikt je eigen API-sleutels rechtstreeks bij de AI-providers die je kiest. Zo houd je volledige controle over kosten en gebruik."
@@ -3020,6 +3038,9 @@ msgstr "Breadcrumb"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "Breng {companyName} naar je team. Neem contact op voor meer informatie over enterprise-abonnementen en implementatieopties."
 
+msgid "Bring a link to something you built recently."
+msgstr "Neem een link mee naar iets wat je onlangs hebt gebouwd."
+
 msgid "Bring Any Agent."
 msgstr "Neem elke agent mee."
 
@@ -3050,6 +3071,9 @@ msgstr "Bekijk gedeelde thema's en toekomstige agentconfigs voor Superset."
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "Bekijk Superset-themabestanden die door de community zijn gedeeld, waaronder GitHub Dark Colorblind, Catppuccin, Ember en One Dark Pro."
 
+msgid "Browse the repo ↗"
+msgstr "Bekijk de repo ↗"
+
 msgid "Browse workspaces"
 msgstr "Werkruimtes bekijken"
 
@@ -3077,6 +3101,9 @@ msgstr "Browsegeschiedenis"
 msgid "Bug"
 msgstr "Bug"
 
+msgid "Build in public"
+msgstr "Bouwen in het openbaar"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "Bouw aan de toekomst van Superset in de cloud"
 
@@ -3085,6 +3112,9 @@ msgstr "Het laatste stuk software bouwen"
 
 msgid "Building the last piece of software."
 msgstr "Het laatste stuk software bouwen."
+
+msgid "Built in Superset"
+msgstr "Gebouwd in Superset"
 
 msgid "builtin"
 msgstr "ingebouwd"
@@ -3947,6 +3977,9 @@ msgstr "Alle commits samenvoegen"
 
 msgid "Combine sequences such as => and !==."
 msgstr "Combineer reeksen zoals => en !==."
+
+msgid "Come build it with us."
+msgstr "Kom het samen met ons bouwen."
 
 msgid "Coming soon"
 msgstr "Binnenkort"
@@ -5824,6 +5857,9 @@ msgstr "Beschrijving (optioneel)"
 msgid "Design"
 msgstr "Design"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "Ontwerp een complex systeem op een whiteboard."
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "Designmodus — klik op een element op de pagina om het naar een agent te sturen"
 
@@ -6064,6 +6100,9 @@ msgstr "Heb ik eigen abonnementen op coding agents nodig?"
 
 msgid "Do nothing"
 msgstr "Niets doen"
+
+msgid "Do you sponsor visas?"
+msgstr "Sponsoren jullie visa?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "{name} installeren in Superset"
 msgid "How we build it, in long form."
 msgstr "Hoe we het bouwen, uitgebreid uitgelegd."
 
+msgid "How we hire"
+msgstr "Hoe we aannemen"
+
+msgid "How we work"
+msgstr "Hoe we werken"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "Hoe je agents inloggen binnen cloudwerkruimtes. Anderen koppelen hun eigen abonnementen of API-sleutels; op deze machine blijft elke agent de login gebruiken die er al op staat."
 
@@ -8265,6 +8310,9 @@ msgstr "Inactief"
 
 msgid "Idle · branch pushed"
 msgstr "Inactief · branch gepusht"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "Als je een product wilt bouwen dat je graag gebruikt, kom het dan samen met ons bouwen."
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Als Superset je tot nu toe bevalt, helpt een GitHub-ster andere ontwikkelaars het te ontdekken."
@@ -8410,6 +8458,9 @@ msgstr "In alle projecten"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "In een paar maanden tijd draaien <0>tienduizenden engineers</0> Superset als hun belangrijkste IDE, bij bedrijven als Wix, DoorDash en Netflix."
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "Op kantoor in San Francisco, vijf dagen per week. Je werkt direct samen met de oprichters."
 
 msgid "In progress"
 msgstr "In uitvoering"
@@ -8578,6 +8629,9 @@ msgstr "Onderbreken"
 
 msgid "Interrupted"
 msgstr "Onderbroken"
+
+msgid "Intro call"
+msgstr "Kennismakingsgesprek"
 
 msgid "Invalid"
 msgstr "Ongeldig"
@@ -9633,11 +9687,17 @@ msgstr "Mediane tijd van ticket tot productie onder één dag voor routinewerk."
 msgid "Median time from previous"
 msgstr "Mediane tijd sinds vorige"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "Gratis medische en tandartsverzekering, een 401(k), onbeperkt vrij, een bureaubudget van $5K en gratis maaltijden op kantoor."
+
 msgid "Medium"
 msgstr "Gemiddeld"
 
 msgid "Medium severity"
 msgstr "Gemiddelde ernst"
+
+msgid "Meet the team"
+msgstr "Maak kennis met het team"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "Maak kennis met het team achter Superset, dat parallelle coding agents voor developers bouwt."
@@ -10728,6 +10788,9 @@ msgstr "Nog geen reviewers toegewezen."
 
 msgid "No reviews"
 msgstr "Geen reviews"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "Geen enkele vacature past bij mij. Moet ik toch contact opnemen?"
 
 msgid "No runs yet"
 msgstr "Nog geen runs"
@@ -11918,6 +11981,9 @@ msgstr "Betaalde churn — cohortoverleving"
 msgid "Paid search"
 msgstr "Betaald zoeken"
 
+msgid "Paid work trial"
+msgstr "Betaalde proefweek"
+
 msgid "Palette"
 msgstr "Palet"
 
@@ -12724,6 +12790,9 @@ msgstr "Zoekopdracht"
 msgid "Question"
 msgstr "Vraag"
 
+msgid "Questions"
+msgstr "Vragen"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Vragen, feedback, support of iets anders. Stuur een bericht, dan sturen we het door naar de juiste persoon."
 
@@ -12841,6 +12910,9 @@ msgstr "Lees de changelog"
 
 msgid "Read the changelog →"
 msgstr "Lees de changelog →"
+
+msgid "Read the changelog ↗"
+msgstr "Lees de changelog ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Lees de gids over parallelle coding agents"
@@ -14304,6 +14376,9 @@ msgstr "Minder tonen"
 msgid "See More"
 msgstr "Meer tonen"
 
+msgid "See open roles ↑"
+msgstr "Bekijk openstaande vacatures ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "Bekijk de <0>referentie van beschikbare tools</0> voor elke toolnaam en parameter."
 
@@ -14730,6 +14805,9 @@ msgstr "Met Shiki gehighlight, met optionele regelnummers"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer-label"
+
+msgid "Ship every week"
+msgstr "Elke week opleveren"
 
 msgid "Ship It"
 msgstr "Geleverd"
@@ -15174,9 +15252,6 @@ msgstr "Er is iets misgegaan. Probeer het opnieuw of neem contact op via support
 msgid "soon"
 msgstr "binnenkort"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Binnenkort laten teams honderden agents parallel draaien: softwarefabrieken die zelfstandig code produceren en opleveren. We maken van Superset de plek waar teams die fabrieken draaien en beheren, te beginnen met onze eigen fabriek."
-
 msgid "Sort"
 msgstr "Sorteren"
 
@@ -15224,6 +15299,9 @@ msgstr "Snelheid"
 
 msgid "Spend"
 msgstr "Uitgaven"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "Bouw 5 dagen met ons mee in San Francisco, als lid van het team."
 
 msgid "Split"
 msgstr "Gesplitst"
@@ -15751,8 +15829,8 @@ msgstr "Superset bouwt zelfverbeterende software. Dat begint met engineers de be
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset wordt gebouwd door een team in San Francisco, Californië. Voor productsupport of vragen over je account mail je <0>{supportEmail}</0>; we reageren binnen één werkdag. Voor partnerships, pers, enterprise of iets anders schrijf je naar <1>{teamEmail}</1>."
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset wordt gebouwd in Superset, dus we zijn zelf onze belangrijkste gebruikers: je krijgt betaald om je eigen leven makkelijker te maken. Als je altijd al een product wilde bouwen dat je graag gebruikt, kom het dan samen met ons bouwen."
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset wordt gebouwd in Superset, dus we zijn zelf onze belangrijkste gebruikers. Je krijgt betaald om je eigen leven makkelijker te maken."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset is gemaakt om samen te werken met je bestaande tool; we ondersteunen deeplinks naar IDE's zoals Cursor, zodat je je werkruimtes en bestanden in je IDE kunt openen."
@@ -15762,6 +15840,9 @@ msgstr "Superset is open source. Als het je vandaag geholpen heeft, helpt een Gi
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset is source-available: de code is openbaar op GitHub onder Elastic License 2.0 (ELv2), waarmee je hem kunt inzien en zelf hosten binnen de licentievoorwaarden, maar het is geen door OSI goedgekeurde open source. Superset staat los van Apache Superset, de business-intelligencetool."
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset is source-available. Elke pull request, review en bug is openbaar op GitHub."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset is de werkbank voor de overgang van F3 naar F4: parallelle agents in geïsoleerde werkruimtes, vloten die je echt kunt overzien, en een reviewoppervlak voor code die je niet zelf schreef."
@@ -15965,6 +16046,9 @@ msgstr "Synchroniseren..."
 msgid "System"
 msgstr "Systeem"
 
+msgid "System design"
+msgstr "Systeemontwerp"
+
 msgid "System memory"
 msgstr "Systeemgeheugen"
 
@@ -16136,6 +16220,9 @@ msgstr "Teardown beëindigd door signaal {signal}"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Teardown is na {seconds}s verlopen"
+
+msgid "Technical interview"
+msgstr "Technisch interview"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Vraag elke agent om de <0>superset</0>-CLI te gebruiken om werkruimtes op te zetten, taken uit te voeren of automatiseringen te beheren."
@@ -16373,6 +16460,9 @@ msgstr "De volgende mappen zijn geen git-repository's. Wil je ze initialiseren?"
 
 msgid "The forecast"
 msgstr "De voorspelling"
+
+msgid "The founders"
+msgstr "De oprichters"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "De volledige kernloop (repo importeren, agent draaien, diff reviewen) werkt nu uitgelogd en offline."
@@ -18039,6 +18129,9 @@ msgstr "We laten het weten zodra ondersteuning voor Windows en Linux klaar is."
 msgid "We'll only use this to send your download link."
 msgstr "We gebruiken dit alleen om je downloadlink te sturen."
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "We bouwen een plat team vol toptalent en zoeken mensen met gekke ideeën die gek genoeg zijn om ze ook echt op te leveren."
+
 msgid "We're hiring"
 msgstr "We zoeken mensen"
 
@@ -18135,6 +18228,9 @@ msgstr "Welkom bij Superset"
 
 msgid "Welcome to the new Superset"
 msgstr "Welkom bij het nieuwe Superset"
+
+msgid "What are the benefits?"
+msgstr "Wat zijn de voordelen?"
 
 msgid "What builders say about Superset"
 msgstr "Wat bouwers over Superset zeggen"
@@ -18519,6 +18615,9 @@ msgstr "Geel"
 msgid "Yes, demote me"
 msgstr "Ja, degradeer mij"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "Ja. Solliciteer op de vacature die het dichtst in de buurt komt en vertel ons wat je zou bouwen. Voeg een repo, PR of demo toe."
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Ja. Free is voor individuen met 1 gebruiker, lokale werkruimtes, de desktop-app en de CLI. Geen creditcard nodig."
 
@@ -18530,6 +18629,9 @@ msgstr "Ja. Superset is de werkruimte waarin je agents draaien, geen modelprovid
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Ja. Je kunt op elk moment upgraden, downgraden of opzeggen via de facturatie-instellingen in de app. Wijzigingen gaan in aan het eind van je huidige factuurperiode."
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "Ja. Je hebt geen Amerikaanse werkvergunning nodig om te solliciteren. Maar je moet wel bereid zijn om naar San Francisco te verhuizen."
 
 msgid "Yesterday"
 msgstr "Gisteren"
@@ -18576,6 +18678,9 @@ msgstr "Je kunt maximaal {MAX_ATTACHMENTS} bestanden toevoegen"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "Je kunt het 30 dagen lang herstellen via Instellingen → Projecten. De repositorymap wordt nooit verwijderd."
+
+msgid "You can see how we work before you talk to us."
+msgstr "Je kunt zien hoe we werken voordat je met ons praat."
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."

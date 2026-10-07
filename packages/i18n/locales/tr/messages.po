@@ -1311,6 +1311,9 @@ msgstr "1"
 msgid "1 cookie — forget this site"
 msgstr "1 çerez — bu siteyi unut"
 
+msgid "1 hr"
+msgstr "1 sa"
+
 msgid "1 user"
 msgstr "1 kullanıcı"
 
@@ -1319,6 +1322,9 @@ msgstr "Durum kaybı olmadan 10+ eşzamanlı iş akışı"
 
 msgid "100% (retain everything)"
 msgstr "%100 (her şeyi elde tutma)"
+
+msgid "15 min"
+msgstr "15 dk"
 
 msgid "1d ago"
 msgstr "1g önce"
@@ -1365,6 +1371,9 @@ msgstr "42ms"
 msgid "45 files · +82 −172"
 msgstr "45 dosya · +82 −172"
 
+msgid "5 days"
+msgstr "5 gün"
+
 msgid "55 call sites pass {code}"
 msgstr "55 çağrı noktası {code} geçiriyor"
 
@@ -1382,6 +1391,9 @@ msgstr "Daha iyi bir uygulama içi tarayıcı: değişikliklerinizi önizleyin v
 
 msgid "A better Superset is ready"
 msgstr "Daha iyi bir Superset hazır"
+
+msgid "A changelog goes out every week. Most people ship to users in their first few days."
+msgstr "Her hafta bir değişiklik günlüğü yayınlıyoruz. Çoğu kişi ilk birkaç gününde kullanıcılara bir şey yayınlıyor."
 
 msgid "A chat takes its name from the agent."
 msgstr "Sohbet adını ajandan alır."
@@ -1441,6 +1453,9 @@ msgstr "Devam etmek için Superset'in yeni bir sürümü gerekiyor. Lütfen en s
 msgid "A new workspace off this branch, with the conversation handed to a fresh agent"
 msgstr "Bu daldan yeni bir çalışma alanı; konuşma yeni bir aracıya devredilir"
 
+msgid "A practical TypeScript problem, like the ones we solve every day. No algorithm puzzles."
+msgstr "Her gün çözdüklerimize benzer, pratik bir TypeScript problemi. Algoritma bulmacası yok."
+
 msgid "A process is still running in this tab"
 msgstr "Bu sekmede hâlâ bir süreç çalışıyor"
 
@@ -1486,6 +1501,9 @@ msgstr "Hakkımızda"
 
 msgid "About Superset"
 msgstr "Superset hakkında"
+
+msgid "About three weeks from first call to offer, ending with a paid work trial. Every step is with a founder, and you hear back within 48 hours."
+msgstr "İlk görüşmeden teklife yaklaşık üç hafta sürer ve ücretli bir deneme çalışmasıyla biter. Her adımda bir kurucuyla görüşürsünüz ve 48 saat içinde yanıt alırsınız."
 
 msgid "Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage."
 msgstr "Kesinlikle. Superset hiçbir API çağrısını vekil olarak iletmez. Seçtiğiniz AI sağlayıcılarıyla doğrudan kendi API anahtarlarınızı kullanırsınız. Böylece maliyet ve kullanım üzerinde tam denetime sahip olursunuz."
@@ -3020,6 +3038,9 @@ msgstr "Gezinti yolu"
 msgid "Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options."
 msgstr "{companyName}'i ekibinize getirin. Kurumsal planlar ve dağıtım seçenekleri hakkında daha fazla bilgi için iletişime geçin."
 
+msgid "Bring a link to something you built recently."
+msgstr "Yakın zamanda geliştirdiğiniz bir şeyin bağlantısını getirin."
+
 msgid "Bring Any Agent."
 msgstr "Hangi ajanı isterseniz getirin."
 
@@ -3050,6 +3071,9 @@ msgstr "Superset için paylaşılan temalara ve gelecekteki ajan yapılandırmal
 msgid "Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro."
 msgstr "GitHub Dark Colorblind, Catppuccin, Ember ve One Dark Pro dahil olmak üzere toplulukça paylaşılan Superset tema dosyalarına göz atın."
 
+msgid "Browse the repo ↗"
+msgstr "Depoya göz atın ↗"
+
 msgid "Browse workspaces"
 msgstr "Çalışma alanlarına gözat"
 
@@ -3077,6 +3101,9 @@ msgstr "Tarama geçmişi"
 msgid "Bug"
 msgstr "Böcek"
 
+msgid "Build in public"
+msgstr "Herkesin gözü önünde geliştiriyoruz"
+
 msgid "Build the future of Superset in the cloud"
 msgstr "Superset’in buluttaki geleceğini inşa edin"
 
@@ -3085,6 +3112,9 @@ msgstr "Son yazılım parçasını inşa etmek"
 
 msgid "Building the last piece of software."
 msgstr "Son yazılım parçasını inşa ediyoruz."
+
+msgid "Built in Superset"
+msgstr "Superset ile geliştirildi"
 
 msgid "builtin"
 msgstr "yerleşik"
@@ -3947,6 +3977,9 @@ msgstr "Tüm commit'leri birleştirir"
 
 msgid "Combine sequences such as => and !==."
 msgstr "=> ve !== gibi dizileri birleştirir."
+
+msgid "Come build it with us."
+msgstr "Gelin birlikte geliştirelim."
 
 msgid "Coming soon"
 msgstr "Yakında"
@@ -5824,6 +5857,9 @@ msgstr "Açıklama (isteğe bağlı)"
 msgid "Design"
 msgstr "Tasarım"
 
+msgid "Design a complex system on a whiteboard."
+msgstr "Beyaz tahtada karmaşık bir sistem tasarlayın."
+
 msgid "Design mode — click any element in the page to send it to an agent"
 msgstr "Tasarım modu — ajana göndermek için sayfadaki herhangi bir öğeye tıklayın"
 
@@ -6064,6 +6100,9 @@ msgstr "Kendi kodlama ajanı aboneliklerime ihtiyacım var mı?"
 
 msgid "Do nothing"
 msgstr "Hiçbir şey yapma"
+
+msgid "Do you sponsor visas?"
+msgstr "Vize sponsorluğu sağlıyor musunuz?"
 
 #. placeholder {0}: dirtyPanes.length
 msgid "Do you want to save changes to {0} files?"
@@ -8203,6 +8242,12 @@ msgstr "{name} teması Superset'e nasıl kurulur"
 msgid "How we build it, in long form."
 msgstr "Nasıl geliştirdiğimiz, ayrıntılı olarak."
 
+msgid "How we hire"
+msgstr "Nasıl işe alıyoruz"
+
+msgid "How we work"
+msgstr "Nasıl çalışıyoruz"
+
 msgid "How your agents sign in inside cloud workspaces. Other people connect their own subscriptions or API keys; on this machine each agent keeps using the login already on it."
 msgstr "Ajanlarınızın bulut çalışma alanlarında nasıl oturum açtığı. Başkaları kendi aboneliklerini veya API anahtarlarını bağlar; bu makinede her ajan üzerinde zaten bulunan oturumu kullanmayı sürdürür."
 
@@ -8265,6 +8310,9 @@ msgstr "Boşta"
 
 msgid "Idle · branch pushed"
 msgstr "Boşta · dal push edildi"
+
+msgid "If you want to build a product you love to use, come build it with us."
+msgstr "Severek kullandığınız bir ürün geliştirmek istiyorsanız, gelin birlikte geliştirelim."
 
 msgid "If you're enjoying Superset so far, a GitHub star helps other developers discover it."
 msgstr "Superset'ten şimdiye kadar memnunsanız, bir GitHub yıldızı diğer geliştiricilerin onu keşfetmesine yardımcı olur."
@@ -8410,6 +8458,9 @@ msgstr "Tüm projelerde"
 
 msgid "In just a few months, <0>tens of thousands of engineers</0> run Superset as their primary IDE, at companies like Wix, DoorDash, and Netflix."
 msgstr "Yalnızca birkaç ayda <0>on binlerce mühendis</0> Superset'i birincil IDE'si olarak kullanmaya başladı; Wix, DoorDash ve Netflix gibi şirketlerde."
+
+msgid "In person in San Francisco, five days a week. You work directly with the founders."
+msgstr "Haftada beş gün San Francisco'da ofisten çalışıyoruz. Doğrudan kurucularla çalışırsınız."
 
 msgid "In progress"
 msgstr "Devam ediyor"
@@ -8578,6 +8629,9 @@ msgstr "Kes"
 
 msgid "Interrupted"
 msgstr "Kesildi"
+
+msgid "Intro call"
+msgstr "Tanışma görüşmesi"
 
 msgid "Invalid"
 msgstr "Geçersiz"
@@ -9633,11 +9687,17 @@ msgstr "Rutin işler için medyan bilet-üretim süresi bir günün altında."
 msgid "Median time from previous"
 msgstr "Öncekinden medyan süre"
 
+msgid "Medical and dental at no cost to you, a 401(k), unlimited time off, a $5K desk stipend, and free meals in the office."
+msgstr "Size hiçbir maliyeti olmayan sağlık ve diş sigortası, 401(k), sınırsız izin, $5K masa bütçesi ve ofiste ücretsiz yemek."
+
 msgid "Medium"
 msgstr "Orta"
 
 msgid "Medium severity"
 msgstr "Orta önem"
+
+msgid "Meet the team"
+msgstr "Ekiple tanışın"
 
 msgid "Meet the team behind Superset, building parallel coding agents for developers."
 msgstr "Geliştiriciler için paralel kodlama ajanları geliştiren Superset ekibiyle tanışın."
@@ -10728,6 +10788,9 @@ msgstr "Henüz inceleyici atanmadı."
 
 msgid "No reviews"
 msgstr "İnceleme yok"
+
+msgid "No role fits me. Should I still reach out?"
+msgstr "Bana uyan bir pozisyon yok. Yine de iletişime geçmeli miyim?"
 
 msgid "No runs yet"
 msgstr "Henüz çalıştırma yok"
@@ -11918,6 +11981,9 @@ msgstr "Ücretli kayıp — kohort sağkalımı"
 msgid "Paid search"
 msgstr "Ücretli arama"
 
+msgid "Paid work trial"
+msgstr "Ücretli deneme çalışması"
+
 msgid "Palette"
 msgstr "Palet"
 
@@ -12724,6 +12790,9 @@ msgstr "Sorgu"
 msgid "Question"
 msgstr "Soru"
 
+msgid "Questions"
+msgstr "Sorular"
+
 msgid "Questions, feedback, support, or anything else. Send a note and we'll route it to the right person."
 msgstr "Sorular, geri bildirim, destek veya başka herhangi bir şey. Bir not gönderin, doğru kişiye yönlendirelim."
 
@@ -12841,6 +12910,9 @@ msgstr "Değişiklik günlüğünü oku"
 
 msgid "Read the changelog →"
 msgstr "Değişiklik günlüğünü oku →"
+
+msgid "Read the changelog ↗"
+msgstr "Değişiklik günlüğünü okuyun ↗"
 
 msgid "Read the guide to parallel coding agents"
 msgstr "Paralel kodlama ajanları rehberini okuyun"
@@ -14304,6 +14376,9 @@ msgstr "Daha az gör"
 msgid "See More"
 msgstr "Daha fazla gör"
 
+msgid "See open roles ↑"
+msgstr "Açık pozisyonlara bak ↑"
+
 msgid "See the <0>available tools reference</0> for every tool name and parameter."
 msgstr "Her araç adı ve parametresi için <0>kullanılabilir araçlar referansına</0> bakın."
 
@@ -14730,6 +14805,9 @@ msgstr "Shiki ile vurgulanmış, isteğe bağlı satır numaralarıyla"
 
 msgid "Shimmer · Shimmer Label"
 msgstr "Shimmer · Shimmer etiketi"
+
+msgid "Ship every week"
+msgstr "Her hafta yayınlıyoruz"
 
 msgid "Ship It"
 msgstr "Teslim edildi"
@@ -15174,9 +15252,6 @@ msgstr "Bir şeyler ters gitti. Yeniden deneyin veya support@superset.sh adresin
 msgid "soon"
 msgstr "yakında"
 
-msgid "Soon, teams will run hundreds of agents in parallel—software factories that autonomously manufacture and ship code. We're making Superset the place where teams run and manage those factories, starting with our own."
-msgstr "Yakında ekipler yüzlerce ajanı paralel çalıştıracak: otonom olarak kod üreten ve yayınlayan yazılım fabrikaları. Kendi fabrikamızdan başlayarak Superset'i ekiplerin bu fabrikaları çalıştırıp yönettiği yer hâline getiriyoruz."
-
 msgid "Sort"
 msgstr "Sırala"
 
@@ -15224,6 +15299,9 @@ msgstr "Hız"
 
 msgid "Spend"
 msgstr "Harcama"
+
+msgid "Spend 5 days building with us in San Francisco, as a member of the team."
+msgstr "Ekibin bir üyesi olarak San Francisco'da 5 gün boyunca bizimle birlikte geliştirin."
 
 msgid "Split"
 msgstr "Böl"
@@ -15751,8 +15829,8 @@ msgstr "Superset, kendini geliştiren yazılım üretiyor. Bu, mühendislere zam
 msgid "Superset is built by a team based in San Francisco, California. For product support or account questions, email <0>{supportEmail}</0> and we'll get back to you within one business day. For partnerships, press, enterprise, or anything else, write to <1>{teamEmail}</1>."
 msgstr "Superset, San Francisco, Kaliforniya merkezli bir ekip tarafından geliştirilir. Ürün desteği veya hesap soruları için <0>{supportEmail}</0> adresine e-posta gönderin; bir iş günü içinde size dönelim. İş birliği, basın, kurumsal veya diğer tüm konular için <1>{teamEmail}</1> adresine yazın."
 
-msgid "Superset is built in Superset, so we're our own #1 users—you get paid to make your own life easier. If you've ever wanted to build a product you love to use, come build it with us."
-msgstr "Superset, Superset içinde geliştiriliyor; yani en büyük kullanıcımız biziz. Kendi hayatınızı kolaylaştırmak için para kazanıyorsunuz. Severek kullandığınız bir ürün geliştirmek istediyseniz, gelin birlikte geliştirelim."
+msgid "Superset is built in Superset, so we're our own #1 users. You get paid to make your own life easier."
+msgstr "Superset, Superset içinde geliştiriliyor; yani en büyük kullanıcımız biziz. Kendi hayatınızı kolaylaştırmak için para kazanıyorsunuz."
 
 msgid "Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE."
 msgstr "Superset mevcut aracınızla çalışacak şekilde tasarlandı; Cursor gibi IDE'lere derin bağlantıyı yerel olarak destekliyoruz, böylece çalışma alanlarınızı ve dosyalarınızı IDE'nizde açabilirsiniz."
@@ -15762,6 +15840,9 @@ msgstr "Superset açık kaynaklıdır. Bugün işinize yaradıysa, bir GitHub y�
 
 msgid "Superset is source-available: the code is public on GitHub under Elastic License 2.0 (ELv2), which lets you inspect and self-host it subject to the license terms, but is not OSI-approved open source. Superset is unrelated to Apache Superset, the business-intelligence tool."
 msgstr "Superset kaynağı açık bir üründür: kod, GitHub'da Elastic License 2.0 (ELv2) altında herkese açıktır; lisans koşulları çerçevesinde inceleyip kendi sunucunuzda barındırabilirsiniz, ancak OSI onaylı açık kaynak değildir. Superset'in, iş zekâsı aracı olan Apache Superset ile ilgisi yoktur."
+
+msgid "Superset is source-available. Every pull request, review and bug is public on GitHub."
+msgstr "Superset'in kaynak kodu herkese açık (source-available). Her pull request, inceleme ve hata GitHub'da herkese açık."
 
 msgid "Superset is the workbench for the F3 to F4 transition: parallel agents in isolated workspaces, fleets you can actually supervise, and a review surface for code you did not write."
 msgstr "Superset, F3'ten F4'e geçişin tezgâhıdır: yalıtılmış çalışma alanlarında paralel ajanlar, gerçekten denetleyebileceğiniz filolar ve yazmadığınız kod için bir inceleme yüzeyi."
@@ -15965,6 +16046,9 @@ msgstr "Eşitleniyor..."
 msgid "System"
 msgstr "Sistem"
 
+msgid "System design"
+msgstr "Sistem tasarımı"
+
 msgid "System memory"
 msgstr "Sistem belleği"
 
@@ -16136,6 +16220,9 @@ msgstr "Kapatma {signal} sinyaliyle sonlandırıldı"
 
 msgid "Teardown timed out after {seconds}s"
 msgstr "Kapatma {seconds}sn sonra zaman aşımına uğradı"
+
+msgid "Technical interview"
+msgstr "Teknik mülakat"
 
 msgid "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 msgstr "Çalışma alanı açmak, görev çalıştırmak veya otomasyonları yönetmek için herhangi bir ajana <0>superset</0> CLI'yi kullanmasını söyleyin."
@@ -16373,6 +16460,9 @@ msgstr "Aşağıdaki klasörler git deposu değil. Bunları başlatmak ister mis
 
 msgid "The forecast"
 msgstr "Öngörü"
+
+msgid "The founders"
+msgstr "Kurucular"
 
 msgid "The full core loop (import a repo, run an agent, review the diff) now works signed out and offline."
 msgstr "Tam çekirdek döngü (depo içe aktarma, ajan çalıştırma, farkı inceleme) artık oturum açmadan ve çevrimdışı çalışıyor."
@@ -18039,6 +18129,9 @@ msgstr "Windows ve Linux desteği hazır olduğunda size haber vereceğiz."
 msgid "We'll only use this to send your download link."
 msgstr "Bunu yalnızca indirme bağlantınızı göndermek için kullanacağız."
 
+msgid "We're building a flat and talent-dense team, and we're looking for people who have crazy ideas and are crazy enough to ship them."
+msgstr "Hiyerarşisi olmayan ve çok yetenekli insanlardan oluşan bir ekip kuruyoruz. Çılgın fikirleri olan ve bunları yayınlayacak kadar cesur insanlar arıyoruz."
+
 msgid "We're hiring"
 msgstr "İşe alıyoruz"
 
@@ -18135,6 +18228,9 @@ msgstr "Superset'e hoş geldiniz"
 
 msgid "Welcome to the new Superset"
 msgstr "Yeni Superset'e hoş geldiniz"
+
+msgid "What are the benefits?"
+msgstr "Yan haklar neler?"
 
 msgid "What builders say about Superset"
 msgstr "Geliştiriciler Superset hakkında ne diyor"
@@ -18519,6 +18615,9 @@ msgstr "Sarı"
 msgid "Yes, demote me"
 msgstr "Evet, rolümü düşür"
 
+msgid "Yes. Apply to the closest role and tell us what you would build. Include a repo, PR or demo."
+msgstr "Evet. Size en yakın pozisyona başvurun ve ne geliştirmek istediğinizi anlatın. Bir depo, PR veya demo ekleyin."
+
 msgid "Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and the CLI. No credit card required."
 msgstr "Evet. Ücretsiz plan; 1 kullanıcı, yerel çalışma alanları, masaüstü uygulaması ve CLI ile bireyleri kapsar. Kredi kartı gerekmez."
 
@@ -18530,6 +18629,9 @@ msgstr "Evet. Superset, ajanlarınızın çalıştığı çalışma alanıdır, 
 
 msgid "Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period."
 msgstr "Evet. Uygulama içindeki faturalandırma ayarlarından istediğiniz zaman yükseltebilir, düşürebilir veya iptal edebilirsiniz. Değişiklikler geçerli faturalandırma döneminizin sonunda geçerli olur."
+
+msgid "Yes. You don't need US work authorization to apply. But you should be willing to relocate to SF."
+msgstr "Evet. Başvurmak için ABD çalışma izni gerekmez. Ancak San Francisco'ya taşınmaya istekli olmalısınız."
 
 msgid "Yesterday"
 msgstr "Dün"
@@ -18576,6 +18678,9 @@ msgstr "En fazla {MAX_ATTACHMENTS} dosya ekleyebilirsiniz"
 
 msgid "You can restore it from Settings → Projects for 30 days. The repository folder is never deleted."
 msgstr "30 gün boyunca Ayarlar → Projeler bölümünden geri yükleyebilirsin. Depo klasörü asla silinmez."
+
+msgid "You can see how we work before you talk to us."
+msgstr "Bizimle konuşmadan önce nasıl çalıştığımızı görebilirsiniz."
 
 #. placeholder {0}: COMPANY.DOMAIN
 msgid "You can't change this subscription in the app. Your organization's plan is managed by its owner at {0}."
