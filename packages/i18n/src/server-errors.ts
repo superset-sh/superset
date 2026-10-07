@@ -265,6 +265,20 @@ export const serverErrorMessages: Record<
 				"Cloud sandboxes are not enabled for {account}. Ask the Superset team for access.",
 			values: params,
 		}),
+	"serverError.cloudWorkspace.reconnectGitLab": () =>
+		i18n._(
+			msg({
+				message: "Reconnect GitLab to clone this project",
+			}),
+		),
+	"serverError.cloudWorkspace.gitlabHostMismatch": () =>
+		i18n._(msg({ message: "That URL is not on the connected GitLab host" })),
+	"serverError.cloudWorkspace.gitlabProjectNotFound": () =>
+		i18n._(msg({ message: "GitLab could not find that project" })),
+	"serverError.environment.chooseRepositoryProvider": () =>
+		i18n._(
+			msg({ message: "Choose GitHub repositories or one GitLab project" }),
+		),
 	"serverError.cloudWorkspace.environmentHasNoRepositories": () =>
 		i18n._(
 			msg({

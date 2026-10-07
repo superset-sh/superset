@@ -1,8 +1,8 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import type { RouterOutputs } from "@superset/trpc";
 import { useQuery } from "@tanstack/react-query";
-import { useFeatureFlag } from "posthog-react-native";
 import { useSession } from "@/lib/auth/client";
+import { useFeatureFlag } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 
 export type CloudEnvironmentRow = RouterOutputs["environment"]["list"][number];

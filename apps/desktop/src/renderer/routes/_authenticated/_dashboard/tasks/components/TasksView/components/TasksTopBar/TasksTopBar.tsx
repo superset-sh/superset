@@ -22,6 +22,7 @@ import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/compone
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
 import { RunInWorkspacePopoverV2 } from "../../../RunInWorkspacePopoverV2";
+import type { IssueSearchSelection } from "../../hooks/useIssueSearchSelection/useIssueSearchSelection";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import type { SelectedIssue } from "../GitHubIssuesContent";
 import { AssigneeFilter } from "./components/AssigneeFilter";
@@ -43,6 +44,7 @@ export type TabValue =
 export type TaskSource = "tasks" | "linear" | "issues";
 
 interface TasksTopBarProps {
+	issueSelection?: IssueSearchSelection;
 	currentTab: TabValue;
 	onTabChange: (tab: TabValue) => void;
 	searchQuery: string;
@@ -74,6 +76,7 @@ const TASK_SOURCES: ReadonlyArray<{ value: TaskSource; Icon: IconType }> = [
 ];
 
 export function TasksTopBar({
+	issueSelection,
 	currentTab,
 	onTabChange,
 	searchQuery,
@@ -104,9 +107,12 @@ export function TasksTopBar({
 			message: "Tasks",
 		}),
 		linear: t({ message: "Linear" }),
-		issues: t({
-			message: "GitHub issues",
-		}),
+		issues:
+			!issueSelection || issueSelection.mode === "github"
+				? t({ message: "GitHub issues" })
+				: issueSelection.mode === "gitlab"
+					? t({ message: "GitLab issues" })
+					: t({ message: "Repository issues" }),
 	};
 	const showTaskOnlyControls = taskSource === "tasks";
 	const showLinear = taskSource === "linear";
@@ -324,9 +330,11 @@ export function TasksTopBar({
 							onChange={onSearchChange}
 							placeholder={
 								showIssues
-									? t({
-											message: "Search GitHub issues…",
-										})
+									? !issueSelection || issueSelection.mode === "github"
+										? t({ message: "Search GitHub issues…" })
+										: issueSelection.mode === "gitlab"
+											? t({ message: "Search GitLab issues…" })
+											: t({ message: "Search repository issues…" })
 									: showLinear
 										? t({ message: "Search Linear…" })
 										: t({
@@ -335,9 +343,11 @@ export function TasksTopBar({
 							}
 							label={
 								showIssues
-									? t({
-											message: "Search GitHub issues",
-										})
+									? !issueSelection || issueSelection.mode === "github"
+										? t({ message: "Search GitHub issues" })
+										: issueSelection.mode === "gitlab"
+											? t({ message: "Search GitLab issues" })
+											: t({ message: "Search repository issues" })
 									: showLinear
 										? t({ message: "Search Linear" })
 										: t({

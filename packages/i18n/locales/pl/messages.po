@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} few {{1}} many {{1}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "Na {nextLabel} pracuje {met} z {0} celów — najbardziej w tyle jest {laggingLabels}."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} ze squashem commitów"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "kontrast {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {Uruchomiono # automatyzację} few {Uruchomiono # 
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent działa} few {# subagenty działają} many {# subagentów działa} other {# subagenta działa}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "Ukończono pomyślnie {succeeded} z {total}{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Utworzono # obszar roboczy, {failCount} nieudanych} few {Utworzono # obszary robocze, {failCount} nieudanych} many {Utworzono # obszarów roboczych, {failCount} nieudanych} other {Utworzono # obszaru roboczego, {failCount} nieudanych}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {Kontrola przeszła} few {Wszystkie # kontrole przes
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {zgłoszenie GitHub} few {zgłoszenia GitHub} many {zgłoszeń GitHub} other {zgłoszenia GitHub}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {zgłoszenie GitLab} few {zgłoszenia GitLab} many {zgłoszeń GitLab} other {zgłoszenia GitLab}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {zgłoszenie} few {zgłoszenia} many {zgłoszeń} other {zgłoszenia}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {pull request} few {pull requesty} many {pull requestów} other {pull requesta}}"
@@ -1615,6 +1627,9 @@ msgstr "Dodaj projekt, aby zobaczyć zgłoszenia GitHub."
 
 msgid "Add a project to see pull requests."
 msgstr "Dodaj projekt, aby zobaczyć pull requesty."
+
+msgid "Add a project to see repository issues."
+msgstr "Dodaj projekt, aby zobaczyć zgłoszenia repozytorium."
 
 msgid "Add a short summary…"
 msgstr "Dodaj krótkie podsumowanie…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic odrzucił ten token."
 msgid "any account"
 msgstr "dowolne konto"
 
+msgid "Any branch"
+msgstr "Dowolna gałąź"
+
 msgid "Any channel"
 msgstr "Dowolny kanał"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Aplikuj"
 
+msgid "Approval requirements unavailable"
+msgstr "Wymagania zatwierdzenia niedostępne"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Pozostałe zatwierdzenia: {left} z {required}"
+
 msgid "Approve"
 msgstr "Zatwierdź"
 
@@ -2368,8 +2392,14 @@ msgstr "Zatwierdzaj za mnie"
 msgid "Approved"
 msgstr "Zatwierdzony"
 
+msgid "Approved by {approvedBy}"
+msgstr "Zatwierdzony przez: {approvedBy}"
+
 msgid "Approved review"
 msgstr "Przegląd zatwierdzony"
+
+msgid "Approved with all approval rules met"
+msgstr "Zatwierdzony, wszystkie reguły zatwierdzania spełnione"
 
 msgid "Apps"
 msgstr "Aplikacje"
@@ -2732,6 +2762,9 @@ msgstr "Oczekuje na Twój przegląd"
 msgid "Awaiting review from you or your team"
 msgstr "Oczekuje na przegląd Twój lub Twojego zespołu"
 
+msgid "Awaiting your current review"
+msgstr "Oczekuje na Twój bieżący przegląd"
+
 msgid "Back"
 msgstr "Wstecz"
 
@@ -2758,6 +2791,9 @@ msgstr "Wróć do bieżącej"
 
 msgid "Back to GitHub issues"
 msgstr "Wróć do zgłoszeń GitHub"
+
+msgid "Back to GitLab issues"
+msgstr "Wróć do zgłoszeń GitLab"
 
 msgid "Back to Home"
 msgstr "Wróć do strony głównej"
@@ -3290,6 +3326,9 @@ msgstr "Zmień osobę przypisaną"
 msgid "Change avatar"
 msgstr "Zmień awatar"
 
+msgid "Change connection"
+msgstr "Zmień połączenie"
+
 msgid "Change icon"
 msgstr "Zmień ikonę"
 
@@ -3439,6 +3478,9 @@ msgstr "Sprawdzanie środowisk…"
 msgid "Checking host…"
 msgstr "Sprawdzanie hosta…"
 
+msgid "Checking merge requirements"
+msgstr "Sprawdzanie wymagań scalenia"
+
 msgid "Checking out a PR requires a project"
 msgstr "Pobranie PR wymaga projektu"
 
@@ -3475,6 +3517,9 @@ msgstr "Kontrole zakończone"
 msgid "Checks failed"
 msgstr "Kontrole nie przeszły"
 
+msgid "Checks need action"
+msgstr "Kontrole wymagają działania"
+
 msgid "Checks passed"
 msgstr "Kontrole przeszły"
 
@@ -3493,6 +3538,9 @@ msgstr "Wybierz katalog nadrzędny"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Wybierz projekt w Zgłoszeniach GitHub, zanim otworzysz zgłoszenie."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Przed otwarciem zgłoszenia wybierz projekt z listy zgłoszeń GitLab."
+
 msgid "Choose a section."
 msgstr "Wybierz sekcję."
 
@@ -3504,6 +3552,9 @@ msgstr "Wybierz folder istniejącego repozytorium"
 
 msgid "Choose app"
 msgstr "Wybierz aplikację"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "Wybierz repozytoria GitHub lub jeden projekt GitLab"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Wybierz, jak otwierają się pliki, gdy nie ma panelu podglądu"
@@ -3834,6 +3885,10 @@ msgstr "Zamknij obszar roboczy"
 msgid "Closed"
 msgstr "Zamknięty"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Zamknięty"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Zamknięcie tych portów zakończy procesy, które ich używają."
 
@@ -3851,6 +3906,9 @@ msgstr "Zamykanie…"
 
 msgid "Cloud"
 msgstr "Chmura"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Środowisko w chmurze uległo zmianie. Wybierz je ponownie."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Chmura już wkrótce. Zostań partnerem projektowym"
@@ -4135,6 +4193,9 @@ msgstr "Połącz {name}"
 msgid "Connect a device"
 msgstr "Podłącz urządzenie"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Połącz projekt lub grupę GitLab, w tym instancje zarządzane samodzielnie i zagnieżdżone podgrupy."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Połącz konto Google. Jego skrzynka jest tylko do odczytu, a wyzwalacze działają dla osoby, która je połączyła."
 
@@ -4177,6 +4238,9 @@ msgstr "Połącz Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Podłącz Notion, aby uruchamiać automatyzacje przy zmianach wierszy w źródle danych lub komentarzach na stronie."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Połącz repozytoria i synchronizuj żądania scalenia."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Podłącz repozytoria i synchronizuj pull requesty."
 
@@ -4191,6 +4255,12 @@ msgstr "Podłącz Slack, aby zarządzać zadaniami z rozmów. Wspomnij bota na d
 
 msgid "Connect this computer"
 msgstr "Połącz ten komputer"
+
+msgid "Connect with a token"
+msgstr "Połącz za pomocą tokenu"
+
+msgid "Connect with GitLab"
+msgstr "Połącz przez GitLab"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Podłącz swoje repozytoria GitHub i synchronizuj pull requesty. Śledź status CI i przeglądy w całym zespole."
@@ -4384,6 +4454,9 @@ msgstr "Kontynuuj z innym agentem…"
 msgid "Continue with GitHub"
 msgstr "Kontynuuj z GitHub"
 
+msgid "Continue with GitLab"
+msgstr "Kontynuuj z GitLab"
+
 msgid "Continue with Google"
 msgstr "Kontynuuj z Google"
 
@@ -4526,6 +4599,9 @@ msgstr "Kopiuj link"
 msgid "Copy Link Address"
 msgstr "Kopiuj adres linku"
 
+msgid "Copy link to merge request"
+msgstr "Kopiuj link do żądania scalenia"
+
 msgid "Copy link to pull request"
 msgstr "Kopiuj link do pull requesta"
 
@@ -4647,6 +4723,9 @@ msgstr "Nie udało się skopiować linku"
 msgid "Could not create cloud workspace"
 msgstr "Nie udało się utworzyć obszaru roboczego w chmurze"
 
+msgid "Could not create environment"
+msgstr "Nie udało się utworzyć środowiska"
+
 msgid "Could not create project"
 msgstr "Nie udało się utworzyć projektu"
 
@@ -4681,11 +4760,23 @@ msgstr "Nie udało się wylistować katalogu"
 msgid "Could not load agents from {0}"
 msgstr "Nie udało się wczytać agentów z {0}"
 
+msgid "Could not load branches. Try again."
+msgstr "Nie udało się wczytać gałęzi. Spróbuj ponownie."
+
+msgid "Could not load connection status."
+msgstr "Nie udało się wczytać stanu połączenia."
+
 msgid "Could not load environments"
 msgstr "Nie udało się wczytać środowisk"
 
 msgid "Could not load environments."
 msgstr "Nie udało się wczytać środowisk."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "Nie udało się wczytać projektów GitLab. Sprawdź połączenie w Integracjach."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "Nie udało się wczytać projektów GitLab. Spróbuj ponownie."
 
 msgid "Could not load image"
 msgstr "Nie udało się załadować obrazu"
@@ -4701,6 +4792,9 @@ msgstr "Nie udało się wczytać tych różnic"
 
 msgid "Could not load this file."
 msgstr "Nie udało się wczytać tego pliku."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Nie udało się wczytać tego żądania scalenia. Połącz się ponownie z jego hostem i spróbuj ponownie."
 
 msgid "Could not load your machines"
 msgstr "Nie udało się wczytać Twoich maszyn"
@@ -5113,6 +5207,12 @@ msgstr "Utwórz commit scalający"
 msgid "Create Merge Commit"
 msgstr "Utwórz commit scalający"
 
+msgid "Create merge request"
+msgstr "Utwórz żądanie scalenia"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Nie udało się utworzyć żądania scalenia: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Utwórz nową grupę"
 
@@ -5256,6 +5356,9 @@ msgstr "Tworzenie zadania"
 msgid "Creating a workspace"
 msgstr "Tworzenie obszaru roboczego"
 
+msgid "Creating merge request..."
+msgstr "Tworzenie żądania scalenia..."
+
 msgid "Creating PR..."
 msgstr "Tworzenie PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "Obecne tempo"
 msgid "Current plan"
 msgstr "Bieżący plan"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Bieżący filtr przeglądów jest niedostępny dla tego wyboru. Wybierz Wszystkie przeglądy, aby go wyczyścić."
+
 msgid "Current tab"
 msgstr "Bieżąca karta"
+
+msgid "Current workspace files"
+msgstr "Pliki bieżącego obszaru roboczego"
 
 msgid "Cursor"
 msgstr "Kursor"
@@ -6103,6 +6212,9 @@ msgstr "Szkic · plik"
 msgid "Draft · line {0}"
 msgstr "Szkic · wiersz {0}"
 
+msgid "Draft merge request opened"
+msgstr "Robocze żądanie scalenia otwarte"
+
 msgid "Draft opened"
 msgstr "Otwarto szkic"
 
@@ -6390,6 +6502,9 @@ msgstr "Podoba Ci się Superset?"
 
 msgid "Ensure no regression"
 msgstr "Upewnij się, że nie ma regresji"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "Wprowadź host HTTPS GitLab, np. gitlab.com lub gitlab.example.com:8443."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Podaj katalog nadrzędny na {hostName}"
@@ -7145,6 +7260,9 @@ msgstr "Niepowodzenie"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "Scalenie fast-forward"
+
 msgid "Fatal"
 msgstr "Krytyczny"
 
@@ -7246,6 +7364,9 @@ msgstr "Filtruj wg @{normalizedSearch}"
 
 msgid "Filter by author: {label}"
 msgstr "Filtruj według autora: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Filtruj wg bieżącego użytkownika GitLab"
 
 msgid "Filter by device"
 msgstr "Filtruj według urządzenia"
@@ -7745,6 +7866,60 @@ msgstr "Nazwa użytkownika GitHub..."
 msgid "GitHub username…"
 msgstr "Nazwa użytkownika GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "Filtry reguł zatwierdzania GitLab wymagają dostępnego API reguł zatwierdzania."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "Autoryzacja GitLab została anulowana. Spróbuj ponownie."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab nie znalazł tego projektu"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab nie potwierdził scalenia"
+
+msgid "GitLab host"
+msgstr "Host GitLab"
+
+msgid "GitLab issue content could not be verified"
+msgstr "Nie udało się zweryfikować treści zgłoszenia GitLab"
+
+msgid "GitLab issues"
+msgstr "Zgłoszenia GitLab"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "Żądanie scalenia GitLab uległo zmianie; odśwież przed ponowną próbą"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "Status scalania GitLab: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "GitLab OAuth nie jest skonfigurowany na serwerze API. Skontaktuj się z administratorem lub użyj tokenu."
+
+msgid "GitLab projects"
+msgstr "Projekty GitLab"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab odmówił scalenia"
+
+msgid "GitLab repositories"
+msgstr "Repozytoria GitLab"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "Filtry przejrzanych elementów GitLab korzystają z bieżącego cyklu przeglądu."
+
+msgid "GitLab username or @me…"
+msgstr "Nazwa użytkownika GitLab lub @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab został odłączony lokalnie, ale usuwanie zdalnych webhooków lub tokenu nie powiodło się. Sprawdź pozostałe uprawnienia dostępu w GitLab."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "Konfiguracja webhooków GitLab nie powiodła się. Sprawdź połączenie i uprawnienia do webhooków, a następnie odśwież webhooki."
+
 msgid "Give me an example"
 msgstr "Podaj przykład"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git lub /sciezka/do/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git lub /path/to/repo"
+
 msgid "Human"
 msgstr "Człowiek"
 
@@ -8508,6 +8686,9 @@ msgstr "Nieprawidłowa odpowiedź zgody. Spróbuj ponownie."
 msgid "Invalid email address."
 msgstr "Nieprawidłowy adres e-mail."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Nieprawidłowy identyfikator żądania scalenia GitLab"
+
 msgid "Invalid hostId"
 msgstr "Nieprawidłowy hostId"
 
@@ -8612,6 +8793,9 @@ msgstr "Zgłoszenie utworzone"
 
 msgid "Issue not found."
 msgstr "Nie znaleziono zgłoszenia."
+
+msgid "Issue opened"
+msgstr "Zgłoszenie otwarte"
 
 msgid "Issue resolved"
 msgstr "Zgłoszenie rozwiązane"
@@ -9094,6 +9278,9 @@ msgstr "Połącz zgłoszenie Linear"
 msgid "Link pull request"
 msgstr "Powiąż pull request"
 
+msgid "Link repository issue"
+msgstr "Powiąż zgłoszenie repozytorium"
+
 msgid "Link task"
 msgstr "Powiąż zadanie"
 
@@ -9232,6 +9419,9 @@ msgstr "Wczytywanie kolejnych…"
 msgid "Loading project…"
 msgstr "Wczytywanie projektu…"
 
+msgid "Loading projects..."
+msgstr "Wczytywanie projektów..."
+
 msgid "Loading projects…"
 msgstr "Wczytywanie projektów…"
 
@@ -9249,6 +9439,9 @@ msgstr "Wczytywanie repozytoriów"
 
 msgid "Loading repositories..."
 msgstr "Wczytywanie repozytoriów..."
+
+msgid "Loading repositories…"
+msgstr "Wczytywanie repozytoriów…"
 
 msgid "Loading review..."
 msgstr "Wczytywanie przeglądu..."
@@ -9587,11 +9780,17 @@ msgstr "Scal"
 msgid "Merge #{0}?"
 msgstr "Scalić #{0}?"
 
+msgid "Merge blocked"
+msgstr "Scalanie zablokowane"
+
 msgid "Merge commit"
 msgstr "Commit scalający"
 
 msgid "Merge Commit"
 msgstr "Commit scalający"
+
+msgid "Merge conflicts"
+msgstr "Konflikty scalania"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Scal pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Scalaj pull requesty bez wychodzenia z Superset, plus porcja poprawek i szlifów czatu."
+
+msgid "Merge request actions"
+msgstr "Akcje żądania scalenia"
+
+msgid "Merge request approval removed"
+msgstr "Zatwierdzenie żądania scalenia cofnięte"
+
+msgid "Merge request approved"
+msgstr "Żądanie scalenia zatwierdzone"
+
+msgid "Merge request changes are unavailable"
+msgstr "Zmiany żądania scalenia są niedostępne"
+
+msgid "Merge request is locked"
+msgstr "Żądanie scalenia jest zablokowane"
+
+msgid "Merge request label changed"
+msgstr "Etykieta żądania scalenia zmieniona"
+
+msgid "Merge request merged"
+msgstr "Żądanie scalenia scalone"
+
+msgid "Merge request opened"
+msgstr "Żądanie scalenia otwarte"
+
+msgid "Merge request pushed"
+msgstr "Zmiany wypchnięte do żądania scalenia"
+
+msgid "Merge request title"
+msgstr "Tytuł żądania scalenia"
 
 msgid "Merge when checks pass"
 msgstr "Scal, gdy kontrole przejdą"
@@ -9673,6 +9902,9 @@ msgstr "Minimalizuj"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimalizuj zgłoszenia GitHub"
+
+msgid "Minimize issues"
+msgstr "Zminimalizuj zgłoszenia"
 
 msgid "Minimum contrast"
 msgstr "Minimalny kontrast"
@@ -10321,11 +10553,17 @@ msgstr "Nie ma jeszcze komentarzy. Włącz tryb komentowania i kliknij dowolny e
 msgid "No commits on this branch yet."
 msgstr "Brak commitów na tej gałęzi."
 
+msgid "No commits to open a merge request from"
+msgstr "Brak commitów, z których można otworzyć żądanie scalenia"
+
 msgid "No commits to open a pull request from"
 msgstr "Brak commitów, z których można otworzyć pull request"
 
 msgid "No comparisons yet."
 msgstr "Brak porównań."
+
+msgid "No completed reviews or approvals"
+msgstr "Brak ukończonych przeglądów i zatwierdzeń"
 
 msgid "No console output"
 msgstr "Brak wyjścia konsoli"
@@ -10392,6 +10630,9 @@ msgstr "Brak danych lejka dla tego okresu"
 
 msgid "No git remote detected"
 msgstr "Nie wykryto zdalnego repozytorium git"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "Nie znaleziono projektów GitLab. Połącz GitLab w Integracjach."
 
 msgid "No grouping"
 msgstr "Bez grupowania"
@@ -10859,6 +11100,9 @@ msgstr "Brak zdarzeń: Microsoft Graph odrzucił subskrypcje powiadomień. Spraw
 msgid "Not reviewed by you"
 msgstr "Nieprzejrzane przez Ciebie"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Nieprzejrzane przez Ciebie w bieżącym cyklu przeglądu"
+
 msgid "not set up"
 msgstr "nieskonfigurowany"
 
@@ -10874,6 +11118,9 @@ msgstr "bez sortowania"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Brak aktualizacji"
+
+msgid "Note added"
+msgstr "Notatka dodana"
 
 msgid "Notes"
 msgstr "Notatki"
@@ -11070,6 +11317,9 @@ msgstr "Tylko właściciele hosta mogą zmienić tę lokalizację."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Tylko właściciele hosta lub właściciele organizacji mogą usunąć tego hosta"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Tylko administratorzy i właściciele organizacji mogą zarządzać tym połączeniem."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Tylko właściciele organizacji mogą zmieniać te ustawienia."
@@ -11324,6 +11574,9 @@ msgstr "Otwórz w Finderze"
 msgid "Open in GitHub"
 msgstr "Otwórz w GitHub"
 
+msgid "Open in GitLab"
+msgstr "Otwórz w GitLab"
+
 msgid "Open in Linear"
 msgstr "Otwórz w Linear"
 
@@ -11363,6 +11616,9 @@ msgstr "Otwórz zgłoszenie #{0} w przeglądarce"
 
 msgid "Open issue in GitHub"
 msgstr "Otwórz zgłoszenie w GitHub"
+
+msgid "Open issue in GitLab"
+msgstr "Otwórz zgłoszenie w GitLab"
 
 msgid "Open issue in Linear"
 msgstr "Otwórz zgłoszenie w Linear"
@@ -11950,6 +12206,9 @@ msgstr "Szczytowe tempo"
 msgid "Pending Invitations"
 msgstr "Oczekujące zaproszenia"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Oczekujące przeglądy lub niespełnione reguły zatwierdzania"
+
 msgid "People"
 msgstr "Osoby"
 
@@ -11995,6 +12254,9 @@ msgstr "Osoba"
 
 msgid "Personal"
 msgstr "Osobiste"
+
+msgid "Personal access token"
+msgstr "Osobisty token dostępu"
 
 msgid "Phantom Forklift"
 msgstr "Widmowy Wózek Widłowy"
@@ -12079,6 +12341,15 @@ msgstr "Różowy"
 
 msgid "Pinned"
 msgstr "Przypięte"
+
+msgid "Pipeline canceled"
+msgstr "Pipeline anulowany"
+
+msgid "Pipeline failed"
+msgstr "Pipeline zakończony niepowodzeniem"
+
+msgid "Pipeline succeeded"
+msgstr "Pipeline zakończony pomyślnie"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Nie znaleziono projektu."
 msgid "Project not set up on this host"
 msgstr "Projekt nieskonfigurowany na tym hoście"
 
+msgid "Project or group path"
+msgstr "Ścieżka projektu lub grupy"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Projekt gotowy — otwórz go z paska bocznego."
 
@@ -12582,6 +12856,9 @@ msgstr "Pull request #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Akcje pull requesta"
 
+msgid "Pull request not found."
+msgstr "Nie znaleziono pull requesta."
+
 msgid "Pull request title"
 msgstr "Tytuł pull requesta"
 
@@ -12597,6 +12874,10 @@ msgstr "Pull requesty"
 msgid "Purple"
 msgstr "Fioletowy"
 
+msgid "Push"
+msgstr "Push"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "Push"
 
@@ -12802,6 +13083,9 @@ msgstr "Rebase i scal"
 msgid "Rebase and merge"
 msgstr "Rebase i scal"
 
+msgid "Rebase branch"
+msgstr "Wykonaj rebase gałęzi"
+
 msgid "Recent Activity"
 msgstr "Ostatnia aktywność"
 
@@ -12843,6 +13127,12 @@ msgstr "Połącz ponownie"
 
 msgid "Reconnect {name}"
 msgstr "Połącz ponownie {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Połącz GitLab ponownie, aby sklonować ten projekt"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Połącz GitLab ponownie, aby przywrócić dostęp i dostarczanie webhooków."
 
 msgid "Reconnect Google"
 msgstr "Połącz Google ponownie"
@@ -12892,6 +13182,9 @@ msgstr "Odśwież"
 msgid "Refresh GitHub issues"
 msgstr "Odśwież zgłoszenia GitHub"
 
+msgid "Refresh issues"
+msgstr "Odśwież zgłoszenia"
+
 msgid "Refresh Linear issues"
 msgstr "Odśwież zgłoszenia Linear"
 
@@ -12903,6 +13196,9 @@ msgstr "Odśwież pull requesty"
 
 msgid "Refresh repositories"
 msgstr "Odśwież repozytoria"
+
+msgid "Refresh webhooks"
+msgstr "Odśwież webhooki"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Odświeży się przy następnym uruchomieniu Claude Code."
@@ -13241,8 +13537,17 @@ msgstr "Repozytoria: {label}"
 msgid "Repository"
 msgstr "Repozytorium"
 
+msgid "Repository issues"
+msgstr "Zgłoszenia repozytorium"
+
+msgid "Repository provider"
+msgstr "Dostawca repozytorium"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Zasięg repozytorium i pobrania wydań desktopowych. Instalacje to pobrania dmg i AppImage; aktualizacje to zip pobierany przez automatyczną aktualizację, więc liczą istniejących użytkowników."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Możliwości wyszukiwania w repozytorium nie są jeszcze dostępne."
 
 msgid "Repository URL or path"
 msgstr "URL repozytorium lub ścieżka"
@@ -13345,6 +13650,9 @@ msgstr "Rozwiąż wszystkie"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Rozwiąż konflikty, aby scalić"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Rozwiąż konflikty agentem"
 
 msgid "Resolve conversation"
 msgstr "Rozwiąż konwersację"
@@ -13615,6 +13923,12 @@ msgstr "Wątek przeglądu…"
 
 msgid "Reviewed by you"
 msgstr "Przejrzane przez Ciebie"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "Przejrzane przez Ciebie w bieżącym cyklu przeglądu"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "Filtry przejrzanych elementów korzystają z historii przeglądów GitHub i bieżącego cyklu przeglądu GitLab."
 
 msgid "Reviewers"
 msgstr "Recenzenci"
@@ -14034,6 +14348,18 @@ msgstr "Szukaj zgłoszeń GitHub"
 msgid "Search GitHub issues…"
 msgstr "Szukaj zgłoszeń GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Szukaj zgłoszeń GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Szukaj zgłoszeń GitLab…"
+
+msgid "Search GitLab projects..."
+msgstr "Szukaj projektów GitLab..."
+
+msgid "Search GitLab repositories..."
+msgstr "Szukaj repozytoriów GitLab..."
+
 msgid "Search history"
 msgstr "Szukaj w historii"
 
@@ -14090,6 +14416,12 @@ msgstr "Szukaj pull requestów…"
 
 msgid "Search repositories..."
 msgstr "Szukaj repozytoriów..."
+
+msgid "Search repository issues"
+msgstr "Szukaj zgłoszeń repozytorium"
+
+msgid "Search repository issues…"
+msgstr "Szukaj zgłoszeń repozytorium…"
 
 msgid "Search settings..."
 msgstr "Szukaj w ustawieniach..."
@@ -14208,17 +14540,26 @@ msgstr "Zobacz, jak twoje ostatnie 30 dni wypada w publicznym rankingu. Tylko li
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a host to browse repositories."
+msgstr "Wybierz host, aby przeglądać repozytoria."
+
 msgid "Select a project"
 msgstr "Wybierz projekt"
 
 msgid "Select a project first"
 msgstr "Najpierw wybierz projekt"
 
+msgid "Select a project to create an environment for it."
+msgstr "Wybierz projekt, dla którego chcesz utworzyć środowisko."
+
 msgid "Select a project to see GitHub issues."
 msgstr "Wybierz projekt, aby zobaczyć zgłoszenia GitHub."
 
 msgid "Select a project to see pull requests."
 msgstr "Wybierz projekt, aby zobaczyć pull requesty."
+
+msgid "Select a project to see repository issues."
+msgstr "Wybierz projekt, aby zobaczyć zgłoszenia repozytorium."
 
 msgid "Select a pull request to preview it here."
 msgstr "Wybierz pull request, aby zobaczyć tu podgląd."
@@ -14309,6 +14650,9 @@ msgstr "Wybierz lokalizację projektu"
 
 msgid "Select project worktree location"
 msgstr "Wybierz lokalizację worktree projektu"
+
+msgid "Select projects"
+msgstr "Wybierz projekty"
 
 msgid "Select range..."
 msgstr "Wybierz zakres..."
@@ -14790,6 +15134,9 @@ msgstr "Plakietka na pasku bocznym, gdy aktualizacja aplikacji jest gotowa do in
 
 msgid "Sign in"
 msgstr "Zaloguj się"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Zaloguj się jako administrator lub właściciel organizacji, aby zarządzać tym połączeniem."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Zaloguj się jako Local Admin (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Członkowie zespołu"
 msgid "Team not found in this organization"
 msgstr "Nie znaleziono zespołu w tej organizacji"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Prośby o przegląd zespołowy są niedostępne dla wybranych projektów GitLab."
+
 msgid "Team settings"
 msgstr "Ustawienia zespołu"
 
@@ -16134,6 +16484,9 @@ msgstr "Nie udało się rozpoznać tego punktu końcowego."
 msgid "That endpoint is not allowed."
 msgstr "Ten punkt końcowy jest niedozwolony."
 
+msgid "That filter is not supported for this event."
+msgstr "Ten filtr nie jest obsługiwany dla tego zdarzenia."
+
 msgid "That handle is taken."
 msgstr "Ten pseudonim jest zajęty."
 
@@ -16148,6 +16501,9 @@ msgstr "Ta maszyna nie jest już dostępna"
 
 msgid "That name isn't allowed."
 msgstr "Taka nazwa jest niedozwolona."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "Ten adres URL nie jest na połączonym hoście GitLab"
 
 msgid "The 2026 bet"
 msgstr "Zakład na 2026"
@@ -16260,12 +16616,30 @@ msgstr "Pełny obszar roboczy. Uruchamiaj agentów równolegle, każdego w osobn
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Przyszłe miejsce dla wielokrotnie używanych konfiguracji agentów Superset, promptów i przewodników po konfiguracji."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "Odpowiedź autoryzacji GitLab jest niekompletna. Spróbuj ponownie."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "Sesja autoryzacji GitLab jest nieprawidłowa lub wygasła. Spróbuj ponownie."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Ten host GitLab nie jest dozwolony. OAuth musi używać hosta GitLab zarejestrowanego na serwerze; tokeny wymagają zatwierdzonego hosta HTTPS."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "Nie znaleziono projektu lub grupy GitLab albo nie masz do nich dostępu. Wpisz pełną ścieżkę, uwzględniając wszystkie podgrupy."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "Token GitLab został odrzucony. Sprawdź jego termin ważności oraz zakresy api i read_repository, a następnie połącz ponownie."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Host wrócił w wersji {0}, a nie {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Host nie wrócił do działania w ciągu piętnastu minut."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Host nie potwierdził sesji terminala"
 
 msgid "The host hasn't answered."
 msgstr "Host nie odpowiedział."
@@ -16397,6 +16771,9 @@ msgstr "Samojezdna fabryka oprogramowania"
 
 msgid "The server could not be found"
 msgstr "Nie znaleziono serwera"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Host GitLab OAuth serwera jest nieprawidłowy. Skontaktuj się z administratorem lub użyj tokenu."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Link logowania był niepełny. Spróbuj ponownie."
@@ -16594,6 +16971,12 @@ msgstr "Ten plik jest pusty lub został usunięty."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Ta instalacja GitHub jest już połączona z inną organizacją Superset. Rozłącz ją tam albo odinstaluj aplikację GitHub Superset, a potem spróbuj ponownie."
 
+msgid "This GitLab check is no longer available."
+msgstr "Ta kontrola GitLab nie jest już dostępna."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Ten projekt lub grupa GitLab są już połączone z inną organizacją Superset. Odłącz je w tamtej organizacji przed ponownym połączeniem."
+
 msgid "This host"
 msgstr "Ten host"
 
@@ -16647,6 +17030,9 @@ msgstr "W tym miesiącu"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Zmienia to tylko nazwę wyświetlaną, nie gałąź."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Ta operacja jest niedostępna dla tego żądania scalenia GitLab"
 
 msgid "this organization"
 msgstr "tej organizacji"
@@ -17373,6 +17759,9 @@ msgstr "Cofnij rozwiązanie"
 msgid "Unresolved"
 msgstr "Nierozwiązany"
 
+msgid "Unresolved conversations"
+msgstr "Nierozwiązane konwersacje"
+
 msgid "Unsaved changes"
 msgstr "Niezapisane zmiany"
 
@@ -17462,6 +17851,9 @@ msgstr "Zaktualizuj Superset na tej maszynie, aby dołączać pliki"
 msgid "update the branch prefix"
 msgstr "zaktualizować prefiksu gałęzi"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "Zaktualizuj ten host, aby przeglądać repozytoria GitLab. Nadal możesz sklonować repozytorium, podając jego URL lub ścieżkę."
+
 msgid "Updated"
 msgstr "Zaktualizowano"
 
@@ -17544,6 +17936,12 @@ msgstr "Zużycie niedostępne."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Użyj „{0}”"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "Użyj osobistego tokenu dostępu z zakresami api i read_repository. Twoje konto GitLab musi mieć uprawnienia do zarządzania webhookami wybranego projektu lub grupy."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Użyj nazwy użytkownika obsługiwanej przez wszystkich wybranych dostawców."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Użyj ścieżki względem obszaru roboczego albo folderu bezwzględnego."
@@ -17635,6 +18033,9 @@ msgstr "Nie znaleziono użytkownika"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "Nazwa użytkownika…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Losowa nazwa gałęzi (przekroczono czas generowania AI)"
 
@@ -17718,6 +18119,9 @@ msgstr "Zobacz wszystkie"
 msgid "View All"
 msgstr "Zobacz wszystkie"
 
+msgid "View checks"
+msgstr "Zobacz kontrole"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Zobacz komentarz od {0}"
@@ -17733,6 +18137,9 @@ msgstr "Pokaż w pełnym rozmiarze"
 
 msgid "View in GitHub"
 msgstr "Zobacz w GitHub"
+
+msgid "View in GitLab"
+msgstr "Zobacz w GitLab"
 
 msgid "View log"
 msgstr "Zobacz log"
@@ -18225,6 +18632,9 @@ msgstr "Obszar roboczy utworzony"
 msgid "Workspace created from PR"
 msgstr "Obszar roboczy utworzony z PR"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Nie udało się potwierdzić wyniku tworzenia obszaru roboczego"
+
 msgid "Workspace details"
 msgstr "Szczegóły obszaru roboczego"
 
@@ -18404,6 +18814,9 @@ msgstr "Nie jesteś członkiem tej organizacji."
 
 msgid "You are not a member of this organization"
 msgstr "Nie jesteś członkiem tej organizacji"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "Nie masz uprawnień do zarządzania integracjami tej organizacji."
 
 msgid "You are not authorized to perform this action."
 msgstr "Nie masz uprawnień do wykonania tej akcji."

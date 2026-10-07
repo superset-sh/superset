@@ -1,12 +1,20 @@
+import { errorMessage } from "@superset/i18n/errors";
+import { useQueries } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
-import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
+import {
+	groupProjectTargetsByHost,
+	useProjectQueryTargets,
+} from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { normalizeAuthorFilters } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 import {
 	normalizePullRequestReviewFilter,
 	type PullRequestReviewFilter,
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
+import { getPullRequestSearchSelection } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter/pullRequestReviewFilter";
+import { queryPullRequestSearchCapabilities } from "renderer/routes/_authenticated/_dashboard/utils/queryRepoSearchCapabilities";
 import {
 	pullRequestsSearchFromFilters,
 	usePullRequestsFilterStore,
@@ -56,10 +64,6 @@ export function PullRequestsView({
 	} = usePullRequestsFilterStore();
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? storedSearch);
 	const projectFilters = initialProjects ?? storedProjectFilters;
-	const authorFilter =
-		initialAuthor === undefined
-			? storedAuthorFilter
-			: normalizeAuthorFilters(initialAuthor);
 	const reviewFilter =
 		initialReview === undefined
 			? storedReviewFilter
@@ -92,6 +96,55 @@ export function PullRequestsView({
 		projects: hostProjects,
 		targets: projectTargets,
 	} = useProjectQueryTargets(projectFilters);
+	const capabilityTargets = useMemo(
+		() => groupProjectTargetsByHost(projectTargets),
+		[projectTargets],
+	);
+	const capabilityQueries = useQueries({
+		queries: capabilityTargets.map((target) => ({
+			queryKey: [
+				"pullRequests",
+				"searchCapabilities",
+				target.key,
+				target.hostUrl,
+			],
+			enabled: !!target.hostUrl,
+			queryFn: async () => {
+				if (!target.hostUrl) return [];
+				return queryPullRequestSearchCapabilities(
+					getHostServiceClientByUrl(target.hostUrl),
+					target.projects.map((project) => project.projectId),
+				);
+			},
+			staleTime: 0,
+			refetchInterval: 30_000,
+			retry: false,
+		})),
+	});
+	const capabilityFailure = capabilityQueries.find(
+		(query) => query.isError,
+	)?.error;
+	const searchSelection = getPullRequestSearchSelection(
+		capabilityQueries.flatMap((query) =>
+			query.isError ? [] : (query.data ?? []),
+		),
+		projectTargets.length,
+		capabilityQueries.some(
+			(query, index) =>
+				!!capabilityTargets[index]?.hostUrl &&
+				query.data === undefined &&
+				query.isPending,
+		),
+		capabilityFailure ? errorMessage(capabilityFailure) : undefined,
+	);
+	const rawAuthorFilter =
+		initialAuthor === undefined
+			? storedAuthorFilter
+			: normalizeAuthorFilters(initialAuthor, "unknown");
+	const authorFilter =
+		searchSelection.mode === "github"
+			? (normalizeAuthorFilters(rawAuthorFilter) ?? rawAuthorFilter)
+			: rawAuthorFilter;
 
 	// Sync only from the URL: depending on storedSearch would snap the input
 	// back to the stale URL value on every keystroke until the debounced
@@ -149,7 +202,7 @@ export function PullRequestsView({
 	}, [projectFilters, storeSetProjectFilters]);
 
 	useEffect(() => {
-		storeSetAuthorFilter(authorFilter);
+		storeSetAuthorFilter(authorFilter, "unknown");
 	}, [authorFilter, storeSetAuthorFilter]);
 
 	useEffect(() => {
@@ -235,7 +288,7 @@ export function PullRequestsView({
 
 	const handleAuthorFilterChange = (nextAuthor: string | null) => {
 		cancelPendingSearchNavigation();
-		storeSetAuthorFilter(nextAuthor);
+		storeSetAuthorFilter(nextAuthor, "unknown");
 		navigateTo(buildSearch({ author: nextAuthor }));
 	};
 
@@ -264,6 +317,7 @@ export function PullRequestsView({
 				projectFilters={projectFilters}
 				onProjectFiltersChange={handleProjectFiltersChange}
 				projectTargets={projectTargets}
+				searchSelection={searchSelection}
 				authorFilter={authorFilter}
 				onAuthorFilterChange={handleAuthorFilterChange}
 				reviewFilter={reviewFilter}

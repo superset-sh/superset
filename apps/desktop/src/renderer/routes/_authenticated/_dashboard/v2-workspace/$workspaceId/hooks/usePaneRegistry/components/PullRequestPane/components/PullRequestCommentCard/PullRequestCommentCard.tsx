@@ -19,6 +19,7 @@ import type { NormalizedComment } from "../../../../../../components/CommentsSec
 import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
 
 export interface PullRequestCommentCardProps {
+	provider?: "github" | "gitlab";
 	workspaceId: string;
 	comment: NormalizedComment;
 	onOpenComment: (comment: CommentPaneData) => void;
@@ -30,6 +31,7 @@ export interface PullRequestCommentCardProps {
 	) => void;
 }
 export function PullRequestCommentCard({
+	provider = "github",
 	workspaceId,
 	comment,
 	onOpenComment,
@@ -172,7 +174,11 @@ export function PullRequestCommentCard({
 								href={comment.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({ message: "Open comment on GitHub" })}
+								aria-label={
+									provider === "gitlab"
+										? t({ message: "Open in browser" })
+										: t({ message: "Open comment on GitHub" })
+								}
 							>
 								<LuArrowUpRight className="size-3.5" />
 							</a>

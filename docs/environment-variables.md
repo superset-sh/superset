@@ -100,3 +100,70 @@ or the value arrives empty.
 `SUPERSET_ACCOUNT_ATTRIBUTION_TOKEN` is issued by the host for each new terminal and authorizes only that terminal’s login-attribution hook metadata. It is not the host authentication token. Tokens expire when the host process restarts; open a new terminal to restore verified login attribution. The host injects it at PTY creation, so it does not belong in deployment configuration.
 
 `SUPERSET_HOST_AUTO_UPDATE` is a standalone host runtime preference, set to `true` by `superset start --auto-update` and `false` otherwise. Direct service launchers may set it explicitly. It defaults to `false`, is excluded from login-shell imports, and is inherited by update/rollback successors. Like install provenance, it does not belong in deployment secrets or shared environment templates.
+
+## GitLab organization connections
+
+`GITLAB_OAUTH_CLIENT_ID` and `GITLAB_OAUTH_CLIENT_SECRET` configure the optional
+organization connection app. They are separate from `GITLAB_CLIENT_ID` and
+`GITLAB_CLIENT_SECRET`, which configure sign-in. Both apps use the exact
+`GITLAB_ISSUER` origin (`https://gitlab.com` when unset). Register each app's
+callback on that instance; never reuse client credentials with another issuer.
+
+Leave the organization credentials unset to retain existing cloud defaults and
+token-based GitLab connection support. These optional values belong in the API
+and tRPC schemas, both templates, Turbo and both API deployment blocks and
+passthroughs. Set operator-owned runtime values or deployment secrets when
+enabling OAuth. The generic rebuild does not change root `.env` or remote
+secrets. Cloud sandbox credentials require HTTPS port 443; server API and OAuth
+helpers preserve configured custom HTTPS ports.
+
+`GITLAB_WEBHOOK_ORIGIN` optionally selects a dedicated HTTPS root origin for
+GitLab webhook delivery. Credentials, paths, queries and fragments are rejected;
+custom HTTPS ports are preserved. Unset or empty uses `NEXT_PUBLIC_API_URL`,
+including its existing local development URL. Connect, disconnect, manual hook
+registration and periodic reconciliation use the same resolved destination.
+GitLab OAuth browser callbacks still use `NEXT_PUBLIC_API_URL`.
+
+This value belongs only in the API schema, both templates, Turbo and both API
+deploy blocks and passthroughs. Both templates intentionally leave it empty to
+exercise the fallback. Set operator-owned runtime configuration or the optional
+deployment secret only when using a separate webhook origin. No root `.env`,
+deployment secret or deployed application is changed by this generic port.
+
+## GitLab cloud sandbox proxy
+
+`GITLAB_SANDBOX_OIDC_ISSUER` enables the optional Node GitLab sandbox broker.
+Set the exact trusted team issuer `https://oidc.vercel.com/<team-slug>` from
+Vercel's team issuer configuration. The team slug is independent of
+`VERCEL_SANDBOX_TEAM_ID`; the issuer is never inferred from that ID, a request
+URL or a forwarded header. The route also requires the existing sandbox token,
+team ID and project ID. Missing or malformed configuration returns a constant
+503 before broker loading. The new schema fields stay optional and are
+validated when used, so disabled GitLab does not change application startup.
+See [Vercel's OIDC issuer reference](https://vercel.com/docs/oidc/reference).
+
+`GITLAB_SANDBOX_PROXY_URL` optionally selects a dedicated canonical HTTPS port
+443 endpoint. Credentials, queries, fragments, IP hosts and ambiguous paths are
+rejected. Unset or empty uses `NEXT_PUBLIC_API_URL/api/gitlab/proxy`; that API
+origin must itself be HTTPS port 443. The configured endpoint is the exact
+OIDC audience. The API catchall accepts both SDK base-endpoint and appended
+original-path requests and registers GET, HEAD, POST and PUT. OAuth browser
+callbacks continue to use the API origin.
+
+Both optional settings belong in the API and tRPC schemas, both templates,
+Turbo and both API deploy environment and quoted passthrough blocks. Templates
+leave them empty. Supply operator-owned runtime values or optional deployment
+secrets when enabling this feature. No root `.env`, remote secrets or deployed
+application is changed by this wiring. Central sandbox claim configuration
+must use the same resolved endpoint when enabling provider forwarding.
+
+[Vercel Functions limit request and response payloads to 4.5 MB](https://vercel.com/docs/functions/limitations).
+A separate Node ingress with sufficient body, response and duration budgets is
+required for larger Git/LFS transfers and the broker's full transfer budget;
+setting the proxy URL alone does not provision that ingress. Reuse the exported
+`createGitlabSandboxBroker` and `resolveGitlabSandboxProxyConfig` there with the
+same trusted issuer, audience, current binding/grant access and configured
+runtime credentials. Preserve original requests, bodies, signals and Vercel
+forwarded metadata. See the [optional standalone Node broker](self-host/GITLAB_PROXY.md)
+for its build and runtime instructions. Neither entrypoint provisions public
+ingress, deploys a server or bypasses hosting limits.

@@ -19,9 +19,7 @@ export function CreatePrForm({ actions }: CreatePrFormProps) {
 				autoFocus
 				value={actions.prTitle}
 				onChange={(e) => actions.editPrTitle(e.target.value)}
-				placeholder={t({
-					message: "Pull request title",
-				})}
+				placeholder={actions.titlePlaceholder}
 				className="h-8 text-xs"
 			/>
 			<Textarea
@@ -53,7 +51,11 @@ export function CreatePrForm({ actions }: CreatePrFormProps) {
 					{actions.isShipping && (
 						<VscLoading className="size-3.5 animate-spin" />
 					)}
-					<Trans>Create pull request</Trans>
+					{actions.isGitlab ? (
+						<Trans>Create merge request</Trans>
+					) : (
+						<Trans>Create pull request</Trans>
+					)}
 				</button>
 			</div>
 		</div>

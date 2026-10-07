@@ -1,4 +1,5 @@
 import { unlink } from "node:fs/promises";
+import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type {
 	CredentialProblem,
 	GitCredentialProvider,
@@ -8,6 +9,24 @@ import { writeTempAskpass } from "../askpass";
 interface CachedCredential {
 	expiresAt: number;
 	askpassPath: string;
+}
+
+function supportsCloudGitHubRemote(remoteUrl: string): boolean {
+	if (/[\s\\]/.test(remoteUrl)) return false;
+	if (/^(?:git@|ssh:)/.test(remoteUrl))
+		return parseGitHubRemote(remoteUrl) !== null;
+	try {
+		const url = new URL(remoteUrl);
+		return (
+			url.protocol === "https:" &&
+			url.hostname === "github.com" &&
+			!url.port &&
+			!url.username &&
+			!url.password
+		);
+	} catch {
+		return false;
+	}
 }
 
 export class CloudGitCredentialProvider implements GitCredentialProvider {
@@ -28,7 +47,7 @@ export class CloudGitCredentialProvider implements GitCredentialProvider {
 	async getCredentials(
 		remoteUrl: string | null,
 	): Promise<{ env: Record<string, string> }> {
-		if (!remoteUrl) {
+		if (!remoteUrl || !supportsCloudGitHubRemote(remoteUrl)) {
 			return { env: { GIT_TERMINAL_PROMPT: "0" } };
 		}
 
@@ -64,7 +83,8 @@ export class CloudGitCredentialProvider implements GitCredentialProvider {
 			: "GitHub rejected this workspace's token. Reconnect the GitHub integration.";
 	}
 
-	async getToken(_host: string): Promise<string | null> {
+	async getToken(host: string): Promise<string | null> {
+		if (host.toLowerCase() !== "github.com") return null;
 		if (this.cachedToken && this.cachedToken.expiresAt > Date.now()) {
 			return this.cachedToken.token;
 		}

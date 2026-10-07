@@ -84,3 +84,20 @@ describe("review comment navigation", () => {
 		expect(onOpenInDiff).not.toHaveBeenCalled();
 	});
 });
+
+test("native summary comment retains its GitLab external identity", () => {
+	const url = "https://git.example/team/repo/-/merge_requests/7#note_1";
+	const view = render(
+		<CommentRow
+			comment={{ ...comment, url }}
+			copiedActionKey={null}
+			onCopy={() => {}}
+		/>,
+	);
+	expect(
+		view.getByRole("link", { name: "Open in GitLab" }).getAttribute("href"),
+	).toBe(url);
+	expect(
+		view.queryByRole("link", { name: "Open comment on GitHub" }),
+	).toBeNull();
+});

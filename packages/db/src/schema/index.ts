@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./enums";
 export * from "./github";
+export * from "./gitlab";
 export * from "./ingest";
 export * from "./leaderboard";
 export * from "./plugins";

@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{met} dari {0} sasaran menopang untuk {nextLabel} — {laggingLabels} paling tertinggal."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} dengan commit yang di-squash"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "kontras {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {# otomatisasi dimulai} other {# otomatisasi dimul
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# subagen berjalan}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "{succeeded} dari {total} berhasil{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Membuat # workspace, {failCount} gagal} other {Membuat # workspace, {failCount} gagal}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {Semua # check lulus} other {Semua # check lulus}}"
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {masalah GitLab} other {masalah GitLab}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {masalah} other {masalah}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {pull request} other {pull request}}"
@@ -1615,6 +1627,9 @@ msgstr "Tambahkan proyek untuk melihat issue GitHub."
 
 msgid "Add a project to see pull requests."
 msgstr "Tambahkan proyek untuk melihat pull request."
+
+msgid "Add a project to see repository issues."
+msgstr "Tambahkan proyek untuk melihat masalah repositori."
 
 msgid "Add a short summary…"
 msgstr "Tambahkan ringkasan singkat…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic menolak token ini."
 msgid "any account"
 msgstr "akun apa pun"
 
+msgid "Any branch"
+msgstr "Branch apa pun"
+
 msgid "Any channel"
 msgstr "Channel mana pun"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Lamar"
 
+msgid "Approval requirements unavailable"
+msgstr "Persyaratan persetujuan tidak tersedia"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Persetujuan tersisa: {left} dari {required}"
+
 msgid "Approve"
 msgstr "Setujui"
 
@@ -2368,8 +2392,14 @@ msgstr "Setujui untuk saya"
 msgid "Approved"
 msgstr "Disetujui"
 
+msgid "Approved by {approvedBy}"
+msgstr "Disetujui oleh {approvedBy}"
+
 msgid "Approved review"
 msgstr "Review disetujui"
+
+msgid "Approved with all approval rules met"
+msgstr "Disetujui dengan semua aturan persetujuan terpenuhi"
 
 msgid "Apps"
 msgstr "Aplikasi"
@@ -2732,6 +2762,9 @@ msgstr "Menunggu review dari Anda"
 msgid "Awaiting review from you or your team"
 msgstr "Menunggu review dari Anda atau tim Anda"
 
+msgid "Awaiting your current review"
+msgstr "Menunggu review Anda saat ini"
+
 msgid "Back"
 msgstr "Kembali"
 
@@ -2758,6 +2791,9 @@ msgstr "Kembali ke versi saat ini"
 
 msgid "Back to GitHub issues"
 msgstr "Kembali ke issue GitHub"
+
+msgid "Back to GitLab issues"
+msgstr "Kembali ke masalah GitLab"
 
 msgid "Back to Home"
 msgstr "Kembali ke Beranda"
@@ -3290,6 +3326,9 @@ msgstr "Ubah penerima tugas"
 msgid "Change avatar"
 msgstr "Ganti avatar"
 
+msgid "Change connection"
+msgstr "Ubah koneksi"
+
 msgid "Change icon"
 msgstr "Ubah ikon"
 
@@ -3439,6 +3478,9 @@ msgstr "Memeriksa environment…"
 msgid "Checking host…"
 msgstr "Memeriksa host…"
 
+msgid "Checking merge requirements"
+msgstr "Memeriksa persyaratan merge"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout PR memerlukan sebuah proyek"
 
@@ -3475,6 +3517,9 @@ msgstr "Check selesai"
 msgid "Checks failed"
 msgstr "Check gagal"
 
+msgid "Checks need action"
+msgstr "Check perlu tindakan"
+
 msgid "Checks passed"
 msgstr "Check lulus"
 
@@ -3493,6 +3538,9 @@ msgstr "Pilih direktori induk"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Pilih proyek dari issue GitHub sebelum membuka sebuah issue."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Pilih proyek dari daftar masalah GitLab sebelum membuka masalah."
+
 msgid "Choose a section."
 msgstr "Pilih sebuah bagian."
 
@@ -3504,6 +3552,9 @@ msgstr "Pilih folder repo yang sudah ada"
 
 msgid "Choose app"
 msgstr "Pilih aplikasi"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "Pilih repositori GitHub atau satu proyek GitLab"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Pilih cara file dibuka saat tidak ada panel pratinjau"
@@ -3834,6 +3885,10 @@ msgstr "Tutup Workspace"
 msgid "Closed"
 msgstr "Ditutup"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Ditutup"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Menutup port ini akan menghentikan proses yang memakainya."
 
@@ -3851,6 +3906,9 @@ msgstr "Menutup…"
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Lingkungan cloud telah berubah. Pilih lagi."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Versi awan segera hadir. Jadi mitra pengembangan"
@@ -4135,6 +4193,9 @@ msgstr "Hubungkan {name}"
 msgid "Connect a device"
 msgstr "Hubungkan perangkat"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Hubungkan proyek atau grup GitLab, termasuk instans yang dikelola sendiri dan subgrup bertingkat."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Hubungkan akun Google. Kotak suratnya hanya-baca, dan pemicu berjalan untuk orang yang menghubungkannya."
 
@@ -4177,6 +4238,9 @@ msgstr "Hubungkan Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Hubungkan Notion untuk menjalankan otomatisasi saat baris di sumber data berubah atau seseorang berkomentar di sebuah halaman."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Hubungkan repositori dan sinkronkan permintaan penggabungan."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Hubungkan repo dan sinkronkan pull request."
 
@@ -4191,6 +4255,12 @@ msgstr "Hubungkan Slack untuk mengelola tugas dari percakapan. Sebut bot-nya di 
 
 msgid "Connect this computer"
 msgstr "Hubungkan komputer ini"
+
+msgid "Connect with a token"
+msgstr "Hubungkan dengan token"
+
+msgid "Connect with GitLab"
+msgstr "Hubungkan dengan GitLab"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Hubungkan repositori GitHub Anda dan sinkronkan pull request. Lacak status CI dan review di seluruh tim Anda."
@@ -4384,6 +4454,9 @@ msgstr "Lanjutkan dengan agen lain…"
 msgid "Continue with GitHub"
 msgstr "Lanjutkan dengan GitHub"
 
+msgid "Continue with GitLab"
+msgstr "Lanjutkan dengan GitLab"
+
 msgid "Continue with Google"
 msgstr "Lanjutkan dengan Google"
 
@@ -4526,6 +4599,9 @@ msgstr "Salin tautan"
 msgid "Copy Link Address"
 msgstr "Salin Alamat Tautan"
 
+msgid "Copy link to merge request"
+msgstr "Salin tautan ke permintaan penggabungan"
+
 msgid "Copy link to pull request"
 msgstr "Salin tautan ke pull request"
 
@@ -4647,6 +4723,9 @@ msgstr "Tidak bisa menyalin tautan"
 msgid "Could not create cloud workspace"
 msgstr "Tidak bisa membuat workspace cloud"
 
+msgid "Could not create environment"
+msgstr "Tidak dapat membuat lingkungan"
+
 msgid "Could not create project"
 msgstr "Tidak bisa membuat proyek"
 
@@ -4681,11 +4760,23 @@ msgstr "Tidak bisa menampilkan isi direktori"
 msgid "Could not load agents from {0}"
 msgstr "Tidak bisa memuat agen dari {0}"
 
+msgid "Could not load branches. Try again."
+msgstr "Tidak dapat memuat branch. Coba lagi."
+
+msgid "Could not load connection status."
+msgstr "Tidak dapat memuat status koneksi."
+
 msgid "Could not load environments"
 msgstr "Tidak dapat memuat environment"
 
 msgid "Could not load environments."
 msgstr "Tidak dapat memuat environment."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "Tidak dapat memuat proyek GitLab. Periksa koneksi di Integrasi."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "Tidak dapat memuat proyek GitLab. Coba lagi."
 
 msgid "Could not load image"
 msgstr "Gambar tidak dapat dimuat"
@@ -4701,6 +4792,9 @@ msgstr "Tidak bisa memuat diff ini"
 
 msgid "Could not load this file."
 msgstr "Tidak bisa memuat file ini."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Tidak bisa memuat permintaan penggabungan ini. Hubungkan ulang ke host-nya lalu coba lagi."
 
 msgid "Could not load your machines"
 msgstr "Tidak bisa memuat mesin Anda"
@@ -5113,6 +5207,12 @@ msgstr "Buat merge commit"
 msgid "Create Merge Commit"
 msgstr "Buat Merge Commit"
 
+msgid "Create merge request"
+msgstr "Buat permintaan penggabungan"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Gagal membuat permintaan penggabungan: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Buat grup baru"
 
@@ -5256,6 +5356,9 @@ msgstr "Membuat tugas"
 msgid "Creating a workspace"
 msgstr "Membuat workspace"
 
+msgid "Creating merge request..."
+msgstr "Membuat permintaan penggabungan..."
+
 msgid "Creating PR..."
 msgstr "Membuat PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "Laju saat ini"
 msgid "Current plan"
 msgstr "Paket saat ini"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Filter review saat ini tidak tersedia untuk pilihan ini. Pilih Semua review untuk menghapusnya."
+
 msgid "Current tab"
 msgstr "Tab saat ini"
+
+msgid "Current workspace files"
+msgstr "File workspace saat ini"
 
 msgid "Cursor"
 msgstr "Kursor"
@@ -6103,6 +6212,9 @@ msgstr "Draf · file"
 msgid "Draft · line {0}"
 msgstr "Draf · baris {0}"
 
+msgid "Draft merge request opened"
+msgstr "Draf permintaan penggabungan dibuka"
+
 msgid "Draft opened"
 msgstr "Draf dibuka"
 
@@ -6390,6 +6502,9 @@ msgstr "Menikmati Superset?"
 
 msgid "Ensure no regression"
 msgstr "Pastikan tidak ada regresi"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "Masukkan host HTTPS GitLab, seperti gitlab.com atau gitlab.example.com:8443."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Masukkan direktori induk di {hostName}"
@@ -7145,6 +7260,9 @@ msgstr "Gagal"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "Merge fast-forward"
+
 msgid "Fatal"
 msgstr "Fatal"
 
@@ -7246,6 +7364,9 @@ msgstr "Filter menurut @{normalizedSearch}"
 
 msgid "Filter by author: {label}"
 msgstr "Filter menurut penulis: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Filter menurut pengguna GitLab saat ini"
 
 msgid "Filter by device"
 msgstr "Filter berdasarkan perangkat"
@@ -7745,6 +7866,60 @@ msgstr "Nama pengguna GitHub..."
 msgid "GitHub username…"
 msgstr "Username GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "Filter aturan persetujuan GitLab memerlukan API aturan persetujuan yang tersedia."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "Otorisasi GitLab dibatalkan. Silakan coba lagi."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab tidak menemukan proyek itu"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab tidak mengonfirmasi merge-nya"
+
+msgid "GitLab host"
+msgstr "Host GitLab"
+
+msgid "GitLab issue content could not be verified"
+msgstr "Konten isu GitLab tidak dapat diverifikasi"
+
+msgid "GitLab issues"
+msgstr "Masalah GitLab"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "Permintaan penggabungan GitLab berubah; segarkan sebelum mencoba lagi"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "Status merge GitLab: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "GitLab OAuth belum dikonfigurasi di server API. Hubungi administrator Anda atau gunakan token."
+
+msgid "GitLab projects"
+msgstr "Proyek GitLab"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab menolak merge-nya"
+
+msgid "GitLab repositories"
+msgstr "Repositori GitLab"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "Filter GitLab untuk yang sudah di-review menggunakan siklus review saat ini."
+
+msgid "GitLab username or @me…"
+msgstr "Username GitLab atau @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "Koneksi GitLab telah diputus secara lokal, tetapi penghapusan webhook atau token di server jarak jauh gagal. Periksa akses yang masih tersisa di GitLab."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "Penyiapan webhook GitLab gagal. Periksa koneksi dan izin webhook, lalu segarkan webhook."
+
 msgid "Give me an example"
 msgstr "Beri contoh"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git atau /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git atau /path/to/repo"
+
 msgid "Human"
 msgstr "Manusia"
 
@@ -8508,6 +8686,9 @@ msgstr "Respons persetujuan tidak valid. Silakan coba lagi."
 msgid "Invalid email address."
 msgstr "Alamat email tidak valid."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Identitas permintaan penggabungan GitLab tidak valid"
+
 msgid "Invalid hostId"
 msgstr "hostId tidak valid"
 
@@ -8612,6 +8793,9 @@ msgstr "Issue dibuat"
 
 msgid "Issue not found."
 msgstr "Issue tidak ditemukan."
+
+msgid "Issue opened"
+msgstr "Issue dibuka"
 
 msgid "Issue resolved"
 msgstr "Issue diselesaikan"
@@ -9094,6 +9278,9 @@ msgstr "Tautkan issue Linear"
 msgid "Link pull request"
 msgstr "Tautkan pull request"
 
+msgid "Link repository issue"
+msgstr "Tautkan masalah repositori"
+
 msgid "Link task"
 msgstr "Tautkan tugas"
 
@@ -9232,6 +9419,9 @@ msgstr "Memuat lagi…"
 msgid "Loading project…"
 msgstr "Memuat proyek…"
 
+msgid "Loading projects..."
+msgstr "Memuat proyek..."
+
 msgid "Loading projects…"
 msgstr "Memuat proyek…"
 
@@ -9249,6 +9439,9 @@ msgstr "Memuat repositori"
 
 msgid "Loading repositories..."
 msgstr "Memuat repositori..."
+
+msgid "Loading repositories…"
+msgstr "Memuat repositori…"
 
 msgid "Loading review..."
 msgstr "Memuat review..."
@@ -9587,11 +9780,17 @@ msgstr "Merge"
 msgid "Merge #{0}?"
 msgstr "Merge #{0}?"
 
+msgid "Merge blocked"
+msgstr "Merge diblokir"
+
 msgid "Merge commit"
 msgstr "Merge commit"
 
 msgid "Merge Commit"
 msgstr "Merge Commit"
+
+msgid "Merge conflicts"
+msgstr "Konflik merge"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Merge pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Merge pull request tanpa meninggalkan Superset, plus sejumlah perbaikan dan pemolesan chat."
+
+msgid "Merge request actions"
+msgstr "Aksi permintaan penggabungan"
+
+msgid "Merge request approval removed"
+msgstr "Persetujuan permintaan penggabungan dihapus"
+
+msgid "Merge request approved"
+msgstr "Permintaan penggabungan disetujui"
+
+msgid "Merge request changes are unavailable"
+msgstr "Perubahan permintaan penggabungan tidak tersedia"
+
+msgid "Merge request is locked"
+msgstr "Permintaan penggabungan terkunci"
+
+msgid "Merge request label changed"
+msgstr "Label permintaan penggabungan diubah"
+
+msgid "Merge request merged"
+msgstr "Permintaan penggabungan digabungkan"
+
+msgid "Merge request opened"
+msgstr "Permintaan penggabungan dibuka"
+
+msgid "Merge request pushed"
+msgstr "Perubahan di-push ke permintaan penggabungan"
+
+msgid "Merge request title"
+msgstr "Judul permintaan penggabungan"
 
 msgid "Merge when checks pass"
 msgstr "Merge saat check lulus"
@@ -9673,6 +9902,9 @@ msgstr "Perkecil"
 
 msgid "Minimize GitHub issues"
 msgstr "Perkecil issue GitHub"
+
+msgid "Minimize issues"
+msgstr "Minimalkan masalah"
 
 msgid "Minimum contrast"
 msgstr "Kontras minimum"
@@ -10321,11 +10553,17 @@ msgstr "Belum ada komentar. Aktifkan mode komentar lalu klik apa pun di halaman 
 msgid "No commits on this branch yet."
 msgstr "Belum ada commit di branch ini."
 
+msgid "No commits to open a merge request from"
+msgstr "Tidak ada commit untuk membuka permintaan penggabungan"
+
 msgid "No commits to open a pull request from"
 msgstr "Tidak ada commit untuk membuka pull request"
 
 msgid "No comparisons yet."
 msgstr "Belum ada perbandingan."
+
+msgid "No completed reviews or approvals"
+msgstr "Tanpa review selesai atau persetujuan"
 
 msgid "No console output"
 msgstr "Tidak ada output console"
@@ -10392,6 +10630,9 @@ msgstr "Tidak ada data funnel untuk periode ini"
 
 msgid "No git remote detected"
 msgstr "Tidak ada remote git yang terdeteksi"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "Tidak ada proyek GitLab yang ditemukan. Hubungkan GitLab di Integrasi."
 
 msgid "No grouping"
 msgstr "Tanpa pengelompokan"
@@ -10859,6 +11100,9 @@ msgstr "Belum menerima event: Microsoft Graph menolak langganan notifikasi. Peri
 msgid "Not reviewed by you"
 msgstr "Belum Anda review"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Belum Anda review di siklus review saat ini"
+
 msgid "not set up"
 msgstr "belum disiapkan"
 
@@ -10874,6 +11118,9 @@ msgstr "tidak diurutkan"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Tidak diperbarui"
+
+msgid "Note added"
+msgstr "Catatan ditambahkan"
 
 msgid "Notes"
 msgstr "Catatan"
@@ -11070,6 +11317,9 @@ msgstr "Hanya pemilik host yang bisa mengubah lokasi ini."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Hanya pemilik host atau pemilik organisasi yang bisa menghapus host ini"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Hanya administrator dan pemilik organisasi yang dapat mengelola koneksi ini."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Hanya pemilik organisasi yang bisa mengubah pengaturan ini."
@@ -11324,6 +11574,9 @@ msgstr "Buka di Finder"
 msgid "Open in GitHub"
 msgstr "Buka di GitHub"
 
+msgid "Open in GitLab"
+msgstr "Buka di GitLab"
+
 msgid "Open in Linear"
 msgstr "Buka di Linear"
 
@@ -11363,6 +11616,9 @@ msgstr "Buka issue #{0} di browser"
 
 msgid "Open issue in GitHub"
 msgstr "Buka issue di GitHub"
+
+msgid "Open issue in GitLab"
+msgstr "Buka masalah di GitLab"
 
 msgid "Open issue in Linear"
 msgstr "Buka issue di Linear"
@@ -11950,6 +12206,9 @@ msgstr "Laju puncak"
 msgid "Pending Invitations"
 msgstr "Undangan Tertunda"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Review tertunda atau aturan persetujuan belum terpenuhi"
+
 msgid "People"
 msgstr "Orang"
 
@@ -11995,6 +12254,9 @@ msgstr "Orang"
 
 msgid "Personal"
 msgstr "Pribadi"
+
+msgid "Personal access token"
+msgstr "Token akses pribadi"
 
 msgid "Phantom Forklift"
 msgstr "Forklift Hantu"
@@ -12079,6 +12341,15 @@ msgstr "Merah muda"
 
 msgid "Pinned"
 msgstr "Tersemat"
+
+msgid "Pipeline canceled"
+msgstr "Pipeline dibatalkan"
+
+msgid "Pipeline failed"
+msgstr "Pipeline gagal"
+
+msgid "Pipeline succeeded"
+msgstr "Pipeline berhasil"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Proyek tidak ditemukan."
 msgid "Project not set up on this host"
 msgstr "Proyek belum disiapkan di host ini"
 
+msgid "Project or group path"
+msgstr "Jalur proyek atau grup"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Proyek siap — buka dari sidebar."
 
@@ -12582,6 +12856,9 @@ msgstr "Pull request #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Aksi pull request"
 
+msgid "Pull request not found."
+msgstr "Pull request tidak ditemukan."
+
 msgid "Pull request title"
 msgstr "Judul pull request"
 
@@ -12597,6 +12874,10 @@ msgstr "Pull Request"
 msgid "Purple"
 msgstr "Ungu"
 
+msgid "Push"
+msgstr "Push"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "Push"
 
@@ -12802,6 +13083,9 @@ msgstr "Rebase & Merge"
 msgid "Rebase and merge"
 msgstr "Rebase dan merge"
 
+msgid "Rebase branch"
+msgstr "Lakukan rebase branch"
+
 msgid "Recent Activity"
 msgstr "Aktivitas Terbaru"
 
@@ -12843,6 +13127,12 @@ msgstr "Hubungkan ulang"
 
 msgid "Reconnect {name}"
 msgstr "Hubungkan ulang {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Hubungkan ulang GitLab untuk mengklon proyek ini"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Hubungkan kembali GitLab untuk memulihkan akses dan pengiriman webhook."
 
 msgid "Reconnect Google"
 msgstr "Hubungkan ulang Google"
@@ -12892,6 +13182,9 @@ msgstr "Segarkan"
 msgid "Refresh GitHub issues"
 msgstr "Segarkan issue GitHub"
 
+msgid "Refresh issues"
+msgstr "Segarkan masalah"
+
 msgid "Refresh Linear issues"
 msgstr "Segarkan issue Linear"
 
@@ -12903,6 +13196,9 @@ msgstr "Segarkan pull request"
 
 msgid "Refresh repositories"
 msgstr "Segarkan repositori"
+
+msgid "Refresh webhooks"
+msgstr "Segarkan webhook"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
@@ -13241,8 +13537,17 @@ msgstr "Repositori: {label}"
 msgid "Repository"
 msgstr "Repositori"
 
+msgid "Repository issues"
+msgstr "Masalah repositori"
+
+msgid "Repository provider"
+msgstr "Penyedia repositori"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Jangkauan repositori dan unduhan rilis desktop. Instalasi adalah unduhan dmg dan AppImage; pembaruan adalah zip yang diambil pembaru otomatis, jadi menghitung pengguna yang sudah ada."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Kemampuan pencarian repositori belum tersedia."
 
 msgid "Repository URL or path"
 msgstr "URL atau path repositori"
@@ -13345,6 +13650,9 @@ msgstr "Selesaikan semua"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Selesaikan Konflik untuk Merge"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Selesaikan konflik dengan Agen"
 
 msgid "Resolve conversation"
 msgstr "Selesaikan percakapan"
@@ -13615,6 +13923,12 @@ msgstr "Thread review…"
 
 msgid "Reviewed by you"
 msgstr "Sudah Anda review"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "Sudah Anda review di siklus review saat ini"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "Filter untuk yang sudah di-review menggunakan riwayat review GitHub dan siklus review GitLab saat ini."
 
 msgid "Reviewers"
 msgstr "Reviewer"
@@ -14034,6 +14348,18 @@ msgstr "Cari issue GitHub"
 msgid "Search GitHub issues…"
 msgstr "Cari issue GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Cari masalah GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Cari masalah GitLab…"
+
+msgid "Search GitLab projects..."
+msgstr "Cari proyek GitLab..."
+
+msgid "Search GitLab repositories..."
+msgstr "Cari repositori GitLab..."
+
 msgid "Search history"
 msgstr "Cari riwayat"
 
@@ -14090,6 +14416,12 @@ msgstr "Cari pull request…"
 
 msgid "Search repositories..."
 msgstr "Cari repositori..."
+
+msgid "Search repository issues"
+msgstr "Cari masalah repositori"
+
+msgid "Search repository issues…"
+msgstr "Cari masalah repositori…"
 
 msgid "Search settings..."
 msgstr "Cari pengaturan..."
@@ -14208,17 +14540,26 @@ msgstr "Lihat posisi 30 hari terakhir Anda di papan peringkat publik. Hanya juml
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a host to browse repositories."
+msgstr "Pilih host untuk menjelajahi repositori."
+
 msgid "Select a project"
 msgstr "Pilih sebuah proyek"
 
 msgid "Select a project first"
 msgstr "Pilih proyek dulu"
 
+msgid "Select a project to create an environment for it."
+msgstr "Pilih proyek untuk membuat lingkungan bagi proyek tersebut."
+
 msgid "Select a project to see GitHub issues."
 msgstr "Pilih proyek untuk melihat issue GitHub."
 
 msgid "Select a project to see pull requests."
 msgstr "Pilih proyek untuk melihat pull request."
+
+msgid "Select a project to see repository issues."
+msgstr "Pilih proyek untuk melihat masalah repositori."
 
 msgid "Select a pull request to preview it here."
 msgstr "Pilih pull request untuk melihat pratinjaunya di sini."
@@ -14309,6 +14650,9 @@ msgstr "Pilih lokasi proyek"
 
 msgid "Select project worktree location"
 msgstr "Pilih lokasi worktree proyek"
+
+msgid "Select projects"
+msgstr "Pilih proyek"
 
 msgid "Select range..."
 msgstr "Pilih rentang..."
@@ -14790,6 +15134,9 @@ msgstr "Pil sidebar yang muncul saat pembaruan aplikasi siap dipasang"
 
 msgid "Sign in"
 msgstr "Masuk"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Masuk sebagai administrator atau pemilik organisasi untuk mengelola koneksi ini."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Masuk sebagai Local Admin (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Anggota Tim"
 msgid "Team not found in this organization"
 msgstr "Tim tidak ditemukan di organisasi ini"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Permintaan review tim tidak tersedia untuk proyek GitLab yang dipilih."
+
 msgid "Team settings"
 msgstr "Pengaturan tim"
 
@@ -16134,6 +16484,9 @@ msgstr "Endpoint itu tidak dapat ditemukan."
 msgid "That endpoint is not allowed."
 msgstr "Endpoint itu tidak diizinkan."
 
+msgid "That filter is not supported for this event."
+msgstr "Filter tersebut tidak didukung untuk peristiwa ini."
+
 msgid "That handle is taken."
 msgstr "Handle itu sudah dipakai."
 
@@ -16148,6 +16501,9 @@ msgstr "Mesin itu sudah tidak tersedia"
 
 msgid "That name isn't allowed."
 msgstr "Nama itu tidak diizinkan."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "URL itu tidak berada di host GitLab yang terhubung"
 
 msgid "The 2026 bet"
 msgstr "Taruhan 2026"
@@ -16260,12 +16616,30 @@ msgstr "Workspace lengkap. Jalankan agen secara paralel, simpan masing-masing di
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Rumah masa depan untuk konfigurasi agen Superset, prompt, dan panduan penyiapan yang dapat digunakan ulang."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "Respons otorisasi GitLab tidak lengkap. Silakan coba lagi."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "Sesi otorisasi GitLab tidak valid atau telah kedaluwarsa. Silakan coba lagi."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Host GitLab ini tidak diizinkan. OAuth harus menggunakan host GitLab yang terdaftar di server; token memerlukan host HTTPS yang disetujui."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "Proyek atau grup GitLab tidak ditemukan atau tidak dapat diakses. Masukkan jalur lengkapnya, termasuk semua subgrup."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "Token GitLab ditolak. Periksa masa berlakunya serta cakupan api dan read_repository, lalu hubungkan kembali."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Host kembali dengan {0}, bukan {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Host tidak kembali dalam lima belas menit."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Host tidak mengonfirmasi sesi terminal"
 
 msgid "The host hasn't answered."
 msgstr "Host tidak merespons."
@@ -16397,6 +16771,9 @@ msgstr "Pabrik perangkat lunak yang menyetir sendiri"
 
 msgid "The server could not be found"
 msgstr "Servernya tidak ditemukan"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Host GitLab OAuth pada server tidak valid. Hubungi administrator Anda atau gunakan token."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Tautan masuk tidak lengkap. Silakan coba lagi."
@@ -16594,6 +16971,12 @@ msgstr "File ini kosong atau sudah dihapus."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Instalasi GitHub ini sudah terhubung ke organisasi Superset lain. Putuskan di sana, atau copot GitHub App Superset, lalu coba lagi."
 
+msgid "This GitLab check is no longer available."
+msgstr "Check GitLab ini sudah tidak tersedia."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Proyek atau grup GitLab ini sudah terhubung ke organisasi Superset lain. Putuskan koneksinya di organisasi tersebut sebelum menghubungkannya kembali."
+
 msgid "This host"
 msgstr "Host ini"
 
@@ -16647,6 +17030,9 @@ msgstr "Bulan ini"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Ini hanya mengubah nama tampilan, bukan branch-nya."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Operasi ini tidak tersedia untuk permintaan penggabungan GitLab ini"
 
 msgid "this organization"
 msgstr "organisasi ini"
@@ -17373,6 +17759,9 @@ msgstr "Buka lagi"
 msgid "Unresolved"
 msgstr "Belum selesai"
 
+msgid "Unresolved conversations"
+msgstr "Percakapan belum selesai"
+
 msgid "Unsaved changes"
 msgstr "Perubahan belum disimpan"
 
@@ -17462,6 +17851,9 @@ msgstr "Perbarui Superset di mesin ini untuk melampirkan file"
 msgid "update the branch prefix"
 msgstr "memperbarui prefix branch"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "Perbarui host ini untuk menjelajahi repositori GitLab. Anda tetap dapat mengklona repositori menggunakan URL atau jalurnya."
+
 msgid "Updated"
 msgstr "Diperbarui"
 
@@ -17544,6 +17936,12 @@ msgstr "Penggunaan tidak tersedia."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Pakai “{0}”"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "Gunakan token akses pribadi dengan cakupan api dan read_repository. Akun GitLab Anda harus memiliki izin untuk mengelola webhook pada proyek atau grup yang dipilih."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Gunakan username yang didukung semua penyedia yang dipilih."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Pakai path relatif terhadap workspace atau folder absolut."
@@ -17635,6 +18033,9 @@ msgstr "Pengguna tidak ditemukan"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "Username…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Memakai nama branch acak (pembuatan AI kehabisan waktu)"
 
@@ -17718,6 +18119,9 @@ msgstr "Lihat semua"
 msgid "View All"
 msgstr "Lihat Semua"
 
+msgid "View checks"
+msgstr "Lihat check"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Lihat komentar dari {0}"
@@ -17733,6 +18137,9 @@ msgstr "Lihat ukuran penuh"
 
 msgid "View in GitHub"
 msgstr "Lihat di GitHub"
+
+msgid "View in GitLab"
+msgstr "Lihat di GitLab"
 
 msgid "View log"
 msgstr "Lihat log"
@@ -18225,6 +18632,9 @@ msgstr "Workspace dibuat"
 msgid "Workspace created from PR"
 msgstr "Workspace dibuat dari PR"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Hasil pembuatan ruang kerja tidak dapat dikonfirmasi"
+
 msgid "Workspace details"
 msgstr "Detail workspace"
 
@@ -18404,6 +18814,9 @@ msgstr "Anda bukan anggota organisasi tersebut."
 
 msgid "You are not a member of this organization"
 msgstr "Anda bukan anggota organisasi ini"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "Anda tidak memiliki izin untuk mengelola integrasi organisasi ini."
 
 msgid "You are not authorized to perform this action."
 msgstr "Anda tidak berwenang melakukan tindakan ini."

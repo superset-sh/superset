@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
@@ -14,6 +16,7 @@ import type {
 	ReviewDecision,
 	ReviewerState,
 } from "../../utils/pullRequest";
+import { gitlabPullRequestIdentity } from "./identity";
 
 const DETAIL_REFETCH_MS = 20_000;
 
@@ -30,23 +33,67 @@ export function useWorkspacePullRequestDetail({
 	owner,
 	repo,
 	pullNumber,
+	provider,
+	projectId,
+	repoUrl,
+	expectedUrl,
+	isRepoReady = true,
 }: {
 	workspaceId: string | null;
 	owner: string | null;
 	repo: string | null;
 	pullNumber: number | null;
+	provider?: "github" | "gitlab";
+	projectId?: string | null;
+	repoUrl?: string | null;
+	expectedUrl?: string;
+	isRepoReady?: boolean;
 }) {
-	const { host, isResolving, sandboxWaking, sandboxUnreachable } =
+	const { t } = useLingui();
+	const { host, workspace, isResolving, sandboxWaking, sandboxUnreachable } =
 		useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
+	const claimedGitlab =
+		provider === "gitlab" ||
+		expectedUrl !== undefined ||
+		(repoUrl ? parseGitRemote(repoUrl)?.provider === "gitlab" : false);
+	const identity =
+		claimedGitlab &&
+		isRepoReady &&
+		provider !== "github" &&
+		projectId &&
+		workspace?.projectId === projectId
+			? gitlabPullRequestIdentity({
+					expectedUrl,
+					repoUrl,
+					owner,
+					repo,
+					pullNumber,
+				})
+			: null;
 	const ready =
-		hostUrl !== null && owner !== null && repo !== null && pullNumber !== null;
+		hostUrl !== null &&
+		owner !== null &&
+		repo !== null &&
+		pullNumber !== null &&
+		(!claimedGitlab || identity !== null);
 
 	const query = useQuery({
-		queryKey: getPullRequestDetailQueryKey(workspaceId, pullNumber),
+		queryKey: claimedGitlab
+			? [
+					...getPullRequestDetailQueryKey(workspaceId, pullNumber),
+					"gitlab",
+					projectId,
+					hostUrl,
+					identity?.host,
+					owner,
+					repo,
+					expectedUrl,
+				]
+			: getPullRequestDetailQueryKey(workspaceId, pullNumber),
 		enabled: ready,
 		refetchInterval: DETAIL_REFETCH_MS,
 		// A sheet mounting a second observer must not trigger a refetch under the card.
@@ -57,6 +104,31 @@ export function useWorkspacePullRequestDetail({
 			if (!hostUrl || !owner || !repo || pullNumber === null) {
 				throw new Error("Host is not resolved");
 			}
+			if (claimedGitlab) {
+				if (!identity || !projectId || !workspaceId)
+					throw Error("Host is not resolved");
+				const raw = await getHostServiceClientByUrl(
+					hostUrl,
+				).github.getPullRequestDetail.query({
+					owner,
+					repo,
+					pullNumber,
+					provider: "gitlab",
+					projectId,
+					workspaceId,
+					host: identity.host,
+					expectedUrl: identity.expectedUrl,
+				});
+				if (
+					!("provider" in raw) ||
+					raw.provider !== "gitlab" ||
+					raw.host !== identity.host ||
+					raw.pullRequest.number !== pullNumber ||
+					raw.pullRequest.url !== identity.expectedUrl
+				)
+					throw Error(t({ message: "Invalid GitLab merge request identity" }));
+				return raw;
+			}
 			const raw = await getHostServiceClientByUrl(
 				hostUrl,
 			).github.getPullRequestDetail.query({ owner, repo, pullNumber });
@@ -64,15 +136,29 @@ export function useWorkspacePullRequestDetail({
 		},
 	});
 
+	const data = query.data;
+	const detail: PullRequestDetail | null =
+		!claimedGitlab && data && !isGitlabDetail(data) ? data : null;
+	const gitlabDetail: GitlabDetail | null =
+		claimedGitlab && identity && !query.isError && data && isGitlabDetail(data)
+			? data
+			: null;
 	return {
-		detail: query.data ?? null,
+		detail,
+		gitlabDetail,
 		// An idle query is not an empty one: while the box is still waking the
 		// pull request is unknown, not gone.
-		isLoading: ready
-			? query.isPending
-			: (isResolving || sandboxWaking) && !sandboxUnreachable,
+		isLoading:
+			claimedGitlab && !isRepoReady && !sandboxUnreachable
+				? true
+				: ready
+					? query.isPending
+					: (isResolving || sandboxWaking) && !sandboxUnreachable,
 		isRefetching: query.isRefetching,
-		error: query.error,
+		error:
+			claimedGitlab && isRepoReady && !identity
+				? new Error(t({ message: "Invalid GitLab merge request identity" }))
+				: query.error,
 		refetch: query.refetch,
 	};
 }
@@ -84,6 +170,14 @@ type RawDetail = Awaited<
 		>["github"]["getPullRequestDetail"]["query"]
 	>
 >;
+
+type GitlabDetail = Extract<RawDetail, { provider: "gitlab" }>;
+
+function isGitlabDetail(
+	value: PullRequestDetail | GitlabDetail,
+): value is GitlabDetail {
+	return "provider" in value && value.provider === "gitlab";
+}
 
 function at(value: string | null): Date | null {
 	return value ? new Date(value) : null;

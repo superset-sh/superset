@@ -16,6 +16,7 @@ export type OrgMember = {
  */
 export async function requireOrgMember(
 	request: Request,
+	options: { requireAdmin?: boolean } = {},
 ): Promise<OrgMember | Response> {
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session?.user) {
@@ -41,6 +42,14 @@ export async function requireOrgMember(
 			{ error: "User is not a member of this organization" },
 			{ status: 403 },
 		);
+	}
+
+	if (
+		options.requireAdmin &&
+		membership.role !== "admin" &&
+		membership.role !== "owner"
+	) {
+		return Response.json({ error: "Admin access required" }, { status: 403 });
 	}
 
 	return { organizationId, userId: session.user.id };

@@ -74,7 +74,11 @@ interface CreateOutcome {
 	 * the same as `true` (don't count it), never as `false`.
 	 */
 	alreadyExists?: boolean;
+	deliveryUnconfirmed?: boolean;
+	deliveryError?: string;
 }
+
+class UnconfirmedWorkspaceDelivery extends Error {}
 
 /** Older hosts don't have `workspaces.createEnqueued` yet. */
 function isMissingProcedureError(error: unknown): boolean {
@@ -137,6 +141,63 @@ async function probeWorkspaceRowWithRetries(
 	return last;
 }
 
+function isDefinitiveEnqueueRefusal(error: unknown): boolean {
+	if (isMissingProcedureError(error)) return true;
+	const code = (error as { data?: { code?: unknown } } | null)?.data?.code;
+	return (
+		typeof code === "string" &&
+		[
+			"BAD_REQUEST",
+			"PARSE_ERROR",
+			"UNAUTHORIZED",
+			"FORBIDDEN",
+			"NOT_FOUND",
+			"METHOD_NOT_SUPPORTED",
+			"PAYLOAD_TOO_LARGE",
+			"UNPROCESSABLE_CONTENT",
+			"PRECONDITION_FAILED",
+			"CONFLICT",
+			"TOO_MANY_REQUESTS",
+		].includes(code)
+	);
+}
+
+async function recoverUnconfirmedDelivery(
+	client: HostServiceClient,
+	workspaceId: string,
+	payload: WorkspacesCreateInput,
+	deliveryError?: string,
+): Promise<CreateOutcome> {
+	const expected = payload.expectedPullRequest;
+	if (expected) {
+		const linked = await client.pullRequests.getLinkedWorkspace
+			.query(
+				{
+					projectId: payload.projectId,
+					prNumber: expected.pullNumber,
+					expectedPullRequest: expected,
+				},
+				{ signal: AbortSignal.timeout(15_000) },
+			)
+			.catch(() => null);
+		const canonicalId = linked?.workspaceId ?? workspaceId;
+		if ((await probeWorkspaceRow(client, canonicalId)) === "exists")
+			return {
+				workspace: { id: canonicalId, projectId: payload.projectId },
+				terminals: [],
+				agents: [],
+				deliveryUnconfirmed: true,
+				deliveryError,
+			};
+	}
+	throw new UnconfirmedWorkspaceDelivery(
+		deliveryError ??
+			i18n._(
+				msg({ message: "Workspace creation result could not be confirmed" }),
+			),
+	);
+}
+
 /**
  * Enqueue the create and resolve from the `workspace:create-settled` event.
  * The synchronous `workspaces.create` mutation holds one of Chromium's six
@@ -172,16 +233,21 @@ async function createViaEnqueue(
 				signal: AbortSignal.timeout(ENQUEUE_TIMEOUT_MS),
 			});
 		} catch (error) {
-			if (payload.checkout !== "local" && isMissingProcedureError(error)) {
+			if (
+				payload.checkout !== "local" &&
+				!payload.expectedPullRequest &&
+				isMissingProcedureError(error)
+			) {
 				// Legacy host: fall back to the long-held synchronous create.
 				const result = await client.workspaces.create.mutate(payload);
 				return result;
 			}
-			// A timed-out enqueue may still have reached the host (reachable but
-			// slow — e.g. a saturated socket pool). Hard-failing here could tear
-			// down a workspace the host is actually creating; fall through and
-			// let the settled event / backstop decide. Anything else (network
-			// error, rejection) is a definitive no-enqueue: fail now.
+			if (
+				payload.expectedPullRequest &&
+				!isTimeoutAbort(error) &&
+				!isDefinitiveEnqueueRefusal(error)
+			)
+				return recoverUnconfirmedDelivery(client, workspaceId, payload);
 			if (!isTimeoutAbort(error)) throw error;
 		}
 
@@ -197,6 +263,8 @@ async function createViaEnqueue(
 		]).finally(() => clearTimeout(backstopTimer));
 
 		if (outcome === "timeout") {
+			if (payload.expectedPullRequest)
+				return recoverUnconfirmedDelivery(client, workspaceId, payload);
 			// The event was lost, not necessarily the create. If the row exists
 			// the workspace is real — recover with an EMPTY pane seed rather
 			// than tearing down a workspace the user can already see. Launched
@@ -208,6 +276,7 @@ async function createViaEnqueue(
 					workspace: { id: workspaceId, projectId: payload.projectId },
 					terminals: [],
 					agents: [],
+					...(payload.expectedPullRequest ? { deliveryUnconfirmed: true } : {}),
 				};
 			}
 			throw new Error(
@@ -218,7 +287,15 @@ async function createViaEnqueue(
 		}
 
 		if (!outcome.ok) {
-			throw new Error(outcome.error ?? "Workspace creation failed");
+			const message = outcome.error ?? "Workspace creation failed";
+			if (payload.expectedPullRequest)
+				return recoverUnconfirmedDelivery(
+					client,
+					workspaceId,
+					payload,
+					message,
+				);
+			throw new Error(message);
 		}
 		return {
 			workspace: {
@@ -258,7 +335,11 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				throw new Error("workspaces.create requires `id`");
 			}
 
-			const recordFailure = (error: string) => {
+			const recordFailure = (
+				error: string,
+				retryBlocked = false,
+				recoveryWorkspaceId?: string,
+			) => {
 				if (collections.failedWorkspaceCreates.get(workspaceId)) {
 					collections.failedWorkspaceCreates.delete(workspaceId);
 				}
@@ -267,9 +348,23 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					hostId: args.hostId,
 					input: snapshot,
 					error,
+					retryBlocked,
+					recoveryWorkspaceId,
 					failedAt: new Date(),
 				});
 			};
+
+			const existingFailure =
+				collections.failedWorkspaceCreates.get(workspaceId);
+			if (existingFailure?.retryBlocked) {
+				return {
+					workspaceId,
+					completed: Promise.resolve<SubmitOutcome>({
+						ok: false,
+						error: existingFailure.error,
+					}),
+				};
+			}
 
 			const deleteWorkspaceLocalState = (id: string) => {
 				if (collections.v2WorkspaceLocalState.get(id)) {
@@ -415,6 +510,31 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
 					}
+					if (
+						"expectedPullRequest" in snapshot &&
+						snapshot.expectedPullRequest
+					) {
+						const refused = result.agents.find((agent) => !agent.ok);
+						if (
+							result.deliveryUnconfirmed ||
+							refused?.ok === false ||
+							result.agents.filter((agent) => agent.ok).length <
+								(snapshot.agents?.length ?? 0)
+						) {
+							const error =
+								refused?.ok === false
+									? refused.error
+									: (result.deliveryError ??
+										i18n._(
+											msg({
+												message:
+													"Workspace creation result could not be confirmed",
+											}),
+										));
+							recordFailure(error, true, result.workspace.id);
+							return { ok: false, error };
+						}
+					}
 					// Only genuinely new worktrees count as created — never reopened
 					// ones or project-less sessions (createSession has no
 					// alreadyExists signal, so an undefined value here is treated as
@@ -444,12 +564,28 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						workspaceId: result.workspace.id,
 					};
 				})
-				.catch<SubmitOutcome>((error: unknown) => {
+				.catch<SubmitOutcome>(async (error: unknown) => {
 					const message =
 						error instanceof Error ? error.message : String(error);
-					hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
-					deleteWorkspaceLocalState(workspaceId);
-					recordFailure(message);
+					const row =
+						"expectedPullRequest" in snapshot && snapshot.expectedPullRequest
+							? await probeWorkspaceRow(
+									getHostServiceClientByUrl(hostUrl),
+									workspaceId,
+								)
+							: "absent";
+					const preserveWorkspace = row !== "absent";
+					if (!preserveWorkspace) {
+						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
+						deleteWorkspaceLocalState(workspaceId);
+					}
+					recordFailure(
+						message,
+						error instanceof UnconfirmedWorkspaceDelivery,
+						error instanceof UnconfirmedWorkspaceDelivery && row === "exists"
+							? workspaceId
+							: undefined,
+					);
 					return { ok: false, error: message };
 				});
 

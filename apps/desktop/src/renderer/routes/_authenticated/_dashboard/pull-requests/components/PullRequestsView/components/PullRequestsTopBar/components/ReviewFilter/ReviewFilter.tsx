@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
@@ -10,28 +11,46 @@ import {
 } from "react-icons/hi2";
 import {
 	getPullRequestReviewFilterLabel,
-	PULL_REQUEST_REVIEW_FILTERS,
 	type PullRequestReviewFilter,
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
+
+import {
+	getPullRequestReviewFilterOptions,
+	type PullRequestSearchSelection,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter/pullRequestReviewFilter";
 
 interface ReviewFilterProps {
 	value: PullRequestReviewFilter | null;
 	onChange: (value: PullRequestReviewFilter | null) => void;
+	searchSelection?: PullRequestSearchSelection;
 }
 
-export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
+export function ReviewFilter({
+	value,
+	onChange,
+	searchSelection,
+}: ReviewFilterProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
-	const label = getPullRequestReviewFilterLabel(value);
+	const label = getPullRequestReviewFilterLabel(value, searchSelection);
+	const available = getPullRequestReviewFilterOptions(searchSelection);
+	const currentUnavailable =
+		searchSelection?.ready !== false &&
+		value !== null &&
+		!available.some((option) => option.value === value && !option.disabled);
 	const options = [
 		{
 			value: null,
+			disabled: false,
+			reason: undefined,
 			label: t({
 				message: "All reviews",
 			}),
 		},
-		...PULL_REQUEST_REVIEW_FILTERS.map((filter) => ({
+		...available.map((filter) => ({
 			value: filter.value,
+			disabled: filter.disabled,
+			reason: filter.reason ? t(filter.reason) : undefined,
 			label: t(filter.label),
 		})),
 	] as const;
@@ -69,6 +88,34 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 						<HiXMark className="size-4" />
 					</Button>
 				</div>
+
+				{searchSelection?.hasGitlab && (
+					<div className="px-2 py-2 text-xs text-muted-foreground">
+						{searchSelection.mode === "mixed" ? (
+							<Trans>
+								Reviewed filters use GitHub review history and the current
+								GitLab review cycle.
+							</Trans>
+						) : (
+							<Trans>
+								GitLab reviewed filters use the current review cycle.
+							</Trans>
+						)}
+					</div>
+				)}
+				{searchSelection?.error && (
+					<div role="alert" className="px-2 py-2 text-xs text-destructive">
+						{errorMessage(new Error(searchSelection.error))}
+					</div>
+				)}
+				{currentUnavailable && (
+					<div role="alert" className="px-2 py-2 text-xs text-muted-foreground">
+						<Trans>
+							Current review filter is unavailable for this selection. Choose
+							All reviews to clear it.
+						</Trans>
+					</div>
+				)}
 				<div
 					role="radiogroup"
 					aria-label={t({
@@ -88,6 +135,7 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 									name="pull-request-review-filter"
 									value={option.value ?? "all"}
 									checked={selected}
+									disabled={option.disabled}
 									className="sr-only"
 									onChange={() => {
 										onChange(option.value);
@@ -95,7 +143,14 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 									}}
 								/>
 								<HiCheck className={selected ? "size-4" : "size-4 opacity-0"} />
-								<span>{option.label}</span>
+								<span>
+									{option.label}
+									{option.reason && (
+										<span className="block text-xs text-muted-foreground">
+											{option.reason}
+										</span>
+									)}
+								</span>
 							</label>
 						);
 					})}

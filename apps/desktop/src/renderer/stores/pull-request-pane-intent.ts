@@ -1,3 +1,4 @@
+import type { PullRequestRef } from "renderer/lib/github/pullRequestRef";
 import { create } from "zustand";
 
 /**
@@ -6,10 +7,8 @@ import { create } from "zustand";
  * page-pane intent: the requester navigates to the workspace, and the
  * workspace page consumes the intent on arrival.
  */
-export interface PullRequestPaneIntent {
+export interface PullRequestPaneIntent extends PullRequestRef {
 	workspaceId: string;
-	repoFullName: string;
-	number: number;
 }
 
 interface PullRequestPaneIntentState {

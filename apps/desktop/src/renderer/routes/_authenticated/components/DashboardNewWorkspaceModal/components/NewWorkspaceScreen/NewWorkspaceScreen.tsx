@@ -7,6 +7,7 @@ import {
 	getAgentModeSupport,
 } from "@superset/shared/agent-models";
 import { startableCloudEnvironments } from "@superset/shared/cloud-environments";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { CLOUD_HOST_ID } from "@superset/shared/host-routing";
 import {
 	PromptInputButton,
@@ -26,7 +27,14 @@ import {
 	PaperclipIcon,
 	Settings2Icon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type ComponentProps,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { HiOutlineCheckCircle } from "react-icons/hi2";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -36,6 +44,7 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
@@ -71,6 +80,7 @@ import {
 } from "../../hooks/useNewWorkspacePromptCardsVariant";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
+import type { CloudRepository } from "../DashboardNewWorkspaceForm/hooks/useBranchContext";
 import { CheckoutPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/CheckoutPickerPill";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { EnvironmentPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/EnvironmentPickerPill";
@@ -181,8 +191,15 @@ export function NewWorkspaceScreen({
 	const selectedEnvironment =
 		environmentOptions.find((row) => row.id === draft.environmentId) ??
 		environmentOptions[0];
-	const cloudRepository = useMemo(() => {
+	const cloudRepository = useMemo<CloudRepository | null>(() => {
 		if (draft.hostId !== CLOUD_HOST_ID) return null;
+		if (selectedEnvironment?.gitlabProject && activeOrganizationId)
+			return {
+				provider: "gitlab",
+				organizationId: activeOrganizationId,
+				environmentId: selectedEnvironment.id,
+				project: selectedEnvironment.gitlabProject,
+			};
 		const primary = selectedEnvironment?.repositories?.[0];
 		return primary
 			? {
@@ -191,7 +208,57 @@ export function NewWorkspaceScreen({
 					defaultBranch: primary.defaultBranch,
 				}
 			: null;
-	}, [draft.hostId, selectedEnvironment]);
+	}, [draft.hostId, selectedEnvironment, activeOrganizationId]);
+	const cloudIdentity = JSON.stringify([
+		activeOrganizationId,
+		draft.hostId,
+		draft.environmentId,
+		selectedEnvironment?.id,
+		selectedEnvironment?.gitlabProject,
+	]);
+	const nativeCloud = cloudRepository?.provider === "gitlab";
+	const mounted = useRef(false);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, []);
+	const currentCloudSelection = useRef({
+		identity: cloudIdentity,
+		native: nativeCloud,
+		available: false,
+	});
+	currentCloudSelection.current = {
+		identity: cloudIdentity,
+		native: nativeCloud,
+		available:
+			isOpen &&
+			!environmentsQuery.isError &&
+			!environmentsQuery.isFetching &&
+			(!nativeCloud ||
+				!draft.environmentId ||
+				draft.environmentId === selectedEnvironment?.id),
+	};
+	const isCurrentCloudSelection = useCallback(() => {
+		const current = currentCloudSelection.current;
+		return (
+			mounted.current && current.available && current.identity === cloudIdentity
+		);
+	}, [cloudIdentity]);
+	const previousCloudSelection = useRef({
+		identity: cloudIdentity,
+		native: nativeCloud,
+	});
+	useEffect(() => {
+		const previous = previousCloudSelection.current;
+		previousCloudSelection.current = {
+			identity: cloudIdentity,
+			native: nativeCloud,
+		};
+		if (previous.identity !== cloudIdentity && (previous.native || nativeCloud))
+			updateDraft({ baseBranch: null, baseBranchSource: null, linkedPR: null });
+	}, [cloudIdentity, nativeCloud, updateDraft]);
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
@@ -278,19 +345,23 @@ export function NewWorkspaceScreen({
 		() =>
 			hostProjects
 				.filter((project) => Boolean(project.projectKey))
-				.map((project) => ({
-					id: project.projectKey,
-					name: project.name,
-					githubOwner: project.repoOwner,
-					githubRepoName: project.repoName,
-					iconUrl: project.repoOwner
-						? `https://github.com/${project.repoOwner}.png?size=64`
-						: null,
-					needsSetup:
-						setUpProjectIds === null
-							? null
-							: !setUpProjectIds.has(project.projectKey),
-				})),
+				.map((project) => {
+					const githubIdentity =
+						(!project.repoProvider || project.repoProvider === "github") &&
+						(!project.repoUrl ||
+							parseGitRemote(project.repoUrl)?.provider === "github");
+					return {
+						id: project.projectKey,
+						name: project.name,
+						githubOwner: githubIdentity ? project.repoOwner : null,
+						githubRepoName: githubIdentity ? project.repoName : null,
+						iconUrl: resolveProjectIconUrl(project),
+						needsSetup:
+							setUpProjectIds === null
+								? null
+								: !setUpProjectIds.has(project.projectKey),
+					};
+				}),
 		[hostProjects, setUpProjectIds],
 	);
 
@@ -361,6 +432,7 @@ export function NewWorkspaceScreen({
 		addLinkedIssue,
 		addLinkedLinearIssue,
 		addLinkedGitHubIssue,
+		addLinkedGitLabIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,
@@ -416,11 +488,21 @@ export function NewWorkspaceScreen({
 			previousProjectIdRef.current = projectId;
 			previousHostIdRef.current = draft.hostId;
 			updateDraft({
-				baseBranch: persistedBaseBranchDefault?.branchName ?? null,
-				baseBranchSource: persistedBaseBranchDefault?.source ?? null,
+				baseBranch: nativeCloud
+					? null
+					: (persistedBaseBranchDefault?.branchName ?? null),
+				baseBranchSource: nativeCloud
+					? null
+					: (persistedBaseBranchDefault?.source ?? null),
 			});
 		}
-	}, [projectId, draft.hostId, persistedBaseBranchDefault, updateDraft]);
+	}, [
+		projectId,
+		draft.hostId,
+		persistedBaseBranchDefault,
+		updateDraft,
+		nativeCloud,
+	]);
 
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
@@ -525,6 +607,21 @@ export function NewWorkspaceScreen({
 	);
 
 	// ── Base branch ──────────────────────────────────────────────────
+	const currentBranchPicker = useRef<Pick<
+		ComponentProps<typeof CompareBaseBranchPicker>,
+		"branches" | "isBranchesLoading" | "isBranchesError"
+	> | null>(null);
+	const isCurrentNativeBranch = useCallback((branch: string) => {
+		const current = currentBranchPicker.current;
+		return (
+			!!current &&
+			!current.isBranchesLoading &&
+			!current.isBranchesError &&
+			current.branches.some(
+				(row) => row.name === branch && row.isRemote && !row.isLocal,
+			)
+		);
+	}, []);
 	const { pickerProps } = useBranchPickerController({
 		projectId,
 		hostId: draft.hostId,
@@ -532,7 +629,18 @@ export function NewWorkspaceScreen({
 		baseBranch: draft.baseBranch,
 		typedWorkspaceName: draft.workspaceName,
 		onBaseBranchChange: (branch, source) => {
-			if (projectId) {
+			if (
+				(nativeCloud || currentCloudSelection.current.native) &&
+				!isCurrentCloudSelection()
+			)
+				return;
+			if (
+				nativeCloud &&
+				branch !== null &&
+				(source !== "remote-tracking" || !isCurrentNativeBranch(branch))
+			)
+				return;
+			if (projectId && !nativeCloud) {
 				if (branch && source) {
 					setBaseBranchDefault(projectId, branch, source);
 				} else {
@@ -543,6 +651,8 @@ export function NewWorkspaceScreen({
 		},
 		closeModal,
 	});
+
+	currentBranchPicker.current = pickerProps;
 
 	// ── Submit ───────────────────────────────────────────────────────
 	// A cloud workspace has no host to upload to, so its attachments go to
@@ -575,6 +685,30 @@ export function NewWorkspaceScreen({
 		modeSupport ? selectedMode : null,
 		uploadAttachments,
 		promptContext,
+	);
+
+	const handleOpenNativeCloudWorkspace = useCallback(
+		(target: Parameters<typeof pickerProps.onOpenWorkspace>[0]) => {
+			if (
+				cloudRepository?.provider !== "gitlab" ||
+				!isCurrentCloudSelection() ||
+				target.worktreePath ||
+				!isCurrentNativeBranch(target.branchName)
+			)
+				return;
+			void createWorkspace({
+				branch: target.branchName,
+				organizationId: cloudRepository.organizationId,
+				environmentId: cloudRepository.environmentId,
+				project: cloudRepository.project,
+			});
+		},
+		[
+			cloudRepository,
+			createWorkspace,
+			isCurrentCloudSelection,
+			isCurrentNativeBranch,
+		],
 	);
 
 	const { otherHosts } = useWorkspaceHostOptions();
@@ -826,9 +960,19 @@ export function NewWorkspaceScreen({
 										</div>
 									)}
 									{draft.linkedIssues.map((issue) => (
-										<div key={issue.url ?? issue.slug} className="shrink-0">
-											{issue.source === "github" && issue.number != null ? (
+										<div
+											key={
+												issue.source === "gitlab"
+													? issue.slug
+													: (issue.url ?? issue.slug)
+											}
+											className="shrink-0"
+										>
+											{(issue.source === "github" ||
+												issue.source === "gitlab") &&
+											issue.number != null ? (
 												<LinkedGitHubIssuePill
+													provider={issue.source}
 													issueNumber={issue.number}
 													title={issue.title}
 													state={issue.state ?? "open"}
@@ -951,23 +1095,43 @@ export function NewWorkspaceScreen({
 									</PromptInputButton>
 								</LinearIssueLinkCommand>
 								<GitHubIssueLinkCommand
-									onSelect={(issue) =>
+									onSelect={(issue) => {
+										if (issue.gitlab) {
+											if (
+												issue.gitlab.projectId !== projectId ||
+												issue.gitlab.hostId !== (draft.hostId ?? machineId) ||
+												!addLinkedGitLabIssue({
+													...issue.gitlab,
+													issueNumber: issue.issueNumber,
+													url: issue.url,
+													title: issue.title,
+													state: issue.state,
+												})
+											)
+												toast.error(
+													t({
+														message:
+															"GitLab issue content could not be verified",
+													}),
+												);
+											return;
+										}
 										addLinkedGitHubIssue(
 											issue.issueNumber,
 											issue.title,
 											issue.url,
 											issue.state,
-										)
-									}
+										);
+									}}
 									projectId={projectId}
 									hostId={draft.hostId}
 									tooltipLabel={t({
-										message: "Link GitHub issue",
+										message: "Link repository issue",
 									})}
 								>
 									<PromptInputButton
 										aria-label={t({
-											message: "Link GitHub issue",
+											message: "Link repository issue",
 										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
@@ -1052,9 +1216,29 @@ export function NewWorkspaceScreen({
 								<EnvironmentPickerPill
 									selectedEnvironment={selectedEnvironment}
 									environments={environmentOptions}
-									onSelectEnvironment={(next) =>
-										updateDraft({ environmentId: next })
-									}
+									onSelectEnvironment={(next) => {
+										if (
+											(nativeCloud || currentCloudSelection.current.native) &&
+											!isCurrentCloudSelection()
+										)
+											return;
+										const nextNative = environmentOptions.some(
+											(row) => row.id === next && !!row.gitlabProject,
+										);
+										if (
+											(nativeCloud || nextNative) &&
+											next !== selectedEnvironment?.id
+										) {
+											updateDraft({
+												environmentId: next,
+												baseBranch: null,
+												baseBranchSource: null,
+												linkedPR: null,
+											});
+											return;
+										}
+										updateDraft({ environmentId: next });
+									}}
 								/>
 							)}
 							{draft.linkedPR ? (
@@ -1070,7 +1254,14 @@ export function NewWorkspaceScreen({
 									</span>
 								</>
 							) : draft.hostId === CLOUD_HOST_ID ? (
-								<CompareBaseBranchPicker {...pickerProps} />
+								<CompareBaseBranchPicker
+									{...pickerProps}
+									onOpenWorkspace={
+										nativeCloud
+											? handleOpenNativeCloudWorkspace
+											: pickerProps.onOpenWorkspace
+									}
+								/>
 							) : draft.isSession ? null : (
 								<>
 									<CheckoutPickerPill

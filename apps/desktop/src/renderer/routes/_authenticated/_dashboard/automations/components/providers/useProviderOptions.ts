@@ -35,9 +35,15 @@ export function useProviderOptions(
 		queries: groups.map((group) => ({
 			queryKey: ["integration.triggerOptions", organizationId, group],
 			queryFn: () =>
-				trpc.integration.triggerOptions.fetch({ organizationId, group }),
+				group === "gitlab"
+					? trpc.integration.triggerOptions.fetch(
+							{ organizationId, group },
+							{ staleTime: 0 },
+						)
+					: trpc.integration.triggerOptions.fetch({ organizationId, group }),
 			enabled: Boolean(organizationId),
-			staleTime: STALE_MS,
+			staleTime: group === "gitlab" ? 0 : STALE_MS,
+			...(group === "gitlab" ? { refetchOnWindowFocus: true } : {}),
 		})),
 	});
 

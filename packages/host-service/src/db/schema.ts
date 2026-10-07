@@ -153,6 +153,7 @@ export const pullRequests = sqliteTable(
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
 		repoProvider: text("repo_provider").notNull(),
+		repoHost: text("repo_host").notNull().default("github.com"),
 		repoOwner: text("repo_owner").notNull(),
 		repoName: text("repo_name").notNull(),
 		prNumber: integer("pr_number").notNull(),
@@ -163,6 +164,7 @@ export const pullRequests = sqliteTable(
 		headBranch: text("head_branch").notNull(),
 		headSha: text("head_sha").notNull(),
 		reviewDecision: text("review_decision"),
+		reviewStateJson: text("review_state_json"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
 		// GitHub's own merge time once a fetch has carried one, otherwise the
@@ -182,12 +184,14 @@ export const pullRequests = sqliteTable(
 		index("pull_requests_project_id_idx").on(table.projectId),
 		index("pull_requests_repo_branch_idx").on(
 			table.repoProvider,
+			table.repoHost,
 			table.repoOwner,
 			table.repoName,
 			table.headBranch,
 		),
 		uniqueIndex("pull_requests_repo_pr_unique").on(
 			table.repoProvider,
+			table.repoHost,
 			table.repoOwner,
 			table.repoName,
 			table.prNumber,

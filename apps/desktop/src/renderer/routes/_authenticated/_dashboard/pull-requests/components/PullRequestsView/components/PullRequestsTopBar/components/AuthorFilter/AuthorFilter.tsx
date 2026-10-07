@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -19,6 +20,7 @@ import {
 	normalizeAuthorFilter,
 	normalizeAuthorFilters,
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
+import type { PullRequestSearchSelection } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter/pullRequestReviewFilter";
 
 interface AuthorFilterProps {
 	value: string | null;
@@ -27,12 +29,14 @@ interface AuthorFilterProps {
 	 *  of a bare text box — "all repositories" or multiple selected repos
 	 *  have no single contributor set to show. */
 	projectTargets: ProjectQueryTarget[];
+	searchSelection?: PullRequestSearchSelection;
 }
 
 export function AuthorFilter({
 	value,
 	onChange,
 	projectTargets,
+	searchSelection,
 }: AuthorFilterProps) {
 	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
@@ -43,11 +47,16 @@ export function AuthorFilter({
 			(author) => author.toLowerCase() === login.toLowerCase(),
 		);
 	const label = value
-		? selectedAuthors.map((author) => `@${author}`).join(", ")
+		? selectedAuthors
+				.map((author) => (author.startsWith("@") ? author : `@${author}`))
+				.join(", ")
 		: t({
 				message: "All authors",
 			});
 
+	const authorProvider = searchSelection?.mode ?? "github";
+	const githubContributors =
+		authorProvider === "github" && (searchSelection?.ready ?? true);
 	const singleTarget =
 		projectTargets.length === 1 ? projectTargets[0] : undefined;
 
@@ -69,14 +78,14 @@ export function AuthorFilter({
 				projectId: singleTarget.projectId,
 			});
 		},
-		enabled: !!singleTarget?.hostUrl,
+		enabled: !!singleTarget?.hostUrl && githubContributors,
 		staleTime: 5 * 60_000,
 		gcTime: 10 * 60_000,
 	});
 
 	const filtered = useMemo(() => {
 		const q = search.trim().replace(/^@/, "").toLowerCase();
-		const list = [...(contributors ?? [])];
+		const list = [...(githubContributors ? (contributors ?? []) : [])];
 		for (const login of selectedAuthors) {
 			if (
 				!list.some(
@@ -89,10 +98,12 @@ export function AuthorFilter({
 		}
 		if (!q) return list;
 		return list.filter((c) => c.login.toLowerCase().includes(q));
-	}, [contributors, search, selectedAuthors]);
+	}, [contributors, githubContributors, search, selectedAuthors]);
 
-	const normalizedSearch = normalizeAuthorFilter(search)?.toLowerCase() ?? null;
+	const normalizedSearch =
+		normalizeAuthorFilter(search, authorProvider)?.toLowerCase() ?? null;
 	const showCustomOption =
+		(searchSelection?.ready ?? true) &&
 		!!normalizedSearch &&
 		!filtered.some((c) => c.login.toLowerCase() === normalizedSearch);
 
@@ -110,7 +121,7 @@ export function AuthorFilter({
 							(author) => author.toLowerCase() !== login.toLowerCase(),
 						)
 					: [...selectedAuthors, login];
-		onChange(normalizeAuthorFilters(next.join(",")));
+		onChange(normalizeAuthorFilters(next.join(","), authorProvider));
 		setSearch("");
 	};
 
@@ -135,23 +146,49 @@ export function AuthorFilter({
 				<Command shouldFilter={false}>
 					<CommandInput
 						placeholder={
-							singleTarget
-								? t({
-										message: "Search authors…",
-									})
-								: t({
-										message: "GitHub username…",
-									})
+							authorProvider === "unknown" || authorProvider === "mixed"
+								? t({ message: "Username…" })
+								: authorProvider === "gitlab"
+									? t({ message: "GitLab username or @me…" })
+									: singleTarget
+										? t({
+												message: "Search authors…",
+											})
+										: t({
+												message: "GitHub username…",
+											})
 						}
 						value={search}
 						onValueChange={setSearch}
 					/>
 					<CommandList className="max-h-72">
-						{singleTarget && isLoading && !contributors && (
-							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
-								<Trans>Loading contributors…</Trans>
+						{searchSelection?.error && (
+							<div role="alert" className="px-3 py-2 text-sm text-destructive">
+								{errorMessage(new Error(searchSelection.error))}
 							</div>
 						)}
+						{searchSelection && !searchSelection.ready && (
+							<div className="px-3 py-2 text-sm text-muted-foreground">
+								<Trans>
+									Repository search capabilities are not available yet.
+								</Trans>
+							</div>
+						)}
+						{authorProvider === "mixed" && (
+							<div className="px-3 py-2 text-sm text-muted-foreground">
+								<Trans>
+									Use a username supported by all selected providers.
+								</Trans>
+							</div>
+						)}
+						{githubContributors &&
+							singleTarget &&
+							isLoading &&
+							!contributors && (
+								<div className="px-3 py-4 text-center text-sm text-muted-foreground">
+									<Trans>Loading contributors…</Trans>
+								</div>
+							)}
 						{(!search || filtered.length > 0 || showCustomOption) && (
 							<CommandGroup>
 								{!search && (
@@ -180,10 +217,12 @@ export function AuthorFilter({
 										onSelect={() => handleSelect(contributor.login)}
 									>
 										<Avatar className="size-4 shrink-0 rounded-sm">
-											<AvatarImage
-												src={`https://github.com/${contributor.login}.png?size=32`}
-												alt={contributor.login}
-											/>
+											{githubContributors && (
+												<AvatarImage
+													src={`https://github.com/${contributor.login}.png?size=32`}
+													alt={contributor.login}
+												/>
+											)}
 											<AvatarFallback className="rounded-sm text-[8px]">
 												{contributor.login.slice(0, 1).toUpperCase()}
 											</AvatarFallback>
@@ -203,13 +242,17 @@ export function AuthorFilter({
 									>
 										<HiOutlineUserCircle className="size-4 shrink-0" />
 										<span className="text-sm">
-											<Trans>Filter by @{normalizedSearch}</Trans>
+											{normalizedSearch === "@me" ? (
+												<Trans>Filter by current GitLab user</Trans>
+											) : (
+												<Trans>Filter by @{normalizedSearch}</Trans>
+											)}
 										</span>
 									</CommandItem>
 								)}
 							</CommandGroup>
 						)}
-						{singleTarget && !isLoading && error && (
+						{githubContributors && singleTarget && !isLoading && error && (
 							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
 								<Trans>
 									Couldn't load contributors — type a username instead.

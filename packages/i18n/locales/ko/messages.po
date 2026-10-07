@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{0}개 목표 중 {met}개가 {nextLabel}을(를) 향해 제 몫을 하고 있습니다 — {laggingLabels}이(가) 가장 뒤처져 있습니다."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} (커밋 스쿼시)"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "대비 {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {자동화 #개를 시작했습니다} other {자�
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {서브 에이전트 #개 실행 중}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "총 {total}개 중 {succeeded}개 성공{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다} other {워크스페이스 #개를 만들었고 {failCount}개는 실패했습니다}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {#개 검사를 모두 통과했습니다} other {#�
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub 이슈} other {GitHub 이슈}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {GitLab 이슈} other {GitLab 이슈}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {이슈} other {이슈}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {풀 리퀘스트} other {풀 리퀘스트}}"
@@ -1615,6 +1627,9 @@ msgstr "GitHub 이슈를 보려면 프로젝트를 추가하세요."
 
 msgid "Add a project to see pull requests."
 msgstr "풀 리퀘스트를 보려면 프로젝트를 추가하세요."
+
+msgid "Add a project to see repository issues."
+msgstr "저장소 이슈를 보려면 프로젝트를 추가하세요."
 
 msgid "Add a short summary…"
 msgstr "짧은 요약 추가…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic이 이 토큰을 거부했습니다."
 msgid "any account"
 msgstr "모든 계정"
 
+msgid "Any branch"
+msgstr "모든 브랜치"
+
 msgid "Any channel"
 msgstr "모든 채널"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "지원"
 
+msgid "Approval requirements unavailable"
+msgstr "승인 요건을 확인할 수 없음"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "남은 승인: {required}개 중 {left}개"
+
 msgid "Approve"
 msgstr "승인"
 
@@ -2368,8 +2392,14 @@ msgstr "대신 승인"
 msgid "Approved"
 msgstr "승인됨"
 
+msgid "Approved by {approvedBy}"
+msgstr "승인자: {approvedBy}"
+
 msgid "Approved review"
 msgstr "승인된 리뷰"
+
+msgid "Approved with all approval rules met"
+msgstr "모든 승인 규칙을 충족하여 승인됨"
 
 msgid "Apps"
 msgstr "앱"
@@ -2732,6 +2762,9 @@ msgstr "내 리뷰 대기 중"
 msgid "Awaiting review from you or your team"
 msgstr "나 또는 팀의 리뷰 대기 중"
 
+msgid "Awaiting your current review"
+msgstr "내 현재 리뷰 대기 중"
+
 msgid "Back"
 msgstr "뒤로"
 
@@ -2758,6 +2791,9 @@ msgstr "현재 버전으로 돌아가기"
 
 msgid "Back to GitHub issues"
 msgstr "GitHub 이슈로 돌아가기"
+
+msgid "Back to GitLab issues"
+msgstr "GitLab 이슈로 돌아가기"
 
 msgid "Back to Home"
 msgstr "홈으로 돌아가기"
@@ -3290,6 +3326,9 @@ msgstr "담당자 변경"
 msgid "Change avatar"
 msgstr "아바타 변경"
 
+msgid "Change connection"
+msgstr "연결 변경"
+
 msgid "Change icon"
 msgstr "아이콘 변경"
 
@@ -3439,6 +3478,9 @@ msgstr "환경 확인 중…"
 msgid "Checking host…"
 msgstr "호스트 확인하는 중…"
 
+msgid "Checking merge requirements"
+msgstr "머지 요건 확인 중"
+
 msgid "Checking out a PR requires a project"
 msgstr "PR을 체크아웃하려면 프로젝트가 필요합니다"
 
@@ -3475,6 +3517,9 @@ msgstr "검사 완료"
 msgid "Checks failed"
 msgstr "검사 실패"
 
+msgid "Checks need action"
+msgstr "검사에 조치 필요"
+
 msgid "Checks passed"
 msgstr "검사 통과"
 
@@ -3493,6 +3538,9 @@ msgstr "상위 디렉터리 선택"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "이슈를 열기 전에 GitHub 이슈 화면에서 프로젝트를 선택하세요."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "이슈를 열기 전에 GitLab 이슈 목록에서 프로젝트를 선택하세요."
+
 msgid "Choose a section."
 msgstr "섹션을 선택하세요."
 
@@ -3504,6 +3552,9 @@ msgstr "기존 리포지토리 폴더 선택"
 
 msgid "Choose app"
 msgstr "앱 선택"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "GitHub 저장소 또는 GitLab 프로젝트 하나를 선택하세요"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "미리보기 패널이 없을 때 파일을 여는 방식을 선택합니다"
@@ -3834,6 +3885,10 @@ msgstr "워크스페이스 닫기"
 msgid "Closed"
 msgstr "닫힘"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "닫힘"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "이 포트들을 닫으면 해당 포트를 사용하는 프로세스가 종료됩니다."
 
@@ -3851,6 +3906,9 @@ msgstr "닫는 중…"
 
 msgid "Cloud"
 msgstr "클라우드"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "클라우드 환경이 변경되었습니다. 다시 선택하세요."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "클라우드 버전이 곧 출시됩니다. 공동 개발 파트너가 되어 주세요"
@@ -4135,6 +4193,9 @@ msgstr "{name} 연결"
 msgid "Connect a device"
 msgstr "기기 연결"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "자체 관리 인스턴스와 중첩된 하위 그룹을 포함한 GitLab 프로젝트 또는 그룹을 연결하세요."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Google 계정을 연결하세요. 메일함은 읽기 전용이며 트리거는 연결한 사람을 대상으로 실행됩니다."
 
@@ -4177,6 +4238,9 @@ msgstr "Notion 연결"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notion을 연결하면 데이터 소스의 행이 바뀌거나 누군가 페이지에 댓글을 달 때 자동화를 실행할 수 있습니다."
 
+msgid "Connect repos and sync merge requests."
+msgstr "저장소를 연결하고 병합 요청을 동기화하세요."
+
 msgid "Connect repos and sync pull requests."
 msgstr "리포지토리를 연결하고 풀 리퀘스트를 동기화합니다."
 
@@ -4191,6 +4255,12 @@ msgstr "Slack을 연결해 대화에서 바로 작업을 관리하세요. 아무
 
 msgid "Connect this computer"
 msgstr "이 컴퓨터에 연결"
+
+msgid "Connect with a token"
+msgstr "토큰으로 연결"
+
+msgid "Connect with GitLab"
+msgstr "GitLab로 연결"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHub 리포지토리를 연결하고 풀 리퀘스트를 동기화하세요. 팀 전체의 CI 상태와 리뷰를 추적할 수 있습니다."
@@ -4384,6 +4454,9 @@ msgstr "다른 에이전트로 계속하기…"
 msgid "Continue with GitHub"
 msgstr "GitHub로 계속하기"
 
+msgid "Continue with GitLab"
+msgstr "GitLab로 계속하기"
+
 msgid "Continue with Google"
 msgstr "Google로 계속하기"
 
@@ -4526,6 +4599,9 @@ msgstr "링크 복사"
 msgid "Copy Link Address"
 msgstr "링크 주소 복사"
 
+msgid "Copy link to merge request"
+msgstr "병합 요청 링크 복사"
+
 msgid "Copy link to pull request"
 msgstr "풀 리퀘스트 링크 복사"
 
@@ -4647,6 +4723,9 @@ msgstr "링크를 복사할 수 없습니다"
 msgid "Could not create cloud workspace"
 msgstr "클라우드 워크스페이스를 만들 수 없습니다"
 
+msgid "Could not create environment"
+msgstr "환경을 만들 수 없습니다"
+
 msgid "Could not create project"
 msgstr "프로젝트를 만들 수 없습니다"
 
@@ -4681,11 +4760,23 @@ msgstr "디렉터리를 나열할 수 없습니다"
 msgid "Could not load agents from {0}"
 msgstr "{0}에서 에이전트를 불러오지 못했습니다"
 
+msgid "Could not load branches. Try again."
+msgstr "브랜치를 불러올 수 없습니다. 다시 시도하세요."
+
+msgid "Could not load connection status."
+msgstr "연결 상태를 불러올 수 없습니다."
+
 msgid "Could not load environments"
 msgstr "환경을 불러오지 못했습니다"
 
 msgid "Could not load environments."
 msgstr "환경을 불러오지 못했습니다."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "GitLab 프로젝트를 불러올 수 없습니다. 연동에서 연결을 확인하세요."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "GitLab 프로젝트를 불러올 수 없습니다. 다시 시도하세요."
 
 msgid "Could not load image"
 msgstr "이미지를 불러올 수 없음"
@@ -4701,6 +4792,9 @@ msgstr "이 차이를 불러올 수 없습니다"
 
 msgid "Could not load this file."
 msgstr "이 파일을 불러올 수 없습니다."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "이 병합 요청을 불러오지 못했습니다. 해당 호스트에 다시 연결한 후 다시 시도하세요."
 
 msgid "Could not load your machines"
 msgstr "머신을 불러오지 못했습니다"
@@ -5113,6 +5207,12 @@ msgstr "머지 커밋 만들기"
 msgid "Create Merge Commit"
 msgstr "머지 커밋 만들기"
 
+msgid "Create merge request"
+msgstr "병합 요청 만들기"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "병합 요청 만들기 실패: {errorMessage}"
+
 msgid "Create new group"
 msgstr "새 그룹 만들기"
 
@@ -5256,6 +5356,9 @@ msgstr "작업 생성 중"
 msgid "Creating a workspace"
 msgstr "워크스페이스 생성 중"
 
+msgid "Creating merge request..."
+msgstr "병합 요청 만드는 중..."
+
 msgid "Creating PR..."
 msgstr "PR 생성 중…"
 
@@ -5320,8 +5423,14 @@ msgstr "현재 속도"
 msgid "Current plan"
 msgstr "현재 플랜"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "현재 리뷰 필터는 이 선택에서 사용할 수 없습니다. 해제하려면 “모든 리뷰”를 선택하세요."
+
 msgid "Current tab"
 msgstr "현재 탭"
+
+msgid "Current workspace files"
+msgstr "현재 워크스페이스 파일"
 
 msgid "Cursor"
 msgstr "커서"
@@ -6103,6 +6212,9 @@ msgstr "초안 · 파일"
 msgid "Draft · line {0}"
 msgstr "초안 · {0}번 줄"
 
+msgid "Draft merge request opened"
+msgstr "초안 병합 요청 열림"
+
 msgid "Draft opened"
 msgstr "초안 열림"
 
@@ -6390,6 +6502,9 @@ msgstr "Superset이 마음에 드시나요?"
 
 msgid "Ensure no regression"
 msgstr "회귀가 없는지 확인해 주세요"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "gitlab.com 또는 gitlab.example.com:8443 같은 GitLab HTTPS 호스트를 입력하세요."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}의 상위 디렉터리를 입력하세요"
@@ -7145,6 +7260,9 @@ msgstr "실패"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "패스트 포워드 머지"
+
 msgid "Fatal"
 msgstr "치명적"
 
@@ -7246,6 +7364,9 @@ msgstr "@{normalizedSearch}(으)로 필터링"
 
 msgid "Filter by author: {label}"
 msgstr "작성자별 필터: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "현재 GitLab 사용자로 필터링"
 
 msgid "Filter by device"
 msgstr "기기별 필터"
@@ -7745,6 +7866,60 @@ msgstr "GitHub 사용자 이름..."
 msgid "GitHub username…"
 msgstr "GitHub 사용자 이름…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "GitLab 승인 규칙 필터를 사용하려면 승인 규칙 API를 사용할 수 있어야 합니다."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "GitLab 승인이 취소되었습니다. 다시 시도하세요."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab이 해당 프로젝트를 찾지 못했습니다"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab이 머지를 확인하지 않았습니다"
+
+msgid "GitLab host"
+msgstr "GitLab 호스트"
+
+msgid "GitLab issue content could not be verified"
+msgstr "GitLab 이슈 내용을 확인할 수 없습니다"
+
+msgid "GitLab issues"
+msgstr "GitLab 이슈"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "GitLab 병합 요청이 변경되었습니다. 다시 시도하기 전에 새로 고침하세요"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "GitLab 머지 상태: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "API 서버에 GitLab OAuth가 설정되지 않았습니다. 관리자에게 문의하거나 토큰을 사용하세요."
+
+msgid "GitLab projects"
+msgstr "GitLab 프로젝트"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab이 머지를 거부했습니다"
+
+msgid "GitLab repositories"
+msgstr "GitLab 리포지토리"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "GitLab 리뷰 여부 필터는 현재 리뷰 주기를 기준으로 합니다."
+
+msgid "GitLab username or @me…"
+msgstr "GitLab 사용자 이름 또는 @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab의 로컬 연결은 해제되었지만 원격 웹훅 또는 토큰 정리에 실패했습니다. GitLab에 남아 있는 접근 권한을 확인하세요."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "GitLab 웹훅 설정에 실패했습니다. 연결과 웹훅 권한을 확인한 후 웹훅을 새로고침하세요."
+
 msgid "Give me an example"
 msgstr "예시를 보여주세요"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git 또는 /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git 또는 /path/to/repo"
+
 msgid "Human"
 msgstr "사람"
 
@@ -8508,6 +8686,9 @@ msgstr "동의 응답이 올바르지 않습니다. 다시 시도해 주세요."
 msgid "Invalid email address."
 msgstr "올바르지 않은 이메일 주소입니다."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "GitLab 병합 요청 식별 정보가 유효하지 않습니다"
+
 msgid "Invalid hostId"
 msgstr "hostId가 올바르지 않습니다"
 
@@ -8612,6 +8793,9 @@ msgstr "이슈 생성됨"
 
 msgid "Issue not found."
 msgstr "이슈를 찾을 수 없습니다."
+
+msgid "Issue opened"
+msgstr "이슈 열림"
 
 msgid "Issue resolved"
 msgstr "이슈 해결됨"
@@ -9094,6 +9278,9 @@ msgstr "Linear 이슈 연결"
 msgid "Link pull request"
 msgstr "풀 리퀘스트 연결"
 
+msgid "Link repository issue"
+msgstr "저장소 이슈 연결"
+
 msgid "Link task"
 msgstr "작업 연결"
 
@@ -9232,6 +9419,9 @@ msgstr "더 불러오는 중…"
 msgid "Loading project…"
 msgstr "프로젝트 불러오는 중…"
 
+msgid "Loading projects..."
+msgstr "프로젝트 불러오는 중..."
+
 msgid "Loading projects…"
 msgstr "프로젝트 불러오는 중…"
 
@@ -9249,6 +9439,9 @@ msgstr "리포지토리 불러오는 중"
 
 msgid "Loading repositories..."
 msgstr "리포지토리를 불러오는 중..."
+
+msgid "Loading repositories…"
+msgstr "리포지토리를 불러오는 중…"
 
 msgid "Loading review..."
 msgstr "리뷰를 불러오는 중..."
@@ -9587,11 +9780,17 @@ msgstr "머지"
 msgid "Merge #{0}?"
 msgstr "#{0}을(를) 머지할까요?"
 
+msgid "Merge blocked"
+msgstr "머지 차단됨"
+
 msgid "Merge commit"
 msgstr "머지 커밋"
 
 msgid "Merge Commit"
 msgstr "머지 커밋"
+
+msgid "Merge conflicts"
+msgstr "머지 충돌"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "풀 리퀘스트 머지"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Superset을 벗어나지 않고 풀 리퀘스트를 머지하세요. 채팅 수정과 다듬기도 함께 들어갑니다."
+
+msgid "Merge request actions"
+msgstr "병합 요청 작업"
+
+msgid "Merge request approval removed"
+msgstr "병합 요청 승인 취소됨"
+
+msgid "Merge request approved"
+msgstr "병합 요청 승인됨"
+
+msgid "Merge request changes are unavailable"
+msgstr "병합 요청 변경 사항을 사용할 수 없습니다"
+
+msgid "Merge request is locked"
+msgstr "병합 요청이 잠겨 있습니다"
+
+msgid "Merge request label changed"
+msgstr "병합 요청 라벨 변경됨"
+
+msgid "Merge request merged"
+msgstr "병합 요청 병합됨"
+
+msgid "Merge request opened"
+msgstr "병합 요청 열림"
+
+msgid "Merge request pushed"
+msgstr "병합 요청에 변경 사항 푸시됨"
+
+msgid "Merge request title"
+msgstr "병합 요청 제목"
 
 msgid "Merge when checks pass"
 msgstr "검사 통과 시 머지"
@@ -9673,6 +9902,9 @@ msgstr "최소화"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub 이슈 최소화"
+
+msgid "Minimize issues"
+msgstr "이슈 최소화"
 
 msgid "Minimum contrast"
 msgstr "최소 대비"
@@ -10321,11 +10553,17 @@ msgstr "아직 댓글이 없습니다. 댓글 모드를 켜고 페이지의 아�
 msgid "No commits on this branch yet."
 msgstr "이 브랜치에는 아직 커밋이 없습니다."
 
+msgid "No commits to open a merge request from"
+msgstr "병합 요청을 만들 커밋이 없습니다"
+
 msgid "No commits to open a pull request from"
 msgstr "풀 리퀘스트를 만들 커밋이 없습니다"
 
 msgid "No comparisons yet."
 msgstr "아직 비교가 없습니다."
+
+msgid "No completed reviews or approvals"
+msgstr "완료된 리뷰나 승인 없음"
 
 msgid "No console output"
 msgstr "콘솔 출력 없음"
@@ -10392,6 +10630,9 @@ msgstr "이 기간에 표시할 퍼널 데이터가 없습니다"
 
 msgid "No git remote detected"
 msgstr "git 리모트를 찾지 못했습니다"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "GitLab 프로젝트를 찾을 수 없습니다. 연동에서 GitLab을 연결하세요."
 
 msgid "No grouping"
 msgstr "그룹화 안 함"
@@ -10859,6 +11100,9 @@ msgstr "아직 이벤트를 받지 못하고 있습니다. Microsoft Graph가 �
 msgid "Not reviewed by you"
 msgstr "내가 리뷰하지 않음"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "현재 리뷰 주기에서 내가 리뷰하지 않음"
+
 msgid "not set up"
 msgstr "설정 안 됨"
 
@@ -10874,6 +11118,9 @@ msgstr "정렬 안 됨"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "업데이트 없음"
+
+msgid "Note added"
+msgstr "노트 추가됨"
 
 msgid "Notes"
 msgstr "노트"
@@ -11070,6 +11317,9 @@ msgstr "호스트 소유자만 이 위치를 변경할 수 있습니다."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "호스트 소유자 또는 조직 소유자만 이 호스트를 삭제할 수 있습니다"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "조직 관리자와 소유자만 이 연결을 관리할 수 있습니다."
 
 msgid "Only organization owners can modify these settings."
 msgstr "조직 소유자만 이 설정을 변경할 수 있습니다."
@@ -11324,6 +11574,9 @@ msgstr "Finder에서 열기"
 msgid "Open in GitHub"
 msgstr "GitHub에서 열기"
 
+msgid "Open in GitLab"
+msgstr "GitLab에서 열기"
+
 msgid "Open in Linear"
 msgstr "Linear에서 열기"
 
@@ -11363,6 +11616,9 @@ msgstr "브라우저에서 이슈 #{0} 열기"
 
 msgid "Open issue in GitHub"
 msgstr "GitHub에서 이슈 열기"
+
+msgid "Open issue in GitLab"
+msgstr "GitLab에서 이슈 열기"
 
 msgid "Open issue in Linear"
 msgstr "Linear에서 이슈 열기"
@@ -11950,6 +12206,9 @@ msgstr "최고 속도"
 msgid "Pending Invitations"
 msgstr "대기 중인 초대"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "대기 중인 리뷰 또는 충족되지 않은 승인 규칙"
+
 msgid "People"
 msgstr "사람"
 
@@ -11995,6 +12254,9 @@ msgstr "사람"
 
 msgid "Personal"
 msgstr "개인"
+
+msgid "Personal access token"
+msgstr "개인 액세스 토큰"
 
 msgid "Phantom Forklift"
 msgstr "유령 지게차"
@@ -12079,6 +12341,15 @@ msgstr "분홍"
 
 msgid "Pinned"
 msgstr "고정됨"
+
+msgid "Pipeline canceled"
+msgstr "파이프라인 취소됨"
+
+msgid "Pipeline failed"
+msgstr "파이프라인 실패"
+
+msgid "Pipeline succeeded"
+msgstr "파이프라인 성공"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "프로젝트를 찾을 수 없습니다."
 msgid "Project not set up on this host"
 msgstr "이 호스트에 프로젝트가 설정되지 않았습니다"
 
+msgid "Project or group path"
+msgstr "프로젝트 또는 그룹 경로"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "프로젝트 준비 완료 — 사이드바에서 열어 보세요."
 
@@ -12582,6 +12856,9 @@ msgstr "풀 리퀘스트 #{0}, {1}"
 msgid "Pull request actions"
 msgstr "풀 리퀘스트 작업"
 
+msgid "Pull request not found."
+msgstr "풀 리퀘스트를 찾을 수 없습니다."
+
 msgid "Pull request title"
 msgstr "풀 리퀘스트 제목"
 
@@ -12597,6 +12874,10 @@ msgstr "풀 리퀘스트"
 msgid "Purple"
 msgstr "보라"
 
+msgid "Push"
+msgstr "푸시"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "푸시"
 
@@ -12802,6 +13083,9 @@ msgstr "리베이스 후 머지"
 msgid "Rebase and merge"
 msgstr "리베이스 후 머지"
 
+msgid "Rebase branch"
+msgstr "브랜치 리베이스"
+
 msgid "Recent Activity"
 msgstr "최근 활동"
 
@@ -12843,6 +13127,12 @@ msgstr "다시 연결"
 
 msgid "Reconnect {name}"
 msgstr "{name} 다시 연결"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "이 프로젝트를 복제하려면 GitLab을 다시 연결하세요"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "GitLab을 다시 연결하여 접근 권한과 웹훅 전송을 복원하세요."
 
 msgid "Reconnect Google"
 msgstr "Google 다시 연결"
@@ -12892,6 +13182,9 @@ msgstr "새로 고침"
 msgid "Refresh GitHub issues"
 msgstr "GitHub 이슈 새로 고침"
 
+msgid "Refresh issues"
+msgstr "이슈 새로 고침"
+
 msgid "Refresh Linear issues"
 msgstr "Linear 이슈 새로 고침"
 
@@ -12903,6 +13196,9 @@ msgstr "풀 리퀘스트 새로 고침"
 
 msgid "Refresh repositories"
 msgstr "리포지토리 새로 고침"
+
+msgid "Refresh webhooks"
+msgstr "웹훅 새로고침"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "다음에 Claude Code를 실행하면 갱신됩니다."
@@ -13241,8 +13537,17 @@ msgstr "리포지토리: {label}"
 msgid "Repository"
 msgstr "리포지토리"
 
+msgid "Repository issues"
+msgstr "저장소 이슈"
+
+msgid "Repository provider"
+msgstr "리포지토리 제공자"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "저장소 도달 범위와 데스크톱 릴리스 다운로드. 설치는 dmg와 AppImage 다운로드, 업데이트는 자동 업데이터가 받는 zip으로 기존 사용자를 집계합니다."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "리포지토리 검색 기능을 아직 사용할 수 없습니다."
 
 msgid "Repository URL or path"
 msgstr "리포지토리 URL 또는 경로"
@@ -13345,6 +13650,9 @@ msgstr "모두 해결"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "머지하려면 충돌 해결"
+
+msgid "Resolve conflicts with Agent"
+msgstr "에이전트로 충돌 해결"
 
 msgid "Resolve conversation"
 msgstr "대화 해결"
@@ -13615,6 +13923,12 @@ msgstr "리뷰 스레드…"
 
 msgid "Reviewed by you"
 msgstr "내가 리뷰함"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "현재 리뷰 주기에서 내가 리뷰함"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "리뷰 여부 필터는 GitHub 리뷰 기록과 현재 GitLab 리뷰 주기를 기준으로 합니다."
 
 msgid "Reviewers"
 msgstr "리뷰어"
@@ -14034,6 +14348,18 @@ msgstr "GitHub 이슈 검색"
 msgid "Search GitHub issues…"
 msgstr "GitHub 이슈 검색…"
 
+msgid "Search GitLab issues"
+msgstr "GitLab 이슈 검색"
+
+msgid "Search GitLab issues…"
+msgstr "GitLab 이슈 검색…"
+
+msgid "Search GitLab projects..."
+msgstr "GitLab 프로젝트 검색..."
+
+msgid "Search GitLab repositories..."
+msgstr "GitLab 리포지토리 검색..."
+
 msgid "Search history"
 msgstr "기록 검색"
 
@@ -14090,6 +14416,12 @@ msgstr "풀 리퀘스트 검색…"
 
 msgid "Search repositories..."
 msgstr "리포지토리 검색..."
+
+msgid "Search repository issues"
+msgstr "저장소 이슈 검색"
+
+msgid "Search repository issues…"
+msgstr "저장소 이슈 검색…"
 
 msgid "Search settings..."
 msgstr "설정 검색..."
@@ -14208,17 +14540,26 @@ msgstr "최근 30일 사용량이 공개 리더보드에서 어디쯤인지 확�
 msgid "Select"
 msgstr "선택"
 
+msgid "Select a host to browse repositories."
+msgstr "리포지토리를 탐색할 호스트를 선택하세요."
+
 msgid "Select a project"
 msgstr "프로젝트를 선택하세요"
 
 msgid "Select a project first"
 msgstr "프로젝트를 먼저 선택하세요"
 
+msgid "Select a project to create an environment for it."
+msgstr "환경을 만들 프로젝트를 선택하세요."
+
 msgid "Select a project to see GitHub issues."
 msgstr "GitHub 이슈를 보려면 프로젝트를 선택하세요."
 
 msgid "Select a project to see pull requests."
 msgstr "풀 리퀘스트를 보려면 프로젝트를 선택하세요."
+
+msgid "Select a project to see repository issues."
+msgstr "저장소 이슈를 보려면 프로젝트를 선택하세요."
 
 msgid "Select a pull request to preview it here."
 msgstr "풀 리퀘스트를 선택하면 여기에서 미리 볼 수 있습니다."
@@ -14309,6 +14650,9 @@ msgstr "프로젝트 위치 선택"
 
 msgid "Select project worktree location"
 msgstr "프로젝트 worktree 위치 선택"
+
+msgid "Select projects"
+msgstr "프로젝트 선택"
 
 msgid "Select range..."
 msgstr "범위 선택..."
@@ -14790,6 +15134,9 @@ msgstr "앱 업데이트를 설치할 수 있을 때 사이드바에 표시되�
 
 msgid "Sign in"
 msgstr "로그인"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "이 연결을 관리하려면 조직 관리자 또는 소유자로 로그인하세요."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "로컬 관리자로 로그인 (dev)"
@@ -15984,6 +16331,9 @@ msgstr "팀 멤버"
 msgid "Team not found in this organization"
 msgstr "이 조직에서 팀을 찾을 수 없습니다"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "선택한 GitLab 프로젝트에서는 팀 리뷰 요청을 사용할 수 없습니다."
+
 msgid "Team settings"
 msgstr "팀 설정"
 
@@ -16134,6 +16484,9 @@ msgstr "해당 엔드포인트를 확인할 수 없습니다."
 msgid "That endpoint is not allowed."
 msgstr "해당 엔드포인트는 허용되지 않습니다."
 
+msgid "That filter is not supported for this event."
+msgstr "이 이벤트에서는 해당 필터를 사용할 수 없습니다."
+
 msgid "That handle is taken."
 msgstr "이미 사용 중인 핸들입니다."
 
@@ -16148,6 +16501,9 @@ msgstr "해당 머신을 더 이상 사용할 수 없습니다"
 
 msgid "That name isn't allowed."
 msgstr "사용할 수 없는 이름입니다."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "해당 URL은 연결된 GitLab 호스트에 없습니다"
 
 msgid "The 2026 bet"
 msgstr "2026년의 베팅"
@@ -16260,12 +16616,30 @@ msgstr "완전한 워크스페이스. 에이전트를 병렬로 실행하고, �
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "재사용 가능한 Superset 에이전트 설정, 프롬프트, 셋업 가이드가 모일 공간입니다."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "GitLab 승인 응답이 불완전합니다. 다시 시도하세요."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "GitLab 승인 세션이 유효하지 않거나 만료되었습니다. 다시 시도하세요."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "이 GitLab 호스트는 허용되지 않습니다. OAuth는 서버에 등록된 GitLab 호스트를 사용해야 하며, 토큰에는 승인된 HTTPS 호스트가 필요합니다."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "GitLab 프로젝트 또는 그룹을 찾을 수 없거나 접근할 수 없습니다. 하위 그룹을 포함한 전체 경로를 입력하세요."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "GitLab 토큰이 거부되었습니다. 만료일과 api 및 read_repository 범위를 확인한 후 다시 연결하세요."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "호스트가 {targetVersion}이(가) 아닌 {0}(으)로 돌아왔습니다."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "호스트가 15분 이내에 다시 연결되지 않았습니다."
+
+msgid "The host did not confirm a terminal session"
+msgstr "호스트가 터미널 세션을 확인하지 않았습니다"
 
 msgid "The host hasn't answered."
 msgstr "호스트가 응답하지 않았습니다."
@@ -16397,6 +16771,9 @@ msgstr "자율 주행 소프트웨어 공장"
 
 msgid "The server could not be found"
 msgstr "서버를 찾을 수 없습니다"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "서버의 GitLab OAuth 호스트가 유효하지 않습니다. 관리자에게 문의하거나 토큰을 사용하세요."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "로그인 링크가 완전하지 않습니다. 다시 시도해 주세요."
@@ -16594,6 +16971,12 @@ msgstr "이 파일은 비어 있거나 삭제되었습니다."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "이 GitHub 설치는 이미 다른 Superset 조직에 연결되어 있습니다. 해당 조직에서 연결을 해제하거나 Superset GitHub App을 제거한 뒤 다시 시도해 주세요."
 
+msgid "This GitLab check is no longer available."
+msgstr "이 GitLab 검사는 더 이상 사용할 수 없습니다."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "이 GitLab 프로젝트 또는 그룹은 이미 다른 Superset 조직에 연결되어 있습니다. 다시 연결하기 전에 해당 조직에서 연결을 해제하세요."
+
 msgid "This host"
 msgstr "이 호스트"
 
@@ -16647,6 +17030,9 @@ msgstr "이번 달"
 
 msgid "This only changes the display name, not the branch."
 msgstr "표시 이름만 변경되며 브랜치는 바뀌지 않습니다."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "이 GitLab 병합 요청에서는 이 작업을 사용할 수 없습니다"
 
 msgid "this organization"
 msgstr "이 조직"
@@ -17373,6 +17759,9 @@ msgstr "해결 취소"
 msgid "Unresolved"
 msgstr "미해결"
 
+msgid "Unresolved conversations"
+msgstr "미해결 대화"
+
 msgid "Unsaved changes"
 msgstr "저장하지 않은 변경 사항"
 
@@ -17462,6 +17851,9 @@ msgstr "파일을 첨부하려면 이 컴퓨터에서 Superset을 업데이트�
 msgid "update the branch prefix"
 msgstr "브랜치 접두사를 업데이트할"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "GitLab 리포지토리를 탐색하려면 이 호스트를 업데이트하세요. 리포지토리 URL 또는 경로를 사용한 복제는 계속 가능합니다."
+
 msgid "Updated"
 msgstr "업데이트됨"
 
@@ -17544,6 +17936,12 @@ msgstr "사용량을 볼 수 없습니다."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "“{0}” 사용"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "api 및 read_repository 범위가 있는 개인 액세스 토큰을 사용하세요. GitLab 계정에 선택한 프로젝트 또는 그룹의 웹훅을 관리할 권한이 있어야 합니다."
+
+msgid "Use a username supported by all selected providers."
+msgstr "선택한 모든 제공자에서 지원하는 사용자 이름을 사용하세요."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "워크스페이스 기준 상대 경로나 절대 경로 폴더를 사용하세요."
@@ -17635,6 +18033,9 @@ msgstr "사용자를 찾을 수 없습니다"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "사용자 이름…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "임의의 브랜치 이름을 사용합니다 (AI 생성 시간 초과)"
 
@@ -17718,6 +18119,9 @@ msgstr "전체 보기"
 msgid "View All"
 msgstr "전체 보기"
 
+msgid "View checks"
+msgstr "검사 보기"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0}의 코멘트 보기"
@@ -17733,6 +18137,9 @@ msgstr "전체 크기로 보기"
 
 msgid "View in GitHub"
 msgstr "GitHub에서 보기"
+
+msgid "View in GitLab"
+msgstr "GitLab에서 보기"
 
 msgid "View log"
 msgstr "로그 보기"
@@ -18225,6 +18632,9 @@ msgstr "워크스페이스를 만들었습니다"
 msgid "Workspace created from PR"
 msgstr "PR에서 워크스페이스를 만들었습니다"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "워크스페이스 생성 결과를 확인할 수 없습니다"
+
 msgid "Workspace details"
 msgstr "워크스페이스 세부 정보"
 
@@ -18404,6 +18814,9 @@ msgstr "해당 조직의 멤버가 아닙니다."
 
 msgid "You are not a member of this organization"
 msgstr "이 조직의 멤버가 아닙니다"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "이 조직의 연동을 관리할 권한이 없습니다."
 
 msgid "You are not authorized to perform this action."
 msgstr "이 동작을 수행할 권한이 없습니다."

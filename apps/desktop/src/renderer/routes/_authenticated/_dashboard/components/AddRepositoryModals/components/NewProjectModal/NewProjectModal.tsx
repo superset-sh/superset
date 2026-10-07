@@ -12,7 +12,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFolderOpen, LuLoaderCircle } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -24,6 +24,7 @@ import {
 } from "renderer/react-query/projects";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { GitHubRepositoryPicker } from "./components/GitHubRepositoryPicker";
+import { GitLabRepositoryPicker } from "./components/GitLabRepositoryPicker";
 
 interface NewProjectModalProps {
 	open: boolean;
@@ -65,6 +66,66 @@ export function NewProjectModal({
 		null,
 	);
 	const [working, setWorking] = useState(false);
+	const [repositoryProvider, setRepositoryProvider] = useState<
+		"github" | "gitlab"
+	>("github");
+	const [nativeSelectionHost, setNativeSelectionHost] = useState<string | null>(
+		null,
+	);
+	const context = JSON.stringify([
+		open,
+		working,
+		repositoryProvider,
+		activeHostUrl,
+		url,
+		name,
+		parentDir,
+	]);
+	const current = useRef({ context, epoch: 0 });
+	const epoch =
+		current.current.context === context
+			? current.current.epoch
+			: current.current.epoch + 1;
+	current.current = { context, epoch };
+	const mounted = useRef(true);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, []);
+	const liveNativeContext = () =>
+		mounted.current &&
+		open &&
+		!working &&
+		current.current.context === context &&
+		current.current.epoch === epoch;
+	const clearNativeSelection = useCallback(() => {
+		setUrl("");
+		setSelectedRepository(null);
+		setNativeSelectionHost(null);
+	}, []);
+	useEffect(() => {
+		if (!open && repositoryProvider === "gitlab") {
+			clearNativeSelection();
+			setRepositoryProvider("github");
+		} else if (
+			nativeSelectionHost !== null &&
+			nativeSelectionHost !== activeHostUrl
+		)
+			clearNativeSelection();
+	}, [
+		open,
+		repositoryProvider,
+		activeHostUrl,
+		nativeSelectionHost,
+		clearNativeSelection,
+	]);
+	const selectProvider = (provider: "github" | "gitlab") => {
+		if (!liveNativeContext() || provider === repositoryProvider) return;
+		if (selectedRepository) clearNativeSelection();
+		setRepositoryProvider(provider);
+	};
 	const cloneAbortRef = useRef<AbortController | null>(null);
 
 	useEffect(() => {
@@ -82,6 +143,8 @@ export function NewProjectModal({
 		setName("");
 		setNameTouched(false);
 		setSelectedRepository(null);
+		setNativeSelectionHost(null);
+		setRepositoryProvider("github");
 		setWorking(false);
 	};
 
@@ -197,6 +260,15 @@ export function NewProjectModal({
 		}
 	};
 
+	const nativeCloneInFlight = useRef(false);
+	const cloneNativeSelection = () => {
+		if (!liveNativeContext() || nativeCloneInFlight.current) return;
+		nativeCloneInFlight.current = true;
+		void createFromClone().finally(() => {
+			nativeCloneInFlight.current = false;
+		});
+	};
+
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange} modal>
 			<DialogContent className="max-w-[420px]">
@@ -213,17 +285,64 @@ export function NewProjectModal({
 
 				<div className="flex flex-col gap-4">
 					{isV2CloudEnabled && (
-						<GitHubRepositoryPicker
-							disabled={working}
-							hostUrl={activeHostUrl}
-							onSelect={(repository) => {
-								setUrl(repository.cloneUrl);
-								setName(deriveProjectNameFromUrl(repository.cloneUrl));
-								setNameTouched(false);
-								setSelectedRepository(repository.fullName);
-							}}
-							selectedFullName={selectedRepository}
-						/>
+						<div className="flex flex-col gap-2">
+							<div className="flex gap-1">
+								<Button
+									variant={
+										repositoryProvider === "github" ? "secondary" : "ghost"
+									}
+									size="sm"
+									disabled={working}
+									aria-pressed={repositoryProvider === "github"}
+									onClick={() => selectProvider("github")}
+								>
+									<Trans>GitHub</Trans>
+								</Button>
+								<Button
+									variant={
+										repositoryProvider === "gitlab" ? "secondary" : "ghost"
+									}
+									size="sm"
+									disabled={working}
+									aria-pressed={repositoryProvider === "gitlab"}
+									onClick={() => selectProvider("gitlab")}
+								>
+									<Trans>GitLab</Trans>
+								</Button>
+							</div>
+							{repositoryProvider === "github" && (
+								<GitHubRepositoryPicker
+									disabled={working}
+									hostUrl={activeHostUrl}
+									onSelect={(repository) => {
+										setUrl(repository.cloneUrl);
+										setName(deriveProjectNameFromUrl(repository.cloneUrl));
+										setNameTouched(false);
+										setSelectedRepository(repository.fullName);
+									}}
+									selectedFullName={selectedRepository}
+								/>
+							)}
+							{repositoryProvider === "gitlab" && open && (
+								<GitLabRepositoryPicker
+									key={activeHostUrl}
+									disabled={working}
+									hostUrl={activeHostUrl}
+									selectedCloneUrl={selectedRepository ? url : null}
+									onInvalidate={() => {
+										if (liveNativeContext()) clearNativeSelection();
+									}}
+									onSelect={(repository) => {
+										if (!liveNativeContext()) return;
+										setUrl(repository.cloneUrl);
+										setName(deriveProjectNameFromUrl(repository.cloneUrl));
+										setNameTouched(false);
+										setSelectedRepository(repository.fullName);
+										setNativeSelectionHost(activeHostUrl);
+									}}
+								/>
+							)}
+						</div>
 					)}
 
 					<div className="flex flex-col gap-1.5">
@@ -237,13 +356,22 @@ export function NewProjectModal({
 								setUrl(e.target.value);
 								setSelectedRepository(null);
 							}}
-							placeholder={t({
-								message: "https://github.com/owner/repo.git or /path/to/repo",
-							})}
+							placeholder={
+								repositoryProvider === "gitlab"
+									? t({
+											message:
+												"https://gitlab.example.com/group/project.git or /path/to/repo",
+										})
+									: t({
+											message:
+												"https://github.com/owner/repo.git or /path/to/repo",
+										})
+							}
 							disabled={working}
 							onKeyDown={(e) => {
 								if (e.key === "Enter" && !working) {
-									void createFromClone();
+									if (repositoryProvider === "gitlab") cloneNativeSelection();
+									else void createFromClone();
 								}
 							}}
 							autoFocus
@@ -305,7 +433,14 @@ export function NewProjectModal({
 					>
 						<Trans>Cancel</Trans>
 					</Button>
-					<Button onClick={() => void createFromClone()} disabled={working}>
+					<Button
+						onClick={
+							repositoryProvider === "gitlab"
+								? cloneNativeSelection
+								: () => void createFromClone()
+						}
+						disabled={working}
+					>
 						{working ? (
 							<>
 								<LuLoaderCircle className="size-4 animate-spin" />

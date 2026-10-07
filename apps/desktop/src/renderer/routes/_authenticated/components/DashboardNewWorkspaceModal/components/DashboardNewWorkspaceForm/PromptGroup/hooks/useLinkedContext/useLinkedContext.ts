@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
+import { linkedIssueFromGitLab } from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
 import {
 	type LinearIssueReference,
 	linkedIssueFromLinear,
@@ -97,6 +98,18 @@ export function useLinkedContext(
 		[linkedIssues, updateDraft],
 	);
 
+	const addLinkedGitLabIssue = useCallback(
+		(input: Parameters<typeof linkedIssueFromGitLab>[0]) => {
+			const issue = linkedIssueFromGitLab(input);
+			if (!issue) return false;
+			if (linkedIssues.some((linked) => linked.slug === issue.slug))
+				return true;
+			updateDraft({ linkedIssues: [...linkedIssues, issue] });
+			return true;
+		},
+		[linkedIssues, updateDraft],
+	);
+
 	const removeLinkedIssue = useCallback(
 		(slug: string) => {
 			const removed = linkedIssues.find((i) => i.slug === slug);
@@ -159,6 +172,7 @@ export function useLinkedContext(
 		addLinkedIssue,
 		addLinkedLinearIssue,
 		addLinkedGitHubIssue,
+		addLinkedGitLabIssue,
 		removeLinkedIssue,
 		setLinkedPR,
 		removeLinkedPR,

@@ -9,6 +9,8 @@ import { protectedProcedure } from "../../../index";
 import { resolveWorktreePath } from "../../git/utils/resolve-worktree";
 import { actionRejectionError } from "../../github/github";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
+import { createGitLabHead } from "./create-gitlab-head";
+import { resolveGitLabProject } from "./gitlab-project";
 
 const createInputSchema = z.object({
 	workspaceId: z.string(),
@@ -68,6 +70,41 @@ export const createForWorkspace = protectedProcedure
 			});
 		}
 
+		const gitlab = await resolveGitLabProject(ctx, workspace.projectId);
+		if (gitlab) {
+			const source = await createGitLabHead(
+				worktreePath,
+				gitlab.repo,
+				head,
+				gitEnv,
+			);
+			let created: { number: number; url: string };
+			try {
+				created = await gitlab.client.createPullRequest(gitlab.repo, {
+					title: input.title,
+					body: input.body,
+					draft: input.draft,
+					head: source,
+					base,
+				});
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitLab refused to create the merge request.",
+				);
+			}
+			try {
+				await ctx.runtime.pullRequests.refreshPullRequestsByWorkspaces([
+					input.workspaceId,
+				]);
+			} catch (error) {
+				console.warn(
+					"[pull-requests:create-for-workspace] created MR but failed to refresh workspace link",
+					{ workspaceId: input.workspaceId, prNumber: created.number, error },
+				);
+			}
+			return created;
+		}
 		const repo = await resolveGithubRepo(ctx, workspace.projectId);
 		const octokit = await ctx.github();
 		let created: { number: number; html_url: string };

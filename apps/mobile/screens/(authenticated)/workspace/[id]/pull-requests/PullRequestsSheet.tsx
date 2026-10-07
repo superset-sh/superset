@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { hostServiceUrl } from "@/lib/host-service/client";
+import { gitlabPullRequestFromUrl } from "@/lib/pull-request-links";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { PULL_REQUEST_STATUS, pullRequestStatus } from "../utils/pullRequest";
 import { RowDiffstat } from "./components/RowDiffstat";
@@ -26,7 +27,7 @@ export function PullRequestsSheet() {
 	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
-	const { host } = useWorkspaceHost(id ?? null);
+	const { host, workspace } = useWorkspaceHost(id ?? null);
 	const hostUrl =
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
@@ -68,7 +69,33 @@ export function PullRequestsSheet() {
 							accessibilityRole="button"
 							className="flex-row items-center gap-3 py-3 active:opacity-60"
 							key={pullRequest.key}
-							onPress={() =>
+							onPress={() => {
+								if (pullRequest.provider === "gitlab") {
+									const native =
+										pullRequest.expectedUrl &&
+										gitlabPullRequestFromUrl(pullRequest.expectedUrl);
+									if (
+										!native ||
+										native.expectedUrl !== pullRequest.expectedUrl ||
+										native.host !== pullRequest.host ||
+										native.owner !== pullRequest.repoOwner ||
+										native.repo !== pullRequest.repoName ||
+										native.pullNumber !== pullRequest.prNumber
+									)
+										return;
+									router.replace({
+										pathname: "/workspace/[id]/pull-request/[pullRequestId]",
+										params: {
+											id: id ?? "",
+											pullRequestId: String(native.pullNumber),
+											owner: native.owner,
+											repo: native.repo,
+											provider: "gitlab",
+											expectedUrl: native.expectedUrl,
+										},
+									});
+									return;
+								}
 								router.replace({
 									pathname: "/workspace/[id]/pull-request/[pullRequestId]",
 									params: {
@@ -77,8 +104,8 @@ export function PullRequestsSheet() {
 										owner: pullRequest.repoOwner,
 										repo: pullRequest.repoName,
 									},
-								})
-							}
+								});
+							}}
 						>
 							<Icon
 								as={status.icon}
@@ -92,6 +119,8 @@ export function PullRequestsSheet() {
 								enabled={index >= pullRequests.length - DIFFSTAT_ROW_LIMIT}
 								hostUrl={hostUrl}
 								pullRequest={pullRequest}
+								projectId={workspace?.projectId ?? null}
+								workspaceId={id ?? null}
 							/>
 							<Icon
 								as={ChevronRight}

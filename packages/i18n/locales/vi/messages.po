@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{met} trên {0} mục tiêu đang góp sức cho {nextLabel} — {laggingLabels} tụt lại xa nhất."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} với các commit được squash"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "độ tương phản {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {Đã khởi chạy # tự động hóa} other {Đ
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# agent con đang chạy}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "{succeeded} trên {total} đã thành công{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Đã tạo # workspace, {failCount} thất bại} other {Đã tạo # workspace, {failCount} thất bại}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {Cả # check đều đạt} other {Cả # check đ�
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {issue GitHub} other {issue GitHub}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {vấn đề trên GitLab} other {vấn đề trên GitLab}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {vấn đề} other {vấn đề}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {pull request} other {pull request}}"
@@ -1615,6 +1627,9 @@ msgstr "Thêm một dự án để xem issue GitHub."
 
 msgid "Add a project to see pull requests."
 msgstr "Thêm một dự án để xem pull request."
+
+msgid "Add a project to see repository issues."
+msgstr "Thêm một dự án để xem vấn đề của kho mã."
 
 msgid "Add a short summary…"
 msgstr "Thêm tóm tắt ngắn…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic đã từ chối token này."
 msgid "any account"
 msgstr "bất kỳ tài khoản nào"
 
+msgid "Any branch"
+msgstr "Bất kỳ nhánh nào"
+
 msgid "Any channel"
 msgstr "Kênh bất kỳ"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Ứng tuyển"
 
+msgid "Approval requirements unavailable"
+msgstr "Không có thông tin yêu cầu duyệt"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Lượt duyệt còn thiếu: {left}/{required}"
+
 msgid "Approve"
 msgstr "Duyệt"
 
@@ -2368,8 +2392,14 @@ msgstr "Duyệt giúp tôi"
 msgid "Approved"
 msgstr "Đã duyệt"
 
+msgid "Approved by {approvedBy}"
+msgstr "Được duyệt bởi {approvedBy}"
+
 msgid "Approved review"
 msgstr "Review đã duyệt"
+
+msgid "Approved with all approval rules met"
+msgstr "Đã duyệt và đáp ứng mọi quy tắc duyệt"
 
 msgid "Apps"
 msgstr "Ứng dụng"
@@ -2732,6 +2762,9 @@ msgstr "Đang chờ bạn review"
 msgid "Awaiting review from you or your team"
 msgstr "Đang chờ bạn hoặc nhóm bạn review"
 
+msgid "Awaiting your current review"
+msgstr "Đang chờ bạn review ở chu kỳ hiện tại"
+
 msgid "Back"
 msgstr "Quay lại"
 
@@ -2758,6 +2791,9 @@ msgstr "Quay lại bản hiện tại"
 
 msgid "Back to GitHub issues"
 msgstr "Quay lại issue GitHub"
+
+msgid "Back to GitLab issues"
+msgstr "Quay lại các vấn đề trên GitLab"
 
 msgid "Back to Home"
 msgstr "Về trang chủ"
@@ -3290,6 +3326,9 @@ msgstr "Đổi người phụ trách"
 msgid "Change avatar"
 msgstr "Đổi ảnh đại diện"
 
+msgid "Change connection"
+msgstr "Thay đổi kết nối"
+
 msgid "Change icon"
 msgstr "Đổi biểu tượng"
 
@@ -3439,6 +3478,9 @@ msgstr "Đang kiểm tra môi trường…"
 msgid "Checking host…"
 msgstr "Đang kiểm tra host…"
 
+msgid "Checking merge requirements"
+msgstr "Đang kiểm tra yêu cầu merge"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout một PR cần có dự án"
 
@@ -3475,6 +3517,9 @@ msgstr "Check hoàn tất"
 msgid "Checks failed"
 msgstr "Check thất bại"
 
+msgid "Checks need action"
+msgstr "Check cần xử lý"
+
 msgid "Checks passed"
 msgstr "Check đã qua"
 
@@ -3493,6 +3538,9 @@ msgstr "Chọn một thư mục cha"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Chọn một dự án trong mục Issue GitHub trước khi mở một issue."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Chọn dự án từ danh sách vấn đề trên GitLab trước khi mở một vấn đề."
+
 msgid "Choose a section."
 msgstr "Chọn một mục."
 
@@ -3504,6 +3552,9 @@ msgstr "Chọn một thư mục repo có sẵn"
 
 msgid "Choose app"
 msgstr "Chọn ứng dụng"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "Chọn các kho lưu trữ GitHub hoặc một dự án GitLab"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Chọn cách mở tệp khi chưa có khung xem trước"
@@ -3834,6 +3885,10 @@ msgstr "Đóng workspace"
 msgid "Closed"
 msgstr "Đã đóng"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Đã đóng"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Đóng các cổng này sẽ kết thúc những tiến trình đang dùng chúng."
 
@@ -3851,6 +3906,9 @@ msgstr "Đang đóng…"
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Môi trường đám mây đã thay đổi. Hãy chọn lại."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Phiên bản đám mây sắp ra mắt. Trở thành đối tác đồng phát triển"
@@ -4135,6 +4193,9 @@ msgstr "Kết nối {name}"
 msgid "Connect a device"
 msgstr "Kết nối một thiết bị"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Kết nối một dự án hoặc nhóm GitLab, bao gồm các phiên bản tự quản lý và nhóm con lồng nhau."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Kết nối tài khoản Google. Hộp thư chỉ ở chế độ đọc và các trình kích hoạt chạy cho người đã kết nối."
 
@@ -4177,6 +4238,9 @@ msgstr "Kết nối Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Kết nối Notion để chạy tự động hóa khi các dòng trong một nguồn dữ liệu thay đổi hoặc khi ai đó bình luận trên một trang."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Kết nối kho mã và đồng bộ yêu cầu hợp nhất."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Kết nối repo và đồng bộ pull request."
 
@@ -4191,6 +4255,12 @@ msgstr "Kết nối Slack để quản lý tác vụ ngay trong hội thoại. N
 
 msgid "Connect this computer"
 msgstr "Kết nối máy tính này"
+
+msgid "Connect with a token"
+msgstr "Kết nối bằng mã truy cập"
+
+msgid "Connect with GitLab"
+msgstr "Kết nối bằng GitLab"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Kết nối các repository GitHub của bạn và đồng bộ pull request. Theo dõi trạng thái CI và review trong cả nhóm."
@@ -4384,6 +4454,9 @@ msgstr "Tiếp tục với agent khác…"
 msgid "Continue with GitHub"
 msgstr "Tiếp tục với GitHub"
 
+msgid "Continue with GitLab"
+msgstr "Tiếp tục với GitLab"
+
 msgid "Continue with Google"
 msgstr "Tiếp tục với Google"
 
@@ -4526,6 +4599,9 @@ msgstr "Sao chép liên kết"
 msgid "Copy Link Address"
 msgstr "Sao chép địa chỉ liên kết"
 
+msgid "Copy link to merge request"
+msgstr "Sao chép liên kết tới yêu cầu hợp nhất"
+
 msgid "Copy link to pull request"
 msgstr "Sao chép liên kết tới pull request"
 
@@ -4647,6 +4723,9 @@ msgstr "Không thể sao chép liên kết"
 msgid "Could not create cloud workspace"
 msgstr "Không thể tạo workspace trên cloud"
 
+msgid "Could not create environment"
+msgstr "Không thể tạo môi trường"
+
 msgid "Could not create project"
 msgstr "Không thể tạo dự án"
 
@@ -4681,11 +4760,23 @@ msgstr "Không thể liệt kê thư mục"
 msgid "Could not load agents from {0}"
 msgstr "Không thể tải agent từ {0}"
 
+msgid "Could not load branches. Try again."
+msgstr "Không thể tải các nhánh. Hãy thử lại."
+
+msgid "Could not load connection status."
+msgstr "Không thể tải trạng thái kết nối."
+
 msgid "Could not load environments"
 msgstr "Không thể tải environment"
 
 msgid "Could not load environments."
 msgstr "Không thể tải environments."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "Không thể tải các dự án GitLab. Kiểm tra kết nối trong mục Tích hợp."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "Không thể tải các dự án GitLab. Hãy thử lại."
 
 msgid "Could not load image"
 msgstr "Không thể tải ảnh"
@@ -4701,6 +4792,9 @@ msgstr "Không thể tải diff này"
 
 msgid "Could not load this file."
 msgstr "Không thể tải tệp này."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Không thể tải yêu cầu hợp nhất này. Hãy kết nối lại với host của nó rồi thử lại."
 
 msgid "Could not load your machines"
 msgstr "Không thể tải danh sách máy của bạn"
@@ -5113,6 +5207,12 @@ msgstr "Tạo merge commit"
 msgid "Create Merge Commit"
 msgstr "Tạo merge commit"
 
+msgid "Create merge request"
+msgstr "Tạo yêu cầu hợp nhất"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Không thể tạo yêu cầu hợp nhất: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Tạo nhóm mới"
 
@@ -5256,6 +5356,9 @@ msgstr "Đang tạo nhiệm vụ"
 msgid "Creating a workspace"
 msgstr "Đang tạo workspace"
 
+msgid "Creating merge request..."
+msgstr "Đang tạo yêu cầu hợp nhất..."
+
 msgid "Creating PR..."
 msgstr "Đang tạo PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "Tốc độ hiện tại"
 msgid "Current plan"
 msgstr "Gói hiện tại"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Bộ lọc review hiện tại không khả dụng cho lựa chọn này. Chọn Tất cả review để xóa bộ lọc."
+
 msgid "Current tab"
 msgstr "Tab hiện tại"
+
+msgid "Current workspace files"
+msgstr "Tệp của workspace hiện tại"
 
 msgid "Cursor"
 msgstr "Con trỏ"
@@ -6103,6 +6212,9 @@ msgstr "Nháp · tệp"
 msgid "Draft · line {0}"
 msgstr "Nháp · dòng {0}"
 
+msgid "Draft merge request opened"
+msgstr "Bản nháp yêu cầu hợp nhất được mở"
+
 msgid "Draft opened"
 msgstr "Mở bản nháp"
 
@@ -6390,6 +6502,9 @@ msgstr "Thích Superset chứ?"
 
 msgid "Ensure no regression"
 msgstr "Đảm bảo không có hồi quy"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "Nhập máy chủ HTTPS GitLab, chẳng hạn như gitlab.com hoặc gitlab.example.com:8443."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Hãy nhập một thư mục cha trên {hostName}"
@@ -7145,6 +7260,9 @@ msgstr "Thất bại"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "Merge fast-forward"
+
 msgid "Fatal"
 msgstr "Nghiêm trọng"
 
@@ -7246,6 +7364,9 @@ msgstr "Lọc theo @{normalizedSearch}"
 
 msgid "Filter by author: {label}"
 msgstr "Lọc theo tác giả: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Lọc theo người dùng GitLab hiện tại"
 
 msgid "Filter by device"
 msgstr "Lọc theo thiết bị"
@@ -7745,6 +7866,60 @@ msgstr "Tên người dùng GitHub..."
 msgid "GitHub username…"
 msgstr "Tên người dùng GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "Bộ lọc quy tắc duyệt của GitLab cần có API quy tắc duyệt khả dụng."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "Việc cấp quyền GitLab đã bị hủy. Vui lòng thử lại."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab không tìm thấy dự án đó"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab không xác nhận merge"
+
+msgid "GitLab host"
+msgstr "Máy chủ GitLab"
+
+msgid "GitLab issue content could not be verified"
+msgstr "Không thể xác minh nội dung vấn đề trên GitLab"
+
+msgid "GitLab issues"
+msgstr "Vấn đề trên GitLab"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "Yêu cầu hợp nhất GitLab đã thay đổi; hãy làm mới trước khi thử lại"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "Trạng thái merge GitLab: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "GitLab OAuth chưa được cấu hình trên máy chủ API. Hãy liên hệ quản trị viên hoặc dùng mã truy cập."
+
+msgid "GitLab projects"
+msgstr "Dự án GitLab"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab từ chối merge"
+
+msgid "GitLab repositories"
+msgstr "Các repository GitLab"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "Bộ lọc đã review của GitLab dùng chu kỳ review hiện tại."
+
+msgid "GitLab username or @me…"
+msgstr "Tên người dùng GitLab hoặc @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab đã được ngắt kết nối cục bộ, nhưng không thể xóa webhook hoặc mã truy cập từ xa. Hãy kiểm tra các quyền truy cập còn lại trong GitLab."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "Thiết lập webhook GitLab không thành công. Hãy kiểm tra kết nối và quyền webhook, rồi làm mới webhook."
+
 msgid "Give me an example"
 msgstr "Cho tôi một ví dụ"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git hoặc /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git hoặc /path/to/repo"
+
 msgid "Human"
 msgstr "Con người"
 
@@ -8508,6 +8686,9 @@ msgstr "Phản hồi cấp quyền không hợp lệ. Vui lòng thử lại."
 msgid "Invalid email address."
 msgstr "Địa chỉ email không hợp lệ."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Định danh yêu cầu hợp nhất GitLab không hợp lệ"
+
 msgid "Invalid hostId"
 msgstr "hostId không hợp lệ"
 
@@ -8612,6 +8793,9 @@ msgstr "Issue được tạo"
 
 msgid "Issue not found."
 msgstr "Không tìm thấy issue."
+
+msgid "Issue opened"
+msgstr "Vấn đề được mở"
 
 msgid "Issue resolved"
 msgstr "Issue được giải quyết"
@@ -9094,6 +9278,9 @@ msgstr "Liên kết issue Linear"
 msgid "Link pull request"
 msgstr "Liên kết pull request"
 
+msgid "Link repository issue"
+msgstr "Liên kết vấn đề của kho mã"
+
 msgid "Link task"
 msgstr "Liên kết tác vụ"
 
@@ -9232,6 +9419,9 @@ msgstr "Đang tải thêm…"
 msgid "Loading project…"
 msgstr "Đang tải dự án…"
 
+msgid "Loading projects..."
+msgstr "Đang tải dự án..."
+
 msgid "Loading projects…"
 msgstr "Đang tải dự án…"
 
@@ -9249,6 +9439,9 @@ msgstr "Đang tải repository"
 
 msgid "Loading repositories..."
 msgstr "Đang tải repository..."
+
+msgid "Loading repositories…"
+msgstr "Đang tải repository…"
 
 msgid "Loading review..."
 msgstr "Đang tải review..."
@@ -9587,11 +9780,17 @@ msgstr "Merge"
 msgid "Merge #{0}?"
 msgstr "Merge #{0}?"
 
+msgid "Merge blocked"
+msgstr "Merge bị chặn"
+
 msgid "Merge commit"
 msgstr "Merge commit"
 
 msgid "Merge Commit"
 msgstr "Merge commit"
+
+msgid "Merge conflicts"
+msgstr "Xung đột merge"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Merge pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Merge pull request mà không cần rời Superset, kèm một đợt sửa lỗi và trau chuốt chat."
+
+msgid "Merge request actions"
+msgstr "Hành động yêu cầu hợp nhất"
+
+msgid "Merge request approval removed"
+msgstr "Phê duyệt yêu cầu hợp nhất bị thu hồi"
+
+msgid "Merge request approved"
+msgstr "Yêu cầu hợp nhất được phê duyệt"
+
+msgid "Merge request changes are unavailable"
+msgstr "Thay đổi của yêu cầu hợp nhất không khả dụng"
+
+msgid "Merge request is locked"
+msgstr "Yêu cầu hợp nhất đã bị khóa"
+
+msgid "Merge request label changed"
+msgstr "Nhãn yêu cầu hợp nhất được thay đổi"
+
+msgid "Merge request merged"
+msgstr "Yêu cầu hợp nhất được hợp nhất"
+
+msgid "Merge request opened"
+msgstr "Yêu cầu hợp nhất được mở"
+
+msgid "Merge request pushed"
+msgstr "Thay đổi được đẩy lên yêu cầu hợp nhất"
+
+msgid "Merge request title"
+msgstr "Tiêu đề yêu cầu hợp nhất"
 
 msgid "Merge when checks pass"
 msgstr "Merge khi các check qua"
@@ -9673,6 +9902,9 @@ msgstr "Thu nhỏ"
 
 msgid "Minimize GitHub issues"
 msgstr "Thu nhỏ issue GitHub"
+
+msgid "Minimize issues"
+msgstr "Thu nhỏ các vấn đề"
 
 msgid "Minimum contrast"
 msgstr "Độ tương phản tối thiểu"
@@ -10321,11 +10553,17 @@ msgstr "Chưa có bình luận nào. Bật chế độ bình luận rồi nhấp
 msgid "No commits on this branch yet."
 msgstr "Chưa có commit nào trên nhánh này."
 
+msgid "No commits to open a merge request from"
+msgstr "Không có commit nào để mở yêu cầu hợp nhất"
+
 msgid "No commits to open a pull request from"
 msgstr "Không có commit nào để mở pull request"
 
 msgid "No comparisons yet."
 msgstr "Chưa có so sánh nào."
+
+msgid "No completed reviews or approvals"
+msgstr "Chưa có review hoàn tất hay lượt duyệt nào"
 
 msgid "No console output"
 msgstr "Không có kết quả console"
@@ -10392,6 +10630,9 @@ msgstr "Không có dữ liệu phễu cho khoảng thời gian này"
 
 msgid "No git remote detected"
 msgstr "Không phát hiện remote git nào"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "Không tìm thấy dự án GitLab. Kết nối GitLab trong mục Tích hợp."
 
 msgid "No grouping"
 msgstr "Không nhóm"
@@ -10859,6 +11100,9 @@ msgstr "Chưa nhận được sự kiện: Microsoft Graph đã từ chối các
 msgid "Not reviewed by you"
 msgstr "Bạn chưa review"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Bạn chưa review trong chu kỳ review hiện tại"
+
 msgid "not set up"
 msgstr "chưa thiết lập"
 
@@ -10874,6 +11118,9 @@ msgstr "chưa sắp xếp"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Không cập nhật"
+
+msgid "Note added"
+msgstr "Ghi chú được thêm"
 
 msgid "Notes"
 msgstr "Ghi chú"
@@ -11070,6 +11317,9 @@ msgstr "Chỉ chủ sở hữu host mới đổi được vị trí này."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Chỉ chủ sở hữu host hoặc chủ sở hữu tổ chức mới xóa được host này"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Chỉ quản trị viên và chủ sở hữu tổ chức mới có thể quản lý kết nối này."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Chỉ chủ sở hữu tổ chức mới sửa được các cài đặt này."
@@ -11324,6 +11574,9 @@ msgstr "Mở trong Finder"
 msgid "Open in GitHub"
 msgstr "Mở trong GitHub"
 
+msgid "Open in GitLab"
+msgstr "Mở trong GitLab"
+
 msgid "Open in Linear"
 msgstr "Mở trong Linear"
 
@@ -11363,6 +11616,9 @@ msgstr "Mở issue #{0} trong trình duyệt"
 
 msgid "Open issue in GitHub"
 msgstr "Mở issue trong GitHub"
+
+msgid "Open issue in GitLab"
+msgstr "Mở vấn đề trên GitLab"
 
 msgid "Open issue in Linear"
 msgstr "Mở issue trong Linear"
@@ -11950,6 +12206,9 @@ msgstr "Tốc độ đỉnh"
 msgid "Pending Invitations"
 msgstr "Lời mời đang chờ"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Review đang chờ hoặc quy tắc duyệt chưa được đáp ứng"
+
 msgid "People"
 msgstr "Mọi người"
 
@@ -11995,6 +12254,9 @@ msgstr "Người"
 
 msgid "Personal"
 msgstr "Cá nhân"
+
+msgid "Personal access token"
+msgstr "Mã truy cập cá nhân"
 
 msgid "Phantom Forklift"
 msgstr "Xe nâng bóng ma"
@@ -12079,6 +12341,15 @@ msgstr "Hồng"
 
 msgid "Pinned"
 msgstr "Đã ghim"
+
+msgid "Pipeline canceled"
+msgstr "Pipeline bị hủy"
+
+msgid "Pipeline failed"
+msgstr "Pipeline thất bại"
+
+msgid "Pipeline succeeded"
+msgstr "Pipeline thành công"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Không tìm thấy dự án."
 msgid "Project not set up on this host"
 msgstr "Dự án chưa được thiết lập trên host này"
 
+msgid "Project or group path"
+msgstr "Đường dẫn dự án hoặc nhóm"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Dự án đã sẵn sàng — mở nó từ thanh bên."
 
@@ -12582,6 +12856,9 @@ msgstr "Pull request #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Hành động pull request"
 
+msgid "Pull request not found."
+msgstr "Không tìm thấy pull request."
+
 msgid "Pull request title"
 msgstr "Tiêu đề pull request"
 
@@ -12597,6 +12874,10 @@ msgstr "Pull request"
 msgid "Purple"
 msgstr "Tím"
 
+msgid "Push"
+msgstr "Push"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "Push"
 
@@ -12802,6 +13083,9 @@ msgstr "Rebase & merge"
 msgid "Rebase and merge"
 msgstr "Rebase và merge"
 
+msgid "Rebase branch"
+msgstr "Rebase nhánh"
+
 msgid "Recent Activity"
 msgstr "Hoạt động gần đây"
 
@@ -12843,6 +13127,12 @@ msgstr "Kết nối lại"
 
 msgid "Reconnect {name}"
 msgstr "Kết nối lại {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Kết nối lại GitLab để sao chép dự án này"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Kết nối lại GitLab để khôi phục quyền truy cập và việc gửi webhook."
 
 msgid "Reconnect Google"
 msgstr "Kết nối lại Google"
@@ -12892,6 +13182,9 @@ msgstr "Làm mới"
 msgid "Refresh GitHub issues"
 msgstr "Làm mới issue GitHub"
 
+msgid "Refresh issues"
+msgstr "Làm mới các vấn đề"
+
 msgid "Refresh Linear issues"
 msgstr "Làm mới issue Linear"
 
@@ -12903,6 +13196,9 @@ msgstr "Làm mới pull request"
 
 msgid "Refresh repositories"
 msgstr "Làm mới repository"
+
+msgid "Refresh webhooks"
+msgstr "Làm mới webhook"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
@@ -13241,8 +13537,17 @@ msgstr "Repository: {label}"
 msgid "Repository"
 msgstr "Repository"
 
+msgid "Repository issues"
+msgstr "Vấn đề của kho mã"
+
+msgid "Repository provider"
+msgstr "Nhà cung cấp repository"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Độ phủ của kho mã và lượt tải bản phát hành desktop. Cài đặt là lượt tải dmg và AppImage; cập nhật là tệp zip mà trình tự cập nhật tải về, nên tính người dùng hiện có."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Khả năng tìm kiếm của repository chưa khả dụng."
 
 msgid "Repository URL or path"
 msgstr "URL hoặc đường dẫn repository"
@@ -13345,6 +13650,9 @@ msgstr "Giải quyết tất cả"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Giải quyết xung đột để merge"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Giải quyết xung đột bằng agent"
 
 msgid "Resolve conversation"
 msgstr "Giải quyết cuộc thảo luận"
@@ -13615,6 +13923,12 @@ msgstr "Luồng review…"
 
 msgid "Reviewed by you"
 msgstr "Bạn đã review"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "Bạn đã review trong chu kỳ review hiện tại"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "Bộ lọc đã review dùng lịch sử review của GitHub và chu kỳ review hiện tại của GitLab."
 
 msgid "Reviewers"
 msgstr "Người review"
@@ -14034,6 +14348,18 @@ msgstr "Tìm issue GitHub"
 msgid "Search GitHub issues…"
 msgstr "Tìm issue GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Tìm vấn đề trên GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Tìm vấn đề trên GitLab…"
+
+msgid "Search GitLab projects..."
+msgstr "Tìm dự án GitLab..."
+
+msgid "Search GitLab repositories..."
+msgstr "Tìm repository GitLab..."
+
 msgid "Search history"
 msgstr "Tìm trong lịch sử"
 
@@ -14090,6 +14416,12 @@ msgstr "Tìm pull request…"
 
 msgid "Search repositories..."
 msgstr "Tìm repository..."
+
+msgid "Search repository issues"
+msgstr "Tìm vấn đề của kho mã"
+
+msgid "Search repository issues…"
+msgstr "Tìm vấn đề của kho mã…"
 
 msgid "Search settings..."
 msgstr "Tìm trong cài đặt..."
@@ -14208,17 +14540,26 @@ msgstr "Xem 30 ngày qua của bạn đứng ở đâu trên bảng xếp hạng
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a host to browse repositories."
+msgstr "Chọn host để duyệt các repository."
+
 msgid "Select a project"
 msgstr "Chọn một dự án"
 
 msgid "Select a project first"
 msgstr "Hãy chọn dự án trước"
 
+msgid "Select a project to create an environment for it."
+msgstr "Chọn một dự án để tạo môi trường cho dự án đó."
+
 msgid "Select a project to see GitHub issues."
 msgstr "Chọn một dự án để xem issue GitHub."
 
 msgid "Select a project to see pull requests."
 msgstr "Chọn một dự án để xem pull request."
+
+msgid "Select a project to see repository issues."
+msgstr "Chọn một dự án để xem vấn đề của kho mã."
 
 msgid "Select a pull request to preview it here."
 msgstr "Chọn một pull request để xem trước ở đây."
@@ -14309,6 +14650,9 @@ msgstr "Chọn vị trí dự án"
 
 msgid "Select project worktree location"
 msgstr "Chọn vị trí worktree của dự án"
+
+msgid "Select projects"
+msgstr "Chọn dự án"
 
 msgid "Select range..."
 msgstr "Chọn khoảng..."
@@ -14790,6 +15134,9 @@ msgstr "Pill ở thanh bên hiện khi có bản cập nhật ứng dụng sẵn
 
 msgid "Sign in"
 msgstr "Đăng nhập"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Đăng nhập với tư cách quản trị viên hoặc chủ sở hữu tổ chức để quản lý kết nối này."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Đăng nhập với quyền Local Admin (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Thành viên nhóm"
 msgid "Team not found in this organization"
 msgstr "Không tìm thấy nhóm trong tổ chức này"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Yêu cầu review theo nhóm không khả dụng cho các dự án GitLab đã chọn."
+
 msgid "Team settings"
 msgstr "Cài đặt nhóm"
 
@@ -16134,6 +16484,9 @@ msgstr "Không thể phân giải endpoint đó."
 msgid "That endpoint is not allowed."
 msgstr "Endpoint đó không được phép."
 
+msgid "That filter is not supported for this event."
+msgstr "Bộ lọc đó không được hỗ trợ cho sự kiện này."
+
 msgid "That handle is taken."
 msgstr "Tên định danh đó đã có người dùng."
 
@@ -16148,6 +16501,9 @@ msgstr "Máy đó không còn khả dụng"
 
 msgid "That name isn't allowed."
 msgstr "Tên đó không được phép."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "URL đó không nằm trên máy chủ GitLab đã kết nối"
 
 msgid "The 2026 bet"
 msgstr "Canh bạc 2026"
@@ -16260,12 +16616,30 @@ msgstr "Toàn bộ workspace. Chạy nhiều agent song song, giữ mỗi agent 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Nơi sẽ chứa các cấu hình agent, prompt và hướng dẫn thiết lập Superset có thể tái sử dụng."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "Phản hồi cấp quyền GitLab không đầy đủ. Vui lòng thử lại."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "Phiên cấp quyền GitLab không hợp lệ hoặc đã hết hạn. Vui lòng thử lại."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Máy chủ GitLab này không được phép sử dụng. OAuth phải dùng máy chủ GitLab đã đăng ký trên máy chủ API; mã truy cập yêu cầu máy chủ HTTPS được phê duyệt."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "Không tìm thấy dự án hoặc nhóm GitLab, hoặc không thể truy cập. Hãy nhập đường dẫn đầy đủ, bao gồm các nhóm con."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "Mã truy cập GitLab bị từ chối. Hãy kiểm tra ngày hết hạn cùng các phạm vi api và read_repository, rồi kết nối lại."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Máy chủ đã trở lại với {0}, không phải {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Máy chủ không hoạt động trở lại trong vòng mười lăm phút."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Host không xác nhận phiên terminal"
 
 msgid "The host hasn't answered."
 msgstr "Host không phản hồi."
@@ -16397,6 +16771,9 @@ msgstr "Nhà máy phần mềm tự vận hành"
 
 msgid "The server could not be found"
 msgstr "Không tìm thấy server"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Địa chỉ máy chủ GitLab OAuth của máy chủ API không hợp lệ. Hãy liên hệ quản trị viên hoặc dùng mã truy cập."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Liên kết đăng nhập không đầy đủ. Vui lòng thử lại."
@@ -16594,6 +16971,12 @@ msgstr "Tệp này rỗng hoặc đã bị xóa."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Bản cài đặt GitHub này đã kết nối với một tổ chức Superset khác. Hãy ngắt kết nối ở đó, hoặc gỡ Superset GitHub App, rồi thử lại."
 
+msgid "This GitLab check is no longer available."
+msgstr "Check GitLab này không còn khả dụng."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Dự án hoặc nhóm GitLab này đã kết nối với một tổ chức Superset khác. Hãy ngắt kết nối ở tổ chức đó trước khi kết nối lại."
+
 msgid "This host"
 msgstr "Host này"
 
@@ -16647,6 +17030,9 @@ msgstr "Tháng này"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Việc này chỉ đổi tên hiển thị, không đổi nhánh."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Thao tác này không khả dụng cho yêu cầu hợp nhất GitLab này"
 
 msgid "this organization"
 msgstr "tổ chức này"
@@ -17373,6 +17759,9 @@ msgstr "Bỏ giải quyết"
 msgid "Unresolved"
 msgstr "Chưa giải quyết"
 
+msgid "Unresolved conversations"
+msgstr "Thảo luận chưa giải quyết"
+
 msgid "Unsaved changes"
 msgstr "Thay đổi chưa lưu"
 
@@ -17462,6 +17851,9 @@ msgstr "Hãy cập nhật Superset trên máy này để đính kèm tệp"
 msgid "update the branch prefix"
 msgstr "cập nhật tiền tố nhánh"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "Cập nhật host này để duyệt các repository GitLab. Bạn vẫn có thể sao chép repository bằng URL hoặc đường dẫn."
+
 msgid "Updated"
 msgstr "Đã cập nhật"
 
@@ -17544,6 +17936,12 @@ msgstr "Không có dữ liệu sử dụng."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Dùng “{0}”"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "Dùng mã truy cập cá nhân có các phạm vi api và read_repository. Tài khoản GitLab của bạn phải có quyền quản lý webhook cho dự án hoặc nhóm đã chọn."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Dùng tên người dùng được mọi nhà cung cấp đã chọn hỗ trợ."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Dùng đường dẫn tương đối với workspace hoặc một thư mục tuyệt đối."
@@ -17635,6 +18033,9 @@ msgstr "Không tìm thấy người dùng"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "Tên người dùng…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Dùng tên nhánh ngẫu nhiên (AI tạo tên bị quá thời gian)"
 
@@ -17718,6 +18119,9 @@ msgstr "Xem tất cả"
 msgid "View All"
 msgstr "Xem tất cả"
 
+msgid "View checks"
+msgstr "Xem check"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Xem bình luận của {0}"
@@ -17733,6 +18137,9 @@ msgstr "Xem kích thước đầy đủ"
 
 msgid "View in GitHub"
 msgstr "Xem trong GitHub"
+
+msgid "View in GitLab"
+msgstr "Xem trong GitLab"
 
 msgid "View log"
 msgstr "Xem log"
@@ -18225,6 +18632,9 @@ msgstr "Đã tạo workspace"
 msgid "Workspace created from PR"
 msgstr "Đã tạo workspace từ PR"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Không thể xác nhận kết quả tạo không gian làm việc"
+
 msgid "Workspace details"
 msgstr "Chi tiết workspace"
 
@@ -18404,6 +18814,9 @@ msgstr "Bạn không phải là thành viên của tổ chức đó."
 
 msgid "You are not a member of this organization"
 msgstr "Bạn không phải thành viên của tổ chức này"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "Bạn không có quyền quản lý các tích hợp của tổ chức này."
 
 msgid "You are not authorized to perform this action."
 msgstr "Bạn không được phép thực hiện thao tác này."

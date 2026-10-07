@@ -47,6 +47,15 @@ overlay renders "Unknown host".
 
 ## Addressing and auth
 
+**GitLab credentials stay with the selected-project broker.** A sandbox has no
+local GitLab provider token. Its declared GitLab repository supplies a typed,
+credential-free HTTPS API transport, and the existing sandbox network intercept
+routes those requests through the broker. Native hosts continue to use their
+local provider credentials. Requests for another host, repository or API path
+are refused. Fork CI reads carry the selected merge-request IID; the broker
+verifies its source project, head and pipeline or job before admitting a read.
+That proof never admits writes to the fork and is stripped before forwarding.
+
 **The address is brokered and expires.** A sandbox has no stable URL the
 client can keep — the API resolves the sandbox's domain and signs a
 short-lived token per access, re-minted before expiry
@@ -426,6 +435,18 @@ another region is refused (`snapshot_region_mismatch`), and failover regions
 don't replicate it. Forks therefore inherit the golden's region and only
 image-created sandboxes take the environment's `region` — passing a region on
 a fork was what failed every workspace once the goldens moved to sfo1.
+
+**GitLab cloud checkout needs HTTPS port 443 on two distinct hosts.** Native
+hosts can use a custom GitLab HTTPS port; the sandbox forwarding policy cannot.
+It routes the GitLab hostname to a separately configured HTTPS broker, both on
+443, and refuses the same hostname for both. The repository hostname must
+resolve inside the sandbox before SNI forwarding can run. The broker must be
+reachable from the provider; a private NetBird API address does not establish
+that reachability. The broker supplies credentials only after validating the
+current organization/project/session binding. See
+[self-hosted GitLab broker](self-host/GITLAB_PROXY.md) for the optional Node
+entrypoint and ingress contract. This constraint does not change native-host
+GitLab support or NetBird access rules.
 
 **The firewall policy is live-updatable and forks carry it.** Credential
 brokering (`networkPolicy` with `transform` rules) can be set at create, on a

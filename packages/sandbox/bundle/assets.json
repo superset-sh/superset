@@ -158,6 +158,14 @@
 		"source": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/JetBrainsMono.tar.xz",
 		"version": "3.5.1"
 	},
+	"glab": {
+		"sha256": "dabc020b7c4a381dd7988debb9e33766caf0dba21342b87db8e0b6acf07caace",
+		"suffix": "",
+		"dest": "/usr/local/bin/glab",
+		"mode": "0755",
+		"source": "https://gitlab.com/gitlab-org/cli/-/releases/v1.109.0/downloads/glab_1.109.0_linux_amd64.tar.gz",
+		"version": "1.109.0"
+	},
 	"host-service": {
 		"sha256": "d89d8778309b41169ea64fdf8fbe919d0d373a3c335001c7185b4686b319805a",
 		"suffix": ".tar.gz",

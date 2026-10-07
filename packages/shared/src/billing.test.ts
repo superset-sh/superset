@@ -55,6 +55,7 @@ describe("planAllowsTriggerKind", () => {
 	test("pro gets schedules and the pro providers but not the enterprise ones", () => {
 		expect(planAllowsTriggerKind("pro", "schedule")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "slack")).toBe(true);
+		expect(planAllowsTriggerKind("pro", "gitlab")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "linear")).toBe(true);
 		expect(planAllowsTriggerKind("pro", "microsoft_teams")).toBe(false);
 	});

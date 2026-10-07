@@ -1,4 +1,4 @@
-import type { SimpleGit } from "simple-git";
+import type { GitCommandRunner } from "../../workspace-creation/shared/types";
 
 /**
  * Run a `git config` write with bounded retries on `.git/config.lock`
@@ -16,7 +16,7 @@ import type { SimpleGit } from "simple-git";
  * to the renderer.
  */
 export async function gitConfigWrite(
-	git: SimpleGit,
+	git: GitCommandRunner,
 	args: string[],
 	options: { retries?: number; baseDelayMs?: number } = {},
 ): Promise<string> {

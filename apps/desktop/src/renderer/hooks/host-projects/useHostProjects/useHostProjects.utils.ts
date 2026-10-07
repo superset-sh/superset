@@ -18,8 +18,9 @@ export interface HostProjectRow {
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
+	repoProvider?: string | null;
 	worktreeBaseDir: string | null;
-	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	/** Custom icon data-URI, or null to use the repository avatar. */
 	icon: string | null;
 	/** Accent color as a `#rrggbb` hex, or null for the default. */
 	color: string | null;
@@ -44,7 +45,8 @@ export interface HostProjectItem {
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
-	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	repoProvider?: string | null;
+	/** Custom icon data-URI, or null to use the repository avatar. */
 	icon: string | null;
 	/** Accent color as a `#rrggbb` hex, or null for the default. */
 	color: string | null;
@@ -158,6 +160,7 @@ export function normalizeHostProjectRow(
 		repoOwner: row.repoOwner ?? null,
 		repoName: row.repoName ?? null,
 		repoUrl: row.repoUrl ?? null,
+		repoProvider: row.repoProvider,
 		worktreeBaseDir: row.worktreeBaseDir ?? null,
 		icon: row.icon ?? null,
 		color: row.color ?? null,
@@ -264,6 +267,14 @@ export function applyProjectChangedEvent(
 		repoOwner: snapshot.repoOwner,
 		repoName: snapshot.repoName,
 		repoUrl: snapshot.repoUrl,
+		repoProvider:
+			snapshot.repoProvider !== undefined
+				? snapshot.repoProvider
+				: existing?.repoUrl === snapshot.repoUrl &&
+						existing?.repoOwner === snapshot.repoOwner &&
+						existing?.repoName === snapshot.repoName
+					? (existing.repoProvider ?? null)
+					: null,
 		worktreeBaseDir: snapshot.worktreeBaseDir,
 		icon: snapshot.icon,
 		color: snapshot.color ?? null,
@@ -306,6 +317,7 @@ export function mergeHostProjects({
 					repoOwner: row.repoOwner,
 					repoName: row.repoName,
 					repoUrl: row.repoUrl,
+					repoProvider: row.repoProvider,
 					icon: row.icon,
 					color: row.color,
 					hostIds: [result.target.machineId],
@@ -321,17 +333,33 @@ export function mergeHostProjects({
 			// Most recently updated replica wins the shared fields.
 			if (row.updatedAt > existing.updatedAt) {
 				existing.name = row.name;
+				existing.repoProvider =
+					row.repoProvider !== undefined
+						? row.repoProvider
+						: existing.repoUrl === row.repoUrl &&
+								existing.repoOwner === row.repoOwner &&
+								existing.repoName === row.repoName
+							? existing.repoProvider
+							: null;
 				existing.repoUrl = row.repoUrl;
+				existing.repoOwner = row.repoOwner;
+				existing.repoName = row.repoName;
 				existing.updatedAt = row.updatedAt;
 			}
+			if (
+				existing.repoProvider === undefined &&
+				row.repoProvider !== undefined &&
+				existing.repoUrl === row.repoUrl &&
+				existing.repoOwner === row.repoOwner &&
+				existing.repoName === row.repoName
+			)
+				existing.repoProvider = row.repoProvider;
 			if (row.createdAt < existing.createdAt) {
 				existing.createdAt = row.createdAt;
 			}
 			// Prefer the local host's repoPath for open/navigate actions.
 			if (result.target.isLocal) {
 				existing.repoPath = row.repoPath;
-				existing.repoOwner = row.repoOwner;
-				existing.repoName = row.repoName;
 				existing.icon = row.icon;
 				existing.color = row.color;
 			}

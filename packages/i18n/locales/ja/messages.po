@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{nextLabel} に向けて {0} 個中 {met} 個の目標が働いています — {laggingLabels} が最も遅れています。"
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel}（コミットをスカッシュ）"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "コントラスト {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {#件のオートメーションを開始しまし
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 件のサブエージェントが実行中}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "{total} 件中 {succeeded} 件が成功しました{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {#件のワークスペースを作成、{failCount}件失敗} other {#件のワークスペースを作成、{failCount}件失敗}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {#件のチェックにすべて成功しました} 
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {GitLabの課題} other {GitLabの課題}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {課題} other {課題}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {プルリクエスト} other {プルリクエスト}}"
@@ -1615,6 +1627,9 @@ msgstr "プロジェクトを追加するとGitHub issueが表示されます。
 
 msgid "Add a project to see pull requests."
 msgstr "プロジェクトを追加するとプルリクエストが表示されます。"
+
+msgid "Add a project to see repository issues."
+msgstr "プロジェクトを追加するとリポジトリの課題が表示されます。"
 
 msgid "Add a short summary…"
 msgstr "短い概要を追加…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropicがこのトークンを拒否しました。"
 msgid "any account"
 msgstr "すべてのアカウント"
 
+msgid "Any branch"
+msgstr "すべてのブランチ"
+
 msgid "Any channel"
 msgstr "すべてのチャンネル"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "応募"
 
+msgid "Approval requirements unavailable"
+msgstr "承認要件を取得できません"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "残りの承認: {left}/{required}"
+
 msgid "Approve"
 msgstr "承認"
 
@@ -2368,8 +2392,14 @@ msgstr "自動で承認"
 msgid "Approved"
 msgstr "承認"
 
+msgid "Approved by {approvedBy}"
+msgstr "承認者: {approvedBy}"
+
 msgid "Approved review"
 msgstr "承認済みレビュー"
+
+msgid "Approved with all approval rules met"
+msgstr "すべての承認ルールを満たして承認済み"
 
 msgid "Apps"
 msgstr "アプリ"
@@ -2732,6 +2762,9 @@ msgstr "自分のレビュー待ち"
 msgid "Awaiting review from you or your team"
 msgstr "自分またはチームのレビュー待ち"
 
+msgid "Awaiting your current review"
+msgstr "自分の現在のレビュー待ち"
+
 msgid "Back"
 msgstr "戻る"
 
@@ -2758,6 +2791,9 @@ msgstr "最新に戻る"
 
 msgid "Back to GitHub issues"
 msgstr "GitHub issueに戻る"
+
+msgid "Back to GitLab issues"
+msgstr "GitLab の課題に戻る"
 
 msgid "Back to Home"
 msgstr "ホームに戻る"
@@ -3290,6 +3326,9 @@ msgstr "担当者を変更"
 msgid "Change avatar"
 msgstr "アバターを変更"
 
+msgid "Change connection"
+msgstr "接続を変更"
+
 msgid "Change icon"
 msgstr "アイコンを変更"
 
@@ -3439,6 +3478,9 @@ msgstr "環境を確認中…"
 msgid "Checking host…"
 msgstr "ホストを確認中…"
 
+msgid "Checking merge requirements"
+msgstr "マージ要件を確認中"
+
 msgid "Checking out a PR requires a project"
 msgstr "PRのチェックアウトにはプロジェクトが必要です"
 
@@ -3475,6 +3517,9 @@ msgstr "チェック完了"
 msgid "Checks failed"
 msgstr "チェックが失敗しました"
 
+msgid "Checks need action"
+msgstr "チェックに対応が必要です"
+
 msgid "Checks passed"
 msgstr "チェックが成功しました"
 
@@ -3493,6 +3538,9 @@ msgstr "親ディレクトリを選択"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "issueを開く前に、GitHub issueでプロジェクトを選択してください。"
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "課題を開く前に、GitLab の課題一覧からプロジェクトを選択してください。"
+
 msgid "Choose a section."
 msgstr "セクションを選んでください。"
 
@@ -3504,6 +3552,9 @@ msgstr "既存のリポジトリフォルダを選択"
 
 msgid "Choose app"
 msgstr "アプリを選択"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "GitHubリポジトリまたはGitLabプロジェクトを1つ選択してください"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "プレビューペインがないときのファイルの開き方"
@@ -3834,6 +3885,10 @@ msgstr "ワークスペースを閉じる"
 msgid "Closed"
 msgstr "クローズ済み"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "クローズ済み"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "これらのポートを閉じると、使用中のプロセスが終了します。"
 
@@ -3851,6 +3906,9 @@ msgstr "クローズ中…"
 
 msgid "Cloud"
 msgstr "クラウド"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "クラウド環境が変更されました。もう一度選択してください。"
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "クラウド版が近日登場。共同開発パートナーを募集中"
@@ -4135,6 +4193,9 @@ msgstr "{name} を接続"
 msgid "Connect a device"
 msgstr "デバイスを接続"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "セルフマネージドインスタンスやネストされたサブグループを含む、GitLabのプロジェクトまたはグループを接続します。"
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Google アカウントを接続します。メールボックスは読み取り専用で、トリガーは接続した本人に対して実行されます。"
 
@@ -4177,6 +4238,9 @@ msgstr "Notionを接続"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Notionを接続して、データソースの行が変わったときやページにコメントが付いたときにオートメーションを実行します。"
 
+msgid "Connect repos and sync merge requests."
+msgstr "リポジトリを接続し、マージリクエストを同期します。"
+
 msgid "Connect repos and sync pull requests."
 msgstr "リポジトリを接続し、プルリクエストを同期します。"
 
@@ -4191,6 +4255,12 @@ msgstr "Slackを接続して会話からタスクを管理します。任意の�
 
 msgid "Connect this computer"
 msgstr "このコンピューターに接続"
+
+msgid "Connect with a token"
+msgstr "トークンで接続"
+
+msgid "Connect with GitLab"
+msgstr "GitLabで接続"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHubリポジトリを接続してプルリクエストを同期します。チーム全体のCIステータスとレビューを追跡できます。"
@@ -4384,6 +4454,9 @@ msgstr "別のエージェントで続ける…"
 msgid "Continue with GitHub"
 msgstr "GitHubで続行"
 
+msgid "Continue with GitLab"
+msgstr "GitLabで続行"
+
 msgid "Continue with Google"
 msgstr "Googleで続行"
 
@@ -4526,6 +4599,9 @@ msgstr "リンクをコピー"
 msgid "Copy Link Address"
 msgstr "リンクアドレスをコピー"
 
+msgid "Copy link to merge request"
+msgstr "マージリクエストのリンクをコピー"
+
 msgid "Copy link to pull request"
 msgstr "プルリクエストのリンクをコピー"
 
@@ -4647,6 +4723,9 @@ msgstr "リンクをコピーできませんでした"
 msgid "Could not create cloud workspace"
 msgstr "クラウドワークスペースを作成できませんでした"
 
+msgid "Could not create environment"
+msgstr "環境を作成できませんでした"
+
 msgid "Could not create project"
 msgstr "プロジェクトを作成できませんでした"
 
@@ -4681,11 +4760,23 @@ msgstr "ディレクトリを一覧表示できませんでした"
 msgid "Could not load agents from {0}"
 msgstr "{0}からエージェントを読み込めませんでした"
 
+msgid "Could not load branches. Try again."
+msgstr "ブランチを読み込めませんでした。もう一度お試しください。"
+
+msgid "Could not load connection status."
+msgstr "接続状態を読み込めませんでした。"
+
 msgid "Could not load environments"
 msgstr "環境を読み込めませんでした"
 
 msgid "Could not load environments."
 msgstr "環境を読み込めませんでした。"
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "GitLab プロジェクトを読み込めませんでした。「連携」で接続を確認してください。"
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "GitLab プロジェクトを読み込めませんでした。もう一度お試しください。"
 
 msgid "Could not load image"
 msgstr "画像を読み込めませんでした"
@@ -4701,6 +4792,9 @@ msgstr "この差分を読み込めませんでした"
 
 msgid "Could not load this file."
 msgstr "このファイルを読み込めませんでした。"
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "このマージリクエストを読み込めませんでした。ホストに再接続して、もう一度お試しください。"
 
 msgid "Could not load your machines"
 msgstr "マシンを読み込めませんでした"
@@ -5113,6 +5207,12 @@ msgstr "マージコミットを作成"
 msgid "Create Merge Commit"
 msgstr "マージコミットを作成"
 
+msgid "Create merge request"
+msgstr "マージリクエストを作成"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "マージリクエストの作成に失敗しました: {errorMessage}"
+
 msgid "Create new group"
 msgstr "新しいグループを作成"
 
@@ -5256,6 +5356,9 @@ msgstr "タスクを作成中"
 msgid "Creating a workspace"
 msgstr "ワークスペースを作成中"
 
+msgid "Creating merge request..."
+msgstr "マージリクエストを作成中..."
+
 msgid "Creating PR..."
 msgstr "PRを作成中…"
 
@@ -5320,8 +5423,14 @@ msgstr "現在のペース"
 msgid "Current plan"
 msgstr "現在のプラン"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "現在のレビューフィルターはこの選択では利用できません。解除するには「すべてのレビュー」を選択してください。"
+
 msgid "Current tab"
 msgstr "現在のタブ"
+
+msgid "Current workspace files"
+msgstr "現在のワークスペースのファイル"
 
 msgid "Cursor"
 msgstr "カーソル"
@@ -6103,6 +6212,9 @@ msgstr "下書き · ファイル"
 msgid "Draft · line {0}"
 msgstr "下書き · {0}行目"
 
+msgid "Draft merge request opened"
+msgstr "下書きのマージリクエストが作成された"
+
 msgid "Draft opened"
 msgstr "ドラフト作成"
 
@@ -6390,6 +6502,9 @@ msgstr "Supersetを気に入っていただけましたか?"
 
 msgid "Ensure no regression"
 msgstr "デグレがないことを確認して"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "GitLabのHTTPSホストを入力してください（例: gitlab.com または gitlab.example.com:8443）。"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName}の親ディレクトリを入力してください"
@@ -7145,6 +7260,9 @@ msgstr "失敗"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "ファストフォワードマージ"
+
 msgid "Fatal"
 msgstr "致命的"
 
@@ -7246,6 +7364,9 @@ msgstr "@{normalizedSearch}で絞り込む"
 
 msgid "Filter by author: {label}"
 msgstr "作成者で絞り込み: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "現在のGitLabユーザーで絞り込む"
 
 msgid "Filter by device"
 msgstr "デバイスで絞り込む"
@@ -7745,6 +7866,60 @@ msgstr "GitHubユーザー名..."
 msgid "GitHub username…"
 msgstr "GitHubユーザー名…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "GitLabの承認ルールフィルターには、利用可能な承認ルールAPIが必要です。"
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "GitLabの認可がキャンセルされました。もう一度お試しください。"
+
+msgid "GitLab could not find that project"
+msgstr "GitLabがそのプロジェクトを見つけられませんでした"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLabからマージの確認が得られませんでした"
+
+msgid "GitLab host"
+msgstr "GitLabホスト"
+
+msgid "GitLab issue content could not be verified"
+msgstr "GitLabのイシュー内容を検証できませんでした"
+
+msgid "GitLab issues"
+msgstr "GitLabの課題"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "GitLabのマージリクエストが変更されました。再試行する前に更新してください"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "GitLabのマージ状態: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "APIサーバーでGitLab OAuthが設定されていません。管理者に問い合わせるか、トークンを使用してください。"
+
+msgid "GitLab projects"
+msgstr "GitLab プロジェクト"
+
+msgid "GitLab refused the merge"
+msgstr "GitLabがマージを拒否しました"
+
+msgid "GitLab repositories"
+msgstr "GitLabリポジトリ"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "GitLabのレビュー済みフィルターは現在のレビューサイクルを使用します。"
+
+msgid "GitLab username or @me…"
+msgstr "GitLabユーザー名または@me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLabのローカル接続は解除されましたが、リモートのWebhookまたはトークンの削除に失敗しました。GitLabに残っているアクセス権を確認してください。"
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "GitLabのWebhook設定に失敗しました。接続とWebhookの権限を確認してから、Webhookを更新してください。"
+
 msgid "Give me an example"
 msgstr "例を挙げて"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git または /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git または /path/to/repo"
+
 msgid "Human"
 msgstr "人間"
 
@@ -8508,6 +8686,9 @@ msgstr "同意のレスポンスが無効です。もう一度お試しくださ
 msgid "Invalid email address."
 msgstr "メールアドレスが正しくありません。"
 
+msgid "Invalid GitLab merge request identity"
+msgstr "GitLabのマージリクエスト識別情報が無効です"
+
 msgid "Invalid hostId"
 msgstr "hostIdが不正です"
 
@@ -8612,6 +8793,9 @@ msgstr "Issueを作成"
 
 msgid "Issue not found."
 msgstr "Issueが見つかりません。"
+
+msgid "Issue opened"
+msgstr "課題が作成された"
 
 msgid "Issue resolved"
 msgstr "Issueを解決"
@@ -9094,6 +9278,9 @@ msgstr "Linear issueをリンク"
 msgid "Link pull request"
 msgstr "プルリクエストをリンク"
 
+msgid "Link repository issue"
+msgstr "リポジトリの課題をリンク"
+
 msgid "Link task"
 msgstr "タスクをリンク"
 
@@ -9232,6 +9419,9 @@ msgstr "さらに読み込み中…"
 msgid "Loading project…"
 msgstr "プロジェクトを読み込み中…"
 
+msgid "Loading projects..."
+msgstr "プロジェクトを読み込み中..."
+
 msgid "Loading projects…"
 msgstr "プロジェクトを読み込み中…"
 
@@ -9249,6 +9439,9 @@ msgstr "リポジトリを読み込み中"
 
 msgid "Loading repositories..."
 msgstr "リポジトリを読み込み中..."
+
+msgid "Loading repositories…"
+msgstr "リポジトリを読み込み中…"
 
 msgid "Loading review..."
 msgstr "レビューを読み込み中..."
@@ -9587,11 +9780,17 @@ msgstr "マージ"
 msgid "Merge #{0}?"
 msgstr "#{0}をマージしますか?"
 
+msgid "Merge blocked"
+msgstr "マージがブロックされています"
+
 msgid "Merge commit"
 msgstr "マージコミット"
 
 msgid "Merge Commit"
 msgstr "マージコミット"
+
+msgid "Merge conflicts"
+msgstr "マージコンフリクト"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "プルリクエストをマージ"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Supersetから離れずにプルリクエストをマージできます。あわせてチャットの修正と磨き込みも。"
+
+msgid "Merge request actions"
+msgstr "マージリクエストの操作"
+
+msgid "Merge request approval removed"
+msgstr "マージリクエストの承認が取り消された"
+
+msgid "Merge request approved"
+msgstr "マージリクエストが承認された"
+
+msgid "Merge request changes are unavailable"
+msgstr "マージリクエストの変更内容は利用できません"
+
+msgid "Merge request is locked"
+msgstr "マージリクエストはロックされています"
+
+msgid "Merge request label changed"
+msgstr "マージリクエストのラベルが変更された"
+
+msgid "Merge request merged"
+msgstr "マージリクエストがマージされた"
+
+msgid "Merge request opened"
+msgstr "マージリクエストが作成された"
+
+msgid "Merge request pushed"
+msgstr "マージリクエストに変更がプッシュされた"
+
+msgid "Merge request title"
+msgstr "マージリクエストのタイトル"
 
 msgid "Merge when checks pass"
 msgstr "チェック通過後にマージ"
@@ -9673,6 +9902,9 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub issueを最小化"
+
+msgid "Minimize issues"
+msgstr "課題を最小化"
 
 msgid "Minimum contrast"
 msgstr "最小コントラスト"
@@ -10321,11 +10553,17 @@ msgstr "まだコメントはありません。コメントモードをオンに
 msgid "No commits on this branch yet."
 msgstr "このブランチにはまだコミットがありません。"
 
+msgid "No commits to open a merge request from"
+msgstr "マージリクエストを作成できるコミットがありません"
+
 msgid "No commits to open a pull request from"
 msgstr "プルリクエストを作成できるコミットがありません"
 
 msgid "No comparisons yet."
 msgstr "比較はまだありません。"
+
+msgid "No completed reviews or approvals"
+msgstr "完了したレビューや承認なし"
 
 msgid "No console output"
 msgstr "コンソール出力はありません"
@@ -10392,6 +10630,9 @@ msgstr "この期間のファネルデータはありません"
 
 msgid "No git remote detected"
 msgstr "gitリモートが検出されませんでした"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "GitLab プロジェクトが見つかりません。「連携」で GitLab を接続してください。"
 
 msgid "No grouping"
 msgstr "グループ化なし"
@@ -10859,6 +11100,9 @@ msgstr "まだイベントを受信していません: Microsoft Graphが通知�
 msgid "Not reviewed by you"
 msgstr "自分がレビューしていない"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "現在のレビューサイクルで自分がレビューしていない"
+
 msgid "not set up"
 msgstr "未セットアップ"
 
@@ -10874,6 +11118,9 @@ msgstr "並べ替えなし"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "更新なし"
+
+msgid "Note added"
+msgstr "ノートが追加された"
 
 msgid "Notes"
 msgstr "ノート"
@@ -11070,6 +11317,9 @@ msgstr "この場所を変更できるのはホストのオーナーのみです
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "このホストを削除できるのはホストのオーナーまたは組織のオーナーのみです"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "この接続を管理できるのは組織の管理者と所有者のみです。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "これらの設定を変更できるのは組織のオーナーのみです。"
@@ -11324,6 +11574,9 @@ msgstr "Finderで開く"
 msgid "Open in GitHub"
 msgstr "GitHubで開く"
 
+msgid "Open in GitLab"
+msgstr "GitLabで開く"
+
 msgid "Open in Linear"
 msgstr "Linearで開く"
 
@@ -11363,6 +11616,9 @@ msgstr "issue #{0}をブラウザで開く"
 
 msgid "Open issue in GitHub"
 msgstr "GitHubでissueを開く"
+
+msgid "Open issue in GitLab"
+msgstr "GitLab で課題を開く"
 
 msgid "Open issue in Linear"
 msgstr "Linearでissueを開く"
@@ -11950,6 +12206,9 @@ msgstr "最速ペース"
 msgid "Pending Invitations"
 msgstr "保留中の招待"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "保留中のレビューまたは未達成の承認ルール"
+
 msgid "People"
 msgstr "メンバー"
 
@@ -11995,6 +12254,9 @@ msgstr "人"
 
 msgid "Personal"
 msgstr "個人"
+
+msgid "Personal access token"
+msgstr "パーソナルアクセストークン"
 
 msgid "Phantom Forklift"
 msgstr "幻のフォークリフト"
@@ -12079,6 +12341,15 @@ msgstr "ピンク"
 
 msgid "Pinned"
 msgstr "ピン留め済み"
+
+msgid "Pipeline canceled"
+msgstr "パイプラインがキャンセルされた"
+
+msgid "Pipeline failed"
+msgstr "パイプラインが失敗した"
+
+msgid "Pipeline succeeded"
+msgstr "パイプラインが成功した"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "プロジェクトが見つかりません。"
 msgid "Project not set up on this host"
 msgstr "このホストにプロジェクトがセットアップされていません"
 
+msgid "Project or group path"
+msgstr "プロジェクトまたはグループのパス"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "プロジェクトの準備ができました — サイドバーから開いてください。"
 
@@ -12582,6 +12856,9 @@ msgstr "プルリクエスト#{0}、{1}"
 msgid "Pull request actions"
 msgstr "プルリクエストの操作"
 
+msgid "Pull request not found."
+msgstr "プルリクエストが見つかりません。"
+
 msgid "Pull request title"
 msgstr "プルリクエストのタイトル"
 
@@ -12597,6 +12874,10 @@ msgstr "プルリクエスト"
 msgid "Purple"
 msgstr "紫"
 
+msgid "Push"
+msgstr "プッシュ"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "プッシュ"
 
@@ -12802,6 +13083,9 @@ msgstr "リベースしてマージ"
 msgid "Rebase and merge"
 msgstr "リベースしてマージ"
 
+msgid "Rebase branch"
+msgstr "ブランチをリベース"
+
 msgid "Recent Activity"
 msgstr "最近のアクティビティ"
 
@@ -12843,6 +13127,12 @@ msgstr "再接続"
 
 msgid "Reconnect {name}"
 msgstr "{name} を再接続"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "このプロジェクトをクローンするにはGitLabを再接続してください"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "GitLabを再接続して、アクセスとWebhook配信を復元してください。"
 
 msgid "Reconnect Google"
 msgstr "Googleを再接続"
@@ -12892,6 +13182,9 @@ msgstr "更新"
 msgid "Refresh GitHub issues"
 msgstr "GitHub issueを更新"
 
+msgid "Refresh issues"
+msgstr "課題を更新"
+
 msgid "Refresh Linear issues"
 msgstr "Linear issueを更新"
 
@@ -12903,6 +13196,9 @@ msgstr "プルリクエストを更新"
 
 msgid "Refresh repositories"
 msgstr "リポジトリを更新"
+
+msgid "Refresh webhooks"
+msgstr "Webhookを更新"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "次に Claude Code を実行すると更新されます。"
@@ -13241,8 +13537,17 @@ msgstr "リポジトリ: {label}"
 msgid "Repository"
 msgstr "リポジトリ"
 
+msgid "Repository issues"
+msgstr "リポジトリの課題"
+
+msgid "Repository provider"
+msgstr "リポジトリプロバイダー"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "リポジトリの広がりとデスクトップリリースのダウンロード。インストールは dmg と AppImage のダウンロード、アップデートは自動更新が取得する zip で、既存ユーザーを数えます。"
+
+msgid "Repository search capabilities are not available yet."
+msgstr "リポジトリの検索機能はまだ利用できません。"
 
 msgid "Repository URL or path"
 msgstr "リポジトリのURLまたはパス"
@@ -13345,6 +13650,9 @@ msgstr "すべて解決"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "マージにはコンフリクトの解消が必要"
+
+msgid "Resolve conflicts with Agent"
+msgstr "エージェントでコンフリクトを解消"
 
 msgid "Resolve conversation"
 msgstr "会話を解決"
@@ -13615,6 +13923,12 @@ msgstr "レビュースレッド…"
 
 msgid "Reviewed by you"
 msgstr "自分がレビュー済み"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "現在のレビューサイクルで自分がレビュー済み"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "レビュー済みフィルターは、GitHubのレビュー履歴と現在のGitLabレビューサイクルを使用します。"
 
 msgid "Reviewers"
 msgstr "レビュアー"
@@ -14034,6 +14348,18 @@ msgstr "GitHub issueを検索"
 msgid "Search GitHub issues…"
 msgstr "GitHub issueを検索…"
 
+msgid "Search GitLab issues"
+msgstr "GitLabの課題を検索"
+
+msgid "Search GitLab issues…"
+msgstr "GitLabの課題を検索…"
+
+msgid "Search GitLab projects..."
+msgstr "GitLab プロジェクトを検索..."
+
+msgid "Search GitLab repositories..."
+msgstr "GitLabリポジトリを検索..."
+
 msgid "Search history"
 msgstr "履歴を検索"
 
@@ -14090,6 +14416,12 @@ msgstr "プルリクエストを検索…"
 
 msgid "Search repositories..."
 msgstr "リポジトリを検索..."
+
+msgid "Search repository issues"
+msgstr "リポジトリの課題を検索"
+
+msgid "Search repository issues…"
+msgstr "リポジトリの課題を検索…"
 
 msgid "Search settings..."
 msgstr "設定を検索..."
@@ -14208,17 +14540,26 @@ msgstr "直近30日の実績が公開リーダーボードでどの位置にな�
 msgid "Select"
 msgstr "Select"
 
+msgid "Select a host to browse repositories."
+msgstr "ホストを選択してリポジトリを表示してください。"
+
 msgid "Select a project"
 msgstr "プロジェクトを選択してください"
 
 msgid "Select a project first"
 msgstr "先にプロジェクトを選択してください"
 
+msgid "Select a project to create an environment for it."
+msgstr "環境を作成するプロジェクトを選択してください。"
+
 msgid "Select a project to see GitHub issues."
 msgstr "プロジェクトを選択するとGitHub issueが表示されます。"
 
 msgid "Select a project to see pull requests."
 msgstr "プロジェクトを選択するとプルリクエストが表示されます。"
+
+msgid "Select a project to see repository issues."
+msgstr "プロジェクトを選択するとリポジトリの課題が表示されます。"
 
 msgid "Select a pull request to preview it here."
 msgstr "プルリクエストを選択するとここでプレビューできます。"
@@ -14309,6 +14650,9 @@ msgstr "プロジェクトの場所を選択"
 
 msgid "Select project worktree location"
 msgstr "プロジェクトのワークツリーの場所を選択"
+
+msgid "Select projects"
+msgstr "プロジェクトを選択"
 
 msgid "Select range..."
 msgstr "範囲を選択..."
@@ -14790,6 +15134,9 @@ msgstr "アプリの更新をインストールできるときにサイドバー
 
 msgid "Sign in"
 msgstr "サインイン"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "この接続を管理するには、組織の管理者または所有者としてサインインしてください。"
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "ローカル管理者としてサインイン(開発用)"
@@ -15984,6 +16331,9 @@ msgstr "チームメンバー"
 msgid "Team not found in this organization"
 msgstr "この組織にチームが見つかりません"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "選択したGitLabプロジェクトではチームへのレビュー依頼を利用できません。"
+
 msgid "Team settings"
 msgstr "チーム設定"
 
@@ -16134,6 +16484,9 @@ msgstr "そのエンドポイントを解決できませんでした。"
 msgid "That endpoint is not allowed."
 msgstr "そのエンドポイントは許可されていません。"
 
+msgid "That filter is not supported for this event."
+msgstr "このイベントではそのフィルターは使用できません。"
+
 msgid "That handle is taken."
 msgstr "そのハンドルは使用済みです。"
 
@@ -16148,6 +16501,9 @@ msgstr "そのマシンは利用できなくなりました"
 
 msgid "That name isn't allowed."
 msgstr "その名前は使用できません。"
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "そのURLは接続済みのGitLabホスト上にありません"
 
 msgid "The 2026 bet"
 msgstr "2026年の賭け"
@@ -16260,12 +16616,30 @@ msgstr "フル機能のワークスペース。エージェントを並列実行
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "再利用可能なSupersetエージェント設定、プロンプト、セットアップガイドの今後の公開場所。"
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "GitLabの認可応答が不完全です。もう一度お試しください。"
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "GitLabの認可セッションが無効か、期限切れです。もう一度お試しください。"
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "このGitLabホストは許可されていません。OAuthではサーバーに登録されたGitLabホストを使用する必要があります。トークンでは承認済みのHTTPSホストが必要です。"
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "GitLabのプロジェクトまたはグループが見つからないか、アクセスできません。サブグループを含む完全なパスを入力してください。"
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "GitLabトークンが拒否されました。有効期限とapiおよびread_repositoryスコープを確認してから、再接続してください。"
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "ホストは{targetVersion}ではなく{0}で復帰しました。"
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "ホストが15分以内に復帰しませんでした。"
+
+msgid "The host did not confirm a terminal session"
+msgstr "ホストからターミナルセッションの確認が得られませんでした"
 
 msgid "The host hasn't answered."
 msgstr "ホストからの応答がありません。"
@@ -16397,6 +16771,9 @@ msgstr "自動運転するソフトウェア工場"
 
 msgid "The server could not be found"
 msgstr "サーバーが見つかりませんでした"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "サーバーのGitLab OAuthホストが無効です。管理者に問い合わせるか、トークンを使用してください。"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "サインインリンクが不完全でした。もう一度お試しください。"
@@ -16594,6 +16971,12 @@ msgstr "このファイルは空か、削除されています。"
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "このGitHubインストールは別のSuperset組織にすでに接続されています。そちらで接続を解除するか、Superset GitHub Appをアンインストールしてから、もう一度お試しください。"
 
+msgid "This GitLab check is no longer available."
+msgstr "このGitLabチェックは利用できなくなりました。"
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "このGitLabプロジェクトまたはグループは、別のSuperset組織にすでに接続されています。再接続する前に、その組織で接続を解除してください。"
+
 msgid "This host"
 msgstr "このホスト"
 
@@ -16647,6 +17030,9 @@ msgstr "今月"
 
 msgid "This only changes the display name, not the branch."
 msgstr "変更されるのは表示名だけで、ブランチは変わりません。"
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "この操作はこのGitLabマージリクエストでは利用できません"
 
 msgid "this organization"
 msgstr "この組織"
@@ -17373,6 +17759,9 @@ msgstr "解決を取り消す"
 msgid "Unresolved"
 msgstr "未解決"
 
+msgid "Unresolved conversations"
+msgstr "未解決の会話"
+
 msgid "Unsaved changes"
 msgstr "未保存の変更"
 
@@ -17462,6 +17851,9 @@ msgstr "ファイルを添付するには、このマシンでSupersetを更新�
 msgid "update the branch prefix"
 msgstr "ブランチのプレフィックスを更新する"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "GitLabリポジトリを表示するには、このホストを更新してください。リポジトリのURLまたはパスからのクローンは引き続き利用できます。"
+
 msgid "Updated"
 msgstr "更新済み"
 
@@ -17544,6 +17936,12 @@ msgstr "使用量を取得できません。"
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "「{0}」を使用"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "apiおよびread_repositoryスコープを持つパーソナルアクセストークンを使用してください。GitLabアカウントには、選択したプロジェクトまたはグループのWebhookを管理する権限が必要です。"
+
+msgid "Use a username supported by all selected providers."
+msgstr "選択したすべてのプロバイダーで使えるユーザー名を使用してください。"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "ワークスペースからの相対パスか絶対パスのフォルダを指定します。"
@@ -17635,6 +18033,9 @@ msgstr "ユーザーが見つかりません"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "ユーザー名…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "ランダムなブランチ名を使用します(AI生成がタイムアウトしました)"
 
@@ -17718,6 +18119,9 @@ msgstr "すべて表示"
 msgid "View All"
 msgstr "すべて表示"
 
+msgid "View checks"
+msgstr "チェックを表示"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0}のコメントを表示"
@@ -17733,6 +18137,9 @@ msgstr "フルサイズで表示"
 
 msgid "View in GitHub"
 msgstr "GitHubで見る"
+
+msgid "View in GitLab"
+msgstr "GitLabで見る"
 
 msgid "View log"
 msgstr "ログを表示"
@@ -18225,6 +18632,9 @@ msgstr "ワークスペースを作成しました"
 msgid "Workspace created from PR"
 msgstr "PRからワークスペースを作成しました"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "ワークスペース作成の結果を確認できませんでした"
+
 msgid "Workspace details"
 msgstr "ワークスペースの詳細"
 
@@ -18404,6 +18814,9 @@ msgstr "その組織のメンバーではありません。"
 
 msgid "You are not a member of this organization"
 msgstr "この組織のメンバーではありません"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "この組織の連携を管理する権限がありません。"
 
 msgid "You are not authorized to perform this action."
 msgstr "この操作を行う権限がありません。"

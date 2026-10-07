@@ -1,6 +1,7 @@
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
@@ -13,12 +14,15 @@ import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/comp
 import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
+import { linkedIssueFromGitLab } from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
+import type { GitLabIssueReference } from "renderer/stores/new-workspace-draft";
 import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
 
 export interface SelectedIssue {
+	gitlab?: GitLabIssueReference;
 	issueNumber: number;
 	title: string;
 	url: string;
@@ -26,7 +30,10 @@ export interface SelectedIssue {
 	projectId: string;
 }
 
+import type { IssueSearchSelection } from "../../hooks/useIssueSearchSelection/useIssueSearchSelection";
+
 interface GitHubIssuesContentProps {
+	issueSelection?: IssueSearchSelection;
 	projectFilters: string[];
 	projectTargets: ProjectQueryTarget[];
 	areProjectsReady: boolean;
@@ -42,7 +49,15 @@ interface GitHubIssuesContentProps {
 
 const PAGE_SIZE = 30;
 
+function isNativeIssueUrl(url: string) {
+	return (
+		url.includes("/-/issues/") &&
+		!/^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/[1-9]\d*$/.test(url)
+	);
+}
+
 export function GitHubIssuesContent({
+	issueSelection,
 	projectFilters,
 	projectTargets,
 	areProjectsReady,
@@ -105,7 +120,14 @@ export function GitHubIssuesContent({
 			gcTime: 10 * 60_000,
 		}),
 		getRows: (data) => data.issues,
-		getRowKey: (issue) => `${issue.projectId}:${issue.issueNumber}`,
+		getRowKey: (issue) =>
+			isNativeIssueUrl(issue.url)
+				? JSON.stringify([
+						"hostId" in issue ? issue.hostId : null,
+						issue.projectId,
+						issue.url,
+					])
+				: `${issue.projectId}:${issue.issueNumber}`,
 	});
 
 	const clearSelection = useCallback(() => {
@@ -129,7 +151,9 @@ export function GitHubIssuesContent({
 		(issue: SelectedIssue, checked: boolean) => {
 			setSelectedIssues((prev) => {
 				const next = new Map(prev);
-				const key = `${issue.projectId}:${issue.issueNumber}`;
+				const key = issue.gitlab
+					? `gitlab:${JSON.stringify([issue.gitlab.hostId, issue.projectId, issue.gitlab.expectedIssueUrl])}`
+					: `${issue.projectId}:${issue.issueNumber}`;
 				if (checked) {
 					next.set(key, issue);
 				} else {
@@ -141,7 +165,64 @@ export function GitHubIssuesContent({
 		[],
 	);
 
+	const nativeIssue = (issue: (typeof issues)[number]) =>
+		issue.hostId && issue.hostUrl
+			? linkedIssueFromGitLab({
+					...issue,
+					hostId: issue.hostId,
+					hostUrl: issue.hostUrl,
+				})
+			: null;
+	const refuseNativeIssue = () =>
+		toast.error(t({ message: "GitLab issue content could not be verified" }));
+	const handleIssueChecked = (
+		issue: (typeof issues)[number],
+		checked: boolean,
+	) => {
+		if (isNativeIssueUrl(issue.url)) {
+			const linked = nativeIssue(issue);
+			if (!linked?.gitlab) {
+				refuseNativeIssue();
+				return;
+			}
+			toggleIssueSelection(
+				{
+					issueNumber: issue.issueNumber,
+					title: issue.title,
+					url: issue.url,
+					state: issue.state,
+					projectId: issue.projectId,
+					gitlab: linked.gitlab,
+				},
+				checked,
+			);
+			return;
+		}
+		toggleIssueSelection(
+			{
+				issueNumber: issue.issueNumber,
+				title: issue.title,
+				url: issue.url,
+				state: issue.state,
+				projectId: issue.projectId,
+			},
+			checked,
+		);
+	};
+
 	const handleAddToWorkspace = (issue: (typeof issues)[number]) => {
+		if (isNativeIssueUrl(issue.url)) {
+			const linked = nativeIssue(issue);
+			if (!linked) {
+				refuseNativeIssue();
+				return;
+			}
+			resetDraft();
+			selectProject(issue.projectId);
+			updateDraft({ hostId: issue.hostId, linkedIssues: [linked] });
+			openNewWorkspace(issue.projectId);
+			return;
+		}
 		const linkedIssue: LinkedIssue = {
 			slug: `gh-${issue.issueNumber}`,
 			title: issue.title,
@@ -161,6 +242,26 @@ export function GitHubIssuesContent({
 	};
 
 	const handleOpenPreview = (issue: (typeof issues)[number]) => {
+		if (isNativeIssueUrl(issue.url)) {
+			const linked = nativeIssue(issue);
+			if (!linked) {
+				refuseNativeIssue();
+				return;
+			}
+			navigate({
+				to: "/tasks/issue/$issueNumber",
+				params: { issueNumber: String(issue.issueNumber) },
+				search: {
+					search: searchQuery || undefined,
+					type: "issues",
+					project: issue.projectId,
+					projects: serializeProjectFilters(projectFilters),
+					state: includeClosed ? "all" : undefined,
+					issueUrl: linked.url,
+				},
+			});
+			return;
+		}
 		navigate({
 			to: "/tasks/issue/$issueNumber",
 			params: { issueNumber: String(issue.issueNumber) },
@@ -182,9 +283,15 @@ export function GitHubIssuesContent({
 					<span className="max-w-prose text-sm text-wrap-pretty">
 						{areProjectsReady ? (
 							hasProjects ? (
-								<Trans>Select a project to see GitHub issues.</Trans>
-							) : (
+								!issueSelection || issueSelection.mode === "github" ? (
+									<Trans>Select a project to see GitHub issues.</Trans>
+								) : (
+									<Trans>Select a project to see repository issues.</Trans>
+								)
+							) : !issueSelection || issueSelection.mode === "github" ? (
 								<Trans>Add a project to see GitHub issues.</Trans>
+							) : (
+								<Trans>Add a project to see repository issues.</Trans>
 							)
 						) : (
 							<Trans>Loading projects…</Trans>
@@ -208,7 +315,14 @@ export function GitHubIssuesContent({
 		);
 	}
 
-	const isInitialLoad = isFetching && issues.length === 0;
+	const isInitialLoad =
+		(isFetching || issueSelection?.pending) && issues.length === 0;
+	const issueMode = issueSelection?.mode ?? "github";
+	const hasNativeIssues = issueMode !== "github";
+	const refresh = () => {
+		issueSelection?.refetch?.();
+		refetch();
+	};
 
 	return (
 		<div
@@ -229,7 +343,21 @@ export function GitHubIssuesContent({
 							</Trans>
 						)}
 					</span>{" "}
-					<Plural value={totalCount} one="GitHub issue" other="GitHub issues" />
+					{issueMode === "gitlab" ? (
+						<Plural
+							value={totalCount}
+							one="GitLab issue"
+							other="GitLab issues"
+						/>
+					) : hasNativeIssues ? (
+						<Plural value={totalCount} one="issue" other="issues" />
+					) : (
+						<Plural
+							value={totalCount}
+							one="GitHub issue"
+							other="GitHub issues"
+						/>
+					)}
 				</span>
 				<Button
 					variant="ghost"
@@ -238,11 +366,13 @@ export function GitHubIssuesContent({
 					title={t({
 						message: "Refresh",
 					})}
-					aria-label={t({
-						message: "Refresh GitHub issues",
-					})}
+					aria-label={
+						hasNativeIssues
+							? t({ message: "Refresh issues" })
+							: t({ message: "Refresh GitHub issues" })
+					}
 					disabled={isFetching}
-					onClick={() => refetch()}
+					onClick={refresh}
 				>
 					<LuRefreshCw
 						className={
@@ -259,9 +389,11 @@ export function GitHubIssuesContent({
 						title={t({
 							message: "Minimize",
 						})}
-						aria-label={t({
-							message: "Minimize GitHub issues",
-						})}
+						aria-label={
+							hasNativeIssues
+								? t({ message: "Minimize issues" })
+								: t({ message: "Minimize GitHub issues" })
+						}
 						onClick={onCollapse}
 					>
 						<LuMinus className="size-3.5" />
@@ -270,10 +402,34 @@ export function GitHubIssuesContent({
 			</div>
 
 			<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-				{error instanceof Error && issues.length === 0 ? (
+				{issueSelection?.pending && (
+					<output className="px-4 py-2 text-xs text-muted-foreground">
+						<Trans>Loading repositories…</Trans>
+					</output>
+				)}
+				{issueSelection?.error && (
+					<div
+						role="alert"
+						className="flex items-center gap-2 px-4 py-2 text-xs text-destructive"
+					>
+						<span>{issueSelection.error}</span>
+						<Button
+							variant="outline"
+							size="xs"
+							data-issue-identity-retry
+							onClick={() => issueSelection.refetch?.()}
+						>
+							<Trans>Retry</Trans>
+						</Button>
+					</div>
+				)}
+				{issueSelection?.error &&
+				issues.length === 0 &&
+				!(error instanceof Error) ? null : error instanceof Error &&
+					issues.length === 0 ? (
 					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
 						<span>{error.message}</span>
-						<Button variant="outline" size="sm" onClick={() => refetch()}>
+						<Button variant="outline" size="sm" onClick={refresh}>
 							<Trans>Try again</Trans>
 						</Button>
 					</div>
@@ -307,7 +463,7 @@ export function GitHubIssuesContent({
 										Some repositories could not be loaded: {error.message}
 									</Trans>
 								</span>
-								<Button variant="outline" size="xs" onClick={() => refetch()}>
+								<Button variant="outline" size="xs" onClick={refresh}>
 									<Trans>Retry</Trans>
 								</Button>
 							</div>
@@ -315,7 +471,10 @@ export function GitHubIssuesContent({
 						{issues.map((issue) => {
 							const isClosed = issue.state.toLowerCase() === "closed";
 							const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
-							const selectionKey = `${issue.projectId}:${issue.issueNumber}`;
+							const selectionKey = isNativeIssueUrl(issue.url)
+								? (nativeIssue(issue)?.slug ??
+									`${issue.projectId}:${issue.issueNumber}`)
+								: `${issue.projectId}:${issue.issueNumber}`;
 							const isSelected = selectedIssues.has(selectionKey);
 							return (
 								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
@@ -336,16 +495,7 @@ export function GitHubIssuesContent({
 									<Checkbox
 										checked={isSelected}
 										onCheckedChange={(checked) =>
-											toggleIssueSelection(
-												{
-													issueNumber: issue.issueNumber,
-													title: issue.title,
-													url: issue.url,
-													state: issue.state,
-													projectId: issue.projectId,
-												},
-												checked === true,
-											)
+											handleIssueChecked(issue, checked === true)
 										}
 										onClick={(e) => e.stopPropagation()}
 										aria-label={t({

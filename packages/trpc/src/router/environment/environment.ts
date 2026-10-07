@@ -18,8 +18,23 @@ import {
 } from "@superset/shared/sandbox-regions";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { assertCloudAccess, assertMember } from "../../lib/cloud-guards";
+import { loadGitlabCheckout } from "../../lib/gitlab/checkout";
+import {
+	lockGitlabConsumerEnvironment,
+	lockGitlabConsumerWorkspace,
+	rejectMixedGitlabConsumer,
+	requireAbsentGitlabConsumerBinding,
+	requireSameGitlabConsumerBinding,
+	resolveGitlabConsumerProject,
+} from "../../lib/gitlab/consumer-storage";
+import {
+	gitlabEnvironmentProjects,
+	loadGitlabEnvironmentProject,
+	setGitlabEnvironmentProject,
+} from "../../lib/gitlab/environment-project";
 import {
 	buildSandboxClaim,
 	deleteSandbox,
@@ -55,6 +70,21 @@ export async function loadEnvironment(
 		});
 	}
 	return row;
+}
+
+function validateGithubRepositoryIds(
+	repositoryIds: string[] | undefined,
+	ctx: z.RefinementCtx,
+): void {
+	if (repositoryIds?.length) return;
+	const result = z
+		.array(z.string().uuid())
+		.min(1)
+		.max(20)
+		.safeParse(repositoryIds);
+	if (!result.success)
+		for (const issue of result.error.issues)
+			ctx.addIssue({ ...issue, path: ["repositoryIds", ...issue.path] });
 }
 
 export function isSharedEnvironment(row: { organizationId: string }): boolean {
@@ -152,11 +182,13 @@ async function repositoriesByEnvironment(
 }
 
 async function setEnvironmentRepositories(args: {
+	executor?: Pick<PgDatabase<PgQueryResultHKT>, "insert" | "update" | "delete">;
 	environmentId: string;
 	organizationId: string;
 	repositoryIds: readonly string[];
 	hooksRepositoryId: string | null | undefined;
 }): Promise<void> {
+	const executor = args.executor ?? db;
 	let repositories: Awaited<ReturnType<typeof loadRepositories>>;
 	try {
 		repositories = await loadRepositories({
@@ -182,18 +214,18 @@ async function setEnvironmentRepositories(args: {
 			i18nKey: "serverError.environment.hooksRepositoryNotIncluded",
 		});
 	}
-	await db
+	await executor
 		.delete(environmentRepositories)
 		.where(eq(environmentRepositories.environmentId, args.environmentId));
 	if (repositories.length) {
-		await db.insert(environmentRepositories).values(
+		await executor.insert(environmentRepositories).values(
 			repositories.map((repo) => ({
 				environmentId: args.environmentId,
 				repositoryId: repo.id,
 			})),
 		);
 	}
-	await db
+	await executor
 		.update(environments)
 		.set({ hooksRepositoryId: args.hooksRepositoryId ?? null })
 		.where(eq(environments.id, args.environmentId));
@@ -226,13 +258,19 @@ async function loadPromotable(
 	const source = await db.query.environments.findFirst({
 		where: eq(environments.id, workspace.environmentId),
 	});
-	const checkouts = await workspaceRepositories({
-		cloudWorkspaceId: workspace.id,
-		hooksRepositoryId: source?.hooksRepositoryId ?? null,
-		primaryBranch: workspace.baseBranch,
-		workingBranch: workspace.branch,
-	});
-	return { workspace, source, checkouts };
+	const gitlabProject = await loadGitlabCheckout(
+		workspace.id,
+		workspace.organizationId,
+	);
+	const checkouts = gitlabProject
+		? []
+		: await workspaceRepositories({
+				cloudWorkspaceId: workspace.id,
+				hooksRepositoryId: source?.hooksRepositoryId ?? null,
+				primaryBranch: workspace.baseBranch,
+				workingBranch: workspace.branch,
+			});
+	return { workspace, source, checkouts, gitlabProject };
 }
 
 export const environmentRouter = {
@@ -262,10 +300,14 @@ export const environmentRouter = {
 					),
 				)
 				.orderBy(asc(environments.name));
-			const repos = await repositoriesByEnvironment(rows);
+			const [repos, gitlab] = await Promise.all([
+				repositoriesByEnvironment(rows),
+				gitlabEnvironmentProjects(input.organizationId),
+			]);
 			return rows.map((row) => ({
 				...row,
 				repositories: repos.get(row.id) ?? [],
+				gitlabProject: gitlab.get(row.id) ?? null,
 			}));
 		}),
 
@@ -275,29 +317,48 @@ export const environmentRouter = {
 			await assertCloudAccess(ctx);
 			const row = await loadEnvironment(input.id, ctx);
 			const repos = await repositoriesByEnvironment([row]);
-			return { ...row, repositories: repos.get(row.id) ?? [] };
+			return {
+				...row,
+				repositories: repos.get(row.id) ?? [],
+				gitlabProject: await loadGitlabEnvironmentProject(
+					row.id,
+					row.organizationId,
+				),
+			};
 		}),
 
 	create: jwtProcedure
 		.input(
-			z.object({
-				organizationId: z.string().uuid(),
-				name: z.string().min(1).max(100),
-				/** In order; the first is the primary, the one a workspace opens on. */
-				repositoryIds: z.array(z.string().uuid()).min(1).max(20),
-				/** Which repository's `.superset/config.json` the box acts on. */
-				hooksRepositoryId: z.string().uuid().nullable().optional(),
-				scope: z.enum(environmentScopeValues).default("organization"),
-				/** Where its boxes run; the region nearest the caller when omitted. */
-				region: z.enum(SANDBOX_REGION_IDS).optional(),
-			}),
+			z
+				.object({
+					organizationId: z.string().uuid(),
+					name: z.string().min(1).max(100),
+					/** In order; the first is the primary, the one a workspace opens on. */
+					repositoryIds: z.array(z.string().uuid()).max(20).optional(),
+					gitlabCloneUrl: z.string().url().optional(),
+					/** Which repository's `.superset/config.json` the box acts on. */
+					hooksRepositoryId: z.string().uuid().nullable().optional(),
+					scope: z.enum(environmentScopeValues).default("organization"),
+					/** Where its boxes run; the region nearest the caller when omitted. */
+					region: z.enum(SANDBOX_REGION_IDS).optional(),
+				})
+				.superRefine((input, ctx) => {
+					if (!input.gitlabCloneUrl)
+						validateGithubRepositoryIds(input.repositoryIds, ctx);
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
 			assertMember(ctx.organizationIds, input.organizationId);
+			const repositoryIds = input.repositoryIds ?? [];
+			if (
+				input.gitlabCloneUrl &&
+				(repositoryIds.length > 0 || input.hooksRepositoryId)
+			)
+				rejectMixedGitlabConsumer();
 			if (
 				input.hooksRepositoryId &&
-				!input.repositoryIds.includes(input.hooksRepositoryId)
+				!repositoryIds.includes(input.hooksRepositoryId)
 			) {
 				throw userError({
 					code: "BAD_REQUEST",
@@ -306,30 +367,52 @@ export const environmentRouter = {
 					i18nKey: "serverError.environment.hooksRepositoryNotIncluded",
 				});
 			}
-			const [row] = await db
-				.insert(environments)
-				.values({
-					organizationId: input.organizationId,
-					name: input.name,
-					provider: "vercel",
-					sourceKind: "image",
-					sourceRef: SANDBOX_IMAGE_NAME,
-					region: input.region ?? regionForRequest(ctx.headers),
-					scope: input.scope,
-					createdByUserId: ctx.userId,
-				})
-				.returning();
-			if (!row) {
-				throw userError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Could not record environment",
-					i18nKey: "serverError.environment.couldNotRecord",
+			const gitlabProject = input.gitlabCloneUrl
+				? await resolveGitlabConsumerProject({
+						organizationId: input.organizationId,
+						cloneUrl: input.gitlabCloneUrl,
+					})
+				: null;
+			const recordEnvironment = async (
+				executor: Pick<PgDatabase<PgQueryResultHKT>, "insert">,
+			) => {
+				const [row] = await executor
+					.insert(environments)
+					.values({
+						organizationId: input.organizationId,
+						name: input.name,
+						provider: "vercel",
+						sourceKind: "image",
+						sourceRef: SANDBOX_IMAGE_NAME,
+						region: input.region ?? regionForRequest(ctx.headers),
+						scope: input.scope,
+						createdByUserId: ctx.userId,
+					})
+					.returning();
+				if (!row) {
+					throw userError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Could not record environment",
+						i18nKey: "serverError.environment.couldNotRecord",
+					});
+				}
+				return row;
+			};
+			if (gitlabProject)
+				return dbWs.transaction(async (tx) => {
+					const row = await recordEnvironment(tx);
+					await setGitlabEnvironmentProject(tx, {
+						environmentId: row.id,
+						organizationId: input.organizationId,
+						project: gitlabProject,
+					});
+					return row;
 				});
-			}
+			const row = await recordEnvironment(db);
 			await setEnvironmentRepositories({
 				environmentId: row.id,
 				organizationId: input.organizationId,
-				repositoryIds: input.repositoryIds,
+				repositoryIds,
 				hooksRepositoryId: input.hooksRepositoryId,
 			});
 			return row;
@@ -339,12 +422,11 @@ export const environmentRouter = {
 	promotePreview: jwtProcedure
 		.input(z.object({ cloudWorkspaceId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const { workspace, source, checkouts } = await loadPromotable(
-				ctx,
-				input.cloudWorkspaceId,
-			);
+			const { workspace, source, checkouts, gitlabProject } =
+				await loadPromotable(ctx, input.cloudWorkspaceId);
 			return {
 				name: workspace.name,
+				gitlabProject,
 				repositories: checkouts.map((entry) => ({
 					id: entry.repository.id,
 					fullName: entry.repository.fullName,
@@ -374,10 +456,8 @@ export const environmentRouter = {
 				),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const { workspace, source, checkouts } = await loadPromotable(
-				ctx,
-				input.cloudWorkspaceId,
-			);
+			const { workspace, source, checkouts, gitlabProject } =
+				await loadPromotable(ctx, input.cloudWorkspaceId);
 			const target = input.environmentId
 				? await loadEnvironment(input.environmentId, ctx)
 				: null;
@@ -392,6 +472,14 @@ export const environmentRouter = {
 					});
 				}
 			}
+			const targetGitlabProject = target
+				? await loadGitlabEnvironmentProject(
+						target.id,
+						workspace.organizationId,
+					)
+				: null;
+			if (target && !targetGitlabProject)
+				await requireAbsentGitlabConsumerBinding(db, target.id);
 			const targetOwner =
 				target && input.scope === "personal"
 					? personalOwner(target, ctx.userId)
@@ -416,6 +504,20 @@ export const environmentRouter = {
 								),
 							);
 
+			const currentGitlabProject = gitlabProject
+				? await resolveGitlabConsumerProject({
+						organizationId: workspace.organizationId,
+						cloneUrl: gitlabProject.cloneUrl,
+					})
+				: null;
+			if (currentGitlabProject && gitlabProject)
+				requireSameGitlabConsumerBinding(
+					{
+						...gitlabProject,
+						defaultBranch: currentGitlabProject.defaultBranch,
+					},
+					currentGitlabProject,
+				);
 			const { claim } = await buildSandboxClaim({ row: workspace });
 			const golden = await promoteSandboxToEnvironment({
 				sourceSandbox: workspace.providerSandboxId,
@@ -434,6 +536,37 @@ export const environmentRouter = {
 			};
 			const row = await dbWs
 				.transaction(async (tx) => {
+					if (gitlabProject) {
+						await lockGitlabConsumerWorkspace(tx, {
+							workspace,
+							userId: ctx.userId,
+						});
+						requireSameGitlabConsumerBinding(
+							gitlabProject,
+							await loadGitlabCheckout(
+								workspace.id,
+								workspace.organizationId,
+								tx,
+							),
+						);
+					}
+					if (target && (gitlabProject || targetGitlabProject)) {
+						await lockGitlabConsumerEnvironment(tx, {
+							environment: target,
+							organizationId: workspace.organizationId,
+							userId: ctx.userId,
+						});
+						requireSameGitlabConsumerBinding(
+							targetGitlabProject,
+							await loadGitlabEnvironmentProject(
+								target.id,
+								workspace.organizationId,
+								tx,
+							),
+						);
+						if (!targetGitlabProject)
+							await requireAbsentGitlabConsumerBinding(tx, target.id);
+					}
 					const [saved] = target
 						? await tx
 								.update(environments)
@@ -465,16 +598,25 @@ export const environmentRouter = {
 									createdByUserId: ctx.userId,
 								})
 								.returning();
+					if (target && !gitlabProject && !targetGitlabProject)
+						await requireAbsentGitlabConsumerBinding(tx, target.id);
 					// The golden baked these checkouts; a fork must ask for the same.
 					await tx
 						.delete(environmentRepositories)
 						.where(eq(environmentRepositories.environmentId, environmentId));
-					await tx.insert(environmentRepositories).values(
-						checkouts.map((entry) => ({
+					if (checkouts.length)
+						await tx.insert(environmentRepositories).values(
+							checkouts.map((entry) => ({
+								environmentId,
+								repositoryId: entry.repository.id,
+							})),
+						);
+					if (gitlabProject || targetGitlabProject)
+						await setGitlabEnvironmentProject(tx, {
 							environmentId,
-							repositoryId: entry.repository.id,
-						})),
-					);
+							organizationId: workspace.organizationId,
+							project: currentGitlabProject,
+						});
 					if (source && inheritedSecrets.length) {
 						await tx.insert(environmentSecrets).values(
 							inheritedSecrets.map((secret) => ({
@@ -530,13 +672,19 @@ export const environmentRouter = {
 
 	update: jwtProcedure
 		.input(
-			z.object({
-				id: z.string().uuid(),
-				name: z.string().min(1).max(100).optional(),
-				repositoryIds: z.array(z.string().uuid()).min(1).max(20).optional(),
-				hooksRepositoryId: z.string().uuid().nullable().optional(),
-				scope: z.enum(environmentScopeValues).optional(),
-			}),
+			z
+				.object({
+					id: z.string().uuid(),
+					name: z.string().min(1).max(100).optional(),
+					repositoryIds: z.array(z.string().uuid()).max(20).optional(),
+					gitlabCloneUrl: z.string().url().optional(),
+					hooksRepositoryId: z.string().uuid().nullable().optional(),
+					scope: z.enum(environmentScopeValues).optional(),
+				})
+				.superRefine((input, ctx) => {
+					if (!input.gitlabCloneUrl && input.repositoryIds !== undefined)
+						validateGithubRepositoryIds(input.repositoryIds, ctx);
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await assertCloudAccess(ctx);
@@ -545,12 +693,78 @@ export const environmentRouter = {
 
 			// A golden was built for its repositories: cloned, set up, snapshotted.
 			// A different set means a different golden, so it is promoted again.
-			if (input.repositoryIds && current.sourceKind !== "image") {
+			if (
+				(input.repositoryIds || input.gitlabCloneUrl) &&
+				current.sourceKind !== "image"
+			) {
 				throw userError({
 					code: "FORBIDDEN",
 					message:
 						"This environment's repositories are fixed; promote a workspace again to change them",
 					i18nKey: "serverError.environment.repositoriesFrozen",
+				});
+			}
+			if (
+				input.gitlabCloneUrl &&
+				(input.repositoryIds?.length || input.hooksRepositoryId)
+			)
+				rejectMixedGitlabConsumer();
+			const boundProject = await loadGitlabEnvironmentProject(
+				current.id,
+				current.organizationId,
+			);
+			if (!boundProject && (input.gitlabCloneUrl || input.repositoryIds))
+				await requireAbsentGitlabConsumerBinding(db, current.id);
+			if (input.gitlabCloneUrl || (input.repositoryIds && boundProject)) {
+				const project = input.gitlabCloneUrl
+					? await resolveGitlabConsumerProject({
+							organizationId: current.organizationId,
+							cloneUrl: input.gitlabCloneUrl,
+						})
+					: null;
+				const patch = {
+					...(input.name ? { name: input.name } : {}),
+					...(input.scope ? { scope: input.scope } : {}),
+					...(input.scope === "personal"
+						? { createdByUserId: personalOwner(current, ctx.userId) }
+						: {}),
+				};
+				return dbWs.transaction(async (tx) => {
+					await lockGitlabConsumerEnvironment(tx, {
+						environment: current,
+						organizationId: current.organizationId,
+						userId: ctx.userId,
+					});
+					requireSameGitlabConsumerBinding(
+						boundProject,
+						await loadGitlabEnvironmentProject(
+							current.id,
+							current.organizationId,
+							tx,
+						),
+					);
+					if (!boundProject)
+						await requireAbsentGitlabConsumerBinding(tx, current.id);
+					await setEnvironmentRepositories({
+						executor: tx,
+						environmentId: current.id,
+						organizationId: current.organizationId,
+						repositoryIds: project ? [] : (input.repositoryIds ?? []),
+						hooksRepositoryId: project ? null : input.hooksRepositoryId,
+					});
+					await setGitlabEnvironmentProject(tx, {
+						environmentId: current.id,
+						organizationId: current.organizationId,
+						project,
+					});
+					if (Object.keys(patch).length)
+						await tx
+							.update(environments)
+							.set(patch)
+							.where(eq(environments.id, current.id));
+					return tx.query.environments.findFirst({
+						where: eq(environments.id, current.id),
+					});
 				});
 			}
 			if (input.repositoryIds) {

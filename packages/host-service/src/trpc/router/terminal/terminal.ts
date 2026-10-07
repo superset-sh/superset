@@ -24,6 +24,11 @@ import {
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import {
+	acquireExpectedGitlabDelivery,
+	expectedGitlabPullRequestSchema,
+} from "../git/gitlab-actions";
+import { captureExpectedGitlabWorkspace } from "../workspaces/create-gitlab-checkout";
 import { toTerminalSessionError } from "./errors";
 
 export const createSessionInputSchema = z.object({
@@ -186,13 +191,33 @@ export const terminalRouter = router({
 					workspaceId: z.string(),
 					text: z.string(),
 					submit: z.boolean().default(true),
+					expectedPullRequest: expectedGitlabPullRequestSchema.optional(),
 				})
 				.refine((input) => input.submit || input.text.length > 0, {
 					message: "Nothing to send",
 				}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const message = { ...input, db: ctx.db, eventBus: ctx.eventBus };
+			const expected = input.expectedPullRequest;
+			const initial = expected
+				? captureExpectedGitlabWorkspace(ctx, input.workspaceId)
+				: undefined;
+			const acquireDelivery =
+				expected && initial
+					? () =>
+							acquireExpectedGitlabDelivery(
+								ctx,
+								input.workspaceId,
+								expected,
+								initial,
+							)
+					: undefined;
+			const message = {
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+				...(acquireDelivery ? { acquireDelivery, awaitReplay: true } : {}),
+			};
 			const binding = ctx.terminalAgentStore.get(input.terminalId);
 			const result =
 				binding && binding.endedAt === undefined

@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{0} hedeften {met} tanesi {nextLabel} için üzerine düşeni yapıyor — en geride {laggingLabels} var."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} (squash'lanmış commit'lerle)"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "{minimumContrast}:1 kontrast"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {# otomasyon başlatıldı} other {# otomasyon ba�
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# alt ajan çalışıyor} other {# alt ajan çalışıyor}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "{total} işlemden {succeeded} tanesi başarılı{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {# çalışma alanı oluşturuldu, {failCount} başarısız} other {# çalışma alanı oluşturuldu, {failCount} başarısız}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {# kontrolün tümü geçti} other {# kontrolün tü
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} other {GitHub issue}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {GitLab sorunu} other {GitLab sorunu}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {sorun} other {sorun}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {pull request} other {pull request}}"
@@ -1615,6 +1627,9 @@ msgstr "GitHub issue'larını görmek için bir proje ekleyin."
 
 msgid "Add a project to see pull requests."
 msgstr "Pull request'leri görmek için bir proje ekleyin."
+
+msgid "Add a project to see repository issues."
+msgstr "Depo sorunlarını görmek için bir proje ekleyin."
 
 msgid "Add a short summary…"
 msgstr "Kısa bir özet ekleyin…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic bu token'ı reddetti."
 msgid "any account"
 msgstr "herhangi bir hesap"
 
+msgid "Any branch"
+msgstr "Herhangi bir dal"
+
 msgid "Any channel"
 msgstr "Tüm kanallar"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Başvur"
 
+msgid "Approval requirements unavailable"
+msgstr "Onay gereksinimleri kullanılamıyor"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Kalan onay: {left}/{required}"
+
 msgid "Approve"
 msgstr "Onayla"
 
@@ -2368,8 +2392,14 @@ msgstr "Benim yerime onayla"
 msgid "Approved"
 msgstr "Onaylandı"
 
+msgid "Approved by {approvedBy}"
+msgstr "Onaylayan: {approvedBy}"
+
 msgid "Approved review"
 msgstr "Onaylanmış inceleme"
+
+msgid "Approved with all approval rules met"
+msgstr "Tüm onay kuralları karşılanarak onaylandı"
 
 msgid "Apps"
 msgstr "Uygulamalar"
@@ -2732,6 +2762,9 @@ msgstr "Sizden inceleme bekliyor"
 msgid "Awaiting review from you or your team"
 msgstr "Sizden veya takımınızdan inceleme bekliyor"
 
+msgid "Awaiting your current review"
+msgstr "Güncel incelemenizi bekliyor"
+
 msgid "Back"
 msgstr "Geri"
 
@@ -2758,6 +2791,9 @@ msgstr "Güncel sürüme dön"
 
 msgid "Back to GitHub issues"
 msgstr "GitHub issue'larına dön"
+
+msgid "Back to GitLab issues"
+msgstr "GitLab sorunlarına dön"
 
 msgid "Back to Home"
 msgstr "Ana sayfaya dön"
@@ -3290,6 +3326,9 @@ msgstr "Atananı değiştir"
 msgid "Change avatar"
 msgstr "Avatarı değiştir"
 
+msgid "Change connection"
+msgstr "Bağlantıyı değiştir"
+
 msgid "Change icon"
 msgstr "Simgeyi değiştir"
 
@@ -3439,6 +3478,9 @@ msgstr "Ortamlar kontrol ediliyor…"
 msgid "Checking host…"
 msgstr "Host denetleniyor…"
 
+msgid "Checking merge requirements"
+msgstr "Birleştirme gereksinimleri denetleniyor"
+
 msgid "Checking out a PR requires a project"
 msgstr "Bir PR'ı checkout etmek proje gerektirir"
 
@@ -3475,6 +3517,9 @@ msgstr "Kontroller tamamlandı"
 msgid "Checks failed"
 msgstr "Kontroller başarısız"
 
+msgid "Checks need action"
+msgstr "Kontroller işlem gerektiriyor"
+
 msgid "Checks passed"
 msgstr "Kontroller geçti"
 
@@ -3493,6 +3538,9 @@ msgstr "Bir üst dizin seçin"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Bir issue açmadan önce GitHub issue'ları bölümünden bir proje seçin."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Bir sorunu açmadan önce GitLab sorunlarından bir proje seçin."
+
 msgid "Choose a section."
 msgstr "Bir bölüm seçin."
 
@@ -3504,6 +3552,9 @@ msgstr "Mevcut bir depo klasörü seçin"
 
 msgid "Choose app"
 msgstr "Uygulama seç"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "GitHub depolarını veya bir GitLab projesini seçin"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Önizleme bölmesi yokken dosyaların nasıl açılacağını seçin"
@@ -3834,6 +3885,10 @@ msgstr "Çalışma alanını kapat"
 msgid "Closed"
 msgstr "Kapalı"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Kapalı"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Bu portları kapatmak, onları kullanan süreçleri sonlandırır."
 
@@ -3851,6 +3906,9 @@ msgstr "Kapatılıyor…"
 
 msgid "Cloud"
 msgstr "Bulut"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Bulut ortamı değişti. Yeniden seçin."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Bulut sürümü yakında. Geliştirme ortağı olun"
@@ -4135,6 +4193,9 @@ msgstr "{name} bağla"
 msgid "Connect a device"
 msgstr "Cihaz bağla"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Kendi yönettiğiniz örnekler ve iç içe alt gruplar dahil bir GitLab projesi veya grubu bağlayın."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Bir Google hesabı bağlayın. Posta kutusu salt okunurdur ve tetikleyiciler hesabı bağlayan kişi için çalışır."
 
@@ -4177,6 +4238,9 @@ msgstr "Notion'ı bağla"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Bir veri kaynağında satırlar değiştiğinde veya biri bir sayfaya yorum yaptığında otomasyon çalıştırmak için Notion'ı bağlayın."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Depoları bağlayın ve birleştirme isteklerini eşitleyin."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Depoları bağlayın ve pull request'leri eşitleyin."
 
@@ -4191,6 +4255,12 @@ msgstr "Görevleri konuşmalardan yönetmek için Slack'i bağlayın. Görev olu
 
 msgid "Connect this computer"
 msgstr "Bu bilgisayarı bağlayın"
+
+msgid "Connect with a token"
+msgstr "Bir belirteçle bağlan"
+
+msgid "Connect with GitLab"
+msgstr "GitLab ile bağlan"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "GitHub depolarınızı bağlayın ve pull request'leri eşitleyin. CI durumunu ve incelemeleri takımınız genelinde izleyin."
@@ -4384,6 +4454,9 @@ msgstr "Başka bir ajanla devam et…"
 msgid "Continue with GitHub"
 msgstr "GitHub ile devam et"
 
+msgid "Continue with GitLab"
+msgstr "GitLab ile devam et"
+
 msgid "Continue with Google"
 msgstr "Google ile devam et"
 
@@ -4526,6 +4599,9 @@ msgstr "Bağlantıyı kopyala"
 msgid "Copy Link Address"
 msgstr "Bağlantı adresini kopyala"
 
+msgid "Copy link to merge request"
+msgstr "Birleştirme isteği bağlantısını kopyala"
+
 msgid "Copy link to pull request"
 msgstr "Pull request bağlantısını kopyala"
 
@@ -4647,6 +4723,9 @@ msgstr "Bağlantı kopyalanamadı"
 msgid "Could not create cloud workspace"
 msgstr "Bulut çalışma alanı oluşturulamadı"
 
+msgid "Could not create environment"
+msgstr "Ortam oluşturulamadı"
+
 msgid "Could not create project"
 msgstr "Proje oluşturulamadı"
 
@@ -4681,11 +4760,23 @@ msgstr "Dizin listelenemedi"
 msgid "Could not load agents from {0}"
 msgstr "{0} üzerinden ajanlar yüklenemedi"
 
+msgid "Could not load branches. Try again."
+msgstr "Dallar yüklenemedi. Tekrar deneyin."
+
+msgid "Could not load connection status."
+msgstr "Bağlantı durumu yüklenemedi."
+
 msgid "Could not load environments"
 msgstr "Ortamlar yüklenemedi"
 
 msgid "Could not load environments."
 msgstr "Ortamlar yüklenemedi."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "GitLab projeleri yüklenemedi. Entegrasyonlar bölümündeki bağlantıyı kontrol edin."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "GitLab projeleri yüklenemedi. Tekrar deneyin."
 
 msgid "Could not load image"
 msgstr "Görsel yüklenemedi"
@@ -4701,6 +4792,9 @@ msgstr "Bu fark yüklenemedi"
 
 msgid "Could not load this file."
 msgstr "Bu dosya yüklenemedi."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Bu birleştirme isteği yüklenemedi. Host'una yeniden bağlanıp tekrar deneyin."
 
 msgid "Could not load your machines"
 msgstr "Makineleriniz yüklenemedi"
@@ -5113,6 +5207,12 @@ msgstr "Birleştirme commit'i oluştur"
 msgid "Create Merge Commit"
 msgstr "Birleştirme commit'i oluştur"
 
+msgid "Create merge request"
+msgstr "Birleştirme isteği oluştur"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Birleştirme isteği oluşturulamadı: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Yeni grup oluştur"
 
@@ -5256,6 +5356,9 @@ msgstr "Görev oluşturuluyor"
 msgid "Creating a workspace"
 msgstr "Çalışma alanı oluşturuluyor"
 
+msgid "Creating merge request..."
+msgstr "Birleştirme isteği oluşturuluyor..."
+
 msgid "Creating PR..."
 msgstr "PR oluşturuluyor…"
 
@@ -5320,8 +5423,14 @@ msgstr "Mevcut hız"
 msgid "Current plan"
 msgstr "Mevcut plan"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Geçerli inceleme filtresi bu seçim için kullanılamıyor. Temizlemek için Tüm incelemeler'i seçin."
+
 msgid "Current tab"
 msgstr "Geçerli sekme"
+
+msgid "Current workspace files"
+msgstr "Geçerli çalışma alanı dosyaları"
 
 msgid "Cursor"
 msgstr "İmleç"
@@ -6103,6 +6212,9 @@ msgstr "Taslak · dosya"
 msgid "Draft · line {0}"
 msgstr "Taslak · {0}. satır"
 
+msgid "Draft merge request opened"
+msgstr "Taslak birleştirme isteği açıldı"
+
 msgid "Draft opened"
 msgstr "Taslak açıldı"
 
@@ -6390,6 +6502,9 @@ msgstr "Superset'ten memnun musunuz?"
 
 msgid "Ensure no regression"
 msgstr "Regresyon olmadığından emin ol"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "gitlab.com veya gitlab.example.com:8443 gibi bir GitLab HTTPS sunucusu girin."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "{hostName} üzerinde bir üst dizin girin"
@@ -7145,6 +7260,9 @@ msgstr "Başarısız"
 msgid "FAQ"
 msgstr "SSS"
 
+msgid "Fast-forward merge"
+msgstr "Fast-forward birleştirme"
+
 msgid "Fatal"
 msgstr "Kritik"
 
@@ -7246,6 +7364,9 @@ msgstr "@{normalizedSearch} ile filtrele"
 
 msgid "Filter by author: {label}"
 msgstr "Yazara göre filtrele: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Geçerli GitLab kullanıcısına göre filtrele"
 
 msgid "Filter by device"
 msgstr "Cihaza göre filtrele"
@@ -7745,6 +7866,60 @@ msgstr "GitHub kullanıcı adı..."
 msgid "GitHub username…"
 msgstr "GitHub kullanıcı adı…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "GitLab onay kuralı filtreleri, kullanılabilir bir onay kuralları API'si gerektirir."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "GitLab yetkilendirmesi iptal edildi. Lütfen tekrar deneyin."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab bu projeyi bulamadı"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab birleştirmeyi onaylamadı"
+
+msgid "GitLab host"
+msgstr "GitLab sunucusu"
+
+msgid "GitLab issue content could not be verified"
+msgstr "GitLab sorununun içeriği doğrulanamadı"
+
+msgid "GitLab issues"
+msgstr "GitLab sorunları"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "GitLab birleştirme isteği değişti; yeniden denemeden önce yenileyin"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "GitLab birleştirme durumu: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "API sunucusunda GitLab OAuth yapılandırılmamış. Yöneticinizle iletişime geçin veya bir belirteç kullanın."
+
+msgid "GitLab projects"
+msgstr "GitLab projeleri"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab birleştirmeyi reddetti"
+
+msgid "GitLab repositories"
+msgstr "GitLab depoları"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "GitLab incelenenler filtreleri geçerli inceleme döngüsünü kullanır."
+
+msgid "GitLab username or @me…"
+msgstr "GitLab kullanıcı adı veya @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab bağlantısı yerel olarak kesildi ancak uzaktaki webhook veya belirteç temizliği başarısız oldu. GitLab’de kalan erişim izinlerini inceleyin."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "GitLab webhook kurulumu başarısız oldu. Bağlantıyı ve webhook izinlerini kontrol edin, ardından webhook’ları yenileyin."
+
 msgid "Give me an example"
 msgstr "Bana bir örnek ver"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git veya /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git veya /path/to/repo"
+
 msgid "Human"
 msgstr "İnsan"
 
@@ -8508,6 +8686,9 @@ msgstr "Geçersiz onay yanıtı. Lütfen yeniden deneyin."
 msgid "Invalid email address."
 msgstr "Geçersiz e-posta adresi."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Geçersiz GitLab birleştirme isteği kimliği"
+
 msgid "Invalid hostId"
 msgstr "Geçersiz hostId"
 
@@ -8612,6 +8793,9 @@ msgstr "Issue oluşturuldu"
 
 msgid "Issue not found."
 msgstr "Issue bulunamadı."
+
+msgid "Issue opened"
+msgstr "Sorun açıldı"
 
 msgid "Issue resolved"
 msgstr "Issue çözüldü"
@@ -9094,6 +9278,9 @@ msgstr "Linear issue'su bağla"
 msgid "Link pull request"
 msgstr "Pull request bağla"
 
+msgid "Link repository issue"
+msgstr "Depo sorununu bağla"
+
 msgid "Link task"
 msgstr "Görev bağla"
 
@@ -9232,6 +9419,9 @@ msgstr "Daha fazlası yükleniyor…"
 msgid "Loading project…"
 msgstr "Proje yükleniyor…"
 
+msgid "Loading projects..."
+msgstr "Projeler yükleniyor..."
+
 msgid "Loading projects…"
 msgstr "Projeler yükleniyor…"
 
@@ -9249,6 +9439,9 @@ msgstr "Depolar yükleniyor"
 
 msgid "Loading repositories..."
 msgstr "Depolar yükleniyor..."
+
+msgid "Loading repositories…"
+msgstr "Depolar yükleniyor…"
 
 msgid "Loading review..."
 msgstr "İnceleme yükleniyor..."
@@ -9587,11 +9780,17 @@ msgstr "Birleştir"
 msgid "Merge #{0}?"
 msgstr "#{0} birleştirilsin mi?"
 
+msgid "Merge blocked"
+msgstr "Birleştirme engellendi"
+
 msgid "Merge commit"
 msgstr "Birleştirme commit'i"
 
 msgid "Merge Commit"
 msgstr "Birleştirme commit'i"
+
+msgid "Merge conflicts"
+msgstr "Birleştirme çakışmaları"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Pull request'i birleştir"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Superset'ten çıkmadan pull request birleştirin; ayrıca bir dizi sohbet düzeltmesi ve rötuş."
+
+msgid "Merge request actions"
+msgstr "Birleştirme isteği eylemleri"
+
+msgid "Merge request approval removed"
+msgstr "Birleştirme isteği onayı kaldırıldı"
+
+msgid "Merge request approved"
+msgstr "Birleştirme isteği onaylandı"
+
+msgid "Merge request changes are unavailable"
+msgstr "Birleştirme isteği değişiklikleri kullanılamıyor"
+
+msgid "Merge request is locked"
+msgstr "Birleştirme isteği kilitli"
+
+msgid "Merge request label changed"
+msgstr "Birleştirme isteği etiketi değiştirildi"
+
+msgid "Merge request merged"
+msgstr "Birleştirme isteği birleştirildi"
+
+msgid "Merge request opened"
+msgstr "Birleştirme isteği açıldı"
+
+msgid "Merge request pushed"
+msgstr "Birleştirme isteğine değişiklikler gönderildi"
+
+msgid "Merge request title"
+msgstr "Birleştirme isteği başlığı"
 
 msgid "Merge when checks pass"
 msgstr "Kontroller geçince birleştir"
@@ -9673,6 +9902,9 @@ msgstr "Küçült"
 
 msgid "Minimize GitHub issues"
 msgstr "GitHub issue'larını küçült"
+
+msgid "Minimize issues"
+msgstr "Sorunları küçült"
 
 msgid "Minimum contrast"
 msgstr "En düşük kontrast"
@@ -10321,11 +10553,17 @@ msgstr "Henüz yorum yok. Yorum modunu açıp sayfadaki herhangi bir öğeye tı
 msgid "No commits on this branch yet."
 msgstr "Bu dalda henüz commit yok."
 
+msgid "No commits to open a merge request from"
+msgstr "Birleştirme isteği açılabilecek commit yok"
+
 msgid "No commits to open a pull request from"
 msgstr "Pull request açılabilecek commit yok"
 
 msgid "No comparisons yet."
 msgstr "Henüz karşılaştırma yok."
+
+msgid "No completed reviews or approvals"
+msgstr "Tamamlanmış inceleme veya onay yok"
 
 msgid "No console output"
 msgstr "Konsol çıktısı yok"
@@ -10392,6 +10630,9 @@ msgstr "Bu dönem için huni verisi yok"
 
 msgid "No git remote detected"
 msgstr "Git remote algılanmadı"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "GitLab projesi bulunamadı. Entegrasyonlar bölümünden GitLab’ı bağlayın."
 
 msgid "No grouping"
 msgstr "Gruplama yok"
@@ -10859,6 +11100,9 @@ msgstr "Henüz olay alınmıyor: Microsoft Graph bildirim aboneliklerini reddett
 msgid "Not reviewed by you"
 msgstr "Sizin incelemediğiniz"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Geçerli inceleme döngüsünde sizin incelemediğiniz"
+
 msgid "not set up"
 msgstr "kurulu değil"
 
@@ -10874,6 +11118,9 @@ msgstr "sıralanmamış"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Güncellenmiyor"
+
+msgid "Note added"
+msgstr "Not eklendi"
 
 msgid "Notes"
 msgstr "Notlar"
@@ -11070,6 +11317,9 @@ msgstr "Bu konumu yalnızca host sahipleri değiştirebilir."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Bu host'u yalnızca host sahipleri veya kuruluş sahipleri silebilir"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Bu bağlantıyı yalnızca kuruluş yöneticileri ve sahipleri yönetebilir."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Bu ayarları yalnızca kuruluş sahipleri değiştirebilir."
@@ -11324,6 +11574,9 @@ msgstr "Finder'da aç"
 msgid "Open in GitHub"
 msgstr "GitHub'da aç"
 
+msgid "Open in GitLab"
+msgstr "GitLab'da aç"
+
 msgid "Open in Linear"
 msgstr "Linear'da aç"
 
@@ -11363,6 +11616,9 @@ msgstr "#{0} issue'sunu tarayıcıda aç"
 
 msgid "Open issue in GitHub"
 msgstr "Issue'yu GitHub'da aç"
+
+msgid "Open issue in GitLab"
+msgstr "Sorunu GitLab’da aç"
 
 msgid "Open issue in Linear"
 msgstr "Issue'yu Linear'da aç"
@@ -11950,6 +12206,9 @@ msgstr "Zirve hız"
 msgid "Pending Invitations"
 msgstr "Bekleyen davetler"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Bekleyen incelemeler veya karşılanmamış onay kuralları"
+
 msgid "People"
 msgstr "Kişiler"
 
@@ -11995,6 +12254,9 @@ msgstr "Kişi"
 
 msgid "Personal"
 msgstr "Kişisel"
+
+msgid "Personal access token"
+msgstr "Kişisel erişim belirteci"
 
 msgid "Phantom Forklift"
 msgstr "Hayalet Forklift"
@@ -12079,6 +12341,15 @@ msgstr "Pembe"
 
 msgid "Pinned"
 msgstr "Sabitlenmiş"
+
+msgid "Pipeline canceled"
+msgstr "İşlem hattı iptal edildi"
+
+msgid "Pipeline failed"
+msgstr "İşlem hattı başarısız"
+
+msgid "Pipeline succeeded"
+msgstr "İşlem hattı başarılı"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Proje bulunamadı."
 msgid "Project not set up on this host"
 msgstr "Proje bu host'ta kurulu değil"
 
+msgid "Project or group path"
+msgstr "Proje veya grup yolu"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Proje hazır — kenar çubuğundan açın."
 
@@ -12582,6 +12856,9 @@ msgstr "Pull request #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Pull request eylemleri"
 
+msgid "Pull request not found."
+msgstr "Pull request bulunamadı."
+
 msgid "Pull request title"
 msgstr "Pull request başlığı"
 
@@ -12597,6 +12874,10 @@ msgstr "Pull request'ler"
 msgid "Purple"
 msgstr "Mor"
 
+msgid "Push"
+msgstr "Push"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "Push"
 
@@ -12802,6 +13083,9 @@ msgstr "Rebase ve birleştir"
 msgid "Rebase and merge"
 msgstr "Rebase ve birleştir"
 
+msgid "Rebase branch"
+msgstr "Dalı rebase et"
+
 msgid "Recent Activity"
 msgstr "Son etkinlik"
 
@@ -12843,6 +13127,12 @@ msgstr "Yeniden bağlan"
 
 msgid "Reconnect {name}"
 msgstr "{name} hesabını yeniden bağla"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Bu projeyi klonlamak için GitLab'ı yeniden bağlayın"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Erişimi ve webhook iletimini geri yüklemek için GitLab’i yeniden bağlayın."
 
 msgid "Reconnect Google"
 msgstr "Google'a yeniden bağlan"
@@ -12892,6 +13182,9 @@ msgstr "Yenile"
 msgid "Refresh GitHub issues"
 msgstr "GitHub issue'larını yenile"
 
+msgid "Refresh issues"
+msgstr "Sorunları yenile"
+
 msgid "Refresh Linear issues"
 msgstr "Linear issue'larını yenile"
 
@@ -12903,6 +13196,9 @@ msgstr "Pull request'leri yenile"
 
 msgid "Refresh repositories"
 msgstr "Depoları yenile"
+
+msgid "Refresh webhooks"
+msgstr "Webhook’ları yenile"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Claude Code bir sonraki çalıştığında yenilenir."
@@ -13241,8 +13537,17 @@ msgstr "Depolar: {label}"
 msgid "Repository"
 msgstr "Depo"
 
+msgid "Repository issues"
+msgstr "Depo sorunları"
+
+msgid "Repository provider"
+msgstr "Depo sağlayıcısı"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Depo erişimi ve masaüstü sürüm indirmeleri. Kurulumlar dmg ve AppImage indirmeleridir; güncellemeler otomatik güncelleyicinin çektiği zip'tir, yani mevcut kullanıcıları sayar."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Depo arama yetenekleri henüz kullanılamıyor."
 
 msgid "Repository URL or path"
 msgstr "Depo URL'si veya yolu"
@@ -13345,6 +13650,9 @@ msgstr "Tümünü çöz"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Birleştirmek için çakışmaları çözün"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Çakışmaları ajanla çöz"
 
 msgid "Resolve conversation"
 msgstr "Konuşmayı çöz"
@@ -13615,6 +13923,12 @@ msgstr "İnceleme konusu…"
 
 msgid "Reviewed by you"
 msgstr "Sizin incelediğiniz"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "Geçerli inceleme döngüsünde sizin incelediğiniz"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "İncelenenler filtreleri GitHub inceleme geçmişini ve geçerli GitLab inceleme döngüsünü kullanır."
 
 msgid "Reviewers"
 msgstr "İnceleyiciler"
@@ -14034,6 +14348,18 @@ msgstr "GitHub issue'larında ara"
 msgid "Search GitHub issues…"
 msgstr "GitHub issue'larında ara…"
 
+msgid "Search GitLab issues"
+msgstr "GitLab sorunlarında ara"
+
+msgid "Search GitLab issues…"
+msgstr "GitLab sorunlarında ara…"
+
+msgid "Search GitLab projects..."
+msgstr "GitLab projelerini ara..."
+
+msgid "Search GitLab repositories..."
+msgstr "GitLab depolarında ara..."
+
 msgid "Search history"
 msgstr "Geçmişte ara"
 
@@ -14090,6 +14416,12 @@ msgstr "Pull request ara…"
 
 msgid "Search repositories..."
 msgstr "Depolarda ara..."
+
+msgid "Search repository issues"
+msgstr "Depo sorunlarında ara"
+
+msgid "Search repository issues…"
+msgstr "Depo sorunlarında ara…"
 
 msgid "Search settings..."
 msgstr "Ayarlarda ara..."
@@ -14208,17 +14540,26 @@ msgstr "Son 30 gününüzün herkese açık liderlik tablosunda nereye düştü�
 msgid "Select"
 msgstr "Seçim"
 
+msgid "Select a host to browse repositories."
+msgstr "Depolara göz atmak için bir host seçin."
+
 msgid "Select a project"
 msgstr "Bir proje seçin"
 
 msgid "Select a project first"
 msgstr "Önce bir proje seçin"
 
+msgid "Select a project to create an environment for it."
+msgstr "Ortam oluşturmak istediğiniz projeyi seçin."
+
 msgid "Select a project to see GitHub issues."
 msgstr "GitHub issue'larını görmek için bir proje seçin."
 
 msgid "Select a project to see pull requests."
 msgstr "Pull request'leri görmek için bir proje seçin."
+
+msgid "Select a project to see repository issues."
+msgstr "Depo sorunlarını görmek için bir proje seçin."
 
 msgid "Select a pull request to preview it here."
 msgstr "Burada önizlemek için bir pull request seçin."
@@ -14309,6 +14650,9 @@ msgstr "Proje konumunu seçin"
 
 msgid "Select project worktree location"
 msgstr "Proje worktree konumunu seçin"
+
+msgid "Select projects"
+msgstr "Projeleri seç"
 
 msgid "Select range..."
 msgstr "Aralık seçin..."
@@ -14790,6 +15134,9 @@ msgstr "Bir uygulama güncellemesi kurulmaya hazır olduğunda gösterilen kenar
 
 msgid "Sign in"
 msgstr "Oturum aç"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Bu bağlantıyı yönetmek için kuruluş yöneticisi veya sahibi olarak oturum açın."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Yerel yönetici olarak oturum aç (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Takım üyeleri"
 msgid "Team not found in this organization"
 msgstr "Bu kuruluşta takım bulunamadı"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Takım inceleme istekleri seçili GitLab projelerinde kullanılamıyor."
+
 msgid "Team settings"
 msgstr "Takım ayarları"
 
@@ -16134,6 +16484,9 @@ msgstr "Bu uç nokta çözümlenemedi."
 msgid "That endpoint is not allowed."
 msgstr "Bu uç noktaya izin verilmiyor."
 
+msgid "That filter is not supported for this event."
+msgstr "Bu filtre bu olay için desteklenmiyor."
+
 msgid "That handle is taken."
 msgstr "Bu kullanıcı adı alınmış."
 
@@ -16148,6 +16501,9 @@ msgstr "O makine artık kullanılamıyor"
 
 msgid "That name isn't allowed."
 msgstr "Bu ada izin verilmiyor."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "Bu URL bağlı GitLab ana bilgisayarında değil"
 
 msgid "The 2026 bet"
 msgstr "2026 bahsi"
@@ -16260,12 +16616,30 @@ msgstr "Eksiksiz çalışma alanı. Ajanları paralel çalıştırın, her birin
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Yeniden kullanılabilir Superset ajan yapılandırmaları, istemleri ve kurulum kılavuzları için gelecekteki adres."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "GitLab yetkilendirme yanıtı eksik. Lütfen tekrar deneyin."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "GitLab yetkilendirme oturumu geçersiz veya süresi dolmuş. Lütfen tekrar deneyin."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Bu GitLab sunucusuna izin verilmiyor. OAuth, API sunucusunda kayıtlı GitLab sunucusunu kullanmalıdır; belirteçler için onaylanmış bir HTTPS sunucusu gerekir."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "GitLab projesi veya grubu bulunamadı ya da erişilemiyor. Alt gruplar dahil tam yolunu girin."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "GitLab belirteci reddedildi. Son kullanma tarihini ve api ile read_repository kapsamlarını kontrol edin, ardından yeniden bağlanın."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Ana makine {targetVersion} yerine {0} ile geri döndü."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Ana makine on beş dakika içinde geri gelmedi."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Host bir terminal oturumunu onaylamadı"
 
 msgid "The host hasn't answered."
 msgstr "Host yanıt vermedi."
@@ -16397,6 +16771,9 @@ msgstr "Kendi kendini süren yazılım fabrikası"
 
 msgid "The server could not be found"
 msgstr "Sunucu bulunamadı"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Sunucunun GitLab OAuth sunucu adresi geçersiz. Yöneticinizle iletişime geçin veya bir belirteç kullanın."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Oturum açma bağlantısı eksikti. Lütfen yeniden deneyin."
@@ -16594,6 +16971,12 @@ msgstr "Bu dosya boş veya silinmiş."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Bu GitHub kurulumu zaten başka bir Superset kuruluşuna bağlı. Oradaki bağlantıyı kesin veya Superset GitHub App'i kaldırın, sonra yeniden deneyin."
 
+msgid "This GitLab check is no longer available."
+msgstr "Bu GitLab kontrolü artık kullanılamıyor."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Bu GitLab projesi veya grubu zaten başka bir Superset kuruluşuna bağlı. Yeniden bağlamadan önce o kuruluştaki bağlantısını kesin."
+
 msgid "This host"
 msgstr "Bu host"
 
@@ -16647,6 +17030,9 @@ msgstr "Bu ay"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Bu yalnızca görünen adı değiştirir, dalı değil."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Bu işlem bu GitLab birleştirme isteği için kullanılamıyor"
 
 msgid "this organization"
 msgstr "bu kuruluş"
@@ -17373,6 +17759,9 @@ msgstr "Çözümü geri al"
 msgid "Unresolved"
 msgstr "Çözülmedi"
 
+msgid "Unresolved conversations"
+msgstr "Çözülmemiş konuşmalar"
+
 msgid "Unsaved changes"
 msgstr "Kaydedilmemiş değişiklikler"
 
@@ -17462,6 +17851,9 @@ msgstr "Dosya eklemek için bu makinede Superset'i güncelleyin"
 msgid "update the branch prefix"
 msgstr "dal ön ekini güncelleme"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "GitLab depolarına göz atmak için bu hostu güncelleyin. Bir depoyu URL veya yol kullanarak klonlamaya devam edebilirsiniz."
+
 msgid "Updated"
 msgstr "Güncellendi"
 
@@ -17544,6 +17936,12 @@ msgstr "Kullanım bilgisi yok."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "“{0}” kullan"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "api ve read_repository kapsamlarına sahip bir kişisel erişim belirteci kullanın. GitLab hesabınızın seçilen proje veya grup için webhook’ları yönetme izni olmalıdır."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Seçili tüm sağlayıcıların desteklediği bir kullanıcı adı kullanın."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Çalışma alanına göreli bir yol ya da mutlak bir klasör kullanın."
@@ -17635,6 +18033,9 @@ msgstr "Kullanıcı bulunamadı"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "Kullanıcı adı…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Rastgele dal adı kullanılıyor (AI üretimi zaman aşımına uğradı)"
 
@@ -17718,6 +18119,9 @@ msgstr "Tümünü görüntüle"
 msgid "View All"
 msgstr "Tümünü görüntüle"
 
+msgid "View checks"
+msgstr "Kontrolleri görüntüle"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "{0} kişisinin yorumunu görüntüle"
@@ -17733,6 +18137,9 @@ msgstr "Tam boyutta görüntüle"
 
 msgid "View in GitHub"
 msgstr "GitHub'da görüntüle"
+
+msgid "View in GitLab"
+msgstr "GitLab'da görüntüle"
 
 msgid "View log"
 msgstr "Günlüğü görüntüle"
@@ -18225,6 +18632,9 @@ msgstr "Çalışma alanı oluşturuldu"
 msgid "Workspace created from PR"
 msgstr "PR'dan çalışma alanı oluşturuldu"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Çalışma alanı oluşturma sonucu doğrulanamadı"
+
 msgid "Workspace details"
 msgstr "Çalışma alanı ayrıntıları"
 
@@ -18404,6 +18814,9 @@ msgstr "Bu kuruluşun üyesi değilsiniz."
 
 msgid "You are not a member of this organization"
 msgstr "Bu kuruluşun üyesi değilsiniz"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "Bu kuruluşun entegrasyonlarını yönetme yetkiniz yok."
 
 msgid "You are not authorized to perform this action."
 msgstr "Bu işlemi yapma yetkiniz yok."

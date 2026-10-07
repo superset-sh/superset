@@ -1,6 +1,6 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register();
 const { cleanup, fireEvent, render } = await import("@testing-library/react");
@@ -42,9 +42,18 @@ mock.module(`${root}/pull-requests/components/PullRequestListToggle`, () => ({
 	PullRequestListToggle: () => null,
 }));
 mock.module(`${root}/pull-requests/components/PullRequestDetailHeader`, () => ({
-	PullRequestDetailHeader: ({ projectId }: { projectId: string | null }) => (
-		<div data-testid="header" data-project={projectId ?? ""} />
-	),
+	PullRequestDetailHeader: ({ projectId }: { projectId: string | null }) => {
+		const [draft, setDraft] = useState("");
+		return (
+			<div data-testid="header" data-project={projectId ?? ""}>
+				<input
+					aria-label="merge draft"
+					value={draft}
+					onChange={(event) => setDraft(event.target.value)}
+				/>
+			</div>
+		);
+	},
 }));
 mock.module(
 	`${root}/pull-requests/components/PullRequestSummaryContent`,
@@ -136,4 +145,29 @@ test("legacy project-only loading and errors are not mistaken for invalid links"
 	view.rerender(<Page />);
 	expect(view.getByText("Summary unavailable")).toBeTruthy();
 	expect(view.queryByText("This pull request link is invalid.")).toBeNull();
+});
+
+test("actual page remounts confirmation draft when native identity or project changes", () => {
+	detail = {
+		...detail,
+		projectId: "a",
+		data: { url: "https://git-a.example/team/repo/-/merge_requests/12" },
+		isLoading: false,
+		isResolvingProject: false,
+	};
+	const view = render(<Page />);
+	const input = () => view.getByLabelText("merge draft") as HTMLInputElement;
+	fireEvent.change(input(), { target: { value: "A confirmation draft" } });
+	view.rerender(<Page />);
+	expect(input().value).toBe("A confirmation draft");
+	detail = {
+		...detail,
+		data: { url: "https://git-b.example/team/repo/-/merge_requests/12" },
+	};
+	view.rerender(<Page />);
+	expect(input().value).toBe("");
+	fireEvent.change(input(), { target: { value: "B project draft" } });
+	detail = { ...detail, projectId: "b" };
+	view.rerender(<Page />);
+	expect(input().value).toBe("");
 });

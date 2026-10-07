@@ -207,9 +207,11 @@ export function CommentThread({
 						rel="noreferrer"
 						onClick={(e) => e.stopPropagation()}
 						className="shrink-0 text-muted-foreground hover:text-foreground"
-						aria-label={t({
-							message: "Open on GitHub",
-						})}
+						aria-label={
+							threadId.startsWith("gitlab:")
+								? t({ message: "Open in GitLab" })
+								: t({ message: "Open on GitHub" })
+						}
 					>
 						<LuExternalLink className="size-3" />
 					</a>
@@ -229,6 +231,7 @@ export function CommentThread({
 						replyToThread.mutate({
 							workspaceId,
 							commentId: replyToCommentId,
+							...(threadId.startsWith("gitlab:") ? { threadId } : {}),
 							body,
 						});
 						return true;

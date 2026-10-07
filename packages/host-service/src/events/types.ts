@@ -171,8 +171,9 @@ export interface ProjectSnapshot {
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
+	repoProvider?: string | null;
 	worktreeBaseDir: string | null;
-	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	/** Custom icon data-URI, or null to use the repository avatar. */
 	icon: string | null;
 	/** Accent color as a `#rrggbb` hex, or null for the default. */
 	color: string | null;

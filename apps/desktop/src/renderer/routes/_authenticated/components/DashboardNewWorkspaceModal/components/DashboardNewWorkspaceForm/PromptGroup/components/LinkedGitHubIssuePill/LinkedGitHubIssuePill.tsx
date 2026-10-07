@@ -7,6 +7,7 @@ import {
 } from "renderer/screens/main/components/IssueIcon/IssueIcon";
 
 interface LinkedGitHubIssuePillProps {
+	provider?: "github" | "gitlab";
 	issueNumber: number;
 	title: string;
 	state: string;
@@ -22,6 +23,7 @@ export function LinkedGitHubIssuePill({
 	title,
 	state,
 	onRemove,
+	provider = "github",
 }: LinkedGitHubIssuePillProps) {
 	const { t } = useLingui();
 	return (
@@ -58,7 +60,11 @@ export function LinkedGitHubIssuePill({
 					<span>#{issueNumber}</span>
 					<span>·</span>
 					<span>
-						<Trans>GitHub</Trans>
+						{provider === "gitlab" ? (
+							<Trans>GitLab</Trans>
+						) : (
+							<Trans>GitHub</Trans>
+						)}
 					</span>
 				</div>
 			</div>

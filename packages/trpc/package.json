@@ -131,9 +131,15 @@
 		"./router/cloud-workspace/provision": {
 			"types": "./src/router/cloud-workspace/provision.ts",
 			"default": "./src/router/cloud-workspace/provision.ts"
+		},
+		"./lib/gitlab/*": {
+			"types": "./src/lib/gitlab/*.ts",
+			"default": "./src/lib/gitlab/*.ts"
 		}
 	},
 	"scripts": {
+		"build:gitlab-proxy": "bun run build-gitlab-proxy.ts",
+		"start:gitlab-proxy": "node dist/gitlab-proxy.js",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
 		"test": "bun test --isolate"
@@ -179,6 +185,7 @@
 		"@microsoft/microsoft-graph-types": "2.43.1",
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
+		"postgres": "3.4.9",
 		"typescript": "7.0.2"
 	}
 }

@@ -1,6 +1,7 @@
 import type { TriggerConfigInput } from "../automation-triggers";
 import type { BaseMatchableEvent, MatchResult } from "./core";
 import { type GithubMatchableEvent, githubTriggerMatches } from "./github";
+import { type GitlabMatchableEvent, gitlabTriggerMatches } from "./gitlab";
 import { type GmailMatchableEvent, gmailTriggerMatches } from "./google";
 import { type LinearMatchableEvent, linearTriggerMatches } from "./linear";
 import {
@@ -14,6 +15,7 @@ import { type WebhookMatchableEvent, webhookTriggerMatches } from "./webhook";
 
 export * from "./core";
 export * from "./github";
+export * from "./gitlab";
 export * from "./google";
 export * from "./linear";
 export * from "./microsoft-teams";
@@ -32,6 +34,7 @@ export * from "./webhook";
  */
 export type MatchableEvent =
 	| GithubMatchableEvent
+	| GitlabMatchableEvent
 	| WebhookMatchableEvent
 	| NotionMatchableEvent
 	| LinearMatchableEvent
@@ -66,6 +69,11 @@ export function triggerMatches(
 		case "github":
 			return githubTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "github" }>,
+				event,
+			);
+		case "gitlab":
+			return gitlabTriggerMatches(
+				config as Extract<TriggerConfigInput, { kind: "gitlab" }>,
 				event,
 			);
 		case "sentry":

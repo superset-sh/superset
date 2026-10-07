@@ -18,13 +18,17 @@ export function persistLocalProject(
 	identity?: ProjectIdentityFields,
 ): void {
 	const existing = getLocalProject(ctx.db, projectId);
+	const repository = resolved.identity ?? resolved.parsed;
 	const repoFields = {
 		repoPath: resolved.repoPath,
-		repoProvider: resolved.parsed ? ("github" as const) : null,
-		repoOwner: resolved.parsed?.owner ?? null,
-		repoName: resolved.parsed?.name ?? null,
-		repoUrl: resolved.parsed?.url ?? null,
-		remoteName: resolved.remoteName,
+		repoProvider:
+			repository?.provider === "unknown"
+				? null
+				: (repository?.provider ?? null),
+		repoOwner: repository?.owner ?? null,
+		repoName: repository?.name ?? null,
+		repoUrl: repository?.url ?? null,
+		remoteName: resolved.identity?.remoteName ?? resolved.remoteName,
 	};
 	const identityFields = {
 		name: identity?.name ?? existing?.name ?? basename(resolved.repoPath),

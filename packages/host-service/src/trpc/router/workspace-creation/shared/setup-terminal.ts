@@ -4,11 +4,18 @@ import {
 	resolveScript,
 	shellSingleQuote,
 } from "../../../../runtime/setup/config";
-import { createTerminalSessionInternal } from "../../../../terminal/terminal";
+import {
+	createInitialCommandDelivery,
+	createTerminalSessionInternal,
+} from "../../../../terminal/terminal";
 import type { HostServiceContext } from "../../../../types";
+import { acquireExpectedGitlabDelivery } from "../../git/gitlab-actions";
+import { toTerminalSessionError } from "../../terminal/errors";
+import type { ExpectedGitlabBoundDelivery } from "../../workspaces/create-gitlab-checkout";
 import type { TerminalDescriptor } from "./types";
 
 interface StartSetupTerminalArgs {
+	expectedDelivery?: ExpectedGitlabBoundDelivery;
 	ctx: HostServiceContext;
 	workspaceId: string;
 	/**
@@ -71,16 +78,29 @@ export async function startSetupTerminalIfPresent(
 		? `${resolved.initialCommand} && ${args.chainCommand}`
 		: resolved.initialCommand;
 
+	const bound = args.expectedDelivery;
+	const delivery = bound
+		? createInitialCommandDelivery(() =>
+				acquireExpectedGitlabDelivery(
+					args.ctx,
+					args.workspaceId,
+					bound.expectedPullRequest,
+					bound.initialWorkspace,
+				),
+			)
+		: undefined;
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
+		...(delivery ? { initialDelivery: delivery } : {}),
 		initialCommand,
 		...(resolved.cwd && { cwd: resolved.cwd }),
 	});
 	if ("error" in result) {
+		if (delivery) throw toTerminalSessionError(result);
 		return {
 			terminal: null,
 			warning: `Failed to start setup terminal: ${result.error}`,
@@ -88,6 +108,10 @@ export async function startSetupTerminalIfPresent(
 		};
 	}
 
+	if (delivery) {
+		const outcome = await delivery.settled;
+		if ("error" in outcome) throw toTerminalSessionError(outcome);
+	}
 	return {
 		terminal: {
 			id: terminalId,

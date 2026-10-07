@@ -15,6 +15,7 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
+	NEXT_PUBLIC_AUTH_PROVIDERS: z.string().optional(),
 	NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 	NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 	NEXT_PUBLIC_MARKETING_URL: z.url().default("https://superset.sh"),
@@ -34,6 +35,7 @@ const envSchema = z.object({
 const rawEnv = {
 	// These are replaced by Vite's define at build time
 	NODE_ENV: process.env.NODE_ENV,
+	NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
 	NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 	NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 	NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,

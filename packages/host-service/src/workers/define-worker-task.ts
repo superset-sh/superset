@@ -10,11 +10,24 @@
  * hangs says where it hung. Single-step handlers ignore it. */
 export type ReportTaskPhase = (phase: string) => void;
 
-export interface WorkerTaskDefinition<TInput, TResult> {
+interface WorkerTaskHandler<TInput, TResult> {
 	/** Namespaced as "<domain>/<task>", e.g. "git/getStatusSnapshot". */
 	type: string;
+
 	handler: (input: TInput, reportPhase?: ReportTaskPhase) => Promise<TResult>;
 }
+
+export type WorkerTaskDefinition<TInput, TResult> = WorkerTaskHandler<
+	TInput,
+	TResult
+> &
+	(
+		| {
+				execution: "worker-only-nonreplay";
+				mutationScope: (input: TInput) => string;
+		  }
+		| { execution?: undefined; mutationScope?: (input: TInput) => string }
+	);
 
 export function defineWorkerTask<TInput, TResult>(
 	def: WorkerTaskDefinition<TInput, TResult>,

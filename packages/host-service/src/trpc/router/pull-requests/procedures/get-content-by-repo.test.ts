@@ -1,4 +1,4 @@
-import { afterEach, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test";
 import { TRPCError } from "@trpc/server";
 import type { HostServiceContext } from "../../../../types";
 import { createCallerFactory, router } from "../../../index";
@@ -7,6 +7,7 @@ import * as gh from "../../workspace-creation/utils/exec-gh";
 import { evictPullRequestContent } from "../shared/pull-request-content-cache";
 import { getContent } from "./get-content";
 import { getContentByRepo } from "./get-content-by-repo";
+import * as gitlab from "./gitlab-project";
 
 const createCaller = createCallerFactory(
 	router({ getContent, getContentByRepo }),
@@ -43,6 +44,7 @@ const expectedContent = {
 	checksStatus: "none" as const,
 };
 
+beforeEach(() => spyOn(gitlab, "resolveGitLabProject").mockResolvedValue(null));
 afterEach(() => mock.restore());
 
 test("reads repository content without a project and preserves the legacy output", async () => {

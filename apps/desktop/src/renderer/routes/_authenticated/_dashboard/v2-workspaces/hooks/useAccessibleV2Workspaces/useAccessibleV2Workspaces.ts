@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import type { CheckItem } from "@superset/local-db";
+import { parseGitRemote } from "@superset/shared/git-remote";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
@@ -441,7 +442,11 @@ export function useAccessibleV2Workspaces(
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
 			const repo =
-				project.repoOwner && project.repoName
+				(!project.repoProvider || project.repoProvider === "github") &&
+				(!project.repoUrl ||
+					parseGitRemote(project.repoUrl)?.provider === "github") &&
+				project.repoOwner &&
+				project.repoName
 					? reposByFullName.get(
 							`${project.repoOwner}/${project.repoName}`.toLowerCase(),
 						)
@@ -465,6 +470,8 @@ export function useAccessibleV2Workspaces(
 					projectIconUrl: resolveProjectIconUrl({
 						icon: project.icon,
 						repoOwner: project.repoOwner ?? repo?.owner ?? null,
+						repoProvider: project.repoProvider,
+						repoUrl: project.repoUrl,
 					}),
 					hostId: workspace.hostId,
 					hostName:

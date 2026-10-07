@@ -10,6 +10,7 @@ import {
 	v2Projects,
 	v2UsersHosts,
 } from "@superset/db/schema";
+import { gitlabAutomationCheckoutNumber } from "@superset/shared/automation-matching";
 import { CLOUD_AGENT_PROMPT_MAX_LENGTH } from "@superset/shared/cloud-agent-launch";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import {
@@ -154,7 +155,10 @@ export async function dispatchAutomation(
 			cause,
 			CLOUD_HOST_ID,
 			async (_run, placed) => {
-				const event = await causeEvent(cause);
+				const event = await organizationCauseEvent(
+					cause,
+					automation.organizationId,
+				);
 				return runInCloud({
 					automation,
 					prompt: runPrompt(
@@ -222,9 +226,16 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		const event = await causeEvent(cause);
+		const event = await organizationCauseEvent(
+			cause,
+			automation.organizationId,
+		);
 		const pullRequest = event
-			? await pullRequestToCheckOut(event, automation.v2ProjectId)
+			? await pullRequestToCheckOut(
+					event,
+					automation.v2ProjectId,
+					automation.organizationId,
+				)
 			: null;
 
 		const createFreshWorkspace = async () => {
@@ -386,6 +397,35 @@ async function causeEvent(cause: RunCause) {
 	);
 }
 
+async function organizationCauseEvent(cause: RunCause, organizationId: string) {
+	const event = await causeEvent(cause);
+	if (event?.provider !== "gitlab") return event;
+	const current = await db.query.automationEvents.findFirst({
+		where: and(
+			eq(automationEvents.id, cause.eventId ?? ""),
+			eq(automationEvents.organizationId, organizationId),
+			eq(automationEvents.provider, "gitlab"),
+		),
+		columns: {
+			organizationId: true,
+			integrationConnectionId: true,
+			provider: true,
+			eventType: true,
+			title: true,
+			url: true,
+			actorLogin: true,
+			ref: true,
+			repositoryId: true,
+			payload: true,
+			receivedAt: true,
+		},
+	});
+	return current?.organizationId === organizationId &&
+		current.provider === "gitlab"
+		? current
+		: null;
+}
+
 async function resolveCandidateHosts(
 	automation: DispatchableAutomation,
 ): Promise<HostCandidate[]> {
@@ -536,7 +576,35 @@ async function recordUndispatched(
 async function pullRequestToCheckOut(
 	event: { provider: string; repositoryId: string | null; payload: unknown },
 	projectId: string | null,
+	organizationId: string,
 ): Promise<number | null> {
+	if (event.provider === "gitlab") {
+		if (
+			!projectId ||
+			!event.repositoryId ||
+			typeof event.payload !== "object" ||
+			event.payload === null ||
+			!("repositoryId" in event.payload) ||
+			event.payload.repositoryId !== event.repositoryId
+		)
+			return null;
+		const [project] = await db
+			.select({
+				repoCloneUrl: v2Projects.repoCloneUrl,
+				organizationId: v2Projects.organizationId,
+			})
+			.from(v2Projects)
+			.where(
+				and(
+					eq(v2Projects.id, projectId),
+					eq(v2Projects.organizationId, organizationId),
+				),
+			)
+			.limit(1);
+		return project?.organizationId === organizationId && project.repoCloneUrl
+			? gitlabAutomationCheckoutNumber(project.repoCloneUrl, event.payload)
+			: null;
+	}
 	// A session automation has no project, and so no repository to check out in.
 	if (projectId === null || event.repositoryId === null) return null;
 	const pullRequest = nonForkPullRequest(event);

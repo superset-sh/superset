@@ -8,8 +8,12 @@ import {
 	searchPullRequests,
 	searchRemoteBranches,
 } from "./procedures";
+import { getIssueSearchCapabilities } from "./procedures/get-issue-search-capabilities";
+import { getPullRequestSearchCapabilities } from "./procedures/get-pull-request-search-capabilities";
 
 export const workspaceCreationRouter = router({
+	getPullRequestSearchCapabilities,
+	getIssueSearchCapabilities,
 	searchBranches,
 	adopt,
 	getRepoContributors,

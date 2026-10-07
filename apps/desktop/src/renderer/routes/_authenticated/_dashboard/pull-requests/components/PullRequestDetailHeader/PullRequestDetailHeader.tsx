@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import {
 	LuCheck,
 	LuChevronRight,
@@ -37,6 +37,7 @@ import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useOpenNewWorkspace } from "renderer/hooks/useOpenNewWorkspace";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
 	normalizePRState,
@@ -112,6 +113,9 @@ export function PullRequestDetailHeader({
 	showStartWorkspace = true,
 }: PullRequestDetailHeaderProps) {
 	const { t } = useLingui();
+	const isGitlab = data?.url
+		? pullRequestRefFromUrl(data.url)?.provider === "gitlab"
+		: false;
 	const mergeMethodLabels: Record<MergeMethod, string> = {
 		squash: t({
 			message: "Squash and merge",
@@ -162,6 +166,7 @@ export function PullRequestDetailHeader({
 				projectId,
 				prNumber,
 				state: nextState,
+				...(isGitlab && data?.url ? { expectedUrl: data.url } : {}),
 			});
 		},
 		onSuccess: invalidatePullRequestQueries,
@@ -194,6 +199,7 @@ export function PullRequestDetailHeader({
 				prNumber,
 				mergeMethod,
 				commitMessage,
+				...(isGitlab && data?.url ? { expectedUrl: data.url } : {}),
 			});
 		},
 		onSuccess: invalidatePullRequestQueries,
@@ -281,14 +287,22 @@ export function PullRequestDetailHeader({
 								href={data.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label={t({
-									message: "Open pull request in GitHub",
-								})}
-								title={t({
-									message: "Open pull request in GitHub",
-								})}
+								aria-label={
+									isGitlab
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
+								title={
+									isGitlab
+										? t({ message: "Open in GitLab" })
+										: t({ message: "Open pull request in GitHub" })
+								}
 							>
-								<FaGithub className="size-4" />
+								{isGitlab ? (
+									<FaGitlab className="size-4" />
+								) : (
+									<FaGithub className="size-4" />
+								)}
 							</a>
 						</Button>
 						{showStartWorkspace && (

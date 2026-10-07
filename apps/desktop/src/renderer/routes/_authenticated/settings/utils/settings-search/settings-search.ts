@@ -293,6 +293,16 @@ const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
 		"version control",
 		"git",
 	],
+	gitlab: [
+		"repos",
+		"repositories",
+		"merge requests",
+		"mr",
+		"sync",
+		"version control",
+		"git",
+		"self-managed",
+	],
 	slack: [
 		"messages",
 		"conversations",

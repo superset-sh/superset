@@ -1,3 +1,5 @@
+import { parseGitRemote } from "@superset/shared/git-remote";
+
 /**
  * Sentinel stored in the host `icon` column meaning "explicitly no icon":
  * suppresses the GitHub avatar fallback so surfaces render the letter tile
@@ -18,9 +20,14 @@ export const PROJECT_ICON_NONE = "none";
 export function resolveProjectIconUrl(project: {
 	icon: string | null;
 	repoOwner: string | null;
+	repoProvider?: string | null;
+	repoUrl?: string | null;
 }): string | null {
 	if (project.icon === PROJECT_ICON_NONE) return null;
 	if (project.icon) return project.icon;
+	if (project.repoProvider && project.repoProvider !== "github") return null;
+	if (project.repoUrl && parseGitRemote(project.repoUrl)?.provider !== "github")
+		return null;
 	if (project.repoOwner) {
 		return `https://github.com/${project.repoOwner}.png?size=64`;
 	}

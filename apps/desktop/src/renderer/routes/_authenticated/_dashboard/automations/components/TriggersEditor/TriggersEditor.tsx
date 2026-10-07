@@ -20,6 +20,7 @@ import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuPlus } from "react-icons/lu";
 import { ConnectConnectorDialog } from "renderer/components/ConnectorSection";
+import { env } from "renderer/env.renderer";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { connectorFor, providerFor, TRIGGER_PROVIDERS } from "../providers";
@@ -72,6 +73,16 @@ export function TriggersEditor({
 	const utils = cloudTrpc.useUtils();
 	const queryClient = useQueryClient();
 
+	const onConnect = (connector: string) => {
+		if (connector === "gitlab") {
+			const url = new URL("/integrations/gitlab", env.NEXT_PUBLIC_WEB_URL);
+			url.searchParams.set("organizationId", organizationId);
+			window.open(url.toString(), "_blank", "noopener,noreferrer");
+			return;
+		}
+		setConnecting(connector);
+	};
+
 	const missingConnection = (config: DraftTrigger["config"]) => {
 		if (connectionsPending) return false;
 		const required = connectorFor(providerFor(config));
@@ -114,7 +125,10 @@ export function TriggersEditor({
 	const providers = useMemo(() => {
 		const kinds = enabledTriggerKinds(enabledKinds);
 		return TRIGGER_PROVIDERS.filter(
-			(provider) => provider.kind === "schedule" || kinds.has(provider.kind),
+			(provider) =>
+				provider.kind === "schedule" ||
+				provider.kind === "gitlab" ||
+				kinds.has(provider.kind),
 		);
 	}, [enabledKinds]);
 
@@ -140,7 +154,7 @@ export function TriggersEditor({
 			<div className="rounded-[12px] bg-foreground/[0.04] p-1">
 				{drafts.map((trigger, index) => (
 					<TriggerSentence
-						onConnect={setConnecting}
+						onConnect={onConnect}
 						key={trigger.id ?? `draft-${index}`}
 						trigger={trigger}
 						onChange={(next) =>

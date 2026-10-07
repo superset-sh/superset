@@ -2,14 +2,16 @@ export interface SelectableEnvironment {
 	id: string;
 	name: string;
 	repositories?: ReadonlyArray<unknown> | null;
+	gitlabProject?: { cloneUrl: string } | null;
 }
 
-/** Environments a workspace can start from: those that carry repositories. */
 export function startableCloudEnvironments<T extends SelectableEnvironment>(
 	environments: T[],
 ): T[] {
 	return environments.filter(
-		(environment) => (environment.repositories ?? []).length > 0,
+		(environment) =>
+			(environment.repositories ?? []).length > 0 ||
+			!!environment.gitlabProject,
 	);
 }
 

@@ -122,3 +122,22 @@ test("restores saved multiple authors", () => {
 	usePullRequestsFilterStore.getState().setAuthorFilter(null);
 	expect(usePullRequestsFilterStore.getState().authorFilter).toBeNull();
 });
+
+test("version8 native persisted values survive reload before live capabilities settle", () => {
+	expect(
+		migratePullRequestsFilterState({ authorFilter: "native_user,@me" }, 8)
+			.authorFilter,
+	).toBe("native_user,@me");
+	expect(
+		migratePullRequestsFilterState({ authorFilter: "@octocat,@me" }, 7)
+			.authorFilter,
+	).toBe("octocat,me");
+	const store = usePullRequestsFilterStore.getState();
+	store.setAuthorFilter("native_user,@me", "unknown");
+	expect(usePullRequestsFilterStore.getState().authorFilter).toBe(
+		"native_user,@me",
+	);
+	store.setAuthorFilter(" @octocat,@me ");
+	expect(usePullRequestsFilterStore.getState().authorFilter).toBe("octocat,me");
+	store.setAuthorFilter(null);
+});

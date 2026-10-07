@@ -78,6 +78,11 @@ export const env = createEnv({
 		// without them nobody can connect and workspaces use the App's token.
 		GH_APP_CLIENT_ID: z.string().min(1).optional(),
 		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
+		GITLAB_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+		GITLAB_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+		GITLAB_SANDBOX_OIDC_ISSUER: z.string().optional(),
+		GITLAB_SANDBOX_PROXY_URL: z.string().optional(),
+		GITLAB_ISSUER: z.string().url().optional(),
 		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
 		// Optional: mobile voice mode reports "not configured" wherever this
 		// is unset, and everything else keeps booting. Prefixed like the

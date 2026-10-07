@@ -73,6 +73,34 @@ a box that has booted at least once on a bundle carrying the new runner,
 and a fresh box only through the image. `bun run release` pushes the image for that reason; `--skip-image`
 is for a release that changes nothing under `rootfs/usr/local/bin/`.
 
+## Pinned GitLab CLI asset
+
+`bun run assets glab` verifies the official v1.109.0 Linux amd64 archive against
+its release checksums, extracts only `bin/glab`, and checks its ELF architecture.
+The producer hashes the extracted executable and generates the `glab` row in
+`bundle/assets.json`. The hash names the executable bytes, not the archive.
+`sync-assets` installs it at `/usr/local/bin/glab` with mode `0755`; no setup step
+or new image is needed. The pinned MIT notice is installed from
+`rootfs/usr/local/share/licenses/glab/LICENSE`. Other asset rows and step versions
+are retained.
+
+Run the isolated producer controls with
+`bun --no-env-file test src/assets/produce.test.ts src/manifest.test.ts`.
+After producing the real asset, `bun run src/runner-check.ts` uses its cached
+bytes in an owned local Linux amd64 container and checks installation, version,
+repeat skips, missing-file reinstall and corrupt-update refusal. It needs the
+locally built image and does not contact GitLab or the public CDN.
+
+Producing and building do not publish. `build --publish` targets the operator's
+configured `CDN_URL`, while the generated boot contract currently reads assets
+from `https://cdn.superset.sh/sandbox`. A self-host operator must first align a
+writable public mirror with the boot origin and publish the actual asset and
+bundle there. The upstream bucket is not assumed writable. Then the environment
+must adopt the new `bundleSha` so new, cold or reclaimed forks boot that bundle.
+A healthy serving wake skips boot and does not install this change. A failed
+bundle or asset fetch can leave the previous bundle or tools in place; verify
+installation before claiming glab is available on a serving box.
+
 ## Tests
 
 `bun test` covers the manifest math. The runner and steps are exercised by

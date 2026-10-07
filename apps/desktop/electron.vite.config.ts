@@ -69,6 +69,9 @@ export default defineConfig({
 				process.env.SKIP_ENV_VALIDATION,
 				"",
 			),
+			"process.env.NEXT_PUBLIC_AUTH_PROVIDERS": defineEnv(
+				process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
+			),
 			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
 				process.env.NEXT_PUBLIC_API_URL,
 				"https://api.superset.sh",
@@ -196,6 +199,9 @@ export default defineConfig({
 				"",
 			),
 			"process.platform": defineEnv(process.platform),
+			"process.env.NEXT_PUBLIC_AUTH_PROVIDERS": defineEnv(
+				process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
+			),
 			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
 				process.env.NEXT_PUBLIC_API_URL,
 				"https://api.superset.sh",

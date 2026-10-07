@@ -31,7 +31,10 @@ const getPullRequest = mock(async (_input: unknown) => ({
 const root = "renderer/routes/_authenticated/_dashboard";
 mock.module("@superset/workspace-client", () => ({
 	workspaceTrpc: {
-		project: { get: { useQuery: workspaceProjectQuery } },
+		project: {
+			get: { useQuery: workspaceProjectQuery },
+			list: { useQuery: () => ({ data: [], isPending: false }) },
+		},
 	},
 }));
 mock.module(`${root}/v2-workspace/providers/WorkspaceProvider`, () => ({
@@ -92,7 +95,10 @@ beforeEach(() => {
 });
 
 function mountDetail(
-	useDetail = () =>
+	useDetail: () => Pick<
+		ReturnType<typeof usePullRequestDetail>,
+		"data" | "projectId" | "repoFullName" | "isResolvingProject"
+	> = () =>
 		usePullRequestPaneDetail({ repoFullName: "owner/repo", number: 12 }),
 ) {
 	const client = new QueryClient({

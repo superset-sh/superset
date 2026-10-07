@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} few {{1}} many {{1}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "На {nextLabel} работают {met} из {0} целей — дальше всего отстают {laggingLabels}."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} со сжатием коммитов"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "контраст {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {Запущена # автоматизация} fe
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# субагент выполняется} few {# субагента выполняются} many {# субагентов выполняются} other {# субагента выполняются}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "Успешно выполнено: {succeeded} из {total}{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Создана # рабочая область, {failCount} с ошибкой} few {Создано # рабочие области, {failCount} с ошибкой} many {Создано # рабочих областей, {failCount} с ошибкой} other {Создано # рабочей области, {failCount} с ошибкой}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {Проверка пройдена} few {Все # п
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {задача GitHub} few {задачи GitHub} many {задач GitHub} other {задачи GitHub}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {задача GitLab} few {задачи GitLab} many {задач GitLab} other {задачи GitLab}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {задача} few {задачи} many {задач} other {задачи}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {пул-реквест} few {пул-реквеста} many {пул-реквестов} other {пул-реквеста}}"
@@ -1615,6 +1627,9 @@ msgstr "Добавьте проект, чтобы видеть задачи GitH
 
 msgid "Add a project to see pull requests."
 msgstr "Добавьте проект, чтобы видеть пул-реквесты."
+
+msgid "Add a project to see repository issues."
+msgstr "Добавьте проект, чтобы видеть задачи репозитория."
 
 msgid "Add a short summary…"
 msgstr "Добавьте краткое описание…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic отклонил этот токен."
 msgid "any account"
 msgstr "любой аккаунт"
 
+msgid "Any branch"
+msgstr "Любая ветка"
+
 msgid "Any channel"
 msgstr "Любой канал"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Откликнуться"
 
+msgid "Approval requirements unavailable"
+msgstr "Требования к одобрению недоступны"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Осталось одобрений: {left} из {required}"
+
 msgid "Approve"
 msgstr "Одобрить"
 
@@ -2368,8 +2392,14 @@ msgstr "Одобрять за меня"
 msgid "Approved"
 msgstr "Одобрено"
 
+msgid "Approved by {approvedBy}"
+msgstr "Одобрено: {approvedBy}"
+
 msgid "Approved review"
 msgstr "Одобренное ревью"
+
+msgid "Approved with all approval rules met"
+msgstr "Одобрено, все правила одобрения выполнены"
 
 msgid "Apps"
 msgstr "Приложения"
@@ -2732,6 +2762,9 @@ msgstr "Ожидает вашего ревью"
 msgid "Awaiting review from you or your team"
 msgstr "Ожидает ревью от вас или вашей команды"
 
+msgid "Awaiting your current review"
+msgstr "Ожидает вашего текущего ревью"
+
 msgid "Back"
 msgstr "Назад"
 
@@ -2758,6 +2791,9 @@ msgstr "Вернуться к текущей"
 
 msgid "Back to GitHub issues"
 msgstr "К задачам GitHub"
+
+msgid "Back to GitLab issues"
+msgstr "Вернуться к задачам GitLab"
 
 msgid "Back to Home"
 msgstr "На главную"
@@ -3290,6 +3326,9 @@ msgstr "Изменить исполнителя"
 msgid "Change avatar"
 msgstr "Сменить аватар"
 
+msgid "Change connection"
+msgstr "Изменить подключение"
+
 msgid "Change icon"
 msgstr "Изменить значок"
 
@@ -3439,6 +3478,9 @@ msgstr "Проверка окружений…"
 msgid "Checking host…"
 msgstr "Проверка хоста…"
 
+msgid "Checking merge requirements"
+msgstr "Проверка требований к слиянию"
+
 msgid "Checking out a PR requires a project"
 msgstr "Для переключения на PR нужен проект"
 
@@ -3475,6 +3517,9 @@ msgstr "Проверки завершены"
 msgid "Checks failed"
 msgstr "Проверки не пройдены"
 
+msgid "Checks need action"
+msgstr "Проверки требуют действия"
+
 msgid "Checks passed"
 msgstr "Проверки пройдены"
 
@@ -3493,6 +3538,9 @@ msgstr "Выберите родительскую папку"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Выберите проект в разделе задач GitHub, прежде чем открывать задачу."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Перед открытием задачи выберите проект в списке задач GitLab."
+
 msgid "Choose a section."
 msgstr "Выберите раздел."
 
@@ -3504,6 +3552,9 @@ msgstr "Выберите папку существующего репозито�
 
 msgid "Choose app"
 msgstr "Выберите приложение"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "Выберите репозитории GitHub или один проект GitLab"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Выберите, как открывать файлы, когда нет панели предпросмотра"
@@ -3834,6 +3885,10 @@ msgstr "Закрыть рабочую область"
 msgid "Closed"
 msgstr "Закрыт"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Закрыт"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Закрытие этих портов завершит использующие их процессы."
 
@@ -3851,6 +3906,9 @@ msgstr "Закрытие…"
 
 msgid "Cloud"
 msgstr "Облако"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Облачная среда изменилась. Выберите её снова."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Облачная версия скоро появится. Станьте партнёром по разработке"
@@ -4135,6 +4193,9 @@ msgstr "Подключить {name}"
 msgid "Connect a device"
 msgstr "Подключите устройство"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Подключите проект или группу GitLab, включая самостоятельно размещённые экземпляры и вложенные подгруппы."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Подключите аккаунт Google. Его почтовый ящик доступен только для чтения, а триггеры выполняются от имени подключившего его человека."
 
@@ -4177,6 +4238,9 @@ msgstr "Подключить Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Подключите Notion, чтобы запускать автоматизации при изменении строк в источнике данных или комментариях к странице."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Подключайте репозитории и синхронизируйте запросы на слияние."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Подключайте репозитории и синхронизируйте пул-реквесты."
 
@@ -4191,6 +4255,12 @@ msgstr "Подключите Slack, чтобы управлять задачам
 
 msgid "Connect this computer"
 msgstr "Подключите этот компьютер"
+
+msgid "Connect with a token"
+msgstr "Подключить с помощью токена"
+
+msgid "Connect with GitLab"
+msgstr "Подключить через GitLab"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Подключите репозитории GitHub и синхронизируйте пул-реквесты. Отслеживайте статус CI и ревью по всей команде."
@@ -4384,6 +4454,9 @@ msgstr "Продолжить с другим агентом…"
 msgid "Continue with GitHub"
 msgstr "Продолжить с GitHub"
 
+msgid "Continue with GitLab"
+msgstr "Продолжить с GitLab"
+
 msgid "Continue with Google"
 msgstr "Продолжить с Google"
 
@@ -4526,6 +4599,9 @@ msgstr "Скопировать ссылку"
 msgid "Copy Link Address"
 msgstr "Скопировать адрес ссылки"
 
+msgid "Copy link to merge request"
+msgstr "Скопировать ссылку на запрос на слияние"
+
 msgid "Copy link to pull request"
 msgstr "Скопировать ссылку на пул-реквест"
 
@@ -4647,6 +4723,9 @@ msgstr "Не удалось скопировать ссылку"
 msgid "Could not create cloud workspace"
 msgstr "Не удалось создать облачную рабочую область"
 
+msgid "Could not create environment"
+msgstr "Не удалось создать окружение"
+
 msgid "Could not create project"
 msgstr "Не удалось создать проект"
 
@@ -4681,11 +4760,23 @@ msgstr "Не удалось прочитать содержимое папки"
 msgid "Could not load agents from {0}"
 msgstr "Не удалось загрузить агентов с {0}"
 
+msgid "Could not load branches. Try again."
+msgstr "Не удалось загрузить ветки. Попробуйте ещё раз."
+
+msgid "Could not load connection status."
+msgstr "Не удалось загрузить состояние подключения."
+
 msgid "Could not load environments"
 msgstr "Не удалось загрузить окружения"
 
 msgid "Could not load environments."
 msgstr "Не удалось загрузить окружения."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "Не удалось загрузить проекты GitLab. Проверьте подключение в разделе «Интеграции»."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "Не удалось загрузить проекты GitLab. Попробуйте ещё раз."
 
 msgid "Could not load image"
 msgstr "Не удалось загрузить изображение"
@@ -4701,6 +4792,9 @@ msgstr "Не удалось загрузить этот diff"
 
 msgid "Could not load this file."
 msgstr "Не удалось загрузить этот файл."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Не удалось загрузить этот запрос на слияние. Переподключитесь к его хосту и повторите попытку."
 
 msgid "Could not load your machines"
 msgstr "Не удалось загрузить ваши машины"
@@ -5113,6 +5207,12 @@ msgstr "Создать коммит слияния"
 msgid "Create Merge Commit"
 msgstr "Создать коммит слияния"
 
+msgid "Create merge request"
+msgstr "Создать запрос на слияние"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Не удалось создать запрос на слияние: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Создать новую группу"
 
@@ -5256,6 +5356,9 @@ msgstr "Создание задачи"
 msgid "Creating a workspace"
 msgstr "Создание рабочего пространства"
 
+msgid "Creating merge request..."
+msgstr "Создание запроса на слияние..."
+
 msgid "Creating PR..."
 msgstr "Создание PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "Текущий темп"
 msgid "Current plan"
 msgstr "Текущий тариф"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Текущий фильтр ревью недоступен для этого выбора. Выберите Все ревью, чтобы сбросить его."
+
 msgid "Current tab"
 msgstr "Текущая вкладка"
+
+msgid "Current workspace files"
+msgstr "Файлы текущей рабочей области"
 
 msgid "Cursor"
 msgstr "Курсор"
@@ -6103,6 +6212,9 @@ msgstr "Черновик · файл"
 msgid "Draft · line {0}"
 msgstr "Черновик · строка {0}"
 
+msgid "Draft merge request opened"
+msgstr "Черновик запроса на слияние открыт"
+
 msgid "Draft opened"
 msgstr "Открыт черновик"
 
@@ -6390,6 +6502,9 @@ msgstr "Нравится Superset?"
 
 msgid "Ensure no regression"
 msgstr "Убедись, что нет регрессии"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "Введите HTTPS-хост GitLab, например gitlab.com или gitlab.example.com:8443."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Введите родительскую папку на {hostName}"
@@ -7145,6 +7260,9 @@ msgstr "Ошибка"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "Слияние fast-forward"
+
 msgid "Fatal"
 msgstr "Критическая"
 
@@ -7246,6 +7364,9 @@ msgstr "Фильтр по @{normalizedSearch}"
 
 msgid "Filter by author: {label}"
 msgstr "Фильтр по автору: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Фильтр по текущему пользователю GitLab"
 
 msgid "Filter by device"
 msgstr "Фильтр по устройству"
@@ -7745,6 +7866,60 @@ msgstr "Имя пользователя GitHub..."
 msgid "GitHub username…"
 msgstr "Имя пользователя GitHub…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "Фильтрам по правилам одобрения GitLab требуется доступный API правил одобрения."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "Авторизация GitLab отменена. Попробуйте ещё раз."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab не нашёл этот проект"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab не подтвердил слияние"
+
+msgid "GitLab host"
+msgstr "Хост GitLab"
+
+msgid "GitLab issue content could not be verified"
+msgstr "Не удалось проверить содержимое задачи GitLab"
+
+msgid "GitLab issues"
+msgstr "Задачи GitLab"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "Запрос на слияние GitLab изменился; обновите перед повторной попыткой"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "Статус слияния GitLab: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "GitLab OAuth не настроен на сервере API. Обратитесь к администратору или используйте токен."
+
+msgid "GitLab projects"
+msgstr "Проекты GitLab"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab отклонил слияние"
+
+msgid "GitLab repositories"
+msgstr "Репозитории GitLab"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "Фильтры по проверенным в GitLab используют текущий цикл ревью."
+
+msgid "GitLab username or @me…"
+msgstr "Имя пользователя GitLab или @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab отключён локально, но удалить удалённые вебхуки или токен не удалось. Проверьте оставшиеся права доступа в GitLab."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "Не удалось настроить вебхуки GitLab. Проверьте подключение и права на вебхуки, затем обновите вебхуки."
+
 msgid "Give me an example"
 msgstr "Приведи пример"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git или /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git или /path/to/repo"
+
 msgid "Human"
 msgstr "Человек"
 
@@ -8508,6 +8686,9 @@ msgstr "Некорректный ответ согласия. Попробуйт
 msgid "Invalid email address."
 msgstr "Некорректный адрес email."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Недопустимый идентификатор запроса на слияние GitLab"
+
 msgid "Invalid hostId"
 msgstr "Некорректный hostId"
 
@@ -8612,6 +8793,9 @@ msgstr "Задача создана"
 
 msgid "Issue not found."
 msgstr "Задача не найдена."
+
+msgid "Issue opened"
+msgstr "Задача открыта"
 
 msgid "Issue resolved"
 msgstr "Задача решена"
@@ -9094,6 +9278,9 @@ msgstr "Связать задачу Linear"
 msgid "Link pull request"
 msgstr "Привязать пул-реквест"
 
+msgid "Link repository issue"
+msgstr "Связать задачу репозитория"
+
 msgid "Link task"
 msgstr "Привязать задачу"
 
@@ -9232,6 +9419,9 @@ msgstr "Загружаем ещё…"
 msgid "Loading project…"
 msgstr "Загрузка проекта…"
 
+msgid "Loading projects..."
+msgstr "Загрузка проектов..."
+
 msgid "Loading projects…"
 msgstr "Загрузка проектов…"
 
@@ -9249,6 +9439,9 @@ msgstr "Загрузка репозиториев"
 
 msgid "Loading repositories..."
 msgstr "Загрузка репозиториев..."
+
+msgid "Loading repositories…"
+msgstr "Загрузка репозиториев…"
 
 msgid "Loading review..."
 msgstr "Загрузка ревью..."
@@ -9587,11 +9780,17 @@ msgstr "Объединить"
 msgid "Merge #{0}?"
 msgstr "Объединить #{0}?"
 
+msgid "Merge blocked"
+msgstr "Слияние заблокировано"
+
 msgid "Merge commit"
 msgstr "Коммит слияния"
 
 msgid "Merge Commit"
 msgstr "Коммит слияния"
+
+msgid "Merge conflicts"
+msgstr "Конфликты слияния"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Объединить пул-реквест"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Объединяйте пул-реквесты не выходя из Superset, плюс порция исправлений и полировки чата."
+
+msgid "Merge request actions"
+msgstr "Действия с запросом на слияние"
+
+msgid "Merge request approval removed"
+msgstr "Одобрение запроса на слияние отозвано"
+
+msgid "Merge request approved"
+msgstr "Запрос на слияние одобрен"
+
+msgid "Merge request changes are unavailable"
+msgstr "Изменения запроса на слияние недоступны"
+
+msgid "Merge request is locked"
+msgstr "Запрос на слияние заблокирован"
+
+msgid "Merge request label changed"
+msgstr "Метка запроса на слияние изменена"
+
+msgid "Merge request merged"
+msgstr "Запрос на слияние слит"
+
+msgid "Merge request opened"
+msgstr "Запрос на слияние открыт"
+
+msgid "Merge request pushed"
+msgstr "Изменения отправлены в запрос на слияние"
+
+msgid "Merge request title"
+msgstr "Заголовок запроса на слияние"
 
 msgid "Merge when checks pass"
 msgstr "Объединить, когда проверки пройдут"
@@ -9673,6 +9902,9 @@ msgstr "Свернуть"
 
 msgid "Minimize GitHub issues"
 msgstr "Свернуть задачи GitHub"
+
+msgid "Minimize issues"
+msgstr "Свернуть задачи"
 
 msgid "Minimum contrast"
 msgstr "Минимальный контраст"
@@ -10321,11 +10553,17 @@ msgstr "Комментариев пока нет. Включите режим к
 msgid "No commits on this branch yet."
 msgstr "В этой ветке пока нет коммитов."
 
+msgid "No commits to open a merge request from"
+msgstr "Нет коммитов, из которых можно открыть запрос на слияние"
+
 msgid "No commits to open a pull request from"
 msgstr "Нет коммитов, из которых можно открыть пул-реквест"
 
 msgid "No comparisons yet."
 msgstr "Сравнений пока нет."
+
+msgid "No completed reviews or approvals"
+msgstr "Без завершённых ревью и одобрений"
 
 msgid "No console output"
 msgstr "Нет вывода в консоль"
@@ -10392,6 +10630,9 @@ msgstr "Нет данных воронки за этот период"
 
 msgid "No git remote detected"
 msgstr "Удалённый git-репозиторий не обнаружен"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "Проекты GitLab не найдены. Подключите GitLab в разделе «Интеграции»."
 
 msgid "No grouping"
 msgstr "Без группировки"
@@ -10859,6 +11100,9 @@ msgstr "События пока не приходят: Microsoft Graph откл�
 msgid "Not reviewed by you"
 msgstr "Не проверено вами"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Не проверено вами в текущем цикле ревью"
+
 msgid "not set up"
 msgstr "не настроен"
 
@@ -10874,6 +11118,9 @@ msgstr "без сортировки"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Нет обновлений"
+
+msgid "Note added"
+msgstr "Заметка добавлена"
 
 msgid "Notes"
 msgstr "Заметки"
@@ -11070,6 +11317,9 @@ msgstr "Изменять это расположение могут только
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Удалить этот хост могут только владельцы хоста или владельцы организации"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Только администраторы и владельцы организации могут управлять этим подключением."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Изменять эти настройки могут только владельцы организации."
@@ -11324,6 +11574,9 @@ msgstr "Открыть в Finder"
 msgid "Open in GitHub"
 msgstr "Открыть в GitHub"
 
+msgid "Open in GitLab"
+msgstr "Открыть в GitLab"
+
 msgid "Open in Linear"
 msgstr "Открыть в Linear"
 
@@ -11363,6 +11616,9 @@ msgstr "Открыть задачу #{0} в браузере"
 
 msgid "Open issue in GitHub"
 msgstr "Открыть задачу на GitHub"
+
+msgid "Open issue in GitLab"
+msgstr "Открыть задачу в GitLab"
 
 msgid "Open issue in Linear"
 msgstr "Открыть задачу в Linear"
@@ -11950,6 +12206,9 @@ msgstr "Пиковый темп"
 msgid "Pending Invitations"
 msgstr "Ожидающие приглашения"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Ожидающие ревью или невыполненные правила одобрения"
+
 msgid "People"
 msgstr "Люди"
 
@@ -11995,6 +12254,9 @@ msgstr "Человек"
 
 msgid "Personal"
 msgstr "Личное"
+
+msgid "Personal access token"
+msgstr "Персональный токен доступа"
 
 msgid "Phantom Forklift"
 msgstr "Призрачный погрузчик"
@@ -12079,6 +12341,15 @@ msgstr "Розовый"
 
 msgid "Pinned"
 msgstr "Закреплённые"
+
+msgid "Pipeline canceled"
+msgstr "Конвейер отменён"
+
+msgid "Pipeline failed"
+msgstr "Конвейер завершился с ошибкой"
+
+msgid "Pipeline succeeded"
+msgstr "Конвейер успешно завершён"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Проект не найден."
 msgid "Project not set up on this host"
 msgstr "Проект не настроен на этом хосте"
 
+msgid "Project or group path"
+msgstr "Путь к проекту или группе"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Проект готов — откройте его из боковой панели."
 
@@ -12582,6 +12856,9 @@ msgstr "Пул-реквест #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Действия с пул-реквестом"
 
+msgid "Pull request not found."
+msgstr "Пул-реквест не найден."
+
 msgid "Pull request title"
 msgstr "Заголовок пул-реквеста"
 
@@ -12599,6 +12876,10 @@ msgstr "Фиолетовый"
 
 msgid "Push"
 msgstr "Запушить"
+
+msgctxt "GitLab trigger"
+msgid "Push"
+msgstr "Пуш"
 
 #. placeholder {0}: error instanceof Error ? error.message : String(error)
 #. placeholder {0}: error.message
@@ -12802,6 +13083,9 @@ msgstr "Перебазировать и объединить"
 msgid "Rebase and merge"
 msgstr "Перебазировать и объединить"
 
+msgid "Rebase branch"
+msgstr "Перебазировать ветку"
+
 msgid "Recent Activity"
 msgstr "Недавняя активность"
 
@@ -12843,6 +13127,12 @@ msgstr "Переподключить"
 
 msgid "Reconnect {name}"
 msgstr "Переподключить {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Подключите GitLab снова, чтобы клонировать этот проект"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Подключите GitLab повторно, чтобы восстановить доступ и доставку вебхуков."
 
 msgid "Reconnect Google"
 msgstr "Переподключить Google"
@@ -12892,6 +13182,9 @@ msgstr "Обновить"
 msgid "Refresh GitHub issues"
 msgstr "Обновить задачи GitHub"
 
+msgid "Refresh issues"
+msgstr "Обновить задачи"
+
 msgid "Refresh Linear issues"
 msgstr "Обновить задачи Linear"
 
@@ -12903,6 +13196,9 @@ msgstr "Обновить пул-реквесты"
 
 msgid "Refresh repositories"
 msgstr "Обновить репозитории"
+
+msgid "Refresh webhooks"
+msgstr "Обновить вебхуки"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Обновится при следующем запуске Claude Code."
@@ -13241,8 +13537,17 @@ msgstr "Репозитории: {label}"
 msgid "Repository"
 msgstr "Репозиторий"
 
+msgid "Repository issues"
+msgstr "Задачи репозитория"
+
+msgid "Repository provider"
+msgstr "Провайдер репозитория"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Охват репозитория и загрузки десктопных релизов. Установки — это загрузки dmg и AppImage; обновления — zip, который забирает автообновление, то есть существующие пользователи."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Возможности поиска по репозиторию пока недоступны."
 
 msgid "Repository URL or path"
 msgstr "URL или путь репозитория"
@@ -13345,6 +13650,9 @@ msgstr "Закрыть все"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Разрешите конфликты для слияния"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Разрешить конфликты агентом"
 
 msgid "Resolve conversation"
 msgstr "Закрыть обсуждение"
@@ -13615,6 +13923,12 @@ msgstr "Ветка обсуждения ревью…"
 
 msgid "Reviewed by you"
 msgstr "Проверено вами"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "Проверено вами в текущем цикле ревью"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "Фильтры по проверенным используют историю ревью GitHub и текущий цикл ревью GitLab."
 
 msgid "Reviewers"
 msgstr "Ревьюеры"
@@ -14034,6 +14348,18 @@ msgstr "Поиск задач GitHub"
 msgid "Search GitHub issues…"
 msgstr "Поиск задач GitHub…"
 
+msgid "Search GitLab issues"
+msgstr "Поиск задач GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Поиск задач GitLab…"
+
+msgid "Search GitLab projects..."
+msgstr "Поиск проектов GitLab..."
+
+msgid "Search GitLab repositories..."
+msgstr "Поиск репозиториев GitLab..."
+
 msgid "Search history"
 msgstr "Поиск по истории"
 
@@ -14090,6 +14416,12 @@ msgstr "Поиск пул-реквестов…"
 
 msgid "Search repositories..."
 msgstr "Поиск репозиториев..."
+
+msgid "Search repository issues"
+msgstr "Поиск задач репозитория"
+
+msgid "Search repository issues…"
+msgstr "Поиск задач репозитория…"
 
 msgid "Search settings..."
 msgstr "Поиск по настройкам..."
@@ -14208,17 +14540,26 @@ msgstr "Посмотрите, какое место ваши последние 
 msgid "Select"
 msgstr "Селект"
 
+msgid "Select a host to browse repositories."
+msgstr "Выберите хост для просмотра репозиториев."
+
 msgid "Select a project"
 msgstr "Выберите проект"
 
 msgid "Select a project first"
 msgstr "Сначала выберите проект"
 
+msgid "Select a project to create an environment for it."
+msgstr "Выберите проект, для которого нужно создать окружение."
+
 msgid "Select a project to see GitHub issues."
 msgstr "Выберите проект, чтобы видеть задачи GitHub."
 
 msgid "Select a project to see pull requests."
 msgstr "Выберите проект, чтобы видеть пул-реквесты."
+
+msgid "Select a project to see repository issues."
+msgstr "Выберите проект, чтобы видеть задачи репозитория."
 
 msgid "Select a pull request to preview it here."
 msgstr "Выберите пул-реквест, чтобы посмотреть его здесь."
@@ -14309,6 +14650,9 @@ msgstr "Выберите расположение проекта"
 
 msgid "Select project worktree location"
 msgstr "Выберите расположение worktree проекта"
+
+msgid "Select projects"
+msgstr "Выбрать проекты"
 
 msgid "Select range..."
 msgstr "Выберите диапазон..."
@@ -14790,6 +15134,9 @@ msgstr "Плашка в боковой панели, появляется, ко�
 
 msgid "Sign in"
 msgstr "Войти"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Войдите как администратор или владелец организации, чтобы управлять этим подключением."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Войти как локальный админ (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Участники команды"
 msgid "Team not found in this organization"
 msgstr "Команда не найдена в этой организации"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Запросы ревью у команды недоступны для выбранных проектов GitLab."
+
 msgid "Team settings"
 msgstr "Настройки команды"
 
@@ -16134,6 +16484,9 @@ msgstr "Не удалось разрешить эту конечную точк�
 msgid "That endpoint is not allowed."
 msgstr "Эта конечная точка не разрешена."
 
+msgid "That filter is not supported for this event."
+msgstr "Этот фильтр не поддерживается для данного события."
+
 msgid "That handle is taken."
 msgstr "Этот ник занят."
 
@@ -16148,6 +16501,9 @@ msgstr "Эта машина больше недоступна"
 
 msgid "That name isn't allowed."
 msgstr "Такое имя недопустимо."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "Этот URL не на подключённом хосте GitLab"
 
 msgid "The 2026 bet"
 msgstr "Ставка на 2026"
@@ -16260,12 +16616,30 @@ msgstr "Полноценная рабочая область. Запускайт
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Будущий дом для переиспользуемых конфигураций агентов, промптов и руководств по настройке Superset."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "Ответ авторизации GitLab неполный. Попробуйте ещё раз."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "Сеанс авторизации GitLab недействителен или истёк. Попробуйте ещё раз."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Этот хост GitLab не разрешён. OAuth должен использовать хост GitLab, зарегистрированный на сервере; для токенов требуется одобренный HTTPS-хост."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "Проект или группа GitLab не найдены или недоступны. Введите полный путь, включая все подгруппы."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "Токен GitLab отклонён. Проверьте срок действия и области доступа api и read_repository, затем подключитесь повторно."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Хост вернулся с версией {0}, а не {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Хост не восстановил работу в течение пятнадцати минут."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Хост не подтвердил сессию терминала"
 
 msgid "The host hasn't answered."
 msgstr "Хост не ответил."
@@ -16397,6 +16771,9 @@ msgstr "Самоуправляемая софтверная фабрика"
 
 msgid "The server could not be found"
 msgstr "Не удалось найти сервер"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Хост GitLab OAuth на сервере недействителен. Обратитесь к администратору или используйте токен."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Ссылка для входа была неполной. Попробуйте ещё раз."
@@ -16594,6 +16971,12 @@ msgstr "Файл пуст или удалён."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Эта установка GitHub уже подключена к другой организации Superset. Отключите её там или удалите GitHub App Superset, затем повторите."
 
+msgid "This GitLab check is no longer available."
+msgstr "Эта проверка GitLab больше недоступна."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Этот проект или группа GitLab уже подключены к другой организации Superset. Отключите их в той организации перед повторным подключением."
+
 msgid "This host"
 msgstr "Этот хост"
 
@@ -16647,6 +17030,9 @@ msgstr "В этом месяце"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Это меняет только отображаемое имя, а не ветку."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Эта операция недоступна для этого запроса на слияние GitLab"
 
 msgid "this organization"
 msgstr "эта организация"
@@ -17373,6 +17759,9 @@ msgstr "Снова открыть"
 msgid "Unresolved"
 msgstr "Не решено"
 
+msgid "Unresolved conversations"
+msgstr "Незакрытые обсуждения"
+
 msgid "Unsaved changes"
 msgstr "Несохранённые изменения"
 
@@ -17462,6 +17851,9 @@ msgstr "Обновите Superset на этой машине, чтобы при�
 msgid "update the branch prefix"
 msgstr "обновить префикс ветки"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "Обновите этот хост, чтобы просматривать репозитории GitLab. Вы по-прежнему можете клонировать репозиторий по URL или пути."
+
 msgid "Updated"
 msgstr "Обновлено"
 
@@ -17544,6 +17936,12 @@ msgstr "Данные об использовании недоступны."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Использовать «{0}»"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "Используйте персональный токен доступа с областями api и read_repository. У вашей учётной записи GitLab должны быть права на управление вебхуками выбранного проекта или группы."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Используйте имя пользователя, которое поддерживают все выбранные провайдеры."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Укажите путь относительно рабочей области или абсолютную папку."
@@ -17635,6 +18033,9 @@ msgstr "Пользователь не найден"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "Имя пользователя…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Используется случайное имя ветки (истекло время генерации AI)"
 
@@ -17718,6 +18119,9 @@ msgstr "Смотреть все"
 msgid "View All"
 msgstr "Смотреть все"
 
+msgid "View checks"
+msgstr "Посмотреть проверки"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Посмотреть комментарий от {0}"
@@ -17733,6 +18137,9 @@ msgstr "Открыть в полном размере"
 
 msgid "View in GitHub"
 msgstr "Посмотреть на GitHub"
+
+msgid "View in GitLab"
+msgstr "Посмотреть на GitLab"
 
 msgid "View log"
 msgstr "Смотреть лог"
@@ -18225,6 +18632,9 @@ msgstr "Рабочая область создана"
 msgid "Workspace created from PR"
 msgstr "Рабочая область создана из PR"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Не удалось подтвердить результат создания рабочей области"
+
 msgid "Workspace details"
 msgstr "Сведения о рабочей области"
 
@@ -18404,6 +18814,9 @@ msgstr "Вы не состоите в этой организации."
 
 msgid "You are not a member of this organization"
 msgstr "Вы не участник этой организации"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "У вас нет прав на управление интеграциями этой организации."
 
 msgid "You are not authorized to perform this action."
 msgstr "У вас нет прав на это действие."

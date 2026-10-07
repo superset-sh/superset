@@ -13,7 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { ChevronDownIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiCheck, HiMiniPlay } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
@@ -26,6 +26,8 @@ import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/componen
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
+import { linkedIssueFromGitLab } from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
+import { fetchGitLabIssueBody } from "renderer/stores/new-workspace-prompt-context/fetchers";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { SelectedIssue } from "../../../GitHubIssuesContent";
@@ -154,7 +156,44 @@ export function RunIssuesInWorkspacePopover({
 
 	const hasMixedRepos = issueProjectIds.size > 1;
 
+	const hasNativeIssues = issues.some(
+		(issue) => !!issue.gitlab || issue.url.includes("/-/issues/"),
+	);
+	const nativeRunning = useRef(false),
+		mounted = useRef(true);
+	const [nativePending, setNativePending] = useState(false);
+	useEffect(() => {
+		mounted.current = true;
+		return () => {
+			mounted.current = false;
+		};
+	}, []);
+
+	const currentLaunch = useRef({
+		hostId,
+		hostUrl: launchHostUrl,
+		projectId: selectedProjectId,
+		issues,
+	});
+	currentLaunch.current = {
+		hostId,
+		hostUrl: launchHostUrl,
+		projectId: selectedProjectId,
+		issues,
+	};
+
 	const submitBlocker = useMemo<string | null>(() => {
+		if (
+			hasNativeIssues &&
+			issues.some(
+				(issue) =>
+					!issue.gitlab ||
+					issue.projectId !== selectedProjectId ||
+					issue.gitlab.projectId !== selectedProjectId ||
+					issue.gitlab.hostId !== hostId,
+			)
+		)
+			return t({ message: "GitLab issue content could not be verified" });
 		if (hasMixedRepos) {
 			return t({
 				message:
@@ -203,6 +242,8 @@ export function RunIssuesInWorkspacePopover({
 		return null;
 	}, [
 		hasMixedRepos,
+		hasNativeIssues,
+		issues,
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
@@ -216,6 +257,141 @@ export function RunIssuesInWorkspacePopover({
 		t,
 	]);
 
+	const handleNativeRun = () => {
+		if (nativeRunning.current || !mounted.current) return;
+		nativeRunning.current = true;
+		setNativePending(true);
+		const captured = {
+			hostId,
+			hostUrl: launchHostUrl,
+			projectId: selectedProjectId,
+		};
+		const selection = JSON.stringify(
+			issues.map((issue) => [issue.projectId, issue.url, issue.gitlab?.hostId]),
+		);
+		const fail = () =>
+			new Error(t({ message: "GitLab issue content could not be verified" }));
+		const promise = (async () => {
+			if (!captured.hostId || !captured.hostUrl || !captured.projectId)
+				throw fail();
+			const {
+				hostId: verifiedHostId,
+				hostUrl: verifiedHostUrl,
+				projectId: verifiedProjectId,
+			} = captured;
+			const refs = issues.map((issue) => {
+				const ref = issue.gitlab;
+				if (
+					!ref ||
+					ref.hostId !== captured.hostId ||
+					ref.projectId !== captured.projectId ||
+					issue.projectId !== captured.projectId
+				)
+					throw fail();
+				const verified = linkedIssueFromGitLab({
+					...issue,
+					hostId: ref.hostId,
+					hostUrl: ref.hostUrl,
+				});
+				if (
+					!verified?.gitlab ||
+					verified.gitlab.expectedIssueUrl !== ref.expectedIssueUrl ||
+					verified.gitlab.host !== ref.host ||
+					verified.gitlab.owner !== ref.owner ||
+					verified.gitlab.repo !== ref.repo ||
+					verified.gitlab.issueNumber !== ref.issueNumber
+				)
+					throw fail();
+				return ref;
+			});
+			const bodies = await Promise.all(
+				refs.map((ref) =>
+					fetchGitLabIssueBody({ ...ref, hostUrl: verifiedHostUrl }),
+				),
+			);
+			if (bodies.some((body) => body === null)) throw fail();
+			const current = currentLaunch.current;
+			if (
+				!mounted.current ||
+				current.hostId !== captured.hostId ||
+				current.hostUrl !== captured.hostUrl ||
+				current.projectId !== captured.projectId ||
+				JSON.stringify(
+					current.issues.map((issue) => [
+						issue.projectId,
+						issue.url,
+						issue.gitlab?.hostId,
+					]),
+				) !== selection
+			)
+				throw fail();
+			setLastProjectId(captured.projectId);
+			const handles = issues.map((issue, index) =>
+				submit({
+					hostId: verifiedHostId,
+					snapshot: {
+						id: crypto.randomUUID(),
+						projectId: verifiedProjectId,
+						name: issue.title,
+						branch: deriveBranchName({
+							slug: issueSlug(issue),
+							title: issue.title,
+						}),
+						agents:
+							selectedAgent === NONE
+								? undefined
+								: [
+										{
+											agent: selectedAgent,
+											prompt: `GitLab issue #${issue.issueNumber}: ${issue.title}\n${refs[index]?.expectedIssueUrl}\n\n${bodies[index]?.text ?? ""}`,
+										},
+									],
+					},
+				}),
+			);
+			const outcomes = await Promise.all(
+				handles.map((handle) => handle.completed),
+			);
+			const failed = outcomes.filter((outcome) => !outcome.ok).length;
+			if (failed > 0) {
+				const firstFailure = outcomes.find((outcome) => !outcome.ok);
+				const details =
+					firstFailure && !firstFailure.ok ? `: ${firstFailure.error}` : "";
+				const succeeded = outcomes.length - failed;
+				const total = outcomes.length;
+				throw new Error(
+					t({ message: `${succeeded} of ${total} succeeded${details}` }),
+				);
+			}
+			if (mounted.current) {
+				setOpen(false);
+				onComplete();
+			}
+			return outcomes.length;
+		})();
+		const settled = () => {
+			nativeRunning.current = false;
+			if (mounted.current) setNativePending(false);
+		};
+		promise.then(settled, settled);
+		toast.promise(promise, {
+			loading: t({
+				message: plural(issues.length, {
+					one: "Creating # workspace...",
+					other: "Creating # workspaces...",
+				}),
+			}),
+			success: (count) =>
+				t({
+					message: plural(count, {
+						one: "Created # workspace",
+						other: "Created # workspaces",
+					}),
+				}),
+			error: (err) => errorMessage(err),
+		});
+	};
+
 	const handleRun = () => {
 		if (!selectedProjectId || !hostId) return;
 		if (submitBlocker) {
@@ -226,6 +402,11 @@ export function RunIssuesInWorkspacePopover({
 			} else {
 				toast.error(submitBlocker);
 			}
+			return;
+		}
+
+		if (hasNativeIssues) {
+			handleNativeRun();
 			return;
 		}
 
@@ -410,7 +591,7 @@ export function RunIssuesInWorkspacePopover({
 					<Button
 						size="sm"
 						className="w-full h-8"
-						disabled={!!submitBlocker}
+						disabled={!!submitBlocker || (hasNativeIssues && nativePending)}
 						title={submitBlocker ?? undefined}
 						onClick={handleRun}
 					>

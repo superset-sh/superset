@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { pullRequests } from "../../../../db/schema";
 import {
 	findLinkedWorkspaceIds,
 	findPullRequestRows,
+	findPullRequestRowsByProject,
 } from "./linked-workspaces";
 import {
 	createTestDb,
 	PR_NUMBER,
+	PROJECT_ID,
 	REPO,
 	seedDuplicateCasingRow,
 	seedLinkedPullRequest,
@@ -50,6 +53,33 @@ describe("findPullRequestRows", () => {
 		expect(
 			findPullRequestRows(db, { owner: "someone", name: "else" }, PR_NUMBER),
 		).toEqual([]);
+	});
+});
+
+describe("findPullRequestRowsByProject", () => {
+	test("fallback cannot expose a GitLab row from another HTTPS authority", () => {
+		const db = createTestDb();
+		seedLinkedPullRequest(db);
+		db.insert(pullRequests)
+			.values({
+				id: "foreign-native",
+				projectId: PROJECT_ID,
+				repoProvider: "gitlab",
+				repoOwner: REPO.owner,
+				repoName: REPO.name,
+				prNumber: PR_NUMBER,
+				url: `https://foreign.example.test:8443/${REPO.owner}/${REPO.name}/-/merge_requests/${PR_NUMBER}`,
+				title: "Native row",
+				state: "open",
+				headBranch: "feature/42",
+				headSha: "native-sha",
+			})
+			.run();
+		expect(
+			findPullRequestRowsByProject(db, PROJECT_ID, PR_NUMBER).map(
+				(row) => row.id,
+			),
+		).toEqual(["pr-42"]);
 	});
 });
 

@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} few {{1}} many {{1}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "Na {nextLabel} táhne {met} z {0} cílů — nejvíc zaostává {laggingLabels}."
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel} se squashnutými commity"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "kontrast {minimumContrast}:1"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {Spuštěna # automatizace} few {Spuštěny # auto
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, one {# subagent běží} few {# subagenti běží} many {# subagenta běží} other {# subagentů běží}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "Úspěšně dokončeno {succeeded} z {total}{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {Vytvořen # pracovní prostor, {failCount} selhalo} few {Vytvořeny # pracovní prostory, {failCount} selhalo} many {Vytvořeno # pracovního prostoru, {failCount} selhalo} other {Vytvořeno # pracovních prostorů, {failCount} selhalo}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {Kontrola prošla} few {Všechny # kontroly prošly}
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub issue} few {GitHub issues} many {GitHub issues} other {GitHub issues}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {hlášení GitLab} few {hlášení GitLab} many {hlášení GitLab} other {hlášení GitLab}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {hlášení} few {hlášení} many {hlášení} other {hlášení}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {pull request} few {pull requesty} many {pull requestu} other {pull requestů}}"
@@ -1615,6 +1627,9 @@ msgstr "Přidejte projekt a uvidíte GitHub issues."
 
 msgid "Add a project to see pull requests."
 msgstr "Přidejte projekt a uvidíte pull requesty."
+
+msgid "Add a project to see repository issues."
+msgstr "Přidejte projekt a uvidíte hlášení z repozitáře."
 
 msgid "Add a short summary…"
 msgstr "Přidejte krátké shrnutí…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic tento token odmítl."
 msgid "any account"
 msgstr "libovolný účet"
 
+msgid "Any branch"
+msgstr "Libovolná větev"
+
 msgid "Any channel"
 msgstr "Jakýkoli kanál"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "Přihlásit se"
 
+msgid "Approval requirements unavailable"
+msgstr "Požadavky na schválení nejsou k dispozici"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "Zbývající schválení: {left} z {required}"
+
 msgid "Approve"
 msgstr "Schválit"
 
@@ -2368,8 +2392,14 @@ msgstr "Schvalovat za mě"
 msgid "Approved"
 msgstr "Schváleno"
 
+msgid "Approved by {approvedBy}"
+msgstr "Schváleno: {approvedBy}"
+
 msgid "Approved review"
 msgstr "Schválená revize"
+
+msgid "Approved with all approval rules met"
+msgstr "Schváleno, všechna pravidla schvalování splněna"
 
 msgid "Apps"
 msgstr "Aplikace"
@@ -2732,6 +2762,9 @@ msgstr "Čeká na vaši revizi"
 msgid "Awaiting review from you or your team"
 msgstr "Čeká na revizi od vás nebo vašeho týmu"
 
+msgid "Awaiting your current review"
+msgstr "Čeká na vaši aktuální revizi"
+
 msgid "Back"
 msgstr "Zpět"
 
@@ -2758,6 +2791,9 @@ msgstr "Zpět na aktuální"
 
 msgid "Back to GitHub issues"
 msgstr "Zpět na GitHub issues"
+
+msgid "Back to GitLab issues"
+msgstr "Zpět na hlášení na platformě GitLab"
 
 msgid "Back to Home"
 msgstr "Zpět na úvod"
@@ -3290,6 +3326,9 @@ msgstr "Změnit řešitele"
 msgid "Change avatar"
 msgstr "Změnit avatar"
 
+msgid "Change connection"
+msgstr "Změnit připojení"
+
 msgid "Change icon"
 msgstr "Změnit ikonu"
 
@@ -3439,6 +3478,9 @@ msgstr "Kontrola prostředí…"
 msgid "Checking host…"
 msgstr "Kontroluji hosta…"
 
+msgid "Checking merge requirements"
+msgstr "Ověřování požadavků na sloučení"
+
 msgid "Checking out a PR requires a project"
 msgstr "Checkout PR vyžaduje projekt"
 
@@ -3475,6 +3517,9 @@ msgstr "Kontroly dokončeny"
 msgid "Checks failed"
 msgstr "Kontroly selhaly"
 
+msgid "Checks need action"
+msgstr "Kontroly vyžadují akci"
+
 msgid "Checks passed"
 msgstr "Kontroly prošly"
 
@@ -3493,6 +3538,9 @@ msgstr "Vyberte nadřazený adresář"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "Než otevřete issue, vyberte projekt v sekci GitHub issues."
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "Před otevřením hlášení vyberte projekt ze seznamu hlášení na platformě GitLab."
+
 msgid "Choose a section."
 msgstr "Vyberte sekci."
 
@@ -3504,6 +3552,9 @@ msgstr "Vyberte složku s existujícím repozitářem"
 
 msgid "Choose app"
 msgstr "Vyberte aplikaci"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "Vyberte repozitáře GitHub nebo jeden projekt GitLab"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "Zvolte, jak se soubory otevírají, když není žádný panel náhledu"
@@ -3834,6 +3885,10 @@ msgstr "Zavřít pracovní prostor"
 msgid "Closed"
 msgstr "Uzavřený"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "Uzavřený"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "Zavřením těchto portů ukončíte procesy, které je používají."
 
@@ -3851,6 +3906,9 @@ msgstr "Zavírání…"
 
 msgid "Cloud"
 msgstr "Cloud"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "Cloudové prostředí se změnilo. Vyberte je znovu."
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "Cloud přichází. Staňte se partnerem pro vývoj"
@@ -4135,6 +4193,9 @@ msgstr "Připojit {name}"
 msgid "Connect a device"
 msgstr "Připojit zařízení"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "Připojte projekt nebo skupinu GitLab, včetně samostatně spravovaných instancí a vnořených podskupin."
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "Připojte účet Google. Jeho schránka je pouze pro čtení a spouštěče se spouštějí za osobu, která ho připojila."
 
@@ -4177,6 +4238,9 @@ msgstr "Připojit Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "Připojte Notion a spouštějte automatizace při změně řádků v datovém zdroji nebo když někdo okomentuje stránku."
 
+msgid "Connect repos and sync merge requests."
+msgstr "Připojte repozitáře a synchronizujte žádosti o sloučení."
+
 msgid "Connect repos and sync pull requests."
 msgstr "Připojte repozitáře a synchronizujte pull requesty."
 
@@ -4191,6 +4255,12 @@ msgstr "Připojte Slack a spravujte úkoly přímo z konverzací. Zmiňte bota v
 
 msgid "Connect this computer"
 msgstr "Připojte tento počítač"
+
+msgid "Connect with a token"
+msgstr "Připojit pomocí tokenu"
+
+msgid "Connect with GitLab"
+msgstr "Připojit přes GitLab"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "Připojte své GitHub repozitáře a synchronizujte pull requesty. Sledujte stav CI a revize napříč týmem."
@@ -4384,6 +4454,9 @@ msgstr "Pokračovat s jiným agentem…"
 msgid "Continue with GitHub"
 msgstr "Pokračovat přes GitHub"
 
+msgid "Continue with GitLab"
+msgstr "Pokračovat přes GitLab"
+
 msgid "Continue with Google"
 msgstr "Pokračovat přes Google"
 
@@ -4526,6 +4599,9 @@ msgstr "Kopírovat odkaz"
 msgid "Copy Link Address"
 msgstr "Kopírovat adresu odkazu"
 
+msgid "Copy link to merge request"
+msgstr "Kopírovat odkaz na žádost o sloučení"
+
 msgid "Copy link to pull request"
 msgstr "Kopírovat odkaz na pull request"
 
@@ -4647,6 +4723,9 @@ msgstr "Odkaz se nepodařilo zkopírovat"
 msgid "Could not create cloud workspace"
 msgstr "Nepodařilo se vytvořit cloudový pracovní prostor"
 
+msgid "Could not create environment"
+msgstr "Prostředí se nepodařilo vytvořit"
+
 msgid "Could not create project"
 msgstr "Projekt se nepodařilo vytvořit"
 
@@ -4681,11 +4760,23 @@ msgstr "Nepodařilo se vypsat adresář"
 msgid "Could not load agents from {0}"
 msgstr "Nepodařilo se načíst agenty z {0}"
 
+msgid "Could not load branches. Try again."
+msgstr "Větve se nepodařilo načíst. Zkuste to znovu."
+
+msgid "Could not load connection status."
+msgstr "Nepodařilo se načíst stav připojení."
+
 msgid "Could not load environments"
 msgstr "Nepodařilo se načíst prostředí"
 
 msgid "Could not load environments."
 msgstr "Nepodařilo se načíst prostředí."
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "Projekty GitLab se nepodařilo načíst. Zkontrolujte připojení v Integracích."
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "Projekty GitLab se nepodařilo načíst. Zkuste to znovu."
 
 msgid "Could not load image"
 msgstr "Obrázek se nepodařilo načíst"
@@ -4701,6 +4792,9 @@ msgstr "Tento rozdíl se nepodařilo načíst"
 
 msgid "Could not load this file."
 msgstr "Tento soubor se nepodařilo načíst."
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "Tuto žádost o sloučení se nepodařilo načíst. Znovu se připojte k jejímu hostu a zkuste to znovu."
 
 msgid "Could not load your machines"
 msgstr "Nepodařilo se načíst vaše počítače"
@@ -5113,6 +5207,12 @@ msgstr "Vytvořit merge commit"
 msgid "Create Merge Commit"
 msgstr "Vytvořit merge commit"
 
+msgid "Create merge request"
+msgstr "Vytvořit žádost o sloučení"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "Vytvoření žádosti o sloučení se nezdařilo: {errorMessage}"
+
 msgid "Create new group"
 msgstr "Vytvořit novou skupinu"
 
@@ -5256,6 +5356,9 @@ msgstr "Vytváří se úkol"
 msgid "Creating a workspace"
 msgstr "Vytváří se pracovní prostor"
 
+msgid "Creating merge request..."
+msgstr "Vytváření žádosti o sloučení..."
+
 msgid "Creating PR..."
 msgstr "Vytváření PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "Aktuální tempo"
 msgid "Current plan"
 msgstr "Aktuální tarif"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "Aktuální filtr revizí není pro tento výběr dostupný. Zrušíte ho volbou Všechny revize."
+
 msgid "Current tab"
 msgstr "Aktuální karta"
+
+msgid "Current workspace files"
+msgstr "Soubory aktuálního pracovního prostoru"
 
 msgid "Cursor"
 msgstr "Kurzor"
@@ -6103,6 +6212,9 @@ msgstr "Koncept · soubor"
 msgid "Draft · line {0}"
 msgstr "Koncept · řádek {0}"
 
+msgid "Draft merge request opened"
+msgstr "Koncept žádosti o sloučení otevřen"
+
 msgid "Draft opened"
 msgstr "Otevřen koncept"
 
@@ -6390,6 +6502,9 @@ msgstr "Líbí se vám Superset?"
 
 msgid "Ensure no regression"
 msgstr "Zajisti žádnou regresi"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "Zadejte hostitele HTTPS pro GitLab, například gitlab.com nebo gitlab.example.com:8443."
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "Zadejte nadřazený adresář na {hostName}"
@@ -7145,6 +7260,9 @@ msgstr "Selhání"
 msgid "FAQ"
 msgstr "FAQ"
 
+msgid "Fast-forward merge"
+msgstr "Sloučení fast-forward"
+
 msgid "Fatal"
 msgstr "Fatální"
 
@@ -7246,6 +7364,9 @@ msgstr "Filtrovat podle @{normalizedSearch}"
 
 msgid "Filter by author: {label}"
 msgstr "Filtrovat podle autora: {label}"
+
+msgid "Filter by current GitLab user"
+msgstr "Filtrovat podle aktuálního uživatele GitLab"
 
 msgid "Filter by device"
 msgstr "Filtrovat podle zařízení"
@@ -7745,6 +7866,60 @@ msgstr "Uživatelské jméno GitHub..."
 msgid "GitHub username…"
 msgstr "GitHub uživatelské jméno…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "Filtry pravidel schvalování GitLab vyžadují dostupné API pravidel schvalování."
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "Autorizace GitLab byla zrušena. Zkuste to znovu."
+
+msgid "GitLab could not find that project"
+msgstr "GitLab tento projekt nenašel"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab sloučení nepotvrdil"
+
+msgid "GitLab host"
+msgstr "Hostitel GitLab"
+
+msgid "GitLab issue content could not be verified"
+msgstr "Obsah hlášení GitLab se nepodařilo ověřit"
+
+msgid "GitLab issues"
+msgstr "Hlášení GitLab"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "Žádost o sloučení GitLab se změnila; před dalším pokusem ji obnovte"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "Stav sloučení GitLab: {mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "GitLab OAuth není na serveru API nakonfigurován. Kontaktujte správce nebo použijte token."
+
+msgid "GitLab projects"
+msgstr "Projekty GitLab"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab sloučení odmítl"
+
+msgid "GitLab repositories"
+msgstr "Repozitáře GitLab"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "Filtry GitLab podle provedené revize používají aktuální cyklus revize."
+
+msgid "GitLab username or @me…"
+msgstr "Uživatelské jméno GitLab nebo @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab byl místně odpojen, ale odstranění vzdálených webhooků nebo tokenu se nezdařilo. Zkontrolujte zbývající přístupová oprávnění v GitLab."
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "Nastavení webhooků GitLab se nezdařilo. Zkontrolujte připojení a oprávnění k webhookům a poté webhooky obnovte."
+
 msgid "Give me an example"
 msgstr "Uveď příklad"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git nebo /cesta/k/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git nebo /path/to/repo"
+
 msgid "Human"
 msgstr "Člověk"
 
@@ -8508,6 +8686,9 @@ msgstr "Neplatná odpověď souhlasu. Zkuste to prosím znovu."
 msgid "Invalid email address."
 msgstr "Neplatná e-mailová adresa."
 
+msgid "Invalid GitLab merge request identity"
+msgstr "Neplatný identifikátor žádosti o sloučení GitLab"
+
 msgid "Invalid hostId"
 msgstr "Neplatné hostId"
 
@@ -8612,6 +8793,9 @@ msgstr "Issue vytvořena"
 
 msgid "Issue not found."
 msgstr "Issue nenalezena."
+
+msgid "Issue opened"
+msgstr "Úkol otevřen"
 
 msgid "Issue resolved"
 msgstr "Issue vyřešena"
@@ -9094,6 +9278,9 @@ msgstr "Propojit Linear issue"
 msgid "Link pull request"
 msgstr "Propojit pull request"
 
+msgid "Link repository issue"
+msgstr "Propojit hlášení z repozitáře"
+
 msgid "Link task"
 msgstr "Propojit úkol"
 
@@ -9232,6 +9419,9 @@ msgstr "Načítám další…"
 msgid "Loading project…"
 msgstr "Načítám projekt…"
 
+msgid "Loading projects..."
+msgstr "Načítání projektů..."
+
 msgid "Loading projects…"
 msgstr "Načítám projekty…"
 
@@ -9249,6 +9439,9 @@ msgstr "Načítám repozitáře"
 
 msgid "Loading repositories..."
 msgstr "Načítám repozitáře..."
+
+msgid "Loading repositories…"
+msgstr "Načítám repozitáře…"
 
 msgid "Loading review..."
 msgstr "Načítám revizi..."
@@ -9587,11 +9780,17 @@ msgstr "Sloučit"
 msgid "Merge #{0}?"
 msgstr "Sloučit #{0}?"
 
+msgid "Merge blocked"
+msgstr "Sloučení zablokováno"
+
 msgid "Merge commit"
 msgstr "Sloučit commitem"
 
 msgid "Merge Commit"
 msgstr "Merge commit"
+
+msgid "Merge conflicts"
+msgstr "Konflikty při slučování"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "Sloučit pull request"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "Slučujte pull requesty bez opuštění Superset, k tomu kolo oprav a vypilování chatu."
+
+msgid "Merge request actions"
+msgstr "Akce žádosti o sloučení"
+
+msgid "Merge request approval removed"
+msgstr "Schválení žádosti o sloučení odebráno"
+
+msgid "Merge request approved"
+msgstr "Žádost o sloučení schválena"
+
+msgid "Merge request changes are unavailable"
+msgstr "Změny žádosti o sloučení nejsou k dispozici"
+
+msgid "Merge request is locked"
+msgstr "Žádost o sloučení je uzamčena"
+
+msgid "Merge request label changed"
+msgstr "Štítek žádosti o sloučení změněn"
+
+msgid "Merge request merged"
+msgstr "Žádost o sloučení sloučena"
+
+msgid "Merge request opened"
+msgstr "Žádost o sloučení otevřena"
+
+msgid "Merge request pushed"
+msgstr "Změny odeslány do žádosti o sloučení"
+
+msgid "Merge request title"
+msgstr "Název žádosti o sloučení"
 
 msgid "Merge when checks pass"
 msgstr "Sloučit, až projdou kontroly"
@@ -9673,6 +9902,9 @@ msgstr "Minimalizovat"
 
 msgid "Minimize GitHub issues"
 msgstr "Minimalizovat GitHub issues"
+
+msgid "Minimize issues"
+msgstr "Minimalizovat hlášení"
 
 msgid "Minimum contrast"
 msgstr "Minimální kontrast"
@@ -10321,11 +10553,17 @@ msgstr "Zatím žádné komentáře. Zapněte režim komentářů a kliknutím n
 msgid "No commits on this branch yet."
 msgstr "V této větvi zatím nejsou žádné commity."
 
+msgid "No commits to open a merge request from"
+msgstr "Žádné commity, ze kterých by šla otevřít žádost o sloučení"
+
 msgid "No commits to open a pull request from"
 msgstr "Žádné commity, ze kterých by šel otevřít pull request"
 
 msgid "No comparisons yet."
 msgstr "Zatím žádná srovnání."
+
+msgid "No completed reviews or approvals"
+msgstr "Žádné dokončené revize ani schválení"
 
 msgid "No console output"
 msgstr "Žádný výstup konzole"
@@ -10392,6 +10630,9 @@ msgstr "Pro toto období nejsou k dispozici data trychtýře"
 
 msgid "No git remote detected"
 msgstr "Nenalezen žádný git remote"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "Žádné projekty GitLab nebyly nalezeny. Připojte GitLab v Integracích."
 
 msgid "No grouping"
 msgstr "Bez seskupení"
@@ -10859,6 +11100,9 @@ msgstr "Zatím nepřicházejí žádné události: Microsoft Graph odmítl odbě
 msgid "Not reviewed by you"
 msgstr "Bez vaší revize"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "Bez vaší revize v aktuálním cyklu revize"
+
 msgid "not set up"
 msgstr "není nastaveno"
 
@@ -10874,6 +11118,9 @@ msgstr "neseřazeno"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "Bez aktualizací"
+
+msgid "Note added"
+msgstr "Poznámka přidána"
 
 msgid "Notes"
 msgstr "Poznámky"
@@ -11070,6 +11317,9 @@ msgstr "Toto umístění mohou měnit jen vlastníci hosta."
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "Tohoto hosta mohou smazat jen jeho vlastníci nebo vlastníci organizace"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "Toto připojení mohou spravovat pouze správci a vlastníci organizace."
 
 msgid "Only organization owners can modify these settings."
 msgstr "Toto nastavení mohou měnit jen vlastníci organizace."
@@ -11324,6 +11574,9 @@ msgstr "Otevřít ve Finderu"
 msgid "Open in GitHub"
 msgstr "Otevřít na GitHubu"
 
+msgid "Open in GitLab"
+msgstr "Otevřít na GitLabu"
+
 msgid "Open in Linear"
 msgstr "Otevřít v Linearu"
 
@@ -11363,6 +11616,9 @@ msgstr "Otevřít issue #{0} v prohlížeči"
 
 msgid "Open issue in GitHub"
 msgstr "Otevřít issue na GitHubu"
+
+msgid "Open issue in GitLab"
+msgstr "Otevřít hlášení na platformě GitLab"
 
 msgid "Open issue in Linear"
 msgstr "Otevřít issue v Linearu"
@@ -11950,6 +12206,9 @@ msgstr "Nejvyšší tempo"
 msgid "Pending Invitations"
 msgstr "Čekající pozvánky"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "Čekající revize nebo nesplněná pravidla schvalování"
+
 msgid "People"
 msgstr "Lidé"
 
@@ -11995,6 +12254,9 @@ msgstr "Osoba"
 
 msgid "Personal"
 msgstr "Osobní"
+
+msgid "Personal access token"
+msgstr "Osobní přístupový token"
 
 msgid "Phantom Forklift"
 msgstr "Fantomový vysokozdvih"
@@ -12079,6 +12341,15 @@ msgstr "Růžová"
 
 msgid "Pinned"
 msgstr "Připnuté"
+
+msgid "Pipeline canceled"
+msgstr "Pipeline zrušena"
+
+msgid "Pipeline failed"
+msgstr "Pipeline selhala"
+
+msgid "Pipeline succeeded"
+msgstr "Pipeline úspěšná"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "Projekt nenalezen."
 msgid "Project not set up on this host"
 msgstr "Projekt není na tomto hostu nastaven"
 
+msgid "Project or group path"
+msgstr "Cesta k projektu nebo skupině"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "Projekt je připravený — otevřete ho v postranním panelu."
 
@@ -12582,6 +12856,9 @@ msgstr "Pull request #{0}, {1}"
 msgid "Pull request actions"
 msgstr "Akce pull requestu"
 
+msgid "Pull request not found."
+msgstr "Pull request nebyl nalezen."
+
 msgid "Pull request title"
 msgstr "Název pull requestu"
 
@@ -12597,6 +12874,10 @@ msgstr "Pull requesty"
 msgid "Purple"
 msgstr "Fialová"
 
+msgid "Push"
+msgstr "Push"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "Push"
 
@@ -12802,6 +13083,9 @@ msgstr "Rebase a sloučit"
 msgid "Rebase and merge"
 msgstr "Rebase a sloučit"
 
+msgid "Rebase branch"
+msgstr "Provést rebase větve"
+
 msgid "Recent Activity"
 msgstr "Nedávná aktivita"
 
@@ -12843,6 +13127,12 @@ msgstr "Připojit znovu"
 
 msgid "Reconnect {name}"
 msgstr "Znovu připojit {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "Znovu připojte GitLab, abyste mohli tento projekt naklonovat"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "Znovu připojte GitLab a obnovte přístup a doručování webhooků."
 
 msgid "Reconnect Google"
 msgstr "Připojit Google znovu"
@@ -12892,6 +13182,9 @@ msgstr "Obnovit"
 msgid "Refresh GitHub issues"
 msgstr "Obnovit GitHub issues"
 
+msgid "Refresh issues"
+msgstr "Obnovit hlášení"
+
 msgid "Refresh Linear issues"
 msgstr "Obnovit Linear issues"
 
@@ -12903,6 +13196,9 @@ msgstr "Obnovit pull requesty"
 
 msgid "Refresh repositories"
 msgstr "Obnovit repozitáře"
+
+msgid "Refresh webhooks"
+msgstr "Obnovit webhooky"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "Obnoví se při příštím spuštění Claude Code."
@@ -13241,8 +13537,17 @@ msgstr "Repozitáře: {label}"
 msgid "Repository"
 msgstr "Repozitář"
 
+msgid "Repository issues"
+msgstr "Hlášení z repozitáře"
+
+msgid "Repository provider"
+msgstr "Poskytovatel repozitáře"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "Dosah repozitáře a stažení desktopových vydání. Instalace jsou stažení dmg a AppImage; aktualizace jsou zip, který stahuje automatická aktualizace, takže počítají stávající uživatele."
+
+msgid "Repository search capabilities are not available yet."
+msgstr "Možnosti vyhledávání v repozitáři zatím nejsou k dispozici."
 
 msgid "Repository URL or path"
 msgstr "URL nebo cesta repozitáře"
@@ -13345,6 +13650,9 @@ msgstr "Vyřešit vše"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "Pro sloučení vyřešte konflikty"
+
+msgid "Resolve conflicts with Agent"
+msgstr "Vyřešit konflikty agentem"
 
 msgid "Resolve conversation"
 msgstr "Vyřešit konverzaci"
@@ -13615,6 +13923,12 @@ msgstr "Vlákno revize…"
 
 msgid "Reviewed by you"
 msgstr "S vaší revizí"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "S vaší revizí v aktuálním cyklu revize"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "Filtry podle provedené revize používají historii revizí GitHub a aktuální cyklus revize GitLab."
 
 msgid "Reviewers"
 msgstr "Recenzenti"
@@ -14034,6 +14348,18 @@ msgstr "Hledat GitHub issues"
 msgid "Search GitHub issues…"
 msgstr "Hledat GitHub issues…"
 
+msgid "Search GitLab issues"
+msgstr "Hledat hlášení GitLab"
+
+msgid "Search GitLab issues…"
+msgstr "Hledat hlášení GitLab…"
+
+msgid "Search GitLab projects..."
+msgstr "Hledat projekty GitLab..."
+
+msgid "Search GitLab repositories..."
+msgstr "Hledat repozitáře GitLab..."
+
 msgid "Search history"
 msgstr "Prohledat historii"
 
@@ -14090,6 +14416,12 @@ msgstr "Hledat pull requesty…"
 
 msgid "Search repositories..."
 msgstr "Hledat repozitáře..."
+
+msgid "Search repository issues"
+msgstr "Hledat hlášení z repozitáře"
+
+msgid "Search repository issues…"
+msgstr "Hledat hlášení z repozitáře…"
 
 msgid "Search settings..."
 msgstr "Hledat v nastavení..."
@@ -14208,17 +14540,26 @@ msgstr "Podívejte se, kde se vašich posledních 30 dní umístí ve veřejném
 msgid "Select"
 msgstr "Výběr"
 
+msgid "Select a host to browse repositories."
+msgstr "Vyberte host pro procházení repozitářů."
+
 msgid "Select a project"
 msgstr "Vyberte projekt"
 
 msgid "Select a project first"
 msgstr "Nejprve vyberte projekt"
 
+msgid "Select a project to create an environment for it."
+msgstr "Vyberte projekt, pro který chcete vytvořit prostředí."
+
 msgid "Select a project to see GitHub issues."
 msgstr "Vyberte projekt a uvidíte GitHub issues."
 
 msgid "Select a project to see pull requests."
 msgstr "Vyberte projekt a uvidíte pull requesty."
+
+msgid "Select a project to see repository issues."
+msgstr "Vyberte projekt a uvidíte hlášení z repozitáře."
 
 msgid "Select a pull request to preview it here."
 msgstr "Vyberte pull request a zobrazí se tady jeho náhled."
@@ -14309,6 +14650,9 @@ msgstr "Vyberte umístění projektu"
 
 msgid "Select project worktree location"
 msgstr "Vyberte umístění worktree projektu"
+
+msgid "Select projects"
+msgstr "Vybrat projekty"
 
 msgid "Select range..."
 msgstr "Vyberte rozsah..."
@@ -14790,6 +15134,9 @@ msgstr "Štítek v postranním panelu, když je připravená aktualizace aplikac
 
 msgid "Sign in"
 msgstr "Přihlásit se"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "Chcete-li spravovat toto připojení, přihlaste se jako správce nebo vlastník organizace."
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "Přihlásit se jako Local Admin (dev)"
@@ -15984,6 +16331,9 @@ msgstr "Členové týmu"
 msgid "Team not found in this organization"
 msgstr "Tým v této organizaci nenalezen"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "Žádosti o revizi od týmu nejsou pro vybrané projekty GitLab dostupné."
+
 msgid "Team settings"
 msgstr "Nastavení týmu"
 
@@ -16134,6 +16484,9 @@ msgstr "Tento koncový bod se nepodařilo přeložit."
 msgid "That endpoint is not allowed."
 msgstr "Tento koncový bod není povolen."
 
+msgid "That filter is not supported for this event."
+msgstr "Tento filtr není pro tuto událost podporován."
+
 msgid "That handle is taken."
 msgstr "Tato přezdívka je obsazená."
 
@@ -16148,6 +16501,9 @@ msgstr "Tento počítač už není dostupný"
 
 msgid "That name isn't allowed."
 msgstr "Takový název není povolený."
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "Tato adresa URL není na připojeném hostiteli GitLabu"
 
 msgid "The 2026 bet"
 msgstr "Sázka na rok 2026"
@@ -16260,12 +16616,30 @@ msgstr "Kompletní pracovní prostor. Spouštějte agenty paralelně, každého 
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "Budoucí domov pro znovupoužitelné konfigurace agentů, prompty a průvodce nastavením pro Superset."
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "Odpověď autorizace GitLab je neúplná. Zkuste to znovu."
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "Relace autorizace GitLab je neplatná nebo její platnost vypršela. Zkuste to znovu."
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "Tento hostitel GitLab není povolen. OAuth musí používat hostitele GitLab registrovaného na serveru; tokeny vyžadují schváleného hostitele HTTPS."
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "Projekt nebo skupina GitLab nebyly nalezeny nebo nejsou přístupné. Zadejte úplnou cestu včetně všech podskupin."
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "Token GitLab byl odmítnut. Zkontrolujte jeho platnost a rozsahy api a read_repository a poté se znovu připojte."
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "Hostitel se vrátil s verzí {0}, ne {targetVersion}."
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "Hostitel se neobnovil do patnácti minut."
+
+msgid "The host did not confirm a terminal session"
+msgstr "Host nepotvrdil relaci terminálu"
 
 msgid "The host hasn't answered."
 msgstr "Host neodpověděl."
@@ -16397,6 +16771,9 @@ msgstr "Samořídící softwarová továrna"
 
 msgid "The server could not be found"
 msgstr "Server se nepodařilo najít"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "Hostitel GitLab OAuth serveru je neplatný. Kontaktujte správce nebo použijte token."
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "Přihlašovací odkaz byl neúplný. Zkuste to prosím znovu."
@@ -16594,6 +16971,12 @@ msgstr "Tento soubor je prázdný nebo byl smazán."
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "Tato instalace GitHubu je už připojená k jiné organizaci Superset. Odpojte ji tam, nebo odinstalujte Superset GitHub App, a zkuste to znovu."
 
+msgid "This GitLab check is no longer available."
+msgstr "Tato kontrola GitLab už není dostupná."
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "Tento projekt nebo skupina GitLab jsou již připojeny k jiné organizaci Superset. Před opětovným připojením je v této organizaci odpojte."
+
 msgid "This host"
 msgstr "Tento host"
 
@@ -16647,6 +17030,9 @@ msgstr "Tento měsíc"
 
 msgid "This only changes the display name, not the branch."
 msgstr "Změní se jen zobrazovaný název, ne větev."
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "Tato operace není pro tuto žádost o sloučení GitLab dostupná"
 
 msgid "this organization"
 msgstr "této organizace"
@@ -17373,6 +17759,9 @@ msgstr "Zrušit vyřešení"
 msgid "Unresolved"
 msgstr "Nevyřešeno"
 
+msgid "Unresolved conversations"
+msgstr "Nevyřešené konverzace"
+
 msgid "Unsaved changes"
 msgstr "Neuložené změny"
 
@@ -17462,6 +17851,9 @@ msgstr "Aktualizujte na tomto počítači Superset, abyste mohli přikládat sou
 msgid "update the branch prefix"
 msgstr "aktualizovat prefix větve"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "Aktualizujte tento host, abyste mohli procházet repozitáře GitLab. Repozitář můžete stále klonovat pomocí URL nebo cesty."
+
 msgid "Updated"
 msgstr "Aktualizováno"
 
@@ -17544,6 +17936,12 @@ msgstr "Využití není dostupné."
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "Použít „{0}“"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "Použijte osobní přístupový token s rozsahy api a read_repository. Váš účet GitLab musí mít oprávnění spravovat webhooky vybraného projektu nebo skupiny."
+
+msgid "Use a username supported by all selected providers."
+msgstr "Použijte uživatelské jméno podporované všemi vybranými poskytovateli."
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "Použijte cestu relativní k pracovnímu prostoru nebo absolutní složku."
@@ -17635,6 +18033,9 @@ msgstr "Uživatel nenalezen"
 msgid "user@example.com"
 msgstr "uzivatel@example.com"
 
+msgid "Username…"
+msgstr "Uživatelské jméno…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "Použije se náhodný název větve (generování přes AI vypršelo)"
 
@@ -17718,6 +18119,9 @@ msgstr "Zobrazit vše"
 msgid "View All"
 msgstr "Zobrazit vše"
 
+msgid "View checks"
+msgstr "Zobrazit kontroly"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "Zobrazit komentář od {0}"
@@ -17733,6 +18137,9 @@ msgstr "Zobrazit v plné velikosti"
 
 msgid "View in GitHub"
 msgstr "Zobrazit na GitHubu"
+
+msgid "View in GitLab"
+msgstr "Zobrazit na GitLabu"
 
 msgid "View log"
 msgstr "Zobrazit log"
@@ -18225,6 +18632,9 @@ msgstr "Pracovní prostor vytvořen"
 msgid "Workspace created from PR"
 msgstr "Pracovní prostor vytvořen z PR"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "Výsledek vytvoření pracovního prostoru se nepodařilo potvrdit"
+
 msgid "Workspace details"
 msgstr "Podrobnosti pracovního prostoru"
 
@@ -18404,6 +18814,9 @@ msgstr "Nejste členem této organizace."
 
 msgid "You are not a member of this organization"
 msgstr "Nejste členem této organizace"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "Nemáte oprávnění spravovat integrace této organizace."
 
 msgid "You are not authorized to perform this action."
 msgstr "K této akci nemáte oprávnění."

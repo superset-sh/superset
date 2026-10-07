@@ -1,8 +1,19 @@
-import type { GitClient } from "../shared/types";
+import { createHash } from "node:crypto";
+import { parseGitRemote } from "@superset/shared/git-remote";
+import type { GitCommandRunner } from "../shared/types";
 
 export type PrBranchSourceKind = "head-branch" | "synthetic-pr-ref";
 
 export interface PrBranchMetadata {
+	provider?: "github" | "gitlab";
+	host?: string;
+	headRepositoryUrl?: string | null;
+	selectedRepositoryUrl?: string;
+	selectedRemoteName?: string;
+	selectedOrganizationId?: string;
+	projectId?: string;
+	sourceProjectId?: string | null;
+	targetProjectId?: string;
 	number: number;
 	headRefName: string;
 	headRefOid: string;
@@ -29,6 +40,8 @@ interface PrBranchSource {
 	remoteUrl?: string;
 	pushRemote?: string;
 	pushRef?: string;
+	provider?: "github" | "gitlab";
+	checkoutIdentity?: string;
 	remoteTrackingBranch?: string;
 	remoteTrackingOid?: string;
 	warning?: string;
@@ -81,7 +94,10 @@ function getHeadRepositoryUrl(pr: PrBranchMetadata): string | null {
 	return `https://github.com/${owner}/${name}.git`;
 }
 
-async function revParseCommit(git: GitClient, ref: string): Promise<string> {
+async function revParseCommit(
+	git: GitCommandRunner,
+	ref: string,
+): Promise<string> {
 	const oid = await git.raw(["rev-parse", "--verify", `${ref}^{commit}`]);
 	const trimmed = oid.trim();
 	if (!/^[0-9a-f]{40,}$/i.test(trimmed)) {
@@ -91,7 +107,7 @@ async function revParseCommit(git: GitClient, ref: string): Promise<string> {
 }
 
 async function assertRefMatchesExpectedOid(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	ref: string;
 	expectedHeadOid: string;
 }): Promise<string> {
@@ -105,7 +121,7 @@ async function assertRefMatchesExpectedOid(args: {
 }
 
 async function getLocalBranchHead(
-	git: GitClient,
+	git: GitCommandRunner,
 	branch: string,
 ): Promise<string | null> {
 	try {
@@ -116,7 +132,7 @@ async function getLocalBranchHead(
 }
 
 async function getRemoteUrl(
-	git: GitClient,
+	git: GitCommandRunner,
 	remoteName: string,
 ): Promise<string | null> {
 	try {
@@ -127,20 +143,26 @@ async function getRemoteUrl(
 }
 
 async function ensureRemoteUrl(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	remoteName: string;
 	remoteUrl: string;
+	provider?: "github" | "gitlab";
 }): Promise<string> {
 	for (let attempt = 0; attempt < 10; attempt += 1) {
 		const candidate =
 			attempt === 0 ? args.remoteName : `${args.remoteName}-${attempt + 1}`;
-		const existingUrl = await getRemoteUrl(args.git, candidate);
+		const existingUrl =
+			args.provider === "gitlab"
+				? await getConfiguredGitlabRemoteUrl(args.git, candidate)
+				: await getRemoteUrl(args.git, candidate);
 		if (existingUrl === null) {
 			await args.git.raw(["remote", "add", candidate, args.remoteUrl]);
 			return candidate;
 		}
 		if (
-			normalizeRemoteUrl(existingUrl) === normalizeRemoteUrl(args.remoteUrl)
+			args.provider === "gitlab"
+				? sameGitlabRemote(existingUrl, args.remoteUrl)
+				: normalizeRemoteUrl(existingUrl) === normalizeRemoteUrl(args.remoteUrl)
 		) {
 			return candidate;
 		}
@@ -151,7 +173,7 @@ async function ensureRemoteUrl(args: {
 }
 
 async function fetchSameRepoPrBranch(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	remoteName: string;
 	pr: PrBranchMetadata;
 }): Promise<PrBranchSource> {
@@ -184,7 +206,7 @@ async function fetchSameRepoPrBranch(args: {
 }
 
 async function fetchSyntheticPrBranch(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	remoteName: string;
 	pr: PrBranchMetadata;
 	warning?: string;
@@ -230,11 +252,12 @@ async function fetchSyntheticPrBranch(args: {
 }
 
 export async function configurePrBranchTracking(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	branch: string;
 	remoteName: string;
 	mergeRef: string;
 	remoteUrl?: string;
+	provider?: "github" | "gitlab";
 	pushRemote?: string;
 	pushRef?: string;
 	remoteTrackingBranch?: string;
@@ -245,6 +268,7 @@ export async function configurePrBranchTracking(args: {
 				git: args.git,
 				remoteName: args.remoteName,
 				remoteUrl: args.remoteUrl,
+				provider: args.provider,
 			})
 		: args.remoteName;
 	const pushRemote =
@@ -284,7 +308,7 @@ export async function configurePrBranchTracking(args: {
 }
 
 export async function deleteMaterializedPrBranchIfSafe(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	branch: string;
 	expectedHeadOid: string;
 }): Promise<boolean> {
@@ -297,11 +321,174 @@ export async function deleteMaterializedPrBranchIfSafe(args: {
 	return true;
 }
 
-async function resolvePrBranchSource(args: {
-	git: GitClient;
+function sameGitlabRemote(left: string, right: string): boolean {
+	const a = parseGitRemote(left),
+		b = parseGitRemote(right);
+	return (
+		a !== null &&
+		b !== null &&
+		a.host === b.host &&
+		a.owner === b.owner &&
+		a.name === b.name
+	);
+}
+
+async function getConfiguredGitlabRemoteUrl(
+	git: GitCommandRunner,
+	name: string,
+): Promise<string | null> {
+	return (
+		(
+			await git.raw(["config", "--default", "", "--get", `remote.${name}.url`])
+		).trim() || null
+	);
+}
+
+export function gitlabPrFetchRef(pr: PrBranchMetadata): string {
+	const identity = createHash("sha256")
+		.update(pr.selectedRepositoryUrl ?? "")
+		.digest("hex")
+		.slice(0, 24);
+	return `refs/superset/gitlab-fetch/${identity}/${pr.number}/head`;
+}
+
+export function gitlabCheckoutIdentity(pr: PrBranchMetadata): string {
+	if (!pr.selectedOrganizationId || !pr.selectedRepositoryUrl || !pr.projectId)
+		throw new PrBranchConflictError("Invalid GitLab checkout authority");
+	return JSON.stringify([
+		pr.selectedOrganizationId,
+		pr.selectedRepositoryUrl,
+		pr.projectId,
+		pr.number,
+	]);
+}
+
+async function readGitlabCheckoutIdentity(
+	git: GitCommandRunner,
+	branch: string,
+): Promise<string> {
+	return (
+		await git.raw([
+			"config",
+			"--default",
+			"",
+			"--get",
+			`branch.${branch}.supersetGitlabCheckout`,
+		])
+	).trim();
+}
+
+async function resolveGitlabBranchSource(args: {
+	git: GitCommandRunner;
+	branch: string;
 	remoteName: string;
 	pr: PrBranchMetadata;
 }): Promise<PrBranchSource> {
+	const pr = args.pr,
+		remoteName = pr.selectedRemoteName;
+	const checkoutIdentity = gitlabCheckoutIdentity(pr);
+	const recordedIdentity = await readGitlabCheckoutIdentity(
+		args.git,
+		args.branch,
+	);
+	if (recordedIdentity && recordedIdentity !== checkoutIdentity)
+		throw new PrBranchConflictError(
+			"Local branch belongs to another GitLab checkout",
+		);
+	if (
+		!remoteName ||
+		!pr.selectedRepositoryUrl ||
+		!pr.host ||
+		!pr.projectId ||
+		pr.targetProjectId !== pr.projectId ||
+		pr.sourceProjectId === undefined ||
+		pr.isCrossRepository !== (pr.sourceProjectId !== pr.targetProjectId)
+	)
+		throw new PrBranchConflictError("Invalid GitLab checkout identity");
+	const selected = parseGitRemote(pr.selectedRepositoryUrl);
+	if (!selected || selected.provider === "github" || selected.host !== pr.host)
+		throw new PrBranchConflictError("Invalid GitLab checkout identity");
+	const currentUrl = await getConfiguredGitlabRemoteUrl(args.git, remoteName);
+	if (!currentUrl || !sameGitlabRemote(currentUrl, pr.selectedRepositoryUrl))
+		throw new PrBranchConflictError(
+			"GitLab remote changed while preparing checkout",
+		);
+	const syntheticRef = `refs/merge-requests/${pr.number}/head`,
+		fetchRef = gitlabPrFetchRef(pr);
+	await args.git.raw([
+		"-c",
+		"http.followRedirects=false",
+		"fetch",
+		"--no-tags",
+		"--quiet",
+		pr.selectedRepositoryUrl,
+		`+${syntheticRef}:${fetchRef}`,
+	]);
+	const actualOid = await revParseCommit(args.git, fetchRef);
+	if (normalizeOid(actualOid) !== normalizeOid(pr.headRefOid))
+		throw new PrBranchConflictError(
+			"Fetched GitLab MR head does not match current metadata",
+		);
+	const stillCurrent = await getConfiguredGitlabRemoteUrl(args.git, remoteName);
+	if (
+		!stillCurrent ||
+		!sameGitlabRemote(stillCurrent, pr.selectedRepositoryUrl)
+	)
+		throw new PrBranchConflictError(
+			"GitLab remote changed while preparing checkout",
+		);
+	if (!pr.isCrossRepository)
+		return {
+			provider: "gitlab",
+			checkoutIdentity,
+			kind: "synthetic-pr-ref",
+			startPoint: actualOid,
+			trackingRemote: remoteName,
+			mergeRef: `refs/heads/${pr.headRefName}`,
+		};
+	let forkUrl: string | null = null;
+	if (pr.headRepositoryUrl) {
+		const source = parseGitRemote(pr.headRepositoryUrl);
+		const url = new URL(pr.headRepositoryUrl);
+		if (
+			!source ||
+			source.provider === "github" ||
+			source.host !== pr.host ||
+			source.owner !== pr.headRepositoryOwner ||
+			source.name !== pr.headRepositoryName ||
+			url.protocol !== "https:" ||
+			url.username ||
+			url.password ||
+			url.search ||
+			url.hash ||
+			url.pathname !== `/${source.owner}/${source.name}.git`
+		)
+			throw new PrBranchConflictError("Invalid GitLab source repository");
+		forkUrl = pr.headRepositoryUrl;
+	}
+	const forkRemoteName = getForkRemoteName(pr.number);
+	return {
+		provider: "gitlab",
+		checkoutIdentity,
+		kind: "synthetic-pr-ref",
+		startPoint: actualOid,
+		trackingRemote: forkUrl ? forkRemoteName : remoteName,
+		mergeRef: forkUrl ? `refs/heads/${pr.headRefName}` : syntheticRef,
+		remoteUrl: forkUrl ?? undefined,
+		pushRemote: forkUrl ? forkRemoteName : undefined,
+		pushRef: forkUrl ? `HEAD:refs/heads/${pr.headRefName}` : undefined,
+		remoteTrackingBranch: forkUrl ? pr.headRefName : undefined,
+		remoteTrackingOid: forkUrl ? pr.headRefOid : undefined,
+	};
+}
+
+async function resolvePrBranchSource(args: {
+	git: GitCommandRunner;
+	branch: string;
+	remoteName: string;
+	pr: PrBranchMetadata;
+}): Promise<PrBranchSource> {
+	if (args.pr.provider === "gitlab") return resolveGitlabBranchSource(args);
 	if (args.pr.isCrossRepository) {
 		return await fetchSyntheticPrBranch({
 			git: args.git,
@@ -330,7 +517,7 @@ async function resolvePrBranchSource(args: {
 }
 
 async function configureTrackingFromSource(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	branch: string;
 	source: PrBranchSource;
 	createdBranch: boolean;
@@ -341,11 +528,18 @@ async function configureTrackingFromSource(args: {
 		remoteName: args.source.trackingRemote,
 		mergeRef: args.source.mergeRef,
 		remoteUrl: args.source.remoteUrl,
+		provider: args.source.provider,
 		pushRemote: args.source.pushRemote,
 		pushRef: args.source.pushRef,
 		remoteTrackingBranch: args.source.remoteTrackingBranch,
 		remoteTrackingOid: args.source.remoteTrackingOid,
 	});
+	if (args.source.checkoutIdentity)
+		await args.git.raw([
+			"config",
+			`branch.${args.branch}.supersetGitlabCheckout`,
+			args.source.checkoutIdentity,
+		]);
 	return {
 		branch: args.branch,
 		createdBranch: args.createdBranch,
@@ -358,7 +552,7 @@ async function configureTrackingFromSource(args: {
 }
 
 export async function normalizePrBranchTracking(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	branch: string;
 	remoteName: string;
 	pr: PrBranchMetadata;
@@ -384,7 +578,7 @@ export async function normalizePrBranchTracking(args: {
 }
 
 export async function materializePrBranch(args: {
-	git: GitClient;
+	git: GitCommandRunner;
 	branch: string;
 	remoteName: string;
 	pr: PrBranchMetadata;
@@ -454,4 +648,84 @@ export async function materializePrBranch(args: {
 		}
 		throw err;
 	}
+}
+
+export async function refreshGitlabPrBranch(args: {
+	git: GitCommandRunner;
+	branch: string;
+	worktreePath: string;
+	remoteName: string;
+	pr: PrBranchMetadata;
+	verifiedExistingCheckout?: boolean;
+}): Promise<MaterializePrBranchResult> {
+	const recordedIdentity = await readGitlabCheckoutIdentity(
+		args.git,
+		args.branch,
+	);
+	const source = await resolveGitlabBranchSource(args);
+	const currentBranch = (
+		await args.git.raw([
+			"-C",
+			args.worktreePath,
+			"symbolic-ref",
+			"--quiet",
+			"--short",
+			"HEAD",
+		])
+	).trim();
+	if (currentBranch !== args.branch)
+		throw new PrBranchConflictError("GitLab workspace branch changed");
+	const existingOid = await getLocalBranchHead(args.git, args.branch);
+	if (existingOid === null)
+		throw new PrBranchConflictError("GitLab workspace branch no longer exists");
+	if (normalizeOid(existingOid) !== normalizeOid(source.startPoint)) {
+		if (!recordedIdentity && !args.verifiedExistingCheckout)
+			throw new PrBranchConflictError(
+				"Unverified existing GitLab workspace head",
+			);
+		const dirty = (
+			await args.git.raw([
+				"-C",
+				args.worktreePath,
+				"status",
+				"--porcelain",
+				"--untracked-files=all",
+			])
+		).trim();
+		if (dirty)
+			throw new PrBranchConflictError(
+				"GitLab workspace contains local changes",
+			);
+		try {
+			await args.git.raw([
+				"merge-base",
+				"--is-ancestor",
+				existingOid,
+				source.startPoint,
+			]);
+		} catch {
+			throw new PrBranchConflictError(
+				"GitLab workspace contains commits outside the current MR head",
+			);
+		}
+		await args.git.raw([
+			"-C",
+			args.worktreePath,
+			"merge",
+			"--ff-only",
+			"--no-edit",
+			source.startPoint,
+		]);
+		const updated = await getLocalBranchHead(args.git, args.branch);
+		if (!updated || normalizeOid(updated) !== normalizeOid(source.startPoint))
+			throw new PrBranchConflictError(
+				"GitLab workspace did not reach the verified MR head",
+			);
+	}
+	return configureTrackingFromSource({
+		git: args.git,
+		branch: args.branch,
+		source,
+		createdBranch: false,
+	});
 }

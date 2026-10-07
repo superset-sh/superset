@@ -937,6 +937,9 @@ msgstr "{matchCount, plural, one {{0}} other {{1}}}"
 msgid "{met} of {0} objectives carrying for {nextLabel} — {laggingLabels} furthest behind."
 msgstr "{0} 项目标中有 {met} 项在为 {nextLabel} 出力 —— {laggingLabels} 落后最多。"
 
+msgid "{methodLabel} with squashed commits"
+msgstr "{methodLabel}（压缩提交）"
+
 msgid "{minimumContrast}:1 contrast"
 msgstr "{minimumContrast}:1对比度"
 
@@ -1075,6 +1078,9 @@ msgstr "{started, plural, one {已启动 # 个自动化} other {已启动 # 个�
 msgid "{subagentCount, plural, one {# subagent running} other {# subagents running}}"
 msgstr "{subagentCount, plural, other {# 个子智能体运行中}}"
 
+msgid "{succeeded} of {total} succeeded{details}"
+msgstr "共 {total} 项，{succeeded} 项成功{details}"
+
 msgid "{successCount, plural, one {Created # workspace, {failCount} failed} other {Created # workspaces, {failCount} failed}}"
 msgstr "{successCount, plural, one {已创建#个工作区，{failCount}个失败} other {已创建#个工作区，{failCount}个失败}}"
 
@@ -1101,6 +1107,12 @@ msgstr "{total, plural, one {#项检查全部通过} other {#项检查全部通�
 
 msgid "{totalCount, plural, one {GitHub issue} other {GitHub issues}}"
 msgstr "{totalCount, plural, one {GitHub议题} other {GitHub议题}}"
+
+msgid "{totalCount, plural, one {GitLab issue} other {GitLab issues}}"
+msgstr "{totalCount, plural, one {GitLab 议题} other {GitLab 议题}}"
+
+msgid "{totalCount, plural, one {issue} other {issues}}"
+msgstr "{totalCount, plural, one {议题} other {议题}}"
 
 msgid "{totalCount, plural, one {pull request} other {pull requests}}"
 msgstr "{totalCount, plural, one {拉取请求} other {拉取请求}}"
@@ -1615,6 +1627,9 @@ msgstr "添加项目以查看GitHub议题。"
 
 msgid "Add a project to see pull requests."
 msgstr "添加一个项目来查看拉取请求。"
+
+msgid "Add a project to see repository issues."
+msgstr "添加项目以查看仓库议题。"
 
 msgid "Add a short summary…"
 msgstr "添加简短摘要…"
@@ -2214,6 +2229,9 @@ msgstr "Anthropic拒绝了此令牌。"
 msgid "any account"
 msgstr "任意账号"
 
+msgid "Any branch"
+msgstr "任意分支"
+
 msgid "Any channel"
 msgstr "任意频道"
 
@@ -2356,6 +2374,12 @@ msgctxt "job application"
 msgid "Apply"
 msgstr "申请"
 
+msgid "Approval requirements unavailable"
+msgstr "批准要求不可用"
+
+msgid "Approvals remaining: {left} of {required}"
+msgstr "剩余批准：{left}/{required}"
+
 msgid "Approve"
 msgstr "批准"
 
@@ -2368,8 +2392,14 @@ msgstr "替我批准"
 msgid "Approved"
 msgstr "已批准"
 
+msgid "Approved by {approvedBy}"
+msgstr "批准人：{approvedBy}"
+
 msgid "Approved review"
 msgstr "审查已批准"
+
+msgid "Approved with all approval rules met"
+msgstr "已批准且满足所有批准规则"
 
 msgid "Apps"
 msgstr "应用"
@@ -2732,6 +2762,9 @@ msgstr "等待你的审查"
 msgid "Awaiting review from you or your team"
 msgstr "等待你或你团队的审查"
 
+msgid "Awaiting your current review"
+msgstr "等待你的当前审查"
+
 msgid "Back"
 msgstr "返回"
 
@@ -2758,6 +2791,9 @@ msgstr "返回当前版本"
 
 msgid "Back to GitHub issues"
 msgstr "返回GitHub议题"
+
+msgid "Back to GitLab issues"
+msgstr "返回 GitLab 议题"
 
 msgid "Back to Home"
 msgstr "返回首页"
@@ -3290,6 +3326,9 @@ msgstr "更改负责人"
 msgid "Change avatar"
 msgstr "更换头像"
 
+msgid "Change connection"
+msgstr "更改连接"
+
 msgid "Change icon"
 msgstr "更改图标"
 
@@ -3439,6 +3478,9 @@ msgstr "正在检查环境…"
 msgid "Checking host…"
 msgstr "正在检查主机…"
 
+msgid "Checking merge requirements"
+msgstr "正在检查合并要求"
+
 msgid "Checking out a PR requires a project"
 msgstr "检出PR需要一个项目"
 
@@ -3475,6 +3517,9 @@ msgstr "检查完成"
 msgid "Checks failed"
 msgstr "检查失败"
 
+msgid "Checks need action"
+msgstr "检查需要处理"
+
 msgid "Checks passed"
 msgstr "检查通过"
 
@@ -3493,6 +3538,9 @@ msgstr "选择父目录"
 msgid "Choose a project from GitHub issues before opening an issue."
 msgstr "打开议题前，请先在GitHub议题中选择一个项目。"
 
+msgid "Choose a project from GitLab issues before opening an issue."
+msgstr "打开议题前，请从 GitLab 议题列表中选择一个项目。"
+
 msgid "Choose a section."
 msgstr "选择一个分区。"
 
@@ -3504,6 +3552,9 @@ msgstr "选择已有的仓库文件夹"
 
 msgid "Choose app"
 msgstr "选择应用"
+
+msgid "Choose GitHub repositories or one GitLab project"
+msgstr "选择 GitHub 仓库或一个 GitLab 项目"
 
 msgid "Choose how files open when no preview pane exists"
 msgstr "选择在没有预览窗格时文件的打开方式"
@@ -3834,6 +3885,10 @@ msgstr "关闭工作区"
 msgid "Closed"
 msgstr "已关闭"
 
+msgctxt "status"
+msgid "Closed"
+msgstr "已关闭"
+
 msgid "Closing these ports will end the processes using them."
 msgstr "关闭这些端口会结束正在使用它们的进程。"
 
@@ -3851,6 +3906,9 @@ msgstr "正在关闭…"
 
 msgid "Cloud"
 msgstr "云端"
+
+msgid "Cloud environment changed. Select it again."
+msgstr "云环境已更改。请重新选择。"
 
 msgid "Cloud is coming. Become a design partner"
 msgstr "云端版本即将推出。成为共创伙伴"
@@ -4135,6 +4193,9 @@ msgstr "连接 {name}"
 msgid "Connect a device"
 msgstr "连接设备"
 
+msgid "Connect a GitLab project or group, including self-managed instances and nested subgroups."
+msgstr "连接 GitLab 项目或群组，支持自托管实例和嵌套子群组。"
+
 msgid "Connect a Google account. Its mailbox is read-only, and triggers run for the person who connected it."
 msgstr "连接一个 Google 账号。其邮箱为只读，触发器以连接者的身份运行。"
 
@@ -4177,6 +4238,9 @@ msgstr "连接Notion"
 msgid "Connect Notion to run automations when rows change in a data source or someone comments on a page."
 msgstr "连接Notion，在数据源中的行发生变化或有人评论页面时运行自动化。"
 
+msgid "Connect repos and sync merge requests."
+msgstr "连接仓库并同步合并请求。"
+
 msgid "Connect repos and sync pull requests."
 msgstr "连接仓库并同步拉取请求。"
 
@@ -4191,6 +4255,12 @@ msgstr "连接Slack，直接在对话中管理任务。在任意频道提及机�
 
 msgid "Connect this computer"
 msgstr "连接这台电脑"
+
+msgid "Connect with a token"
+msgstr "使用令牌连接"
+
+msgid "Connect with GitLab"
+msgstr "使用 GitLab 连接"
 
 msgid "Connect your GitHub repositories and sync pull requests. Track CI status and reviews across your team."
 msgstr "连接你的GitHub仓库并同步拉取请求。跟踪整个团队的CI状态和代码审查。"
@@ -4384,6 +4454,9 @@ msgstr "换一个智能体继续…"
 msgid "Continue with GitHub"
 msgstr "使用GitHub继续"
 
+msgid "Continue with GitLab"
+msgstr "使用GitLab继续"
+
 msgid "Continue with Google"
 msgstr "使用Google继续"
 
@@ -4526,6 +4599,9 @@ msgstr "复制链接"
 msgid "Copy Link Address"
 msgstr "复制链接地址"
 
+msgid "Copy link to merge request"
+msgstr "复制合并请求链接"
+
 msgid "Copy link to pull request"
 msgstr "复制拉取请求链接"
 
@@ -4647,6 +4723,9 @@ msgstr "无法复制链接"
 msgid "Could not create cloud workspace"
 msgstr "无法创建云端工作区"
 
+msgid "Could not create environment"
+msgstr "无法创建环境"
+
 msgid "Could not create project"
 msgstr "无法创建项目"
 
@@ -4681,11 +4760,23 @@ msgstr "无法列出目录"
 msgid "Could not load agents from {0}"
 msgstr "无法从{0}加载智能体"
 
+msgid "Could not load branches. Try again."
+msgstr "无法加载分支。请重试。"
+
+msgid "Could not load connection status."
+msgstr "无法加载连接状态。"
+
 msgid "Could not load environments"
 msgstr "无法加载环境"
 
 msgid "Could not load environments."
 msgstr "无法加载环境。"
+
+msgid "Could not load GitLab projects. Check the connection in Integrations."
+msgstr "无法加载 GitLab 项目。请在“集成”中检查连接。"
+
+msgid "Could not load GitLab projects. Try again."
+msgstr "无法加载 GitLab 项目。请重试。"
 
 msgid "Could not load image"
 msgstr "无法加载图片"
@@ -4701,6 +4792,9 @@ msgstr "无法加载这个差异"
 
 msgid "Could not load this file."
 msgstr "无法加载这个文件。"
+
+msgid "Could not load this merge request. Reconnect to its host and try again."
+msgstr "无法加载此合并请求。请重新连接其主机后重试。"
 
 msgid "Could not load your machines"
 msgstr "无法加载你的机器"
@@ -5113,6 +5207,12 @@ msgstr "创建合并提交"
 msgid "Create Merge Commit"
 msgstr "创建合并提交"
 
+msgid "Create merge request"
+msgstr "创建合并请求"
+
+msgid "Create merge request failed: {errorMessage}"
+msgstr "创建合并请求失败：{errorMessage}"
+
 msgid "Create new group"
 msgstr "创建新分组"
 
@@ -5256,6 +5356,9 @@ msgstr "正在创建任务"
 msgid "Creating a workspace"
 msgstr "正在创建工作区"
 
+msgid "Creating merge request..."
+msgstr "正在创建合并请求..."
+
 msgid "Creating PR..."
 msgstr "正在创建PR…"
 
@@ -5320,8 +5423,14 @@ msgstr "当前速度"
 msgid "Current plan"
 msgstr "当前方案"
 
+msgid "Current review filter is unavailable for this selection. Choose All reviews to clear it."
+msgstr "当前审查筛选条件不适用于此选择。请选择“所有审查”以清除。"
+
 msgid "Current tab"
 msgstr "当前标签页"
+
+msgid "Current workspace files"
+msgstr "当前工作区文件"
 
 msgid "Cursor"
 msgstr "光标"
@@ -6103,6 +6212,9 @@ msgstr "草稿 · 文件"
 msgid "Draft · line {0}"
 msgstr "草稿 · 第{0}行"
 
+msgid "Draft merge request opened"
+msgstr "草稿合并请求已创建"
+
 msgid "Draft opened"
 msgstr "创建了草稿"
 
@@ -6390,6 +6502,9 @@ msgstr "用得还顺手吗？"
 
 msgid "Ensure no regression"
 msgstr "确保没有回归"
+
+msgid "Enter a GitLab HTTPS host, such as gitlab.com or gitlab.example.com:8443."
+msgstr "请输入 GitLab HTTPS 主机，例如 gitlab.com 或 gitlab.example.com:8443。"
 
 msgid "Enter a parent directory on {hostName}"
 msgstr "请输入{hostName}上的父目录"
@@ -7145,6 +7260,9 @@ msgstr "失败"
 msgid "FAQ"
 msgstr "常见问题"
 
+msgid "Fast-forward merge"
+msgstr "快进合并"
+
 msgid "Fatal"
 msgstr "致命"
 
@@ -7246,6 +7364,9 @@ msgstr "按@{normalizedSearch}筛选"
 
 msgid "Filter by author: {label}"
 msgstr "按作者筛选：{label}"
+
+msgid "Filter by current GitLab user"
+msgstr "按当前 GitLab 用户筛选"
 
 msgid "Filter by device"
 msgstr "按设备筛选"
@@ -7745,6 +7866,60 @@ msgstr "GitHub 用户名..."
 msgid "GitHub username…"
 msgstr "GitHub用户名…"
 
+msgid "GitLab"
+msgstr "GitLab"
+
+msgid "GitLab approval-rule filters require an available approval rules API."
+msgstr "GitLab 批准规则筛选需要可用的批准规则 API。"
+
+msgid "GitLab authorization was cancelled. Please try again."
+msgstr "GitLab 授权已取消。请重试。"
+
+msgid "GitLab could not find that project"
+msgstr "GitLab 找不到该项目"
+
+msgid "GitLab did not confirm the merge"
+msgstr "GitLab 未确认此次合并"
+
+msgid "GitLab host"
+msgstr "GitLab 主机"
+
+msgid "GitLab issue content could not be verified"
+msgstr "无法验证 GitLab 议题内容"
+
+msgid "GitLab issues"
+msgstr "GitLab 议题"
+
+msgid "GitLab merge request changed; refresh before trying again"
+msgstr "GitLab 合并请求已变更；请刷新后重试"
+
+msgid "GitLab merge status: {mergeStatus}"
+msgstr "GitLab 合并状态：{mergeStatus}"
+
+msgid "GitLab OAuth is not configured on the API server. Contact your administrator or use a token."
+msgstr "API 服务器尚未配置 GitLab OAuth。请联系管理员或使用令牌。"
+
+msgid "GitLab projects"
+msgstr "GitLab 项目"
+
+msgid "GitLab refused the merge"
+msgstr "GitLab 拒绝了此次合并"
+
+msgid "GitLab repositories"
+msgstr "GitLab 仓库"
+
+msgid "GitLab reviewed filters use the current review cycle."
+msgstr "GitLab 的已审查筛选使用当前审查周期。"
+
+msgid "GitLab username or @me…"
+msgstr "GitLab 用户名或 @me…"
+
+msgid "GitLab was disconnected locally, but remote webhook or token cleanup failed. Review the remaining access in GitLab."
+msgstr "GitLab 已在本地断开连接，但远程 Webhook 或令牌清理失败。请检查 GitLab 中仍保留的访问权限。"
+
+msgid "GitLab webhook setup failed. Check the connection and webhook permissions, then refresh webhooks."
+msgstr "GitLab Webhook 设置失败。请检查连接和 Webhook 权限，然后刷新 Webhook。"
+
 msgid "Give me an example"
 msgstr "给我一个示例"
 
@@ -8132,6 +8307,9 @@ msgstr "https://"
 msgid "https://github.com/owner/repo.git or /path/to/repo"
 msgstr "https://github.com/owner/repo.git 或 /path/to/repo"
 
+msgid "https://gitlab.example.com/group/project.git or /path/to/repo"
+msgstr "https://gitlab.example.com/group/project.git 或 /path/to/repo"
+
 msgid "Human"
 msgstr "人类"
 
@@ -8508,6 +8686,9 @@ msgstr "授权响应无效。请重试。"
 msgid "Invalid email address."
 msgstr "邮箱地址无效。"
 
+msgid "Invalid GitLab merge request identity"
+msgstr "GitLab 合并请求标识无效"
+
 msgid "Invalid hostId"
 msgstr "hostId无效"
 
@@ -8612,6 +8793,9 @@ msgstr "问题已创建"
 
 msgid "Issue not found."
 msgstr "未找到议题。"
+
+msgid "Issue opened"
+msgstr "议题已创建"
 
 msgid "Issue resolved"
 msgstr "问题已解决"
@@ -9094,6 +9278,9 @@ msgstr "关联Linear议题"
 msgid "Link pull request"
 msgstr "关联拉取请求"
 
+msgid "Link repository issue"
+msgstr "关联仓库议题"
+
 msgid "Link task"
 msgstr "关联任务"
 
@@ -9232,6 +9419,9 @@ msgstr "正在加载更多…"
 msgid "Loading project…"
 msgstr "正在加载项目…"
 
+msgid "Loading projects..."
+msgstr "正在加载项目..."
+
 msgid "Loading projects…"
 msgstr "正在加载项目…"
 
@@ -9249,6 +9439,9 @@ msgstr "正在加载仓库"
 
 msgid "Loading repositories..."
 msgstr "正在加载仓库..."
+
+msgid "Loading repositories…"
+msgstr "正在加载仓库…"
 
 msgid "Loading review..."
 msgstr "正在加载评审..."
@@ -9587,11 +9780,17 @@ msgstr "合并"
 msgid "Merge #{0}?"
 msgstr "合并#{0}？"
 
+msgid "Merge blocked"
+msgstr "合并被阻止"
+
 msgid "Merge commit"
 msgstr "合并提交"
 
 msgid "Merge Commit"
 msgstr "合并提交"
+
+msgid "Merge conflicts"
+msgstr "合并冲突"
 
 #. placeholder {0}: error.message
 msgid "Merge failed: {0}"
@@ -9605,6 +9804,36 @@ msgstr "合并拉取请求"
 
 msgid "Merge pull requests without leaving Superset, plus a round of chat fixes and polish."
 msgstr "不离开Superset就能合并拉取请求，另有一轮聊天修复与打磨。"
+
+msgid "Merge request actions"
+msgstr "合并请求操作"
+
+msgid "Merge request approval removed"
+msgstr "合并请求的批准已撤销"
+
+msgid "Merge request approved"
+msgstr "合并请求已批准"
+
+msgid "Merge request changes are unavailable"
+msgstr "合并请求的更改不可用"
+
+msgid "Merge request is locked"
+msgstr "合并请求已锁定"
+
+msgid "Merge request label changed"
+msgstr "合并请求的标签已更改"
+
+msgid "Merge request merged"
+msgstr "合并请求已合并"
+
+msgid "Merge request opened"
+msgstr "合并请求已创建"
+
+msgid "Merge request pushed"
+msgstr "更改已推送到合并请求"
+
+msgid "Merge request title"
+msgstr "合并请求标题"
 
 msgid "Merge when checks pass"
 msgstr "检查通过后合并"
@@ -9673,6 +9902,9 @@ msgstr "最小化"
 
 msgid "Minimize GitHub issues"
 msgstr "最小化GitHub议题"
+
+msgid "Minimize issues"
+msgstr "最小化议题"
 
 msgid "Minimum contrast"
 msgstr "最小对比度"
@@ -10321,11 +10553,17 @@ msgstr "还没有评论。开启评论模式，点击页面上的任意元素即
 msgid "No commits on this branch yet."
 msgstr "此分支上还没有提交。"
 
+msgid "No commits to open a merge request from"
+msgstr "没有可用于创建合并请求的提交"
+
 msgid "No commits to open a pull request from"
 msgstr "没有可用于创建拉取请求的提交"
 
 msgid "No comparisons yet."
 msgstr "暂无对比。"
+
+msgid "No completed reviews or approvals"
+msgstr "没有已完成的审查或批准"
 
 msgid "No console output"
 msgstr "没有控制台输出"
@@ -10392,6 +10630,9 @@ msgstr "此时间段没有漏斗数据"
 
 msgid "No git remote detected"
 msgstr "未检测到git远程仓库"
+
+msgid "No GitLab projects found. Connect GitLab in Integrations."
+msgstr "未找到 GitLab 项目。请在“集成”中连接 GitLab。"
 
 msgid "No grouping"
 msgstr "不分组"
@@ -10859,6 +11100,9 @@ msgstr "尚未接收到事件：Microsoft Graph拒绝了通知订阅。请检查
 msgid "Not reviewed by you"
 msgstr "你还没有审查"
 
+msgid "Not reviewed by you in the current review cycle"
+msgstr "你在当前审查周期中还没有审查"
+
 msgid "not set up"
 msgstr "未设置"
 
@@ -10874,6 +11118,9 @@ msgstr "未排序"
 msgctxt "agent status"
 msgid "Not updating"
 msgstr "未更新"
+
+msgid "Note added"
+msgstr "备注已添加"
 
 msgid "Notes"
 msgstr "笔记"
@@ -11070,6 +11317,9 @@ msgstr "只有主机所有者可以更改此位置。"
 
 msgid "Only host owners or organization owners can delete this host"
 msgstr "只有主机所有者或组织所有者才能删除此主机"
+
+msgid "Only organization admins and owners can manage this connection."
+msgstr "只有组织管理员和所有者可以管理此连接。"
 
 msgid "Only organization owners can modify these settings."
 msgstr "只有组织所有者可以修改这些设置。"
@@ -11324,6 +11574,9 @@ msgstr "在Finder中打开"
 msgid "Open in GitHub"
 msgstr "在GitHub中打开"
 
+msgid "Open in GitLab"
+msgstr "在 GitLab 中打开"
+
 msgid "Open in Linear"
 msgstr "在Linear中打开"
 
@@ -11363,6 +11616,9 @@ msgstr "在浏览器中打开议题#{0}"
 
 msgid "Open issue in GitHub"
 msgstr "在GitHub中打开议题"
+
+msgid "Open issue in GitLab"
+msgstr "在 GitLab 中打开议题"
 
 msgid "Open issue in Linear"
 msgstr "在Linear中打开议题"
@@ -11950,6 +12206,9 @@ msgstr "峰值速度"
 msgid "Pending Invitations"
 msgstr "待处理邀请"
 
+msgid "Pending reviews or unmet approval rules"
+msgstr "待处理的审查或未满足的批准规则"
+
 msgid "People"
 msgstr "人员"
 
@@ -11995,6 +12254,9 @@ msgstr "人员"
 
 msgid "Personal"
 msgstr "个人"
+
+msgid "Personal access token"
+msgstr "个人访问令牌"
 
 msgid "Phantom Forklift"
 msgstr "幽灵叉车"
@@ -12079,6 +12341,15 @@ msgstr "粉色"
 
 msgid "Pinned"
 msgstr "已置顶"
+
+msgid "Pipeline canceled"
+msgstr "流水线已取消"
+
+msgid "Pipeline failed"
+msgstr "流水线失败"
+
+msgid "Pipeline succeeded"
+msgstr "流水线成功"
 
 msgid "PK"
 msgstr "PK"
@@ -12445,6 +12716,9 @@ msgstr "找不到该项目。"
 msgid "Project not set up on this host"
 msgstr "项目未在此主机上设置"
 
+msgid "Project or group path"
+msgstr "项目或群组路径"
+
 msgid "Project ready — open it from the sidebar."
 msgstr "项目已就绪，可从侧边栏打开。"
 
@@ -12582,6 +12856,9 @@ msgstr "拉取请求#{0}，{1}"
 msgid "Pull request actions"
 msgstr "拉取请求操作"
 
+msgid "Pull request not found."
+msgstr "未找到拉取请求。"
+
 msgid "Pull request title"
 msgstr "拉取请求标题"
 
@@ -12597,6 +12874,10 @@ msgstr "拉取请求"
 msgid "Purple"
 msgstr "紫色"
 
+msgid "Push"
+msgstr "推送"
+
+msgctxt "GitLab trigger"
 msgid "Push"
 msgstr "推送"
 
@@ -12802,6 +13083,9 @@ msgstr "变基并合并"
 msgid "Rebase and merge"
 msgstr "变基并合并"
 
+msgid "Rebase branch"
+msgstr "变基分支"
+
 msgid "Recent Activity"
 msgstr "最近动态"
 
@@ -12843,6 +13127,12 @@ msgstr "重新连接"
 
 msgid "Reconnect {name}"
 msgstr "重新连接 {name}"
+
+msgid "Reconnect GitLab to clone this project"
+msgstr "重新连接 GitLab 以克隆此项目"
+
+msgid "Reconnect GitLab to restore access and webhook delivery."
+msgstr "请重新连接 GitLab 以恢复访问权限和 Webhook 投递。"
 
 msgid "Reconnect Google"
 msgstr "重新连接Google"
@@ -12892,6 +13182,9 @@ msgstr "刷新"
 msgid "Refresh GitHub issues"
 msgstr "刷新GitHub议题"
 
+msgid "Refresh issues"
+msgstr "刷新议题"
+
 msgid "Refresh Linear issues"
 msgstr "刷新Linear议题"
 
@@ -12903,6 +13196,9 @@ msgstr "刷新拉取请求"
 
 msgid "Refresh repositories"
 msgstr "刷新仓库"
+
+msgid "Refresh webhooks"
+msgstr "刷新 Webhook"
 
 msgid "Refreshes when Claude Code next runs."
 msgstr "下次运行 Claude Code 时刷新。"
@@ -13241,8 +13537,17 @@ msgstr "仓库：{label}"
 msgid "Repository"
 msgstr "仓库"
 
+msgid "Repository issues"
+msgstr "仓库议题"
+
+msgid "Repository provider"
+msgstr "仓库提供商"
+
 msgid "Repository reach and desktop release downloads. Installs are dmg and AppImage downloads; updates are the zip the auto-updater pulls, so they count existing users."
 msgstr "仓库影响力与桌面版下载。安装为 dmg 和 AppImage 下载；更新为自动更新器拉取的 zip，代表现有用户。"
+
+msgid "Repository search capabilities are not available yet."
+msgstr "仓库搜索功能尚不可用。"
 
 msgid "Repository URL or path"
 msgstr "仓库URL或路径"
@@ -13345,6 +13650,9 @@ msgstr "全部解决"
 
 msgid "Resolve Conflicts to Merge"
 msgstr "解决冲突后才能合并"
+
+msgid "Resolve conflicts with Agent"
+msgstr "用智能体解决冲突"
 
 msgid "Resolve conversation"
 msgstr "标记为已解决"
@@ -13615,6 +13923,12 @@ msgstr "审查讨论…"
 
 msgid "Reviewed by you"
 msgstr "你已审查"
+
+msgid "Reviewed by you in the current review cycle"
+msgstr "你在当前审查周期中已审查"
+
+msgid "Reviewed filters use GitHub review history and the current GitLab review cycle."
+msgstr "已审查筛选使用 GitHub 审查历史和当前 GitLab 审查周期。"
 
 msgid "Reviewers"
 msgstr "审查者"
@@ -14034,6 +14348,18 @@ msgstr "搜索GitHub议题"
 msgid "Search GitHub issues…"
 msgstr "搜索GitHub议题…"
 
+msgid "Search GitLab issues"
+msgstr "搜索 GitLab 议题"
+
+msgid "Search GitLab issues…"
+msgstr "搜索 GitLab 议题…"
+
+msgid "Search GitLab projects..."
+msgstr "搜索 GitLab 项目..."
+
+msgid "Search GitLab repositories..."
+msgstr "搜索 GitLab 仓库..."
+
 msgid "Search history"
 msgstr "搜索历史"
 
@@ -14090,6 +14416,12 @@ msgstr "搜索拉取请求…"
 
 msgid "Search repositories..."
 msgstr "搜索仓库..."
+
+msgid "Search repository issues"
+msgstr "搜索仓库议题"
+
+msgid "Search repository issues…"
+msgstr "搜索仓库议题…"
 
 msgid "Search settings..."
 msgstr "搜索设置..."
@@ -14208,17 +14540,26 @@ msgstr "看看你最近30天在公开排行榜上的位置。仅包含token数�
 msgid "Select"
 msgstr "选择框"
 
+msgid "Select a host to browse repositories."
+msgstr "选择主机以浏览仓库。"
+
 msgid "Select a project"
 msgstr "请选择项目"
 
 msgid "Select a project first"
 msgstr "请先选择项目"
 
+msgid "Select a project to create an environment for it."
+msgstr "选择一个项目以为其创建环境。"
+
 msgid "Select a project to see GitHub issues."
 msgstr "选择项目以查看GitHub议题。"
 
 msgid "Select a project to see pull requests."
 msgstr "选择一个项目来查看拉取请求。"
+
+msgid "Select a project to see repository issues."
+msgstr "选择项目以查看仓库议题。"
 
 msgid "Select a pull request to preview it here."
 msgstr "选择一个拉取请求，在这里预览。"
@@ -14309,6 +14650,9 @@ msgstr "选择项目位置"
 
 msgid "Select project worktree location"
 msgstr "选择项目worktree位置"
+
+msgid "Select projects"
+msgstr "选择项目"
 
 msgid "Select range..."
 msgstr "选择范围..."
@@ -14790,6 +15134,9 @@ msgstr "应用更新可安装时显示在侧边栏的胶囊提示"
 
 msgid "Sign in"
 msgstr "登录"
+
+msgid "Sign in as an organization admin or owner to manage this connection."
+msgstr "请以组织管理员或所有者身份登录，以管理此连接。"
 
 msgid "Sign in as Local Admin (dev)"
 msgstr "以本地管理员身份登录（开发）"
@@ -15984,6 +16331,9 @@ msgstr "团队成员"
 msgid "Team not found in this organization"
 msgstr "在此组织中未找到该团队"
 
+msgid "Team review requests are unavailable for selected GitLab projects."
+msgstr "所选 GitLab 项目不支持团队审查请求。"
+
 msgid "Team settings"
 msgstr "团队设置"
 
@@ -16134,6 +16484,9 @@ msgstr "无法解析该端点。"
 msgid "That endpoint is not allowed."
 msgstr "该端点不被允许。"
 
+msgid "That filter is not supported for this event."
+msgstr "此事件不支持该筛选条件。"
+
 msgid "That handle is taken."
 msgstr "该用户名已被占用。"
 
@@ -16148,6 +16501,9 @@ msgstr "该机器已不可用"
 
 msgid "That name isn't allowed."
 msgstr "该名称不被允许。"
+
+msgid "That URL is not on the connected GitLab host"
+msgstr "该 URL 不在已连接的 GitLab 主机上"
 
 msgid "The 2026 bet"
 msgstr "2026年的赌注"
@@ -16260,12 +16616,30 @@ msgstr "完整的工作区。并行运行智能体，让每个智能体独占自
 msgid "The future home for reusable Superset agent configs, prompts, and setup guides."
 msgstr "未来用于存放可复用的 Superset 智能体配置、提示词与安装指南。"
 
+msgid "The GitLab authorization response is incomplete. Please try again."
+msgstr "GitLab 授权响应不完整。请重试。"
+
+msgid "The GitLab authorization session is invalid or expired. Please try again."
+msgstr "GitLab 授权会话无效或已过期。请重试。"
+
+msgid "The GitLab host is not allowed. OAuth must use the server's registered GitLab host; tokens require an approved HTTPS host."
+msgstr "此 GitLab 主机未获准使用。OAuth 必须使用服务器已注册的 GitLab 主机；令牌需要使用获准的 HTTPS 主机。"
+
+msgid "The GitLab project or group was not found or is not accessible. Enter its full path, including any subgroups."
+msgstr "未找到 GitLab 项目或群组，或无权访问。请输入完整路径，包括所有子群组。"
+
+msgid "The GitLab token was rejected. Check its expiry and api and read_repository scopes, then reconnect."
+msgstr "GitLab 令牌被拒绝。请检查有效期及 api 和 read_repository 作用域，然后重新连接。"
+
 #. placeholder {0}: info.version
 msgid "The host came back on {0}, not {targetVersion}."
 msgstr "主机以 {0} 而非 {targetVersion} 恢复。"
 
 msgid "The host did not come back within fifteen minutes."
 msgstr "主机未在十五分钟内恢复。"
+
+msgid "The host did not confirm a terminal session"
+msgstr "主机未确认终端会话"
 
 msgid "The host hasn't answered."
 msgstr "主机未响应。"
@@ -16397,6 +16771,9 @@ msgstr "自动驾驶的软件工厂"
 
 msgid "The server could not be found"
 msgstr "找不到服务器"
+
+msgid "The server's GitLab OAuth host is invalid. Contact your administrator or use a token."
+msgstr "服务器的 GitLab OAuth 主机无效。请联系管理员或使用令牌。"
 
 msgid "The sign-in link was incomplete. Please try again."
 msgstr "登录链接不完整。请重试。"
@@ -16594,6 +16971,12 @@ msgstr "这个文件为空或已被删除。"
 msgid "This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again."
 msgstr "这个GitHub安装已连接到另一个Superset组织。请先在那里断开连接，或卸载Superset GitHub App，然后重试。"
 
+msgid "This GitLab check is no longer available."
+msgstr "此 GitLab 检查已不可用。"
+
+msgid "This GitLab project or group is already connected to another Superset organization. Disconnect it there before reconnecting."
+msgstr "此 GitLab 项目或群组已连接到另一个 Superset 组织。请先在该组织中断开连接，再重新连接。"
+
 msgid "This host"
 msgstr "此主机"
 
@@ -16647,6 +17030,9 @@ msgstr "本月"
 
 msgid "This only changes the display name, not the branch."
 msgstr "这只会更改显示名称，不会更改分支。"
+
+msgid "This operation is not available for this GitLab merge request"
+msgstr "此操作对此 GitLab 合并请求不可用"
 
 msgid "this organization"
 msgstr "此组织"
@@ -17373,6 +17759,9 @@ msgstr "取消解决"
 msgid "Unresolved"
 msgstr "未解决"
 
+msgid "Unresolved conversations"
+msgstr "未解决的讨论"
+
 msgid "Unsaved changes"
 msgstr "未保存的更改"
 
@@ -17462,6 +17851,9 @@ msgstr "请在这台机器上更新Superset以附加文件"
 msgid "update the branch prefix"
 msgstr "更新分支前缀"
 
+msgid "Update this host to browse GitLab repositories. You can still clone a repository URL or path."
+msgstr "请更新此主机以浏览 GitLab 仓库。你仍可通过仓库 URL 或路径克隆仓库。"
+
 msgid "Updated"
 msgstr "已更新"
 
@@ -17544,6 +17936,12 @@ msgstr "无法获取用量。"
 #. placeholder {0}: search.trim()
 msgid "Use “{0}”"
 msgstr "使用“{0}”"
+
+msgid "Use a personal access token with api and read_repository scopes. Your GitLab account must be allowed to manage webhooks for the selected project or group."
+msgstr "请使用具有 api 和 read_repository 作用域的个人访问令牌。您的 GitLab 账户必须有权管理所选项目或群组的 Webhook。"
+
+msgid "Use a username supported by all selected providers."
+msgstr "请使用所有所选提供商都支持的用户名。"
 
 msgid "Use a workspace-relative path or an absolute folder."
 msgstr "使用相对于工作区的路径或绝对路径文件夹。"
@@ -17635,6 +18033,9 @@ msgstr "未找到用户"
 msgid "user@example.com"
 msgstr "user@example.com"
 
+msgid "Username…"
+msgstr "用户名…"
+
 msgid "Using random branch name (AI generation timed out)"
 msgstr "使用随机分支名（AI生成超时）"
 
@@ -17718,6 +18119,9 @@ msgstr "查看全部"
 msgid "View All"
 msgstr "查看全部"
 
+msgid "View checks"
+msgstr "查看检查"
+
 #. placeholder {0}: comment.authorLogin
 msgid "View comment by {0}"
 msgstr "查看{0}的评论"
@@ -17733,6 +18137,9 @@ msgstr "查看原图"
 
 msgid "View in GitHub"
 msgstr "在GitHub中查看"
+
+msgid "View in GitLab"
+msgstr "在 GitLab 中查看"
 
 msgid "View log"
 msgstr "查看日志"
@@ -18225,6 +18632,9 @@ msgstr "工作区已创建"
 msgid "Workspace created from PR"
 msgstr "已从PR创建工作区"
 
+msgid "Workspace creation result could not be confirmed"
+msgstr "无法确认工作区创建结果"
+
 msgid "Workspace details"
 msgstr "工作区详情"
 
@@ -18404,6 +18814,9 @@ msgstr "你不是该组织的成员。"
 
 msgid "You are not a member of this organization"
 msgstr "你不是此组织的成员"
+
+msgid "You are not authorized to manage this organization's integrations."
+msgstr "您无权管理此组织的集成。"
 
 msgid "You are not authorized to perform this action."
 msgstr "你没有执行此操作的权限。"

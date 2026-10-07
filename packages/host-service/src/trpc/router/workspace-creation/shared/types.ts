@@ -1,5 +1,13 @@
 import type { HostServiceContext } from "../../../../types";
 
+export interface GitCommandRunner {
+	raw(argv: string[]): Promise<string>;
+	assertHealthy?(): void;
+}
+export interface GitEnvironmentCommandRunner extends GitCommandRunner {
+	env(env: Record<string, string>): unknown;
+}
+
 export type GitClient = Awaited<ReturnType<HostServiceContext["git"]>>;
 
 export type TerminalDescriptor = {

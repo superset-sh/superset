@@ -174,6 +174,15 @@ after last use; a workspace untouched for longer than that is gone.
 10-minute life. An app asleep past expiry should recover on the next tick;
 untested.
 
+**GitLab forwarding still needs provider acceptance.** Controlled tests prove
+request validation and credential scoping; they do not prove the provider's
+SNI forwarding, sandbox DNS, forwarded headers or OIDC session claims. Verify
+public broker TLS/ingress, Git clone/push, API/MR calls and Git LFS redirects
+and large bodies on a real sandbox, including resume and credential refresh.
+GitLab and broker use distinct HTTPS hosts on port 443; native custom ports
+remain supported. See [GitLab broker](self-host/GITLAB_PROXY.md) and the
+companion mismatch entry.
+
 ## Workflow
 
 **Getting changes out is unverified.** Push and PR creation from a sandbox

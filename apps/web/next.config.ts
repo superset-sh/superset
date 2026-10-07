@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
+import { trustedGitLabOrigin } from "@superset/trpc/lib/gitlab/ssrf";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 
@@ -15,6 +16,9 @@ if (process.env.NODE_ENV !== "production") {
 const isProduction = process.env.NODE_ENV === "production";
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL
 	? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+	: null;
+const gitlabOAuthOrigin = apiOrigin
+	? trustedGitLabOrigin(process.env.GITLAB_ISSUER || "https://gitlab.com")
 	: null;
 // Each origin as both its http(s) and ws(s) form: an http host source does not
 // admit a WebSocket to the same host. The prod fallbacks keep the header
@@ -61,7 +65,9 @@ const contentSecurityPolicy = [
 		.filter(Boolean)
 		.join(" "),
 	"font-src 'self' data: https://fonts.gstatic.com",
-	"form-action 'self'",
+	["form-action 'self'", apiOrigin, gitlabOAuthOrigin]
+		.filter(Boolean)
+		.join(" "),
 	"frame-ancestors 'none'",
 	`frame-src ${usercontentFrameSource}`,
 	"img-src 'self' data: blob: https:",

@@ -8,15 +8,21 @@
  *
  *   bun run src/runner-check.ts
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	renderContractShell,
 	SANDBOX_PATHS,
 } from "@superset/shared/sandbox-contract";
-import { PACKAGE_ROOT } from "./build";
-import { sha256 } from "./manifest";
+import { ASSET_CACHE, PACKAGE_ROOT } from "./build";
+import { loadAssets, sha256 } from "./manifest";
 
 const IMAGE = process.env.SANDBOX_IMAGE ?? "superset-sandbox:local";
 const NAME = `superset-runner-check-${Date.now().toString(36)}`;
@@ -41,6 +47,18 @@ function docker(args: string[], check = true): string {
 }
 const sh = (cmd: string) => docker(["exec", NAME, "bash", "-lc", cmd], false);
 
+const glab = loadAssets(join(PACKAGE_ROOT, "bundle/assets.json")).glab;
+if (
+	!glab ||
+	glab.version !== "1.109.0" ||
+	glab.suffix !== "" ||
+	glab.mode !== "0755"
+)
+	throw new Error("Produce the pinned glab asset before running this check");
+const glabBytes = readFileSync(join(ASSET_CACHE, glab.sha256));
+if (sha256(glabBytes) !== glab.sha256)
+	throw new Error("Cached glab bytes do not match the manifest");
+
 // A bundle on disk: one rootfs file, two assets (one whose hash lies), three steps.
 const dir = mkdtempSync(join(tmpdir(), "superset-runner-check-"));
 const bundle = join(dir, "bundle");
@@ -53,33 +71,33 @@ Bun.spawnSync([
 	join(bundle, "setup"),
 ]);
 // The contract, with the asset base pointed at a server inside the container.
-writeFileSync(
-	join(bundle, "rootfs/etc/superset/contract.sh"),
-	renderContractShell().replace(
-		/SUPERSET_ASSET_BASE_URL='[^']*'/,
-		"SUPERSET_ASSET_BASE_URL='http://127.0.0.1:8099'",
-	),
+const fixtureContract = renderContractShell().replace(
+	/SUPERSET_ASSET_BASE_URL='[^']*'/,
+	"SUPERSET_ASSET_BASE_URL='http://127.0.0.1:8099'",
 );
+writeFileSync(join(bundle, "rootfs/etc/superset/contract.sh"), fixtureContract);
 const marker = "hello from the rootfs\n";
 mkdirSync(join(bundle, "rootfs/opt/check"), { recursive: true });
 writeFileSync(join(bundle, "rootfs/opt/check/file"), marker);
 writeFileSync(
 	join(bundle, "tools.tsv"),
 	`0644\t${sha256(marker)}\t${b64("rootfs/opt/check/file")}\t${b64("/opt/check/file")}\n` +
-		`0644\t${sha256(renderContractShell())}\t${b64("rootfs/etc/superset/contract.sh")}\t${b64("/etc/superset/contract.sh")}\n`,
+		`0644\t${sha256(fixtureContract)}\t${b64("rootfs/etc/superset/contract.sh")}\t${b64("/etc/superset/contract.sh")}\n`,
 );
 const good = "a good asset\n";
 const goodSha = sha256(good);
 writeFileSync(join(dir, "assets", `${goodSha}.txt`), good);
+writeFileSync(join(dir, "assets", glab.sha256), glabBytes);
+const replacementSha = sha256("EXPECTED_REPLACEMENT_BYTES");
+writeFileSync(join(dir, "assets", replacementSha), "CORRUPT_REPLACEMENT_BYTES");
 const liarSha = sha256("what the manifest claims\n");
 writeFileSync(
 	join(dir, "assets", `${liarSha}.txt`),
 	"what is actually served\n",
 );
-writeFileSync(
-	join(bundle, "assets.tsv"),
-	`0644\t${goodSha}\t.txt\t${b64("/opt/check/good.txt")}\n0644\t${liarSha}\t.txt\t${b64("/opt/check/liar.txt")}\n`,
-);
+const assetRows = `0644\t${goodSha}\t.txt\t${b64("/opt/check/good.txt")}\n0644\t${liarSha}\t.txt\t${b64("/opt/check/liar.txt")}\n`;
+const glabRow = `0755\t${glab.sha256}\t\t${b64("/opt/check/glab")}\n`;
+writeFileSync(join(bundle, "assets.tsv"), assetRows + glabRow);
 writeFileSync(
 	join(bundle, "steps/first.sh"),
 	"#!/bin/bash\necho first ran >> /opt/check/steps.log\n",
@@ -107,6 +125,8 @@ docker([
 	"linux/amd64",
 	"--user",
 	"root",
+	"--network",
+	"none",
 	"-v",
 	`${dir}:/check:ro`,
 	IMAGE,
@@ -115,12 +135,12 @@ docker([
 ]);
 try {
 	sh(
-		"cp -R /check/bundle /bundle && chmod +x /bundle/setup /bundle/steps/*.sh && mkdir -p /opt/check && (cd /check/assets && nohup python3 -m http.server 8099 >/dev/null 2>&1 &) && sleep 1",
+		`cp -R /check/bundle /bundle && chmod +x /bundle/setup /bundle/steps/*.sh && mkdir -p /opt/check /etc/superset && cp /check/bundle/rootfs/etc/superset/contract.sh /etc/superset/contract.sh && printf '%s' '${sha256(fixtureContract)}' > /etc/superset/contract.sh.hash && (cd /check/assets && nohup python3 -m http.server 8099 >/dev/null 2>&1 &) && sleep 1`,
 	);
 	const steps = SANDBOX_PATHS.steps;
 
 	// apply-rootfs: installs, then skips.
-	// The image already carries this contract.sh with a matching sidecar.
+	// The fixture starts with its loopback contract and matching sidecar.
 	expect(
 		"apply-rootfs installs the file",
 		/installed=1 skipped=1/.test(sh("/bundle/setup apply-rootfs")) &&
@@ -147,6 +167,36 @@ try {
 		!/liar/.test(sh("ls /opt/check")) && !/exit=0/.test(sync1),
 		sync1.trim().split("\n").pop(),
 	);
+	expect(
+		"sync-assets installs the verified executable glab 1.109.0",
+		/^glab 1\.109\.0\b/.test(sh("/opt/check/glab version")) &&
+			sh("stat -c '%a' /opt/check/glab").trim() === "755" &&
+			sh("sha256sum /opt/check/glab").startsWith(glab.sha256),
+	);
+	expect(
+		"sync-assets skips the installed glab executable",
+		!/fetched .*glab/.test(sh("/bundle/setup sync-assets")) &&
+			sh("cat /opt/check/glab.hash").trim() === glab.sha256,
+	);
+	sh("rm /opt/check/glab");
+	expect(
+		"sync-assets reinstalls glab when its binary is missing",
+		/fetched .*glab/.test(sh("/bundle/setup sync-assets")) &&
+			/^glab 1\.109\.0\b/.test(sh("/opt/check/glab version")),
+	);
+	const replacementRow = `0755\t${replacementSha}\t\t${b64("/opt/check/glab")}\n`;
+	sh(`printf '%s' '${b64(replacementRow)}' | base64 -d > /bundle/assets.tsv`);
+	const rejectedUpdate = sh("/bundle/setup sync-assets; echo exit=$?");
+	expect(
+		"a corrupt glab update preserves the existing executable and sidecar",
+		!/exit=0/.test(rejectedUpdate) &&
+			sh("sha256sum /opt/check/glab").startsWith(glab.sha256) &&
+			sh("cat /opt/check/glab.hash").trim() === glab.sha256 &&
+			/^glab 1\.109\.0\b/.test(sh("/opt/check/glab version")),
+	);
+	sh(
+		`printf '%s' '${b64(assetRows + glabRow)}' | base64 -d > /bundle/assets.tsv`,
+	);
 	const sync2 = sh(
 		"/bundle/setup sync-assets 2>&1 | grep -c 'fetched' || true",
 	);
@@ -160,7 +210,7 @@ try {
 	// stays. Sidecars are what make a file "staged": a bare file is left alone.
 	const media = SANDBOX_PATHS.media;
 	sh(
-		`printf stale > ${media}/stale.bin && printf ${sha256("stale")} > ${media}/stale.bin.hash && printf keep > ${media}/keep.bin && printf ${goodSha} > ${media}/keep.bin.hash && printf loose > ${media}/loose.bin`,
+		`mkdir -p ${media} && printf stale > ${media}/stale.bin && printf ${sha256("stale")} > ${media}/stale.bin.hash && printf keep > ${media}/keep.bin && printf ${goodSha} > ${media}/keep.bin.hash && printf loose > ${media}/loose.bin`,
 	);
 	const sync3 = sh("/bundle/setup sync-assets 2>&1 | grep pruned || true");
 	expect(

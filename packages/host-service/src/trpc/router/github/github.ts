@@ -1,6 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
+import { gitLabActionContext, gitLabContextInput } from "../git/gitlab-actions";
+import { invalidateGitLabReads } from "../pull-requests/procedures/gitlab-project";
+import { syncGitLabPullRequestAfterWrite } from "../pull-requests/shared/sync-gitlab-after-write";
+import { gitLabPullRequestDetail } from "./gitlab-detail";
 
 export const githubRouter = router({
 	getPRStatus: protectedProcedure
@@ -146,9 +150,21 @@ export const githubRouter = router({
 				owner: z.string(),
 				repo: z.string(),
 				pullNumber: z.number(),
+				...gitLabContextInput,
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action) {
+				try {
+					return await gitLabPullRequestDetail(ctx, action, input.pullNumber);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused the merge request detail query.",
+					);
+				}
+			}
 			const octokit = await ctx.github();
 			const data = await octokit.graphql<PullRequestDetailQuery>(
 				PULL_REQUEST_DETAIL_QUERY,
@@ -334,9 +350,33 @@ export const githubRouter = router({
 				repo: z.string(),
 				pullNumber: z.number(),
 				mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
+				squash: z.boolean().optional(),
+				...gitLabContextInput,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action) {
+				try {
+					const result = await action.client.mergePullRequest(
+						action.repo,
+						input.pullNumber,
+						input.mergeMethod,
+						{ squash: input.squash },
+					);
+					invalidateGitLabReads(action.repo, input.pullNumber);
+					await syncGitLabPullRequestAfterWrite(ctx, {
+						repo: action.repo,
+						prNumber: input.pullNumber,
+						expectedUrl: input.expectedUrl,
+						action: "merge",
+						merged: result.merged,
+					});
+					return result;
+				} catch (error) {
+					throw actionRejectionError(error, "GitLab refused the merge.");
+				}
+			}
 			const octokit = await ctx.github();
 			try {
 				const { data } = await octokit.pulls.merge({
@@ -357,9 +397,32 @@ export const githubRouter = router({
 				owner: z.string(),
 				repo: z.string(),
 				pullNumber: z.number(),
+				...gitLabContextInput,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action) {
+				try {
+					await action.client.markPullRequestReady(
+						action.repo,
+						input.pullNumber,
+					);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused to mark the merge request ready.",
+					);
+				}
+				invalidateGitLabReads(action.repo, input.pullNumber);
+				await syncGitLabPullRequestAfterWrite(ctx, {
+					repo: action.repo,
+					prNumber: input.pullNumber,
+					expectedUrl: input.expectedUrl,
+					action: "ready",
+				});
+				return;
+			}
 			const octokit = await ctx.github();
 			try {
 				const id = await pullRequestNodeId(octokit, input);
@@ -385,9 +448,26 @@ export const githubRouter = router({
 				owner: z.string(),
 				repo: z.string(),
 				pullNumber: z.number(),
+				...gitLabContextInput,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action) {
+				try {
+					await action.client.updatePullRequestBranch(
+						action.repo,
+						input.pullNumber,
+					);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused to update the branch.",
+					);
+				}
+				invalidateGitLabReads(action.repo, input.pullNumber);
+				return;
+			}
 			const octokit = await ctx.github();
 			try {
 				await octokit.pulls.updateBranch({
@@ -409,9 +489,29 @@ export const githubRouter = router({
 				owner: z.string(),
 				repo: z.string(),
 				pullNumber: z.number(),
+				...gitLabContextInput,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action) {
+				try {
+					await action.client.reopenPullRequest(action.repo, input.pullNumber);
+				} catch (error) {
+					throw actionRejectionError(
+						error,
+						"GitLab refused to reopen the merge request.",
+					);
+				}
+				invalidateGitLabReads(action.repo, input.pullNumber);
+				await syncGitLabPullRequestAfterWrite(ctx, {
+					repo: action.repo,
+					prNumber: input.pullNumber,
+					expectedUrl: input.expectedUrl,
+					action: "reopen",
+				});
+				return;
+			}
 			const octokit = await ctx.github();
 			try {
 				await octokit.pulls.update({
@@ -434,9 +534,17 @@ export const githubRouter = router({
 				owner: z.string(),
 				repo: z.string(),
 				pullNumber: z.number(),
+				...gitLabContextInput,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const action = await gitLabActionContext(ctx, input);
+			if (action)
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"GitLab merge requests do not support the GitHub merge queue",
+				});
 			const octokit = await ctx.github();
 			try {
 				const id = await pullRequestNodeId(octokit, input);

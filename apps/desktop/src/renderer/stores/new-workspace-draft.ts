@@ -1,9 +1,21 @@
 import { create } from "zustand";
 
+export interface GitLabIssueReference {
+	projectId: string;
+	hostId: string;
+	hostUrl: string;
+	host: string;
+	owner: string;
+	repo: string;
+	issueNumber: number;
+	expectedIssueUrl: string;
+}
+
 export type LinkedIssue = {
 	slug: string;
 	title: string;
-	source?: "github" | "internal" | "linear";
+	source?: "github" | "gitlab" | "internal" | "linear";
+	gitlab?: GitLabIssueReference;
 	url?: string;
 	taskId?: string;
 	/** Provider branch name (e.g. Linear's), synced into `tasks.branch`. */

@@ -1,8 +1,8 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
-import { useMutation } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { errorCopy } from "@/lib/errors";
@@ -11,6 +11,25 @@ import {
 	hostServiceUrl,
 } from "@/lib/host-service/client";
 import type { PlainActionId } from "../../utils/pullRequestState";
+
+import {
+	type GitlabActionContext,
+	type GitlabActionTarget,
+	gitlabActionTarget,
+	gitlabTargetError,
+	gitlabUnavailableError,
+	sameGitlabActionTarget,
+} from "../gitlabActionTarget";
+
+interface NativeAction {
+	action: PlainActionId;
+	target: GitlabActionTarget;
+}
+const NATIVE_CAPABILITY = {
+	"mark-ready": "markReady",
+	"update-branch": "updateBranch",
+	reopen: "reopen",
+} as const;
 
 const REFUSED_TITLE: Record<PlainActionId, MessageDescriptor> = {
 	"mark-ready": msg({
@@ -39,22 +58,72 @@ export function usePullRequestActions({
 	repo,
 	pullNumber,
 	onDone,
+	gitlab,
 }: {
 	workspaceId: string | null;
 	owner: string | null;
 	repo: string | null;
 	pullNumber: number | null;
 	onDone: () => void;
+	gitlab?: GitlabActionContext;
 }) {
-	const { host } = useWorkspaceHost(workspaceId);
+	const { host, workspace } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 
+	const target = gitlabActionTarget({
+		gitlab,
+		workspaceId,
+		owner,
+		repo,
+		pullNumber,
+		workspace,
+		hostUrl,
+		organizationId: host?.organizationId ?? null,
+	});
+	const latestTarget = useRef(target);
+	latestTarget.current = target;
+	const nativeOwnerLive = useRef(true);
+	useEffect(() => {
+		nativeOwnerLive.current = true;
+		latestTarget.current = target;
+		return () => {
+			nativeOwnerLive.current = false;
+			latestTarget.current = null;
+		};
+	}, [target]);
+
+	const queryClient = useQueryClient();
 	const mutation = useMutation({
 		networkMode: "always" as const,
-		mutationFn: async (action: PlainActionId) => {
+		mutationFn: async (action: PlainActionId | NativeAction) => {
+			if (typeof action !== "string") {
+				if (!sameGitlabActionTarget(action.target, latestTarget.current))
+					throw gitlabTargetError();
+				if (
+					action.action === "dequeue" ||
+					!latestTarget.current?.detail.capabilities[
+						NATIVE_CAPABILITY[action.action]
+					]
+				)
+					throw gitlabUnavailableError();
+				const github = getHostServiceClientByUrl(action.target.hostUrl).github;
+				switch (action.action) {
+					case "mark-ready":
+						await github.markPullRequestReady.mutate(action.target.request);
+						break;
+					case "update-branch":
+						await github.updatePullRequestBranch.mutate(action.target.request);
+						break;
+					case "reopen":
+						await github.reopenPullRequest.mutate(action.target.request);
+						break;
+				}
+				return;
+			}
+			if (gitlab) throw gitlabTargetError();
 			if (!hostUrl || !owner || !repo || pullNumber === null) {
 				throw new Error("Host is not resolved");
 			}
@@ -71,9 +140,46 @@ export function usePullRequestActions({
 					return github.dequeuePullRequest.mutate(input);
 			}
 		},
-		onSuccess: onDone,
+		onSuccess: (_result, action) => {
+			if (typeof action !== "string") {
+				const request = action.target.request;
+				void queryClient.invalidateQueries({
+					queryKey: [
+						"workspace-pull-request",
+						request.workspaceId,
+						request.pullNumber,
+						"gitlab",
+						request.projectId,
+						action.target.hostUrl,
+						request.host,
+						request.owner,
+						request.repo,
+						request.expectedUrl,
+					],
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["workspace-pull-request-history", request.workspaceId],
+				});
+			}
+			if (
+				typeof action === "string" ||
+				sameGitlabActionTarget(action.target, latestTarget.current)
+			)
+				onDone();
+		},
 		onError: (error: Error, action) => {
-			Alert.alert(i18n._(REFUSED_TITLE[action]), errorCopy(error));
+			if (
+				typeof action !== "string" &&
+				(!nativeOwnerLive.current ||
+					!sameGitlabActionTarget(action.target, latestTarget.current))
+			)
+				return;
+			Alert.alert(
+				i18n._(
+					REFUSED_TITLE[typeof action === "string" ? action : action.action],
+				),
+				errorCopy(error),
+			);
 		},
 	});
 
@@ -84,6 +190,26 @@ export function usePullRequestActions({
 	return {
 		run: (action: PlainActionId) => {
 			if (inFlight.current) return;
+			if (gitlab) {
+				if (!nativeOwnerLive.current) return;
+				if (!target || !sameGitlabActionTarget(target, latestTarget.current)) {
+					Alert.alert(
+						i18n._(REFUSED_TITLE[action]),
+						errorCopy(gitlabTargetError()),
+					);
+					return;
+				}
+				inFlight.current = true;
+				mutation.mutate(
+					{ action, target },
+					{
+						onSettled: () => {
+							inFlight.current = false;
+						},
+					},
+				);
+				return;
+			}
 			inFlight.current = true;
 			mutation.mutate(action, {
 				onSettled: () => {
@@ -91,6 +217,10 @@ export function usePullRequestActions({
 				},
 			});
 		},
-		busyAction: mutation.isPending ? mutation.variables : null,
+		busyAction: mutation.isPending
+			? typeof mutation.variables === "string"
+				? mutation.variables
+				: (mutation.variables?.action ?? null)
+			: null,
 	};
 }

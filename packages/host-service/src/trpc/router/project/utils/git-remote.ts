@@ -1,13 +1,71 @@
+import { type ParsedRemote, parseGitRemote } from "@superset/shared/git-remote";
 import {
 	type ParsedGitHubRemote,
 	parseGitHubRemote,
 } from "@superset/shared/github-remote";
+import {
+	type RepositoryIdentity,
+	repositoryIdentityKey,
+} from "@superset/shared/repo-identity";
 import type { SimpleGit } from "simple-git";
 
 export type { ParsedGitHubRemote };
 
+export async function getAllRepoRemotes(
+	git: SimpleGit,
+	canonicalWebUrl?: string | null,
+): Promise<Array<[string, ParsedRemote]>> {
+	const parsed: Array<[string, ParsedRemote]> = [];
+	const canonical = canonicalWebUrl ? parseGitRemote(canonicalWebUrl) : null;
+	for (const [name, urls] of await getAllRemoteUrls(git)) {
+		for (const url of urls) {
+			const remote = parseGitRemote(url);
+			if (!remote) continue;
+			if (
+				canonical &&
+				remote.provider !== "github" &&
+				/^(?:ssh:\/\/|[^/:]+@[^:]+:)/i.test(url) &&
+				remote.host === new URL(canonical.url).hostname
+			) {
+				remote.host = canonical.host;
+				remote.url = `https://${canonical.host}/${remote.owner}/${remote.name}`;
+			}
+			parsed.push([name, remote]);
+		}
+	}
+	return parsed;
+}
+
+export async function getRepoRemotes(
+	git: SimpleGit,
+	expectedUrl?: string | null,
+): Promise<Map<string, ParsedRemote>> {
+	const expected = expectedUrl ? parseGitRemote(expectedUrl) : null;
+	const parsed = new Map<string, ParsedRemote>();
+	for (const [name, remote] of await getAllRepoRemotes(git, expectedUrl)) {
+		if (
+			!parsed.has(name) ||
+			(expected &&
+				repositoryIdentityKey(remote) === repositoryIdentityKey(expected))
+		)
+			parsed.set(name, remote);
+	}
+	return parsed;
+}
+
+export function findMatchingRepoRemote(
+	remotes: Iterable<[string, ParsedRemote]>,
+	expected: RepositoryIdentity,
+): string | null {
+	const key = repositoryIdentityKey(expected);
+	for (const [name, remote] of remotes) {
+		if (repositoryIdentityKey(remote) === key) return name;
+	}
+	return null;
+}
+
 /**
- * Map of remote name → URL, read from git config.
+ * Map of remote name → fetch URLs, read from git config.
  *
  * Avoids `git remote -v`: that output appends partial-clone markers like
  * `[blob:none]` after `(fetch)` when `remote.<name>.promisor` is set, and is
@@ -15,8 +73,8 @@ export type { ParsedGitHubRemote };
  */
 export async function getAllRemoteUrls(
 	git: SimpleGit,
-): Promise<Map<string, string>> {
-	const remotes = new Map<string, string>();
+): Promise<Map<string, string[]>> {
+	const remotes = new Map<string, string[]>();
 	const output = await git
 		.raw(["config", "--get-regexp", "^remote\\..*\\.url$"])
 		.catch(() => "");
@@ -30,7 +88,9 @@ export async function getAllRemoteUrls(
 		// `foo.url`, not `foo`.
 		const remoteName = key.match(/^remote\.(.+)\.url$/)?.[1];
 		if (remoteName && url) {
-			remotes.set(remoteName, url);
+			const urls = remotes.get(remoteName) ?? [];
+			urls.push(url);
+			remotes.set(remoteName, urls);
 		}
 	}
 
@@ -47,10 +107,10 @@ export async function getGitHubRemotes(
 	const rawRemotes = await getAllRemoteUrls(git);
 	const parsed = new Map<string, ParsedGitHubRemote>();
 
-	for (const [name, url] of rawRemotes) {
-		const result = parseGitHubRemote(url);
-		if (result) {
-			parsed.set(name, result);
+	for (const [name, urls] of rawRemotes) {
+		for (const url of urls) {
+			const result = parseGitHubRemote(url);
+			if (result && !parsed.has(name)) parsed.set(name, result);
 		}
 	}
 

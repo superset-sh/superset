@@ -15,11 +15,13 @@ export function ActionButton({
 	action,
 	label,
 	busy,
+	disabled = false,
 	onPress,
 }: {
 	action: ActionId;
 	label: string;
 	busy?: boolean;
+	disabled?: boolean;
 	onPress: () => void;
 }) {
 	const emphasis = actionEmphasis(action);
@@ -40,7 +42,10 @@ export function ActionButton({
 		<Pressable
 			accessibilityLabel={label}
 			accessibilityRole="button"
-			accessibilityState={{ busy: busy === true, disabled: busy === true }}
+			accessibilityState={{
+				busy: busy === true,
+				disabled: disabled || busy === true,
+			}}
 			// 34pt to match the design, with the touch target padded back out to
 			// the 44pt minimum so the compact look doesn't cost a tap.
 			className={cn(
@@ -48,7 +53,7 @@ export function ActionButton({
 				surface,
 			)}
 			hitSlop={{ bottom: 5, left: 0, right: 0, top: 5 }}
-			disabled={busy}
+			disabled={disabled || busy}
 			onPress={onPress}
 		>
 			{busy ? (

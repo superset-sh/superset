@@ -1,4 +1,5 @@
 import { auth } from "@superset/auth/server";
+import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { NextResponse } from "next/server";
 
 import { env } from "@/env";
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
 		return new Response("Missing provider or state", { status: 400 });
 	}
 
-	if (provider !== "google" && provider !== "github") {
+	if (!(AUTH_PROVIDERS as readonly string[]).includes(provider)) {
 		return new Response("Invalid provider", { status: 400 });
 	}
 

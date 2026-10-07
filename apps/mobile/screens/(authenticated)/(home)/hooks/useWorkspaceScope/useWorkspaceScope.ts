@@ -1,6 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlag } from "posthog-react-native";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
+import { useFeatureFlag } from "@/lib/posthog";
 import {
 	useWorkspacesFilterStore,
 	type WorkspaceScope,

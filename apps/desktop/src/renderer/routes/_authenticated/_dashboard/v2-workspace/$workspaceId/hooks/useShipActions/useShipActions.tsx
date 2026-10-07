@@ -3,6 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getPullRequestTarget } from "renderer/lib/github/getPullRequestTarget";
 import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
@@ -30,9 +31,45 @@ export function useShipActions({
 }: UseShipActionsOptions) {
 	const { t } = useLingui();
 	const navigate = useNavigate();
-	const { workspace } = useWorkspace();
+	const { workspace, hostUrl } = useWorkspace();
 	const status = useWorkspaceGitStatus();
 	const canCreatePr = workspace.type !== "session";
+
+	const projectQuery = workspaceTrpc.project.get.useQuery(
+		{ projectId: workspace.projectId ?? "" },
+		{ enabled: enabled && canCreatePr && !!workspace.projectId },
+	);
+	const project = projectQuery.data;
+	const isGitlab = project?.repoProvider === "gitlab";
+	const targetKey = JSON.stringify([
+		hostUrl,
+		workspace.id,
+		workspace.type,
+		workspaceId,
+		workspace.projectId,
+		project?.id,
+		project?.repoProvider,
+		project?.repoUrl,
+		project?.repoOwner,
+		project?.repoName,
+	]);
+	const currentTargetKey = useRef(targetKey);
+	currentTargetKey.current = targetKey;
+	const currentTarget = () =>
+		!isGitlab ||
+		(workspace.id === workspaceId &&
+			project?.id === workspace.projectId &&
+			canCreatePr &&
+			currentTargetKey.current === targetKey);
+	const createLabel = isGitlab
+		? t({ message: "Create merge request" })
+		: t({ message: "Create PR" });
+	const titlePlaceholder = isGitlab
+		? t({ message: "Merge request title" })
+		: t({ message: "Pull request title" });
+	const noCommitsLabel = isGitlab
+		? t({ message: "No commits to open a merge request from" })
+		: t({ message: "No commits to open a pull request from" });
 
 	const [commitMessage, setCommitMessage] = useState("");
 	const [prTitle, setPrTitle] = useState("");
@@ -160,7 +197,7 @@ export function useShipActions({
 
 	const createPr = async () => {
 		const title = prTitle.trim();
-		if (!title || !hasCommitsAhead) return;
+		if (!title || !hasCommitsAhead || !currentTarget()) return;
 		const toastId = toast.loading(t({ message: "Pushing..." }));
 		// Always push first rather than trusting `needsPush`: the sync
 		// snapshot can be up to 10s stale right after a commit, and skipping
@@ -177,10 +214,14 @@ export function useShipActions({
 			);
 			return;
 		}
+		if (!currentTarget()) {
+			toast.dismiss(toastId);
+			return;
+		}
 		toast.loading(
-			t({
-				message: "Creating PR...",
-			}),
+			isGitlab
+				? t({ message: "Creating merge request..." })
+				: t({ message: "Creating PR..." }),
 			{ id: toastId },
 		);
 		try {
@@ -190,10 +231,33 @@ export function useShipActions({
 				body: prBody.trim() || undefined,
 				draft: prDraft,
 			});
+			const createdRef = pullRequestRefFromUrl(created.url);
+			if (
+				isGitlab &&
+				(!createdRef ||
+					createdRef.provider !== "gitlab" ||
+					!project ||
+					getPullRequestTarget(created.url, [
+						{
+							...project,
+							projectKey: project.id,
+							repoHost: !/^https?:\/\//i.test(project.repoUrl ?? "")
+								? createdRef.host
+								: undefined,
+						},
+					])?.projectId !== workspace.projectId)
+			) {
+				throw Error(
+					t({
+						message:
+							"This operation is not available for this GitLab merge request",
+					}),
+				);
+			}
 			toast.success(
-				t({
-					message: `PR #${created.number} created`,
-				}),
+				isGitlab
+					? t({ message: "Merge request opened" })
+					: t({ message: `PR #${created.number} created` }),
 				{
 					id: toastId,
 					description: (
@@ -203,9 +267,9 @@ export function useShipActions({
 							rel="noopener noreferrer"
 							className="underline underline-offset-2 transition-colors hover:text-foreground"
 						>
-							{t({
-								message: "PR URL",
-							})}
+							{isGitlab
+								? t({ message: "Open in browser" })
+								: t({ message: "PR URL" })}
 						</a>
 					),
 					action: {
@@ -216,7 +280,7 @@ export function useShipActions({
 						// workspaces by the time they click. A workspace-scoped intent
 						// plus navigation lands the pane in the right store either way.
 						onClick: () => {
-							const ref = pullRequestRefFromUrl(created.url);
+							const ref = createdRef;
 							if (!ref) {
 								window.open(created.url, "_blank");
 								return;
@@ -230,6 +294,7 @@ export function useShipActions({
 					},
 				},
 			);
+			if (!currentTarget()) return;
 			onPrCreated();
 			setPrTitle("");
 			prTitleTouchedRef.current = false;
@@ -237,10 +302,14 @@ export function useShipActions({
 			setPrDraft(false);
 			onRefresh();
 		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 			toast.error(
-				t({
-					message: `Create PR failed: ${error instanceof Error ? error.message : String(error)}`,
-				}),
+				isGitlab
+					? t({ message: `Create merge request failed: ${errorMessage}` })
+					: t({
+							message: `Create PR failed: ${error instanceof Error ? error.message : String(error)}`,
+						}),
 				{ id: toastId },
 			);
 		}
@@ -248,6 +317,10 @@ export function useShipActions({
 
 	return {
 		canCreatePr,
+		isGitlab,
+		createLabel,
+		titlePlaceholder,
+		noCommitsLabel,
 		hasCommitsAhead,
 		commitsLoaded: commitsQuery.isSuccess,
 		commitMessage,

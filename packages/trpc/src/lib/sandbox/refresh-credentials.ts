@@ -39,5 +39,11 @@ export async function refreshSandboxCredentials(args: {
 	return applySandboxPolicy({
 		providerSandboxId: row.providerSandboxId,
 		networkPolicy: claim.networkPolicy,
+		...(claim.requireFreshPolicy
+			? {
+					requireFreshPolicy: true as const,
+					recheckPolicy: claim.recheckPolicy,
+				}
+			: {}),
 	});
 }

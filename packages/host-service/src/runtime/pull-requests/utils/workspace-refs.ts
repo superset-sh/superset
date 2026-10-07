@@ -2,6 +2,7 @@
 // own module (not pull-requests.ts) so the worker task can import it without
 // pulling the runtime's DB/Octokit graph into the worker bundle.
 
+import { type GitProvider, parseGitRemote } from "@superset/shared/git-remote";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { SimpleGit } from "simple-git";
 
@@ -14,6 +15,8 @@ const UNBORN_HEAD_ERROR_PATTERNS = [
 ];
 
 export interface WorkspaceUpstream {
+	provider?: GitProvider;
+	host?: string;
 	owner: string;
 	name: string;
 	branch: string;
@@ -89,11 +92,15 @@ async function resolveWorkspaceUpstream(
 		const slash = pushRef.indexOf("/");
 		if (slash > 0) {
 			const url = await resolveRemoteValueToUrl(git, pushRef.slice(0, slash));
-			const parsed = url ? parseGitHubRemote(url) : null;
+			const parsed = url
+				? (parseGitHubRemote(url) ?? parseGitRemote(url))
+				: null;
 			if (parsed) {
 				return {
 					owner: parsed.owner,
 					name: parsed.name,
+					provider: parsed.provider,
+					host: "host" in parsed ? parsed.host : new URL(parsed.url).host,
 					branch: pushRef.slice(slash + 1),
 				};
 			}
@@ -114,13 +121,19 @@ async function resolveWorkspaceUpstream(
 	if (!remoteValue) return null;
 
 	const url = await resolveRemoteValueToUrl(git, remoteValue);
-	const parsed = url ? parseGitHubRemote(url) : null;
+	const parsed = url ? (parseGitHubRemote(url) ?? parseGitRemote(url)) : null;
 	if (!parsed) return null;
 
 	// `gh pr checkout` renames the local branch on collision (`main` →
 	// `quueli-main`) but the PR's headRefName stays `main`, so we key on the
 	// tracked remote branch, not the local name.
-	return { owner: parsed.owner, name: parsed.name, branch: trackedBranch };
+	return {
+		owner: parsed.owner,
+		name: parsed.name,
+		branch: trackedBranch,
+		provider: parsed.provider,
+		host: "host" in parsed ? parsed.host : new URL(parsed.url).host,
+	};
 }
 
 async function tryRaw(git: SimpleGit, args: string[]): Promise<string | null> {

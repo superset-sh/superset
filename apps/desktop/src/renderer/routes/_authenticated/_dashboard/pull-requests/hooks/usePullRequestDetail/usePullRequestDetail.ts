@@ -1,8 +1,15 @@
+import { useLingui } from "@lingui/react/macro";
 import type { RouterOutputs } from "@superset/trpc";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import {
+	isSamePullRequest,
+	PullRequestIdentityError,
+	type PullRequestRef,
+	pullRequestRefFromUrl,
+} from "renderer/lib/github/pullRequestRef";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider/ElectronTRPCProvider";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import { V2_WORKSPACES_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces/useAccessibleV2Workspaces";
@@ -19,20 +26,31 @@ interface PullRequestDetailKey {
 	projectId: string | null;
 	hostUrl: string | null;
 	prNumber: number | null;
+	expectedRef?: PullRequestRef;
 }
 
 function pullRequestDetailQueryKey({
 	projectId,
 	hostUrl,
 	prNumber,
+	expectedRef,
 }: PullRequestDetailKey) {
-	return ["pull-request-detail", projectId, hostUrl, prNumber] as const;
+	const key = ["pull-request-detail", projectId, hostUrl, prNumber] as const;
+	return expectedRef?.provider === "gitlab"
+		? ([
+				...key,
+				expectedRef.host,
+				expectedRef.repoFullName,
+				expectedRef.number,
+			] as const)
+		: key;
 }
 
 export function usePullRequestDetail({
 	projectId,
 	hostUrl,
 	prNumber,
+	expectedRef,
 	repoFullName,
 	projectQuery,
 	enabled = true,
@@ -44,6 +62,7 @@ export function usePullRequestDetail({
 	};
 	enabled?: boolean;
 }) {
+	const { t } = useLingui();
 	const organizationId = useActiveOrganizationId();
 	const { projects, isReady } = useHostProjects();
 	const availableProjects = projectQuery
@@ -70,18 +89,31 @@ export function usePullRequestDetail({
 				projectId: target.projectId,
 				hostUrl,
 				prNumber,
+				expectedRef,
 			}),
 			organizationId,
 			target.repoFullName,
 		],
-		queryFn: () => {
+		queryFn: async () => {
 			if (prNumber === null) throw new Error("Invalid pull request number");
-			return fetchPullRequestDetail({
+			const detail = await fetchPullRequestDetail({
 				...target,
+				repoFullName:
+					expectedRef?.provider === "gitlab" ? null : target.repoFullName,
 				hostUrl,
-				organizationId,
+				organizationId:
+					expectedRef?.provider === "gitlab" ? null : organizationId,
 				prNumber,
+				expectedRef,
 			});
+			if (expectedRef?.provider === "gitlab") {
+				const returned = pullRequestRefFromUrl(detail.url);
+				if (!returned || !isSamePullRequest(expectedRef, returned))
+					throw new PullRequestIdentityError(
+						t({ message: "Pull request not found." }),
+					);
+			}
+			return detail;
 		},
 		enabled:
 			enabled &&

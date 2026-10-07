@@ -51,10 +51,12 @@ export function CheckDetailSheet({
 	check,
 	onFixWithAgent,
 	onOpenInGitHub,
+	provider,
 }: {
 	check: PullRequestCheck;
 	onFixWithAgent?: () => void;
 	onOpenInGitHub?: () => void;
+	provider?: "gitlab";
 }) {
 	const { formatDateTime } = useFormat();
 
@@ -129,7 +131,11 @@ export function CheckDetailSheet({
 							onPress={onOpenInGitHub}
 						>
 							<Text className="text-secondary-foreground font-medium text-[15px]">
-								<Trans>View in GitHub</Trans>
+								{provider === "gitlab" ? (
+									<Trans>View in GitLab</Trans>
+								) : (
+									<Trans>View in GitHub</Trans>
+								)}
 							</Text>
 							<Icon
 								as={ArrowUpRight}

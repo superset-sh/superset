@@ -67,6 +67,7 @@ export function findPullRequestRowsByProject(
 		.from(pullRequests)
 		.where(
 			and(
+				eq(pullRequests.repoProvider, "github"),
 				eq(pullRequests.projectId, projectId),
 				eq(pullRequests.prNumber, prNumber),
 			),

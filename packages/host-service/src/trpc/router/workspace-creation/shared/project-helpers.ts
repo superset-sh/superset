@@ -1,8 +1,15 @@
+import { type ParsedRemote, parseGitRemote } from "@superset/shared/git-remote";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../../db/schema";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
+import { detectRepoProvider } from "../../../../runtime/repo-providers/detect-repo-provider";
 import type { HostServiceContext } from "../../../../types";
+import { getHostWorkerPool } from "../../../../workers/host-worker-pool";
+import {
+	gitConfirmNoPlatformRemotesTask,
+	gitResolveRepositoryTask,
+} from "../../../../workers/tasks/git";
 import type { ProjectNotSetupCause } from "../../../error-types";
 import { getGitHubRemotes } from "../../project/utils/git-remote";
 
@@ -22,6 +29,108 @@ export interface ResolvedGithubRepo {
 	name: string;
 	/** Canonical local clone path. */
 	repoPath: string;
+}
+
+export interface ResolvedRepo extends ParsedRemote {
+	repoPath: string;
+	remoteName: string;
+}
+
+export interface ResolveRepoOptions {
+	validateRemote?: (remote: ParsedRemote) => void;
+	allowNoPlatformRemote?: false;
+}
+
+type DecliningResolveRepoOptions = Omit<
+	ResolveRepoOptions,
+	"allowNoPlatformRemote"
+> & {
+	allowNoPlatformRemote: true;
+};
+
+export function resolveRepo(
+	ctx: Pick<HostServiceContext, "db" | "credentials">,
+	projectId: string,
+	options: DecliningResolveRepoOptions,
+): Promise<ResolvedRepo | null>;
+export function resolveRepo(
+	ctx: Pick<HostServiceContext, "db" | "credentials">,
+	projectId: string,
+	options?: ResolveRepoOptions,
+): Promise<ResolvedRepo>;
+export async function resolveRepo(
+	ctx: Pick<HostServiceContext, "db" | "credentials">,
+	projectId: string,
+	options: ResolveRepoOptions | DecliningResolveRepoOptions = {},
+): Promise<ResolvedRepo | null> {
+	const local = ctx.db.query.projects
+		.findFirst({ where: eq(projects.id, projectId) })
+		.sync();
+	if (!local?.repoPath) throw projectNotSetupError(projectId);
+
+	let result: Awaited<ReturnType<typeof gitResolveRepositoryTask.handler>>;
+	try {
+		result = await getHostWorkerPool().run(
+			gitResolveRepositoryTask,
+			{
+				repoPath: local.repoPath,
+				repoUrl: local.repoProvider === "gitlab" ? local.repoUrl : undefined,
+			},
+			{ timeoutMs: 15_000 },
+		);
+	} catch (cause) {
+		throw new TRPCError({ code: "BAD_REQUEST", cause });
+	}
+	const { repoPath } = result;
+	const remotes = new Map<string, ParsedRemote>();
+	const expected = local.repoUrl ? parseGitRemote(local.repoUrl) : null;
+	for (const [name, remote] of result.remotes) {
+		if (
+			!remotes.has(name) ||
+			(expected &&
+				remote.host === expected.host &&
+				remote.owner === expected.owner &&
+				remote.name === expected.name)
+		)
+			remotes.set(name, remote);
+	}
+	const remoteName =
+		(local.remoteName && remotes.has(local.remoteName)
+			? local.remoteName
+			: undefined) ??
+		(remotes.has("origin") ? "origin" : undefined) ??
+		remotes.keys().next().value;
+	const remote = remoteName ? remotes.get(remoteName) : undefined;
+	if (!remote || !remoteName) {
+		if (options.allowNoPlatformRemote) {
+			try {
+				const confirmed = await getHostWorkerPool().run(
+					gitConfirmNoPlatformRemotesTask,
+					{ repoPath },
+					{ timeoutMs: 15_000 },
+				);
+				if (
+					confirmed.repoPath === repoPath &&
+					confirmed.noPlatformRemote === true
+				)
+					return null;
+			} catch (cause) {
+				throw new TRPCError({ code: "BAD_REQUEST", cause });
+			}
+		}
+		throw new TRPCError({ code: "BAD_REQUEST" });
+	}
+	options.validateRemote?.(remote);
+	const provider = await detectRepoProvider(remote, {
+		hint: { provider: local.repoProvider, url: local.repoUrl },
+		getGitLabToken: (host) => ctx.credentials.getToken(host),
+	});
+	return {
+		...remote,
+		provider: provider ?? remote.provider,
+		repoPath,
+		remoteName,
+	};
 }
 
 /**

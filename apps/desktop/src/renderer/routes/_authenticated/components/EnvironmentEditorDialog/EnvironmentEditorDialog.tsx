@@ -35,18 +35,24 @@ import {
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuRefreshCw } from "react-icons/lu";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import {
+	type GitlabProjectChoice,
+	GitlabProjectPicker,
+} from "./components/GitlabProjectPicker";
 
 type EnvironmentScope = "organization" | "personal";
+type RepositoryProvider = "github" | "gitlab";
 
 export interface EnvironmentEditorSeed {
 	id: string;
 	name: string;
 	scope: EnvironmentScope;
 	repositoryIds: string[];
+	gitlabProject?: GitlabProjectChoice | null;
 	hooksRepositoryId: string | null;
 	/** A promoted environment's golden was built for its repositories. */
 	repositoriesFrozen: boolean;
@@ -88,6 +94,36 @@ export function EnvironmentEditorDialog({
 		environment?.name ?? null,
 	);
 	const name = nameDraft ?? preview.data?.name ?? "";
+	const owner = [organizationId, environment?.id, fromWorkspaceId].join("\n");
+	const [providerDraft, setProviderDraft] = useState<{
+		owner: string;
+		provider: RepositoryProvider;
+		gitlabProject: GitlabProjectChoice | null;
+	} | null>(null);
+	const draft = providerDraft?.owner === owner ? providerDraft : null;
+	const seededGitlabProject = environment?.gitlabProject ?? null;
+	const provider: RepositoryProvider = preview.data?.gitlabProject
+		? "gitlab"
+		: (draft?.provider ?? (seededGitlabProject ? "gitlab" : "github"));
+	const gitlabProject: GitlabProjectChoice | null =
+		preview.data?.gitlabProject ??
+		(draft ? draft.gitlabProject : seededGitlabProject);
+	const gitlabSubmit =
+		open && provider === "gitlab" && gitlabProject
+			? JSON.stringify([
+					owner,
+					gitlabProject.cloneUrl,
+					gitlabProject.pathWithNamespace,
+				])
+			: null;
+	const liveGitlabSubmit = useRef<string | null>(null);
+	liveGitlabSubmit.current = gitlabSubmit;
+	useEffect(() => {
+		liveGitlabSubmit.current = gitlabSubmit;
+		return () => {
+			liveGitlabSubmit.current = null;
+		};
+	}, [gitlabSubmit]);
 	const [repositoryIds, setRepositoryIds] = useState<string[]>(
 		environment?.repositoryIds ?? [],
 	);
@@ -112,7 +148,7 @@ export function EnvironmentEditorDialog({
 	const repositoriesQuery =
 		cloudTrpc.integration.github.listRepositories.useQuery(
 			{ organizationId },
-			{ enabled: open && !fromWorkspaceId },
+			{ enabled: open && !fromWorkspaceId && provider === "github" },
 		);
 	const repositories = repositoriesQuery.data ?? [];
 	const selectedRepositories: { id: string; fullName: string }[] = preview.data
@@ -142,14 +178,23 @@ export function EnvironmentEditorDialog({
 		create.isPending || update.isPending || createWorkspace.isPending;
 	const valid =
 		name.trim().length > 0 &&
-		(fromWorkspaceId ? preview.isSuccess : repositoryIds.length > 0);
+		(fromWorkspaceId
+			? preview.isSuccess
+			: provider === "gitlab"
+				? gitlabProject !== null
+				: repositoryIds.length > 0);
 
-	const body = () => ({
-		name: name.trim(),
-		repositoryIds,
-		hooksRepositoryId: hooksChoice === NO_HOOKS ? null : hooksChoice,
-		scope,
-	});
+	const body = () => {
+		const base = { name: name.trim(), scope };
+		if (provider === "gitlab")
+			return repositoriesFrozen
+				? base
+				: { ...base, gitlabCloneUrl: gitlabProject?.cloneUrl };
+		const hooksRepositoryId = hooksChoice === NO_HOOKS ? null : hooksChoice;
+		return repositoriesFrozen
+			? { ...base, hooksRepositoryId }
+			: { ...base, repositoryIds, hooksRepositoryId };
+	};
 
 	const save = async () => {
 		if (environment) {
@@ -169,7 +214,35 @@ export function EnvironmentEditorDialog({
 		onOpenChange(false);
 	};
 
+	const finishGitlab = async (captured: string) => {
+		if (liveGitlabSubmit.current !== captured) return false;
+		await utils.environment.list.invalidate();
+		if (liveGitlabSubmit.current !== captured) return false;
+		return true;
+	};
+
 	const onSave = async () => {
+		if (gitlabSubmit) {
+			if (liveGitlabSubmit.current !== gitlabSubmit) return;
+			try {
+				await save();
+				if (liveGitlabSubmit.current !== gitlabSubmit) return;
+				toast.success(
+					environment
+						? t({ message: "Environment saved" })
+						: t({ message: "Environment created" }),
+				);
+				if (
+					(await finishGitlab(gitlabSubmit)) &&
+					liveGitlabSubmit.current === gitlabSubmit
+				)
+					onOpenChange(false);
+			} catch (error) {
+				if (liveGitlabSubmit.current === gitlabSubmit)
+					toast.error(errorMessage(error));
+			}
+			return;
+		}
 		try {
 			await save();
 			toast.success(
@@ -204,6 +277,44 @@ export function EnvironmentEditorDialog({
 	};
 
 	const onStartAgent = async () => {
+		if (gitlabSubmit) {
+			const captured = gitlabSubmit;
+			const cloneUrl = gitlabProject?.cloneUrl;
+			if (!cloneUrl || liveGitlabSubmit.current !== captured) return;
+			try {
+				const environmentId = await save();
+				if (liveGitlabSubmit.current !== captured) return;
+				const created = await createWorkspace.mutateAsync({
+					organizationId,
+					environmentId,
+					gitlabCloneUrl: cloneUrl,
+					name: t({ message: `Set up ${name.trim()}` }),
+					prompt: ENVIRONMENT_ONBOARDING_PROMPT,
+					agent: "claude",
+				});
+				if (liveGitlabSubmit.current !== captured) return;
+				const listInput = { organizationId };
+				await utils.cloudWorkspace.list.cancel(listInput);
+				if (liveGitlabSubmit.current !== captured) return;
+				utils.cloudWorkspace.list.setData(listInput, (rows) =>
+					rows ? [created, ...rows] : [created],
+				);
+				if (
+					!(await finishGitlab(captured)) ||
+					liveGitlabSubmit.current !== captured
+				)
+					return;
+				onOpenChange(false);
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: created.id },
+				});
+			} catch (error) {
+				if (liveGitlabSubmit.current === captured)
+					toast.error(errorMessage(error));
+			}
+			return;
+		}
 		try {
 			const environmentId = await save();
 			const created = await createWorkspace.mutateAsync({
@@ -271,146 +382,190 @@ export function EnvironmentEditorDialog({
 					</div>
 
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="environment-repositories">
-							<Trans>Repositories</Trans>
-						</Label>
-						<div className="flex items-center gap-2">
-							<Popover
-								onOpenChange={setRepositoriesOpen}
-								open={repositoriesOpen}
-							>
-								<PopoverTrigger asChild>
-									<Button
-										className="flex-1 justify-between font-normal"
-										disabled={repositoriesFrozen}
-										id="environment-repositories"
-										variant="outline"
-									>
-										<span className="truncate">
-											{selectedRepositories.length === 0 ? (
-												<span className="text-muted-foreground">
-													<Trans>Select repositories</Trans>
-												</span>
-											) : (
-												selectedRepositories
-													.map((repo) => repo.fullName)
-													.join(", ")
-											)}
-										</span>
-										<HiChevronUpDown className="size-4 shrink-0 opacity-50" />
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent
-									align="start"
-									className="w-[var(--radix-popover-trigger-width)] p-0"
-								>
-									<Command>
-										<CommandInput
-											placeholder={t({ message: "Search repositories..." })}
-										/>
-										<CommandList className="max-h-64">
-											<CommandEmpty>
-												{repositoriesQuery.isLoading ? (
-													<Trans>Loading repositories...</Trans>
-												) : (
-													<Trans>
-														No repositories. Connect GitHub in Integrations,
-														then refresh.
-													</Trans>
-												)}
-											</CommandEmpty>
-											<CommandGroup>
-												{repositories.map((repo) => {
-													const checked = repositoryIds.includes(repo.id);
-													return (
-														<CommandItem
-															key={repo.id}
-															onSelect={() =>
-																setRepositoryIds(
-																	checked
-																		? repositoryIds.filter(
-																				(id) => id !== repo.id,
-																			)
-																		: [...repositoryIds, repo.id],
-																)
-															}
-															value={repo.fullName}
-														>
-															<LuGitBranch className="size-4 text-muted-foreground" />
-															<span className="flex-1 truncate">
-																{repo.fullName}
-															</span>
-															{checked && (
-																<HiCheck className="size-4 shrink-0" />
-															)}
-														</CommandItem>
-													);
-												})}
-											</CommandGroup>
-										</CommandList>
-									</Command>
-								</PopoverContent>
-							</Popover>
-							{!fromWorkspaceId && (
-								<Button
-									aria-label={t({ message: "Refresh repositories" })}
-									disabled={resync.isPending || repositoriesFrozen}
-									onClick={() => resync.mutate({ organizationId })}
-									size="icon"
-									title={t({ message: "Refresh repositories" })}
-									variant="outline"
-								>
-									<LuRefreshCw
-										className={
-											resync.isPending ? "size-4 animate-spin" : "size-4"
-										}
-									/>
-								</Button>
-							)}
-						</div>
-						{repositoriesFrozen && (
-							<p className="text-xs text-muted-foreground">
-								{fromWorkspaceId ? (
-									<Trans>
-										The workspace's repositories, as they are checked out now.
-									</Trans>
-								) : (
-									<Trans>
-										This environment was promoted from a workspace, so its
-										repositories are fixed. Promote a workspace again to change
-										them.
-									</Trans>
-								)}
-							</p>
-						)}
-					</div>
-
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="environment-hooks">
-							<Trans>Config location</Trans>
+						<Label htmlFor="environment-provider">
+							<Trans>Repository provider</Trans>
 						</Label>
 						<Select
-							disabled={fromWorkspaceId !== undefined}
-							onValueChange={(value) =>
-								setHooksRepositoryId(value === NO_HOOKS ? null : value)
-							}
-							value={hooksChoice}
+							disabled={repositoriesFrozen}
+							onValueChange={(value) => {
+								if (value === "github" || value === "gitlab")
+									setProviderDraft({ owner, provider: value, gitlabProject });
+							}}
+							value={provider}
 						>
-							<SelectTrigger id="environment-hooks">
+							<SelectTrigger id="environment-provider">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value={NO_HOOKS}>
-									<Trans>None</Trans>
+								<SelectItem value="github">
+									<Trans>GitHub</Trans>
 								</SelectItem>
-								{selectedRepositories.map((repo) => (
-									<SelectItem key={repo.id} value={repo.id}>
-										{repo.fullName}/.superset/config.json
-									</SelectItem>
-								))}
+								<SelectItem value="gitlab">
+									<Trans>GitLab</Trans>
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
+
+					{provider === "gitlab" ? (
+						<GitlabProjectPicker
+							disabled={repositoriesFrozen}
+							onChange={(project) =>
+								setProviderDraft({
+									owner,
+									provider: "gitlab",
+									gitlabProject: project,
+								})
+							}
+							organizationId={organizationId}
+							value={gitlabProject}
+						/>
+					) : (
+						<>
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="environment-repositories">
+									<Trans>Repositories</Trans>
+								</Label>
+								<div className="flex items-center gap-2">
+									<Popover
+										onOpenChange={setRepositoriesOpen}
+										open={repositoriesOpen}
+									>
+										<PopoverTrigger asChild>
+											<Button
+												className="flex-1 justify-between font-normal"
+												disabled={repositoriesFrozen}
+												id="environment-repositories"
+												variant="outline"
+											>
+												<span className="truncate">
+													{selectedRepositories.length === 0 ? (
+														<span className="text-muted-foreground">
+															<Trans>Select repositories</Trans>
+														</span>
+													) : (
+														selectedRepositories
+															.map((repo) => repo.fullName)
+															.join(", ")
+													)}
+												</span>
+												<HiChevronUpDown className="size-4 shrink-0 opacity-50" />
+											</Button>
+										</PopoverTrigger>
+										<PopoverContent
+											align="start"
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+										>
+											<Command>
+												<CommandInput
+													placeholder={t({ message: "Search repositories..." })}
+												/>
+												<CommandList className="max-h-64">
+													<CommandEmpty>
+														{repositoriesQuery.isLoading ? (
+															<Trans>Loading repositories...</Trans>
+														) : (
+															<Trans>
+																No repositories. Connect GitHub in Integrations,
+																then refresh.
+															</Trans>
+														)}
+													</CommandEmpty>
+													<CommandGroup>
+														{repositories.map((repo) => {
+															const checked = repositoryIds.includes(repo.id);
+															return (
+																<CommandItem
+																	key={repo.id}
+																	onSelect={() =>
+																		setRepositoryIds(
+																			checked
+																				? repositoryIds.filter(
+																						(id) => id !== repo.id,
+																					)
+																				: [...repositoryIds, repo.id],
+																		)
+																	}
+																	value={repo.fullName}
+																>
+																	<LuGitBranch className="size-4 text-muted-foreground" />
+																	<span className="flex-1 truncate">
+																		{repo.fullName}
+																	</span>
+																	{checked && (
+																		<HiCheck className="size-4 shrink-0" />
+																	)}
+																</CommandItem>
+															);
+														})}
+													</CommandGroup>
+												</CommandList>
+											</Command>
+										</PopoverContent>
+									</Popover>
+									{!fromWorkspaceId && (
+										<Button
+											aria-label={t({ message: "Refresh repositories" })}
+											disabled={resync.isPending || repositoriesFrozen}
+											onClick={() => resync.mutate({ organizationId })}
+											size="icon"
+											title={t({ message: "Refresh repositories" })}
+											variant="outline"
+										>
+											<LuRefreshCw
+												className={
+													resync.isPending ? "size-4 animate-spin" : "size-4"
+												}
+											/>
+										</Button>
+									)}
+								</div>
+								{repositoriesFrozen && (
+									<p className="text-xs text-muted-foreground">
+										{fromWorkspaceId ? (
+											<Trans>
+												The workspace's repositories, as they are checked out
+												now.
+											</Trans>
+										) : (
+											<Trans>
+												This environment was promoted from a workspace, so its
+												repositories are fixed. Promote a workspace again to
+												change them.
+											</Trans>
+										)}
+									</p>
+								)}
+							</div>
+
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="environment-hooks">
+									<Trans>Config location</Trans>
+								</Label>
+								<Select
+									disabled={fromWorkspaceId !== undefined}
+									onValueChange={(value) =>
+										setHooksRepositoryId(value === NO_HOOKS ? null : value)
+									}
+									value={hooksChoice}
+								>
+									<SelectTrigger id="environment-hooks">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={NO_HOOKS}>
+											<Trans>None</Trans>
+										</SelectItem>
+										{selectedRepositories.map((repo) => (
+											<SelectItem key={repo.id} value={repo.id}>
+												{repo.fullName}/.superset/config.json
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</>
+					)}
 
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="environment-region">

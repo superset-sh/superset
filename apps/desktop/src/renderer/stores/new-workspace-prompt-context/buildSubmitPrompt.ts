@@ -1,13 +1,23 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
+import {
+	type GitLabIssuePromptTarget,
+	gitLabIssuePromptKey,
+} from "renderer/routes/_authenticated/utils/linkedIssueFromGitLab";
 import type {
 	LinkedIssue,
 	LinkedPR,
 } from "renderer/stores/new-workspace-draft";
+import { pullRequestPromptKey } from "./pullRequestPromptKey";
 import { useNewWorkspacePromptContextStore } from "./store";
 
 export interface BuildSubmitPromptArgs {
 	userPrompt: string;
 	linkedPR: LinkedPR | null;
 	linkedIssues: LinkedIssue[];
+	pullRequestTarget?: { projectId: string; hostUrl: string };
+	gitlabTarget?: GitLabIssuePromptTarget;
+	gitlabSourceTargets?: readonly GitLabIssuePromptTarget[];
 }
 
 function readBody(key: string): string | null {
@@ -48,9 +58,33 @@ export function buildSubmitPrompt(args: BuildSubmitPromptArgs): string {
 		linkedSections.push(body ? `${header}\n\n${body}` : header);
 	}
 
+	for (const issue of args.linkedIssues) {
+		if (issue.source !== "gitlab") continue;
+		const target =
+			args.gitlabSourceTargets?.find(
+				(value) =>
+					value.projectId === issue.gitlab?.projectId &&
+					value.hostId === issue.gitlab?.hostId,
+			) ?? args.gitlabTarget;
+		const key = gitLabIssuePromptKey(issue, target);
+		const entry = key
+			? useNewWorkspacePromptContextStore.getState().entries.get(key)
+			: undefined;
+		if (entry?.state !== "ready")
+			throw Error(
+				i18n._(msg({ message: "GitLab issue content could not be verified" })),
+			);
+		const header = `## Linked GitLab issue — #${issue.number}: ${issue.title}\n${issue.url}`;
+		linkedSections.push(
+			entry.body.text ? `${header}\n\n${entry.body.text}` : header,
+		);
+	}
+
 	if (args.linkedPR) {
-		const body = readBody(`pr:${args.linkedPR.prNumber}`);
-		const header = `## Linked PR — #${args.linkedPR.prNumber}: ${args.linkedPR.title}\n${args.linkedPR.url}`;
+		const key = pullRequestPromptKey(args.linkedPR, args.pullRequestTarget);
+		const body = key ? readBody(key) : null;
+		const native = args.linkedPR.url.includes("/-/merge_requests/");
+		const header = `## Linked ${native ? "GitLab MR" : "PR"} — #${args.linkedPR.prNumber}: ${args.linkedPR.title}\n${args.linkedPR.url}`;
 		linkedSections.push(body ? `${header}\n\n${body}` : header);
 	}
 

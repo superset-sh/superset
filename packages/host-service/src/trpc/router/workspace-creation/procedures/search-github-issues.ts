@@ -4,6 +4,7 @@ import {
 	isGithubNotFoundError,
 	isGithubRateLimitError,
 } from "../../../../runtime/pull-requests/utils/github-errors";
+import type { HostServiceContext } from "../../../../types";
 import { protectedProcedure } from "../../../index";
 import { normalizeGitHubQuery } from "../normalize-github-query";
 import { githubSearchInputSchema } from "../schemas";
@@ -18,6 +19,12 @@ import {
 	projectIdForSearchItem,
 	resolveProjectRepos,
 } from "../shared/github-search";
+import {
+	createGitLabSearchClient,
+	gitLabSearchError,
+	resolveSearchTargets,
+	selectSearchTargetsForQuery,
+} from "../shared/gitlab-search-caller";
 import { resolveGithubRepo } from "../shared/project-helpers";
 import type { ExecGh } from "../utils/exec-gh";
 
@@ -217,9 +224,11 @@ async function octokitSearchIssues(
 	return { items, totalCount: data.total_count, hasNextPage };
 }
 
-export const searchGitHubIssues = protectedProcedure
-	.input(githubSearchInputSchema)
-	.query(async ({ ctx, input }): Promise<IssuesPage> => {
+function searchGitHubIssuesGitHub(
+	ctx: HostServiceContext,
+	input: z.infer<typeof githubSearchInputSchema>,
+): Promise<IssuesPage> {
+	const run = async (): Promise<IssuesPage> => {
 		const projectIds = input.projectIds ?? [input.projectId];
 		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
 			projectIds,
@@ -395,4 +404,72 @@ export const searchGitHubIssues = protectedProcedure
 			);
 			throw githubRequestError(err, ctx.credentials);
 		}
+	};
+	return run();
+}
+
+export const searchGitHubIssues = protectedProcedure
+	.input(githubSearchInputSchema)
+	.query(async ({ ctx, input }): Promise<IssuesPage> => {
+		const targets = await resolveSearchTargets(
+			ctx,
+			input.projectIds ?? [input.projectId],
+			input.projectIds !== undefined,
+		);
+		const selection = selectSearchTargetsForQuery(
+			input.query?.trim() ?? "",
+			targets,
+			"issue",
+		);
+		if (selection.repoMismatch)
+			return {
+				issues: [],
+				totalCount: 0,
+				hasNextPage: false,
+				page: input.page ?? 1,
+				repoMismatch: selection.repoMismatch,
+			};
+		if (!targets.some((target) => target.repo.provider === "gitlab"))
+			return searchGitHubIssuesGitHub(ctx, input);
+		const githubTargets = selection.targets.filter(
+			(target) => target.repo.provider === "github",
+		);
+		const firstGithubTarget = githubTargets[0];
+		const pages: IssuesPage[] = await Promise.all([
+			...(firstGithubTarget
+				? [
+						searchGitHubIssuesGitHub(ctx, {
+							...input,
+							projectId: firstGithubTarget.projectId,
+							projectIds: githubTargets.map((target) => target.projectId),
+							query: selection.query,
+						}),
+					]
+				: []),
+			...selection.targets
+				.filter((target) => target.repo.provider === "gitlab")
+				.map(async ({ projectId, repo }) => {
+					try {
+						const client = await createGitLabSearchClient(ctx, repo);
+						const native = await client.searchIssues(repo, {
+							text: selection.query,
+							includeClosed: input.includeClosed,
+							page: input.page,
+							limit: input.limit,
+						});
+						return {
+							...native,
+							issues: native.issues.map((row) => ({ ...row, projectId })),
+						};
+					} catch (error) {
+						throw gitLabSearchError(error, repo);
+					}
+				}),
+		]);
+		return {
+			issues: mergeByUpdatedAtDesc(pages.map((result) => result.issues)),
+			totalCount: pages.reduce((total, result) => total + result.totalCount, 0),
+			hasNextPage: pages.some((result) => result.hasNextPage),
+			page: input.page ?? 1,
+		};
 	});

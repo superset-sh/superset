@@ -481,7 +481,7 @@ export function WorkspaceActivityMenu({
 							{shipView === "commit" ? (
 								<Trans>Commit</Trans>
 							) : (
-								<Trans>Create PR</Trans>
+								shipActions.createLabel
 							)}
 						</button>
 						<div className="p-1">
@@ -501,6 +501,7 @@ export function WorkspaceActivityMenu({
 									canCommit={shipMenu.canCommit}
 									canPush={shipMenu.canPush}
 									canCreatePr={shipMenu.canCreatePr}
+									createLabel={shipActions.createLabel}
 									hasCommitsAhead={shipActions.hasCommitsAhead}
 									isBusy={shipActions.isShipping || shipActions.isCommitting}
 									onOpenView={(view) => {
@@ -509,9 +510,7 @@ export function WorkspaceActivityMenu({
 									}}
 									onPush={shipActions.push}
 									onNoCommitsAhead={() =>
-										toast.info(
-											t({ message: "No commits to open a pull request from" }),
-										)
+										toast.info(shipActions.noCommitsLabel)
 									}
 								/>
 								<ChangesMenuRow

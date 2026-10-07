@@ -37,6 +37,7 @@ describe("terminal router integration", () => {
 	let scenario: BasicScenario;
 
 	beforeEach(async () => {
+		__setAccountShellForTesting(null);
 		initTerminalBaseEnv({
 			PATH: process.env.PATH ?? "/usr/bin:/bin",
 			HOME: process.env.HOME ?? tmpdir(),

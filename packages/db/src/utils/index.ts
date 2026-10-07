@@ -1,3 +1,4 @@
+export * from "./execute-rows";
 export * from "./like";
 export * from "./member-removal";
 export * from "./member-removal-orphans";

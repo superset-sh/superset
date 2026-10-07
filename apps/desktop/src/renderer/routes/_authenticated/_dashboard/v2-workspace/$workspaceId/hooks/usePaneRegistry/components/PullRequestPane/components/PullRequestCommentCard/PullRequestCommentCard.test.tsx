@@ -83,3 +83,34 @@ describe("review cards", () => {
 		);
 	});
 });
+
+test.each([
+	[
+		"gitlab",
+		"Open in browser",
+		"https://git.example/team/repo/-/merge_requests/7#note_1",
+	],
+	[
+		"github",
+		"Open comment on GitHub",
+		"https://github.com/team/repo/pull/7#issuecomment-1",
+	],
+] as const)("%s comment link uses the correct accessible provider label", (provider, label, url) => {
+	const view = render(
+		<PullRequestCommentCard
+			workspaceId="ws"
+			provider={provider}
+			comment={{ ...comment, url }}
+			onOpenComment={() => {}}
+		/>,
+	);
+	expect(view.getByRole("link", { name: label }).getAttribute("href")).toBe(
+		url,
+	);
+	expect(
+		view.queryByRole("link", {
+			name:
+				provider === "gitlab" ? "Open comment on GitHub" : "Open in browser",
+		}),
+	).toBeNull();
+});
