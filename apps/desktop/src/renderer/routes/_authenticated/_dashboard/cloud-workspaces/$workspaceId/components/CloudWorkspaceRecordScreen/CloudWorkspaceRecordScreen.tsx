@@ -151,7 +151,7 @@ export function CloudWorkspaceRecordScreen({
 		createdAt: data.createdAt,
 		createdBy: data.createdBy,
 		presence: listed?.presence ?? [],
-		deletedAt: data.deletedAt,
+		archivedAt: data.archivedAt,
 		visibility: listed?.visibility ?? data.visibility,
 		environmentName: data.environment?.name ?? "",
 		repositories: data.repositories,
@@ -205,7 +205,7 @@ export function CloudWorkspaceRecordScreen({
 					copy(workspaceId, t({ message: "Workspace ID copied" }))
 				}
 				onSaveAsEnvironment={
-					workspace.status === "ready" && !workspace.deletedAt
+					workspace.status === "ready" && !workspace.archivedAt
 						? () => requestSaveAsEnvironment(workspace.id)
 						: undefined
 				}

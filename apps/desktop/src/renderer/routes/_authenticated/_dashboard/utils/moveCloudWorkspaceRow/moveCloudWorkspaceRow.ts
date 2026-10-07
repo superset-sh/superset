@@ -27,8 +27,8 @@ export async function moveCloudWorkspaceRow({
 	const previousRecord = utils.cloudWorkspace.get.getData({ id });
 	const state =
 		to === "archived"
-			? ({ status: "deleted", deletedAt: new Date() } as const)
-			: ({ status: "provisioning", deletedAt: null } as const);
+			? ({ status: "archived", archivedAt: new Date() } as const)
+			: ({ status: "provisioning", archivedAt: null } as const);
 	utils.cloudWorkspace.get.setData({ id }, (record) =>
 		record ? { ...record, ...state } : record,
 	);

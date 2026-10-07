@@ -198,18 +198,18 @@ describe("groupCloudWorkspacesByTime with at", () => {
 					id: "archived-yesterday",
 					createdAt: new Date("2026-09-30T09:00:00"),
 					agentStatusAt: null,
-					deletedAt: new Date("2026-09-29T10:00:00"),
+					archivedAt: new Date("2026-09-29T10:00:00"),
 				},
 				{
 					id: "archived-today",
 					createdAt: new Date("2026-09-01T09:00:00"),
 					agentStatusAt: null,
-					deletedAt: new Date("2026-09-30T11:00:00"),
+					archivedAt: new Date("2026-09-30T11:00:00"),
 				},
 			],
 			now,
 			sort: "activity",
-			at: (workspace) => workspace.deletedAt,
+			at: (workspace) => workspace.archivedAt,
 		});
 		expect(
 			groups.map(({ period, workspaces }) => [

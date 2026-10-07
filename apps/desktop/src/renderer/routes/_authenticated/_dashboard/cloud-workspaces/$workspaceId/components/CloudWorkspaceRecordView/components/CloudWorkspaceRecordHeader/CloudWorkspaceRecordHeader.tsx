@@ -11,7 +11,7 @@ import type { CloudWorkspaceRecord } from "../../../../types";
 interface CloudWorkspaceRecordHeaderProps {
 	workspace: Pick<
 		CloudWorkspaceRecord,
-		"name" | "createdAt" | "deletedAt" | "createdBy" | "repositories"
+		"name" | "createdAt" | "archivedAt" | "createdBy" | "repositories"
 	>;
 	now: Date;
 	onOpenPerson: (userId: string) => void;
@@ -50,7 +50,7 @@ export function CloudWorkspaceRecordHeader({
 						maxLength={200}
 						onRename={onRename}
 					/>
-					{workspace.deletedAt && (
+					{workspace.archivedAt && (
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<LuArchive
@@ -61,7 +61,8 @@ export function CloudWorkspaceRecordHeader({
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
 								<Trans>
-									Archived {formatCompactRelativeTime(workspace.deletedAt, now)}
+									Archived{" "}
+									{formatCompactRelativeTime(workspace.archivedAt, now)}
 								</Trans>
 							</TooltipContent>
 						</Tooltip>

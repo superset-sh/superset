@@ -963,7 +963,7 @@ export const cloudWorkspaces = pgTable(
 		projectId: uuid("project_id").references(() => taskProjects.id, {
 			onDelete: "set null",
 		}),
-		deletedAt: timestamp("deleted_at", { withTimezone: true }),
+		archivedAt: timestamp("archived_at", { withTimezone: true }),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),

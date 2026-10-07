@@ -38,7 +38,7 @@ export function CloudWorkspacePicker({
 		? (allWorkspaces?.find((row) => row.id === value) ?? null)
 		: null;
 	const resolving = !!value && allWorkspaces === undefined;
-	const gone = pinned?.status === "failed" || pinned?.status === "deleted";
+	const gone = pinned?.status === "failed" || pinned?.status === "archived";
 	// A viewer who isn't the owner may not see the owner's workspaces at all.
 	const unseen = !!value && !resolving && !pinned && !!disabled;
 	const missing = !!value && !resolving && !unseen && (!pinned || gone);

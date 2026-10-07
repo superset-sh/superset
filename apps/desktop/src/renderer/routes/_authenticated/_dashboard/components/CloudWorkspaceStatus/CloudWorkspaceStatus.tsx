@@ -32,7 +32,7 @@ export function CloudWorkspaceStatus({
 			</span>
 		);
 	}
-	if (workspace.status === "deleted") {
+	if (workspace.status === "archived") {
 		return (
 			<LuArchive
 				role="img"

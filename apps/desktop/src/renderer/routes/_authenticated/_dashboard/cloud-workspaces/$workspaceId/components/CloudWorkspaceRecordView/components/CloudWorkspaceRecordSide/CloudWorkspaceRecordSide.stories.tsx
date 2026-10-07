@@ -32,7 +32,7 @@ const meta = {
 			agentStatusAt: ago(2),
 			createdAt: ago(240),
 			createdBy: avi,
-			deletedAt: null,
+			archivedAt: null,
 			project: {
 				id: "proj-1",
 				name: "Sidebar performance",

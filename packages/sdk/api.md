@@ -46,7 +46,7 @@ Methods:
 - <code title="get /api/trpc/cloudWorkspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">retrieve</a>(id) -> CloudWorkspace | null</code>
 - <code title="post /api/trpc/cloudWorkspace.create">client.workspaces.<a href="./src/resources/workspaces.ts">create</a>({ environment?, name?, branch?, agent?, prompt?, model?, effort? }) -> CloudWorkspace</code>
 - <code title="post /api/trpc/cloudWorkspace.rename">client.workspaces.<a href="./src/resources/workspaces.ts">update</a>(id, { name }) -> CloudWorkspace</code>
-- <code title="post /api/trpc/cloudWorkspace.delete">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id) -> WorkspaceDeleteResult</code>
+- <code title="post /api/trpc/cloudWorkspace.archive">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id) -> WorkspaceDeleteResult</code>
 
 # Agents
 

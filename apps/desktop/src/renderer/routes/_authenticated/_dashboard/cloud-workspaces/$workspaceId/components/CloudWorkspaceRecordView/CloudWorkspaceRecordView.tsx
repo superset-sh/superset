@@ -119,7 +119,7 @@ export function CloudWorkspaceRecordView({
 			headerEnd={
 				<CloudWorkspaceRecordSharing
 					workspaceId={workspace.id}
-					archivedAt={workspace.deletedAt}
+					archivedAt={workspace.archivedAt}
 					people={workspace.presence}
 					owner={workspace.createdBy}
 					visibility={workspace.visibility}
@@ -132,7 +132,7 @@ export function CloudWorkspaceRecordView({
 			}
 			sideActions={
 				<CloudWorkspaceRecordActions
-					archivedAt={workspace.deletedAt}
+					archivedAt={workspace.archivedAt}
 					onOpenWorkspace={onOpenWorkspace}
 					onCopyLink={onCopyLink}
 					onCopyId={onCopyId}
@@ -190,7 +190,7 @@ export function CloudWorkspaceRecordView({
 				<CloudWorkspaceDescription
 					key={workspace.id}
 					description={workspace.description}
-					canGenerate={workspace.status === "ready" && !workspace.deletedAt}
+					canGenerate={workspace.status === "ready" && !workspace.archivedAt}
 					isGenerating={isGeneratingDescription}
 					onSave={onSaveDescription}
 					onGenerate={onGenerateDescription}

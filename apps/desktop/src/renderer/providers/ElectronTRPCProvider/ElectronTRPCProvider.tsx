@@ -40,7 +40,7 @@ focusManager.setEventListener((handleFocus) => {
 });
 
 // Bump when query response shapes change — invalidates the persisted cache.
-const PERSIST_BUSTER = "v2";
+const PERSIST_BUSTER = "v3";
 
 // Shared QueryClient for tRPC hooks and router loaders
 const queryClient = new QueryClient({

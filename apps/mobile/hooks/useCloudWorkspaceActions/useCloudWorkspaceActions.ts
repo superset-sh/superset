@@ -53,14 +53,14 @@ export function useCloudWorkspaceActions() {
 				to === "archived"
 					? {
 							...row,
-							status: "deleted",
-							deletedAt: new Date(),
+							status: "archived",
+							archivedAt: new Date(),
 							sandboxUrl: null,
 						}
 					: {
 							...row,
 							status: "provisioning",
-							deletedAt: null,
+							archivedAt: null,
 							sandboxUrl: null,
 						};
 			beginCloudMove(to, moved);
@@ -77,7 +77,7 @@ export function useCloudWorkspaceActions() {
 			await queryClient.cancelQueries({ queryKey: LIST_KEY });
 			move(id, "archived");
 			try {
-				await apiClient.cloudWorkspace.delete.mutate({ id });
+				await apiClient.cloudWorkspace.archive.mutate({ id });
 				clearSandboxAccess(id);
 			} finally {
 				endCloudMove(id);

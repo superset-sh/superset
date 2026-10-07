@@ -313,7 +313,7 @@ export function HomeScreen() {
 				workspaces: rows,
 				now,
 				sort: sort === "createdAt" ? "created" : "activity",
-				at: showArchived ? (row) => row.deletedAt ?? row.createdAt : undefined,
+				at: showArchived ? (row) => row.archivedAt ?? row.createdAt : undefined,
 			});
 			for (const { period, workspaces: grouped } of groups) {
 				const key = `${showArchived ? "archived" : "active"}:${period.unit}:${period.count}`;

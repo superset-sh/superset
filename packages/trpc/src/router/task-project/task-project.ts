@@ -103,7 +103,7 @@ export const taskProjectRouter = {
 				.where(
 					and(
 						eq(cloudWorkspaces.organizationId, input.organizationId),
-						isNull(cloudWorkspaces.deletedAt),
+						isNull(cloudWorkspaces.archivedAt),
 					),
 				)
 				.groupBy(cloudWorkspaces.projectId)

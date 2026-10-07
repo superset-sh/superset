@@ -47,7 +47,7 @@ export function CloudWorkspaceProvisioningState({
 	const { t } = useLingui();
 	const elapsed = useElapsedSeconds();
 
-	if (cloud.status === "deleted") {
+	if (cloud.status === "archived") {
 		return <CloudWorkspaceArchivedState cloud={cloud} />;
 	}
 	if (cloud.status === "failed") {
@@ -115,9 +115,9 @@ function CloudWorkspaceArchivedState({ cloud }: { cloud: CloudWorkspaceRow }) {
 			<Heading
 				title={cloud.name || t({ message: "Untitled workspace" })}
 				name={
-					cloud.deletedAt
+					cloud.archivedAt
 						? t({
-								message: `Archived · ${formatCompactRelativeTime(cloud.deletedAt)}`,
+								message: `Archived · ${formatCompactRelativeTime(cloud.archivedAt)}`,
 							})
 						: t({ message: "Archived" })
 				}

@@ -43,7 +43,7 @@ const PERSISTED_QUERY_PREFIXES = [
 const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /** Bump when a persisted query's response shape changes. */
-const PERSIST_BUSTER = "v1";
+const PERSIST_BUSTER = "v2";
 
 function isPersistedQuery(queryKey: readonly unknown[]): boolean {
 	return PERSISTED_QUERY_PREFIXES.some((prefix) =>

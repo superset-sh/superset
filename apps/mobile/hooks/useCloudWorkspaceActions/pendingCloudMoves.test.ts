@@ -11,7 +11,7 @@ const row = (id: string, status: CloudWorkspaceRow["status"]) =>
 
 describe("withPendingCloudMoves", () => {
 	test("keeps a row in the list it was just moved to until the move ends", () => {
-		const archiving = row("a", "deleted");
+		const archiving = row("a", "archived");
 		beginCloudMove("archived", archiving);
 
 		const active = withPendingCloudMoves("active", [

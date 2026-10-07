@@ -26,7 +26,7 @@ export type CloudWorkspaceRecord = Pick<
 	| "createdAt"
 	| "createdBy"
 	| "presence"
-	| "deletedAt"
+	| "archivedAt"
 	| "visibility"
 > & {
 	environmentName: string;

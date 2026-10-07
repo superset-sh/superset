@@ -24,8 +24,8 @@ export async function reapArchivedCloudWorkspace(
 	});
 	if (
 		!row ||
-		row.status !== "deleted" ||
-		row.deletedAt?.toISOString() !== input.archivedAt ||
+		row.status !== "archived" ||
+		row.archivedAt?.toISOString() !== input.archivedAt ||
 		row.provider !== "vercel"
 	) {
 		return "skipped";

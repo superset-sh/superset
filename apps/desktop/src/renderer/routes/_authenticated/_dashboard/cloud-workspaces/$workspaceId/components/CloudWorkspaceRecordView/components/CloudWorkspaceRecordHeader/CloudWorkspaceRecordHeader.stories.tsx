@@ -17,7 +17,7 @@ const meta = {
 		workspace: {
 			name: "lag-repro-01",
 			createdAt: new Date(now.getTime() - 2 * 60_000),
-			deletedAt: null,
+			archivedAt: null,
 			createdBy: { userId: "avi", name: "Avi Peltz", image: null },
 			repositories: [
 				{ fullName: "superset-sh/superset", branch: "superset/lag-repro-01" },
@@ -55,7 +55,7 @@ export const Archived: Story = {
 	args: {
 		workspace: {
 			...meta.args.workspace,
-			deletedAt: new Date(now.getTime() - 60_000),
+			archivedAt: new Date(now.getTime() - 60_000),
 		},
 	},
 };
