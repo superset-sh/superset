@@ -43,6 +43,10 @@ import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSe
 import { useAutoAdoptChatSessions } from "./hooks/useAutoAdoptChatSessions";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
+import {
+	readOpenFileSearch,
+	useConsumeOpenFileRequest,
+} from "./hooks/useConsumeOpenFileRequest";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
 import { useConsumeSubagentLink } from "./hooks/useConsumeSubagentLink";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
@@ -89,6 +93,10 @@ interface WorkspaceSearch {
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
 	openUrlRequestId?: string;
+	openFile?: string[];
+	openFileLine?: number;
+	openFileTarget?: V2WorkspaceUrlOpenTarget;
+	openFileRequestId?: string;
 }
 
 function parseOpenUrlTarget(
@@ -113,6 +121,7 @@ export const Route = createFileRoute(
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
 		openUrlRequestId: parseNonEmptyString(raw.openUrlRequestId),
+		...readOpenFileSearch(raw),
 	}),
 });
 
@@ -156,6 +165,10 @@ function V2WorkspaceContent() {
 		openUrl,
 		openUrlTarget,
 		openUrlRequestId,
+		openFile,
+		openFileLine,
+		openFileTarget,
+		openFileRequestId,
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
@@ -276,6 +289,7 @@ function V2WorkspaceContent() {
 	});
 
 	const {
+		openFilePane,
 		openFilePaneFromTreeClick,
 		revealPath,
 		selectedFilePath,
@@ -285,6 +299,16 @@ function V2WorkspaceContent() {
 	} = useWorkspaceFileNavigation({
 		store,
 		setRightSidebarOpen,
+	});
+	useConsumeOpenFileRequest({
+		store,
+		isLayoutReady,
+		paths: openFile,
+		line: openFileLine,
+		target: openFileTarget,
+		requestId: openFileRequestId,
+		openFilePane,
+		consumeSearch,
 	});
 
 	const {

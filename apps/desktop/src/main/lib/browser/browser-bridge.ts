@@ -13,6 +13,13 @@ import type { IncomingMessage, Server } from "node:http";
 import log from "electron-log";
 import express, { type Request, type Response } from "express";
 import { type WebSocket, WebSocketServer } from "ws";
+import {
+	FilePaneOpenAbortedError,
+	FilePaneOpenRejectedError,
+	FilePaneOpenTimeoutError,
+	filePaneOpenRequests,
+} from "../file-panes/file-pane-open-requests";
+import { getFocusedOrLastWindow } from "../window-registry/window-registry";
 import { setBrowserBridgeInfo } from "./browser-bridge-info";
 import {
 	type BrowserOpenRequest,
@@ -35,14 +42,32 @@ const CDP_PATH = /^\/panes\/([^/]+)\/cdp$/;
 
 let server: Server | null = null;
 
-// Tail of the per-workspace open chain, so concurrent `/open` requests for one
-// workspace run one at a time (see the handler for why). Keyed by workspaceId;
-// entries delete themselves once the chain drains.
-const openQueues = new Map<string, Promise<void>>();
-// How many opens are queued per workspace, so a stuck renderer (each open waits
-// up to OPEN_PANE_TIMEOUT_MS) can't let the chain grow without bound.
-const openDepth = new Map<string, number>();
+// Tail of each open chain, so concurrent open requests under one key run one
+// at a time: `/open` keys by workspaceId (see the handler for why), `/open-file`
+// uses one key for all requests. Entries delete themselves once a chain drains.
+type OpenQueueKey = string | typeof FILE_OPEN_QUEUE;
+const openQueues = new Map<OpenQueueKey, Promise<void>>();
+// How many opens are queued per key, so a stuck renderer (each open waits up
+// to OPEN_PANE_TIMEOUT_MS) can't let a chain grow without bound.
+const openDepth = new Map<OpenQueueKey, number>();
 const MAX_QUEUED_OPENS = 8;
+// A Symbol so the file-open chain can never share a key with a workspace id.
+const FILE_OPEN_QUEUE: unique symbol = Symbol("file-open");
+
+/** Runs `run` after the earlier opens under `key` settle; false when that queue is full. */
+function enqueueOpen(key: OpenQueueKey, run: () => Promise<void>): boolean {
+	if ((openDepth.get(key) ?? 0) >= MAX_QUEUED_OPENS) return false;
+	openDepth.set(key, (openDepth.get(key) ?? 0) + 1);
+	const prev = openQueues.get(key) ?? Promise.resolve();
+	const next = prev.then(run, run);
+	openQueues.set(key, next);
+	void next.finally(() => {
+		openDepth.set(key, (openDepth.get(key) ?? 1) - 1);
+		if ((openDepth.get(key) ?? 0) <= 0) openDepth.delete(key);
+		if (openQueues.get(key) === next) openQueues.delete(key);
+	});
+	return true;
+}
 
 function isAuthorized(secret: string, req: IncomingMessage): boolean {
 	const url = new URL(req.url ?? "/", "http://127.0.0.1");
@@ -129,14 +154,6 @@ export async function startBrowserBridge(): Promise<void> {
 			return;
 		}
 
-		if ((openDepth.get(workspaceId) ?? 0) >= MAX_QUEUED_OPENS) {
-			res.status(429).json({
-				error:
-					"Too many pending browser-open requests for this workspace. Try again once the earlier ones settle.",
-			});
-			return;
-		}
-
 		// Each open resolves to "the first pane registered in this workspace that
 		// wasn't already open". The registration event can't tell us which request
 		// it belongs to, so two concurrent opens in one workspace would both latch
@@ -199,15 +216,83 @@ export async function startBrowserBridge(): Promise<void> {
 				} satisfies BrowserOpenRequest);
 			});
 
-		openDepth.set(workspaceId, (openDepth.get(workspaceId) ?? 0) + 1);
-		const prev = openQueues.get(workspaceId) ?? Promise.resolve();
-		const next = prev.then(run, run);
-		openQueues.set(workspaceId, next);
-		void next.finally(() => {
-			openDepth.set(workspaceId, (openDepth.get(workspaceId) ?? 1) - 1);
-			if ((openDepth.get(workspaceId) ?? 0) <= 0) openDepth.delete(workspaceId);
-			if (openQueues.get(workspaceId) === next) openQueues.delete(workspaceId);
-		});
+		if (!enqueueOpen(workspaceId, run)) {
+			res.status(429).json({
+				error:
+					"Too many pending browser-open requests for this workspace. Try again once the earlier ones settle.",
+			});
+		}
+	});
+
+	// Open file panes in a workspace. Unlike `/open`, there is no main-process
+	// webContents to wait on: the workspace view opens the panes and reports
+	// their ids back through `filePanes.resolveOpenRequest`.
+	app.post("/open-file", (req, res) => {
+		const { workspaceId, projectId, paths, line, target } = req.body ?? {};
+		if (
+			typeof workspaceId !== "string" ||
+			!Array.isArray(paths) ||
+			paths.length === 0 ||
+			!paths.every((p) => typeof p === "string" && p.length > 0)
+		) {
+			res.status(400).json({
+				error: "workspaceId and a non-empty paths list are required",
+			});
+			return;
+		}
+		const resolvedLine =
+			typeof line === "number" && Number.isInteger(line) && line >= 1
+				? line
+				: undefined;
+		// Client hung up before the panes opened: stop waiting for the answer.
+		const abort = new AbortController();
+		res.on("close", () => abort.abort());
+
+		// Serialized across all workspaces: a request navigates its window to
+		// the workspace with the request as search params, and a second one
+		// arriving before the first was consumed would replace it unanswered,
+		// whichever workspace it names. The window is picked when the request
+		// runs, like a deep link, so the panes land where the person is looking.
+		const run = () => {
+			const window = getFocusedOrLastWindow();
+			if (!window) {
+				res.status(504).json({
+					error: "No desktop window is open to show the file in.",
+				});
+				return Promise.resolve();
+			}
+			return filePaneOpenRequests
+				.request(
+					{
+						targetWindowId: window.id,
+						workspaceId,
+						projectId: typeof projectId === "string" ? projectId : null,
+						paths,
+						line: resolvedLine,
+						target: target === "new-tab" ? "new-tab" : "current-tab",
+					},
+					{ timeoutMs: OPEN_PANE_TIMEOUT_MS, signal: abort.signal },
+				)
+				.then((paneIds) => {
+					res.json({ paneIds });
+				})
+				.catch((err) => {
+					if (err instanceof FilePaneOpenAbortedError) return;
+					const status =
+						err instanceof FilePaneOpenTimeoutError
+							? 504
+							: err instanceof FilePaneOpenRejectedError
+								? 404
+								: 500;
+					res.status(status).json({ error: errorMessage(err) });
+				});
+		};
+		if (!enqueueOpen(FILE_OPEN_QUEUE, run)) {
+			res.status(429).json({
+				error:
+					"Too many pending file-open requests. Try again once the earlier ones settle.",
+			});
+		}
 	});
 
 	app.post("/panes/:paneId/navigate", (req, res) => {

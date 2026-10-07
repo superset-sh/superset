@@ -36,7 +36,7 @@ export default defineConfig({
 		sections: [
 			{
 				title: "Workspaces & agents",
-				commands: ["workspaces", "agents", "terminals", "scripts"],
+				commands: ["workspaces", "agents", "terminals", "files", "scripts"],
 			},
 			{ title: "Tasks & automations", commands: ["tasks", "automations"] },
 			{ title: "Pages", commands: ["pages"] },
