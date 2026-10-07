@@ -4,6 +4,7 @@ export interface V1WorkspaceLike {
 	id: string;
 	projectId: string;
 	worktreeId: string | null;
+	type?: string;
 	name: string;
 	branch: string;
 }
@@ -60,11 +61,26 @@ export interface WorkspacePlan {
 		v2ProjectId: string;
 		branch: string;
 	}>;
+	/** May hold the user's files but can't adopt (detached, or moved and renamed). */
+	needsAttention: Array<{
+		v1WorkspaceId: string;
+		v2ProjectId: string;
+		branch: string;
+	}>;
 	/** v1 project not (yet) imported — retried after projects migrate. */
 	unmappedProject: string[];
 }
 
-function hostWorkspaceKey(projectId: string, branch: string): string {
+export interface OnDiskWorktree {
+	v2ProjectId: string;
+	branch: string;
+	/** Host rows store git's spelling, not the real path. */
+	path: string;
+	isMainWorktree: boolean;
+	hasWorkspace: boolean;
+}
+
+export function hostWorkspaceKey(projectId: string, branch: string): string {
 	return `${projectId}\0${branch}`;
 }
 
@@ -81,6 +97,8 @@ export function planWorkspaceAdoptions({
 	hostWorkspaces,
 	onDiskBranchesByV2ProjectId,
 	mainBranchByV2ProjectId = new Map(),
+	onDiskWorktreeByRealPath = new Map(),
+	v1WorktreeRealPathById = new Map(),
 }: {
 	v1Workspaces: V1WorkspaceLike[];
 	v1WorktreesById: Map<string, V1WorktreeLike>;
@@ -89,6 +107,8 @@ export function planWorkspaceAdoptions({
 	onDiskBranchesByV2ProjectId: Map<string, Set<string>>;
 	/** The branch checked out at each v2 project's repo root. */
 	mainBranchByV2ProjectId?: Map<string, string>;
+	onDiskWorktreeByRealPath?: Map<string, OnDiskWorktree>;
+	v1WorktreeRealPathById?: Map<string, string | null>;
 }): WorkspacePlan {
 	const hostByKey = new Map<string, string>();
 	const localByProject = new Map<string, string>();
@@ -106,8 +126,12 @@ export function planWorkspaceAdoptions({
 		alreadyAdopted: [],
 		toCreateLocal: [],
 		missingWorktree: [],
+		needsAttention: [],
 		unmappedProject: [],
 	};
+	const claimedRealPaths = new Set<string>();
+	const claimedKeys = new Set<string>();
+	const folderGone: WorkspacePlan["missingWorktree"] = [];
 
 	for (const workspace of v1Workspaces) {
 		const v2ProjectId = v2ProjectIdByV1ProjectId.get(workspace.projectId);
@@ -116,9 +140,23 @@ export function planWorkspaceAdoptions({
 			continue;
 		}
 
-		const v2WorkspaceId = hostByKey.get(
-			hostWorkspaceKey(v2ProjectId, workspace.branch),
-		);
+		const worktree = workspace.worktreeId
+			? v1WorktreesById.get(workspace.worktreeId)
+			: undefined;
+		const realPath = workspace.worktreeId
+			? v1WorktreeRealPathById.get(workspace.worktreeId)
+			: undefined;
+		// v1's `branch` goes stale after a terminal checkout; the folder doesn't.
+		const found = realPath ? onDiskWorktreeByRealPath.get(realPath) : undefined;
+		const atPath = found?.v2ProjectId === v2ProjectId ? found : undefined;
+		if (realPath && atPath) claimedRealPaths.add(realPath);
+		const branch = atPath?.branch ?? workspace.branch;
+		const isV1MainRepoWorkspace =
+			workspace.type === "branch" && !workspace.worktreeId;
+
+		const v2WorkspaceId = isV1MainRepoWorkspace
+			? undefined
+			: hostByKey.get(hostWorkspaceKey(v2ProjectId, branch));
 		if (v2WorkspaceId) {
 			plan.alreadyAdopted.push({
 				v1WorkspaceId: workspace.id,
@@ -126,12 +164,18 @@ export function planWorkspaceAdoptions({
 				v2ProjectId,
 				v2WorkspaceId,
 				name: workspace.name,
-				branch: workspace.branch,
+				branch,
 			});
 			continue;
 		}
 
-		if (mainBranchByV2ProjectId.get(v2ProjectId) === workspace.branch) {
+		// A worktree whose folder is gone must not merge into the checkout.
+		const onMainCheckout = atPath
+			? atPath.isMainWorktree
+			: isV1MainRepoWorkspace ||
+				(!workspace.worktreeId &&
+					mainBranchByV2ProjectId.get(v2ProjectId) === workspace.branch);
+		if (onMainCheckout) {
 			const localId = localByProject.get(v2ProjectId);
 			if (localId) {
 				plan.alreadyAdopted.push({
@@ -140,7 +184,7 @@ export function planWorkspaceAdoptions({
 					v2ProjectId,
 					v2WorkspaceId: localId,
 					name: workspace.name,
-					branch: workspace.branch,
+					branch,
 				});
 			} else {
 				plan.toCreateLocal.push({
@@ -154,27 +198,48 @@ export function planWorkspaceAdoptions({
 		}
 
 		const onDiskBranches = onDiskBranchesByV2ProjectId.get(v2ProjectId);
-		if (onDiskBranches !== undefined && !onDiskBranches.has(workspace.branch)) {
-			plan.missingWorktree.push({
-				v1WorkspaceId: workspace.id,
-				v2ProjectId,
-				branch: workspace.branch,
-			});
+		if (
+			!atPath &&
+			onDiskBranches !== undefined &&
+			!onDiskBranches.has(branch)
+		) {
+			const missing = { v1WorkspaceId: workspace.id, v2ProjectId, branch };
+			if (realPath) plan.needsAttention.push(missing);
+			else if (realPath === null) folderGone.push(missing);
+			else plan.missingWorktree.push(missing);
 			continue;
 		}
 
-		const worktree = workspace.worktreeId
-			? v1WorktreesById.get(workspace.worktreeId)
-			: undefined;
+		claimedKeys.add(hostWorkspaceKey(v2ProjectId, branch));
 		plan.toAdopt.push({
 			v1WorkspaceId: workspace.id,
 			v1ProjectId: workspace.projectId,
 			v2ProjectId,
 			name: workspace.name,
-			branch: workspace.branch,
-			worktreePath: worktree?.path,
+			branch,
+			worktreePath: atPath?.path ?? realPath ?? worktree?.path,
 			baseBranch: worktree?.baseBranch ?? null,
 		});
+	}
+
+	// A moved-and-renamed worktree matches nothing: keep it visible, never guess.
+	const unaccountedProjects = new Set<string>();
+	for (const [realPath, w] of onDiskWorktreeByRealPath) {
+		if (
+			!w.isMainWorktree &&
+			!w.hasWorkspace &&
+			!claimedRealPaths.has(realPath) &&
+			!claimedKeys.has(hostWorkspaceKey(w.v2ProjectId, w.branch))
+		) {
+			unaccountedProjects.add(w.v2ProjectId);
+		}
+	}
+	for (const missing of folderGone) {
+		if (unaccountedProjects.has(missing.v2ProjectId)) {
+			plan.needsAttention.push(missing);
+		} else {
+			plan.missingWorktree.push(missing);
+		}
 	}
 
 	return plan;

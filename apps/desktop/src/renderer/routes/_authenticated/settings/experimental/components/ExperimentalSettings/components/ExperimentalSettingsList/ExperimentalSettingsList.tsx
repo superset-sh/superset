@@ -2,7 +2,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
-import { track } from "renderer/lib/analytics";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {
 	useInlineWorkspacePortsStore,
@@ -10,7 +9,6 @@ import {
 } from "renderer/stores/inline-workspace-ports";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
-import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 import {
 	useWorkspaceAgentsRowEnabled,
 	useWorkspaceAgentsRowStore,
@@ -24,23 +22,15 @@ import { WaitForSetupBeforeAgentSetting } from "../WaitForSetupBeforeAgentSettin
 
 interface ExperimentalSettingsListProps {
 	visibleItems?: SettingItemId[] | null;
-	isV2CloudEnabled: boolean;
 	isV2OnlyUser: boolean;
-	isV1FlipLocked: boolean;
 }
 
 export function ExperimentalSettingsList({
 	visibleItems,
-	isV2CloudEnabled,
 	isV2OnlyUser,
-	isV1FlipLocked,
 }: ExperimentalSettingsListProps) {
 	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
-	const showSupersetV2 = isItemVisible(
-		SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
-		visibleItems,
-	);
 	const showV1Migration = isItemVisible(
 		SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION,
 		visibleItems,
@@ -57,7 +47,6 @@ export function ExperimentalSettingsList({
 		SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
 		visibleItems,
 	);
-	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
 	const portsDisplayMode = usePortsDisplayMode();
 	const setPortsDisplayMode = useInlineWorkspacePortsStore(
@@ -80,39 +69,6 @@ export function ExperimentalSettingsList({
 			</div>
 
 			<div className="space-y-6">
-				{showSupersetV2 && !isV1FlipLocked && (
-					<div className="flex items-center justify-between gap-6">
-						<div className="min-w-0 flex-1 space-y-0.5">
-							<Label htmlFor="superset-v2" className="text-sm font-medium">
-								<HighlightText
-									text={t({
-										message: "Try Superset v2",
-									})}
-									query={searchQuery}
-								/>
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								<HighlightText
-									text={t({
-										message: "Use the new workspace experience.",
-									})}
-									query={searchQuery}
-								/>
-							</p>
-						</div>
-						<Switch
-							id="superset-v2"
-							checked={isV2CloudEnabled}
-							onCheckedChange={(enabled) => {
-								track("surface_toggled", {
-									from: isV2CloudEnabled ? "v2" : "v1",
-									to: enabled ? "v2" : "v1",
-								});
-								setOptInV2(enabled);
-							}}
-						/>
-					</div>
-				)}
 				{showV1Migration && !isV2OnlyUser && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
@@ -133,23 +89,12 @@ export function ExperimentalSettingsList({
 									query={searchQuery}
 								/>
 							</p>
-							{!isV2CloudEnabled && (
-								<p className="text-xs text-muted-foreground">
-									<HighlightText
-										text={t({
-											message: "Available when v2 is enabled.",
-										})}
-										query={searchQuery}
-									/>
-								</p>
-							)}
 						</div>
 						<Button
 							type="button"
 							variant="outline"
 							size="sm"
 							onClick={() => openV1ImportModal()}
-							disabled={!isV2CloudEnabled}
 							className="shrink-0"
 						>
 							<Trans>Open importer</Trans>

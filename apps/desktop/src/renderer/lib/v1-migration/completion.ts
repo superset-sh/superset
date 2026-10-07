@@ -1,11 +1,3 @@
-// Per-org migrate-then-flip marker. Written when a migration pass reports
-// gateComplete (all v1 projects + workspaces success/linked); read
-// synchronously by useIsV2CloudEnabled so the NEXT launch lands on v2 with
-// data already in place. localStorage on purpose: same store as the optInV2
-// override it supersedes, available before any provider mounts.
-
-import { gte } from "semver";
-
 const KEY_PREFIX = "v1-migration-complete-";
 
 /** One-shot handoff flag so the first v2 boot can restore continuity. */
@@ -21,34 +13,7 @@ const WELCOME_PREFIX = "v1-migration-welcome-pending-";
  */
 const FOLLOWUP_PREFIX = "v1-migration-followup-pending-";
 
-/**
- * Backstop (plan: "after app version X, flip regardless of ledger state").
- * null disables it; a release sets it to that release's version once the
- * telemetry shows who's stuck. Machines whose migration never completes
- * (persistently failing projects) flip here; the manual "Import from v1"
- * button stays as their recovery path.
- */
-export const V1_FORCED_FLIP_VERSION: string | null = null;
-
-export function isForcedFlipVersion(
-	currentVersion: string | undefined,
-	forcedVersion: string | null,
-): boolean {
-	if (!forcedVersion || !currentVersion) return false;
-	try {
-		return gte(currentVersion, forcedVersion);
-	} catch {
-		return false;
-	}
-}
-
-/** App version is fixed for the process lifetime, so this is boot-stable. */
-export function isV1ForcedFlipActive(): boolean {
-	return isForcedFlipVersion(
-		typeof window !== "undefined" ? window.App?.appVersion : undefined,
-		V1_FORCED_FLIP_VERSION,
-	);
-}
+const ATTENTION_DISMISSED_PREFIX = "v1-migration-attention-dismissed-";
 
 export function isV1MigrationComplete(organizationId: string | null): boolean {
 	if (!organizationId) return false;
@@ -57,22 +22,6 @@ export function isV1MigrationComplete(organizationId: string | null): boolean {
 	} catch {
 		return false;
 	}
-}
-
-// First read per org is cached for the whole session: completion mid-session
-// must not flip the live surface (next-launch only, by design).
-const bootReads = new Map<string, boolean>();
-
-export function isV1MigrationCompleteAtBoot(
-	organizationId: string | null | undefined,
-): boolean {
-	if (!organizationId) return false;
-	let value = bootReads.get(organizationId);
-	if (value === undefined) {
-		value = isV1MigrationComplete(organizationId);
-		bootReads.set(organizationId, value);
-	}
-	return value;
 }
 
 /**
@@ -160,5 +109,31 @@ export function setV1FollowUpPending(
 		const key = FOLLOWUP_PREFIX + organizationId;
 		if (pending) localStorage.setItem(key, "1");
 		else localStorage.removeItem(key);
+	} catch {}
+}
+
+export function isV1AttentionDismissed(
+	organizationId: string,
+	signature: string,
+): boolean {
+	try {
+		return (
+			localStorage.getItem(ATTENTION_DISMISSED_PREFIX + organizationId) ===
+			signature
+		);
+	} catch {
+		return false;
+	}
+}
+
+export function dismissV1Attention(
+	organizationId: string,
+	signature: string,
+): void {
+	try {
+		localStorage.setItem(
+			ATTENTION_DISMISSED_PREFIX + organizationId,
+			signature,
+		);
 	} catch {}
 }

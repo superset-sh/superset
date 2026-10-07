@@ -11,9 +11,12 @@ import {
 	adoptV1Workspace,
 	recordV1MigrationOutcome,
 } from "renderer/lib/v1-migration";
+import { isForeignV1Workspace } from "renderer/lib/v1-migration/ownership";
+import { withV1MigrationRunLock } from "renderer/lib/v1-migration/run-lock";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
+import { useForeignV1Claims } from "../hooks/useForeignV1Claims";
 
 interface ImportWorkspacesPageProps {
 	organizationId: string;
@@ -43,6 +46,7 @@ export function ImportWorkspacesPage({
 	const projectsQuery = electronTrpc.migration.readV1Projects.useQuery();
 	const workspacesQuery = electronTrpc.migration.readV1Workspaces.useQuery();
 	const worktreesQuery = electronTrpc.migration.readV1Worktrees.useQuery();
+	const foreignClaims = useForeignV1Claims(organizationId);
 
 	const hostProjectListQuery = useQuery({
 		queryKey: [...HOST_PROJECT_LIST_KEY_PREFIX, activeHostUrl],
@@ -114,6 +118,7 @@ export function ImportWorkspacesPage({
 	});
 
 	const isLoading =
+		foreignClaims === null ||
 		projectsQuery.isPending ||
 		workspacesQuery.isPending ||
 		worktreesQuery.isPending ||
@@ -146,7 +151,9 @@ export function ImportWorkspacesPage({
 	const worktreesById = new Map(
 		(worktreesQuery.data ?? []).map((w) => [w.id, w]),
 	);
-	const allWorkspaces = workspacesQuery.data ?? [];
+	const allWorkspaces = (workspacesQuery.data ?? []).filter(
+		(w) => !foreignClaims || !isForeignV1Workspace(w, foreignClaims),
+	);
 
 	type VisibleWorkspace = {
 		workspace: (typeof allWorkspaces)[number];
@@ -208,21 +215,24 @@ export function ImportWorkspacesPage({
 			updateAdoptStatus(workspace.id, { kind: "running" });
 			try {
 				const client = getHostServiceClientByUrl(activeHostUrl);
-				const result = await adoptV1Workspace(client, {
-					v2ProjectId,
-					name: workspace.name,
-					branch: workspace.branch,
-					worktreePath,
-					baseBranch,
+				const result = await withV1MigrationRunLock(async () => {
+					const adopted = await adoptV1Workspace(client, {
+						v2ProjectId,
+						name: workspace.name,
+						branch: workspace.branch,
+						worktreePath,
+						baseBranch,
+					});
+					await recordV1MigrationOutcome(organizationId, {
+						v1Id: workspace.id,
+						kind: "workspace",
+						status: "success",
+						v2Id: adopted.workspace.id,
+					});
+					return adopted;
 				});
 
 				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
-				recordV1MigrationOutcome(organizationId, {
-					v1Id: workspace.id,
-					kind: "workspace",
-					status: "success",
-					v2Id: result.workspace.id,
-				});
 				updateAdoptStatus(workspace.id, { kind: "imported" });
 				await queryClient.invalidateQueries({
 					queryKey: WORKSPACE_LIST_KEY,

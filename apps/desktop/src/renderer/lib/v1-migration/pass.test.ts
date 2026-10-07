@@ -32,6 +32,17 @@ describe("planV2SurfacePass", () => {
 		).toBe("groups-only");
 	});
 
+	test("skipped items that still hold user files keep the full pass after completion", () => {
+		expect(
+			planV2SurfacePass({
+				followUpPending: false,
+				migrationComplete: true,
+				hasV1Data: true,
+				hasAttentionItems: true,
+			}),
+		).toBe("full");
+	});
+
 	test("pending follow-up runs the full pass even after completion", () => {
 		expect(
 			planV2SurfacePass({

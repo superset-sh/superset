@@ -38,6 +38,8 @@ import {
 } from "renderer/routes/_authenticated/components/V1AutoMigration";
 import {
 	V1FlipNotice,
+	V1MigrationStatusCard,
+	V1TerminalsNotice,
 	V2FlipWelcome,
 } from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
@@ -331,6 +333,8 @@ function AuthenticatedLayout() {
 									<>
 										<V1MigrationContinuity />
 										<V2FlipWelcome />
+										<V1MigrationStatusCard />
+										<V1TerminalsNotice />
 									</>
 								) : (
 									<V1FlipNotice />

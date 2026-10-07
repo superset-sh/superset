@@ -6,7 +6,7 @@ export function IntroPage() {
 			</div>
 			<p className="mt-3 max-w-md text-sm text-muted-foreground">
 				Let's get your workspaces and projects ported over. Terminal sessions
-				won't be carried over, but you can still access v1 at any time.
+				won't be carried over.
 			</p>
 		</div>
 	);

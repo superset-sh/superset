@@ -3,7 +3,7 @@ import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
-	resolveMigratedPaneResume,
+	planMigratedPaneResume,
 	type V1PaneAgentSessionSnapshot,
 } from "renderer/lib/v1-migration/terminals";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -71,6 +71,20 @@ export function useCreatePendingMigratedTerminals({
 				}
 			}
 
+			let liveV1PaneIds: Set<string> | null = null;
+			if (paneIds.length > 0) {
+				try {
+					const live =
+						await electronTrpcClient.migration.listLiveV1Sessions.query();
+					liveV1PaneIds = new Set(live.map((session) => session.paneId));
+				} catch (err) {
+					console.warn("[v1-migration] live v1 session read failed", {
+						workspaceId,
+						err,
+					});
+				}
+			}
+
 			const completed = new Set<string>();
 			for (const terminal of pending) {
 				try {
@@ -89,12 +103,19 @@ export function useCreatePendingMigratedTerminals({
 					continue;
 				}
 
-				const resume = resolveMigratedPaneResume(
-					terminal.v1PaneId ? agentSessions[terminal.v1PaneId] : undefined,
-				);
+				const step = planMigratedPaneResume({
+					session: terminal.v1PaneId
+						? agentSessions[terminal.v1PaneId]
+						: undefined,
+					v1SessionAlive:
+						!liveV1PaneIds ||
+						(!!terminal.v1PaneId && liveV1PaneIds.has(terminal.v1PaneId)),
+				});
+				const resume = step.kind === "seed" ? step.resume : null;
 				const agentId = resume
 					? BUILTIN_AGENT_IDS.find((id) => id === resume.agentId)
 					: undefined;
+				if (step.kind === "wait-for-v1") continue;
 				if (resume && agentId) {
 					// A failed seed keeps the entry queued so the next open
 					// retries it (seedResumeCandidate is idempotent and never

@@ -42,7 +42,12 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 			"v1-migration-continuity-pending-*",
 			"v1-migration-welcome-pending-*",
 			"v1-migration-followup-pending-*",
+			"v1-migration-attention-dismissed-*",
 		],
+	],
+	[
+		"src/renderer/routes/_authenticated/components/V1FlipNotice/V1TerminalsNotice/V1TerminalsNotice.tsx",
+		["v1-terminals-notice-*"],
 	],
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
@@ -95,7 +100,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/stores/sidebar-sections-collapse.ts",
 		["sidebar-workspaces-collapse"],
 	],
-	["src/renderer/stores/v2-local-override.ts", ["v2-local-override-v2"]],
 	[
 		"src/renderer/stores/v2-workspace-create-defaults.ts",
 		["v2-workspace-create-defaults"],

@@ -2,7 +2,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { TriangleAlert, X } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 
 const Dithering = lazy(() =>
 	import("@paper-design/shaders-react").then((mod) => ({
@@ -18,7 +18,9 @@ interface FlipNoticeCardProps {
 	body: string;
 	/** Rendered as an amber callout row (WorkspaceHoverCard idiom). */
 	warning?: string;
+	children?: ReactNode;
 	ctaLabel: string;
+	onCta?: () => void;
 	onDismiss: () => void;
 }
 
@@ -32,7 +34,9 @@ export function FlipNoticeCard({
 	title,
 	body,
 	warning,
+	children,
 	ctaLabel,
+	onCta,
 	onDismiss,
 }: FlipNoticeCardProps) {
 	const { _: translate } = useTranslation();
@@ -68,13 +72,14 @@ export function FlipNoticeCard({
 			</div>
 			<div className="space-y-3 p-4 pt-3">
 				<p className="text-muted-foreground text-sm">{body}</p>
+				{children}
 				{warning ? (
 					<div className="flex items-start gap-2 bg-amber-500/10 px-2.5 py-2 text-amber-500">
 						<TriangleAlert className="mt-0.5 size-4 shrink-0" />
 						<p className="text-sm">{warning}</p>
 					</div>
 				) : null}
-				<Button size="sm" onClick={onDismiss}>
+				<Button size="sm" onClick={onCta ?? onDismiss}>
 					{ctaLabel}
 				</Button>
 			</div>

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { HostServiceClient } from "renderer/lib/host-service-client";
+import { owesFullPass } from "./attention";
 import type {
 	V1GroupRow,
 	V1MigrationIpc,
@@ -29,13 +30,24 @@ interface HostWorkspace {
 	projectId: string;
 	branch: string;
 	type?: "local" | "worktree";
+	worktreePath?: string;
 }
 
+/** Symlinks and case-insensitive spellings: path → real path. */
+type Aliases = Map<string, string>;
+
+const notFound = (message: string) =>
+	Object.assign(new Error(message), { data: { code: "NOT_FOUND" } });
+
 class FakeHost {
+	omitWorktreePaths = false;
 	projects: HostProject[] = [];
 	workspaces: HostWorkspace[] = [];
 	/** repoPath → branches that exist on disk under that project. */
 	diskBranches = new Map<string, Set<string>>();
+	/** branch → path git lists it at; default `/disk/<branch>`. */
+	worktreePaths = new Map<string, string>();
+	aliases: Aliases = new Map();
 	/** repoPath → error message create/setup should throw (broken repos). */
 	brokenRepos = new Map<string, string>();
 	/** Repo paths that no longer exist on disk (findByPath 400s). */
@@ -57,6 +69,66 @@ class FakeHost {
 
 	private id(prefix: string): string {
 		return `${prefix}-${++this.seq}`;
+	}
+
+	private gitPath(branch: string): string {
+		return this.worktreePaths.get(branch) ?? `/disk/${branch}`;
+	}
+
+	private real(path: string): string {
+		return this.aliases.get(path) ?? path;
+	}
+
+	/** Mirrors host adopt: path mode reads the branch, then conflict cleanup. */
+	private adoptRow(args: {
+		projectId: string;
+		repoPath: string;
+		branch: string;
+		worktreePath?: string;
+	}): { workspace: HostWorkspace; alreadyExists: boolean } {
+		const onDisk = [...(this.diskBranches.get(args.repoPath) ?? [])]
+			.filter((branch) => branch !== "main")
+			.map((branch) => ({ branch, path: this.gitPath(branch) }));
+		const target = args.worktreePath
+			? onDisk.find(
+					(w) => this.real(w.path) === this.real(args.worktreePath as string),
+				)
+			: onDisk.find((w) => w.branch === args.branch);
+		if (!target && args.worktreePath) {
+			throw notFound(`No git worktree registered at "${args.worktreePath}"`);
+		}
+		const branch = target?.branch ?? args.branch;
+		const path = args.worktreePath ?? target?.path ?? this.gitPath(branch);
+		const rows = this.workspaces.filter(
+			(w) => w.projectId === args.projectId && w.type !== "local",
+		);
+		const byBranch = rows.find((w) => w.branch === branch);
+		if (byBranch && byBranch.worktreePath === path) {
+			return { workspace: byBranch, alreadyExists: true };
+		}
+		const byPath = rows.find((w) => w.worktreePath === path);
+		const keepId = byPath?.id ?? this.id("v2w");
+		for (const conflict of rows) {
+			if (conflict.id === keepId) continue;
+			if (conflict.branch !== branch && conflict.worktreePath !== path) {
+				continue;
+			}
+			this.mutations.push({ kind: "workspace.delete", args: conflict.id });
+			this.workspaces = this.workspaces.filter((w) => w.id !== conflict.id);
+		}
+		if (byPath) {
+			byPath.branch = branch;
+			return { workspace: byPath, alreadyExists: true };
+		}
+		const row: HostWorkspace = {
+			tags: [],
+			id: keepId,
+			projectId: args.projectId,
+			branch,
+			worktreePath: path,
+		};
+		this.workspaces.push(row);
+		return { workspace: row, alreadyExists: false };
 	}
 
 	client(): HostServiceClient {
@@ -210,6 +282,17 @@ class FakeHost {
 						return {
 							worktrees: [...branches].map((branch) => ({
 								branch,
+								path: this.omitWorktreePaths
+									? undefined
+									: branch === "main" && project
+										? project.repoPath
+										: this.gitPath(branch),
+								hasWorkspace: this.workspaces.some(
+									(w) =>
+										w.projectId === projectId &&
+										(w.branch === branch ||
+											w.worktreePath === this.gitPath(branch)),
+								),
 								isMainWorktree: branch === "main",
 							})),
 						};
@@ -220,6 +303,7 @@ class FakeHost {
 						projectId: string;
 						workspaceName: string;
 						branch: string;
+						worktreePath?: string;
 					}) => {
 						if (this.adoptFaults > 0) {
 							this.adoptFaults--;
@@ -232,19 +316,12 @@ class FakeHost {
 								"Project directory is no longer a directory on disk",
 							);
 						}
+						const result = this.adoptRow({
+							...args,
+							repoPath: owner.repoPath,
+						});
 						this.mutations.push({ kind: "workspaceCreation.adopt", args });
-						const existing = this.workspaces.find(
-							(w) => w.projectId === args.projectId && w.branch === args.branch,
-						);
-						if (existing) return { workspace: existing, alreadyExists: true };
-						const row = {
-							tags: [],
-							id: this.id("v2w"),
-							projectId: args.projectId,
-							branch: args.branch,
-						};
-						this.workspaces.push(row);
-						return { workspace: row, alreadyExists: false };
+						return result;
 					},
 				},
 			},
@@ -261,6 +338,9 @@ class FakeIpc implements V1MigrationIpc {
 	/** kind\0v1Id → every status ever recorded, for monotonicity checks. */
 	ledgerHistory = new Map<string, string[]>();
 	failNextLedgerRecords = 0;
+	/** Folders that exist on disk without being an adoptable worktree. */
+	existingPaths = new Set<string>();
+	aliases: Aliases = new Map();
 
 	async readV1Groups() {
 		return this.groups;
@@ -273,6 +353,13 @@ class FakeIpc implements V1MigrationIpc {
 	}
 	async readV1Worktrees() {
 		return [...this.worktrees];
+	}
+	async resolvePaths(paths: string[]) {
+		return paths.map((p) => {
+			const alias = this.aliases.get(p);
+			if (alias) return alias;
+			return p.startsWith("/disk/") || this.existingPaths.has(p) ? p : null;
+		});
 	}
 	async readV1Settings() {
 		return null;
@@ -653,6 +740,26 @@ describe("runV1Migration scenarios", () => {
 		expect(host.projects).toHaveLength(0);
 	});
 
+	test("pending workspaces of a project the user removed on v2 are skipped, not failed", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+		await run(ipc, host);
+
+		host.projects = [];
+		ipc.worktrees = [{ id: "wt1", path: "/trees/late", baseBranch: "main" }];
+		ipc.workspaces = [workspace("w-late", "p1", "late", "wt1")];
+
+		const summary = await run(ipc, host);
+		expect(summary.workspaces.failed).toBe(0);
+		expect(summary.gateComplete).toBe(true);
+		expect(ipc.ledger.get("workspace\0w-late")).toMatchObject({
+			status: "skipped",
+			reason: "v2-project-removed",
+		});
+	});
+
 	test("workspace of an imported project whose directory vanished is skipped, not failed", async () => {
 		const ipc = new FakeIpc();
 		const host = new FakeHost();
@@ -672,6 +779,197 @@ describe("runV1Migration scenarios", () => {
 			status: "skipped",
 			reason: "repo-path-missing",
 		});
+	});
+
+	test("a worktree whose branch was switched in place adopts by its folder", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [{ id: "wt1", path: "/disk/feat-v2", baseBranch: "main" }];
+		ipc.workspaces = [workspace("w-feat", "p1", "feat", "wt1")];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat-v2"]));
+
+		await run(ipc, host);
+		expect(ipc.ledger.get("workspace\0w-feat")).toMatchObject({
+			status: "success",
+		});
+	});
+
+	test("a host that lists worktrees without paths still adopts by branch", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		host.omitWorktreePaths = true;
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [{ id: "wt1", path: "/trees/feat", baseBranch: "main" }];
+		ipc.workspaces = [workspace("w-feat", "p1", "feat", "wt1")];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat"]));
+
+		const summary = await run(ipc, host);
+		expect(summary.workspaces.failed).toBe(0);
+		expect(ipc.ledger.get("workspace\0w-feat")).toMatchObject({
+			status: "success",
+		});
+	});
+
+	test("a folder that still exists but cannot adopt is kept for attention", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt1", path: "/trees/detached", baseBranch: "main" },
+		];
+		ipc.workspaces = [workspace("w-det", "p1", "detached", "wt1")];
+		ipc.existingPaths.add("/trees/detached");
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+
+		await run(ipc, host);
+		expect(ipc.ledger.get("workspace\0w-det")).toMatchObject({
+			status: "skipped",
+			reason: "worktree-needs-attention",
+		});
+	});
+
+	test("a symlinked, differently cased folder adopts under git's spelling of its path", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		const aliases: Aliases = new Map([
+			["/Users/Me/trees/feat/", "/Volumes/Data/trees/feat"],
+			["/link/trees/feat", "/Volumes/Data/trees/feat"],
+		]);
+		ipc.aliases = aliases;
+		host.aliases = aliases;
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt1", path: "/Users/Me/trees/feat/", baseBranch: "main" },
+		];
+		ipc.workspaces = [workspace("w-feat", "p1", "feat", "wt1")];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat-v2"]));
+		host.worktreePaths.set("feat-v2", "/link/trees/feat");
+		host.projects.push({ id: "v2p-a", repoPath: "/repo/a" });
+		// A v2 row already tracks the folder under its old branch name.
+		host.workspaces.push({
+			tags: [],
+			id: "v2w-existing",
+			projectId: "v2p-a",
+			branch: "feat",
+			worktreePath: "/link/trees/feat",
+		});
+
+		await run(ipc, host);
+
+		expect(ipc.ledger.get("workspace\0w-feat")).toMatchObject({
+			status: "success",
+			v2Id: "v2w-existing",
+		});
+		expect(host.workspaces.filter((w) => w.type !== "local")).toEqual([
+			expect.objectContaining({
+				id: "v2w-existing",
+				branch: "feat-v2",
+				worktreePath: "/link/trees/feat",
+			}),
+		]);
+	});
+
+	test("a worktree moved and renamed after v1 stays visible and is never adopted as another", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt-moved", path: "/old/feat", baseBranch: "main" },
+			{ id: "wt-renamed", path: "/old/fix", baseBranch: "main" },
+		];
+		ipc.workspaces = [
+			workspace("w-moved", "p1", "feat", "wt-moved"),
+			workspace("w-renamed", "p1", "fix", "wt-renamed"),
+		];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat", "fix-2"]));
+
+		await run(ipc, host);
+
+		expect(ipc.ledger.get("workspace\0w-moved")?.status).toBe("success");
+		expect(ipc.ledger.get("workspace\0w-renamed")).toMatchObject({
+			status: "skipped",
+			reason: "worktree-needs-attention",
+		});
+		expect(host.workspaces.map((w) => w.branch)).toEqual(["feat"]);
+	});
+
+	test("duplicate v1 projects and workspaces on one branch share one v2 row each", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		const aliases: Aliases = new Map([
+			["/v1/trees/feat", "/real/trees/feat"],
+			["/disk/feat", "/real/trees/feat"],
+		]);
+		ipc.aliases = aliases;
+		host.aliases = aliases;
+		ipc.projects = [project("p1", "/repo/a"), project("p2", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt1", path: "/v1/trees/feat", baseBranch: "main" },
+			{ id: "wt2", path: "/v1/trees/gone", baseBranch: "main" },
+		];
+		ipc.workspaces = [
+			workspace("w1-main", "p1", "main"),
+			workspace("w2-main", "p2", "main"),
+			workspace("w1-feat", "p1", "feat", "wt1"),
+			workspace("w2-feat", "p2", "feat", "wt2"),
+		];
+		host.diskBranches.set("/repo/a", new Set(["main", "feat"]));
+
+		const summary = await run(ipc, host);
+
+		expect(summary.workspaces.failed).toBe(0);
+		expect(host.mutations.map((m) => m.kind)).not.toContain("workspace.delete");
+		expect(host.workspaces.map((w) => w.branch).sort()).toEqual([
+			"feat",
+			"main",
+		]);
+		const v2Id = (v1Id: string) => ipc.ledger.get(`workspace\0${v1Id}`)?.v2Id;
+		expect(v2Id("w1-main")).toBeTruthy();
+		expect(v2Id("w2-main")).toBe(v2Id("w1-main"));
+		expect(v2Id("w1-feat")).toBeTruthy();
+		expect(v2Id("w2-feat")).toBe(v2Id("w1-feat"));
+
+		const mutations = host.mutations.length;
+		await run(ipc, host);
+		expect(host.mutations.length).toBe(mutations);
+	});
+
+	test("an unmounted worktree with a stale branch that matches the checkout is retried, not merged into it", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [project("p1", "/repo/a")];
+		ipc.worktrees = [
+			{ id: "wt1", path: "/Volumes/ext/feat", baseBranch: "main" },
+		];
+		// v1 last saw "main" here; the folder has since moved to "feat".
+		ipc.workspaces = [workspace("w-ext", "p1", "main", "wt1")];
+		host.diskBranches.set("/repo/a", new Set(["main"]));
+
+		await run(ipc, host);
+		expect(ipc.ledger.get("workspace\0w-ext")).toMatchObject({
+			status: "skipped",
+			reason: "no-worktree-on-disk",
+		});
+		expect(host.mutations.map((m) => m.kind)).not.toContain(
+			"workspaces.create",
+		);
+
+		// Drive mounted again: git lists the worktree.
+		ipc.aliases.set("/Volumes/ext/feat", "/disk/feat");
+		host.diskBranches.set("/repo/a", new Set(["main", "feat"]));
+		expect(
+			await owesFullPass({
+				ledgerRows: [...ipc.ledger.values()],
+				v1Projects: ipc.projects,
+				v1Workspaces: ipc.workspaces,
+				v1Worktrees: ipc.worktrees,
+				resolvePaths: (paths) => ipc.resolvePaths(paths),
+			}),
+		).toBe(true);
+		await run(ipc, host);
+		expect(ipc.ledger.get("workspace\0w-ext")?.status).toBe("success");
+		expect(host.workspaces.map((w) => w.branch)).toEqual(["feat"]);
 	});
 
 	test("no v1 data: gate trivially complete, zero mutations", async () => {

@@ -46,6 +46,8 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "leaderboard-asked-v1", match: "exact" },
 	// Opening a page no longer routes to the last-visited workspace
 	{ key: "last-active-v2-workspace", match: "exact" },
+	// v1/v2 surface toggle; v2 is always on
+	{ key: "v2-local-override-v2", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

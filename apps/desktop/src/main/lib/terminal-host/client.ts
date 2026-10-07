@@ -548,6 +548,20 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
+	isDaemonProcessGone(): boolean {
+		if (!existsSync(PID_PATH)) return true;
+		try {
+			const pid = Number.parseInt(readFileSync(PID_PATH, "utf-8").trim(), 10);
+			return !(
+				isPositiveInteger(pid) &&
+				this.isPidAlive(pid) &&
+				this.isTerminalHostDaemonPid(pid)
+			);
+		} catch {
+			return false;
+		}
+	}
+
 	private isTerminalHostDaemonPid(pid: number): boolean {
 		if (!isPositiveInteger(pid)) return false;
 		const result = spawnSync("ps", ["-p", String(pid), "-o", "command="], {
@@ -1669,6 +1683,13 @@ export class TerminalHostClient extends EventEmitter {
 	async kill(request: KillRequest): Promise<EmptyResponse> {
 		await this.ensureConnected();
 		return this.sendRequest<EmptyResponse>("kill", request);
+	}
+
+	async killIfRunning(request: KillRequest): Promise<boolean> {
+		const connected = await this.tryConnectAndAuthenticate();
+		if (!connected) return false;
+		await this.sendRequest<EmptyResponse>("kill", request);
+		return true;
 	}
 
 	/**

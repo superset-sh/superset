@@ -1,4 +1,4 @@
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import {
 	projects,
@@ -8,12 +8,17 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import type { BrowserWindow } from "electron";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { createRunLock } from "./utils/run-lock";
+import { listLiveV1Sessions, stopV1Sessions } from "./utils/v1-daemon-sessions";
+import { collectV1TerminalPanes } from "./utils/v1-terminal-panes";
 
 const ledgerEntrySchema = z.object({
 	v1Id: z.string().min(1),
@@ -23,7 +28,29 @@ const ledgerEntrySchema = z.object({
 	reason: z.string().nullish(),
 });
 
+function watchHolder(
+	window: BrowserWindow | null,
+	onGone: () => void,
+): (() => void) | null {
+	if (!window || window.isDestroyed()) return null;
+	const contents = window.webContents;
+	contents.on("did-navigate", onGone);
+	contents.on("render-process-gone", onGone);
+	contents.on("destroyed", onGone);
+	return () => {
+		if (contents.isDestroyed()) return;
+		contents.off("did-navigate", onGone);
+		contents.off("render-process-gone", onGone);
+		contents.off("destroyed", onGone);
+	};
+}
+
 export const createMigrationRouter = () => {
+	const runLock = createRunLock({
+		path: join(SUPERSET_HOME_DIR, "v1-migration.lock"),
+	});
+	let detachHolder: (() => void) | null = null;
+
 	return router({
 		readV1Projects: publicProcedure.query(() => {
 			// Only surface pinned projects. v1's `hideProject` nulls tab_order
@@ -52,6 +79,18 @@ export const createMigrationRouter = () => {
 			return localDb.select().from(worktrees).all();
 		}),
 
+		resolvePaths: publicProcedure
+			.input(z.object({ paths: z.array(z.string()) }))
+			.query(({ input }) =>
+				input.paths.map((path) => {
+					try {
+						return realpathSync.native(path);
+					} catch {
+						return null;
+					}
+				}),
+			),
+
 		readV1Settings: publicProcedure.query(() => {
 			return localDb.select().from(settings).get() ?? null;
 		}),
@@ -61,25 +100,9 @@ export const createMigrationRouter = () => {
 		 * and best-known cwd. Terminal sessions themselves can't migrate (v1
 		 * and v2 own separate daemon sessions) — the cwd is what carries over.
 		 */
-		readV1TerminalPanes: publicProcedure.query(() => {
-			const tabsState = appState.data.tabsState;
-			const workspaceIdByTabId = new Map(
-				tabsState.tabs.map((tab) => [tab.id, tab.workspaceId]),
-			);
-			return Object.values(tabsState.panes)
-				.filter((pane) => pane.type === "terminal")
-				.flatMap((pane) => {
-					const v1WorkspaceId = workspaceIdByTabId.get(pane.tabId);
-					if (!v1WorkspaceId) return [];
-					return [
-						{
-							paneId: pane.id,
-							v1WorkspaceId,
-							cwd: pane.cwd ?? pane.initialCwd ?? null,
-						},
-					];
-				});
-		}),
+		readV1TerminalPanes: publicProcedure.query(() =>
+			collectV1TerminalPanes(appState.data),
+		),
 
 		/**
 		 * Latest captured agent session per v1 pane (see V1PaneAgentSession).
@@ -99,59 +122,55 @@ export const createMigrationRouter = () => {
 				);
 			}),
 
-		/**
-		 * Cross-instance single-flight for the auto-migrator (cf. #5791 for
-		 * host services): one lock file per home dir — instances sharing it
-		 * share local.db, so one runner suffices. Acquisition is atomic (`wx`
-		 * create). Locks are stolen only from dead owners — a live pass is
-		 * never preempted however long it runs; the 24h age escape only
-		 * covers pid reuse by an unrelated long-lived process.
-		 */
-		acquireRunLock: publicProcedure.mutation(() => {
-			const path = join(SUPERSET_HOME_DIR, "v1-migration.lock");
-			const tryExclusiveWrite = () => {
-				try {
-					writeFileSync(
-						path,
-						JSON.stringify({ pid: process.pid, at: Date.now() }),
-						{ flag: "wx" },
-					);
-					return true;
-				} catch {
-					return false;
-				}
-			};
-			if (tryExclusiveWrite()) return { acquired: true as const };
-			try {
-				const lock = JSON.parse(readFileSync(path, "utf8")) as {
-					pid: number;
-					at: number;
-				};
-				const alive = (() => {
-					try {
-						process.kill(lock.pid, 0);
-						return true;
-					} catch {
-						return false;
-					}
-				})();
-				const ancient = Date.now() - lock.at > 24 * 60 * 60 * 1000;
-				if (alive && lock.pid !== process.pid && !ancient) {
-					return { acquired: false as const };
-				}
-			} catch {
-				// Unreadable/corrupt lock: treat as dead and steal.
+		listLiveV1Sessions: publicProcedure.query(() =>
+			listLiveV1Sessions(getTerminalHostClient()),
+		),
+
+		stopV1Sessions: publicProcedure
+			.input(z.object({ paneIds: z.array(z.string().min(1)) }))
+			.mutation(({ input }) =>
+				stopV1Sessions(getTerminalHostClient(), input.paneIds),
+			),
+
+		// A hold ends when its window reloads or closes, so a renderer that dies
+		// mid-pass can't keep the lock.
+		acquireRunLock: publicProcedure.mutation(({ ctx }) => {
+			const result = runLock.acquire();
+			if (result.acquired) {
+				detachHolder?.();
+				detachHolder = watchHolder(ctx.senderWindow, () => {
+					if (!runLock.release(result.token)) return;
+					detachHolder?.();
+					detachHolder = null;
+				});
 			}
-			try {
-				unlinkSync(path);
-			} catch {}
-			return { acquired: tryExclusiveWrite() };
+			return result;
 		}),
 
-		releaseRunLock: publicProcedure.mutation(() => {
-			try {
-				unlinkSync(join(SUPERSET_HOME_DIR, "v1-migration.lock"));
-			} catch {}
+		releaseRunLock: publicProcedure
+			.input(z.object({ token: z.string() }).optional())
+			.mutation(({ input }) => {
+				if (runLock.release(input?.token)) {
+					detachHolder?.();
+					detachHolder = null;
+				}
+			}),
+
+		ledgerOwners: publicProcedure.query(() => {
+			return localDb
+				.select({
+					organizationId: v1MigrationState.organizationId,
+					v1Id: v1MigrationState.v1Id,
+					kind: v1MigrationState.kind,
+				})
+				.from(v1MigrationState)
+				.where(
+					and(
+						inArray(v1MigrationState.kind, ["project", "workspace"]),
+						inArray(v1MigrationState.status, ["success", "linked"]),
+					),
+				)
+				.all();
 		}),
 
 		ledgerList: publicProcedure

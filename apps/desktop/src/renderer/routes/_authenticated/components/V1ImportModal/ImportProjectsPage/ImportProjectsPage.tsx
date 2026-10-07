@@ -19,9 +19,11 @@ import {
 	type ProjectImportOutcome,
 	recordV1MigrationOutcome,
 } from "renderer/lib/v1-migration";
+import { withV1MigrationRunLock } from "renderer/lib/v1-migration/run-lock";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
+import { useForeignV1Claims } from "../hooks/useForeignV1Claims";
 import {
 	IDLE_IMPORT_STATUS as IDLE,
 	type ProjectImportStatus,
@@ -63,10 +65,17 @@ export function ImportProjectsPage({
 		total: number;
 	} | null>(null);
 
-	const isLoading = projectsQuery.isPending;
+	const foreignClaims = useForeignV1Claims(organizationId);
+	const isLoading = projectsQuery.isPending || foreignClaims === null;
 	const isImportingAll = importAllProgress !== null;
 
-	const projects = projectsQuery.data ?? [];
+	const projects = useMemo(
+		() =>
+			(projectsQuery.data ?? []).filter(
+				(p) => !foreignClaims?.projectIds.has(p.id),
+			),
+		[projectsQuery.data, foreignClaims],
+	);
 
 	const [importStates, setImportStates] = useState<
 		Map<string, ProjectImportStatus>
@@ -334,23 +343,28 @@ async function importProject({
 	linkToProjectId?: string;
 	allowRelocate?: boolean;
 }): Promise<ProjectImportOutcome> {
-	const result = await importV1Project({
-		hostClient: getHostServiceClientByUrl(activeHostUrl),
-		project,
-		findByPathResult,
-		linkToProjectId,
-		allowRelocate,
+	const result = await withV1MigrationRunLock(async () => {
+		const outcome = await importV1Project({
+			hostClient: getHostServiceClientByUrl(activeHostUrl),
+			project,
+			findByPathResult,
+			linkToProjectId,
+			allowRelocate,
+		});
+		if (outcome.kind === "imported") {
+			await recordV1MigrationOutcome(organizationId, {
+				v1Id: project.id,
+				kind: "project",
+				status: "success",
+				v2Id: outcome.v2ProjectId,
+			});
+		}
+		return outcome;
 	});
 	if (result.kind === "imported") {
 		finalizeSetup(activeHostUrl, {
 			projectId: result.v2ProjectId,
 			repoPath: result.repoPath,
-		});
-		recordV1MigrationOutcome(organizationId, {
-			v1Id: project.id,
-			kind: "project",
-			status: "success",
-			v2Id: result.v2ProjectId,
 		});
 	}
 	return result;

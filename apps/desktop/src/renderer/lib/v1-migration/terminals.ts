@@ -45,6 +45,25 @@ export function resolveMigratedPaneResume(
 	return { agentId: session.agentId, agentSessionId: session.agentSessionId };
 }
 
+export type MigratedPaneResumeStep =
+	| { kind: "none" }
+	| { kind: "seed"; resume: MigratedPaneResume }
+	| { kind: "wait-for-v1" };
+
+// Resuming while the v1 session lives would run two agents on one conversation.
+export function planMigratedPaneResume({
+	session,
+	v1SessionAlive,
+}: {
+	session: V1PaneAgentSessionSnapshot | undefined;
+	v1SessionAlive: boolean;
+}): MigratedPaneResumeStep {
+	const resume = resolveMigratedPaneResume(session);
+	if (!resume) return { kind: "none" };
+	if (v1SessionAlive) return { kind: "wait-for-v1" };
+	return { kind: "seed", resume };
+}
+
 export interface TerminalMigrationPlan {
 	/** v2WorkspaceId → terminals to queue (fresh v2 terminal ids). */
 	pendingByV2WorkspaceId: Map<string, PendingMigratedTerminal[]>;

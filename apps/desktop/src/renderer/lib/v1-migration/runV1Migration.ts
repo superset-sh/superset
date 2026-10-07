@@ -1,5 +1,6 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { WORKTREE_NEEDS_ATTENTION } from "./attention";
 import { migrateV1Groups, type V1GroupTarget } from "./groups";
 import type { V1MigrationIpc } from "./ipc";
 import {
@@ -30,6 +31,8 @@ import {
 } from "./terminals";
 import {
 	adoptV1Workspace,
+	hostWorkspaceKey,
+	type OnDiskWorktree,
 	planWorkspaceAdoptions,
 	type V1WorktreeLike,
 } from "./workspaces";
@@ -294,15 +297,29 @@ async function migrateWorkspaces(
 	}
 
 	const hostWorkspaceIds = new Set(hostWorkspaces.map((w) => w.id));
-	const pendingWorkspaces = v1Workspaces.filter((w) => {
-		const existing = ledger.get(ledgerKey("workspace", w.id));
-		if (!existing || !isTerminalStatus(existing.status)) return true;
-		return (
-			!!deps.reconcileWithHost &&
-			existing.v2Id !== null &&
-			!hostWorkspaceIds.has(existing.v2Id)
-		);
-	});
+	const hostProjectIds = new Set(hostProjects.map((p) => p.id));
+	const pendingWorkspaces = v1Workspaces
+		.filter((w) => {
+			const existing = ledger.get(ledgerKey("workspace", w.id));
+			if (!existing || !isTerminalStatus(existing.status)) return true;
+			return (
+				!!deps.reconcileWithHost &&
+				existing.v2Id !== null &&
+				!hostWorkspaceIds.has(existing.v2Id)
+			);
+		})
+		.filter((w) => {
+			const v2ProjectId = v2ProjectIdByV1ProjectId.get(w.projectId);
+			if (!v2ProjectId || hostProjectIds.has(v2ProjectId)) return true;
+			summary.skipped++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: w.id,
+				kind: "workspace",
+				status: "skipped",
+				reason: "v2-project-removed",
+			});
+			return false;
+		});
 
 	const mappedV2ProjectIds = new Set(
 		pendingWorkspaces
@@ -311,6 +328,7 @@ async function migrateWorkspaces(
 	);
 	const onDiskBranchesByV2ProjectId = new Map<string, Set<string>>();
 	const mainBranchByV2ProjectId = new Map<string, string>();
+	const onDiskWorktrees: OnDiskWorktree[] = [];
 	await Promise.all(
 		Array.from(mappedV2ProjectIds, async (v2ProjectId) => {
 			try {
@@ -320,8 +338,23 @@ async function migrateWorkspaces(
 					});
 				onDiskBranchesByV2ProjectId.set(
 					v2ProjectId,
-					new Set(result.worktrees.map((w) => w.branch)),
+					new Set(
+						result.worktrees
+							.filter((w) => !w.isMainWorktree)
+							.map((w) => w.branch),
+					),
 				);
+				for (const w of result.worktrees) {
+					// Older hosts list no path; those match by branch.
+					if (typeof w.path !== "string") continue;
+					onDiskWorktrees.push({
+						v2ProjectId,
+						branch: w.branch,
+						path: w.path,
+						isMainWorktree: !!w.isMainWorktree,
+						hasWorkspace: w.hasWorkspace !== false,
+					});
+				}
 				const main = result.worktrees.find((w) => w.isMainWorktree);
 				if (main) mainBranchByV2ProjectId.set(v2ProjectId, main.branch);
 			} catch {
@@ -334,6 +367,24 @@ async function migrateWorkspaces(
 	const v1WorktreesById = new Map<string, V1WorktreeLike>(
 		v1Worktrees.map((w) => [w.id, w]),
 	);
+	const pendingWorktrees = pendingWorkspaces.flatMap((w) => {
+		const worktree = w.worktreeId ? v1WorktreesById.get(w.worktreeId) : null;
+		return worktree ? [worktree] : [];
+	});
+	const realPaths = await deps.ipc.resolvePaths([
+		...onDiskWorktrees.map((w) => w.path),
+		...pendingWorktrees.map((w) => w.path),
+	]);
+	const onDiskWorktreeByRealPath = new Map<string, OnDiskWorktree>();
+	onDiskWorktrees.forEach((w, i) => {
+		onDiskWorktreeByRealPath.set(realPaths[i] ?? w.path, w);
+	});
+	const v1WorktreeRealPathById = new Map<string, string | null>(
+		pendingWorktrees.map((w, i) => [
+			w.id,
+			realPaths[onDiskWorktrees.length + i] ?? null,
+		]),
+	);
 	const plan = planWorkspaceAdoptions({
 		v1Workspaces: pendingWorkspaces,
 		v1WorktreesById,
@@ -341,6 +392,8 @@ async function migrateWorkspaces(
 		hostWorkspaces,
 		onDiskBranchesByV2ProjectId,
 		mainBranchByV2ProjectId,
+		onDiskWorktreeByRealPath,
+		v1WorktreeRealPathById,
 	});
 
 	// A workspace is unmapped exactly when its project's import failed or was
@@ -369,13 +422,39 @@ async function migrateWorkspaces(
 		});
 	}
 
+	for (const attention of plan.needsAttention) {
+		summary.skipped++;
+		pushOutcome(ledger, outcomes, {
+			v1Id: attention.v1WorkspaceId,
+			kind: "workspace",
+			status: "skipped",
+			reason: WORKTREE_NEEDS_ATTENTION,
+		});
+	}
+
+	// A second adopt of the same folder would delete the row the first made.
+	const linkToEarlier = (v1WorkspaceId: string, v2WorkspaceId?: string) => {
+		if (!v2WorkspaceId) return false;
+		summary.linked++;
+		pushOutcome(ledger, outcomes, {
+			v1Id: v1WorkspaceId,
+			kind: "workspace",
+			status: "linked",
+			v2Id: v2WorkspaceId,
+		});
+		return true;
+	};
+	const createdLocalByProject = new Map<string, string>();
 	for (const entry of plan.toCreateLocal) {
+		const earlier = createdLocalByProject.get(entry.v2ProjectId);
+		if (linkToEarlier(entry.v1WorkspaceId, earlier)) continue;
 		try {
 			const result = await deps.hostClient.workspaces.createLocal.mutate({
 				projectId: entry.v2ProjectId,
 				checkout: "local",
 				name: entry.name,
 			});
+			createdLocalByProject.set(entry.v2ProjectId, result.workspace.id);
 			summary.migrated++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: entry.v1WorkspaceId,
@@ -402,9 +481,17 @@ async function migrateWorkspaces(
 		}
 	}
 
+	const adoptedByKey = new Map<string, string>();
 	for (const entry of plan.toAdopt) {
+		const key = hostWorkspaceKey(entry.v2ProjectId, entry.branch);
+		if (linkToEarlier(entry.v1WorkspaceId, adoptedByKey.get(key))) continue;
 		try {
 			const result = await adoptV1Workspace(deps.hostClient, entry);
+			adoptedByKey.set(key, result.workspace.id);
+			adoptedByKey.set(
+				hostWorkspaceKey(entry.v2ProjectId, result.workspace.branch),
+				result.workspace.id,
+			);
 			summary.migrated++;
 			pushOutcome(ledger, outcomes, {
 				v1Id: entry.v1WorkspaceId,
