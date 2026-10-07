@@ -32,17 +32,27 @@ export function proxy(request: NextRequest) {
 		return NextResponse.redirect(url, 308);
 	};
 
-	if (first === "en") return redirectTo(`/${rest.join("/")}`);
-	if (first === "user" && rest.length === 1 && second) {
-		return redirectTo(`/${second}`);
+	const routed =
+		first === "en"
+			? canonicalPathname(`/${rest.join("/")}`)
+					.split("/")
+					.slice(1)
+			: segments;
+	const [head = "", ...headRest] = routed;
+	const [next = "", ...nextRest] = headRest;
+	if (head === "user" && headRest.length === 1 && next) {
+		return redirectTo(`/${next}`);
 	}
 	if (
-		isSupportedLocale(first) &&
-		second === "user" &&
-		tail.length === 1 &&
-		tail[0]
+		isSupportedLocale(head) &&
+		next === "user" &&
+		nextRest.length === 1 &&
+		nextRest[0]
 	) {
-		return redirectTo(`/${first}/${tail[0]}`);
+		return redirectTo(`/${head}/${nextRest[0]}`);
+	}
+	if (first === "en") {
+		return redirectTo(`/${routed.join("/")}`);
 	}
 	if (canonical !== pathname) return redirectTo(canonical);
 

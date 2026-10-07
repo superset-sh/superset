@@ -23,6 +23,9 @@ describe("proxy", () => {
 		expect(run("/EN/Pricing").location).toBe("/pricing");
 		expect(run("/User/Kitenite").location).toBe("/kitenite");
 		expect(run("/JA/User/Kitenite").location).toBe("/ja/kitenite");
+		expect(run("/EN/User/Kitenite").location).toBe("/kitenite");
+		expect(run("/en/zh-cn/Careers").location).toBe("/zh-CN/careers");
+		expect(run("/en/zh-cn/user/Kitenite").location).toBe("/zh-CN/kitenite");
 	});
 
 	test("serves canonical paths without a redirect", () => {
