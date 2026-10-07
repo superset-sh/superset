@@ -77,12 +77,23 @@ export type GoogleConfig = {
 	};
 };
 
+export type GitLabConfig = {
+	provider: "gitlab";
+	host: string;
+	groupPath: string | null;
+	auth: "oauth" | "token";
+	webhookSecret: string;
+	scopeKind?: "project" | "group";
+	scopeId?: string;
+};
+
 export type IntegrationConfig =
 	| LinearConfig
 	| SlackConfig
 	| MicrosoftTeamsConfig
 	| SentryConfig
-	| GoogleConfig;
+	| GoogleConfig
+	| GitLabConfig;
 
 /**
  * The trigger config column, typed from the zod schema that validates every

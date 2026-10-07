@@ -34,6 +34,7 @@ export const integrationProviderValues = [
 	"microsoft_teams",
 	"google",
 	"notion",
+	"gitlab",
 ] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
@@ -203,6 +204,7 @@ export const automationTriggerKindValues = [
 	"schedule",
 	"webhook",
 	"github",
+	"gitlab",
 	"slack",
 	"linear",
 	"sentry",
