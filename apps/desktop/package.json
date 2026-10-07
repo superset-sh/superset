@@ -70,6 +70,7 @@
 		"@dnd-kit/core": "6.3.1",
 		"@dnd-kit/sortable": "10.0.0",
 		"@dnd-kit/utilities": "3.2.2",
+		"@expo/hub-client": "1.2.0",
 		"@headless-tree/core": "1.6.3",
 		"@headless-tree/react": "1.6.3",
 		"@hono/node-server": "2.0.10",

@@ -1966,6 +1966,10 @@ msgstr "Çalışıyor"
 msgid "All"
 msgstr "Tümü"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "Tümü"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "Tümü ({0}) →"
@@ -2333,6 +2337,10 @@ msgstr "API eşdeğeri"
 msgid "API-equivalent cost"
 msgstr "API eşdeğeri maliyet"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "Uygulama"
+
 msgid "app {appVersion}"
 msgstr "uygulama {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "Uygulama görüntüleme dili. Otomatik, sistem dilinizi izler."
 
 msgid "App icon"
 msgstr "Uygulama simgesi"
+
+msgid "App path"
+msgstr "Uygulama yolu"
 
 msgid "Appearance"
 msgstr "Görünüm"
@@ -2758,6 +2769,10 @@ msgstr "Sizden veya takımınızdan inceleme bekliyor"
 msgid "Back"
 msgstr "Geri"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "Geri"
+
 msgid "Back to About"
 msgstr "Hakkımızda sayfasına dön"
 
@@ -2933,6 +2948,9 @@ msgstr "Blog yazıları"
 msgid "Blue"
 msgstr "Mavi"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "Mavi/Sarı (Tritanopi)"
+
 msgid "Board"
 msgstr "Pano"
 
@@ -2941,6 +2959,13 @@ msgstr "Pano görünümü"
 
 msgid "Bold"
 msgstr "Kalın"
+
+msgid "Bold Text"
+msgstr "Kalın Metin"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "{0} başlatılıyor…"
 
 msgid "Border"
 msgstr "Kenarlık"
@@ -3527,6 +3552,9 @@ msgstr "Kontroller geçti"
 msgid "Checks Skipped"
 msgstr "Kontroller atlandı"
 
+msgid "Choose a device"
+msgstr "Cihaz seçin"
+
 msgid "Choose a fighter"
 msgstr "Bir dövüşçü seç"
 
@@ -3592,6 +3620,13 @@ msgstr "Eskimiş TODO'ları temizle…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Daha temiz, daha yoğun kenar çubuğu"
+
+msgid "Clear"
+msgstr "Temizle"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "Şeffaf"
 
 msgid "Clear all"
 msgstr "Tümünü temizle"
@@ -3792,6 +3827,9 @@ msgstr "Dosyayı kapat"
 msgid "Close find bar"
 msgstr "Bulma çubuğunu kapat"
 
+msgid "Close logs"
+msgstr "Günlükleri kapat"
+
 msgid "Close menu"
 msgstr "Menüyü kapat"
 
@@ -3971,6 +4009,9 @@ msgstr "Toplanıyor…"
 
 msgid "Color"
 msgstr "Renk"
+
+msgid "Color Filter"
+msgstr "Renk Filtresi"
 
 msgid "Combine all commits"
 msgstr "Tüm commit'leri birleştirir"
@@ -4597,6 +4638,9 @@ msgstr "localhost:{0} adresini kopyala"
 
 msgid "Copy log"
 msgstr "Günlüğü kopyala"
+
+msgid "Copy logs"
+msgstr "Günlükleri kopyala"
 
 msgid "Copy Markdown"
 msgstr "Markdown'ı kopyala"
@@ -6086,6 +6130,9 @@ msgstr "Yok sayıldı"
 msgid "Display"
 msgstr "Görüntüleme"
 
+msgid "Display Size"
+msgstr "Görüntü Boyutu"
+
 msgid "Displays the mobile sidebar."
 msgstr "Mobil kenar çubuğunu gösterir."
 
@@ -6174,6 +6221,9 @@ msgstr "macOS için indir"
 
 msgid "Download image"
 msgstr "Görseli indir"
+
+msgid "Download logs"
+msgstr "Günlükleri indir"
 
 msgid "Download Manually"
 msgstr "Elle indir"
@@ -6461,6 +6511,9 @@ msgstr "Boş"
 msgid "Empty command"
 msgstr "Boş komut"
 
+msgid "Emulator"
+msgstr "Emülatör"
+
 msgid "Enable"
 msgstr "Etkinleştir"
 
@@ -6567,6 +6620,9 @@ msgstr "kapatmak için esc"
 msgid "esc to exit"
 msgstr "çıkmak için esc"
 
+msgid "Event log"
+msgstr "Olay günlüğü"
+
 msgid "Event triggered"
 msgstr "Olay tetiklendi"
 
@@ -6639,6 +6695,9 @@ msgstr "Superset hakkında yazmak için ihtiyacınız olan her şey: şirket tan
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "Yayımladığınız her şey gizlenmez, silinir. Daha sonra yeniden katılabilirsiniz ve bu makinede duran kayıtlardan yeniden oluşturulur."
 
+msgid "Executable"
+msgstr "Çalıştırılabilir dosya"
+
 msgid "Existing repo path"
 msgstr "Mevcut depo yolu"
 
@@ -6660,6 +6719,9 @@ msgstr "Tasarım modundan çık (esc)"
 
 msgid "Exit device toolbar"
 msgstr "Cihaz araç çubuğundan çık"
+
+msgid "Exit full screen"
+msgstr "Tam ekrandan çık"
 
 msgid "Exited"
 msgstr "Çıktı"
@@ -7255,6 +7317,9 @@ msgstr "SSS"
 msgid "Fatal"
 msgstr "Kritik"
 
+msgid "Fault"
+msgstr "Hata (Fault)"
+
 msgid "Favorites"
 msgstr "Favoriler"
 
@@ -7371,6 +7436,9 @@ msgstr "Host'ları filtrele"
 
 msgid "Filter hosts..."
 msgstr "Host'ları filtrele..."
+
+msgid "Filter logs"
+msgstr "Günlükleri filtrele"
 
 msgid "Filter pages"
 msgstr "Sayfaları filtrele"
@@ -7699,6 +7767,9 @@ msgstr "Tam Disk Erişimi"
 msgid "Full name"
 msgstr "Ad soyad"
 
+msgid "Full screen"
+msgstr "Tam ekran"
+
 msgid "Full self-driving"
 msgstr "Tam otonomi"
 
@@ -7915,8 +7986,14 @@ msgstr "Superset'in ihtiyaç duyduğu işletim sistemi izinlerini verin."
 msgid "Granted"
 msgstr "Verildi"
 
+msgid "Grayscale"
+msgstr "Gri Tonlama"
+
 msgid "Green"
 msgstr "Yeşil"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "Yeşil/Kırmızı (Döteranopi)"
 
 msgid "Grepped"
 msgstr "Grep'lendi"
@@ -7971,6 +8048,9 @@ msgstr "şu anda sürüyor"
 
 msgid "Hard reload"
 msgstr "Sert yeniden yükleme"
+
+msgid "Hardware Keyboard"
+msgstr "Donanım Klavyesi"
 
 msgid "Has conflicts"
 msgstr "Çakışma var"
@@ -8101,6 +8181,10 @@ msgstr "Geçmiş"
 
 msgid "Home"
 msgstr "Ana sayfa"
+
+msgctxt "device home button"
+msgid "Home"
+msgstr "Ana Ekran"
 
 msgctxt "directory"
 msgid "Home"
@@ -8492,6 +8576,9 @@ msgstr "Superset'e özgü kutu varyantını içerir"
 
 msgid "Incognito Operator"
 msgstr "Gizli Operatör"
+
+msgid "Increase Contrast"
+msgstr "Kontrastı Artır"
 
 msgid "Indigo"
 msgstr "Çivit"
@@ -9234,6 +9321,9 @@ msgstr "Bu görevi bağla"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} çalışma alanına bağlandı"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "Liste"
 
@@ -9423,6 +9513,9 @@ msgstr "Konum"
 msgid "Location & checkout"
 msgstr "Konum ve checkout"
 
+msgid "Log levels"
+msgstr "Günlük düzeyleri"
+
 msgid "Log out"
 msgstr "Oturumu kapat"
 
@@ -9458,6 +9551,9 @@ msgstr "Logolar"
 
 msgid "Logos, product images, and press contact."
 msgstr "Logolar, ürün görselleri ve basın iletişimi."
+
+msgid "Logs"
+msgstr "Günlükler"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Uzun vadeli güvenilirlik bir eşiği aşar. Akşam 18.00'de verilen iş, sabah 09.00'da yeterince sık birleştirilebilir hâle gelir; gece vardiyasını planlamamak, fabrikayı boş bırakmak gibi hissettirir."
@@ -9807,6 +9903,12 @@ msgstr "2026 ortası"
 msgid "Mid 2027"
 msgstr "2027 ortası"
 
+msgid "Min iOS"
+msgstr "Min. iOS"
+
+msgid "Min SDK"
+msgstr "Min. SDK"
+
 msgid "Mine"
 msgstr "Benim"
 
@@ -10142,6 +10244,9 @@ msgstr "Net harcama — aylık (Mercury)"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "Net gelir elde tutma — aylık (Stripe)"
 
+msgid "Network"
+msgstr "Ağ"
+
 msgid "Network Changed"
 msgstr "Ağ değişti"
 
@@ -10342,6 +10447,9 @@ msgstr "Güzel, hazır olduğunda bir PR aç."
 msgid "Nickname"
 msgstr "Takma ad"
 
+msgid "No"
+msgstr "Hayır"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Bu host'ta {0} oturumu yok — oturum açın, kullanım burada görünsün."
@@ -10500,6 +10608,9 @@ msgstr "Açıklama verilmedi."
 msgid "No desktop session is running in this sandbox."
 msgstr "Bu sanal alanda çalışan bir masaüstü oturumu yok."
 
+msgid "No device is running."
+msgstr "Çalışan cihaz yok."
+
 msgid "No devices yet"
 msgstr "Henüz cihaz yok"
 
@@ -10517,6 +10628,9 @@ msgstr "Ortam bulunamadı."
 
 msgid "No environments yet."
 msgstr "Henüz ortam yok. Bir bulut çalışma alanını üzerinden başlatmak için bir ortam oluşturun."
+
+msgid "No events yet"
+msgstr "Henüz olay yok"
 
 msgid "No extended thinking"
 msgstr "Genişletilmiş düşünme yok"
@@ -10601,6 +10715,9 @@ msgstr "Dinleyen ajan yok"
 
 msgid "No live sessions"
 msgstr "Canlı oturum yok"
+
+msgid "No log lines yet"
+msgstr "Henüz günlük satırı yok"
 
 msgid "no logins"
 msgstr "oturum bilgisi yok"
@@ -11174,6 +11291,9 @@ msgstr "Pencere değiştiğinde"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Sizin makinenizde. Depolar, worktree'ler, terminal çıktısı ve ajan oturumları varsayılan olarak yerelde kalır; bulut eşitlemesi yalnızca hesap ve kuruluş meta verilerini kapsar. Superset hiçbir API çağrısını vekil olarak iletmez."
+
+msgid "On-screen Keyboard"
+msgstr "Ekran Klavyesi"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Bir görevi planlayan, worktree'ler arasında paralel ajanlara dağıtan ve sonuçları geri toplayan tek bir sohbet."
@@ -12887,6 +13007,9 @@ msgstr "Bir pano sayfasına ulaştı"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Paylaşılan bölme/çalışma alanı düzen motorunun React katmanı"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "Tepki eklendi"
 
@@ -12969,6 +13092,9 @@ msgstr "Rebase ve birleştir"
 msgid "Recent Activity"
 msgstr "Son etkinlik"
 
+msgid "Recent apps"
+msgstr "Son uygulamalar"
+
 msgid "Recent invoices"
 msgstr "Son faturalar"
 
@@ -13029,6 +13155,9 @@ msgstr "Yeniden bağlanılıyor… konuşman korunuyor."
 msgid "Red"
 msgstr "Kırmızı"
 
+msgid "Red/Green (Protanopia)"
+msgstr "Kırmızı/Yeşil (Protanopi)"
+
 msgid "Redacted Riveter"
 msgstr "Sansürlü Perçinci"
 
@@ -13040,6 +13169,12 @@ msgstr "Yönlendiriliyor..."
 
 msgid "Redo"
 msgstr "Yinele"
+
+msgid "Reduce Motion"
+msgstr "Hareketi Azalt"
+
+msgid "Reduce Transparency"
+msgstr "Saydamlığı Azalt"
 
 msgid "Referenced, not demoed"
 msgstr "Referans verildi, gösterilmedi"
@@ -13850,6 +13985,9 @@ msgstr "Rol güncellendi"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "Bir ajan oturumunu, konuşma ve dosya değişiklikleriyle birlikte herhangi bir kontrol noktasına geri alın."
 
+msgid "Rotate"
+msgstr "Döndür"
+
 msgid "Rotate device"
 msgstr "Cihazı döndür"
 
@@ -14122,6 +14260,9 @@ msgstr "Kapsam"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Puanlama, tablo {0} günlük kullanım gördüğünde başlar."
+
+msgid "Screenshot"
+msgstr "Ekran görüntüsü"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Ekran görüntüsü panoya kopyalandı"
@@ -14725,6 +14866,9 @@ msgstr "Ayarlar ({settingsHotkey})"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "Ayarlar → Uzaktan erişim → “Bu cihaza röle üzerinden uzaktan erişime izin ver”."
 
+msgid "Settings are not available for this device"
+msgstr "Bu cihaz için ayarlar kullanılamıyor"
+
 msgid "Settings..."
 msgstr "Ayarlar..."
 
@@ -14832,6 +14976,9 @@ msgstr "Tüm yorumları göster"
 
 msgid "Show all lines"
 msgstr "Tüm satırları göster"
+
+msgid "Show Borders"
+msgstr "Kenarlıkları Göster"
 
 msgid "Show checks"
 msgstr "Kontrolleri göster"
@@ -14965,6 +15112,10 @@ msgstr "Kenar çubuğunda ve görev listesinde gösterilir."
 msgid "Shown publicly alongside your name."
 msgstr "Adınızın yanında herkese açık gösterilir."
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "{0} cihazını kapat"
+
 msgid "Side by Side"
 msgstr "Yan yana"
 
@@ -15090,6 +15241,9 @@ msgstr "Güncellemeyi simüle et: hata"
 
 msgid "Simulate update: ready"
 msgstr "Güncellemeyi simüle et: hazır"
+
+msgid "Simulator"
+msgstr "Simülatör"
 
 msgid "Since 2025"
 msgstr "2025'ten beri"
@@ -16314,6 +16468,9 @@ msgstr "Metin"
 msgid "Text input with emoji picker support"
 msgstr "Emoji seçici destekli metin girişi"
 
+msgid "Text Size"
+msgstr "Metin Boyutu"
+
 msgid "Text style"
 msgstr "Metin stili"
 
@@ -17083,6 +17240,9 @@ msgstr "Zaman"
 
 msgid "Time range"
 msgstr "Zaman aralığı"
+
+msgid "Tinted"
+msgstr "Renkli"
 
 msgid "Tip"
 msgstr "İpucu"
@@ -18025,6 +18185,9 @@ msgstr "Sesli modda bir sorun oluştu. Tekrar deneyin."
 msgid "Voice settings"
 msgstr "Ses ayarları"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "Ses düzeyi"
 
@@ -18038,6 +18201,9 @@ msgstr "Ajanları başlatmadan önce çalışma alanı kurulumunu bekle"
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "{0} ve {1} bekleniyor…"
+
+msgid "Waiting for activity data"
+msgstr "Etkinlik verileri bekleniyor"
 
 msgid "Waiting for Checks"
 msgstr "Kontroller bekleniyor"
@@ -18611,6 +18777,9 @@ msgstr "Yıllık"
 
 msgid "Yellow"
 msgstr "Sarı"
+
+msgid "Yes"
+msgstr "Evet"
 
 msgid "Yes, demote me"
 msgstr "Evet, rolümü düşür"

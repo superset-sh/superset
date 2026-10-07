@@ -55,6 +55,7 @@ import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { menuEmitter } from "./lib/menu-events";
+import { allowRendererToReachDeviceHub } from "./lib/mobile-hub-origin";
 import { portForwardManager } from "./lib/port-forward";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
@@ -550,6 +551,7 @@ if (!gotTheLock) {
 			console.error("[main] Failed to start browser bridge:", error);
 		}
 		downloadManager.start();
+		allowRendererToReachDeviceHub("persist:superset");
 
 		const hostServiceCoordinator = getHostServiceCoordinator();
 		hostServiceCoordinator.setConfigProvider(async () => {

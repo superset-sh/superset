@@ -1966,6 +1966,10 @@ msgstr "Работает"
 msgid "All"
 msgstr "Все"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "Все"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "Все {0} →"
@@ -2333,6 +2337,10 @@ msgstr "в эквиваленте API"
 msgid "API-equivalent cost"
 msgstr "Стоимость в пересчёте на API"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "Приложение"
+
 msgid "app {appVersion}"
 msgstr "приложение {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "Язык интерфейса приложения. Авто следу�
 
 msgid "App icon"
 msgstr "Значок приложения"
+
+msgid "App path"
+msgstr "Путь к приложению"
 
 msgid "Appearance"
 msgstr "Внешний вид"
@@ -2758,6 +2769,10 @@ msgstr "Ожидает ревью от вас или вашей команды"
 msgid "Back"
 msgstr "Назад"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "Назад"
+
 msgid "Back to About"
 msgstr "К разделу «О нас»"
 
@@ -2933,6 +2948,9 @@ msgstr "Записи в блоге"
 msgid "Blue"
 msgstr "Синий"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "Синий/жёлтый (тританопия)"
+
 msgid "Board"
 msgstr "Доска"
 
@@ -2941,6 +2959,13 @@ msgstr "Вид доски"
 
 msgid "Bold"
 msgstr "Жирный"
+
+msgid "Bold Text"
+msgstr "Жирный шрифт"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "Запуск {0}…"
 
 msgid "Border"
 msgstr "Граница"
@@ -3527,6 +3552,9 @@ msgstr "Проверки пройдены"
 msgid "Checks Skipped"
 msgstr "Проверки пропущены"
 
+msgid "Choose a device"
+msgstr "Выберите устройство"
+
 msgid "Choose a fighter"
 msgstr "Выберите бойца"
 
@@ -3592,6 +3620,13 @@ msgstr "Разберись со старыми TODO…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Чище и плотнее боковая панель"
+
+msgid "Clear"
+msgstr "Очистить"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "Прозрачный"
 
 msgid "Clear all"
 msgstr "Очистить всё"
@@ -3792,6 +3827,9 @@ msgstr "Закрыть файл"
 msgid "Close find bar"
 msgstr "Закрыть панель поиска"
 
+msgid "Close logs"
+msgstr "Закрыть логи"
+
 msgid "Close menu"
 msgstr "Закрыть меню"
 
@@ -3971,6 +4009,9 @@ msgstr "Сбор данных…"
 
 msgid "Color"
 msgstr "Цвет"
+
+msgid "Color Filter"
+msgstr "Цветовой фильтр"
 
 msgid "Combine all commits"
 msgstr "Свести все коммиты в один"
@@ -4597,6 +4638,9 @@ msgstr "Скопировать localhost:{0}"
 
 msgid "Copy log"
 msgstr "Скопировать лог"
+
+msgid "Copy logs"
+msgstr "Скопировать логи"
 
 msgid "Copy Markdown"
 msgstr "Скопировать Markdown"
@@ -6086,6 +6130,9 @@ msgstr "Отклонено"
 msgid "Display"
 msgstr "Отображение"
 
+msgid "Display Size"
+msgstr "Размер экрана"
+
 msgid "Displays the mobile sidebar."
 msgstr "Показывает мобильную боковую панель."
 
@@ -6174,6 +6221,9 @@ msgstr "Скачать для macOS"
 
 msgid "Download image"
 msgstr "Скачать изображение"
+
+msgid "Download logs"
+msgstr "Скачать логи"
 
 msgid "Download Manually"
 msgstr "Скачать вручную"
@@ -6461,6 +6511,9 @@ msgstr "Пусто"
 msgid "Empty command"
 msgstr "Пустая команда"
 
+msgid "Emulator"
+msgstr "Эмулятор"
+
 msgid "Enable"
 msgstr "Включить"
 
@@ -6567,6 +6620,9 @@ msgstr "esc — закрыть"
 msgid "esc to exit"
 msgstr "esc — выход"
 
+msgid "Event log"
+msgstr "Журнал событий"
+
 msgid "Event triggered"
 msgstr "По событию"
 
@@ -6639,6 +6695,9 @@ msgstr "Всё, что нужно, чтобы написать о Superset: оп
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "Всё опубликованное удаляется, а не скрывается. Вы можете вернуться позже, и данные соберутся заново из расшифровок, оставшихся на этой машине."
 
+msgid "Executable"
+msgstr "Исполняемый файл"
+
 msgid "Existing repo path"
 msgstr "Путь к существующему репозиторию"
 
@@ -6660,6 +6719,9 @@ msgstr "Выйти из режима дизайна (esc)"
 
 msgid "Exit device toolbar"
 msgstr "Выйти из панели устройств"
+
+msgid "Exit full screen"
+msgstr "Выйти из полноэкранного режима"
 
 msgid "Exited"
 msgstr "Завершена"
@@ -7255,6 +7317,9 @@ msgstr "FAQ"
 msgid "Fatal"
 msgstr "Критическая"
 
+msgid "Fault"
+msgstr "Сбой"
+
 msgid "Favorites"
 msgstr "Избранное"
 
@@ -7371,6 +7436,9 @@ msgstr "Фильтр хостов"
 
 msgid "Filter hosts..."
 msgstr "Фильтр хостов..."
+
+msgid "Filter logs"
+msgstr "Фильтровать логи"
 
 msgid "Filter pages"
 msgstr "Фильтровать страницы"
@@ -7699,6 +7767,9 @@ msgstr "Полный доступ к диску"
 msgid "Full name"
 msgstr "Имя и фамилия"
 
+msgid "Full screen"
+msgstr "Полноэкранный режим"
+
 msgid "Full self-driving"
 msgstr "Полная автономность"
 
@@ -7915,8 +7986,14 @@ msgstr "Выдайте разрешения ОС, нужные Superset."
 msgid "Granted"
 msgstr "Выдано"
 
+msgid "Grayscale"
+msgstr "Оттенки серого"
+
 msgid "Green"
 msgstr "Зелёный"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "Зелёный/красный (дейтеранопия)"
 
 msgid "Grepped"
 msgstr "Выполнен grep"
@@ -7971,6 +8048,9 @@ msgstr "идёт сейчас"
 
 msgid "Hard reload"
 msgstr "Жёсткая перезагрузка"
+
+msgid "Hardware Keyboard"
+msgstr "Аппаратная клавиатура"
 
 msgid "Has conflicts"
 msgstr "Есть конфликты"
@@ -8101,6 +8181,10 @@ msgstr "История"
 
 msgid "Home"
 msgstr "Главная"
+
+msgctxt "device home button"
+msgid "Home"
+msgstr "Домой"
 
 msgctxt "directory"
 msgid "Home"
@@ -8492,6 +8576,9 @@ msgstr "Включает специфичный для Superset вариант b
 
 msgid "Incognito Operator"
 msgstr "Оператор инкогнито"
+
+msgid "Increase Contrast"
+msgstr "Увеличить контраст"
 
 msgid "Indigo"
 msgstr "Индиго"
@@ -9234,6 +9321,9 @@ msgstr "Связать эту задачу"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} привязана к рабочей области"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "Список"
 
@@ -9423,6 +9513,9 @@ msgstr "Расположение"
 msgid "Location & checkout"
 msgstr "Расположение и выгрузка"
 
+msgid "Log levels"
+msgstr "Уровни логов"
+
 msgid "Log out"
 msgstr "Выйти"
 
@@ -9458,6 +9551,9 @@ msgstr "Логотипы"
 
 msgid "Logos, product images, and press contact."
 msgstr "Логотипы, изображения продукта и контакты для прессы."
+
+msgid "Logs"
+msgstr "Логи"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Надёжность на длинной дистанции переходит порог. Работа, выданная в 18:00, достаточно часто готова к объединению в 9:00, чтобы не поставить ночную смену казалось простоем фабрики."
@@ -9807,6 +9903,12 @@ msgstr "Середина 2026"
 msgid "Mid 2027"
 msgstr "Середина 2027"
 
+msgid "Min iOS"
+msgstr "Мин. iOS"
+
+msgid "Min SDK"
+msgstr "Мин. SDK"
+
 msgid "Mine"
 msgstr "Мои"
 
@@ -10142,6 +10244,9 @@ msgstr "Чистый расход — по месяцам (Mercury)"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "Чистое удержание выручки — помесячно (Stripe)"
 
+msgid "Network"
+msgstr "Сеть"
+
 msgid "Network Changed"
 msgstr "Сеть изменилась"
 
@@ -10342,6 +10447,9 @@ msgstr "Отлично, открой PR, когда будет готово."
 msgid "Nickname"
 msgstr "Название"
 
+msgid "No"
+msgstr "Нет"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "На этом хосте нет входов {0} — войдите, и данные появятся здесь."
@@ -10500,6 +10608,9 @@ msgstr "Описание не указано."
 msgid "No desktop session is running in this sandbox."
 msgstr "В этой песочнице нет запущенного сеанса рабочего стола."
 
+msgid "No device is running."
+msgstr "Нет запущенных устройств."
+
 msgid "No devices yet"
 msgstr "Устройств пока нет"
 
@@ -10517,6 +10628,9 @@ msgstr "Окружения не найдены."
 
 msgid "No environments yet."
 msgstr "Окружений пока нет. Создайте окружение, чтобы запускать из него облачную рабочую область."
+
+msgid "No events yet"
+msgstr "Событий пока нет"
 
 msgid "No extended thinking"
 msgstr "Без расширенного мышления"
@@ -10601,6 +10715,9 @@ msgstr "Нет агентов, получающих комментарии"
 
 msgid "No live sessions"
 msgstr "Нет активных сессий"
+
+msgid "No log lines yet"
+msgstr "Строк лога пока нет"
 
 msgid "no logins"
 msgstr "нет логинов"
@@ -11174,6 +11291,9 @@ msgstr "При смене окна"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "На вашей машине. Репозитории, worktree, вывод терминала и сессии агентов по умолчанию остаются локальными; облачная синхронизация покрывает только метаданные аккаунта и организации. Superset не проксирует вызовы API."
+
+msgid "On-screen Keyboard"
+msgstr "Экранная клавиатура"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Один чат, который планирует задачу, разводит параллельных агентов по worktree и сводит результаты обратно."
@@ -12887,6 +13007,9 @@ msgstr "Дошёл до страницы дашборда"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "React-слой общего движка раскладки панелей и рабочих областей"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "Добавлена реакция"
 
@@ -12969,6 +13092,9 @@ msgstr "Перебазировать и объединить"
 msgid "Recent Activity"
 msgstr "Недавняя активность"
 
+msgid "Recent apps"
+msgstr "Недавние приложения"
+
 msgid "Recent invoices"
 msgstr "Недавние счета"
 
@@ -13029,6 +13155,9 @@ msgstr "Переподключение… разговор сохранён."
 msgid "Red"
 msgstr "Красный"
 
+msgid "Red/Green (Protanopia)"
+msgstr "Красный/зелёный (протанопия)"
+
 msgid "Redacted Riveter"
 msgstr "Засекреченный клепальщик"
 
@@ -13040,6 +13169,12 @@ msgstr "Перенаправление..."
 
 msgid "Redo"
 msgstr "Повторить"
+
+msgid "Reduce Motion"
+msgstr "Уменьшение движения"
+
+msgid "Reduce Transparency"
+msgstr "Понижение прозрачности"
 
 msgid "Referenced, not demoed"
 msgstr "Упомянуто, не показано"
@@ -13850,6 +13985,9 @@ msgstr "Роль обновлена"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "Откатите сессию агента к любой контрольной точке — вместе с диалогом и изменениями файлов."
 
+msgid "Rotate"
+msgstr "Повернуть"
+
 msgid "Rotate device"
 msgstr "Повернуть устройство"
 
@@ -14122,6 +14260,9 @@ msgstr "Область"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Подсчёт очков начнётся, когда наберётся дней с активностью: {0}."
+
+msgid "Screenshot"
+msgstr "Снимок экрана"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Скриншот скопирован в буфер обмена"
@@ -14725,6 +14866,9 @@ msgstr "Настройки ({settingsHotkey})"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "Настройки → Удалённый доступ → «Разрешить удалённый доступ к этому устройству через реле»."
 
+msgid "Settings are not available for this device"
+msgstr "Настройки недоступны для этого устройства"
+
 msgid "Settings..."
 msgstr "Настройки..."
 
@@ -14832,6 +14976,9 @@ msgstr "Показать все комментарии"
 
 msgid "Show all lines"
 msgstr "Показать все строки"
+
+msgid "Show Borders"
+msgstr "Показывать границы"
 
 msgid "Show checks"
 msgstr "Показать проверки"
@@ -14965,6 +15112,10 @@ msgstr "Показывается в боковой панели и списке 
 msgid "Shown publicly alongside your name."
 msgstr "Показывается публично рядом с вашим именем."
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "Выключить {0}"
+
 msgid "Side by Side"
 msgstr "Рядом"
 
@@ -15090,6 +15241,9 @@ msgstr "Симуляция обновления: ошибка"
 
 msgid "Simulate update: ready"
 msgstr "Симуляция обновления: готово"
+
+msgid "Simulator"
+msgstr "Симулятор"
 
 msgid "Since 2025"
 msgstr "С 2025 года"
@@ -16314,6 +16468,9 @@ msgstr "Текст"
 msgid "Text input with emoji picker support"
 msgstr "Поле ввода с поддержкой выбора эмодзи"
 
+msgid "Text Size"
+msgstr "Размер текста"
+
 msgid "Text style"
 msgstr "Стиль текста"
 
@@ -17083,6 +17240,9 @@ msgstr "Время"
 
 msgid "Time range"
 msgstr "Период"
+
+msgid "Tinted"
+msgstr "Тонированный"
 
 msgid "Tip"
 msgstr "Совет"
@@ -18025,6 +18185,9 @@ msgstr "В голосовом режиме возникла проблема. П
 msgid "Voice settings"
 msgstr "Настройки голоса"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "Громкость"
 
@@ -18038,6 +18201,9 @@ msgstr "Ждать настройки рабочей области перед �
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "ожидание {0} и {1}…"
+
+msgid "Waiting for activity data"
+msgstr "Ожидание данных об активности"
 
 msgid "Waiting for Checks"
 msgstr "Ожидание проверок"
@@ -18611,6 +18777,9 @@ msgstr "Ежегодно"
 
 msgid "Yellow"
 msgstr "Жёлтый"
+
+msgid "Yes"
+msgstr "Да"
 
 msgid "Yes, demote me"
 msgstr "Да, понизить меня"

@@ -1966,6 +1966,10 @@ msgstr "Hidup"
 msgid "All"
 msgstr "Semua"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "Semua"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "Semua {0} →"
@@ -2333,6 +2337,10 @@ msgstr "Setara API"
 msgid "API-equivalent cost"
 msgstr "Biaya setara API"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "Aplikasi"
+
 msgid "app {appVersion}"
 msgstr "aplikasi {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "Bahasa tampilan aplikasi. Otomatis mengikuti bahasa sistem Anda."
 
 msgid "App icon"
 msgstr "Ikon aplikasi"
+
+msgid "App path"
+msgstr "Jalur aplikasi"
 
 msgid "Appearance"
 msgstr "Tampilan"
@@ -2758,6 +2769,10 @@ msgstr "Menunggu review dari Anda atau tim Anda"
 msgid "Back"
 msgstr "Kembali"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "Kembali"
+
 msgid "Back to About"
 msgstr "Kembali ke Tentang"
 
@@ -2933,6 +2948,9 @@ msgstr "Artikel blog"
 msgid "Blue"
 msgstr "Biru"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "Biru/Kuning (Tritanopia)"
+
 msgid "Board"
 msgstr "Papan"
 
@@ -2941,6 +2959,13 @@ msgstr "Tampilan papan"
 
 msgid "Bold"
 msgstr "Tebal"
+
+msgid "Bold Text"
+msgstr "Teks Tebal"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "Mem-boot {0}…"
 
 msgid "Border"
 msgstr "Batas"
@@ -3527,6 +3552,9 @@ msgstr "Check lulus"
 msgid "Checks Skipped"
 msgstr "Check Dilewati"
 
+msgid "Choose a device"
+msgstr "Pilih perangkat"
+
 msgid "Choose a fighter"
 msgstr "Pilih petarung"
 
@@ -3592,6 +3620,13 @@ msgstr "Bereskan TODO yang basi…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "Sidebar lebih bersih dan padat"
+
+msgid "Clear"
+msgstr "Bersihkan"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "Bening"
 
 msgid "Clear all"
 msgstr "Hapus semua"
@@ -3792,6 +3827,9 @@ msgstr "Tutup File"
 msgid "Close find bar"
 msgstr "Tutup bilah pencarian"
 
+msgid "Close logs"
+msgstr "Tutup log"
+
 msgid "Close menu"
 msgstr "Tutup menu"
 
@@ -3971,6 +4009,9 @@ msgstr "Mengumpulkan…"
 
 msgid "Color"
 msgstr "Warna"
+
+msgid "Color Filter"
+msgstr "Filter Warna"
 
 msgid "Combine all commits"
 msgstr "Gabungkan semua commit"
@@ -4596,6 +4637,9 @@ msgid "Copy localhost:{0}"
 msgstr "Salin localhost:{0}"
 
 msgid "Copy log"
+msgstr "Salin log"
+
+msgid "Copy logs"
 msgstr "Salin log"
 
 msgid "Copy Markdown"
@@ -6086,6 +6130,9 @@ msgstr "Diabaikan"
 msgid "Display"
 msgstr "Tampilan"
 
+msgid "Display Size"
+msgstr "Ukuran Tampilan"
+
 msgid "Displays the mobile sidebar."
 msgstr "Menampilkan sidebar mobile."
 
@@ -6174,6 +6221,9 @@ msgstr "Unduh untuk macOS"
 
 msgid "Download image"
 msgstr "Unduh gambar"
+
+msgid "Download logs"
+msgstr "Unduh log"
 
 msgid "Download Manually"
 msgstr "Unduh Manual"
@@ -6461,6 +6511,9 @@ msgstr "Kosong"
 msgid "Empty command"
 msgstr "Perintah kosong"
 
+msgid "Emulator"
+msgstr "Emulator"
+
 msgid "Enable"
 msgstr "Aktifkan"
 
@@ -6567,6 +6620,9 @@ msgstr "esc untuk menutup"
 msgid "esc to exit"
 msgstr "esc untuk keluar"
 
+msgid "Event log"
+msgstr "Log peristiwa"
+
 msgid "Event triggered"
 msgstr "Dipicu event"
 
@@ -6639,6 +6695,9 @@ msgstr "Semua yang Anda perlukan untuk menulis tentang Superset: profil perusaha
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "Semua yang Anda publikasikan dihapus, bukan disembunyikan. Anda bisa bergabung lagi nanti dan datanya akan dibangun ulang dari transkrip yang masih ada di mesin ini."
 
+msgid "Executable"
+msgstr "File eksekusi"
+
 msgid "Existing repo path"
 msgstr "Path repo yang sudah ada"
 
@@ -6660,6 +6719,9 @@ msgstr "Keluar dari mode desain (esc)"
 
 msgid "Exit device toolbar"
 msgstr "Keluar dari toolbar perangkat"
+
+msgid "Exit full screen"
+msgstr "Keluar dari layar penuh"
 
 msgid "Exited"
 msgstr "Keluar"
@@ -7255,6 +7317,9 @@ msgstr "FAQ"
 msgid "Fatal"
 msgstr "Fatal"
 
+msgid "Fault"
+msgstr "Fault"
+
 msgid "Favorites"
 msgstr "Favorit"
 
@@ -7371,6 +7436,9 @@ msgstr "Filter host"
 
 msgid "Filter hosts..."
 msgstr "Filter host..."
+
+msgid "Filter logs"
+msgstr "Filter log"
 
 msgid "Filter pages"
 msgstr "Filter halaman"
@@ -7699,6 +7767,9 @@ msgstr "Full Disk Access"
 msgid "Full name"
 msgstr "Nama lengkap"
 
+msgid "Full screen"
+msgstr "Layar penuh"
+
 msgid "Full self-driving"
 msgstr "Full self-driving"
 
@@ -7915,8 +7986,14 @@ msgstr "Berikan izin OS yang dibutuhkan Superset."
 msgid "Granted"
 msgstr "Diberikan"
 
+msgid "Grayscale"
+msgstr "Skala abu-abu"
+
 msgid "Green"
 msgstr "Hijau"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "Hijau/Merah (Deuteranopia)"
 
 msgid "Grepped"
 msgstr "Di-grep"
@@ -7971,6 +8048,9 @@ msgstr "sedang berlangsung"
 
 msgid "Hard reload"
 msgstr "Muat ulang paksa"
+
+msgid "Hardware Keyboard"
+msgstr "Keyboard Fisik"
 
 msgid "Has conflicts"
 msgstr "Ada konflik"
@@ -8099,6 +8179,10 @@ msgstr "riwayat"
 msgid "History"
 msgstr "Riwayat"
 
+msgid "Home"
+msgstr "Beranda"
+
+msgctxt "device home button"
 msgid "Home"
 msgstr "Beranda"
 
@@ -8492,6 +8576,9 @@ msgstr "Termasuk varian box khusus Superset"
 
 msgid "Incognito Operator"
 msgstr "Operator Samaran"
+
+msgid "Increase Contrast"
+msgstr "Tingkatkan Kontras"
 
 msgid "Indigo"
 msgstr "Indigo"
@@ -9234,6 +9321,9 @@ msgstr "Tautkan tugas ini"
 msgid "Linked {slug} to workspace"
 msgstr "{slug} ditautkan ke workspace"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "Daftar"
 
@@ -9423,6 +9513,9 @@ msgstr "Lokasi"
 msgid "Location & checkout"
 msgstr "Lokasi & checkout"
 
+msgid "Log levels"
+msgstr "Level log"
+
 msgid "Log out"
 msgstr "Keluar"
 
@@ -9458,6 +9551,9 @@ msgstr "Logo"
 
 msgid "Logos, product images, and press contact."
 msgstr "Logo, gambar produk, dan kontak pers."
+
+msgid "Logs"
+msgstr "Log"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "Keandalan jangka panjang melewati ambang batas. Pekerjaan yang diberikan jam 6 sore cukup sering bisa di-merge jam 9 pagi sehingga tidak menjadwalkan shift malam terasa seperti membiarkan pabrik menganggur."
@@ -9807,6 +9903,12 @@ msgstr "Pertengahan 2026"
 msgid "Mid 2027"
 msgstr "Pertengahan 2027"
 
+msgid "Min iOS"
+msgstr "iOS min."
+
+msgid "Min SDK"
+msgstr "SDK min."
+
 msgid "Mine"
 msgstr "Milik saya"
 
@@ -10142,6 +10244,9 @@ msgstr "Net burn — bulanan (Mercury)"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "Retensi pendapatan bersih — bulanan (Stripe)"
 
+msgid "Network"
+msgstr "Jaringan"
+
 msgid "Network Changed"
 msgstr "Jaringan Berubah"
 
@@ -10342,6 +10447,9 @@ msgstr "Bagus, buka PR kalau sudah siap."
 msgid "Nickname"
 msgstr "Nama panggilan"
 
+msgid "No"
+msgstr "Tidak"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "Tidak ada login {0} di host ini — masuk dan penggunaannya akan muncul di sini."
@@ -10500,6 +10608,9 @@ msgstr "Tidak ada deskripsi."
 msgid "No desktop session is running in this sandbox."
 msgstr "Tidak ada sesi desktop yang berjalan di sandbox ini."
 
+msgid "No device is running."
+msgstr "Tidak ada perangkat yang berjalan."
+
 msgid "No devices yet"
 msgstr "Belum ada perangkat"
 
@@ -10517,6 +10628,9 @@ msgstr "Environment tidak ditemukan."
 
 msgid "No environments yet."
 msgstr "Belum ada environment. Buat satu untuk memulai workspace cloud darinya."
+
+msgid "No events yet"
+msgstr "Belum ada peristiwa"
 
 msgid "No extended thinking"
 msgstr "Tanpa extended thinking"
@@ -10601,6 +10715,9 @@ msgstr "Tidak ada agen pendengar"
 
 msgid "No live sessions"
 msgstr "Tidak ada sesi aktif"
+
+msgid "No log lines yet"
+msgstr "Belum ada baris log"
 
 msgid "no logins"
 msgstr "tanpa login"
@@ -11174,6 +11291,9 @@ msgstr "Saat jendela berubah"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "Di mesin Anda. Repo, worktree, output terminal, dan sesi agen tetap lokal secara bawaan; sinkronisasi cloud hanya mencakup metadata akun dan organisasi. Superset tidak mem-proxy panggilan API apa pun."
+
+msgid "On-screen Keyboard"
+msgstr "Keyboard di Layar"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "Satu chat yang merencanakan tugas, menyebar agen paralel ke seluruh worktree, dan menyatukan hasilnya kembali."
@@ -12887,6 +13007,9 @@ msgstr "Mencapai halaman dasbor"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "Lapisan React dari mesin tata letak panel/workspace bersama"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "Reaksi ditambahkan"
 
@@ -12969,6 +13092,9 @@ msgstr "Rebase dan merge"
 msgid "Recent Activity"
 msgstr "Aktivitas Terbaru"
 
+msgid "Recent apps"
+msgstr "Aplikasi terbaru"
+
 msgid "Recent invoices"
 msgstr "Faktur terbaru"
 
@@ -13029,6 +13155,9 @@ msgstr "Menyambungkan ulang… percakapanmu tetap tersimpan."
 msgid "Red"
 msgstr "Merah"
 
+msgid "Red/Green (Protanopia)"
+msgstr "Merah/Hijau (Protanopia)"
+
 msgid "Redacted Riveter"
 msgstr "Tukang Keling Tersensor"
 
@@ -13040,6 +13169,12 @@ msgstr "Mengalihkan..."
 
 msgid "Redo"
 msgstr "Redo"
+
+msgid "Reduce Motion"
+msgstr "Kurangi Gerakan"
+
+msgid "Reduce Transparency"
+msgstr "Kurangi Transparansi"
 
 msgid "Referenced, not demoed"
 msgstr "Dirujuk, tidak didemokan"
@@ -13850,6 +13985,9 @@ msgstr "Peran diperbarui"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "Kembalikan sesi agen ke checkpoint mana pun, percakapan dan perubahan file sekaligus."
 
+msgid "Rotate"
+msgstr "Putar"
+
 msgid "Rotate device"
 msgstr "Putar perangkat"
 
@@ -14122,6 +14260,9 @@ msgstr "Cakupan"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "Penilaian dimulai setelah papan melihat {0} hari penggunaan."
+
+msgid "Screenshot"
+msgstr "Tangkapan layar"
 
 msgid "Screenshot copied to clipboard"
 msgstr "Tangkapan layar disalin ke clipboard"
@@ -14725,6 +14866,9 @@ msgstr "Pengaturan ({settingsHotkey})"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "Pengaturan → Akses Jarak Jauh → “Izinkan akses jarak jauh ke perangkat ini melalui relay”."
 
+msgid "Settings are not available for this device"
+msgstr "Pengaturan tidak tersedia untuk perangkat ini"
+
 msgid "Settings..."
 msgstr "Pengaturan..."
 
@@ -14832,6 +14976,9 @@ msgstr "Tampilkan semua komentar"
 
 msgid "Show all lines"
 msgstr "Tampilkan semua baris"
+
+msgid "Show Borders"
+msgstr "Tampilkan Batas"
 
 msgid "Show checks"
 msgstr "Tampilkan check"
@@ -14965,6 +15112,10 @@ msgstr "Ditampilkan di sidebar dan daftar tugas."
 msgid "Shown publicly alongside your name."
 msgstr "Ditampilkan secara publik di samping nama Anda."
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "Matikan {0}"
+
 msgid "Side by Side"
 msgstr "Berdampingan"
 
@@ -15090,6 +15241,9 @@ msgstr "Simulasikan pembaruan: kesalahan"
 
 msgid "Simulate update: ready"
 msgstr "Simulasikan pembaruan: siap"
+
+msgid "Simulator"
+msgstr "Simulator"
 
 msgid "Since 2025"
 msgstr "Sejak 2025"
@@ -16314,6 +16468,9 @@ msgstr "Teks"
 msgid "Text input with emoji picker support"
 msgstr "Input teks dengan dukungan pemilih emoji"
 
+msgid "Text Size"
+msgstr "Ukuran Teks"
+
 msgid "Text style"
 msgstr "Gaya teks"
 
@@ -17083,6 +17240,9 @@ msgstr "Waktu"
 
 msgid "Time range"
 msgstr "Rentang waktu"
+
+msgid "Tinted"
+msgstr "Berwarna"
 
 msgid "Tip"
 msgstr "Kiat"
@@ -18025,6 +18185,9 @@ msgstr "Mode suara mengalami masalah. Coba lagi."
 msgid "Voice settings"
 msgstr "Pengaturan suara"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "Volume"
 
@@ -18038,6 +18201,9 @@ msgstr "Tunggu setup workspace sebelum menjalankan agen"
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "menunggu {0} dan {1}…"
+
+msgid "Waiting for activity data"
+msgstr "Menunggu data aktivitas"
 
 msgid "Waiting for Checks"
 msgstr "Menunggu Check"
@@ -18611,6 +18777,9 @@ msgstr "Tahunan"
 
 msgid "Yellow"
 msgstr "Kuning"
+
+msgid "Yes"
+msgstr "Ya"
 
 msgid "Yes, demote me"
 msgstr "Ya, turunkan peran saya"

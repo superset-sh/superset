@@ -1966,6 +1966,10 @@ msgstr "실행 중"
 msgid "All"
 msgstr "전체"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "전체"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "전체 {0} →"
@@ -2333,6 +2337,10 @@ msgstr "API 환산"
 msgid "API-equivalent cost"
 msgstr "API 환산 비용"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "앱"
+
 msgid "app {appVersion}"
 msgstr "앱 {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "앱 표시 언어입니다. 자동은 시스템 언어를 따릅니다."
 
 msgid "App icon"
 msgstr "앱 아이콘"
+
+msgid "App path"
+msgstr "앱 경로"
 
 msgid "Appearance"
 msgstr "모양"
@@ -2758,6 +2769,10 @@ msgstr "나 또는 팀의 리뷰 대기 중"
 msgid "Back"
 msgstr "뒤로"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "뒤로"
+
 msgid "Back to About"
 msgstr "소개로 돌아가기"
 
@@ -2933,6 +2948,9 @@ msgstr "블로그 글"
 msgid "Blue"
 msgstr "파랑"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "청색/황색(제3색맹)"
+
 msgid "Board"
 msgstr "보드"
 
@@ -2941,6 +2959,13 @@ msgstr "보드 보기"
 
 msgid "Bold"
 msgstr "굵게"
+
+msgid "Bold Text"
+msgstr "볼드체 텍스트"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "{0} 부팅 중…"
 
 msgid "Border"
 msgstr "테두리"
@@ -3527,6 +3552,9 @@ msgstr "검사 통과"
 msgid "Checks Skipped"
 msgstr "검사 건너뜀"
 
+msgid "Choose a device"
+msgstr "기기 선택"
+
 msgid "Choose a fighter"
 msgstr "파이터 선택"
 
@@ -3592,6 +3620,13 @@ msgstr "오래된 TODO 정리…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "더 깔끔하고 촘촘한 사이드바"
+
+msgid "Clear"
+msgstr "지우기"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "투명"
 
 msgid "Clear all"
 msgstr "모두 지우기"
@@ -3792,6 +3827,9 @@ msgstr "파일 닫기"
 msgid "Close find bar"
 msgstr "찾기 바 닫기"
 
+msgid "Close logs"
+msgstr "로그 닫기"
+
 msgid "Close menu"
 msgstr "메뉴 닫기"
 
@@ -3971,6 +4009,9 @@ msgstr "수집하는 중…"
 
 msgid "Color"
 msgstr "색상"
+
+msgid "Color Filter"
+msgstr "색상 필터"
 
 msgid "Combine all commits"
 msgstr "모든 커밋 합치기"
@@ -4596,6 +4637,9 @@ msgid "Copy localhost:{0}"
 msgstr "localhost:{0} 복사"
 
 msgid "Copy log"
+msgstr "로그 복사"
+
+msgid "Copy logs"
 msgstr "로그 복사"
 
 msgid "Copy Markdown"
@@ -6086,6 +6130,9 @@ msgstr "무시됨"
 msgid "Display"
 msgstr "표시"
 
+msgid "Display Size"
+msgstr "디스플레이 크기"
+
 msgid "Displays the mobile sidebar."
 msgstr "모바일 사이드바를 표시합니다."
 
@@ -6174,6 +6221,9 @@ msgstr "macOS용 다운로드"
 
 msgid "Download image"
 msgstr "이미지 다운로드"
+
+msgid "Download logs"
+msgstr "로그 다운로드"
 
 msgid "Download Manually"
 msgstr "수동으로 다운로드"
@@ -6461,6 +6511,9 @@ msgstr "비어 있음"
 msgid "Empty command"
 msgstr "빈 명령"
 
+msgid "Emulator"
+msgstr "에뮬레이터"
+
 msgid "Enable"
 msgstr "활성화"
 
@@ -6567,6 +6620,9 @@ msgstr "esc로 닫기"
 msgid "esc to exit"
 msgstr "esc로 종료"
 
+msgid "Event log"
+msgstr "이벤트 로그"
+
 msgid "Event triggered"
 msgstr "이벤트로 트리거됨"
 
@@ -6639,6 +6695,9 @@ msgstr "Superset에 대해 기사를 쓰는 데 필요한 모든 것: 회사 소
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "게시한 모든 내용이 숨겨지는 것이 아니라 삭제됩니다. 나중에 다시 참여하면 이 컴퓨터에 남아 있는 기록에서 다시 만들어집니다."
 
+msgid "Executable"
+msgstr "실행 파일"
+
 msgid "Existing repo path"
 msgstr "기존 리포지토리 경로"
 
@@ -6660,6 +6719,9 @@ msgstr "디자인 모드 종료 (esc)"
 
 msgid "Exit device toolbar"
 msgstr "기기 툴바 종료"
+
+msgid "Exit full screen"
+msgstr "전체 화면 종료"
 
 msgid "Exited"
 msgstr "종료됨"
@@ -7255,6 +7317,9 @@ msgstr "FAQ"
 msgid "Fatal"
 msgstr "치명적"
 
+msgid "Fault"
+msgstr "결함"
+
 msgid "Favorites"
 msgstr "즐겨찾기"
 
@@ -7371,6 +7436,9 @@ msgstr "호스트 필터"
 
 msgid "Filter hosts..."
 msgstr "호스트 필터..."
+
+msgid "Filter logs"
+msgstr "로그 필터"
 
 msgid "Filter pages"
 msgstr "페이지 필터"
@@ -7699,6 +7767,9 @@ msgstr "전체 디스크 접근 권한"
 msgid "Full name"
 msgstr "이름"
 
+msgid "Full screen"
+msgstr "전체 화면"
+
 msgid "Full self-driving"
 msgstr "완전 자율 주행"
 
@@ -7915,8 +7986,14 @@ msgstr "Superset에 필요한 OS 권한을 허용합니다."
 msgid "Granted"
 msgstr "허용됨"
 
+msgid "Grayscale"
+msgstr "흑백 음영"
+
 msgid "Green"
 msgstr "초록"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "녹색/적색(제2색맹)"
 
 msgid "Grepped"
 msgstr "Grep 실행함"
@@ -7971,6 +8048,9 @@ msgstr "진행 중"
 
 msgid "Hard reload"
 msgstr "강제 다시 로드"
+
+msgid "Hardware Keyboard"
+msgstr "하드웨어 키보드"
 
 msgid "Has conflicts"
 msgstr "충돌 있음"
@@ -8099,6 +8179,10 @@ msgstr "기록"
 msgid "History"
 msgstr "기록"
 
+msgid "Home"
+msgstr "홈"
+
+msgctxt "device home button"
 msgid "Home"
 msgstr "홈"
 
@@ -8492,6 +8576,9 @@ msgstr "Superset 전용 box 변형 포함"
 
 msgid "Incognito Operator"
 msgstr "정체불명의 오퍼레이터"
+
+msgid "Increase Contrast"
+msgstr "대비 증가"
 
 msgid "Indigo"
 msgstr "남색"
@@ -9234,6 +9321,9 @@ msgstr "이 작업 연결"
 msgid "Linked {slug} to workspace"
 msgstr "{slug}을(를) 워크스페이스에 연결했습니다"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "목록"
 
@@ -9423,6 +9513,9 @@ msgstr "위치"
 msgid "Location & checkout"
 msgstr "위치 및 체크아웃"
 
+msgid "Log levels"
+msgstr "로그 레벨"
+
 msgid "Log out"
 msgstr "로그아웃"
 
@@ -9458,6 +9551,9 @@ msgstr "로고"
 
 msgid "Logos, product images, and press contact."
 msgstr "로고, 제품 이미지, 언론 문의처."
+
+msgid "Logs"
+msgstr "로그"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "장시간 작업의 신뢰성이 임계점을 넘습니다. 오후 6시에 맡긴 일이 오전 9시에 머지할 수 있는 상태로 나오는 경우가 충분히 잦아져서, 야간 근무를 잡지 않는 것이 공장을 놀리는 일처럼 느껴집니다."
@@ -9807,6 +9903,12 @@ msgstr "2026년 중반"
 msgid "Mid 2027"
 msgstr "2027년 중반"
 
+msgid "Min iOS"
+msgstr "최소 iOS"
+
+msgid "Min SDK"
+msgstr "최소 SDK"
+
 msgid "Mine"
 msgstr "내 자동화"
 
@@ -10142,6 +10244,9 @@ msgstr "순 소진액 — 월별 (Mercury)"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "순매출 유지율 — 월별 (Stripe)"
 
+msgid "Network"
+msgstr "네트워크"
+
 msgid "Network Changed"
 msgstr "네트워크 변경됨"
 
@@ -10342,6 +10447,9 @@ msgstr "좋아요, 준비되면 PR을 올려 주세요."
 msgid "Nickname"
 msgstr "별칭"
 
+msgid "No"
+msgstr "아니요"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "이 호스트에 {0} 로그인이 없습니다 — 로그인하면 사용량이 여기에 표시됩니다."
@@ -10500,6 +10608,9 @@ msgstr "설명이 없습니다."
 msgid "No desktop session is running in this sandbox."
 msgstr "이 샌드박스에서 실행 중인 데스크톱 세션이 없습니다."
 
+msgid "No device is running."
+msgstr "실행 중인 기기가 없습니다."
+
 msgid "No devices yet"
 msgstr "아직 기기가 없습니다"
 
@@ -10517,6 +10628,9 @@ msgstr "환경을 찾을 수 없습니다."
 
 msgid "No environments yet."
 msgstr "아직 환경이 없습니다. 하나를 만들어 클라우드 워크스페이스를 시작하세요."
+
+msgid "No events yet"
+msgstr "아직 이벤트가 없습니다"
 
 msgid "No extended thinking"
 msgstr "확장 사고 없음"
@@ -10601,6 +10715,9 @@ msgstr "댓글 수신 에이전트 없음"
 
 msgid "No live sessions"
 msgstr "활성 세션 없음"
+
+msgid "No log lines yet"
+msgstr "아직 로그가 없습니다"
 
 msgid "no logins"
 msgstr "로그인 없음"
@@ -11174,6 +11291,9 @@ msgstr "창 변경 시"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "본인의 머신에서 실행됩니다. 리포지토리, worktree, 터미널 출력, 에이전트 세션은 기본적으로 로컬에 머물고, 클라우드 동기화는 계정과 조직 메타데이터만 다룹니다. Superset은 어떤 API 호출도 중계하지 않습니다."
+
+msgid "On-screen Keyboard"
+msgstr "화면 키보드"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "하나의 채팅이 작업을 계획하고, worktree 전반에 에이전트를 병렬로 펼치고, 결과를 다시 모읍니다."
@@ -12887,6 +13007,9 @@ msgstr "대시보드 페이지 도달"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "공용 패널/워크스페이스 레이아웃 엔진의 React 계층"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "반응 추가됨"
 
@@ -12969,6 +13092,9 @@ msgstr "리베이스 후 머지"
 msgid "Recent Activity"
 msgstr "최근 활동"
 
+msgid "Recent apps"
+msgstr "최근 앱"
+
 msgid "Recent invoices"
 msgstr "최근 청구서"
 
@@ -13029,6 +13155,9 @@ msgstr "다시 연결하는 중… 대화는 유지됩니다."
 msgid "Red"
 msgstr "빨강"
 
+msgid "Red/Green (Protanopia)"
+msgstr "적색/녹색(제1색맹)"
+
 msgid "Redacted Riveter"
 msgstr "가려진 리벳공"
 
@@ -13040,6 +13169,12 @@ msgstr "이동하는 중..."
 
 msgid "Redo"
 msgstr "다시 실행"
+
+msgid "Reduce Motion"
+msgstr "동작 줄이기"
+
+msgid "Reduce Transparency"
+msgstr "투명도 줄이기"
 
 msgid "Referenced, not demoed"
 msgstr "참조만 하고 시연하지 않음"
@@ -13850,6 +13985,9 @@ msgstr "역할을 변경했습니다"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "에이전트 세션을 어떤 체크포인트로든 되돌립니다. 대화와 파일 변경을 함께 되돌립니다."
 
+msgid "Rotate"
+msgstr "회전"
+
 msgid "Rotate device"
 msgstr "기기 회전"
 
@@ -14122,6 +14260,9 @@ msgstr "범위"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "보드가 {0}일치 사용 기록을 확보하면 점수 산정이 시작됩니다."
+
+msgid "Screenshot"
+msgstr "스크린샷"
 
 msgid "Screenshot copied to clipboard"
 msgstr "스크린샷을 클립보드에 복사했습니다"
@@ -14725,6 +14866,9 @@ msgstr "설정 ({settingsHotkey})"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "설정 → 원격 액세스 → “릴레이를 통해 이 기기에 원격 액세스 허용”."
 
+msgid "Settings are not available for this device"
+msgstr "이 기기에서는 설정을 사용할 수 없습니다"
+
 msgid "Settings..."
 msgstr "설정..."
 
@@ -14832,6 +14976,9 @@ msgstr "모든 댓글 표시"
 
 msgid "Show all lines"
 msgstr "모든 줄 표시"
+
+msgid "Show Borders"
+msgstr "테두리 표시"
 
 msgid "Show checks"
 msgstr "검사 표시"
@@ -14965,6 +15112,10 @@ msgstr "사이드바와 작업 목록에 표시됩니다."
 msgid "Shown publicly alongside your name."
 msgstr "이름과 함께 공개적으로 표시됩니다."
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "{0} 종료"
+
 msgid "Side by Side"
 msgstr "나란히 보기"
 
@@ -15090,6 +15241,9 @@ msgstr "업데이트 시뮬레이션: 오류"
 
 msgid "Simulate update: ready"
 msgstr "업데이트 시뮬레이션: 준비 완료"
+
+msgid "Simulator"
+msgstr "시뮬레이터"
 
 msgid "Since 2025"
 msgstr "2025년부터"
@@ -16314,6 +16468,9 @@ msgstr "텍스트"
 msgid "Text input with emoji picker support"
 msgstr "이모지 선택기를 지원하는 텍스트 입력"
 
+msgid "Text Size"
+msgstr "텍스트 크기"
+
 msgid "Text style"
 msgstr "텍스트 스타일"
 
@@ -17083,6 +17240,9 @@ msgstr "시간"
 
 msgid "Time range"
 msgstr "기간"
+
+msgid "Tinted"
+msgstr "색조"
 
 msgid "Tip"
 msgstr "팁"
@@ -18025,6 +18185,9 @@ msgstr "음성 모드에 문제가 발생했습니다. 다시 시도해 주세�
 msgid "Voice settings"
 msgstr "음성 설정"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "볼륨"
 
@@ -18038,6 +18201,9 @@ msgstr "에이전트를 시작하기 전에 워크스페이스 설정 기다리�
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "{0}와 {1}을(를) 기다리는 중…"
+
+msgid "Waiting for activity data"
+msgstr "활동 데이터 대기 중"
 
 msgid "Waiting for Checks"
 msgstr "검사 대기 중"
@@ -18611,6 +18777,9 @@ msgstr "연간"
 
 msgid "Yellow"
 msgstr "노랑"
+
+msgid "Yes"
+msgstr "예"
 
 msgid "Yes, demote me"
 msgstr "네, 강등하겠습니다"

@@ -1966,6 +1966,10 @@ msgstr "运行中"
 msgid "All"
 msgstr "全部"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "全部"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "全部{0}个 →"
@@ -2333,6 +2337,10 @@ msgstr "按API价折算"
 msgid "API-equivalent cost"
 msgstr "API 等价费用"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "应用"
+
 msgid "app {appVersion}"
 msgstr "应用 {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "应用显示语言。自动模式会跟随你的系统语言。"
 
 msgid "App icon"
 msgstr "应用图标"
+
+msgid "App path"
+msgstr "应用路径"
 
 msgid "Appearance"
 msgstr "外观"
@@ -2758,6 +2769,10 @@ msgstr "等待你或你团队的审查"
 msgid "Back"
 msgstr "返回"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "返回"
+
 msgid "Back to About"
 msgstr "返回关于页"
 
@@ -2933,6 +2948,9 @@ msgstr "博客文章"
 msgid "Blue"
 msgstr "蓝色"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "蓝/黄（蓝色盲）"
+
 msgid "Board"
 msgstr "看板"
 
@@ -2941,6 +2959,13 @@ msgstr "看板视图"
 
 msgid "Bold"
 msgstr "加粗"
+
+msgid "Bold Text"
+msgstr "粗体文本"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "正在启动 {0}…"
 
 msgid "Border"
 msgstr "边框"
@@ -3527,6 +3552,9 @@ msgstr "检查通过"
 msgid "Checks Skipped"
 msgstr "检查已跳过"
 
+msgid "Choose a device"
+msgstr "选择设备"
+
 msgid "Choose a fighter"
 msgstr "选择一名斗士"
 
@@ -3592,6 +3620,13 @@ msgstr "清理过期的TODO…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "更清爽紧凑的侧边栏"
+
+msgid "Clear"
+msgstr "清除"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "透明"
 
 msgid "Clear all"
 msgstr "全部清除"
@@ -3792,6 +3827,9 @@ msgstr "关闭文件"
 msgid "Close find bar"
 msgstr "关闭查找栏"
 
+msgid "Close logs"
+msgstr "关闭日志"
+
 msgid "Close menu"
 msgstr "关闭菜单"
 
@@ -3971,6 +4009,9 @@ msgstr "正在收集…"
 
 msgid "Color"
 msgstr "颜色"
+
+msgid "Color Filter"
+msgstr "色彩滤镜"
 
 msgid "Combine all commits"
 msgstr "把所有提交合成一个"
@@ -4596,6 +4637,9 @@ msgid "Copy localhost:{0}"
 msgstr "复制localhost:{0}"
 
 msgid "Copy log"
+msgstr "复制日志"
+
+msgid "Copy logs"
 msgstr "复制日志"
 
 msgid "Copy Markdown"
@@ -6086,6 +6130,9 @@ msgstr "已忽略"
 msgid "Display"
 msgstr "显示"
 
+msgid "Display Size"
+msgstr "显示大小"
+
 msgid "Displays the mobile sidebar."
 msgstr "显示移动端侧边栏。"
 
@@ -6174,6 +6221,9 @@ msgstr "下载macOS版"
 
 msgid "Download image"
 msgstr "下载图片"
+
+msgid "Download logs"
+msgstr "下载日志"
 
 msgid "Download Manually"
 msgstr "手动下载"
@@ -6461,6 +6511,9 @@ msgstr "空状态"
 msgid "Empty command"
 msgstr "空命令"
 
+msgid "Emulator"
+msgstr "模拟器"
+
 msgid "Enable"
 msgstr "启用"
 
@@ -6567,6 +6620,9 @@ msgstr "按esc关闭"
 msgid "esc to exit"
 msgstr "esc退出"
 
+msgid "Event log"
+msgstr "事件日志"
+
 msgid "Event triggered"
 msgstr "事件触发"
 
@@ -6639,6 +6695,9 @@ msgstr "报道 Superset 所需的一切：公司简介、最新动态、标志�
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "你发布过的所有内容都会被删除，而不是隐藏。你之后可以重新加入，届时会根据此机器上仍保留的记录重新生成。"
 
+msgid "Executable"
+msgstr "可执行文件"
+
 msgid "Existing repo path"
 msgstr "已有仓库路径"
 
@@ -6660,6 +6719,9 @@ msgstr "退出设计模式（esc）"
 
 msgid "Exit device toolbar"
 msgstr "退出设备工具栏"
+
+msgid "Exit full screen"
+msgstr "退出全屏"
 
 msgid "Exited"
 msgstr "已退出"
@@ -7255,6 +7317,9 @@ msgstr "常见问题"
 msgid "Fatal"
 msgstr "致命"
 
+msgid "Fault"
+msgstr "故障"
+
 msgid "Favorites"
 msgstr "收藏"
 
@@ -7371,6 +7436,9 @@ msgstr "筛选主机"
 
 msgid "Filter hosts..."
 msgstr "筛选主机..."
+
+msgid "Filter logs"
+msgstr "筛选日志"
 
 msgid "Filter pages"
 msgstr "筛选页面"
@@ -7699,6 +7767,9 @@ msgstr "完全磁盘访问权限"
 msgid "Full name"
 msgstr "姓名"
 
+msgid "Full screen"
+msgstr "全屏"
+
 msgid "Full self-driving"
 msgstr "完全自动驾驶"
 
@@ -7915,8 +7986,14 @@ msgstr "授予Superset所需的系统权限。"
 msgid "Granted"
 msgstr "已授予"
 
+msgid "Grayscale"
+msgstr "灰度"
+
 msgid "Green"
 msgstr "绿色"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "绿/红（绿色盲）"
 
 msgid "Grepped"
 msgstr "已搜索"
@@ -7971,6 +8048,9 @@ msgstr "进行中"
 
 msgid "Hard reload"
 msgstr "强制重新加载"
+
+msgid "Hardware Keyboard"
+msgstr "硬件键盘"
 
 msgid "Has conflicts"
 msgstr "存在冲突"
@@ -8101,6 +8181,10 @@ msgstr "历史"
 
 msgid "Home"
 msgstr "首页"
+
+msgctxt "device home button"
+msgid "Home"
+msgstr "主屏幕"
 
 msgctxt "directory"
 msgid "Home"
@@ -8492,6 +8576,9 @@ msgstr "包含Superset特有的box变体"
 
 msgid "Incognito Operator"
 msgstr "隐身操作员"
+
+msgid "Increase Contrast"
+msgstr "增强对比度"
 
 msgid "Indigo"
 msgstr "靛蓝"
@@ -9234,6 +9321,9 @@ msgstr "关联此任务"
 msgid "Linked {slug} to workspace"
 msgstr "已将{slug}关联到工作区"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "列表"
 
@@ -9423,6 +9513,9 @@ msgstr "位置"
 msgid "Location & checkout"
 msgstr "位置与检出"
 
+msgid "Log levels"
+msgstr "日志级别"
+
 msgid "Log out"
 msgstr "退出登录"
 
@@ -9458,6 +9551,9 @@ msgstr "标志"
 
 msgid "Logos, product images, and press contact."
 msgstr "标志、产品图片和媒体联系方式。"
+
+msgid "Logs"
+msgstr "日志"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "长周期可靠性越过了一个门槛。傍晚6点派出去的活儿，早上9点常常已经可以合并，以至于不排夜班就像让工厂空转。"
@@ -9807,6 +9903,12 @@ msgstr "2026年中"
 msgid "Mid 2027"
 msgstr "2027年中"
 
+msgid "Min iOS"
+msgstr "最低 iOS"
+
+msgid "Min SDK"
+msgstr "最低 SDK"
+
 msgid "Mine"
 msgstr "我的"
 
@@ -10142,6 +10244,9 @@ msgstr "净支出 — 按月（Mercury）"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "净收入留存率 — 每月（Stripe）"
 
+msgid "Network"
+msgstr "网络"
+
 msgid "Network Changed"
 msgstr "网络已变更"
 
@@ -10342,6 +10447,9 @@ msgstr "不错，准备好就开个PR。"
 msgid "Nickname"
 msgstr "昵称"
 
+msgid "No"
+msgstr "否"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
@@ -10500,6 +10608,9 @@ msgstr "没有提供描述。"
 msgid "No desktop session is running in this sandbox."
 msgstr "此沙盒中没有正在运行的桌面会话。"
 
+msgid "No device is running."
+msgstr "没有正在运行的设备。"
+
 msgid "No devices yet"
 msgstr "还没有设备"
 
@@ -10517,6 +10628,9 @@ msgstr "未找到环境。"
 
 msgid "No environments yet."
 msgstr "还没有环境。创建一个，以便基于它启动云端工作区。"
+
+msgid "No events yet"
+msgstr "暂无事件"
 
 msgid "No extended thinking"
 msgstr "不使用扩展思考"
@@ -10601,6 +10715,9 @@ msgstr "没有监听智能体"
 
 msgid "No live sessions"
 msgstr "没有活动会话"
+
+msgid "No log lines yet"
+msgstr "暂无日志"
 
 msgid "no logins"
 msgstr "无登录信息"
@@ -11174,6 +11291,9 @@ msgstr "窗口更改时"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "在你自己的机器上。仓库、worktree、终端输出和智能体会话默认都留在本地；云端同步只涉及账户和组织的元数据。Superset不代理任何API调用。"
+
+msgid "On-screen Keyboard"
+msgstr "屏幕键盘"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "一个聊天窗口规划任务，把并行智能体分派到各个worktree，再把结果汇总回来。"
@@ -12887,6 +13007,9 @@ msgstr "进入控制台页面"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "共享面板/工作区布局引擎的React层"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "添加了回应"
 
@@ -12969,6 +13092,9 @@ msgstr "变基并合并"
 msgid "Recent Activity"
 msgstr "最近动态"
 
+msgid "Recent apps"
+msgstr "最近使用的应用"
+
 msgid "Recent invoices"
 msgstr "最近的账单"
 
@@ -13029,6 +13155,9 @@ msgstr "正在重新连接… 对话会保留。"
 msgid "Red"
 msgstr "红色"
 
+msgid "Red/Green (Protanopia)"
+msgstr "红/绿（红色盲）"
+
 msgid "Redacted Riveter"
 msgstr "隐匿铆工"
 
@@ -13040,6 +13169,12 @@ msgstr "正在跳转..."
 
 msgid "Redo"
 msgstr "重做"
+
+msgid "Reduce Motion"
+msgstr "减弱动态效果"
+
+msgid "Reduce Transparency"
+msgstr "降低透明度"
 
 msgid "Referenced, not demoed"
 msgstr "仅作引用，未做演示"
@@ -13850,6 +13985,9 @@ msgstr "角色已更新"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "把智能体会话回滚到任意检查点，对话和文件改动一起回退。"
 
+msgid "Rotate"
+msgstr "旋转"
+
 msgid "Rotate device"
 msgstr "旋转设备"
 
@@ -14122,6 +14260,9 @@ msgstr "范围"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "当看板看到 {0} 天的使用数据后，才会开始计分。"
+
+msgid "Screenshot"
+msgstr "截图"
 
 msgid "Screenshot copied to clipboard"
 msgstr "截图已复制到剪贴板"
@@ -14725,6 +14866,9 @@ msgstr "设置（{settingsHotkey}）"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "设置 → 远程访问 → “允许通过中继远程访问本设备”。"
 
+msgid "Settings are not available for this device"
+msgstr "此设备不支持设置"
+
 msgid "Settings..."
 msgstr "设置..."
 
@@ -14832,6 +14976,9 @@ msgstr "显示全部评论"
 
 msgid "Show all lines"
 msgstr "显示所有行"
+
+msgid "Show Borders"
+msgstr "显示边框"
 
 msgid "Show checks"
 msgstr "显示检查"
@@ -14965,6 +15112,10 @@ msgstr "会显示在侧边栏和任务列表中。"
 msgid "Shown publicly alongside your name."
 msgstr "会与你的名字一起公开显示。"
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "关闭 {0}"
+
 msgid "Side by Side"
 msgstr "并排"
 
@@ -15090,6 +15241,9 @@ msgstr "模拟更新：错误"
 
 msgid "Simulate update: ready"
 msgstr "模拟更新：就绪"
+
+msgid "Simulator"
+msgstr "模拟器"
 
 msgid "Since 2025"
 msgstr "自2025年起"
@@ -16314,6 +16468,9 @@ msgstr "正文"
 msgid "Text input with emoji picker support"
 msgstr "支持emoji选择器的文本输入框"
 
+msgid "Text Size"
+msgstr "文字大小"
+
 msgid "Text style"
 msgstr "文本样式"
 
@@ -17083,6 +17240,9 @@ msgstr "时间"
 
 msgid "Time range"
 msgstr "时间范围"
+
+msgid "Tinted"
+msgstr "色调"
 
 msgid "Tip"
 msgstr "提示"
@@ -18025,6 +18185,9 @@ msgstr "语音模式出现问题，请重试。"
 msgid "Voice settings"
 msgstr "语音设置"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -18038,6 +18201,9 @@ msgstr "启动智能体前等待工作区设置完成"
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "正在等待 {0} 和 {1}…"
+
+msgid "Waiting for activity data"
+msgstr "正在等待活动数据"
 
 msgid "Waiting for Checks"
 msgstr "等待检查"
@@ -18611,6 +18777,9 @@ msgstr "按年"
 
 msgid "Yellow"
 msgstr "黄色"
+
+msgid "Yes"
+msgstr "是"
 
 msgid "Yes, demote me"
 msgstr "是，降低我的角色"

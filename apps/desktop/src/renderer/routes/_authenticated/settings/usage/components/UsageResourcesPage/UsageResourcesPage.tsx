@@ -40,7 +40,7 @@ import {
 	sortProjectGroups,
 	sortWorkspaces,
 } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption/utils/workspaceGrouping";
-import { ResourceSparkline } from "./components/ResourceSparkline";
+import { ResourceSparkline } from "renderer/routes/_authenticated/components/ResourceSparkline";
 import { useResourceSampleBuffer } from "./hooks/useResourceSampleBuffer";
 
 const SORT_LABELS: Record<SortOption, MessageDescriptor> = {

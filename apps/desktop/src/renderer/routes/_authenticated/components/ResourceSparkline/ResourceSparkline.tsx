@@ -4,50 +4,64 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@superset/ui/chart";
+import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
-import type { ResourceSample } from "../../hooks/useResourceSampleBuffer";
 import { formatResourceSampleTime } from "./utils/formatResourceSampleTime/formatResourceSampleTime";
 
-interface ResourceSparklineProps {
+interface ResourceSparklineProps<Sample extends { at: number }> {
 	label: string;
 	/** Formatted current value shown in the card header. */
 	current: string;
 	/** CSS color for the area stroke/fill. */
 	color: string;
-	samples: ResourceSample[];
-	getValue: (sample: ResourceSample) => number;
+	samples: Sample[];
+	getValue: (sample: Sample) => number;
 	formatValue: (value: number) => string;
+	compact?: boolean;
 }
 
 /** Small live area chart over the rolling sample buffer (~5 min window). */
-export function ResourceSparkline({
+export function ResourceSparkline<Sample extends { at: number }>({
 	label,
 	current,
 	color,
 	samples,
 	getValue,
 	formatValue,
-}: ResourceSparklineProps) {
+	compact,
+}: ResourceSparklineProps<Sample>) {
 	const data = useMemo(
 		() => samples.map((sample) => ({ at: sample.at, value: getValue(sample) })),
 		[samples, getValue],
 	);
 
 	return (
-		<div className="rounded-lg border p-3">
+		<div className={cn("rounded-lg border", compact ? "p-2" : "p-3")}>
 			<div className="flex items-baseline justify-between">
 				<span className="text-[10px] text-muted-foreground">{label}</span>
-				<span className="text-sm font-medium tabular-nums">{current}</span>
+				<span
+					className={cn(
+						"font-medium tabular-nums",
+						compact ? "text-xs" : "text-sm",
+					)}
+				>
+					{current}
+				</span>
 			</div>
 			{data.length < 2 ? (
-				<div className="flex h-16 items-center justify-center text-[10px] text-muted-foreground">
+				<div
+					className={cn(
+						"flex items-center justify-center text-[10px] text-muted-foreground",
+						compact ? "h-8" : "h-16",
+					)}
+				>
 					<Trans>Collecting…</Trans>
 				</div>
 			) : (
 				<ChartContainer
 					config={{ value: { label, color } }}
-					className="mt-1 aspect-auto h-16 w-full"
+					className={cn("mt-1 aspect-auto w-full", compact ? "h-8" : "h-16")}
 				>
 					<AreaChart
 						data={data}

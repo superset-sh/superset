@@ -1966,6 +1966,10 @@ msgstr "稼働中"
 msgid "All"
 msgstr "すべて"
 
+msgctxt "log scope"
+msgid "All"
+msgstr "すべて"
+
 #. placeholder {0}: history.projects.length
 msgid "All {0} →"
 msgstr "すべての{0}件 →"
@@ -2333,6 +2337,10 @@ msgstr "API換算"
 msgid "API-equivalent cost"
 msgstr "API換算のコスト"
 
+msgctxt "log scope"
+msgid "App"
+msgstr "アプリ"
+
 msgid "app {appVersion}"
 msgstr "アプリ {appVersion}"
 
@@ -2344,6 +2352,9 @@ msgstr "アプリの表示言語。自動ではシステムの言語に従いま
 
 msgid "App icon"
 msgstr "アプリアイコン"
+
+msgid "App path"
+msgstr "アプリのパス"
 
 msgid "Appearance"
 msgstr "外観"
@@ -2758,6 +2769,10 @@ msgstr "自分またはチームのレビュー待ち"
 msgid "Back"
 msgstr "戻る"
 
+msgctxt "Android back button"
+msgid "Back"
+msgstr "戻る"
+
 msgid "Back to About"
 msgstr "会社概要に戻る"
 
@@ -2933,6 +2948,9 @@ msgstr "ブログ記事"
 msgid "Blue"
 msgstr "青"
 
+msgid "Blue/Yellow (Tritanopia)"
+msgstr "青/黄（3型2色覚）"
+
 msgid "Board"
 msgstr "ボード"
 
@@ -2941,6 +2959,13 @@ msgstr "ボード表示"
 
 msgid "Bold"
 msgstr "太字"
+
+msgid "Bold Text"
+msgstr "文字を太くする"
+
+#. placeholder {0}: selected.name
+msgid "Booting {0}…"
+msgstr "{0} を起動中…"
 
 msgid "Border"
 msgstr "境界線"
@@ -3527,6 +3552,9 @@ msgstr "チェックが成功しました"
 msgid "Checks Skipped"
 msgstr "チェックをスキップ"
 
+msgid "Choose a device"
+msgstr "デバイスを選択"
+
 msgid "Choose a fighter"
 msgstr "ファイターを選ぶ"
 
@@ -3592,6 +3620,13 @@ msgstr "古いTODOを整理…"
 
 msgid "Cleaner, denser sidebar"
 msgstr "すっきり高密度なサイドバー"
+
+msgid "Clear"
+msgstr "クリア"
+
+msgctxt "Liquid Glass style"
+msgid "Clear"
+msgstr "クリア"
 
 msgid "Clear all"
 msgstr "すべてクリア"
@@ -3792,6 +3827,9 @@ msgstr "ファイルを閉じる"
 msgid "Close find bar"
 msgstr "検索バーを閉じる"
 
+msgid "Close logs"
+msgstr "ログを閉じる"
+
 msgid "Close menu"
 msgstr "メニューを閉じる"
 
@@ -3971,6 +4009,9 @@ msgstr "収集中…"
 
 msgid "Color"
 msgstr "色"
+
+msgid "Color Filter"
+msgstr "カラーフィルタ"
 
 msgid "Combine all commits"
 msgstr "すべてのコミットを1つに統合"
@@ -4596,6 +4637,9 @@ msgid "Copy localhost:{0}"
 msgstr "localhost:{0}をコピー"
 
 msgid "Copy log"
+msgstr "ログをコピー"
+
+msgid "Copy logs"
 msgstr "ログをコピー"
 
 msgid "Copy Markdown"
@@ -6086,6 +6130,9 @@ msgstr "却下"
 msgid "Display"
 msgstr "表示"
 
+msgid "Display Size"
+msgstr "表示サイズ"
+
 msgid "Displays the mobile sidebar."
 msgstr "モバイルのサイドバーを表示します。"
 
@@ -6174,6 +6221,9 @@ msgstr "macOS版をダウンロード"
 
 msgid "Download image"
 msgstr "画像をダウンロード"
+
+msgid "Download logs"
+msgstr "ログをダウンロード"
 
 msgid "Download Manually"
 msgstr "手動でダウンロード"
@@ -6461,6 +6511,9 @@ msgstr "Empty"
 msgid "Empty command"
 msgstr "空のコマンド"
 
+msgid "Emulator"
+msgstr "エミュレータ"
+
 msgid "Enable"
 msgstr "有効にする"
 
@@ -6567,6 +6620,9 @@ msgstr "escで閉じる"
 msgid "esc to exit"
 msgstr "escで終了"
 
+msgid "Event log"
+msgstr "イベントログ"
+
 msgid "Event triggered"
 msgstr "イベントトリガー"
 
@@ -6639,6 +6695,9 @@ msgstr "Superset について記事を書くために必要な情報をまとめ
 msgid "Everything you've published is deleted, not hidden. You can rejoin later and it will rebuild from the transcripts still on this machine."
 msgstr "公開したものはすべて削除され、非表示になるわけではありません。後で再参加すれば、このマシンに残っているトランスクリプトから再構築されます。"
 
+msgid "Executable"
+msgstr "実行ファイル"
+
 msgid "Existing repo path"
 msgstr "既存リポジトリのパス"
 
@@ -6660,6 +6719,9 @@ msgstr "デザインモードを終了 (esc)"
 
 msgid "Exit device toolbar"
 msgstr "デバイスツールバーを終了"
+
+msgid "Exit full screen"
+msgstr "フルスクリーンを終了"
 
 msgid "Exited"
 msgstr "終了済み"
@@ -7255,6 +7317,9 @@ msgstr "FAQ"
 msgid "Fatal"
 msgstr "致命的"
 
+msgid "Fault"
+msgstr "フォールト"
+
 msgid "Favorites"
 msgstr "お気に入り"
 
@@ -7371,6 +7436,9 @@ msgstr "ホストを絞り込み"
 
 msgid "Filter hosts..."
 msgstr "ホストを絞り込み..."
+
+msgid "Filter logs"
+msgstr "ログを絞り込む"
 
 msgid "Filter pages"
 msgstr "ページを絞り込む"
@@ -7699,6 +7767,9 @@ msgstr "フルディスクアクセス"
 msgid "Full name"
 msgstr "氏名"
 
+msgid "Full screen"
+msgstr "フルスクリーン"
+
 msgid "Full self-driving"
 msgstr "完全自動運転"
 
@@ -7915,8 +7986,14 @@ msgstr "Supersetに必要なOS権限を許可します。"
 msgid "Granted"
 msgstr "許可済み"
 
+msgid "Grayscale"
+msgstr "グレイスケール"
+
 msgid "Green"
 msgstr "緑"
+
+msgid "Green/Red (Deuteranopia)"
+msgstr "緑/赤（2型2色覚）"
 
 msgid "Grepped"
 msgstr "検索"
@@ -7971,6 +8048,9 @@ msgstr "開催中"
 
 msgid "Hard reload"
 msgstr "ハードリロード"
+
+msgid "Hardware Keyboard"
+msgstr "ハードウェアキーボード"
 
 msgid "Has conflicts"
 msgstr "コンフリクトあり"
@@ -8099,6 +8179,10 @@ msgstr "履歴"
 msgid "History"
 msgstr "履歴"
 
+msgid "Home"
+msgstr "ホーム"
+
+msgctxt "device home button"
 msgid "Home"
 msgstr "ホーム"
 
@@ -8492,6 +8576,9 @@ msgstr "Superset独自のboxバリアントを含みます"
 
 msgid "Incognito Operator"
 msgstr "覆面オペレーター"
+
+msgid "Increase Contrast"
+msgstr "コントラストを上げる"
 
 msgid "Indigo"
 msgstr "インディゴ"
@@ -9234,6 +9321,9 @@ msgstr "このタスクをリンク"
 msgid "Linked {slug} to workspace"
 msgstr "{slug}をワークスペースにリンクしました"
 
+msgid "Liquid Glass"
+msgstr "Liquid Glass"
+
 msgid "List"
 msgstr "リスト"
 
@@ -9423,6 +9513,9 @@ msgstr "場所"
 msgid "Location & checkout"
 msgstr "場所とチェックアウト"
 
+msgid "Log levels"
+msgstr "ログレベル"
+
 msgid "Log out"
 msgstr "ログアウト"
 
@@ -9458,6 +9551,9 @@ msgstr "ロゴ"
 
 msgid "Logos, product images, and press contact."
 msgstr "ロゴ、製品画像、報道関係のお問い合わせ先。"
+
+msgid "Logs"
+msgstr "ログ"
 
 msgid "Long-horizon reliability crosses a threshold. Work assigned at 6pm is mergeable at 9am often enough that not scheduling the overnight shift feels like leaving a factory idle."
 msgstr "長時間にわたる信頼性がしきい値を超えます。18時に割り当てた作業が9時にはマージできる。それが十分な頻度で起きるようになり、夜間シフトを組まないことが工場を遊ばせているように感じられます。"
@@ -9807,6 +9903,12 @@ msgstr "2026年半ば"
 msgid "Mid 2027"
 msgstr "2027年半ば"
 
+msgid "Min iOS"
+msgstr "最小 iOS"
+
+msgid "Min SDK"
+msgstr "最小 SDK"
+
 msgid "Mine"
 msgstr "自分"
 
@@ -10142,6 +10244,9 @@ msgstr "ネットバーン — 月次(Mercury)"
 msgid "Net revenue retention — monthly (Stripe)"
 msgstr "純収益維持率 — 月次（Stripe）"
 
+msgid "Network"
+msgstr "ネットワーク"
+
 msgid "Network Changed"
 msgstr "ネットワークが変更されました"
 
@@ -10342,6 +10447,9 @@ msgstr "いいですね。準備ができたらPRを作成してください。"
 msgid "Nickname"
 msgstr "ニックネーム"
 
+msgid "No"
+msgstr "いいえ"
+
 #. placeholder {0}: AGENT_LABELS[agent]
 msgid "No {0} logins on this host — sign in and usage appears here."
 msgstr "このホストに{0}のログインがありません — サインインすると使用量が表示されます。"
@@ -10500,6 +10608,9 @@ msgstr "説明はありません。"
 msgid "No desktop session is running in this sandbox."
 msgstr "このサンドボックスではデスクトップセッションが実行されていません。"
 
+msgid "No device is running."
+msgstr "実行中のデバイスはありません。"
+
 msgid "No devices yet"
 msgstr "デバイスはまだありません"
 
@@ -10517,6 +10628,9 @@ msgstr "環境が見つかりません。"
 
 msgid "No environments yet."
 msgstr "環境はまだありません。作成すると、そこからクラウドワークスペースを起動できます。"
+
+msgid "No events yet"
+msgstr "イベントはまだありません"
 
 msgid "No extended thinking"
 msgstr "拡張思考なし"
@@ -10601,6 +10715,9 @@ msgstr "コメントを受け取るエージェントはいません"
 
 msgid "No live sessions"
 msgstr "ライブセッションはありません"
+
+msgid "No log lines yet"
+msgstr "ログ行はまだありません"
 
 msgid "no logins"
 msgstr "ログイン情報なし"
@@ -11174,6 +11291,9 @@ msgstr "ウィンドウ変更時"
 
 msgid "On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls."
 msgstr "お使いのマシンです。リポジトリ、ワークツリー、ターミナルの出力、エージェントのセッションは既定でローカルに留まります。クラウド同期の対象はアカウントと組織のメタデータのみです。SupersetはAPI呼び出しを一切中継しません。"
+
+msgid "On-screen Keyboard"
+msgstr "オンスクリーンキーボード"
 
 msgid "One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together."
 msgstr "1つのチャットがタスクを計画し、ワークツリーをまたいで並列エージェントに展開し、結果をまとめて返します。"
@@ -12887,6 +13007,9 @@ msgstr "ダッシュボードページに到達"
 msgid "React layer of the shared pane/workspace layout engine"
 msgstr "共有のペイン/ワークスペースレイアウトエンジンのReact層"
 
+msgid "React Native"
+msgstr "React Native"
+
 msgid "Reaction added"
 msgstr "リアクション追加"
 
@@ -12969,6 +13092,9 @@ msgstr "リベースしてマージ"
 msgid "Recent Activity"
 msgstr "最近のアクティビティ"
 
+msgid "Recent apps"
+msgstr "最近使ったアプリ"
+
 msgid "Recent invoices"
 msgstr "最近の請求書"
 
@@ -13029,6 +13155,9 @@ msgstr "再接続中… 会話は保持されます。"
 msgid "Red"
 msgstr "赤"
 
+msgid "Red/Green (Protanopia)"
+msgstr "赤/緑（1型2色覚）"
+
 msgid "Redacted Riveter"
 msgstr "秘匿のリベット工"
 
@@ -13040,6 +13169,12 @@ msgstr "リダイレクト中..."
 
 msgid "Redo"
 msgstr "やり直す"
+
+msgid "Reduce Motion"
+msgstr "視差効果を減らす"
+
+msgid "Reduce Transparency"
+msgstr "透明度を下げる"
 
 msgid "Referenced, not demoed"
 msgstr "参照のみでデモなし"
@@ -13850,6 +13985,9 @@ msgstr "ロールを更新しました"
 msgid "Roll back an agent session to any checkpoint, conversation and file changes together."
 msgstr "エージェントのセッションを任意のチェックポイントまで巻き戻せます。会話とファイルの変更をまとめて。"
 
+msgid "Rotate"
+msgstr "回転"
+
 msgid "Rotate device"
 msgstr "デバイスを回転"
 
@@ -14122,6 +14260,9 @@ msgstr "範囲"
 #. placeholder {0}: String(MIN_ACTIVE_DAYS)
 msgid "Scoring starts once the board can see {0} days of usage."
 msgstr "{0}日分の使用状況がそろうとスコアリングが始まります。"
+
+msgid "Screenshot"
+msgstr "スクリーンショット"
 
 msgid "Screenshot copied to clipboard"
 msgstr "スクリーンショットをクリップボードにコピーしました"
@@ -14725,6 +14866,9 @@ msgstr "設定 ({settingsHotkey})"
 msgid "Settings → Remote Access → “Allow remote access to this device via relay”."
 msgstr "設定 → リモートアクセス →「リレー経由でこのデバイスへのリモートアクセスを許可」。"
 
+msgid "Settings are not available for this device"
+msgstr "このデバイスでは設定を利用できません"
+
 msgid "Settings..."
 msgstr "設定..."
 
@@ -14832,6 +14976,9 @@ msgstr "すべてのコメントを表示"
 
 msgid "Show all lines"
 msgstr "すべての行を表示"
+
+msgid "Show Borders"
+msgstr "境界線を表示"
 
 msgid "Show checks"
 msgstr "チェックを表示"
@@ -14965,6 +15112,10 @@ msgstr "サイドバーとタスク一覧に表示されます。"
 msgid "Shown publicly alongside your name."
 msgstr "名前と一緒に公開されます。"
 
+#. placeholder {0}: selected.name
+msgid "Shut down {0}"
+msgstr "{0} をシャットダウン"
+
 msgid "Side by Side"
 msgstr "並べて表示"
 
@@ -15090,6 +15241,9 @@ msgstr "アップデートをシミュレート: エラー"
 
 msgid "Simulate update: ready"
 msgstr "アップデートをシミュレート: 準備完了"
+
+msgid "Simulator"
+msgstr "シミュレータ"
 
 msgid "Since 2025"
 msgstr "2025年から"
@@ -16314,6 +16468,9 @@ msgstr "テキスト"
 msgid "Text input with emoji picker support"
 msgstr "絵文字ピッカーに対応したテキスト入力"
 
+msgid "Text Size"
+msgstr "文字サイズ"
+
 msgid "Text style"
 msgstr "テキストスタイル"
 
@@ -17083,6 +17240,9 @@ msgstr "時間"
 
 msgid "Time range"
 msgstr "期間"
+
+msgid "Tinted"
+msgstr "色合い調整"
 
 msgid "Tip"
 msgstr "ヒント"
@@ -18025,6 +18185,9 @@ msgstr "音声モードで問題が発生しました。もう一度お試しく
 msgid "Voice settings"
 msgstr "音声設定"
 
+msgid "VoiceOver"
+msgstr "VoiceOver"
+
 msgid "Volume"
 msgstr "音量"
 
@@ -18038,6 +18201,9 @@ msgstr "エージェント起動前にワークスペースのセットアップ
 #. placeholder {1}: names.b
 msgid "waiting for {0} and {1}…"
 msgstr "{0}と{1}を待っています…"
+
+msgid "Waiting for activity data"
+msgstr "アクティビティデータを待機中"
 
 msgid "Waiting for Checks"
 msgstr "チェックを待機中"
@@ -18611,6 +18777,9 @@ msgstr "年払い"
 
 msgid "Yellow"
 msgstr "黄"
+
+msgid "Yes"
+msgstr "はい"
 
 msgid "Yes, demote me"
 msgstr "はい、降格します"
