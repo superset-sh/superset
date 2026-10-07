@@ -20,6 +20,7 @@ env:
 jobs:
   create-database:
     name: Create Database (Neon)
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     environment: preview
 
@@ -802,7 +803,7 @@ jobs:
   post-final-comment:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
-    if: always()
+    if: github.repository_id == '1080370450' && always()
     needs: [create-database, deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read

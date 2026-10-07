@@ -26,7 +26,7 @@ on:
 jobs:
   boot-twice:
     name: Boot twice
-    if: github.event_name == 'pull_request'
+    if: github.repository_id == '1080370450' && github.event_name == 'pull_request'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check out code
@@ -85,7 +85,7 @@ jobs:
 
   publish-bundle:
     name: Publish the bundle
-    if: github.event_name == 'push'
+    if: github.repository_id == '1080370450' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code

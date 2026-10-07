@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   stale:
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629

@@ -9,6 +9,7 @@ on:
 jobs:
   sherif:
     name: Sherif
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -34,6 +35,7 @@ jobs:
 
   vale:
     name: Vale prose lint
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,6 +60,7 @@ jobs:
 
   version-sync:
     name: Version Sync
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -89,6 +92,7 @@ jobs:
 
   lint:
     name: Lint
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -130,6 +134,7 @@ jobs:
 
   test:
     name: Test
+    if: github.repository_id == '1080370450'
     runs-on: blacksmith-8vcpu-ubuntu-2404
     steps:
       - name: Check out code
@@ -175,6 +180,7 @@ jobs:
 
   page-storage:
     name: Page storage integration
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -207,6 +213,7 @@ jobs:
 
   typecheck:
     name: Typecheck
+    if: github.repository_id == '1080370450'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Check out code
@@ -232,6 +239,7 @@ jobs:
 
   build-cli:
     name: Build CLI
+    if: github.repository_id == '1080370450'
     uses: ./.github/workflows/build-cli.yml
     with:
       targets: '[{"os":"ubuntu-latest","target":"linux-x64"}]'

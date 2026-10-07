@@ -11,6 +11,7 @@ env:
 jobs:
   deploy-database:
     name: Deploy Database Migrations
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     environment: production
     concurrency:
@@ -572,6 +573,7 @@ jobs:
   # something the relay bundle is built from.
   relay-changes:
     name: Detect Relay Changes
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -600,6 +602,7 @@ jobs:
     needs: relay-changes
     # Fail open: a broken detector must not leave a stale relay in production.
     if: >-
+      github.repository_id == '1080370450' &&
       !cancelled() && (
         github.event_name == 'workflow_dispatch'
         || needs.relay-changes.result != 'success'
@@ -634,6 +637,7 @@ jobs:
 
   realtime-changes:
     name: Detect Realtime Changes
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -665,6 +669,7 @@ jobs:
     environment: production
     needs: realtime-changes
     if: >-
+      github.repository_id == '1080370450' &&
       !cancelled() && (
         github.event_name == 'workflow_dispatch'
         || needs.realtime-changes.result != 'success'
@@ -699,6 +704,7 @@ jobs:
 
   deploy-content:
     name: Deploy Usercontent Worker to Cloudflare
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     environment: production
 
@@ -730,6 +736,7 @@ jobs:
 
   deploy-sandbox-gate:
     name: Deploy Gate Worker to Cloudflare
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     environment: production
 

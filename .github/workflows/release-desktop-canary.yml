@@ -18,6 +18,7 @@ permissions:
 jobs:
   check-changes:
     name: Check for changes
+    if: github.repository_id == '1080370450'
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
