@@ -3,7 +3,7 @@ import { useLingui as useTranslation } from "@lingui/react";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaGitlab } from "react-icons/fa";
 import {
 	LuExternalLink,
 	LuGlobe,
@@ -13,6 +13,7 @@ import {
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { pullRequestRefFromUrl } from "renderer/lib/github/pullRequestRef";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
@@ -51,6 +52,7 @@ export function WorkspaceHoverCardContent({
 	const hasOpenPRShortcut = !(
 		openPRDisplay.length === 1 && openPRDisplay[0] === "Unassigned"
 	);
+	const isGitLab = !!pr && !!pullRequestRefFromUrl(pr.url)?.host;
 
 	const previewButton = previewUrl ? (
 		<Button
@@ -193,8 +195,12 @@ export function WorkspaceHoverCardContent({
 						asChild
 					>
 						<a href={pr.url} target="_blank" rel="noopener noreferrer">
-							<FaGithub className="size-3" />
-							View on GitHub
+							{isGitLab ? (
+								<FaGitlab className="size-3" />
+							) : (
+								<FaGithub className="size-3" />
+							)}
+							{isGitLab ? "Open in GitLab" : "View on GitHub"}
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (

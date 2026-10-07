@@ -69,3 +69,27 @@ describe("DashboardSidebarWorkspaceHoverCardContent long session name", () => {
 		expect(name.className).toMatch(/\bline-clamp-2\b/);
 	});
 });
+
+test("shows the GitLab destination for a self-hosted merge request", () => {
+	const workspace = workspaceWithName("local");
+	workspace.pullRequest = {
+		url: "https://gitlab.example.com/group/project/-/merge_requests/42",
+		number: 42,
+		title: "Fix surveyor snapshots",
+		state: "closed",
+		reviewDecision: null,
+		checksStatus: "none",
+		checks: [],
+	};
+	render(
+		<DashboardSidebarWorkspaceHoverCardContent
+			workspace={workspace}
+			diffStats={null}
+		/>,
+	);
+	expect(
+		within(document.body)
+			.getByRole("link", { name: /Open in GitLab/ })
+			.getAttribute("href"),
+	).toBe(workspace.pullRequest.url);
+});
