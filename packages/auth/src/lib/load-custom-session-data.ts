@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import type { SelectMember } from "@superset/db/schema/auth";
+import { executeRows } from "@superset/db/utils";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { sql } from "drizzle-orm";
 
@@ -120,7 +121,7 @@ export async function loadCustomSessionData({
 		WHERE u.id = ${userId}::uuid
 	`);
 
-	const row = result.rows[0];
+	const row = executeRows<CustomSessionRow>(result)[0];
 	if (!row) {
 		return {
 			memberships: [],

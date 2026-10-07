@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
+import { createKv } from "@superset/shared/kv";
 import { SANDBOX_API_CREDENTIAL_HEADER } from "@superset/shared/sandbox-gate";
 import { sandboxCredentialWorkspaceId } from "@superset/trpc/lib/sandbox";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { env } from "@/env";
 
 // Per-credential (or per-IP before auth) ceiling on MCP requests. Generous:
@@ -19,7 +19,7 @@ export interface RateLimitState {
 	reset: number;
 }
 
-const redis = new Redis({
+const redis = createKv({
 	url: env.KV_REST_API_URL,
 	token: env.KV_REST_API_TOKEN,
 });

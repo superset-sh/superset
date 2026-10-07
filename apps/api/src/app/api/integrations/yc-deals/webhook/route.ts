@@ -2,8 +2,8 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { db } from "@superset/db/client";
 import { dealRedemptions } from "@superset/db/schema";
 import { YcDealCodeEmail } from "@superset/email/emails/billing/yc-deal-code";
+import { createEmailSender } from "@superset/email/sender";
 import { and, eq } from "drizzle-orm";
-import { Resend } from "resend";
 import Stripe from "stripe";
 import { z } from "zod";
 
@@ -12,7 +12,7 @@ import { env } from "@/env";
 const SOURCE = "yc-bookface";
 
 const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = createEmailSender(env);
 
 const companySchema = z.looseObject({
 	name: z.string().nullish(),

@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { connections, githubInstallations } from "@superset/db/schema";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { revokeLinearConnection } from "@superset/trpc/integrations/linear";
 import {
 	organizationSyncs,
@@ -17,7 +18,9 @@ import { verifyQstashRequest } from "@/lib/verifyQstash";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+);
 
 // api.superset.sh answers through Cloudflare, which returns 524 to the caller
 // once the origin has been silent for ~100s; QStash then retries and a second

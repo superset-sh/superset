@@ -1,3 +1,5 @@
+import { billingEnvValue } from "@superset/shared/billing-env";
+import { redisUrl } from "@superset/shared/redis-url";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
@@ -8,6 +10,34 @@ export const env = createEnv({
 			.default("development"),
 	},
 	server: {
+		SELF_HOST_QUEUE: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z.enum(["0", "1"]).default("0"),
+		),
+		SELF_HOST_QUEUE_URL: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z
+				.string()
+				.url()
+				.refine((value) => {
+					const url = new URL(value);
+					return (
+						["http:", "https:"].includes(url.protocol) &&
+						!url.username &&
+						!url.password &&
+						url.pathname === "/" &&
+						!url.search &&
+						!url.hash
+					);
+				}, "Queue URL must be an HTTP(S) origin")
+				.default("http://127.0.0.1:8789"),
+		),
+		SELF_HOST_QUEUE_SECRET: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().min(32)
+				: z.string().min(32).optional(),
+		),
 		DATABASE_URL: z.string(),
 		DATABASE_URL_UNPOOLED: z.string(),
 		GOOGLE_CLIENT_ID: z.string().min(1),
@@ -45,18 +75,46 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		SERVER_ANTHROPIC_API_KEY: z.string().min(1),
-		QSTASH_TOKEN: z.string().min(1),
-		QSTASH_URL: z.string().url(),
-		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
-		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
-		RESEND_API_KEY: z.string(),
-		KV_REST_API_URL: z.string(),
-		KV_REST_API_TOKEN: z.string(),
+		QSTASH_TOKEN:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		QSTASH_URL:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().url(),
+		QSTASH_CURRENT_SIGNING_KEY:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		QSTASH_NEXT_SIGNING_KEY:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		SMTP_URL: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z
+				.string()
+				.url()
+				.regex(/^smtps?:\/\//)
+				.optional(),
+		),
+		EMAIL_FROM: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z.string().optional(),
+		),
+		RESEND_API_KEY: process.env.SMTP_URL ? z.string().optional() : z.string(),
+		SELF_HOST_KV: z.enum(["0", "1"]).default("0"),
+		REDIS_URL: redisUrl.default("redis://127.0.0.1:6379"),
+		KV_REST_API_URL:
+			process.env.SELF_HOST_KV === "1" ? z.string().optional() : z.string(),
+		KV_REST_API_TOKEN:
+			process.env.SELF_HOST_KV === "1" ? z.string().optional() : z.string(),
 		KV_URL: z.string().url(),
-		STRIPE_SECRET_KEY: z.string(),
-		STRIPE_WEBHOOK_SECRET: z.string(),
-		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
-		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
+		STRIPE_SECRET_KEY: billingEnvValue(process.env.STRIPE_SECRET_KEY),
+		STRIPE_WEBHOOK_SECRET: billingEnvValue(process.env.STRIPE_SECRET_KEY),
+		STRIPE_PRO_MONTHLY_PRICE_ID: billingEnvValue(process.env.STRIPE_SECRET_KEY),
+		STRIPE_PRO_YEARLY_PRICE_ID: billingEnvValue(process.env.STRIPE_SECRET_KEY),
 		// YC Bookface deal redemption webhook (deal 13843). The route answers
 		// 503 while the secret is unset. The secret lives on the Bookface deal
 		// edit page, under the webhook documentation.
@@ -80,8 +138,11 @@ export const env = createEnv({
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
 		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DESKTOP_URL: z.string().url().optional(),
-		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
-		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+		NEXT_PUBLIC_POSTHOG_HOST: z
+			.string()
+			.url()
+			.default("https://us.i.posthog.com"),
 		NEXT_PUBLIC_SENTRY_DSN_API: z.string().optional(),
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])

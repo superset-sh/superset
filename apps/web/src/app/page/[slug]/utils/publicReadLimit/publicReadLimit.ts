@@ -1,13 +1,13 @@
 import "server-only";
 
+import { createKv } from "@superset/shared/kv";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { headers } from "next/headers";
 import { env } from "@/env";
 
 const redis =
-	env.KV_REST_API_URL && env.KV_REST_API_TOKEN
-		? new Redis({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
+	env.SELF_HOST_KV === "1" || (env.KV_REST_API_URL && env.KV_REST_API_TOKEN)
+		? createKv({ url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN })
 		: null;
 
 const publicReadRateLimit = redis

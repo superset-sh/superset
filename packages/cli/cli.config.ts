@@ -11,6 +11,16 @@ export default defineConfig({
 	outfile: "./dist/superset",
 	plugins: [linguiMacroPlugin],
 	define: {
+		__SUPERSET_CLI_ORIGIN_DEFAULTS__: JSON.stringify({
+			api: process.env.SUPERSET_API_URL,
+			web: process.env.SUPERSET_WEB_URL,
+			relay: process.env.RELAY_URL,
+			realtime: process.env.REALTIME_URL,
+		}),
+		"process.env.CLI_UPDATE_BASE_URL": JSON.stringify(
+			process.env.CLI_UPDATE_BASE_URL ||
+				"https://github.com/superset-sh/superset/releases/download",
+		),
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
 		"process.env.SUPERSET_CLI_CHANNEL": JSON.stringify(
 			process.env.SUPERSET_CLI_CHANNEL ?? "standalone",

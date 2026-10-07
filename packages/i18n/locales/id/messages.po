@@ -3478,6 +3478,9 @@ msgstr "Check lulus"
 msgid "Checks Skipped"
 msgstr "Check Dilewati"
 
+msgid "Checksum download failed: {status}"
+msgstr "Unduhan checksum gagal: {status}"
+
 msgid "Choose a fighter"
 msgstr "Pilih petarung"
 
@@ -4380,6 +4383,9 @@ msgstr "Lanjutkan dengan agen lain"
 
 msgid "Continue with another agent…"
 msgstr "Lanjutkan dengan agen lain…"
+
+msgid "Continue with Authentik"
+msgstr "Lanjutkan dengan Authentik"
 
 msgid "Continue with GitHub"
 msgstr "Lanjutkan dengan GitHub"
@@ -6084,6 +6090,18 @@ msgstr "Unduh file tema"
 msgid "downloaded"
 msgstr "terunduh"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "Checksum arsip CLI yang diunduh tidak cocok"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "Versi arsip CLI yang diunduh tidak cocok"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "Versi biner CLI yang diunduh tidak cocok (diharapkan {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "Pemeriksaan versi CLI yang diunduh gagal"
+
 msgid "Downloading"
 msgstr "Mengunduh"
 
@@ -7445,6 +7463,15 @@ msgstr "Ukuran font"
 msgid "Font weight"
 msgstr "Ketebalan font"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "Untuk CLI mandiri yang diperbarui di lokasi instalasinya, instal dari kanal deployment ini: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "Untuk CLI mandiri yang diperbarui di lokasi instalasinya: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "Untuk CLI mandiri, build ulang dari repositori ini dengan CLI_UPDATE_BASE_URL diatur ke kanal deployment ini."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Untuk laporan bug dan permintaan fitur, jalur tercepat adalah issue GitHub di <0>github.com/superset-sh/superset</0>. Komunitas kami ada di <1>Discord</1>, dan kami memposting pembaruan di <2>X (@superset_sh)</2> dan <3>LinkedIn</3>."
 
@@ -8531,6 +8558,9 @@ msgstr "Permintaan Tidak Valid"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "Parameter state tidak valid. Silakan coba lagi."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "Manifes versi di cli-latest tidak valid"
 
 msgid "Invitation canceled"
 msgstr "Undangan dibatalkan"
@@ -12897,6 +12927,9 @@ msgstr "Diperbarui saat Claude Code berikutnya dijalankan."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Diperbarui saat OpenCode berikutnya dijalankan."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "Pembaruan ditolak: API dan kanal pembaruan CLI ini mengarah ke deployment yang berbeda. Build ulang dengan CLI_UPDATE_BASE_URL diatur ke kanal yang sesuai."
 
 msgid "Regenerate"
 msgstr "Buat ulang"

@@ -1,8 +1,42 @@
+import { redisUrl } from "@superset/shared/redis-url";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+const cloudStorage = <T extends z.ZodType>(schema: T) =>
+	process.env.S3_ENDPOINT ? schema.optional() : schema;
+const s3Storage = <T extends z.ZodType>(schema: T) =>
+	process.env.S3_ENDPOINT ? schema : schema.optional();
+
 export const env = createEnv({
 	server: {
+		SELF_HOST_QUEUE: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z.enum(["0", "1"]).default("0"),
+		),
+		SELF_HOST_QUEUE_URL: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z
+				.string()
+				.url()
+				.refine((value) => {
+					const url = new URL(value);
+					return (
+						["http:", "https:"].includes(url.protocol) &&
+						!url.username &&
+						!url.password &&
+						url.pathname === "/" &&
+						!url.search &&
+						!url.hash
+					);
+				}, "Queue URL must be an HTTP(S) origin")
+				.default("http://127.0.0.1:8789"),
+		),
+		SELF_HOST_QUEUE_SECRET: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().min(32)
+				: z.string().min(32).optional(),
+		),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
@@ -10,40 +44,82 @@ export const env = createEnv({
 		// organization logos, and the usercontent origin serves them. Required,
 		// so a deployment missing one fails at boot rather than at the first
 		// upload — `.env.local.example` carries fake values that boot fine.
-		CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
-		R2_ACCESS_KEY_ID: z.string().min(1),
-		R2_SECRET_ACCESS_KEY: z.string().min(1),
-		R2_PRIVATE_BUCKET: z.string().min(1),
+		CLOUDFLARE_ACCOUNT_ID: cloudStorage(z.string().min(1)),
+		R2_ACCESS_KEY_ID: cloudStorage(z.string().min(1)),
+		R2_SECRET_ACCESS_KEY: cloudStorage(z.string().min(1)),
+		R2_PRIVATE_BUCKET: cloudStorage(z.string().min(1)),
 		// Avatars and organization logos: world-readable by design, served
 		// straight from the bucket's custom domain with no ticket. Required,
 		// unlike the private bucket above: every avatar upload needs it, so a
 		// deployment missing it should fail at boot rather than at the first
 		// upload.
-		R2_PUBLIC_BUCKET: z.string().min(1),
+		R2_PUBLIC_BUCKET: cloudStorage(z.string().min(1)),
 		// Set explicitly rather than derived from the account id: a
 		// jurisdiction-restricted bucket carries a region label the derived
 		// form would miss, and pointing this at localhost is how the storage
 		// path is exercised against an S3-compatible emulator in tests/dev.
-		R2_ENDPOINT: z.string().url(),
+		R2_ENDPOINT: cloudStorage(z.string().url()),
+		S3_ENDPOINT: z.string().url().optional(),
+		S3_PRESIGN_ENDPOINT: z.string().url().optional(),
+		S3_REGION: z.string().min(1).default("garage"),
+		S3_ACCESS_KEY: s3Storage(z.string().min(1)),
+		S3_SECRET_KEY: s3Storage(z.string().min(1)),
+		S3_BUCKET: s3Storage(z.string().min(1)),
+		S3_PUBLIC_BUCKET: s3Storage(
+			z
+				.string()
+				.min(1)
+				.refine(
+					(bucket) =>
+						!process.env.S3_ENDPOINT || bucket !== process.env.S3_BUCKET,
+					{ message: "S3 private and public buckets must be different" },
+				),
+		),
+		S3_PUBLIC_URL: s3Storage(z.string().url()),
 		USERCONTENT_URL: z.string().url(),
-		STATIC_URL: z.string().url(),
+		STATIC_URL: cloudStorage(z.string().url()),
 		USERCONTENT_TOKEN_SECRET: z.string().min(32),
 		// Optional: page thumbnails are skipped wherever this is unset.
 		CLOUDFLARE_BROWSER_RENDERING_TOKEN: z.string().min(1).optional(),
 		POSTHOG_API_KEY: z.string(),
 		POSTHOG_API_HOST: z.string().url().default("https://us.posthog.com"),
 		POSTHOG_PROJECT_ID: z.string(),
-		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 		NEXT_PUBLIC_POSTHOG_HOST: z
 			.string()
 			.url()
 			.default("https://us.i.posthog.com"),
-		QSTASH_TOKEN: z.string().min(1),
-		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
-		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
-		RESEND_API_KEY: z.string().min(1),
+		QSTASH_TOKEN:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		QSTASH_CURRENT_SIGNING_KEY:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		QSTASH_NEXT_SIGNING_KEY:
+			process.env.SELF_HOST_QUEUE === "1"
+				? z.string().optional()
+				: z.string().min(1),
+		SMTP_URL: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z
+				.string()
+				.url()
+				.regex(/^smtps?:\/\//)
+				.optional(),
+		),
+		EMAIL_FROM: z.preprocess(
+			(value) => (value === "" ? undefined : value),
+			z.string().optional(),
+		),
+		RESEND_API_KEY: process.env.SMTP_URL
+			? z.string().optional()
+			: z.string().min(1),
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
+		SELF_HOST_KV: z.enum(["0", "1"]).default("0"),
+		REDIS_URL: redisUrl.default("redis://127.0.0.1:6379"),
 		KV_REST_API_URL: z.string().url().optional(),
 		KV_REST_API_TOKEN: z.string().optional(),
 		// Shared with apps/marketing. Its server-side leaderboard reads present

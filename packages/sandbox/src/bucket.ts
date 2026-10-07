@@ -3,6 +3,8 @@
  * their sha256 and never overwritten: a name that exists is correct by
  * definition, so the only operations are "is it there" and "put it there".
  */
+
+import { sandboxAssetBaseURL } from "@superset/shared/sandbox-contract";
 import { AwsClient } from "aws4fetch";
 
 export interface Bucket {
@@ -33,6 +35,7 @@ export function bucketFromEnv(env: NodeJS.ProcessEnv = process.env): Bucket {
 	if (missing.length) {
 		throw new Error(`bucket credentials missing: ${missing.join(", ")}`);
 	}
+	const publicBase = sandboxAssetBaseURL(env.CDN_URL);
 	const client = new AwsClient({
 		accessKeyId: env.CDN_R2_ACCESS_KEY_ID as string,
 		secretAccessKey: env.CDN_R2_SECRET_ACCESS_KEY as string,
@@ -40,7 +43,6 @@ export function bucketFromEnv(env: NodeJS.ProcessEnv = process.env): Bucket {
 		region: "auto",
 	});
 	const base = `${env.CDN_R2_ENDPOINT}/${env.CDN_R2_BUCKET}/${PREFIX}`;
-	const publicBase = `${env.CDN_URL}/${PREFIX}`;
 	return {
 		async exists(key) {
 			const response = await client.fetch(`${base}/${key}`, { method: "HEAD" });

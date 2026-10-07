@@ -1,8 +1,8 @@
 import * as Application from "expo-application";
 import { useFocusEffect } from "expo-router";
 import * as StoreReview from "expo-store-review";
-import { usePostHog } from "posthog-react-native";
 import { useCallback } from "react";
+import { usePostHog } from "@/lib/posthog";
 import { useAppReviewStore } from "@/screens/(authenticated)/stores/appReviewStore";
 
 const MESSAGES_BEFORE_PROMPT = 5;

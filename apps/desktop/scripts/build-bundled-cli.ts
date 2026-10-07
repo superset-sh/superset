@@ -61,14 +61,23 @@ function run(
 }
 
 function buildCliBuildEnv(): NodeJS.ProcessEnv {
-	// Only the channel is baked. Which API this CLI talks to is decided when it
-	// runs: the shim the desktop installs carries a dev stack's addresses.
-	return { ...process.env, SUPERSET_CLI_CHANNEL: "desktop-bundled" };
+	return {
+		...process.env,
+		SUPERSET_API_URL:
+			process.env.NEXT_PUBLIC_API_URL || process.env.SUPERSET_API_URL,
+		SUPERSET_WEB_URL:
+			process.env.NEXT_PUBLIC_WEB_URL || process.env.SUPERSET_WEB_URL,
+		SUPERSET_CLI_CHANNEL: "desktop-bundled",
+	};
 }
 
 const desktopDir = resolve(import.meta.dirname, "..");
 const repoRoot = resolve(desktopDir, "../..");
-config({ path: resolve(repoRoot, ".env"), override: false, quiet: true });
+config({
+	path: process.env.SUPERSET_BUILD_ENV_FILE || resolve(repoRoot, ".env"),
+	override: false,
+	quiet: true,
+});
 
 const cliDir = resolve(repoRoot, "packages/cli");
 const outfile = resolve(

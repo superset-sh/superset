@@ -8,6 +8,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, posix, relative } from "node:path";
 
 const BLOCK = 512;
+const GZIP_OS_FIELD = 9;
+const GZIP_OS_UNIX = 3;
 
 function header(
 	name: string,
@@ -81,7 +83,7 @@ export function tarGzDirectory(dir: string): Uint8Array {
 	}
 	parts.push(new Uint8Array(BLOCK * 2));
 	const tar = Buffer.concat(parts);
-	// zlib writes a zero mtime and no name into the gzip header, so the
-	// output depends on the tar bytes alone.
-	return Bun.gzipSync(tar, { level: 9 });
+	const gzip = Bun.gzipSync(tar, { level: 9 });
+	gzip[GZIP_OS_FIELD] = GZIP_OS_UNIX;
+	return gzip;
 }

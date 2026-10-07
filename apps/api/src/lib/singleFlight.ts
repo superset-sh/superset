@@ -1,4 +1,5 @@
 import { dbWs } from "@superset/db/client";
+import { executeRows } from "@superset/db/utils";
 import { sql } from "drizzle-orm";
 import type { PgTransaction } from "drizzle-orm/pg-core";
 
@@ -42,8 +43,10 @@ export async function singleFlight<T>(
 	fn: (tx: SingleFlightTx) => Promise<T>,
 ): Promise<SingleFlightResult<T>> {
 	return dbWs.transaction(async (tx) => {
-		const { rows } = await tx.execute<{ locked: boolean }>(
-			sql`SELECT pg_try_advisory_xact_lock(hashtextextended(${`job:${job}`}::text, 0)) AS locked`,
+		const rows = executeRows<{ locked: boolean }>(
+			await tx.execute(
+				sql`SELECT pg_try_advisory_xact_lock(hashtextextended(${`job:${job}`}::text, 0)) AS locked`,
+			),
 		);
 		if (!rows[0]?.locked) return { ran: false };
 		return { ran: true, result: await fn(tx) };

@@ -1,4 +1,5 @@
 import type { LinkSharedEvent, SlackEvent } from "@slack/types";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { Client } from "@upstash/qstash";
 import { after } from "next/server";
 
@@ -14,7 +15,10 @@ import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
 import { threadFollowUpTarget } from "./utils/thread-sessions";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+	{ publicationTimeoutMs: 2000 },
+);
 
 type SlackEventEnvelope = {
 	type?: string;

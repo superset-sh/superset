@@ -18,7 +18,11 @@ import {
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+config({
+	path: process.env.SUPERSET_BUILD_ENV_FILE || resolve(__dirname, "../../.env"),
+	override: true,
+	quiet: true,
+});
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
 
@@ -69,6 +73,9 @@ export default defineConfig({
 				process.env.SKIP_ENV_VALIDATION,
 				"",
 			),
+			"process.env.NEXT_PUBLIC_AUTH_PROVIDERS": defineEnv(
+				process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
+			),
 			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
 				process.env.NEXT_PUBLIC_API_URL,
 				"https://api.superset.sh",
@@ -99,6 +106,7 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
 				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
+			"process.env.UPDATE_FEED_URL": defineEnv(process.env.UPDATE_FEED_URL),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			"process.env.REALTIME_URL": defineEnv(process.env.REALTIME_URL),
 			// Must match renderer for analytics in main process
@@ -196,6 +204,9 @@ export default defineConfig({
 				"",
 			),
 			"process.platform": defineEnv(process.platform),
+			"process.env.NEXT_PUBLIC_AUTH_PROVIDERS": defineEnv(
+				process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
+			),
 			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
 				process.env.NEXT_PUBLIC_API_URL,
 				"https://api.superset.sh",

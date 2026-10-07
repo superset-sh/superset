@@ -5,6 +5,7 @@ import {
 	users,
 	verifications,
 } from "@superset/db/schema/auth";
+import { executeRows } from "@superset/db/utils";
 import type { BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { and, eq, sql } from "drizzle-orm";
@@ -159,7 +160,9 @@ export const acceptInvitationEndpoint = {
 					const lockedInvitation = await tx.execute<{ status: string }>(
 						sql`select ${invitations.status} as status from ${invitations} where ${invitations.id} = ${invitationId} for update`,
 					);
-					const lockedInvitationStatus = lockedInvitation.rows[0]?.status;
+					const lockedInvitationStatus = executeRows<{ status: string }>(
+						lockedInvitation,
+					)[0]?.status;
 
 					if (!lockedInvitationStatus) {
 						return {

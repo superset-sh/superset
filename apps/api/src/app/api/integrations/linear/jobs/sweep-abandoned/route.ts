@@ -1,4 +1,5 @@
 import { webhookEvents } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { singleFlight } from "@/lib/singleFlight";
@@ -141,7 +142,8 @@ export async function POST(request: Request): Promise<Response> {
 		// Monotonic: the wall clock can step backwards mid-run (NTP), which would
 		// read as less elapsed time and extend the lock hold past the budget.
 		const startedAt = performance.now();
-		const { rows } = await tx.execute<AbandonedRow>(sql`
+		const rows = executeRows<AbandonedRow>(
+			await tx.execute(sql`
 			WITH band AS MATERIALIZED (
 				SELECT id, provider, status, event_id, received_at, retry_count
 				FROM ingest.webhook_events
@@ -155,7 +157,8 @@ export async function POST(request: Request): Promise<Response> {
 				AND left(event_id, ${DELIVERY_PREFIX_LENGTH}) = 'delivery:'
 			ORDER BY received_at
 			LIMIT ${MAX_ROWS}
-		`);
+		`),
+		);
 
 		const plan = planSweep(rows, {
 			maxAttempts: MAX_ATTEMPTS,

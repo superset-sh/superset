@@ -16,15 +16,19 @@ import {
 	planAllowsTriggerKind,
 	requiredPlanForTriggerKind,
 } from "@superset/shared/billing";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { organizationPlan } from "@superset/trpc/billing";
 import { Client } from "@upstash/qstash";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { env } from "@/env";
 
-const qstash = new Client({
-	token: env.QSTASH_TOKEN,
-	baseUrl: env.QSTASH_URL,
-});
+const qstash = createJobQueue(
+	() =>
+		new Client({
+			token: env.QSTASH_TOKEN ?? "",
+			baseUrl: env.QSTASH_URL,
+		}),
+);
 
 /**
  * Finds the triggers an event satisfies and enqueues a run for each.

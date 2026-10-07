@@ -24,7 +24,9 @@ const CACHE_CONTROL = "public, max-age=31536000, immutable";
  * every object URL built from it.
  */
 function staticBaseUrl(): string {
-	return env.STATIC_URL.replace(/\/+$/, "");
+	const origin = env.S3_ENDPOINT ? env.S3_PUBLIC_URL : env.STATIC_URL;
+	if (!origin) throw new Error("Storage public origin is not configured");
+	return origin.replace(/\/+$/, "");
 }
 
 /**
@@ -61,11 +63,15 @@ const TRANSFORM_OPTIONS = `width=${CANONICAL_WIDTH},height=${CANONICAL_WIDTH},fi
 
 /** A transformation URL over any object key in the public bucket. */
 export function transformUrlFor(key: string): string {
-	return `${staticBaseUrl()}/cdn-cgi/image/${TRANSFORM_OPTIONS}/${key}`;
+	return env.S3_ENDPOINT
+		? `${staticBaseUrl()}/${key}`
+		: `${staticBaseUrl()}/cdn-cgi/image/${TRANSFORM_OPTIONS}/${key}`;
 }
 
 export function imageUrlFor(pathname: string): string {
-	return transformUrlFor(originalKey(pathname));
+	return env.S3_ENDPOINT
+		? `${staticBaseUrl()}/${originalKey(pathname)}`
+		: transformUrlFor(originalKey(pathname));
 }
 
 /**
@@ -132,12 +138,9 @@ function looksComplete(buffer: Buffer, contentType: string): boolean {
 export async function uploadImage({
 	fileData,
 	pathname,
-	existingUrl,
 }: {
 	fileData: string;
 	pathname: string;
-	/** The row's current URL, reclaimed once the new object is up. */
-	existingUrl: string | null;
 }) {
 	const base64Data = fileData.includes("base64,")
 		? fileData.split("base64,")[1] || fileData
@@ -164,6 +167,8 @@ export async function uploadImage({
 		});
 	}
 
+	const url = imageUrlFor(pathname);
+
 	// The sniffed type, never the declared one: it is what the bucket will
 	// serve the bytes as, and the two disagreeing is the interesting case.
 	await putObject({
@@ -174,11 +179,38 @@ export async function uploadImage({
 		cacheControl: CACHE_CONTROL,
 	});
 
-	void reclaim({ existingUrl, pathname }).catch((error) => {
-		console.warn("Failed to remove the previous image", { existingUrl, error });
-	});
+	return url;
+}
 
-	return imageUrlFor(pathname);
+export async function replaceImage<T>({
+	save,
+	...upload
+}: Parameters<typeof uploadImage>[0] & {
+	existingUrl: string | null;
+	save: (url: string) => Promise<T>;
+}): Promise<{ url: string; result: T }> {
+	const url = await uploadImage(upload);
+	let result: T;
+	try {
+		result = await save(url);
+	} catch (error) {
+		try {
+			await deleteObjects([originalKey(upload.pathname)], { bucket: "public" });
+		} catch (cleanupError) {
+			console.warn("Failed to remove the new image", {
+				pathname: upload.pathname,
+				error: cleanupError,
+			});
+		}
+		throw error;
+	}
+	await reclaim(upload).catch((error) => {
+		console.warn("Failed to remove the previous image", {
+			existingUrl: upload.existingUrl,
+			error,
+		});
+	});
+	return { url, result };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { Client } from "@upstash/qstash";
 import { z } from "zod";
 
@@ -17,10 +18,13 @@ import {
  * and answer 202; `process/route.ts` does the rest with retries.
  */
 
-const qstash = new Client({
-	token: env.QSTASH_TOKEN,
-	baseUrl: env.QSTASH_URL,
-});
+const qstash = createJobQueue(
+	() =>
+		new Client({
+			token: env.QSTASH_TOKEN ?? "",
+			baseUrl: env.QSTASH_URL,
+		}),
+);
 
 export const PROCESS_PATH = "/api/integrations/microsoft-teams/process";
 const PROCESS_URL = `${env.NEXT_PUBLIC_API_URL}${PROCESS_PATH}`;

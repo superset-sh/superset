@@ -1,7 +1,7 @@
-import { Resend } from "resend";
+import { createEmailSender } from "@superset/email/sender";
 import { env } from "../env";
 
-const resend = new Resend(env.RESEND_API_KEY);
+const resend = createEmailSender(env);
 const EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 // `app.first_opened` lets the Resend activation automation branch

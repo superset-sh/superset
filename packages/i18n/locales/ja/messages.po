@@ -3478,6 +3478,9 @@ msgstr "チェックが成功しました"
 msgid "Checks Skipped"
 msgstr "チェックをスキップ"
 
+msgid "Checksum download failed: {status}"
+msgstr "チェックサムのダウンロードに失敗しました: {status}"
+
 msgid "Choose a fighter"
 msgstr "ファイターを選ぶ"
 
@@ -4380,6 +4383,9 @@ msgstr "別のエージェントで続ける"
 
 msgid "Continue with another agent…"
 msgstr "別のエージェントで続ける…"
+
+msgid "Continue with Authentik"
+msgstr "Authentikで続行"
 
 msgid "Continue with GitHub"
 msgstr "GitHubで続行"
@@ -6084,6 +6090,18 @@ msgstr "テーマファイルをダウンロード"
 msgid "downloaded"
 msgstr "ダウンロード済み"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "ダウンロードした CLI アーカイブのチェックサムが一致しません"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "ダウンロードした CLI アーカイブのバージョンが一致しません"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "ダウンロードした CLI バイナリのバージョンが一致しません（期待値: {targetVersion}）"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "ダウンロードした CLI のバージョン確認に失敗しました"
+
 msgid "Downloading"
 msgstr "ダウンロード中"
 
@@ -7445,6 +7463,15 @@ msgstr "フォントサイズ"
 msgid "Font weight"
 msgstr "フォントウェイト"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "その場で更新できるスタンドアロン CLI を利用するには、このデプロイ先のチャネルからインストールしてください: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "その場で更新できるスタンドアロン CLI を利用するには: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "スタンドアロン CLI を利用するには、CLI_UPDATE_BASE_URL をこのデプロイ先のチャネルに設定して、このリポジトリから再ビルドしてください。"
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "バグ報告や機能リクエストは、<0>github.com/superset-sh/superset</0>にGitHub issueを立てるのが最短です。コミュニティは<1>Discord</1>にあり、アップデートは<2>X(@superset_sh)</2>と<3>LinkedIn</3>で発信しています。"
 
@@ -8531,6 +8558,9 @@ msgstr "無効なリクエスト"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "stateパラメーターが無効です。もう一度お試しください。"
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "cli-latest のバージョンマニフェストが無効です"
 
 msgid "Invitation canceled"
 msgstr "招待をキャンセルしました"
@@ -12897,6 +12927,9 @@ msgstr "次に Claude Code を実行すると更新されます。"
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "次に OpenCode を実行すると更新されます。"
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "更新を拒否しました。この CLI の API と更新チャネルが異なるデプロイ先を指しています。CLI_UPDATE_BASE_URL を対応するチャネルに設定して再ビルドしてください。"
 
 msgid "Regenerate"
 msgstr "再生成"

@@ -1,4 +1,4 @@
-import { stripeClient } from "@superset/auth/stripe";
+import { isBillingEnabled, stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations, subscriptions } from "@superset/db/schema";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
@@ -61,7 +61,7 @@ async function requireOwnerWithCustomer(ctx: {
 		});
 	}
 
-	return organization?.stripeCustomerId ?? null;
+	return isBillingEnabled ? (organization?.stripeCustomerId ?? null) : null;
 }
 
 const EMPTY_ACTIVE_PLAN = {
@@ -127,6 +127,8 @@ export const billingRouter = {
 	activePlan: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
 		if (!activeOrgId) return { ...EMPTY_ACTIVE_PLAN, organizationId: null };
+		if (!isBillingEnabled)
+			return { ...EMPTY_ACTIVE_PLAN, organizationId: activeOrgId };
 
 		const subscription = await db.query.subscriptions.findFirst({
 			where: and(
@@ -182,7 +184,7 @@ export const billingRouter = {
 			columns: { stripeCustomerId: true },
 		});
 
-		if (!organization?.stripeCustomerId) {
+		if (!isBillingEnabled || !organization?.stripeCustomerId) {
 			return [];
 		}
 
@@ -220,7 +222,7 @@ export const billingRouter = {
 			columns: { stripeCustomerId: true },
 		});
 
-		if (!organization?.stripeCustomerId) {
+		if (!isBillingEnabled || !organization?.stripeCustomerId) {
 			return null;
 		}
 

@@ -1,6 +1,7 @@
 import { useGlobalSearchParams, useSegments } from "expo-router";
 import {
 	PostHogProvider as PHProvider,
+	PostHog,
 	type PostHogAutocaptureOptions,
 } from "posthog-react-native";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -42,6 +43,7 @@ function ScreenTracker() {
 }
 
 export function PostHogProvider({ children }: PostHogProviderProps) {
+	if (!(posthog instanceof PostHog)) return <>{children}</>;
 	return (
 		<PHProvider
 			client={posthog}

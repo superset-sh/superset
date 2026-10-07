@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { startedStatusProgress } from "@superset/db/seed-default-statuses";
+import { executeRows } from "@superset/db/utils";
 import { sql } from "drizzle-orm";
 
 /**
@@ -32,10 +33,10 @@ const missingInReview = sql`
 		)
 `;
 
-const missing = await db.execute<{ n: number }>(
-	sql`SELECT count(*)::int AS n ${missingInReview}`,
+const missing = executeRows<{ n: number }>(
+	await db.execute(sql`SELECT count(*)::int AS n ${missingInReview}`),
 );
-console.log(`organizations to add In Review to: ${missing.rows[0]?.n ?? 0}`);
+console.log(`organizations to add In Review to: ${missing[0]?.n ?? 0}`);
 
 if (apply) {
 	await db.execute(sql`
@@ -45,19 +46,21 @@ if (apply) {
 	`);
 }
 
-const started = await db.execute<{
+const started = executeRows<{
 	id: string;
 	organization_id: string;
 	progress_percent: number | null;
-}>(sql`
+}>(
+	await db.execute(sql`
 	SELECT id, organization_id, progress_percent
 	FROM task_statuses
 	WHERE external_provider IS NULL AND type = 'started'
 	ORDER BY organization_id, position, id
-`);
+`),
+);
 
-const byOrganization = new Map<string, typeof started.rows>();
-for (const status of started.rows) {
+const byOrganization = new Map<string, typeof started>();
+for (const status of started) {
 	const statuses = byOrganization.get(status.organization_id) ?? [];
 	statuses.push(status);
 	byOrganization.set(status.organization_id, statuses);
@@ -97,10 +100,10 @@ const oldDone = sql`
 		AND name = 'Done'
 		AND color = ${OLD_DONE_COLOR}
 `;
-const doneCount = await db.execute<{ n: number }>(
-	sql`SELECT count(*)::int AS n ${oldDone}`,
+const doneCount = executeRows<{ n: number }>(
+	await db.execute(sql`SELECT count(*)::int AS n ${oldDone}`),
 );
-console.log(`Done statuses to recolor: ${doneCount.rows[0]?.n ?? 0}`);
+console.log(`Done statuses to recolor: ${doneCount[0]?.n ?? 0}`);
 
 if (apply) {
 	await db.execute(sql`

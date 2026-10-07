@@ -6,6 +6,7 @@ import { stripeClient } from "@better-auth/stripe/client";
 import type { auth } from "@superset/auth/server";
 import {
 	customSessionClient,
+	genericOAuthClient,
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -24,6 +25,7 @@ export const authClient = createAuthClient({
 			},
 		}),
 		customSessionClient<typeof auth>(),
+		genericOAuthClient(),
 		stripeClient({ subscription: true }),
 		apiKeyClient(),
 		oauthProviderClient(),

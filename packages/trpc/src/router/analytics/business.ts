@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
@@ -789,12 +790,13 @@ export const businessRouter = {
 	getChurnCohorts: adminProcedure
 		.input(z.object({ months: z.number().min(3).max(24).default(7) }))
 		.query(async ({ input }) => {
-			const result = await db.execute<{
+			const result = executeRows<{
 				cohort_month: string;
 				month_offset: number;
 				cohort_size: number;
 				surviving_pct: number;
-			}>(sql`
+			}>(
+				await db.execute(sql`
 				WITH subs AS (
 					SELECT created_at, ended_at, date_trunc('month', created_at) AS cohort
 					FROM subscriptions
@@ -816,8 +818,9 @@ export const businessRouter = {
 				WHERE created_at + make_interval(months => k.k) <= now()
 				GROUP BY cohort_month, k.k
 				ORDER BY cohort_month, k.k
-			`);
-			return result.rows;
+			`),
+			);
+			return result;
 		}),
 
 	// Organization adoption: how much of the base is a team rather than one
@@ -834,12 +837,13 @@ export const businessRouter = {
 	getOrgAdoption: adminProcedure
 		.input(z.object({ weeks: z.number().min(4).max(26).default(12) }))
 		.query(async ({ input }) => {
-			const result = await db.execute<{
+			const result = executeRows<{
 				week: string;
 				teams: number;
 				individual_accounts: number;
 				teams_per_1000: number;
-			}>(sql`
+			}>(
+				await db.execute(sql`
 				WITH weeks AS (
 					SELECT generate_series(
 						date_trunc('week', now()) - make_interval(weeks => ${input.weeks - 1}),
@@ -864,8 +868,9 @@ export const businessRouter = {
 				FROM sized
 				GROUP BY wk
 				ORDER BY wk
-			`);
-			return result.rows;
+			`),
+			);
+			return result;
 		}),
 
 	// Logo retention: % of orgs subscribed at the end of month m still
@@ -873,12 +878,13 @@ export const businessRouter = {
 	getLogoRetention: adminProcedure
 		.input(z.object({ months: z.number().min(3).max(24).default(8) }))
 		.query(async ({ input }) => {
-			const result = await db.execute<{
+			const result = executeRows<{
 				month: string;
 				base_orgs: number;
 				retained_orgs: number;
 				retention_pct: number | null;
-			}>(sql`
+			}>(
+				await db.execute(sql`
 				WITH months AS (
 					-- one month past the last base month, so base month m can find
 					-- its m+1 rows in the join
@@ -909,8 +915,9 @@ export const businessRouter = {
 				WHERE b.m <= date_trunc('month', now()) - make_interval(months => 2)
 				GROUP BY b.m
 				ORDER BY b.m
-			`);
-			return result.rows;
+			`),
+			);
+			return result;
 		}),
 
 	// Signup -> paid within 30d, weekly signup cohorts. Per-user facts in Neon;
@@ -918,12 +925,13 @@ export const businessRouter = {
 	getSignupToPaid: adminProcedure
 		.input(z.object({ weeks: z.number().min(4).max(26).default(12) }))
 		.query(async ({ input }) => {
-			const result = await db.execute<{
+			const result = executeRows<{
 				cohort_week: string;
 				signups: number;
 				converted: number;
 				conversion_pct: number | null;
-			}>(sql`
+			}>(
+				await db.execute(sql`
 				WITH cohort AS (
 					SELECT u.id, u.created_at
 					FROM auth.users u
@@ -960,8 +968,9 @@ export const businessRouter = {
 				FROM cohort c
 				GROUP BY 1
 				ORDER BY 1
-			`);
-			return result.rows;
+			`),
+			);
+			return result;
 		}),
 
 	// Cash, monthly net flow, and runway from Mercury. Cash includes the
@@ -982,16 +991,18 @@ export const businessRouter = {
 				reason: "STRIPE_SECRET_KEY not configured",
 			};
 		}
-		const result = await db.execute<{
+		const result = executeRows<{
 			stripe_subscription_id: string | null;
 			name: string;
 			logo: string | null;
-		}>(sql`
+		}>(
+			await db.execute(sql`
 			SELECT s.stripe_subscription_id, o.name, o.logo
 			FROM subscriptions s
 			JOIN auth.organizations o ON o.id = s.reference_id
 			WHERE s.plan = 'enterprise' AND s.status = 'active'
-		`);
+		`),
+		);
 
 		const accounts: {
 			name: string;
@@ -999,7 +1010,7 @@ export const businessRouter = {
 			arrUsd: number;
 			billed: boolean;
 		}[] = [];
-		for (const row of result.rows) {
+		for (const row of result) {
 			let subAnnualCents = 0;
 			if (row.stripe_subscription_id) {
 				const response = await fetch(

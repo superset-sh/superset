@@ -2,6 +2,7 @@ import { expoClient } from "@better-auth/expo/client";
 import type { auth } from "@superset/auth/server";
 import {
 	customSessionClient,
+	genericOAuthClient,
 	jwtClient,
 	oneTimeTokenClient,
 	organizationClient,
@@ -40,6 +41,7 @@ export const authClient = createAuthClient({
 			},
 		}),
 		customSessionClient<typeof auth>(),
+		genericOAuthClient(),
 		jwtClient(),
 		// Dev/e2e-only, mirroring the server plugin (packages/auth/src/server.ts) —
 		// only a cloud sandbox or an e2e build ever has a token to redeem with it.

@@ -3478,6 +3478,9 @@ msgstr "Check đã qua"
 msgid "Checks Skipped"
 msgstr "Check đã bỏ qua"
 
+msgid "Checksum download failed: {status}"
+msgstr "Tải tổng kiểm tra thất bại: {status}"
+
 msgid "Choose a fighter"
 msgstr "Chọn một đấu sĩ"
 
@@ -4380,6 +4383,9 @@ msgstr "Tiếp tục với agent khác"
 
 msgid "Continue with another agent…"
 msgstr "Tiếp tục với agent khác…"
+
+msgid "Continue with Authentik"
+msgstr "Tiếp tục với Authentik"
 
 msgid "Continue with GitHub"
 msgstr "Tiếp tục với GitHub"
@@ -6084,6 +6090,18 @@ msgstr "Tải tệp chủ đề"
 msgid "downloaded"
 msgstr "đã tải"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "Tổng kiểm tra của tệp lưu trữ CLI đã tải xuống không khớp"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "Phiên bản của tệp lưu trữ CLI đã tải xuống không khớp"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "Phiên bản của tệp nhị phân CLI đã tải xuống không khớp (dự kiến {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "Kiểm tra phiên bản CLI đã tải xuống thất bại"
+
 msgid "Downloading"
 msgstr "Đang tải xuống"
 
@@ -7445,6 +7463,15 @@ msgstr "Cỡ chữ"
 msgid "Font weight"
 msgstr "Độ đậm chữ"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "Để có CLI độc lập cập nhật ngay tại vị trí cài đặt, hãy cài đặt từ kênh của bản triển khai này: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "Để có CLI độc lập cập nhật ngay tại vị trí cài đặt: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "Để có CLI độc lập, hãy dựng lại từ kho lưu trữ này với CLI_UPDATE_BASE_URL được đặt thành kênh của bản triển khai này."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Với báo lỗi và đề xuất tính năng, cách nhanh nhất là mở issue trên GitHub tại <0>github.com/superset-sh/superset</0>. Cộng đồng của chúng tôi ở <1>Discord</1>, và chúng tôi đăng cập nhật trên <2>X (@superset_sh)</2> và <3>LinkedIn</3>."
 
@@ -8531,6 +8558,9 @@ msgstr "Yêu cầu không hợp lệ"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "Tham số state không hợp lệ. Vui lòng thử lại."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "Tệp kê khai phiên bản tại cli-latest không hợp lệ"
 
 msgid "Invitation canceled"
 msgstr "Đã hủy lời mời"
@@ -12897,6 +12927,9 @@ msgstr "Làm mới khi Claude Code chạy lần tiếp theo."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "Làm mới khi OpenCode chạy lần tiếp theo."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "Từ chối cập nhật: API và kênh cập nhật của CLI này trỏ đến các bản triển khai khác nhau. Hãy dựng lại với CLI_UPDATE_BASE_URL được đặt thành kênh tương ứng."
 
 msgid "Regenerate"
 msgstr "Tạo lại"

@@ -5,6 +5,7 @@ import {
 	DEV_NAME,
 	DEV_PASSWORD,
 } from "@superset/shared/dev-credentials";
+import { optionalAuthProviders } from "@superset/shared/optional-auth-providers";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
@@ -35,7 +36,10 @@ type AuthMethod = AuthProvider | "dev";
 
 function readLastUsedMethod(): AuthMethod | null {
 	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
-	return stored === "github" || stored === "google" || stored === "dev"
+	return stored === "github" ||
+		stored === "google" ||
+		stored === "dev" ||
+		stored === "authentik"
 		? stored
 		: null;
 }
@@ -219,6 +223,21 @@ function SignInPage() {
 							<Trans>Continue with Google</Trans>
 							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
+						{optionalAuthProviders(env.NEXT_PUBLIC_AUTH_PROVIDERS).map(
+							(provider) => (
+								<Button
+									key={provider}
+									variant="outline"
+									size="lg"
+									onClick={() => signIn(provider)}
+									className="w-full gap-3"
+									disabled={signInMutation.isPending}
+								>
+									<Trans>Continue with Authentik</Trans>
+									{lastUsedMethod === provider && lastUsedBadge}
+								</Button>
+							),
+						)}
 					</div>
 
 					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">

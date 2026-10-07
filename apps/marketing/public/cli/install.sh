@@ -10,6 +10,8 @@
 set -eu
 
 REPO="superset-sh/superset"
+BASE_URL="${SUPERSET_CLI_BASE_URL:-https://github.com/${REPO}/releases/download}"
+BASE_URL="${BASE_URL%/}"
 INSTALL_DIR="${SUPERSET_HOME:-$HOME/superset}"
 TAG="${SUPERSET_VERSION:-latest}"
 
@@ -53,9 +55,9 @@ download_tarball() {
     tarball="superset-${target}.tar.gz"
 
     if [ "$TAG" = "latest" ]; then
-        url="https://github.com/${REPO}/releases/download/cli-latest/${tarball}"
+        url="${BASE_URL}/cli-latest/${tarball}"
     else
-        url="https://github.com/${REPO}/releases/download/${TAG}/${tarball}"
+        url="${BASE_URL}/${TAG}/${tarball}"
     fi
 
     info "Downloading $url"

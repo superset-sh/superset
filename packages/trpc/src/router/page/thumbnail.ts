@@ -1,6 +1,10 @@
 import { db } from "@superset/db/client";
 import { pages, pageVersions } from "@superset/db/schema";
 import {
+	createJobQueue,
+	isSelfHostQueue,
+} from "@superset/shared/self-host-queue";
+import {
 	PAGE_THUMBNAIL_HEIGHT,
 	PAGE_THUMBNAIL_WIDTH,
 	pageThumbnailKey,
@@ -41,7 +45,7 @@ export async function enqueuePageThumbnail(
 
 	// QStash cannot reach a local API, and the route skips signature checks in
 	// development, so call it directly.
-	if (env.NODE_ENV === "development") {
+	if (env.NODE_ENV === "development" && !isSelfHostQueue()) {
 		void fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -51,7 +55,9 @@ export async function enqueuePageThumbnail(
 	}
 
 	try {
-		const qstash = new Client({ token: env.QSTASH_TOKEN });
+		const qstash = createJobQueue(
+			() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+		);
 		await qstash.publishJSON({
 			url,
 			body: job,

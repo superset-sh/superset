@@ -1,5 +1,6 @@
 import {
 	CopyObjectCommand,
+	DeleteObjectCommand,
 	DeleteObjectsCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
@@ -16,30 +17,74 @@ import { env } from "../env";
  */
 export type Bucket = "private" | "public";
 
+function requiredStorageValue(value: string | undefined, name: string): string {
+	if (!value) throw new Error(`${name} is required for storage`);
+	return value;
+}
+
+function storageConfig() {
+	const generic = !!env.S3_ENDPOINT;
+	const privateBucket = requiredStorageValue(
+		generic ? env.S3_BUCKET : env.R2_PRIVATE_BUCKET,
+		generic ? "S3_BUCKET" : "R2_PRIVATE_BUCKET",
+	);
+	const publicBucket = requiredStorageValue(
+		generic ? env.S3_PUBLIC_BUCKET : env.R2_PUBLIC_BUCKET,
+		generic ? "S3_PUBLIC_BUCKET" : "R2_PUBLIC_BUCKET",
+	);
+	if (generic && privateBucket === publicBucket)
+		throw new Error("S3 private and public buckets must be different");
+	return {
+		privateBucket,
+		publicBucket,
+		endpoint: requiredStorageValue(
+			generic ? env.S3_ENDPOINT : env.R2_ENDPOINT,
+			generic ? "S3_ENDPOINT" : "R2_ENDPOINT",
+		),
+		region: generic ? env.S3_REGION : "auto",
+		accessKeyId: requiredStorageValue(
+			generic ? env.S3_ACCESS_KEY : env.R2_ACCESS_KEY_ID,
+			generic ? "S3_ACCESS_KEY" : "R2_ACCESS_KEY_ID",
+		),
+		secretAccessKey: requiredStorageValue(
+			generic ? env.S3_SECRET_KEY : env.R2_SECRET_ACCESS_KEY,
+			generic ? "S3_SECRET_KEY" : "R2_SECRET_ACCESS_KEY",
+		),
+	};
+}
+
 function bucketName(bucket: Bucket): string {
-	return bucket === "public" ? env.R2_PUBLIC_BUCKET : env.R2_PRIVATE_BUCKET;
+	const config = storageConfig();
+	return bucket === "public" ? config.publicBucket : config.privateBucket;
 }
 
 let client: S3Client | null = null;
+let presignClient: S3Client | null = null;
+
+function createStorageClient(endpoint?: string): S3Client {
+	const config = storageConfig();
+	return new S3Client({
+		region: config.region,
+		endpoint: endpoint ?? config.endpoint,
+		credentials: {
+			accessKeyId: config.accessKeyId,
+			secretAccessKey: config.secretAccessKey,
+		},
+		forcePathStyle: true,
+		requestChecksumCalculation: "WHEN_REQUIRED",
+		responseChecksumValidation: "WHEN_REQUIRED",
+	});
+}
 
 function s3(): S3Client {
-	if (!client) {
-		client = new S3Client({
-			region: "auto",
-			endpoint: env.R2_ENDPOINT,
-			credentials: {
-				accessKeyId: env.R2_ACCESS_KEY_ID,
-				secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-			},
-			// Path-style keeps emulators working and R2 accepts it.
-			forcePathStyle: true,
-			// R2 rejects the SDK's default CRC32 request checksums; Cloudflare's
-			// docs prescribe checksums only where the API requires them.
-			requestChecksumCalculation: "WHEN_REQUIRED",
-			responseChecksumValidation: "WHEN_REQUIRED",
-		});
-	}
+	client ??= createStorageClient();
 	return client;
+}
+
+function presigningS3(): S3Client {
+	if (!env.S3_ENDPOINT || !env.S3_PRESIGN_ENDPOINT) return s3();
+	presignClient ??= createStorageClient(env.S3_PRESIGN_ENDPOINT);
+	return presignClient;
 }
 
 function isMissing(error: unknown): boolean {
@@ -164,6 +209,28 @@ export async function deleteObjects(
 	keys: readonly string[],
 	{ bucket = "private" }: { bucket?: Bucket } = {},
 ): Promise<void> {
+	if (env.S3_ENDPOINT) {
+		let next = 0;
+		let failed = false;
+		const results = await Promise.allSettled(
+			Array.from({ length: Math.min(4, keys.length) }, async () => {
+				try {
+					while (!failed && next < keys.length) {
+						const key = keys[next++];
+						await s3().send(
+							new DeleteObjectCommand({ Bucket: bucketName(bucket), Key: key }),
+						);
+					}
+				} catch (error) {
+					failed = true;
+					throw error;
+				}
+			}),
+		);
+		const rejection = results.find((result) => result.status === "rejected");
+		if (rejection?.status === "rejected") throw rejection.reason;
+		return;
+	}
 	for (let i = 0; i < keys.length; i += 1000) {
 		const batch = keys.slice(i, i + 1000);
 		const result = await s3().send(
@@ -192,7 +259,7 @@ export async function presignedGetUrl(
 	signingDate?: Date,
 ): Promise<string> {
 	return getSignedUrl(
-		s3(),
+		presigningS3(),
 		new GetObjectCommand({ Bucket: bucketName("private"), Key: key }),
 		{ expiresIn: expiresInSeconds, signingDate },
 	);
@@ -215,7 +282,7 @@ export async function presignedPutUrl({
 	expiresInSeconds?: number;
 }): Promise<{ url: string; headers: Record<string, string> }> {
 	const url = await getSignedUrl(
-		s3(),
+		presigningS3(),
 		new PutObjectCommand({
 			Bucket: bucketName("private"),
 			Key: key,

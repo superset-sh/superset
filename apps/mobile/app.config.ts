@@ -1,6 +1,7 @@
 import path from "node:path";
 import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
-import { IOS_APP } from "@superset/shared/constants";
+import { getIosAppIdentity } from "@superset/shared/constants";
+import { mobileAuthProviders } from "@superset/shared/optional-auth-providers";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
 import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
@@ -8,7 +9,9 @@ import { withSceneLifecycle } from "./config-plugins/withSceneLifecycle";
 
 // Load .env file
 config({
-	path: path.resolve(__dirname, "../../.env"),
+	path:
+		process.env.SUPERSET_BUILD_ENV_FILE ||
+		path.resolve(__dirname, "../../.env"),
 	override: true,
 	quiet: true,
 });
@@ -20,8 +23,53 @@ const associatedDomains =
 	webUrl.protocol === "https:" ? [`applinks:${webUrl.hostname}`] : undefined;
 
 const SIGNED_BUILD_PROFILES = ["preview", "production"];
+const iosApp = getIosAppIdentity();
+const upstreamIosApp = getIosAppIdentity({});
+const appGroup = `group.${iosApp.BUNDLE_ID}`;
+const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+const upstreamProjectId = "fa9332a8-896a-4d2a-be5b-d82469b46e5d";
+const configuredProjectId = process.env.EAS_PROJECT_ID?.trim() || undefined;
+const configuredOwner = process.env.EAS_OWNER?.trim() || undefined;
+const selfHost =
+	process.env.MOBILE_SELF_HOST === "1" ||
+	iosApp.BUNDLE_ID !== upstreamIosApp.BUNDLE_ID ||
+	iosApp.TEAM_ID !== upstreamIosApp.TEAM_ID ||
+	Boolean(apiUrl && new URL(apiUrl).origin !== "https://api.superset.sh") ||
+	Boolean(
+		configuredProjectId &&
+			configuredProjectId.toLowerCase() !== upstreamProjectId,
+	) ||
+	Boolean(
+		configuredOwner &&
+			!["superset-sh", "supserset-sh"].includes(configuredOwner.toLowerCase()),
+	);
+const updatesEnabled = !selfHost || process.env.MOBILE_UPDATES_ENABLED === "1";
 const signedUpdates = process.env.MOBILE_SIGNED_UPDATES === "1";
+if (Boolean(configuredProjectId) !== Boolean(configuredOwner)) {
+	throw new Error(
+		"Set EAS_PROJECT_ID and EAS_OWNER together for an owned Expo project",
+	);
+}
+const projectId =
+	configuredProjectId || (selfHost ? undefined : upstreamProjectId);
+const owner = configuredOwner || (selfHost ? undefined : "supserset-sh");
+if (selfHost) {
+	if (
+		projectId?.toLowerCase() === upstreamProjectId ||
+		["superset-sh", "supserset-sh"].includes(owner?.toLowerCase() ?? "")
+	) {
+		throw new Error(
+			"Self-host builds cannot use the upstream EAS project or account",
+		);
+	}
+	if (updatesEnabled && (!projectId || !owner)) {
+		throw new Error(
+			"Self-host updates require an owned EAS_PROJECT_ID and EAS_OWNER",
+		);
+	}
+}
 if (
+	updatesEnabled &&
 	!signedUpdates &&
 	SIGNED_BUILD_PROFILES.includes(process.env.EAS_BUILD_PROFILE ?? "")
 ) {
@@ -29,10 +77,22 @@ if (
 		`MOBILE_SIGNED_UPDATES=1 is missing from the ${process.env.EAS_BUILD_PROFILE} EAS environment; refusing to build an unsigned ${process.env.EAS_BUILD_PROFILE} binary`,
 	);
 }
+const updatesCertificate =
+	process.env.MOBILE_UPDATES_CERTIFICATE?.trim() || undefined;
+if (selfHost && updatesEnabled && signedUpdates && !updatesCertificate) {
+	throw new Error(
+		"Signed self-host updates require an owned MOBILE_UPDATES_CERTIFICATE",
+	);
+}
+const sentryDsn =
+	process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE?.trim() || undefined;
+const usesAppleSignIn = mobileAuthProviders(
+	process.env.EXPO_PUBLIC_AUTH_PROVIDERS,
+).includes("apple");
 
 export default ({ config }: ConfigContext) => ({
 	...config,
-	name: "Superset",
+	name: process.env.EXPO_PUBLIC_APP_NAME?.trim() || "Superset",
 	slug: "superset",
 	locales: Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [locale, `./locales/${locale}.json`]),
@@ -44,25 +104,37 @@ export default ({ config }: ConfigContext) => ({
 	scheme: "superset",
 	runtimeVersion: { policy: "fingerprint" as const },
 	updates: {
-		url: "https://u.expo.dev/fa9332a8-896a-4d2a-be5b-d82469b46e5d",
-		...(signedUpdates && {
-			codeSigningCertificate: "./certs/certificate.pem",
-			codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" as const },
-		}),
+		...(updatesEnabled
+			? {
+					url: `https://u.expo.dev/${projectId}`,
+					...(selfHost && { enabled: true }),
+				}
+			: { enabled: false }),
+		...(updatesEnabled &&
+			signedUpdates && {
+				codeSigningCertificate: selfHost
+					? updatesCertificate
+					: "./certs/certificate.pem",
+				codeSigningMetadata: { keyid: "main", alg: "rsa-v1_5-sha256" as const },
+			}),
 	},
 	ios: {
+		...(process.env.MOBILE_BUILD_NUMBER?.trim() && {
+			buildNumber: process.env.MOBILE_BUILD_NUMBER.trim(),
+		}),
 		supportsTablet: true,
-		appleTeamId: IOS_APP.TEAM_ID,
+		appleTeamId: iosApp.TEAM_ID,
 		// Shared with the AgentActivity widget extension: the Live Activity
 		// sandbox has no network, so project icons are cached here by the app
 		// and read back by the extension from disk.
 		entitlements: {
-			"com.apple.security.application-groups": ["group.sh.superset.mobile"],
+			"com.apple.security.application-groups": [appGroup],
 		},
-		bundleIdentifier: IOS_APP.BUNDLE_ID,
+		bundleIdentifier: iosApp.BUNDLE_ID,
 		...(associatedDomains && { associatedDomains }),
-		usesAppleSignIn: true,
+		usesAppleSignIn,
 		infoPlist: {
+			SupersetAppGroup: appGroup,
 			"UISupportedInterfaceOrientations~ipad": [
 				"UIInterfaceOrientationPortrait",
 				"UIInterfaceOrientationPortraitUpsideDown",
@@ -86,7 +158,7 @@ export default ({ config }: ConfigContext) => ({
 			foregroundImage: "./assets/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
-		package: "sh.superset.mobile",
+		package: iosApp.BUNDLE_ID,
 		predictiveBackGestureEnabled: false,
 	},
 	web: {
@@ -119,11 +191,11 @@ export default ({ config }: ConfigContext) => ({
 		[
 			"@sentry/react-native/expo",
 			{
-				organization: "superset-sh",
-				project: "mobile",
-				useNativeInit: true,
+				organization: process.env.SENTRY_ORG?.trim() || "superset-sh",
+				project: process.env.SENTRY_PROJECT?.trim() || "mobile",
+				useNativeInit: Boolean(sentryDsn),
 				options: {
-					dsn: process.env.EXPO_PUBLIC_SENTRY_DSN_MOBILE,
+					dsn: sentryDsn,
 					environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
 					enableMetricKit: true,
 				},
@@ -179,9 +251,7 @@ export default ({ config }: ConfigContext) => ({
 	],
 	extra: {
 		router: {},
-		eas: {
-			projectId: "fa9332a8-896a-4d2a-be5b-d82469b46e5d",
-		},
+		...(projectId && { eas: { projectId } }),
 	},
-	owner: "supserset-sh",
+	owner,
 });

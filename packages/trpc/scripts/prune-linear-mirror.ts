@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import { executeRows } from "@superset/db/utils";
 import { type SQL, sql } from "drizzle-orm";
 
 /**
@@ -57,10 +58,12 @@ async function referencingColumns(): Promise<ReferencingColumn[]> {
 				AND c.relname <> 'task_imports'
 		`,
 	);
-	return rows.rows.map((row) => ({
-		table: row.table_name,
-		column: row.column_name,
-	}));
+	return executeRows<{ table_name: string; column_name: string }>(rows).map(
+		(row) => ({
+			table: row.table_name,
+			column: row.column_name,
+		}),
+	);
 }
 
 function isReferenced(columns: ReferencingColumn[]): SQL {
@@ -105,7 +108,7 @@ async function count(where: SQL): Promise<number> {
 	const result = await db.execute<{ n: number }>(
 		sql`SELECT count(*)::int AS n FROM tasks t WHERE ${where}`,
 	);
-	return result.rows[0]?.n ?? 0;
+	return executeRows<{ n: number }>(result)[0]?.n ?? 0;
 }
 
 async function keepTasksInLinearStatuses(columns: ReferencingColumn[]) {
@@ -121,7 +124,9 @@ async function keepTasksInLinearStatuses(columns: ReferencingColumn[]) {
 	const orgs = await db.execute<{ organization_id: string }>(
 		sql`SELECT DISTINCT t.organization_id FROM tasks t WHERE ${kept}`,
 	);
-	for (const { organization_id } of orgs.rows) {
+	for (const { organization_id } of executeRows<{ organization_id: string }>(
+		orgs,
+	)) {
 		await seedDefaultStatuses(organization_id);
 	}
 
@@ -187,19 +192,23 @@ async function deleteMirroredRows(columns: ReferencingColumn[]) {
 	const pages = await db.execute<{ blocks: number }>(
 		sql`SELECT (pg_relation_size('tasks') / current_setting('block_size')::int)::int AS blocks`,
 	);
-	const blocks = pages.rows[0]?.blocks ?? 0;
+	const blocks = executeRows<{ blocks: number }>(pages)[0]?.blocks ?? 0;
 
 	// Walks the table in physical order: on cold storage a block-range scan reads
 	// sequentially, where picking rows through an index reads one page per row.
 	let deleted = 0;
 	for (let block = 0; block < blocks; block += DELETE_BATCH_BLOCKS) {
-		const result = await db.execute(sql`
-			DELETE FROM tasks t
-			WHERE t.ctid >= ${`(${block},0)`}::tid
-				AND t.ctid < ${`(${block + DELETE_BATCH_BLOCKS},0)`}::tid
-				AND ${unreferenced}
+		const result = await db.execute<{ n: number }>(sql`
+			WITH deleted AS (
+				DELETE FROM tasks t
+				WHERE t.ctid >= ${`(${block},0)`}::tid
+					AND t.ctid < ${`(${block + DELETE_BATCH_BLOCKS},0)`}::tid
+					AND ${unreferenced}
+				RETURNING 1
+			)
+			SELECT count(*)::int AS n FROM deleted
 		`);
-		deleted += result.rowCount ?? 0;
+		deleted += executeRows<{ n: number }>(result)[0]?.n ?? 0;
 		console.log(
 			`deleted ${deleted}/${total} (block ${Math.min(block + DELETE_BATCH_BLOCKS, blocks)}/${blocks})`,
 		);
@@ -217,7 +226,7 @@ async function moveActivityToNativeStatuses() {
 			WHERE ${ref} IN (${linearStatusIds})
 		`);
 		console.log(
-			`activity ${column} values to move to native statuses: ${result.rows[0]?.n ?? 0}`,
+			`activity ${column} values to move to native statuses: ${executeRows<{ n: number }>(result)[0]?.n ?? 0}`,
 		);
 		if (!apply) continue;
 		await db.execute(sql`
@@ -234,7 +243,9 @@ async function deleteUnusedLinearStatuses() {
 	const result = await db.execute<{ n: number }>(
 		sql`SELECT count(*)::int AS n FROM task_statuses s WHERE ${unused}`,
 	);
-	console.log(`unused Linear statuses to delete: ${result.rows[0]?.n ?? 0}`);
+	console.log(
+		`unused Linear statuses to delete: ${executeRows<{ n: number }>(result)[0]?.n ?? 0}`,
+	);
 	if (!apply) return;
 	await db.execute(sql`DELETE FROM task_statuses s WHERE ${unused}`);
 }

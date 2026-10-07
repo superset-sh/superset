@@ -1,0 +1,170 @@
+diff --git a/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h b/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
+--- a/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
++++ b/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h
+@@ -44,21 +44,34 @@
+ 
+   std::atomic<int> refCount{1};
+ 
++  RuntimeScheduler(void *scheduler, ScheduleFn fn) noexcept
++      : nativeScheduler(scheduler), scheduleFn(fn) {}
++
++  RuntimeScheduler() noexcept {}
++
+ public:
++  // Swift creates instances through the static `create` functions rather than the constructors.
++  // Annotating the constructors with `SWIFT_RETURNS_RETAINED` silences the Swift 6.4 "cannot infer
++  // ownership" warning, but Swift 6.2 rejects that annotation on a constructor as an error. Static
++  // functions returning a shared reference accept the annotation on every Swift version.
++
+   /**
+-   Constructs a scheduler bound to a host-provided native RuntimeScheduler.
++   Creates a scheduler bound to a host-provided native RuntimeScheduler.
+    `scheduleTask` dispatches through `fn`, which the host implements against
+    the real react::RuntimeScheduler.
+    */
+-  SWIFT_RETURNS_RETAINED RuntimeScheduler(void *scheduler, ScheduleFn fn) noexcept
+-      : nativeScheduler(scheduler), scheduleFn(fn) {}
++  static RuntimeScheduler *create(void *scheduler, ScheduleFn fn) noexcept SWIFT_RETURNS_RETAINED {
++    return new RuntimeScheduler(scheduler, fn);
++  }
+ 
+   /**
+-   Constructs a no-op scheduler. Scheduled tasks run synchronously on the
++   Creates a no-op scheduler. Scheduled tasks run synchronously on the
+    caller's thread — intended for standalone runtimes (e.g. tests) that have
+    no React scheduler.
+    */
+-  SWIFT_RETURNS_RETAINED RuntimeScheduler() {}
++  static RuntimeScheduler *create() noexcept SWIFT_RETURNS_RETAINED {
++    return new RuntimeScheduler();
++  }
+ 
+   RuntimeScheduler(const RuntimeScheduler &) = delete;
+ 
+diff --git a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
+--- a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
++++ b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift
+@@ -62,7 +62,7 @@
+   internal init(_ runtime: facebook.jsi.Runtime) {
+     self.runtimePointee = runtime
+     self.pointee = expo.iruntime(runtime)
+-    self.scheduler = expo.RuntimeScheduler()
++    self.scheduler = expo.RuntimeScheduler.create()
+     self.ownsRuntime = false
+     installLongLivedObjectsTeardown()
+   }
+@@ -73,7 +73,7 @@
+     let runtime = expo.createHermesRuntime()
+     self.runtimePointee = runtime
+     self.pointee = expo.iruntime(runtime)
+-    self.scheduler = expo.RuntimeScheduler()
++    self.scheduler = expo.RuntimeScheduler.create()
+     self.ownsRuntime = true
+     installLongLivedObjectsTeardown()
+   }
+@@ -85,7 +85,7 @@
+     let runtime = unsafeBitCast(unsafePointer, to: facebook.jsi.Runtime.self)
+     self.runtimePointee = runtime
+     self.pointee = expo.iruntime(runtime)
+-    self.scheduler = expo.RuntimeScheduler()
++    self.scheduler = expo.RuntimeScheduler.create()
+     self.ownsRuntime = false
+     installLongLivedObjectsTeardown()
+   }
+@@ -112,7 +112,7 @@
+     let fn = unsafeBitCast(dispatch, to: expo.RuntimeScheduler.ScheduleFn.self)
+     self.runtimePointee = runtime
+     self.pointee = expo.iruntime(runtime)
+-    self.scheduler = expo.RuntimeScheduler(scheduler, fn)
++    self.scheduler = expo.RuntimeScheduler.create(scheduler, fn)
+     self.ownsRuntime = false
+     installLongLivedObjectsTeardown()
+   }
+@@ -185,12 +185,12 @@
+       resultPtr: UnsafeMutablePointer<facebook.jsi.Value>
+     ) -> Bool {
+       let propertyName = String(cString: propertyName)
+-      nonisolated(unsafe) let resultPtr = resultPtr
++      let resultPtr = UncheckedSendable(resultPtr)
+ 
+       return withGuaranteedContext(context) { (context: HostObjectContext, runtime) in
+         return JavaScriptActor.assumeIsolated {
+           return forwardingSwiftErrorsToJS(runtime: runtime) {
+-            try context.get(propertyName).writeJSIValue(to: resultPtr)
++            try context.get(propertyName).writeJSIValue(to: resultPtr.value)
+           }
+         }
+       }
+@@ -771,22 +771,22 @@
+     // heap-allocated `JavaScriptRef` (Swift 6.2 rejects capturing/consuming a `~Copyable` value in the
+     // escaping closure that `withoutActuallyEscaping` synthesizes), the closure constructs the buffer
+     // locally from the raw pointer + count. Those are read-only call-scoped inputs that never outlive the
+-    // synchronous call, so the `nonisolated(unsafe)` capture is sound. This removes a per-call class
++    // synchronous call, so capturing them through `UncheckedSendable` is sound. This removes a per-call class
+     // allocation + retain/release + dealloc that profiling showed dominating the no-op `@JS` host-call
+     // floor.
+-    nonisolated(unsafe) let thisPtr = thisPtr
+-    nonisolated(unsafe) let argumentsPtr = argumentsPtr
+-    nonisolated(unsafe) let resultPtr = resultPtr
++    let thisPtr = UncheckedSendable(thisPtr)
++    let argumentsPtr = UncheckedSendable(argumentsPtr)
++    let resultPtr = UncheckedSendable(resultPtr)
+ 
+     // See `withGuaranteedContext` for why neither the context nor the runtime is retained here, and
+     // why the result is written to the caller's slot instead of being returned.
+     return withGuaranteedContext(context) { (context: HostFunctionContext, runtime) in
+       return JavaScriptActor.assumeIsolated {
+         return forwardingSwiftErrorsToJS(runtime: runtime) {
+-          let this = UnsafeMutablePointer(mutating: thisPtr).move()
+-          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
++          let this = UnsafeMutablePointer(mutating: thisPtr.value).move()
++          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr.value, count: argumentsCount)
+           let thisValue = JavaScriptValue(runtime, this)
+-          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
++          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr.value)
+         }
+       }
+     }
+@@ -817,18 +817,18 @@
+     // handed in as a borrowed `JavaScriptUnownedValue` pointing straight at the C++-owned `this` slot:
+     // it is not moved out and no owning `JavaScriptValue` is allocated, so the closure avoids the
+     // per-call `weak`-runtime form/destroy and heap object that the owning `this` pays.
+-    nonisolated(unsafe) let thisPtr = thisPtr
+-    nonisolated(unsafe) let argumentsPtr = argumentsPtr
+-    nonisolated(unsafe) let resultPtr = resultPtr
++    let thisPtr = UncheckedSendable(thisPtr)
++    let argumentsPtr = UncheckedSendable(argumentsPtr)
++    let resultPtr = UncheckedSendable(resultPtr)
+ 
+     // See `withGuaranteedContext` for why neither the context nor the runtime is retained here, and
+     // why the result is written to the caller's slot instead of being returned.
+     return withGuaranteedContext(context) { (context: UnownedThisHostFunctionContext, runtime) in
+       return JavaScriptActor.assumeIsolated {
+         return forwardingSwiftErrorsToJS(runtime: runtime) {
+-          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr, count: argumentsCount)
+-          let thisValue = JavaScriptUnownedValue(runtime.pointee, thisPtr)
+-          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr)
++          let arguments = JavaScriptValuesBuffer(runtime, start: argumentsPtr.value, count: argumentsCount)
++          let thisValue = JavaScriptUnownedValue(runtime.pointee, thisPtr.value)
++          try context.call(thisValue, consume arguments).writeJSIValue(to: resultPtr.value)
+         }
+       }
+     }
+diff --git a/apple/Sources/ExpoModulesJSI/Utilities/UncheckedSendable.swift b/apple/Sources/ExpoModulesJSI/Utilities/UncheckedSendable.swift
+new file mode 100644
+--- /dev/null
++++ b/apple/Sources/ExpoModulesJSI/Utilities/UncheckedSendable.swift
+@@ -0,0 +1,13 @@
++/// Immutable wrapper that makes a non-Sendable value capturable by a `@Sendable` closure without compiler enforcement.
++/// Unlike `NonisolatedUnsafeVar`, it is a struct, so wrapping a value doesn't allocate.
++///
++/// Use it instead of a `nonisolated(unsafe) let` local captured by such a closure: Swift 6.2 still reports
++/// "sending '...' risks causing data races" for those, while a capture of a `Sendable` value passes on every version.
++/// The caller is responsible for making sure the value is never accessed concurrently.
++internal struct UncheckedSendable<Value>: @unchecked Sendable {
++  let value: Value
++
++  init(_ value: Value) {
++    self.value = value
++  }
++}

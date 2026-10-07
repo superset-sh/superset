@@ -1,5 +1,9 @@
 import { db } from "@superset/db/client";
 import { githubInstallations } from "@superset/db/schema";
+import {
+	createJobQueue,
+	isSelfHostQueue,
+} from "@superset/shared/self-host-queue";
 import { organizationSyncsNow } from "@superset/trpc/sync-policy";
 import { Client } from "@upstash/qstash";
 import { and, eq, ne } from "drizzle-orm";
@@ -8,7 +12,9 @@ import { exitOAuthFlow, STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { githubApp } from "../octokit";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+);
 
 const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/github`;
 
@@ -108,8 +114,8 @@ export async function GET(request: Request) {
 			return exit(`${settingsUrl}?error=save_failed`);
 		}
 
-		// Queue initial sync job. In development the queue cannot reach
-		// localhost, so the job endpoint is called directly, as triggerSync does.
+		// Hosted development calls the job endpoint directly because the
+		// hosted queue cannot reach localhost.
 		// A free organization gets no backfill and no webhook sync after it
 		// either; the subscription hook queues this job when it upgrades.
 		const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
@@ -119,7 +125,7 @@ export async function GET(request: Request) {
 		};
 		if (await organizationSyncsNow(organizationId)) {
 			try {
-				if (env.NODE_ENV === "development") {
+				if (env.NODE_ENV === "development" && !isSelfHostQueue()) {
 					fetch(syncUrl, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },

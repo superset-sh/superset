@@ -3478,6 +3478,9 @@ msgstr "Kontroller geçti"
 msgid "Checks Skipped"
 msgstr "Kontroller atlandı"
 
+msgid "Checksum download failed: {status}"
+msgstr "Sağlama toplamı indirilemedi: {status}"
+
 msgid "Choose a fighter"
 msgstr "Bir dövüşçü seç"
 
@@ -4380,6 +4383,9 @@ msgstr "Başka bir ajanla devam et"
 
 msgid "Continue with another agent…"
 msgstr "Başka bir ajanla devam et…"
+
+msgid "Continue with Authentik"
+msgstr "Authentik ile devam et"
 
 msgid "Continue with GitHub"
 msgstr "GitHub ile devam et"
@@ -6084,6 +6090,18 @@ msgstr "Tema dosyasını indir"
 msgid "downloaded"
 msgstr "indirildi"
 
+msgid "Downloaded CLI archive checksum mismatch"
+msgstr "İndirilen CLI arşivinin sağlama toplamı eşleşmiyor"
+
+msgid "Downloaded CLI archive version mismatch"
+msgstr "İndirilen CLI arşivinin sürümü eşleşmiyor"
+
+msgid "Downloaded CLI binary version mismatch (expected {targetVersion})"
+msgstr "İndirilen CLI ikili dosyasının sürümü eşleşmiyor (beklenen: {targetVersion})"
+
+msgid "Downloaded CLI version probe failed"
+msgstr "İndirilen CLI sürümü denetlenemedi"
+
 msgid "Downloading"
 msgstr "İndiriliyor"
 
@@ -7445,6 +7463,15 @@ msgstr "Yazı tipi boyutu"
 msgid "Font weight"
 msgstr "Yazı tipi kalınlığı"
 
+msgid "For a standalone CLI that updates in place, install from this deployment's channel: {channel}"
+msgstr "Kurulu olduğu yerde güncellenen bağımsız bir CLI için bu dağıtımın kanalından kurulum yapın: {channel}"
+
+msgid "For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh"
+msgstr "Kurulu olduğu yerde güncellenen bağımsız bir CLI için: curl -fsSL https://superset.sh/cli/install.sh | sh"
+
+msgid "For a standalone CLI, rebuild from this repository with CLI_UPDATE_BASE_URL set to this deployment's channel."
+msgstr "Bağımsız bir CLI için CLI_UPDATE_BASE_URL değerini bu dağıtımın kanalına ayarlayarak bu depodan yeniden derleyin."
+
 msgid "For bug reports and feature requests, the fastest path is a GitHub issue at <0>github.com/superset-sh/superset</0>. Our community lives on <1>Discord</1>, and we post updates on <2>X (@superset_sh)</2> and <3>LinkedIn</3>."
 msgstr "Hata bildirimleri ve özellik istekleri için en hızlı yol <0>github.com/superset-sh/superset</0> adresinde bir GitHub issue açmaktır. Topluluğumuz <1>Discord</1> üzerinde; güncellemeleri <2>X (@superset_sh)</2> ve <3>LinkedIn</3> üzerinden paylaşıyoruz."
 
@@ -8531,6 +8558,9 @@ msgstr "Geçersiz istek"
 
 msgid "Invalid state parameter. Please try again."
 msgstr "Geçersiz state parametresi. Lütfen yeniden deneyin."
+
+msgid "Invalid version manifest at cli-latest"
+msgstr "cli-latest konumundaki sürüm manifesti geçersiz"
 
 msgid "Invitation canceled"
 msgstr "Davet iptal edildi"
@@ -12897,6 +12927,9 @@ msgstr "Claude Code bir sonraki çalıştığında yenilenir."
 
 msgid "Refreshes when OpenCode next runs."
 msgstr "OpenCode bir sonraki çalıştığında yenilenir."
+
+msgid "Refusing to update: this CLI's API and update channel point at different deployments. Rebuild with CLI_UPDATE_BASE_URL set to the matching channel."
+msgstr "Güncelleme reddedildi: bu CLI’ın API’si ve güncelleme kanalı farklı dağıtımları gösteriyor. CLI_UPDATE_BASE_URL değerini eşleşen kanala ayarlayarak yeniden derleyin."
 
 msgid "Regenerate"
 msgstr "Yeniden oluştur"

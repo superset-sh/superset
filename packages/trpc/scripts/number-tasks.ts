@@ -1,5 +1,6 @@
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 /**
@@ -28,23 +29,23 @@ const unnumbered = (organizationId: string) =>
 		isNull(tasks.externalProvider),
 	);
 
-const pending = await db.execute<{ organization_id: string; n: number }>(sql`
+const pending = executeRows<{ organization_id: string; n: number }>(
+	await db.execute(sql`
 	SELECT organization_id, count(*)::int AS n
 	FROM tasks
 	WHERE team_id IS NULL AND external_provider IS NULL
 	GROUP BY organization_id
-`);
-const total = pending.rows.reduce((sum, row) => sum + row.n, 0);
-console.log(
-	`tasks to number: ${total} in ${pending.rows.length} organizations`,
+`),
 );
+const total = pending.reduce((sum, row) => sum + row.n, 0);
+console.log(`tasks to number: ${total} in ${pending.length} organizations`);
 if (!apply) {
 	console.log("dry run; pass --apply to write");
 	process.exit(0);
 }
 
 let numbered = 0;
-for (const { organization_id: organizationId } of pending.rows) {
+for (const { organization_id: organizationId } of pending) {
 	for (;;) {
 		const batch = await dbWs.transaction(async (tx) => {
 			const rows = await tx
@@ -56,14 +57,14 @@ for (const { organization_id: organizationId } of pending.rows) {
 				.for("update");
 			if (rows.length === 0) return 0;
 
-			const {
-				rows: [reserved],
-			} = await tx.execute<{
+			const [reserved] = executeRows<{
 				reserved_team_id: string;
 				reserved_key: string;
 				reserved_last_number: number;
 			}>(
-				sql`SELECT * FROM reserve_task_numbers(${organizationId}, NULL, ${rows.length})`,
+				await tx.execute(
+					sql`SELECT * FROM reserve_task_numbers(${organizationId}, NULL, ${rows.length})`,
+				),
 			);
 			if (!reserved) throw new Error(`No numbers for ${organizationId}`);
 			const offset = reserved.reserved_last_number - rows.length;

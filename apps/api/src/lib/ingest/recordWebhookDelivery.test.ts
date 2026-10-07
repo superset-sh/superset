@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { DrizzleQueryError } from "drizzle-orm";
 
 const execute = mock(
-	async (_query: unknown): Promise<{ rows: unknown[] }> => ({
+	async (_query: unknown): Promise<{ rows: unknown[] } | unknown[]> => ({
 		rows: [],
 	}),
 );
@@ -74,6 +74,33 @@ describe("recordWebhookDelivery", () => {
 		expect(whatTheReporterSees(thrown)).not.toContain("example-org");
 	});
 
+	test("a native driver failure removes hidden payload fields and retains diagnostic metadata", async () => {
+		const driver = Object.assign(new Error("connection refused"), {
+			code: "ECONNREFUSED",
+		});
+		Object.defineProperties(driver, {
+			query: { value: "INSERT ..." },
+			parameters: { value: [JSON.stringify(WEBHOOK_BODY)] },
+			args: { value: [JSON.stringify(WEBHOOK_BODY)] },
+		});
+		const failure = new DrizzleQueryError("INSERT ...", [WEBHOOK_BODY], driver);
+		execute.mockImplementationOnce(() => Promise.reject(failure));
+		const thrown = await recordWebhookDelivery({
+			provider: "github",
+			eventId: "native-failure",
+			eventType: "push",
+			payload: WEBHOOK_BODY,
+		}).catch((error: unknown) => error);
+		expect(whatTheReporterSees(thrown)).not.toContain(BODY_MARKER);
+		expect(thrown).toMatchObject({
+			cause: {
+				message: "connection refused",
+				code: "ECONNREFUSED",
+				stack: driver.stack,
+			},
+		});
+	});
+
 	test("a failed write still names the operation, provider and reason", async () => {
 		const failure = drizzleFailure();
 		execute.mockImplementationOnce(() => Promise.reject(failure));
@@ -121,18 +148,20 @@ describe("recordWebhookDelivery", () => {
 		expect((thrown as Error).message).toBe("boom");
 	});
 
-	test("a successful write still returns the recorded delivery", async () => {
+	test.each([
+		"Neon",
+		"postgres-js",
+	])("a successful %s write returns the recorded delivery", async (driver) => {
+		const rows = [
+			{
+				id: "event-1",
+				status: "pending",
+				retry_count: 0,
+				received_at: "2026-08-22 12:00:00",
+			},
+		];
 		execute.mockImplementationOnce(() =>
-			Promise.resolve({
-				rows: [
-					{
-						id: "event-1",
-						status: "pending",
-						retry_count: 0,
-						received_at: "2026-08-22 12:00:00",
-					},
-				],
-			}),
+			Promise.resolve(driver === "Neon" ? { rows } : rows),
 		);
 
 		const recorded = await recordWebhookDelivery({

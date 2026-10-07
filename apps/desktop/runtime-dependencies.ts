@@ -15,7 +15,7 @@ function copyWholeModule(moduleName: string): PackagedNodeModuleCopy {
 	return {
 		from: `node_modules/${moduleName}`,
 		to: `node_modules/${moduleName}`,
-		filter: ["**/*"],
+		filter: ["**/*", "!**/*.map"],
 	};
 }
 
@@ -26,9 +26,12 @@ function copyModuleSubtree(
 	return {
 		from: `node_modules/${moduleName}`,
 		to: `node_modules/${moduleName}`,
-		filter,
+		filter: [...filter, "!**/*.map"],
 	};
 }
+
+export const targetPlatform = process.env.TARGET_PLATFORM || process.platform;
+export const targetArch = process.env.TARGET_ARCH || process.arch;
 
 const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 	{
@@ -58,20 +61,39 @@ const externalizedRuntimeModules: ExternalizedRuntimeModule[] = [
 	{
 		specifier: "@ast-grep/napi",
 		materialize: ["@ast-grep/napi"],
-		packagedCopies: [copyWholeModule("@ast-grep")],
+		packagedCopies: [
+			copyModuleSubtree("@ast-grep", [
+				"napi/**/*",
+				`napi-${targetPlatform}-${targetArch}*/**/*`,
+			]),
+		],
 		asarUnpackGlobs: ["**/node_modules/@ast-grep/napi*/**/*"],
 	},
 	{
 		specifier: "@parcel/watcher",
 		materialize: ["@parcel/watcher"],
 		packagedCopies: [
-			copyModuleSubtree("@parcel", ["watcher/**/*", "watcher-*/**/*"]),
+			copyModuleSubtree("@parcel", [
+				"watcher/**/*",
+				`watcher-${targetPlatform}-${targetArch}*/**/*`,
+			]),
 		],
 		asarUnpackGlobs: ["**/node_modules/@parcel/watcher*/**/*"],
 	},
 ];
 
+export const runtimeHelperPackages = [
+	"@xterm/headless",
+	"ajv",
+	"ajv-formats",
+	"fast-deep-equal",
+	"fast-uri",
+	"json-schema-traverse",
+	"require-from-string",
+];
+
 const packagedSupportModules = [
+	...runtimeHelperPackages.map(copyWholeModule),
 	copyWholeModule("bindings"),
 	copyWholeModule("file-uri-to-path"),
 	copyWholeModule("detect-libc"),
@@ -98,6 +120,7 @@ export const packagedAsarUnpackGlobs = [
 ];
 
 export const requiredMaterializedNodeModules = [
+	...runtimeHelperPackages,
 	...externalizedRuntimeModules.flatMap((module) => module.materialize),
 	"bindings",
 	"file-uri-to-path",

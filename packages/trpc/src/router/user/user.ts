@@ -13,7 +13,7 @@ import { z } from "zod";
 
 import { findOrganizationSolelyOwnedBy } from "../../lib/account-purge";
 import { emitAppFirstOpened } from "../../lib/activation-events";
-import { generateImagePathname, uploadImage } from "../../lib/upload";
+import { generateImagePathname, replaceImage } from "../../lib/upload";
 import { protectedProcedure, userError } from "../../trpc";
 
 export const userRouter = {
@@ -187,17 +187,20 @@ export const userRouter = {
 			});
 
 			try {
-				const url = await uploadImage({
+				const { url, result: updatedUser } = await replaceImage({
 					fileData: input.fileData,
 					pathname,
 					existingUrl: user.image,
+					save: async (url) => {
+						const [row] = await db
+							.update(users)
+							.set({ image: url })
+							.where(eq(users.id, userId))
+							.returning();
+						if (!row) throw new Error("Image owner no longer exists");
+						return row;
+					},
 				});
-
-				const [updatedUser] = await db
-					.update(users)
-					.set({ image: url })
-					.where(eq(users.id, userId))
-					.returning();
 
 				return { success: true, url, user: updatedUser };
 			} catch (error) {

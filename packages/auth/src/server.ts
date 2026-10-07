@@ -23,6 +23,7 @@ import { MemberAddedEmail } from "@superset/email/emails/team/member-added";
 import { MemberRemovedEmail } from "@superset/email/emails/team/member-removed";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
+import { createJobQueue } from "@superset/shared/self-host-queue";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
@@ -38,6 +39,7 @@ import {
 	oneTimeToken,
 	organization,
 } from "better-auth/plugins";
+import { genericOAuth } from "better-auth/plugins/generic-oauth";
 import { jwt } from "better-auth/plugins/jwt";
 import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -54,7 +56,8 @@ import {
 	resolveSessionOrganizationState,
 	type SessionOrganizationContext,
 } from "./lib/resolve-session-organization-state";
-import { stripeClient } from "./stripe";
+import { getAuthentikConfig } from "./optional-providers";
+import { isBillingEnabled, stripeClient } from "./stripe";
 import {
 	countBillableSeats,
 	formatPrice,
@@ -63,7 +66,9 @@ import {
 } from "./utils";
 import { previewNextInvoice } from "./utils/invoice-preview";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "" }),
+);
 
 const userOptions = {
 	additionalFields: {
@@ -520,6 +525,7 @@ export const auth = betterAuth({
 			},
 		}),
 		expo(),
+		genericOAuth({ config: getAuthentikConfig(env) }),
 		organization({
 			creatorRole: "owner",
 			invitationExpiresIn: 60 * 60 * 24 * 7,
@@ -622,7 +628,7 @@ export const auth = betterAuth({
 				},
 
 				afterCreateOrganization: async ({ organization, user }) => {
-					if (process.env.NODE_ENV !== "development") {
+					if (isBillingEnabled && process.env.NODE_ENV !== "development") {
 						const customer = await stripeClient.customers.create({
 							name: organization.name,
 							email: user.email,
@@ -744,7 +750,7 @@ export const auth = betterAuth({
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
-					if (!organization.stripeCustomerId) return;
+					if (!isBillingEnabled || !organization.stripeCustomerId) return;
 
 					const subs = await stripeClient.subscriptions.list({
 						customer: organization.stripeCustomerId,
@@ -756,7 +762,7 @@ export const auth = betterAuth({
 				},
 
 				afterUpdateOrganization: async ({ organization }) => {
-					if (!organization?.stripeCustomerId) return;
+					if (!isBillingEnabled || !organization?.stripeCustomerId) return;
 
 					await stripeClient.customers.update(organization.stripeCustomerId, {
 						name: organization.name,
@@ -764,6 +770,7 @@ export const auth = betterAuth({
 				},
 
 				beforeAddMember: async ({ organization, user }) => {
+					if (!isBillingEnabled) return;
 					// Domain-allowlisted users bypass the free-plan member limit.
 					// If an admin put the user's domain in allowedDomains, they've
 					// already explicitly opted in to letting those users join.
@@ -862,7 +869,7 @@ export const auth = betterAuth({
 						});
 					}
 
-					if (!subscription?.stripeSubscriptionId) return;
+					if (!isBillingEnabled || !subscription?.stripeSubscriptionId) return;
 					if (subscription.plan === "enterprise") return;
 
 					const quantity = Math.max(
@@ -975,7 +982,7 @@ export const auth = betterAuth({
 						),
 					});
 
-					if (!subscription?.stripeSubscriptionId) return;
+					if (!isBillingEnabled || !subscription?.stripeSubscriptionId) return;
 					if (subscription.plan === "enterprise") return;
 
 					const quantity = Math.max(
@@ -1149,7 +1156,7 @@ export const auth = betterAuth({
 			createCustomerOnSignUp: false,
 
 			subscription: {
-				enabled: true,
+				enabled: isBillingEnabled,
 				plans: [
 					{
 						name: "pro",
@@ -1385,15 +1392,17 @@ export const auth = betterAuth({
 					);
 
 					try {
+						const serializedCancellationDetails = serializeCancellationDetails(
+							cancellationDetails ?? stripeSubscription.cancellation_details,
+						);
 						await qstash.publishJSON({
 							url: NOTIFY_SLACK_URL,
 							body: {
 								eventType: "subscription_cancelled",
 								stripeSubscriptionId: stripeSubscription.id,
-								cancellationDetails: serializeCancellationDetails(
-									cancellationDetails ??
-										stripeSubscription.cancellation_details,
-								),
+								...(serializedCancellationDetails
+									? { cancellationDetails: serializedCancellationDetails }
+									: {}),
 							},
 							retries: 3,
 							// portal collects the cancellation survey after cancel confirms; give it time

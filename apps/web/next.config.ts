@@ -111,6 +111,12 @@ const securityHeaders: Array<{ key: string; value: string }> = [
 ];
 
 const config: NextConfig = {
+	...(process.env.NEXT_OUTPUT_STANDALONE === "1"
+		? {
+				output: "standalone",
+				outputFileTracingRoot: join(import.meta.dirname, "../.."),
+			}
+		: {}),
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 

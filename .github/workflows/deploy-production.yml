@@ -41,6 +41,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           # drizzle applies every pending migration in one transaction, so a
           # migration that queues for a lock blocks all traffic behind it.
           PGOPTIONS: -c lock_timeout=5s -c statement_timeout=60s
@@ -62,6 +63,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
         run: bun run src/verify-migrations-applied.ts
 
   deploy-api:
@@ -103,6 +105,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
@@ -115,6 +118,14 @@ jobs:
           R2_PRIVATE_BUCKET: ${{ secrets.R2_PRIVATE_BUCKET }}
           R2_PUBLIC_BUCKET: ${{ secrets.R2_PUBLIC_BUCKET }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_PRESIGN_ENDPOINT: ${{ secrets.S3_PRESIGN_ENDPOINT }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_PUBLIC_BUCKET: ${{ secrets.S3_PUBLIC_BUCKET }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          S3_PUBLIC_URL: ${{ secrets.S3_PUBLIC_URL }}
           USERCONTENT_URL: ${{ secrets.USERCONTENT_URL }}
           STATIC_URL: ${{ secrets.STATIC_URL }}
           USERCONTENT_TOKEN_SECRET: ${{ secrets.USERCONTENT_TOKEN_SECRET }}
@@ -128,6 +139,9 @@ jobs:
           SUPPORT_LOOKUP_TOKEN: ${{ secrets.SUPPORT_LOOKUP_TOKEN }}
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          AUTHENTIK_CLIENT_SECRET: ${{ secrets.AUTHENTIK_CLIENT_SECRET }}
+          AUTHENTIK_CLIENT_ID: ${{ secrets.AUTHENTIK_CLIENT_ID }}
+          AUTHENTIK_ISSUER: ${{ secrets.AUTHENTIK_ISSUER }}
           NEXT_PUBLIC_SENTRY_DSN_API: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_API }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
@@ -137,8 +151,15 @@ jobs:
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          SELF_HOST_KV: ${{ secrets.SELF_HOST_KV }}
+          SELF_HOST_QUEUE: ${{ secrets.SELF_HOST_QUEUE }}
+          SELF_HOST_QUEUE_URL: ${{ secrets.SELF_HOST_QUEUE_URL }}
+          SELF_HOST_QUEUE_SECRET: ${{ secrets.SELF_HOST_QUEUE_SECRET }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
           LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
           LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
@@ -191,12 +212,21 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env SELF_HOST_DB=$SELF_HOST_DB \
             --env CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID \
             --env R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
             --env R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
             --env R2_PRIVATE_BUCKET=$R2_PRIVATE_BUCKET \
             --env R2_PUBLIC_BUCKET=$R2_PUBLIC_BUCKET \
             --env R2_ENDPOINT=$R2_ENDPOINT \
+            --env "S3_ENDPOINT=$S3_ENDPOINT" \
+            --env "S3_PRESIGN_ENDPOINT=$S3_PRESIGN_ENDPOINT" \
+            --env "S3_REGION=$S3_REGION" \
+            --env "S3_BUCKET=$S3_BUCKET" \
+            --env "S3_PUBLIC_BUCKET=$S3_PUBLIC_BUCKET" \
+            --env "S3_ACCESS_KEY=$S3_ACCESS_KEY" \
+            --env "S3_SECRET_KEY=$S3_SECRET_KEY" \
+            --env "S3_PUBLIC_URL=$S3_PUBLIC_URL" \
             --env USERCONTENT_URL=$USERCONTENT_URL \
             --env STATIC_URL=$STATIC_URL \
             --env USERCONTENT_TOKEN_SECRET=$USERCONTENT_TOKEN_SECRET \
@@ -216,6 +246,9 @@ jobs:
             --env SUPPORT_LOOKUP_TOKEN=$SUPPORT_LOOKUP_TOKEN \
             --env GH_CLIENT_ID=$GH_CLIENT_ID \
             --env GH_CLIENT_SECRET=$GH_CLIENT_SECRET \
+            --env "AUTHENTIK_CLIENT_SECRET=$AUTHENTIK_CLIENT_SECRET" \
+            --env "AUTHENTIK_CLIENT_ID=$AUTHENTIK_CLIENT_ID" \
+            --env "AUTHENTIK_ISSUER=$AUTHENTIK_ISSUER" \
             --env NEXT_PUBLIC_SENTRY_DSN_API=$NEXT_PUBLIC_SENTRY_DSN_API \
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env POSTHOG_API_KEY=$POSTHOG_API_KEY \
@@ -224,8 +257,15 @@ jobs:
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env SELF_HOST_KV=$SELF_HOST_KV \
+            --env SELF_HOST_QUEUE="$SELF_HOST_QUEUE" \
+            --env SELF_HOST_QUEUE_URL="$SELF_HOST_QUEUE_URL" \
+            --env SELF_HOST_QUEUE_SECRET="$SELF_HOST_QUEUE_SECRET" \
+            --env REDIS_URL=$REDIS_URL \
             --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
+            --env SMTP_URL="$SMTP_URL" \
+            --env EMAIL_FROM="$EMAIL_FROM" \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
             --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
@@ -310,8 +350,12 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          NEXT_PUBLIC_DOWNLOAD_URL: ${{ secrets.NEXT_PUBLIC_DOWNLOAD_URL }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EXPO_PUBLIC_IOS_BUNDLE_ID: ${{ secrets.EXPO_PUBLIC_IOS_BUNDLE_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
@@ -325,12 +369,20 @@ jobs:
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
           NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          NEXT_PUBLIC_AUTH_PROVIDERS: ${{ secrets.NEXT_PUBLIC_AUTH_PROVIDERS }}
           NEXT_PUBLIC_SENTRY_DSN_WEB: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_WEB }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          SELF_HOST_KV: ${{ secrets.SELF_HOST_KV }}
+          SELF_HOST_QUEUE: ${{ secrets.SELF_HOST_QUEUE }}
+          SELF_HOST_QUEUE_URL: ${{ secrets.SELF_HOST_QUEUE_URL }}
+          SELF_HOST_QUEUE_SECRET: ${{ secrets.SELF_HOST_QUEUE_SECRET }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
           KV_URL: ${{ secrets.KV_URL }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -347,6 +399,7 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env SELF_HOST_DB=$SELF_HOST_DB \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -360,11 +413,19 @@ jobs:
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+            --env NEXT_PUBLIC_AUTH_PROVIDERS=$NEXT_PUBLIC_AUTH_PROVIDERS \
             --env NEXT_PUBLIC_SENTRY_DSN_WEB=$NEXT_PUBLIC_SENTRY_DSN_WEB \
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env SELF_HOST_KV=$SELF_HOST_KV \
+            --env SELF_HOST_QUEUE="$SELF_HOST_QUEUE" \
+            --env SELF_HOST_QUEUE_URL="$SELF_HOST_QUEUE_URL" \
+            --env SELF_HOST_QUEUE_SECRET="$SELF_HOST_QUEUE_SECRET" \
+            --env REDIS_URL=$REDIS_URL \
             --env KV_URL=$KV_URL \
+            --env SMTP_URL="$SMTP_URL" \
+            --env EMAIL_FROM="$EMAIL_FROM" \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
@@ -412,8 +473,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_MARKETING_PROJECT_ID }}
+          NEXT_PUBLIC_DOWNLOAD_URL: ${{ secrets.NEXT_PUBLIC_DOWNLOAD_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
@@ -427,8 +490,15 @@ jobs:
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          SELF_HOST_KV: ${{ secrets.SELF_HOST_KV }}
+          SELF_HOST_QUEUE: ${{ secrets.SELF_HOST_QUEUE }}
+          SELF_HOST_QUEUE_URL: ${{ secrets.SELF_HOST_QUEUE_URL }}
+          SELF_HOST_QUEUE_SECRET: ${{ secrets.SELF_HOST_QUEUE_SECRET }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
           LEADERBOARD_INTERNAL_TOKEN: ${{ secrets.LEADERBOARD_INTERNAL_TOKEN }}
           KV_URL: ${{ secrets.KV_URL }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -444,6 +514,7 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env SELF_HOST_DB=$SELF_HOST_DB \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -456,8 +527,15 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env SELF_HOST_KV=$SELF_HOST_KV \
+            --env SELF_HOST_QUEUE="$SELF_HOST_QUEUE" \
+            --env SELF_HOST_QUEUE_URL="$SELF_HOST_QUEUE_URL" \
+            --env SELF_HOST_QUEUE_SECRET="$SELF_HOST_QUEUE_SECRET" \
+            --env REDIS_URL=$REDIS_URL \
             --env LEADERBOARD_INTERNAL_TOKEN=$LEADERBOARD_INTERNAL_TOKEN \
             --env KV_URL=$KV_URL \
+            --env SMTP_URL="$SMTP_URL" \
+            --env EMAIL_FROM="$EMAIL_FROM" \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
             --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
@@ -507,6 +585,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
@@ -522,7 +601,14 @@ jobs:
           NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ secrets.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          SELF_HOST_KV: ${{ secrets.SELF_HOST_KV }}
+          SELF_HOST_QUEUE: ${{ secrets.SELF_HOST_QUEUE }}
+          SELF_HOST_QUEUE_URL: ${{ secrets.SELF_HOST_QUEUE_URL }}
+          SELF_HOST_QUEUE_SECRET: ${{ secrets.SELF_HOST_QUEUE_SECRET }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
           KV_URL: ${{ secrets.KV_URL }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           MERCURY_API_TOKEN: ${{ secrets.MERCURY_API_TOKEN }}
@@ -540,6 +626,7 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env SELF_HOST_DB=$SELF_HOST_DB \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -554,7 +641,14 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env SELF_HOST_KV=$SELF_HOST_KV \
+            --env SELF_HOST_QUEUE="$SELF_HOST_QUEUE" \
+            --env SELF_HOST_QUEUE_URL="$SELF_HOST_QUEUE_URL" \
+            --env SELF_HOST_QUEUE_SECRET="$SELF_HOST_QUEUE_SECRET" \
+            --env REDIS_URL=$REDIS_URL \
             --env KV_URL=$KV_URL \
+            --env SMTP_URL="$SMTP_URL" \
+            --env EMAIL_FROM="$EMAIL_FROM" \
             --env RESEND_API_KEY=$RESEND_API_KEY \
             --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
             --env MERCURY_API_TOKEN=$MERCURY_API_TOKEN \
@@ -796,8 +890,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DOCS_PROJECT_ID }}
+          NEXT_PUBLIC_DOWNLOAD_URL: ${{ secrets.NEXT_PUBLIC_DOWNLOAD_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          SELF_HOST_DB: ${{ secrets.SELF_HOST_DB }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
@@ -813,6 +909,7 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env SELF_HOST_DB=$SELF_HOST_DB \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env NEXT_PUBLIC_SENTRY_DSN_DOCS=$NEXT_PUBLIC_SENTRY_DSN_DOCS \

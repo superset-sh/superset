@@ -12,6 +12,12 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const config: NextConfig = {
+	...(process.env.NEXT_OUTPUT_STANDALONE === "1"
+		? {
+				output: "standalone",
+				outputFileTracingRoot: join(import.meta.dirname, "../.."),
+			}
+		: {}),
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 	// Compiles @lingui/core/macro, reached through @superset/shared, at build

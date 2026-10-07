@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
 import { automations, automationTriggers } from "@superset/db/schema";
+import { createKv } from "@superset/shared/kv";
 import {
 	presentedWebhookToken,
 	WEBHOOK_TOKEN_PREFIX,
 	webhookTokenMatches,
 } from "@superset/trpc/automation-webhook-secret";
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -19,7 +19,7 @@ import { normalizeWebhookDelivery } from "./normalizeWebhookDelivery";
 export const dynamic = "force-dynamic";
 
 const rateLimit = new Ratelimit({
-	redis: new Redis({
+	redis: createKv({
 		url: env.KV_REST_API_URL,
 		token: env.KV_REST_API_TOKEN,
 	}),

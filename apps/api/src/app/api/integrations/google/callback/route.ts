@@ -1,6 +1,10 @@
 import { db } from "@superset/db/client";
 import { connections } from "@superset/db/schema";
 import {
+	createJobQueue,
+	isSelfHostQueue,
+} from "@superset/shared/self-host-queue";
+import {
 	connectorMethod,
 	requireConnector,
 	upsertConnection,
@@ -15,7 +19,9 @@ import { STATE_COOKIES } from "@/lib/integrations/oauthFlow";
 import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
-const qstash = new Client({ token: env.QSTASH_TOKEN, baseUrl: env.QSTASH_URL });
+const qstash = createJobQueue(
+	() => new Client({ token: env.QSTASH_TOKEN ?? "", baseUrl: env.QSTASH_URL }),
+);
 
 const GOOGLE_CALL_TIMEOUT_MS = 10 * 1000;
 
@@ -154,7 +160,7 @@ export async function GET(request: Request) {
 async function enqueueWatchSetup(connectionId: string): Promise<void> {
 	const jobUrl = `${env.NEXT_PUBLIC_API_URL}/api/integrations/google/jobs/renew-watches`;
 	const body = { connectionId };
-	if (env.NODE_ENV === "development") {
+	if (env.NODE_ENV === "development" && !isSelfHostQueue()) {
 		fetch(jobUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },

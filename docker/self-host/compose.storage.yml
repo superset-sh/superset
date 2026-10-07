@@ -1,0 +1,29 @@
+services:
+  garage:
+    image: dxflrs/garage:v2.0.0
+    command: ["/garage", "server"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set a fresh 64-hex RPC secret}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set a fresh admin token}
+    ports:
+      - "127.0.0.1:${GARAGE_S3_PORT:-3900}:3900"
+      - "127.0.0.1:${GARAGE_WEB_PORT:-3902}:3902"
+    volumes:
+      - "./garage.toml:/etc/garage.toml:ro"
+      - "garage-data:/var/lib/garage"
+  garage-init:
+    build:
+      context: ../..
+      dockerfile: docker/self-host/garage-init.Dockerfile
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set a fresh 64-hex RPC secret}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?set a fresh admin token}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set a GK-prefixed 24-hex key}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set a fresh 64-hex secret}
+      S3_BUCKET: ${S3_BUCKET:-superset-private}
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-superset-public}
+      STORAGE_CORS_ORIGINS: ${STORAGE_CORS_ORIGINS:-["null","http://localhost:3000","http://localhost:5173"]}
+    depends_on:
+      - garage
+volumes:
+  garage-data:

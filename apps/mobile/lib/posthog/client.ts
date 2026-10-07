@@ -1,3 +1,4 @@
+import { createOptionalAnalytics } from "@superset/shared/optional-analytics";
 import { PostHog } from "posthog-react-native";
 import { env } from "../env";
 
@@ -20,14 +21,18 @@ export const posthogConfig = {
  * $screen: child effects run first, so the screen tracker captures before the
  * properties exist (measured — that event went out with no `app_name`).
  */
-export const posthog = new PostHog(posthogConfig.apiKey, {
-	host: posthogConfig.host,
-	enableSessionReplay: posthogConfig.options.enableSessionReplay,
-	sessionReplayConfig: posthogConfig.options.sessionReplayConfig,
-	// The provider only defaults this on when it builds the client itself.
-	captureAppLifecycleEvents: true,
-	personProfiles: "identified_only",
-});
+export const posthog = createOptionalAnalytics(
+	posthogConfig.apiKey,
+	(key) =>
+		new PostHog(key, {
+			host: posthogConfig.host,
+			enableSessionReplay: posthogConfig.options.enableSessionReplay,
+			sessionReplayConfig: posthogConfig.options.sessionReplayConfig,
+			// The provider only defaults this on when it builds the client itself.
+			captureAppLifecycleEvents: true,
+			personProfiles: "identified_only",
+		}),
+);
 
 /** `reset()` clears these along with the anonymous id, so sign-out re-registers. */
 export function registerSuperProperties(): void {

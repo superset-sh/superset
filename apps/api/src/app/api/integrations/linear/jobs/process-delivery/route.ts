@@ -1,6 +1,7 @@
 import type { LinearWebhookPayload } from "@linear/sdk/webhooks";
 import { db } from "@superset/db/client";
 import { webhookEvents } from "@superset/db/schema";
+import { executeRows } from "@superset/db/utils";
 import { eq, sql } from "drizzle-orm";
 
 import { verifyQstashRequest } from "@/lib/verifyQstash";
@@ -125,7 +126,8 @@ async function loadAcceptedDelivery(
 	receivedAt: Date,
 ): Promise<AcceptedDelivery | null> {
 	const day = partitionDay(receivedAt);
-	const result = await db.execute<{ status: string; payload: unknown }>(sql`
+	const result = executeRows<{ status: string; payload: unknown }>(
+		await db.execute(sql`
 		SELECT e.status, p.payload
 		FROM ingest.webhook_events e
 		LEFT JOIN ingest.webhook_payloads p
@@ -134,9 +136,10 @@ async function loadAcceptedDelivery(
 			AND p.received_at >= ${day}::timestamp
 			AND p.received_at < ${day}::timestamp + interval '1 day'
 		WHERE e.id = ${webhookEventId}
-	`);
+	`),
+	);
 
-	const row = result.rows[0];
+	const row = result[0];
 	return row ? { status: row.status, payload: row.payload ?? null } : null;
 }
 
