@@ -9,6 +9,7 @@ import {
 } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ProjectAccentProvider } from "renderer/providers/ProjectAccentProvider";
 import { StateScreenShell } from "renderer/routes/_authenticated/_dashboard/components/StateScreenShell";
 import { WorkspaceNotFoundState } from "renderer/routes/_authenticated/_dashboard/components/WorkspaceNotFoundState";
 import { useUnarchiveCloudWorkspace } from "renderer/routes/_authenticated/_dashboard/hooks/useUnarchiveCloudWorkspace";
@@ -227,7 +228,9 @@ function V2WorkspaceLayout() {
 
 	return (
 		<WorkspaceProvider workspace={workspace}>
-			<Outlet />
+			<ProjectAccentProvider projectId={workspace.projectId}>
+				<Outlet />
+			</ProjectAccentProvider>
 		</WorkspaceProvider>
 	);
 }

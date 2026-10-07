@@ -625,3 +625,26 @@ describe("dashboardSidebarSectionSchema (Sessions scope)", () => {
 		).toThrow();
 	});
 });
+
+describe("healV2UserPreferences projectAccent", () => {
+	it("defaults rows written before the field existed", () => {
+		expect(healV2UserPreferences({}).projectAccent).toEqual(
+			DEFAULT_V2_USER_PREFERENCES.projectAccent,
+		);
+	});
+
+	it("keeps stored choices and repairs malformed fields", () => {
+		const healed = healV2UserPreferences({
+			projectAccent: {
+				enabled: false,
+				terminal: "yes",
+				intensity: 250,
+			},
+		});
+		expect(healed.projectAccent).toEqual({
+			...DEFAULT_V2_USER_PREFERENCES.projectAccent,
+			enabled: false,
+			intensity: 100,
+		});
+	});
+});

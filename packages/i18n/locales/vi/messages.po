@@ -2889,6 +2889,9 @@ msgstr "Đã ẩn tệp nhị phân"
 msgid "Bio"
 msgstr "Giới thiệu"
 
+msgid "Blend the color into the terminal background"
+msgstr "Pha màu vào nền terminal"
+
 msgid "Block"
 msgstr "Khối"
 
@@ -8108,6 +8111,9 @@ msgstr "Mọi người đến superset.sh và tài liệu như thế nào, và b
 msgid "How should the agent's actions be approved?"
 msgstr "Thao tác của tác tử nên được phê duyệt thế nào?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Mức độ màu phủ lên từng bề mặt"
+
 msgid "How the command opens."
 msgstr "Cách mở lệnh."
 
@@ -8474,6 +8480,9 @@ msgstr "Hướng dẫn"
 
 msgid "Integrations"
 msgstr "Tích hợp"
+
+msgid "Intensity"
+msgstr "Cường độ"
 
 msgid "Interactive agent terminal."
 msgstr "Terminal agent tương tác."
@@ -11820,6 +11829,9 @@ msgstr "Tìm kiếm trả phí"
 msgid "Palette"
 msgstr "Bảng màu"
 
+msgid "Pane headers"
+msgstr "Tiêu đề ngăn"
+
 msgid "Pane in current tab"
 msgstr "Ngăn trong thẻ hiện tại"
 
@@ -12403,6 +12415,9 @@ msgstr "Progress · Spinner"
 msgid "Project"
 msgstr "Dự án"
 
+msgid "Project colors in workspaces"
+msgstr "Màu dự án trong workspace"
+
 msgid "Project created."
 msgstr "Đã tạo dự án."
 
@@ -12460,6 +12475,9 @@ msgstr "Tìm kiếm toàn dự án"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Dự án: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Không kết nối được host của dự án — hiện không thể đổi màu"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Không kết nối được host của dự án — hiện không thể nhập worktree"
@@ -15842,6 +15860,9 @@ msgstr "RAM hệ thống: Superset {0}, ứng dụng khác {1}, trống {2}"
 msgid "Tab"
 msgstr "Tab"
 
+msgid "Tab bar"
+msgstr "Thanh tab"
+
 msgid "Tab per command"
 msgstr "Mỗi lệnh một tab"
 
@@ -16016,6 +16037,9 @@ msgstr "Terminal"
 
 msgid "Terminal agent launch configuration"
 msgstr "Cấu hình khởi chạy agent terminal"
+
+msgid "Terminal background"
+msgstr "Nền terminal"
 
 msgid "Terminal connection: {label}"
 msgstr "Kết nối terminal: {label}"
@@ -16843,6 +16867,15 @@ msgstr "Thời gian"
 
 msgid "Time range"
 msgstr "Khoảng thời gian"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Tô màu mỗi workspace bằng màu của dự án. Chọn màu bằng cách nhấp chuột phải vào một dự án trong thanh bên."
+
+msgid "Tint the header above each pane"
+msgstr "Tô màu tiêu đề phía trên mỗi ngăn"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Tô màu thanh tab và đánh dấu tab đang mở"
 
 msgid "Title"
 msgstr "Tiêu đề"

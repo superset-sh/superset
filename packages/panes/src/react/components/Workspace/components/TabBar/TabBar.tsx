@@ -21,6 +21,7 @@ import {
 	transferTabToIndex,
 } from "../../../../../core/transfer";
 import type { Tab } from "../../../../../types";
+import { PANES_ACCENT_VARS } from "../../../../accent";
 import type { PaneRegistry } from "../../../../types";
 import { PANE_DRAG_TYPE } from "../Tab/components/Pane/components/PaneHeader";
 import { TAB_DRAG_TYPE, TabItem } from "./components/TabItem";
@@ -204,6 +205,9 @@ export function TabBar<TData>({
 			// the masked/scrollable OverflowFadeContainer, which made the entire bar
 			// swallow clicks.
 			className="group/root-tabs flex h-12 min-w-0 shrink-0 items-stretch bg-muted/45 shadow-[inset_0_-1px_0_var(--border)] dark:bg-muted/35"
+			style={{
+				backgroundImage: `var(${PANES_ACCENT_VARS.tabBarTint}, none)`,
+			}}
 		>
 			{renderTabBarLeading && (
 				<div className="flex h-full shrink-0 items-stretch border-b border-border">

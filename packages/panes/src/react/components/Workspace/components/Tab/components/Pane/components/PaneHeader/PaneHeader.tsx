@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useCallback, useRef } from "react";
 import { useDrag } from "react-dnd";
+import { PANES_ACCENT_VARS } from "../../../../../../../../accent";
 import { DefaultHeaderContent } from "./components/DefaultHeaderContent";
 
 interface PaneHeaderProps {
@@ -69,6 +70,9 @@ export function PaneHeader({
 					"opacity-60 hover:opacity-100 focus-within:opacity-100",
 				isDragging && "opacity-30",
 			)}
+			style={{
+				backgroundImage: `var(${PANES_ACCENT_VARS.paneHeaderTint}, none)`,
+			}}
 			onClick={onClick}
 			onAuxClick={(e) => {
 				if (e.button === 1 && onMiddleClick) {

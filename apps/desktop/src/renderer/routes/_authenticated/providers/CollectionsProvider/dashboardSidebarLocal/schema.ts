@@ -9,6 +9,11 @@ import {
 } from "@superset/panes";
 import { tagFolderScopeInputSchema } from "@superset/shared/workspace-tags";
 import type { inferRouterInputs } from "@trpc/server";
+import {
+	clampAccentIntensity,
+	DEFAULT_PROJECT_ACCENT_SETTINGS,
+	type ProjectAccentSettings,
+} from "renderer/lib/project-accent";
 import { z } from "zod";
 
 const persistedDateSchema = z
@@ -491,6 +496,14 @@ export type SidebarProjectSortMode = z.infer<
 const persistedSidebarProjectSortModeSchema =
 	sidebarProjectSortModeSchema.catch("manual");
 
+const projectAccentSettingsSchema = z.object({
+	enabled: z.boolean(),
+	tabBar: z.boolean(),
+	paneHeaders: z.boolean(),
+	terminal: z.boolean(),
+	intensity: z.number().min(0).max(100),
+}) satisfies z.ZodType<ProjectAccentSettings>;
+
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
@@ -519,6 +532,9 @@ export const v2UserPreferencesSchema = z.object({
 	// grouping without untagging anyone). Bounded by tags a user has ever
 	// hidden; entries for tags no longer in use are harmless and cheap.
 	hiddenTagFolders: z.record(z.string(), z.array(z.string())).default({}),
+	projectAccent: projectAccentSettingsSchema.default(
+		DEFAULT_PROJECT_ACCENT_SETTINGS,
+	),
 });
 
 // The fixed set of built-in preset ids. Consumers derive their id constants
@@ -551,6 +567,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
 	hiddenTagFolders: {},
+	projectAccent: DEFAULT_PROJECT_ACCENT_SETTINGS,
 };
 
 /**
@@ -610,6 +627,22 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
  * to consumers. Per-tier defaults vary by map, so we deep-merge each tier map
  * against its own default rather than relying on a single Zod default.
  */
+function healProjectAccentSettings(raw: unknown): ProjectAccentSettings {
+	const r = (
+		raw && typeof raw === "object" ? raw : {}
+	) as Partial<ProjectAccentSettings>;
+	const flag = (value: unknown, fallback: boolean) =>
+		typeof value === "boolean" ? value : fallback;
+	const defaults = DEFAULT_PROJECT_ACCENT_SETTINGS;
+	return {
+		enabled: flag(r.enabled, defaults.enabled),
+		tabBar: flag(r.tabBar, defaults.tabBar),
+		paneHeaders: flag(r.paneHeaders, defaults.paneHeaders),
+		terminal: flag(r.terminal, defaults.terminal),
+		intensity: clampAccentIntensity(r.intensity),
+	};
+}
+
 export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}
@@ -658,6 +691,7 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		favoritePageIds: (Array.isArray(r.favoritePageIds) ? r.favoritePageIds : [])
 			.filter((id): id is string => typeof id === "string" && id.length > 0)
 			.slice(-MAX_FAVORITE_PAGE_IDS),
+		projectAccent: healProjectAccentSettings(r.projectAccent),
 	};
 }
 

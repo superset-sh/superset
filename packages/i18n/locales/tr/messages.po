@@ -2889,6 +2889,9 @@ msgstr "İkili dosya gizlendi"
 msgid "Bio"
 msgstr "Hakkında"
 
+msgid "Blend the color into the terminal background"
+msgstr "Rengi terminal arka planına karıştır"
+
 msgid "Block"
 msgstr "Blok"
 
@@ -8108,6 +8111,9 @@ msgstr "İnsanlar superset.sh'a ve dokümantasyona nasıl ulaşıyor ve bunun ne
 msgid "How should the agent's actions be approved?"
 msgstr "Ajanın işlemleri nasıl onaylansın?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Rengin her yüzeyi ne kadar güçlü renklendireceği"
+
 msgid "How the command opens."
 msgstr "Komutun nasıl açılacağı."
 
@@ -8474,6 +8480,9 @@ msgstr "Yönergeler"
 
 msgid "Integrations"
 msgstr "Entegrasyonlar"
+
+msgid "Intensity"
+msgstr "Yoğunluk"
 
 msgid "Interactive agent terminal."
 msgstr "Etkileşimli ajan terminali."
@@ -11820,6 +11829,9 @@ msgstr "Ücretli arama"
 msgid "Palette"
 msgstr "Palet"
 
+msgid "Pane headers"
+msgstr "Bölme başlıkları"
+
 msgid "Pane in current tab"
 msgstr "Geçerli sekmede bölme"
 
@@ -12403,6 +12415,9 @@ msgstr "İlerleme · Spinner"
 msgid "Project"
 msgstr "Proje"
 
+msgid "Project colors in workspaces"
+msgstr "Çalışma alanlarında proje renkleri"
+
 msgid "Project created."
 msgstr "Proje oluşturuldu."
 
@@ -12460,6 +12475,9 @@ msgstr "Proje geneli arama"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Proje: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Projenin host'una erişilemiyor — şu anda renk değiştirilemez"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Projenin host'una erişilemiyor — worktree'ler şu anda içe aktarılamaz"
@@ -15842,6 +15860,9 @@ msgstr "Sistem RAM'i: Superset {0}, diğer uygulamalar {1}, boş {2}"
 msgid "Tab"
 msgstr "Sekme"
 
+msgid "Tab bar"
+msgstr "Sekme çubuğu"
+
 msgid "Tab per command"
 msgstr "Komut başına sekme"
 
@@ -16016,6 +16037,9 @@ msgstr "Terminal"
 
 msgid "Terminal agent launch configuration"
 msgstr "Terminal ajanı başlatma yapılandırması"
+
+msgid "Terminal background"
+msgstr "Terminal arka planı"
 
 msgid "Terminal connection: {label}"
 msgstr "Terminal bağlantısı: {label}"
@@ -16843,6 +16867,15 @@ msgstr "Zaman"
 
 msgid "Time range"
 msgstr "Zaman aralığı"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Her çalışma alanını projesinin rengiyle renklendirir. Kenar çubuğunda bir projeye sağ tıklayarak renk seçin."
+
+msgid "Tint the header above each pane"
+msgstr "Her bölmenin üstündeki başlığı renklendir"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Sekme çubuğunu renklendir ve etkin sekmeyi işaretle"
 
 msgid "Title"
 msgstr "Başlık"

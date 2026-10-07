@@ -2889,6 +2889,9 @@ msgstr "Binární soubor skryt"
 msgid "Bio"
 msgstr "O mně"
 
+msgid "Blend the color into the terminal background"
+msgstr "Promíchat barvu do pozadí terminálu"
+
 msgid "Block"
 msgstr "Blok"
 
@@ -8108,6 +8111,9 @@ msgstr "Jak se lidé dostávají na superset.sh a do dokumentace a kolik z toho 
 msgid "How should the agent's actions be approved?"
 msgstr "Jak schvalovat akce agenta?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Jak silně barva tónuje jednotlivé plochy"
+
 msgid "How the command opens."
 msgstr "Jak se příkaz otevře."
 
@@ -8474,6 +8480,9 @@ msgstr "Instrukce"
 
 msgid "Integrations"
 msgstr "Integrace"
+
+msgid "Intensity"
+msgstr "Intenzita"
 
 msgid "Interactive agent terminal."
 msgstr "Interaktivní terminál agenta."
@@ -11820,6 +11829,9 @@ msgstr "Placené vyhledávání"
 msgid "Palette"
 msgstr "Paleta"
 
+msgid "Pane headers"
+msgstr "Záhlaví panelů"
+
 msgid "Pane in current tab"
 msgstr "Panel v aktuální kartě"
 
@@ -12403,6 +12415,9 @@ msgstr "Průběh · Spinner"
 msgid "Project"
 msgstr "Projekt"
 
+msgid "Project colors in workspaces"
+msgstr "Barvy projektů v pracovních prostorech"
+
 msgid "Project created."
 msgstr "Projekt vytvořen."
 
@@ -12460,6 +12475,9 @@ msgstr "Hledání napříč projektem"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Projekt: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Host projektu není dostupný — teď nelze změnit barvu"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Host projektu není dostupný — worktree teď nelze importovat"
@@ -15842,6 +15860,9 @@ msgstr "Systémová RAM: Superset {0}, ostatní aplikace {1}, volné {2}"
 msgid "Tab"
 msgstr "Karta"
 
+msgid "Tab bar"
+msgstr "Lišta karet"
+
 msgid "Tab per command"
 msgstr "Karta na příkaz"
 
@@ -16016,6 +16037,9 @@ msgstr "Terminál"
 
 msgid "Terminal agent launch configuration"
 msgstr "Konfigurace spuštění terminálového agenta"
+
+msgid "Terminal background"
+msgstr "Pozadí terminálu"
 
 msgid "Terminal connection: {label}"
 msgstr "Připojení terminálu: {label}"
@@ -16843,6 +16867,15 @@ msgstr "Čas"
 
 msgid "Time range"
 msgstr "Časové období"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Tónovat každý pracovní prostor barvou jeho projektu. Barvu vyberete kliknutím pravým tlačítkem na projekt v postranním panelu."
+
+msgid "Tint the header above each pane"
+msgstr "Tónovat záhlaví nad každým panelem"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Tónovat lištu karet a označit aktivní kartu"
 
 msgid "Title"
 msgstr "Název"

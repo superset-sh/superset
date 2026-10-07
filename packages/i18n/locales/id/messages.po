@@ -2889,6 +2889,9 @@ msgstr "File biner disembunyikan"
 msgid "Bio"
 msgstr "Bio"
 
+msgid "Blend the color into the terminal background"
+msgstr "Campurkan warna ke latar belakang terminal"
+
 msgid "Block"
 msgstr "Blok"
 
@@ -8108,6 +8111,9 @@ msgstr "Bagaimana orang mencapai superset.sh dan dokumentasi, dan seberapa banya
 msgid "How should the agent's actions be approved?"
 msgstr "Bagaimana tindakan agen harus disetujui?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Seberapa kuat warna mewarnai setiap permukaan"
+
 msgid "How the command opens."
 msgstr "Bagaimana perintahnya dibuka."
 
@@ -8474,6 +8480,9 @@ msgstr "Instruksi"
 
 msgid "Integrations"
 msgstr "Integrasi"
+
+msgid "Intensity"
+msgstr "Intensitas"
 
 msgid "Interactive agent terminal."
 msgstr "Terminal agen interaktif."
@@ -11820,6 +11829,9 @@ msgstr "Pencarian berbayar"
 msgid "Palette"
 msgstr "Palet"
 
+msgid "Pane headers"
+msgstr "Header panel"
+
 msgid "Pane in current tab"
 msgstr "Panel di tab saat ini"
 
@@ -12403,6 +12415,9 @@ msgstr "Progres · Spinner"
 msgid "Project"
 msgstr "Proyek"
 
+msgid "Project colors in workspaces"
+msgstr "Warna proyek di workspace"
+
 msgid "Project created."
 msgstr "Proyek dibuat."
 
@@ -12460,6 +12475,9 @@ msgstr "Pencarian seluruh proyek"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Proyek: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Host proyek tidak bisa dijangkau — tidak bisa mengubah warna sekarang"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Host proyek tidak bisa dijangkau — worktree tidak bisa diimpor sekarang"
@@ -15842,6 +15860,9 @@ msgstr "RAM sistem: Superset {0}, aplikasi lain {1}, bebas {2}"
 msgid "Tab"
 msgstr "Tab"
 
+msgid "Tab bar"
+msgstr "Bilah tab"
+
 msgid "Tab per command"
 msgstr "Satu tab per perintah"
 
@@ -16016,6 +16037,9 @@ msgstr "Terminal"
 
 msgid "Terminal agent launch configuration"
 msgstr "Konfigurasi peluncuran agen terminal"
+
+msgid "Terminal background"
+msgstr "Latar belakang terminal"
 
 msgid "Terminal connection: {label}"
 msgstr "Koneksi terminal: {label}"
@@ -16843,6 +16867,15 @@ msgstr "Waktu"
 
 msgid "Time range"
 msgstr "Rentang waktu"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Beri warna setiap workspace dengan warna proyeknya. Pilih warna dengan klik kanan pada proyek di sidebar."
+
+msgid "Tint the header above each pane"
+msgstr "Beri warna header di atas setiap panel"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Beri warna bilah tab dan tandai tab yang aktif"
 
 msgid "Title"
 msgstr "Judul"

@@ -15,14 +15,19 @@ import {
 	LuFolderInput,
 	LuFolderOpen,
 	LuFolderPlus,
+	LuPalette,
 	LuPencil,
 	LuSettings,
 	LuTrash2,
 } from "react-icons/lu";
+import { ColorSelector } from "renderer/components/ColorSelector";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 
 interface DashboardSidebarProjectContextMenuProps {
 	projectId: string;
+	projectColor: string | null;
+	onSetColor: (color: string | null) => void;
 	onCreateSection: () => void;
 	onImportWorktrees: () => void;
 	onOpenInFinder: () => void;
@@ -36,6 +41,8 @@ interface DashboardSidebarProjectContextMenuProps {
 
 export function DashboardSidebarProjectContextMenu({
 	projectId,
+	projectColor,
+	onSetColor,
 	onCreateSection,
 	onImportWorktrees,
 	onOpenInFinder,
@@ -64,6 +71,22 @@ export function DashboardSidebarProjectContextMenu({
 					<LuSettings className="size-4 mr-2" />
 					<Trans>Project Settings</Trans>
 				</ContextMenuItem>
+				<ContextMenuSub>
+					<ContextMenuSubTrigger>
+						<LuPalette className="size-4 mr-2" />
+						<Trans>Color</Trans>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-48 max-h-80 overflow-y-auto">
+						<ColorSelector
+							variant="menu"
+							includeDefault
+							selectedColor={projectColor}
+							onSelectColor={(color) =>
+								onSetColor(color === PROJECT_COLOR_DEFAULT ? null : color)
+							}
+						/>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
 				<ContextMenuItem onSelect={onCreateSection}>
 					<LuFolderPlus className="size-4 mr-2" />
 					<Trans>New group</Trans>

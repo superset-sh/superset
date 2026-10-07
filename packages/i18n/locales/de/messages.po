@@ -2889,6 +2889,9 @@ msgstr "Binärdatei ausgeblendet"
 msgid "Bio"
 msgstr "Bio"
 
+msgid "Blend the color into the terminal background"
+msgstr "Die Farbe in den Terminal-Hintergrund mischen"
+
 msgid "Block"
 msgstr "Block"
 
@@ -8108,6 +8111,9 @@ msgstr "Wie Leute superset.sh und die Doku erreichen und wie viel davon Suche un
 msgid "How should the agent's actions be approved?"
 msgstr "Wie sollen die Aktionen des Agenten freigegeben werden?"
 
+msgid "How strongly the color tints each surface"
+msgstr "Wie stark die Farbe jede Fläche tönt"
+
 msgid "How the command opens."
 msgstr "Wie der Befehl geöffnet wird."
 
@@ -8474,6 +8480,9 @@ msgstr "Anweisungen"
 
 msgid "Integrations"
 msgstr "Integrationen"
+
+msgid "Intensity"
+msgstr "Intensität"
 
 msgid "Interactive agent terminal."
 msgstr "Interaktives Agenten-Terminal."
@@ -11820,6 +11829,9 @@ msgstr "Bezahlte Suche"
 msgid "Palette"
 msgstr "Palette"
 
+msgid "Pane headers"
+msgstr "Bereichsköpfe"
+
 msgid "Pane in current tab"
 msgstr "Bereich im aktuellen Tab"
 
@@ -12403,6 +12415,9 @@ msgstr "Fortschritt · Spinner"
 msgid "Project"
 msgstr "Projekt"
 
+msgid "Project colors in workspaces"
+msgstr "Projektfarben in Arbeitsbereichen"
+
 msgid "Project created."
 msgstr "Projekt erstellt."
 
@@ -12460,6 +12475,9 @@ msgstr "Projektweite Suche"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "Projekt: {0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "Host des Projekts nicht erreichbar — Farbe kann gerade nicht geändert werden"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "Host des Projekts nicht erreichbar — Worktrees können gerade nicht importiert werden"
@@ -15842,6 +15860,9 @@ msgstr "System-RAM: Superset {0}, andere Apps {1}, frei {2}"
 msgid "Tab"
 msgstr "Tab"
 
+msgid "Tab bar"
+msgstr "Tab-Leiste"
+
 msgid "Tab per command"
 msgstr "Ein Tab pro Befehl"
 
@@ -16016,6 +16037,9 @@ msgstr "Terminal"
 
 msgid "Terminal agent launch configuration"
 msgstr "Startkonfiguration des Terminal-Agenten"
+
+msgid "Terminal background"
+msgstr "Terminal-Hintergrund"
 
 msgid "Terminal connection: {label}"
 msgstr "Terminal-Verbindung: {label}"
@@ -16843,6 +16867,15 @@ msgstr "Zeit"
 
 msgid "Time range"
 msgstr "Zeitraum"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "Jeden Arbeitsbereich in der Farbe seines Projekts tönen. Wähle eine Farbe per Rechtsklick auf ein Projekt in der Seitenleiste."
+
+msgid "Tint the header above each pane"
+msgstr "Den Kopf über jedem Bereich tönen"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "Die Tab-Leiste tönen und den aktiven Tab markieren"
 
 msgid "Title"
 msgstr "Titel"

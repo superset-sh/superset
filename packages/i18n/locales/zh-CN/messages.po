@@ -2889,6 +2889,9 @@ msgstr "二进制文件已隐藏"
 msgid "Bio"
 msgstr "简介"
 
+msgid "Blend the color into the terminal background"
+msgstr "将颜色混入终端背景"
+
 msgid "Block"
 msgstr "方块"
 
@@ -8108,6 +8111,9 @@ msgstr "人们如何到达 superset.sh 和文档站，其中有多少来自搜�
 msgid "How should the agent's actions be approved?"
 msgstr "智能体的操作应如何批准？"
 
+msgid "How strongly the color tints each surface"
+msgstr "颜色对各区域着色的强度"
+
 msgid "How the command opens."
 msgstr "命令的打开方式。"
 
@@ -8474,6 +8480,9 @@ msgstr "说明"
 
 msgid "Integrations"
 msgstr "集成"
+
+msgid "Intensity"
+msgstr "强度"
 
 msgid "Interactive agent terminal."
 msgstr "可交互的智能体终端。"
@@ -11820,6 +11829,9 @@ msgstr "付费搜索"
 msgid "Palette"
 msgstr "调色板"
 
+msgid "Pane headers"
+msgstr "窗格标题栏"
+
 msgid "Pane in current tab"
 msgstr "当前标签页中的窗格"
 
@@ -12403,6 +12415,9 @@ msgstr "进度条 · 加载指示器"
 msgid "Project"
 msgstr "项目"
 
+msgid "Project colors in workspaces"
+msgstr "工作区中的项目颜色"
+
 msgid "Project created."
 msgstr "项目已创建。"
 
@@ -12460,6 +12475,9 @@ msgstr "全项目搜索"
 #. placeholder {0}: workspace.projectName ?? t({ message: "none (session)", })
 msgid "Project: {0}"
 msgstr "项目：{0}"
+
+msgid "Project's host is unreachable — cannot change color right now"
+msgstr "项目所在主机不可达，暂时无法更改颜色"
 
 msgid "Project's host is unreachable — cannot import worktrees right now"
 msgstr "项目所在主机不可达，暂时无法导入worktree"
@@ -15842,6 +15860,9 @@ msgstr "系统RAM：Superset {0}，其他应用{1}，空闲{2}"
 msgid "Tab"
 msgstr "标签页"
 
+msgid "Tab bar"
+msgstr "标签栏"
+
 msgid "Tab per command"
 msgstr "每条命令一个标签页"
 
@@ -16016,6 +16037,9 @@ msgstr "终端"
 
 msgid "Terminal agent launch configuration"
 msgstr "终端智能体启动配置"
+
+msgid "Terminal background"
+msgstr "终端背景"
 
 msgid "Terminal connection: {label}"
 msgstr "终端连接：{label}"
@@ -16843,6 +16867,15 @@ msgstr "时间"
 
 msgid "Time range"
 msgstr "时间范围"
+
+msgid "Tint each workspace with its project's color. Pick a color by right-clicking a project in the sidebar."
+msgstr "用项目的颜色为每个工作区着色。在侧边栏中右键点击项目即可选择颜色。"
+
+msgid "Tint the header above each pane"
+msgstr "为每个窗格上方的标题栏着色"
+
+msgid "Tint the tab strip and mark the active tab"
+msgstr "为标签栏着色并标记当前标签页"
 
 msgid "Title"
 msgstr "标题"

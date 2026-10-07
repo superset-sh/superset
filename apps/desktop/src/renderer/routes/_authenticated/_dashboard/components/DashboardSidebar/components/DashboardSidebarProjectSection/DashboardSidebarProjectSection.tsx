@@ -62,6 +62,7 @@ export function DashboardSidebarProjectSection({
 		renameSection,
 		renameValue,
 		setImportableWorktrees,
+		setProjectColor,
 		setRenameValue,
 		startRename,
 		submitRename,
@@ -101,6 +102,8 @@ export function DashboardSidebarProjectSection({
 		return (
 			<DashboardSidebarProjectContextMenu
 				projectId={project.id}
+				projectColor={project.color}
+				onSetColor={setProjectColor}
 				onCreateSection={handleNewSection}
 				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
@@ -132,6 +135,8 @@ export function DashboardSidebarProjectSection({
 		<div className="mt-1 first:mt-0">
 			<DashboardSidebarProjectContextMenu
 				projectId={project.id}
+				projectColor={project.color}
+				onSetColor={setProjectColor}
 				onCreateSection={handleNewSection}
 				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
